@@ -100,16 +100,23 @@ cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 }
 #> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
 #>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+#> Warning: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
+#> https://mc-stan.org/misc/warnings.html#bfmi-low
+#> Warning: Examine the pairs() plot to diagnose sampling problems
+#> Warning: The largest R-hat is 1.19, indicating chains have not mixed.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for theta_1). Rerun with more iterations before reading z_shift or sd_ratio
-#>   parameter         ml post_mean   wald_se   post_sd  z_shift  sd_ratio
-#> 3   theta_1 0.09859697 0.2022925 0.3522135 0.3425834 0.302687 0.9726583
+#> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for b_x, theta_1). Rerun with more iterations before reading z_shift or sd_ratio
+#> Laplace/Wald approximation questionable for: theta_1
+#>   parameter         ml  post_mean   wald_se   post_sd   z_shift sd_ratio
+#> 3   theta_1 0.09859697 -0.1053378 0.3522135 0.6452754 -0.316043 1.832057
 #>   ess_bulk
-#> 3 44.21178
+#> 3 5.918798
 # }
 ```

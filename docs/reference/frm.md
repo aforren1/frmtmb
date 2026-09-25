@@ -399,6 +399,45 @@ constant, so the two log-densities agree up to `lgamma(D)` per simplex.
 refused (the simplex carries one coefficient and a contrast expansion
 has no column to go in), and `mo(x):mo(w)` is refused outright.
 
+## Ordinal thresholds, thres()
+
+The four ordinal families take brms's `thres()` addition term.
+`y | thres(K) ~ x` fits `K` thresholds, so the response has `K + 1`
+categories even when the top ones are never observed. The data do not
+place a threshold above the highest observed category: its maximum
+likelihood estimate runs off toward infinity. Set a prior on class
+`"Intercept"` to hold it, as brms's default prior does. Without such a
+prior the fit warns.
+
+`y | thres(gr = g) ~ x` gives each level of the factor `g` a threshold
+vector of its own and keeps one linear predictor for all rows. The
+number of thresholds of a level is the highest category observed in that
+level less one, or `n` from `thres(n, gr = g)`, where `n` is a column
+that is constant within each level. These are brms's counts. A category
+above the highest one a level takes is not a category of that level,
+unless `thres(n, gr = g)` asks for it. An ordered-factor response takes
+its categories from the levels that occur in the data, as in brms, and
+`thres()` may not ask for more. Code the response as integers to fit
+categories nobody chose.
+
+The thresholds have brms's names: `Intercept[a,1]` in
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) and
+`b_Intercept[a,1]` in
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+and
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md).
+`set_prior(..., class = "Intercept", group = "a")` puts a prior on the
+thresholds of level `a` only. As in brms, the design is not centered
+under grouped thresholds.
+
+A row in level `a` falls in one of the categories `1..n_a + 1`.
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+[`predict()`](https://rdrr.io/r/stats/predict.html) return `max(n) + 1`
+categories, and the probability of a category past a row's own is 0, as
+in brms's `posterior_epred()`. `newdata` must hold the grouping
+variable, with levels the fit has seen. With `gr`, `cs()` is refused, as
+in brms, and so is `residuals(type = "osa")`.
+
 ## The Laplace approximation, and how to check it
 
 Random effects are integrated out by the Laplace approximation, which

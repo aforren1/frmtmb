@@ -175,6 +175,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
+#> Warning: The largest R-hat is 1.08, indicating chains have not mixed.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
@@ -182,8 +185,8 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
 #>      b_Intercept              b_x            sigma r_g[1,Intercept] 
-#>        1.0074392        0.9977798        1.0067763        1.0137461 
+#>         1.029802         1.022140         1.017330         1.019857 
 #> r_g[2,Intercept] r_g[3,Intercept] 
-#>        1.0213443        1.0129258 
+#>         1.004190         1.036883 
 # }
 ```

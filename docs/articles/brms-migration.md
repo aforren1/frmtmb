@@ -18,15 +18,18 @@ likelihood-ratio tests, AIC).
 | `bf(y ~ x, sigma = 1)` | same | fixed via TMB `map` |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
 | `(1 | p | g)` | same | cross-formula RE correlation |
-| `mvbind(y1, y2) ~ x`, [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) | same | per-response families; `rescor` gaussian-only |
+| `mvbind(y1, y2) ~ x`, [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) | same | per-response families, ordinal ones included; `rescor` all gaussian or all student, with one shared `nu`; `mvbf() + family` fills only responses without a family (below) |
 | `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE censoring bound is read inclusively, unlike brms (below) |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` ([`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md) names it); se.fit on the nonlinear mu not yet |
 | [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) | same | [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) on any dpar, bodies chain to any depth (below) |
+| `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
-| `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
+| `me(x, sdx)`, `me(x, sdx, gr = g)`, [`set_mecor()`](https://aforren1.github.io/frmtmb/reference/set_mecor.md) | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
+| `(x | gr(g, by = f))` | same | one set of SDs and correlations per level of `f`, named `sd_g__Intercept:fa` as in brms; not with `cov =` |
+| `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms’s default) and `cov = TRUE` (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
 
@@ -252,8 +255,8 @@ not written.
   responses.
 
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
-  predictors, `mi(sdx)` measurement error (the `me()` replacement, as in
-  current brms), `cs()` category-specific ordinal effects, `gp(x)` /
+  predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
+  measurement error, `cs()` category-specific ordinal effects, `gp(x)` /
   `gp(x, k =)` Gaussian processes, and
   [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
   families (including group-level latent classes via `groups = ~g`) all
@@ -272,6 +275,13 @@ not written.
   fits with the D1, D2 and D3 rules of `mice` (D3 by default). Mixture
   fits are ML: expect multimodality, compare starts
   ([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)).
+
+- `thres()` works on the four ordinal families. `y | thres(K) ~ x` sets
+  the number of thresholds, and `y | thres(gr = g) ~ x` fits one
+  threshold vector per level of `g`, named `Intercept[g,k]` as in brms.
+  The section “Ordinal thresholds, thres()” of
+  [`?frm`](https://aforren1.github.io/frmtmb/reference/frm.md) says
+  where the count and the unobserved categories differ from brms.
 
 - [`binomial()`](https://rdrr.io/r/stats/family.html),
   [`beta_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -354,6 +364,17 @@ not written.
 
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
+
+- A family added to a multivariate formula goes only to the responses
+  that have no family yet. So
+  `bf(o ~ x) + cumulative() + bf(y ~ x) + gaussian()` keeps `o` ordinal
+  and makes `y` gaussian. brms gives the last family to every response,
+  so the same line makes `o` gaussian there. Any number of
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) formulas
+  can be added together, and
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) and
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) take
+  brms’s `resp =` to name the response they belong to.
 
 ## Nonlinear formulas: `nl = TRUE` and `nlf()`
 
@@ -455,18 +476,56 @@ refuses one:
 | `mm(g1, g2, cor = FALSE)` | `diag(x | mm(g1, g2))`, or `(x || mm(g1, g2))` |
 | `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
 | `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
-| `mm(g1, g2, by = )`, `pw =`, `dist =` | no equivalent yet |
+| `mm(g1, g2, by = cbind(f1, f2))` | same, one by-variable column per member |
+| `mm(g1, g2, pw = )`, `dist =` | no equivalent yet |
 
 `?frmtmb-multimembership` is the full page.
+
+## Noise-free predictors: `me()`
+
+`me(x, sdx)` means what it means in brms: the column `x` is a noisy
+reading of a latent value with known measurement SD `sdx`, the latent
+values are normal with an estimated mean `meanme` and SD `sdme`, and the
+model uses the latent value. `gr = g` gives one latent value per level
+of `g`. Several
+[`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md) terms
+have correlated latent values unless `set_mecor(FALSE)` is added, as in
+brms.
+
+frmtmb integrates the latent values out with the Laplace approximation.
+For a gaussian response with linear
+[`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md) terms
+the marginal likelihood is multivariate normal and the approximation is
+exact. The names follow brms: the coefficient of `me(x, sx)` is
+`bsp_mexsx`, and [`summary()`](https://rdrr.io/r/base/summary.html)
+reports `meanme_mex`, `sdme_mex` and `corme__mex__mez`, which brms
+reports only through
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md).
+
+Two differences to know when you port:
+
+- On new data, [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) use the
+  observed `x` in place of the latent value. brms draws it from
+  `N(x, sdx)`, so the two agree on the mean of a linear term, but brms’s
+  prediction interval is wider.
+- brms’s prior classes `meanme`, `sdme` and `corme` have no slot here
+  and are refused by name. The flat rows of a
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  table and its `lkj(1)` `corme` row are dropped, because they apply
+  nothing.
+
+`?frmtmb-me` is the full page.
 
 ## Within-group residual correlation
 
 [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
 and `unstr()` are written where brms writes them, in the model formula,
-and mean what brms means under `cov = TRUE`: the residuals of one group
-become a single correlated draw, `y_g ~ N(mu_g, D R D)` with `D` the
-diagonal of that group’s `sigma` values. `?frmtmb-autocor` has the full
-page; five things matter when porting.
+and mean what brms means. Under `cov = TRUE` (and always for `cosy()`
+and `unstr()`) the residuals of one group become a single correlated
+draw, `y_g ~ N(mu_g, D R D)` with `D` the diagonal of that group’s
+`sigma` values. `?frmtmb-autocor` has the full page; five things matter
+when porting.
 
 **The term grammar is brms’s.** `time` is ONE variable name, or absent
 for the row’s position within its group, and `gr` is variable names
@@ -475,20 +534,32 @@ than evaluated, exactly as brms refuses it: `ar(x + t, g)` would index
 the correlation by the sum, and `gr = g1/g2` would group the residual by
 the quotient. Compute the column first and name it.
 
-**`cov = TRUE` is required for
-[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`.** brms
-defaults to `cov = FALSE`, which is a different likelihood - a residual
-regression that conditions on each group’s first rows - and that form is
-not implemented. The call is refused rather than reinterpreted, so a
-brms model written with the default has to be changed deliberately.
-`cosy()` and `unstr()` have no `cov` argument in brms either and port
-unchanged.
+**`cov = FALSE`, brms’s default for
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`, ports
+unchanged.** It is a different likelihood from `cov = TRUE`: `mu` gains
+a regression on the group’s earlier residuals, and every row keeps the
+family’s own density, so the likelihood conditions on each group’s first
+rows. It is brms’s likelihood to 1e-15 relative, and for one series it
+is the conditional sum of squares of `stats::arima(method = "CSS")`. As
+in brms, the coefficients are unconstrained, the lag is counted in rows,
+and [`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
+[`trunc()`](https://rdrr.io/r/base/Round.html), `mi()` and
+`rescor = TRUE` combine with it.
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+[`predict()`](https://rdrr.io/r/stats/predict.html) give brms’s one-step
+mean, which reads the observed earlier residuals, so `newdata` must
+carry the response;
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) runs the recursion
+over its own draws. `cosy()` and `unstr()` have no `cov` argument in
+brms either and port unchanged.
 
 ``` r
 
 # brms
+brm(y ~ x + ar(week, subj), data = d)
 brm(y ~ x + ar(week, subj, cov = TRUE), data = d)
 # frmtmb
+frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
 frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
 ```
 
@@ -519,12 +590,13 @@ frm(bf(cnt ~ x + ar1(factor(week) + 0 | subj)) + poisson(), data = d)
 
 **Higher orders are allowed, and gaps are honored.** brms limits
 `cov = TRUE` to order one; `ar(p = 3)` and `arma(p = 2, q = 1)` work
-here. And the lag between two rows is the distance between their
-positions in the global set of time levels, so a subject missing week 3
-gets `cor(week2, week4) = rho^2`; brms indexes
-[`ar()`](https://rdrr.io/r/stats/ar.html)/`ma()`/`arma()`/ `cosy()` by
+here. And under `cov = TRUE` the lag between two rows is the distance
+between their positions in the global set of time levels, so a subject
+missing week 3 gets `cor(week2, week4) = rho^2`; brms indexes
+[`ar()`](https://rdrr.io/r/stats/ar.html)/`ma()`/`arma()`/`cosy()` by
 position within the group and treats the missing row as no gap. On
-complete balanced groups the two agree.
+complete balanced groups the two agree. Under `cov = FALSE` the lag is
+counted in rows, as brms counts it.
 
 The parameters appear in
 [`summary()`](https://rdrr.io/r/base/summary.html) under “Within-group
@@ -532,13 +604,13 @@ residual correlation” and in
 [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
 under brms’s names (`ar[1]`, `cosy`, `cortime__1__2`);
 [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
-returns the fitted correlation matrix.
-[`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
-[`trunc()`](https://rdrr.io/r/base/Round.html), `se()`, `mi()`,
-`rescor = TRUE`, mixtures and `quadrature = TRUE` are refused, because
-the likelihood no longer factorizes over rows - brms refuses the same
-core set. Random effects alongside the correlated residual are the point
-of the feature and are supported.
+returns the fitted correlation matrix under `cov = TRUE`. Under
+`cov = TRUE`, [`weights()`](https://rdrr.io/r/stats/weights.html),
+`cens()`, [`trunc()`](https://rdrr.io/r/base/Round.html), `se()`,
+`mi()`, `rescor = TRUE`, mixtures and `quadrature = TRUE` are refused,
+because the likelihood no longer factorizes over rows. brms refuses the
+same core set. Random effects alongside the correlated residual are the
+point of the feature and are supported.
 
 ## Variance functions (nlme `weights = varFunc`)
 
@@ -759,6 +831,14 @@ what a standard generic returns:
   `"old_levels"` resample the draws of the levels that were seen, and a
   maximum-likelihood fit has none, so both are refused by name.
 
+- `emmeans()` takes brms’s `dpar`, `nlpar`, `resp`, `epred` and
+  `re_formula`, with brms’s defaults. A multivariate fit without `resp`
+  stacks its responses as brms’s `rep.meas` factor. Where brms
+  summarizes draws, a nonlinear `mu` and `epred = TRUE` use the delta
+  method through
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md);
+  see `?frmtmb-emmeans`.
+
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for
   simulation-based residual checks use
   [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md).
@@ -812,9 +892,8 @@ Nothing in the grammar changes when you sample, which is why the two
 halves split cleanly. What does change is everything around the draws:
 the argument names of the call, the parameter spellings, and which
 `brmsfit` methods have no counterpart.
-[`vignette("brms-posterior", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/brms-posterior.html)
-is that half, and
-[`vignette("posterior-diagnostics", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html)
+`vignette("brms-posterior", package = "frmtmb.sample")` is that half,
+and `vignette("posterior-diagnostics", package = "frmtmb.sample")`
 covers the diagnostics of a sampled fit.
 
 ## When you still want brms

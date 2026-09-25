@@ -192,9 +192,9 @@ the model has parameters the data cannot tell apart.
 
 To measure the violation rather than route around it, install the
 companion package **frmtmb.sample** and read
-[`vignette("posterior-diagnostics", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html),
-which covers `check_laplace()` and the diagnostics of a sampled fit;
-this page stays with the maximum-likelihood side.
+`vignette("posterior-diagnostics", package = "frmtmb.sample")`, which
+covers `check_laplace()` and the diagnostics of a sampled fit; this page
+stays with the maximum-likelihood side.
 
 ### A distributional parameter with no maximum
 
@@ -218,7 +218,7 @@ du <- data.frame(x = rnorm(120))
 du$y <- 1 + 0.5 * du$x + (runif(120) - 0.5) * 3.4
 diagnose(frm(bf(y ~ x) + student(), data = du), quiet = TRUE)$unbounded_dpar
 #>         parameter estimate std.error      value
-#> 1 nu: (Intercept) 21.53311  7699.398 2247558151
+#> 1 nu: (Intercept) 21.53311  7694.311 2247558151
 ```
 
 [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)

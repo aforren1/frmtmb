@@ -47,8 +47,7 @@ Do not edit these files by hand:
 
 - `NAMESPACE` and `man/*.Rd`. These are generated. Run
   [`roxygen2::roxygenise()`](https://roxygen2.r-lib.org/reference/roxygenize.html).
-- `codemeta.json`. Run
-  [`codemetar::write_codemeta()`](https://docs.ropensci.org/codemetar/reference/write_codemeta.html).
+- `codemeta.json`. Run `codemetar::write_codemeta()`.
 
 ## Style
 

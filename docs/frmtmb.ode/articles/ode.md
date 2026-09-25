@@ -425,7 +425,7 @@ dose_fit <- frm(
   data = dd, start = list(beta = c(0, log(0.25), log(8))))
 unlist(fixef_by_dpar(dose_fit))
 #>   lka.(Intercept)   lke.(Intercept)    lV.(Intercept) sigma.(Intercept) 
-#>        0.04225596       -1.44209990        2.28231919       -1.30575528
+#>        0.04225605       -1.44209994        2.28231919       -1.30575521
 ```
 
 The truth is `lka = 0`, `lke = -1.61` and `lV = 2.30`, with a residual

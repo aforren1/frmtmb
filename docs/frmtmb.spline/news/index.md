@@ -192,11 +192,10 @@ of two curves with pointwise and simultaneous bands, and
 [`frm_curve_feature()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_feature.md)
 on it finds where they meet.
 
-- Checked against
-  [`gratia::difference_smooths()`](https://gavinsimpson.github.io/gratia/reference/difference_smooths.html).
-  The estimate gap is provably the fit rather than the arithmetic, at
-  5.55e-16, and simultaneous coverage is 0.970 over 200 seeds against a
-  binomial Monte Carlo error of 0.0154.
+- Checked against `gratia::difference_smooths()`. The estimate gap is
+  provably the fit rather than the arithmetic, at 5.55e-16, and
+  simultaneous coverage is 0.970 over 200 seeds against a binomial Monte
+  Carlo error of 0.0154.
 
 - An exact `gp()` under a difference is answered where the kriging
   residual is the same random variable and refused where it is not, and

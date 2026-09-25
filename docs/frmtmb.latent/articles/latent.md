@@ -119,8 +119,6 @@ hm <- hmmTMB::HMM$new(obs = obs, hid = hid)
 hm$fit(silent = TRUE)
 c(frmtmb = as.numeric(logLik(fhmm)), hmmTMB = hm$llk(),
   difference = as.numeric(logLik(fhmm)) - hm$llk())
-#>        frmtmb        hmmTMB    difference 
-#> -6.858536e+02 -6.858536e+02 -5.919674e-10
 ```
 
 ``` r
@@ -197,8 +195,8 @@ chain.](latent_files/figure-html/hmm-fig-1.png)
 
 The colors come in runs. That persistence is the whole difference
 between an HMM and the two-component growth mixture of
-[`vignette("case-studies", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/case-studies.html),
-and it is what the transition matrix measures.
+`vignette("case-studies", package = "frmtmb")`, and it is what the
+transition matrix measures.
 
 ### What the HMM surface refuses
 
@@ -374,7 +372,7 @@ pl <- poLCA::poLCA(cbind(A, B, C, D, E, F, G) ~ 1, dp, nclass = 2,
 c(frmtmb = as.numeric(logLik(flca)), poLCA = pl$llik,
   difference = as.numeric(logLik(flca)) - pl$llik)
 #>        frmtmb         poLCA    difference 
-#> -8.130282e+02 -8.130282e+02 -3.806463e-09
+#> -8.130282e+02 -8.130282e+02 -3.806008e-09
 ```
 
 ``` r
@@ -397,7 +395,7 @@ perm <- if (sum(abs(ours - theirs)) <= sum(abs(ours[2:1, ] - theirs))) {
 c(profiles = max(abs(ours[perm, ] - theirs)),
   posterior = max(abs(lca_probs(flca)[, perm] - pl$posterior)))
 #>     profiles    posterior 
-#> 1.353604e-06 2.165668e-06
+#> 1.353479e-06 2.166306e-06
 ```
 
 ``` r

@@ -121,11 +121,10 @@ formula, `sd(g) ~ w`, in gaussian models, where `w` must be constant
 within the group; frmtmb reaches the same model only through a nonlinear
 formula. It takes a phylogeny, a pedigree, or a pair of trees directly,
 where frmtmb needs the covariance matrix. It accepts a full known
-sampling covariance for meta-analysis. It fits the zero-one-inflated
-beta and the hurdle and zero-truncated NB2 families. It imputes a binary
-missing predictor, and it draws worm plots and centile charts. Its
-documentation grades each model route by the evidence behind its
-estimate and its interval.
+sampling covariance for meta-analysis. It fits the zero-truncated NB2
+family. It imputes a binary missing predictor, and it draws worm plots
+and centile charts. Its documentation grades each model route by the
+evidence behind its estimate and its interval.
 [BayesRTMB](https://github.com/norimune/BayesRTMB) is a Bayesian-first,
 Stan-like modeling layer on the same RTMB backend.
 [qbrms](https://github.com/Tony-Myers/qbrms) also reads brms syntax and
@@ -244,7 +243,9 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`,
   and `unstr()`, for gaussian and student responses, validated against
   [`nlme::gls`](https://rdrr.io/pkg/nlme/man/gls.html) under ML and
-  REML.
+  REML. brms’s default `cov = FALSE` form of
+  [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()` is
+  brms’s own likelihood, a regression on earlier residuals.
 - `car(M, gr = g, type =)` fits spatial Gaussian Markov random fields
   with brms’s spelling and all four of its types (`escar`, `esicar`,
   `icar`, and `bym2` with brms’s scaling convention).

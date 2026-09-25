@@ -104,8 +104,7 @@ Record types and items:
 
 - Any other `evid` value, including rxode2's codes above 6 and its
   classic codes of 100 and more, such as the 101 in
-  [`nlmixr2data::theo_sd`](https://nlmixr2.github.io/nlmixr2data/reference/theo_sd.html),
-  which fold the compartment into the number.
+  `nlmixr2data::theo_sd`, which fold the compartment into the number.
 
 - `ss = 2`, NONMEM's steady state added to the current state rather than
   replacing it.

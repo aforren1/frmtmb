@@ -346,6 +346,6 @@ the payoff is graded. See
 - [`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
   for the Laplace numbers, the recovery tables, and what
   `frm(importance =)` is worth on which designs.
-- [`vignette("reinforcement-learning", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/reinforcement-learning.html)
-  for the structured-family protocol these families are built on,
-  written out longhand for one model.
+- `vignette("reinforcement-learning", package = "frmtmb")` for the
+  structured-family protocol these families are built on, written out
+  longhand for one model.

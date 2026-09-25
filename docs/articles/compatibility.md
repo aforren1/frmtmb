@@ -88,44 +88,46 @@ inclusive convention, where a bound names a value the response can take
 DECLARES it reads the term, with `accepts_aterms`; gaussian and student
 are the built-in ones that do.
 
-|  | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| gaussian | \+ | x | \+ | \+ | \+ | \+ | x | x |
-| student | \+ | x | x | x | \+ | \+ | x | x |
-| lognormal | \+ | x | \+ | \+ | x | x | x | x |
-| shifted_lognormal | \+ | x | x | x | x | x | x | x |
-| skew_normal | \+ | x | x | x | x | x | x | x |
-| exgaussian | \+ | x | x | x | x | x | x | x |
-| asym_laplace | \+ | x | x | x | x | x | x | x |
-| Gamma | \+ | x | x | x | x | x | x | x |
-| weibull | \+ | x | \+ | \+ | x | x | x | x |
-| exponential | \+ | x | \+ | \+ | x | x | x | x |
-| inverse.gaussian | \+ | x | \+ | \+ | x | x | x | x |
-| beta | \+ | x | x | x | x | x | x | x |
-| tweedie | \+ | x | x | x | x | x | x | x |
-| poisson | \+ | x | ~ | ~ | x | x | x | x |
-| negbinomial | \+ | x | x | x | x | x | x | x |
-| nbinom1 | \+ | x | x | x | x | x | x | x |
-| geometric | \+ | x | x | x | x | x | x | x |
-| compois | \+ | x | x | x | x | x | x | x |
-| binomial | \+ | \+ | x | x | x | x | x | x |
-| bernoulli | \+ | x | x | x | x | x | x | x |
-| beta_binomial | \+ | \+ | x | x | x | x | x | x |
-| multinomial | \+ | ~ | x | x | x | x | x | x |
-| zero_inflated_poisson | \+ | x | x | x | x | x | x | x |
-| zero_inflated_negbinomial | \+ | x | x | x | x | x | x | x |
-| zero_inflated_binomial | \+ | \+ | x | x | x | x | x | x |
-| zero_inflated_beta | \+ | x | x | x | x | x | x | x |
-| hurdle_poisson | \+ | x | x | x | x | x | x | x |
-| hurdle_gamma | \+ | x | x | x | x | x | x | x |
-| hurdle_lognormal | \+ | x | x | x | x | x | x | x |
-| cumulative | \+ | x | x | x | x | x | x | x |
-| sratio | \+ | x | x | x | x | x | x | x |
-| cratio | \+ | x | x | x | x | x | x | x |
-| acat | \+ | x | x | x | x | x | x | x |
-| categorical | \+ | x | x | x | x | x | x | x |
-| von_mises | \+ | x | x | x | x | x | x | x |
-| cox | \+ | x | \+ | ~ | x | x | x | x |
+|  | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() | thres() |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| gaussian | \+ | x | \+ | \+ | \+ | \+ | x | x | x |
+| student | \+ | x | x | x | \+ | \+ | x | x | x |
+| lognormal | \+ | x | \+ | \+ | x | x | x | x | x |
+| shifted_lognormal | \+ | x | x | x | x | x | x | x | x |
+| skew_normal | \+ | x | x | x | x | x | x | x | x |
+| exgaussian | \+ | x | x | x | x | x | x | x | x |
+| asym_laplace | \+ | x | x | x | x | x | x | x | x |
+| Gamma | \+ | x | x | x | x | x | x | x | x |
+| weibull | \+ | x | \+ | \+ | x | x | x | x | x |
+| exponential | \+ | x | \+ | \+ | x | x | x | x | x |
+| inverse.gaussian | \+ | x | \+ | \+ | x | x | x | x | x |
+| beta | \+ | x | x | x | x | x | x | x | x |
+| tweedie | \+ | x | x | x | x | x | x | x | x |
+| poisson | \+ | x | ~ | ~ | x | x | x | x | x |
+| negbinomial | \+ | x | x | x | x | x | x | x | x |
+| nbinom1 | \+ | x | x | x | x | x | x | x | x |
+| geometric | \+ | x | x | x | x | x | x | x | x |
+| compois | \+ | x | x | x | x | x | x | x | x |
+| binomial | \+ | \+ | x | x | x | x | x | x | x |
+| bernoulli | \+ | x | x | x | x | x | x | x | x |
+| beta_binomial | \+ | \+ | x | x | x | x | x | x | x |
+| multinomial | \+ | ~ | x | x | x | x | x | x | x |
+| zero_inflated_poisson | \+ | x | x | x | x | x | x | x | x |
+| zero_inflated_negbinomial | \+ | x | x | x | x | x | x | x | x |
+| zero_inflated_binomial | \+ | \+ | x | x | x | x | x | x | x |
+| zero_inflated_beta | \+ | x | x | x | x | x | x | x | x |
+| zero_one_inflated_beta | \+ | x | x | x | x | x | x | x | x |
+| hurdle_poisson | \+ | x | x | x | x | x | x | x | x |
+| hurdle_negbinomial | \+ | x | x | x | x | x | x | x | x |
+| hurdle_gamma | \+ | x | x | x | x | x | x | x | x |
+| hurdle_lognormal | \+ | x | x | x | x | x | x | x | x |
+| cumulative | \+ | x | x | x | x | x | x | x | \+ |
+| sratio | \+ | x | x | x | x | x | x | x | \+ |
+| cratio | \+ | x | x | x | x | x | x | x | \+ |
+| acat | \+ | x | x | x | x | x | x | x | \+ |
+| categorical | \+ | x | x | x | x | x | x | x | x |
+| von_mises | \+ | x | x | x | x | x | x | x | x |
+| cox | \+ | x | \+ | ~ | x | x | x | x | x |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -136,14 +138,15 @@ are the built-in ones that do.
 | x | gaussian + trials() | Refused by declaration: gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | gaussian + vint() | Refused by declaration: gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | gaussian + vreal() | Refused by declaration: gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | gaussian + thres(); student + thres(); lognormal + thres(); shifted_lognormal + thres(); skew_normal + thres(); and 29 more | Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none. |
 | x | student + trials() | Refused by declaration: student names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
-| x | student + cens(); shifted_lognormal + cens(); skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 8 more | Refused: cens() needs a family with an AD log-CDF. |
-| x | student + trunc(); shifted_lognormal + trunc(); skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and 19 more | Refused: trunc() needs a family with an AD log-CDF. |
+| x | student + cens(); shifted_lognormal + cens(); skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 9 more | Refused: cens() needs a family with an AD log-CDF. |
+| x | student + trunc(); shifted_lognormal + trunc(); skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and 21 more | Refused: trunc() needs a family with an AD log-CDF. |
 | x | student + vint() | Refused by declaration: student names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | student + vreal() | Refused by declaration: student names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | lognormal + trials() | Refused by declaration: lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
-| x | lognormal + se(); shifted_lognormal + se(); skew_normal + se(); exgaussian + se(); asym_laplace + se(); and 29 more | Refused unless the family DECLARES that it reads the term, with frmtmb_family(accepts_aterms = c(…, “se”)) or required_aterms = “se”. se() is the one core addition term whose whole effect is inside the density, so the core cannot act on it for a family that ignores it. gaussian and student are the built-in families that declare it. A declaring family is refused a SECOND way if it has no dpar named `sigma` and carries another free dpar: se() without sigma = TRUE replaces the residual scale, the core maps out only the dpar the convention names, and the other one would be left free and unread - a flat direction and a NaN standard error. A family whose whole scale IS the known one (no dpar beyond its primaries) is unaffected; the ways out are frmtmb_family(se_dpar =), which names the dpar the known standard error replaces or is NA where it replaces none, naming the scale `sigma`, pinning it in the formula, or se(x, sigma = TRUE). A FORMULA for the replaced dpar is refused too, on any family: it estimates a parameter the density never reads, so only a constant pins it. |
-| x | lognormal + mi(); shifted_lognormal + mi(); skew_normal + mi(); exgaussian + mi(); asym_laplace + mi(); and 29 more | Refused: an imputation model must be gaussian or student. |
+| x | lognormal + se(); shifted_lognormal + se(); skew_normal + se(); exgaussian + se(); asym_laplace + se(); and 31 more | Refused unless the family DECLARES that it reads the term, with frmtmb_family(accepts_aterms = c(…, “se”)) or required_aterms = “se”. se() is the one core addition term whose whole effect is inside the density, so the core cannot act on it for a family that ignores it. gaussian and student are the built-in families that declare it. A declaring family is refused a SECOND way if it has no dpar named `sigma` and carries another free dpar: se() without sigma = TRUE replaces the residual scale, the core maps out only the dpar the convention names, and the other one would be left free and unread - a flat direction and a NaN standard error. A family whose whole scale IS the known one (no dpar beyond its primaries) is unaffected; the ways out are frmtmb_family(se_dpar =), which names the dpar the known standard error replaces or is NA where it replaces none, naming the scale `sigma`, pinning it in the formula, or se(x, sigma = TRUE). A FORMULA for the replaced dpar is refused too, on any family: it estimates a parameter the density never reads, so only a constant pins it. |
+| x | lognormal + mi(); shifted_lognormal + mi(); skew_normal + mi(); exgaussian + mi(); asym_laplace + mi(); and 31 more | Refused: an imputation model must be gaussian or student. |
 | x | lognormal + vint() | Refused by declaration: lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | lognormal + vreal() | Refused by declaration: lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | shifted_lognormal + trials() | Refused by declaration: shifted_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
@@ -180,7 +183,7 @@ are the built-in ones that do.
 | x | poisson + vint() | Refused by declaration: poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | poisson + vreal() | Refused by declaration: poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | negbinomial + trials() | Refused by declaration: negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
-| x | negbinomial + cens(); nbinom1 + cens(); geometric + cens(); compois + cens(); binomial + cens(); and 6 more | Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is. |
+| x | negbinomial + cens(); nbinom1 + cens(); geometric + cens(); compois + cens(); binomial + cens(); and 7 more | Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is. |
 | x | negbinomial + vint() | Refused by declaration: negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | negbinomial + vreal() | Refused by declaration: negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | nbinom1 + trials() | Refused by declaration: nbinom1 names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
@@ -212,9 +215,15 @@ are the built-in ones that do.
 | x | zero_inflated_beta + trials() | Refused by declaration: zero_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | zero_inflated_beta + vint() | Refused by declaration: zero_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | zero_inflated_beta + vreal() | Refused by declaration: zero_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_one_inflated_beta + trials() | Refused by declaration: zero_one_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_one_inflated_beta + vint() | Refused by declaration: zero_one_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_one_inflated_beta + vreal() | Refused by declaration: zero_one_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | hurdle_poisson + trials() | Refused by declaration: hurdle_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | hurdle_poisson + vint() | Refused by declaration: hurdle_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | hurdle_poisson + vreal() | Refused by declaration: hurdle_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_negbinomial + trials() | Refused by declaration: hurdle_negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_negbinomial + vint() | Refused by declaration: hurdle_negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_negbinomial + vreal() | Refused by declaration: hurdle_negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | hurdle_gamma + trials() | Refused by declaration: hurdle_gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | hurdle_gamma + vint() | Refused by declaration: hurdle_gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | hurdle_gamma + vreal() | Refused by declaration: hurdle_gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
@@ -267,23 +276,25 @@ value.
 | exponential | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | inverse.gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| tweedie | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+| tweedie | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | nbinom1 | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | geometric | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| compois | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+| compois | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | bernoulli | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | beta_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | multinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_poisson | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| zero_inflated_negbinomial | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| zero_inflated_binomial | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| zero_inflated_beta | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| zero_one_inflated_beta | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| hurdle_poisson | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| hurdle_negbinomial | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| hurdle_gamma | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| hurdle_lognormal | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
 | cumulative | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
 | sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
 | cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
@@ -294,11 +305,11 @@ value.
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 24 more | Needs a family with a mean function. |
-| ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 25 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
-| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; gaussian + frm_lp_basis; student + residuals; and 134 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
-| ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 25 more | One-step-ahead residuals need the family to register its observation through OBS(). |
-| ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 27 more | Univariate fits only, and the mu predictor must be linear. |
+| ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 26 more | Needs a family with a mean function. |
+| ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 27 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
+| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; gaussian + frm_lp_basis; student + residuals; and 142 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
+| ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 18 more | One-step-ahead residuals need the family to register its observation through OBS(). |
+| ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 29 more | Takes brms’s dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families. |
 | ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities frm_linpred(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = “response”) == fitted() identity holds. The latent linear predictor is frm_linpred(fit, type = “link”), which is also what emmeans and insight see. |
 | ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
 | ~ | cumulative + residuals; sratio + residuals; cratio + residuals; acat + residuals | “response” (“ordinary”) and “pearson” are refused, as brms refuses predictive errors for every ordinal family: a category has no scale for y - E\[Y\] to be read on. “osa” gives randomized quantile residuals that use only the order, and dharma_residuals() is the simulation-based check. “deviance” is refused, as for every family without a standard unit deviance. |
@@ -307,7 +318,7 @@ value.
 | ~ | categorical + predict | type = “response” returns an n x K matrix of category probabilities, columns named by the response’s own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category’s latent predictor is frm_linpred(type = “link”, dpar = “mu”), which is where se.fit works. |
 | ~ | von_mises + fitted | Returns the mean DIRECTION in radians on (-pi, pi\], which is what brms’s posterior_epred() reports for this family; a circular response has no arithmetic mean. |
 | ~ | cox + predict | type = “response” and fitted() are refused: a survival time has no mean the censored rows identify. type = “link” gives the log hazard ratio, and cox_baseline() the fitted baseline weights. |
-| x | tweedie + simulate; compois + simulate; hurdle_poisson + simulate | Refused: this family has no simulator yet. |
+| x | zero_inflated_poisson + residuals_osa; zero_inflated_negbinomial + residuals_osa; zero_inflated_binomial + residuals_osa; zero_inflated_beta + residuals_osa; zero_one_inflated_beta + residuals_osa; and 4 more | Refused by name: the density branches on y == 0 for its point mass, and oneStepPredict() hands it an observation object with no comparison operator. Through 0.63.0 each of these failed there with base R’s own message. Use residuals(type = “pearson”) or dharma_residuals(). |
 | x | categorical + residuals | Refused: the categories carry no order, so no residual has a scale to live on. Compare fitted(fit), the n x K category probabilities, against the observed categories instead. |
 | x | categorical + residuals_osa | Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF. |
 | x | von_mises + residuals_osa | Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line. |
@@ -362,6 +373,7 @@ change the arithmetic or the output, not the model.
 | mi() | \+ | x | x | \+ | \+ | \+ | ? | ? | \+ |
 | vint() | ? | ? | ? | ? | \+ | \+ | ? | ? | ? |
 | vreal() | ? | ? | ? | ? | \+ | \+ | ? | ? | ? |
+| thres() | \+ | \+ | \+ | \+ | \+ | \+ | \+ | ? | \+ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -425,14 +437,14 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 
 ## Model structures
 
-|             | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() |
-|:------------|:---------:|:--------:|:------:|:-------:|:----:|:----:|:------:|:-------:|
-| mvbf        |    \+     |    \+    |   \+   |   \+    |  \+  |  \+  |   ?    |    ?    |
-| rescor      |     x     |    ?     |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| \|ID\|      |     ?     |    ?     |   ?    |    ?    |  ?   |  ?   |   ?    |    ?    |
-| nl          |     ?     |    ?     |   \+   |    ?    |  ?   |  ?   |   ?    |    ?    |
-| mixture     |    \+     |    ?     |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| mixture_mvn |     ?     |    ?     |   x    |    x    |  ?   |  ?   |   ?    |    ?    |
+|             | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() | thres() |
+|:------------|:---------:|:--------:|:------:|:-------:|:----:|:----:|:------:|:-------:|:-------:|
+| mvbf        |    \+     |    \+    |   \+   |   \+    |  \+  |  \+  |   ?    |    ?    |    x    |
+| rescor      |     x     |    ?     |   x    |    x    |  x   |  x   |   ?    |    ?    |    ?    |
+| \|ID\|      |     ?     |    ?     |   ?    |    ?    |  ?   |  ?   |   ?    |    ?    |    ?    |
+| nl          |     ?     |    ?     |   \+   |    ?    |  ?   |  ?   |   ?    |    ?    |    ?    |
+| mixture     |    \+     |    ?     |   x    |    x    |  x   |  x   |   ?    |    ?    |    x    |
+| mixture_mvn |     ?     |    ?     |   x    |    x    |  ?   |  ?   |   ?    |    ?    |    ?    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -445,6 +457,8 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | x | mixture + se() | Refused: a mixture does not declare se() even when its components do. Reading the term is only half of what se() means; the other half is that the residual scale it replaces is mapped out, and that step names the dpar `sigma`, which sigma1 and sigma2 are not. Measured before the refusal was made explicit: mixture(gaussian, gaussian) with se() fitted with both component sigmas at their starting value and every standard error NaN. |
 | x | rescor + mi() | Refused: mi() cannot be combined with rescor = TRUE. |
 | x | mixture + mi() | Refused: mi() on the mixture response is not supported. |
+| x | mvbf + thres() | Refused with every ordinal family: families with extra parameters are not supported in multivariate fits yet. |
+| x | mixture + thres() | Refused with every ordinal family: an ordinal family is not a mixture component. |
 
 ### Structures and post-fit methods
 
@@ -463,10 +477,10 @@ other.
 
 |  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile | frm_lp_basis |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| mvbf | \+ | \+ | x | x | x | x | \+ | \+ | x |
-| rescor | \+ | \+ | x | x | x | x | \+ | \+ | ? |
+| mvbf | \+ | \+ | x | x | x | \+ | \+ | \+ | x |
+| rescor | \+ | \+ | x | x | x | \+ | \+ | \+ | ? |
 | \|ID\| | ? | ? | ? | ? | ? | ? | ? | ? | ? |
-| nl | \+ | ~ | ? | ? | ? | x | ? | ? | \+ |
+| nl | \+ | ~ | ? | ? | ? | \+ | ? | ? | \+ |
 | mixture | ? | ? | ~ | ? | ? | ? | ? | ? | ? |
 | mixture_mvn | ? | ? | \+ | ? | ? | ? | ? | ? | ? |
 
@@ -474,12 +488,10 @@ other.
 |:---|:---|:---|
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
-| x | mvbf + simulate; mvbf + residuals; mvbf + emmeans; mvbf + frm_lp_basis | Refused: the post-fit methods below are univariate-only for now. |
+| x | mvbf + simulate; mvbf + residuals; mvbf + frm_lp_basis | Refused: the post-fit methods below are univariate-only for now. |
 | x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
 | x | rescor + simulate | Refused: simulate() is not supported for multivariate fits yet. |
 | x | rescor + residuals; rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
-| x | rescor + emmeans | Refused: emmeans support is univariate-only for now. |
-| x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
 
 ## Within-group residual correlation
 
@@ -487,32 +499,38 @@ other.
 and `unstr()` replace the response’s per-row density with one joint
 density per group. That is what decides almost every pair below: a
 family needs a real residual to correlate, and an addition term that
-reshapes a per-row contribution has nothing left to reshape.
+reshapes a per-row contribution has nothing left to reshape. brms’s
+default `cov = FALSE` for [`ar()`](https://rdrr.io/r/stats/ar.html),
+`ma()` and `arma()` keeps the per-row density and shifts `mu` instead,
+so the rows naming those three terms say where its answer differs.
 
-|  | gaussian | student | lognormal | shifted_lognormal | skew_normal | exgaussian | asym_laplace | Gamma | weibull | exponential | inverse.gaussian | beta | tweedie | poisson | negbinomial | nbinom1 | geometric | compois | binomial | bernoulli | beta_binomial | multinomial | zero_inflated_poisson | zero_inflated_negbinomial | zero_inflated_binomial | zero_inflated_beta | hurdle_poisson | hurdle_gamma | hurdle_lognormal | cumulative | sratio | cratio | acat | categorical | von_mises | cox |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| ar() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| ma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| arma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| cosy() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| unstr() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-
-| Status | Pairs | Note |
-|:---|:---|:---|
-| ~ | ar() + student; ma() + student; arma() + student; cosy() + student; unstr() + student | The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ … is refused. The density is brms’s multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly. |
-| x | ar() + lognormal; ma() + lognormal; arma() + lognormal; cosy() + lognormal; unstr() + lognormal; and 165 more | Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 \| subj), or toep()/us() for a freer lag structure. |
-
-|         | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() |
-|:--------|:---------:|:--------:|:------:|:-------:|:----:|:----:|:------:|:-------:|
-| ar()    |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| ma()    |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| arma()  |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| cosy()  |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| unstr() |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
+|  | gaussian | student | lognormal | shifted_lognormal | skew_normal | exgaussian | asym_laplace | Gamma | weibull | exponential | inverse.gaussian | beta | tweedie | poisson | negbinomial | nbinom1 | geometric | compois | binomial | bernoulli | beta_binomial | multinomial | zero_inflated_poisson | zero_inflated_negbinomial | zero_inflated_binomial | zero_inflated_beta | zero_one_inflated_beta | hurdle_poisson | hurdle_negbinomial | hurdle_gamma | hurdle_lognormal | cumulative | sratio | cratio | acat | categorical | von_mises | cox |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| ar() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| ma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| arma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| cosy() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| unstr() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| x | ar() + weights(); ma() + weights(); arma() + weights(); cosy() + weights(); unstr() + weights(); and 25 more | Refused: the group’s density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with ‘Invalid addition arguments for this model’. |
+| ~ | ar() + student; ma() + student; arma() + student | Under cov = TRUE the multivariate-t has one shape per group, so nu must be constant. Under cov = FALSE the density is brms’s rowwise student_t at the shifted mu, and a predicted nu ~ … works. |
+| ~ | cosy() + student; unstr() + student | The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ … is refused. The density is brms’s multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly. |
+| x | ar() + lognormal; ma() + lognormal; arma() + lognormal; cosy() + lognormal; unstr() + lognormal; and 175 more | Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 \| subj), or toep()/us() for a freer lag structure. Under cov = FALSE brms itself refuses an MA part for these families (‘Please set cov = TRUE when modeling MA structures for this family’) and fits latent residuals for an AR part; both are refused here with that explanation. |
+
+|         | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() | thres() |
+|:--------|:---------:|:--------:|:------:|:-------:|:----:|:----:|:------:|:-------:|:-------:|
+| ar()    |     ~     |    ~     |   ~    |    ~    |  x   |  ~   |   ~    |    ~    |    ~    |
+| ma()    |     ~     |    ~     |   ~    |    ~    |  x   |  ~   |   ~    |    ~    |    ~    |
+| arma()  |     ~     |    ~     |   ~    |    ~    |  x   |  ~   |   ~    |    ~    |    ~    |
+| cosy()  |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |    x    |
+| unstr() |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |    x    |
+
+| Status | Pairs | Note |
+|:---|:---|:---|
+| ~ | ar() + weights(); ma() + weights(); arma() + weights(); ar() + trials(); ma() + trials(); and 19 more | Under cov = FALSE weights(), cens(), trunc() and mi() work: the term shifts mu and the density stays per row, so each addition term acts on its row as it does without the term, and under mi() the residual is taken against the observed-or-imputed response (brms’s Yl). brms 2.23.0 generates the same Stan code for each; verified against its model block to 1e-15 (dev/arcov-validate.R). Under cov = TRUE all of them are refused, because the group’s density is joint. |
+| x | cosy() + weights(); unstr() + weights(); cosy() + trials(); unstr() + trials(); cosy() + cens(); and 9 more | Refused: the group’s density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with ‘Invalid addition arguments for this model’. |
+| x | ar() + se(); ma() + se(); arma() + se() | Refused under both forms. brms refuses se() with cov = FALSE (‘Please set cov = TRUE in ARMA structures when including known standard errors’), and the cov = TRUE form here has no per-row density for a known standard error to add to. |
 
 |  | REML | quadrature | importance | profile | autoscale | sparse_x | prior | bounds | verbose |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -525,22 +543,23 @@ reshapes a per-row contribution has nothing left to reshape.
 | Status | Pairs | Note |
 |:---|:---|:---|
 | x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
-| x | ar() + importance; ma() + importance; arma() + importance; cosy() + importance; unstr() + importance | Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists. |
+| x | ar() + importance; ma() + importance; arma() + importance; cosy() + importance; unstr() + importance | Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists. Under brms’s cov = FALSE the rows are separate densities but each one’s mean reads the residuals of the rows before it, which the per-row integrand does not carry either. |
 
 |         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn |
 |:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|
-| ar()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
-| ma()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
-| arma()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| ar()    |  \+  |   ~    |   ?    |  x  |    x    |      x      |
+| ma()    |  \+  |   ~    |   ?    |  x  |    x    |      x      |
+| arma()  |  \+  |   ~    |   ?    |  x  |    x    |      x      |
 | cosy()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
 | unstr() |  \+  |   x    |   ?    |  x  |    x    |      x      |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| x | ar() + rescor; ma() + rescor; arma() + rescor; cosy() + rescor; unstr() + rescor | Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair. |
+| ~ | ar() + rescor; ma() + rescor; arma() + rescor | Works under cov = FALSE: each response’s mu is shifted by its own term and the rows keep their multivariate normal density across responses, which is brms’s Stan code; verified against it to 1e-15. Refused under cov = TRUE, where the joint structure would be a Kronecker product. |
 | x | ar() + nl; ma() + nl; arma() + nl; cosy() + nl; unstr() + nl | Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here. |
 | x | ar() + mixture; ma() + mixture; arma() + mixture; cosy() + mixture; unstr() + mixture | Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it. |
 | x | ar() + mixture_mvn; ma() + mixture_mvn; arma() + mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn | Refused for the same reason as mixture(). |
+| x | cosy() + rescor; unstr() + rescor | Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair. |
 
 ## Predictor specials
 
@@ -553,9 +572,12 @@ reshapes a per-row contribution has nothing left to reshape.
 | gp_pred() | \+ | x | x | ? | ? | ? | ? | ? | ? |
 | cs_pred() | ? | ? | x | ? | \+ | \+ | ? | ? | \+ |
 | ps() | x | x | x | x | \+ | \+ | ? | ? | \+ |
+| me() | ~ | x | x | \+ | \+ | \+ | ~ | ? | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
+| ~ | me() + REML | Runs (verified by a tiny fit), but REML integrates a mu me() coefficient together with the latent values it multiplies, so the integrand is not gaussian and even for a gaussian response the criterion is the Laplace-approximated integrated likelihood, not the exact restricted likelihood. |
+| ~ | me() + prior | The me() coefficients are class “b” coefficients, e.g. coef = “mexsx”. brms’s classes meanme, sdme and corme have no prior slot here and are refused by name; the flat rows of a brms get_prior() table, and its lkj(1) corme row, are dropped because they apply nothing. |
 | x | s() + quadrature | Refused in practice: a smooth is a wide random-effect block, so the scalar-intercept guard rejects it. |
 | x | s() + importance | Refused: a smooth is one field over all observations, with no grouping factor, so there are no independent groups to give separate proposals to. |
 | x | t2() + quadrature | Refused in practice: a smooth is a wide random-effect block. |
@@ -567,6 +589,8 @@ reshapes a per-row contribution has nothing left to reshape.
 | x | ps() + quadrature | Marginalizing the block by Gauss-Kronrod means integrating over a whole curve, and the rule takes one scalar random effect at a time. Refused by name. |
 | x | ps() + importance | Inherited: the importance correction refuses EVERY nonlinear predictor, because a body mixes parameter values with raw data columns and the corrected objective evaluates it once per draw. Not a restriction of ps(). |
 | x | ps() + profile | Profiling assumes the objective is quadratic in the fixed coefficients, which a nonlinear body makes it not. Refused by name. |
+| x | me() + quadrature | Refused: the latent values are one integral each, not the one scalar random effect the rule marginalizes. |
+| x | me() + importance | Refused: the latent values have no grouping factor to give them a per-group proposal. |
 
 The specials `mi()`, `gp()`, and `cs()` share a name with a covariance
 structure. The registry writes the predictor forms as `mi_pred()`,
@@ -592,11 +616,11 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1770 | 34%   |
-| conditional |  1805 | 34%   |
-| refused     |   836 | 16%   |
+| works       |  2101 | 36%   |
+| conditional |  1949 | 33%   |
+| refused     |   916 | 16%   |
 | broken      |     0 | 0%    |
-| untested    |   845 | 16%   |
+| untested    |   886 | 15%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

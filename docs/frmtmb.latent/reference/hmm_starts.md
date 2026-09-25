@@ -177,14 +177,14 @@ ms
 #>   best logLik    -330.8885276
 #>   original       -330.8885276   (the original fit was the best found)
 #> 
-#>   logLik spread, the original and the 3 converged refits: 7.310120509e-09
-#>   logLik spread, every one of the 4 that finished    : 7.310120509e-09
+#>   logLik spread, the original and the 3 converged refits: 7.310063665e-09
+#>   logLik spread, every one of the 4 that finished    : 7.310063665e-09
 #> 
 #>   distinct optima among the original and the converged: 1
 #>        logLik found
 #>  -330.8885276     4
 #> 
-#>   seconds: 0.08481 total, 0.02857 median per refit
+#>   seconds: 0.07604 total, 0.02602 median per refit
 #>   gradient evaluations: 86 total, 28 median per refit
 logLik(ms$best)
 #> 'log Lik.' -330.8885 (df=6)

@@ -27,6 +27,8 @@
   [`getCall(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   [`coef(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   : Model structure behind a set of draws
+- [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+  : Sample a model with NUTS
 - [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   [`nsamples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   [`parnames()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
@@ -50,8 +52,6 @@
   [`bayes_factor()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
   [`post_prob()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
   : Refusals for the refit-based and marginal-likelihood brmsfit methods
-- [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
-  : Sample a model with NUTS
 - [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
   [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)

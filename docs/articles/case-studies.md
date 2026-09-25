@@ -903,17 +903,19 @@ dord <- data.frame(y = factor(Y, ordered = TRUE), x = xo)
 fcs <- frm(bf(y ~ cs(x)) + sratio(), data = dord)
 confint(fcs)
 #>                   lwr        upr        est
-#> tau_raw_1 -1.56199837 -1.1273843 -1.3446913
-#> tau_raw_2 -0.47074653  0.2194181 -0.1256642
-#> tau_raw_3  0.19217398  0.6924868  0.4423304
-#> bcs2_1    -0.07596964  0.3784579  0.1512441
-#> bcs2_2     0.47728264  0.9677442  0.7225134
-#> bcs2_3     0.40132291  1.0910031  0.7461630
+#> tau_raw_1 -1.56199949 -1.1273864 -1.3446929
+#> tau_raw_2 -0.67583509 -0.2497143 -0.4627747
+#> tau_raw_3  0.76770573  1.4194112  1.0935585
+#> bcs2_1    -0.07596909  0.3784586  0.1512448
+#> bcs2_2     0.47728372  0.9677452  0.7225145
+#> bcs2_3     0.40132771  1.0910094  0.7461686
 ```
 
-`tau_raw` holds the thresholds on an internal increasing scale. `bcs2_k`
-is the effect of `x` at threshold `k`. The three effects grow, which is
-what the simulation put there.
+`tau_raw` holds the thresholds themselves:
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+does not order them, as brms does not. `bcs2_k` is the effect of `x` at
+threshold `k`. The three effects grow, which is what the simulation put
+there.
 
 ### Cross-check against a set of binomial regressions
 
@@ -935,7 +937,7 @@ rbind(frmtmb = confint(fcs)[paste0("bcs2_", 1:3), "est"],
       # the binary question is "stop here", so the sign is reversed
       binomial_glms = -vapply(glm_fits, function(g) coef(g)[["x"]], 0))
 #>                  bcs2_1    bcs2_2    bcs2_3
-#> frmtmb        0.1512441 0.7225134 0.7461630
+#> frmtmb        0.1512448 0.7225145 0.7461686
 #> binomial_glms 0.1512442 0.7225128 0.7461606
 c(frmtmb = as.numeric(logLik(fcs)),
   sum_of_glms = sum(vapply(glm_fits, function(g) as.numeric(logLik(g)), 0)))
@@ -1261,14 +1263,14 @@ reports.
 
 ### What this does not cover
 
-`rescor` is gaussian only, and it describes the residuals of the
-responses, so it cannot be combined with a term that already describes
-them. An [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`,
-`cosy()` or `unstr()` term next to `rescor = TRUE` is refused, and so
-are mixtures and censored responses. One `|ID|` label must name one
-grouping specification: the same label over two different grouping
-factors is an error, because there is no single block for it to build.
-[`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+`rescor` needs all gaussian or all Student-t responses. It describes the
+residuals of the responses, so it cannot be combined with a term that
+already describes them. An [`ar()`](https://rdrr.io/r/stats/ar.html),
+`ma()`, `arma()`, `cosy()` or `unstr()` term next to `rescor = TRUE` is
+refused, and so are mixtures and censored responses. One `|ID|` label
+must name one grouping specification: the same label over two different
+grouping factors is an error, because there is no single block for it to
+build. [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) are not the
 only parts of the post-fitting surface that step back from a
 `rescor = TRUE` fit. `frm_compat("rescor")` lists the whole set, and
@@ -1360,7 +1362,7 @@ c(max_abs_difference = max(abs(b1_frm - b1_gam)),
     sigma(ffix)^2 / suppressWarnings(confint_varcorr(ffix))$estimate^2 /
       gfix$sp - 1)))
 #>  max_abs_difference       frmtmb_logLik       mgcv_ML_score smoothing_par_ratio 
-#>        1.725568e-06       -9.809097e+02       -9.809097e+02        8.639424e-05
+#>        1.725569e-06       -9.809097e+02       -9.809097e+02        8.639423e-05
 stopifnot(max(abs(b1_frm - b1_gam)) < 1e-4,
           abs(as.numeric(logLik(ffix)) + gfix$gcv.ubre) < 1e-5)
 ```
@@ -1393,12 +1395,12 @@ ffs <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10) +
                 s(t, subject, bs = "fs", k = 5)),
            family = gaussian(), data = fos)
 confint_varcorr(ffs)
-#>          block       term type estimate        lwr      upr
-#> 1         s(t) sd(wiggle)   sd 4.573562 2.78944032 7.498807
-#> 2       s(t):x sd(wiggle)   sd 2.236733 1.24051965 4.032968
-#> 3 s(t,subject) sd(wiggle)   sd 0.189870 0.08457782 0.426242
-#> 4 s(t,subject) sd(wiggle)   sd 2.422720 1.91869887 3.059142
-#> 5 s(t,subject) sd(wiggle)   sd 4.077381 3.25651856 5.105156
+#>          block       term type  estimate        lwr       upr
+#> 1         s(t) sd(wiggle)   sd 4.5744872 2.78997821 7.5003929
+#> 2       s(t):x sd(wiggle)   sd 2.2395561 1.24195858 4.0384693
+#> 3 s(t,subject) sd(wiggle)   sd 0.1903496 0.08478051 0.4273737
+#> 4 s(t,subject) sd(wiggle)   sd 2.9108534 2.31367348 3.6621707
+#> 5 s(t,subject) sd(wiggle)   sd 3.7679146 3.00767377 4.7203193
 ```
 
 The `fs` term expands into three variance components, which is how
@@ -1420,9 +1422,9 @@ c(max_abs_difference = max(abs(b1_frm2 - b1_gam2)),
   mgcv_ML_score = unname(-gfs$gcv.ubre),
   sigma_frmtmb = sigma(ffs), sigma_mgcv = sqrt(gfs$sig2))
 #> max_abs_difference      frmtmb_logLik      mgcv_ML_score       sigma_frmtmb 
-#>       2.444950e-06      -4.399321e+02      -4.399321e+02       3.265995e-01 
+#>       1.908634e-07      -4.434795e+02      -4.434795e+02       3.266099e-01 
 #>         sigma_mgcv 
-#>       3.270417e-01
+#>       3.270427e-01
 ```
 
 ``` r
@@ -1447,7 +1449,7 @@ fre <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10) + (1 + t | subject)),
 c(fixed_only = AIC(ffix), factor_smooth = AIC(ffs),
   random_line = AIC(fre))
 #>    fixed_only factor_smooth   random_line 
-#>     1975.8194      899.8642      901.6500
+#>     1975.8194      906.9591      901.6500
 ```
 
 The third fit is the cheaper alternative: a random intercept and a
@@ -1518,7 +1520,7 @@ c(frmtmb_sigma = sigma(fsof), mgcv_sigma = sqrt(gsof$sig2),
   max_abs_fitted_difference =
     max(abs(fitted(fsof)[, "Estimate"] - as.numeric(fitted(gsof)))))
 #>              frmtmb_sigma                mgcv_sigma max_abs_fitted_difference 
-#>              3.879617e-01              3.898877e-01              9.076064e-08
+#>              3.879617e-01              3.898877e-01              9.076065e-08
 ```
 
 Recover `b(s)` by predicting at a synthetic case whose weight vector is
@@ -1741,7 +1743,7 @@ c(custom = as.numeric(logLik(fsl)), builtin = as.numeric(logLik(fbi)),
   loglik_difference = as.numeric(logLik(fsl)) - as.numeric(logLik(fbi)),
   shift_difference = shift_hat - exp(eb[["ndt.(Intercept)"]]))
 #>            custom           builtin loglik_difference  shift_difference 
-#>      1.478009e+00      1.478009e+00     -5.107026e-15     -2.572237e-09
+#>      1.478009e+00      1.478009e+00      4.107825e-14     -2.572238e-09
 ```
 
 ``` r
@@ -1765,8 +1767,7 @@ A drift-diffusion model sat in this slot until frmtmb.eam existed: a
 first-passage density written as a series, a boundary indicator arriving
 through `vint()`, and a non-decision time bounded exactly as the shift
 is above. That family is a package now, and the package does the density
-better than a case study did.
-[`vignette("ddm", package = "frmtmb.eam")`](https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html)
+better than a case study did. `vignette("ddm", package = "frmtmb.eam")`
 is the worked model, and
 [`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
 is the family.
@@ -1993,11 +1994,10 @@ second-difference penalty joins the fixed coefficients and the range
 space becomes one random-effect block whose single variance is the
 inverse smoothing parameter.
 
-The data are
-[`brokenstick::smocc_200`](https://growthcharts.org/brokenstick/reference/smocc_200.html):
-1942 height measurements on 200 Dutch children, 6 to 12 each. Age goes
-in as weeks so that $`\beta_3`$ is a shift in weeks per week of
-gestation, and gestational age is centered at 40.
+The data are `brokenstick::smocc_200`: 1942 height measurements on 200
+Dutch children, 6 to 12 each. Age goes in as weeks so that $`\beta_3`$
+is a shift in weeks per week of gestation, and gestational age is
+centered at 40.
 
 ``` r
 
@@ -2011,8 +2011,6 @@ smocc <- data.frame(
 smocc <- smocc[!is.na(smocc$hgt), ]
 smocc$id <- droplevels(smocc$id)
 c(rows = nrow(smocc), children = nlevels(smocc$id))
-#>     rows children 
-#>     1906      200
 ```
 
 ``` r
@@ -2026,29 +2024,7 @@ fit_smocc <- frm(
   data = smocc, family = gaussian(),
   start = list(beta = c(68, 2, 0, 1, 0)))
 fixef_by_dpar(fit_smocc)[c("int", "amp", "shift")]
-#> $int
-#> (Intercept)         sex 
-#>   68.754333    1.805782 
-#> 
-#> $amp
-#>          sex 
-#> 0.0002123578 
-#> 
-#> $shift
-#>       ga 
-#> 1.050019
 VarCorr(fit_smocc)
-#> $id
-#> $id$sd
-#>                 Estimate Est.Error     Q2.5    Q97.5
-#> int_Intercept   2.868475 0.1560077 2.562706 3.174245
-#> shift_Intercept 3.324130 0.2122613 2.908105 3.740154
-#> 
-#> 
-#> $residual__
-#> $residual__$sd
-#>  Estimate  Est.Error     Q2.5    Q97.5
-#>  1.056744 0.01987038 1.017798 1.095689
 ```
 
 `k = 15` is the paper’s cubic basis with 11 interior knots. `pad = 0.25`
@@ -2086,14 +2062,6 @@ got <- c(beta0 = fx$int[["(Intercept)"]], beta1 = fx$int[["sex"]],
 paper <- c(beta0 = 68.2, beta1 = 1.80, beta2 = 0.00, beta3 = 1.00,
            sd_b1 = 2.86, sd_b2 = 3.28, sigma = 1.05)
 round(cbind(frmtmb = got, paper = paper, difference = got - paper), 3)
-#>       frmtmb paper difference
-#> beta0 68.754 68.20      0.554
-#> beta1  1.806  1.80      0.006
-#> beta2  0.000  0.00      0.000
-#> beta3  1.050  1.00      0.050
-#> sd_b1  2.868  2.86      0.008
-#> sd_b2  3.324  3.28      0.044
-#> sigma  1.057  1.05      0.007
 ```
 
 Six of the seven agree to the published precision. The intercept is 0.55
@@ -2121,8 +2089,6 @@ curve_at_data <- as.vector(
 c(beta0 = p$beta[match("int_(Intercept)", bn)],
   recentred = p$beta[match("int_(Intercept)", bn)] + mean(curve_at_data),
   paper = 68.2)
-#>     beta0.int_(Intercept) recentred.int_(Intercept)                     paper 
-#>                  68.75433                  68.19824                  68.20000
 ```
 
 Whatever the paper’s constraint was, the two intercepts describe the
@@ -2162,8 +2128,6 @@ ref <- sum(dnorm(smocc$hgt, mu, exp(p$betad[1]), log = TRUE)) +
   sum(dnorm(p$b[bk$b_idx], 0, exp(p$theta[bk$theta_idx]), log = TRUE))
 joint <- -frmtmb:::build_objective(fit_smocc$frame)(p)
 c(frmtmb = joint, reference = ref, difference = joint - ref)
-#>        frmtmb     reference    difference 
-#> -3.653385e+03 -3.653385e+03  4.774847e-11
 stopifnot(abs(joint - ref) < 1e-8)
 ```
 
@@ -2188,10 +2152,6 @@ se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0))
 band <- data.frame(age = grid$age, fit = lb$eta,
                    lo = lb$eta - 1.96 * se, hi = lb$eta + 1.96 * se)
 head(round(band, 3), 3)
-#>     age    fit     lo     hi
-#> 1 0.000 49.992 49.221 50.762
-#> 2 1.092 50.928 50.167 51.690
-#> 3 2.185 51.850 51.097 52.603
 ```
 
 The whole grid’s covariance, `A V A'`, is what a SIMULTANEOUS band
@@ -2212,8 +2172,6 @@ tinyplot::tinyplot_add(lo ~ age, data = band, type = "l", lty = 2)
 tinyplot::tinyplot_add(fit ~ age, data = band, type = "l", lwd = 2)
 ```
 
-![](case-studies_files/figure-html/smocc-plot-1.png)
-
 ### What a `ps()` block refuses
 
 `REML = TRUE`, `quadrature = TRUE`, `frmtmb_control(profile = TRUE)` and
@@ -2229,7 +2187,6 @@ one is refused by that guard rather than by a new one.
 
 try(frm(bf(hgt ~ int + ps(age, k = 8), int ~ 1, nl = TRUE),
         data = smocc[1:200, ], family = gaussian(), REML = TRUE))
-#> Error : REML = TRUE cannot be combined with ps(age, k = 8): REML integrates the fixed coefficients out, and this term puts its own null space among them inside a body that is nonlinear in it
 ```
 
 The basis itself is a divided difference of truncated powers written
@@ -2314,13 +2271,13 @@ Two subjects that were case studies here have packages of their own now,
 and each one carries a worked page written to this standard. Read them
 as the next two studies in the tour.
 
-- [`vignette("latent", package = "frmtmb.latent")`](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html)
-  fits a hidden Markov model to an animal track, cross-checks it against
-  hmmTMB and depmixS4, and lists what a likelihood that does not
-  factorize over the rows refuses.
-- [`vignette("ddm", package = "frmtmb.eam")`](https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html)
-  fits the drift-diffusion first-passage density of section 11, and
-  measures the two ways of truncating its series.
+- `vignette("latent", package = "frmtmb.latent")` fits a hidden Markov
+  model to an animal track, cross-checks it against hmmTMB and depmixS4,
+  and lists what a likelihood that does not factorize over the rows
+  refuses.
+- `vignette("ddm", package = "frmtmb.eam")` fits the drift-diffusion
+  first-passage density of section 11, and measures the two ways of
+  truncating its series.
 
 The identity-refit check of section 1 belongs in any model that reads a
 matrix from `data2`. It is the one test that a structured covariance

@@ -57,9 +57,14 @@ factor and the same relationship matrix, which makes the \|ID\| spelling
 of a multi-trait animal model the same fit as the long-format one.
 rescor standardizes per-response residuals and evaluates one constant
 correlation matrix (plus a log-sigma Jacobian), which stays vectorized
-under distributional sigma. Matrix responses (multinomial) use
-`primary_dpars`: families whose location predictors are mu2..muK all
-receive the main formula, individually overridable as dpar formulas.
+under distributional sigma; the Student-t case evaluates a multivariate
+t with one nu shared by all responses, carried as the first response’s
+dpar. A family’s extra parameters (ordinal thresholds) are namespaced by
+response in a multivariate frame (`frame$extra_map`), and each density
+reads its own block under its family’s names. Matrix responses
+(multinomial) use `primary_dpars`: families whose location predictors
+are mu2..muK all receive the main formula, individually overridable as
+dpar formulas.
 
 Deviations from the original plan that remain true today:
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) is a numeric
@@ -78,8 +83,8 @@ loop over responses silently collide. Everything else once listed here
 equalto, smooth edf reporting) has since shipped; `propto` itself is
 spelled `gr(g, cov = A)`; gp() now spans up to 3 dimensions
 (per-dimension or iso lengthscales) and the exact form kriges at unseen
-positions. Remaining deferrals: `ar()/ma()` residual autocorrelation
-terms.
+positions; [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and
+`arma()` fit both of brms’s forms, `cov = FALSE` and `cov = TRUE`.
 
 ## 1. Thesis
 
@@ -451,9 +456,9 @@ identical spelling:
 [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md),
 [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md),
 dpar formulas, `nl = TRUE`, aterm names (`weights`, `trials`, `cens`,
-`trunc`, `se`, `rate`), RE specials (`gr`, `mm`), and `s()`/`t2()`.
-Unsupported brms terms fail at parse time with a clear message naming
-the term. brms code ports mechanically, priors included:
+`trunc`, `se`, `rate`, `thres`), RE specials (`gr`, `mm`), and
+`s()`/`t2()`. Unsupported brms terms fail at parse time with a clear
+message naming the term. brms code ports mechanically, priors included:
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md),
 `frm_sample()` and
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
@@ -502,7 +507,9 @@ Each milestone ends green against a reference implementation.
 | v0.5 | `nl = TRUE`, [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) public, emmeans/marginaleffects polish, `conditional_effects`, `as_tmbstan`, `mm()`, pkgdown + brms-migration vignette | nl growth models vs [`nlme::nlme`](https://rdrr.io/pkg/nlme/man/nlme.html); custom nbinom2 matches built-in to 1e-10 |
 
 Deferred (candidates for v0.6+): `mo()`, `gp()` (HSGP or `dgmrf`),
-CAR/SAR, `me()`, `cs()`,
+CAR/SAR,
+[`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md),
+`cs()`,
 [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
 (not latent-Gaussian; Laplace inappropriate; multimodal ML). Excluded:
 `mi()` missing-data terms.

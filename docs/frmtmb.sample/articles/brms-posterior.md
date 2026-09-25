@@ -1,7 +1,7 @@
 # Migrating the posterior workflow from brms
 
-[`vignette("brms-migration", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/brms-migration.html)
-ports the model GRAMMAR: what
+`vignette("brms-migration", package = "frmtmb")` ports the model
+GRAMMAR: what
 [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.html), the
 addition terms, the group-level structures and the families do here, and
 how a `brm()` call becomes a

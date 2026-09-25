@@ -1,9 +1,8 @@
 # Diagnosing a sampled fit
 
-[`vignette("diagnostics", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/diagnostics.html)
-asks three questions of a maximum-likelihood fit: did the optimizer
-converge, does the family describe the data, and are the reported
-uncertainties trustworthy.
+`vignette("diagnostics", package = "frmtmb")` asks three questions of a
+maximum-likelihood fit: did the optimizer converge, does the family
+describe the data, and are the reported uncertainties trustworthy.
 
 A sampled fit reorders that list. There is no optimizer to interrogate,
 so the first question becomes whether the sampler explored the posterior
@@ -237,7 +236,7 @@ question.
 
 | question | where |
 |----|----|
-| did the optimizer converge | [`vignette("diagnostics", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/diagnostics.html) |
+| did the optimizer converge | `vignette("diagnostics", package = "frmtmb")` |
 | does the family describe the data (ML) | same page: [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.html), `residuals(type = "osa")` |
 | did the chains converge | here |
 | does the model describe the data (posterior) | here: [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html), [`loo()`](https://mc-stan.org/loo/reference/loo.html) |

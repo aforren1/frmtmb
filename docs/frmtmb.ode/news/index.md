@@ -34,12 +34,8 @@
   `t = 1e7` stay distinct. A dose item is read only through its
   argument; any other column is a covariate. Doses of an id with no
   observation are dropped with a warning. Validated against
-  [`rxode2::et()`](https://nlmixr2.github.io/rxode2/reference/et.html)
-  and
-  [`rxode2::rxSolve()`](https://nlmixr2.github.io/rxode2/reference/rxSolve.html)
-  on random schedules, on
-  [`nlmixr2data::warfarin`](https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html)
-  and `theo_md`, and on same-time constructions
+  `rxode2::et()` and `rxode2::rxSolve()` on random schedules, on
+  `nlmixr2data::warfarin` and `theo_md`, and on same-time constructions
   (`dev/phase3a-findings.md`).
 - The vignette’s Theoph example is written through
   [`frm_ode_records()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode_records.md).
@@ -47,8 +43,7 @@
   refusal of an unknown `events` column names
   [`frm_ode_records()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode_records.md).
 - rxode2 is a new Suggests, for the test that compares the expansion of
-  a schedule against
-  [`rxode2::etExpand()`](https://nlmixr2.github.io/rxode2/reference/etExpand.html).
+  a schedule against `rxode2::etExpand()`.
 
 ## frmtmb.ode 0.6.0
 

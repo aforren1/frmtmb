@@ -163,6 +163,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
+#> Warning: The largest R-hat is 1.08, indicating chains have not mixed.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
@@ -180,11 +183,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#>   model elpd_diff se_diff p_worse diag_diff       diag_elpd
-#>  model1       0.0     0.0      NA                          
-#>  model2      -5.3     2.8    0.97   N < 100 2 k_psis > 0.58
+#>   model elpd_diff se_diff p_worse diag_diff diag_elpd
+#>  model1       0.0     0.0      NA                    
+#>  model2      -4.9     2.8    0.96   N < 100          
 #> 
 #> Diagnostic flags present.
 #> See ?`loo-glossary` (sections `diag_diff` and `diag_elpd`)

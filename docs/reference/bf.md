@@ -11,7 +11,7 @@ same grammar.
 ## Usage
 
 ``` r
-bf(formula, ..., family = NULL, nl = NULL)
+bf(formula, ..., family = NULL, nl = NULL, center = NULL)
 ```
 
 ## Arguments
@@ -45,6 +45,19 @@ bf(formula, ..., family = NULL, nl = NULL)
   `FALSE` for a new formula and keeps the setting of a formula `bf()`
   already built.
 
+- center:
+
+  Whether the location formula's intercept is brms's class
+  `"Intercept"`, a density on the intercept at the means of the
+  predictors. `NULL`, the default, means `TRUE` for a new formula and
+  keeps the setting of a formula `bf()` already built. `FALSE` makes the
+  intercept an ordinary coefficient, class `"b"` with coef
+  `"Intercept"`, as `0 + Intercept` in the formula does; see the section
+  on brms's reserved `Intercept` below. It changes priors only: the
+  likelihood and the maximum likelihood fit are the same. It applies to
+  the location formula alone, as in brms; give a parameter formula its
+  own with [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md).
+
 ## Value
 
 An object of class `frmtmb_formula`.
@@ -60,6 +73,29 @@ and explicit covariance-structure wrappers `us(x | g)` and
 Attach a family with `+`, for example `bf(y ~ x) + gaussian()`, or pass
 one to [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md). A
 model that names no family is gaussian.
+
+## brms's reserved `Intercept`
+
+In a formula without an intercept, `Intercept` is a reserved name, as in
+brms: `y ~ 0 + Intercept + x` is the model `y ~ 1 + x`, with the
+intercept as an ordinary population-level coefficient. Factors get
+treatment contrasts, as they do beside an intercept. The likelihood is
+the same, so a maximum likelihood fit is the same; what changes is the
+prior. brms places a class `"Intercept"` prior at the means of the
+predictors, and a class `"b"` prior on this coefficient at zero, and so
+does frmtmb: `set_prior(..., class = "b")` reaches it,
+`class = "Intercept"` does not. `bf(y ~ x, center = FALSE)` gives the
+same model. The spelling works in every linear formula: the location, a
+distributional parameter (`sigma ~ 0 + Intercept + z`) and a nonlinear
+parameter (`a ~ 0 + Intercept + x`, where it changes nothing, because
+brms never centers a nonlinear parameter).
+
+`Intercept` must be a term of its own; `Intercept:x` is refused. An
+ordinal family refuses `0 + Intercept`, as brms does, because its
+thresholds take the intercept's place. A data column named `Intercept`
+must hold only ones in such a model, as brms requires; in a formula with
+an intercept, `Intercept` is an ordinary variable. Prediction needs no
+`Intercept` column in `newdata`.
 
 ## Examples
 
@@ -81,4 +117,9 @@ bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
 #> y ~ a * exp(-b * x) (nonlinear)
 #> a ~ 1 
 #> b ~ 1 + (1 | g) 
+# an intercept that a class "b" prior reaches; the two are one model
+bf(y ~ 0 + Intercept + x)
+#> y ~ 0 + Intercept + x
+bf(y ~ x, center = FALSE)
+#> y ~ x
 ```
