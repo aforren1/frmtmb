@@ -91,6 +91,27 @@ separate library, because the conda build of RcppParallel lacks
   an undeclared `ordinal::` in `test-thres.R`, and `ordinal` is now
   suggested.
 
+## The pkgdown sites
+
+Commit 6b7944e7 rebuilt seven of the eight sites in this container, so
+the changelog pages show 0.64.0. Its message says the pages are
+otherwise identical where the source is, and that is wrong. The
+container differs from the machine that built 0.63.0 in two ways that
+reach pages whose source did not change:
+
+- 57 cross-package links in 28 files became plain code, because downlit
+  links a package's functions only when that package is installed.
+  Missing here: rxode2, nlmixr2data, codemetar, brokenstick, fmesher,
+  gratia and others.
+- Printed numbers in examples and articles differ in their last digits
+  between this Linux R 4.5.3 and Windows R 4.6.1, for example
+  7.310120509e-09 against 7.310063665e-09 in `hmm_starts()`. One
+  convergence warning in the frmtmb.coupling article does not fire here.
+
+frmtmb.eam's site was not rebuilt. Rebuild all eight on the release
+machine with `dev/release/run-docs.ps1` before merging, which replaces
+these pages.
+
 ## Left open
 
 - **Adding a family to a multivariate formula.** In
