@@ -1365,6 +1365,9 @@ sim_draw <- function(ctx) {
                         max_iter = ctx[["max_iter"]] %||% 100L,
                         extra = ctx[["extra"]]))
   }
+  # drawn one within-group position at a time, each row by the family's
+  # own rowwise simulator, so trunc() rejection applies row by row
+  if (autocor_is_cond(ac)) return(sim_autocor_cond(ctx, ac))
   if (!is.null(trunc_bounds(ctx[["aterms"]], ctx[["n"]]))) {
     frm_stop("trunc() cannot be combined with a structured draw (here: '",
              ctx[["family"]][["family"]], "'): a hidden state sequence, a ",
@@ -1390,6 +1393,47 @@ sim_autocor_rows <- function(ctx, ac) {
   rep(dp[["mu"]], length.out = n) +
     autocor_draw_resid(ac, R, rep(dp[["sigma"]], length.out = n), n,
                        nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1])
+}
+
+#' The `cov = FALSE` branch: a fresh replicate of brms's recursion.
+#'
+#' A replicate has no observed past, so the lagged errors are the ones
+#' it draws itself: at each within-group position the rows present get
+#' `mu` plus the ARMA term of their own earlier draws, are drawn by the
+#' family's rowwise simulator, and leave `err = y - mu - MA` behind for
+#' the next position. The first row of a group has no lagged term, which
+#' is exactly the conditioning the likelihood makes.
+#'
+#' @noRd
+sim_autocor_cond <- function(ctx, ac) {
+  n <- ctx[["n"]]
+  dp <- ctx[["dpars"]]
+  av <- ctx[["aterms"]]
+  th <- ctx[["fit"]][["estimates"]][["thetaac"]][ac[["theta_idx"]]]
+  cf <- autocor_cond_coefs(th, ac)
+  mu <- rep_len(as.numeric(dp[["mu"]]), n)
+  y <- numeric(n)
+  err <- vector("list", length(ac[["pos_rows"]]))
+  for (t in seq_along(ac[["pos_rows"]])) {
+    rows <- ac[["pos_rows"]][[t]]
+    k <- seq_along(rows)
+    sma <- 0
+    for (i in seq_len(min(length(cf$ma), t - 1L))) {
+      sma <- sma + cf$ma[i] * err[[t - i]][k]
+    }
+    sar <- 0
+    for (i in seq_len(min(length(cf$ar), t - 1L))) {
+      sar <- sar + cf$ar[i] * err[[t - i]][k]
+    }
+    dpt <- subset_obs(dp, rows, n)
+    dpt[["mu"]] <- mu[rows] + sma + sar
+    yt <- sim_response(ctx[["family"]], dpt, subset_obs(av, rows, n),
+                       length(rows), max_iter = ctx[["max_iter"]] %||% 100L,
+                       extra = ctx[["extra"]])
+    y[rows] <- yt
+    err[[t]] <- yt - mu[rows] - sma
+  }
+  y
 }
 
 #' Gaussian family, dpars `mu` and `sigma`. A known `se()` term enters

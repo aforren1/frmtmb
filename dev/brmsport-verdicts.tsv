@@ -13,9 +13,9 @@ brm:96	frmtmb	pass
 brm:98	frmtmb	pass	
 brm:100	frmtmb	cannot transfer	frmtmb has no me() noise-free term (dev/brms-suite-audit.md section 5)
 brm:102	frmtmb	defect	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
-brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name | brms: Cannot coerce 'x + y' to a single variable name. The grammar check runs before the cov = TRUE one, so the ported call, which omits cov, reaches it (dev/adefects-log/evidence.txt)
-brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The grammar check runs before the cov = TRUE one, so the ported call reaches it
-brm:110	frmtmb	pass	frmtmb's own words: ma[(][)]: only the residual-covariance formulation is implemented, so the call needs cov = TRUE | brms: Please set cov = TRUE. CAVEAT: frmtmb gives this message for ma(x) on every family, including gaussian, which brms fits (defect filed)
+brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name | brms: Cannot coerce 'x + y' to a single variable name. The same refusal of the same call in frmtmb's words (dev/adefects-log/evidence.txt)
+brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The same refusal of the same call in frmtmb's words
+brm:110	frmtmb	pass	
 brm:112	frmtmb	cannot transfer	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
 brm:116	frmtmb	defect	categorical() refuses the integer response inhaler$rating (4 categories) with the FALSE claim 'fewer than two categories', before reaching the cs() check brms asserts; a factor response is accepted (dev/brmsport-probe3.R; priorform ledger P20 deferred it to famlink)
 brm:121	frmtmb	pass	
@@ -555,9 +555,9 @@ standata:266	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:267	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:268	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:269	frmtmb	cannot transfer	frmtmb has no subset() addition term
-standata:310	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; the setup ar(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
-standata:315	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
-standata:316	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
+standata:310	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; frmtmb keeps the data order and has no such attribute. The setup ar(time, id) runs (brms's cov = FALSE form, ?frmtmb-autocor)
+standata:315	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
+standata:316	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
 standata:620	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ) and no subset() or index() addition terms
 standata:634	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ); the call is refused on that, before the index() check brms asserts
 standata:641	frmtmb	cannot transfer	frmtmb has no subset() addition term

@@ -1,0 +1,73 @@
+                          case     point  loglik_frmtmb loglik_brms_recursion          rel_diff
+                gaussian ar(1)   optimum -119.886196324        -119.886196324 2.37072409517e-16
+                gaussian ar(1) perturbed -120.363911909        -120.363911909 1.18065743210e-16
+                gaussian ma(1)   optimum -120.099812664        -120.099812664 1.18325369540e-16
+                gaussian ma(1) perturbed -120.653823099        -120.653823099 0.00000000000e+00
+            gaussian arma(1,1)   optimum -118.745380073        -118.745380073 0.00000000000e+00
+            gaussian arma(1,1) perturbed -120.537410601        -120.537410601 4.71583208709e-16
+            gaussian arma(2,2)   optimum -118.581642704        -118.581642704 3.59520775505e-16
+            gaussian arma(2,2) perturbed -118.887024193        -118.887024193 1.19532428469e-16
+                gaussian ar(3)   optimum -118.632944340        -118.632944340 0.00000000000e+00
+                gaussian ar(3) perturbed -119.121091884        -119.121091884 1.19297552519e-16
+       gaussian ma(2), no time   optimum -119.812080933        -119.812080933 2.37219061792e-16
+       gaussian ma(2), no time perturbed -120.322984595        -120.322984595 1.18105902733e-16
+ gaussian arma(1,1), sigma ~ x   optimum -118.739564352        -118.739564352 1.19680872948e-16
+ gaussian arma(1,1), sigma ~ x perturbed -119.572042874        -119.572042874 1.18847636736e-16
+           gaussian(log) ar(1)   optimum -119.470776827        -119.470776827 2.37896749191e-16
+           gaussian(log) ar(1) perturbed -120.747078752        -120.747078752 3.53073255157e-16
+             student arma(1,1)   optimum -118.745380083        -118.745380083 9.57400091205e-16
+             student arma(1,1) perturbed -119.009233911        -119.009233911 8.35867770405e-16
+     student arma(1,1), nu ~ x   optimum -118.745380080        -118.745380080 5.98375057016e-16
+     student arma(1,1), nu ~ x perturbed -119.050703785        -119.050703785 1.19368086566e-16
+                 weights ma(1)   optimum -155.871611685        -155.871611685 0.00000000000e+00
+                 weights ma(1) perturbed -156.633172817        -156.633172817 5.44361879145e-16
+                cens arma(1,1)   optimum -106.740174347        -106.740174347 0.00000000000e+00
+                cens arma(1,1) perturbed -109.390096610        -109.390096610 2.59819767157e-16
+                   trunc ma(1)   optimum -120.096932453        -120.096932453 1.18328207265e-16
+                   trunc ma(1) perturbed -120.650342923        -120.650342923 2.35570896376e-16
+        (1 | subj) + arma(1,1)   optimum -104.338308792        -104.338308792 5.44799120464e-16
+        (1 | subj) + arma(1,1) perturbed -105.820399404        -105.820399404 1.34292204483e-16
+      mi() response, arma(1,1)   optimum -117.424138675        -117.424138675 2.42043158681e-16
+      mi() response, arma(1,1) perturbed -118.894024207        -118.894024207 3.58576172603e-16
+         rescor, ar(1) on both   optimum -233.857071680        -233.857071680 3.64603591752e-16
+         rescor, ar(1) on both perturbed -234.763728201        -234.763728201 1.21065164743e-16
+max rel_diff: 9.57e-16 
+Warning message:
+Optimizer did not report convergence: singular convergence (7) 
+Warning message:
+Optimizer did not report convergence: false convergence (8) 
+ model    par         frmtmb      arima_css          rel_diff
+ AR(1)   mean 2.013701089591 2.013700634030 2.26230551843e-07
+ AR(1)    ar1 0.620546209033 0.620546494256 4.59631509525e-07
+ AR(1) sigma2 0.996013394657 0.996013420185 2.56302338636e-08
+ MA(1)   mean 1.012341635144 1.012341512162 1.21482713097e-07
+ MA(1)    ma1 0.480731353238 0.480730802991 1.14460517776e-06
+ MA(1) sigma2 0.984477686672 0.984477692159 5.57420156315e-09
+              frmtmb    arima_resid          rel_diff
+AR(1) -2832.46557774 -2832.46557774 1.60548235594e-15
+MA(1) -2822.23302619 -2822.23302619 6.44521337063e-16
+Warning messages:
+1: Large maximum absolute gradient at the optimum (0.00153); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+2: Large maximum absolute gradient at the optimum (0.00153); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+3: Large maximum absolute gradient at the optimum (0.00153); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+4: Large maximum absolute gradient at the optimum (0.00131); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+5: Large maximum absolute gradient at the optimum (0.00131); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+6: Large maximum absolute gradient at the optimum (0.00131); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+                        model min_of_3_s
+  control: y ~ x (no autocor)      0.025
+               ar(week, subj)      0.028
+               ma(week, subj)      0.026
+             arma(week, subj)      0.024
+ arma(week, subj, cov = TRUE)      0.055
+Warning messages:
+1: Large maximum absolute gradient at the optimum (0.00153); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+2: Large maximum absolute gradient at the optimum (0.00131); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+3: Large maximum absolute gradient at the optimum (0.00224); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+         model us_per_fn_plus_gr ratio_to_control
+       control             66.64            1.000
+ control_again             68.52            1.028
+            ar             85.08            1.277
+            ma             89.53            1.343
+          arma            102.89            1.544
+ arma_cov_true            373.13            5.599
+ ma_one_series             91.33            1.370

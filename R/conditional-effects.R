@@ -1724,6 +1724,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   ce_structure_check(rspec)
+  # a grid has no response for a cov = FALSE term to regress on; brms
+  # drops the term here too (incl_autocor = FALSE)
+  x <- autocor_cond_strip(x)
   if (isTRUE(surface)) {
     frm_stop("conditional_effects(surface = TRUE) is not implemented: the ",
              "display draws curves with bands, not a fitted surface. Ask ",

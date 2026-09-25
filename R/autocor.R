@@ -13,6 +13,12 @@
 # likelihood itself changes shape. That is what nlme::gls(correlation =
 # corAR1()) fits, and what brms fits under `cov = TRUE`.
 #
+# brms's DEFAULT for ar(), ma() and arma() is `cov = FALSE`, which is a
+# different likelihood: a regression of mu on the group's earlier
+# residuals, with the family's own per-row density. It lives in the
+# "cov = FALSE" section below and shares only the parsing and the time
+# and group bookkeeping with the covariance form.
+#
 # PARAMETERIZATION OF sigma. R is UNIT-DIAGONAL here, so `sigma` is the
 # MARGINAL residual standard deviation, as it is in nlme and as it is
 # everywhere else in this package (sigma(), pearson residuals, se(),
@@ -50,9 +56,10 @@
 #' Within-group residual correlation (R-side autocorrelation)
 #'
 #' `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are written as terms
-#' of the model formula, next to the fixed and random effects, and make
-#' the residuals of one group a single correlated draw instead of
-#' independent ones:
+#' of the model formula, next to the fixed and random effects. They come
+#' in two forms. The covariance form (`cov = TRUE`, and always for
+#' `cosy()` and `unstr()`) makes the residuals of one group a single
+#' correlated draw instead of independent ones:
 #'
 #' \deqn{y_g \sim N(\mu_g,\; D_g R D_g), \qquad
 #'       D_g = \mathrm{diag}(\sigma_i, i \in g).}
@@ -64,6 +71,10 @@
 #' [fitted()], [predict.frmtmb_fit()] and `se.fit` are unchanged; what
 #' changes is the likelihood. This is the model `nlme::gls(correlation
 #' = corAR1())` fits, and the one brms fits under `cov = TRUE`.
+#'
+#' The residual-regression form is brms's DEFAULT for `ar()`, `ma()`
+#' and `arma()`, so it is what those terms mean without `cov = TRUE`.
+#' It is described in its own section below.
 #'
 #' @section Structures:
 #' \describe{
@@ -116,13 +127,68 @@
 #'     them apart. brms merges them too; make the column yourself if the
 #'     labels can collide.}
 #'   \item{`p`, `q`}{Autoregressive and moving-average orders.}
-#'   \item{`cov`}{Must be `TRUE`. brms's default `cov = FALSE` is a
-#'     different likelihood (a residual regression that conditions on
-#'     each group's first rows), which is not implemented; the call is
-#'     refused rather than silently reinterpreted.}
+#'   \item{`cov`}{`FALSE`, the default as in brms, gives the
+#'     residual-regression form; `TRUE` gives the covariance form. They
+#'     are different likelihoods, not two implementations of one.}
+#' }
+#'
+#' @section The residual-regression form (`cov = FALSE`):
+#' This is the model brms 2.23.0 fits for `ar()`, `ma()` and `arma()`
+#' when `cov` is not set. Within each group, in time order, let
+#' \eqn{r_t = y_t - \mu_t} and
+#' \deqn{e_t = r_t - \sum_{i=1}^{q} \theta_i e_{t-i},}
+#' with \eqn{e_s = 0} before the group's first row. The mean of row
+#' \eqn{t} becomes
+#' \deqn{\mu^*_t = \mu_t + \sum_{i=1}^{q} \theta_i e_{t-i} +
+#'       \sum_{i=1}^{p} \phi_i e_{t-i},}
+#' and every row keeps the family's own density at \eqn{\mu^*_t}. The
+#' MA part enters \eqn{e} and the AR part does not, exactly as in
+#' brms's Stan code. So:
+#' \itemize{
+#'   \item It is a CONDITIONAL likelihood. A group's first rows get no
+#'     lagged term, rather than the stationary distribution the
+#'     covariance form gives them. For one series this is the
+#'     conditional sum of squares of `stats::arima(method = "CSS")`.
+#'   \item The coefficients `ar[i]` and `ma[i]` are unconstrained reals,
+#'     as in brms, because nothing in this likelihood needs a stationary
+#'     or invertible process. A prior or a bound with `set_prior(class =
+#'     "ar")` acts on them directly, at any order.
+#'   \item `sigma` is the sd of each row around \eqn{\mu^*_t}, which for
+#'     a correct model is the innovation sd.
+#'   \item The lag is counted in ROWS of the group, sorted by `time`, as
+#'     brms counts it: a group that skips a time point treats the next
+#'     row as one step later. The covariance form counts levels instead
+#'     (see below).
+#'   \item Families: `gaussian()` and `student()`, the two families brms
+#'     gives a residual `y - mu`. A predicted `nu ~ ...` works. For other
+#'     families brms refuses an MA part ("Please set cov = TRUE when
+#'     modeling MA structures for this family") and fits latent residuals
+#'     for an AR part; both are refused here, and the refusal names the
+#'     random-effect spelling of a latent autoregressive process. With a
+#'     non-identity link the term is added to `mu` on the response
+#'     scale, after the inverse link, as brms's Stan code adds it.
+#'   \item It combines with `weights()`, `cens()`, `trunc()`, `mi()` on
+#'     the response (the residual is then taken against the imputed
+#'     value), random effects and `rescor = TRUE`, as in brms. `se()` is
+#'     refused, as brms refuses it.
+#'   \item After the fit, [fitted()], [frm_linpred()] and
+#'     `predict(type = "response")` give brms's one-step mean
+#'     \eqn{\mu^*_t}, which reads the OBSERVED earlier residuals; so
+#'     `residuals()` are against it. `newdata` must then carry the
+#'     response, and its rows form their own groups in their own time
+#'     order. [predict.frmtmb_fit()] draws each row around its one-step
+#'     mean, as brms's `posterior_predict()` does. [simulate()] instead
+#'     runs the recursion over its own draws, so a replicate carries the
+#'     fitted serial dependence; on `newdata` it starts each group from
+#'     an empty past and needs no response, which makes it the
+#'     forecasting route. `conditional_effects()` and `emmeans()` drop
+#'     the term, as brms's do. [autocor_matrix()] and
+#'     `residuals(type = "osa")` are refused: this form defines no
+#'     correlation matrix, and its tape reads the response as data.
 #' }
 #'
 #' @section Families:
+#' This section and the two after it describe the covariance form.
 #' `gaussian()` and `student()` only - the two families with a real
 #' residual, and exactly the two brms treats this way (`student()` gets
 #' the multivariate-t analog, with one `nu` per group, so a predicted
@@ -212,6 +278,12 @@
 #'            data = d)
 #' summary(fit)
 #' autocor_matrix(fit)
+#'
+#' # brms's default residual-regression form: mu gains ar * (y - mu) of
+#' # the previous row of the same subject
+#' fit0 <- frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
+#' summary(fit0)
+#' head(fitted(fit0))
 #'
 #' # compound symmetry, and the unstructured correlation over the five
 #' # weeks
@@ -351,33 +423,25 @@ parse_autocor_call <- function(tm, env) {
       frm_stop(fn, "(): at least one of p and q must be greater than zero",
                call. = FALSE)
     }
+    # brms's default. cov = FALSE is a different likelihood, not a
+    # different implementation of the same one (see ?frmtmb-autocor), so
+    # the flag travels with the block and every consumer branches on it
     cov <- if (is.null(a$cov)) FALSE else {
       autocor_arg(a$cov, "cov", env, fn)
     }
-    if (!cov) {
-      # brms's cov = FALSE is a different likelihood, not a different
-      # implementation of the same one: it adds ar * (y - mu) at the
-      # previous row to the linear predictor and keeps a univariate
-      # normal density, which conditions on the first p rows instead of
-      # giving them their stationary distribution. Fitting the
-      # covariance form under that spelling would silently disagree
-      # with brms; refusing says so.
-      frm_stop(fn, "(): only the residual-covariance formulation is ",
-               "implemented, so the call needs cov = TRUE: ", fn, "(",
-               if (!is.null(time_expr))
-                 paste0(deparse1(time_expr), ", ") else "",
-               if (!is.null(gr_expr)) paste0(deparse1(gr_expr), ", ") else "",
-               "cov = TRUE). brms's default cov = FALSE is the ",
-               "residual-regression form, a different likelihood (it ",
-               "conditions on the first observations of each group rather ",
-               "than giving them their stationary distribution). cov = ",
-               "TRUE is the marginal multivariate-normal residual that ",
-               "nlme::gls(correlation = corAR1()) fits", call. = FALSE)
-    }
+  } else {
+    cov <- TRUE
   }
   list(fn = fn, struct = fn, time_expr = time_expr, gr_expr = gr_expr,
-       gr_vars = gr_vars, p = p, q = q, label = deparse1(tm))
+       gr_vars = gr_vars, p = p, q = q, cov = cov, label = deparse1(tm))
 }
+
+#' Whether a residual block is brms's `cov = FALSE` ARMA, the
+#' residual-regression form. A block built before the flag existed is a
+#' covariance block, so only an explicit `FALSE` counts.
+#'
+#' @noRd
+autocor_is_cond <- function(ac) !is.null(ac) && isFALSE(ac[["cov"]])
 
 #' Free correlations of a `d x d` unstructured matrix.
 #'
@@ -536,6 +600,13 @@ autocor_cor <- function(theta, ac) {
 #'
 #' @noRd
 autocor_natural <- function(theta, ac) {
+  if (autocor_is_cond(ac)) {
+    cf <- autocor_cond_coefs(theta, ac)
+    # paste0() of an empty order would still give one name, "ma[]"
+    nm <- c(sprintf("ar[%d]", seq_len(ac[["p"]])),
+            sprintf("ma[%d]", seq_len(ac[["q"]])))
+    return(stats::setNames(c(cf$ar, cf$ma), nm))
+  }
   if (ac[["struct"]] == "unstr") {
     C <- us_chol_cor(theta, ac[["d"]])
     pr <- which(lower.tri(C), arr.ind = TRUE)
@@ -569,6 +640,9 @@ autocor_natural <- function(theta, ac) {
 #'
 #' @noRd
 autocor_types <- function(ac) {
+  # unconstrained coefficients under cov = FALSE, so no interval
+  # transform: a Fisher-z would clamp an estimate that may leave (-1, 1)
+  if (autocor_is_cond(ac)) return(rep("raw", ac[["p"]] + ac[["q"]]))
   if (ac[["struct"]] == "unstr") {
     return(rep("cor", autocor_n_cor(ac[["d"]])))
   }
@@ -580,6 +654,70 @@ autocor_types <- function(ac) {
 # ---------------------------------------------------------- assembly
 #
 # Everything below runs off the tape, once, at frame assembly.
+
+#' What brms's `cov = FALSE` ARMA can be combined with.
+#'
+#' The term shifts `mu` by a regression on earlier residuals and keeps
+#' the family's own per-row density, so the addition terms that reshape
+#' a per-row contribution (`weights()`, `cens()`, `trunc()`, `mi()`)
+#' and `rescor` all still apply: brms 2.23.0 generates Stan code for
+#' each of them. What it refuses is taken over with its own words:
+#' `se()` (`stan_ac()`: "Please set cov = TRUE in ARMA structures when
+#' including known standard errors"), and every family without a
+#' residual `y - mu`, which brms 2.23.0 marks with the "residuals"
+#' special on gaussian and student only.
+#'
+#' @noRd
+check_autocor_cond <- function(resp, av, yv) {
+  ac <- resp$autocor
+  fam <- resp$family[["family"]]
+  fn <- ac[["fn"]]
+  re_hint <- paste0(
+    "ar1(factor(",
+    if (is.null(ac[["time_expr"]])) "time" else deparse1(ac[["time_expr"]]),
+    ") + 0 | ",
+    if (is.null(ac[["gr_expr"]])) "group" else deparse1(ac[["gr_expr"]]),
+    "), or toep()/us() for a freer lag structure")
+  if (!fam %in% c("gaussian", "student")) {
+    if (ac[["q"]] > 0L) {
+      frm_stop(fn, "(): the moving-average part of cov = FALSE regresses ",
+               "each row on earlier residuals y - mu, so it needs a family ",
+               "with real residuals, gaussian() or student(); '", fam,
+               "' has none. brms refuses the same call: \"Please set cov = ",
+               "TRUE when modeling MA structures for this family\". Its ",
+               "cov = TRUE model for this family is a latent gaussian ",
+               "process added to the linear predictor, which is spelled ",
+               "here as a random effect over the time factor: replace ",
+               ac[["label"]], " with ", re_hint, call. = FALSE)
+    }
+    frm_stop(fn, "(): with cov = FALSE and family '", fam, "', brms fits ",
+             "LATENT residuals (one iid gaussian effect per row, with its ",
+             "own sd, added to the linear predictor together with ",
+             "ar-weighted copies of the earlier rows' effects), not a ",
+             "regression on observed residuals, because '", fam,
+             "' has no residual y - mu. That model is not implemented. A ",
+             "latent autoregressive process is spelled here as a random ",
+             "effect over the time factor: replace ", ac[["label"]],
+             " with ", re_hint, call. = FALSE)
+  }
+  if (is.matrix(yv)) {
+    frm_stop(fn, "(): the response must be a numeric vector",
+             call. = FALSE)
+  }
+  if (!is.null(av[["se"]])) {
+    frm_stop(fn, "(): se() cannot be combined with cov = FALSE. brms ",
+             "refuses the same call (\"Please set cov = TRUE in ARMA ",
+             "structures when including known standard errors\"); here ",
+             "cov = TRUE refuses se() as well, because its density is a ",
+             "joint one per group. Drop se(), or model the known error ",
+             "as a random effect", call. = FALSE)
+  }
+  if (!is.null(resp$family[["mix"]])) {
+    frm_stop(fn, "(): a mixture likelihood has no single residual to ",
+             "regress on", call. = FALSE)
+  }
+  ac
+}
 
 #' Everything a residual correlation term cannot be combined with.
 #'
@@ -594,6 +732,7 @@ autocor_types <- function(ac) {
 #' @noRd
 check_autocor_response <- function(resp, spec, av, yv) {
   ac <- resp$autocor
+  if (autocor_is_cond(ac)) return(check_autocor_cond(resp, av, yv))
   fam <- resp$family[["family"]]
   if (!fam %in% c("gaussian", "student")) {
     frm_stop(ac[["fn"]], "(): a residual correlation needs a family with real ",
@@ -778,7 +917,8 @@ autocor_block <- function(ac, resp, mf, env, n) {
                deparse1(ac[["time_expr"]]), "' gives ", ac[["d"]],
              call. = FALSE)
   }
-  if (ac[["d"]] > autocor_max_dim) {
+  # cov = FALSE builds no matrix at all, so the cap does not apply to it
+  if (!autocor_is_cond(ac) && ac[["d"]] > autocor_max_dim) {
     frm_stop(fn, "(): ", ac[["d"]], " time points would build a dense ",
              ac[["d"]], " x ", ac[["d"]],
              " residual covariance on every gradient ",
@@ -813,6 +953,11 @@ autocor_block <- function(ac, resp, mf, env, n) {
                "Aggregate the repeated rows, or add the replicate to the grouping variable."
              }, call. = FALSE)
   }
+  # cov = FALSE counts lags in ROWS, as brms does, so a gap in the time
+  # levels is not a gap in the lag and the warning below would be false
+  if (autocor_is_cond(ac)) {
+    return(autocor_cond_block(ac, resp, gidx, ti$idx, n))
+  }
   if (!is.null(ac[["time_expr"]])) autocor_warn_gaps(ac, ti$levels)
   # one pattern per distinct set of present time levels
   by_g <- split(seq_len(n), gidx)
@@ -836,6 +981,153 @@ autocor_block <- function(ac, resp, mf, env, n) {
   ac[["resp"]] <- resp
   ac[["n_groups"]] <- length(by_g)
   ac
+}
+
+# ------------------------------------------- cov = FALSE (brms's default)
+#
+# brms 2.23.0's Stan code for `arma(time, gr)` without cov = TRUE, for
+# gaussian and student, is, per row n in (gr, time) order:
+#
+#   mu[n] += Err[n, 1:Kma] * ma;
+#   err[n] = Y[n] - mu[n];
+#   for (i in 1:J_lag[n]) Err[n + 1, i] = err[n + 1 - i];
+#   mu[n] += Err[n, 1:Kar] * ar;
+#
+# then the family's own density of every row at the shifted mu. So
+#
+#   err_t = r_t - sum_i ma_i err_{t-i},   r_t = y_t - mu_t,
+#   mu*_t = mu_t + sum_i ma_i err_{t-i} + sum_i ar_i err_{t-i},
+#
+# with err_s = 0 before a group's first row. The MA part enters err and
+# the AR part does not. This is a CONDITIONAL likelihood: a group's
+# first rows get no lagged term at all, rather than the stationary
+# distribution the cov = TRUE form gives them. The coefficients are
+# unconstrained reals, as they are in brms (`vector[Kar] ar;`) and in
+# the conditional sum of squares of stats::arima(method = "CSS"),
+# because nothing in this likelihood needs stationarity.
+#
+# brms's J_lag counts ROWS: data_ac() compares the group of row n + 1
+# with the groups of rows n, n - 1, ..., n + 1 - max_lag after sorting
+# by (gr, time), so a missing time point is no gap. The cov = TRUE form
+# here reads lags off the GLOBAL time levels instead (nlme's reading);
+# the two readings agree only when no group skips a level.
+#
+# COST. For pure AR the lagged residuals are data minus mu, so the
+# shift is p gathers of one vector. For MA the error recursion is
+# sequential in time, so it runs over the within-group POSITION: at
+# position t one vector operation covers every group still that long,
+# and the loop has max-group-length iterations, not n.
+
+#' The within-group positions of a `cov = FALSE` block.
+#'
+#' `pos_rows[[t]]` holds the row at position `t` of every group that
+#' has one, longest group first, so the groups present at position `t`
+#' are a PREFIX of those present at any earlier position and a lagged
+#' error vector is read by truncation. `lag_idx[[i]]` holds, for every
+#' row, the row `i` positions earlier in its group, or `n + 1` (a zero
+#' pad) where there is none.
+#'
+#' @noRd
+autocor_cond_positions <- function(gidx, tidx, n, p) {
+  by_g <- split(seq_len(n), gidx)
+  by_g <- lapply(by_g, function(r) r[order(tidx[r])])
+  names(by_g) <- NULL
+  len <- lengths(by_g)
+  go <- order(-len)
+  by_g <- by_g[go]
+  len <- len[go]
+  pos_rows <- lapply(seq_len(max(len)), function(t) {
+    vapply(by_g[len >= t], function(r) r[t], 1L)
+  })
+  lag_idx <- lapply(seq_len(p), function(i) {
+    out <- rep(n + 1L, n)
+    for (r in by_g[len > i]) {
+      k <- length(r)
+      out[r[(i + 1L):k]] <- r[seq_len(k - i)]
+    }
+    out
+  })
+  list(pos_rows = pos_rows, lag_idx = lag_idx, len = len)
+}
+
+#' The `cov = FALSE` block: positions instead of patterns.
+#'
+#' @noRd
+autocor_cond_block <- function(ac, resp, gidx, tidx, n) {
+  ps <- autocor_cond_positions(gidx, tidx, n, ac[["p"]])
+  kmax <- max(ac[["p"]], ac[["q"]])
+  if (max(ps$len) <= kmax) {
+    frm_stop(ac[["fn"]], "(): the longest group has ", max(ps$len),
+             " row(s), so a lag of ", kmax, " never reaches an earlier ",
+             "row and its coefficient does not enter the likelihood. ",
+             "Lower the order, or check the grouping variable",
+             call. = FALSE)
+  }
+  ac[["pos_rows"]] <- ps$pos_rows
+  ac[["lag_idx"]] <- ps$lag_idx
+  ac[["patterns"]] <- list()
+  ac[["npar"]] <- autocor_npar(ac)
+  ac[["resp"]] <- resp
+  ac[["n_groups"]] <- length(ps$len)
+  ac
+}
+
+#' The AR and MA coefficients of a `cov = FALSE` block, which ARE its
+#' `thetaac` segment: AR first, as brms orders `ar` before `ma`.
+#'
+#' @noRd
+autocor_cond_coefs <- function(theta, ac) {
+  list(ar = theta[seq_len(ac[["p"]])],
+       ma = theta[ac[["p"]] + seq_len(ac[["q"]])])
+}
+
+#' The ARMA shift `mu* - mu` of a `cov = FALSE` block, from the
+#' residuals `res = y - mu` in row order. AD-safe, and correct on plain
+#' numerics, which is what the post-fit paths feed it.
+#'
+#' @noRd
+autocor_cond_shift <- function(res, theta, ac) {
+  "c" <- RTMB::ADoverload("c")
+  "[<-" <- RTMB::ADoverload("[<-")
+  cf <- autocor_cond_coefs(theta, ac)
+  ar <- cf$ar
+  ma <- cf$ma
+  p <- length(ar)
+  q <- length(ma)
+  if (!q) {
+    # err is the residual itself, so every lag is one gather
+    rz <- c(res, 0 * res[1L])
+    s <- 0 * res
+    for (i in seq_len(p)) s <- s + ar[i] * rz[ac[["lag_idx"]][[i]]]
+    return(s)
+  }
+  pos <- ac[["pos_rows"]]
+  err <- vector("list", length(pos))
+  out <- 0 * res
+  for (t in seq_along(pos)) {
+    rows <- pos[[t]]
+    k <- seq_along(rows)
+    sma <- 0
+    for (i in seq_len(min(q, t - 1L))) sma <- sma + ma[i] * err[[t - i]][k]
+    sar <- 0
+    for (i in seq_len(min(p, t - 1L))) sar <- sar + ar[i] * err[[t - i]][k]
+    err[[t]] <- res[rows] - sma
+    if (t > 1L) out[rows] <- sma + sar
+  }
+  out
+}
+
+#' `mu` shifted by a `cov = FALSE` block at a fit's estimates, on plain
+#' numerics: what the post-fit paths add to the family's `mu` so that
+#' they report brms's conditional mean, the one-step prediction from the
+#' observed earlier residuals. `y` is the observed (or, under `mi()`,
+#' the observed-or-imputed) response on the fitted rows.
+#'
+#' @noRd
+autocor_cond_mu <- function(fit, ac, mu, y) {
+  th <- fit$estimates[["thetaac"]][ac[["theta_idx"]]]
+  mu <- rep_len(as.numeric(mu), length(y))
+  mu + autocor_cond_shift(y - mu, th, ac)
 }
 
 # ---------------------------------------------------------- likelihood
@@ -939,6 +1231,127 @@ autocor_trans_rows <- function(fit) {
   out
 }
 
+# ------------------------------------------- cov = FALSE after the fit
+#
+# brms's fitted() and predict() under cov = FALSE report the ONE-STEP
+# conditional mean: its predictor_ac() runs the same recursion over the
+# observed response (prep$ac$Y), so mu at row t carries the observed
+# residuals of the rows before it. These helpers give the post-fit
+# paths that mean. simulate() does not use them: a fresh replicate has
+# no observed past, so it runs the recursion over its own draws
+# (sim_autocor_cond()).
+
+#' The observed response of `newdata`'s rows, which a `cov = FALSE`
+#' mean needs: brms's fitted() and predict() on newdata run the
+#' recursion over newdata's own response (brms fills a missing one with
+#' posterior-predictive draws, which a point estimate cannot do).
+#'
+#' @noRd
+autocor_cond_newdata_y <- function(ac, rspec, newdata, what) {
+  y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
+                error = function(e) NULL)
+  if (is.null(y) || !is.numeric(y) || length(y) != nrow(newdata) ||
+      anyNA(y)) {
+    frm_stop(what, " with ", ac[["label"]], " needs the observed ",
+             "response '", deparse1(rspec$resp_expr), "' in every row of ",
+             "newdata: under cov = FALSE the mean of a row is a regression ",
+             "on the residuals of the rows before it in its group, so a ",
+             "row has no mean until the earlier responses are known. ",
+             "Supply the response, or draw forecasts with ",
+             "simulate(newdata = ), which runs the recursion over its own ",
+             "draws", call. = FALSE)
+  }
+  as.numeric(y)
+}
+
+#' A response's in-sample dpars with the `cov = FALSE` shift applied
+#' to `mu`, or unchanged for any other response.
+#'
+#' @noRd
+autocor_cond_dpars <- function(fit, resp, dp) {
+  ac <- fit$frame[["autocor"]][[resp]]
+  if (!autocor_is_cond(ac)) return(dp)
+  dp[["mu"]] <- autocor_cond_mu(fit, ac, dp[["mu"]], mi_values(fit, resp))
+  dp
+}
+
+#' In-sample `mu` of a `cov = FALSE` response on the fitted rows,
+#' shifted by its ARMA term, with or without the random effects.
+#'
+#' @noRd
+autocor_cond_mu_values <- function(fit, lp, rspec, ac, use_re) {
+  ed <- lp_eta_design(fit, lp, NULL, use_re, FALSE)
+  mu <- lp[["link"]]$linkinv(ed[["eta"]])
+  autocor_cond_mu(fit, ac, mu, mi_values(fit, rspec$resp_name))
+}
+
+#' Delta-method standard errors of an in-sample `cov = FALSE` quantity,
+#' by central differences.
+#'
+#' The shifted mean depends on the coefficients twice, through `mu` and
+#' through every earlier residual `y - mu`, and on the ARMA
+#' coefficients, so the analytic route of `frm_linpred(se.fit = TRUE)`
+#' (one design row per prediction) does not describe it. The group
+#' effects are differenced one level at a time, never in batches: the
+#' shift of a row reads the residuals of other rows, which may belong to
+#' other levels, so a row's value is not owned by its own level alone.
+#'
+#' @noRd
+autocor_cond_fd_se <- function(object, f, use_re) {
+  b_idx <- if (use_re && length(object$estimates[["b"]])) {
+    re_governed_b(object)
+  }
+  se <- fit_fd_se(object, f, b_idx = b_idx)
+  if (is.null(se)) {
+    return(rep(NA_real_, length(f(object))))
+  }
+  as.vector(se)
+}
+
+#' `frm_linpred()` for the `mu` of a `cov = FALSE` response: brms's
+#' one-step mean, in sample or on newdata that carries the response.
+#'
+#' @noRd
+linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
+                              se.fit, allow_new_levels) {
+  if (!is.null(newdata)) {
+    ynew <- autocor_cond_newdata_y(ac, rspec, newdata,
+                                   "A prediction on newdata")
+    # the groups and their time order are newdata's own, as brms reads
+    # them from the new Stan data
+    acn <- autocor_for_newdata(object, ac, rspec, newdata)
+  }
+  val_of <- function(fit) {
+    m <- if (is.null(newdata)) {
+      autocor_cond_mu_values(fit, lp, rspec, ac, use_re)
+    } else {
+      ed <- lp_eta_design(fit, lp, newdata, use_re, allow_new_levels)
+      autocor_cond_mu(fit, acn, lp[["link"]]$linkinv(ed[["eta"]]), ynew)
+    }
+    if (type == "response") m else lp[["link"]]$linkfun(m)
+  }
+  pad <- function(v) if (is.null(newdata)) napred(object, v) else v
+  v <- val_of(object)
+  if (!se.fit) return(pad(v))
+  list(fit = pad(v),
+       se.fit = pad(autocor_cond_fd_se(object, val_of, use_re)))
+}
+
+#' A fit with its `cov = FALSE` terms removed, which is brms's
+#' `incl_autocor = FALSE`: conditional_effects() and emmeans() in brms
+#' 2.23.0 both pass it, so their curves are the regression part of `mu`
+#' alone, over a grid that has no response to regress on.
+#'
+#' @noRd
+autocor_cond_strip <- function(fit) {
+  acs <- fit$frame[["autocor"]]
+  if (!length(acs)) return(fit)
+  cond <- vapply(acs, autocor_is_cond, TRUE)
+  if (!any(cond)) return(fit)
+  fit$frame[["autocor"]] <- acs[!cond]
+  fit
+}
+
 #' Estimated within-group residual correlation matrix
 #'
 #' The correlation matrix `R` of the `ar()`, `ma()`, `arma()`, `cosy()`
@@ -974,6 +1387,15 @@ autocor_matrix <- function(fit, resp = NULL) {
   if (is.null(ac)) {
     frm_stop("autocor_matrix(): no residual correlation term for response '",
              resp, "'", call. = FALSE)
+  }
+  if (autocor_is_cond(ac)) {
+    frm_stop("autocor_matrix(): ", ac[["label"]], " is the cov = FALSE ",
+             "form, a regression of each row on the earlier residuals of ",
+             "its group. It conditions on each group's first rows and ",
+             "so defines no correlation matrix over the time points. The ",
+             "coefficients are in summary() and confint_varcorr(); fit ",
+             "cov = TRUE for the marginal correlation matrix",
+             call. = FALSE)
   }
   R <- autocor_cor(fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
   R <- as.matrix(R)

@@ -1023,7 +1023,7 @@ predict_mean_response <- function(fit, rspec, newdata, re_formula,
   rn <- rspec$resp_name
   if (is.null(newdata) && is.null(re_formula)) {
     # exactly fitted(): dpars at the estimates, conditional on the modes
-    dp <- eval_dpars(fit)[[rn]]
+    dp <- autocor_cond_dpars(fit, rn, eval_dpars(fit)[[rn]])
     out <- response_mean(fam, dp, fit$frame[["aterm_values"]][[rn]])
     return(napred(fit, out))
   }
@@ -1521,6 +1521,22 @@ frm_linpred <- function(object, newdata = NULL,
     # expected response, the fitted()/glmmTMB/brms-epred convention.
     # Per-dpar values stay available through dpar = or
     # type = "conditional".
+    if (se.fit && autocor_is_cond(object$frame[["autocor"]][[resp]])) {
+      # the shifted mean moves with the residuals of earlier rows, which
+      # the one-predictor delta method below does not see
+      f <- function(fit) {
+        v <- predict_mean_response(fit, rspec, newdata, re_formula,
+                                   allow_new_levels)
+        if (is.null(newdata)) {
+          v <- v[!is.na(napred(fit, rep(1, fit$frame[["n_obs"]])))]
+        }
+        v
+      }
+      se <- autocor_cond_fd_se(object, f, use_re)
+      return(list(fit = predict_mean_response(object, rspec, newdata,
+                                              re_formula, allow_new_levels),
+                  se.fit = if (is.null(newdata)) napred(object, se) else se))
+    }
     if (se.fit) {
       return(predict_mean_se(object, rspec, newdata, use_re,
                              allow_new_levels))
@@ -1587,6 +1603,12 @@ frm_linpred <- function(object, newdata = NULL,
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
+  # brms's cov = FALSE ARMA is part of mu itself: the one-step mean
+  ac_c <- object$frame[["autocor"]][[rspec$resp_name]]
+  if (autocor_is_cond(ac_c) && identical(dpar, "mu")) {
+    return(linpred_arma_cond(object, lp, rspec, ac_c, newdata, type,
+                             use_re, se.fit, allow_new_levels))
+  }
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   eta <- ed[["eta"]]
   n <- ed[["n"]]
@@ -3244,6 +3266,16 @@ residual_values <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
+    if (autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]])) {
+      frm_stop("residuals(type = \"osa\") is not available for a fit with ",
+               object$frame[["autocor"]][[rspec$resp_name]]$label,
+               ": the mean of each row is a function of the earlier ",
+               "responses, which the tape reads as data rather than as the ",
+               "observations oneStepPredict() steps through. Under cov = ",
+               "FALSE, type = \"pearson\" already standardizes each row by ",
+               "its one-step mean, and dharma_residuals() simulates the ",
+               "recursion", call. = FALSE)
+    }
     if (!is.null(object$frame[["autocor"]][[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
       # the previous ones; under an R-side residual the tape holds a
@@ -3345,7 +3377,9 @@ residual_values <- function(object, type = c("response", "pearson",
     if (type == "pearson") r <- r / sqrt(mom$var)
     return(napred(object, r))
   }
-  dp <- eval_dpars(object)[[rspec$resp_name]]
+  # under cov = FALSE the residual is against brms's one-step mean
+  dp <- autocor_cond_dpars(object, rspec$resp_name,
+                           eval_dpars(object)[[rspec$resp_name]])
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   yv <- object$frame[["y"]][[rspec$resp_name]]
   if (type == "deviance") {

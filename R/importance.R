@@ -103,8 +103,10 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
              "correlation term ", frame[["autocor"]][[1L]]$label,
              ": the correction resamples a random effect against a ",
              "PRODUCT of per-row densities, and this residual is one joint ",
-             "density over each group, so no per-row integrand exists. Use ",
-             "importance = 0, or REML = TRUE", call. = FALSE)
+             "density over each group (cov = TRUE) or gives each row a ",
+             "mean that reads the residuals of earlier rows (cov = FALSE), ",
+             "so no per-row integrand exists. Use importance = 0, or ",
+             "REML = TRUE", call. = FALSE)
   }
   if (isTRUE(spec$rescor)) {
     frm_stop("`importance` cannot be combined with rescor: the responses ",

@@ -261,7 +261,10 @@ note_table("structure", "method")
 response's per-row density with one joint density per group. That is
 what decides almost every pair below: a family needs a real residual
 to correlate, and an addition term that reshapes a per-row
-contribution has nothing left to reshape.
+contribution has nothing left to reshape. brms's default `cov = FALSE`
+for `ar()`, `ma()` and `arma()` keeps the per-row density and shifts
+`mu` instead, so the rows naming those three terms say where its
+answer differs.
 
 ```{r autocor-fam}
 grid_table("autocor", "family", rows = kind_of("autocor"),

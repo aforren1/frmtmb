@@ -368,8 +368,9 @@ test_that("standata allows to retrieve the initial data order", {
     paste0(
       "reads brms's internal old_order attribute of Stan data, ",
       "which exists because brms sorts rows for its ",
-      "autocorrelation code; the setup ar(time, id) is also ",
-      "refused without cov = TRUE (?frmtmb-autocor)"),
+      "autocorrelation code; frmtmb keeps the data order and has ",
+      "no such attribute. The setup ar(time, id) runs (brms's cov ",
+      "= FALSE form, ?frmtmb-autocor)"),
     expect_equal(dat$y1, as.numeric(sdata1$Y[attr(sdata1, "old_order")]))
   )
   brms_setup("standata:313",
@@ -380,16 +381,16 @@ test_that("standata allows to retrieve the initial data order", {
   )
   brms_port("standata:315", "cannot transfer",
     paste0(
-      "reads brms's internal old_order attribute of Stan data; the ",
-      "setup ma(time, id) is also refused without cov = TRUE ",
-      "(?frmtmb-autocor)"),
+      "reads brms's internal old_order attribute of Stan data; ",
+      "frmtmb keeps the data order and has no such attribute. The ",
+      "setup ma(time, id) runs (?frmtmb-autocor)"),
     expect_equal(sdata2$Y_y1[attr(sdata2, "old_order")], as.array(dat$y1))
   )
   brms_port("standata:316", "cannot transfer",
     paste0(
-      "reads brms's internal old_order attribute of Stan data; the ",
-      "setup ma(time, id) is also refused without cov = TRUE ",
-      "(?frmtmb-autocor)"),
+      "reads brms's internal old_order attribute of Stan data; ",
+      "frmtmb keeps the data order and has no such attribute. The ",
+      "setup ma(time, id) runs (?frmtmb-autocor)"),
     expect_equal(sdata2$Y_y2[attr(sdata2, "old_order")], as.array(dat$y2))
   )
 })

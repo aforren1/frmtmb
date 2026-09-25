@@ -1,7 +1,6 @@
 id	pkg	pattern	note
-brm:106	frmtmb	the time index must be ONE variable name	brms: Cannot coerce 'x + y' to a single variable name. The grammar check runs before the cov = TRUE one, so the ported call, which omits cov, reaches it (dev/adefects-log/evidence.txt)
-brm:108	frmtmb	grouping term must be variable names combined by	brms: Illegal grouping term 'g1/g2'. The grammar check runs before the cov = TRUE one, so the ported call reaches it
-brm:110	frmtmb	ma[(][)]: only the residual-covariance formulation is implemented, so the call needs cov = TRUE	brms: Please set cov = TRUE. CAVEAT: frmtmb gives this message for ma(x) on every family, including gaussian, which brms fits (defect filed)
+brm:106	frmtmb	the time index must be ONE variable name	brms: Cannot coerce 'x + y' to a single variable name. The same refusal of the same call in frmtmb's words (dev/adefects-log/evidence.txt)
+brm:108	frmtmb	grouping term must be variable names combined by	brms: Illegal grouping term 'g1/g2'. The same refusal of the same call in frmtmb's words
 brm:75	frmtmb	needs a response [(]left-hand side[)]	brms: Response variable is missing
 brm:77	frmtmb	nonlinear formula needs at least one nonlinear-parameter formula	brms: No non-linear parameters specified
 brm:79	frmtmb	se[(][)] without sigma = TRUE replaces the residual scale	brms: Cannot predict or fix 'sigma' in this model

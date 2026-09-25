@@ -79,8 +79,8 @@ else once listed here (OSA residuals, RTMBdist families, gr(cov=),
 ou/toep, propto-equivalent equalto, smooth edf reporting) has since
 shipped; `propto` itself is spelled `gr(g, cov = A)`; gp() now
 spans up to 3 dimensions (per-dimension or iso lengthscales) and the
-exact form kriges at unseen positions. Remaining deferrals:
-`ar()/ma()` residual autocorrelation terms.
+exact form kriges at unseen positions; `ar()`, `ma()` and `arma()`
+fit both of brms's forms, `cov = FALSE` and `cov = TRUE`.
 
 ## 1. Thesis
 

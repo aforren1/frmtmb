@@ -35,7 +35,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
-| `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
+| `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms's default) and `cov = TRUE` (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
 
@@ -391,11 +391,11 @@ when it refuses one:
 ## Within-group residual correlation
 
 `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are written where brms
-writes them, in the model formula, and mean what brms means under
-`cov = TRUE`: the residuals of one group become a single correlated
-draw, `y_g ~ N(mu_g, D R D)` with `D` the diagonal of that group's
-`sigma` values. `?frmtmb-autocor` has the full page; five things
-matter when porting.
+writes them, in the model formula, and mean what brms means. Under
+`cov = TRUE` (and always for `cosy()` and `unstr()`) the residuals of
+one group become a single correlated draw, `y_g ~ N(mu_g, D R D)` with
+`D` the diagonal of that group's `sigma` values. `?frmtmb-autocor` has
+the full page; five things matter when porting.
 
 **The term grammar is brms's.** `time` is ONE variable name, or absent
 for the row's position within its group, and `gr` is variable names
@@ -404,18 +404,26 @@ than evaluated, exactly as brms refuses it: `ar(x + t, g)` would index
 the correlation by the sum, and `gr = g1/g2` would group the residual
 by the quotient. Compute the column first and name it.
 
-**`cov = TRUE` is required for `ar()`, `ma()` and `arma()`.** brms
-defaults to `cov = FALSE`, which is a different likelihood - a
-residual regression that conditions on each group's first rows - and
-that form is not implemented. The call is refused rather than
-reinterpreted, so a brms model written with the default has to be
-changed deliberately. `cosy()` and `unstr()` have no `cov` argument in
-brms either and port unchanged.
+**`cov = FALSE`, brms's default for `ar()`, `ma()` and `arma()`, ports
+unchanged.** It is a different likelihood from `cov = TRUE`: `mu` gains
+a regression on the group's earlier residuals, and every row keeps the
+family's own density, so the likelihood conditions on each group's
+first rows. It is brms's likelihood to 1e-15 relative, and for one
+series it is the conditional sum of squares of
+`stats::arima(method = "CSS")`. As in brms, the coefficients are
+unconstrained, the lag is counted in rows, and `weights()`, `cens()`,
+`trunc()`, `mi()` and `rescor = TRUE` combine with it. `fitted()` and
+`predict()` give brms's one-step mean, which reads the observed
+earlier residuals, so `newdata` must carry the response; `simulate()`
+runs the recursion over its own draws. `cosy()` and `unstr()` have no
+`cov` argument in brms either and port unchanged.
 
 ```{r, eval = FALSE}
 # brms
+brm(y ~ x + ar(week, subj), data = d)
 brm(y ~ x + ar(week, subj, cov = TRUE), data = d)
 # frmtmb
+frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
 frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
 ```
 
@@ -443,20 +451,22 @@ frm(bf(cnt ~ x + ar1(factor(week) + 0 | subj)) + poisson(), data = d)
 
 **Higher orders are allowed, and gaps are honored.** brms limits
 `cov = TRUE` to order one; `ar(p = 3)` and `arma(p = 2, q = 1)` work
-here. And the lag between two rows is the distance between their
-positions in the global set of time levels, so a subject missing week 3
-gets `cor(week2, week4) = rho^2`; brms indexes `ar()`/`ma()`/`arma()`/
-`cosy()` by position within the group and treats the missing row as no
-gap. On complete balanced groups the two agree.
+here. And under `cov = TRUE` the lag between two rows is the distance
+between their positions in the global set of time levels, so a subject
+missing week 3 gets `cor(week2, week4) = rho^2`; brms indexes
+`ar()`/`ma()`/`arma()`/`cosy()` by position within the group and treats
+the missing row as no gap. On complete balanced groups the two agree.
+Under `cov = FALSE` the lag is counted in rows, as brms counts it.
 
 The parameters appear in `summary()` under "Within-group residual
 correlation" and in `confint_varcorr()` under brms's names (`ar[1]`,
 `cosy`, `cortime__1__2`); `autocor_matrix()` returns the fitted
-correlation matrix. `weights()`, `cens()`, `trunc()`, `se()`, `mi()`,
-`rescor = TRUE`, mixtures and `quadrature = TRUE` are refused, because
-the likelihood no longer factorizes over rows - brms refuses the same
-core set. Random effects alongside the correlated residual are the
-point of the feature and are supported.
+correlation matrix under `cov = TRUE`. Under `cov = TRUE`, `weights()`,
+`cens()`, `trunc()`, `se()`, `mi()`, `rescor = TRUE`, mixtures and
+`quadrature = TRUE` are refused, because the likelihood no longer
+factorizes over rows. brms refuses the same core set. Random effects
+alongside the correlated residual are the point of the feature and are
+supported.
 
 ## Variance functions (nlme `weights = varFunc`)
 

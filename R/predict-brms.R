@@ -480,9 +480,11 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
     } else {
       list()
     }
-    if (!is.null(newdata) &&
-        sim_is_structured(sim_context(object, rspec, list(),
-                                      aterms = av[[nm]]))) {
+    ctx0 <- sim_context(object, rspec, list(), aterms = av[[nm]])
+    # a cov = FALSE term is drawn row by row around the one-step mean,
+    # which frm_linpred() forms on newdata from newdata's own response
+    if (autocor_is_cond(ctx0[["autocor"]])) ctx0[["autocor"]] <- NULL
+    if (!is.null(newdata) && sim_is_structured(ctx0)) {
       frm_stop("predict(newdata = ) is not supported for this model: its ",
                "draws are structured (a hidden state sequence, a ",
                "group-level latent class, or a correlated residual) and ",
@@ -629,14 +631,21 @@ subset_rows <- function(x, keep) {
 #' @noRd
 predict_sim_rows <- function(fs, rspec, dpv, av, ok, ntrys) {
   n <- length(ok)
+  # a cov = FALSE term is already in dpv's mu (predict_dpar_values()),
+  # conditional on the observed past, so the rows are drawn one by one
+  # rather than by the recursion simulate() runs over its own draws
+  rowwise <- autocor_is_cond(fs$frame[["autocor"]][[rspec$resp_name]])
   if (!all(ok)) {
     ctx0 <- sim_context(fs, rspec, list(), aterms = av)
+    if (rowwise) ctx0[["autocor"]] <- NULL
     if (sim_is_structured(ctx0)) return(NULL)
     dpv <- lapply(dpv, subset_rows, keep = ok)
     av <- lapply(av %||% list(), subset_rows, keep = ok)
   }
-  sim_draw(sim_context(fs, rspec, dpv, aterms = av, n = sum(ok),
-                       extra = fit_extras(fs), max_iter = ntrys))
+  ctx <- sim_context(fs, rspec, dpv, aterms = av, n = sum(ok),
+                     extra = fit_extras(fs), max_iter = ntrys)
+  if (rowwise) ctx[["autocor"]] <- NULL
+  sim_draw(ctx)
 }
 
 #' One replicate's JOINT draw of the responses of a `rescor` fit.
@@ -816,7 +825,10 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
                                 allow_new_levels, new_level_off = NULL) {
   resp <- rspec$resp_name
   if (is.null(newdata) && is.null(re_formula)) {
-    dpv <- eval_dpars(fit)[[resp]]
+    # brms's posterior_predict() under cov = FALSE draws around the
+    # one-step mean, which conditions on the observed earlier residuals;
+    # the frm_linpred() route below already carries it
+    dpv <- autocor_cond_dpars(fit, resp, eval_dpars(fit)[[resp]])
     return(cs_offsets_add(fit, resp, NULL, dpv))
   }
   dpv <- list()

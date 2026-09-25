@@ -1,0 +1,13 @@
+MUTANT 1: AR part inside err
+LIB frmtmb from /opt/rlib/lane-arcov
+RESULT frmtmb test-autocor-cond.R pass=37 fail=9 err=0 skip=0
+  BLOCK the likelihood is brms's recursion (gaussian, ragged, shuffled) fail=2 err=FALSE
+  BLOCK weights(), cens() and a random intercept keep brms's density fail=4 err=FALSE
+  BLOCK fitted() is brms's one-step mean, residuals follow it fail=2 err=FALSE
+  BLOCK simulate() runs the recursion over its own draws fail=1 err=FALSE
+MUTANT 2: data order within group instead of time order
+LIB frmtmb from /opt/rlib/lane-arcov
+RESULT frmtmb test-autocor-cond.R pass=31 fail=15 err=0 skip=0
+  BLOCK the likelihood is brms's recursion (gaussian, ragged, shuffled) fail=8 err=FALSE
+  BLOCK weights(), cens() and a random intercept keep brms's density fail=6 err=FALSE
+  BLOCK fitted() is brms's one-step mean, residuals follow it fail=1 err=FALSE

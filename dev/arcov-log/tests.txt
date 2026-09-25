@@ -1,0 +1,17 @@
+RESULT frmtmb test-autocor.R pass=192 fail=0 err=0 skip=0
+RESULT frmtmb test-autocor-cond.R pass=46 fail=0 err=0 skip=0
+RESULT frmtmb test-compat.R pass=576 fail=0 err=0 skip=0
+RESULT frmtmb test-priors-autocor-classes.R pass=62 fail=0 err=0 skip=0
+RESULT frmtmb test-simulate-newdata.R pass=44 fail=0 err=0 skip=0
+RESULT frmtmb test-adefects.R pass=85 fail=0 err=0 skip=0
+RESULT frmtmb test-portability.R pass=95 fail=0 err=0 skip=0
+RESULT frmtmb test-prior-mv-resp.R pass=36 fail=0 err=0 skip=0
+RESULT frmtmb test-prior-location-dpar.R pass=55 fail=0 err=0 skip=0
+RESULT frmtmb test-importance.R pass=226 fail=0 err=0 skip=0
+RESULT frmtmb test-brms-likelihood.R pass=19 fail=1 err=0 skip=33
+  BLOCK row 18: brms's ar(cov = FALSE) is another likelihood fail=1 err=FALSE
+RESULT frmtmb test-conditions.R pass=150 fail=0 err=0 skip=0
+RESULT frmtmb test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT frmtmb test-method-residue.R pass=64 fail=0 err=0 skip=0
+
+[exited with code 0]

@@ -862,8 +862,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                "correlation term ", frame[["autocor"]][[1L]]$label,
                ": the rule integrates a random effect against ",
                "per-observation densities, and this residual is a joint ",
-               "density over each group. Use quadrature = FALSE (Laplace) ",
-               "or REML = TRUE", call. = FALSE)
+               "density over each group (cov = TRUE) or gives each row a ",
+               "mean that reads the residuals of earlier rows (cov = ",
+               "FALSE). Use quadrature = FALSE (Laplace) or REML = TRUE",
+               call. = FALSE)
     }
     # The truncation normalizer is log(F(ub) - F(lb)) over plain CDFs.
     # The Gauss-Kronrod nodes reach random-effect values where that

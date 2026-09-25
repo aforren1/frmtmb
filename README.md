@@ -232,7 +232,9 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - Within-group residual correlation uses brms's R-side terms:
   `ar()`, `ma()`, `arma()`, `cosy()`, and `unstr()`, for gaussian
   and student responses, validated against `nlme::gls` under ML and
-  REML.
+  REML. brms's default `cov = FALSE` form of `ar()`, `ma()` and
+  `arma()` is brms's own likelihood, a regression on earlier
+  residuals.
 - `car(M, gr = g, type =)` fits spatial Gaussian Markov random
   fields with brms's spelling and all four of its types (`escar`,
   `esicar`, `icar`, and `bym2` with brms's scaling convention).

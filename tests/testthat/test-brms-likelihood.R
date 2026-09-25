@@ -28,12 +28,13 @@
 # asserting the structural difference rather than by skipping the row.
 # That list held one entry, row 3's `mo(inc) * z`, until every mo()
 # TERM was given its own simplex; that row is now an identity. Four
-# entries remain, over three rows: the exact `gp()` nugget (row 10a),
+# entries remained, over three rows: the exact `gp()` nugget (row 10a),
 # brms's `ar(cov = FALSE)` likelihood (row 18d), and the esicar and
 # bym2 CAR parameterizations (row 19c). esicar left that list when it
 # was given the exact sum-to-zero constraint brms imposes and became
-# row 19c-esicar, an identity; three entries remain, over three rows,
-# and bym2 is what is left of row 19c.
+# row 19c-esicar, an identity. Row 18d left it when frmtmb implemented
+# brms's cov = FALSE form and became an identity too; two entries
+# remain, over two rows, and bym2 is what is left of row 19c.
 #
 # Stan compiles here. The whole file is opt-in, and skip_unless_brms()
 # calls skip_on_cran(), so outside R CMD check BOTH are needed:
@@ -977,29 +978,32 @@ test_that("row 18: ar(p = 1), cosy and unstr residual correlation", {
   brms_lp_check(bform_un, gaussian(), d18, fit_un)
 })
 
-test_that("row 18: brms's ar(cov = FALSE) is another likelihood", {
-  skip_unless_brms()
+test_that("row 18d: brms's default cov = FALSE ARMA is an identity", {
+  skip_unless_brms_fit()
 
-  # EXEMPTION. brms's ar() defaults to cov = FALSE, the residual
-  # REGRESSION form, which conditions on the first observations of each
-  # group instead of giving them their stationary distribution. frmtmb
-  # implements only the marginal residual-covariance form and refuses
-  # the other one by name rather than fitting something else under it.
-  # The two are different likelihoods on the same data, so there is no
-  # parameter map between them and the row is run on cov = TRUE above.
+  # Once an exemption: frmtmb refused the default cov = FALSE and this
+  # row asserted the refusal. It is brms's likelihood now, run on
+  # RAGGED groups with interior gaps and SHUFFLED rows, because brms
+  # sorts by (gr, time) and counts lags in rows (its J_lag), and both
+  # have to be matched rather than assumed away by a balanced design.
   d18 <- brms_ac_data()
-  expect_error(frm(bf(y ~ x + ar(time, gr = g, p = 1)) + gaussian(),
-                   data = d18), "cov = TRUE")
-  # brms's two spellings really are two programs: the default declares
-  # no correlation factor at all and drops the first observation of
-  # each group from the AR recursion
-  p0 <- brms_flat_prior(brms::bf(y ~ x + ar(time, gr = g, p = 1)),
-                        data = d18, family = gaussian())
-  code0 <- brms::make_stancode(brms::bf(y ~ x + ar(time, gr = g, p = 1)),
-                               data = d18, family = gaussian(),
-                               prior = p0)
-  expect_false(grepl("Lcortime", code0, fixed = TRUE))
-  expect_true(grepl("J_lag", code0, fixed = TRUE))
+  set.seed(31)
+  d18 <- d18[-c(3, 17, 18, 40, 77, 150), ]
+  d18 <- d18[sample(nrow(d18)), ]
+  for (tm in c("ar(time, gr = g, p = 1)", "ma(time, gr = g, q = 1)",
+               "arma(time, gr = g, p = 2, q = 1)")) {
+    fo <- stats::as.formula(paste("y ~ x +", tm))
+    fit <- frm(bf(fo) + gaussian(), data = d18)
+    bform <- brms::bf(fo)
+    prior <- brms_flat_prior(bform, data = d18, family = gaussian())
+    code <- brms::make_stancode(bform, data = d18, family = gaussian(),
+                                prior = prior)
+    # the residual-regression program: no correlation factor, and the
+    # lag bookkeeping brms builds in data_ac()
+    expect_false(grepl("Lcortime", code, fixed = TRUE))
+    expect_true(grepl("J_lag", code, fixed = TRUE))
+    brms_lp_check(bform, gaussian(), d18, fit)
+  }
 })
 
 # ---------------------------------------------------------------------

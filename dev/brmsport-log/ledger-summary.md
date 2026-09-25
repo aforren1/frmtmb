@@ -20,8 +20,8 @@
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 220 |
-| pass | own-words | 31 |
+| pass | - | 221 |
+| pass | own-words | 30 |
 | pass | weak-pass | 1 |
 | defect | accepts-refused | 1 |
 | defect | argument | 20 |
