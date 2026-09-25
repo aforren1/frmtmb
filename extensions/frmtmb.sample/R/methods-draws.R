@@ -794,9 +794,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   rows <- draws_subsample(object, ndraws, draw_ids)
   av <- if (is.null(newdata)) {
     fit$frame[["aterm_values"]][[resp]]
-  } else if (has_trunc(rspec)) {
+  } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
     # truncation bounds must follow the newdata rows, or the draws land
-    # outside the support the likelihood was normalized on
+    # outside the support the likelihood was normalized on; so must a
+    # row's group under grouped thresholds, thres(gr = )
     aterms_for_newdata(rspec, newdata)
   } else {
     list()

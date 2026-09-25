@@ -2736,10 +2736,41 @@ resolve_priorlist <- function(fit, pl) {
     # hold the thresholds themselves and brms declares them unordered,
     # so neither side has a Jacobian there
     ordered <- rspec$family[["family"]] %in% c("cumulative", "sratio")
-    list(comp = "tau_raw", idx = seq_along(raw), dist = s$dist,
-         scale = if (ordered) "ordthres" else "internal",
-         link = NULL, offset = ordinal_center_offset(frame, rspec),
-         lb = s$lb, ub = s$ub)
+    th <- rspec$family[["thres"]]
+    grouped <- isTRUE(th[["grouped"]])
+    if (nzchar(s$group) && !grouped) {
+      frm_stop("Prior target not found (", spec_target(s), "): group = ",
+               "on class \"Intercept\" names one threshold vector of a ",
+               "model with grouped thresholds, thres(gr = ), and this ",
+               "model has one threshold vector. Drop group", call. = FALSE)
+    }
+    if (!grouped) {
+      return(list(list(comp = "tau_raw", idx = seq_along(raw),
+                       dist = s$dist,
+                       scale = if (ordered) "ordthres" else "internal",
+                       link = NULL,
+                       offset = ordinal_center_offset(frame, rspec),
+                       lb = s$lb, ub = s$ub)))
+    }
+    # one entry per group: each slice is an ordered vector of its own,
+    # so the map and its Jacobian are per slice. brms does not center
+    # the design of a model with grouped thresholds, so no offset
+    lay <- thres_layout(th[["nthres"]])
+    gs <- seq_len(lay$G)
+    if (nzchar(s$group)) {
+      gs <- which(th[["groups"]] == s$group)
+      if (!length(gs)) {
+        frm_stop("Prior target not found (", spec_target(s), "): the ",
+                 "thresholds are grouped by thres(gr = ), whose levels ",
+                 "are ", paste0("\"", th[["groups"]], "\"", collapse = ", "),
+                 call. = FALSE)
+      }
+    }
+    lapply(gs, function(g) {
+      list(comp = "tau_raw", idx = lay$start[g]:lay$end[g], dist = s$dist,
+           scale = if (ordered) "ordthres" else "internal", link = NULL,
+           offset = NULL, lb = s$lb, ub = s$ub)
+    })
   }
 
   for (s in prior_specificity_order(pl)) {
@@ -2769,8 +2800,10 @@ resolve_priorlist <- function(fit, pl) {
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
-        claim("tau_raw", ord_th$idx)
-        assigned[[nm_of("tau_raw", ord_th$idx)]] <- ord_th
+        for (e in ord_th) {
+          claim("tau_raw", e$idx)
+          assigned[[nm_of("tau_raw", e$idx)]] <- e
+        }
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
         frm_stop("class = \"Intercept\" on an ordinal family addresses the ",

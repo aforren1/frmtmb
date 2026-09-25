@@ -229,6 +229,11 @@ has not written.
   nested `frm_multiple()` fits with the D1, D2 and D3 rules of `mice`
   (D3 by default). Mixture fits are ML: expect multimodality, compare
   starts (`frm_allfit()`).
+- `thres()` works on the four ordinal families. `y | thres(K) ~ x`
+  sets the number of thresholds, and `y | thres(gr = g) ~ x` fits one
+  threshold vector per level of `g`, named `Intercept[g,k]` as in
+  brms. The section "Ordinal thresholds, thres()" of `?frm` says
+  where the count and the unobserved categories differ from brms.
 - `binomial()`, `beta_binomial()` and `zero_inflated_binomial()`
   without `trials()` are refused, as in brms, with brms's message. A 0/1
   response takes `bernoulli()` or `y | trials(1)`; the `stats::glm()`

@@ -77,16 +77,6 @@ standata:970	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept vari
 standata:974	frmtmb	cannot transfer	absent	frmtmb has no reserved intercept variable
 standata:976	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
 standata:1047	frmtmb	cannot transfer	absent	frmtmb has no rate() addition term
-standata:1063	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term (dev/brms-suite-audit.md section 5)
-standata:1065	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1072	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1073	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1074	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1075	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1078	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1079	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1082	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1083	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
 standata:1133	frmtmb	cannot transfer	absent	frm() takes no drop_unused_levels argument; the unused level is always dropped
 priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
 priors:14	frmtmb	cannot transfer	absent	sratio() takes no threshold = 'equidistant' and there is no cse() alias (priorform ledger P2)

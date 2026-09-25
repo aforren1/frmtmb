@@ -150,7 +150,8 @@ brms_extra_fixef <- function(fit) {
     out[[length(out) + 1L]] <- list(
       comp = "tau_raw", cls = "b", is_int = TRUE, dp = lp_dp(lp),
       key = coef_block_key(fit, lp),
-      names = paste0(brms_usc(pre, "Intercept"), "[", seq_along(v), "]"),
+      names = paste0(brms_usc(pre, "Intercept"), "[",
+                     thres_labels(fam, length(v)), "]"),
       values = v, raw = as.numeric(raw), map = map)
   }
   for (lp in fit$frame[["linpreds"]]) {

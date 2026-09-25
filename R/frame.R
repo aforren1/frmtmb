@@ -1437,6 +1437,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
       if (nm_at == "cens") return(decode_cens(v))
+      if (nm_at == "thres_gr") return(thres_group_codes(v))
       # a registered term brings its own coercion, which is the point of
       # registering one: the spelling a literature uses (a factor, a
       # two-level character) becomes the numbers the density indexes
@@ -1501,6 +1502,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # family's missing CDF further down
     st_ <- fam_structure(resp$family)
     if (!is.null(st_[["check_spec"]])) st_[["check_spec"]](resp, spec, av)
+    if (any(c("thres", "thres_gr") %in% names(resp$aterms)) &&
+          !identical(resp$family[["type"]], "ordinal")) {
+      # brms's own sentence: the term is refused for any family without
+      # thresholds, and a custom family that declares no allow-list
+      # would otherwise read nothing and fit as if it were absent
+      frm_stop("thres() is not a valid addition term for family '",
+               resp$family[["family"]], "': it sets the number of ",
+               "thresholds of an ordinal family, and this family has ",
+               "none. The ordinal families are cumulative(), sratio(), ",
+               "cratio() and acat()", call. = FALSE)
+    }
     if (isTRUE(resp$aterms[["mi"]])) {
       if (!resp$family[["family"]] %in% c("gaussian", "student")) {
         frm_stop("mi() responses need a gaussian or student model",
@@ -1829,6 +1841,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (!is.null(lk_dp)) resp$dpars[[i_dp]]$link <- lk_dp
       }
       spec$responses[[resp$resp_name]] <- resp
+    }
+    # an ordered factor names its categories, and simulate() hands draws
+    # back as that factor, so thres(x = ) may not ask for more categories
+    # than it has levels; brms returns bare codes there instead
+    th_ <- resp$family[["thres"]]
+    lv_ <- y_levels[[resp$resp_name]]
+    if (!is.null(th_) && !is.null(lv_) &&
+          max(th_[["nthres"]]) + 1L > length(lv_)) {
+      frm_stop("thres(x = ", max(th_[["nthres"]]), ") asks for ",
+               max(th_[["nthres"]]) + 1L, " categories, and the response ",
+               "is an ordered factor with ", length(lv_), " levels in the ",
+               "data: a level no row takes is dropped with the model ",
+               "frame, as brms drops it. frmtmb returns simulated ",
+               "responses as that factor, so it cannot hold more ",
+               "categories than levels. Code the response as integers ",
+               "1..", max(th_[["nthres"]]) + 1L, " to fit the categories ",
+               "nobody chose, or lower the count", call. = FALSE)
     }
     # Family-level DATA a likelihood needs but no addition term supplies
     # (the Cox baseline's spline bases). It is a function of the
@@ -2480,7 +2509,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           frm_stop("cs() needs an sratio, cratio, or acat family",
                    call. = FALSE)
         }
-        K_cs <- max(y[[resp$resp_name]])
+        if (thres_grouped(resp$family)) {
+          # brms 2.23.0 refuses the pair in the same words
+          frm_stop("Cannot use category specific effects in models with ",
+                   "multiple thresholds. cs() gives each threshold ",
+                   "position one coefficient, and with thres(gr = ) the ",
+                   "positions differ by group", call. = FALSE)
+        }
+        # the threshold count, not max(y): thres(x = ) may name
+        # categories above the highest one observed
+        K_cs <- length(extras[["tau_raw"]]) + 1L
         for (cexpr in dp[["csterms"]]) {
           v <- as.numeric(eval(cexpr, mf, resp$formula_env))
           csname <- paste0("bcs", length(extras) + 1L)

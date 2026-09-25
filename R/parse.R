@@ -1,4 +1,4 @@
-# The addition-term registry. The eight core terms below are spelled out
+# The addition-term registry. The core terms below are spelled out
 # because the core acts on each of them: weights() enters the objective,
 # cens() reshapes the density, mi() creates parameters. A contributed
 # term does none of that - it carries a column of data to a family that
@@ -19,7 +19,7 @@ frmtmb_aterm_registry$reg <- list()
 #'
 #' @noRd
 core_aterms <- c("weights", "trials", "cens", "trunc", "se",
-                 "vint", "vreal", "mi")
+                 "vint", "vreal", "mi", "thres")
 
 #' Add an addition term from another package
 #'
@@ -147,6 +147,7 @@ aterm_base <- function(nm) {
   if (nm == "cens_y2") return("cens")
   if (nm == "se_sigma") return("se")
   if (nm == "mi_sd") return("mi")
+  if (nm == "thres_gr") return("thres")
   base <- sub("[0-9]+$", "", nm)
   if (base %in% c("vint", "vreal")) return(base)
   e <- registered_aterm_of(nm)
@@ -179,6 +180,7 @@ aterm_spelling <- function(nm) {
   if (nm %in% c("trunc_lb", "trunc_ub")) {
     return(paste0("trunc(", substring(nm, 7L), " = <bound>)"))
   }
+  if (nm == "thres_gr") return("thres(gr = <column>)")
   paste0(nm, "(<column>)")
 }
 
@@ -213,6 +215,7 @@ parse_response <- function(formula) {
       if (nm %in% names(aterms) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
+          (nm == "thres" && "thres_gr" %in% names(aterms)) ||
           (multi && paste0(nm, "1") %in% names(aterms))) {
         frm_stop("Duplicated addition term `", nm, "()`", call. = FALSE)
       }
@@ -244,6 +247,20 @@ parse_response <- function(formula) {
         }
         aterms[["mi"]] <- TRUE
         if (length(tm) == 2L) aterms[["mi_sd"]] <- tm[[2]]
+      } else if (nm == "thres") {
+        # brms's resp_thres(x, gr = NA): the number of thresholds and the
+        # factor whose levels get a threshold vector each. Matched the
+        # way R matches the call, so thres(5), thres(gr = g) and
+        # thres(n, g) all mean what they mean in brms
+        mc <- tryCatch(match.call(function(x, gr) NULL, tm),
+                       error = function(e) {
+                         frm_stop("thres() takes the number of thresholds ",
+                                  "and a grouping factor, thres(x, gr): ",
+                                  conditionMessage(e), call. = FALSE)
+                       })
+        args <- as.list(mc)[-1L]
+        if (!is.null(args$x)) aterms[["thres"]] <- args$x
+        if (!is.null(args$gr)) aterms[["thres_gr"]] <- args$gr
       } else if (nm %in% c("vint", "vreal")) {
         # custom-family data vectors (brms vint()/vreal()): each
         # argument becomes aterms$vint1, vint2, ... for the lpdf

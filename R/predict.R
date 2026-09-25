@@ -898,12 +898,30 @@ is_custom_data_aterm <- function(nm) {
 #'
 #' @noRd
 aterms_for_newdata <- function(rspec, newdata) {
-  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
+  # a thres() count lives on the family once the fit is made, so newdata
+  # need not repeat it
+  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
+            "thres")
   need <- c("trials", "se", "trunc_lb", "trunc_ub")
   nd_n <- nrow(newdata)
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
+    if (nm == "thres_gr") {
+      # the group's thresholds are what a category probability is made
+      # of, so a row without its group has no prediction at all
+      v <- tryCatch(eval(ex, newdata, rspec$formula_env),
+                    error = function(e) NULL)
+      if (is.null(v) || !length(v) %in% c(1L, nd_n %||% length(v))) {
+        frm_stop("Addition term thres(gr = ", deparse1(ex), ") could not ",
+                 "be evaluated on newdata: the fit has one threshold ",
+                 "vector per level of ", deparse1(ex), ", so newdata ",
+                 "needs that variable", call. = FALSE)
+      }
+      av[[nm]] <- rep_len(thres_newdata_codes(rspec$family, v),
+                          nd_n %||% length(v))
+      next
+    }
     # the same coercion the frame applied, or newdata's factor would
     # reach the density as level codes where training data reached it as
     # whatever the contributing package meant
@@ -2466,7 +2484,22 @@ ordinal_ncat <- function(fit) {
     rspec <- single_response(fit, "residuals()")
     return(max(fit$frame[["y"]][[rspec$resp_name]]))
   }
-  length(raw) + 1L
+  # grouped thresholds, thres(gr = ): the largest group's categories
+  fam <- fit$spec$responses[[1L]]$family
+  thres_ncat(fam, raw)
+}
+
+#' The addition-term values an ordinal category probability reads: the
+#' row groups of `thres(gr = )`, and nothing for any other model.
+#' In-sample rows take the frame's values; newdata is evaluated.
+#'
+#' @noRd
+ord_prob_aterms <- function(object, rspec, newdata) {
+  if (!thres_grouped(rspec$family)) return(list())
+  if (is.null(newdata)) {
+    return(object$frame[["aterm_values"]][[rspec$resp_name]])
+  }
+  aterms_for_newdata(rspec, newdata)
 }
 
 #' The `n x (K-1)` matrix of threshold-specific offsets a `cs()` term
@@ -2542,7 +2575,7 @@ cs_offsets_add <- function(fit, resp, newdata, dpv) {
 #' custom ordinal family gets the same treatment for free.
 #'
 #' @noRd
-ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
+ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list()) {
   n <- length(eta)
   dp <- list(mu = eta)
   if (!is.null(cs)) dp[[".cs"]] <- cs
@@ -2552,9 +2585,9 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
   four <- length(formals(fam[["lpdf"]])) >= 4L
   for (k in seq_len(K)) {
     P[, k] <- exp(as.numeric(if (four) {
-      fam[["lpdf"]](rep.int(k, n), dp, list(), extra)
+      fam[["lpdf"]](rep.int(k, n), dp, aterms, extra)
     } else {
-      fam[["lpdf"]](rep.int(k, n), dp, list())
+      fam[["lpdf"]](rep.int(k, n), dp, aterms)
     }))
   }
   # analytically the rows already sum to one; the division only removes
@@ -2580,9 +2613,10 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   n <- length(eta)
   K <- ordinal_ncat(object)
   cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
-  # the ordinal lpdfs read only `extra` (the thresholds and the cs
-  # coefficients); no addition term enters a category probability
-  P <- ord_probs_from_eta(fam, eta, cs, fit_extras(object), K)
+  # the ordinal lpdfs read `extra` (the thresholds and the cs
+  # coefficients) and, under thres(gr = ), each row's group
+  P <- ord_probs_from_eta(fam, eta, cs, fit_extras(object), K,
+                          ord_prob_aterms(object, rspec, newdata))
   colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
     as.character(seq_len(K))
   rn <- names(ed[["eta"]])
@@ -2700,7 +2734,8 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
     for (ct in csv) M <- M + outer(ct$vals, object$estimates[[ct$par]])
     M
   }
-  probs <- function(e, cs, ex) ord_probs_from_eta(fam, e, cs, ex, K)
+  av <- ord_prob_aterms(object, rspec, newdata)
+  probs <- function(e, cs, ex) ord_probs_from_eta(fam, e, cs, ex, K, av)
   P0 <- probs(eta, CS, extra)
 
   jc <- get_joint_cov(object)

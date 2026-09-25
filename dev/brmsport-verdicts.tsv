@@ -582,16 +582,16 @@ standata:974	frmtmb	cannot transfer	frmtmb has no reserved intercept variable
 standata:976	frmtmb	cannot transfer	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
 standata:1047	frmtmb	cannot transfer	frmtmb has no rate() addition term
 standata:1060	frmtmb	pass	
-standata:1063	frmtmb	cannot transfer	frmtmb has no thres() addition term (dev/brms-suite-audit.md section 5)
-standata:1065	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1072	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1073	frmtmb	cannot transfer	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1074	frmtmb	cannot transfer	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1075	frmtmb	cannot transfer	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1078	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1079	frmtmb	cannot transfer	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1082	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1083	frmtmb	cannot transfer	frmtmb has no thres() addition term; ngrthres is also Stan data
+standata:1063	frmtmb	pass	
+standata:1065	frmtmb	pass	
+standata:1072	frmtmb	pass	
+standata:1073	frmtmb	pass	
+standata:1074	frmtmb	pass	
+standata:1075	frmtmb	pass	
+standata:1078	frmtmb	pass	
+standata:1079	frmtmb	pass	
+standata:1082	frmtmb	pass	
+standata:1083	frmtmb	pass	
 standata:1114	frmtmb	pass	
 standata:1115	frmtmb	pass	
 standata:1118	frmtmb	pass	frmtmb's own words: cens[(][)] upper bounds must not be NA on interval-censored rows | brms: 'y2' should not be NA for interval censored observations
