@@ -1,0 +1,199 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | contaminant                                                    
+⠋ | 1        0 | contaminant                                                    
+⠙ | 1        1 | contaminant                                                    
+⠹ | 2        1 | contaminant                                                    
+⠼ | 4        1 | contaminant                                                    
+⠇ | 8        1 | contaminant                                                    
+⠏ | 9        1 | contaminant                                                    
+⠹ | 11        2 | contaminant                                                   
+⠸ | 11        3 | contaminant                                                   
+⠴ | 13        3 | contaminant                                                   
+⠏ | 17        3 | contaminant                                                   
+⠸ | 21        3 | contaminant                                                   
+⠼ | 22        3 | contaminant                                                   
+⠦ | 24        3 | contaminant                                                   
+⠋ | 27        4 | contaminant                                                   
+✖ | 28        4 | contaminant [4.9s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-contaminant.R:51:3'): the mixture integrates to one over time and both boundaries
+Expected `abs(tot - 1)` < 1e-09.
+Actual comparison: NA >= 0.000000001
+
+Failure ('test-contaminant.R:71:3'): at lambda = 0 the density is the plain family's
+Expected `lc[up]` to be identical to `lp[up]`.
+Differences:
+  `actual`:   NA   NA   NA   NA   NA   NA   NA  NA  NA   NA and 300 more...
+`expected`: -0.6 -0.8 -0.7 -0.2 -1.1 -0.7 -1.1 0.3 0.3 -0.9             ...
+
+
+Failure ('test-contaminant.R:72:3'): at lambda = 0 the density is the plain family's
+Expected `max(abs(lc[!up] - lp[!up])/abs(lp[!up]))` < `64 * .Machine$double.eps`.
+Actual comparison: NA >= 0.00000000000001
+
+Failure ('test-contaminant.R:93:3'): a fit on clean data is the plain fit, and lambda collapses
+Expected `abs(lc - lp)/abs(lp)` < 1e-06.
+Actual comparison: NA >= 0.000001
+
+Failure ('test-contaminant.R:96:3'): a fit on clean data is the plain fit, and lambda collapses
+Expected `eta` < `-8`.
+Actual comparison: NA >= -8.0
+
+Failure ('test-contaminant.R:99:3'): a fit on clean data is the plain fit, and lambda collapses
+Expected `dg` to match regexp "end of its link: lambda".
+Actual text:
+x | 
+
+Failure ('test-contaminant.R:101:3'): a fit on clean data is the plain fit, and lambda collapses
+Expected `abs(mu - frmtmb::fixef_by_dpar(fp)$mu[[1]])` < 0.001.
+Actual comparison: NA >= 0.001
+
+Failure ('test-contaminant.R:115:3'): lambda recovers on contaminated data
+Expected `isTRUE(...)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-contaminant.R:131:3'): a stated bound above the fastest response is allowed
+Expected `is.finite(ll)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-contaminant.R:133:3'): a stated bound above the fastest response is allowed
+Expected `t0` > 0.22.
+Actual comparison: NA <= 0.2
+
+Failure ('test-contaminant.R:169:3'): censoring composes with the contaminant
+Expected `abs(ll - hand)/abs(hand)` < 1e-12.
+Actual comparison: NA >= 0.000000000001
+
+Failure ('test-contaminant.R:203:3'): a left-censored row under the contaminant is scored at its edge
+Expected `abs(ll - hand)/abs(hand)` < 1e-12.
+Actual comparison: NA >= 0.000000000001
+
+Failure ('test-contaminant.R:218:3'): the conditional mean and the draw follow the contaminant
+Expected `abs(mean(s) - m)` < `4 * stats::sd(s)/sqrt(n)`.
+Actual comparison: NA >= NA
+
+Failure ('test-contaminant.R:221:3'): the conditional mean and the draw follow the contaminant
+Expected `abs(m - plain)` > 0.05.
+Actual comparison: NA <= 0.05
+
+Failure ('test-contaminant.R:227:3'): contaminant = TRUE refuses what it cannot mean
+Expected `m1` to match regexp "cannot be combined".
+Actual text:
+x | unused argument (contaminant = TRUE)
+
+Failure ('test-contaminant.R:229:3'): contaminant = TRUE refuses what it cannot mean
+Expected `m2` to match regexp "must be TRUE or FALSE".
+Actual text:
+x | unused argument (contaminant = NA)
+
+Failure ('test-contaminant.R:240:3'): the default window needs a deadline
+Expected `e` to inherit from "frmtmb_eam_contaminant_range_error".
+Actual class: "simpleError"/"error"/"condition".
+
+Failure ('test-contaminant.R:241:3'): the default window needs a deadline
+Expected `if (is.null(e)) "" else conditionMessage(e)` to match regexp "declares no response deadline".
+Actual text:
+x | unused argument (contaminant = TRUE)
+
+Failure ('test-contaminant.R:248:3'): the default window needs a deadline
+Expected `cr` to be identical to `c(min(dd$rt), 2.5)`.
+Differences:
+`actual` is a logical vector (NA, NA)
+`expected` is a double vector (0.340822474599996, 2.5)
+
+
+Failure ('test-contaminant.R:253:3'): the default window needs a deadline
+Expected `m` to match regexp "differs between rows".
+Actual text:
+x | unused argument (contaminant = TRUE)
+
+Failure ('test-contaminant.R:260:3'): a fitted range is kept
+Expected `cr` to be identical to `range(d$rt)`.
+Differences:
+`actual` is a logical vector (NA, NA)
+`expected` is a double vector (0.340822474599996, 2.06859470691321)
+
+
+Failure ('test-contaminant.R:267:3'): a stated range replaces the observed one
+Expected `cr` to be identical to `c(0, 6)`.
+Differences:
+`actual` is a logical vector (NA, NA)
+`expected` is a double vector (0, 6)
+
+
+Failure ('test-contaminant.R:278:3'): a stated range replaces the observed one
+Expected `got` to equal `want`.
+Differences:
+`actual` is a logical vector (NA, NA)
+`expected` is a double vector (-1.36115861812663, -7.97329994558001)
+
+
+Failure ('test-contaminant.R:292:3'): a response outside contaminant_range is refused, classed
+Expected `e` to inherit from "frmtmb_eam_contaminant_range_error".
+Actual class: "simpleError"/"error"/"condition".
+
+Failure ('test-contaminant.R:293:3'): a response outside contaminant_range is refused, classed
+Expected `if (is.null(e)) "" else conditionMessage(e)` to match regexp "outside contaminant_range".
+Actual text:
+x | unused arguments (contaminant = TRUE, contaminant_range = c(0, max(d$rt) - 0.01))
+
+Failure ('test-contaminant.R:300:3'): contaminant_range is refused where it means nothing
+Expected `m1` to match regexp "there is none without contaminant = TRUE".
+Actual text:
+x | unused argument (contaminant_range = c(0, 5))
+
+Failure ('test-contaminant.R:303:3'): contaminant_range is refused where it means nothing
+Expected `m2` to match regexp "two finite response".
+Actual text:
+x | unused arguments (contaminant = TRUE, contaminant_range = c(2, 1))
+
+Failure ('test-contaminant.R:330:3'): the objective is smooth in lambda when rows sit below ndt
+Expected `abs(narrow - wide)` < `400 * 5 * .Machine$double.eps/1e-08`.
+Actual comparison: NA >= 0.00004
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+                                                              test nb failed
+1      the mixture integrates to one over time and both boundaries  1      1
+2                  at lambda = 0 the density is the plain family's  3      2
+3       a fit on clean data is the plain fit, and lambda collapses  4      4
+4                             lambda recovers on contaminated data  1      1
+5             a stated bound above the fastest response is allowed  3      2
+6                          censoring composes with the contaminant  1      1
+7  a left-censored row under the contaminant is scored at its edge  2      1
+8         the conditional mean and the draw follow the contaminant  2      2
+9                   contaminant = TRUE refuses what it cannot mean  2      2
+10                             the default window needs a deadline  4      4
+11                                          a fitted range is kept  1      1
+12                        a stated range replaces the observed one  2      2
+13        a response outside contaminant_range is refused, classed  2      2
+14             contaminant_range is refused where it means nothing  2      2
+15       the objective is smooth in lambda when rows sit below ndt  2      1
+   skipped error passed
+1    FALSE FALSE      0
+2    FALSE FALSE      1
+3    FALSE FALSE      0
+4    FALSE FALSE      0
+5    FALSE FALSE      1
+6    FALSE FALSE      0
+7    FALSE FALSE      1
+8    FALSE FALSE      0
+9    FALSE FALSE      0
+10   FALSE FALSE      0
+11   FALSE FALSE      0
+12   FALSE FALSE      0
+13   FALSE FALSE      0
+14   FALSE FALSE      0
+15   FALSE FALSE      1
+RESULT test-contaminant.R blocks 15 expectations 32 pass 4 fail 28 err 0 skip 0 

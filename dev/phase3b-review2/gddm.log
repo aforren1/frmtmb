@@ -1,0 +1,3 @@
+gddm plain:   ACCEPTED 
+gddm cens:    REFUSED: gddm(): censoring with cens() or trunc() is not built for this family. It is built for wiener() only; see NEWS.md for what is planned. 
+gddm trunc:   REFUSED: gddm(): censoring with cens() or trunc() is not built for this family. It is built for wiener() only; see NEWS.md for what is planned. 

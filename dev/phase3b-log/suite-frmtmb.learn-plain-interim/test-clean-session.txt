@@ -1,0 +1,17 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | clean-session                                                  
+⠋ |          1 | clean-session                                                  
+⠸ |          4 | clean-session                                                  
+✔ |          4 | clean-session [10.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 10.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 4 ]
+                                                    test nb failed skipped
+1 rlddm() fits from a clean session on a user's own data  4      0   FALSE
+  error passed
+1 FALSE      4
+RESULT test-clean-session.R blocks 1 expectations 4 pass 4 fail 0 err 0 skip 0 

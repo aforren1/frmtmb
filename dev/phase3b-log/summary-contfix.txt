@@ -1,0 +1,23 @@
+arm contfix: 60 files, seeds 1 to 60, gaps: 
+first-pass errors: 1; refitted without error on rerun: 1
+control seed 1: logLik first pass -9131.9991556241, rerun -9131.9991556241, identical: TRUE
+errors after the rerun: 0
+convergence code 0: 14 of 60; diagnose() reported a finding: 1; diagnose() failed: 0
+    9  No convergence problems detected
+    1  Non-finite objective at 1 trial point; the optim
+max |gradient| at the optimum: median 0.0092, max 0.16
+fits with a confint(): 60 of 60
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4058   0.0098   54/60     90.0%  [79.9, 95.3]
+mu condition              0.9000    0.9010   0.0039   55/60     91.7%  [81.9, 96.4]
+log bs                    0.3365    0.3369   0.0044   56/60     93.3%  [84.1, 97.4]
+ndt: the true 0.25 is below the fitted bound on 60 of 60
+ndt (link scale)          0.0000   -0.0018   0.0011   57/60     95.0%  [86.3, 98.3]
+ndt natural scale: mean 0.2498 (truth 0.25)
+log sd 1 (mu | s)        -1.0498   -1.0813   0.0205   54/60     90.0%  [79.9, 95.3]
+log sd 2 (log bs | s)    -1.6094   -1.6476   0.0151   60/60    100.0%  [94.0, 100.0]
+lambda (logit)           -2.9444   -2.9481   0.0073   58/60     96.7%  [88.6, 99.1]
+lambda natural: mean 0.0499, sd 0.0027 (truth 0.05)
+realized contaminant share: mean 0.0502
+seconds per replicate: median 261

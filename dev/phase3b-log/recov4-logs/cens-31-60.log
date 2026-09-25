@@ -1,0 +1,9 @@
+cens 31 ok 919 
+cens 32 std::bad_alloc 172.5 
+cens 33 std::bad_alloc 211.9 
+cens 34 error in evaluating the argument 'q' in selecting a method for function 'pnorm': std::bad_alloc 40.8 
+cens 35 std::bad_alloc 218 
+cens 36 std::bad_alloc 182 
+cens 37 std::bad_alloc 35.3 
+cens 38 ok 429.3 
+cens 39 std::bad_alloc 182.9 

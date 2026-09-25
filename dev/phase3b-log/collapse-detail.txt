@@ -1,0 +1,3 @@
+not named: 11 ; their eta range -9.772 -7.721 ; se range 0.8597 5.1793 
+named: eta range -23.46 -19.02 ; se range 1001 1639 
+|logLik gap| max over all: 1.554833 ; NA gaps (plain fit failed): 2 

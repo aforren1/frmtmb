@@ -126,10 +126,10 @@ ddm_compat_rules <- function() {
     "The grouping the non-decision time's bound is taken per. Without it `ndt` is a fraction of the whole data set's fastest response, which is the 0.6.0 behavior and the right one for a model with no subject deviation on `ndt`; with it the fraction is of the group's own fastest response, which is what a random effect on `ndt` needs. Measured on the Phase 0 eam design: without it the fit does not converge (gradient 1.25e11, seven NaN standard errors) and with it it does. It cannot be combined with max_ndt, which sets the same bound to a different thing, and that pair is refused by name.")
   r("wiener", "vint()", "works",
     "The other spelling for the same thing, carrying the indicator as a plain 0/1 integer. It was the only route before frmtmb had an addition-term registry and it still works unchanged. Supplying neither is refused, because the density would otherwise read a NULL and the log likelihood would silently collapse to zero terms.")
-  r("wiener", "cens()", "refused",
-    "The family declares no lcdf. The Wiener first-passage distribution function is a third series with its own truncation problem and none of it is written here.")
-  r("wiener", "trunc()", "refused",
-    "Same reason as cens(): no lcdf, so frmtmb has no normalizing constant to divide by.")
+  r("wiener", "cens()", "works",
+    "All four codes, on the plain model. A RIGHT-censored row reached no boundary and is scored with the log survival over both boundaries; its dec() value is required by the declaration and not read. A LEFT- or INTERVAL-censored row reached the boundary dec() names, and is scored with that boundary's defective distribution function (decision of 2026-09-24). Every quantity is a log from two series that each avoid a complement, verified against a 700-bit reference to |v| a = 120, against RWiener::pwiener() and WienR::pWDM(), and against the likelihood written by hand with RWiener for all four codes. Left or interval censoring with trunc() is refused by name, and so is censoring under variability =.")
+  r("wiener", "trunc()", "works",
+    "The lcdf over both boundaries is the normalizer. Verified against the likelihood written by hand with RWiener for an upper bound. Refused with left or interval censoring, and under variability =, for the reasons in the cens() row.")
   r("wiener", "weights()", "works",
     "Verified: the weighted log likelihood is the unweighted one at unit weights and scales as it should.")
   r("wiener", "simulate", "works",

@@ -1,0 +1,4 @@
+cleft 9001 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 145.6 
+Warning message:
+In stats::nlminb(par, fnw$fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation

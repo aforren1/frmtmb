@@ -1,0 +1,24 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | scale                                                          
+⠹ |      3   0 | scale                                                          
+✔ |      3   0 | scale
+
+══ Results ═════════════════════════════════════════════════════════════════════
+── Skipped tests (3) ───────────────────────────────────────────────────────────
+• set FRMTMB_SCALE_TESTS=true to run the scale tier (3): 'test-scale.R:198:3',
+  'test-scale.R:272:3', 'test-scale.R:291:3'
+
+[ FAIL 0 | WARN 0 | SKIP 3 | PASS 0 ]
+                                                        test nb failed skipped
+1                the eam scale row fits and reports its cost  1      0    TRUE
+2           the eam scale row fits with the ndt bound lifted  1      0    TRUE
+3 the eam scale row fits with across-trial drift variability  1      0    TRUE
+  error passed
+1 FALSE      0
+2 FALSE      0
+3 FALSE      0
+RESULT test-scale.R blocks 3 expectations 3 pass 0 fail 0 err 0 skip 3 

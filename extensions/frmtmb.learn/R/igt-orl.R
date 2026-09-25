@@ -83,6 +83,16 @@
 #'   from the next, given unquoted.
 #' @param trial The column giving trial order within a subject, given
 #'   unquoted. `NULL` uses the order the rows appear in.
+#' @param session The column naming the session each trial belongs to,
+#'   given unquoted. `NULL`, the default, is one session per subject.
+#'   Every subject's value store starts again from its initial values
+#'   at the first trial of each of its sessions, so nothing learned in
+#'   one session carries into the next. The subject stays the unit a
+#'   random effect and `frm(importance =)` group on: the sessions of
+#'   one subject share that subject's effects. Trial numbers need to be
+#'   unique only within a session. A label reused in two runs that are
+#'   not adjacent in trial order is refused. See the Sessions section of
+#'   [bandit2arm_delta()].
 #'
 #' @return A `frmtmb_family` object, for `frm(family = )`.
 #'
@@ -102,7 +112,7 @@
 #'               betaP = 1), seed = 8)[[1]]$choice
 #' table(d$choice)
 #' @export
-igt_orl <- function(subject, trial = NULL) {
+igt_orl <- function(subject, trial = NULL, session = NULL) {
   spec <- ln_spec(
     n_option = 4L,
     init = function(ns, d1) {
@@ -157,7 +167,8 @@ igt_orl <- function(subject, trial = NULL) {
       }
       list(state = out, pe = pe, outcome = x)
     })
-  ln_family("igt_orl", substitute(subject), substitute(trial),
+  ln_family("igt_orl", session_expr = substitute(session),
+            substitute(subject), substitute(trial),
             dpars = c("Arew", "Apun", "k", "betaF", "betaP"),
             links = list(Arew = "logit", Apun = "logit", k = "log",
                          betaF = "identity", betaP = "identity"),

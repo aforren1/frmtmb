@@ -1,0 +1,13 @@
+cont 41 ok 425.5 
+cont 42 Caught exception 'std::bad_alloc' in function 'MakeADGradObject'
+ 62.6 
+cont 43 std::bad_alloc 25.6 
+cont 44 ok 509.2 
+cont 45 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 135.5 
+cont 46 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 194.8 
+cont 47 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 182 
+cont 48 std::bad_alloc 43.6 
+cont 49 ok 495.7 
+cont 50 ok 370.3 
+cont 51 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 180.1 
+cont 52 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 120.5 

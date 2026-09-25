@@ -1,0 +1,56 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | rlddm-ndt                                                      
+⠼ |          5 | rlddm-ndt                                                      
+⠋ |         11 | rlddm-ndt                                                      
+⠇ |         19 | rlddm-ndt                                                      
+⠋ |         21 | rlddm-ndt                                                      
+⠦ |         27 | rlddm-ndt                                                      
+⠙ |         32 | rlddm-ndt                                                      
+⠴ |         36 | rlddm-ndt                                                      
+⠦ |         37 | rlddm-ndt                                                      
+⠇ |         39 | rlddm-ndt                                                      
+⠏ |         40 | rlddm-ndt                                                      
+⠹ |         43 | rlddm-ndt                                                      
+⠸ |         44 | rlddm-ndt                                                      
+⠼ |         45 | rlddm-ndt                                                      
+⠴ |         46 | rlddm-ndt                                                      
+⠦ |         47 | rlddm-ndt                                                      
+⠧ |         48 | rlddm-ndt                                                      
+⠏ |         50 | rlddm-ndt                                                      
+✔ |         53 | rlddm-ndt [24.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 24.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 53 ]
+                                                           test nb failed
+1       ln_ndt_at reads a fraction only when the floor is there  4      0
+2     a family with no ndt_group carries one bound, in the link  6      0
+3   ndt_group makes the bound each group's own fastest response  8      0
+4      the per-group bound fits a group the global bound cannot  8      0
+5         the grouped fit converges with usable standard errors  5      0
+6                 the per-row bound survives the stacked design  5      0
+7        the group's identity is its label, not its level index  3      0
+8  a bound the fit never saw is refused rather than substituted  3      0
+9                    max_ndt and ndt_group together are refused  1      0
+10   ndt_group on a family with no non-decision time is refused  3      0
+11        a pinned ndt needs a bound, and is checked against it  3      0
+12   a settled bound is kept when the family is finalized again  4      0
+   skipped error passed
+1    FALSE FALSE      4
+2    FALSE FALSE      6
+3    FALSE FALSE      8
+4    FALSE FALSE      8
+5    FALSE FALSE      5
+6    FALSE FALSE      5
+7    FALSE FALSE      3
+8    FALSE FALSE      3
+9    FALSE FALSE      1
+10   FALSE FALSE      3
+11   FALSE FALSE      3
+12   FALSE FALSE      4
+RESULT test-rlddm-ndt.R blocks 12 expectations 53 pass 53 fail 0 err 0 skip 0 

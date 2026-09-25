@@ -1,0 +1,5 @@
+cens-3.rds     logLik -5447.4996808596 -> -5447.4996808596 (diff -5e-11); max |fixef diff| 3.86e-12; identical fixef: FALSE
+cens-5.rds     logLik -5211.1499827781 -> -5211.1499827781 (diff -3.64e-11); max |fixef diff| 1.57e-09; identical fixef: FALSE
+cens-7.rds     logLik -4386.8970304059 -> -4386.8970304059 (diff 3.09e-11); max |fixef diff| 1.57e-10; identical fixef: FALSE
+contfix-2.rds  logLik -8179.3129696134 -> -8179.3129696134 (diff 0); max |fixef diff| 0; identical fixef: TRUE
+contfix-3.rds  logLik -9306.9962479797 -> -9306.9962479797 (diff 0); max |fixef diff| 0; identical fixef: TRUE

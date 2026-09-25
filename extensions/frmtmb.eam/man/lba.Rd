@@ -4,7 +4,7 @@
 \alias{lba}
 \title{The linear ballistic accumulator}
 \usage{
-lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL)
+lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL, contaminant = FALSE)
 }
 \arguments{
 \item{n}{Number of accumulators, so the number of response
@@ -22,6 +22,9 @@ fastest response of each row's \code{ndt_group()}, or of the whole data
 set when the model has no \code{ndt_group()}. It cannot be combined with
 \code{ndt_group()}. Give it when a component of a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}
 needs the bound up front.}
+
+\item{contaminant}{Not built for this family: \code{TRUE} is refused by
+name. The uniform contaminant is built for \code{\link[=wiener]{wiener()}} only.}
 }
 \value{
 A \code{frmtmb_family}.

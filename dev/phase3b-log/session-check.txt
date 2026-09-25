@@ -1,0 +1,10 @@
+session= logLik        -604.949529869049
+subject=id:session     -604.949529869049
+identical logLik: FALSE
+max |coef diff|: 4.440892e-16
+objective, 2-session fit at its optimum: 604.949529869049
+sum of the two single-session objectives at the same pars: 604.949529869049
+relative difference: 0
+no session (store carries), logLik: -611.362436851688
+first-trial rows: 20; all q1 == 0 and q2 == 0: TRUE
+trace columns: subject, session, trial, q1, q2, pe, p

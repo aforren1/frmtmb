@@ -1,0 +1,6 @@
+1 ok code 0 
+2 ok code 0 
+3 ok code 0 
+Warning messages:
+1: Large maximum absolute gradient at the optimum (0.00146); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+2: Large maximum absolute gradient at the optimum (0.00151); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

@@ -1,0 +1,16 @@
+RESULT test-bracket-access.R blocks 1 expectations 1 pass 1 fail 0 err 0 skip 0 
+RESULT test-clean-session.R blocks 1 expectations 4 pass 4 fail 0 err 0 skip 0 
+RESULT test-conditions.R blocks 2 expectations 8 pass 8 fail 0 err 0 skip 0 
+RESULT test-conditions-census.R blocks 2 expectations 11 pass 11 fail 0 err 0 skip 0 
+RESULT test-counterfactual.R blocks 15 expectations 70 pass 70 fail 0 err 0 skip 0 
+RESULT test-engine.R blocks 9 expectations 19 pass 19 fail 0 err 0 skip 0 
+RESULT test-factorization.R blocks 9 expectations 35 pass 35 fail 0 err 0 skip 0 
+RESULT test-families.R blocks 15 expectations 45 pass 45 fail 0 err 0 skip 0 
+RESULT test-message-uniqueness.R blocks 1 expectations 4 pass 4 fail 0 err 0 skip 0 
+RESULT test-reference.R blocks 8 expectations 12 pass 12 fail 0 err 0 skip 0 
+RESULT test-rlddm-ndt.R blocks 12 expectations 53 pass 53 fail 0 err 0 skip 0 
+RESULT test-scale.R blocks 2 expectations 2 pass 0 fail 0 err 0 skip 2 
+RESULT test-session.R blocks 13 expectations 22 pass 22 fail 0 err 0 skip 0 
+RESULT test-stan-identity.R blocks 11 expectations 11 pass 0 fail 0 err 0 skip 11 
+RESULT test-surface.R blocks 11 expectations 146 pass 146 fail 0 err 0 skip 0 
+DONE 2026-09-24T20:17:09-04:00

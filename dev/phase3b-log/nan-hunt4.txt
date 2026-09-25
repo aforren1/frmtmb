@@ -1,0 +1,4 @@
+lS : non-finite at 0 of 720
+lF : non-finite at 0 of 720
+lFb : non-finite at 0 of 720
+Fb : non-finite at 0 of 720

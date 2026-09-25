@@ -1,0 +1,15 @@
+arm cleft: 80 seeds (1 to 80), 60 with a fit
+errors met on the way (every attempt): bad_alloc 9; NaN gradient 11
+builds of the fits used: phase3b-lib7 1; phase3b-lib8 8; phase3b-lib9 51
+convergence code 0: 60 of 60; diagnose() reported a finding: 0
+    9  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.3995   0.0103   47/55     85.5%  [73.8, 92.4]
+mu condition              0.9000    0.9018   0.0038   53/55     96.4%  [87.7, 99.0]
+log bs                    0.3365    0.3367   0.0046   51/55     92.7%  [82.7, 97.1]
+ndt (link scale)          0.2231    0.2188   0.0038   54/55     98.2%  [90.4, 99.7]
+ndt natural scale: mean 0.2495 (truth 0.25); truth below the bound on 60 of 60
+log sd(mu | s)           -1.0498   -1.0822   0.0210   50/55     90.9%  [80.4, 96.1]
+log sd(log bs | s)       -1.6094   -1.6429   0.0155   55/55    100.0%  [93.5, 100.0]
+left-censored share mean 0.2931; interval share mean 0.1414

@@ -1,0 +1,43 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | contaminant                                                    
+⠋ |          1 | contaminant                                                    
+⠙ |          2 | contaminant                                                    
+⠸ |          4 | contaminant                                                    
+⠼ |          5 | contaminant                                                    
+⠦ |          7 | contaminant                                                    
+⠇ |          9 | contaminant                                                    
+⠏ |         10 | contaminant                                                    
+⠙ |         12 | contaminant                                                    
+⠹ |         13 | contaminant                                                    
+⠸ |         14 | contaminant                                                    
+⠦ |         17 | contaminant                                                    
+⠧ |         18 | contaminant                                                    
+✔ |         18 | contaminant [72.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 72.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 18 ]
+                                                         test nb failed skipped
+1 the mixture integrates to one over time and both boundaries  1      0   FALSE
+2             at lambda = 0 the density is the plain family's  3      0   FALSE
+3  a fit on clean data is the plain fit, and lambda collapses  4      0   FALSE
+4                        lambda recovers on contaminated data  1      0   FALSE
+5        a stated bound above the fastest response is allowed  3      0   FALSE
+6                     censoring composes with the contaminant  1      0   FALSE
+7    the conditional mean and the draw follow the contaminant  2      0   FALSE
+8              contaminant = TRUE refuses what it cannot mean  2      0   FALSE
+9                  the range is the fitted data's and is kept  1      0   FALSE
+  error passed
+1 FALSE      1
+2 FALSE      3
+3 FALSE      4
+4 FALSE      1
+5 FALSE      3
+6 FALSE      1
+7 FALSE      2
+8 FALSE      2
+9 FALSE      1
+RESULT test-contaminant.R blocks 9 expectations 18 pass 18 fail 0 err 0 skip 0 

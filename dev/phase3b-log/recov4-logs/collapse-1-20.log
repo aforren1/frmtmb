@@ -1,0 +1,5 @@
+collapse 1 ok 740.1 
+collapse 2 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 135.8 
+collapse 3 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 135.1 
+collapse 4 std::bad_alloc 44.2 
+collapse 5 ok 629.9 

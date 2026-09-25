@@ -1,0 +1,17 @@
+cleft 4 std::bad_alloc 36.1 
+cleft 9 ok 455.2 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0051); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 5 std::bad_alloc 31 
+cleft 11 std::bad_alloc 36.9 
+cleft 16 std::bad_alloc 58 
+cleft 21 ok 374.8 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0015); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 26 std::bad_alloc 84 
+cleft 31 std::bad_alloc 41.3 
+cleft 36 std::bad_alloc 111 
+cleft 41 std::bad_alloc 41.6 
+cleft 46 std::bad_alloc 45.7 
+cleft 51 std::bad_alloc 53.5 
+cleft 56 std::bad_alloc 72.1 

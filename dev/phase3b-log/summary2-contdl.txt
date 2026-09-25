@@ -1,0 +1,18 @@
+arm contdl: 51 seeds (1 to 51), 44 with a fit
+errors met on the way (every attempt): bad_alloc 6; NaN gradient 1
+builds of the fits used: phase3b-lib5 29; phase3b-lib9 15
+convergence code 0: 44 of 44; diagnose() reported a finding: 0
+   24  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4123   0.0141   32/36     88.9%  [74.7, 95.6]
+mu condition              0.9000    0.8971   0.0045   34/36     94.4%  [81.9, 98.5]
+log bs                    0.3365    0.3386   0.0046   35/36     97.2%  [85.8, 99.5]
+ndt (link scale)          0.0000   -0.0002   0.0014   36/36    100.0%  [90.4, 100.0]
+ndt natural scale: mean 0.2500 (truth 0.25); truth below the bound on 44 of 44
+log sd(mu | s)           -1.0498   -1.1131   0.0270   32/36     88.9%  [74.7, 95.6]
+log sd(log bs | s)       -1.6094   -1.6374   0.0203   36/36    100.0%  [90.4, 100.0]
+lambda (logit), vs 0.05   -2.9444   -3.4602   0.0179    0/36      0.0%  [-0.0,  9.6]
+lambda (logit), vs share   -3.4546   -3.4602   0.0179   35/36     97.2%  [85.8, 99.5]
+lambda natural: mean 0.0306; realized share of recorded rows: mean 0.0307
+window used: top mean 3.000, bottom mean 0.1090

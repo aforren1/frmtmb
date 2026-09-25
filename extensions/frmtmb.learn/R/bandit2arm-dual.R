@@ -70,7 +70,7 @@
 #'   family = bandit2arm_dual(subject = id, trial = trial), data = d)
 #' frmtmb::fixef(fit)
 #' @export
-bandit2arm_dual <- function(subject, trial = NULL,
+bandit2arm_dual <- function(subject, trial = NULL, session = NULL,
                             split = c("pe", "outcome")) {
   split <- frm_match_arg(split)
   upd <- function(state, d, ch) {
@@ -97,7 +97,8 @@ bandit2arm_dual <- function(subject, trial = NULL,
       list(d[["tau"]] * state[["q1"]], d[["tau"]] * state[["q2"]])
     },
     update = upd)
-  ln_family("bandit2arm_dual", substitute(subject), substitute(trial),
+  ln_family("bandit2arm_dual", session_expr = substitute(session),
+            substitute(subject), substitute(trial),
             dpars = c("Arew", "Apun", "tau"),
             links = list(Arew = "logit", Apun = "logit",
                          tau = "log"),

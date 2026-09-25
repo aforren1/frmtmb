@@ -1,0 +1,4 @@
+installed from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+217 source objects compared; 0 differ
+installed from C:/Users/adf44/source/r/phase3b-lib/frmtmb.learn 
+50 source objects compared; 0 differ

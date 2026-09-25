@@ -1,0 +1,5 @@
+cleft 55 std::bad_alloc 240.2 
+cleft 56 error in evaluating the argument 'q' in selecting a method for function 'pnorm': std::bad_alloc 32.2 
+Error in order(jseq) : Could not allocate saveds in savetl_init
+Calls: simulate_one ... ddm_simulate -> <Anonymous> -> [<- -> [<-.data.frame -> order
+Execution halted

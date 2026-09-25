@@ -1,0 +1,39 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | reference                                                      
+⠋ |          1 | reference                                                      
+⠹ |          3 | reference                                                      
+⠸ |          4 | reference                                                      
+⠼ |          5 | reference                                                      
+⠴ |          6 | reference                                                      
+⠦ |          7 | reference                                                      
+⠇ |          9 | reference                                                      
+⠋ |         11 | reference                                                      
+✔ |         12 | reference [17.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 17.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 12 ]
+
+You are a coding rockstar!
+                                                              test nb failed
+1          bandit2arm_delta matches the model written out longhand  2      0
+2            prl_fictitious matches the model written out longhand  1      0
+3 bandit4arm2_kalman_filter matches the model written out longhand  1      0
+4             igt_pvl_delta matches the model written out longhand  1      0
+5                   ts_par7 matches the model written out longhand  1      0
+6                   igt_orl matches the model written out longhand  2      0
+7                     rlddm matches the model written out longhand  2      0
+8             the Kalman bonus at phi = 0 is the family without it  2      0
+  skipped error passed
+1   FALSE FALSE      2
+2   FALSE FALSE      1
+3   FALSE FALSE      1
+4   FALSE FALSE      1
+5   FALSE FALSE      1
+6   FALSE FALSE      2
+7   FALSE FALSE      2
+8   FALSE FALSE      2
+RESULT test-reference.R blocks 8 expectations 12 pass 12 fail 0 err 0 skip 0 

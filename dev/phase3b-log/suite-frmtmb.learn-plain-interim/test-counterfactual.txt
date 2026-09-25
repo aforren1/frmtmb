@@ -1,0 +1,93 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | counterfactual                                                 
+⠋ |          1 | counterfactual                                                 
+⠙ |          2 | counterfactual                                                 
+⠹ |          3 | counterfactual                                                 
+⠼ |          5 | counterfactual                                                 
+⠴ |          6 | counterfactual                                                 
+⠦ |          7 | counterfactual                                                 
+⠇ |          9 | counterfactual                                                 
+⠹ |         13 | counterfactual                                                 
+⠸ |         14 | counterfactual                                                 
+⠼ |         15 | counterfactual                                                 
+⠴ |         16 | counterfactual                                                 
+⠦ |         17 | counterfactual                                                 
+⠧ |         18 | counterfactual                                                 
+⠇ |         19 | counterfactual                                                 
+⠏ |         20 | counterfactual                                                 
+⠋ |         21 | counterfactual                                                 
+⠹ |         23 | counterfactual                                                 
+⠸ |         24 | counterfactual                                                 
+⠼ |         25 | counterfactual                                                 
+⠴ |         26 | counterfactual                                                 
+⠦ |         27 | counterfactual                                                 
+⠇ |         29 | counterfactual                                                 
+⠋ |         31 | counterfactual                                                 
+⠹ |         33 | counterfactual                                                 
+⠸ |         34 | counterfactual                                                 
+⠼ |         35 | counterfactual                                                 
+⠴ |         36 | counterfactual                                                 
+⠦ |         37 | counterfactual                                                 
+⠧ |         38 | counterfactual                                                 
+⠇ |         39 | counterfactual                                                 
+⠋ |         41 | counterfactual                                                 
+⠹ |         43 | counterfactual                                                 
+⠼ |         45 | counterfactual                                                 
+⠦ |         47 | counterfactual                                                 
+⠇ |         49 | counterfactual                                                 
+⠏ |         50 | counterfactual                                                 
+⠋ |         51 | counterfactual                                                 
+⠹ |         53 | counterfactual                                                 
+⠸ |         54 | counterfactual                                                 
+⠼ |         55 | counterfactual                                                 
+⠴ |         56 | counterfactual                                                 
+⠧ |         58 | counterfactual                                                 
+⠏ |         60 | counterfactual                                                 
+⠋ |         61 | counterfactual                                                 
+⠹ |         63 | counterfactual                                                 
+⠼ |         65 | counterfactual                                                 
+⠴ |         66 | counterfactual                                                 
+⠦ |         67 | counterfactual                                                 
+⠇ |         69 | counterfactual                                                 
+⠏ |         70 | counterfactual                                                 
+✔ |         70 | counterfactual [40.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 40.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 70 ]
+                                                           test nb failed
+1         the unchosen column cannot reach the objective at all  2      0
+2                 the received outcome alone gives the same fit  2      0
+3                prl_fictitious() reads one column too, bitwise  2      0
+4         simulate() refuses the duplicated column and names it  9      0
+5                        a real two-column schedule still draws  2      0
+6           every reward() family refuses a duplicated schedule  8      0
+7           every payoff() family refuses a duplicated schedule  8      0
+8                      a partial duplicate is not the signature  1      0
+9                     stage2() is not read as a payoff schedule  1      0
+10 every multi-column term this package registers is classified  5      0
+11       the derivation reads the schedule terms and only those  6      0
+12          all eight families derive the groups the docs claim  9      0
+13          counterfactual = TRUE is refused rather than obeyed  9      0
+14             the three legal spellings all mean what they say  4      0
+15           the opt-out really does open the draw, and only it  2      0
+   skipped error passed
+1    FALSE FALSE      2
+2    FALSE FALSE      2
+3    FALSE FALSE      2
+4    FALSE FALSE      9
+5    FALSE FALSE      2
+6    FALSE FALSE      8
+7    FALSE FALSE      8
+8    FALSE FALSE      1
+9    FALSE FALSE      1
+10   FALSE FALSE      5
+11   FALSE FALSE      6
+12   FALSE FALSE      9
+13   FALSE FALSE      9
+14   FALSE FALSE      4
+15   FALSE FALSE      2
+RESULT test-counterfactual.R blocks 15 expectations 70 pass 70 fail 0 err 0 skip 0 

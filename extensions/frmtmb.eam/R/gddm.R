@@ -1068,7 +1068,12 @@ gddm <- function(drift = gddm_drift_constant(),
                "outside frm(); the grid and the non-decision-time bound are ",
                "resolved when the model frame is assembled.", call. = FALSE)
     },
-    valid_y = function(y, aterms) gd_check_response(y, aterms, comp),
+    valid_y = function(y, aterms) {
+      gd_check_response(y, aterms, comp)
+      ddm_refuse_cens_aterms(aterms, "gddm")
+    },
+    lcdf = ddm_refuse_cens_slot("gddm"),
+    lccdf = ddm_refuse_cens_slot("gddm"),
     init_dpars = lapply(dp, function(z) z$init),
     type = "continuous",
     required_aterms = req,

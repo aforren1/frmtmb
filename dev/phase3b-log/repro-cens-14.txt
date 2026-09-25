@@ -1,0 +1,14 @@
+as in the harness : ok logLik -3931.3920 code 0 (285 s) 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00129); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+same draw, uncensored, plain wiener : ok logLik -4826.9048 code 0 (207 s) 
+frmtmb: parse [0.91s]
+frmtmb: frame [2.77s]: 12000 obs, 4 linear predictors, 2 random-effect blocks
+frmtmb: fit: wiener, ML, nlminb
+frmtmb: tape [69.06s]: 6 outer, 60 inner parameters
+frmtmb: optimize [185.03s]: objective 3931.392
+frmtmb: restart 1 [42.89s]: objective 3931.392, from max|grad| 0.00398
+frmtmb: done [298.20s]: objective 3931.392, max|grad| 0.00129, 1 warning
+as in the harness, verbose : ok logLik -3931.3920 code 0 (302 s) 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00129); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

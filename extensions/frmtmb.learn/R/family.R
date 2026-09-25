@@ -40,7 +40,16 @@ ln_block <- function(resp, spec, av, mf, y, n) {
     }
     as.numeric(v)
   }
-  ln_pack(gv, tv, n, nm)
+  ln_pack(gv, tv, n, nm, ln_session_values(lrn, mf, resp[["formula_env"]]))
+}
+
+#' The session column, or `NULL` for a family built without one.
+#'
+#' @noRd
+ln_session_values <- function(lrn, data, env) {
+  ex <- lrn[["session_expr"]]
+  if (is.null(ex)) return(NULL)
+  eval(ex, data, env)
 }
 
 #' Lay a subject column and a trial column out as the recursion walks
@@ -52,7 +61,8 @@ ln_block <- function(resp, spec, av, mf, y, n) {
 #' the same way by construction rather than by agreement.
 #'
 #' @noRd
-ln_pack <- function(gv, tv, n, nm) {
+ln_pack <- function(gv, tv, n, nm, sv = NULL) {
+  if (!is.null(sv)) return(ln_pack_sessions(gv, tv, n, nm, sv))
   rows <- lapply(split(seq_len(n), gv), function(r) r[order(tv[r])])
   key <- paste(as.integer(gv), tv, sep = "|")
   if (anyDuplicated(key)) {
@@ -83,6 +93,106 @@ ln_pack <- function(gv, tv, n, nm) {
   list(idx = idx, mask = mask, len = len, n_subj = length(rows),
        n_trial = nt, group = gv, subject = gv, trial = tv,
        levels = levels(gv), n = n)
+}
+
+#' Lay the recursion out when a subject's trials fall into sessions.
+#'
+#' A session boundary is where a subject's value store starts over: the
+#' task, its options or its payoffs were new, so nothing learned before
+#' it carries across. The walk therefore runs over one SEQUENCE per
+#' subject and session, each starting from `init()`, and that is the
+#' whole change to the recursion.
+#'
+#' What does NOT change is the unit `group` names. A subject is still
+#' the family's independent unit: the sessions of one subject share that
+#' subject's random effects, so their likelihoods are not independent
+#' of each other, and the importance correction must resample the
+#' subject whole. So `group` and `subject` stay the subject, and
+#' `seq_subject` says which subject each sequence belongs to, which is
+#' what `ln_loglik_group()` sums over.
+#'
+#' Sequences are ordered by subject, in the level order `group` reports
+#' in, and within a subject by session. Trial numbers need to be unique
+#' only within a session, so a design that restarts its trial count at
+#' each session needs no renumbering.
+#'
+#' @noRd
+ln_pack_sessions <- function(gv, tv, n, nm, sv) {
+  if (length(sv) != n) {
+    frm_stop(nm, "(): the session variable has ", length(sv), " values ",
+             "for ", n, " rows. It names the session of every trial",
+             call. = FALSE)
+  }
+  if (anyNA(sv)) {
+    frm_stop(nm, "(): the session variable has ", sum(is.na(sv)),
+             " missing value(s), so the rows where a value store restarts ",
+             "are undefined there", call. = FALSE)
+  }
+  sf <- factor(sv)
+  # A label reused in two runs that are not adjacent would join them
+  # into one sequence, with the value store carried across whatever
+  # came between. That is only visible where the trial column orders a
+  # subject's sessions against each other, which is when its numbers
+  # are unique across them; numbering restarted per session carries no
+  # order between sessions, and then there is nothing to check.
+  for (r in split(seq_len(n), gv)) {
+    if (anyDuplicated(tv[r])) next
+    lab <- as.character(sf[r][order(tv[r])])
+    runs <- rle(lab)[["values"]]
+    if (anyDuplicated(runs)) {
+      frm_stop(nm, "(): subject '", as.character(gv[r[1L]]), "' has ",
+               "session '", runs[duplicated(runs)][1L], "' in two runs ",
+               "that are not adjacent in trial order. A session is one ",
+               "unbroken run of trials, and joining the two would carry ",
+               "the value store across the trials between them. Give ",
+               "each run its own session label", call. = FALSE)
+    }
+  }
+  sq <- interaction(gv, sf, drop = TRUE, lex.order = TRUE)
+  key <- paste(as.integer(sq), tv, sep = "|")
+  if (anyDuplicated(key)) {
+    dup <- key[duplicated(key)][1L]
+    frm_stop(nm, "(): trial numbers must be unique within a subject's ",
+             "session; ", sum(key == dup), " rows share one. A learning ",
+             "rule updates once per trial, so two rows at one trial have ",
+             "no order to learn in", call. = FALSE)
+  }
+  rows <- lapply(split(seq_len(n), sq), function(r) r[order(tv[r])])
+  len <- lengths(rows)
+  nt <- max(len)
+  idx <- t(matrix(vapply(rows, function(r) c(r, rep(r[1L], nt - length(r))),
+                         integer(nt)), nrow = nt))
+  mask <- t(matrix(vapply(len, function(l) as.numeric(seq_len(nt) <= l),
+                          numeric(nt)), nrow = nt))
+  # the subject of each sequence, read off its first row
+  ssub <- as.integer(gv)[vapply(rows, `[[`, integer(1), 1L)]
+  list(idx = idx, mask = mask, len = len, n_subj = nlevels(gv),
+       n_trial = nt, group = gv, subject = gv, trial = tv,
+       levels = levels(gv), n = n, session = sv, seq_subject = ssub)
+}
+
+#' Sum per-sequence log-likelihoods into per-subject ones.
+#'
+#' `v` is replicate-major over sequences, as `ln_recurse()` lays it out;
+#' the result is replicate-major over subjects, which is the order the
+#' structured protocol fixes for `loglik_group`. Without sessions a
+#' sequence IS a subject and `v` comes back untouched, so a
+#' single-session fit is the arithmetic it always was.
+#'
+#' @noRd
+ln_group_sum <- function(v, block, nrep) {
+  ss <- block[["seq_subject"]]
+  if (is.null(ss)) return(v)
+  "c" <- RTMB::ADoverload("c")
+  nq <- length(ss)
+  ng <- block[["n_subj"]]
+  who <- split(seq_len(nq), factor(ss, levels = seq_len(ng)))
+  out <- vector("list", ng * nrep)
+  for (r in seq_len(nrep)) {
+    off <- (r - 1L) * nq
+    for (k in seq_len(ng)) out[[(r - 1L) * ng + k]] <- sum(v[off + who[[k]]])
+  }
+  do.call(c, out)
 }
 
 #' The refusal a non-rowwise likelihood owes the rowwise contract.
@@ -380,7 +490,12 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list(),
   nominal <- is.null(spec[["logp"]])
   frmtmb_structure(
     frame_vars = function(fam) {
-      list(fam[["learn"]][["subject_expr"]], fam[["learn"]][["trial_expr"]])
+      lrn <- fam[["learn"]]
+      out <- list(lrn[["subject_expr"]], lrn[["trial_expr"]])
+      if (!is.null(lrn[["session_expr"]])) {
+        out <- c(out, list(lrn[["session_expr"]]))
+      }
+      out
     },
     # An unanswered trial produces no prediction error, so dropping its
     # row IS the right recursion. This is where a learning rule differs
@@ -480,7 +595,7 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
                       constants = list(), refusals = list(),
                       sim_refusal = NULL, saturated = TRUE,
                       valid_y = NULL, finalize = NULL,
-                      counterfactual = NULL) {
+                      counterfactual = NULL, session_expr = NULL) {
   # NULL derives the guard from the terms the family already names, and
   # FALSE is the explicit opt-out that no family in this package takes.
   # Anything else is refused here, at construction. See
@@ -523,6 +638,11 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
                            trial_expr = trial_expr, spec = spec,
                            dpars = dpars, data_map = data_map,
                            counterfactual = counterfactual),
+                      # absent rather than NULL without sessions, so a
+                      # single-session family object is the one it was
+                      if (!is.null(session_expr)) {
+                        list(session_expr = session_expr)
+                      },
                       constants)
   fam
 }

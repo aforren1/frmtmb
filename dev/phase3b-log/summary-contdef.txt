@@ -1,0 +1,21 @@
+arm contdef: 20 files, seeds 1 to 20, gaps: 
+first-pass errors: 3; refitted without error on rerun: 3
+control seed 1: logLik first pass -10749.3790885749, rerun -10749.3790885749, identical: TRUE
+errors after the rerun: 0
+convergence code 0: 20 of 20; diagnose() reported a finding: 20; diagnose() failed: 0
+   20  Distributional parameter at the end of its link:
+max |gradient| at the optimum: median 8.4e-06, max 0.00028
+fits with a confint(): 20 of 20
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.3829   0.0209   15/20     75.0%  [53.1, 88.8]
+mu condition              0.9000    0.7814   0.0070    0/20      0.0%  [ 0.0, 16.1]
+log bs                    0.3365    0.5920   0.0070    0/20      0.0%  [ 0.0, 16.1]
+ndt: the true 0.25 is below the fitted bound on 0 of 20
+ndt natural scale: mean 0.1113 (truth 0.25)
+log sd 1 (mu | s)        -1.0498   -1.1729   0.0320   17/20     85.0%  [64.0, 94.8]
+log sd 2 (log bs | s)    -1.6094   -1.9829   0.0295    4/20     20.0%  [ 8.1, 41.6]
+lambda (logit)           -2.9444   -3.6131   0.0590    0/20      0.0%  [ 0.0, 16.1]
+lambda natural: mean 0.0270, sd 0.0062 (truth 0.05)
+realized contaminant share: mean 0.0501
+seconds per replicate: median 436

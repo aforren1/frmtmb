@@ -1,0 +1,18 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | conditions                                                     
+⠋ |          1 | conditions                                                     
+⠸ |          4 | conditions                                                     
+⠧ |          8 | conditions                                                     
+✔ |          8 | conditions
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 8 ]
+                                                      test nb failed skipped
+1       a frmtmb.learn refusal is caught as a frmtmb_error  3      0   FALSE
+2 the refusals classed in punch round 1 carry the subclass  5      0   FALSE
+  error passed
+1 FALSE      3
+2 FALSE      5
+RESULT test-conditions.R blocks 2 expectations 8 pass 8 fail 0 err 0 skip 0 

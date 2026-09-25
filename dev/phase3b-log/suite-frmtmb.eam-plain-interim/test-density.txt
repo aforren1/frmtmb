@@ -1,0 +1,77 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | density                                                        
+⠋ |          1 | density                                                        
+⠹ |          3 | density                                                        
+⠼ |          5 | density                                                        
+⠴ |          6 | density                                                        
+⠦ |          7 | density                                                        
+⠧ |          8 | density                                                        
+⠏ |         10 | density                                                        
+⠸ |         14 | density                                                        
+⠦ |         17 | density                                                        
+⠙ |         22 | density                                                        
+⠴ |         26 | density                                                        
+⠇ |         29 | density                                                        
+⠙ |         32 | density                                                        
+⠦ |         37 | density                                                        
+⠋ |         41 | density                                                        
+⠴ |         46 | density                                                        
+⠸ |         54 | density                                                        
+⠦ |         57 | density                                                        
+⠙ |         62 | density                                                        
+⠼ |         65 | density                                                        
+⠧ |         68 | density                                                        
+⠙ |         72 | density                                                        
+⠴ |         76 | density                                                        
+⠏ |         80 | density                                                        
+⠸ |         84 | density                                                        
+⠇ |         89 | density                                                        
+⠹ |         93 | density                                                        
+⠇ |         99 | density                                                        
+⠸ |        104 | density                                                        
+⠼ |        105 | density                                                        
+⠴ |        106 | density                                                        
+⠦ |        107 | density                                                        
+⠧ |        108 | density                                                        
+⠏ |        110 | density                                                        
+⠋ |        111 | density                                                        
+⠙ |        112 | density                                                        
+⠹ |        113 | density                                                        
+⠸ |        114 | density                                                        
+⠼ |        115 | density                                                        
+⠴ |        116 | density                                                        
+⠦ |        117 | density                                                        
+⠏ |        120 | density                                                        
+⠋ |        121 | density                                                        
+⠙ |        122 | density                                                        
+⠹ |        123 | density                                                        
+⠴ |        126 | density                                                        
+⠦ |        127 | density                                                        
+⠧ |        128 | density                                                        
+⠇ |        129 | density                                                        
+⠏ |        130 | density                                                        
+⠋ |        131 | density                                                        
+⠙ |        132 | density                                                        
+✔ |        132 | density [14.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 14.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 132 ]
+                                                          test nb failed
+1 the blended density matches RWiener over both series regimes  7      0
+2 each series is accurate where the weight gives it any weight 97      0
+3     the weight saturates, so a garbage series cannot leak in 12      0
+4                                 a single series would not do  3      0
+5              the density is zero below the non-decision time  7      0
+6           the density integrates to the boundary probability  6      0
+  skipped error passed
+1   FALSE FALSE      7
+2   FALSE FALSE     97
+3   FALSE FALSE     12
+4   FALSE FALSE      3
+5   FALSE FALSE      7
+6   FALSE FALSE      6
+RESULT test-density.R blocks 6 expectations 132 pass 132 fail 0 err 0 skip 0 

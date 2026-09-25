@@ -1,0 +1,13 @@
+session: 202 files, seeds 1 to 202, gaps: 
+
+== with_session: 202 fits, 0 errors, code 0 on 202
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+logit alpha              -0.6190   -0.6047   0.0072  191/202    94.6%  [90.5, 96.9]
+log tau                   1.0986    1.0987   0.0016  192/202    95.0%  [91.1, 97.3]
+log sd(alpha | id)       -0.6931   -0.7634   0.0144  197/202    97.5%  [94.3, 98.9]
+
+== without: 202 fits, 0 errors, code 0 on 202
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+logit alpha              -0.6190   -0.5893   0.0075  184/202    91.1%  [86.4, 94.3]
+log tau                   1.0986    1.0709   0.0018  151/202    74.8%  [68.3, 80.2]
+log sd(alpha | id)       -0.6931   -0.7330   0.0151  197/202    97.5%  [94.3, 98.9]

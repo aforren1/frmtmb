@@ -1,0 +1,41 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sampling                                                       frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠋ |          1 | sampling                                                       
+⠙ |          2 | sampling                                                       
+⠸ |          4 | sampling                                                       
+⠏ |         10 | sampling                                                       
+⠧ |         18 | sampling                                                       
+⠼ |         25 | sampling                                                       
+⠇ |         29 | sampling                                                       
+⠴ |         36 | sampling                                                       
+⠏ |         40 | sampling                                                       
+⠦ |         47 | sampling                                                       
+⠙ |         52 | sampling                                                       
+⠇ |         59 | sampling                                                       
+⠴ |         66 | sampling                                                       
+⠙ |         72 | sampling                                                       
+⠏ |         80 | sampling                                                       
+⠧ |         88 | sampling                                                       
+⠴ |         96 | sampling                                                       
+✔ |         97 | sampling [18.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 18.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 97 ]
+                                                       test nb failed skipped
+1           frm_sample runs a short chain on a wiener model  3      0   FALSE
+2 the density is finite over a wide sweep of the parameters  4      0   FALSE
+3                the gradient is finite over the same sweep 90      0   FALSE
+  error passed
+1 FALSE      3
+2 FALSE      4
+3 FALSE     90
+RESULT test-sampling.R blocks 3 expectations 97 pass 97 fail 0 err 0 skip 0 

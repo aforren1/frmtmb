@@ -1,0 +1,104 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | contaminant                                                    
+⠋ |          1 | contaminant                                                    
+⠙ |          2 | contaminant                                                    
+⠼ |          5 | contaminant                                                    
+⠦ |          7 | contaminant                                                    
+⠇ |   1      8 | contaminant                                                    
+⠏ |   1      9 | contaminant                                                    
+⠋ |   1     10 | contaminant                                                    
+⠸ |   1     13 | contaminant                                                    
+⠼ |   1     14 | contaminant                                                    
+⠦ | 1 1     15 | contaminant                                                    
+⠋ | 2 1     18 | contaminant                                                    
+⠹ | 4 1     18 | contaminant                                                    
+⠸ | 5 1     18 | contaminant                                                    
+⠼ | 5 1     19 | contaminant                                                    
+⠴ | 5 1     20 | contaminant                                                    
+⠦ | 5 1     21 | contaminant                                                    
+⠏ | 5 1     24 | contaminant                                                    
+✖ | 6 1     24 | contaminant [37.2s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-contaminant.R:106:3'): lambda recovers on contaminated data
+Large maximum absolute gradient at the optimum (0.00128); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. ├─frmtmb.eam (local) ct_try(...) at test-contaminant.R:106:3
+ 2. │ └─base::tryCatch(expr, error = function(e) NULL) at test-contaminant.R:9:11
+ 3. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6. └─frmtmb::frm(...)
+ 7.   └─frmtmb:::fit_assembled(...)
+ 8.     └─frmtmb:::check_convergence(fit, control)
+ 9.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Failure ('test-contaminant.R:201:3'): a left-censored row under the contaminant is scored at its boundary
+Expected `abs(ll - hand)/abs(hand)` < 1e-12.
+Actual comparison: NA >= 0.000000000001
+
+Failure ('test-contaminant.R:238:3'): the default window needs a deadline
+Expected `e` to be an S3 object.
+Actual OO type: none.
+
+Failure ('test-contaminant.R:239:3'): the default window needs a deadline
+Expected `if (is.null(e)) "" else conditionMessage(e)` to match regexp "declares no response deadline".
+Actual text:
+x | 
+
+Failure ('test-contaminant.R:246:3'): the default window needs a deadline
+Expected `cr` to be identical to `c(min(dd$rt), 2.5)`.
+Differences:
+  `actual`: 0.34 2.07
+`expected`: 0.34 2.50
+
+
+Failure ('test-contaminant.R:251:3'): the default window needs a deadline
+Expected `m` to match regexp "differs between rows".
+Actual text:
+x | 
+
+Failure ('test-contaminant.R:311:3'): the objective is smooth in lambda when rows sit below ndt
+Expected `abs(narrow - wide)` < `400 * 5 * .Machine$double.eps/1e-08`.
+Actual comparison: 4.76241 >= 0.00004
+Difference: 4.76237 >= 0
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 37.7 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-contaminant.R:201:3'): a left-censored row under the contaminant is scored at its boundary
+Expected `abs(ll - hand)/abs(hand)` < 1e-12.
+Actual comparison: NA >= 0.000000000001
+
+Failure ('test-contaminant.R:238:3'): the default window needs a deadline
+Expected `e` to be an S3 object.
+Actual OO type: none.
+
+Failure ('test-contaminant.R:239:3'): the default window needs a deadline
+Expected `if (is.null(e)) "" else conditionMessage(e)` to match regexp "declares no response deadline".
+Actual text:
+x | 
+
+Failure ('test-contaminant.R:246:3'): the default window needs a deadline
+Expected `cr` to be identical to `c(min(dd$rt), 2.5)`.
+Differences:
+  `actual`: 0.34 2.07
+`expected`: 0.34 2.50
+
+
+Failure ('test-contaminant.R:251:3'): the default window needs a deadline
+Expected `m` to match regexp "differs between rows".
+Actual text:
+x | 
+
+Failure ('test-contaminant.R:311:3'): the objective is smooth in lambda when rows sit below ndt
+Expected `abs(narrow - wide)` < `400 * 5 * .Machine$double.eps/1e-08`.
+Actual comparison: 4.76241 >= 0.00004
+Difference: 4.76237 >= 0
+
+[ FAIL 6 | WARN 1 | SKIP 0 | PASS 24 ]
+RESULT test-contaminant.R blocks 14 expectations 31 pass 24 fail 6 err 0 

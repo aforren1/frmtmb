@@ -1,0 +1,6 @@
+rows above the range top 1.0: 52 
+rows above: log density - (log(0.95) + plain) max abs 4.278e-10; any non-finite FALSE
+fn at start 337.9082  grad finite TRUE 
+default window 0.1507462 2.5  min rt 0.1507462 
+trunc(ub) default window: lane 335.3337898691  hand 335.3337898691  rel 3.39e-16
+trunc(ub) default window: lane 299.3822890293  hand 299.3822890293  rel 3.80e-16

@@ -1,0 +1,74 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | family                                                         
+⠋ |          1 | family                                                         
+⠙ |          2 | family                                                         
+⠼ |          5 | family                                                         
+⠦ |          7 | family                                                         
+⠼ |         15 | family                                                         
+⠧ |         18 | family                                                         
+⠹ |         23 | family                                                         
+⠦ |         27 | family                                                         
+⠋ |         31 | family                                                         
+⠸ | 1       33 | family                                                         
+⠴ | 1       35 | family                                                         
+⠧ | 1       37 | family                                                         
+⠏ | 1       39 | family                                                         
+⠙ | 1       41 | family                                                         
+⠸ | 1       43 | family                                                         
+⠴ | 1       45 | family                                                         
+⠇ | 1       48 | family                                                         
+✖ | 1       50 | family [6.8s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-family.R:166:3'): the compat rows this package registers are present
+Expected `tb$status[tb$feature_b == "trunc()"]` to equal "works".
+Differences:
+`actual`:   "refused"
+`expected`: "works"  
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.9 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-family.R:166:3'): the compat rows this package registers are present
+Expected `tb$status[tb$feature_b == "trunc()"]` to equal "works".
+Differences:
+`actual`:   "refused"
+`expected`: "works"  
+
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 50 ]
+                                                          test nb failed
+1              check_custom_family() passes the wiener density  1      0
+2               the AD gradient agrees with finite differences  5      0
+3       a two-condition fit recovers the generating parameters  8      0
+4           the non-decision-time bound is found from the data  3      0
+5  the scaled-logit ndt link round-trips and keeps the support  5      0
+6       the missing decision indicator is refused, not ignored  3      0
+7              a decision indicator that is not 0/1 is refused  1      0
+8     a non-decision-time bound at or above min(rt) is refused  3      0
+9                           a non-positive response is refused  1      0
+10          the compat rows this package registers are present  5      1
+11 a term a family does not accept reads refused, not untested 11      0
+12                             one boundary spelling at a time  3      0
+13                  gddm still reads dec() and vint() together  2      0
+   skipped error passed
+1    FALSE FALSE      1
+2    FALSE FALSE      5
+3    FALSE FALSE      8
+4    FALSE FALSE      3
+5    FALSE FALSE      5
+6    FALSE FALSE      3
+7    FALSE FALSE      1
+8    FALSE FALSE      3
+9    FALSE FALSE      1
+10   FALSE FALSE      4
+11   FALSE FALSE     11
+12   FALSE FALSE      3
+13   FALSE FALSE      2
+RESULT test-family.R blocks 13 expectations 51 pass 50 fail 1 err 0 skip 0 

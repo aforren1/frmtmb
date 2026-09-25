@@ -1,0 +1,11 @@
+# Reviewer 2: the worst S rows per band, with the two series' agreement.
+x <- readRDS("dev/phase3b-review2/ref-points.rds")
+options(width = 170, digits = 4)
+x$va <- abs(x$v * x$a); x$eS <- abs(x$g_lS - x$lS)
+x$band <- cut(x$va, c(-1, 1, 5, 12, 24, 48, 72, 120, 400))
+w <- do.call(rbind, lapply(split(x, x$band), function(d) d[which.max(d$eS), ]))
+print(w[, c("band", "u", "w", "a", "v", "lS", "g_lS", "eS", "agreeS")])
+cat("rows with eS > 1e-11 by w:\n"); print(table(x$w[x$eS > 1e-11]))
+cat("rows with eS > 1e-11 by u:\n"); print(table(x$u[x$eS > 1e-11]))
+cat("excluding w in {1e-4, 0.9999}, max eS by band:\n")
+k <- !(x$w %in% c(1e-4, 0.9999)); print(tapply(x$eS[k], x$band[k], max))

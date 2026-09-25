@@ -1,0 +1,18 @@
+arm contfix: 40 seeds (1 to 80), 40 with a fit
+errors met on the way (every attempt): none
+builds of the fits used: phase3b-lib5 20; phase3b-lib9 20
+convergence code 0: 40 of 40; diagnose() reported a finding: 0
+   20  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.3995   0.0139   34/40     85.0%  [70.9, 92.9]
+mu condition              0.9000    0.8988   0.0039   39/40     97.5%  [87.1, 99.6]
+log bs                    0.3365    0.3379   0.0054   38/40     95.0%  [83.5, 98.6]
+ndt (link scale)          0.0000   -0.0003   0.0014   37/40     92.5%  [80.1, 97.4]
+ndt natural scale: mean 0.2500 (truth 0.25); truth below the bound on 40 of 40
+log sd(mu | s)           -1.0498   -1.0996   0.0210   38/40     95.0%  [83.5, 98.6]
+log sd(log bs | s)       -1.6094   -1.6491   0.0203   39/40     97.5%  [87.1, 99.6]
+lambda (logit), vs 0.05   -2.9444   -2.9488   0.0088   39/40     97.5%  [87.1, 99.6]
+lambda (logit), vs share   -2.9397   -2.9488   0.0088   39/40     97.5%  [87.1, 99.6]
+lambda natural: mean 0.0499; realized share of recorded rows: mean 0.0503
+window used: top mean 5.000, bottom mean 0.1000

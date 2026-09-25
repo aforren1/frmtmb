@@ -1,0 +1,4 @@
+n 4000, contaminants on [0.1, 5], max_ndt 0.24, 30 replicates
+logit lambda: mean -3.0086 (truth -2.9444), sd 0.0929, mean se 0.1018
+sd / se 0.913; covered 27 of 30; code 0 on 28
+estimate minus realized share, logit: mean -0.0463, sd 0.0721

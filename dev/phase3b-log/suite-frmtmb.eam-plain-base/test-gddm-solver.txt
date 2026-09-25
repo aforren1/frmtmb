@@ -1,0 +1,63 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | gddm-solver                                                    
+⠋ |          1 | gddm-solver                                                    
+⠙ |          2 | gddm-solver                                                    
+⠼ |          5 | gddm-solver                                                    
+⠴ |          6 | gddm-solver                                                    
+⠦ |          7 | gddm-solver                                                    
+⠇ |          9 | gddm-solver                                                    
+⠋ |         11 | gddm-solver                                                    
+⠹ |         13 | gddm-solver                                                    
+⠼ |         15 | gddm-solver                                                    
+⠦ |         17 | gddm-solver                                                    
+⠇ |         19 | gddm-solver                                                    
+⠸ |         24 | gddm-solver                                                    
+⠋ |         41 | gddm-solver                                                    
+⠙ |         52 | gddm-solver                                                    
+⠧ |         58 | gddm-solver                                                    
+⠴ |         66 | gddm-solver                                                    
+⠹ |         73 | gddm-solver                                                    
+⠋ |         81 | gddm-solver                                                    
+⠼ |         85 | gddm-solver                                                    
+⠋ |         91 | gddm-solver                                                    
+✔ |         94 | gddm-solver [20.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 20.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 94 ]
+                                                                      test nb
+1  with a constant drift and fixed bounds the solver is the Wiener density  1
+2                        the density degrades gracefully on a coarser grid  3
+3          refining the spatial grid alone does not make the density worse  1
+4               the leading edge is where the density is not to be trusted  1
+5             the solver conserves probability against the analytic family 10
+6                the wall flux is never negative for a well-resolved model  2
+7         the non-decision-time shift conserves mass and moves the density 21
+8        a collapsing bound really does collapse, and bounds stay positive  8
+9          both starting distributions carry unit mass and sit where asked  9
+10                                        the tridiagonal solve is a solve  1
+11                              the floor is a floor, not a smooth maximum  8
+12                  a row the grid cannot represent is flat, not undefined  6
+13                   a floored row is invisible to a mixture's log-sum-exp  7
+14                   extreme parameters give a bad number, never no number 16
+   failed skipped error passed
+1       0   FALSE FALSE      1
+2       0   FALSE FALSE      3
+3       0   FALSE FALSE      1
+4       0   FALSE FALSE      1
+5       0   FALSE FALSE     10
+6       0   FALSE FALSE      2
+7       0   FALSE FALSE     21
+8       0   FALSE FALSE      8
+9       0   FALSE FALSE      9
+10      0   FALSE FALSE      1
+11      0   FALSE FALSE      8
+12      0   FALSE FALSE      6
+13      0   FALSE FALSE      7
+14      0   FALSE FALSE     16
+RESULT test-gddm-solver.R blocks 14 expectations 94 pass 94 fail 0 err 0 skip 0 

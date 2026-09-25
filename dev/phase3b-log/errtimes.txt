@@ -1,0 +1,35 @@
+            file         kind     written
+      cont-3.rds NaN gradient 09-23 23:52
+   contdef-3.rds NaN gradient 09-23 23:53
+      cens-4.rds    bad_alloc 09-23 23:54
+     cens-55.rds NaN gradient 09-24 00:01
+     cont-38.rds NaN gradient 09-24 00:01
+   contdef-5.rds NaN gradient 09-24 00:02
+      cens-8.rds NaN gradient 09-24 00:11
+     cont-40.rds NaN gradient 09-24 00:11
+     cens-62.rds    bad_alloc 09-24 00:34
+     cens-13.rds    bad_alloc 09-24 00:36
+     cont-44.rds NaN gradient 09-24 00:36
+     cens-14.rds NaN gradient 09-24 00:38
+     cont-45.rds NaN gradient 09-24 00:38
+     cens-15.rds    bad_alloc 09-24 00:39
+     cont-10.rds NaN gradient 09-24 00:39
+  contdef-11.rds NaN gradient 09-24 00:39
+     cens-16.rds    bad_alloc 09-24 00:40
+     cont-46.rds NaN gradient 09-24 00:40
+     cens-18.rds    bad_alloc 09-24 00:46
+ collapse-38.rds    bad_alloc 09-24 00:46
+     cens-19.rds    bad_alloc 09-24 00:47
+     cens-78.rds    bad_alloc 09-24 02:09
+     cont-58.rds NaN gradient 09-24 02:10
+     cont-86.rds NaN gradient 09-24 02:10
+     cont-87.rds NaN gradient 09-24 02:13
+     cens-80.rds    bad_alloc 09-24 02:15
+   contfix-6.rds NaN gradient 09-24 02:28
+     cens-89.rds    bad_alloc 09-24 02:51
+ collapse-19.rds NaN gradient 09-24 02:52
+     cont-65.rds NaN gradient 09-24 02:52
+
+
+   bad_alloc NaN gradient 
+          11           19 

@@ -1,0 +1,8 @@
+     seed base oracle cleft cens contfix contdl
+[1,]    4    0      0     0    0       0      0
+[2,]   10    1      0     0    1       1      1
+[3,]   11    0      0     0    0       0      0
+[4,]   14    0      0     0    0       0      0
+[5,]   17    0      0     0    0       0      0
+[6,]   20    0      1     0    1       1      1
+base covers 21 of 26 ; oracle 21 

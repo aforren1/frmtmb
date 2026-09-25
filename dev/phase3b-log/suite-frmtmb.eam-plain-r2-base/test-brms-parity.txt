@@ -1,0 +1,29 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-parity                                                    
+⠋ |          1 | brms-parity                                                    
+⠇ |          9 | brms-parity                                                    
+⠋ |         11 | brms-parity                                                    
+⠴ |         16 | brms-parity                                                    
+✔ |         18 | brms-parity [4.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 18 ]
+                                                  test nb failed skipped error
+1                            the dpar names are brms's  2      0   FALSE FALSE
+2 the links match brms, except where ndt's bound lives  8      0   FALSE FALSE
+3        brms bounds ndt only where ndt has no formula  5      0   FALSE FALSE
+4           dec() and vint() carry the same 0/1 coding  1      0   FALSE FALSE
+5      dec == 1 is the upper boundary in both packages  2      0   FALSE FALSE
+  passed
+1      2
+2      8
+3      5
+4      1
+5      2
+RESULT test-brms-parity.R blocks 5 expectations 18 pass 18 fail 0 err 0 skip 0 

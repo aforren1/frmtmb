@@ -1,0 +1,191 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | rdm-gng                                                        
+⠋ |          1 | rdm-gng                                                        
+⠏ |         10 | rdm-gng                                                        
+⠼ |         15 | rdm-gng                                                        
+⠴ |         16 | rdm-gng                                                        
+⠧ |         18 | rdm-gng                                                        
+⠹ |         23 | rdm-gng                                                        
+⠴ |         26 | rdm-gng                                                        
+⠧ |         28 | rdm-gng                                                        
+⠇ |         29 | rdm-gng                                                        
+⠙ |         32 | rdm-gng                                                        
+⠸ |         34 | rdm-gng                                                        
+⠇ |         39 | rdm-gng                                                        
+⠧ |         48 | rdm-gng                                                        
+⠋ |         51 | rdm-gng                                                        
+⠙ |         52 | rdm-gng                                                        
+⠦ |         57 | rdm-gng                                                        
+⠦ |         67 | rdm-gng                                                        
+⠏ |         80 | rdm-gng                                                        
+⠏ |        100 | rdm-gng                                                        
+⠼ |        105 | rdm-gng                                                        
+⠇ |        109 | rdm-gng                                                        
+⠹ |        113 | rdm-gng                                                        
+⠴ |        116 | rdm-gng                                                        
+⠇ |        119 | rdm-gng                                                        
+⠙ |        122 | rdm-gng                                                        
+⠴ |        126 | rdm-gng                                                        
+⠦ |        127 | rdm-gng                                                        
+⠧ |        128 | rdm-gng                                                        
+⠇ |        129 | rdm-gng                                                        
+⠏ |        130 | rdm-gng                                                        
+⠋ |   1    130 | rdm-gng                                                        
+⠙ |   1    131 | rdm-gng                                                        
+⠴ |   1    135 | rdm-gng                                                        
+⠇ |   1    138 | rdm-gng                                                        
+⠋ |   1    140 | rdm-gng                                                        
+⠙ |   1    141 | rdm-gng                                                        
+⠸ |   1    143 | rdm-gng                                                        
+⠼ |   1    144 | rdm-gng                                                        
+⠴ |   1    145 | rdm-gng                                                        
+⠧ |   1    147 | rdm-gng                                                        
+⠸ |   1    153 | rdm-gng                                                        
+⠼ |   1    154 | rdm-gng                                                        
+⠴ |   1    155 | rdm-gng                                                        
+⠦ |   1    156 | rdm-gng                                                        
+⠙ |   1    161 | rdm-gng                                                        
+⠹ |   1    172 | rdm-gng                                                        
+⠼ |   1    174 | rdm-gng                                                        
+⠦ |   1    176 | rdm-gng                                                        
+⠋ |   1    180 | rdm-gng                                                        
+⠙ |   1    181 | rdm-gng                                                        
+⠹ |   1    182 | rdm-gng                                                        
+⠸ |   1    183 | rdm-gng                                                        
+⠼ |   1    184 | rdm-gng                                                        
+⠴ |   1    185 | rdm-gng                                                        
+⠦ |   1    186 | rdm-gng                                                        
+⠧ |   1    187 | rdm-gng                                                        
+⠋ |   1    200 | rdm-gng                                                        
+⠦ |   1    206 | rdm-gng                                                        
+⠧ |   1    207 | rdm-gng                                                        
+⠇ |   1    208 | rdm-gng                                                        
+⠏ |   1    209 | rdm-gng                                                        
+⠋ |   1    210 | rdm-gng                                                        
+⠧ |   1    217 | rdm-gng                                                        
+✔ |   1    221 | rdm-gng [270.6s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-rdm-gng.R:733:5'): wiener_gng recovers its parameters
+Large maximum absolute gradient at the optimum (0.00184); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. ├─base::try(...) at test-rdm-gng.R:733:5
+ 2. │ └─base::tryCatch(...)
+ 3. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6. └─frmtmb::frm(...)
+ 7.   └─frmtmb:::fit_assembled(...)
+ 8.     └─frmtmb:::check_convergence(fit, control)
+ 9.       └─frmtmb::frm_warning(m, call. = FALSE)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 270.7 s
+
+[ FAIL 0 | WARN 1 | SKIP 0 | PASS 221 ]
+                                                                test nb failed
+1    the single-accumulator density is the averaged inverse Gaussian  3      0
+2           the survival is the averaged inverse-Gaussian upper tail  2      0
+3   the survival keeps its digits where one minus the CDF loses them  7      0
+4       the race is the winner's density times the losers' survivals  3      0
+5      the family's log-density is the race, through a fitted object  1      0
+6                                the choice probabilities sum to one  1      0
+7  the analytic joint distribution reproduces the generative process  1      0
+8       fixing the diffusion coefficient at one identifies the scale  5      0
+9              the taped gradient matches numDeriv at several points  5      0
+10            the fitted objective's gradient is zero at the optimum  1      0
+11          a decision time at or below zero gives a wall, not a NaN  4      0
+12           three accumulators and a covariate on one drift recover  5      0
+13      a covariate on one drift moves that drift and not the others  3      0
+14                                   rdm refuses what it cannot read  6      0
+15            both race families refuse dec(), and used not to agree  5      0
+16           the no-go probability matches an independent Wiener CDF  5      0
+17           the blend holds up where the small-time route collapses  5      0
+18           the blend centre is on the correct side of the crossing  4      0
+19                   RWiener agrees too, at the accuracy RWiener has  3      0
+20          the two series agree with each other in the overlap band  4      0
+21     the no-go probability is finite at every edge a fit can reach 26      0
+22               the go density and the no-go probability sum to one  3      0
+23              the mass check holds across parameters and deadlines 12      0
+24                 a go row is wiener()'s own upper-boundary density  1      0
+25                the taped gradient matches numDeriv, both branches  6      0
+26  the gradient stays finite where a no-go trial is very surprising  4      0
+27            the fitted objective's gradient is zero at the optimum  1      0
+28            the simulator's go rate is the analytic go probability  3      0
+29         the go response times follow the go branch of the density  1      0
+30                                wiener_gng recovers its parameters  5      0
+31                                 a covariate on the drift recovers  3      0
+32                          the two deadline spellings are one model  2      0
+33                     a deadline that varies by row is read per row  4      0
+34        the non-decision-time bound comes from the go trials alone  2      0
+35                            wiener_gng refuses what it cannot read  7      0
+36               dec() reads a logical the way it reads a 0/1 column  1      0
+37                      weights scale both families' log likelihoods  2      0
+38   both families refuse the post-fit methods they have no mean for 16      0
+39       the go branch IS wiener()'s density at the same variability  5      0
+40            the go mass and the no-go probability still add to one  5      0
+41           the variability average is tape-safe and differentiates  6      0
+42        a start point pushed past a boundary is a limit, not a NaN 12      0
+43             the plain go/no-go family is untouched by any of this  1      0
+44                     wiener_gng refuses variability it cannot read  5      0
+45      rdm scores a right-censored race as the product of survivals  2      0
+46         rdm takes all four censoring codes and a truncation bound  1      0
+47                  a right-censored go/no-go trial IS a no-go trial  1      0
+48                     go/no-go refuses the censoring it cannot mean  6      0
+49              the image sum's shortened truncation changed nothing  6      0
+   skipped error passed
+1    FALSE FALSE      3
+2    FALSE FALSE      2
+3    FALSE FALSE      7
+4    FALSE FALSE      3
+5    FALSE FALSE      1
+6    FALSE FALSE      1
+7    FALSE FALSE      1
+8    FALSE FALSE      5
+9    FALSE FALSE      5
+10   FALSE FALSE      1
+11   FALSE FALSE      4
+12   FALSE FALSE      5
+13   FALSE FALSE      3
+14   FALSE FALSE      6
+15   FALSE FALSE      5
+16   FALSE FALSE      5
+17   FALSE FALSE      5
+18   FALSE FALSE      4
+19   FALSE FALSE      3
+20   FALSE FALSE      4
+21   FALSE FALSE     26
+22   FALSE FALSE      3
+23   FALSE FALSE     12
+24   FALSE FALSE      1
+25   FALSE FALSE      6
+26   FALSE FALSE      4
+27   FALSE FALSE      1
+28   FALSE FALSE      3
+29   FALSE FALSE      1
+30   FALSE FALSE      4
+31   FALSE FALSE      3
+32   FALSE FALSE      2
+33   FALSE FALSE      4
+34   FALSE FALSE      2
+35   FALSE FALSE      7
+36   FALSE FALSE      1
+37   FALSE FALSE      2
+38   FALSE FALSE     16
+39   FALSE FALSE      5
+40   FALSE FALSE      5
+41   FALSE FALSE      6
+42   FALSE FALSE     12
+43   FALSE FALSE      1
+44   FALSE FALSE      5
+45   FALSE FALSE      2
+46   FALSE FALSE      1
+47   FALSE FALSE      1
+48   FALSE FALSE      6
+49   FALSE FALSE      6
+RESULT test-rdm-gng.R blocks 49 expectations 222 pass 221 fail 0 err 0 skip 0 

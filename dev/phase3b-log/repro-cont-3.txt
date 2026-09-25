@@ -1,0 +1,18 @@
+as in the harness : ok logLik -9305.4483 code 1 (412 s) 
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (0.022); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+same draw, plain wiener, no contaminant : ok logLik -11766.7849 code 0 (298 s) 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00295); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+frmtmb: parse [0.31s]
+frmtmb: frame [1.45s]: 12000 obs, 5 linear predictors, 2 random-effect blocks
+frmtmb: fit: wiener, ML, nlminb
+frmtmb: tape [13.59s]: 7 outer, 60 inner parameters
+frmtmb: optimize [274.23s]: objective 9305.4483
+frmtmb: restart 1 [76.10s]: objective 9305.4483, convergence 1, from max|grad| 0.0355
+frmtmb: done [365.42s]: objective 9305.4483, max|grad| 0.022, 2 warnings
+as in the harness, verbose : ok logLik -9305.4483 code 1 (367 s) 
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (0.022); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

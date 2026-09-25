@@ -98,7 +98,7 @@
 #'               lambda = 0.6, w = 0.5, pers = 0.2), seed = 8)[[1]]
 #' head(d[, c("id", "trial", "choice", "state2", "choice2")])
 #' @export
-ts_par7 <- function(subject, trial = NULL, p_common = 0.7) {
+ts_par7 <- function(subject, trial = NULL, session = NULL, p_common = 0.7) {
   if (!is.numeric(p_common) || length(p_common) != 1L || is.na(p_common) ||
         p_common <= 0.5 || p_common >= 1) {
     frm_stop("ts_par7(p_common =) is the probability of the COMMON ",
@@ -182,7 +182,8 @@ ts_par7 <- function(subject, trial = NULL, p_common = 0.7) {
       d
     },
     sim_cols = c("stage21", "stage22"))
-  ln_family("ts_par7", substitute(subject), substitute(trial),
+  ln_family("ts_par7", session_expr = substitute(session),
+            substitute(subject), substitute(trial),
             dpars = c("w", "alpha1", "tau1", "alpha2", "tau2", "lambda",
                       "pers"),
             links = list(w = "logit", alpha1 = "logit", tau1 = "log",

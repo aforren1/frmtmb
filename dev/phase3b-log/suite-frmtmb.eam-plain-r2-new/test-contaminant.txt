@@ -1,0 +1,59 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | contaminant                                                    
+⠋ |          1 | contaminant                                                    
+⠙ |          2 | contaminant                                                    
+⠼ |          5 | contaminant                                                    
+⠇ |          9 | contaminant                                                    
+⠏ |         10 | contaminant                                                    
+⠹ |         13 | contaminant                                                    
+⠸ |         14 | contaminant                                                    
+⠴ |         16 | contaminant                                                    
+⠏ |         20 | contaminant                                                    
+⠙ |         22 | contaminant                                                    
+⠸ |         24 | contaminant                                                    
+⠼ |         25 | contaminant                                                    
+⠦ |         27 | contaminant                                                    
+⠋ |         31 | contaminant                                                    
+✔ |         32 | contaminant [9.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 32 ]
+                                                              test nb failed
+1      the mixture integrates to one over time and both boundaries  1      0
+2                  at lambda = 0 the density is the plain family's  3      0
+3       a fit on clean data is the plain fit, and lambda collapses  4      0
+4                             lambda recovers on contaminated data  1      0
+5             a stated bound above the fastest response is allowed  3      0
+6                          censoring composes with the contaminant  1      0
+7  a left-censored row under the contaminant is scored at its edge  2      0
+8         the conditional mean and the draw follow the contaminant  2      0
+9                   contaminant = TRUE refuses what it cannot mean  2      0
+10                             the default window needs a deadline  4      0
+11                                          a fitted range is kept  1      0
+12                        a stated range replaces the observed one  2      0
+13        a response outside contaminant_range is refused, classed  2      0
+14             contaminant_range is refused where it means nothing  2      0
+15       the objective is smooth in lambda when rows sit below ndt  2      0
+   skipped error passed
+1    FALSE FALSE      1
+2    FALSE FALSE      3
+3    FALSE FALSE      4
+4    FALSE FALSE      1
+5    FALSE FALSE      3
+6    FALSE FALSE      1
+7    FALSE FALSE      2
+8    FALSE FALSE      2
+9    FALSE FALSE      2
+10   FALSE FALSE      4
+11   FALSE FALSE      1
+12   FALSE FALSE      2
+13   FALSE FALSE      2
+14   FALSE FALSE      2
+15   FALSE FALSE      2
+RESULT test-contaminant.R blocks 15 expectations 32 pass 32 fail 0 err 0 skip 0 

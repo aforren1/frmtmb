@@ -1,0 +1,5 @@
+700-bit reference, 3150 rows; |v| a up to 120
+identity |Fl + Fu + S - 1| on the images, max: 3.04e-210
+images against eigenfunctions, u >= 0.05 (2205 rows), max relative disagreement: S 2.17e-181, Fl 3.76e-205, Fu 4.9e-107
+log S from -72062.7 to -5.19e-56
+log F_lower from -629.9; log F_upper from -629.9

@@ -1,0 +1,10 @@
+none_cens0   lane vs lib7: fn rel 0.000e+00 identical TRUE; grad 0.000e+00  codes 0:400
+none_plain   lane vs lib7: fn rel 0.000e+00 identical TRUE; grad 0.000e+00  codes 0:400
+some_mixed   lane vs lib7: fn rel 2.251e-16 identical FALSE; grad 2.405e-15  codes -1:49 0:232 1:59 2:60
+some_right   lane vs lib7: fn rel 0.000e+00 identical TRUE; grad 0.000e+00  codes 0:249 1:151
+all_right    lane vs lib7: fn rel 0.000e+00 identical TRUE; grad 0.000e+00  codes 1:400
+all_left     lane vs lib7: fn rel 1.236e-16 identical FALSE; grad 1.383e-15  codes -1:400
+all_int      lane vs lib7: fn rel 3.533e-16 identical FALSE; grad 8.276e-15  codes 2:400
+trunc_right  lane vs lib7: fn rel 0.000e+00 identical TRUE; grad 0.000e+00  codes 0:361 1:39
+none_cens0 (lane) vs none_plain (base): fn identical TRUE, rel 0.000e+00
+none_plain lane vs base: identical TRUE

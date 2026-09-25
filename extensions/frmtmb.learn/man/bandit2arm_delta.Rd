@@ -4,7 +4,7 @@
 \alias{bandit2arm_delta}
 \title{Rescorla-Wagner delta learning on a two-armed bandit}
 \usage{
-bandit2arm_delta(subject, trial = NULL)
+bandit2arm_delta(subject, trial = NULL, session = NULL)
 }
 \arguments{
 \item{subject}{The column separating one learner's trial sequence
@@ -15,6 +15,17 @@ entering a linear predictor.}
 
 \item{trial}{The column giving trial order within a subject, given
 unquoted. \code{NULL} uses the order the rows appear in.}
+
+\item{session}{The column naming the session each trial belongs to,
+given unquoted. \code{NULL}, the default, is one session per subject.
+Every subject's value store starts again from its initial values
+at the first trial of each of its sessions, so nothing learned in
+one session carries into the next. The subject stays the unit a
+random effect and \code{frm(importance =)} group on: the sessions of
+one subject share that subject's effects. Trial numbers need to be
+unique only within a session. A label reused in two runs that are
+not adjacent in trial order is refused. See the Sessions section of
+\code{\link[=bandit2arm_delta]{bandit2arm_delta()}}.}
 }
 \value{
 A \code{frmtmb_family} object, for \code{frm(family = )}.
@@ -85,6 +96,61 @@ reversal and one after. This fits the DIFFERENCE, with a standard
 error, and it takes a factor with any number of levels, a smooth term
 or a random slope in the same place. \code{vignette("learning")} works the
 example through.
+}
+
+\section{Sessions}{
+
+A subject tested on two days, or on two task versions, learns each
+session from scratch: the options are new, so nothing learned in one
+session applies in the next. \verb{session =} says so, and every family
+in this package takes it:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(choice | reward(pay1, pay2) ~ 1 + (1 | id), tau ~ 1),
+    family = bandit2arm_delta(subject = id, trial = trial,
+                              session = day),
+    data = d)
+}\if{html}{\out{</div>}}
+
+At the first trial of each session the value store goes back to its
+initial values. Trial numbers need to be unique only within a
+session, so a count that starts again at 1 each day needs no
+renumbering. The subject is still the unit: its sessions share its
+random effects, and \code{frm(importance =)} resamples it whole, with all
+of its sessions. \code{\link[=frm_value_trace]{frm_value_trace()}} gains a \code{session} column.
+
+A session is one unbroken run of a subject's trials. Where the trial
+numbers order a subject's sessions against each other, a label that
+comes back after another session, as in \verb{a b a b}, is refused by
+name: one session over its two runs would carry the value store
+across the trials between them, which is neither a restart nor a
+continuous sequence. Interleaved contexts, such as two tasks that
+alternate within a day with a value store each, are a different
+model: one store per context, kept across that context's runs. That
+model is not built; it is filed as a possible later extension.
+
+Without \verb{session =} a subject's rows are one sequence, and the value
+store carries across the boundary. What that costs, measured on 202
+replicates of 40 subjects by two sessions of 100 trials, each
+session drawn from a fresh store, with \code{alpha ~ 1 + (1 | id)} at a
+between-subject standard deviation of 0.5 and \code{tau} = 3:
+
+\tabular{lrrrr}{
+\tab truth \tab mean, with \tab covered, with \tab covered, without \cr
+logit alpha \tab -0.619 \tab -0.605 \tab 94.6 \tab 91.1 \cr
+log tau \tab 1.099 \tab 1.099 \tab 95.0 \tab 74.8 \cr
+log sd(alpha | id) \tab -0.693 \tab -0.763 \tab 97.5 \tab 97.5
+}
+
+The last two columns are percent coverage of the Wald interval, and
+every fit converged. With
+\verb{session =} no interval's Wilson bound excludes 95 percent. Without
+it the choice sensitivity comes back 2.7 percent low and its
+interval covers three times in four. The log standard deviation
+comes back 0.070 low with \verb{session =}, 4.9 Monte Carlo standard
+errors, and its interval still covers at 97.5 percent; this study
+does not separate the Laplace caveat below from ordinary maximum
+likelihood shrinkage as its cause. \code{dev/phase3b-findings.md} has the
+construction.
 }
 
 \section{The Laplace caveat}{

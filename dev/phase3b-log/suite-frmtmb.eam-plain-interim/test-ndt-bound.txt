@@ -1,0 +1,77 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ndt-bound                                                      
+⠋ |          1 | ndt-bound                                                      
+⠹ |          3 | ndt-bound                                                      
+⠼ |          5 | ndt-bound                                                      
+⠴ |          6 | ndt-bound                                                      
+⠇ |          9 | ndt-bound                                                      
+⠋ |         11 | ndt-bound                                                      
+⠼ |         15 | ndt-bound                                                      
+⠦ |         17 | ndt-bound                                                      
+⠇ |         19 | ndt-bound                                                      
+⠋ |         21 | ndt-bound                                                      
+⠹ |         23 | ndt-bound                                                      
+⠴ |         26 | ndt-bound                                                      
+⠦ |         27 | ndt-bound                                                      
+⠇ |         29 | ndt-bound                                                      
+⠋ |         31 | ndt-bound                                                      
+⠹ |         33 | ndt-bound                                                      
+⠼ |         35 | ndt-bound                                                      
+⠦ |         37 | ndt-bound                                                      
+⠇ |         39 | ndt-bound                                                      
+⠏ |         40 | ndt-bound                                                      
+⠙ |         42 | ndt-bound                                                      
+⠼ |         45 | ndt-bound                                                      
+⠇ |         49 | ndt-bound                                                      
+⠙ |         52 | ndt-bound                                                      
+⠼ |         55 | ndt-bound                                                      
+⠧ |         58 | ndt-bound                                                      
+⠏ |         60 | ndt-bound                                                      
+⠸ |         64 | ndt-bound                                                      
+⠼ |         65 | ndt-bound                                                      
+⠴ |         66 | ndt-bound                                                      
+⠇ |         69 | ndt-bound                                                      
+⠋ |         71 | ndt-bound                                                      
+⠸ |         74 | ndt-bound                                                      
+⠦ |         77 | ndt-bound                                                      
+✔ |         79 | ndt-bound [63.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 63.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 79 ]
+                                                           test nb failed
+1  with no ndt_group() the bound is the global fastest response  5      0
+2     ndt_group() bounds each group by its own fastest response  5      0
+3    the global bound pins a group the per-group bound recovers  4      0
+4                    the bound is a property of the fitted data  2      0
+5                  max_ndt and ndt_group() are refused together  2      0
+6          every spelling of the same groups gives the same fit  7      0
+7       gddm refuses ndt_group() by name and keeps its own link  3      0
+8     wiener_gng takes the bound from the go rows of each group  2      0
+9        rdm's censoring seams see the scaled non-decision time  4      0
+10                st follows ndt onto whichever scale ndt is on  5      0
+11           a mixture component needs its bound given up front  9      0
+12     the group's LABEL decides its bound, not its level index 11      0
+13                   a group the fit never saw cannot fail open  5      0
+14                 a settled bound is kept by all four families 12      0
+15         the bound records how many trials each group brought  3      0
+   skipped error passed
+1    FALSE FALSE      5
+2    FALSE FALSE      5
+3    FALSE FALSE      4
+4    FALSE FALSE      2
+5    FALSE FALSE      2
+6    FALSE FALSE      7
+7    FALSE FALSE      3
+8    FALSE FALSE      2
+9    FALSE FALSE      4
+10   FALSE FALSE      5
+11   FALSE FALSE      9
+12   FALSE FALSE     11
+13   FALSE FALSE      5
+14   FALSE FALSE     12
+15   FALSE FALSE      3
+RESULT test-ndt-bound.R blocks 15 expectations 79 pass 79 fail 0 err 0 skip 0 

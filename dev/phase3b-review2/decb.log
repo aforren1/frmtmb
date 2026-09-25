@@ -1,0 +1,40 @@
+== 1. per boundary against RWiener::pwiener and WienR::pWDM
+upper: max |exp(lane) - RWiener| 4.10e-12, - WienR 2.31e-14; max rel to WienR 6.94e-09
+lower: max |exp(lane) - RWiener| 3.33e-12, - WienR 2.66e-15; max rel to WienR 2.86e-13
+does the upper label mean the same boundary? corr(lane up, WienR up) 1.000000, (lane up, WienR low) -0.620420
+sum of the two defective functions against the marginal: max rel 1.22e-15
+
+== 2. the censored objective against RWiener by hand (dry run, no fit)
+
+ -1   0   1   2 
+ 65 165  15  55 
+parameters: beta betad 
+p = ( 0.70,  0.262)  lane 419.2129776850  RWiener hand 419.2129776850  rel 0.00e+00
+p = ( 0.20, -0.105)  lane 545.0926597495  RWiener hand 545.0926597495  rel 1.46e-15
+p = (-0.50,  0.693)  lane 682.7812603161  RWiener hand 682.7812603161  rel 1.83e-15
+p = ( 0.00,  0.262)  lane 438.8084188441  RWiener hand 438.8084188441  rel 0.00e+00
+
+== 3. dec() flips
+flip dec on code  1 rows: fn 419.212977685030 vs 419.212977685030  identical TRUE
+flip dec on code -1 rows: fn 429.222977685030 vs 419.212977685030  identical FALSE
+flip dec on code  2 rows: fn 438.322977685029 vs 419.212977685030  identical FALSE
+
+== 4. left / interval with trunc() refused; right with trunc() allowed
+left + trunc(ub):  frmtmb_eam_error | wiener: left and interval censoring cannot be combined with trunc(). A left- or interval-censored trial reached a known boundary, so its probability is that boundary's defective distribution function, while the truncation window is normalized over both boundaries; frmtmb forms both from the one distribution-function slot a family has, so it cannot tell them apart. Right censoring with trunc() works. 
+left + trunc(lb):  frmtmb_eam_error | wiener: left and interval censoring cannot be combined with trunc(). A left- or interval-censored trial reached a known boundary, so its probability is that boundary's defective distribution function, while the truncation window is normalized over both boundaries; frmtmb forms both from the one distribution-function slot a family has, so it cannot tell them apart. Right censoring with trunc() works. 
+interval + trunc:  frmtmb_eam_error | wiener: left and interval censoring cannot be combined with trunc(). A left- or interval-censored trial reached a known boundary, so its probability is that boundary's defective distribution function, while the truncation window is normalized over both boundaries; frmtmb forms both from the one distribution-function slot a family has, so it cannot tell them apart. Right censoring with trunc() works. 
+right + trunc(ub):  NO ERROR 
+right + trunc(ub = 3): lane 137.8793562897  hand 137.8793562897  rel 1.44e-15
+right + trunc(ub = 3): lane 259.7135992454  hand 259.7135992454  rel 1.53e-15
+
+== 5. a row with NA dec()
+messages: 2 rows removed because of missing values (na.action)
+ 
+codes of the NA rows: 0 0 
+fn with NA rows dropped 573.4834025455, hand on the data without them 573.4834025455
+
+== 6. rdm(): left rows do not read vint()
+  choice        rt
+1      1 0.5993188
+2      1 0.6487343
+left rows 227; flipping their winner: fn 127.244200350700 vs 127.244200350700 identical TRUE

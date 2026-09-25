@@ -1,0 +1,22 @@
+a b a, continuous numbering                                REFUSED: bandit2arm_delta(): subject '1' has session 'a' in two runs that are not adjacent in trial order. A session is one unbroken run of trials, a
+a a b, continuous numbering                                ACCEPTED
+a b a, rows shuffled                                       REFUSED: bandit2arm_delta(): subject '1' has session 'a' in two runs that are not adjacent in trial order. A session is one unbroken run of trials, a
+a a b, rows shuffled                                       ACCEPTED
+interleaved a b a b ... (two concurrent stores)            REFUSED: bandit2arm_delta(): subject '1' has session 'b' in two runs that are not adjacent in trial order. A session is one unbroken run of trials, a
+a b a, restarted numbering (b restarts, a continues)       ACCEPTED
+violation in one subject only                              REFUSED: bandit2arm_delta(): subject '2' has session 'a' in two runs that are not adjacent in trial order. A session is one unbroken run of trials, a
+
+-- frmtmb.eam refusals by name
+lba(2, contaminant = TRUE)               REFUSED: lba(): contaminant = TRUE is not built for this family. It is built for wiener() only; see NEWS.md for what is planned.
+rdm(2, contaminant = TRUE)               REFUSED: rdm(): contaminant = TRUE is not built for this family. It is built for wiener() only; see NEWS.md for what is planned.
+lba(2, contaminant = NA)                 REFUSED: lba(): contaminant = TRUE is not built for this family. It is built for wiener() only; see NEWS.md for what is planned.
+lba + cens()                             REFUSED: lba(): censoring with cens() or trunc() is not built for this family. It is built for wiener() only; see NEWS.md for what is planned.
+lba + trunc(ub = 5)                      REFUSED: lba(): censoring with cens() or trunc() is not built for this family. It is built for wiener() only; see NEWS.md for what is planned.
+rdm + cens() (right only)                ACCEPTED
+gddm + cens()                            REFUSED: gddm: the condition index is missing. One solve of the Fokker-Planck equation serves every trial that shares a parameter vector, and this fa
+gddm + trunc(ub = 5)                     REFUSED: gddm: the condition index is missing. One solve of the Fokker-Planck equation serves every trial that shares a parameter vector, and this fa
+wiener(variability = 'sv') + cens()      REFUSED: wiener: cens() and trunc() need the distribution function of the response time, and this package has it for the plain model only. Under `var
+wiener_gng + cens()                      REFUSED: wiener_gng: the density needs `vreal1`, which nothing on this response supplies. Write the addition term: rt | vreal(<column>) ~ ...
+wiener(contaminant = TRUE, allow_unreachable) REFUSED: wiener(): `contaminant = TRUE` and `allow_unreachable = TRUE` cannot be combined. allow_unreachable is for a component of mixture(), where t
+wiener(contaminant_range = c(0,1)) alone REFUSED: wiener(): `contaminant_range` is the range of the contaminant, and there is none without contaminant = TRUE.
+wiener(contaminant = TRUE, range c(1, 1)) REFUSED: wiener(): `contaminant_range` must be two finite response times, the first at least 0 and below the second, or NULL for the observed range.

@@ -1,0 +1,16 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | bracket-access                                                 
+⠋ |          1 | bracket-access                                                 
+✔ |          1 | bracket-access
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 1 ]
+                                             test nb failed skipped error
+1 no frmtmb.eam function reads a hazard container  1      0   FALSE FALSE
+  passed
+1      1
+RESULT test-bracket-access.R blocks 1 expectations 1 pass 1 fail 0 err 0 skip 0 

@@ -1,0 +1,35 @@
+cont 1 ok 391.8 
+cont 2 ok 447.5 
+cont 3 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 45.7 
+cont 4 ok 423.6 
+cont 5 ok 520.2 
+cont 6 ok 454.5 
+cont 7 ok 458.4 
+cont 8 ok 393.4 
+cont 9 ok 474.3 
+cont 10 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 63 
+cont 11 ok 554.6 
+cont 12 ok 520.2 
+cont 13 ok 466.7 
+cont 14 ok 519.3 
+cont 15 ok 572.1 
+cont 16 ok 506.2 
+cont 17 ok 570.8 
+cont 18 ok 571.7 
+cont 19 ok 439.3 
+cont 20 ok 437 
+cont 21 ok 391.6 
+cont 22 ok 376.6 
+cont 23 ok 502.6 
+cont 24 ok 479.2 
+cont 25 ok 316.8 
+cont 26 ok 359.5 
+cont 27 ok 378.8 
+cont 28 ok 356.5 
+cont 29 ok 300.5 
+cont 30 ok 354.9 
+cont 31 ok 260.4 
+cont 32 ok 254.8 
+cont 33 ok 266.7 
+cont 34 ok 285.4 
+There were 50 or more warnings (use warnings() to see the first 50)

@@ -1,0 +1,128 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | variability                                                    
+⠋ |          1 | variability                                                    
+⠙ |          2 | variability                                                    
+⠹ |          3 | variability                                                    
+⠼ |          5 | variability                                                    
+⠴ |          6 | variability                                                    
+⠦ |          7 | variability                                                    
+⠧ |          8 | variability                                                    
+⠇ |          9 | variability                                                    
+⠙ |         12 | variability                                                    
+⠹ |         13 | variability                                                    
+⠸ |         14 | variability                                                    
+⠼ |         15 | variability                                                    
+⠦ |         17 | variability                                                    
+⠇ |         19 | variability                                                    
+⠋ |         21 | variability                                                    
+⠹ |         23 | variability                                                    
+⠸ |         24 | variability                                                    
+⠼ |         25 | variability                                                    
+⠧ |         28 | variability                                                    
+⠏ |         30 | variability                                                    
+⠙ |         32 | variability                                                    
+⠹ |         33 | variability                                                    
+⠼ |         35 | variability                                                    
+⠦ |         37 | variability                                                    
+⠧ |         38 | variability                                                    
+⠇ |         39 | variability                                                    
+⠏ |         40 | variability                                                    
+⠙ |         42 | variability                                                    
+⠹ |         43 | variability                                                    
+⠼ |         45 | variability                                                    
+⠦ |         47 | variability                                                    
+⠧ |         48 | variability                                                    
+⠇ |         49 | variability                                                    
+⠏ |         50 | variability                                                    
+⠋ |         51 | variability                                                    
+⠙ |         52 | variability                                                    
+⠸ |         54 | variability                                                    
+⠴ |         56 | variability                                                    
+⠦ |         57 | variability                                                    
+⠇ |         59 | variability                                                    
+⠋ |         61 | variability                                                    
+⠹ |         63 | variability                                                    
+⠸ |         64 | variability                                                    
+⠴ |         66 | variability                                                    
+⠦ |         67 | variability                                                    
+⠇ |         69 | variability                                                    
+⠋ |         71 | variability                                                    
+⠹ |         73 | variability                                                    
+⠸ |         74 | variability                                                    
+⠼ |         75 | variability                                                    
+⠴ |         76 | variability                                                    
+⠧ |         78 | variability                                                    
+⠇ |         79 | variability                                                    
+⠋ |         81 | variability                                                    
+⠙ |         82 | variability                                                    
+⠸ |         84 | variability                                                    
+⠴ |         86 | variability                                                    
+⠦ |         87 | variability                                                    
+⠧ |         88 | variability                                                    
+⠏ |         90 | variability                                                    
+⠙ |         92 | variability                                                    
+⠹ |         93 | variability                                                    
+⠸ |         94 | variability                                                    
+⠴ |         96 | variability                                                    
+⠦ |         97 | variability                                                    
+⠇ |         99 | variability                                                    
+⠏ |        100 | variability                                                    
+⠋ |        101 | variability                                                    
+⠙ |        102 | variability                                                    
+⠹ |        103 | variability                                                    
+⠸ |        104 | variability                                                    
+⠴ |        106 | variability                                                    
+⠏ |        110 | variability                                                    
+⠸ |        114 | variability                                                    
+⠴ |        116 | variability                                                    
+⠇ |        119 | variability                                                    
+⠸ |        124 | variability                                                    
+⠴ |        126 | variability                                                    
+⠧ |        128 | variability                                                    
+⠏ |        130 | variability                                                    
+⠋ |        131 | variability                                                    
+⠸ |        134 | variability                                                    
+⠦ |        137 | variability                                                    
+⠇ |        139 | variability                                                    
+⠏ |        140 | variability                                                    
+✔ |        140 | variability [1055.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1055.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 140 ]
+                                                           test nb failed
+1       variability at zero reproduces the plain Wiener density  2      0
+2   the drift integral's closed form is exact, not a quadrature  2      0
+3            the fixed-node density matches adaptive quadrature  4      0
+4           the node counts are where the defaults say they are  6      0
+5           the Gauss-Legendre rule is the rule it claims to be 84      0
+6              the variability density differentiates correctly  3      0
+7                     check_custom_family() passes the full DDM  1      0
+8              the full DDM recovers what it was simulated from  1      0
+9  the start-point range is recovered when there is enough data  2      0
+10         wiener() refuses a variability spec it cannot act on  9      0
+11        the variability parameters carry the links they claim  9      0
+12          a fixed variability parameter is a plain fixed dpar  2      0
+13  the conditional mean response time accounts for variability  5      0
+14        the simulator draws from the model the density scores  6      0
+15      fitted() on a variability fit uses the variability mean  4      0
+   skipped error passed
+1    FALSE FALSE      2
+2    FALSE FALSE      2
+3    FALSE FALSE      4
+4    FALSE FALSE      6
+5    FALSE FALSE     84
+6    FALSE FALSE      3
+7    FALSE FALSE      1
+8    FALSE FALSE      1
+9    FALSE FALSE      2
+10   FALSE FALSE      9
+11   FALSE FALSE      9
+12   FALSE FALSE      2
+13   FALSE FALSE      5
+14   FALSE FALSE      6
+15   FALSE FALSE      4
+RESULT test-variability.R blocks 15 expectations 140 pass 140 fail 0 err 0 skip 0 

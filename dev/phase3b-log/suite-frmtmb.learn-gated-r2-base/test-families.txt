@@ -1,0 +1,66 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | families                                                       
+⠋ |          1 | families                                                       
+⠹ |          3 | families                                                       
+⠴ |          6 | families                                                       
+⠇ |          9 | families                                                       
+⠏ |         10 | families                                                       
+⠋ |         11 | families                                                       
+⠙ |         12 | families                                                       
+⠹ |         13 | families                                                       
+⠴ |         16 | families                                                       
+⠙ |         22 | families                                                       
+⠴ |         26 | families                                                       
+⠦ |         27 | families                                                       
+⠸ |         34 | families                                                       
+⠼ |         35 | families                                                       
+⠧ |         38 | families                                                       
+⠇ |         39 | families                                                       
+⠏ |         40 | families                                                       
+⠸ |         44 | families                                                       
+⠼ |         45 | families                                                       
+✔ |         45 | families [6.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 45 ]
+
+You rock!
+                                                                 test nb failed
+1                              bandit2arm_delta learns the better arm  5      0
+2              a covariate on the learning rate is the reversal model  4      0
+3          bandit2arm_dual: the two splits coincide on binary payoffs  2      0
+4                 bandit2arm_dual recovers an asymmetry that is there  1      0
+5                 prl_fictitious moves the option that was not chosen  3      0
+6                           the Kalman gain falls as a subject learns  4      0
+7               igt_pvl_delta learns away from the frequent-loss deck  6      0
+8                               ts_par7 is model-based when w says so  2      0
+9                      family constructors refuse what they cannot do  6      0
+10           a parameter may vary within a subject, one value per row  3      0
+11                    rlddm refuses a response that is an option code  1      0
+12 rlddm refuses a non-decision-time bound above the fastest response  1      0
+13           rlddm refuses simulate() and names the whole-frame route  1      0
+14                rlddm's simulator writes both a time and a boundary  5      0
+15             igt_orl swaps its two rates on the sign of the outcome  1      0
+   skipped error passed
+1    FALSE FALSE      5
+2    FALSE FALSE      4
+3    FALSE FALSE      2
+4    FALSE FALSE      1
+5    FALSE FALSE      3
+6    FALSE FALSE      4
+7    FALSE FALSE      6
+8    FALSE FALSE      2
+9    FALSE FALSE      6
+10   FALSE FALSE      3
+11   FALSE FALSE      1
+12   FALSE FALSE      1
+13   FALSE FALSE      1
+14   FALSE FALSE      5
+15   FALSE FALSE      1
+RESULT test-families.R blocks 15 expectations 45 pass 45 fail 0 err 0 skip 0 

@@ -1,0 +1,22 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | conditions-census                                              
+⠋ |          1 | conditions-census                                              
+⠙ |          2 | conditions-census                                              
+⠸ |          4 | conditions-census                                              
+⠧ |          8 | conditions-census                                              
+⠏ |         10 | conditions-census                                              
+✔ |         11 | conditions-census [3.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 11 ]
+                                                        test nb failed skipped
+1                    the census finds what it is looking for  7      0   FALSE
+2 frmtmb.learn raises no bare stop(), warning() or message()  4      0   FALSE
+  error passed
+1 FALSE      7
+2 FALSE      4
+RESULT test-conditions-census.R blocks 2 expectations 11 pass 11 fail 0 err 0 skip 0 

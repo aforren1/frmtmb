@@ -1,0 +1,132 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | surface                                                        
+⠋ |          1 | surface                                                        
+⠙ |          2 | surface                                                        
+⠇ |          9 | surface                                                        
+⠴ |         16 | surface                                                        
+⠇ |         19 | surface                                                        
+⠹ |         23 | surface                                                        
+⠸ |         24 | surface                                                        
+⠼ |         25 | surface                                                        
+⠦ |         27 | surface                                                        
+⠧ |         28 | surface                                                        
+⠙ |         32 | surface                                                        
+⠹ |         33 | surface                                                        
+⠸ |         34 | surface                                                        
+⠇ |         39 | surface                                                        
+⠏ |         40 | surface                                                        
+⠋ |         41 | surface                                                        
+⠙ |         42 | surface                                                        
+⠹ |         43 | surface                                                        
+⠸ |         44 | surface                                                        
+⠼ |         45 | surface                                                        
+⠴ |         46 | surface                                                        
+⠦ |         47 | surface                                                        
+⠧ |         48 | surface                                                        
+⠇ |         49 | surface                                                        
+⠏ |         50 | surface                                                        
+⠋ |         51 | surface                                                        
+⠙ |         52 | surface                                                        
+⠹ |         53 | surface                                                        
+⠸ |         54 | surface                                                        
+⠼ |         55 | surface                                                        
+⠴ |         56 | surface                                                        
+⠦ |         57 | surface                                                        
+⠧ |         58 | surface                                                        
+⠇ |         59 | surface                                                        
+⠏ |         60 | surface                                                        
+⠋ |         61 | surface                                                        
+⠙ |         62 | surface                                                        
+⠹ |         63 | surface                                                        
+⠸ |         64 | surface                                                        
+⠼ |         65 | surface                                                        
+⠴ |         66 | surface                                                        
+⠦ |         67 | surface                                                        
+⠧ |         68 | surface                                                        
+⠇ |         69 | surface                                                        
+⠏ |         70 | surface                                                        
+⠋ |         71 | surface                                                        
+⠙ |         72 | surface                                                        
+⠹ |         73 | surface                                                        
+⠸ |         74 | surface                                                        
+⠼ |         75 | surface                                                        
+⠴ |         76 | surface                                                        
+⠦ |         77 | surface                                                        
+⠧ |         78 | surface                                                        
+⠇ |         79 | surface                                                        
+⠏ |         80 | surface                                                        
+⠋ |         81 | surface                                                        
+⠙ |         82 | surface                                                        
+⠹ |         83 | surface                                                        
+⠸ |         84 | surface                                                        
+⠼ |         85 | surface                                                        
+⠴ |         86 | surface                                                        
+⠦ |         87 | surface                                                        
+⠧ |         88 | surface                                                        
+⠇ |         89 | surface                                                        
+⠏ |         90 | surface                                                        
+⠋ |         91 | surface                                                        
+⠙ |         92 | surface                                                        
+⠹ |         93 | surface                                                        
+⠸ |         94 | surface                                                        
+⠼ |         95 | surface                                                        
+⠴ |         96 | surface                                                        
+⠦ |         97 | surface                                                        
+⠧ |         98 | surface                                                        
+⠇ |         99 | surface                                                        
+⠏ |        100 | surface                                                        
+⠋ |        101 | surface                                                        
+⠙ |        102 | surface                                                        
+⠹ |        103 | surface                                                        
+⠸ |        104 | surface                                                        
+⠼ |        105 | surface                                                        
+⠴ |        106 | surface                                                        
+⠦ |        107 | surface                                                        
+⠧ |        108 | surface                                                        
+⠇ |        109 | surface                                                        
+⠏ |        110 | surface                                                        
+⠋ |        111 | surface                                                        
+⠹ |        113 | surface                                                        
+⠸ |        114 | surface                                                        
+⠼ |        115 | surface                                                        
+⠴ |        116 | surface                                                        
+⠦ |        117 | surface                                                        
+⠧ |        118 | surface                                                        
+⠇ |        119 | surface                                                        
+⠏ |        120 | surface                                                        
+⠇ |        129 | surface                                                        
+✔ |        146 | surface [54.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 54.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 146 ]
+                                                            test nb failed
+1                          summary, fixef, ranef and logLik work  8      0
+2  predict gives the learning parameters, and a mean on the data 10      0
+3    every residual type refuses, each for its own stated reason  4      0
+4                            conditional_effects refuses by name  1      0
+5      the reshaping addition terms refuse in the family's words  1      0
+6         simulate works, and refuses for the family that cannot  3      0
+7      par_template and set_prior reach every learning parameter  5      0
+8                refit rebuilds the block and reproduces the fit  2      0
+9                 frm_value_trace refuses a fit it cannot replay  1      0
+10        the compatibility rows this package registered resolve 85      0
+11           the reference table matches the families that exist 26      0
+   skipped error passed
+1    FALSE FALSE      8
+2    FALSE FALSE     10
+3    FALSE FALSE      4
+4    FALSE FALSE      1
+5    FALSE FALSE      1
+6    FALSE FALSE      3
+7    FALSE FALSE      5
+8    FALSE FALSE      2
+9    FALSE FALSE      1
+10   FALSE FALSE     85
+11   FALSE FALSE     26
+RESULT test-surface.R blocks 11 expectations 146 pass 146 fail 0 err 0 skip 0 

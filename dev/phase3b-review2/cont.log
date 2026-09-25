@@ -1,0 +1,22 @@
+no range, no trunc                           REFUSED [frmtmb_eam_contaminant_range_error,frmtmb_eam_error,frmtmb_error,error,condition] wiener(contaminant = TRUE) needs `contaminant_range =`, the response times the contaminant is uniform over, because this model declares no response de
+no range, trunc(lb = 0.05) only              REFUSED [frmtmb_eam_contaminant_range_error,frmtmb_eam_error,frmtmb_error,error,condition] wiener(contaminant = TRUE) needs `contaminant_range =`, the response times the contaminant is uniform over, because this model declares no response de
+no range, trunc(ub = 2.5)                    built; range 0.150746..2.500000; fn 335.334; grad finite TRUE
+no range, trunc(ub = 2.5), max_ndt 0.5       built; range 0.150746..2.500000; fn 335.334; grad finite TRUE
+no range, trunc(ub = ub) varying             REFUSED [frmtmb_eam_contaminant_range_error,frmtmb_eam_error,frmtmb_error,error,condition] wiener(contaminant = TRUE): trunc(ub = ) differs between rows, so there is no one deadline to end the contaminant's window at. Give `contaminant_range
+no range, cens()                             REFUSED [frmtmb_eam_contaminant_range_error,frmtmb_eam_error,frmtmb_error,error,condition] wiener(contaminant = TRUE) needs `contaminant_range =`, the response times the contaminant is uniform over, because this model declares no response de
+range c(0, 2.5), cens()                      built; range 0.0..2.5; fn 327.073; grad finite TRUE
+range c(0, 2.5), cens(), trunc(ub = 2.5)     built; range 0.0..2.5; fn 326.816; grad finite TRUE
+no range, cens(), trunc(ub = 2.5)            built; range 0.150746..2.500000; fn 325.895; grad finite TRUE
+
+-- right-censored + contaminant against a hand-written mixture (RWiener)
+parameters: beta betad betad betad  ndt ub 0.1507462 
+lane 327.0726673807  hand 327.0726673807  rel 5.21e-16
+lane 293.3746662813  hand 293.3746662813  rel 7.75e-16
+
+-- a range that does not cover the data
+rows above 2.0: 0  rows below 0.2: 1  min rt 0.1507462 
+range c(0.25, 2.0), default max_ndt          built; range 0.25..2.00; fn 323.438; grad finite TRUE
+range c(0.25, 2.0), max_ndt 0.5              built; range 0.25..2.00; fn 323.438; grad finite TRUE
+range c(0, 2.0), max_ndt 0.5                 built; range 0..2; fn 325.414; grad finite TRUE
+o1: rows with log density < -1e3: NA (rt NA NA); min NaN; any NaN TRUE
+o2: rows with log density < -1e3: 2 (rt 0.206 0.151); min -1.625e+09; any NaN FALSE

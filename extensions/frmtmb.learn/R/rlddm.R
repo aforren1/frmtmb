@@ -263,6 +263,16 @@
 #'   from the next, given unquoted.
 #' @param trial The column giving trial order within a subject, given
 #'   unquoted. `NULL` uses the order the rows appear in.
+#' @param session The column naming the session each trial belongs to,
+#'   given unquoted. `NULL`, the default, is one session per subject.
+#'   Every subject's value store starts again from its initial values
+#'   at the first trial of each of its sessions, so nothing learned in
+#'   one session carries into the next. The subject stays the unit a
+#'   random effect and `frm(importance =)` group on: the sessions of
+#'   one subject share that subject's effects. Trial numbers need to be
+#'   unique only within a session. A label reused in two runs that are
+#'   not adjacent in trial order is refused. See the Sessions section of
+#'   [bandit2arm_delta()].
 #' @param max_ndt Upper bound for the non-decision time. `NULL`, the
 #'   default, uses the fastest response in the data. A value above it is
 #'   refused, because it admits parameters at which the fastest trial
@@ -298,7 +308,7 @@
 #' frmtmb::fixef(fit)
 #' head(frm_value_trace(fit))
 #' @export
-rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
+rlddm <- function(subject, trial = NULL, session = NULL, max_ndt = NULL) {
   spec <- ln_spec(
     n_option = 2L,
     init = function(ns, d1) list(q1 = rep(0, ns), q2 = rep(0, ns)),
@@ -346,7 +356,8 @@ rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
            pe = c1 * pe1 + c2 * pe2)
     },
     sim_cols = "dec")
-  fam <- ln_family("rlddm", substitute(subject), substitute(trial),
+  fam <- ln_family("rlddm", session_expr = substitute(session),
+            substitute(subject), substitute(trial),
             dpars = c("alpha", "drift", "bs", "ndt", "bias"),
             links = list(alpha = "logit", drift = "identity",
                          bs = "log", ndt = "log", bias = "logit"),

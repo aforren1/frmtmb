@@ -1,0 +1,21 @@
+arm cens: 100 files, seeds 1 to 100, gaps: 
+first-pass errors: 13; refitted without error on rerun: 13
+control seed 1: logLik first pass -5321.0389785807, rerun -5321.0389785807, identical: TRUE
+control seed 2: logLik first pass -4256.6162520131, rerun -4256.6162520131, identical: TRUE
+errors after the rerun: 0
+convergence code 0: 100 of 100; diagnose() reported a finding: 0; diagnose() failed: 2
+   64  No convergence problems detected
+max |gradient| at the optimum: median 0.00082, max 0.0039
+fits with a confint(): 96 of 100
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.3971   0.0074   88/96     91.7%  [84.4, 95.7]
+mu condition              0.9000    0.9035   0.0030   93/96     96.9%  [91.2, 98.9]
+log bs                    0.3365    0.3381   0.0039   89/96     92.7%  [85.7, 96.4]
+ndt: the true 0.25 is below the fitted bound on 100 of 100
+ndt (link scale)          2.7261    2.7267   0.0251   92/96     95.8%  [89.8, 98.4]
+ndt natural scale: mean 0.2500 (truth 0.25)
+log sd 1 (mu | s)        -1.0498   -1.0797   0.0151   89/96     92.7%  [85.7, 96.4]
+log sd 2 (log bs | s)    -1.6094   -1.6413   0.0123   93/96     96.9%  [91.2, 98.9]
+censored share: mean 0.1636, range 0.1166 to 0.2203
+seconds per replicate: median 303

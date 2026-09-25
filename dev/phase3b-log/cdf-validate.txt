@@ -1,0 +1,35 @@
+rows: 1317 (1125 density grid, 192 tail); u from 0.000816 to 50
+F from 2.87e-68; S from 2.49e-133
+
+== blend center sweep, max relative error over all rows ==
+(one center for both columns here; the shipped function takes F at
+ ddm_rtcdf_u0F and S at ddm_rtcdf_u0S, each from its own column)
+    u0    F max rel    S max rel  F>1e-10  S>1e-10
+ 0.005    1.000e+00    3.155e-08       92       11
+ 0.010    2.164e-04    9.556e-11       50        0
+ 0.015    2.515e-07    9.330e-11       17        0
+ 0.020    2.080e-09    2.431e-11        7        0
+ 0.030    4.291e-11    3.530e-11        0        0
+ 0.050    3.327e-13    1.759e-07        0        4
+ 0.070    1.347e-13    4.793e-05        0       10
+ 0.100    3.997e-14    1.813e-02        0       12
+ 0.150    3.798e-14    1.000e+00        0       27
+ 0.200    3.798e-14    1.000e+00        0       45
+ 0.350    3.798e-14    1.000e+00        0       72
+
+== the shipped function, ddm_rt_lcdf2() ==
+density grid: F max rel 4e-14, S max rel 2.43e-12, F max abs 2.29e-14
+tail grid: F max rel 2.82e-14, S max rel 2.43e-11, F max abs 2.81e-14
+worst F row: t=1.5 v=-1.5 a=3.5 w=0.85 F=0.5333
+worst S row: t=0.3 v=-5 a=4 w=0.9 S=0.9817
+
+== established implementations, against the same 400-bit truth ==
+frmtmb.eam vs RWiener::pwiener, density grid, max abs: 4.46e-11
+frmtmb.eam vs RWiener::pwiener, all rows, max abs: 4.46e-11
+RWiener vs the 400-bit truth, max abs: 4.46e-11; max rel: 2.01e+55
+frmtmb.eam vs WienR::pWDM(precision = 1e-12), all rows, max abs: 7.53e-14
+WienR vs the 400-bit truth, max abs: 7.53e-14; max rel: 7.53e-14
+frmtmb.eam vs the 400-bit truth, max abs: 2.81e-14
+
+== F integrates the density ==
+40 random (v, a, w, t1, t2): max |F(t2) - F(t1) - integral| / integral = 4.39e-14

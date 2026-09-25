@@ -1,0 +1,58 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sampling                                                       frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠋ |          1 | sampling                                                       
+⠙ |          2 | sampling                                                       
+⠹ |          3 | sampling                                                       
+⠸ |          4 | sampling                                                       
+⠧ |          8 | sampling                                                       
+⠋ |         11 | sampling                                                       
+⠸ |         14 | sampling                                                       
+⠧ |         18 | sampling                                                       
+⠋ |         21 | sampling                                                       
+⠸ |         24 | sampling                                                       
+⠧ |         28 | sampling                                                       
+⠙ |         32 | sampling                                                       
+⠴ |         36 | sampling                                                       
+⠇ |         39 | sampling                                                       
+⠏ |         40 | sampling                                                       
+⠹ |         43 | sampling                                                       
+⠴ |         46 | sampling                                                       
+⠇ |         49 | sampling                                                       
+⠙ |         52 | sampling                                                       
+⠼ |         55 | sampling                                                       
+⠧ |         58 | sampling                                                       
+⠋ |         61 | sampling                                                       
+⠹ |         63 | sampling                                                       
+⠼ |         65 | sampling                                                       
+⠧ |         68 | sampling                                                       
+⠙ |         72 | sampling                                                       
+⠸ |         74 | sampling                                                       
+⠦ |         77 | sampling                                                       
+⠏ |         80 | sampling                                                       
+⠙ |         82 | sampling                                                       
+⠼ |         85 | sampling                                                       
+⠦ |         87 | sampling                                                       
+⠏ |         90 | sampling                                                       
+⠙ |         92 | sampling                                                       
+⠼ |         95 | sampling                                                       
+⠦ |         97 | sampling                                                       
+✔ |         97 | sampling [72.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 72.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 97 ]
+                                                       test nb failed skipped
+1           frm_sample runs a short chain on a wiener model  3      0   FALSE
+2 the density is finite over a wide sweep of the parameters  4      0   FALSE
+3                the gradient is finite over the same sweep 90      0   FALSE
+  error passed
+1 FALSE      3
+2 FALSE      4
+3 FALSE     90
+RESULT test-sampling.R blocks 3 expectations 97 pass 97 fail 0 err 0 skip 0 

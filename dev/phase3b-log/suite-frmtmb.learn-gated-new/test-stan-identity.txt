@@ -1,0 +1,92 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | stan-identity                                                  
+⠋ |          1 | stan-identity                                                  
+⠴ |          6 | stan-identity                                                  
+⠇ |   1      8 | stan-identity                                                  
+⠋ |   2      9 | stan-identity                                                  
+⠴ |   2     14 | stan-identity                                                  
+⠙ |   2     20 | stan-identity                                                  
+⠦ |   2     25 | stan-identity                                                  
+⠙ |   2     30 | stan-identity                                                  
+⠦ |   2     35 | stan-identity                                                  
+⠙ |   2     40 | stan-identity                                                  
+⠧ |   2     46 | stan-identity                                                  
+⠹ |   2     51 | stan-identity                                                  
+⠧ |   2     56 | stan-identity                                                  
+⠇ |   2     57 | stan-identity                                                  
+⠦ |   3     64 | stan-identity                                                  
+⠋ |   4     67 | stan-identity                                                  
+✔ |   4     71 | stan-identity [102.5s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-stan-identity.R:73:5'): bandit2arm_dual reproduces Stan under both splits
+Optimizer did not report convergence: false convergence (8)
+Backtrace:
+    ▆
+ 1. └─frmtmb.learn (local) ln_fix_2arm(...) at test-stan-identity.R:73:5
+ 2.   └─frmtmb::frm(form, family = fam, data = d) at test-stan-identity.R:42:3
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-stan-identity.R:73:5'): bandit2arm_dual reproduces Stan under both splits
+Large maximum absolute gradient at the optimum (0.293); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb.learn (local) ln_fix_2arm(...) at test-stan-identity.R:73:5
+ 2.   └─frmtmb::frm(form, family = fam, data = d) at test-stan-identity.R:42:3
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-stan-identity.R:372:3'): rlddm reproduces Stan with a correlated block on all four
+Optimizer did not report convergence: false convergence (8)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-stan-identity.R:372:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-stan-identity.R:372:3'): rlddm reproduces Stan with a correlated block on all four
+Large maximum absolute gradient at the optimum (0.0451); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-stan-identity.R:372:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 102.7 s
+
+[ FAIL 0 | WARN 4 | SKIP 0 | PASS 71 ]
+                                                           test nb failed
+1  bandit2arm_delta reproduces a Stan program of the same model  8      0
+2             bandit2arm_dual reproduces Stan under both splits 13      0
+3    prl_fictitious reproduces a Stan program of the same model  5      0
+4           bandit4arm2_kalman_filter reproduces a Stan program  5      0
+5     igt_pvl_delta reproduces a Stan program of the same model  5      0
+6           ts_par7 reproduces a Stan program of the same model  5      0
+7      bandit4arm2_kalman_filter reproduces Stan with the bonus  6      0
+8           igt_orl reproduces a Stan program of the same model  5      0
+9             rlddm reproduces a Stan program of the same model  5      0
+10     bandit2arm_delta reproduces Stan with a correlated block  9      0
+11    rlddm reproduces Stan with a correlated block on all four  9      0
+   skipped error passed
+1    FALSE FALSE      8
+2    FALSE FALSE     11
+3    FALSE FALSE      5
+4    FALSE FALSE      5
+5    FALSE FALSE      5
+6    FALSE FALSE      5
+7    FALSE FALSE      6
+8    FALSE FALSE      5
+9    FALSE FALSE      5
+10   FALSE FALSE      9
+11   FALSE FALSE      7
+RESULT test-stan-identity.R blocks 11 expectations 75 pass 71 fail 0 err 0 skip 0 

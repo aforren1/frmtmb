@@ -1,0 +1,64 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(testthat)
+> library(frmtmb.eam)
+Loading required package: frmtmb
+> 
+> test_check("frmtmb.eam")
+[ FAIL 0 | WARN 2 | SKIP 6 | PASS 1709 ]
+
+══ Skipped tests (6) ═══════════════════════════════════════════════════════════
+• package sources are not available (installed-package run) (2):
+  'test-conditions-census.R:294:3', 'test-message-uniqueness.R:30:3'
+• set FRMTMB_SCALE_TESTS=true to run the scale tier (3): 'test-scale.R:198:3',
+  'test-scale.R:272:3', 'test-scale.R:291:3'
+• {frmtmb.sample} is not installed (1): 'test-sampling.R:13:3'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+── Warning ('test-contaminant.R:106:3'): lambda recovers on contaminated data ──
+Large maximum absolute gradient at the optimum (0.00128); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. ├─frmtmb.eam (local) ct_try(...) at test-contaminant.R:106:3
+ 2. │ └─base::tryCatch(expr, error = function(e) NULL) at test-contaminant.R:9:11
+ 3. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6. └─frmtmb::frm(...)
+ 7.   └─frmtmb:::fit_assembled(...)
+ 8.     └─frmtmb:::check_convergence(fit, control)
+ 9.       └─frmtmb::frm_warning(m, call. = FALSE)
+── Warning ('test-rdm-gng.R:733:5'): wiener_gng recovers its parameters ────────
+Large maximum absolute gradient at the optimum (0.00184); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. ├─base::try(...) at test-rdm-gng.R:733:5
+ 2. │ └─base::tryCatch(...)
+ 3. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6. └─frmtmb::frm(...)
+ 7.   └─frmtmb:::fit_assembled(...)
+ 8.     └─frmtmb:::check_convergence(fit, control)
+ 9.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+[ FAIL 0 | WARN 2 | SKIP 6 | PASS 1709 ]
+> 
+> proc.time()
+   user  system elapsed 
+ 986.00   59.85 1230.42 

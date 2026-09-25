@@ -341,6 +341,177 @@
 #' for the component, and it differentiates to exactly zero, which a
 #' true `-Inf` would not.
 #'
+#' @section Censoring and truncation:
+#' `cens()` and `trunc()` work on the response time, on the plain model.
+#' What a censored row means depends on its code, because the boundary
+#' is known on some and not on others:
+#'
+#' \describe{
+#'   \item{right}{The trial had not reached EITHER boundary by the
+#'     recorded time: a deadline passed with no response. Its
+#'     probability is the survival over both boundaries,
+#'     `P(T > t)`. Its `dec()` value is required, since a declaration
+#'     cannot depend on a censoring code, and is NOT read: any 0 or 1
+#'     gives the same fit, bit for bit.}
+#'   \item{left and interval}{The trial DID reach a boundary, and
+#'     `dec()` says which; only its time is coarse. Its probability is
+#'     that boundary's defective distribution function,
+#'     `P(T <= t, boundary b)`, or its difference across the interval.
+#'     `dec()` is read. A row whose `dec()` is missing is dropped by
+#'     frmtmb's `na.action` with a message, before this family sees it;
+#'     this family cannot refuse it by name.}
+#' }
+#'
+#' A deadline design is
+#'
+#' ```
+#' frm(bf(rt | dec(response) + cens(censored) ~ condition, bias = 0.5),
+#'     family = wiener(), data = dat)
+#' ```
+#'
+#' with `censored` set to `"right"` on the trials with no response and
+#' `rt` set to the deadline there.
+#'
+#' `trunc()` divides by the window's mass over both boundaries. Left or
+#' interval censoring cannot be combined with `trunc()`: frmtmb forms
+#' the censored rows and the truncation window from the one
+#' distribution-function slot a family has, and the two need different
+#' functions here, so the pair is refused by name.
+#'
+#' Every quantity is computed as a LOG and never as a complement: the
+#' survival from the method of images for small times and from the
+#' eigenfunction series for large ones, and each defective function the
+#' same way. Against a 700-bit reference over drift -20 to 20, boundary
+#' separation 0.3 to 6, relative start 0.001 to 0.999 and normalized
+#' time 1e-3 to 10, 3150 points, the worst relative error is 4.3e-14 on
+#' the distribution function over both boundaries, 1.2e-12 on either
+#' defective one, and on the survival 1.7e-12 where |v| a is at most 1,
+#' 7.4e-12 up to 24, 4.6e-11 up to 72 and 8.0e-11 up to 120. These
+#' hold on that grid only. The review of 2026-09-24 measured 798 more
+#' points at 1200 bits, to |v| a = 250 and a relative start of 0.9999,
+#' and there the survival's relative error is 1.7e-11 where |v| a is
+#' at most 1, 1.5e-9 at 120 and 1.6e-9 at 250, the worst at relative
+#' start 0.9999 and normalized time 0.01. 1.6e-9 is the worst measured
+#' anywhere. A survival
+#' of exp(-72063) comes back as that log. `RWiener::pwiener()` agrees to
+#' 4.5e-11 absolute on the grid the density is pinned on, and all of
+#' that difference is RWiener's own error.
+#'
+#' An interval's mass is formed as a difference of logs, never of
+#' probabilities: F(t2) (1 - F(t1) / F(t2)), or the same with the mass
+#' still to come after each edge, whichever keeps more digits, or a
+#' quadrature of the density where the interval holds a tiny share of
+#' the mass on both sides. Against 751 intervals at 1200 bits, 511 of
+#' them the review's, with the lower edge at normalized time 1e-3 to 3,
+#' |v| a up to 80 and masses down to 1e-99 of F(t1), the worst error
+#' of the log mass is 4.9e-11. The probability of a
+#' left-censored row, or of an interval, is held at 1e-300 or above,
+#' because frmtmb takes it on the probability scale: a row whose true
+#' probability is smaller than that contributes a flat barrier rather
+#' than its value.
+#'
+#' **What it recovers, at 30 subjects by 400 trials** (drift 0.4 and 0.9
+#' by condition with a subject deviation of 0.35, boundary separation
+#' 1.4 with a subject deviation of 0.20 on its log, non-decision time
+#' 0.25 s). With a 1 s deadline, 16 percent of trials right-censored,
+#' 40 replicates: every fixed effect and both variance components
+#' covered on 33 to 38 of 38 fits with an interval. With trials faster
+#' than 0.45 s recorded as left-censored and every fifth other trial as
+#' interval-censored into its 100 ms bin, 29 and 14 percent of trials,
+#' 60 replicates: they covered on 47 to 55 of 55, the lowest being the
+#' drift intercept at 85.5 percent, Wilson interval 73.8 to 92.4.
+#' Every fit converged. The arms draw from the same seeds, so their
+#' coverages are not independent of each other.
+#'
+#' The plain model only. Under `variability` the distribution function
+#' is the same series averaged over the per-trial parameters, and the
+#' drift average has no closed form there, so the pair is refused.
+#'
+#' @section Contaminant trials:
+#' `contaminant = TRUE` mixes a second process into every row: a
+#' response time uniform over a window, with a boundary that is a coin
+#' flip. Its share is the distributional parameter `lambda`, on a logit
+#' link, which takes a formula like any other:
+#'
+#' ```
+#' frm(bf(rt | dec(response) ~ condition, lambda ~ 1, bias = 0.5),
+#'     family = wiener(contaminant = TRUE, contaminant_range = c(0, 3)),
+#'     data = dat)
+#' ```
+#'
+#' It needs no [frmtmb::mixture()]: the uniform has no free parameter,
+#' so it is one more term in the density rather than a second family. A
+#' right-censored row enters through both parts' survivals; a left- or
+#' interval-censored row through the diffusion's defective function at
+#' its boundary and half of the uniform's, the coin flip landing there.
+#'
+#' **The window.** Give it as `contaminant_range =`: the task's
+#' response window, such as `c(0, deadline)`. Without it, a model that
+#' declares its deadline through `trunc(ub = )` uses the fastest
+#' response to that deadline, and any other model is refused, with the
+#' class `frmtmb_eam_contaminant_range_error`. A response outside the
+#' window is refused with the same class, since the contaminant has
+#' density zero there. The refusal of a missing window is the
+#' measured reason: without a deadline bounding both processes, the
+#' slowest diffusion trial sets the top of the observed range, the
+#' window grows with the sample, and `lambda` collapses. On one subject
+#' of 4000 trials, 25 seeds, true share 0.0495, contaminants uniform on
+#' 0 to 5 s: the observed range gave `lambda` 0.0212 and covered on 2 of
+#' 25, the true window 0.0498 and 25 of 25. With a 5 s deadline declared
+#' by `trunc(ub = 5)`, the window from the fastest response to the
+#' deadline gave 0.0508 against a recorded share of 0.0496, and the one
+#' to the slowest response 0.0518, both covering on 25 of 25; the
+#' deadline is the top used, being the one that does not move with the
+#' sample (`dev/phase3b-cont-window.R`). The review of 2026-09-24
+#' measured the same pattern on its own design: 0.0050 and 5 of 25
+#' without a deadline, 0.0545 and 22 of 25 with one.
+#'
+#' Where the practice comes from. Ratcliff and Tuerlinckx (2002) model
+#' the contaminant as uniform over the range of the observed response
+#' times, and the DMAT toolbox follows them; HDDM uses a uniform of
+#' fixed density instead. None of the three was checked against its
+#' source or text for this page; the attributions are the review's of
+#' 2026-09-24, recorded as such.
+#'
+#' **What it recovers, at 30 subjects by 400 trials.** Drift 0.4 and
+#' 0.9 by condition with a subject deviation of 0.35, boundary
+#' separation 1.4 with a subject deviation of 0.20 on its log,
+#' non-decision time 0.25 s, 5 percent contaminants uniform on 0.1 to
+#' 5 s, `max_ndt = 0.5`. With `contaminant_range = c(0.1, 5)`, over 40
+#' replicates, `lambda` came back at 0.0499 and its Wald interval
+#' covered on 39 of 40; every fixed effect and both variance components
+#' covered on 34 to 40 of 40, and every fit converged. The same draws
+#' with a 3 s deadline declared by `trunc(ub = 3)` and the default
+#' window, 44 replicates: `lambda` 0.0306 against a recorded share of
+#' 0.0307, covering on 35 of 36. On data with no contaminant and the
+#' window given, 30 replicates: see the collapse case below.
+#'
+#' **A guess faster than the non-decision time.** The non-decision time
+#' is bounded by the fastest response, so a contaminant faster than the
+#' true non-decision time pulls the bound under it and the fit cannot
+#' reach the truth. On the design above at the default bound, 20
+#' replicates on the first round's build, the non-decision time came
+#' back at 0.111 s against 0.25 and the drift effect covered on 0 of
+#' 20. Under the contaminant such a row
+#' has a likelihood, so `max_ndt` above the fastest response is allowed
+#' with `contaminant = TRUE`: give a bound you know the non-decision time
+#' is under.
+#'
+#' **The collapse case.** Maximum likelihood has no prior to hold
+#' `lambda` off its edge. When the data give it nothing, it runs down
+#' the logit: the estimate is a logit near -20, its standard error is in
+#' the thousands, and the log-likelihood is the plain family's.
+#' [frmtmb::diagnose()] reports it as a parameter at the end of its
+#' link. On the design above with no contaminant and the window
+#' `c(0, 5)` given, 30 replicates: `lambda` reached the edge on 25,
+#' `diagnose()` named it on 27, all 25 at the edge among them, and at
+#' the edge the log-likelihood was the plain family's to within
+#' 8.9e-07 on every one.
+#'
+#' At `lambda = 0` the density is the plain family's: bit for bit on
+#' every row whose diffusion density is at least the contaminant's, and
+#' to the rounding of one log-sum anchor on the others.
+#'
 #' @section Accuracy:
 #' The density is the Navarro and Fuss (2009) pair of series, both
 #' evaluated at a fixed truncation and combined with a smooth weight,
@@ -371,6 +542,16 @@
 #'   component carries the rows the Wiener density cannot reach.
 #' @param link Link for the drift rate. Identity by default, and there
 #'   is rarely a reason to change it: the drift rate is signed.
+#' @param contaminant Mix a uniform contaminant into the density, with
+#'   its mixing proportion estimated as the distributional parameter
+#'   `lambda` on a logit link. `FALSE`, the default, is the plain model.
+#'   See Contaminant trials.
+#' @param contaminant_range The response times the uniform contaminant
+#'   spreads over, as `c(lower, upper)` in the units of the response:
+#'   the task's response window. `NULL`, the default, is allowed only
+#'   when the model declares a deadline with `trunc(ub = )`, and is then
+#'   the fastest response to that deadline; otherwise it is refused. See
+#'   Contaminant trials for why.
 #'
 #' @return A `frmtmb_family`.
 #'
@@ -394,7 +575,26 @@
 #' @export
 wiener <- function(max_ndt = NULL, variability = character(0),
                    nodes = c(sz = 7L, st = 21L),
-                   allow_unreachable = FALSE, link = "identity") {
+                   allow_unreachable = FALSE, link = "identity",
+                   contaminant = FALSE, contaminant_range = NULL) {
+  if (!is.logical(contaminant) || length(contaminant) != 1L ||
+      is.na(contaminant)) {
+    frm_stop("wiener(): `contaminant` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.null(contaminant_range)) {
+    if (!contaminant) {
+      frm_stop("wiener(): `contaminant_range` is the range of the ",
+               "contaminant, and there is none without contaminant = TRUE.",
+               call. = FALSE)
+    }
+    if (!is.numeric(contaminant_range) || length(contaminant_range) != 2L ||
+        any(!is.finite(contaminant_range)) || contaminant_range[1L] < 0 ||
+        !(contaminant_range[2L] > contaminant_range[1L])) {
+      frm_stop("wiener(): `contaminant_range` must be two finite response ",
+               "times, the first at least 0 and below the second.",
+               call. = FALSE)
+    }
+  }
   if (!is.null(max_ndt)) {
     if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
         !is.finite(max_ndt) || max_ndt <= 0) {
@@ -407,10 +607,24 @@ wiener <- function(max_ndt = NULL, variability = character(0),
     frm_stop("wiener(): `allow_unreachable` must be TRUE or FALSE.",
              call. = FALSE)
   }
+  if (contaminant && allow_unreachable) {
+    # allow_unreachable exists for a component of frmtmb::mixture(), and
+    # a mixture never finalizes its components, so the contaminant's
+    # range would never be set; and the pair would be two contaminants
+    # for one set of fast guesses
+    frm_stop("wiener(): `contaminant = TRUE` and `allow_unreachable = ",
+             "TRUE` cannot be combined. allow_unreachable is for a ",
+             "component of mixture(), where the other component is the ",
+             "contaminant; contaminant = TRUE is the contaminant inside ",
+             "the family, and needs no mixture.", call. = FALSE)
+  }
   cfg <- list(max_ndt = max_ndt, link = link,
               allow_unreachable = isTRUE(allow_unreachable),
               variability = ddm_check_variability(variability),
-              nodes = ddm_check_nodes(nodes))
+              nodes = ddm_check_nodes(nodes),
+              contaminant = isTRUE(contaminant),
+              contaminant_range = if (is.null(contaminant_range)) NULL else
+                as.numeric(contaminant_range))
   # `ndt` is a fraction of a bound the data settles, so the family
   # carries a bound from the moment it is built: the one `max_ndt`
   # names, or a refusing placeholder. See ddm_ndt_preinstall().
@@ -472,7 +686,7 @@ ddm_check_nodes <- function(nodes) {
 #' estimated quantity is a fraction.
 #'
 #' @noRd
-ddm_family <- function(cfg, delta) {
+ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
   vv <- cfg$variability
   nd <- ddm_nodes(vv, cfg$nodes)
   st_on <- "st" %in% vv
@@ -543,13 +757,163 @@ ddm_family <- function(cfg, delta) {
   # a placeholder, as ndt's is
   if (st_on) init$st <- function(y, aterms) 0.1 * min(y)
 
-  frmtmb::custom_family(
+  # The distribution function, for cens() and trunc(). The plain model
+  # only: under variability it is the same series averaged over the
+  # three per-trial distributions, and the drift average is not in
+  # closed form there (see the variability section of wiener-cdf.R).
+  # A variability model is refused by name, in ddm_check_response(). The
+  # slots are still filled for it, with the refusal, because frmtmb
+  # checks that a censored model's family HAS a distribution function
+  # before it reads the family's own validator, and its message there
+  # would name neither this family nor the reason.
+  lcdf <- function(q, dpars, aterms) ddm_stop_cens_var()
+  lccdf <- function(q, dpars, aterms) ddm_stop_cens_var()
+  if (!length(vv)) {
+    # Over both boundaries, except on a LEFT- or INTERVAL-censored row:
+    # that trial reached a boundary and dec() says which, so its
+    # probability is that boundary's defective distribution function.
+    # A right-censored row reached none and is scored from lccdf, over
+    # both. The censoring code is data, so the choice is a mask.
+    lcdf_rows <- function(q, dpars, aterms) {
+      lF <- ddm_rt_lcdf2(q - dpars[["ndt"]], dpars[["mu"]], dpars[["bs"]],
+                         dpars[["bias"]])[["lF"]]
+      cen <- aterms[["cens"]]
+      kb <- if (is.null(cen)) 0 else as.numeric(cen == -1 | cen == 2)
+      if (!any(kb == 1)) return(exp(lF))
+      lb <- ddm_rt_lcdf_b(q - dpars[["ndt"]], dpars[["mu"]], dpars[["bs"]],
+                          dpars[["bias"]], ddm_indicator(aterms))
+      # frmtmb takes this slot on the probability scale and forms
+      # log(F) for a left-censored row and log(F(y2) - F(y)) for an
+      # interval. Two things break there, and each stopped every fit of
+      # the first recovery arm with a NaN gradient: F underflows as a
+      # decision time goes to zero, and late in the distribution F(y2)
+      # and F(y), each computed to 1e-13, differ by less than their own
+      # error, so the difference came out NEGATIVE. So F is floored at
+      # 1e-300, and at an interval's UPPER edge, recognized as frmtmb's
+      # own cens_y2 vector, which is data, this returns F(y) PLUS the
+      # interval's mass computed directly in log space
+      # (ddm_rt_linterval_b()), with F(y) the same bits the lower-edge
+      # call returns. frmtmb's difference is then that mass to the
+      # rounding of F(y), never negative, and held at 4 ulp of F(y) or
+      # above, a finite barrier where the mass is below what the scale
+      # holds. The exact fix is a log-difference slot in frmtmb.
+      Fq <- ddm_floor(exp(kb * lb + (1 - kb) * lF), 1e-300)
+      y2 <- aterms[["cens_y2"]]
+      ylo <- aterms[["cens_ylo"]]
+      if (is.null(y2) || is.null(ylo) ||
+          !identical(as.numeric(q), as.numeric(y2))) {
+        return(Fq)
+      }
+      ki <- as.numeric(cen == 2)
+      nd <- dpars[["ndt"]]
+      l1 <- ddm_rt_lcdf_b(ylo - nd, dpars[["mu"]], dpars[["bs"]],
+                          dpars[["bias"]], ddm_indicator(aterms))
+      F1 <- ddm_floor(exp(l1), 1e-300)
+      lD <- ddm_rt_linterval_b(ylo - nd, q - nd, dpars[["mu"]],
+                               dpars[["bs"]], dpars[["bias"]],
+                               ddm_indicator(aterms))
+      Fi <- F1 + ddm_floor(exp(lD), 4 * .Machine$double.eps * F1)
+      ki * Fi + (1 - ki) * Fq
+    }
+    lccdf_rows <- function(q, dpars, aterms) {
+      ddm_rt_lcdf2(q - dpars[["ndt"]], dpars[["mu"]], dpars[["bs"]],
+                   dpars[["bias"]])[["lS"]]
+    }
+    # frmtmb calls both slots on EVERY row and reads back only the
+    # censored ones. Each is a few thousand tape operations per row, so
+    # on 12,000 rows the tape did not fit in memory: every fit of the
+    # left- and interval-censored recovery arm, and many of the
+    # right-censored one, ended in std::bad_alloc. So each slot works on
+    # the rows frmtmb will read, which the censoring code, as data,
+    # names, and returns a neutral 1 (or log 1) on the others. Under
+    # trunc() every row's distribution function is the normalizer, and
+    # all rows are computed.
+    #
+    # On those rows every one is scored at its boundary, so the marginal
+    # function is not formed at all, and at an interval's upper edge
+    # only the interval rows are. The lower edge and the upper-edge call
+    # form F(y) with the same arithmetic on the same values, so the two
+    # agree to the bit and frmtmb's difference is the directly computed
+    # mass (see lcdf_rows above for why the mass is computed directly).
+    lcdf_edge <- function(q, dpars, aterms) {
+      ddm_floor(exp(ddm_rt_lcdf_b(q - dpars[["ndt"]], dpars[["mu"]],
+                                  dpars[["bs"]], dpars[["bias"]],
+                                  ddm_indicator(aterms))), 1e-300)
+    }
+    lcdf_upper <- function(q, dpars, aterms) {
+      nd <- dpars[["ndt"]]
+      ylo <- aterms[["cens_ylo"]]
+      up <- ddm_indicator(aterms)
+      l1 <- ddm_rt_lcdf_b(ylo - nd, dpars[["mu"]], dpars[["bs"]],
+                          dpars[["bias"]], up)
+      F1 <- ddm_floor(exp(l1), 1e-300)
+      lD <- ddm_rt_linterval_b(ylo - nd, q - nd, dpars[["mu"]],
+                               dpars[["bs"]], dpars[["bias"]], up, l1)
+      F1 + ddm_floor(exp(lD), 4 * .Machine$double.eps * F1)
+    }
+    lcdf <- function(q, dpars, aterms) {
+      cen <- aterms[["cens"]]
+      if (is.null(cen) || length(cen) != length(q) ||
+          !is.null(aterms[["trunc_lb"]]) || !is.null(aterms[["trunc_ub"]])) {
+        return(lcdf_rows(q, dpars, aterms))
+      }
+      y2 <- aterms[["cens_y2"]]
+      if (!is.null(y2) && !is.null(aterms[["cens_ylo"]]) &&
+          identical(as.numeric(q), as.numeric(y2))) {
+        return(ddm_on_rows(lcdf_upper, q, dpars, aterms, which(cen == 2), 1))
+      }
+      ddm_on_rows(lcdf_edge, q, dpars, aterms, which(cen == -1 | cen == 2), 1)
+    }
+    lccdf <- function(q, dpars, aterms) {
+      cen <- aterms[["cens"]]
+      if (is.null(cen) || length(cen) != length(q)) {
+        return(lccdf_rows(q, dpars, aterms))
+      }
+      ddm_on_rows(lccdf_rows, q, dpars, aterms, which(cen == 1), 0)
+    }
+  }
+
+  mean_fn <- if (!length(vv)) {
+    function(dpars, aterms) ddm_mean_rt(dpars, aterms)
+  } else {
+    # The closed-form conditional mean is the mean of the WRONG model
+    # once the parameters vary between trials, and a post-fit method
+    # that quietly returns a number for the wrong model is worse than
+    # one that refuses.
+    gh <- ddm_gauss_hermite(21L)
+    function(dpars, aterms) ddm_mean_rt_var(dpars, aterms, nd, gh)
+  }
+  sim <- if (!length(vv)) {
+    function(dpars, aterms, n) ddm_sim_rt(dpars, aterms, n)
+  } else {
+    function(dpars, aterms, n) ddm_sim_rt_var(dpars, aterms, n, nd)
+  }
+
+  if (isTRUE(cfg$contaminant)) {
+    dpars <- c(dpars, "lambda")
+    links$lambda <- "logit"
+    # Small and inside the link: zero is the edge, and a start there
+    # would make the first gradient step decide whether contamination
+    # exists at all.
+    init$lambda <- function(y, aterms) 0.05
+    pb <- ddm_boundary_prob_fn(vv, nd)
+    lpdf <- ddm_cont_lpdf(lpdf, crange)
+    if (!is.null(lcdf)) {
+      lcdf <- ddm_cont_lcdf(lcdf, crange)
+      lccdf <- ddm_cont_lccdf(lccdf, crange)
+    }
+    mean_fn <- ddm_cont_mean(mean_fn, pb, crange)
+    sim <- ddm_cont_sim(sim, pb, crange)
+  }
+
+  fam <- frmtmb::custom_family(
     "wiener",
     accepts_aterms = ddm_accepts[["wiener"]],
     dpars = dpars,
     links = links,
     lpdf = lpdf,
-    valid_y = function(y, aterms) ddm_check_response(y, aterms),
+    lcdf = lcdf,
+    lccdf = lccdf,
     # The boundary a trial ended at reaches the density as dec() or as
     # vint1, and either will do, so the requirement is declared as the
     # choice it is rather than checked by hand after the frame is built.
@@ -562,24 +926,40 @@ ddm_family <- function(cfg, delta) {
     family_finalize = function(fam, y, aterms) {
       ddm_finalize(fam, cfg, y, aterms)
     },
+    # one closure per family object, so the validator knows whether
+    # this model has a distribution function to censor with
+    valid_y = function(y, aterms) {
+      ddm_check_response(y, aterms)
+      if (length(vv) && (!is.null(aterms[["cens"]]) ||
+                         !is.null(aterms[["trunc_lb"]]) ||
+                         !is.null(aterms[["trunc_ub"]]))) {
+        ddm_stop_cens_var()
+      }
+      cen <- aterms[["cens"]]
+      if (!is.null(cen) && any(cen == -1 | cen == 2) &&
+          (!is.null(aterms[["trunc_lb"]]) ||
+           !is.null(aterms[["trunc_ub"]]))) {
+        ddm_stop_cens_trunc()
+      }
+      invisible(NULL)
+    },
     init_dpars = init,
     type = "continuous",
-    post = list(mean_fn = if (!length(vv)) {
-      function(dpars, aterms) ddm_mean_rt(dpars, aterms)
-    } else {
-      # The closed-form conditional mean is the mean of the WRONG model
-      # once the parameters vary between trials, and a post-fit method
-      # that quietly returns a number for the wrong model is worse than
-      # one that refuses.
-      gh <- ddm_gauss_hermite(21L)
-      function(dpars, aterms) ddm_mean_rt_var(dpars, aterms, nd, gh)
-    }),
-    sim = if (!length(vv)) {
-      function(dpars, aterms, n) ddm_sim_rt(dpars, aterms, n)
-    } else {
-      function(dpars, aterms, n) ddm_sim_rt_var(dpars, aterms, n, nd)
-    },
+    post = list(mean_fn = mean_fn),
+    sim = sim,
     sim_refusal = NULL)
+  if (isTRUE(cfg$contaminant)) fam[["contaminant_range"]] <- crange
+  # An interval's lower edge, which lcdf needs at the upper-edge call to
+  # form the interval's mass directly; see lcdf above. Only when a row
+  # is interval-censored, so every other model's data is what it was.
+  if (!length(vv)) {
+    fam[["aterm_data"]] <- function(y, aterms) {
+      cen <- aterms[["cens"]]
+      if (is.null(cen) || !any(cen == 2)) return(list())
+      list(cens_ylo = as.numeric(y))
+    }
+  }
+  fam
 }
 
 #' Fill in everything the family could not know until it had the data.
@@ -597,7 +977,8 @@ ddm_family <- function(cfg, delta) {
 ddm_finalize <- function(fam, cfg, y, aterms) {
   lo <- min(y)
   sp <- ddm_ndt_spec(y, aterms, cfg$max_ndt, "wiener")
-  if (!is.null(cfg$max_ndt) && sp$ub > lo && !cfg$allow_unreachable) {
+  if (!is.null(cfg$max_ndt) && sp$ub > lo && !cfg$allow_unreachable &&
+      !isTRUE(cfg$contaminant)) {
     # min(y) itself is allowed, and is the default: the logit never
     # reaches 1 at a finite linear predictor, so ndt < the bound stays
     # strict. Anything above min(y) does admit parameter values with no
@@ -616,8 +997,35 @@ ddm_finalize <- function(fam, cfg, y, aterms) {
   # DIFFERENT model, which is what the review measured at 0.334522
   # against 0.345458.
   keep <- ddm_ndt_keep(fam)
-  ddm_ndt_install(ddm_family(cfg, delta = 1e-9 * lo),
-                  keep[["ub"]] %||% sp$ub,
+  # The contaminant's range is a property of the fitted data for the
+  # same reason, and is kept the same way.
+  crange <- fam[["contaminant_range"]]
+  if (isTRUE(cfg$contaminant) && (is.null(crange) || anyNA(crange))) {
+    crange <- cfg$contaminant_range %||% ddm_cont_default_range(y, aterms)
+    if (!(crange[2L] > crange[1L])) {
+      frm_stop("wiener(contaminant = TRUE): every response time is ",
+               format(crange[1L]), ", so the observed range the uniform ",
+               "contaminant spreads over has zero width.", call. = FALSE)
+    }
+  }
+  # A response outside the window has contaminant density zero, and a
+  # row the Wiener part cannot reach then has no likelihood at all; a
+  # window narrower than the data is a mistake in the window.
+  if (isTRUE(cfg$contaminant)) ddm_cont_check_range(y, aterms, crange)
+  # Under the contaminant a row faster than the non-decision time HAS a
+  # likelihood, the contaminant's, so a `max_ndt` above the fastest
+  # response is a model rather than a mistake. The Wiener part then
+  # needs the density that holds such a row off the singularity, which
+  # is the one allow_unreachable selects. Only then: at the default
+  # bound every row is reachable and the plain density is kept, which
+  # is what makes the family at lambda = 0 the plain one.
+  ub <- keep[["ub"]] %||% sp$ub
+  cfg2 <- cfg
+  if (isTRUE(cfg$contaminant) && !is.null(cfg$max_ndt) && ub > lo) {
+    cfg2$allow_unreachable <- TRUE
+  }
+  ddm_ndt_install(ddm_family(cfg2, delta = 1e-9 * lo, crange = crange),
+                  ub,
                   if (is.null(keep)) sp$floors else keep[["floors"]],
                   "wiener",
                   sizes = if (is.null(keep)) sp$sizes else keep[["sizes"]])

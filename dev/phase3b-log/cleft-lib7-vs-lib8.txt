@@ -1,0 +1,4 @@
+1 ok code 0 logLik -4515.5209813968 
+2 ok code 0 logLik -4621.9580461671 
+1 ok code 0 logLik -4515.5209813968 
+2 ok code 0 logLik -4621.9580461670 

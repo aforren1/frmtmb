@@ -1,0 +1,107 @@
+arm cleft: 80 seeds (1 to 80), 60 with a fit
+errors met on the way (every attempt): bad_alloc 9; NaN gradient 11
+builds of the fits used: phase3b-lib7 1; phase3b-lib8 8; phase3b-lib9 51
+convergence code 0: 60 of 60; diagnose() reported a finding: 0
+    9  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.3995   0.0103   47/55     85.5%  [73.8, 92.4]
+mu condition              0.9000    0.9018   0.0038   53/55     96.4%  [87.7, 99.0]
+log bs                    0.3365    0.3367   0.0046   51/55     92.7%  [82.7, 97.1]
+ndt (link scale)          0.2231    0.2188   0.0038   54/55     98.2%  [90.4, 99.7]
+ndt natural scale: mean 0.2495 (truth 0.25); truth below the bound on 60 of 60
+log sd(mu | s)           -1.0498   -1.0822   0.0210   50/55     90.9%  [80.4, 96.1]
+log sd(log bs | s)       -1.6094   -1.6429   0.0155   55/55    100.0%  [93.5, 100.0]
+left-censored share mean 0.2931; interval share mean 0.1414
+
+arm cens: 40 seeds (1 to 40), 40 with a fit
+errors met on the way (every attempt): none
+builds of the fits used: phase3b-lib7 2; phase3b-lib8 1; phase3b-lib9 37
+convergence code 0: 40 of 40; diagnose() reported a finding: 0
+   27  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4053   0.0133   33/38     86.8%  [72.7, 94.2]
+mu condition              0.9000    0.8995   0.0042   37/38     97.4%  [86.5, 99.5]
+log bs                    0.3365    0.3421   0.0050   36/38     94.7%  [82.7, 98.5]
+ndt (link scale)          2.6638    2.6556   0.0407   38/38    100.0%  [90.8, 100.0]
+ndt natural scale: mean 0.2499 (truth 0.25); truth below the bound on 40 of 40
+log sd(mu | s)           -1.0498   -1.1115   0.0269   34/38     89.5%  [75.9, 95.8]
+log sd(log bs | s)       -1.6094   -1.6421   0.0188   38/38    100.0%  [90.8, 100.0]
+
+arm contfix: 40 seeds (1 to 80), 40 with a fit
+errors met on the way (every attempt): none
+builds of the fits used: phase3b-lib5 20; phase3b-lib9 20
+convergence code 0: 40 of 40; diagnose() reported a finding: 0
+   20  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.3995   0.0139   34/40     85.0%  [70.9, 92.9]
+mu condition              0.9000    0.8988   0.0039   39/40     97.5%  [87.1, 99.6]
+log bs                    0.3365    0.3379   0.0054   38/40     95.0%  [83.5, 98.6]
+ndt (link scale)          0.0000   -0.0003   0.0014   37/40     92.5%  [80.1, 97.4]
+ndt natural scale: mean 0.2500 (truth 0.25); truth below the bound on 40 of 40
+log sd(mu | s)           -1.0498   -1.0996   0.0210   38/40     95.0%  [83.5, 98.6]
+log sd(log bs | s)       -1.6094   -1.6491   0.0203   39/40     97.5%  [87.1, 99.6]
+lambda (logit), vs 0.05   -2.9444   -2.9488   0.0088   39/40     97.5%  [87.1, 99.6]
+lambda (logit), vs share   -2.9397   -2.9488   0.0088   39/40     97.5%  [87.1, 99.6]
+lambda natural: mean 0.0499; realized share of recorded rows: mean 0.0503
+window used: top mean 5.000, bottom mean 0.1000
+
+arm contdl: 51 seeds (1 to 51), 44 with a fit
+errors met on the way (every attempt): bad_alloc 6; NaN gradient 1
+builds of the fits used: phase3b-lib5 29; phase3b-lib9 15
+convergence code 0: 44 of 44; diagnose() reported a finding: 0
+   24  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4123   0.0141   32/36     88.9%  [74.7, 95.6]
+mu condition              0.9000    0.8971   0.0045   34/36     94.4%  [81.9, 98.5]
+log bs                    0.3365    0.3386   0.0046   35/36     97.2%  [85.8, 99.5]
+ndt (link scale)          0.0000   -0.0002   0.0014   36/36    100.0%  [90.4, 100.0]
+ndt natural scale: mean 0.2500 (truth 0.25); truth below the bound on 44 of 44
+log sd(mu | s)           -1.0498   -1.1131   0.0270   32/36     88.9%  [74.7, 95.6]
+log sd(log bs | s)       -1.6094   -1.6374   0.0203   36/36    100.0%  [90.4, 100.0]
+lambda (logit), vs 0.05   -2.9444   -3.4602   0.0179    0/36      0.0%  [-0.0,  9.6]
+lambda (logit), vs share   -3.4546   -3.4602   0.0179   35/36     97.2%  [85.8, 99.5]
+lambda natural: mean 0.0306; realized share of recorded rows: mean 0.0307
+window used: top mean 3.000, bottom mean 0.1090
+
+arm cont: 42 seeds (1 to 52), 34 with a fit
+errors met on the way (every attempt): bad_alloc 3; NaN gradient 5
+builds of the fits used: phase3b-lib5 4; phase3b-lib9 30
+convergence code 0: 34 of 34; diagnose() reported a finding: 0
+   15  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4019   0.0153   27/33     81.8%  [65.6, 91.4]
+mu condition              0.9000    0.8906   0.0052   30/33     90.9%  [76.4, 96.9]
+log bs                    0.3365    0.3430   0.0056   31/33     93.9%  [80.4, 98.3]
+ndt (link scale)          0.0000   -0.0077   0.0013   29/33     87.9%  [72.7, 95.2]
+ndt natural scale: mean 0.2490 (truth 0.25); truth below the bound on 34 of 34
+log sd(mu | s)           -1.0498   -1.0967   0.0264   31/33     93.9%  [80.4, 98.3]
+log sd(log bs | s)       -1.6094   -1.6301   0.0216   33/33    100.0%  [89.6, 100.0]
+lambda (logit), vs 0.05   -2.9444   -3.0626   0.0256   19/33     57.6%  [40.8, 72.8]
+lambda (logit), vs share   -2.9383   -3.0626   0.0256   18/33     54.5%  [38.0, 70.2]
+lambda natural: mean 0.0451; realized share of recorded rows: mean 0.0503
+window used: top mean 6.084, bottom mean 0.1099
+
+arm collapse: 30 seeds (1 to 30), 30 with a fit
+errors met on the way (every attempt): none
+builds of the fits used: phase3b-lib7 2; phase3b-lib9 28
+convergence code 0: 30 of 30; diagnose() reported a finding: 27
+   27  Distributional parameter at the end of its link:
+    3  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4034   0.0172   23/29     79.3%  [61.6, 90.2]
+mu condition              0.9000    0.9005   0.0046   28/29     96.6%  [82.8, 99.4]
+log bs                    0.3365    0.3398   0.0055   28/29     96.6%  [82.8, 99.4]
+ndt (link scale)          2.6971    2.6857   0.0504   29/29    100.0%  [88.3, 100.0]
+ndt natural scale: mean 0.2498 (truth 0.25); truth below the bound on 30 of 30
+log sd(mu | s)           -1.0498   -1.1027   0.0290   27/29     93.1%  [78.0, 98.1]
+log sd(log bs | s)       -1.6094   -1.6251   0.0210   29/29    100.0%  [88.3, 100.0]
+lambda at the edge (logit below -15): 25 of 30; diagnose() names it: 27; of those at the edge: 25
+interior lambda: NA to NA
+|logLik - plain logLik| at the edge: max 8.91e-07 over 25 with a plain fit
+

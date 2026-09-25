@@ -1,0 +1,38 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | gddm-recovery                                                  
+⠋ |          1 | gddm-recovery                                                  
+⠹ |          3 | gddm-recovery                                                  
+⠸ |          4 | gddm-recovery                                                  
+⠇ |          9 | gddm-recovery                                                  
+⠏ |         10 | gddm-recovery                                                  
+⠙ |         12 | gddm-recovery                                                  
+⠸ |         14 | gddm-recovery                                                  
+⠼ |         15 | gddm-recovery                                                  
+⠴ |         16 | gddm-recovery                                                  
+⠇ |         19 | gddm-recovery                                                  
+⠏ |         20 | gddm-recovery                                                  
+⠙ |         22 | gddm-recovery                                                  
+⠹ |         23 | gddm-recovery                                                  
+⠴ |         26 | gddm-recovery                                                  
+⠧ |         28 | gddm-recovery                                                  
+✔ |         28 | gddm-recovery [975.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 975.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 28 ]
+                                                           test nb failed
+1            the estimator recovers the parameters it was given  3      0
+2           renormalizing the defective density is not optional  5      0
+3   a fitted model supports the surface a user reaches for next 11      0
+4 the generalized family reproduces the analytic one end to end  3      0
+5     gddm_floored counts the rows the grid could not represent  6      0
+  skipped error passed
+1   FALSE FALSE      3
+2   FALSE FALSE      5
+3   FALSE FALSE     11
+4   FALSE FALSE      3
+5   FALSE FALSE      6
+RESULT test-gddm-recovery.R blocks 5 expectations 28 pass 28 fail 0 err 0 skip 0 

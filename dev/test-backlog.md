@@ -853,6 +853,43 @@ neither is the defect that lane fixed.
   poisson entry because they share one mechanism: a start that is
   right on the predictor scale and too large on the parameter scale.
 
+## Filed by wt-phase3b after punch round 2, 2026-09-24
+
+- **Core seam: a log-difference slot for interval and truncation
+  masses.** frmtmb forms an interval-censored row as
+  `log(F(y2) - F(y))` and a truncation window as `log(F(ub) - F(lb))`,
+  both on the probability scale from one `lcdf` slot. That loses every
+  digit when the two values agree to their error, and holds the mass at
+  1e-300 or above. frmtmb.eam works around it for `wiener()` by
+  recognizing the upper edge inside its own `lcdf` and returning the
+  mass there (`ddm_rt_linterval_b()`, 4.9e-11 on the log against 751
+  Rmpfr intervals), which is why left or interval censoring cannot be
+  combined with `trunc()` on that family. A family slot
+  `linterval(lo, hi, dpars, aterms)` returning the log mass directly
+  would remove both the workaround and the refusal. Test: an interval
+  holding 1e-40 of the mass before it, against Rmpfr, through the core
+  path.
+- **Core seam: refuse a missing `dec()` on a censored row by name.**
+  For `wiener()` a left- or interval-censored row reads `dec()` (the
+  boundary is known), a right-censored row does not. frmtmb's
+  `na.action` drops a row with an NA `dec()` before the family sees it,
+  with "1 row removed because of missing values"; the family cannot
+  refuse it or keep a right-censored row whose `dec()` it would not
+  read. Needs a hook that lets a family say which addition terms a row
+  needs, by censoring code. Test: a right-censored row with NA `dec()`
+  kept, a left-censored one refused by name.
+- **Under-coverage of log sd(log bs | s) on the base build.**
+  `wiener()` at 30 subjects by 400 trials, no censoring, no
+  contaminant, fresh seeds 2001 to 2070 on frmtmb.eam 0.10.0: the Wald
+  interval for the log subject sd of log boundary separation covers on
+  60 of 70, 85.7 percent, Wilson [75.7, 92.1], mean SE 0.1307 against
+  an sd of 0.1426 (SE/sd 0.917). Every other quantity covers on 65 or
+  66 of 70. From the review of punch round 1
+  (`dev/phase3b-review2/cov-summary-fresh.log`). Not caused by items
+  3.4 or 3.5; not investigated. Test: coverage of that quantity on
+  independent seeds, with enough replicates for the Wilson interval to
+  exclude or include 95.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

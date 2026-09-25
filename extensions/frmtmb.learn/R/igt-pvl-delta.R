@@ -87,7 +87,7 @@
 #' # the good decks are 3 and 4
 #' table(d$choice)
 #' @export
-igt_pvl_delta <- function(subject, trial = NULL) {
+igt_pvl_delta <- function(subject, trial = NULL, session = NULL) {
   spec <- ln_spec(
     n_option = 4L,
     init = function(ns, d1) {
@@ -120,7 +120,8 @@ igt_pvl_delta <- function(subject, trial = NULL) {
       }
       list(state = out, pe = pe, utility = u)
     })
-  ln_family("igt_pvl_delta", substitute(subject), substitute(trial),
+  ln_family("igt_pvl_delta", session_expr = substitute(session),
+            substitute(subject), substitute(trial),
             dpars = c("alpha", "shape", "lambda", "tau"),
             links = list(alpha = "logit", shape = "logit",
                          lambda = "log", tau = "log"),
