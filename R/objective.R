@@ -239,6 +239,8 @@ build_objective <- function(frame) {
   spec <- frame[["spec"]]
   resps <- spec$responses
   rescor <- isTRUE(spec$rescor)
+  # the response carrying the one nu of a Student-t rescor model
+  rescor_nu <- spec[["rescor_nu"]]
   y <- frame[["y"]]
   atv <- frame[["aterm_values"]]
   n <- frame[["n_obs"]]
@@ -289,6 +291,11 @@ build_objective <- function(frame) {
       extra <- lapply(stats::setNames(extra_names, extra_names),
                       function(nm) pars[[nm]])
     }
+    # each response's density reads its own family extras under the
+    # family's names; identical to `extra` outside a multivariate frame
+    extra_r <- lapply(stats::setNames(nm = names(resps)), function(r) {
+      resp_extras(frame, extra, r)
+    })
 
     # coefficient-space vector for the Z products (rr blocks expand
     # their factors through the loadings, esicar blocks center)
@@ -391,7 +398,15 @@ build_objective <- function(frame) {
       }
       Zstd <- RTMB::matrix(zvec, n, K)
       C <- us_chol_cor(pars[["thetar"]], K)
-      nll <- nll - sum(RTMB::dmvnorm(Zstd, 0, C, log = TRUE)) + logsig
+      if (is.null(rescor_nu)) {
+        nll <- nll - sum(RTMB::dmvnorm(Zstd, 0, C, log = TRUE)) + logsig
+      } else {
+        # brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D: the
+        # scale of row i is sigma_i, so the standardized rows are
+        # multivariate t with scale C, and logsig is the same Jacobian
+        nll <- nll - mvt_std_loglik(Zstd, C, dparv[[rescor_nu]]$nu[1]) +
+          logsig
+      }
     } else {
       for (r in names(resps)) {
         fam <- resps[[r]]$family
@@ -428,7 +443,7 @@ build_objective <- function(frame) {
           # DATA (the family object and the frame block), so it resolves
           # while the tape is being built and puts no branch on it.
           nll <- nll - stll(y[[r]], dparv[[r]], atv[[r]], w,
-                            frame_block_of(frame, r), extra)
+                            frame_block_of(frame, r), extra_r[[r]])
           next
         }
         # OBS() drives simulation/OSA machinery, but registers data under
@@ -447,7 +462,7 @@ build_objective <- function(frame) {
         } else {
           y[[r]]
         }
-        ll <- row_lpdf(fam, yobs, y[[r]], dparv[[r]], atv[[r]], extra)
+        ll <- row_lpdf(fam, yobs, y[[r]], dparv[[r]], atv[[r]], extra_r[[r]])
         nll <- nll - sum(w * ll)
       }
     }

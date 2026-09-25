@@ -87,6 +87,7 @@
 \alias{brms_summarize_draws}
 \alias{brms_prob_cols}
 \alias{brms_fixef_rows}
+\alias{rescor_row_loglik}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -143,6 +144,12 @@ dpar-value list, however it was built, and adds that response's
 one to use when drawing at new data. \code{us_chol_cor(theta, K)} is the
 unstructured correlation matrix of a \code{thetar} segment, which a
 \code{set_rescor(TRUE)} model's joint row density needs.
+\code{rescor_row_loglik(fit, dpv)} is that joint density itself, one value
+per row, at the dpar values \code{dpv} (the whole list \code{eval_dpars()}
+returns): the multivariate normal of a gaussian model or the
+multivariate t of a Student-t one, with its one shared \code{nu}. A
+pointwise \code{log_lik()} of a \code{rescor} model reads it rather than
+assuming the normal.
 }
 
 \section{The prior seam}{

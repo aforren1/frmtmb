@@ -159,7 +159,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL) {
     list(formula = formula, pforms = pforms, pfix = pfix, nl = isTRUE(nl),
          nlforms = list(),
          family = if (!is.null(family)) as_frmtmb_family(family)),
-    class = "frmtmb_formula"
+    class = c("frmtmb_formula", "frmtmb_bform")
   )
   if (!is.null(center)) out$center <- center
   out
@@ -305,13 +305,18 @@ lhs_dpar_names <- function(lhs) {
 #' formula.
 #'
 #' `bf(y ~ x) + lf(sigma ~ z)` and `bf(y ~ x, sigma ~ z)` give the same
-#' model. In a multivariate model an `lf()` must be added to the `bf()`
-#' of the response it belongs to, before the responses are combined.
+#' model. In a multivariate model, add an `lf()` to the `bf()` of the
+#' response it belongs to, or name that response with `resp =`:
+#' `bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")`.
 #'
 #' @param ... Two-sided formulas naming the parameter on the left, e.g.
 #'   `sigma ~ x` or (with `nl = TRUE` on the `bf()`) a nonlinear
 #'   parameter's formula `a ~ 1 + (1 | g)`, or one-sided formulas named
 #'   by their parameter, `sigma = ~ x`.
+#' @param resp The response the formulas belong to, when the `lf()` is
+#'   added to a multivariate formula. `NULL` (the default) adds them to
+#'   the `bf()` on the left of the `+`, which must then be a single
+#'   formula.
 #' @param center `FALSE` makes the intercept of each of these formulas an
 #'   ordinary coefficient, class `"b"` with coef `"Intercept"`, instead
 #'   of brms's class `"Intercept"`: the same as `0 + Intercept` in the
@@ -325,8 +330,12 @@ lhs_dpar_names <- function(lhs) {
 #'
 #' # nonlinear parameter formulas can arrive the same way
 #' bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
+#'
+#' # in a multivariate formula, resp = says which response it modifies
+#' bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")
 #' @export
-lf <- function(..., center = NULL) {
+lf <- function(..., resp = NULL, center = NULL) {
+  check_lf_resp(resp, "lf()")
   if (!is.null(center)) check_flag(center, "center")
   dots <- list(...)
   pforms <- list()
@@ -355,7 +364,20 @@ lf <- function(..., center = NULL) {
     frm_stop("lf() needs at least one parameter formula, e.g. lf(sigma ~ x)",
              call. = FALSE)
   }
-  structure(list(pforms = pforms), class = "frmtmb_lf")
+  structure(list(pforms = pforms, resp = resp), class = "frmtmb_lf")
+}
+
+#' `resp =` of lf() and nlf() is one response name.
+#'
+#' @noRd
+check_lf_resp <- function(resp, fn) {
+  if (is.null(resp)) return(invisible(NULL))
+  if (!is.character(resp) || length(resp) != 1L || is.na(resp) ||
+      !nzchar(resp)) {
+    frm_stop(fn, ": resp must be a single response name, not ",
+             arg_desc(resp), call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' @export
@@ -403,14 +425,16 @@ print.frmtmb_lf <- function(x, ...) {
 #' section of [frm()] for the whole rule, including the `stats::` escape
 #' hatch.
 #'
-#' Like [lf()], an `nlf()` in a multivariate model must be added to the
-#' `bf()` of the response it belongs to, before the responses are
-#' combined.
+#' Like [lf()], an `nlf()` in a multivariate model is added to the
+#' `bf()` of the response it belongs to, or names that response with
+#' `resp =`.
 #'
 #' @param formula A two-sided formula naming the parameter on the left
 #'   and its nonlinear body on the right, e.g. `sigma ~ a * exp(b * x)`.
 #' @param ... Further two-sided formulas, treated as LINEAR parameter
 #'   formulas exactly as if passed to [lf()] - the brms convention.
+#' @param resp The response the formulas belong to, when the `nlf()` is
+#'   added to a multivariate formula, as in [lf()].
 #' @param loop Accepted for brms source compatibility and ignored.
 #'   frmtmb evaluates a nonlinear body once over whole vectors, which is
 #'   brms's `loop = FALSE`; a body built from elementwise operations has
@@ -429,7 +453,8 @@ print.frmtmb_lf <- function(x, ...) {
 #' # a variance function of the fitted mean: sd = exp(ls) * |mu|^th
 #' bf(y ~ x) + nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)
 #' @export
-nlf <- function(formula, ..., loop = NULL) {
+nlf <- function(formula, ..., resp = NULL, loop = NULL) {
+  check_lf_resp(resp, "nlf()")
   if (!inherits(formula, "formula") || length(formula) != 3L) {
     frm_stop("nlf() takes a two-sided formula naming the parameter on the ",
              "left: e.g. nlf(sigma ~ a * exp(b * x))", call. = FALSE)
@@ -450,7 +475,7 @@ nlf <- function(formula, ..., loop = NULL) {
     frm_stop("nlf() gives '", dpar, "' both a nonlinear body and a linear ",
              "formula; it can have one or the other", call. = FALSE)
   }
-  structure(list(nlforms = nlforms, pforms = pforms),
+  structure(list(nlforms = nlforms, pforms = pforms, resp = resp),
             class = "frmtmb_nlf")
 }
 
@@ -462,11 +487,81 @@ print.frmtmb_nlf <- function(x, ...) {
   invisible(x)
 }
 
+#' Add to a model formula
+#'
+#' One `+` method serves [bf()] and [mvbf()] objects alike, so a sum of
+#' any number of formulas reads left to right. The sum of `bf(y1 ~ x)`,
+#' `bf(y2 ~ x)` and `bf(y3 ~ x)` is
+#' `mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ x))`.
+#'
+#' The right-hand side can be another formula, a family, [lf()],
+#' [nlf()] or [set_rescor()]. A family added to a single formula sets
+#' its family. A family added to a multivariate formula goes to every
+#' response that has no family yet, so in the sum of `bf(o ~ x)`,
+#' `cumulative()`, `bf(y ~ x)` and `gaussian()` the response `o` stays
+#' ordinal. brms instead gives the last family to every response. An
+#' [lf()] or [nlf()] added to a multivariate formula names its response
+#' with `resp =`.
+#'
+#' @param e1 A `bf()` or `mvbf()` object.
+#' @param e2 The object to add.
+#' @return A `frmtmb_formula` or a `frmtmb_mvformula`.
+#' @examples
+#' # three responses, one family for all of them
+#' bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + gaussian()
+#'
+#' # a family per response, and a dpar formula for the third response
+#' bf(o ~ x) + cumulative() + bf(y1 ~ x) + gaussian() + bf(y2 ~ x) +
+#'   lf(sigma ~ x, resp = "y2")
+#' @name plus-bform
 #' @export
-"+.frmtmb_formula" <- function(e1, e2) {
+"+.frmtmb_bform" <- function(e1, e2) {
   if (missing(e2)) return(e1)
-  if (inherits(e2, "frmtmb_formula")) {
+  # R's Ops group dispatch calls this method when EITHER operand is a
+  # bf() or mvbf() object. A single method for the shared parent class
+  # is what lets a formula and a multivariate formula meet: with two
+  # different methods R warns "Incompatible methods" and falls back to
+  # the internal `+`. chooseOpsMethod() would settle that too, but only
+  # from R 4.3.
+  if (!inherits(e1, "frmtmb_bform")) {
+    frm_stop("Cannot add a 'frmtmb_formula' to an object of class ",
+             paste(class(e1), collapse = "/"), ". Start the sum with ",
+             "the bf() formula, e.g. bf(y ~ x) + gaussian()", call. = FALSE)
+  }
+  if (inherits(e1, "frmtmb_mvformula")) plus_mvbf(e1, e2) else plus_bf(e1, e2)
+}
+
+#' The response label of one `bf()`, as `resp =` addresses it: the
+#' left-hand side without its addition terms.
+#'
+#' @noRd
+bform_resp_label <- function(f) {
+  lhs <- f$formula[[2L]]
+  if (is.call(lhs) && identical(lhs[[1L]], as.name("|"))) lhs <- lhs[[2L]]
+  deparse1(lhs)
+}
+
+#' `resp =` of an lf() or nlf() matches a response by its name or by the
+#' name brms makes of it (`y_a` is `ya`).
+#'
+#' @noRd
+bform_resp_matches <- function(f, resp) {
+  lab <- bform_resp_label(f)
+  resp %in% c(lab, brms_stan_name(lab))
+}
+
+#' `bf() + e2`.
+#'
+#' @noRd
+plus_bf <- function(e1, e2) {
+  if (inherits(e2, "frmtmb_mvformula") || inherits(e2, "frmtmb_formula")) {
     return(mvbf(e1, e2))
+  }
+  if ((inherits(e2, "frmtmb_lf") || inherits(e2, "frmtmb_nlf")) &&
+      !is.null(e2[["resp"]]) && !bform_resp_matches(e1, e2[["resp"]])) {
+    fn <- if (inherits(e2, "frmtmb_lf")) "lf()" else "nlf()"
+    frm_stop(fn, " names resp = '", e2[["resp"]], "', but the bf() it is ",
+             "added to models '", bform_resp_label(e1), "'", call. = FALSE)
   }
   if (inherits(e2, "frmtmb_lf")) {
     for (nm in names(e2$pforms)) {
@@ -586,7 +681,7 @@ mvbf <- function(..., rescor = FALSE) {
     frm_stop("mvbf() needs at least two responses", call. = FALSE)
   }
   structure(list(forms = flat, rescor = isTRUE(rescor)),
-            class = "frmtmb_mvformula")
+            class = c("frmtmb_mvformula", "frmtmb_bform"))
 }
 
 #' @rdname mvbf
@@ -608,27 +703,37 @@ set_rescor <- function(rescor = arg_unset(),
   structure(list(rescor = isTRUE(rescor)), class = "frmtmb_rescor")
 }
 
-#' @export
-"+.frmtmb_mvformula" <- function(e1, e2) {
-  if (missing(e2)) return(e1)
-  if (inherits(e2, "frmtmb_lf")) {
-    frm_stop("lf() does not say which response it belongs to. Put it ",
-             "directly after the bf() it modifies, e.g. ",
-             "bf(y1 ~ x) + lf(sigma ~ z) + bf(y2 ~ x)", call. = FALSE)
-  }
-  if (inherits(e2, "frmtmb_nlf")) {
-    frm_stop("nlf() does not say which response it belongs to. Put it ",
-             "directly after the bf() it modifies, e.g. ",
-             "bf(y1 ~ x) + nlf(sigma ~ a * z) + bf(y2 ~ x)", call. = FALSE)
+#' `mvbf() + e2`.
+#'
+#' @noRd
+plus_mvbf <- function(e1, e2) {
+  if (inherits(e2, "frmtmb_lf") || inherits(e2, "frmtmb_nlf")) {
+    fn <- if (inherits(e2, "frmtmb_lf")) "lf()" else "nlf()"
+    resps <- vapply(e1$forms, bform_resp_label, "")
+    if (is.null(e2[["resp"]])) {
+      eg <- if (inherits(e2, "frmtmb_lf")) "lf(sigma ~ z" else
+        "nlf(sigma ~ a * z"
+      frm_stop(fn, " does not say which response it belongs to. Name the ",
+               "response, e.g. + ", eg, ", resp = \"", resps[length(resps)],
+               "\"), or add it directly after the bf() it modifies. The ",
+               "responses are: ", paste(resps, collapse = ", "),
+               call. = FALSE)
+    }
+    at <- which(vapply(e1$forms, bform_resp_matches, TRUE,
+                       resp = e2[["resp"]]))
+    if (length(at) != 1L) {
+      frm_stop(fn, " names resp = '", e2[["resp"]], "', which is not one of ",
+               "the responses: ", paste(resps, collapse = ", "),
+               call. = FALSE)
+    }
+    e1$forms[[at]] <- plus_bf(e1$forms[[at]], e2)
+    return(e1)
   }
   if (inherits(e2, "frmtmb_rescor")) {
     e1$rescor <- e2$rescor
     return(e1)
   }
-  if (inherits(e2, "frmtmb_mvformula")) {
-    return(mvbf(e1, e2, rescor = e1$rescor))
-  }
-  if (inherits(e2, "frmtmb_formula")) {
+  if (inherits(e2, "frmtmb_mvformula") || inherits(e2, "frmtmb_formula")) {
     return(mvbf(e1, e2, rescor = e1$rescor))
   }
   if (inherits(e2, "frmtmb_family") || inherits(e2, "family") ||

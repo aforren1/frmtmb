@@ -1,0 +1,8 @@
+# frmtmb.sample test-loo.R, block "the pointwise density of student
+# rescor and mv ordinal fits", with the LANE frmtmb core and the BASE
+# frmtmb.sample (library /tmp/lanes/mv/libcore holding only the lane
+# core, ahead of /opt/rlib/base), 2026-09-25:
+expectation_failure abs(sum(ll) - L) = 38.62614669367 (gaussian rows on a student rescor fit)
+expectation_failure abs(ll[3] - want) = 0.1942933977890 (row 3 against mvtnorm::dmvt)
+expectation_error  The 'cumulative' density returned no values for 80 observations.
+# With the lane frmtmb.sample: RESULT frmtmb.sample test-loo.R pass=77 fail=0 err=0 skip=1

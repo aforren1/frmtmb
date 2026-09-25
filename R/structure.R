@@ -613,7 +613,11 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'   \item{`fit_extras()`}{The family's extra (non-dpar) parameters at
 #'     the estimates, as a named list in the order `extra_pars` declared
 #'     them, or `NULL` when the family declared none. Item profiles,
-#'     ordinal thresholds and class covariances arrive here.}
+#'     ordinal thresholds and class covariances arrive here. In a
+#'     multivariate model each response's block is stored under a name
+#'     that carries the response; `resp` adds that response's block
+#'     back under the names its family declared, which is the list its
+#'     density and simulator read.}
 #'   \item{`dpar_linpred()`}{The FIXED-effect part of one dpar's linear
 #'     predictor, on the link scale, at a parameter list in the frame's
 #'     own layout, or `NULL` when that response and dpar have no linear
@@ -879,7 +883,7 @@ structure_unit_deviance <- function(fit, rspec, st, blk) {
   rn <- rspec$resp_name
   av <- fit$frame[["aterm_values"]][[rn]]
   ll <- lr(fit$frame[["y"]][[rn]], eval_dpars(fit)[[rn]], av,
-           av[["weights"]] %||% 1, blk, fit_extras(fit))
+           av[["weights"]] %||% 1, blk, fit_extras(fit, rn))
   sat <- attr(ll, "saturated")
   if (is.null(sat)) {
     frm_stop("residuals(type = \"deviance\") compares each row's ",

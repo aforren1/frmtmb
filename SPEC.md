@@ -58,9 +58,14 @@ of a multi-trait animal model the same fit as the long-format one.
 rescor
 standardizes per-response residuals and evaluates one constant
 correlation matrix (plus a log-sigma Jacobian), which stays vectorized
-under distributional sigma. Matrix responses (multinomial) use
-`primary_dpars`: families whose location predictors are mu2..muK all
-receive the main formula, individually overridable as dpar formulas.
+under distributional sigma; the Student-t case evaluates a multivariate
+t with one nu shared by all responses, carried as the first response's
+dpar. A family's extra parameters (ordinal thresholds) are namespaced
+by response in a multivariate frame (`frame$extra_map`), and each
+density reads its own block under its family's names. Matrix
+responses (multinomial) use `primary_dpars`: families whose location
+predictors are mu2..muK all receive the main formula, individually
+overridable as dpar formulas.
 
 Deviations from the original plan that remain true today:
 `simulate()` is a numeric R-level simulator per family instead of

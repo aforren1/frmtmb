@@ -1461,6 +1461,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   y_levels <- list()
   aterm_values <- list()
   extras <- list()
+  extra_map <- list()  # per response: family extra name -> template name
   mi_map <- list()   # per mi() response: missing rows + miss indices
   n_miss <- 0L
   miss_init <- numeric(0)
@@ -1924,14 +1925,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       av <- c(av, resp$family[["aterm_data"]](y[[resp$resp_name]], av))
     }
     if (!is.null(resp$family[["extra_pars"]])) {
-      if (length(spec$responses) > 1) {
-        frm_stop("Families with extra parameters ('",
-                 resp$family[["family"]],
-                 "') are not supported in multivariate ",
-                 "fits yet", call. = FALSE,
-                 package = frm_family_package(resp$family))
+      ex_r <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
+      if (length(spec$responses) > 1L) {
+        # Every response's extras live in one parameter list, so each
+        # response's block is namespaced by the response and handed
+        # back to its own density under the family's own names.
+        check_mv_extra_family(resp$family)
+        tpl_nm <- mv_extra_name(resp$resp_name, names(ex_r))
+        extra_map[[resp$resp_name]] <- stats::setNames(tpl_nm, names(ex_r))
+        names(ex_r) <- tpl_nm
       }
-      extras <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
+      extras <- c(extras, ex_r)
     }
     aterm_values[[resp$resp_name]] <- av
   }
@@ -2577,8 +2581,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                    "positions differ by group", call. = FALSE)
         }
         # the threshold count, not max(y): thres(x = ) may name
-        # categories above the highest one observed
-        K_cs <- length(extras[["tau_raw"]]) + 1L
+        # categories above the highest one observed. A multivariate
+        # frame holds this response's thresholds under its own name
+        tau_nm <- extra_map[[resp$resp_name]][["tau_raw"]] %||% "tau_raw"
+        K_cs <- length(extras[[tau_nm]]) + 1L
         for (cexpr in dp[["csterms"]]) {
           v <- as.numeric(eval(cexpr, mf, resp$formula_env))
           csname <- paste0("bcs", length(extras) + 1L)
@@ -2607,7 +2613,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (!identical(dp[["name"]], "mu")) {
           cn <- paste(dp[["name"]], cn, sep = "_")
         }
-        if (length(spec$responses) > 1) {
+        # the shared nu of a Student-t rescor model belongs to no one
+        # response, so it is named as in a univariate model
+        if (length(spec$responses) > 1 && !isTRUE(dp[["shared"]])) {
           cn <- paste(resp$resp_name, cn, sep = "_")
         }
       } else {
@@ -2649,7 +2657,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         constant = dp[["constant"]],
         # FALSE: the intercept is class "b" and not centered (brms's
         # `0 + Intercept` and `center = FALSE`); see rsv_intercept_fixed()
-        center = !isFALSE(dp[["center"]])
+        center = !isFALSE(dp[["center"]]),
+        shared = isTRUE(dp[["shared"]])
       )
     }
   }
@@ -2979,6 +2988,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),
+         extra_map = if (length(extra_map)) extra_map,
          predvar_map = predvar_map,
          sparse_x = isTRUE(sparse_x),
          data_frame = mf,

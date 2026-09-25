@@ -749,7 +749,36 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
     if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
     out[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
   }
+  for (r in names(out)) out[[r]] <- with_shared_nu(fit, r, out[[r]])
   out
+}
+
+#' The one `nu` of a Student-t `rescor` model, at the fit's estimates.
+#' It is an intercept-only dpar carried by the first response
+#' (`rescor_share_nu()`), or `NULL` in any other model.
+#'
+#' @noRd
+rescor_shared_nu <- function(fit) {
+  carrier <- fit$spec[["rescor_nu"]]
+  if (is.null(carrier)) return(NULL)
+  lp <- fit$frame[["linpreds"]][[linpred_key(carrier, "nu")]]
+  as.numeric(lp[["link"]]$linkinv(fit$estimates[[lp[["par"]]]][lp[["idx"]]]))
+}
+
+#' One response's dpar values with the shared `nu` of a Student-t
+#' `rescor` model filled in, for a response that does not carry it.
+#' Every response's marginal is a Student-t with that same `nu`, so a
+#' simulator or a moment of the response reads the shared value.
+#'
+#' @noRd
+with_shared_nu <- function(fit, resp, dpv) {
+  carrier <- fit$spec[["rescor_nu"]]
+  if (is.null(carrier) || identical(resp, carrier) ||
+        !is.null(dpv[["nu"]])) {
+    return(dpv)
+  }
+  dpv[["nu"]] <- rescor_shared_nu(fit)
+  dpv
 }
 
 #' Sparse RE design (`n x n_c`) for the newdata delta method, columns at
@@ -994,7 +1023,7 @@ dpars_natural <- function(fit, rspec, newdata, re_formula,
                        allow_new_levels = allow_new_levels)
     dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
   }
-  dp
+  with_shared_nu(fit, rn, dp)
 }
 
 #' `y | se(s)` without `sigma = TRUE`: the residual standard deviation
@@ -1551,8 +1580,14 @@ frm_linpred <- function(object, newdata = NULL,
   key <- linpred_key(resp, dpar)
   lp <- object$frame[["linpreds"]][[key]]
   if (is.null(lp)) {
+    carrier <- object$spec[["rescor_nu"]]
     frm_stop("Unknown dpar: '", dpar, "' for response '", resp,
              "'. Available: ", paste(names(rspec$dpars), collapse = ", "),
+             if (identical(dpar, "nu") && !is.null(carrier)) {
+               paste0(". The responses of this Student-t rescor model ",
+                      "share one nu, which resp = \"", carrier,
+                      "\" reports")
+             },
              call. = FALSE)
   }
 
@@ -2478,15 +2513,20 @@ fitted_no_draws <- c(
 #' from the data: the top category may be unobserved.
 #'
 #' @noRd
-ordinal_ncat <- function(fit) {
-  raw <- fit$estimates[["tau_raw"]]
+ordinal_ncat <- function(fit, resp = NULL) {
+  raw <- fit$estimates[[extra_tpl_name(fit$frame, resp, "tau_raw")]]
   if (is.null(raw)) {
-    rspec <- single_response(fit, "residuals()")
+    rspec <- if (is.null(resp)) {
+      single_response(fit, "residuals()")
+    } else {
+      fit$spec$responses[[resp]]
+    }
     return(max(fit$frame[["y"]][[rspec$resp_name]]))
   }
   # grouped thresholds, thres(gr = ): the largest group's categories
-  fam <- fit$spec$responses[[1L]]$family
-  thres_ncat(fam, raw)
+  rspec <- if (is.null(resp)) fit$spec$responses[[1L]] else
+    fit$spec$responses[[resp]]
+  thres_ncat(rspec$family, raw)
 }
 
 #' The addition-term values an ordinal category probability reads: the
@@ -2611,11 +2651,12 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   eta <- unname(ed[["eta"]])
   n <- length(eta)
-  K <- ordinal_ncat(object)
+  K <- ordinal_ncat(object, rspec$resp_name)
   cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
   # the ordinal lpdfs read `extra` (the thresholds and the cs
   # coefficients) and, under thres(gr = ), each row's group
-  P <- ord_probs_from_eta(fam, eta, cs, fit_extras(object), K,
+  P <- ord_probs_from_eta(fam, eta, cs,
+                          fit_extras(object, rspec$resp_name), K,
                           ord_prob_aterms(object, rspec, newdata))
   colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
     as.character(seq_len(K))
@@ -2724,10 +2765,16 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
                         weights = NULL) {
   fam <- rspec$family
-  K <- ordinal_ncat(object)
+  K <- ordinal_ncat(object, rspec$resp_name)
   eta <- unname(ed[["eta"]])
   n <- length(eta)
+  # perturbed by TEMPLATE name, each once, and handed to the density
+  # through the response's view; the view repeats a multivariate
+  # response's block under its family names, which perturbing directly
+  # would count twice
   extra <- fit_extras(object)
+  extra <- extra[setdiff(names(extra),
+                         other_resp_extras(object$frame, rspec$resp_name))]
   csv <- ord_cs_values(object, lp, newdata, n)
   CS <- if (length(csv)) {
     M <- matrix(0, n, K - 1L)
@@ -2735,7 +2782,10 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
     M
   }
   av <- ord_prob_aterms(object, rspec, newdata)
-  probs <- function(e, cs, ex) ord_probs_from_eta(fam, e, cs, ex, K, av)
+  probs <- function(e, cs, ex) {
+    ord_probs_from_eta(fam, e, cs,
+                       resp_extras(object$frame, ex, rspec$resp_name), K, av)
+  }
   P0 <- probs(eta, CS, extra)
 
   jc <- get_joint_cov(object)
@@ -3767,7 +3817,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
       dp <- with_cs_offsets(object, rspec, eval_dpars(object, b = b_use))
       dp <- dp[[rspec$resp_name]]
       ctx <- sim_context(object, rspec, dp, aterms = av, n = n,
-                         extra = fit_extras(object))
+                         extra = fit_extras(object, rspec$resp_name))
       out[[s]] <- sim_draw(ctx)
     } else {
       fb <- object
@@ -3777,7 +3827,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
       ok <- ok0 & dpv_row_finite(dp)
       if (all(ok)) {
         ctx <- sim_context(fb, rspec, dp, aterms = av_nd, n = n,
-                           extra = fit_extras(fb))
+                           extra = fit_extras(fb, rspec$resp_name))
         ctx[["autocor"]] <- ac_nd
         out[[s]] <- sim_draw(ctx)
       } else {
@@ -3800,10 +3850,77 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
 
 #' @rdname frmtmb-extension-api
 #' @export
-fit_extras <- function(fit) {
+fit_extras <- function(fit, resp = NULL) {
   nms <- fit$frame[["extra_names"]] %||% character(0)
   if (!length(nms)) return(NULL)
-  fit$estimates[nms]
+  resp_extras(fit$frame, fit$estimates[nms], resp)
+}
+
+#' One response's view of the extra parameters.
+#'
+#' A multivariate frame holds every response's family extras in one
+#' parameter list, each block under a name that carries its response
+#' (`mv_extra_name()`). A density reads its own block under the names
+#' its family's `extra_pars` declared, so this adds that block back
+#' under those names. A univariate frame has no map and the list passes
+#' through unchanged, which is also what `resp = NULL` gets.
+#'
+#' @noRd
+resp_extras <- function(frame, ex, resp) {
+  if (is.null(ex)) return(NULL)
+  map <- if (!is.null(resp)) frame[["extra_map"]][[resp]]
+  for (nm in names(map)) ex[[nm]] <- ex[[map[[nm]]]]
+  ex
+}
+
+#' The template names of every OTHER response's family extras, which a
+#' per-response computation leaves alone.
+#'
+#' @noRd
+other_resp_extras <- function(frame, resp) {
+  map <- frame[["extra_map"]]
+  unlist(map[setdiff(names(map), resp)], use.names = FALSE) %||% character(0)
+}
+
+#' The template name of one response's family extra in a multivariate
+#' frame.
+#'
+#' @noRd
+mv_extra_name <- function(resp, nm) paste0(resp, "_", nm)
+
+#' The template name a family extra of `resp` is stored under: the
+#' family's own name in a univariate frame, the namespaced one in a
+#' multivariate frame.
+#'
+#' @noRd
+extra_tpl_name <- function(frame, resp, nm) {
+  map <- if (!is.null(resp)) frame[["extra_map"]][[resp]]
+  if (!is.null(map) && nm %in% names(map)) map[[nm]] else nm
+}
+
+#' Which families may carry extra parameters inside a multivariate
+#' model.
+#'
+#' An ordinal family's extras are its thresholds, a block that belongs
+#' to one response and that every post-fit path reads through the
+#' response (`fit_extras(fit, resp)`), so they are namespaced by the
+#' response and supported. Any other family's extras are refused by
+#' name: the Cox baseline and the class covariances of mixture_mvn()
+#' are read by post-fit methods that have not been checked with a
+#' response in hand, and a family from another package has declared
+#' nothing about them.
+#'
+#' @noRd
+check_mv_extra_family <- function(fam) {
+  if (identical(fam[["type"]], "ordinal")) return(invisible(NULL))
+  frm_stop("Families with extra parameters ('", fam[["family"]],
+           "') are not supported in multivariate fits yet. The ordinal ",
+           "families (cumulative, sratio, cratio, acat) are, because ",
+           "their thresholds are a block of one response; this family's ",
+           "extra parameters are read by post-fit methods that have not ",
+           "been checked inside a multivariate model. Fit this response ",
+           "in a model of its own", call. = FALSE,
+           package = frm_family_package(fam))
 }
 
 #' @rdname frmtmb-extension-api

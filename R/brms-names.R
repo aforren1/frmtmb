@@ -74,7 +74,9 @@ brms_stan_name <- function(x) {
 #'
 #' @noRd
 brms_lp_prefix <- function(fit, lp) {
-  mv <- length(fit$spec$responses) > 1L
+  # a dpar shared by every response (the nu of a Student-t rescor
+  # model) is brms's plain `nu`
+  mv <- length(fit$spec$responses) > 1L && !isTRUE(lp[["shared"]])
   parts <- c(if (!identical(lp[["dpar"]], "mu")) lp[["dpar"]],
              if (mv) brms_stan_name(lp[["resp"]]))
   paste(parts, collapse = "_")

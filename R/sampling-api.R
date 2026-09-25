@@ -55,6 +55,12 @@
 #' one to use when drawing at new data. `us_chol_cor(theta, K)` is the
 #' unstructured correlation matrix of a `thetar` segment, which a
 #' `set_rescor(TRUE)` model's joint row density needs.
+#' `rescor_row_loglik(fit, dpv)` is that joint density itself, one value
+#' per row, at the dpar values `dpv` (the whole list `eval_dpars()`
+#' returns): the multivariate normal of a gaussian model or the
+#' multivariate t of a Student-t one, with its one shared `nu`. A
+#' pointwise `log_lik()` of a `rescor` model reads it rather than
+#' assuming the normal.
 #'
 #' @section The prior seam:
 #' The prior VOCABULARY - [set_prior()], [prior_normal()] and its
@@ -388,6 +394,7 @@
 #' @aliases brms_summarize_draws
 #' @aliases brms_prob_cols
 #' @aliases brms_fixef_rows
+#' @aliases rescor_row_loglik
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
@@ -413,7 +420,7 @@
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
-#'   brms_prob_cols, brms_fixef_rows)
+#'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

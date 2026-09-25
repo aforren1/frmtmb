@@ -406,7 +406,8 @@ sim_newdata_draw_rows <- function(fit, rspec, dp, av, ac, ok, ok0) {
   if (any(ok) && (is.null(ac) || identical(ok, ok0))) {
     ctx <- sim_context(fit, rspec, lapply(dp, subset_rows, keep = ok),
                        aterms = lapply(av, subset_rows, keep = ok),
-                       n = sum(ok), extra = fit_extras(fit))
+                       n = sum(ok),
+                       extra = fit_extras(fit, rspec$resp_name))
     ctx[["autocor"]] <- ac
     ys <- sim_draw(ctx)
   }

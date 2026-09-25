@@ -2004,7 +2004,10 @@ hyp_vals_only <- function(fit) {
 ord_extra_comps <- function(fit) {
   tpl <- fit$frame[["par_template"]]
   out <- character(0)
-  if (length(tpl[["tau_raw"]])) out <- "tau_raw"
+  for (r in names(fit$spec$responses)) {
+    nm <- extra_tpl_name(fit$frame, r, "tau_raw")
+    if (length(tpl[[nm]])) out <- c(out, nm)
+  }
   for (lp in fit$frame[["linpreds"]]) {
     for (ct in lp[["cs"]] %||% list()) out <- c(out, ct[["par"]])
   }
@@ -2169,30 +2172,27 @@ hyp_env_vals <- function(fit, vals, comp) {
 #' `bcs_<term>[k]` for the category-specific coefficient, each prefixed
 #' by the predictor the way every other coefficient name is.
 #'
-#' The thresholds of a model with more than one ordinal response are
-#' NOT named: one template component holds them all and nothing here
-#' says which belongs to which response, so naming them would be a
-#' guess. The `cs()` coefficients are per predictor and are named
-#' whatever the model looks like.
+#' Each ordinal response of a multivariate model has its own threshold
+#' component (`extra_tpl_name()`), so its thresholds are named with its
+#' response, `b_o_Intercept[k]`. The `cs()` coefficients are per
+#' predictor and are named whatever the model looks like.
 #'
 #' @noRd
 hyp_put_ordinal <- function(fit, vals, comp, put) {
-  raw <- vals[comp == "tau_raw"]
-  if (length(raw)) {
-    ord_lps <- Filter(function(lp) {
-      identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
-        identical(lp[["dpar"]], "mu")
-    }, fit$frame[["linpreds"]])
-    if (length(ord_lps) == 1L) {
-      lp <- ord_lps[[1L]]
-      fam <- brms_lp_family(fit, lp)
-      th <- ord_threshold_values(fam, raw)
-      pre <- brms_lp_prefix(fit, lp)
-      lab <- thres_labels(fam, length(th))
-      for (k in seq_along(th)) {
-        put(paste0("b_", brms_usc(pre, "Intercept"), "[", lab[k], "]"),
-            th[k])
-      }
+  ord_lps <- Filter(function(lp) {
+    identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
+      identical(lp[["dpar"]], "mu")
+  }, fit$frame[["linpreds"]])
+  for (lp in ord_lps) {
+    raw <- vals[comp == extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")]
+    if (!length(raw)) next
+    fam <- brms_lp_family(fit, lp)
+    th <- ord_threshold_values(fam, raw)
+    pre <- brms_lp_prefix(fit, lp)
+    lab <- thres_labels(fam, length(th))
+    for (k in seq_along(th)) {
+      put(paste0("b_", brms_usc(pre, "Intercept"), "[", lab[k], "]"),
+          th[k])
     }
   }
   for (lp in fit$frame[["linpreds"]]) {

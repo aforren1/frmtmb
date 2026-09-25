@@ -39,6 +39,7 @@ reference:
   - ps
   - mvbf
   - set_rescor
+  - plus-bform
   - num_factor
   - frmtmb-autocor
   - frmtmb-multimembership

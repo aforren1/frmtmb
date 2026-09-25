@@ -27,7 +27,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `bf(y ~ x, sigma = 1)` | same | fixed via TMB `map` |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
 | `(1 | p | g)` | same | cross-formula RE correlation |
-| `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families; `rescor` gaussian-only |
+| `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families, ordinal ones included; `rescor` all gaussian or all student, with one shared `nu`; `mvbf() + family` fills only responses without a family (below) |
 | `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE censoring bound is read inclusively, unlike brms (below) |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
 | `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
@@ -298,6 +298,13 @@ has not written.
   simulator `dharma_residuals()` rests on.
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
+- A family added to a multivariate formula goes only to the responses
+  that have no family yet. So `bf(o ~ x) + cumulative() + bf(y ~ x) +
+  gaussian()` keeps `o` ordinal and makes `y` gaussian. brms gives the
+  last family to every response, so the same line makes `o` gaussian
+  there. Any number of `bf()` formulas can be added together, and
+  `lf()` and `nlf()` take brms's `resp =` to name the response they
+  belong to.
 
 ## Nonlinear formulas: `nl = TRUE` and `nlf()`
 

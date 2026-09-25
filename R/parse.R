@@ -1846,9 +1846,9 @@ parse_one_response <- function(bform) {
                  "nonlinear parameter. This family reserves: ",
                  paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
       }
-      # UNREACHABLE while `+.frmtmb_formula` stands: a name needs a
-      # formula AND a body to get here, and R/bf.R:338, :351 and :358
-      # refuse that combination on all three orderings ("nlf() sets 'a',
+      # UNREACHABLE while plus_bf() (R/bf.R) stands: a name needs a
+      # formula AND a body to get here, and plus_bf() and nlf() refuse
+      # that combination on all three orderings ("nlf() sets 'a',
       # which the bf() it is added to already sets"), while a duplicate
       # inside one bf() is refused as "Duplicated dpar formula". So the
       # only member `both` can hold is the location dpar injected above,
@@ -2178,6 +2178,34 @@ check_id_covstructs <- function(spec) {
   invisible(NULL)
 }
 
+#' A multivariate Student-t residual has ONE shape parameter.
+#'
+#' brms writes `multi_student_t(nu, Mu, Sigma)` with a single `nu`
+#' across the responses and refuses any formula or constant for it
+#' ("Cannot predict or fix 'nu' in this model"). The shared `nu` is
+#' kept as the first response's dpar, flagged `shared`, so it is
+#' estimated, named, and given a prior exactly once; the other
+#' responses carry no `nu` of their own, and every path that needs
+#' their value reads the shared one (`rescor_shared_nu()`).
+#'
+#' @noRd
+rescor_share_nu <- function(resps, forms) {
+  for (i in seq_along(resps)) {
+    f <- forms[[i]]
+    if ("nu" %in% c(names(f$pforms), names(f$pfix), names(f$nlforms))) {
+      frm_stop("Cannot predict or fix 'nu' in this model (response '",
+               names(resps)[i], "'). With rescor = TRUE the responses ",
+               "share one multivariate Student-t, which has a single nu ",
+               "across all of them; brms refuses the same formula. Drop ",
+               "the nu formula, or fit rescor = FALSE to give each ",
+               "response its own nu", call. = FALSE)
+    }
+  }
+  resps[[1L]]$dpars[["nu"]]$shared <- TRUE
+  for (i in seq_along(resps)[-1L]) resps[[i]]$dpars[["nu"]] <- NULL
+  resps
+}
+
 #' @noRd
 parse_spec <- function(bform) {
   if (inherits(bform, "frmtmb_mvformula")) {
@@ -2188,16 +2216,24 @@ parse_spec <- function(bform) {
                names(resps)[duplicated(names(resps))][1], call. = FALSE)
     }
     rescor <- isTRUE(bform$rescor)
+    rescor_nu <- NULL
     if (rescor) {
       fams <- vapply(resps, function(r) r$family[["family"]], "")
-      if (!all(fams == "gaussian")) {
-        frm_stop("rescor = TRUE requires all responses to be gaussian ",
-                 "(got: ", paste(unique(fams), collapse = ", "), ")",
+      if (!all(fams == "gaussian") && !all(fams == "student")) {
+        frm_stop("rescor = TRUE requires all responses to be gaussian, ",
+                 "or all to be student (got: ",
+                 paste(unique(fams), collapse = ", "), "). The joint ",
+                 "density is a multivariate normal or a multivariate t; ",
+                 "a mix of the two has neither, and brms refuses it too",
                  call. = FALSE)
+      }
+      if (all(fams == "student")) {
+        resps <- rescor_share_nu(resps, bform$forms)
+        rescor_nu <- names(resps)[1L]
       }
     }
     out <- structure(
-      list(responses = resps, rescor = rescor),
+      list(responses = resps, rescor = rescor, rescor_nu = rescor_nu),
       class = "frmtmb_spec"
     )
     check_id_covstructs(out)

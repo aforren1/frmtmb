@@ -1,0 +1,53 @@
+Warning message:
+Large maximum absolute gradient at the optimum (0.00289); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+mv logLik            -2343.29696111157
+sum of univariate    -2343.29696108029
+residual             -3.128e-08
+shared point: mv -2360.95232649737  sum -2360.95232649737  residual 0.000e+00
+                   Estimate  Est.Error       Q2.5       Q97.5
+o_Intercept[1]  -1.04910586 0.09677366 -1.2387787 -0.85943298
+o_Intercept[2]   0.04176654 0.08694802 -0.1286485  0.21218153
+o_Intercept[3]   1.07358810 0.09759547  0.8823045  1.26487170
+o2_Intercept[1] -0.48037972 0.08624711 -0.6494210 -0.31133848
+o2_Intercept[2] -0.16664388 0.10820352 -0.3787189  0.04543113
+y1_Intercept     0.89209783 0.04809711  0.7978292  0.98636643
+o_x              0.86173225 0.08306909  0.6989198  1.02454468
+o2_x            -0.48258041 0.07165221 -0.6230162 -0.34214466
+y1_x             0.48707689 0.04809989  0.3928028  0.58135095
+clm logLik -765.4534156202   frmtmb univariate -765.4534156227
+clm thresholds: -1.049105 0.041768 1.073592  slope: 0.861733 
+mv  thresholds: -1.049106 0.041767 1.073588  slope: 0.861732 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00174); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+ Family: MV(cumulative, gaussian) 
+ Links: o: cdf = logit; y1: mu = identity; sigma = log
+
+Formula: o ~ x + (1 | p | g) 
+         y1 ~ x + (1 | p | g) 
+   Data: dd (Number of observations: 600) 
+ Method: ML   logLik: -1607.62   AIC: 3235.24   BIC: 3279.21 
+
+Multilevel Hyperparameters:
+~g (Number of levels: 60) 
+                              Estimate Est.Error l-95% CI u-95% CI
+sd(o_Intercept)                   0.78      0.12     0.58     1.07
+sd(y1_Intercept)                  0.72      0.08     0.58     0.88
+cor(o_Intercept,y1_Intercept)     0.71      0.12     0.41     0.87
+
+Regression Coefficients:
+               Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+o_Intercept[1]    -1.19      0.15    -1.48    -0.90   -8.14  3.9e-16
+o_Intercept[2]     0.04      0.14    -0.23     0.30    0.26      0.8
+o_Intercept[3]     1.20      0.15     0.91     1.49    8.19  2.5e-16
+y1_Intercept       0.89      0.10     0.70     1.09    8.92  < 2e-16
+o_x                0.95      0.09     0.78     1.13   10.61  < 2e-16
+y1_x               0.47      0.04     0.39     0.55   11.58  < 2e-16
+
+Further Distributional Parameters:
+         Estimate Est.Error l-95% CI u-95% CI
+sigma_y1     0.94      0.03     0.88     0.99
+ML logLik frmtmb     -1607.6213753016
+ML logLik reference  -1607.6213753241
+frmtmb beta layout: o_x y1_(Intercept) y1_x 
+shared point: frmtmb -1610.540025385376  reference -1610.540025385376  rel 0.000e+00
+frmtmb rescaled RE cor: 0.713075  reference: 0.713069 

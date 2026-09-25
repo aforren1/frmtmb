@@ -1924,7 +1924,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       # applied to the gradient before the quadratic form.
       ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
       ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
-                        weights = seq_len(ordinal_ncat(x)))
+                        weights = seq_len(ordinal_ncat(x, rspec$resp_name)))
       df <- ce_frame(nd, ev, g$v2, cond)
       df$estimate__ <- as.vector(ps$P)
       df$se__ <- as.vector(ps$se)
@@ -2006,8 +2006,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         avc <- ce_aterms(rspec, nd, cset, n)
         # sim_response(), not fam$sim(): trunc() bounds are respected by
         # rejection, as everywhere else responses are drawn
-        sims <- replicate(ndraws, sim_response(fam, dpv, avc, n,
-                                               extra = fit_extras(x)))
+        sims <- replicate(ndraws, sim_response(
+          fam, dpv, avc, n, extra = fit_extras(x, rspec$resp_name)))
         # the point estimate moves onto the response scale the bands
         # live on: a binomial band is a count, not a probability, and a
         # truncated band is centered on the truncated mean

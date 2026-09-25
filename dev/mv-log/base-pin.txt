@@ -1,0 +1,13 @@
+three or more bf() formulas add into one multivariate formula :: Error in `bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x)`: non-numeric argument to binary operator 
+the `+` refusals name what to write instead :: <frmtmb_error/error/condition>
+Error: lf() does not say which response it belongs to. Put it directly after the bf() it modifies, e.g. bf(y1 ~ x) + lf(sigma ~ z) + bf(y2 ~ x) 
+a three-response gaussian rescor fit prints and names brms's way :: Error in `bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x)`: non-numeric argument to binary operator 
+student() rescor is the multivariate t, with one shared nu :: <frmtmb_error/error/condition>
+Error: rescor = TRUE requires all responses to be gaussian (got: student) 
+student() rescor refuses what brms refuses :: <frmtmb_error/error/condition>
+Error: rescor = TRUE requires all responses to be gaussian (got: student) 
+an ordinal response in a multivariate model is its own factor :: Error in `bf(o ~ x) + cumulative() + bf(o2 ~ x) + sratio() + bf(y1 ~ x)`: non-numeric argument to binary operator 
+a shared |ID| effect across ordinal and gaussian is Laplace-exact :: <frmtmb_error/error/condition>
+Error: Families with extra parameters ('cumulative') are not supported in multivariate fits yet 
+a family whose extras are not per-response blocks stays refused :: <frmtmb_error/error/condition>
+Error: Families with extra parameters ('cox') are not supported in multivariate fits yet 
