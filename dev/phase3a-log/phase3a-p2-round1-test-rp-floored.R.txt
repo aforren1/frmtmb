@@ -1,0 +1,92 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+rp-floored: ..........1..................................23456........78....9...a......b
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-rp-floored.R:97:3'): fitted() still refuses, and the count 
+Expected `r` to have names `c(...)`.
+Differences:
+    actual                   | expected                    
+[3] "threshold"              | "threshold"              [3]
+[4] "n_nonmonotone"          | "n_nonmonotone"          [4]
+[5] "n_nonmonotone_censored" | "n_nonmonotone_censored" [5]
+[6] "scale"                  - "max_survival_rise"      [6]
+[7] "n_obs"                  - "scale"                  [7]
+                             - "n_obs"                  [8]
+
+
+── 2. Failure ('test-rp-floored.R:297:3'): a centre with no events and a falling
+Expected `o$error` to be NULL.
+Differences:
+`actual` is a character vector ('rp_floored(): this fit is not a survival distribution where its data are. 50 of 400 CENSORED rows have a non-positive d(eta)/d(log t) at the fitted parameters, so the fitted survival function rises with time there. Their log S is scored exactly, so logLik() is the model\'s, and the model is the defect. The usual cause is a random effect or a covariate on gamma1 and a group with no events: the log(gamma1 + u) barrier lives in the density, and such a group has none. The row indices are in the "rows" attribute of rp_floored(action = "report"). The remedy for a non-monotone spline is fewer knots, or no slope term for a group the data give no events. The deep censored count is not part of this refusal: since frmtmb 0.52.0 this family supplies lccdf and log S is scored exactly, so that count is a diagnostic')
+`expected` is NULL
+
+
+── 3. Failure ('test-rp-floored.R:298:3'): a centre with no events and a falling
+Expected `any(grepl("fitted survival rises", o$warnings))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 4. Failure ('test-rp-floored.R:303:3'): a centre with no events and a falling
+Expected `o$error` to be NULL.
+Differences:
+`actual` is a character vector ('rp_floored(): this fit is not a survival distribution where its data are. 50 of 400 CENSORED rows have a non-positive d(eta)/d(log t) at the fitted parameters, so the fitted survival function rises with time there. Their log S is scored exactly, so logLik() is the model\'s, and the model is the defect. The usual cause is a random effect or a covariate on gamma1 and a group with no events: the log(gamma1 + u) barrier lives in the density, and such a group has none. The row indices are in the "rows" attribute of rp_floored(action = "report"). The remedy for a non-monotone spline is fewer knots, or no slope term for a group the data give no events. The deep censored count is not part of this refusal: since frmtmb 0.52.0 this family supplies lccdf and log S is scored exactly, so that count is a diagnostic')
+`expected` is NULL
+
+
+── 5. Failure ('test-rp-floored.R:304:3'): a centre with no events and a falling
+Expected `any(grepl("fitted survival rises", o$warnings))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 6. Failure ('test-rp-floored.R:305:3'): a centre with no events and a falling
+Expected `is.null(o$value)` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+── 7. Failure ('test-rp-floored.R:353:3'): the censored-row count reads an inter
+Expected `o$error` to be NULL.
+Differences:
+`actual` is a character vector ('rp_floored(): this fit is not a survival distribution where its data are. 50 of 200 CENSORED rows have a non-positive d(eta)/d(log t) at the fitted parameters, so the fitted survival function rises with time there. Their log S is scored exactly, so logLik() is the model\'s, and the model is the defect. The usual cause is a random effect or a covariate on gamma1 and a group with no events: the log(gamma1 + u) barrier lives in the density, and such a group has none. The row indices are in the "rows" attribute of rp_floored(action = "report"). The remedy for a non-monotone spline is fewer knots, or no slope term for a group the data give no events. The deep censored count is not part of this refusal: since frmtmb 0.52.0 this family supplies lccdf and log S is scored exactly, so that count is a diagnostic')
+`expected` is NULL
+
+
+── 8. Failure ('test-rp-floored.R:354:3'): the censored-row count reads an inter
+Expected `any(grepl("fitted survival rises", o$warnings))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 9. Failure ('test-rp-floored.R:402:3'): a rise on censored rows only warns, w
+Expected `any(grepl("fitted survival rises by up to 0\\.0[0-9]", fo$warnings))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 10. Error ('test-rp-floored.R:414:3'): a rise on censored rows only warns, wi
+Error in `expect_gt(r[["max_survival_rise"]], 0.05)`: Result of comparison must be `TRUE`, `FALSE`, or `NA`
+Backtrace:
+    ▆
+ 1. └─testthat::expect_gt(r[["max_survival_rise"]], 0.05) at test-rp-floored.R:414:3
+ 2.   └─testthat:::expect_compare_(">", act, exp)
+ 3.     └─cli::cli_abort(...)
+ 4.       └─rlang::abort(...)
+
+── 11. Failure ('test-rp-floored.R:462:3'): a fit with neither is silent ───────
+Expected `o$value[["max_survival_rise"]]` to be identical to 0.
+Differences:
+`actual` is NULL
+`expected` is a double vector (0)
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-rp-floored.R ARM lane TESTS 15 PASS 65 FAIL 10 ERROR 1 SKIP 0 WARN 0 

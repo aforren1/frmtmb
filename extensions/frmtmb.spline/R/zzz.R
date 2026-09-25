@@ -122,7 +122,7 @@ sp_compat_rules <- function() {
   r("rp_floored", "cens()", "works",
     "It still reports the censored rows whose fitted -log S passes 19.2, and since frmtmb 0.52.0 it does not REFUSE for them: the family supplies lccdf and the term is exact there. The count is kept because a censored row whose fitted survival probability is exp(-40) is one the data barely constrain, whatever the arithmetic does. What refuses is the monotonicity floor.")
   r("rp_floored", "royston_parmar", "works",
-    "The only family it applies to; it refuses any other by name. Both floors are counted: the censored-row one above, and the rows whose fitted d(eta)/d(log t) is non-positive, where the density is a floor rather than a density.")
+    "The only family it applies to; it refuses any other by name. Three counts: the deep censored rows above; the EVENT rows whose fitted d(eta)/d(log t) is non-positive, where the density is a floor; and, after frmtmb.spline 0.7.0, the CENSORED rows where it is non-positive, where the fitted survival function rises. The last is the only row a group with no events has. It refuses on the event rows and warns, with the size of the rise, on the censored ones.")
   r("rp_floored", "frm_curve", "works",
     "frm_curve() and its two companions call rp_floored() on a royston_parmar fit before they assemble anything, so the documented way to inspect this family refuses a fit whose likelihood is a floor artifact. Every other family passes straight through.")
   b$rules()

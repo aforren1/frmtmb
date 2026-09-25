@@ -1,0 +1,20 @@
+frmtmb.coupling 0.5.0 from C:/Users/adf44/source/r/phase3a-lib
+rows 1020 per pair 255 n 16 
+  pair     truth       sep    sep_se   by_pair by_pair_se    shrunk shrunk_se
+ Fz-Cz 0.1951220 0.1931971 0.0503715 0.1931971  0.0503714 0.1927973 0.0504415
+ Fz-Pz 0.1000000 0.0929938 0.0726035 0.0929939  0.0726035 0.0928486 0.0725829
+ Cz-Pz 0.0780488 0.0740949 0.0813375 0.0740949  0.0813375 0.0740362 0.0812270
+ Pz-Oz 0.0117647 0.0107278 0.2137626 0.0107288  0.2137473 0.0113984 0.2060816
+separate fits: convergence 0 0 0 0, max |gradient| 3.0e-12 3.6e-12 1.2e-11 5.0e-04
+by_pair: convergence 0, max |gradient| 3.12e-03, pdHess TRUE, logLik -11977.830137
+shrunk: convergence 0, max |gradient| 2.10e-03, pdHess TRUE, logLik -11990.189251
+by_pair warnings: 1 Large maximum absolute gradient at the optimum (0.00312); the fit may not have c 
+shrunk warnings: 1 Large maximum absolute gradient at the optimum (0.0021); the fit may not have co 
+by_pair vs separate on the logit scale: max |diff| / se 4.541e-04, max |se ratio - 1| 7.202e-05
+sum of separate logLik vs by_pair logLik: see above; shrunk vs separate on the logit scale: max |diff| / se 0.287
+$pair
+$pair$sd
+              Estimate Est.Error      Q2.5    Q97.5
+coh_Intercept  1.12539 0.4074219 0.3268578 1.923922
+
+

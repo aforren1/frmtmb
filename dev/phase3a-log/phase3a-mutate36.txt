@@ -1,0 +1,3 @@
+unmutated                    
+upper end not read           [the censored-row count reads an interval] fail 3 err 0
+censored rows not tested     [a centre with no events and a falling sl] fail 5 err 0; [the censored-row count reads an interval] fail 3 err 0

@@ -1,3 +1,40 @@
+# frmtmb.spline (development version)
+
+* **`rp_floored()` sees a group with no events.** It tested only the
+  EVENT rows for a non-positive `d(eta)/d(log t)`, so a random effect or
+  a covariate on `gamma1` could put a group whose rows are all censored
+  on a falling slope, a fitted survival function that RISES with time,
+  and the check returned zero. On `dev/frailty/frailty-floor3.R`'s
+  design that happened on 4 of 6 seeds, with `nlminb` code 0 and
+  nothing warning. It now also tests every censored row at its own time
+  (an interval row at both ends) and returns the count as
+  `n_nonmonotone_censored`, with the rows in the `"rows"` attribute as
+  `nonmonotone_censored`. `n_nonmonotone` keeps its meaning, the event
+  rows whose density is floored.
+* `rp_floored()`, `frm_curve()`, `frm_curve_deriv()` and
+  `frm_curve_feature()` WARN on a fit with such a censored row and still
+  answer; the fit warns as it is returned too. The warning gives the
+  largest rise in the fitted survival, reported as the new field
+  `max_survival_rise`, because the size is what a user judges. An EVENT
+  row on a non-positive slope still refuses, as before. The line is the
+  one flexsurv draws: `dsurvspline()` makes an event row there `-Inf`,
+  so its fit avoids it, and never checks a censored row, so a rise there
+  passes silently. brms's `cox()` cannot rise at all (an M-spline times
+  non-negative weights).
+* **BREAKING:** the report has two new fields, `n_nonmonotone_censored`
+  and `max_survival_rise`, between `n_nonmonotone` and `scale`.
+* On ordinary right-censored designs without a cure fraction the new
+  count never fired: 0 of 1600 simulated fits and 0 of 270 fits on nine
+  designs from eight real datasets, at `df` 1 to 5, proportional hazards
+  and `gamma1 ~ x` (`dev/phase3a-findings.md`).
+* The widened check DOES fire on one ordinary design: a cure fraction
+  with a time-varying effect (`gamma1 ~ arm`). Past an arm's last event
+  its spline is fitted to censored rows only and can turn over there.
+  Measured on two arms of 250 with 40 and 55 percent cured, `df` 3 to 6:
+  27 of 80 fits fire, every flagged row lies past its own arm's last
+  event, and the fitted survival rises across them by 5.2e-04 to 0.13.
+  Those fits warn and answer; `?rp_floored` says why the check fires.
+
 # frmtmb.spline 0.7.0
 
 * `frm_curve()`'s transform check, `sp_predict_eta()`, the covariance

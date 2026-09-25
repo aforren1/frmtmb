@@ -219,7 +219,7 @@ to be a floor and is not one any more:
 rp_floored(fit, action = "report")
 ```
 
-Zero on both counts here. Run it on every fit whose data carry
+Zero on each count here. Run it on every fit whose data carry
 censoring, because neither `logLik()` nor `AIC()` can tell you.
 
 **What the censored count used to mean.** Up to frmtmb 0.51.0 core
@@ -288,6 +288,18 @@ cumulative hazard, which must stay positive:
 dlogH <- diff(logH) / diff(x)
 c(min_slope = min(dlogH), all_increasing = all(dlogH > 0))
 ```
+
+A censored row is never floored, because it has no density: its `log S`
+is scored exactly whatever the slope. A censored row where the slope is
+not positive is still a defect, of the MODEL rather than of `logLik()`:
+the fitted survival function rises with time there. It happens when a
+group has its own slope on `gamma1` and no events, because the
+`log(gamma1 + u)` barrier that keeps a slope positive lives in the
+density and that group contributes none. The same happens past an
+arm's last event in a cure-fraction design with `gamma1 ~ arm`.
+`rp_floored()` counts those rows apart, as `n_nonmonotone_censored`,
+and WARNS on them with the size of the rise, since `logLik()` is still
+the model's; it refuses only on the event rows.
 
 ## How many knots
 

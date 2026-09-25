@@ -1,0 +1,44 @@
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/phase3a-lib
+rxode2 5.1.7 from C:/Users/adf44/AppData/Local/R/win-library/4.6
+RTMBode 1.0 from C:/Users/adf44/AppData/Local/R/win-library/4.6
+
+== A and B: hand-built schedules ==
+oral q12 x4 (ii/addl)        obs  10 events   1  expand TRUE   ode depot 0.00e+00  ode central 0.00e+00  lincmt 3.01e-13
+IV infusion by rate          obs  10 events   1  expand TRUE   ode depot 0.00e+00  ode central 2.50e-14  lincmt 1.21e-12
+IV infusion by dur           obs  10 events   1  expand TRUE   ode depot 0.00e+00  ode central 3.73e-13  lincmt 1.46e-12
+oral + IV, two ids           obs  20 events   4  expand TRUE   ode depot 0.00e+00  ode central 0.00e+00  lincmt 2.91e-13
+reset (evid 3)               obs  10 events   2  expand NA     ode depot 0.00e+00  ode central 0.00e+00  lincmt 3.21e-13
+reset and dose (evid 4)      obs  10 events   3  expand TRUE   ode depot 0.00e+00  ode central 0.00e+00  lincmt 2.91e-13
+replace and multiply (5, 6)  obs  10 events   3  expand TRUE   ode depot 0.00e+00  ode central 0.00e+00  lincmt NA
+steady state oral q24        obs  10 events   2  expand TRUE   ode depot 1.54e-14  ode central 1.46e-14  lincmt 2.88e-13
+steady state infusion q12    obs  10 events   1  expand TRUE   ode depot 0.00e+00  ode central 3.78e-13  lincmt 1.30e-12
+closed form, first schedule: rxode2 3.02e-13, frm_ode 3.02e-13 of the scale; rxode2 and frm_ode identical: TRUE
+
+== A and B: 200 random schedules ==
+schedules solved 190 of 200, refused 10 (reset inside a running infusion: 10)
+rxode2's smallest amount on each refused schedule:
+     seed reset_in_infusion rx_min_amount
+ 20260950              TRUE    -120.15734
+ 20260955              TRUE     -67.53790
+ 20260959              TRUE    -241.46989
+ 20260986              TRUE    -102.93608
+ 20260989              TRUE     -75.72416
+ 20261039              TRUE     -58.11335
+ 20261049              TRUE    -238.10150
+ 20261051              TRUE    -261.40995
+ 20261079              TRUE     -93.39943
+ 20261100              TRUE     -90.04091
+expansion identical to etExpand() 126 of 126 (etExpand() errors on 64)
+worst relative difference: ode depot 2.56e-13, ode central 7.12e-13, lincmt 3.05e-12
+median relative difference: ode central 1.44e-14, lincmt 8.71e-13
+ode central bitwise equal to rxode2 on 36 of 190
+observations 4620, dose events 1217 over the solved schedules
+
+== C: real records ==
+warfarin as shipped: frm_ode_records(): observation records 21, 35, 55, 73, 92, ... follow an event record at the same time for the ...
+warfarin   records  515  obs  483 (rxSolve  483)  events  32  ode central 4.15e-15  lincmt 2.05e-13
+theo_md as shipped: frm_ode_records(): observation records 2, 19, 31, 48, 60, ... follow an event record at the same time for the  ...
+theo_md    records  348  obs  264 (rxSolve  264)  events  84  ode central 2.20e-13  lincmt 2.32e-13
+
+== D: the ordering premise in rxode2 ==
+depot at t = 12: rxode2 obs listed BEFORE the dose 100.000185, AFTER 100.000185; frm_ode 0.000185

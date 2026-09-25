@@ -1,0 +1,364 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.coupling 0.5.0 from C:/Users/adf44/source/r/rellib-r3
+cross-pairs: 123456789abcdefghijklmnopqrstuvwxyzABCDEFG.HIJ.KLMNO
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-cross-pairs.R:60:3'): each block is frm_cross_spectrum() on
+Expected `xp` to inherit from "data.frame".
+Actual class: "simpleError"/"error"/"condition".
+
+── 2. Failure ('test-cross-pairs.R:62:3'): each block is frm_cross_spectrum() on
+Expected `levels(xp$pair)` to be identical to `want`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('Fz-Cz', 'Fz-Pz', 'Fz-Oz', 'Cz-Pz', 'Cz-Oz', ...)
+
+
+── 3. Failure ('test-cross-pairs.R:63:3'): each block is frm_cross_spectrum() on
+Expected `names(xp)[1:3]` to be identical to `c("pair", "ch1", "ch2")`.
+Differences:
+`actual`:   "message" "call" NA   
+`expected`: "pair"    "ch1"  "ch2"
+
+
+── 4. Failure ('test-cross-pairs.R:70:5'): each block is frm_cross_spectrum() on
+Expected Fz-Cz to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 5. Failure ('test-cross-pairs.R:70:5'): each block is frm_cross_spectrum() on
+Expected Fz-Pz to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 6. Failure ('test-cross-pairs.R:70:5'): each block is frm_cross_spectrum() on
+Expected Fz-Oz to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 7. Failure ('test-cross-pairs.R:70:5'): each block is frm_cross_spectrum() on
+Expected Cz-Pz to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 8. Failure ('test-cross-pairs.R:70:5'): each block is frm_cross_spectrum() on
+Expected Cz-Oz to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 9. Failure ('test-cross-pairs.R:70:5'): each block is frm_cross_spectrum() on
+Expected Pz-Oz to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 10. Failure ('test-cross-pairs.R:82:3'): pairs can be chosen by name or by co
+Expected `a` to inherit from "data.frame".
+Actual class: "simpleError"/"error"/"condition".
+
+── 11. Failure ('test-cross-pairs.R:83:3'): pairs can be chosen by name or by co
+Expected `a` to be identical to `b`.
+Differences:
+actual$call vs expected$call
+- `frm_cross_pairs(X, pairs = rbind(c("Pz", "Fz"), c("Cz", "Oz")), `
+- `    segments = 4L)`
++ `frm_cross_pairs(X, pairs = rbind(c(3, 1), c(2, 4)), segments = 4L)`
+
+
+── 12. Failure ('test-cross-pairs.R:84:3'): pairs can be chosen by name or by co
+Expected `levels(a$pair)` to be identical to `c("Pz-Fz", "Cz-Oz")`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('Pz-Fz', 'Cz-Oz')
+
+
+── 13. Failure ('test-cross-pairs.R:89:3'): pairs can be chosen by name or by co
+Expected `got` to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 14. Failure ('test-cross-pairs.R:93:3'): pairs can be chosen by name or by co
+Expected `d` to inherit from "data.frame".
+Actual class: "simpleError"/"error"/"condition".
+
+── 15. Failure ('test-cross-pairs.R:94:3'): pairs can be chosen by name or by co
+Expected `d` to be identical to `m`.
+Differences:
+`actual$call`:   `frm_cross_pairs(as.data.frame(X), segments = 4L)`
+`expected$call`: `frm_cross_pairs(X, segments = 4L)`               
+
+
+── 16. Failure ('test-cross-pairs.R:106:3'): a list of epochs goes through with 
+Expected `ref` to inherit from "data.frame".
+Actual class: "simpleError"/"error"/"condition".
+
+── 17. Failure ('test-cross-pairs.R:108:3'): a list of epochs goes through with 
+Expected `got` to be identical to `ref`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <simpleError/error/condition>, a list
+
+
+── 18. Failure ('test-cross-pairs.R:114:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = rbind(c("Fz", "Fz"))), "with itself") at test-cross-pairs.R:114:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 19. Failure ('test-cross-pairs.R:114:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "with itself".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = rbind(c("Fz", "Fz"))), "with itself") at test-cross-pairs.R:114:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 20. Failure ('test-cross-pairs.R:116:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-cross-pairs.R:116:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 21. Failure ('test-cross-pairs.R:116:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "repeats the pair".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-cross-pairs.R:116:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 22. Failure ('test-cross-pairs.R:119:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = rbind(c("Fz", "T7"))), "T7, which is not a channel") at test-cross-pairs.R:119:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 23. Failure ('test-cross-pairs.R:119:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "T7, which is not a channel".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = rbind(c("Fz", "T7"))), "T7, which is not a channel") at test-cross-pairs.R:119:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 24. Failure ('test-cross-pairs.R:121:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = rbind(c(1, 5))), "not a column of `X`") at test-cross-pairs.R:121:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 25. Failure ('test-cross-pairs.R:121:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "not a column of `X`".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = rbind(c(1, 5))), "not a column of `X`") at test-cross-pairs.R:121:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 26. Failure ('test-cross-pairs.R:123:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = c("Fz", "Cz")), "two-column matrix") at test-cross-pairs.R:123:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 27. Failure ('test-cross-pairs.R:123:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "two-column matrix".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, pairs = c("Fz", "Cz")), "two-column matrix") at test-cross-pairs.R:123:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 28. Failure ('test-cross-pairs.R:125:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, segmnets = 4L), "unknown argument `segmnets`") at test-cross-pairs.R:125:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 29. Failure ('test-cross-pairs.R:125:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "unknown argument `segmnets`".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, segmnets = 4L), "unknown argument `segmnets`") at test-cross-pairs.R:125:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 30. Failure ('test-cross-pairs.R:127:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, NULL, 4L), "must be named") at test-cross-pairs.R:127:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 31. Failure ('test-cross-pairs.R:127:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "must be named".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, NULL, 4L), "must be named") at test-cross-pairs.R:127:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 32. Failure ('test-cross-pairs.R:129:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, x = 1), "unknown argument `x`") at test-cross-pairs.R:129:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 33. Failure ('test-cross-pairs.R:129:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "unknown argument `x`".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X, x = 1), "unknown argument `x`") at test-cross-pairs.R:129:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 34. Failure ('test-cross-pairs.R:131:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X[, 1L, drop = FALSE]), "pair needs two") at test-cross-pairs.R:131:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 35. Failure ('test-cross-pairs.R:131:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "pair needs two".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(X[, 1L, drop = FALSE]), "pair needs two") at test-cross-pairs.R:131:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 36. Failure ('test-cross-pairs.R:133:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-cross-pairs.R:133:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 37. Failure ('test-cross-pairs.R:133:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "non-numeric column b".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-cross-pairs.R:133:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 38. Failure ('test-cross-pairs.R:135:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(list(X, X[, 4:1])), "same channels in the same order") at test-cross-pairs.R:135:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 39. Failure ('test-cross-pairs.R:135:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "same channels in the same order".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(list(X, X[, 4:1])), "same channels in the same order") at test-cross-pairs.R:135:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 40. Failure ('test-cross-pairs.R:139:3'): frm_cross_pairs() refuses what it c
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(Y), "unique and non-empty") at test-cross-pairs.R:139:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-cross-pairs.R:16:3
+
+── 41. Failure ('test-cross-pairs.R:139:3'): frm_cross_pairs() refuses what it c
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "unique and non-empty".
+Actual text:
+x | could not find function "frm_cross_pairs"
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_pairs(Y), "unique and non-empty") at test-cross-pairs.R:139:3
+ 2.   └─testthat::expect_match(...) at test-cross-pairs.R:17:3
+
+── 42. Failure ('test-cross-pairs.R:148:3'): four pairs fit with (1 | pair) and 
+Expected `xp` to inherit from "data.frame".
+Actual class: "simpleError"/"error"/"condition".
+
+── 43. Failure ('test-cross-pairs.R:169:3'): four pairs fit with (1 | pair) and 
+Expected `cb` to inherit from "data.frame".
+Actual class: "frmtmb_coupling_error"/"frmtmb_error"/"error"/"condition".
+
+── 44. Failure ('test-cross-pairs.R:173:3'): four pairs fit with (1 | pair) and 
+Expected `xp_dist(cb, sep)` < 0.01.
+Actual comparison: NA >= 0.01
+
+── 45. Failure ('test-cross-pairs.R:174:3'): four pairs fit with (1 | pair) and 
+Expected `if (is.data.frame(cb)) max(abs(cb$.se/sep$.se - 1)) else NA` < 0.001.
+Actual comparison: "NA" >= "0.001"
+
+── 46. Failure ('test-cross-pairs.R:185:3'): four pairs fit with (1 | pair) and 
+Expected `shrunk` to inherit from "frmtmb_fit".
+Actual class: "frmtmb_error"/"error"/"condition".
+
+── 47. Failure ('test-cross-pairs.R:186:3'): four pairs fit with (1 | pair) and 
+Expected `if (inherits(shrunk, "frmtmb_fit")) shrunk$opt$convergence` to be identical to 0L.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (0)
+
+
+── 48. Failure ('test-cross-pairs.R:189:3'): four pairs fit with (1 | pair) and 
+Expected `cs` to inherit from "data.frame".
+Actual class: "frmtmb_coupling_error"/"frmtmb_error"/"error"/"condition".
+
+── 49. Failure ('test-cross-pairs.R:194:3'): four pairs fit with (1 | pair) and 
+Expected `xp_dist(cs, sep)` < 2.
+Actual comparison: NA >= 2.0
+
+── 50. Failure ('test-cross-pairs.R:195:3'): four pairs fit with (1 | pair) and 
+Expected `if (is.data.frame(cs)) order(cs$.estimate)` to be identical to `order(sep$.estimate)`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (4, 3, 2, 1)
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+Keep trying!
+
+FILE test-cross-pairs.R ARM base TESTS 5 PASS 2 FAIL 50 ERROR 0 SKIP 0 WARN 0 

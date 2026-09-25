@@ -1,0 +1,372 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.coupling 0.5.0 from C:/Users/adf44/source/r/rellib-r3
+epochs: 123456789abcd.efghijk.l.m.n.o.p.qrstuvw.x
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-epochs.R:48:3'): an epoch list equals the concatenated-and-
+Expected `ls` to inherit from "data.frame".
+Actual class: "frmtmb_coupling_error"/"frmtmb_error"/"error"/"condition".
+
+── 2. Failure ('test-epochs.R:49:3'): an epoch list equals the concatenated-and-
+Expected `ls` to be identical to `vs`.
+Differences:
+`class(actual)`:   "frmtmb_coupling_error" "frmtmb_error" "error" "condition"
+`class(expected)`: "simpleError"                          "error" "condition"
+
+`actual$message`:   "`x` must be a non-empty numeric vector."
+`expected$message`: "unused argument (group = rep(lab, len))"
+
+`actual$call` is NULL
+`expected$call` is a call
+
+
+── 3. Failure ('test-epochs.R:50:3'): an epoch list equals the concatenated-and-
+Expected `levels(ls$id)` to be identical to `lab`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('a', 'b', 'c', 'd')
+
+
+── 4. Failure ('test-epochs.R:55:5'): an epoch list equals the concatenated-and-
+Expected a to be identical to `one`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 5. Failure ('test-epochs.R:55:5'): an epoch list equals the concatenated-and-
+Expected b to be identical to `one`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 6. Failure ('test-epochs.R:55:5'): an epoch list equals the concatenated-and-
+Expected c to be identical to `one`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 7. Failure ('test-epochs.R:55:5'): an epoch list equals the concatenated-and-
+Expected d to be identical to `one`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <data.frame>, a list
+
+
+── 8. Failure ('test-epochs.R:69:3'): pooled epochs equal the split call when th
+Expected `ls` to inherit from "data.frame".
+Actual class: "simpleError"/"error"/"condition".
+
+── 9. Failure ('test-epochs.R:70:3'): pooled epochs equal the split call when th
+Expected `ls` to be identical to `vs`.
+Differences:
+`actual$message`:   "unused argument (group = g)"                 
+`expected$message`: "unused argument (group = rep(g, each = 512))"
+
+actual$call vs expected$call
+- `frm_cross_spectrum(p$x, p$y, segments = 4L, group = g)`
++ `frm_cross_spectrum(unlist(p$x), unlist(p$y), segments = 4L, group = rep(g, `
++ `    each = 512L))`
+
+
+── 10. Failure ('test-epochs.R:71:3'): pooled epochs equal the split call when t
+Expected `unique(ls$n)` to be identical to 4L.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (4)
+
+
+── 11. Failure ('test-epochs.R:87:5'): pooled epochs of unequal length are clean
+Expected segments 4 to be identical to `ref`.
+Differences:
+`actual` is length 2
+`expected` is length 6
+
+`class(actual)`:   "simpleError" "error" "condition"
+`class(expected)`: "data.frame"                     
+
+`names(actual)`:   "message" "call"                        
+`names(expected)`: "freq"    "w11"  "w22" "w12r" "w12i" "n"
+
+`attr(actual, 'row.names')` is absent
+`attr(expected, 'row.names')` is an integer vector (1, 2, 3, 4, 5, ...)
+
+`actual$message` is a character vector ('unused argument (group = rep("u", 3))')
+`expected$message` is absent
+
+`actual$call` is a call
+`expected$call` is absent
+
+`actual$freq` is absent
+`expected$freq` is a double vector (0.00163934426229508, 0.00327868852459016, 0.00491803278688525, 0.00655737704918033, 0.00819672131147541, ...)
+
+`actual$w11` is absent
+`expected$w11` is a double vector (3.86306384412303, 1.47026145793065, 0.745820634481998, 3.95803913914097, 1.96070985412874, ...)
+
+`actual$w22` is absent
+`expected$w22` is a double vector (3.44932063899522, 2.1963598065912, 2.73957991127865, 3.57262148689475, 6.62863657990391, ...)
+
+`actual$w12r` is absent
+`expected$w12r` is a double vector (3.5512149299876, 1.47331442347384, 0.255654641148466, 2.05355844094039, 1.05371689222795, ...)
+
+`actual$w12i` is absent
+`expected$w12i` is a double vector (0.58294748871112, 0.0842278621593031, -0.378864915488814, 0.156676308596764, -2.50782001092971, ...)
+
+`actual$n` is absent
+`expected$n` is an integer vector (3, 3, 3, 3, 3, ...)
+
+
+── 12. Failure ('test-epochs.R:87:5'): pooled epochs of unequal length are clean
+Expected segments 8 to be identical to `ref`.
+Differences:
+`actual` is length 2
+`expected` is length 6
+
+`class(actual)`:   "simpleError" "error" "condition"
+`class(expected)`: "data.frame"                     
+
+`names(actual)`:   "message" "call"                        
+`names(expected)`: "freq"    "w11"  "w22" "w12r" "w12i" "n"
+
+`attr(actual, 'row.names')` is absent
+`attr(expected, 'row.names')` is an integer vector (1, 2, 3, 4, 5, ...)
+
+`actual$message` is a character vector ('unused argument (group = rep("u", 3))')
+`expected$message` is absent
+
+`actual$call` is a call
+`expected$call` is absent
+
+`actual$freq` is absent
+`expected$freq` is a double vector (0.00327868852459016, 0.00655737704918033, 0.00983606557377049, 0.0131147540983607, 0.0163934426229508, ...)
+
+`actual$w11` is absent
+`expected$w11` is a double vector (5.66732771772505, 5.93470511436287, 7.10044730376818, 5.10214234782603, 4.82248727693259, ...)
+
+`actual$w22` is absent
+`expected$w22` is a double vector (6.06084404836417, 10.8651065925071, 9.40565500206423, 6.22591229630741, 4.60348806512003, ...)
+
+`actual$w12r` is absent
+`expected$w12r` is a double vector (4.61204312776319, 4.05402445130175, 3.00602643932962, 1.85892763593545, 3.08868014880263, ...)
+
+`actual$w12i` is absent
+`expected$w12i` is a double vector (1.46110944204309, -1.26057136807554, -2.86019152011408, -2.02080063162018, 0.859996446935686, ...)
+
+`actual$n` is absent
+`expected$n` is an integer vector (7, 7, 7, 7, 7, ...)
+
+
+── 13. Failure ('test-epochs.R:87:5'): pooled epochs of unequal length are clean
+Expected segments 16 to be identical to `ref`.
+Differences:
+`actual` is length 2
+`expected` is length 6
+
+`class(actual)`:   "simpleError" "error" "condition"
+`class(expected)`: "data.frame"                     
+
+`names(actual)`:   "message" "call"                        
+`names(expected)`: "freq"    "w11"  "w22" "w12r" "w12i" "n"
+
+`attr(actual, 'row.names')` is absent
+`attr(expected, 'row.names')` is an integer vector (1, 2, 3, 4, 5, ...)
+
+`actual$message` is a character vector ('unused argument (group = rep("u", 3))')
+`expected$message` is absent
+
+`actual$call` is a call
+`expected$call` is absent
+
+`actual$freq` is absent
+`expected$freq` is a double vector (0.00657894736842105, 0.0131578947368421, 0.0197368421052632, 0.0263157894736842, 0.0328947368421053, ...)
+
+`actual$w11` is absent
+`expected$w11` is a double vector (10.6426097927157, 10.5656203216463, 20.853958201619, 12.2222988969868, 13.004068818356, ...)
+
+`actual$w22` is absent
+`expected$w22` is a double vector (17.9497561225394, 12.595749320778, 22.0859411366024, 16.2309770189126, 18.5526504642039, ...)
+
+`actual$w12r` is absent
+`expected$w12r` is a double vector (7.50357386575383, 5.47896333885577, 15.9470908683437, 4.42293634733003, 9.42045270179154, ...)
+
+`actual$w12i` is absent
+`expected$w12i` is a double vector (-3.75638823727082, -1.96487708026987, -0.509887874757546, -0.120607759164173, -0.506799858840862, ...)
+
+`actual$n` is absent
+`expected$n` is an integer vector (14, 14, 14, 14, 14, ...)
+
+
+── 14. Failure ('test-epochs.R:97:3'): pooled epochs of unequal length are clean
+Expected `unique(pooled$n)` to be identical to 7L.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (7)
+
+
+── 15. Failure ('test-epochs.R:105:3'): group labels name the units in order of 
+Expected `levels(xs$id)` to be identical to `c("z", "a")`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('z', 'a')
+
+
+── 16. Failure ('test-epochs.R:108:3'): group labels name the units in order of 
+Expected `levels(xs2$id)` to be identical to `c("1", "2", "3")`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('1', '2', '3')
+
+
+── 17. Failure ('test-epochs.R:114:3'): the list and group forms refuse what the
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, p$y, group = "a"), "one label per epoch") at test-epochs.R:114:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-epochs.R:16:3
+
+── 18. Failure ('test-epochs.R:114:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "one label per epoch".
+Actual text:
+x | unused argument (group = "a")
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, p$y, group = "a"), "one label per epoch") at test-epochs.R:114:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 19. Failure ('test-epochs.R:116:3'): the list and group forms refuse what the
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, p$y, group = c("a", NA)), "has NA") at test-epochs.R:116:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-epochs.R:16:3
+
+── 20. Failure ('test-epochs.R:116:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "has NA".
+Actual text:
+x | unused argument (group = c("a", NA))
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, p$y, group = c("a", NA)), "has NA") at test-epochs.R:116:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 21. Failure ('test-epochs.R:118:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "same number of epochs".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, p$y[1L]), "same number of epochs") at test-epochs.R:118:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 22. Failure ('test-epochs.R:122:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "epoch 2 has 400 samples in `x` and 399".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, bad), "epoch 2 has 400 samples in `x` and 399") at test-epochs.R:122:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 23. Failure ('test-epochs.R:124:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "name their epochs differently".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-epochs.R:124:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 24. Failure ('test-epochs.R:127:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "both be lists of epochs".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(p$x, p$y[[1L]]), "both be lists of epochs") at test-epochs.R:127:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 25. Failure ('test-epochs.R:129:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "is not a vector".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(list(p$x), list(p$y)), "is not a vector") at test-epochs.R:129:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 26. Failure ('test-epochs.R:131:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "x\\[\\[1\\]\\]".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(list(letters), list(letters)), "x\\[\\[1\\]\\]") at test-epochs.R:131:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 27. Failure ('test-epochs.R:134:3'): the list and group forms refuse what the
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(v, v, group = rep("a", 599)), "one label per sample") at test-epochs.R:134:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-epochs.R:16:3
+
+── 28. Failure ('test-epochs.R:134:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "one label per sample".
+Actual text:
+x | unused argument (group = rep("a", 599))
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(v, v, group = rep("a", 599)), "one label per sample") at test-epochs.R:134:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 29. Failure ('test-epochs.R:136:3'): the list and group forms refuse what the
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-epochs.R:136:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-epochs.R:16:3
+
+── 30. Failure ('test-epochs.R:136:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "has NA".
+Actual text:
+x | unused argument (group = c(rep("a", 599), NA))
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-epochs.R:136:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 31. Failure ('test-epochs.R:139:3'): the list and group forms refuse what the
+Expected `cnd` to inherit from "frmtmb_coupling_error".
+Actual class: "simpleError"/"error"/"condition".
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(m, m, group = c("a", "b")), "already the units") at test-epochs.R:139:3
+ 2.   └─testthat::expect_s3_class(cnd, cls) at test-epochs.R:16:3
+
+── 32. Failure ('test-epochs.R:139:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "already the units".
+Actual text:
+x | unused argument (group = c("a", "b"))
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(frm_cross_spectrum(m, m, group = c("a", "b")), "already the units") at test-epochs.R:139:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+── 33. Failure ('test-epochs.R:141:3'): the list and group forms refuse what the
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "data frame".
+Actual text:
+x | `x` must be a non-empty numeric vector.
+Backtrace:
+    ▆
+ 1. └─frmtmb.coupling (local) refuses(...) at test-epochs.R:141:3
+ 2.   └─testthat::expect_match(...) at test-epochs.R:17:3
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-epochs.R ARM base TESTS 5 PASS 8 FAIL 33 ERROR 0 SKIP 0 WARN 0 

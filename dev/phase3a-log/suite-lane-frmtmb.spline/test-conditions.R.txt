@@ -1,0 +1,8 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+conditions: .....
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+Your tests are cool!
+
+FILE test-conditions.R ARM lane TESTS 2 PASS 5 FAIL 0 ERROR 0 SKIP 0 WARN 0 

@@ -1,0 +1,22 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+frailty: ...........................12.
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-frailty.R:379:3'): a random effect on gamma1 is a per-centr
+Expected `inherits(e2, "error")` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+── 2. Failure ('test-frailty.R:380:3'): a random effect on gamma1 is a per-centr
+Expected `any(grepl("fitted survival rises", w2))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-frailty.R ARM lane TESTS 4 PASS 28 FAIL 2 ERROR 0 SKIP 0 WARN 0 

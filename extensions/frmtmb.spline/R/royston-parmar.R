@@ -141,53 +141,36 @@
 #' more on a design built to reach it at 10 subjects per centre, where
 #' the smallest fitted per-centre slope was 0.0332.
 #'
-#' A group with NO events is the exception, and NOTHING REPORTS IT. The
-#' barrier lives in the density, and an all-censored group contributes
-#' no density term at all; what it does contribute pushes its slope
-#' DOWN, because the score in `u` is then `-sum(x_i H_i)`, which is
-#' negative for rows past `t = 1`. [rp_floored()] tests the observed
-#' EVENT rows for a non-positive `d(eta)/d(log t)`, so for such a group
-#' it has nothing to test and returns a count of zero. Measured on 40
-#' centres of 10 with five of them followed to a common administrative
-#' time and no deaths in any of them: on 4 of 6 seeds those five come
-#' back with slopes of -0.21 to -0.31, and on one of them the fit
-#' converges with no warning, a maximum absolute gradient of 2.7e-05 and
-#' a positive definite Hessian, [rp_floored()] reports no non-monotone
-#' row and does not refuse, [frm_curve()] passes it through, and one
-#' centre's fitted survival RISES with time rather than falling: 4.2e-50
-#' at `t = 1e-12` against 0.774 at `t = 2.8`. A survival function that
-#' increases is not one.
+#' A group with NO events is the exception. The barrier lives in the
+#' density, and an all-censored group contributes no density term at
+#' all; what it does contribute pushes its slope DOWN, because the score
+#' in `u` is then `-sum(x_i H_i)`, which is negative for rows past
+#' `t = 1`. Measured on 40 centres of 10 with five of them followed to a
+#' common administrative time and no deaths in any of them: on 4 of 6
+#' seeds those five come back with slopes of -0.18 to -0.31, and on one
+#' of them the fit converges with a maximum absolute gradient of 2.7e-05
+#' and a positive definite Hessian while one centre's fitted survival
+#' RISES with time rather than falling: 4.2e-50 at `t = 1e-12` against
+#' 0.774 at `t = 2.8`. A survival function that increases is not one.
 #'
-#' So where a group can have no events, check it yourself, in two lines:
+#' [rp_floored()] reports it. Up to frmtmb.spline 0.7.0 it tested only
+#' the EVENT rows, so such a group had nothing to test and the fit above
+#' came back clean. It now also tests every censored row at its own
+#' time and counts the hits as `n_nonmonotone_censored`; the fit warns
+#' as it is returned, and [rp_floored()], [frm_curve()] and its two
+#' companions warn with the size of the rise and answer. They warn rather
+#' than refuse because a censored row is scored exactly: `logLik()` is
+#' the model's, and only the fitted curve is wrong, usually where it
+#' extrapolates past a group's last event. See [rp_floored()]. On the
+#' four seeds above it counts the 50 rows
+#' of the five centres.
 #'
-#' ```
-#' slope <- fixef_by_dpar(fit)$gamma1[["(Intercept)"]] +
-#'   ranef(fit)[["centre"]][, "gamma1_Intercept"]
-#' rownames(ranef(fit)[["centre"]])[slope <= 0]
-#' ```
-#'
-#' and confirm that comes back empty. Name the column: under the paired
-#' spelling recommended below, that grouping carries TWO of them,
-#' `Intercept` and `gamma1_Intercept` (brms's names, which [frmtmb::ranef()]
-#' uses), and the `Intercept` one is the frailty deviation on `mu`,
-#' which says nothing about monotonicity. With a block on `gamma1`
-#' alone there is one column and `[, 1]` will do.
-#'
-#' Those two lines are the `df = 1` FORM, and they are exact only
-#' there, because `d(eta)/d(log t)` is `gamma_1 + u` and nothing else.
-#' Above `df = 1` the derivative carries the interior coefficients too,
-#' `gamma_1 + u + sum_j gamma_{j+1} v'_j(x)`, so the two lines drop
-#' terms and they err OPTIMISTIC: on a `df = 3` fit they read 1.207 to
-#' 2.162 where the real derivative at the rows runs 0.768 to 2.017, a
-#' margin 20 to 36 percent too generous per centre. What that leaves
-#' exposed is narrow, because [rp_floored()] already answers any group
-#' WITH events at any `df`: it is a group with NO events at `df >= 2`,
-#' and there the honest check evaluates the derivative on the basis
-#' rather than reading `gamma1` off.
-#'
-#' Widening [rp_floored()] to test censored rows too would change a
-#' shipped refusal and needs a false-alarm rate behind it, so it is
-#' filed rather than done.
+#' The row test is exact at `df = 1`, where `d(eta)/d(log t)` is
+#' `gamma_1 + u` at every time. At `df >= 2` the derivative carries the
+#' interior coefficients too, `gamma_1 + u + sum_j gamma_{j+1} v'_j(x)`,
+#' and it is tested at the observed times only, so a dip between two
+#' observed times of one group that recovers at both is not searched
+#' for.
 #'
 #' Second, a block on `gamma1` ALONE is anchored at `t = 1`, and `t = 1`
 #' is a unit rather than a fact. Rescale time by `c` and `log t` moves
@@ -442,6 +425,11 @@ sp_rp_family <- function(cfg, allknots) {
                       "logLik() and AIC() are of a floored pseudo-likelihood ",
                       "rather than of a density. rp_floored() names the rows; ",
                       "fewer knots is the remedy", call. = FALSE)
+        }
+        # Separate from the floor above: these rows are scored exactly,
+        # so logLik() is right and the fitted model is what is wrong.
+        if (r[["n_nonmonotone_censored"]]) {
+          frm_warning(sp_rp_rise_text(r), call. = FALSE)
         }
         invisible(NULL)
       }

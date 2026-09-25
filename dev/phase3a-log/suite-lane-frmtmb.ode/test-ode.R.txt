@@ -1,0 +1,139 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/phase3a-lib
+ode: ........1.......................................................DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.96867e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.96867e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.96867e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.96867e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.96867e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.43966e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.43966e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.43966e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.43966e-18
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 0.05, R2 = 2.43966e-18
+ 
+DLSODA-  Above warning has been issued I1 times.  
+     It will not be issued again for this problem.
+In above message, I1 = 10
+ 
+DLSODA-  At current T (=R1), MXSTEP (=I1) steps   
+      taken on this call before reaching TOUT     
+In above message, I1 = 5000
+ 
+In above message, R1 = 0.05
+ 
+..DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.46164e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.46164e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.46164e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.46164e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.46164e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.20118e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.20118e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.20118e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.20118e-15
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 20.2309, R2 = 1.20118e-15
+ 
+DLSODA-  Above warning has been issued I1 times.  
+     It will not be issued again for this problem.
+In above message, I1 = 10
+ 
+DLSODA-  At current T (=R1), MXSTEP (=I1) steps   
+      taken on this call before reaching TOUT     
+In above message, I1 = 5000
+ 
+In above message, R1 = 20.2309
+ 
+.....
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-ode.R:128:3'): a missing backend names the r-universe reposit
+Error in `local_mocked_bindings(ode_has_pkg = function(pkg) pkg != "RTMBode")`: No packages loaded with pkgload
+Backtrace:
+    ▆
+ 1. └─testthat::local_mocked_bindings(ode_has_pkg = function(pkg) pkg != "RTMBode") at test-ode.R:128:3
+ 2.   ├─.package %||% dev_package()
+ 3.   └─testthat:::dev_package()
+ 4.     └─cli::cli_abort("No packages loaded with pkgload", call = call)
+ 5.       └─rlang::abort(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+Keep trying!
+
+FILE test-ode.R ARM lane TESTS 26 PASS 70 FAIL 0 ERROR 1 SKIP 0 WARN 0 

@@ -30,3 +30,13 @@ navbar:
     core:
       text: frmtmb
       href: https://aforren1.github.io/frmtmb/
+
+reference:
+  - title: Solve a system
+    contents:
+      - frm_ode
+      - frm_lincmt
+      - frm_ode_failures
+  - title: Get data in
+    contents:
+      - frm_ode_records

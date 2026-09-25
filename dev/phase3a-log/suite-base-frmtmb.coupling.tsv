@@ -1,0 +1,67 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+base	test-bracket-access.R	no frmtmb.coupling function reads a hazard container	1	1	0	FALSE	FALSE	0
+base	test-coherence.R	the coherence interval stays inside the unit interval	18	18	0	FALSE	FALSE	0
+base	test-coherence.R	an interval near a coherence of 1 has positive width	2	2	0	FALSE	FALSE	0
+base	test-coherence.R	a group at a coherence of 1 does not poison the fit	3	3	0	FALSE	FALSE	0
+base	test-coherence.R	the interval width follows the confidence level	3	3	0	FALSE	FALSE	0
+base	test-coherence.R	both extractors refuse a fit of another family	3	3	0	FALSE	FALSE	0
+base	test-coherence.R	phase comes back in radians and is recovered	6	6	0	FALSE	FALSE	0
+base	test-coherence.R	re_formula separates the group answer from the population one	4	4	0	FALSE	FALSE	0
+base	test-coherence.R	a coherence spectrum is read off a smooth over frequency	4	4	0	FALSE	FALSE	0
+base	test-coherence.R	the hierarchical fit beats averaging per-subject coherences	5	5	0	FALSE	FALSE	0
+base	test-coherence.R	a random effect on every dpar keeps the variance component alive	3	1	0	FALSE	FALSE	2
+base	test-coherence.R	a within-condition contrast needs the within-subject term	3	3	0	FALSE	FALSE	0
+base	test-coherence.R	frm_cross_simulate draws matrices with the fitted first moment	10	10	0	FALSE	FALSE	0
+base	test-coherence.R	the simulated first moment matches the fitted matrix	1	1	0	FALSE	FALSE	0
+base	test-conditions.R	a frmtmb.coupling refusal is caught as a frmtmb_error	3	3	0	FALSE	FALSE	0
+base	test-conditions.R	the refusals classed in punch round 1 carry the subclass	2	2	0	FALSE	FALSE	0
+base	test-conditions-census.R	the census finds what it is looking for	7	7	0	FALSE	FALSE	0
+base	test-conditions-census.R	frmtmb.coupling raises no bare stop(), warning() or message()	4	4	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	frequency zero and Nyquist are dropped	5	5	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	sfreq puts the frequencies in Hz	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	the degrees of freedom multiply across the three routes	4	4	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	tapers = 1 means no taper	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	every returned matrix is positive definite	18	18	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	the matrix is the SUM over draws, not the average	11	11	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a matrix pair gives one block per column with an id	5	5	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	the effective degrees of freedom are the nominal ones	5	5	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	bad arguments are refused by name	17	17	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	frange trims after everything else	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a record with two rejected spans is the sum of the three	7	7	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	no transform crosses a gap	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a gap in either signal rejects the pair	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	n reports the segments the record supplied, not the request	5	5	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a record with no whole segment left refuses by name	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a Hann segment is the windowed periodogram, exactly	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a Hann window buys no degrees of freedom and costs none	2	2	0	FALSE	FALSE	0
+base	test-cross-spectrum.R	a Hann window correlates adjacent frequencies	3	3	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the maximum likelihood estimate is the pooled matrix over n	1	1	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the estimate is right at several truths and several n	3	3	0	FALSE	FALSE	0
+base	test-cross-wishart.R	log det S needs no determinant and the trace no complex number	150	150	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the log likelihood matches an independent evaluation	1	1	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the density is finite and exact far into the coherence tail	20	20	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the complement never comes from a subtraction	14	14	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the complement comes from core's public accessor	8	8	0	FALSE	FALSE	0
+base	test-cross-wishart.R	weights scale the log likelihood	3	3	0	FALSE	FALSE	0
+base	test-cross-wishart.R	a rank-one row is refused before any tape is built	4	4	0	FALSE	FALSE	0
+base	test-cross-wishart.R	few degrees of freedom warn rather than pass in silence	1	1	0	FALSE	FALSE	0
+base	test-cross-wishart.R	a missing vreal or vint is refused, not fitted against nothing	2	2	0	FALSE	FALSE	0
+base	test-cross-wishart.R	cens() and trunc() are refused by name	1	1	0	FALSE	FALSE	0
+base	test-cross-wishart.R	the naive bias this family exists to remove is really there	3	3	0	FALSE	FALSE	0
+base	test-message-uniqueness.R	every condition message template in this R/ is unique	4	4	0	FALSE	FALSE	0
+base	test-scale.R	the coupling scale row 'coh-intercept' fits and reports its cost	1	0	0	FALSE	TRUE	0
+base	test-scale.R	the coupling scale row 'coh-cond' fits and reports its cost	1	0	0	FALSE	TRUE	0
+base	test-scale.R	the coupling scale row 'coh-smooth' fits and reports its cost	1	0	0	FALSE	TRUE	0
+base	test-scale.R	the coupling scale row 'coh-id' fits and reports its cost	1	0	0	FALSE	TRUE	0
+base	test-scale.R	the coupling scale row 'coh-full' fits and reports its cost	1	0	0	FALSE	TRUE	0
+base	test-surface.R	summary, fixef, logLik and nobs work	8	8	0	FALSE	FALSE	0
+base	test-surface.R	every dpar is reachable on the link scale, with a standard error	12	12	0	FALSE	FALSE	0
+base	test-surface.R	predict on newdata works	4	4	0	FALSE	FALSE	0
+base	test-surface.R	fitted() is the mean of the response and says so by being it	2	2	0	FALSE	FALSE	0
+base	test-surface.R	residuals work and are what they claim	4	4	0	FALSE	FALSE	0
+base	test-surface.R	simulate() refuses for a stated reason and names its replacement	1	1	0	FALSE	FALSE	0
+base	test-surface.R	par_template and set_prior reach the coherence dpar	5	5	0	FALSE	FALSE	0
+base	test-surface.R	a random effect and a smooth both reach the coherence dpar	7	6	0	FALSE	FALSE	1
+base	test-surface.R	AIC catches a power model too simple for the data	3	3	0	FALSE	FALSE	0
+base	test-surface.R	no automatic power-misspecification warning is raised	2	2	0	FALSE	FALSE	0
+base	test-surface.R	the compatibility rows this package registered resolve	11	11	0	FALSE	FALSE	0

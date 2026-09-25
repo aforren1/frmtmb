@@ -1,0 +1,7 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+frailty: ..............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-frailty.R ARM lane TESTS 4 PASS 30 FAIL 0 ERROR 0 SKIP 0 WARN 0 

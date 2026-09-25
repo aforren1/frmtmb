@@ -1,0 +1,18 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.coupling 0.5.0 from C:/Users/adf44/source/r/rellib-r3
+scale: SSSSS
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the coupling scale row 'coh-intercept' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+2. the coupling scale row 'coh-cond' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+3. the coupling scale row 'coh-smooth' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+4. the coupling scale row 'coh-id' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+5. the coupling scale row 'coh-full' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-scale.R ARM base TESTS 5 PASS 0 FAIL 0 ERROR 0 SKIP 5 WARN 0 

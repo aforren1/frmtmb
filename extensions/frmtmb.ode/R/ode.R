@@ -311,8 +311,8 @@ ode_split_events <- function(events, labels, n_state, states) {
     frm_stop("`events` has unknown column", if (length(extra) > 1L) "s" else "",
              ": ", paste(extra, collapse = ", "),
              ". The columns are: ", paste(known, collapse = ", "),
-             ". frm_ode() does not read NONMEM records: an `evid`/`amt`/`cmt` ",
-             "table has to be reshaped to these names first",
+             ". frm_ode() does not read NONMEM records: frm_ode_records() ",
+             "splits an `evid`/`amt`/`cmt` table into data and events",
              call. = FALSE)
   }
 
@@ -1189,8 +1189,8 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #'
 #' `frm_ode()` does not read NONMEM column names, and there is no `evid`
 #' column: observation rows are the rows of `data`, and dose rows are
-#' the rows of `events`, which is a separate table. A NONMEM-shaped
-#' dataset has to be split into the two.
+#' the rows of `events`, which is a separate table. [frm_ode_records()]
+#' splits a NONMEM-shaped dataset into the two.
 #'
 #' An observation at exactly a dose time reads the state **before** the
 #' dose, which is the trough, matching both the \pkg{deSolve} convention

@@ -3,6 +3,7 @@
 export(frm_lincmt)
 export(frm_ode)
 export(frm_ode_failures)
+export(frm_ode_records)
 importFrom(frmtmb,
   frm_match_arg,
   frm_message,

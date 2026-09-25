@@ -1,0 +1,10 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.coupling 0.5.0 from C:/Users/adf44/source/r/phase3a-lib
+surface: ....................................W......................
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. a random effect and a smooth both reach the coherence dpar ('test-surface.R:122:3') - Large maximum absolute gradient at the optimum (0.00117); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-surface.R ARM lane TESTS 11 PASS 58 FAIL 0 ERROR 0 SKIP 0 WARN 1 

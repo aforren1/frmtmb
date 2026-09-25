@@ -1,0 +1,29 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/phase3a-lib
+records: .......................................................................................................................................................................................................123..
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-records.R:501:3'): the same-time tolerance follows rounding
+Expected `if (is.list(x)) nrow(x$data) else x` to be identical to 3L.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (3)
+
+
+── 2. Failure ('test-records.R:506:3'): the same-time tolerance follows rounding
+Expected `if (is.list(x)) nrow(x$data) else x` to be identical to 2L.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (2)
+
+
+── 3. Failure ('test-records.R:512:3'): the same-time tolerance follows rounding
+Expected `if (is.list(x)) x$events$method else x` to be identical to `c("add", "reset")`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('add', 'reset')
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-records.R ARM lane TESTS 21 PASS 201 FAIL 3 ERROR 0 SKIP 0 WARN 0 

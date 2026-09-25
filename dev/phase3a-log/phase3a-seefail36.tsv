@@ -1,0 +1,33 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+base	test-rp-floored.R	a censored row far past the old floor is now scored exactly	6	6	0	FALSE	FALSE	0
+base	test-rp-floored.R	the censored count reports and no longer refuses	2	2	0	FALSE	FALSE	0
+base	test-rp-floored.R	fitted() still refuses, and the count is named for what it is	6	5	1	FALSE	FALSE	0
+base	test-rp-floored.R	the family scores log S exactly on all three scales	9	9	0	FALSE	FALSE	0
+base	test-rp-floored.R	the curve functions draw a deeply censored fit now	2	2	0	FALSE	FALSE	0
+base	test-rp-floored.R	a non-monotone fit still refuses, and warns at fit end	3	3	0	FALSE	FALSE	0
+base	test-rp-floored.R	an ordinary censored fit passes and reports its own reach	6	6	0	FALSE	FALSE	0
+base	test-rp-floored.R	the odds and normal scales are checked on the same quantity	5	5	0	FALSE	FALSE	0
+base	test-rp-floored.R	rp_floored refuses anything that is not a royston_parmar fit	3	3	0	FALSE	FALSE	0
+base	test-rp-floored.R	a centre with no events and a falling slope is refused	8	2	6	FALSE	FALSE	0
+base	test-rp-floored.R	the censored-row count reads an interval's upper end	6	3	3	FALSE	FALSE	0
+base	test-rp-floored.R	an ordinary fit reports zero censored rows where S rises	3	2	1	FALSE	FALSE	0
+base	test-frailty.R	the frailty is the model rstpm2 fits, in another basis	7	7	0	FALSE	FALSE	0
+base	test-frailty.R	the Laplace optimum is an optimum of the exact likelihood	5	5	0	FALSE	FALSE	0
+base	test-frailty.R	a random effect on gamma1 is a per-centre shape, and it recovers	16	14	2	FALSE	FALSE	0
+base	test-frailty.R	a slope-only block on gamma1 is anchored at t = 1	1	1	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a censored row far past the old floor is now scored exactly	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the censored count reports and no longer refuses	2	2	0	FALSE	FALSE	0
+lane	test-rp-floored.R	fitted() still refuses, and the count is named for what it is	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the family scores log S exactly on all three scales	9	9	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the curve functions draw a deeply censored fit now	2	2	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a non-monotone fit still refuses, and warns at fit end	3	3	0	FALSE	FALSE	0
+lane	test-rp-floored.R	an ordinary censored fit passes and reports its own reach	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the odds and normal scales are checked on the same quantity	5	5	0	FALSE	FALSE	0
+lane	test-rp-floored.R	rp_floored refuses anything that is not a royston_parmar fit	3	3	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a centre with no events and a falling slope is refused	8	7	1	FALSE	FALSE	0
+lane	test-rp-floored.R	the censored-row count reads an interval's upper end	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	an ordinary fit reports zero censored rows where S rises	3	3	0	FALSE	FALSE	0
+lane	test-frailty.R	the frailty is the model rstpm2 fits, in another basis	7	7	0	FALSE	FALSE	0
+lane	test-frailty.R	the Laplace optimum is an optimum of the exact likelihood	5	5	0	FALSE	FALSE	0
+lane	test-frailty.R	a random effect on gamma1 is a per-centre shape, and it recovers	16	16	0	FALSE	FALSE	0
+lane	test-frailty.R	a slope-only block on gamma1 is anchored at t = 1	1	1	0	FALSE	FALSE	0

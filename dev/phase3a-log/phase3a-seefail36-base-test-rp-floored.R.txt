@@ -1,0 +1,78 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/rellib-r3
+rp-floored: ..........1...............................2.34567....89ab..
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-rp-floored.R:97:3'): fitted() still refuses, and the count 
+Expected `r` to have names `c(...)`.
+Differences:
+    actual          | expected                    
+[2] "max_nlogS"     | "max_nlogS"              [2]
+[3] "threshold"     | "threshold"              [3]
+[4] "n_nonmonotone" | "n_nonmonotone"          [4]
+[5] "scale"         - "n_nonmonotone_censored" [5]
+[6] "n_obs"         - "scale"                  [6]
+                    - "n_obs"                  [7]
+
+
+── 2. Failure ('test-rp-floored.R:273:3'): a centre with no events and a falling
+Expected `which(slope <= 0)` to equal `1:5`.
+Differences:
+`names(actual)` is a character vector ('1', '2', '3', '4', '5')
+`names(expected)` is absent
+
+
+── 3. Failure ('test-rp-floored.R:276:3'): a centre with no events and a falling
+Expected `any(grepl("censored rows have a non-positive", warns))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 4. Failure ('test-rp-floored.R:278:3'): a centre with no events and a falling
+Expected `rp_floored(fit)` to throw a error with class <frmtmb_spline_error>.
+
+── 5. Failure ('test-rp-floored.R:282:3'): a centre with no events and a falling
+Expected `frm_curve(fit, newdata = g, dpar = "gamma1", simultaneous = FALSE)` to throw a error.
+
+── 6. Failure ('test-rp-floored.R:287:3'): a centre with no events and a falling
+Expected `r[["n_nonmonotone_censored"]]` to be identical to `length(nodeath)`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (50)
+
+
+── 7. Failure ('test-rp-floored.R:288:3'): a centre with no events and a falling
+Expected `attr(r, "rows")[["nonmonotone_censored"]]` to be identical to `nodeath`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (1, 2, 3, 4, 5, ...)
+
+
+── 8. Failure ('test-rp-floored.R:328:3'): the censored-row count reads an inter
+Expected `r[["n_nonmonotone_censored"]]` to be identical to `length(iv)`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (50)
+
+
+── 9. Failure ('test-rp-floored.R:329:3'): the censored-row count reads an inter
+Expected `attr(r, "rows")[["nonmonotone_censored"]]` to be identical to `as.integer(iv)`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (1, 5, 9, 13, 17, ...)
+
+
+── 10. Failure ('test-rp-floored.R:331:3'): the censored-row count reads an inte
+Expected `rp_floored(bad)` to throw a error.
+
+── 11. Failure ('test-rp-floored.R:344:3'): an ordinary fit reports zero censore
+Expected `r[["n_nonmonotone_censored"]]` to be identical to 0L.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (0)
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-rp-floored.R ARM base TESTS 12 PASS 48 FAIL 11 ERROR 0 SKIP 0 WARN 0 

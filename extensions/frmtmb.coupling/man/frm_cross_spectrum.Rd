@@ -12,7 +12,8 @@ frm_cross_spectrum(
   tapers = 1L,
   smooth = 1L,
   window = c("none", "hann"),
-  frange = NULL
+  frange = NULL,
+  group = NULL
 )
 }
 \arguments{
@@ -22,9 +23,11 @@ UNITS (subjects, trials, sessions) and never channels; a matrix pair
 adds an \code{id} column naming the column. A three-column pair is three
 units of the same two signals, not a three-channel recording:
 \code{\link[=cross_wishart]{cross_wishart()}} models a channel PAIR, and a third channel has no
-route in. To relate three channels, fit the three pairs separately
-and say so. \code{NA} marks a sample the record does not have; see
-"Gaps in the record".}
+route in. To relate three channels, use \code{\link[=frm_cross_pairs]{frm_cross_pairs()}}. Or
+two lists of epochs, where \code{x[[k]]} and \code{y[[k]]} are the two signals
+of epoch \code{k} and epochs may differ in length; see "Epochs of unequal
+length". \code{NA} marks a sample the record does not have; see "Gaps in
+the record".}
 
 \item{sfreq}{Sampling rate in Hz. \code{freq} comes back in Hz; the
 default of 1 returns cycles per sample.}
@@ -51,11 +54,19 @@ no degrees of freedom and costs none, and it cannot be combined with
 
 \item{frange}{Optional \code{c(low, high)} in the same units as \code{freq},
 applied after everything else.}
+
+\item{group}{Which unit each piece of the record belongs to. For a
+vector pair, one label per sample, as in
+\code{\link[frmtmb:frm_periodogram]{frmtmb::frm_periodogram()}}: each label is one record of its own.
+For a list pair, one label per epoch: the epochs that share a label
+are one unit. \code{NULL}, the default, makes every epoch its own unit,
+named by \code{names(x)} when it has names. Not used with a matrix pair.}
 }
 \value{
 A data frame with one row per retained frequency and columns
 \code{freq}, \code{w11}, \code{w22}, \code{w12r}, \code{w12i} and \code{n}, plus \code{id} for the
-matrix form. \code{w11} and \code{w22} are the two auto-spectra summed over
+matrix form, the list form and a vector pair with \code{group}. \code{w11}
+and \code{w22} are the two auto-spectra summed over
 draws, \code{w12r} and \code{w12i} the real and imaginary parts of the summed
 cross-spectrum, and \code{n} the degrees of freedom the record actually
 supplied. The matrix is
@@ -127,6 +138,25 @@ more rejected samples than its neighbors gets a shorter segment, its
 own frequency grid and its own \code{n}. That is correct and it is why
 \code{freq} is a column of the frame rather than an attribute of it: a
 model reads \code{freq} per row.
+}
+
+\section{Epochs of unequal length}{
+
+A trial-based recording is a list of epochs, and artifact rejection
+leaves them of different lengths. Pass them as two lists, with
+\code{group} naming the unit each epoch belongs to. The epochs of one unit
+are read exactly as the clean spans of one record are: the segment
+length is the unit's usable sample count divided by \code{segments}, each
+epoch supplies as many whole segments as fit in it, and no transform
+crosses from one epoch into the next. So each unit gets one
+frequency grid and one \code{n}, and a short epoch that holds no whole
+segment supplies nothing.
+
+A vector pair with a \code{group} of one label per sample is the other
+spelling, the one \code{\link[frmtmb:frm_periodogram]{frmtmb::frm_periodogram()}} takes: each label is
+one record. The two agree when they describe the same records, which
+is when every unit is one epoch, or when each unit's epochs are all
+of one length that the segment length divides.
 }
 
 \section{How many degrees of freedom, and where to get them}{
@@ -251,4 +281,12 @@ a <- src + rnorm(2048)
 b <- 0.8 * src + rnorm(2048)
 xs <- frm_cross_spectrum(a, b, sfreq = 256, segments = 8)
 head(xs)
+
+# Six trials of unequal length from two subjects
+len <- c(700, 900, 820, 1000, 640, 760)
+ex <- lapply(len, rnorm)
+ey <- lapply(ex, function(v) 0.8 * v + rnorm(length(v)))
+xe <- frm_cross_spectrum(ex, ey, sfreq = 256, segments = 8,
+                         group = rep(c("s1", "s2"), each = 3))
+table(xe$id, xe$n)
 }

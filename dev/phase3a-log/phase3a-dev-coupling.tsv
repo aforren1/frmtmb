@@ -1,0 +1,11 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+lane	test-epochs.R	an epoch list equals the concatenated-and-split call	7	7	0	FALSE	FALSE	0
+lane	test-epochs.R	pooled epochs equal the split call when the lengths agree	3	3	0	FALSE	FALSE	0
+lane	test-epochs.R	pooled epochs of unequal length are clean spans of one record	5	5	0	FALSE	FALSE	0
+lane	test-epochs.R	group labels name the units in order of first appearance	2	2	0	FALSE	FALSE	0
+lane	test-epochs.R	the list and group forms refuse what they cannot read	12	12	0	FALSE	FALSE	0
+lane	test-cross-pairs.R	each block is frm_cross_spectrum() on that pair	9	9	0	FALSE	FALSE	0
+lane	test-cross-pairs.R	pairs can be chosen by name or by column number	6	6	0	FALSE	FALSE	0
+lane	test-cross-pairs.R	a list of epochs goes through with its group	1	1	0	FALSE	FALSE	0
+lane	test-cross-pairs.R	frm_cross_pairs() refuses what it cannot pair	12	12	0	FALSE	FALSE	0
+lane	test-cross-pairs.R	four pairs fit with (1 | pair) and match their own fits	11	11	0	FALSE	FALSE	0

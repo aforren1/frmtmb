@@ -1,0 +1,43 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+
+== n_nodeath 5 ==
+seed 20260910  min slope  -0.2852  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored 50  refuses no  frm_curve refuses no  fit-end warnings 1
+  slopes <= 0: -0.2852 -0.2378 -0.2378 -0.2127 -0.2127  rows flagged 50  equal to the no-death rows TRUE  max abs gradient 2.74e-05  convergence 0 
+  warning: the fitted survival rises by up to 0.79 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those row 
+seed 20260911  min slope  -0.2583  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored 50  refuses no  frm_curve refuses no  fit-end warnings 1
+  slopes <= 0: -0.2583 -0.2287 -0.2287 -0.2287 -0.1980  rows flagged 50  equal to the no-death rows TRUE  max abs gradient 6.36e-05  convergence 0 
+  warning: the fitted survival rises by up to 0.78 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those row 
+seed 20260912  min slope  -0.3056  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored 50  refuses no  frm_curve refuses no  fit-end warnings 1
+  slopes <= 0: -0.3056 -0.3056 -0.2608 -0.2373 -0.1880  rows flagged 50  equal to the no-death rows TRUE  max abs gradient 1.49e-04  convergence 0 
+  warning: the fitted survival rises by up to 0.75 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those row 
+seed 20260913  min slope   0.1418  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows FALSE  max abs gradient 3.60e-07  convergence 0 
+seed 20260914  min slope  -0.2785  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored 50  refuses no  frm_curve refuses no  fit-end warnings 1
+  slopes <= 0: -0.2785 -0.2785 -0.2547 -0.1773 -0.1773  rows flagged 50  equal to the no-death rows TRUE  max abs gradient 2.12e-05  convergence 0 
+  warning: the fitted survival rises by up to 0.77 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those row 
+seed 20260915  min slope   0.2106  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows FALSE  max abs gradient 2.20e-05  convergence 0 
+
+== n_nodeath 0 ==
+seed 20260910  min slope   0.0716  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows TRUE  max abs gradient 3.24e-06  convergence 0 
+seed 20260911  min slope   0.0375  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows TRUE  max abs gradient 3.43e-04  convergence 0 
+seed 20260912  min slope   0.0817  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows TRUE  max abs gradient 7.98e-05  convergence 0 
+seed 20260913  min slope   0.2493  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows TRUE  max abs gradient 2.13e-05  convergence 0 
+seed 20260914  min slope   0.1109  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows TRUE  max abs gradient 2.69e-04  convergence 0 
+seed 20260915  min slope   0.4286  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored 0  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged 0  equal to the no-death rows TRUE  max abs gradient 2.19e-05  convergence 0 
+Warning messages:
+1: the fitted survival rises by up to 0.79 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+2: the fitted survival rises by up to 0.79 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+3: the fitted survival rises by up to 0.78 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+4: the fitted survival rises by up to 0.78 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+5: the fitted survival rises by up to 0.75 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+6: the fitted survival rises by up to 0.75 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+7: the fitted survival rises by up to 0.77 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 
+8: the fitted survival rises by up to 0.77 across 50 of 400 censored rows, where d(eta)/d(log t) is not positive. Those rows are scored exactly, so logLik() is the model's, but the fitted function is not a survival function there. It is usually past a group's last event, where the spline extrapolates: a cure fraction with a covariate or random effect on gamma1, or a group with no events. Fewer knots, or no slope term for such a group, removes it. rp_floored(action = "report") names the rows 

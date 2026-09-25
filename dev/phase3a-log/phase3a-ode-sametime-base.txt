@@ -1,0 +1,69 @@
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/rellib-r3
+rxode2 5.1.7 from C:/Users/adf44/AppData/Local/R/win-library/4.6
+== M: constructions, central amount ==
+
+M2 bolus then evid 3 at t = 10, read at t = 11 (listed order: 0)
+  frm_ode    79.45 
+  frm_lincmt 79.45 
+  rxode2 A   79.45 
+  rxode2 B   79.45 
+  records A: absent 
+  records B: absent 
+
+M3 bolus and an ss = 1 dose at t = 10, read at t = 11
+  frm_ode    112.03 
+  frm_lincmt 112.03 
+  rxode2 A   32.58 
+  rxode2 B   32.58 
+  records A: absent 
+  records B: absent 
+
+M4 4-hour infusion q4 x3 into central, evid 3 at t = 4 (a repeat starts there)
+  frm_ode    40.08 72.65 14.52 
+  frm_lincmt 40.08 72.65 14.52 
+  rxode2 A   0.00 -22.33 -91.43 
+  records A: absent 
+
+M5 bolus then replace 30 at t = 10 (listed order: 30 at t = 10)
+  frm_ode    NA 
+  frm_lincmt NA 
+  rxode2 A   103.29 
+  rxode2 B   103.29 
+  records A: absent 
+  records B: absent 
+
+M6 bolus then multiply 0.5 at t = 10
+  frm_ode    NA 
+  frm_lincmt NA 
+  rxode2 A   83.44 
+  rxode2 B   83.44 
+  records A: absent 
+  records B: absent 
+
+M7 bolus listed before evid 4 at t = 10
+  frm_ode    91.13 
+  frm_lincmt 91.13 
+  rxode2 A   91.13 
+  records A: absent 
+
+addl repeat at t = 12 on an evid 3
+  frm_ode    79.45 
+  frm_lincmt 79.45 
+  rxode2 A   79.45 
+  records A: absent 
+
+sample listed before an ss = 1 dose into central at t = 0
+  frm_ode    6.76 
+  frm_lincmt 6.76 
+  rxode2 A   106.76 
+  rxode2 B   106.76 
+  records A: absent 
+  records B: absent 
+
+control: two plain doses at t = 10
+  frm_ode    108.64 
+  frm_lincmt 108.64 
+  rxode2 A   108.64 
+  rxode2 B   108.64 
+  records A: absent 
+  records B: absent 

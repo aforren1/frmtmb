@@ -74,8 +74,19 @@ sp_rp_fitted <- function(object, fam) {
   x <- log(y)
   eta <- sp_rp_eta(sp_rp_basis(kn, x), dp)
   detadx <- sp_rp_eta(sp_rp_dbasis(kn, x), dp)
-  cens <- object$frame[["aterm_values"]][[rnm]][["cens"]]
+  av <- object$frame[["aterm_values"]][[rnm]]
+  cens <- av[["cens"]]
   if (is.null(cens)) cens <- rep(0, length(y))
+  # An interval row's likelihood reads the survival function at BOTH of
+  # its ends, so a spline that turns over at the upper end is as much a
+  # non-hazard as one that turns over at the lower end.
+  detadx_hi <- rep(NA_real_, length(y))
+  i_int <- which(cens == 2)
+  if (length(i_int) && !is.null(av[["cens_y2"]])) {
+    x2 <- log(as.numeric(av[["cens_y2"]])[i_int])
+    detadx_hi[i_int] <- sp_rp_eta(sp_rp_dbasis(kn, x2),
+                                  lapply(dp, function(v) v[i_int]))
+  }
   scale <- environment(fam[["lpdf"]])$cfg$scale
   # -log S, the quantity whose size governs the accuracy of the scored
   # censored term on every scale
@@ -83,8 +94,37 @@ sp_rp_fitted <- function(object, fam) {
     hazard = exp(eta),
     odds = log1p(exp(eta)),
     normal = -stats::pnorm(-eta, log.p = TRUE))
-  list(eta = eta, detadx = detadx, nlogS = nlogS, cens = as.numeric(cens),
-       scale = scale, n = length(y))
+  x_hi <- rep(NA_real_, length(y))
+  if (length(i_int) && !is.null(av[["cens_y2"]])) x_hi[i_int] <- x2
+  list(eta = eta, detadx = detadx, detadx_hi = detadx_hi, nlogS = nlogS,
+       cens = as.numeric(cens), scale = scale, n = length(y), x = x,
+       x_hi = x_hi, dp = dp, knots = kn)
+}
+
+#' How far the fitted survival rises, over the given rows.
+#'
+#' For each row, S is evaluated with that row's own coefficients on a
+#' grid from the smallest observed log time to the row's own (upper)
+#' time, and the rise is the largest amount S climbs above its running
+#' minimum there. A user judges a rising survival function by that
+#' size, which the row count does not give.
+#'
+#' @noRd
+sp_rp_rise <- function(f, rows, n_grid = 200L) {
+  if (!length(rows)) return(0)
+  lo <- min(f$x)
+  surv <- function(eta) switch(f$scale,
+    hazard = exp(-exp(eta)),
+    odds = 1 / (1 + exp(eta)),
+    normal = stats::pnorm(-eta))
+  max(vapply(rows, function(i) {
+    hi <- max(f$x[i], f$x_hi[i], na.rm = TRUE)
+    if (hi <= lo) return(0)
+    g <- seq(lo, hi, length.out = n_grid)
+    s <- surv(sp_rp_eta(sp_rp_basis(f$knots, g),
+                        lapply(f$dp, function(v) v[i])))
+    max(s - cummin(s))
+  }, 0))
 }
 
 #' Report the deep censored rows and the non-monotone rows of a fit
@@ -124,6 +164,71 @@ sp_rp_fitted <- function(object, fam) {
 #' such rows and a reported log likelihood 3952 units away from the
 #' density's.
 #'
+#' @section Censored rows where the survival function rises:
+#' The floor above is only ever used on an EVENT row, because only an
+#' event row has a density. A censored row contributes `log S`, which
+#' the family scores exactly whatever the sign of the derivative. So a
+#' censored row with a non-positive `d(eta)/d(log t)` does not make
+#' `logLik()` wrong. It makes the MODEL wrong: the fitted survival
+#' function rises with time there, and a survival function that rises
+#' is not one.
+#'
+#' This can happen with no event row affected at all. A random effect or
+#' a covariate on `gamma1` gives each group its own slope, the
+#' `log(gamma1 + u)` barrier that holds a slope positive lives in the
+#' density, and a group whose rows are ALL censored contributes no
+#' density. Measured on 40 centres of 10 with five centres followed to
+#' a common administrative time with no deaths, seeds 20260910 to
+#' 20260915: on 4 of 6 seeds those five centres converge at slopes of
+#' -0.18 to -0.31, and one centre's fitted survival goes from 4.2e-50 at
+#' `t = 1e-12` to 0.774 at `t = 2.8`.
+#'
+#' `n_nonmonotone_censored` counts those rows. They are counted apart
+#' from `n_nonmonotone` because the two answer different questions:
+#' `n_nonmonotone` says the reported likelihood is not the model's, and
+#' `n_nonmonotone_censored` says the fitted model is not a survival
+#' distribution where the data are. An interval-censored row is tested at
+#' both ends.
+#'
+#' `action = "error"` REFUSES on `n_nonmonotone` and WARNS on
+#' `n_nonmonotone_censored`, and [frm_curve()] and its two companions do
+#' the same, so on a fit with censored rows only they answer with the
+#' warning. The warning gives `max_survival_rise`, the largest amount the
+#' fitted survival climbs above its running minimum on any flagged row's
+#' own coefficients, because the size is what a user needs to judge it.
+#' The line is drawn where a negative hazard contradicts an observed
+#' event, as flexsurv draws it: `flexsurv::dsurvspline()` sets the
+#' density to 0 where the derivative is not positive, so an event row
+#' there makes the likelihood `-Inf` and the fit avoids it, while a
+#' censored row is never checked and a rise there passes silently.
+#' frmtmb draws the same line and says so. brms's `cox()` family cannot
+#' produce a rising survival at all, because its baseline hazard is an
+#' M-spline basis times non-negative weights; rstpm2 penalizes a
+#' negative hazard during the fit.
+#'
+#' It also fires on an ordinary design, and a user should expect it
+#' there: a cure fraction with a time-varying effect. With
+#' `gamma1 ~ arm` and part of each arm never having the event, the
+#' spline past an arm's last event is fitted to censored rows only, and
+#' it can turn over there. Measured on two arms of 250 with 40 and 55
+#' percent cured, `df` 3 to 6, 20 seeds each: 27 of 80 fits fire, every
+#' flagged row lies past its own arm's last event, and the fitted
+#' survival rises across them by 5.2e-04 to 0.13. The count is right,
+#' since that fitted survival function does rise, and the rise is where
+#' the data carry no event to prevent it. With no time-varying effect
+#' this cannot happen past the last event: every row then shares one
+#' spline, and past the boundary knot its derivative is the one at the
+#' last event row. A fit whose flagged rows are ALL censored warns and
+#' does not refuse. A fit with a flagged EVENT row refuses, as in 0.7.0,
+#' whatever else it flags, and a cure design fitted with proportional
+#' hazards can: its shared spline can turn over at an event row.
+#' Fewer knots or a single `gamma1` remove a censored-row rise.
+#'
+#' The test is at each row's own time. For `df = 1` the derivative is
+#' the same at every time, so a row test is exact. For `df >= 2` the
+#' derivative can dip between two observed times of one group and
+#' recover at both; this check does not search for that.
+#'
 #' @section What this cannot do:
 #' `logLik()` reads `object$opt$objective` directly, so a check that
 #' runs after the fit cannot make `logLik()` or `AIC()` refuse on their
@@ -134,18 +239,21 @@ sp_rp_fitted <- function(object, fam) {
 #'
 #' @param object A `frmtmb_fit` with a [royston_parmar()] family.
 #' @param action `"error"`, the default, refuses when the MONOTONICITY
-#'   floor was used. The censored count never refuses under either
-#'   value; since frmtmb 0.52.0 it is a diagnostic. `"report"` returns
-#'   the same numbers without refusing.
+#'   floor was used on an event row, and warns when a censored row sits
+#'   where the fitted survival function rises. The deep censored count
+#'   never refuses under either value; since frmtmb 0.52.0 it is a
+#'   diagnostic. `"report"` returns the same numbers silently.
 #' @param max_nlogS The `-log S` on a censored row above which the row
 #'   is reported as barely constrained. The default 19.2 is where the
 #'   OLD probability-scale arithmetic passed 1e-8 of error; it is kept
 #'   as the threshold so that the two versions report the same rows.
 #'
 #' @return A list with `n_censored_deep`, `max_nlogS`, `threshold`,
-#'   `n_nonmonotone`, `scale` and `n_obs`, returned invisibly when
-#'   nothing was floored. The offending row indices are the `"rows"`
-#'   attribute, a list with elements `censored` and `nonmonotone`.
+#'   `n_nonmonotone`, `n_nonmonotone_censored`, `max_survival_rise`,
+#'   `scale` and `n_obs`,
+#'   returned invisibly when nothing refuses. The offending row indices
+#'   are the `"rows"` attribute, a list with elements `censored`,
+#'   `nonmonotone` and `nonmonotone_censored`.
 #'
 #' @seealso [royston_parmar()]
 #' @examples
@@ -183,6 +291,12 @@ rp_floored <- function(object, action = c("error", "report"),
   f <- sp_rp_fitted(object, fam)
   cens_rows <- which(f$cens != 0 & f$nlogS > max_nlogS)
   mono_rows <- which(f$cens == 0 & f$detadx <= 0)
+  # A censored row is not floored, so it cannot join mono_rows without
+  # changing what n_nonmonotone means. It is the only row a group with
+  # no events has, so without this count such a group is invisible.
+  rise_rows <- which(f$cens != 0 &
+                       (f$detadx <= 0 | (!is.na(f$detadx_hi) &
+                                           f$detadx_hi <= 0)))
   mx <- if (any(f$cens != 0)) max(f$nlogS[f$cens != 0]) else 0
   # named for what it counts. It was `n_censored_floored` while the
   # censored term WAS floored; with lccdf exact, a row past the
@@ -193,15 +307,40 @@ rp_floored <- function(object, action = c("error", "report"),
               max_nlogS = mx,
               threshold = max_nlogS,
               n_nonmonotone = length(mono_rows),
+              n_nonmonotone_censored = length(rise_rows),
+              max_survival_rise = sp_rp_rise(f, rise_rows),
               scale = f$scale,
               n_obs = f$n)
-  attr(out, "rows") <- list(censored = cens_rows, nonmonotone = mono_rows)
+  attr(out, "rows") <- list(censored = cens_rows, nonmonotone = mono_rows,
+                            nonmonotone_censored = rise_rows)
   if (identical(action, "report")) return(out)
-  # Only the monotonicity floor refuses now. The censored rows are
-  # scored exactly through the family's lccdf slot, so their count is a
-  # diagnostic and stopping on it would refuse a correct fit.
+  # The deep censored rows are scored exactly through the family's
+  # lccdf slot, so their count is a diagnostic. An EVENT row on a
+  # non-positive slope makes logLik() a pseudo-likelihood, which
+  # refuses. A CENSORED row there is scored exactly too, and the rise it
+  # marks is usually extrapolation past a group's last event: that
+  # warns, with its size (user decision, 2026-09-24; flexsurv draws the
+  # same line, silently).
   if (length(mono_rows)) frm_stop(sp_rp_refusal(out, f), call. = FALSE)
+  if (length(rise_rows)) frm_warning(sp_rp_rise_text(out), call. = FALSE)
   invisible(out)
+}
+
+#' The warning for censored rows where the fitted survival rises. One
+#' template, shared with the fit-end hook, so the two read the same.
+#'
+#' @noRd
+sp_rp_rise_text <- function(out) {
+  paste0("the fitted survival rises by up to ",
+         signif(out[["max_survival_rise"]], 2), " across ",
+         out[["n_nonmonotone_censored"]], " of ", out[["n_obs"]],
+         " censored rows, where d(eta)/d(log t) is not positive. Those rows ",
+         "are scored exactly, so logLik() is the model's, but the fitted ",
+         "function is not a survival function there. It is usually past a ",
+         "group's last event, where the spline extrapolates: a cure ",
+         "fraction with a covariate or random effect on gamma1, or a group ",
+         "with no events. Fewer knots, or no slope term for such a group, ",
+         "removes it. rp_floored(action = \"report\") names the rows")
 }
 
 #' The refusal text. One template, so that both floors read the same way
@@ -209,11 +348,10 @@ rp_floored <- function(object, action = c("error", "report"),
 #'
 #' @noRd
 sp_rp_refusal <- function(out, f) {
-  qty <- switch(out$scale, hazard = "the cumulative hazard H",
-                odds = "log(1 + exp(eta))", "-log(Phi(-eta))")
   parts <- character(0)
   if (out$n_nonmonotone) {
     parts <- c(parts, paste0(
+      "this fit's reported likelihood is not the model's. ",
       out$n_nonmonotone, " of ", out$n_obs,
       " observed rows have a non-positive d(eta)/d(log t) at the fitted ",
       "parameters, so no hazard exists there and their true log density ",
@@ -221,14 +359,13 @@ sp_rp_refusal <- function(out, f) {
       "which makes logLik() and AIC() a pseudo-likelihood rather than a ",
       "density"))
   }
-  paste0("rp_floored(): this fit's reported likelihood is not the ",
-         "model's. ", paste(parts, collapse = ". Separately, "),
+  paste0("rp_floored(): ", paste(parts, collapse = ". Separately, "),
          ". The row indices are in the \"rows\" attribute of ",
          "rp_floored(action = \"report\"). The remedy for a ",
-         "non-monotone spline is fewer knots. The censored term is no ",
-         "longer part of this refusal: since frmtmb 0.52.0 this family ",
-         "supplies lccdf and log S is scored exactly, so the censored ",
-         "count that rp_floored() also returns is a diagnostic")
+         "non-monotone spline is fewer knots. The deep censored count is ",
+         "not part of this refusal: since frmtmb 0.52.0 this family ",
+         "supplies lccdf and log S is scored exactly, so that count is a ",
+         "diagnostic")
 }
 
 #' Refuse before reporting a curve off a royston_parmar fit whose

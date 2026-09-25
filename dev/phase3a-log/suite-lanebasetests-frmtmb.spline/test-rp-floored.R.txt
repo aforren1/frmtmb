@@ -1,0 +1,21 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+rp-floored: ..........1...............................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-rp-floored.R:97:3'): fitted() still refuses, and the count 
+Expected `r` to have names `c(...)`.
+Differences:
+    actual                   | expected           
+[2] "max_nlogS"              | "max_nlogS"     [2]
+[3] "threshold"              | "threshold"     [3]
+[4] "n_nonmonotone"          | "n_nonmonotone" [4]
+[5] "n_nonmonotone_censored" -                    
+[6] "max_survival_rise"      -                    
+[7] "scale"                  | "scale"         [5]
+[8] "n_obs"                  | "n_obs"         [6]
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-rp-floored.R ARM lane TESTS 9 PASS 41 FAIL 1 ERROR 0 SKIP 0 WARN 0 

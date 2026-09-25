@@ -1,3 +1,40 @@
+# frmtmb.ode (development version)
+
+* New `frm_ode_records()` splits one NONMEM-shaped table (`evid`, `amt`,
+  `cmt`, `rate`, `dur`, `ii`, `addl`, `ss`) into the observations and the
+  `events` table that `frm_ode()` and `frm_lincmt()` read. It only
+  reshapes, and it refuses by name every record it cannot carry with its
+  own meaning. The refusals that matter most are about order: a reset,
+  a steady-state dose, a replace or a multiply at the same time as
+  another event of the same id (`addl` repeats included), where NONMEM,
+  `frm_ode()` and rxode2 read the instant three ways; an observation
+  listed after an event at its time, or at a steady-state record's time;
+  a reset while an infusion runs; an id split into two blocks; and time
+  running backwards within an id. It also refuses `evid = 2`, rxode2's
+  classic codes such as 101, `ss = 2`, a modeled rate or duration, an
+  item on a record that does not read it (a `rate` on an observation, an
+  `amt` on a reset), a non-finite item, a non-integer `cmt`, an `mdv`
+  that disagrees with `evid`, the NONMEM items `date`, `dat1` to `dat3`,
+  `cont`, `call`, `pcmt`, `l1` and `l2`, and columns named as a dose
+  modifier it does not apply (`ALAGn`, `Fn`, `Rn`, `Dn`, `MTIMEn`,
+  `XSCALE`, `TSCALE`, `lag`, `alag`, `tlag`, `tinf`), columns read as
+  censoring of an observation (`CENS`, `LIMIT`, `BLQ`, `LLOQ`), and an
+  item argument set to `NULL` while `d` has its column. Two times are
+  one instant when they differ by less than the rounding of an `addl`
+  repeat (64 `.Machine$double.eps` of the repeat's scale), so a repeat
+  at `3 * 0.1` meets a record at `0.3` while records 1 ms apart at
+  `t = 1e7` stay distinct. A dose item is read only through
+  its argument; any other column is a covariate. Doses of an id
+  with no observation are dropped with a warning. Validated against
+  `rxode2::et()` and `rxode2::rxSolve()` on random schedules, on
+  `nlmixr2data::warfarin` and `theo_md`, and on same-time constructions
+  (`dev/phase3a-findings.md`).
+* The vignette's Theoph example is written through `frm_ode_records()`.
+* `frm_ode()`'s refusal of an unknown `events` column names
+  `frm_ode_records()`.
+* rxode2 is a new Suggests, for the test that compares the expansion of
+  a schedule against `rxode2::etExpand()`.
+
 # frmtmb.ode 0.6.0
 
 * Documentation only: the vignette and the compatibility notes name

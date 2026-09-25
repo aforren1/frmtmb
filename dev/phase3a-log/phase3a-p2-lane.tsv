@@ -1,0 +1,16 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+lane	test-rp-floored.R	a censored row far past the old floor is now scored exactly	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the censored count reports and no longer refuses	2	2	0	FALSE	FALSE	0
+lane	test-rp-floored.R	fitted() still refuses, and the count is named for what it is	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the family scores log S exactly on all three scales	9	9	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the curve functions draw a deeply censored fit now	2	2	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a non-monotone fit still refuses, and warns at fit end	3	3	0	FALSE	FALSE	0
+lane	test-rp-floored.R	an ordinary censored fit passes and reports its own reach	6	6	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the odds and normal scales are checked on the same quantity	5	5	0	FALSE	FALSE	0
+lane	test-rp-floored.R	rp_floored refuses anything that is not a royston_parmar fit	3	3	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a centre with no events and a falling slope warns	11	11	0	FALSE	FALSE	0
+lane	test-rp-floored.R	the censored-row count reads an interval's upper end	7	7	0	FALSE	FALSE	0
+lane	test-rp-floored.R	an ordinary fit reports zero censored rows where S rises	3	3	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a rise on censored rows only warns, with its size	11	11	0	FALSE	FALSE	0
+lane	test-rp-floored.R	an event-row floor still refuses, and the curve with it	3	3	0	FALSE	FALSE	0
+lane	test-rp-floored.R	a fit with neither is silent	4	4	0	FALSE	FALSE	0
