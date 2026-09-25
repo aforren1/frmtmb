@@ -1,0 +1,41 @@
+brms 2.23.0 
+formula: count ~ Trt * Age + mo(Exp) + s(Age) + volume + offset(Age) + (1 + Trt | visit) + arma(visit, patient) 
+
+== :675 pp_check(fit1, newdata = fit1$data[1:10, ]) ==
+  ggplot: TRUE 
+  observed series length: 10 
+
+== :680/:682 violin_grouped, group read off newdata ==
+  ggplot: TRUE 
+  groups in plot data: 1 
+  newdata visit levels present: 1 
+
+== a group column absent from newdata ==
+  ERROR [brms_error/rlang_error/error/condition]: The following variables can neither be found in 'data' nor in 'data2':
+'visit'
+
+== the response absent from newdata ==
+  ERROR [brms_error/rlang_error/error/condition]: Response variables must be specified in 'newdata'.
+Missing variables: 'count'
+  returned: FALSE 
+  ERROR [brms_error/rlang_error/error/condition]: Response variables must be specified in 'newdata'.
+Missing variables: 'count'
+  ppd returned: FALSE 
+
+== an unseen grouping level in newdata ==
+  ERROR [brms_error/rlang_error/error/condition]: Levels '99' of grouping factor 'visit' cannot be found in the fitted model. Consider setting argument 'allow_new_levels' to TRUE.
+  allow_new_levels = TRUE returned: TRUE 
+
+== re_formula in posterior_predict: ~1 against NA ==
+  ~1 identical to NA: TRUE 
+  ~0 identical to NA: TRUE 
+  NULL identical to NA: FALSE 
+
+== a partial re_formula keeps the named columns ==
+  ~(1 | visit) differs from NULL: TRUE and from NA: TRUE 
+  ~(1 | nosuch) equals NA: TRUE 
+
+== multinomial: pp_check refuses outright ==
+the number of chains is less than 1; sampling not done
+  ERROR [brms_error/rlang_error/error/condition]: 'pp_check' is not implemented for this family.
+  ERROR [brms_error/rlang_error/error/condition]: 'pp_check' is not implemented for this family.

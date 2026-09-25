@@ -1,0 +1,34 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+fitted phi-lag1 0.6370 sigma 1.3420
+a sorted 1 group t1..6                   rows 6  max|z| cov 1.76  max|z| mean 0.67
+b scrambled+interleaved+single           rows 9  max|z| cov 1.69  max|z| mean 2.14
+c gap lag 4                              rows 2  max|z| cov 1.87  max|z| mean 0.61
+d fitted group labels                    rows 3  max|z| cov 1.70  max|z| mean 0.35
+e dup time: ERROR: simulate(newdata = ): the residual correlation term ar(time, gr = g, cov = TRUE) needs each group's rows at distinct times, and newdata has 1 row(s) that repeat a time within their group 
+f fit without gr: d = 6 
+f no gr                                  rows 3  max|z| cov 1.44  max|z| mean 0.62
+g row means  15.901 -13.820   1.027  expected   15.917 -13.823   1.047 
+h sigma~x: emp cov
+       [,1]   [,2]   [,3]
+[1,] 1.9520 1.0736 0.6309
+[2,] 1.0736 2.3178 1.3712
+[3,] 0.6309 1.3712 3.1050
+   exact
+       2      3      4
+2 1.9193 1.0630 0.6161
+3 1.0630 2.3019 1.3342
+4 0.6161 1.3342 3.0235
+80 rows removed because of missing values (na.action)
+i unstr fitted time levels: 1 2 3 4  nobs 320  data_frame rows 320 
+      1     2      3      4
+1 1.000 0.780  0.157  0.505
+2 0.780 1.000  0.368  0.184
+3 0.157 0.368  1.000 -0.399
+4 0.505 0.184 -0.399  1.000
+i emp cor at times 1..4
+      [,1]  [,2]   [,3]   [,4]
+[1,] 1.000 0.779  0.160  0.508
+[2,] 0.779 1.000  0.375  0.188
+[3,] 0.160 0.375  1.000 -0.394
+[4,] 0.508 0.188 -0.394  1.000
+i time 0 (only on NA rows): ERROR: simulate(newdata = ): the residual correlation term unstr(time, gr = g) counts lags in the fitted time levels (4 of them), and newdata puts 1 row(s) at a time outside that set (time = 0) 

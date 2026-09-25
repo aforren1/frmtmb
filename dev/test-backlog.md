@@ -133,7 +133,30 @@ to do, and every closure carries the measurement that closed it.
   because brms has no `simulate()` and what a partial formula should
   MEAN there (redraw the dropped terms, as `NA` does for all of them?)
   is a decision. `dharma_residuals()` and `pp_check()` on a fit reach
-  it. Filed by lane wt-reunc.
+  it. Filed by lane wt-reunc. RESOLVED by lane wt-simnewdata: the user
+  decided on 2026-09-23 that simulate() reads re_formula as predict()
+  does, and a term that is not kept is redrawn
+  (`dev/simnewdata-findings.md`).
+
+- DECIDED, waiting for a lane (user, 2026-09-24): `re_formula = NA`
+  must keep EVERY smooth, as brms keeps every smooth under any
+  `re_formula`. Today `predict(re_formula = NA)`, and so
+  `simulate(re_formula = NA)`, drops three kinds of smooth that are
+  indexed by a grouping factor: `s(g, bs = "re")`, a factor smooth
+  `s(x, g, bs = "fs")`, and a `t2()` with an `re` margin. Measured by
+  the review of lane wt-simnewdata (`dev/simnewdata-review/rv-smooth.R`,
+  log `dev/simnewdata-review/log/smooth.txt`): of the constructions
+  that fit, `predict(NA)` keeps every smooth block of `s(x)`,
+  `s(x, by = f)`, `t2(x, z)`, `gp()`, `hsgp`, `sigma ~ s(x)` and
+  `s(x) + (1 | g)`; it keeps block 1 of `s(g, bs = "re")` and drops
+  block 2, which `simulate(NA)` then redraws (row sd over sigma 1.260);
+  it keeps none of `s(x, g, bs = "fs")` (redraws 1, 2, 3; 1.741) and
+  none of `t2(x, g, re)` (redraws 1, 2; 1.677). The rule to change is
+  `smooth_group_block_ids()` and its use in `lp_eta_design()`;
+  `sim_group_block_ids()` follows it. The refusal of a partial formula
+  beside a factor smooth (`re_fit_components()`'s "unnamed" content)
+  has to be revisited with it, because its stated reason is that `NA`
+  drops that content. Recorded, not changed, by lane wt-simnewdata.
 
 - The uncertainty in the VARIANCE PARAMETERS is not in any interval
   here. Measured by lane wt-reunc with an exact positive control

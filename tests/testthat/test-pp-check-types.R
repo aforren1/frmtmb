@@ -176,10 +176,12 @@ ppt_refusals <- list(
        call = quote(pp_check(fit, type = "stat_grouped",
                              group = c("g", "g"))),
        pats = "single string"),
-  list(what = "newdata, which simulate() cannot honor",
+  list(what = "a newdata that lacks the response, for a ppc type",
+       # brms refuses it too: "Response variables must be specified in
+       # 'newdata'" (dev/simnewdata-log/brms.txt)
        call = quote(pp_check(fit, type = "dens_overlay",
-                             newdata = ppt_data())),
-       pats = "newdata"),
+                             newdata = ppt_data()[1:10, c("x", "g")])),
+       pats = "does not supply 'y'"),
   list(what = "draw_ids, which a maximum-likelihood fit has none of",
        call = quote(pp_check(fit, ndraws = 5, draw_ids = 1:3)),
        pats = "draw_ids")
@@ -279,4 +281,74 @@ test_that("error_binned is refused on a category response, as in brms", {
   set.seed(3)
   p <- pp_check(fk, type = "bars", ndraws = 5)
   expect_setequal(p$data$x, 1:3)
+})
+
+# pp_check(newdata = ) answers as brms answers, rather than refusing
+# (lane wt-simnewdata). brms 2.23.0 on its own example fit: a ggplot
+# whose observed series is the newdata's 10 responses, and a grouped
+# type whose groups are the newdata's (dev/simnewdata-log/brms.txt).
+test_that("pp_check(newdata = ) plots the newdata's rows", {
+  fit <- ppt_gauss_fit()
+  nd <- ppt_data()[1:10, ]
+  set.seed(4)
+  p <- pp_check(fit, newdata = nd, ndraws = 5)
+  expect_s3_class(p, "ggplot")
+  pd <- as.data.frame(p$data)
+  expect_equal(pd$value[pd$is_y], nd$y)
+  expect_identical(nrow(pd), 10L * 6L)
+})
+
+test_that("pp_check(newdata = ) reads `group` off the newdata", {
+  fit <- ppt_gauss_fit()
+  nd <- ppt_data()[1:12, ]
+  nd$g <- factor(nd$g, levels = levels(nd$g))
+  nd <- nd[nd$g %in% c("a", "b"), ]
+  set.seed(5)
+  p <- pp_check(fit, type = "violin_grouped", group = "g", newdata = nd,
+                ndraws = 5)
+  expect_s3_class(p, "ggplot")
+  expect_setequal(as.character(unique(p$data$group)), c("a", "b"))
+})
+
+test_that("pp_check(newdata = , prefix = \"ppd\") needs no response", {
+  fit <- ppt_gauss_fit()
+  nd <- ppt_data()[1:10, c("x", "g")]
+  set.seed(6)
+  p <- pp_check(fit, newdata = nd, ndraws = 5, prefix = "ppd")
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("pp_check(newdata = ) drops a missing response as brms does", {
+  fit <- ppt_gauss_fit()
+  nd <- ppt_data()[1:10, ]
+  nd$y[3] <- NA
+  set.seed(7)
+  expect_warning(p <- pp_check(fit, newdata = nd, ndraws = 5),
+                 "NA responses are not shown")
+  pd <- as.data.frame(p$data)
+  expect_equal(pd$value[pd$is_y], nd$y[-3])
+})
+
+test_that("pp_check(re_formula = ~1) redraws the group effects, as NA does", {
+  # ~1 used to condition on the fitted effects in simulate() while
+  # meaning "no group-level effects" in predict()
+  fit <- ppt_gauss_fit()
+  set.seed(8)
+  p1 <- pp_check(fit, ndraws = 5, re_formula = ~1)
+  set.seed(8)
+  pna <- pp_check(fit, ndraws = 5, re_formula = NA)
+  expect_identical(p1$data, pna$data)
+})
+
+test_that("error_binned on a multinomial fit calls it counts, not a category", {
+  set.seed(105)
+  n <- 80
+  dm <- data.frame(x = stats::rnorm(n), n = 15L)
+  dm$Y <- t(vapply(seq_len(n), function(i) {
+    as.vector(stats::rmultinom(1, 15, c(0.3, 0.3, 0.4)))
+  }, numeric(3)))
+  fit <- frm(bf(Y | trials(n) ~ x) + multinomial(K = 3), data = dm)
+  expect_error(pp_check(fit, type = "error_binned"),
+               "response is a set of counts over categories",
+               class = "frmtmb_error")
 })

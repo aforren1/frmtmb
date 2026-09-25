@@ -1,0 +1,15 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+     sim_1    sim_2
+1      NaN      NaN
+2 2.487306 2.903345
+NA covariate: ANSWERS 
+Warning messages:
+1: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+2: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+group column absent, global g of length 5:
+[1] "ERROR: non-conformable arrays"
+global g of length 2 (levels 3, 4): answers; cor of the two rows 0.015 
+group column absent, no global g: ERROR: simulate(newdata = ): newdata has no column `g`, the grouping factor of a group-level term. A kept term enters at each level's estimate and a redrawn one shares one draw across the rows of a level, so the column says which rows are which. allow_new_levels = TRUE treats every row as an unseen level of a kept term 
+group column absent, NULL, allow_new_levels: ANSWERS 

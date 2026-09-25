@@ -352,6 +352,10 @@ test_that("mcmc_plot() and pairs() call bayesplot on the draws array", {
   cs <- dm_case()
   skip_if_not_installed("bayesplot")
   skip_if_not_installed("ggplot2")
+  # pairs() draws as it builds its grid, and without a device R opens
+  # Rplots.pdf in the tests directory (dev/simnewdata-log/rplots-base.txt)
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
   expect_s3_class(mcmc_plot(cs$ds), "ggplot")
   expect_s3_class(mcmc_plot(cs$ds, type = "trace", variable = "b_x"),
                   "ggplot")
@@ -449,6 +453,11 @@ test_that("the matrix-response guards name the function that hit them", {
   # what a matrix response that is NOT polytomous still meets
   expect_error(predictive_error(ds, ndraws = 5),
                "not defined for the", class = "frmtmb_error")
+  # a multinomial response is counts over categories, not a category;
+  # the fit method's refusal says the same
+  expect_error(pp_check(ds, type = "error_binned", ndraws = 5),
+               "response is a set of counts over categories",
+               class = "frmtmb_error")
 })
 
 test_that("a category response refuses a predictive error, as in brms", {

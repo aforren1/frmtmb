@@ -24,9 +24,21 @@ with the Wald one by name.}
 
 \item{seed}{Optional seed.}
 
-\item{re_formula}{Passed to \code{\link[=simulate]{simulate()}}; the default \code{NA} simulates
-marginally (new random effects), which is the standard parametric
-bootstrap for mixed models.}
+\item{re_formula}{Which random terms stay at their fitted values; the
+rest are redrawn in every replicate. The default \code{NA} (or \code{~0},
+\code{~1}) redraws every group-level effect AND the penalized
+coefficients of every smooth, \code{gp()} and \code{hsgp()} term from their
+fitted laws, a whole-model parametric bootstrap in the manner of
+lme4's \code{bootMer(use.u = FALSE)} with the smooths treated as random
+effects. \code{NULL} conditions on the fitted random effects and smooths
+and redraws the observation noise alone. A one-sided formula keeps
+the group-level terms it names at their fitted values and the
+smooths with them, and redraws the other group-level terms, as
+\code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} reads it.
+
+This is not \code{simulate(re_formula = NA)}, which holds a population
+smooth at its fitted curve, because a posterior-predictive check
+needs the curve the model estimated.}
 }
 \value{
 A \code{frmtmb_boot} object: \code{t0} (FUN at the original fit), \code{t}
@@ -35,7 +47,8 @@ percentile intervals.
 }
 \description{
 Simulates \code{nsim} response vectors from the fitted model (by default
-with new random effects each draw), refits the model to each through
+with new group effects and new smooth coefficients each draw; see
+\code{re_formula}), refits the model to each through
 \code{\link[=refit]{refit()}} (warm-started, no re-parsing), and collects \code{FUN} of every
 refit. Draws whose refit fails are kept as \code{NA} rows; draws whose
 optimizer does not report convergence are kept but flagged.

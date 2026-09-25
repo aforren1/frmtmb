@@ -1,0 +1,4 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3 
+base: smooth default, estimate -0.2833 / 5.2011; bootstrap sd 0.0385 / 1.4376; converged 40 of 40
+base: smooth NULL, estimate -0.2833 / 5.2011; bootstrap sd 0.0432 / 0.3693; converged 40 of 40
+base: intercept Wald se 0.0460

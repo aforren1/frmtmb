@@ -229,6 +229,16 @@ for (b in blocks) {
 }
 stopifnot(!anyDuplicated(ids_by_pkg))
 
+# brms's methods file calls plot() and pairs(), which draw on the
+# current device; without one, R opens Rplots.pdf in the tests
+# directory, and R CMD build ships whatever is there. Measured, not
+# grepped: the sample package's methods file left one on 0.62.0
+# (dev/simnewdata-log/rplots-base.txt).
+device_guard <- c(
+  "grDevices::pdf(NULL)",
+  "withr::defer(grDevices::dev.off(), teardown_env())"
+)
+
 header <- function(f, pkg, cfg) {
   pre <- cfg$pre
   if (pkg == "frmtmb.sample" && !is.null(cfg$sample_pre)) {
@@ -241,6 +251,7 @@ header <- function(f, pkg, cfg) {
     "",
     "skip_unless_brms_suite()",
     if (pkg == "frmtmb.sample" && cfg$topic == "methods") "skip_sampler()",
+    if (cfg$topic == "methods") device_guard,
     pre,
     "")
 }

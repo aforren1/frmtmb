@@ -1,0 +1,518 @@
+gaussian ML                vcov                   identical
+gaussian ML                fixef                  identical
+gaussian ML                logLik                 identical
+gaussian ML                summary                identical
+gaussian ML                predict                identical
+gaussian ML                predict seed           identical
+gaussian ML                fitted                 identical
+gaussian ML                fitted seed            identical
+gaussian ML                predict NA             identical
+gaussian ML                predict NA seed        identical
+gaussian ML                fitted ~1              identical
+gaussian ML                fitted ~1 seed         identical
+gaussian ML                simulate NULL          identical
+gaussian ML                simulate NULL seed     identical
+gaussian ML                simulate NULL seed seed identical
+gaussian ML                simulate NA            identical
+gaussian ML                simulate NA seed       identical
+gaussian REML              vcov                   identical
+gaussian REML              fixef                  identical
+gaussian REML              logLik                 identical
+gaussian REML              summary                identical
+gaussian REML              predict                identical
+gaussian REML              predict seed           identical
+gaussian REML              fitted                 identical
+gaussian REML              fitted seed            identical
+gaussian REML              predict NA             identical
+gaussian REML              predict NA seed        identical
+gaussian REML              fitted ~1              identical
+gaussian REML              fitted ~1 seed         identical
+gaussian REML              simulate NULL          identical
+gaussian REML              simulate NULL seed     identical
+gaussian REML              simulate NULL seed seed identical
+gaussian REML              simulate NA            identical
+gaussian REML              simulate NA seed       identical
+gaussian profile           vcov                   identical
+gaussian profile           fixef                  identical
+gaussian profile           logLik                 identical
+gaussian profile           summary                identical
+gaussian profile           predict                identical
+gaussian profile           predict seed           identical
+gaussian profile           fitted                 identical
+gaussian profile           fitted seed            identical
+gaussian profile           predict NA             identical
+gaussian profile           predict NA seed        identical
+gaussian profile           fitted ~1              identical
+gaussian profile           fitted ~1 seed         identical
+gaussian profile           simulate NULL          identical
+gaussian profile           simulate NULL seed     identical
+gaussian profile           simulate NULL seed seed identical
+gaussian profile           simulate NA            identical
+gaussian profile           simulate NA seed       identical
+poisson ML                 vcov                   identical
+poisson ML                 fixef                  identical
+poisson ML                 logLik                 identical
+poisson ML                 summary                identical
+poisson ML                 predict                identical
+poisson ML                 predict seed           identical
+poisson ML                 fitted                 identical
+poisson ML                 fitted seed            identical
+poisson ML                 predict NA             identical
+poisson ML                 predict NA seed        identical
+poisson ML                 fitted ~1              identical
+poisson ML                 fitted ~1 seed         identical
+poisson ML                 simulate NULL          identical
+poisson ML                 simulate NULL seed     identical
+poisson ML                 simulate NULL seed seed identical
+poisson ML                 simulate NA            identical
+poisson ML                 simulate NA seed       identical
+poisson REML               vcov                   identical
+poisson REML               fixef                  identical
+poisson REML               logLik                 identical
+poisson REML               summary                identical
+poisson REML               predict                identical
+poisson REML               predict seed           identical
+poisson REML               fitted                 identical
+poisson REML               fitted seed            identical
+poisson REML               predict NA             identical
+poisson REML               predict NA seed        identical
+poisson REML               fitted ~1              identical
+poisson REML               fitted ~1 seed         identical
+poisson REML               simulate NULL          identical
+poisson REML               simulate NULL seed     identical
+poisson REML               simulate NULL seed seed identical
+poisson REML               simulate NA            identical
+poisson REML               simulate NA seed       identical
+poisson profile            vcov                   identical
+poisson profile            fixef                  identical
+poisson profile            logLik                 identical
+poisson profile            summary                identical
+poisson profile            predict                identical
+poisson profile            predict seed           identical
+poisson profile            fitted                 identical
+poisson profile            fitted seed            identical
+poisson profile            predict NA             identical
+poisson profile            predict NA seed        identical
+poisson profile            fitted ~1              identical
+poisson profile            fitted ~1 seed         identical
+poisson profile            simulate NULL          identical
+poisson profile            simulate NULL seed     identical
+poisson profile            simulate NULL seed seed identical
+poisson profile            simulate NA            identical
+poisson profile            simulate NA seed       identical
+distributional ML          vcov                   identical
+distributional ML          fixef                  identical
+distributional ML          logLik                 identical
+distributional ML          summary                identical
+distributional ML          predict                identical
+distributional ML          predict seed           identical
+distributional ML          fitted                 identical
+distributional ML          fitted seed            identical
+distributional ML          predict NA             identical
+distributional ML          predict NA seed        identical
+distributional ML          fitted ~1              identical
+distributional ML          fitted ~1 seed         identical
+distributional ML          simulate NULL          identical
+distributional ML          simulate NULL seed     identical
+distributional ML          simulate NULL seed seed identical
+distributional ML          simulate NA            identical
+distributional ML          simulate NA seed       identical
+distributional REML        vcov                   identical
+distributional REML        fixef                  identical
+distributional REML        logLik                 identical
+distributional REML        summary                identical
+distributional REML        predict                identical
+distributional REML        predict seed           identical
+distributional REML        fitted                 identical
+distributional REML        fitted seed            identical
+distributional REML        predict NA             identical
+distributional REML        predict NA seed        identical
+distributional REML        fitted ~1              identical
+distributional REML        fitted ~1 seed         identical
+distributional REML        simulate NULL          identical
+distributional REML        simulate NULL seed     identical
+distributional REML        simulate NULL seed seed identical
+distributional REML        simulate NA            identical
+distributional REML        simulate NA seed       identical
+distributional profile     vcov                   identical
+distributional profile     fixef                  identical
+distributional profile     logLik                 identical
+distributional profile     summary                identical
+distributional profile     predict                identical
+distributional profile     predict seed           identical
+distributional profile     fitted                 identical
+distributional profile     fitted seed            identical
+distributional profile     predict NA             identical
+distributional profile     predict NA seed        identical
+distributional profile     fitted ~1              identical
+distributional profile     fitted ~1 seed         identical
+distributional profile     simulate NULL          identical
+distributional profile     simulate NULL seed     identical
+distributional profile     simulate NULL seed seed identical
+distributional profile     simulate NA            identical
+distributional profile     simulate NA seed       identical
+mixed ML                   vcov                   identical
+mixed ML                   fixef                  identical
+mixed ML                   logLik                 identical
+mixed ML                   summary                identical
+mixed ML                   predict                identical
+mixed ML                   predict seed           identical
+mixed ML                   fitted                 identical
+mixed ML                   fitted seed            identical
+mixed ML                   predict NA             identical
+mixed ML                   predict NA seed        identical
+mixed ML                   fitted ~1              identical
+mixed ML                   fitted ~1 seed         identical
+mixed ML                   simulate NULL          identical
+mixed ML                   simulate NULL seed     identical
+mixed ML                   simulate NULL seed seed identical
+mixed ML                   simulate NA            identical
+mixed ML                   simulate NA seed       identical
+mixed ML                   simulate ~1            moved_as_intended
+mixed ML                   simulate ~1 seed       moved_as_intended
+mixed ML                   pp_check NA            identical
+mixed ML                   pp_check NA seed       identical
+mixed ML                   pp_check ~1            moved_as_intended
+mixed ML                   pp_check ~1 seed       moved_as_intended
+mixed REML                 vcov                   identical
+mixed REML                 fixef                  identical
+mixed REML                 logLik                 identical
+mixed REML                 summary                identical
+mixed REML                 predict                identical
+mixed REML                 predict seed           identical
+mixed REML                 fitted                 identical
+mixed REML                 fitted seed            identical
+mixed REML                 predict NA             identical
+mixed REML                 predict NA seed        identical
+mixed REML                 fitted ~1              identical
+mixed REML                 fitted ~1 seed         identical
+mixed REML                 simulate NULL          identical
+mixed REML                 simulate NULL seed     identical
+mixed REML                 simulate NULL seed seed identical
+mixed REML                 simulate NA            identical
+mixed REML                 simulate NA seed       identical
+mixed REML                 simulate ~1            moved_as_intended
+mixed REML                 simulate ~1 seed       moved_as_intended
+mixed REML                 pp_check NA            identical
+mixed REML                 pp_check NA seed       identical
+mixed REML                 pp_check ~1            moved_as_intended
+mixed REML                 pp_check ~1 seed       moved_as_intended
+mixed profile              vcov                   identical
+mixed profile              fixef                  identical
+mixed profile              logLik                 identical
+mixed profile              summary                identical
+mixed profile              predict                identical
+mixed profile              predict seed           identical
+mixed profile              fitted                 identical
+mixed profile              fitted seed            identical
+mixed profile              predict NA             identical
+mixed profile              predict NA seed        identical
+mixed profile              fitted ~1              identical
+mixed profile              fitted ~1 seed         identical
+mixed profile              simulate NULL          identical
+mixed profile              simulate NULL seed     identical
+mixed profile              simulate NULL seed seed identical
+mixed profile              simulate NA            identical
+mixed profile              simulate NA seed       identical
+mixed profile              simulate ~1            moved_as_intended
+mixed profile              simulate ~1 seed       moved_as_intended
+mixed profile              pp_check NA            identical
+mixed profile              pp_check NA seed       identical
+mixed profile              pp_check ~1            moved_as_intended
+mixed profile              pp_check ~1 seed       moved_as_intended
+two_terms ML               vcov                   identical
+two_terms ML               fixef                  identical
+two_terms ML               logLik                 identical
+two_terms ML               summary                identical
+two_terms ML               predict                identical
+two_terms ML               predict seed           identical
+two_terms ML               fitted                 identical
+two_terms ML               fitted seed            identical
+two_terms ML               predict NA             identical
+two_terms ML               predict NA seed        identical
+two_terms ML               fitted ~1              identical
+two_terms ML               fitted ~1 seed         identical
+two_terms ML               simulate NULL          identical
+two_terms ML               simulate NULL seed     identical
+two_terms ML               simulate NULL seed seed identical
+two_terms ML               simulate NA            identical
+two_terms ML               simulate NA seed       identical
+two_terms ML               simulate ~1            moved_as_intended
+two_terms ML               simulate ~1 seed       moved_as_intended
+two_terms ML               predict partial        identical
+two_terms ML               predict partial seed   identical
+two_terms ML               fitted partial         identical
+two_terms ML               fitted partial seed    identical
+two_terms ML               linpred partial nd     identical
+two_terms ML               linpred partial nd seed identical
+two_terms ML               simulate partial       moved_as_intended
+two_terms ML               simulate partial seed  moved_as_intended
+two_terms ML               nosuch                 identical
+two_terms ML               nosuch seed            identical
+two_terms ML               pp_check NA            identical
+two_terms ML               pp_check NA seed       identical
+two_terms ML               pp_check ~1            moved_as_intended
+two_terms ML               pp_check ~1 seed       moved_as_intended
+two_terms REML             vcov                   identical
+two_terms REML             fixef                  identical
+two_terms REML             logLik                 identical
+two_terms REML             summary                identical
+two_terms REML             predict                identical
+two_terms REML             predict seed           identical
+two_terms REML             fitted                 identical
+two_terms REML             fitted seed            identical
+two_terms REML             predict NA             identical
+two_terms REML             predict NA seed        identical
+two_terms REML             fitted ~1              identical
+two_terms REML             fitted ~1 seed         identical
+two_terms REML             simulate NULL          identical
+two_terms REML             simulate NULL seed     identical
+two_terms REML             simulate NULL seed seed identical
+two_terms REML             simulate NA            identical
+two_terms REML             simulate NA seed       identical
+two_terms REML             simulate ~1            moved_as_intended
+two_terms REML             simulate ~1 seed       moved_as_intended
+two_terms REML             predict partial        identical
+two_terms REML             predict partial seed   identical
+two_terms REML             fitted partial         identical
+two_terms REML             fitted partial seed    identical
+two_terms REML             linpred partial nd     identical
+two_terms REML             linpred partial nd seed identical
+two_terms REML             simulate partial       moved_as_intended
+two_terms REML             simulate partial seed  moved_as_intended
+two_terms REML             nosuch                 identical
+two_terms REML             nosuch seed            identical
+two_terms REML             pp_check NA            identical
+two_terms REML             pp_check NA seed       identical
+two_terms REML             pp_check ~1            moved_as_intended
+two_terms REML             pp_check ~1 seed       moved_as_intended
+two_terms profile          vcov                   identical
+two_terms profile          fixef                  identical
+two_terms profile          logLik                 identical
+two_terms profile          summary                identical
+two_terms profile          predict                identical
+two_terms profile          predict seed           identical
+two_terms profile          fitted                 identical
+two_terms profile          fitted seed            identical
+two_terms profile          predict NA             identical
+two_terms profile          predict NA seed        identical
+two_terms profile          fitted ~1              identical
+two_terms profile          fitted ~1 seed         identical
+two_terms profile          simulate NULL          identical
+two_terms profile          simulate NULL seed     identical
+two_terms profile          simulate NULL seed seed identical
+two_terms profile          simulate NA            identical
+two_terms profile          simulate NA seed       identical
+two_terms profile          simulate ~1            moved_as_intended
+two_terms profile          simulate ~1 seed       moved_as_intended
+two_terms profile          predict partial        identical
+two_terms profile          predict partial seed   identical
+two_terms profile          fitted partial         identical
+two_terms profile          fitted partial seed    identical
+two_terms profile          linpred partial nd     identical
+two_terms profile          linpred partial nd seed identical
+two_terms profile          simulate partial       moved_as_intended
+two_terms profile          simulate partial seed  moved_as_intended
+two_terms profile          nosuch                 identical
+two_terms profile          nosuch seed            identical
+two_terms profile          pp_check NA            identical
+two_terms profile          pp_check NA seed       identical
+two_terms profile          pp_check ~1            moved_as_intended
+two_terms profile          pp_check ~1 seed       moved_as_intended
+mixed_poisson ML           vcov                   identical
+mixed_poisson ML           fixef                  identical
+mixed_poisson ML           logLik                 identical
+mixed_poisson ML           summary                identical
+mixed_poisson ML           predict                identical
+mixed_poisson ML           predict seed           identical
+mixed_poisson ML           fitted                 identical
+mixed_poisson ML           fitted seed            identical
+mixed_poisson ML           predict NA             identical
+mixed_poisson ML           predict NA seed        identical
+mixed_poisson ML           fitted ~1              identical
+mixed_poisson ML           fitted ~1 seed         identical
+mixed_poisson ML           simulate NULL          identical
+mixed_poisson ML           simulate NULL seed     identical
+mixed_poisson ML           simulate NULL seed seed identical
+mixed_poisson ML           simulate NA            identical
+mixed_poisson ML           simulate NA seed       identical
+mixed_poisson ML           simulate ~1            moved_as_intended
+mixed_poisson ML           simulate ~1 seed       moved_as_intended
+mixed_poisson ML           pp_check NA            identical
+mixed_poisson ML           pp_check NA seed       identical
+mixed_poisson ML           pp_check ~1            moved_as_intended
+mixed_poisson ML           pp_check ~1 seed       moved_as_intended
+mixed_poisson REML         vcov                   identical
+mixed_poisson REML         fixef                  identical
+mixed_poisson REML         logLik                 identical
+mixed_poisson REML         summary                identical
+mixed_poisson REML         predict                identical
+mixed_poisson REML         predict seed           identical
+mixed_poisson REML         fitted                 identical
+mixed_poisson REML         fitted seed            identical
+mixed_poisson REML         predict NA             identical
+mixed_poisson REML         predict NA seed        identical
+mixed_poisson REML         fitted ~1              identical
+mixed_poisson REML         fitted ~1 seed         identical
+mixed_poisson REML         simulate NULL          identical
+mixed_poisson REML         simulate NULL seed     identical
+mixed_poisson REML         simulate NULL seed seed identical
+mixed_poisson REML         simulate NA            identical
+mixed_poisson REML         simulate NA seed       identical
+mixed_poisson REML         simulate ~1            moved_as_intended
+mixed_poisson REML         simulate ~1 seed       moved_as_intended
+mixed_poisson REML         pp_check NA            identical
+mixed_poisson REML         pp_check NA seed       identical
+mixed_poisson REML         pp_check ~1            moved_as_intended
+mixed_poisson REML         pp_check ~1 seed       moved_as_intended
+mixed_poisson profile      vcov                   identical
+mixed_poisson profile      fixef                  identical
+mixed_poisson profile      logLik                 identical
+mixed_poisson profile      summary                identical
+mixed_poisson profile      predict                identical
+mixed_poisson profile      predict seed           identical
+mixed_poisson profile      fitted                 identical
+mixed_poisson profile      fitted seed            identical
+mixed_poisson profile      predict NA             identical
+mixed_poisson profile      predict NA seed        identical
+mixed_poisson profile      fitted ~1              identical
+mixed_poisson profile      fitted ~1 seed         identical
+mixed_poisson profile      simulate NULL          identical
+mixed_poisson profile      simulate NULL seed     identical
+mixed_poisson profile      simulate NULL seed seed identical
+mixed_poisson profile      simulate NA            identical
+mixed_poisson profile      simulate NA seed       identical
+mixed_poisson profile      simulate ~1            moved_as_intended
+mixed_poisson profile      simulate ~1 seed       moved_as_intended
+mixed_poisson profile      pp_check NA            identical
+mixed_poisson profile      pp_check NA seed       identical
+mixed_poisson profile      pp_check ~1            moved_as_intended
+mixed_poisson profile      pp_check ~1 seed       moved_as_intended
+dist_mixed ML              vcov                   identical
+dist_mixed ML              fixef                  identical
+dist_mixed ML              logLik                 identical
+dist_mixed ML              summary                identical
+dist_mixed ML              predict                identical
+dist_mixed ML              predict seed           identical
+dist_mixed ML              fitted                 identical
+dist_mixed ML              fitted seed            identical
+dist_mixed ML              predict NA             identical
+dist_mixed ML              predict NA seed        identical
+dist_mixed ML              fitted ~1              identical
+dist_mixed ML              fitted ~1 seed         identical
+dist_mixed ML              simulate NULL          identical
+dist_mixed ML              simulate NULL seed     identical
+dist_mixed ML              simulate NULL seed seed identical
+dist_mixed ML              simulate NA            identical
+dist_mixed ML              simulate NA seed       identical
+dist_mixed ML              simulate ~1            moved_as_intended
+dist_mixed ML              simulate ~1 seed       moved_as_intended
+dist_mixed ML              pp_check NA            identical
+dist_mixed ML              pp_check NA seed       identical
+dist_mixed ML              pp_check ~1            moved_as_intended
+dist_mixed ML              pp_check ~1 seed       moved_as_intended
+dist_mixed REML            vcov                   identical
+dist_mixed REML            fixef                  identical
+dist_mixed REML            logLik                 identical
+dist_mixed REML            summary                identical
+dist_mixed REML            predict                identical
+dist_mixed REML            predict seed           identical
+dist_mixed REML            fitted                 identical
+dist_mixed REML            fitted seed            identical
+dist_mixed REML            predict NA             identical
+dist_mixed REML            predict NA seed        identical
+dist_mixed REML            fitted ~1              identical
+dist_mixed REML            fitted ~1 seed         identical
+dist_mixed REML            simulate NULL          identical
+dist_mixed REML            simulate NULL seed     identical
+dist_mixed REML            simulate NULL seed seed identical
+dist_mixed REML            simulate NA            identical
+dist_mixed REML            simulate NA seed       identical
+dist_mixed REML            simulate ~1            moved_as_intended
+dist_mixed REML            simulate ~1 seed       moved_as_intended
+dist_mixed REML            pp_check NA            identical
+dist_mixed REML            pp_check NA seed       identical
+dist_mixed REML            pp_check ~1            moved_as_intended
+dist_mixed REML            pp_check ~1 seed       moved_as_intended
+dist_mixed profile         vcov                   identical
+dist_mixed profile         fixef                  identical
+dist_mixed profile         logLik                 identical
+dist_mixed profile         summary                identical
+dist_mixed profile         predict                identical
+dist_mixed profile         predict seed           identical
+dist_mixed profile         fitted                 identical
+dist_mixed profile         fitted seed            identical
+dist_mixed profile         predict NA             identical
+dist_mixed profile         predict NA seed        identical
+dist_mixed profile         fitted ~1              identical
+dist_mixed profile         fitted ~1 seed         identical
+dist_mixed profile         simulate NULL          identical
+dist_mixed profile         simulate NULL seed     identical
+dist_mixed profile         simulate NULL seed seed identical
+dist_mixed profile         simulate NA            identical
+dist_mixed profile         simulate NA seed       identical
+dist_mixed profile         simulate ~1            moved_as_intended
+dist_mixed profile         simulate ~1 seed       moved_as_intended
+dist_mixed profile         pp_check NA            identical
+dist_mixed profile         pp_check NA seed       identical
+dist_mixed profile         pp_check ~1            moved_as_intended
+dist_mixed profile         pp_check ~1 seed       moved_as_intended
+smooth_mixed ML            vcov                   identical
+smooth_mixed ML            fixef                  identical
+smooth_mixed ML            logLik                 identical
+smooth_mixed ML            summary                identical
+smooth_mixed ML            predict                identical
+smooth_mixed ML            predict seed           identical
+smooth_mixed ML            fitted                 identical
+smooth_mixed ML            fitted seed            identical
+smooth_mixed ML            predict NA             identical
+smooth_mixed ML            predict NA seed        identical
+smooth_mixed ML            fitted ~1              identical
+smooth_mixed ML            fitted ~1 seed         identical
+smooth_mixed ML            simulate NULL          identical
+smooth_mixed ML            simulate NULL seed     identical
+smooth_mixed ML            simulate NULL seed seed identical
+smooth_mixed ML            simulate NA smooth     moved_as_intended
+smooth_mixed ML            simulate NA smooth seed identical
+smooth_mixed ML            simulate ~1            moved_as_intended
+smooth_mixed ML            simulate ~1 seed       moved_as_intended
+smooth_mixed REML          vcov                   identical
+smooth_mixed REML          fixef                  identical
+smooth_mixed REML          logLik                 identical
+smooth_mixed REML          summary                identical
+smooth_mixed REML          predict                identical
+smooth_mixed REML          predict seed           identical
+smooth_mixed REML          fitted                 identical
+smooth_mixed REML          fitted seed            identical
+smooth_mixed REML          predict NA             identical
+smooth_mixed REML          predict NA seed        identical
+smooth_mixed REML          fitted ~1              identical
+smooth_mixed REML          fitted ~1 seed         identical
+smooth_mixed REML          simulate NULL          identical
+smooth_mixed REML          simulate NULL seed     identical
+smooth_mixed REML          simulate NULL seed seed identical
+smooth_mixed REML          simulate NA smooth     moved_as_intended
+smooth_mixed REML          simulate NA smooth seed identical
+smooth_mixed REML          simulate ~1            moved_as_intended
+smooth_mixed REML          simulate ~1 seed       moved_as_intended
+smooth_mixed profile       vcov                   identical
+smooth_mixed profile       fixef                  identical
+smooth_mixed profile       logLik                 identical
+smooth_mixed profile       summary                identical
+smooth_mixed profile       predict                identical
+smooth_mixed profile       predict seed           identical
+smooth_mixed profile       fitted                 identical
+smooth_mixed profile       fitted seed            identical
+smooth_mixed profile       predict NA             identical
+smooth_mixed profile       predict NA seed        identical
+smooth_mixed profile       fitted ~1              identical
+smooth_mixed profile       fitted ~1 seed         identical
+smooth_mixed profile       simulate NULL          identical
+smooth_mixed profile       simulate NULL seed     identical
+smooth_mixed profile       simulate NULL seed seed identical
+smooth_mixed profile       simulate NA smooth     moved_as_intended
+smooth_mixed profile       simulate NA smooth seed identical
+smooth_mixed profile       simulate ~1            moved_as_intended
+smooth_mixed profile       simulate ~1 seed       moved_as_intended
+        identical moved_as_intended           DIFFERS 
+              453                63                 0 

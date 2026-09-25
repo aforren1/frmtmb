@@ -1,0 +1,4 @@
+library: C:/Users/adf44/AppData/Local/Temp/1/sn_prefix_lib/frmtmb 
+-- expectation_failure in [ frm_bootstrap() redraws a smooth by default, and NULL holds it ]
+   Expected `stats::sd(whole$t)/stats::sd(cond$t)` > 5. Actual comparison: 1.0 <= 5.0 Difference: -4.0 <= 0 
+RESULT test-simulate-newdata.R pass=39 fail=1 err=0 skip=0 blocks=22

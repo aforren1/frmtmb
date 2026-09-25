@@ -46,7 +46,6 @@ brmsfit-methods:604	frmtmb	cannot transfer	mcmc	brms's plot() of a fit draws pos
 brmsfit-methods:605	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
 brmsfit-methods:606	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
 brmsfit-methods:607	frmtmb	cannot transfer	mcmc	the expect_error is met only by plot() refusing the argument name variable, not by the missing variable brms refuses
-brmsfit-methods:682	frmtmb	defect	refuses-accepted	the assignment above it fails, so `pp` is not bound: that call passes newdata, which pp_check() on a fit refuses because simulate() takes no newdata (brmsfit-methods:675). The grouped types themselves work since lane wt-correct; the group name is resolved against the model frame as brms resolves it
 brmsfit-methods:685	frmtmb	defect	filed	pp_check(type = 'loo_pit_qq') is given no lw or psis_object (dev/brmsnames-findings.md not fixed 8)
 brmsfit-methods:737	frmtmb	defect	refuses-accepted	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301); the shape after it is item 2.6d
 brmsfit-methods:741	frmtmb	defect	refuses-accepted	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301)
@@ -117,4 +116,3 @@ data-helpers:26	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data(
 data-helpers:27	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 brmsfit-methods:394	frmtmb	divergence	hollow	holds only as is.numeric(NA_real_): Evid.Ratio is NA on a fit (D4, dev/brmsnames-findings.md 'The hypothesis() object'), where brms reports a number. Marked by hand, because a rule cannot tell this NA from an NA that is the right answer
 brmsfit-methods:326	frmtmb	cannot transfer	fixture	fitted(fit1, dpar = 'sigma') is brms's four-column summary now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN standard errors), so the Est.Error and the two Q columns are NA and all(fi > 0) is NA rather than TRUE. The Estimate column is positive, which is what the assertion is about; brms's fixture converged. A converged stand-in would transfer it (dev/brmsport-findings.md section 3)
-brmsfit-methods:675	frmtmb	defect	refuses-accepted	pp_check(newdata = ) is refused: simulate() takes no newdata, so the fit method can only simulate its own rows. It used to swallow the argument in its dots and plot the fitted rows instead (lane wt-correct)

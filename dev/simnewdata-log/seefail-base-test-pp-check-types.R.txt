@@ -1,0 +1,17 @@
+library: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+-- expectation_error in [ pp_check() refuses a newdata that lacks the response, for a ppc type ]
+   <frmtmb_error/error/condition> Error: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws 
+-- expectation_error in [ pp_check(newdata = ) plots the newdata's rows ]
+   <frmtmb_error/error/condition> Error: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws 
+-- expectation_error in [ pp_check(newdata = ) reads `group` off the newdata ]
+   <frmtmb_error/error/condition> Error: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws 
+-- expectation_error in [ pp_check(newdata = , prefix = "ppd") needs no response ]
+   <frmtmb_error/error/condition> Error: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws 
+-- expectation_error in [ pp_check(newdata = ) drops a missing response as brms does ]
+   <frmtmb_error/error/condition> Error: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws 
+-- expectation_failure in [ pp_check(re_formula = ~1) redraws the group effects, as NA does ]
+   Expected `p1$data` to be identical to `pna$data`. Differences: actual vs expected                          value - actual[1, ]      0.126996755 + expected[1, ]    0.298605965 - actual[2, ]      0.771692567 + expected[2, ]    1.143806649 - actual[3, ]     -0.937475211 + expected[3, ]    1.513563083 - actual[4, ]     -1.047720451 + expected[4, ]   -0.057842041 - actual[5, ]     -0.833048548 + expect 
+-- expectation_error in [ error_binned on a multinomial fit calls it counts, not a category ]
+   <frmtmb_error/error/condition> Error: Type 'error_binned' is not available for polytomous models: the 'multinomial' response is a category, and a binned error needs a numeric one, as in brms 
+RESULT test-pp-check-types.R pass=182 fail=1 err=6 skip=0 blocks=21

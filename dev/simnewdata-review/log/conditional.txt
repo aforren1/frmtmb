@@ -1,0 +1,22 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+V (fitted):
+            (Intercept)     x1      x2
+(Intercept)      0.9259 0.3379 -0.5410
+x1               0.3379 0.8153  0.0298
+x2              -0.5410 0.0298  0.6744
+layout check, level 1 b vs ranef: -0.62373 -1.21385 -0.54411 | -0.62373 -1.21385 -0.54411 
+internal ~(1 | g)           kept cols 1 fixed=TRUE  mean max|z| 0.23  cov max|z| 0.98
+internal ~(1 + x1 | g)      kept cols 1,2 fixed=TRUE  mean max|z| 0.57  cov max|z| 1.76
+internal ~(0 + x2 | g)      kept cols 3 fixed=TRUE  mean max|z| 0.22  cov max|z| 0.98
+internal ~(x2 + 1 | g)      kept cols 1,3 fixed=TRUE  mean max|z| 0.57  cov max|z| 1.76
+e2e      ~(1 | g)           mean max|z| 1.56  cov max|z| 1.31
+         (marginal law would give cov max|z| 150.87, mean max|z| 435.91)
+e2e      ~(1 + x1 | g)      mean max|z| 1.79  cov max|z| 1.15
+         (marginal law would give cov max|z| 112.83, mean max|z| 301.97)
+two-term plan: redraw 6 cond 1 
+gr_cov     covstructs gr_cov: ERROR: simulate(): re_formula keeps some columns of the group-level term 1 + x1 | g and drops others. A dropped column is redrawn given the kept ones, which nee
+student    covstructs us_t: ERROR: simulate(): re_formula keeps some columns of the group-level term 1 + x1 | g and drops others. A dropped column is redrawn given the kept ones, which nee
+rr         covstructs rr: ERROR: simulate(): re_formula keeps some columns of the group-level term 1 + x1 + x2 | g and drops others. A dropped column is redrawn given the kept ones, whic
+cs         covstructs cs: ANSWERS
+diag       covstructs diag: ANSWERS
+ar1        covstructs ar1: ERROR: simulate(): the re_formula term (0 + h1 | g) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its 

@@ -163,11 +163,11 @@ brmsfit-methods:650	frmtmb.sample	pass
 brmsfit-methods:655	frmtmb.sample	pass	
 brmsfit-methods:660	frmtmb.sample	pass	
 brmsfit-methods:674	frmtmb	pass	
-brmsfit-methods:675	frmtmb	defect	pp_check(newdata = ) is refused: simulate() takes no newdata, so the fit method can only simulate its own rows. It used to swallow the argument in its dots and plot the fitted rows instead (lane wt-correct)
+brmsfit-methods:675	frmtmb	pass	
 brmsfit-methods:676	frmtmb	pass	
 brmsfit-methods:677	frmtmb	pass	
 brmsfit-methods:679	frmtmb	pass	
-brmsfit-methods:682	frmtmb	defect	the assignment above it fails, so `pp` is not bound: that call passes newdata, which pp_check() on a fit refuses because simulate() takes no newdata (brmsfit-methods:675). The grouped types themselves work since lane wt-correct; the group name is resolved against the model frame as brms resolves it
+brmsfit-methods:682	frmtmb	pass	
 brmsfit-methods:685	frmtmb	defect	pp_check(type = 'loo_pit_qq') is given no lw or psis_object (dev/brmsnames-findings.md not fixed 8)
 brmsfit-methods:688	frmtmb	pass	
 brmsfit-methods:693	frmtmb	pass	

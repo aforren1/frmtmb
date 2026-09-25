@@ -1,0 +1,10 @@
+files 280 pass 16458 fail 1 err 0 skip 176 unparsed 0 
+             pkg                  file pass fail err skip
+252 frmtmb.learn test-counterfactual.R   69    1   0    0
+
+files whose count moved against the 0.62.0 baseline:
+           pkg                    file pass pass.base skip skip.base
+        frmtmb   test-pp-check-types.R  193       183    0         0
+        frmtmb test-simulate-newdata.R   40        NA    0        NA
+  frmtmb.learn   test-counterfactual.R   69        70    0         0
+ frmtmb.sample    test-draws-methods.R  148       147    0         0

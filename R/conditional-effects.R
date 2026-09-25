@@ -2508,14 +2508,21 @@ pp_check_retired <- c(
 #' @param x The name of a model variable for the types that take an `x`
 #'   (`"intervals"`, `"ribbon"`, `"error_scatter_avg_vs_x"`, ...),
 #'   looked up as `group` is.
-#' @param newdata,resp brms's arguments. A fit simulates only its own
-#'   rows, so a `newdata` is refused. `resp` is accepted and ignored,
-#'   which is what brms does with it on a model that has one response;
-#'   a multivariate fit is refused before `resp` could select one.
+#' @param newdata,resp brms's arguments. With `newdata` the check is on
+#'   its rows: [simulate()] draws for them, the observed series is its
+#'   response column (needed for `prefix = "ppc"` only), and `group` and
+#'   `x` are read from it, as brms reads them. A row with a missing
+#'   response is dropped with brms's warning. `resp` is accepted and
+#'   ignored, which is what brms does with it on a model that has one
+#'   response; a multivariate fit is refused before `resp` could select
+#'   one.
 #' @param re_formula The random-effect switch, in brms's spelling
 #'   (`pp_check()` is a brms function). On a fit it is passed to
-#'   [simulate()] and defaults to `NA`, which simulates new random
-#'   effects; on draws it is passed to `posterior_predict()` and
+#'   [simulate()] and defaults to `NA`, which redraws every group-level
+#'   effect in each replicate; `~0` and `~1` mean the same, and a
+#'   one-sided formula keeps the terms it names and redraws the rest
+#'   (see [simulate.frmtmb_fit()]). On draws it is passed to
+#'   `posterior_predict()` and
 #'   defaults to `NULL`, because a draw already carries its own. lme4's
 #'   `re.form` is refused. brms honors it on `pp_check()` and warns that
 #'   it ignored it, which is a leak through its dots rather than a
@@ -2547,12 +2554,6 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
     frm_stop("pp_check(): `type` must be a single string", call. = FALSE)
   }
   fun <- pp_check_fun(prefix, type)
-  if (!is.null(newdata)) {
-    frm_stop("pp_check() on a fit simulates the fitted rows only: ",
-             "simulate() takes no newdata, so a newdata cannot be ",
-             "honored. Sample with frmtmb.sample::frm_sample() and call ",
-             "pp_check(newdata = ) on the draws", call. = FALSE)
-  }
   # `resp` is carried so that a positional brms call lands where brms
   # lands it, and it is IGNORED here for the same reason brms ignores it:
   # brms's validate_resp() returns NULL for a model with one response, so
@@ -2560,6 +2561,11 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   # have (measured, dev/correct-log/brms-ppcheck.txt). A multivariate fit
   # is refused by single_response() below, before `resp` could select.
   rspec <- single_response(object, "pp_check()")
+  if (!is.null(newdata) && !is.data.frame(newdata)) {
+    frm_stop("pp_check(): `newdata` must be a data frame, or NULL to ",
+             "check the fitted rows, not ", arg_desc(newdata),
+             call. = FALSE)
+  }
   fargs <- names(formals(fun))
   if (any(c("lw", "psis_object") %in% fargs)) {
     frm_stop("pp_check(type = \"", type, "\") weights posterior draws by ",
@@ -2570,12 +2576,11 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   }
   if (identical(type, "error_binned") && fam_is_polytomous(rspec$family)) {
     frm_stop("Type 'error_binned' is not available for polytomous models: ",
-             "the '", rspec$family[["family"]], "' response is a category, ",
-             "and a binned error needs a numeric one, as in brms",
-             call. = FALSE)
+             "the '", rspec$family[["family"]], "' response is ",
+             pp_check_polytomous_noun(rspec$family), ", and a binned error ",
+             "needs a numeric one, as in brms", call. = FALSE)
   }
-  y <- object$frame[["y"]][[1L]]
-  if (is.matrix(y)) {
+  if (is.matrix(object$frame[["y"]][[1L]])) {
     frm_stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
   # brms reads `group` and `x` off the model's data, not off the call:
@@ -2591,7 +2596,11 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
     frm_stop("Argument 'group' is required for ppc type '", type, "'.",
              call. = FALSE)
   }
-  mf <- if (!is.null(group) || !is.null(x)) stats::model.frame(object)
+  # with newdata, brms's current_data() is the newdata itself, so the
+  # names are looked up there
+  mf <- if (!is.null(group) || !is.null(x)) {
+    newdata %||% stats::model.frame(object)
+  }
   # brms looks the name UP only for a type that takes it, and hands
   # bayesplot whatever `data[[name]]` gives whatever the type: for a type
   # with no such argument that is the column when the name resolves, and
@@ -2612,12 +2621,20 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   # dev/correct-log/punch3-brms-xarg.txt.
   use <- c(group = !is.null(group) && group %in% names(mf),
            x = !is.null(x))
+  y <- if (identical(prefix, "ppc")) {
+    if (is.null(newdata)) {
+      object$frame[["y"]][[1L]]
+    } else {
+      pp_check_newdata_y(object, rspec, newdata)
+    }
+  }
   # NA, not NULL: a fit has ONE estimate of the random effects, so
   # conditioning on it would compare the data against draws that already
   # know each group's deviation. New levels per replicate are what makes
   # this the frequentist analog of the posterior predictive check.
-  sims <- na_unpad(object, simulate(object, nsim = ndraws,
-                                    re_formula = re_formula))
+  sims <- simulate(object, nsim = ndraws, re_formula = re_formula,
+                   newdata = newdata)
+  if (is.null(newdata)) sims <- na_unpad(object, sims)
   # ordinal and categorical draws come back as factors carrying the
   # response's levels; bayesplot compares them with y, which is the
   # 1..K codes the likelihood uses
@@ -2629,8 +2646,14 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
     as.matrix(sims)
   }
   yrep <- t(yrep)
+  # brms drops a newdata row whose response is missing, and says so
+  take <- rep(TRUE, ncol(yrep))
+  if (!is.null(y) && anyNA(y)) {
+    frm_warning("NA responses are not shown in 'pp_check'.", call. = FALSE)
+    take <- !is.na(y)
+  }
   args <- if (identical(prefix, "ppc")) {
-    list(y = as.numeric(y), yrep = yrep)
+    list(y = as.numeric(y)[take], yrep = yrep[, take, drop = FALSE])
   } else {
     list(ypred = yrep)
   }
@@ -2639,9 +2662,9 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
              "fit simulates ", ncol(yrep), ", so `group` and `x` cannot be ",
              "matched to the observations", call. = FALSE)
   }
-  if (use[["group"]]) args$group <- mf[[group]]
+  if (use[["group"]]) args$group <- mf[[group]][take]
   if (use[["x"]]) {
-    xv <- mf[[x]]
+    xv <- mf[[x]][take]
     args$x <- if (is.factor(xv) || is.character(xv) || is.logical(xv)) {
       xv
     } else {
@@ -2649,6 +2672,55 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
     }
   }
   do.call(fun, c(args, list(...)))
+}
+
+#' What a polytomous response IS, for the `error_binned` refusal: a
+#' category for an ordinal or categorical family, and a set of counts
+#' over categories for a multinomial one, which is how the `residuals()`
+#' refusal beside it says it.
+#'
+#' @noRd
+pp_check_polytomous_noun <- function(fam) {
+  if (identical(fam[["family"]], "multinomial")) {
+    "a set of counts over categories"
+  } else {
+    "a category"
+  }
+}
+
+#' The observed response of `newdata`'s rows, on the scale the fitted
+#' `y` is on: a category response as its 1..K codes against the fitted
+#' levels, as the draws are.
+#'
+#' brms refuses a `pp_check(newdata = )` whose newdata lacks the
+#' response ("Response variables must be specified in 'newdata'"), and
+#' so does this, for the one prefix that plots it.
+#'
+#' @noRd
+pp_check_newdata_y <- function(object, rspec, newdata) {
+  y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
+                error = function(e) NULL)
+  if (is.null(y) || length(y) != nrow(newdata)) {
+    frm_stop("pp_check(newdata = ) plots the observed response against ",
+             "the draws, and newdata does not supply '",
+             deparse1(rspec$resp_expr), "' for its ", nrow(newdata),
+             " rows. Add the response column, or use prefix = \"ppd\" to ",
+             "plot the draws alone", call. = FALSE)
+  }
+  lv <- object$frame[["y_levels"]][[rspec$resp_name]]
+  if (!is.null(lv)) {
+    code <- match(as.character(y), lv)
+    bad <- !is.na(y) & is.na(code)
+    if (any(bad)) {
+      frm_stop("pp_check(newdata = ): the response takes the value(s) ",
+               paste0("'", unique(as.character(y[bad])), "'",
+                      collapse = ", "), ", which are not categories of ",
+               "the fitted response (", paste(lv, collapse = ", "), ")",
+               call. = FALSE)
+    }
+    y <- code
+  }
+  y
 }
 
 #' The bayesplot function a `pp_check()` type names, or a refusal.

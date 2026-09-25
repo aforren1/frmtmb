@@ -1,0 +1,9 @@
+base: smooth pp_check, sd of replicated values 4.050, of y 1.478
+base: smooth dharma(re_formula = NA), KS p against uniform 1.65e-25
+Warning message:
+In ks.test.default(u, "punif") :
+  ties should not be present for the one-sample Kolmogorov-Smirnov test
+base: mixed dharma(re_formula = ~1), KS p 0.813
+Warning message:
+In ks.test.default(u, "punif") :
+  ties should not be present for the one-sample Kolmogorov-Smirnov test

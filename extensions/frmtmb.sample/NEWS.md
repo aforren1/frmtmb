@@ -1,3 +1,13 @@
+# frmtmb.sample (development version)
+
+* The `pp_check(type = "error_binned")` refusal on draws of a
+  multinomial fit calls the response a set of counts over categories,
+  not a category, as the fit method now does.
+* Two test files no longer leave `Rplots.pdf` in the tests directory:
+  `test-draws-methods.R`, whose device guard covered one block and not
+  the `pairs()` call, and the generated `test-brms-suite-methods.R`,
+  whose generator now opens a null device for the file.
+
 # frmtmb.sample 0.10.0
 
 * **The default priors are brms's on a multivariate model**: each

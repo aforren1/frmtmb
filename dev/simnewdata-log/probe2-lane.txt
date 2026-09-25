@@ -1,0 +1,4 @@
+blocks: smooth 
+frm_linpred NA vs NULL, max abs diff: 0 
+sigma 0.2829; sd of row draws, mean over rows: NULL 0.2837, NA 0.2837
+RMS of (row mean of draws - fitted): NULL 0.0129, NA 0.0129

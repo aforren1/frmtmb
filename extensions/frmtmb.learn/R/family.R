@@ -263,8 +263,10 @@ ln_check_counterfactual <- function(nm, cd, groups) {
              "of every option, so the second and later columns of ", term,
              " are the ones missing here. No other data set drawn through ",
              "this model can supply them either, because its formula names ",
-             "one column ", length(cols), " times; and simulate() takes no ",
-             "newdata. Refit with a column per option, or build a schedule ",
+             "one column ", length(cols), " times; and simulate() refuses ",
+             "newdata for a learning family, whose draw walks the fitted ",
+             "trial sequence. Refit with a column per option, or build a ",
+             "schedule ",
              "with frm_task_design() and draw from that.", call. = FALSE)
   }
   invisible(NULL)

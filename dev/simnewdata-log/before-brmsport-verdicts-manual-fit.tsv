@@ -1,0 +1,120 @@
+id	pkg	verdict	class	reason
+brmsfit-methods:112	frmtmb	cannot transfer	absent	frmtmb has no autocor(), brms's deprecated accessor for autocorrelation structures
+brmsfit-methods:113	frmtmb	cannot transfer	absent	frmtmb has no autocor()
+brmsfit-methods:154	frmtmb	defect	argument	plot() of conditional effects refuses brms's rug and plot arguments by name
+brmsfit-methods:157	frmtmb	cannot transfer	absent	conditional_effects() has no select_points (dev/brms-api-diff.md (c); on draws it is refused by name, dev/brmsnames-findings.md not fixed 9)
+brmsfit-methods:162	frmtmb	cannot transfer	absent	conditional_effects() has no too_far, so the surface object is never built; plot() also refuses brms's plot = FALSE by name (dev/brms-api-diff.md (c))
+brmsfit-methods:164	frmtmb	cannot transfer	absent	conditional_effects() has no too_far; plot() also refuses brms's stype and plot arguments by name
+brmsfit-methods:167	frmtmb	cannot transfer	absent	conditional_effects() has no spaghetti (dev/brms-api-diff.md (c))
+brmsfit-methods:169	frmtmb	cannot transfer	absent	conditional_effects() has no spaghetti
+brmsfit-methods:170	frmtmb	cannot transfer	absent	conditional_effects() has no spaghetti, so the spaghetti-with-surface refusal brms asserts is never reached
+brmsfit-methods:205	frmtmb	defect	refuses-accepted	one invalid effect among valid ones is an error; brms warns 'Some specified effects are invalid' and returns the valid ones (dev/brmsport-probe4.R)
+brmsfit-methods:213	frmtmb	defect	refuses-accepted	conditional_effects() refuses its default Wald band on the nonlinear fit2 and names band = 'boot'; brms answers. No document records refusing the default band as a decision
+brmsfit-methods:215	frmtmb	defect	refuses-accepted	conditional_effects() refuses its default Wald band on the nonlinear fit2 and names band = 'boot'; brms answers. No document records refusing the default band as a decision
+brmsfit-methods:217	frmtmb	defect	output	no 'Predictions are treated as continuous variables' warning on the ordinal fit4; the brmsnames note cited before is about draws, and the fit method was never audited (brmsnames 'Found and NOT fixed' 11)
+brmsfit-methods:221	frmtmb	divergence	class	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:223	frmtmb	divergence	class	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:226	frmtmb	divergence	class	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:229	frmtmb	divergence	class	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:269	frmtmb	defect	spelling	conditional_smooths() is absent, though R/conditional-effects.R says conditional_effects() 'also covers what brms calls conditional_smooths()'
+brmsfit-methods:270	frmtmb	divergence	class	is(ms, 'brms_conditional_effects'): brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:273	frmtmb	cannot transfer	absent	frmtmb has no conditional_smooths()
+brmsfit-methods:275	frmtmb	defect	spelling	conditional_smooths() is absent, though R/conditional-effects.R says conditional_effects() 'also covers what brms calls conditional_smooths()'
+brmsfit-methods:277	frmtmb	defect	spelling	conditional_smooths() is absent, though R/conditional-effects.R says conditional_effects() 'also covers what brms calls conditional_smooths()'
+brmsfit-methods:282	frmtmb	divergence	class	family(fit) is a frmtmb_family, not a brmsfamily brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:283	frmtmb	defect	argument	family() refuses brms's resp argument by name and says to index the returned list instead
+brmsfit-methods:284	frmtmb	defect	argument	print() of a family refuses brms's links argument by name
+brmsfit-methods:285	frmtmb	defect	output	print(family(fit5)) reads 'Family: mixture(gaussian, exponential)', not brms's 'Mixture' then one family per component (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:301	frmtmb	defect	refuses-accepted	newdata carrying the numeric codes 0 and 1 of the factor Trt dies with R's 'contrasts apply only to factors'; brms matches them to the levels (dev/brmsport-probe4.R)
+brmsfit-methods:305	frmtmb	defect	argument	fitted() refuses brms's allow_new_levels by name, though predict() takes it
+brmsfit-methods:314	frmtmb	defect	argument	fitted() is brms's four-column summary now (item 2.6f) and still refuses ndraws BY NAME: a maximum-likelihood fit has no draws to thin. The setup line dies on that refusal, so the assertion reads a stale object
+brmsfit-methods:317	frmtmb	defect	argument	fitted() is brms's four-column summary now (item 2.6f) and still refuses ndraws BY NAME: a maximum-likelihood fit has no draws to thin. The setup line dies on that refusal, so the assertion reads a stale object
+brmsfit-methods:352	frmtmb	defect	shape	dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was fit-data
+brmsfit-methods:358	frmtmb	defect	refuses-accepted	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:359	frmtmb	defect	refuses-accepted	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:373	frmtmb	divergence	class	is.brmsformula(formula(fit1)): brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:391	frmtmb	defect	argument	plot() of a hypothesis refuses brms's plot = FALSE by name
+brmsfit-methods:396	frmtmb	defect	argument	plot() of a hypothesis refuses brms's ignore_prior and plot by name
+brmsfit-methods:399	frmtmb	divergence	no-draws	r_visit[4,Intercept] is not a parameter of an ML fit: a group-level coefficient needs draws, the reason scope = 'ranef' is refused on a fit (D4)
+brmsfit-methods:400	frmtmb	divergence	no-draws	as brmsfit-methods:399 (D4)
+brmsfit-methods:401	frmtmb	divergence	no-draws	as brmsfit-methods:399 (D4)
+brmsfit-methods:407	frmtmb	divergence	no-draws	hypothesis(scope = 'coef') is refused by name on a fit (D4)
+brmsfit-methods:408	frmtmb	divergence	no-draws	hypothesis(scope = 'coef') is refused by name on a fit (D4)
+brmsfit-methods:423	frmtmb	cannot transfer	no-draws	hypothesis() on as.data.frame() of posterior draws: an ML fit has no draws to coerce, and fit3's me() term is not in the fixture (D8)
+brmsfit-methods:425	frmtmb	cannot transfer	stan	reads fit3$fit, the stanfit (D10), and fit3's me() term (D8)
+brmsfit-methods:604	frmtmb	cannot transfer	mcmc	brms's plot() of a fit draws posterior trace and density plots; an ML fit's plot() is a diagnostics plot and takes neither plot nor variable
+brmsfit-methods:605	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
+brmsfit-methods:606	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
+brmsfit-methods:607	frmtmb	cannot transfer	mcmc	the expect_error is met only by plot() refusing the argument name variable, not by the missing variable brms refuses
+brmsfit-methods:682	frmtmb	defect	refuses-accepted	the assignment above it fails, so `pp` is not bound: that call passes newdata, which pp_check() on a fit refuses because simulate() takes no newdata (brmsfit-methods:675). The grouped types themselves work since lane wt-correct; the group name is resolved against the model frame as brms resolves it
+brmsfit-methods:685	frmtmb	defect	filed	pp_check(type = 'loo_pit_qq') is given no lw or psis_object (dev/brmsnames-findings.md not fixed 8)
+brmsfit-methods:737	frmtmb	defect	refuses-accepted	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301); the shape after it is item 2.6d
+brmsfit-methods:741	frmtmb	defect	refuses-accepted	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301)
+brmsfit-methods:747	frmtmb	defect	argument	predict(ndraws =) is answered now - the draws are SIMULATED, so ndraws sets how many - and the setup still dies earlier, on fit1$data, which partial-matches fit1$data2 (the fit has no data element)
+brmsfit-methods:772	frmtmb	defect	argument	predict() honors sample_new_levels = "gaussian", which is what it does, and refuses "old_levels" BY NAME: that value resamples the POSTERIOR draws of the levels the fit saw, and a maximum-likelihood fit has no such draws. The setup line dies, so this assertion reads a stale object
+brmsfit-methods:806	frmtmb	divergence	class	prior_summary(fit) is frmtmb's prior table, not a brmsprior brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:811	frmtmb	divergence	policy	ranef() returns the conditional modes, levels x coefficients, without brms's Est.Error and quantile layer; ranef(condVar =) is the recorded fit-side analog (dev/brms-api-diff.md (b))
+brmsfit-methods:814	frmtmb	defect	argument	ranef() refuses brms's pars by name and says to subset
+brmsfit-methods:817	frmtmb	defect	argument	ranef() refuses brms's groups by name and says to index the list
+brmsfit-methods:820	frmtmb	divergence	no-draws	ranef(summary = FALSE) is refused by name on a fit (D3)
+brmsfit-methods:828	frmtmb	defect	argument	residuals(newdata =) is refused by name, though newdata carries the response brms reads
+brmsfit-methods:832	frmtmb	defect	argument	residuals(newdata =) is refused by name
+brmsfit-methods:840	frmtmb	defect	refuses-accepted	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:841	frmtmb	defect	refuses-accepted	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:891	frmtmb	divergence	no-draws	summary(fit)$fixed carries brms's four columns and then the Wald test this package reports, where brms writes Rhat, Bulk_ESS and Tail_ESS. Those three describe a SAMPLER and a maximum-likelihood fit has none, so the column set cannot match (item 2.6f)
+brmsfit-methods:900	frmtmb	divergence	no-draws	summary(robust = TRUE) is refused: a median and MAD need draws (D3's reason); past it, print(summary(fit5)) does name sigma1
+brmsfit-methods:901	frmtmb	divergence	no-draws	summary(robust = TRUE) is refused (D3's reason); past it, print(summary(fit5)) does name theta1
+brmsfit-methods:904	frmtmb	defect	output	print(summary(fit6)) labels the GP standard deviation 'sd(gp)', not sdgp (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:914	frmtmb	divergence	class	update() returns a frmtmb_fit, not a brmsfit ; the update itself succeeded brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:923	frmtmb	divergence	class	update(newdata =) returns a frmtmb_fit ; save_pars() was dropped by the shim (D10) brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:924	frmtmb	defect	output	attr(up$data, 'data_name') is NULL: brms records the name of the newdata argument on the frame it stores and frmtmb does not. The frame itself is there now. Was fit-data
+brmsfit-methods:927	frmtmb	defect	accepts-refused	update(fit, data = new_data) refits on the new data where brms refuses and demands newdata (dev/brms-suite-audit.md section 7 contract 15; dev/brmsport-probe4.R)
+brmsfit-methods:931	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:933	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:937	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:938	frmtmb	defect	internal-error	a formula update naming a variable the data lacks dies with R's object 'wrong_var' not found, not 'New variables found'
+brmsfit-methods:942	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:945	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:949	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:953	frmtmb	defect	refuses-accepted	update(fit2, formula. = bf(. ~ ., a + b ~ 1, nl = TRUE)) is refused: the dot does not carry the old nonlinear body, so a and b are 'not used'
+brmsfit-methods:955	frmtmb	defect	refuses-accepted	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is refused for having no parameter formulas; brms keeps fit2's
+brmsfit-methods:957	frmtmb	divergence	class	update(family = acat()) returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+brmsfit-methods:959	frmtmb	defect	refuses-accepted	update(fit3, bf(~ ., family = acat())) is refused as a formula with no response; brms reads the one-sided dot as the old formula
+brmsfit-methods:978	frmtmb	divergence	policy	variables(fit) lists an ML fit's parameters; simo_, r_ and s_ draws and prior_ and lp__ are posterior or Stan quantities (D5, D10; dev/brmsnames-findings.md A10)
+brmsfit-methods:984	frmtmb	divergence	policy	variables(fit2) has brms's b_, sd_ and cor_ names; the r_ and prior_ names are posterior or Stan quantities (D5, D10)
+brmsfit-methods:991	frmtmb	cannot transfer	fixture	lscale_volume_gpAgeTrt0 needs gp(Age, by = Trt), which frmtmb's gp() does not take (D8)
+brmsfit-methods:995	frmtmb	defect	spelling	parnames() is brms's live spelling of variables(); frmtmb.sample defines parnames() and refuses it, core has none (dev/brms-suite-audit.md section 7 contract 14)
+brmsfit-methods:82	frmtmb.sample	defect	argument	as.matrix() of draws refuses brms's iteration argument by name
+brmsfit-methods:83	frmtmb.sample	defect	argument	as.matrix() of draws refuses brms's iteration argument by name
+brmsfit-methods:91	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10); frmtmb.sample keeps it in x$stanfit
+brmsfit-methods:94	frmtmb.sample	defect	argument	as.array() of draws refuses brms's chain argument by name
+brmsfit-methods:96	frmtmb.sample	defect	argument	as.array() of draws refuses brms's chain argument by name
+brmsfit-methods:102	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10)
+brmsfit-methods:103	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10)
+brmsfit-methods:107	frmtmb.sample	cannot transfer	absent	as.mcmc(inc_warmup = TRUE): frm_sample() stores no warmup, a recorded gap (dev/brms-api-diff.md (c), 'Blocked, not small'), not a decision
+brmsfit-methods:595	frmtmb.sample	defect	argument	nsamples() answers now, as brms's does, but incl_warmup = TRUE is refused: frm_sample() discards the warmup rather than storing it, so there is nothing to count. The gap is dev/brms-api-diff.md (c), 'Blocked, not small'
+brmsfit-methods:619	frmtmb.sample	cannot transfer	absent	frmtmb.sample has no posterior_average()
+brmsfit-methods:620	frmtmb.sample	cannot transfer	absent	frmtmb.sample has no posterior_average()
+brmsfit-methods:627	frmtmb.sample	cannot transfer	absent	frmtmb.sample has no posterior_average(), and brms wraps the call in brms:::SW
+brmsfit-methods:628	frmtmb.sample	cannot transfer	absent	frmtmb.sample has no posterior_average()
+brmsfit-methods:635	frmtmb.sample	defect	naming	posterior_samples(pars = '^b_') answers now and returns the right SET of columns; their ORDER is frmtmb's variables() order, which lists each predictor's coefficients together, where brms lists every intercept first. fixef(), vcov() and summary()$fixed take brms's order at item 2.6f; variables() keeps its own, and reordering it is a separate decision (dev/shapes-findings.md section 8)
+brmsfit-methods:641	frmtmb.sample	cannot transfer	stan	posterior_samples() on fit1$fit, the stanfit (D10)
+brmsfit-methods:794	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws, brms's sample_prior (D10)
+brmsfit-methods:797	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
+brmsfit-methods:798	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
+brmsfit-methods:802	frmtmb.sample	cannot transfer	stan	prior_draws() on fit1$fit, the stanfit, and no prior draws (D10)
+emmeans:21	frmtmb	defect	refuses-accepted	emmeans(fit1, 'Age', by = 'Exp') is refused, 'No variable named Exp in the reference grid': the mo(Exp) variable is not in frmtmb's recover_data()
+emmeans:24	frmtmb	defect	refuses-accepted	emmeans(fit1, 'Exp') is refused: the mo(Exp) variable is not in the reference grid
+emmeans:27	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+emmeans:35	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+emmeans:38	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+emmeans:42	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared univariate only (R/compat.R:1356); the reason is hidden by emmeans, a separate defect
+emmeans:50	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+data-helpers:7	frmtmb	defect	output	expect_silent() fails on R's 'contrasts dropped from factor Trt' warning, twice, from model.matrix() on the newdata slice; brms is silent. The NUMBERS are unaffected: the five predictions equal the first five of the full-data ones, max absolute difference 0 (dev/adefects-log/evidence.txt). Was fit-data
+data-helpers:12	frmtmb	defect	different-error	brms refuses the integer codes of `fac`, a factor column of the data that the model does not use; frmtmb refuses the new `visit` level set on the line before, and never checks an unused column. Both refuse the call, for different faults. Was fit-data
+data-helpers:22	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
+data-helpers:26	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
+data-helpers:27	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
+brmsfit-methods:394	frmtmb	divergence	hollow	holds only as is.numeric(NA_real_): Evid.Ratio is NA on a fit (D4, dev/brmsnames-findings.md 'The hypothesis() object'), where brms reports a number. Marked by hand, because a rule cannot tell this NA from an NA that is the right answer
+brmsfit-methods:326	frmtmb	cannot transfer	fixture	fitted(fit1, dpar = 'sigma') is brms's four-column summary now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN standard errors), so the Est.Error and the two Q columns are NA and all(fi > 0) is NA rather than TRUE. The Estimate column is positive, which is what the assertion is about; brms's fixture converged. A converged stand-in would transfer it (dev/brmsport-findings.md section 3)
+brmsfit-methods:675	frmtmb	defect	refuses-accepted	pp_check(newdata = ) is refused: simulate() takes no newdata, so the fit method can only simulate its own rows. It used to swallow the argument in its dots and plot the fitted rows instead (lane wt-correct)

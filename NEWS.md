@@ -1,3 +1,64 @@
+# frmtmb (development version)
+
+* **`simulate()` takes `newdata`**, and `pp_check(newdata = )` on a fit
+  answers as brms does instead of refusing. The draws are for the new
+  rows; `pp_check()` plots them against the newdata's own response and
+  reads `group` and `x` from it, as brms reads them. A newdata row with
+  a missing response is dropped with brms's warning, and a newdata
+  without the response is refused for a `ppc` type, as brms refuses
+  it. A grouping level the fit never saw is refused, as in
+  `predict()`, unless `allow_new_levels = TRUE`, a new argument of
+  `simulate()`; under `re_formula = NA` every level is redrawn anyway,
+  so an unseen one needs nothing. A residual correlation term such as
+  `ar(time, gr = g, cov = TRUE)` is rebuilt on the new rows, so rows of
+  one group are drawn jointly at their lags, counted in the fitted
+  time levels; a time the fit never saw is refused. brms counts a lag
+  by a row's position among the newdata rows of its group, so the two
+  differ when newdata skips a time: rows at times 2 and 4 correlated
+  at 0.389 here and 0.656 in brms on one AR(1) fit. The departure is
+  deliberate, because under brms's reading the correlation of two
+  rows changes when a third row is added to newdata.
+  `mixture(groups = )`, `mixture_mvn()`, and the hidden
+  Markov and learning families of frmtmb.latent and frmtmb.learn refuse
+  `newdata`: their draw walks the fitted groups or sequence, and
+  `mixture_mvn()` goes through the same structured slot.
+
+* **BREAKING: `simulate()` reads `re_formula` as `predict()` reads
+  it.** `NULL` keeps every group-level term, `NA`, `~0` and `~1` keep
+  none, and a one-sided formula keeps the terms it names. A term that
+  is not kept is REDRAWN from its estimated distribution in every
+  replicate, as `NA` always did. Through 0.62.0 every formula meant
+  "keep everything", so `simulate(re_formula = ~1)` gave the
+  conditional draws while `predict(re_formula = ~1)` gave the
+  population prediction. `pp_check()` and `dharma_residuals()` on a
+  fit pass `re_formula` to `simulate()` and change with it. A term the
+  fit does not have, and a partial formula on a fit with a
+  factor-smooth term, are refused with `predict()`'s words, and so is
+  a `re_formula` that is not `NULL`, `NA` or a formula, which used to
+  condition on everything with nothing said. When a formula keeps some
+  columns of a term and drops others, as `~ (1 | g)` does on a
+  `(1 + x | g)` fit, the dropped columns are drawn given the kept ones.
+
+* **BREAKING: `simulate(re_formula = NA)` keeps a population smooth.**
+  It redrew the penalized coefficients of `s()`, `gp()` and `hsgp()`
+  terms from their smoothing prior, which replaced the fitted curve
+  with a random one: on `y ~ s(x)` the draws spread with an sd of 2.13
+  around a fit whose residual sd is 0.28. `pp_check()` on a fit
+  defaults to `re_formula = NA`, so its check of any smooth model
+  compared the data with those draws. A factor-smooth term is
+  group-level and is still redrawn.
+
+* `frm_bootstrap()` is unchanged: by default it still redraws the
+  group effects AND the penalized coefficients of every smooth,
+  `gp()` and `hsgp()` term in every replicate, a whole-model
+  parametric bootstrap, and its draws are identical to 0.62.0's at
+  the same seed. `re_formula = NULL` is the bootstrap that conditions
+  on the fitted random effects and smooths and redraws the noise
+  alone. `?frm_bootstrap` now says which terms each setting redraws.
+
+* The `pp_check(type = "error_binned")` refusal on a multinomial fit
+  calls the response a set of counts over categories, not a category.
+
 # frmtmb 0.62.0
 
 * **A `skew_normal()` fit that used to stop at `alpha = 0` now finds
