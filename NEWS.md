@@ -1,3 +1,165 @@
+# frmtmb 0.64.0
+
+brms parity: every gap in the model menu that the last round listed is
+closed. Each lane's `dev/<lane>-findings.md` has the validation, the
+numbers and the scripts that produced them.
+
+## New brms grammar
+
+* **`me(x, sdx)` and `me(x, sdx, gr = g)`** noise-free predictors, with
+  brms's meaning. The latent values are integrated by the Laplace
+  approximation, which is exact for a gaussian response with linear
+  `me()` terms. Several terms are correlated unless `set_mecor(FALSE)`
+  is added. The names are brms's: `bsp_mexsx`, `meanme_mex`, `sdme_mex`,
+  `corme__mex__mez` and `Xme_mex[i]`. The log density agrees with brms
+  2.23.0's Stan program to 1e-13 on five shapes. New data use the
+  observed value of the noisy variable. brms's prior classes `meanme`,
+  `sdme` and `corme` are refused by name. `vcov(cluster = )` now
+  refuses `me()` fits, as its documentation already said, and
+  `anova()` refuses fits whose `me()` calls differ.
+
+* **`thres()` for the ordinal families.** `y | thres(K) ~ x` fits `K`
+  thresholds, and `y | thres(gr = g) ~ x` fits one threshold vector per
+  level of `g`, with a count per level from the data or from
+  `thres(n, gr = g)`. The log-likelihood equals brms's compiled
+  program's to 17 digits on all four families, and agrees with
+  `MASS::polr()` and `ordinal::clm()` at the optimum. The thresholds
+  have brms's names, `Intercept[g,k]` and `b_Intercept[g,k]`, and
+  `set_prior(class = "Intercept", group = "g")` reaches one level.
+  `fitted()` and `predict()` give probability 0 to a category past a
+  row's own, as brms does. `cs()` and `residuals(type = "osa")` are
+  refused with `gr`. A threshold above the highest observed category
+  is not identified without a prior, and the fit warns about it.
+
+* **`gr(g, by = f)`** fits brms's by-split group-level term: one set of
+  standard deviations and correlations per level of `f`, with each
+  level of `g` in exactly one level of `f`. It is fitted as one block
+  per by-level, with any structure whose density is a product over the
+  grouping levels (`us`, `diag`, `cs`, `ar1`, `toep`, the spatial ones,
+  and `dist = "student"`). Parameters take brms's names
+  (`sd_g__Intercept:fa`, `cor_g__Intercept:fa__x:fa`). `ranef()`,
+  `coef()` and `ngrps()` keep one entry over every level of `g`, and a
+  new level in `predict(allow_new_levels = TRUE)` takes the covariance
+  of its own by-level. brms's refusals are reproduced word for word.
+  `mm(g1, g2, by = cbind(f1, f2))` works the same way over the pooled
+  levels. `gr(g, by = f, cov = A)` is refused by name, because brms
+  correlates the by-levels through `A`, which is not a by-split. It
+  agrees with lme4 and glmmTMB fitted with one indicator term per
+  by-level.
+
+* **`ar()`, `ma()` and `arma()` without `cov = TRUE`** fit brms's
+  default residual-regression form, which was refused before. `mu`
+  gains a regression on the group's earlier residuals and each row
+  keeps the family's own density, conditional on each group's first
+  rows. The likelihood matches brms 2.23.0's to 1e-15 relative, for
+  gaussian and student, with `weights()`, `cens()`, `trunc()`, `mi()`,
+  random effects and `rescor = TRUE`. It also matches
+  `stats::arima(method = "CSS")` on one series. The coefficients are
+  unconstrained, as in brms, and class `ar` and `ma` priors and bounds
+  act on them directly. `fitted()`, `predict()` and `residuals()` use
+  brms's one-step mean, and `simulate()` runs the recursion over its
+  own draws. Other families are refused in brms's words.
+
+* **`0 + Intercept`** is brms's reserved intercept: `y ~ 0 + Intercept +
+  x` fits the model `y ~ 1 + x` with the intercept as an ordinary class
+  `"b"` coefficient, not centered. A class `"b"` prior reaches it and
+  class `"Intercept"` is refused, as in brms. It works in the location,
+  distributional and nonlinear-parameter formulas, factors take
+  treatment contrasts, and `newdata` needs no `Intercept` column.
+  `bf(center = FALSE)` and `lf(center = FALSE)` are the same mechanism.
+  Ordinal families refuse `0 + Intercept`, as brms does. The maximum
+  likelihood fit is unchanged.
+
+## Multivariate models
+
+* **Any number of `bf()` formulas can be summed with `+`.** The sum of
+  `bf(y1 ~ x)`, `bf(y2 ~ x)` and `bf(y3 ~ x)` used to stop with
+  "non-numeric argument to binary operator", because the formula and the
+  multivariate formula had two different `+` methods. `lf()` and `nlf()`
+  take brms's `resp =` to name the response they belong to. `summary()`
+  of a multivariate fit prints brms's `Family: MV(...)` line and every
+  response's formula. A family added after several responses fills only
+  the responses that have none; brms instead gives it to every response.
+
+* **`student()` with `rescor = TRUE`** fits brms's multivariate
+  Student-t: one `nu` shared by all responses (named `nu`, with no
+  response), a sigma per response, and distributional sigma allowed. A
+  formula or a constant for `nu`, and a mix of gaussian and student
+  responses, are refused as brms refuses them. It agrees with
+  `mvtnorm::dmvt()` and with brms's own `log_lik()`. `predict()` draws
+  the responses jointly from the multivariate t.
+
+* **Ordinal responses in a multivariate model.** `cumulative()`,
+  `sratio()`, `cratio()` and `acat()` responses keep their own
+  thresholds (`b_o_Intercept[1]`, `set_prior(class = "Intercept",
+  resp = "o")`) and can share `|ID|` group effects with other
+  responses. Other families with extra parameters (`cox()`,
+  `mixture_mvn()`) stay refused there, now with the reason.
+
+* `fit_extras()` takes `resp`, and the new sampling-API export
+  `rescor_row_loglik()` is the joint row density of a rescor fit.
+
+## Families
+
+* New families **`hurdle_negbinomial()`** and
+  **`zero_one_inflated_beta()`**, with brms's parameters, links and
+  defaults. Both reach `fitted()` (brms's expected response),
+  `predict()`, `simulate()`, pearson residuals, `conditional_effects()`,
+  `emmeans()` and `frm_sample()`. The hurdle negative binomial agrees
+  with glmmTMB's `truncated_nbinom2` hurdle to 7e-11 in the
+  log-likelihood, and both families agree with brms's densities to a
+  few ulps. A zero-one-inflated beta fit whose response cannot identify
+  `coi` warns and names the remedy.
+
+* **BREAKING: `sratio()`'s thresholds are unconstrained**, as brms
+  declares them, and no longer kept increasing. frmtmb held them as
+  (first threshold, log increments), like `cumulative()`, so where the
+  maximum has crossing thresholds the fit stopped on the ordering
+  boundary with two thresholds equal, and was not brms's mode. brms's
+  own `inhaler` example with `cs(treat)` was one such fit: its
+  log-likelihood rises from -455.115 to -451.257. Where the thresholds
+  do not cross, a fit is unchanged to optimizer precision. The
+  internal `tau_raw` of an sratio fit is now the thresholds themselves,
+  so a `newparams` or `start` written for the old storage means
+  something else. A class `"Intercept"` prior on sratio's thresholds
+  carries no Jacobian any more, as in brms and as on `cratio()`.
+
+## emmeans
+
+* `emmeans()` takes brms's `dpar`, `nlpar`, `resp`, `epred` and
+  `re_formula`. A nonlinear model is supported: `nlpar =` averages that
+  parameter's linear predictor, and the whole `mu` or `epred = TRUE`
+  uses the delta method through `frm_lp_basis()`. A multivariate fit
+  without `resp` stacks its responses as brms's `rep.meas` factor. See
+  `?frmtmb-emmeans`.
+
+* Silent wrong answers in `emmeans()`, now fixed: `dpar =` was ignored
+  and `mu` returned; `type = "response"` did not apply the inverse
+  link; `s()`, `t2()` and `mo()` terms were left out of the means;
+  `y | weights(w)` was read as a response transformation; `re_formula`
+  was ignored.
+
+* emmeans now shows frmtmb's reason when it refuses, instead of
+  "Perhaps a 'data' or 'params' argument is needed".
+
+## Other fixes
+
+* A class `"Intercept"` prior with `group =` on an ordinal model
+  without grouped thresholds is refused. It used to be applied to every
+  threshold without a word.
+
+* `residuals(type = "osa")` on a zero-inflated, hurdle or
+  zero-one-inflated family is refused by name. It used to fail with
+  base R's "comparison (==) is possible only for atomic and list
+  types".
+
+* `frm_compat()` no longer calls `simulate()` refused for
+  `hurdle_poisson()`, `compois()` and `tweedie()`, whose simulators
+  work.
+
+* `summary()` lists a grouping factor's standard deviations before its
+  correlations when the factor has several blocks, as brms does.
+
 # frmtmb 0.63.0
 
 * **`simulate()` takes `newdata`**, and `pp_check(newdata = )` on a fit
