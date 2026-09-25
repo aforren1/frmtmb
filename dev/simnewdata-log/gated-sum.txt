@@ -1,0 +1,4 @@
+files 39 pass 3283 fail 2 err 0 skip 0 unparsed 0 
+     pkg                    file pass fail err skip
+20 gated test-drmtmb-agreement.R  126    2   0    0
+

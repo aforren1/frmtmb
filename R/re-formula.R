@@ -165,11 +165,34 @@ re_fit_components <- function(fit) {
 #'
 #' @noRd
 re_resolve <- function(fit, re_formula, what = "predict()") {
+  kp <- re_keep_plan(fit, re_formula, what)
+  switch(kp$kind,
+         asis = list(fit = fit, re_formula = re_formula),
+         none = list(fit = fit, re_formula = NA),
+         all = list(fit = fit, re_formula = NULL),
+         partial = list(fit = re_view(fit, kp$named, kp$keep),
+                        re_formula = NULL))
+}
+
+#' Which columns of which group-level terms a `re_formula` keeps.
+#'
+#' The resolution behind `re_resolve()`, without the view, for a caller
+#' that needs the kept columns rather than a reduced design:
+#' `simulate()` redraws the terms a formula drops instead of removing
+#' them. `kind` is `"asis"` for anything that is not a formula (`NULL`,
+#' `NA`), which is returned unread; `"none"` for a formula with no
+#' group-level term; `"all"` when every column of every term is kept;
+#' and `"partial"` otherwise, with the addressable components in
+#' `named` and, in `keep`, one logical vector per component over its
+#' columns. The refusals are `re_resolve()`'s.
+#'
+#' @noRd
+re_keep_plan <- function(fit, re_formula, what = "predict()") {
   if (is.null(re_formula) || !inherits(re_formula, "formula")) {
-    return(list(fit = fit, re_formula = re_formula))
+    return(list(kind = "asis"))
   }
   terms <- re_formula_bars(re_formula)
-  if (!length(terms)) return(list(fit = fit, re_formula = NA))
+  if (!length(terms)) return(list(kind = "none"))
   fc <- re_fit_components(fit)
   named <- fc$named
   keep <- lapply(named, function(nc) rep(FALSE, length(nc$cnms)))
@@ -212,9 +235,7 @@ re_resolve <- function(fit, re_formula, what = "predict()") {
   # every column of every named term kept: the full prediction, and the
   # content a formula cannot name stays in, as it does under NULL and
   # as brms keeps a smooth under any re_formula
-  if (all(vapply(keep, all, NA))) {
-    return(list(fit = fit, re_formula = NULL))
-  }
+  if (all(vapply(keep, all, NA))) return(list(kind = "all"))
   if (length(fc$unnamed)) {
     frm_stop(what, ": re_formula = ", deparse1(re_formula), " keeps some ",
              "group-level terms, and this fit also has group-level ",
@@ -224,7 +245,7 @@ re_resolve <- function(fit, re_formula, what = "predict()") {
              "but a partial formula cannot say which, so it is refused ",
              "rather than guessed", call. = FALSE)
   }
-  list(fit = re_view(fit, named, keep), re_formula = NULL)
+  list(kind = "partial", named = named, keep = keep)
 }
 
 #' A fit whose prediction design holds only the kept group-level

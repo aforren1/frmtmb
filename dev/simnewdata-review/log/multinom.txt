@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+identity at fitted rows: TRUE 
+row totals: row1 2-2  row2 100-100 
+Error: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+Execution halted

@@ -1,3 +1,10 @@
+# frmtmb.learn (development version)
+
+* The duplicated-payoff refusal and `?bandit2arm_delta` no longer say
+  that `simulate()` takes no `newdata`: frmtmb's `simulate()` takes it
+  now, and refuses it for a learning family, whose draw walks the
+  fitted trial sequence.
+
 # frmtmb.learn 0.6.0
 
 * Documentation only: the compatibility notes and the family refusals

@@ -1,0 +1,6 @@
+library: C:/Users/adf44/source/r/rellib-r3/frmtmb.sample 
+-- expectation_warning in [ rhat() and neff_ratio() take brms's OTHER `pars` rule ]
+   Argument 'pars' is deprecated. Please use 'variable' instead. 
+-- expectation_error in [ the matrix-response guards name the function that hit them ]
+   <frmtmb_sample_error/frmtmb_error/error/condition> Error: Type 'error_binned' is not available for polytomous models: the 'multinomial' response is a category, and a binned error needs a numeric one, as in brms 
+RESULT test-draws-methods.R pass=147 fail=0 err=1 skip=0 blocks=22

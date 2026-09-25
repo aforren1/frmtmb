@@ -1,0 +1,38 @@
+gaussian NULL                            identical
+gaussian NA                              identical
+gaussian allow                           identical
+gaussian NA new                          identical
+gaussian partial                         identical
+poisson NULL                             identical
+poisson NA                               identical
+poisson allow                            identical
+poisson NA new                           identical
+binomial NULL                            identical
+binomial NA                              identical
+binomial allow                           identical
+binomial NA new                          identical
+cumulative_cs NULL                       identical
+cumulative_cs NA                         identical
+cumulative_cs allow                      identical
+cumulative_cs NA new                     identical
+categorical NULL                         identical
+categorical NA                           identical
+categorical allow                        identical
+categorical NA new                       identical
+smooth NULL                              identical
+smooth NA                                identical
+smooth allow                             identical
+smooth NA new                            identical
+distributional NULL                      identical
+distributional NA                        identical
+distributional allow                     identical
+distributional NA new                    identical
+mixture NULL                             identical
+mixture NA                               identical
+mixture allow                            identical
+mixture NA new                           identical
+student_ar NULL                          identical
+student_ar NA                            identical
+student_ar allow                         identical
+student_ar NA new                        identical
+identical 37 of 37 

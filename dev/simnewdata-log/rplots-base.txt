@@ -1,0 +1,3 @@
+SIMNEWDATA_LIB=base
+DRAWS  test-draws-methods.R  RESULT test-draws-methods.R pass=147 fail=0 err=0 skip=0 blocks=22
+DRAWS  test-brms-suite-methods.R  RESULT test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 blocks=18

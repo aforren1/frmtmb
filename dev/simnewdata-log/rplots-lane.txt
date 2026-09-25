@@ -1,0 +1,3 @@
+SIMNEWDATA_LIB=lane
+clean  test-draws-methods.R  RESULT test-draws-methods.R pass=148 fail=0 err=0 skip=0 blocks=22
+clean  test-brms-suite-methods.R  RESULT test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 blocks=18

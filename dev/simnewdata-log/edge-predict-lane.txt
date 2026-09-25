@@ -1,0 +1,30 @@
+frmtmb from C:/Users/adf44/source/r/simnewdata-lib 
+-- predict, NA covariate 
+     Estimate Est.Error     Q2.5    Q97.5
+[1,]      NaN        NA       NA       NA
+[2,] 2.859724 0.5841472 1.656326 3.822187
+   warnings: predict(): a simulated parameter draw was not finite for row 1 (50 of 50). Those cells are NA and each row is summarized over the replicates it has; the other rows are not affected. The draw law puts mass where a parameter overflows: a row far outside the data, or a parameter barely identified, whos 
+-- frm_linpred, NA covariate 
+       1        2 
+      NA 2.809032 
+-- simulate, NA covariate 
+     sim_1    sim_2
+1       NA       NA
+2 2.487306 2.903345
+   warnings: simulate(newdata = ): 1 row(s) of newdata have a distributional parameter that is not finite at the estimates, usually from a missing covariate: 1. Their draws are NA, as predict() leaves them 
+-- frm_linpred, global g of length 5 
+   ERROR: non-conformable arrays 
+-- predict, global g of length 5 
+   ERROR: non-conformable arrays 
+-- frm_linpred, global g of length 2 (levels 3, 4) 
+       1        2 
+1.108692 1.250789 
+-- frm_linpred at g = 3, 4 given in newdata 
+       1        2 
+1.108692 1.250789 
+-- simulate, global g of length 5 
+   ERROR: simulate(newdata = ): the grouping factor `g` is not a column of newdata, and the `g` the formula's environment holds has 5 value(s) for newdata's 2 rows. Add the column to newdata 
+-- simulate, global g of length 2 
+      sim_1     sim_2
+1 0.7869663 0.6795412
+2 1.3451021 2.0700717

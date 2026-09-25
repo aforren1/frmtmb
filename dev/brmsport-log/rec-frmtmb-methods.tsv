@@ -140,13 +140,13 @@ assert	frmtmb	brmsfit-methods:605	cannot transfer	FALSE	FALSE	ERROR: plot() has 
 assert	frmtmb	brmsfit-methods:606	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
 assert	frmtmb	brmsfit-methods:607	cannot transfer	FALSE	TRUE	VACUOUS: plot() has no argument `variable`. It takes: x, which, ask	plot() has no argument `variable`. It takes: x, which, ask	TRUE
 assert	frmtmb	brmsfit-methods:674	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:675	defect	FALSE	FALSE	ERROR: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws		FALSE
+assert	frmtmb	brmsfit-methods:675	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:676	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:677	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:678		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:679	pass	TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws		FALSE
-assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws		TRUE
+setup	frmtmb	brmsfit-methods:680		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:682	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:684		FALSE	FALSE	pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		FALSE
 assert	frmtmb	brmsfit-methods:685	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		TRUE
 assert	frmtmb	brmsfit-methods:688	pass	TRUE	FALSE			TRUE

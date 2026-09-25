@@ -1,0 +1,12 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+seed, newdata, allow_new_levels    caller stream unchanged: TRUE
+seed, NA, newdata                  caller stream unchanged: TRUE
+seed, partial ~(1|g)               caller stream unchanged: TRUE
+seed, partial at newdata           caller stream unchanged: TRUE
+seed, error mid-call               caller stream unchanged: TRUE
+seeded draws independent of caller state: TRUE 
+row 1 alone equals row 1 of the 3-row call: FALSE 
+stream draws, simulate(nsim = 1) fitted rows: 240 
+stream draws, simulate(nsim = 1, newdata = nd, allow): 10 
+stream draws, simulate(nsim = 1, re_formula = NA, newdata = nd[1,]): 50 
+stream draws, predict(newdata = nd[1, ]) conditional: 14 

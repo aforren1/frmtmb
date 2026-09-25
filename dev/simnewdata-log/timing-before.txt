@@ -1,0 +1,5 @@
+             [,1]  [,2]  [,3]  [,4]  [,5]
+fitted_rows  1.70  1.80  1.68  1.72  1.27
+newdata     18.89 17.50 12.41 14.08 13.35
+newdata_NA  18.67 14.69 13.70 13.25 23.91
+before: per-replicate ms, min of 5: fitted rows 0.635, newdata 6.205, newdata NA 6.625; newdata / fitted 9.77

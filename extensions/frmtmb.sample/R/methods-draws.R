@@ -975,9 +975,11 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
     if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
           identical(fam[["family"]], "multinomial")) {
       frm_stop("Type 'error_binned' is not available for polytomous ",
-               "models: the '", fam[["family"]], "' response is a ",
-               "category, and a binned error needs a numeric one, as in ",
-               "brms", call. = FALSE)
+               "models: the '", fam[["family"]], "' response is ",
+               if (identical(fam[["family"]], "multinomial")) {
+                 "a set of counts over categories"
+               } else "a category", ", and a binned error needs a ",
+               "numeric one, as in brms", call. = FALSE)
     }
   }
   pred <- if (identical(type, "error_binned")) posterior_epred else

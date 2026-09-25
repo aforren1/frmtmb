@@ -4,6 +4,8 @@
 # helper-brms-suite.R says what brms_port() asserts.
 
 skip_unless_brms_suite()
+grDevices::pdf(NULL)
+withr::defer(grDevices::dev.off(), teardown_env())
 expect_range <- function(object, lower = -Inf, upper = Inf, ...) {
   testthat::expect_true(all(object >= lower & object <= upper), ...)
 }
@@ -760,12 +762,8 @@ test_that("pp_check has reasonable outputs", {
     "",
     expect_ggplot(pp_check(fit1))
   )
-  brms_port("brmsfit-methods:675", "defect",
-    paste0(
-      "pp_check(newdata = ) is refused: simulate() takes no ",
-      "newdata, so the fit method can only simulate its own rows. ",
-      "It used to swallow the argument in its dots and plot the ",
-      "fitted rows instead (lane wt-correct)"),
+  brms_port("brmsfit-methods:675", "pass",
+    "",
     expect_ggplot(pp_check(fit1, newdata = fit1$data[1:10, ]))
   )
   brms_port("brmsfit-methods:676", "pass",
@@ -787,14 +785,8 @@ test_that("pp_check has reasonable outputs", {
     pp <- pp_check(fit1, type = "violin_grouped",
                    group = "visit", newdata = fit1$data[1:10, ])
   )
-  brms_port("brmsfit-methods:682", "defect",
-    paste0(
-      "the assignment above it fails, so `pp` is not bound: that ",
-      "call passes newdata, which pp_check() on a fit refuses ",
-      "because simulate() takes no newdata (brmsfit-methods:675). ",
-      "The grouped types themselves work since lane wt-correct; ",
-      "the group name is resolved against the model frame as brms ",
-      "resolves it"),
+  brms_port("brmsfit-methods:682", "pass",
+    "",
     expect_ggplot(pp)
   )
   brms_setup("brmsfit-methods:684",

@@ -1,0 +1,27 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+gaussian (1|g)               id identical | row means -0.803 -0.350  1.625  2.132 | E[y] -0.798 -0.341  1.606  2.126 | max|z| 2.68
+gaussian REML                id identical | row means -0.803 -0.352  1.626  2.133 | E[y] -0.799 -0.343  1.607  2.128 | max|z| 2.68
+gaussian profile             id identical | row means -0.803 -0.350  1.625  2.132 | E[y] -0.798 -0.341  1.606  2.126 | max|z| 2.68
+poisson offset(log(t))       id identical | row means  0.412  3.616  1.005 15.970 | E[y]  0.403  3.614  0.987 15.960 | max|z| 1.15
+poisson rate(t)              FIT ERROR: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi()). A custom family carr
+binomial trials(nt)          id identical | row means  0.351  8.031  4.185 44.605 | E[y]  0.342  8.056  4.184 44.597 | max|z| 1.15
+gaussian weights(w)          id identical | row means -0.750 -0.308  1.608  2.103 | E[y] -0.745 -0.299  1.589  2.098 | max|z| 2.68
+gaussian cens(cen) latent    id identical | row means -0.723  0.339  1.184  1.696 | E[y] -0.715  0.353  1.154  1.688 | max|z| 2.68
+gaussian trunc(lb = lb)      id identical | row means -0.412  0.300  1.124  1.734 | E[y] -0.416  0.301  1.137  1.735 | max|z| 1.16
+gaussian se(se)              id identical | row means -0.656  0.364  1.189  1.684 | E[y] -0.655  0.374  1.147  1.661 | max|z| 2.68
+gaussian se(se, sigma=T)     id identical | row means -0.702  0.350  1.207  1.714 | E[y] -0.697  0.364  1.160  1.690 | max|z| 2.68
+zi poisson zi ~ x            id identical | row means 0.369 0.662 1.533 0.747 | E[y] 0.351 0.665 1.486 0.725 | max|z| 1.84
+hurdle poisson hu ~ x        id max rel diff 0 | row means 1.20 1.95 3.29 5.01 | E[y] 1.21 1.94 3.35 5.03 | max|z| 1.40
+mo(x)                        id identical | row means -0.3855  0.0735  0.8566  1.0616 | E[y] -0.3782  0.0874  0.8277  1.0538 | max|z| 2.68
+me(x, sdx)                   FIT ERROR: could not find function "me"
+mi(xm) predictor             id skipped | SIM ERROR: simulate() is not supported yet for multivariate fits
+categorical                  id identical | category freq max|z| 1.91
+sigma ~ x + (1|g)            id identical | row means -0.619  0.396  1.210  1.703 | E[y] -0.614  0.413  1.183  1.696 | max|z| 2.68
+student                      id max rel diff 0 | row means -0.794 -0.342  1.608  2.139 | E[y] -0.798 -0.341  1.606  2.126 | max|z| 1.74
+lognormal                    id identical | row means 0.497 0.781 5.620 9.327 | E[y] 0.498 0.787 5.517 9.283 | max|z| 2.47
+mixture 2 gauss              id identical | row means -0.661  0.330  1.089  1.587 | E[y] -0.674  0.330  1.083  1.586 | max|z| 1.25
+multinomial FIT ERROR multinomial() needs the number of categories, e.g. multinomial(K = 3) 
+sratio cs(x)                 id identical | category freq max|z| 1.65
+cumulative + (1|g)           id identical | category freq max|z| 1.60
+student ar(time, g)          id max rel diff 0 | row means 0.376 0.396 0.347 | E[y] 0.356 0.356 0.356 | max|z| 1.98
+ar(cov = FALSE)              FIT ERROR: ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(time, g, cov = TRUE). brms's default cov = F

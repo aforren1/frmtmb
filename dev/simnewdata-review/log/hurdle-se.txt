@@ -1,0 +1,9 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+hurdle identical: FALSE  all.equal: FALSE 
+  types: double double 
+  attributes a: names,class,row.names,seed  b: names,class,row.names,seed 
+  rownames equal: TRUE 
+[1] "Attributes: < Component \"row.names\": Modes: character, numeric >"              
+[2] "Attributes: < Component \"row.names\": target is character, current is numeric >"
+se(sigma = FALSE): draw sd 0.101 1.999; expected 0.100 2.000
+se(sigma = TRUE): draw sd 0.150 2.002; expected 0.149 2.003

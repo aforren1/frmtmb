@@ -1,0 +1,6 @@
+library: C:/Users/adf44/source/r/rellib-r3/frmtmb.learn 
+-- expectation_failure in [ simulate() refuses the duplicated column and names it ]
+   Expected `msg` to match string "simulate() refuses newdata for a learning family". Actual text: x | bandit2arm_delta(): every column of reward() holds the same value on every trial, so these data do not say what the options the subject did not take would have paid, and a draw needs that. The FIT does not: the likelihood reads only the chosen option's entry, so a record of the received outcome alon 
+-- expectation_error in [ simulate() refuses the duplicated column and names it ]
+   <frmtmb_error/error/condition> Error: simulate() has no argument `newdata`. It takes: object, nsim, seed, re_formula, censored 
+RESULT test-counterfactual.R pass=66 fail=1 err=1 skip=0 blocks=15

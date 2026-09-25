@@ -3384,9 +3384,51 @@ apply_censoring <- function(y, win) {
 #'
 #' A structured draw covers whole sequences or groups, so `trunc()`
 #' rejection cannot resample single rows within it (every structured
-#' model refuses `trunc()` when the frame is assembled) and
-#' `posterior_predict(newdata =)` is refused: the structure indexes the
-#' rows the model was fitted on.
+#' model refuses `trunc()` when the frame is assembled). At `newdata` a
+#' structured FAMILY is refused, because its structure indexes the rows
+#' the model was fitted on: `mixture(groups = )`, a hidden Markov
+#' family, a learning family, and [mixture_mvn()], which
+#' `predict(newdata = )` refuses as well. A residual correlation term
+#' is rebuilt on the new rows instead: rows that share a group are
+#' drawn jointly, and a time the fit never saw is refused. A lag is
+#' counted in the FITTED time levels, as the likelihood counts it, so
+#' rows at times 2 and 4 are two levels apart even with nothing at
+#' time 3 in newdata. brms counts a lag by a row's position among its
+#' group's newdata rows instead, which makes the correlation of two
+#' rows depend on which other rows newdata holds; frmtmb departs from
+#' it on purpose.
+#'
+#' @section Group-level terms:
+#' `re_formula` chooses which group-level terms the draws condition on,
+#' read as [predict.frmtmb_fit()] reads it: `NULL` keeps every term,
+#' `NA`, `~0` and `~1` keep none, and a one-sided formula keeps the terms
+#' it names (a term the fit does not have is an error). A term that is
+#' kept enters at its estimated effects. A term that is not kept is
+#' REDRAWN from its estimated distribution in every replicate, which is
+#' lme4's unconditional simulation. That is where `simulate()` and
+#' `predict()` differ: a prediction is for an average group, so a
+#' dropped term contributes nothing there, and a simulated response
+#' needs a group, so here it gets a new one. When a formula keeps some
+#' columns of a term and drops others, as `~ (1 | g)` does on a
+#' `(1 + x | g)` fit, the dropped columns are drawn given the kept ones
+#' at their estimates.
+#'
+#' A population smooth, `gp()` or `hsgp()` curve is not a group-level
+#' term and is never redrawn. A factor-smooth term is, with the other
+#' group-level terms.
+#'
+#' @section New data:
+#' With `newdata` the draws are for its rows. The response column is
+#' not needed. At a grouping level the fit saw, a kept term enters at
+#' that level's estimate, and a redrawn term shares one draw across the
+#' rows of the level, so newdata must carry the grouping column. A level
+#' the fit never saw is an error unless `allow_new_levels = TRUE`, which
+#' draws its effect from the term's estimated distribution, as
+#' `predict()` does. Under `re_formula = NA` (or `~0`, `~1`) every term
+#' is redrawn anyway, so an unseen level is one more fresh level and
+#' needs nothing, except on a fit with a factor-smooth term: there an
+#' unseen level takes the population curve under
+#' `allow_new_levels = TRUE`, as in `predict()`, and is not redrawn.
 #'
 #' @section Censored responses:
 #' On a `cens()` fit the default draws the LATENT, uncensored response:
@@ -3408,21 +3450,29 @@ apply_censoring <- function(y, win) {
 #' censoring times an uncensored row's censoring point is unknown, so
 #' the mechanism cannot be applied to its draws and the call is
 #' refused. Interval censoring has no single-value representation and
-#' is refused too.
+#' is refused too. At `newdata` the same fitted window applies.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param nsim Number of simulated response vectors.
 #' @param seed Optional RNG seed. Follows the [stats::simulate()]
 #'   contract: the global RNG state is restored afterwards, and the
 #'   seed used is attached as the `"seed"` attribute.
-#' @param re_formula `NULL` (default) conditions on the estimated random
-#'   effects; `NA` redraws them from their estimated distribution
-#'   (marginal simulation).
+#' @param re_formula Which group-level terms the draws condition on:
+#'   `NULL` (default) all of them, `NA` (or `~0`, `~1`) none, and a
+#'   one-sided formula the terms it names. A term not kept is redrawn
+#'   from its estimated distribution in each replicate (see Group-level
+#'   terms).
 #' @param censored Apply the fitted `cens()` mechanism to the draws
 #'   (see Censored responses). Ignored without `cens()`.
+#' @param newdata Optional data frame to simulate the responses of,
+#'   instead of the fitted rows (see New data).
+#' @param allow_new_levels With `newdata`: draw the effect of a grouping
+#'   level the fit never saw from its term's estimated distribution,
+#'   rather than refuse it. brms's spelling.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
-#' @return A data frame with `nsim` columns and a `"seed"` attribute.
+#' @return A data frame with `nsim` columns and a `"seed"` attribute,
+#'   with one row per fitted row, or per row of `newdata`.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -3439,19 +3489,49 @@ apply_censoring <- function(y, win) {
 #' sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
 #' apply(sims_m, 2, var) > apply(sims, 2, var)
 #'
+#' # draws for rows the fit never saw, at a known group and a new one
+#' nd <- data.frame(x = c(-1, 1), g = factor(c("3", "new")))
+#' simulate(fit, nsim = 3, seed = 1, newdata = nd, allow_new_levels = TRUE)
+#'
 #' # a posterior-predictive check by hand: does the fit reproduce the
 #' # share of zeros in the data?
 #' mean(dd$y == 0)
 #' colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
 #' @export
 simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
-                                re_formula = NULL, censored = FALSE, ...) {
+                                re_formula = NULL, censored = FALSE,
+                                newdata = NULL, allow_new_levels = FALSE,
+                                ...) {
+  frm_check_dots(...)
+  sim_fit_draws(object, nsim, seed, re_formula, censored, newdata,
+                allow_new_levels)
+}
+
+#' The body of `simulate.frmtmb_fit()`, with one setting the public
+#' method does not offer: `redraw_smooths = TRUE` makes `re_formula = NA`
+#' redraw the penalized coefficients of population smooths as well,
+#' which is `frm_bootstrap()`'s whole-model bootstrap and 0.62.0's
+#' `simulate(re_formula = NA)` (see `sim_re_plan()`).
+#'
+#' @noRd
+sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
+                          censored = FALSE, newdata = NULL,
+                          allow_new_levels = FALSE,
+                          redraw_smooths = FALSE) {
   # nsim reaches vapply()/replicate() as a length, where a length-2 or
   # character value reports "invalid 'length' argument" and names
   # neither simulate() nor nsim
-  frm_check_dots(...)
   check_count(nsim, "nsim", min = 1L)
   check_flag(censored, "censored")
+  check_flag(allow_new_levels, "allow_new_levels")
+  # a value that is neither NULL, NA nor a formula used to read as
+  # "condition on everything" with nothing said
+  check_re_form(re_formula)
+  if (!is.null(newdata) && !is.data.frame(newdata)) {
+    frm_stop("simulate(): `newdata` must be a data frame, or NULL to ",
+             "simulate the fitted rows, not ", arg_desc(newdata),
+             call. = FALSE)
+  }
   # the stats::simulate seed contract (as in simulate.lm)
   if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
     stats::runif(1)
@@ -3487,10 +3567,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
              sim_note(fam), call. = FALSE,
              package = frm_family_package(fam))
   }
-  marginal <- !is.null(re_formula) && !inherits(re_formula, "formula") &&
-    is.na(re_formula)
-  n <- stats::nobs(object)
-  out <- vector("list", nsim)
+  plan <- sim_re_plan(object, re_formula, smooths = redraw_smooths)
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   cwin <- NULL
   if (isTRUE(censored)) {
@@ -3500,22 +3577,69 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     }
     cwin <- cens_window(av, object$frame[["y"]][[rspec$resp_name]])
   }
-  for (s in seq_len(nsim)) {
-    b_use <- if (marginal && length(object$frame[["re_blocks"]])) {
-      draw_b(object)
+  if (!is.null(newdata)) {
+    sim_newdata_refuse_structure(fam)
+    sim_newdata_group_cols(object, rspec, newdata, plan, allow_new_levels)
+    n <- nrow(newdata)
+    # the terms the family reads (trials, se, the trunc bounds) have to
+    # follow the new rows; cens() does not, the draw is the latent one
+    av_nd <- if (length(rspec$aterms)) {
+      aterms_for_newdata(rspec, newdata)
     } else {
-      object$estimates[["b"]]
+      list()
     }
-    dp <- with_cs_offsets(object, rspec, eval_dpars(object,
-                                                    b = b_use))
-    dp <- dp[[rspec$resp_name]]
-    out[[s]] <- sim_draw(sim_context(object, rspec, dp, aterms = av,
-                                     n = n,
-                                     extra = fit_extras(object)))
+    # every term redrawn: an unseen level is one more fresh level
+    nl_ok <- allow_new_levels || isTRUE(plan$every)
+    dz <- sim_newdata_design(object, rspec, newdata, nl_ok)
+    # a row whose parameters are not finite at the estimates (a missing
+    # covariate) draws NA, as predict() gives it, rather than NaN and a
+    # warning from the family's random number generator
+    ok0 <- dpv_row_finite(sim_newdata_dpars(object, rspec, newdata, nl_ok,
+                                            dz))
+    if (!all(ok0)) sim_newdata_warn_rows(which(!ok0))
+    ac <- object$frame[["autocor"]][[rspec$resp_name]]
+    ac_nd <- if (!is.null(ac)) {
+      autocor_for_newdata(object, ac, rspec,
+                          newdata[ok0, , drop = FALSE])
+    }
+    nls <- predict_new_level_spec(object, rspec, newdata, NULL, nl_ok)
+    n_lost <- 0L
+  } else {
+    n <- stats::nobs(object)
+  }
+  out <- vector("list", nsim)
+  for (s in seq_len(nsim)) {
+    b_use <- sim_draw_b(object, plan)
+    if (is.null(newdata)) {
+      dp <- with_cs_offsets(object, rspec, eval_dpars(object, b = b_use))
+      dp <- dp[[rspec$resp_name]]
+      ctx <- sim_context(object, rspec, dp, aterms = av, n = n,
+                         extra = fit_extras(object))
+      out[[s]] <- sim_draw(ctx)
+    } else {
+      fb <- object
+      fb$estimates[["b"]] <- b_use
+      dp <- sim_newdata_dpars(fb, rspec, newdata, nl_ok, dz,
+                              predict_new_level_draw(fb, nls))
+      ok <- ok0 & dpv_row_finite(dp)
+      if (all(ok)) {
+        ctx <- sim_context(fb, rspec, dp, aterms = av_nd, n = n,
+                           extra = fit_extras(fb))
+        ctx[["autocor"]] <- ac_nd
+        out[[s]] <- sim_draw(ctx)
+      } else {
+        n_lost <- n_lost + sum(ok0 & !ok)
+        out[[s]] <- sim_newdata_draw_rows(fb, rspec, dp, av_nd, ac_nd, ok,
+                                          ok0)
+      }
+    }
     if (!is.null(cwin)) out[[s]] <- apply_censoring(out[[s]], cwin)
   }
+  if (!is.null(newdata) && n_lost > 0L) sim_newdata_warn_draws(n_lost, nsim)
   names(out) <- paste0("sim_", seq_len(nsim))
-  out <- lapply(out, function(v) sim_restore_type(object, rspec, v))
+  out <- lapply(out, function(v) {
+    sim_restore_type(object, rspec, v, pad = is.null(newdata))
+  })
   out <- sim_as_data_frame(out)
   attr(out, "seed") <- rng_state
   out
@@ -3560,10 +3684,11 @@ with_cs_offsets <- function(fit, rspec, dpv) {
 #' factor for an ordinal fit (the 1..K codes mean nothing without the
 #' levels) and a matrix for a matrix response. `na.exclude` fits pad back
 #' to the original row count, the same contract `fitted()` and
-#' `residuals()` keep. `[glmmTMB test-simulate.R; lme4#737]`
+#' `residuals()` keep; draws at `newdata` (`pad = FALSE`) are already one
+#' per new row. `[glmmTMB test-simulate.R; lme4#737]`
 #'
 #' @noRd
-sim_restore_type <- function(fit, rspec, v) {
+sim_restore_type <- function(fit, rspec, v, pad = TRUE) {
   lv <- fit$frame[["y_levels"]][[rspec$resp_name]]
   if (!is.null(lv)) {
     # a categorical response's levels are nominal: ordering the draws
@@ -3574,7 +3699,7 @@ sim_restore_type <- function(fit, rspec, v) {
     yv <- fit$frame[["y"]][[rspec$resp_name]]
     if (is.matrix(yv) && !is.null(colnames(yv))) colnames(v) <- colnames(yv)
   }
-  napred(fit, v)
+  if (pad) napred(fit, v) else v
 }
 
 #' A matrix response needs a data frame whose COLUMNS are matrices (the

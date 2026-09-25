@@ -1,0 +1,3 @@
+frmtmb from: C:/Users/adf44/source/r/simnewdata-lib/frmtmb 
+seed 6 cov z: -0.537 -0.061  0.287 -0.029  0.409  0.644 
+seed 7 cov z:  1.70  0.98 -0.50  0.37 -0.15  0.15 

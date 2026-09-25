@@ -46,15 +46,22 @@ the model does not use is refused.}
 (\code{"intervals"}, \code{"ribbon"}, \code{"error_scatter_avg_vs_x"}, ...),
 looked up as \code{group} is.}
 
-\item{newdata, resp}{brms's arguments. A fit simulates only its own
-rows, so a \code{newdata} is refused. \code{resp} is accepted and ignored,
-which is what brms does with it on a model that has one response;
-a multivariate fit is refused before \code{resp} could select one.}
+\item{newdata, resp}{brms's arguments. With \code{newdata} the check is on
+its rows: \code{\link[=simulate]{simulate()}} draws for them, the observed series is its
+response column (needed for \code{prefix = "ppc"} only), and \code{group} and
+\code{x} are read from it, as brms reads them. A row with a missing
+response is dropped with brms's warning. \code{resp} is accepted and
+ignored, which is what brms does with it on a model that has one
+response; a multivariate fit is refused before \code{resp} could select
+one.}
 
 \item{re_formula}{The random-effect switch, in brms's spelling
 (\code{pp_check()} is a brms function). On a fit it is passed to
-\code{\link[=simulate]{simulate()}} and defaults to \code{NA}, which simulates new random
-effects; on draws it is passed to \code{posterior_predict()} and
+\code{\link[=simulate]{simulate()}} and defaults to \code{NA}, which redraws every group-level
+effect in each replicate; \code{~0} and \code{~1} mean the same, and a
+one-sided formula keeps the terms it names and redraws the rest
+(see \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}). On draws it is passed to
+\code{posterior_predict()} and
 defaults to \code{NULL}, because a draw already carries its own. lme4's
 \code{re.form} is refused. brms honors it on \code{pp_check()} and warns that
 it ignored it, which is a leak through its dots rather than a

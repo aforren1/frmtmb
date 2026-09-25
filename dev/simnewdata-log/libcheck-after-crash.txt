@@ -1,0 +1,7 @@
+C:/Users/adf44/source/r/simnewdata-lib 3 dirs, 0 hollow  
+C:/Users/adf44/source/r/rellib-r3 9 dirs, 0 hollow  
+C:/Users/adf44/AppData/Local/R/win-library/4.6 410 dirs, 0 hollow  
+frmtmb from C:/Users/adf44/source/r/simnewdata-lib/frmtmb : 163 functions match; 0 differ 
+frmtmb.sample from C:/Users/adf44/source/r/simnewdata-lib/frmtmb.sample : 93 functions match; 0 differ 
+frmtmb.learn from C:/Users/adf44/source/r/simnewdata-lib/frmtmb.learn : 13 functions match; 0 differ 
+gaussian (1 | g) logLik -298.768372821 

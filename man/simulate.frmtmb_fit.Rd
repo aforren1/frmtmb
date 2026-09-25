@@ -10,6 +10,8 @@
   seed = NULL,
   re_formula = NULL,
   censored = FALSE,
+  newdata = NULL,
+  allow_new_levels = FALSE,
   ...
 )
 }
@@ -22,18 +24,28 @@
 contract: the global RNG state is restored afterwards, and the
 seed used is attached as the \code{"seed"} attribute.}
 
-\item{re_formula}{\code{NULL} (default) conditions on the estimated random
-effects; \code{NA} redraws them from their estimated distribution
-(marginal simulation).}
+\item{re_formula}{Which group-level terms the draws condition on:
+\code{NULL} (default) all of them, \code{NA} (or \code{~0}, \code{~1}) none, and a
+one-sided formula the terms it names. A term not kept is redrawn
+from its estimated distribution in each replicate (see Group-level
+terms).}
 
 \item{censored}{Apply the fitted \code{cens()} mechanism to the draws
 (see Censored responses). Ignored without \code{cens()}.}
+
+\item{newdata}{Optional data frame to simulate the responses of,
+instead of the fitted rows (see New data).}
+
+\item{allow_new_levels}{With \code{newdata}: draw the effect of a grouping
+level the fit never saw from its term's estimated distribution,
+rather than refuse it. brms's spelling.}
 
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}
 }
 \value{
-A data frame with \code{nsim} columns and a \code{"seed"} attribute.
+A data frame with \code{nsim} columns and a \code{"seed"} attribute,
+with one row per fitted row, or per row of \code{newdata}.
 }
 \description{
 A \code{trunc()}ed response simulates by rejection within its bounds, so
@@ -61,9 +73,55 @@ structure declares, by the same route.
 
 A structured draw covers whole sequences or groups, so \code{trunc()}
 rejection cannot resample single rows within it (every structured
-model refuses \code{trunc()} when the frame is assembled) and
-\code{posterior_predict(newdata =)} is refused: the structure indexes the
-rows the model was fitted on.
+model refuses \code{trunc()} when the frame is assembled). At \code{newdata} a
+structured FAMILY is refused, because its structure indexes the rows
+the model was fitted on: \code{mixture(groups = )}, a hidden Markov
+family, a learning family, and \code{\link[=mixture_mvn]{mixture_mvn()}}, which
+\code{predict(newdata = )} refuses as well. A residual correlation term
+is rebuilt on the new rows instead: rows that share a group are
+drawn jointly, and a time the fit never saw is refused. A lag is
+counted in the FITTED time levels, as the likelihood counts it, so
+rows at times 2 and 4 are two levels apart even with nothing at
+time 3 in newdata. brms counts a lag by a row's position among its
+group's newdata rows instead, which makes the correlation of two
+rows depend on which other rows newdata holds; frmtmb departs from
+it on purpose.
+}
+
+\section{Group-level terms}{
+
+\code{re_formula} chooses which group-level terms the draws condition on,
+read as \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} reads it: \code{NULL} keeps every term,
+\code{NA}, \code{~0} and \code{~1} keep none, and a one-sided formula keeps the terms
+it names (a term the fit does not have is an error). A term that is
+kept enters at its estimated effects. A term that is not kept is
+REDRAWN from its estimated distribution in every replicate, which is
+lme4's unconditional simulation. That is where \code{simulate()} and
+\code{predict()} differ: a prediction is for an average group, so a
+dropped term contributes nothing there, and a simulated response
+needs a group, so here it gets a new one. When a formula keeps some
+columns of a term and drops others, as \code{~ (1 | g)} does on a
+\code{(1 + x | g)} fit, the dropped columns are drawn given the kept ones
+at their estimates.
+
+A population smooth, \code{gp()} or \code{hsgp()} curve is not a group-level
+term and is never redrawn. A factor-smooth term is, with the other
+group-level terms.
+}
+
+\section{New data}{
+
+With \code{newdata} the draws are for its rows. The response column is
+not needed. At a grouping level the fit saw, a kept term enters at
+that level's estimate, and a redrawn term shares one draw across the
+rows of the level, so newdata must carry the grouping column. A level
+the fit never saw is an error unless \code{allow_new_levels = TRUE}, which
+draws its effect from the term's estimated distribution, as
+\code{predict()} does. Under \code{re_formula = NA} (or \code{~0}, \code{~1}) every term
+is redrawn anyway, so an unseen level is one more fresh level and
+needs nothing, except on a fit with a factor-smooth term: there an
+unseen level takes the population curve under
+\code{allow_new_levels = TRUE}, as in \code{predict()}, and is not redrawn.
 }
 
 \section{Censored responses}{
@@ -87,7 +145,7 @@ censored row on a side (type-I censoring): with row-varying
 censoring times an uncensored row's censoring point is unknown, so
 the mechanism cannot be applied to its draws and the call is
 refused. Interval censoring has no single-value representation and
-is refused too.
+is refused too. At \code{newdata} the same fitted window applies.
 }
 
 \examples{
@@ -105,6 +163,10 @@ attr(sims, "seed")
 # for a parametric bootstrap over new groups
 sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
 apply(sims_m, 2, var) > apply(sims, 2, var)
+
+# draws for rows the fit never saw, at a known group and a new one
+nd <- data.frame(x = c(-1, 1), g = factor(c("3", "new")))
+simulate(fit, nsim = 3, seed = 1, newdata = nd, allow_new_levels = TRUE)
 
 # a posterior-predictive check by hand: does the fit reproduce the
 # share of zeros in the data?

@@ -101,24 +101,23 @@ test_that("simulate() refuses the duplicated column and names it", {
                "bandit2arm_delta", fixed = TRUE)
   # the sentence has to say which column is absent, not only that
   # something is, and it has to say that newdata is not a way round it
-  # WITHOUT implying simulate() reads newdata: it takes none since
-  # frmtmb 0.58.0, and the old wording ("newdata cannot supply them,
-  # because ... newdata is read through that same formula") said it did
+  # WITHOUT implying a newdata would be read through this formula: the
+  # old wording ("newdata cannot supply them, because ... newdata is
+  # read through that same formula") said it would
   expect_error(simulate(one, nsim = 1L, seed = 3L), "second")
   msg <- tryCatch(simulate(one, nsim = 1L, seed = 3L),
                   error = conditionMessage)
-  expect_match(msg, "simulate() takes no newdata", fixed = TRUE)
+  expect_match(msg, "simulate() refuses newdata for a learning family",
+               fixed = TRUE)
   expect_no_match(msg, "newdata is read through", fixed = TRUE)
   expect_no_match(msg, "newdata cannot supply", fixed = TRUE)
-  # and newdata is not a way round it, for a blunter reason than this
-  # test used to assert: simulate() has NO newdata argument and never
-  # read one. Until frmtmb 0.58.0 the name was swallowed by `...`, so
-  # this call reached the reward() refusal and looked as though newdata
-  # had been considered and rejected. It had been dropped.
+  # and newdata is not a way round it. Until frmtmb 0.58.0 the name was
+  # swallowed by `...`, so this call reached the reward() refusal and
+  # looked as though newdata had been considered and rejected. Core's
+  # simulate() takes newdata since lane wt-simnewdata, and refuses it for
+  # a family whose draw walks the fitted rows, which this one is
   expect_error(simulate(one, newdata = d, nsim = 1L, seed = 3L),
-               "newdata", fixed = TRUE)
-  expect_false("newdata" %in% names(formals(
-    getS3method("simulate", "frmtmb_fit"))))
+               "indexes the rows the model was fitted on", fixed = TRUE)
   # the de novo route reaches the same slot and refuses there too
   expect_error(
     frm_simulate(bf(choice | reward(rec, rec) ~ 1, tau ~ 1), d,

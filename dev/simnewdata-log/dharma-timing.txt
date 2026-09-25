@@ -1,0 +1,4 @@
+base: min of 5, 8 x simulate(nsim = 250) 0.40 s, control 0.38 s
+lane: min of 5, 8 x simulate(nsim = 250) 0.54 s, control 0.43 s
+base: min of 5, 8 x simulate(nsim = 250) 0.44 s, control 0.39 s
+lane: min of 5, 8 x simulate(nsim = 250) 0.46 s, control 0.38 s

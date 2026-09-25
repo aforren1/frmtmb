@@ -1,0 +1,4 @@
+HOLDS but has manual verdict 'defect': brmsfit-methods:675 in frmtmb
+HOLDS but has manual verdict 'defect': brmsfit-methods:682 in frmtmb
+Error: 2 problem(s); the ledger was not written
+Execution halted

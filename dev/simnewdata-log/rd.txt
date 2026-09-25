@@ -1,0 +1,287 @@
+===== man/simulate.frmtmb_fit.Rd 
+Simulate responses from a frmtmb fit
+
+Description:
+
+     A 'trunc()'ed response simulates by rejection within its bounds,
+     so every draw lies in [lb, ub] and posterior-predictive checks
+     ('dharma_residuals()', 'pp_check()') see the same support the
+     likelihood was normalized on.
+
+Usage:
+
+     ## S3 method for class 'frmtmb_fit'
+     simulate(
+       object,
+       nsim = 1,
+       seed = NULL,
+       re_formula = NULL,
+       censored = FALSE,
+       newdata = NULL,
+       allow_new_levels = FALSE,
+       ...
+     )
+     
+Arguments:
+
+  object: A 'frmtmb_fit'.
+
+    nsim: Number of simulated response vectors.
+
+    seed: Optional RNG seed. Follows the 'stats::simulate()' contract:
+          the global RNG state is restored afterwards, and the seed
+          used is attached as the '"seed"' attribute.
+
+re_formula: Which group-level terms the draws condition on: 'NULL'
+          (default) all of them, 'NA' (or '~0', '~1') none, and a
+          one-sided formula the terms it names. A term not kept is
+          redrawn from its estimated distribution in each replicate
+          (see Group-level terms).
+
+censored: Apply the fitted 'cens()' mechanism to the draws (see
+          Censored responses). Ignored without 'cens()'.
+
+ newdata: Optional data frame to simulate the responses of, instead of
+          the fitted rows (see New data).
+
+allow_new_levels: With 'newdata': draw the effect of a grouping level
+          the fit never saw from its term's estimated distribution,
+          rather than refuse it. brms's spelling.
+
+     ...: Refused: an argument the method does not have is an error
+          naming it, rather than silently changing nothing.
+
+Value:
+
+     A data frame with 'nsim' columns and a '"seed"' attribute, with
+     one row per fitted row, or per row of 'newdata'.
+
+Structured draws:
+
+     Most families draw each row on its own. Some cannot, and those go
+     through one implementation that 'simulate()',
+     'posterior_predict()' and 'frm_simulate()' all reach (see
+     'sim_ctx' in 'frmtmb_family()'):
+
+        * a 'mixture(groups = ~g)' draw takes one class per GROUP and
+          then simulates each row from its group's component;
+
+        * a 'mixture_mvn()' draw takes a class per row and then a
+          multivariate normal with that class's own covariance;
+
+        * a residual correlation term ('ar()', 'ma()', 'cosy()', ...)
+          is one multivariate residual draw per group added to the mean
+          predictor, so the draws carry the fitted autocorrelation;
+
+        * a family from an extension package draws through whatever its
+          structure declares, by the same route.
+
+     A structured draw covers whole sequences or groups, so 'trunc()'
+     rejection cannot resample single rows within it (every structured
+     model refuses 'trunc()' when the frame is assembled). At 'newdata'
+     a structured FAMILY is refused, because its structure indexes the
+     rows the model was fitted on: 'mixture(groups = )', a hidden
+     Markov family, a learning family, and 'mixture_mvn()', which
+     'predict(newdata = )' refuses as well. A residual correlation term
+     is rebuilt on the new rows instead: rows that share a group are
+     drawn jointly, and a time the fit never saw is refused. A lag is
+     counted in the FITTED time levels, as the likelihood counts it, so
+     rows at times 2 and 4 are two levels apart even with nothing at
+     time 3 in newdata. brms counts a lag by a row's position among its
+     group's newdata rows instead, which makes the correlation of two
+     rows depend on which other rows newdata holds; frmtmb departs from
+     it on purpose.
+
+Group-level terms:
+
+     're_formula' chooses which group-level terms the draws condition
+     on, read as 'predict.frmtmb_fit()' reads it: 'NULL' keeps every
+     term, 'NA', '~0' and '~1' keep none, and a one-sided formula keeps
+     the terms it names (a term the fit does not have is an error). A
+     term that is kept enters at its estimated effects. A term that is
+     not kept is REDRAWN from its estimated distribution in every
+     replicate, which is lme4's unconditional simulation. That is where
+     'simulate()' and 'predict()' differ: a prediction is for an
+     average group, so a dropped term contributes nothing there, and a
+     simulated response needs a group, so here it gets a new one. When
+     a formula keeps some columns of a term and drops others, as '~ (1
+     | g)' does on a '(1 + x | g)' fit, the dropped columns are drawn
+     given the kept ones at their estimates.
+
+     A population smooth, 'gp()' or 'hsgp()' curve is not a group-level
+     term and is never redrawn. A factor-smooth term is, with the other
+     group-level terms.
+
+New data:
+
+     With 'newdata' the draws are for its rows. The response column is
+     not needed. At a grouping level the fit saw, a kept term enters at
+     that level's estimate, and a redrawn term shares one draw across
+     the rows of the level, so newdata must carry the grouping column.
+     A level the fit never saw is an error unless 'allow_new_levels =
+     TRUE', which draws its effect from the term's estimated
+     distribution, as 'predict()' does. Under 're_formula = NA' (or
+     '~0', '~1') every term is redrawn anyway, so an unseen level is
+     one more fresh level and needs nothing, except on a fit with a
+     factor-smooth term: there an unseen level takes the population
+     curve under 'allow_new_levels = TRUE', as in 'predict()', and is
+     not redrawn.
+
+Censored responses:
+
+     On a 'cens()' fit the default draws the LATENT, uncensored
+     response: the model describes the latent distribution, and
+     censoring is a property of the observation process, not of the
+     response. This matches brms, whose 'posterior_predict()' also
+     ignores 'cens()' (and whose 'pp_check()' therefore drops the
+     censored rows). The draws are then not comparable with the
+     observed values on censored rows, which is why
+     'dharma_residuals()' and 'residuals(type = "osa")' refuse or skip
+     them.
+
+     'censored = TRUE' applies the fitted censoring mechanism to each
+     draw instead, so the draws are directly comparable with the
+     observed data: every draw is recorded at the edge of the
+     observation window it falls outside, capped above by the
+     right-censoring point and below by the left-censoring point. Those
+     points are the response values of the censored rows, and they must
+     be the same for every censored row on a side (type-I censoring):
+     with row-varying censoring times an uncensored row's censoring
+     point is unknown, so the mechanism cannot be applied to its draws
+     and the call is refused. Interval censoring has no single-value
+     representation and is refused too. At 'newdata' the same fitted
+     window applies.
+
+Examples:
+
+     set.seed(1)
+     dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+     dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+     fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+     
+     # one column per draw; the seed used is attached
+     sims <- simulate(fit, nsim = 5, seed = 42)
+     str(sims)
+     attr(sims, "seed")
+     
+     # re_formula = NA redraws the group effects, which is the right choice
+     # for a parametric bootstrap over new groups
+     sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
+     apply(sims_m, 2, var) > apply(sims, 2, var)
+     
+     # draws for rows the fit never saw, at a known group and a new one
+     nd <- data.frame(x = c(-1, 1), g = factor(c("3", "new")))
+     simulate(fit, nsim = 3, seed = 1, newdata = nd, allow_new_levels = TRUE)
+     
+     # a posterior-predictive check by hand: does the fit reproduce the
+     # share of zeros in the data?
+     mean(dd$y == 0)
+     colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
+     
+===== man/pp_check.Rd 
+Predictive check against simulated responses
+
+Description:
+
+     The frequentist analog of brms's 'pp_check()': responses are
+     simulated from the fitted model (marginally over the random
+     effects) and handed to the corresponding bayesplot ppc_* function
+     (bayesplot must be installed, but not necessarily attached).
+
+Usage:
+
+     pp_check(object, ...)
+     
+     ## S3 method for class 'frmtmb_fit'
+     pp_check(
+       object,
+       type = "dens_overlay",
+       ndraws = 10,
+       prefix = c("ppc", "ppd"),
+       group = NULL,
+       x = NULL,
+       newdata = NULL,
+       resp = NULL,
+       ...,
+       re_formula = NA
+     )
+     
+Arguments:
+
+  object: A 'frmtmb_fit' for a univariate model.
+
+     ...: Passed to the ppc_* function.
+
+    type: The bayesplot check, i.e. the part after 'ppc_'
+          ('"dens_overlay"', '"hist"', '"stat"', '"stat_grouped"',
+          '"scatter_avg"', ...). With 'prefix = "ppc"' a name that
+          'bayesplot::available_ppc()' does not list is refused, as
+          brms refuses it.
+
+  ndraws: Number of simulated response vectors.
+
+  prefix: '"ppc"' (the default) plots the observed response against the
+          simulated ones; '"ppd"' plots the simulated ones alone,
+          through bayesplot's ppd_* function of the same name.
+
+   group: The name of a model variable to stratify by, for the
+          *_grouped types, which need it. The name is looked up in the
+          model frame, as brms looks it up in the model's data, so a
+          column the model does not use is refused.
+
+       x: The name of a model variable for the types that take an 'x'
+          ('"intervals"', '"ribbon"', '"error_scatter_avg_vs_x"', ...),
+          looked up as 'group' is.
+
+newdata, resp: brms's arguments. With 'newdata' the check is on its
+          rows: 'simulate()' draws for them, the observed series is its
+          response column (needed for 'prefix = "ppc"' only), and
+          'group' and 'x' are read from it, as brms reads them. A row
+          with a missing response is dropped with brms's warning.
+          'resp' is accepted and ignored, which is what brms does with
+          it on a model that has one response; a multivariate fit is
+          refused before 'resp' could select one.
+
+re_formula: The random-effect switch, in brms's spelling ('pp_check()'
+          is a brms function). On a fit it is passed to 'simulate()'
+          and defaults to 'NA', which redraws every group-level effect
+          in each replicate; '~0' and '~1' mean the same, and a
+          one-sided formula keeps the terms it names and redraws the
+          rest (see 'simulate.frmtmb_fit()'). On draws it is passed to
+          'posterior_predict()' and defaults to 'NULL', because a draw
+          already carries its own. lme4's 're.form' is refused. brms
+          honors it on 'pp_check()' and warns that it ignored it, which
+          is a leak through its dots rather than a decision to copy.
+
+Value:
+
+     A ggplot object, as returned by the bayesplot ppc_* function that
+     'type' selects.
+
+Types a fit cannot draw:
+
+     The loo_* types weight posterior draws by Pareto-smoothed
+     importance sampling, and a maximum-likelihood fit has no posterior
+     draws, so they are refused on a fit. 'pp_check()' on the draws of
+     'frmtmb.sample::frm_sample()' is the route to them.
+     '"error_binned"' is refused on an ordinal, categorical or
+     multinomial fit, as brms refuses it.
+
+Examples:
+
+     if (requireNamespace("bayesplot", quietly = TRUE)) {
+       set.seed(1)
+       dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+       dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+       fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+     
+       # the observed density against draws from the fit
+       pp_check(fit, ndraws = 20)
+     
+       # any bayesplot ppc_* check, named by its suffix. A statistic the
+       # model was not fitted to is the informative one: here, the share
+       # of zeros, which is how zero inflation shows up.
+       pp_check(fit, type = "stat", stat = function(y) mean(y == 0),
+                ndraws = 50)
+     }
+     

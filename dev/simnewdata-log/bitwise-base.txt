@@ -1,0 +1,26 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+gaussian ML ok 
+gaussian REML ok 
+gaussian profile ok 
+poisson ML ok 
+poisson REML ok 
+poisson profile ok 
+distributional ML ok 
+distributional REML ok 
+distributional profile ok 
+mixed ML ok 
+mixed REML ok 
+mixed profile ok 
+two_terms ML ok 
+two_terms REML ok 
+two_terms profile ok 
+mixed_poisson ML ok 
+mixed_poisson REML ok 
+mixed_poisson profile ok 
+dist_mixed ML ok 
+dist_mixed REML ok 
+dist_mixed profile ok 
+smooth_mixed ML ok 
+smooth_mixed REML ok 
+smooth_mixed profile ok 
+saved 24 designs
