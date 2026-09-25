@@ -608,9 +608,10 @@ calls_function <- function(e, nm) {
   hd <- e[[1L]]
   if (is.name(hd) && identical(as.character(hd), nm)) return(TRUE)
   for (i in seq_along(e)[-1L]) {
-    ei <- e[[i]]
-    if (is.symbol(ei) && !nzchar(as.character(ei))) next
-    if (calls_function(ei, nm)) return(TRUE)
+    # the empty argument of m[, 1] is the missing symbol, and binding it
+    # to a local makes every later read of that local an error
+    if (identical(e[[i]], quote(expr = ))) next
+    if (calls_function(e[[i]], nm)) return(TRUE)
   }
   FALSE
 }

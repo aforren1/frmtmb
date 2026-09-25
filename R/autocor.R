@@ -701,7 +701,8 @@ check_autocor_cond <- function(resp, av, yv) {
              " with ", re_hint, call. = FALSE)
   }
   if (is.matrix(yv)) {
-    frm_stop(fn, "(): the response must be a numeric vector",
+    frm_stop(fn, "(): cov = FALSE regresses each row on its own ",
+             "residual, so the response must be a numeric vector",
              call. = FALSE)
   }
   if (!is.null(av[["se"]])) {
