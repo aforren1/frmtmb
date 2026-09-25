@@ -1,0 +1,47 @@
+frmtmb from /opt/rlib/lane-emm/frmtmb 
+
+== 1. nlpar and whole mu against the linear fit (seed 1, n = 200)
+coefficients, max relative difference (optimizer floor)    7.453e-07
+nlpar = 'a' vs linear at x = 0: estimate                   3.001e-07
+nlpar = 'a' vs linear at x = 0: SE                         3.188e-07
+whole mu (delta route) vs linear: estimate                 1.925e-07
+whole mu (delta route) vs linear: SE                       3.188e-07
+pairs() on whole mu vs linear: estimate                    1.287e-06
+pairs() on whole mu vs linear: SE                          3.188e-07
+epred = TRUE vs whole mu, identity link (identity): estimate 0.000e+00
+epred = TRUE vs whole mu, identity link (identity): SE     6.828e-12
+
+== 2. multivariate against univariate fits (seed 1, n = 200)
+resp = 'y1' vs univariate y1: estimate                     1.106e-06
+resp = 'y1' vs univariate y1: SE                           5.727e-07
+rep.meas levels: y1 y2 
+stacked, rep.meas = y1 vs univariate: estimate             1.106e-06
+stacked, rep.meas = y2 vs univariate: estimate             9.520e-06
+stacked, rep.meas = y2 vs univariate: SE                   2.392e-07
+contrast y1 - y2 within f: estimate vs difference          3.682e-06
+contrast y1 - y2 within f: SE vs sqrt(se1^2 + se2^2)       2.315e-07
+average over rep.meas vs (y1 + y2) / 2: estimate           1.139e-06
+average over rep.meas vs (y1 + y2) / 2: SE                 2.315e-07
+
+== 3. delta method vs numDeriv and marginaleffects (seed 11)
+exp decay, whole mu (6 x 3 grid): bhat vs predict          0.000e+00
+exp decay, whole mu (6 x 3 grid): V vs numDeriv J V J'     1.261e-09
+exp decay, whole mu (6 x 3 grid): SE vs marginaleffects    2.403e-08
+poisson nl, whole mu, link scale: bhat vs predict          0.000e+00
+poisson nl, whole mu, link scale: V vs numDeriv J V J'     8.867e-08
+poisson nl, whole mu, link scale: SE vs marginaleffects    1.502e-08
+poisson nl, epred, response scale: bhat vs predict         0.000e+00
+poisson nl, epred, response scale: V vs numDeriv J V J'    1.316e-07
+poisson nl, epred, response scale: SE vs marginaleffects   2.986e-08
+poisson nl: regrid(link) vs epred grid: estimate           0.000e+00
+poisson nl: regrid(link) vs epred grid: SE                 3.014e-11
+
+== 4. parametric bootstrap, B = 1500 (seed 20260925)
+exp decay: refits kept 1500 of 1500 in 149 s
+exp decay, whole mu over f then pairs: SE_delta / SD_boot
+[1] 0.990 0.994 1.029 0.981 1.007 1.007
+poisson nl: refits kept 1500 of 1500 in 153 s
+poisson nl, epred over f then pairs: SE_delta / SD_boot
+[1] 1.000 0.985 1.011 0.974 1.010 1.004
+an SD from 1500 draws has relative standard error about 0.018 
+EXIT 0

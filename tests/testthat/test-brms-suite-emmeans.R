@@ -31,31 +31,22 @@ test_that("emmeans returns expected output structure", {
   brms_setup("emmeans:20",
     em <- summary(emmeans(fit1, "Age", by = "Exp"))
   )
-  brms_port("emmeans:21", "defect",
-    paste0(
-      "emmeans(fit1, 'Age', by = 'Exp') is refused, 'No variable ",
-      "named Exp in the reference grid': the mo(Exp) variable is ",
-      "not in frmtmb's recover_data()"),
+  brms_port("emmeans:21", "pass",
+    "",
     expect_equal(nrow(em), 5)
   )
   brms_setup("emmeans:23",
     em <- summary(emmeans(fit1, "Exp"))
   )
-  brms_port("emmeans:24", "defect",
-    paste0(
-      "emmeans(fit1, 'Exp') is refused: the mo(Exp) variable is ",
-      "not in the reference grid"),
+  brms_port("emmeans:24", "pass",
+    "",
     expect_equal(nrow(em), 5)
   )
   brms_setup("emmeans:26",
     em <- SW(summary(emmeans(fit2, "Age", nlpar = "a")))
   )
-  brms_port("emmeans:27", "cannot transfer",
-    paste0(
-      "frmtmb's emmeans support is declared refused for a ",
-      "nonlinear mu ('needs a linear mu predictor', ",
-      "R/compat.R:1612, enforced by emm_mu_linpred()); the reason ",
-      "is hidden by emmeans, a separate defect"),
+  brms_port("emmeans:27", "pass",
+    "",
     expect_equal(nrow(em), 1)
   )
   brms_setup("emmeans:29",
@@ -71,23 +62,15 @@ test_that("emmeans supports 'epred' predictions", {
   brms_setup("emmeans:34",
     em <- summary(emmeans(fit2, "Age", epred = TRUE))
   )
-  brms_port("emmeans:35", "cannot transfer",
-    paste0(
-      "frmtmb's emmeans support is declared refused for a ",
-      "nonlinear mu ('needs a linear mu predictor', ",
-      "R/compat.R:1612, enforced by emm_mu_linpred()); the reason ",
-      "is hidden by emmeans, a separate defect"),
+  brms_port("emmeans:35", "pass",
+    "",
     expect_equal(nrow(em), 1)
   )
   brms_setup("emmeans:37",
     em <- summary(emmeans(fit2, "Age", by = "Trt", epred = TRUE))
   )
-  brms_port("emmeans:38", "cannot transfer",
-    paste0(
-      "frmtmb's emmeans support is declared refused for a ",
-      "nonlinear mu ('needs a linear mu predictor', ",
-      "R/compat.R:1612, enforced by emm_mu_linpred()); the reason ",
-      "is hidden by emmeans, a separate defect"),
+  brms_port("emmeans:38", "pass",
+    "",
     expect_equal(nrow(em), 2)
   )
   brms_setup("emmeans:41",
@@ -95,9 +78,13 @@ test_that("emmeans supports 'epred' predictions", {
   )
   brms_port("emmeans:42", "cannot transfer",
     paste0(
-      "frmtmb's emmeans support is declared univariate only ",
-      "(R/compat.R:1356); the reason is hidden by emmeans, a ",
-      "separate defect"),
+      "frmtmb refuses it by name: fit6's volume response has an ",
+      "exact gp(Age), predicted at the grid's mean Age, which is ",
+      "not a fitted position, and the kriging covariance between ",
+      "two grid points is not available (emm_check_part(), ",
+      "R/interop.R). brms draws that covariance jointly. at = ",
+      "list(Age = <an observed value>) or an approximate gp(Age, k ",
+      "= ) answers"),
     expect_equal(nrow(em), 2)
   )
 })
@@ -113,12 +100,8 @@ test_that("emmeans supports multilevel terms", {
   brms_setup("emmeans:49",
     em <- SW(summary(emmeans(fit2, "Age", nlpar = "a", re_formula = NULL)))
   )
-  brms_port("emmeans:50", "cannot transfer",
-    paste0(
-      "frmtmb's emmeans support is declared refused for a ",
-      "nonlinear mu ('needs a linear mu predictor', ",
-      "R/compat.R:1612, enforced by emm_mu_linpred()); the reason ",
-      "is hidden by emmeans, a separate defect"),
+  brms_port("emmeans:50", "pass",
+    "",
     expect_equal(nrow(em), 1)
   )
 })
