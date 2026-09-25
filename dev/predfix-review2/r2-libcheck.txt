@@ -1,0 +1,11 @@
+frmtmb 0.62.0 C:/Users/adf44/source/r/predfix-lib/frmtmb 
+  functions compared 1144 differ 0 missing 0 
+frmtmb.sample 0.10.0 C:/Users/adf44/source/r/predfix-lib/frmtmb.sample 
+  functions compared 209 differ 0 missing 0 
+frmtmb.latent 0.5.0 C:/Users/adf44/source/r/predfix-lib/frmtmb.latent 
+  functions compared 62 differ 0 missing 0 
+frmtmb.coupling 0.5.0 C:/Users/adf44/source/r/predfix-lib/frmtmb.coupling 
+  functions compared 19 differ 0 missing 0 
+frmtmb.learn 0.6.0 C:/Users/adf44/source/r/predfix-lib/frmtmb.learn 
+  functions compared 44 differ 0 missing 0 
+cs_offsets_add exported: TRUE 

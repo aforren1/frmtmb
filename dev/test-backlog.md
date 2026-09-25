@@ -85,7 +85,18 @@ to do, and every closure carries the measurement that closed it.
   jointly right across rows of one group. Filed by lane wt-shapes,
   punch round 2 (`dev/shapes-findings.md` section 3).
 
-- `predict()` on a draw that is FINITE but absurd. Masking a
+- DECIDED NOT TO DETECT, lane wt-predfix (`dev/predfix-findings.md`
+  item 2): no statistic calibrated here separates a flat direction
+  from a genuine heavy tail or from extrapolation. The share of a row's
+  absolute deviation carried by its single largest draw is 0.553 to
+  1.000 on flat directions and 0.517 to 0.600 on well-identified
+  lognormal fits with sigma 5.5 and 6.5. The link-scale se.fit is 10.0
+  to 11.3 on the near-collinear 1e-2 rows and 16.4 to 20.1 on a
+  legitimate poisson extrapolation to x = 300. Those collinear rows
+  ARE design-space extrapolation (leverage 3.8e4 to 4.5e4); the only
+  flat case that is not, an all-zero poisson cell, already raises the
+  non-finite warning. The entry as filed:
+  `predict()` on a draw that is FINITE but absurd. Masking a
   non-finite cell (punch round 2) does nothing for a draw that
   overflows to a huge finite number: a poisson row whose linear
   predictor sits just under the overflow point summarizes to an
@@ -148,7 +159,10 @@ to do, and every closure carries the measurement that closed it.
   t-like widening with the profile curvature of tau, or a bootstrap
   interval. Filed by lane wt-reunc.
 
-- A quadrature fit's SCALAR standard errors leave out the group-effect
+- DONE, lane wt-predfix: the scalar route now warns, classed
+  `frmtmb_modes_conditional_se`, as the finite-difference route and
+  `predict()` do. The entry as filed:
+  A quadrature fit's SCALAR standard errors leave out the group-effect
   term and say nothing. On `y ~ x + (1 | g)` with `bernoulli()` and
   `quadrature = TRUE`, `fitted()` reports Est.Error 0.09407 and 0.08913
   at a known level against 0.09340 and 0.09095 at `re_formula = NA`, so
@@ -211,7 +225,11 @@ to do, and every closure carries the measurement that closed it.
   not proposed: it would turn a gaussian model's sigma back into the
   ML estimate, and the inner problem can be unbounded as sigma goes to 0.
 
-- Draws hint that leads to a refusal (found 2026-09-22 by the round-3
+- DONE, lane wt-predfix: the draws methods refuse an unseen level with
+  or without the flag, and say the flag is refused too; core's
+  new-level errors are classed `frmtmb_new_levels` so the draws side
+  can catch them. The entry as filed:
+  Draws hint that leads to a refusal (found 2026-09-22 by the round-3
   recheck of 2.6d/2.6f). On a draws object, a `newdata` holding an
   unseen level WITHOUT `allow_new_levels` gets core's error, whose hint
   says "Use allow_new_levels = TRUE". Following the hint reaches
@@ -742,7 +760,11 @@ neither is the defect that lane fixed.
   `quad_fit()` calibrates, or to recalibrate after it, both of which
   are changes to `quad_fit()` rather than to the escape.
 
-- **nlminb reports "false convergence (8)" on fits that satisfy
+- DECIDED 2026-09-24 (user): KEEP REPORTING nonzero optimizer
+  convergence codes, "I'd rather people think about their fits". The
+  measured case for each option is in `dev/predfix-findings.md` item 7;
+  nothing changed. The entry as filed:
+  **nlminb reports "false convergence (8)" on fits that satisfy
   frmtmb's own gradient criterion.** Construction in
   `dev/skewinit-m3.R`: `set.seed(8)`, n = 200, `x ~ N(0, 1e4^2)`,
   `y = 0.001 x + rskewnorm2(n, 0, 1.5, 4)`. The fit reaches
@@ -792,7 +814,11 @@ neither is the defect that lane fixed.
   change to `make_start()` for every family and wants its own lane.
   Batteries to reuse: `dev/skewinit-noint.R` and its comparator.
 
-- **frmtmb sits below `glm()` on a no-intercept poisson with a
+- DONE, lane wt-predfix: `frmtmb_control(autoscale = )` defaults to
+  `NULL`, which engages the pre-fit when a qualifying column's sd is
+  below 1e-3 and its coefficient is an outer parameter. The job
+  below reaches glm() exactly. The entry as filed:
+  **frmtmb sits below `glm()` on a no-intercept poisson with a
   1e-6-scaled covariate, on the UNCHANGED build.** Same construction as
   above: `dev/skewinit-noint.R` job `pois_s6` gives -512.543671042038
   against glm's -449.965387300331, a gap of **62.578284**, and
@@ -820,7 +846,11 @@ neither is the defect that lane fixed.
   the default leaves the 62.58 gap in place. The fit still reports
   convergence 0 and says nothing, which is the part worth fixing.
 
-- **The same scale mechanism survives INSIDE a dpar that declares a
+- DONE by the same default, lane wt-predfix: at 1e-6 and 1e-9 the
+  default now engages and beats the predictor-scale sweep on 24 of 24
+  fits, by 0.115 to 7.14 units (`dev/predfix-skewalpha.R`). The entry
+  as filed:
+  **The same scale mechanism survives INSIDE a dpar that declares a
   stationary point, which is the one place wt-skewinit still places a
   start on an intercept-less design.** Reproduction in
   `dev/skewinit-punch3.R` part 2: `bf(y ~ xr, sigma ~ 1,
@@ -852,6 +882,59 @@ neither is the defect that lane fixed.
   predictor-scale start sweep on the same data. Filed beside the
   poisson entry because they share one mechanism: a start that is
   right on the predictor scale and too large on the parameter scale.
+
+## Recorded by lane wt-predfix, 2026-09-24
+
+- DONE: `fitted()` on a multivariate fit refused while `predict()`
+  answered (`dev/shapes-findings.md`, "fitted(mv)"). It returns brms's
+  `n x 4 x nresp` now.
+- DONE: `vcov()` on a `REML = TRUE` or `profile = TRUE` fit with no
+  random effect and no free dispersion died in `vcov_estimated()`
+  (`dev/correct-findings.md`, "Found and NOT fixed" 1). TMB leaves the
+  joint precision unnamed when there is no outer parameter.
+- DONE in punch round 1: a random slope on a badly scaled column,
+  found by the reviewer (`y ~ x + (1 + x | g)`, gaussian, scale-1
+  optimum -311.327238; at sd 1.86e-3 seed 1 was 3.18 units short with
+  code 0, and even with autoscale engaged at 1e-6 it was 4.87 and 1.79
+  short on two seeds; base identical). Autoscale rescaled X but not Z,
+  so the slope's log sd started where the scale-1 fit starts it. The
+  pre-fit now rescales the Z column of `us()`, `diag()`, `us_t()` and
+  `diag_t()` slopes too, and the default engages for a slope column
+  below sd 0.05 (`dev/predfix-p1-slopecal*.R`, 736 fits).
+- OPEN, from the same calibration: a random slope whose covariance
+  structure is not `us()`, `diag()` or a Student-t block (`cs()`,
+  `ar1()` and the rest), or whose column is not also a fixed effect
+  (`y ~ 1 + (0 + x | g)`), is not rescaled, so it keeps the stall. And
+  just above the 0.05 threshold the plain fit fell short by at most
+  2.2e-4 units (spread 0.06, 64 fits). Filed by lane wt-predfix.
+- OPEN, pre-existing, found by the wt-predfix reviewer: `frm_sample()`
+  on a one-parameter model (`y ~ 0 + x`) fails inside rstan with "no
+  more scalars to read", on the 0.62.0 base as well. Not reproduced by
+  the lane, which only files it.
+- DONE in punch round 1 (assigned by the organizer, found by the
+  wt-simnewdata reviewer): `predict()` and draws `posterior_predict()`
+  drew every `cs()` model as if the term were absent, in sample and at
+  newdata, silently (max |z| 1216.7). `dev/predfix-findings.md`, the
+  cs() section.
+- OPEN, A SILENT WRONG ANSWER, pre-existing (0.62.0 and every lane
+  build): `cs()` on a factor is fitted and predicted on the factor's
+  INTEGER CODES. `ord_cs_values()` calls `as.numeric()` on the factor,
+  so the model is linear in the codes (logLik -446.9233 against
+  -446.6361 with the two dummy columns written out), and a `newdata`
+  factor is re-coded from its own levels: a single row
+  `factor("c")` gets level a's probabilities (0.1876, 0.6725, 0.1399)
+  instead of (0.7430, 0.0883, 0.1687), from `fitted()` and `predict()`
+  alike. Found by the wt-predfix reviewer, punch round 2
+  (`dev/predfix-review2/r2-cs2.R`, seed 405). brms 2.23.0 builds
+  treatment-contrast dummy columns, `fcb` and `fcc`, with one `b` row
+  each (`dev/predfix-brms-csfactor.R`, `dev/predfix-log/brms-csfactor.txt`),
+  so the fix is to build `cs()` from `model.matrix()` with the fit's
+  contrasts and levels, in the frame and at `newdata`.
+- The frmtmb.sample floor must move to the core that carries
+  `frmtmb_new_levels` and exports `cs_offsets_add()`: against 0.62.0
+  core the draws check falls back to its flagged path, core's old hint
+  reaches the caller again, and `posterior_predict()` cannot find
+  `cs_offsets_add()`.
 
 ## Reference
 

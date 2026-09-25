@@ -1,0 +1,28 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+== (a) bounded-link init at its bound: all-ones bernoulli ==
+default                                logLik -0.000000 code 0 | warnings=0 messages=0
+FALSE                                  logLik -0.000000 code 1 | warnings=1 messages=0
+     | Optimizer did not report convergence: function evaluation limit reached without convergence (9) 
+== (b) nonlinear start at the prior location ==
+default                                logLik 185.351979 code 0 | warnings=0 messages=0
+FALSE                                  logLik 185.351979 code 0 | warnings=0 messages=1
+     | Nonlinear starting values placed at the prior locations: k_(Intercept) = 0.5. Give `start` to choose your own.
+ 
+== (c) a user start with a bound on b_x ==
+default                                logLik -256.320554 code 0 | warnings=0 messages=0
+FALSE                                  logLik -260.817522 code 1 | warnings=2 messages=0
+     | Optimizer did not report convergence: function evaluation limit reached without convergence (9) 
+     | Large maximum absolute gradient at the optimum (0.00835); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergen 
+== (d) sparse_x with a small slope column ==
+default                                logLik -310.585421 code 0 | warnings=0 messages=0
+FALSE                                  logLik -310.586253 code 0 | warnings=0 messages=0
+== (e) a singular random slope (true sd 0), small column ==
+default                                logLik -287.512937 code 0 | warnings=0 messages=0
+FALSE                                  logLik -287.512937 code 1 | warnings=1 messages=0
+     | Optimizer did not report convergence: singular convergence (7) 
+== (f) a single-level grouping factor with a small slope ==
+default                                logLik -282.944372 code 0 | warnings=0 messages=0
+FALSE                                  logLik -282.944372 code 0 | warnings=0 messages=0
+== (g) an observation-level random slope (olre check) ==
+default                                logLik -380.947459 code 0 | warnings=0 messages=0
+FALSE                                  logLik -380.996525 code 0 | warnings=0 messages=0

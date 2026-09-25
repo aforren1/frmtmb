@@ -253,8 +253,13 @@ ln_common_rules <- function(r, nm, nominal = TRUE) {
            "on a learning rate's intercept is the usual remedy for a ",
            "subject whose choices are perfectly consistent, which is ",
            "where an unpenalized inverse temperature runs away."))
-  r(nm, "autoscale", "untested",
-    "Not exercised. The parameters are all of order 1 by construction.")
+  r(nm, "autoscale", "works",
+    paste0("Verified on bandit2arm_delta, tau ~ z with a subject ",
+           "covariate z at 1e-6: frmtmb's default engages autoscale and ",
+           "reaches the scale-1 log-likelihood on 3 of 3 seeds (within ",
+           "5.6e-10), where autoscale = FALSE was 20.4 to 52.3 units ",
+           "short (dev/predfix-p1-ext.R). The other families share the ",
+           "engine and its design matrices."))
   r(nm, "nl", "untested",
     paste0("A nonlinear body on one of these parameters is not ",
            "exercised. Nothing about the recursion argues against it: ",

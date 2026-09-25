@@ -646,7 +646,8 @@ vb_frame_detail <- function(frame) {
 #'
 #' @noRd
 vb_fit_detail <- function(spec, REML, control, quadrature, prior,
-                          importance = 0L) {
+                          importance = 0L,
+                          autoscaled = isTRUE(control$autoscale)) {
   fams <- vapply(spec$responses, function(r) r$family[["family"]] %||% "?", "")
   opt <- control$optimizer %||% "nlminb"
   if (is.function(opt)) opt <- "custom"
@@ -654,7 +655,8 @@ vb_fit_detail <- function(spec, REML, control, quadrature, prior,
              if (isTRUE(control$profile)) "profile",
              if (isTRUE(quadrature)) "quadrature",
              if (importance > 0L) paste0("importance ", importance),
-             if (isTRUE(control$autoscale)) "autoscale",
+             # what ran, not what was asked: the default engages it too
+             if (isTRUE(autoscaled)) "autoscale",
              if (!is.null(prior)) "prior")
   paste0(paste(unique(fams), collapse = " + "), ", ",
          paste(flags, collapse = ", "), ", ", opt)
@@ -720,14 +722,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   upper_arg <- upper
   vb <- verbose_level(control)
   n_imp <- as.integer(importance %||% 0L)
+  ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
   if (vb) {
     t_fit <- vb_now()
     vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,
-                                  prior, n_imp))
+                                  prior, n_imp,
+                                  autoscaled = !is.null(ascale)))
   }
-  ascale <- if (isTRUE(control$autoscale) && !objective_only) {
-    autoscale_plan(frame)
-  }
+  prefit_seeded <- FALSE
   if (!is.null(ascale) && is.null(template)) {
     # two-stage warm start: fit the standardized frame, back-transform
     # the optimum, and continue below as the ordinary unscaled fit
@@ -735,12 +737,30 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # template (refit and friends) skips the pre-fit but keeps the
     # plan, so the optimizer and sdreport still run in natural units.
     if (vb) t0 <- vb_now()
-    template <- autoscale_prefit(spec, frame, bform, cl, REML = REML,
-                                 start = start, control = control,
-                                 lower = lower, upper = upper,
-                                 prior = prior,
-                                 quadrature = quadrature, plan = ascale)
+    pre <- autoscale_prefit(spec, frame, bform, cl, REML = REML,
+                            start = start, control = control,
+                            lower = lower, upper = upper, prior = prior,
+                            quadrature = quadrature, plan = ascale)
     if (vb) vb_stage("autoscale pre-fit", t0)
+    verdict <- autoscale_prefit_verdict(pre, control, vb)
+    if (identical(verdict, "choose")) {
+      return(autoscale_choose(
+        function(ctl, tpl) {
+          fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
+                        control = ctl, se = se, lower = lower_arg,
+                        upper = upper_arg, prior = prior,
+                        quadrature = quadrature, importance = importance,
+                        template = tpl, data2 = data2,
+                        announce_start = announce_start)
+        }, control, pre$template, vb))
+    }
+    if (isTRUE(verdict)) {
+      template <- pre$template
+      prefit_seeded <- TRUE
+    } else {
+      # the plain fit, exactly as autoscale = FALSE runs it
+      ascale <- NULL
+    }
   }
   if (vb) t0 <- vb_now()
   nll <- build_objective(frame)
@@ -777,6 +797,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (is.null(template)) {
     template <- make_start(frame, start, prior_entries,
                            announce = announce_start)
+  } else if (prefit_seeded && announce_start) {
+    # the pre-fit's template replaces the cold start, and with it the
+    # one place that says where a nonlinear start came from; say it
+    # once, as the plain fit does
+    make_start(frame, start, prior_entries, announce = TRUE)
   }
 
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
@@ -1383,6 +1408,27 @@ sdr_of <- function(fit) {
 #'   nothing qualifies. Compatible with `profile = TRUE`. Under
 #'   `prior` or bounds, the first stage applies them to the scaled
 #'   coefficients; the second stage is the fit that is reported.
+#'   A random slope on a rescaled column (`(1 + x | g)`) is rescaled
+#'   with it in `us()`, `diag()` and the Student-t blocks, its log
+#'   standard deviation and its effects mapped back exactly; other
+#'   covariance structures keep their slope unscaled. The pre-fit's own
+#'   warnings are not shown. Under the default, a pre-fit that errors
+#'   or does not converge in its coefficients never makes the reported
+#'   fit less diagnostic than `autoscale = FALSE`: the default then
+#'   reports the plain fit, unless the fit from the pre-fit has the
+#'   better likelihood and either warns at least as often or is a
+#'   verified optimum. Under `TRUE` the pre-fit's error stands and its
+#'   non-convergence is a warning. `TRUE` always does this, `FALSE` never
+#'   does. The default, `NULL`, does it when a qualifying column has a
+#'   standard deviation below 1e-3 and its coefficient is optimized
+#'   directly (not a `mu` coefficient under `REML = TRUE` or
+#'   `profile = TRUE`, which the inner solver integrates), or when a
+#'   column carrying such a random slope has one below 0.05. Without
+#'   it such a fit can stop short and report convergence: a poisson
+#'   `y ~ 0 + x` with `x` on a 1e-6 scale lost 62.6 log-likelihood
+#'   units against [stats::glm()], and a random slope on a column
+#'   spread 0.01 lost up to 14.4. Every other fit is the fit
+#'   `autoscale = FALSE` gives, bit for bit.
 #' @param check_nlev_1 What to do about a scalar random-effect term
 #'   whose grouping factor has a single level: `"warning"` (default),
 #'   `"ignore"`, or `"stop"`, following lme4's `lmerControl()` check
@@ -1460,8 +1506,10 @@ sdr_of <- function(fit) {
 #' @return A list of control settings.
 #'
 #' @srrstats {RE2.0} Data transformations are documented and can be turned
-#'   off. `autoscale` is the only transformation of predictor values, it
-#'   is `FALSE` by default, and the documentation states exactly which
+#'   off. `autoscale` is the only transformation of predictor values,
+#'   `FALSE` turns it off, its default engages it only for a column
+#'   spread below 1e-3 (0.05 for a random slope), and the
+#'   documentation states exactly which
 #'   columns qualify, which are never touched (intercepts, factor
 #'   contrasts, smooth bases, `mo()`/`mi()` columns), and that results are
 #'   always mapped back and reported on the original scale. `sparse_x`
@@ -1517,18 +1565,19 @@ frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),
                            restarts = 1, grad_tol = 1e-3,
                            profile = FALSE, sparse_x = FALSE,
-                           autoscale = FALSE,
+                           autoscale = NULL,
                            check_nlev_1 = c("warning", "ignore", "stop"),
                            check_olre = c("warning", "ignore", "stop"),
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25,
                            verbose = NULL) {
-  # The three flags below reach isTRUE() one line down, which reads a
+  # The three flags below reach isTRUE() later, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
   # mistake instead of quietly turning the option off.
   check_flag(profile, "profile")
   check_flag(sparse_x, "sparse_x")
-  check_flag(autoscale, "autoscale")
+  # NULL is the default rule (autoscale_decide()), not a third flag value
+  if (!is.null(autoscale)) check_flag(autoscale, "autoscale")
   check_count(restarts, "restarts", min = 0L)
   check_positive(grad_tol, "grad_tol")
   check_count(importance_seed, "importance_seed", min = 0L)
@@ -1562,7 +1611,7 @@ frmtmb_control <- function(optimizer = "nlminb",
   # explicit control value must win over its own shortcut
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
        grad_tol = grad_tol, profile = isTRUE(profile),
-       sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale),
+       sparse_x = isTRUE(sparse_x), autoscale = autoscale,
        check_nlev_1 = frm_match_arg(check_nlev_1),
        check_olre = frm_match_arg(check_olre),
        importance_seed = as.integer(importance_seed),

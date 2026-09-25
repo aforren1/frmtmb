@@ -1,0 +1,25 @@
+LIB C:/Users/adf44/source/r/rellib-r3 0.62.0 
+FAILED [fitted() answers a multivariate fit in brms's n x 4 x nresp] Expected `is.array(out) && length(dim(out)) == 3L` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  
+FAILED [fitted() answers a multivariate fit in brms's n x 4 x nresp] Expected `dim(out)` to be identical to `c(150L, 4L, 2L)`. Differences: `actual` is NULL `expected` is an integer vector (150, 4, 2) 
+FAILED [fitted() answers a multivariate fit in brms's n x 4 x nresp] Expected `dimnames(out)` to be identical to `list(...)`. Differences: `actual` is NULL `expected` is a list 
+FAILED [each layer of fitted(mv) is that response's own fitted()] Expected `if (is.null(out)) NULL else out[, , r]` to be identical to `one`. Differences: `actual` is NULL `expected` is a double vector (1.14343151453809, 1.4687905976625, 0.728342694404674, 1.52723816734065, 0.70750754554141, ...)  y1
+FAILED [each layer of fitted(mv) is that response's own fitted()] Expected `if (is.null(out)) NULL else out[, , r]` to be identical to `one`. Differences: `actual` is NULL `expected` is a double vector (-0.152138942599774, -0.409740575542088, 0.176505817692907, -0.456016183544228, 0.193001955800478, ...)  y2
+FAILED [fitted(mv) takes brms's resp, dpar, scale and newdata] Expected `shape(resp = c("y1", "y2"))` to be identical to `c(150L, 4L, 2L)`. Differences: `actual` is a character vector ('Unknown response: \'y1y2\'. Available: y1, y2') `expected` is an integer vector (150, 4, 2) 
+FAILED [fitted(mv) takes brms's resp, dpar, scale and newdata] Expected `shape(newdata = nd)` to be identical to `c(3L, 4L, 2L)`. Differences: `actual` is a character vector ('fitted() is not supported yet for multivariate fits') `expected` is an integer vector (3, 4, 2) 
+FAILED [fitted(mv) takes brms's resp, dpar, scale and newdata] Expected `shape(dpar = "sigma")` to be identical to `c(150L, 4L, 2L)`. Differences: `actual` is a character vector ('fitted() is not supported yet for multivariate fits') `expected` is an integer vector (150, 4, 2) 
+FAILED [fitted(mv) takes brms's resp, dpar, scale and newdata] Expected `shape(scale = "linear")` to be identical to `c(150L, 4L, 2L)`. Differences: `actual` is a character vector ('fitted() is not supported yet for multivariate fits') `expected` is an integer vector (150, 4, 2) 
+FAILED [fitted(mv) takes brms's resp, dpar, scale and newdata] Expected `rev` to be identical to `c("y2", "y1")`. Differences: `actual` is NULL `expected` is a character vector ('y2', 'y1') 
+FAILED [a category-valued response in fitted(mv) is refused, naming resp] Expected `conditionMessage(err)` to match string "fitted(object, resp = \"o\")". Actual text: x | fitted() is not supported yet for multivariate fits
+FAILED [fitted() on a quadrature fit says the group-effect term is missing] Expected `fitted(q$fit, newdata = nd)` to throw a warning with class <frmtmb_modes_conditional_se>.
+FAILED [fitted() on a quadrature fit says the group-effect term is missing] Expected `fitted(q$fit)` to throw a warning with class <frmtmb_modes_conditional_se>.
+FAILED [fitted() on a quadrature fit says the group-effect term is missing] Expected `fitted(q$fit, newdata = nd, scale = "linear")` to throw a warning with class <frmtmb_modes_conditional_se>.
+FAILED [vcov() answers a poisson REML fit with no random effect] Expected `is.matrix(V)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  
+FAILED [vcov() answers a poisson REML fit with no random effect] Expected `unname(if (is.matrix(V)) V else NA)` to equal `unname(Vg)`. Differences: `actual` is a logical vector (NA) `expected` is a double vector (0.0103086591361552, -0.00394539775227573, -0.00394539775227573, 0.00964980409777807) 
+FAILED [vcov() answers a poisson profile fit with no random effect] Expected `is.matrix(V)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  
+FAILED [vcov() answers a poisson profile fit with no random effect] Expected `unname(if (is.matrix(V)) V else NA)` to equal `unname(Vg)`. Differences: `actual` is a logical vector (NA) `expected` is a double vector (0.0103086591361552, -0.00394539775227573, -0.00394539775227573, 0.00964980409777807) 
+FAILED [summary() and fitted() answer a poisson no-RE REML fit] Expected `is.numeric(fe) && all(is.finite(fe))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  
+FAILED [a poisson y ~ 0 + x at scale 1e-6 reaches glm() by default] Expected `as.numeric(logLik(f))` to equal `gl`. Differences:   `actual`: -512.5 `expected`: -450.0 
+FAILED [a poisson y ~ 0 + x at scale 1e-6 reaches glm() by default] Expected `is.null(f$par_units)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE 
+FAILED [a gaussian y ~ x at scale 1e-6 reaches lm() by default] Expected `as.numeric(logLik(f))` to equal `ll`. Differences:   `actual`: -391.5 `expected`: -375.5 
+FAILED [autoscale = FALSE still turns the default off] Expected `frmtmb_control()$autoscale` to be NULL. Differences: `actual` is a logical vector (FALSE) `expected` is NULL 
+RESULT test-predfix.R pass=21 fail=23 err=0 skip=0

@@ -120,7 +120,8 @@ test_that("multivariate predict targets responses; post-processing guards", {
   expect_equal(frm_linpred(mv, newdata = dd, resp = "y2"), p2,
                tolerance = 1e-8)
   expect_error(frm_linpred(mv, resp = "zzz"), "Unknown response")
-  expect_error(fitted(mv), "multivariate")
+  # brms's n x 4 x nresp, one layer per response (lane wt-predfix)
+  expect_identical(dim(fitted(mv)), c(nrow(dd), 4L, 2L))
   expect_error(simulate(mv), "multivariate")
 })
 

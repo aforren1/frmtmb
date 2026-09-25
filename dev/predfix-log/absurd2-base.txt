@@ -1,0 +1,22 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+                                                    kind  n one1_min one1_med one1_max over_half est_ratio_min est_ratio_max warned
+poisson, x at 10 and 100 x the range row 1 extrapolation 20 0.067081 0.086566 0.115441         0     8.619e-01     9.083e-01      0
+poisson, x at 10 and 100 x the range row 2 extrapolation 20 0.868885 0.999387 0.999819        20     3.821e-02     2.002e-01      0
+poisson, all-zero cell row 1                        flat 20 0.004053 0.004292 0.004469         0     1.021e+00     1.040e+00     20
+poisson, all-zero cell row 2                        flat 20 0.553279 1.000000 1.000000        20     1.017e-03     9.008e+17     20
+poisson, x2 = x + N(0, 1e-2) row 1                  flat 20 0.004960 0.006012 0.006243         0     9.725e-01     9.785e-01      0
+poisson, x2 = x + N(0, 1e-2) row 2                  flat 20 0.787289 0.846538 0.906871        20     3.658e-01     1.349e+00      0
+poisson, x2 = x + N(0, 1e-3) row 1                  flat 20 0.004965 0.006018 0.006289         0     9.703e-01     9.790e-01      0
+poisson, x2 = x + N(0, 1e-3) row 2                  flat 20 1.000000 1.000000 1.000000        20     1.553e+11     1.321e+19      0
+Gamma shape 0.2 row 1                            genuine 20 0.018245 0.018745 0.018785         0     8.622e-01     8.796e-01      0
+Gamma shape 0.2 row 2                            genuine 20 0.019108 0.020658 0.022230         0     1.138e+00     1.156e+00      0
+lognormal sigma 2.5 row 1                        genuine 20 0.152167 0.170601 0.207904         0     9.494e-01     9.678e-01      0
+lognormal sigma 2.5 row 2                        genuine 20 0.041789 0.045450 0.052398         0     2.311e-01     4.091e-01      0
+lognormal sigma 3.5 row 1                        genuine 20 0.307328 0.318513 0.319412         0     1.014e+00     1.021e+00      0
+lognormal sigma 3.5 row 2                        genuine 20 0.073459 0.077237 0.080781         0     6.105e-02     7.635e-02      0
+lognormal sigma 4.5 row 1                        genuine 20 0.435217 0.445069 0.446150         0     1.099e+00     1.108e+00      0
+lognormal sigma 4.5 row 2                        genuine 20 0.108501 0.115589 0.122083         0     9.822e-03     1.344e-02      0
+negbinomial shape 0.05 row 1                     genuine 20 0.059323 0.066388 0.068971         0     7.394e-01     8.449e-01      0
+negbinomial shape 0.05 row 2                     genuine 20 0.055136 0.059577 0.088646         0     9.033e-01     1.116e+00      0
+student, t(1.05) errors row 1                    genuine 20 0.118121 0.139320 0.139728         0    -6.850e-01    -4.700e-01     19
+student, t(1.05) errors row 2                    genuine 20 0.123415 0.147339 0.148285         0    -1.712e+01     2.065e+00     19

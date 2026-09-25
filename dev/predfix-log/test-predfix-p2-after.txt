@@ -1,0 +1,2 @@
+LIB C:/Users/adf44/source/r/predfix-lib 0.62.0 
+RESULT test-predfix.R pass=86 fail=0 err=0 skip=0

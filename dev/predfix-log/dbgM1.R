@@ -1,0 +1,10 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-predfix/dev/predfix-prelude.R")
+set.seed(1); g <- factor(rep(1:20, each = 15)); x <- rnorm(300)
+d <- data.frame(g = g, x = x, y = 1 + x + rnorm(20)[g] + rnorm(300))
+f <- frm(bf(y ~ x + (1 + x | g)), family = gaussian(), data = d)
+bk <- f$frame$re_blocks[[1]]
+str(bk[setdiff(names(bk), c("components"))], max.level = 1, list.len = 40)
+str(bk$components[[1]], max.level = 1)
+lp <- f$frame$linpreds[[1]]; str(lp$Z); print(names(lp))
+print(f$frame$par_template$theta)
+print(frmtmb:::covstruct_registry$us$vcov)

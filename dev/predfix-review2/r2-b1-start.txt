@@ -1,0 +1,6 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+poisson y=0, x 1e-4, default logLik -1.081e-276 code 0 | 0 warning(s)
+poisson y=0, x 1e-4, FALSE   logLik -2.92e-272 code 1 | 1 warning(s)
+     | Optimizer did not report convergence: function evaluation limit reached without convergence (9) 
+poisson y=0, x sd 1, default logLik -4.025e-277 code 1 | 1 warning(s)
+     | Optimizer did not report convergence: function evaluation limit reached without convergence (9) 

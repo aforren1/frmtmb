@@ -1349,8 +1349,16 @@ diagnose <- function(fit, quiet = FALSE) {
           paste(paste0(out$predictor_scale$column, " (sd ",
                        format(out$predictor_scale$sd, digits = 3), ")"),
                 collapse = "; "),
-          "\n  Rescale the column, or refit with ",
-          "frmtmb_control(autoscale = TRUE).\n", sep = "")
+          if (!is.null(fit$par_units)) {
+            # this fit already ran the standardized pre-fit, by default
+            # or on request, so "refit with autoscale = TRUE" repeats it
+            paste0("\n  The fit was already standardized internally ",
+                   "(frmtmb_control(autoscale = )); rescaling the column ",
+                   "is still the cleaner model.\n")
+          } else {
+            paste0("\n  Rescale the column, or refit with ",
+                   "frmtmb_control(autoscale = TRUE).\n")
+          }, sep = "")
     }
     clean <- out$convergence == 0 && out$pdHess && !length(out$bad_se) &&
       is.null(out$singular) && is.null(out$separation) &&

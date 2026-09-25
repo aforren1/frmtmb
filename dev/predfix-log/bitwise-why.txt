@@ -1,0 +1,60 @@
+                                      fit                      differ                                                   base_se   lane_se
+1                       poisson|icpt|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+2                    poisson|icpt|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+3                      poisson|noint|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+4                   poisson|noint|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+5                    poisson|noint_f|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+6                 poisson|noint_f|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+7                     bernoulli|icpt|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+8                  bernoulli|icpt|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+9                    bernoulli|noint|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+10                bernoulli|noint|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+11                 bernoulli|noint_f|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+12              bernoulli|noint_f|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+13                     binomial|icpt|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+14                  binomial|icpt|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+15                    binomial|noint|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+16                 binomial|noint|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+17                  binomial|noint_f|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+18               binomial|noint_f|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+19                    geometric|icpt|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+20                 geometric|icpt|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+21                   geometric|noint|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+22                geometric|noint|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+23                 geometric|noint_f|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+24              geometric|noint_f|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+25                  exponential|icpt|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+26               exponential|icpt|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+27                 exponential|noint|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+28              exponential|noint|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+29               exponential|noint_f|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+30            exponential|noint_f|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+31                  categorical|icpt|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+32               categorical|icpt|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 4 numbers
+33                 categorical|noint|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+34              categorical|noint|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+35               categorical|noint_f|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 8 numbers
+36            categorical|noint_f|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 8 numbers
+37             TARGET|gaussian|1 + xs6|ML       ll,par,se_full,se_fix                                                 2 numbers 2 numbers
+38             TARGET|gaussian|0 + xs6|ML       ll,par,se_full,se_fix                                                 1 numbers 1 numbers
+39              TARGET|poisson|1 + xs6|ML       ll,par,se_full,se_fix                                                 2 numbers 2 numbers
+40            TARGET|poisson|1 + xs6|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+41         TARGET|poisson|1 + xs6|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+42              TARGET|poisson|0 + xs6|ML       ll,par,se_full,se_fix                                                 1 numbers 1 numbers
+43            TARGET|poisson|0 + xs6|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+44         TARGET|poisson|0 + xs6|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+45        TARGET|poisson|xs6 + (1 | g)|ML ll,par,se_full,se_fix,sd_re                                                 2 numbers 2 numbers
+46            TARGET|bernoulli|1 + xs6|ML       ll,par,se_full,se_fix                                                 2 numbers 2 numbers
+47          TARGET|bernoulli|1 + xs6|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+48       TARGET|bernoulli|1 + xs6|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 2 numbers
+49          TARGET|negbinomial|1 + xs6|ML       ll,par,se_full,se_fix                                                 2 numbers 2 numbers
+50             TARGET|gaussian|1 + xs4|ML       ll,par,se_full,se_fix                                                 2 numbers 2 numbers
+51              TARGET|poisson|0 + xs4|ML       ll,par,se_full,se_fix                                                 1 numbers 1 numbers
+52            TARGET|poisson|0 + xs4|REML                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+53         TARGET|poisson|0 + xs4|profile                      se_fix ERROR: length of 'dimnames' [1] not equal to array extent 1 numbers
+54                TARGET|Gamma|1 + xs6|ML       ll,par,se_full,se_fix                                                 2 numbers 2 numbers
+55      TARGET|gaussian|x, sigma ~ xs6|ML       ll,par,se_full,se_fix                                                 4 numbers 4 numbers
+56    TARGET|gaussian|x, sigma ~ xs6|REML ll,par,se_full,se_fix,sd_re                                                 4 numbers 4 numbers
+57 TARGET|gaussian|x, sigma ~ xs6|profile ll,par,se_full,se_fix,sd_re                                                 4 numbers 4 numbers
+
+battery fits moved: 36 ; of them ll, par and conv all identical: 36 ; base vcov() an error on: 36 

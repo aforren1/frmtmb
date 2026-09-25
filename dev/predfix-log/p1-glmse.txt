@@ -1,0 +1,9 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+poisson      REML     max relative SE difference from glm 1.86e-11
+poisson      profile  max relative SE difference from glm 1.86e-11
+bernoulli    REML     max relative SE difference from glm 3.81e-08
+bernoulli    profile  max relative SE difference from glm 3.81e-08
+geometric    REML     max relative SE difference from glm 2.30e-02
+geometric    profile  max relative SE difference from glm 2.30e-02
+exponential  REML     max relative SE difference from glm 2.30e-02
+exponential  profile  max relative SE difference from glm 2.30e-02

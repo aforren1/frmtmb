@@ -1543,7 +1543,8 @@ hmm_compat_rules <- function() {
   r("hmm", "prior", "works",
     "set_prior() on an emission or transition logit is the remedy for a probability driven to the 0 boundary by a rare category.")
   r("hmm", "bounds", "untested", "")
-  r("hmm", "autoscale", "untested", "")
+  r("hmm", "autoscale", "works",
+    "Verified: hmm(K = 2, gaussian()) with y ~ x and x at 1e-6: frmtmb's default engages autoscale and reaches the scale-1 log-likelihood on 3 of 3 seeds (within 1.1e-10), where autoscale = FALSE was 14.4 to 132 units short (dev/predfix-p1-ext.R).")
   r("hmm", "sparse_x", "untested", "")
   r("hmm", "verbose", "works", "")
   r("hmm", "nl", "refused",

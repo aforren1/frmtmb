@@ -1,0 +1,24 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+frmtmb.sample from C:/Users/adf44/source/r/predfix-lib/frmtmb.sample  StanHeaders 2.32.10  rstan 2.32.7 
+sratio in sample                         draws=700 rows=300 max cell |z|=2.94 pooled max |z|=0.98
+sratio newdata 40 rows                   draws=700 rows=40 max cell |z|=2.55 pooled max |z|=0.77
+sratio newdata 1 row                     draws=700 rows=1 max cell |z|=0.83 pooled max |z|=0.83
+sratio newdata re_formula = NA           draws=700 rows=40 max cell |z|=3.14 pooled max |z|=1.07
+   epred P(Y=1) at x = 2.5: 0.985; share drawn: 0.989
+   unseen level with allow_new_levels: posterior_predict() on draws cannot predict a grouping level the fit did not see (New levels in grouping factor `g`: zz) 
+acat in sample                           draws=700 rows=300 max cell |z|=2.73 pooled max |z|=2.89
+acat newdata 40 rows                     draws=700 rows=40 max cell |z|=2.60 pooled max |z|=1.76
+acat newdata 1 row                       draws=700 rows=1 max cell |z|=1.25 pooled max |z|=1.25
+acat newdata re_formula = NA             draws=700 rows=40 max cell |z|=2.87 pooled max |z|=2.13
+   epred P(Y=1) at x = 2.5: 0.973; share drawn: 0.980
+   unseen level with allow_new_levels: posterior_predict() on draws cannot predict a grouping level the fit did not see (New levels in grouping factor `g`: zz) 
+cratio in sample                         draws=700 rows=300 max cell |z|=3.17 pooled max |z|=0.70
+cratio newdata 40 rows                   draws=700 rows=40 max cell |z|=2.88 pooled max |z|=0.70
+cratio newdata 1 row                     draws=700 rows=1 max cell |z|=1.48 pooled max |z|=1.48
+cratio newdata re_formula = NA           draws=700 rows=40 max cell |z|=2.57 pooled max |z|=0.43
+   epred P(Y=1) at x = 2.5: 0.983; share drawn: 0.984
+   unseen level with allow_new_levels: posterior_predict() on draws cannot predict a grouping level the fit did not see (New levels in grouping factor `g`: zz) 
+
+-- multivariate draws with two cs() responses --
+Error: Families with extra parameters ('sratio') are not supported in multivariate fits yet
+Execution halted

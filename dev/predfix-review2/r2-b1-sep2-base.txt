@@ -1,0 +1,42 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+(a) default: code 1 warnings 1 
+           Estimate Est.Error
+Intercept   886.600       NaN
+z         84370.000       NaN
+x             3.813       NaN
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+    FALSE: code 1 warnings 1 
+           Estimate Est.Error
+Intercept   886.600       NaN
+z         84370.000       NaN
+x             3.813       NaN
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+    diagnose(default) lines mentioning separation/boundary/large: 3 of 10 
+Optimizer convergence code: 1 (function evaluation limit reached without convergence (9)) 
+Max |gradient|: 1.084e-255 at (Intercept) 
+Hessian positive definite: FALSE 
+Non-finite standard errors: (Intercept), z, x 
+Flat directions (zero gradient, empty Hessian row): (Intercept), z, x
+  The likelihood does not depend on these parameters at this point, so the model is UNIDENTIFIED HERE rather than overparameterized, and every other standard error is NaN because the Hessian cannot be inverted. Moving them does not change the likelihood at all, so no amount of optimization will pin them down: what the fit reports for those parameters is wherever the optimizer stopped. par_template() names them.
+Likely complete separation: mu: (Intercept) =   887 (se NaN); mu: z = 84374 (se NaN)
+  Coefficients this large on the link scale with standard errors to match mean the maximum likelihood is at infinity: some combination of the predictors separates the outcome perfectly. Drop or pool the offending predictor, or add a prior (see set_prior()).
+Badly scaled predictors: mu: x (sd 9.3e-05)
+  Rescale the column, or refit with frmtmb_control(autoscale = TRUE).
+    glm warns: glm.fit: algorithm did not converge 
+    glm warns: glm.fit: fitted probabilities numerically 0 or 1 occurred 
+
+(b) random slope on a column spread 0.03, separated z
+   seed engaged warnD warnF codeD codeF      bz_D      bz_F
+1   531   FALSE     1     1     1     1 11153.743 11153.743
+2   532   FALSE     1     1     1     1  1494.388  1494.388
+3   533   FALSE     1     1     1     1 27058.571 27058.571
+4   534   FALSE     1     1     1     1  2841.133  2841.133
+5   535   FALSE     1     1     1     1  2499.843  2499.843
+6   536   FALSE     1     1     1     1  4352.732  4352.732
+7   537   FALSE     1     1     1     1  1216.579  1216.579
+8   538   FALSE     1     1     1     1  1933.585  1933.585
+9   539   FALSE     0     0     0     0  6535.554  6535.554
+10  540   FALSE     1     1     1     1  1643.534  1643.534
+warned under FALSE, silent under default: 0 of 10 

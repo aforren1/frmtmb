@@ -1,0 +1,5 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+[1] "build_objective"
+class: simpleError error condition 
+message: r2 injected pre-fit error 
+FALSE unaffected, logLik -137.2496 

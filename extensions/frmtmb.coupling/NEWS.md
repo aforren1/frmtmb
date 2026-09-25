@@ -1,3 +1,10 @@
+# frmtmb.coupling (development version)
+
+* `frm_compat()` records `autoscale` as working for `cross_wishart()`,
+  which frmtmb's default now engages below a column spread of 1e-3:
+  measured at 1e-6, it reaches the scale-1 log-likelihood on 3 of 3
+  seeds (`dev/predfix-p1-ext.R` in the frmtmb repository).
+
 # frmtmb.coupling 0.5.0
 
 * `frm_coherence()` and `frm_phase()` read `frmtmb::frm_linpred()`

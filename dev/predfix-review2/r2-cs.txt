@@ -1,0 +1,26 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+sratio in sample                             rows=500 dim(pred)=500x4 max|z|=3.50 max|diff|=0.0115
+sratio newdata 4 rows                        rows=4 dim(pred)=4x4 max|z|=2.68 max|diff|=0.0067
+sratio newdata 1 row                         rows=1 dim(pred)=1x4 max|z|=2.49 max|diff|=0.0037
+sratio re_formula = NA, 4 rows               rows=4 dim(pred)=4x4 max|z|=2.28 max|diff|=0.0059
+sratio re_formula = NA, in sample            rows=500 dim(pred)=500x4 max|z|=3.67 max|diff|=0.0125
+sratio unseen level, allow_new_levels        rows=2 dim(pred)=2x4 max|z|=2.39 max|diff|=0.0038
+   same row without cs(): fitted P(Y=1) at x=2.5: cs 0.949, no-cs 0.696
+acat in sample                               rows=500 dim(pred)=500x4 max|z|=3.31 max|diff|=0.0113
+acat newdata 4 rows                          rows=4 dim(pred)=4x4 max|z|=2.50 max|diff|=0.0067
+acat newdata 1 row                           rows=1 dim(pred)=1x4 max|z|=2.50 max|diff|=0.0047
+acat re_formula = NA, 4 rows                 rows=4 dim(pred)=4x4 max|z|=2.50 max|diff|=0.0061
+acat re_formula = NA, in sample              rows=500 dim(pred)=500x4 max|z|=3.45 max|diff|=0.0111
+acat unseen level, allow_new_levels          rows=2 dim(pred)=2x4 max|z|=2.75 max|diff|=0.0054
+   same row without cs(): fitted P(Y=1) at x=2.5: cs 0.925, no-cs 0.673
+cratio in sample                             rows=500 dim(pred)=500x4 max|z|=3.43 max|diff|=0.0116
+cratio newdata 4 rows                        rows=4 dim(pred)=4x4 max|z|=2.53 max|diff|=0.0063
+cratio newdata 1 row                         rows=1 dim(pred)=1x4 max|z|=2.39 max|diff|=0.0037
+cratio re_formula = NA, 4 rows               rows=4 dim(pred)=4x4 max|z|=2.38 max|diff|=0.0060
+cratio re_formula = NA, in sample            rows=500 dim(pred)=500x4 max|z|=3.67 max|diff|=0.0125
+cratio unseen level, allow_new_levels        rows=2 dim(pred)=2x4 max|z|=1.95 max|diff|=0.0035
+   same row without cs(): fitted P(Y=1) at x=2.5: cs 0.949, no-cs 0.707
+
+-- multivariate, two cs() responses and a gaussian --
+Error: Families with extra parameters ('sratio') are not supported in multivariate fits yet
+Execution halted

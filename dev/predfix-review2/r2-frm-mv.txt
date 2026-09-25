@@ -1,0 +1,30 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+fitted(m) : dim 150 4 6 
+   layers: 'y1' 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 'P(Y = a)' 'P(Y = b)' 
+fitted(m, resp = c('c2', 'y1')) : dim 150 4 3 
+   layers: 'P(Y = a)' 'P(Y = b)' 'y1' 
+fitted(m, resp = c('c1', 'y1')) : dim 150 4 4 
+   layers: 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 'y1' 
+fitted(m, resp = 'c1') : dim 150 4 3 
+   layers: 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 
+fitted(m, newdata = 3 rows) : dim 3 4 6 
+   layers: 'y1' 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 'P(Y = a)' 'P(Y = b)' 
+same layer names and order as brms: TRUE 
+Estimate at newdata, frmtmb minus brms (ML against posterior mean):
+          y1 P(Y = a) P(Y = b) P(Y = c) P(Y = a) P(Y = b)
+[1,]  0.0112  -0.0047   0.0027   0.0020  -0.0017   0.0017
+[2,]  0.0022  -0.0043   0.0020   0.0024  -0.0045   0.0045
+[3,] -0.0158  -0.0003   0.0003   0.0000   0.0014  -0.0014
+Est.Error at newdata, frmtmb / brms:
+       y1 P(Y = a) P(Y = b) P(Y = c) P(Y = a) P(Y = b)
+[1,] 0.93     1.00     1.00     0.99     0.94     0.94
+[2,] 0.92     1.08     0.96     0.99     1.02     1.02
+[3,] 0.94     0.58     0.99     0.99     0.90     0.90
+c2 layers equal fitted(resp = 'c2'): TRUE 
+fitted(m, resp = c('c1', 'c2')) : dim 150 4 5 
+   layers: 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 'P(Y = a)' 'P(Y = b)' 
+fitted(m, resp = 'nope') : ERROR Unknown response: 'nope'. Available: y1, c1, c2 
+NULL
+fitted(m, resp = c('y1', 'y1')) : dim 150 4 2 
+   layers: 'y1' 'y1' 

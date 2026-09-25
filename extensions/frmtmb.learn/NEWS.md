@@ -1,3 +1,11 @@
+# frmtmb.learn (development version)
+
+* `frm_compat()` records `autoscale` as working for the learning
+  families, which frmtmb's default now engages below a column spread
+  of 1e-3: measured on `bandit2arm_delta()` at 1e-6, it reaches the
+  scale-1 log-likelihood on 3 of 3 seeds (`dev/predfix-p1-ext.R` in the
+  frmtmb repository).
+
 # frmtmb.learn 0.6.0
 
 * Documentation only: the compatibility notes and the family refusals

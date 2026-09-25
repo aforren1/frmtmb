@@ -1,0 +1,10 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+[1] "(Intercept)"       "x"                 "sigma_(Intercept)"
+[4] "theta_1"           "theta_2"           "theta_3"          
+               lwr       upr       est
+theta_2  2.3975330 3.2301210 2.8123490
+theta_3 -0.3980365 0.8109636 0.1744022
+               lwr       upr       est
+theta_2  2.3975330 3.2301210 2.8123510
+theta_3 -0.3980365 0.8109636 0.1744029
+profile confint max rel diff: 3.94e-06

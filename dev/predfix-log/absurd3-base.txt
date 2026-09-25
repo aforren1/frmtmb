@@ -1,0 +1,4 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+sigma 4.5: one1 min 0.434 median 0.457 max 0.493, over 1/2 in 0 of 20; fitted sigma 4.29 to 4.93
+sigma 5.5: one1 min 0.517 median 0.533 max 0.560, over 1/2 in 20 of 20; fitted sigma 5.25 to 6.02
+sigma 6.5: one1 min 0.568 median 0.580 max 0.600, over 1/2 in 20 of 20; fitted sigma 6.20 to 7.12

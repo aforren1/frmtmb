@@ -1,0 +1,32 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+== A. alpha unbounded: y = 1 + 0.5 x + 1.2 |N(0, 1)|, n = 200
+seed  conv message                             alpha  max|grad|   warn         logLik       sn::selm
+1        1 false convergence (8)           3.412e+07        267      2    -182.867798    -184.124021
+2        1 false convergence (8)           2.852e+06       3.88      2    -182.596376    -183.678243
+3        0 relative convergence (4)            94.08   0.000873      0    -182.789611    -182.939496
+4        1 false convergence (8)            1.05e+08       91.5      2    -172.837480    -173.709106
+5        1 false convergence (8)           3.226e+07       44.1      2    -181.499369    -182.499787
+6        1 false convergence (8)            1.75e+07       6.64      2    -181.433881    -182.372835
+7        1 false convergence (8)           6.431e+07        180      2    -191.112180    -192.340219
+8        1 singular convergence (7)        3.466e+07   4.14e+03      2    -174.225019    -175.387140
+9        1 false convergence (8)           1.245e+07        214      2    -176.052252    -177.186335
+10       1 false convergence (8)           1.632e+06       6.48      2    -182.008272    -183.246066
+11       1 false convergence (8)           1.966e+07        330      2    -177.097421    -178.450623
+12       1 false convergence (8)            1.14e+07       3.23      2    -176.340676    -177.500073
+13       0 relative convergence (4)            95.31   0.000114      0    -200.216411    -200.216411
+14       1 false convergence (8)           9.791e+06       22.7      2    -193.613951    -194.811386
+15       1 false convergence (8)           1.038e+08       36.3      2    -182.724680    -183.936519
+16       0 relative convergence (4)            9.365   2.13e-05      0    -168.624218    -168.624218
+17       1 false convergence (8)            4.02e+07         40      2    -177.593898    -178.897023
+18       1 false convergence (8)           1.839e+07        406      2    -184.892087    -185.923129
+19       0 relative convergence (4)            92.97   4.81e-05      0    -178.584248    -178.584248
+20       1 false convergence (8)           9.681e+06       3.71      2    -182.225700    -183.307547
+nonzero code: 16 of 20 ; |alpha| > 1e3: 16 ; nonzero code AND max|grad| < grad_tol: 0 ; logLik - sn (min, max): -4.434e-12, 1.353 
+first warning text, seed 1 :
+
+== B. the reviewer's finite case (dev/skewinit-m3.R)
+alpha 5.7914721  conv 1 ' false convergence (8) '  max|grad| 0.000481  logLik - sn -2.35e-10  warnings 1 
+
+== C. max|grad| below grad_tol is not an optimum certificate
+   (0.62.0 default, no autoscale, poisson y ~ 0 + x at 1e-6)
+conv 0  max|grad| 0.000172  grad_tol 0.001  logLik - glm -62.578284 

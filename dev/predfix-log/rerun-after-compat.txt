@@ -1,0 +1,16 @@
+RESULT test-compat.R pass=573 fail=0 err=0 skip=0
+RESULT test-compat-register.R pass=103 fail=0 err=0 skip=0
+RESULT test-car-spde.R pass=136 fail=0 err=0 skip=0
+RESULT test-importance.R pass=226 fail=0 err=0 skip=0
+RESULT test-mm.R pass=116 fail=0 err=0 skip=0
+RESULT test-quadrature-defects.R pass=59 fail=0 err=0 skip=0
+RESULT test-review-v25.R pass=60 fail=0 err=0 skip=0
+RESULT test-review-v29.R pass=137 fail=0 err=0 skip=0
+RESULT test-tre.R pass=102 fail=0 err=0 skip=0
+RESULT test-predfix.R pass=44 fail=0 err=0 skip=0
+RESULT test-multivariate.R pass=23 fail=0 err=0 skip=0
+RESULT test-autoscale.R pass=46 fail=0 err=0 skip=0
+RESULT test-surface.R pass=58 fail=0 err=0 skip=0
+RESULT test-predfix-new-levels.R pass=60 fail=0 err=0 skip=0
+RESULT test-adefects.R pass=20 fail=0 err=0 skip=0
+RESULT test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0

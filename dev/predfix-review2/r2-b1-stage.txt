@@ -1,0 +1,9 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+[1] "autoscale_prefit"
+seed 533: pre-fit entered 1, returned a template FALSE, result ERROR
+ERR
+frmtmb: parse [0.02s]
+frmtmb: frame [0.03s]: 240 obs, 1 linear predictor, 1 random-effect block
+frmtmb: fit: bernoulli, ML, autoscale, nlminb
+seed 535: pre-fit entered 1, returned a template FALSE, result ERROR
+seed 537: pre-fit entered 1, returned a template FALSE, result ERROR

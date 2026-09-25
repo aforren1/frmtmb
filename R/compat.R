@@ -1343,10 +1343,10 @@ compat_hand_rules_tbl <- function() {
     "rescor = TRUE is only meaningful inside mvbf(); set_rescor() on a single formula is refused.")
   # No rescor x kind:method default: every declared method now has an
   # explicit rescor rule, so such a default could never win a pair.
-  r("rescor", "fitted", "refused",
-    "Refused: fitted() calls single_response() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
+  r("rescor", "fitted", "works",
+    "Verified: fitted() returns brms's n x 4 x nresp array with the responses named, one layer per response. Each layer's Est.Error is that response's own; the residual correlation enters a joint draw, which fitted() does not return.")
   r("rescor", "predict", "works",
-    "predict() takes resp = to choose the response, and defaults to the first.")
+    "predict() answers every response in brms's n x 4 x nresp array, drawing the responses of a replicate jointly; resp = narrows it.")
   r("rescor", "simulate", "refused",
     "Refused: simulate() is not supported for multivariate fits yet.")
   r("rescor", "residuals", "refused",
@@ -1372,10 +1372,10 @@ compat_hand_rules_tbl <- function() {
   # single_response() guard and stops.
   r("mvbf", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
-  r("mvbf", "fitted", "refused",
-    "Refused: fitted() calls single_response() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
+  r("mvbf", "fitted", "works",
+    "Verified: fitted() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it, and one response is an n x 4 matrix. A category-valued response does not stack with the others and is refused there, naming resp =.")
   r("mvbf", "predict", "works",
-    "predict() takes resp = to choose the response, and defaults to the first.")
+    "predict() answers every response in brms's n x 4 x nresp array; resp = narrows it.")
   # The inference surface reads the outer parameter vector rather than
   # a single response, so the univariate-only refusal above does not
   # reach it. Verified on a two-response gaussian fit.

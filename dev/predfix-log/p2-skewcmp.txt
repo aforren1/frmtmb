@@ -1,0 +1,3 @@
+fits 108 ; round-2 default below round-1 by more than 1e-6: 0 ; largest loss 0 ; round-2 below FALSE by more than 1e-6: 0 
+[1] design   seed     s        def.r1   def.r2   false.r2 lost    
+<0 rows> (or 0-length row.names)

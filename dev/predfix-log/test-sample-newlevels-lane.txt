@@ -1,0 +1,2 @@
+LIB C:/Users/adf44/source/r/predfix-lib 0.10.0 
+RESULT test-predfix-new-levels.R pass=60 fail=0 err=0 skip=0

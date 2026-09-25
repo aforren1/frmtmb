@@ -1,0 +1,12 @@
+base round 1: example 6.09 s user, control 0.57 s user
+base round 2: example 4.03 s user, control 0.39 s user
+base round 3: example 3.59 s user, control 0.40 s user
+lane round 1: example 4.45 s user, control 0.63 s user
+lane round 2: example 4.48 s user, control 0.44 s user
+lane round 3: example 4.33 s user, control 0.44 s user
+base round 1: example 6.00 s user, control 0.58 s user
+base round 2: example 4.33 s user, control 0.39 s user
+base round 3: example 4.26 s user, control 0.47 s user
+lane round 1: example 6.64 s user, control 0.59 s user
+lane round 2: example 5.03 s user, control 0.45 s user
+lane round 3: example 4.25 s user, control 0.43 s user

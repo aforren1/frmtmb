@@ -1,0 +1,4 @@
+LIB C:/Users/adf44/source/r/rellib-r3 0.62.0 
+FAILED [skew_normal: same likelihood; frmtmb's default start stalls] Expected `(as.numeric(logLik(fd)) - as.numeric(logLik(ff)))/abs(as.numeric(logLik(fd)))` > 0.01. Actual comparison: 0.00000000000001 <= 0.01000000000000 Difference: -0.00999999999999 <= 0
+FAILED [skew_normal: same likelihood; frmtmb's default start stalls] Expected `abs(ff$opt$par[[4]])/se_alpha` < 0.01. Actual comparison: 3.86 >= 0.01 Difference: 3.85 >= 0
+RESULT test-drmtmb-agreement.R pass=126 fail=2 err=0 skip=0

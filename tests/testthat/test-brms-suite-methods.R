@@ -540,18 +540,12 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:357",
     fi <- fitted(fit6)
   )
-  brms_port("brmsfit-methods:358", "defect",
-    paste0(
-      "fitted() exists and refuses the multivariate fit6 as 'not ",
-      "supported yet'; brms answers (user decision, 2026-09-17, ",
-      "rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:358", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit6), 4, 2))
   )
-  brms_port("brmsfit-methods:359", "defect",
-    paste0(
-      "fitted() exists and refuses the multivariate fit6 as 'not ",
-      "supported yet'; brms answers (user decision, 2026-09-17, ",
-      "rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:359", "pass",
+    "",
     expect_equal(dimnames(fi)[[3]], c("volume", "count"))
   )
 })

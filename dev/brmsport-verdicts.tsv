@@ -113,8 +113,8 @@ brmsfit-methods:348	frmtmb	pass
 brmsfit-methods:350	frmtmb	pass	
 brmsfit-methods:352	frmtmb	defect	dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was fit-data
 brmsfit-methods:355	frmtmb	pass	
-brmsfit-methods:358	frmtmb	defect	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:359	frmtmb	defect	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:358	frmtmb	pass	
+brmsfit-methods:359	frmtmb	pass	
 brmsfit-methods:364	frmtmb	pass	
 brmsfit-methods:369	frmtmb	pass	
 brmsfit-methods:373	frmtmb	divergence	is.brmsformula(formula(fit1)): brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)

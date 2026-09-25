@@ -5,6 +5,7 @@
 \alias{build_objective}
 \alias{row_lpdf}
 \alias{with_cs_offsets}
+\alias{cs_offsets_add}
 \alias{us_chol_cor}
 \alias{expand_b}
 \alias{aterms_for_newdata}
@@ -127,12 +128,19 @@ log-density composition the objective itself runs, with \code{cens()} and
 \code{trunc()} folded in; it runs on numeric dpar values as readily as on
 the tape, which is what makes a pointwise \code{log_lik()} reproduce the
 fitted density exactly instead of approximating it.
-\code{with_cs_offsets(fit, rspec, dpv)} takes one response spec from
-\code{fit$spec$responses} and the dpar-value list \code{eval_dpars()} returns
-for that response, and gives back the same list with the
-category-specific (\code{cs()}) offsets applied; on a model without
-\code{cs()} terms it returns \code{dpv} unchanged, so it is safe to call
-unconditionally before \code{row_lpdf()}. \code{us_chol_cor(theta, K)} is the
+\code{with_cs_offsets(fit, rspec, dpv)} takes the WHOLE list
+\code{eval_dpars()} returns, one element per response (\code{rspec} is
+ignored), and gives it back with the category-specific (\code{cs()})
+offsets of the fitted rows added as each response's \code{.cs}; on a model
+without \code{cs()} terms it returns \code{dpv} unchanged, so it is safe to
+call unconditionally before \code{row_lpdf()}. In frmtmb 0.62.0 and
+earlier this paragraph said it took one response's list; a caller
+that passed one got no offsets, because they were written a level
+deeper than the simulator reads.
+\code{cs_offsets_add(fit, resp, newdata, dpv)} takes ONE response's
+dpar-value list, however it was built, and adds that response's
+\code{.cs} evaluated at \code{newdata} (the fitted rows when \code{NULL}); it is the
+one to use when drawing at new data. \code{us_chol_cor(theta, K)} is the
 unstructured correlation matrix of a \code{thetar} segment, which a
 \code{set_rescor(TRUE)} model's joint row density needs.
 }

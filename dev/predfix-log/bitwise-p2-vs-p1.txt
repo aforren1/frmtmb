@@ -1,0 +1,48 @@
+p1lane against p2lane 
+battery fits: 480 in 32 families, 10 of them an identical error on both arms; bitwise identical: 480 of 480 
+  ML       160 of 160 identical (160 answered, 0 errored)
+  REML     160 of 160 identical (155 answered, 5 errored)
+  profile  160 of 160 identical (155 answered, 5 errored)
+  no-intercept designs: 192 of 192 identical
+
+targeted fits (a column spread below 1e-3):
+fit                                            identical           logLik a           logLik b        b - a unitA unitB
+gaussian|1 + xs6|ML                                 TRUE     -294.414192005     -294.414192005    0.000e+00  TRUE  TRUE
+gaussian|1 + xs6|REML                               TRUE     -284.015750427     -284.015750427    0.000e+00 FALSE FALSE
+gaussian|1 + xs6|profile                            TRUE     -294.414192005     -294.414192005    0.000e+00 FALSE FALSE
+gaussian|0 + xs6|ML                                 TRUE     -303.213964534     -303.213964534    0.000e+00  TRUE  TRUE
+gaussian|0 + xs6|REML                               TRUE     -291.104308802     -291.104308802    0.000e+00 FALSE FALSE
+gaussian|0 + xs6|profile                            TRUE     -303.213964534     -303.213964534    0.000e+00 FALSE FALSE
+poisson|1 + xs6|ML                                  TRUE     -292.286139975     -292.286139975    0.000e+00  TRUE  TRUE
+poisson|1 + xs6|REML                                TRUE     -282.407186819     -282.407186819    0.000e+00 FALSE FALSE
+poisson|1 + xs6|profile                             TRUE     -292.286139975     -292.286139975    0.000e+00 FALSE FALSE
+poisson|0 + xs6|ML                                  TRUE     -308.188735255     -308.188735255    0.000e+00  TRUE  TRUE
+poisson|0 + xs6|REML                                TRUE     -296.300852000     -296.300852000    0.000e+00 FALSE FALSE
+poisson|0 + xs6|profile                             TRUE     -308.188735255     -308.188735255    0.000e+00 FALSE FALSE
+poisson|xs6 + (1 | g)|ML                            TRUE     -288.450377279     -288.450377279    0.000e+00  TRUE  TRUE
+poisson|xs6 + (1 | g)|REML                          TRUE     -277.905026318     -277.905026318    0.000e+00 FALSE FALSE
+poisson|xs6 + (1 | g)|profile                       TRUE     -288.456553487     -288.456553487    0.000e+00 FALSE FALSE
+bernoulli|1 + xs6|ML                                TRUE     -132.699494838     -132.699494838    0.000e+00  TRUE  TRUE
+bernoulli|1 + xs6|REML                              TRUE     -120.940625417     -120.940625417    0.000e+00 FALSE FALSE
+bernoulli|1 + xs6|profile                           TRUE     -132.699494838     -132.699494838    0.000e+00 FALSE FALSE
+negbinomial|1 + xs6|ML                              TRUE     -329.174100602     -329.174100602    0.000e+00  TRUE  TRUE
+negbinomial|1 + xs6|REML                            TRUE     -318.947471198     -318.947471198    0.000e+00 FALSE FALSE
+negbinomial|1 + xs6|profile                         TRUE     -329.174100602     -329.174100602    0.000e+00 FALSE FALSE
+gaussian|1 + xs4|ML                                 TRUE     -294.414192005     -294.414192005    0.000e+00  TRUE  TRUE
+gaussian|1 + xs4|REML                               TRUE     -288.620920613     -288.620920613    0.000e+00 FALSE FALSE
+gaussian|1 + xs4|profile                            TRUE     -294.414192005     -294.414192005    0.000e+00 FALSE FALSE
+poisson|0 + xs4|ML                                  TRUE     -308.188735255     -308.188735255    0.000e+00  TRUE  TRUE
+poisson|0 + xs4|REML                                TRUE     -300.906022186     -300.906022186    0.000e+00 FALSE FALSE
+poisson|0 + xs4|profile                             TRUE     -308.188735255     -308.188735255    0.000e+00 FALSE FALSE
+Gamma|1 + xs6|ML                                    TRUE     -246.182818138     -246.182818138    0.000e+00  TRUE  TRUE
+Gamma|1 + xs6|REML                                  TRUE     -236.385986661     -236.385986661    0.000e+00 FALSE FALSE
+Gamma|1 + xs6|profile                               TRUE     -246.182818138     -246.182818138    0.000e+00 FALSE FALSE
+gaussian|xs6 + (1 + xs6 | g)|ML                     TRUE     -290.125717112     -290.125717112    0.000e+00  TRUE  TRUE
+gaussian|xs6 + (1 + xs6 | g)|REML                   TRUE     -279.211889422     -279.211889422    0.000e+00  TRUE  TRUE
+gaussian|xs6 + (1 + xs6 | g)|profile                TRUE     -290.125716649     -290.125716649    0.000e+00  TRUE  TRUE
+gaussian|xs2 + (1 + xs2 | g)|ML                     TRUE     -290.125717112     -290.125717112    0.000e+00  TRUE  TRUE
+gaussian|xs2 + (1 + xs2 | g)|REML                   TRUE     -289.115376974     -289.115376974    0.000e+00  TRUE  TRUE
+gaussian|xs2 + (1 + xs2 | g)|profile                TRUE     -290.125716649     -290.125716649    0.000e+00  TRUE  TRUE
+gaussian|x, sigma ~ xs6|ML                          TRUE     -294.403890350     -294.403890350    0.000e+00  TRUE  TRUE
+gaussian|x, sigma ~ xs6|REML                        TRUE     -297.821483805     -297.821483805    0.000e+00  TRUE  TRUE
+gaussian|x, sigma ~ xs6|profile                     TRUE     -294.403890350     -294.403890350    0.000e+00  TRUE  TRUE

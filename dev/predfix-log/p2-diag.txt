@@ -1,0 +1,24 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+         design seed  errD  errF  errT warnD warnF warnT engagedD llD_minus_llF T_error_names_FALSE
+1   A separated  511 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+2   A separated  512 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+3   A separated  513 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+4   A separated  514 FALSE FALSE FALSE     0     0     1    FALSE  0.000000e+00               FALSE
+5   A separated  515 FALSE FALSE FALSE     0     0     1    FALSE  0.000000e+00               FALSE
+6   A separated  516 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+7   A separated  517 FALSE FALSE FALSE     0     0     1    FALSE  0.000000e+00               FALSE
+8   A separated  518 FALSE FALSE FALSE     0     0     1    FALSE  0.000000e+00               FALSE
+9   A separated  519 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+10  A separated  520 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+11 B slope 0.03  531 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+12 B slope 0.03  532 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+13 B slope 0.03  533 FALSE FALSE  TRUE     1     1     0    FALSE  0.000000e+00                TRUE
+14 B slope 0.03  534 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+15 B slope 0.03  535 FALSE FALSE  TRUE     1     1     0    FALSE  0.000000e+00                TRUE
+16 B slope 0.03  536 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+17 B slope 0.03  537 FALSE FALSE  TRUE     1     1     0    FALSE  0.000000e+00                TRUE
+18 B slope 0.03  538 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+19 B slope 0.03  539 FALSE FALSE FALSE     0     0     1     TRUE  4.490164e-08               FALSE
+20 B slope 0.03  540 FALSE FALSE FALSE     1     1     1    FALSE  0.000000e+00               FALSE
+
+default errors where FALSE returns: 0 ; default warns less than FALSE: 0 ; default engaged: 1 ; TRUE errors: 3 of which name autoscale = FALSE: 3 

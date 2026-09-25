@@ -1,0 +1,36 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+
+== item 1: fitted() on a multivariate fit
+  fitted(mv): 150 x 4 x 2
+  fitted(mv, resp = 'y2'): 150 x 4
+  predict(mv): 150 x 4 x 2
+
+== item 2: the overflow fixture of dev/shapes-p2-measure.R
+  x_bad = 1577.942594 (data range -2.90162760465167 3.01963778479029)
+  warning: predict(): a simulated parameter draw was not finite for row 2 (199 of 400). Those cells are NA and each row is summarized over the replicates it has; the other rows are not affected. The draw law puts mass where a parameter overflows: a row far outside the data, or a parameter barely identified, whose variance vcov(object, full = TRUE) shows. propagate_error = FALSE simulates at the estimates alone
+             Estimate   Est.Error            Q2.5            Q97.5
+[1,]  7.502500000e+00 3.213379572  2.00000000e+00  1.400000000e+01
+[2,] 1.270552678e+306         Inf 8.40978365e+210 3.795743397e+306
+
+== item 4: a quadrature fit's scalar Est.Error
+  warning: The fitted objective marginalizes the random effects (quadrature = TRUE), so its covariance carries no random-effect block: se.fit is conditional on the conditional modes and omits random-effect uncertainty. Refit with quadrature = FALSE for the full delta method
+  known level Est.Error: 0.0940658 0.0891313
+  re_formula = NA Est.Error: 0.0933976 0.0909503
+  finite-difference route (scale = 'linear'): 
+  warning: The fitted objective marginalizes the random effects (quadrature = TRUE), so its covariance carries no random-effect block: se.fit is conditional on the conditional modes and omits random-effect uncertainty. Refit with quadrature = FALSE for the full delta method
+           Estimate   Est.Error          Q2.5        Q97.5
+[1,] -0.07514552865 0.376794824 -0.8136498133 0.6633587560
+[2,] -0.28592346476 0.363861809 -0.9990795058 0.4272325763
+
+== item 5: vcov() on a no-RE REML / profile fit
+  gaussian REML: vcov answers; summary answers
+  gaussian profile: vcov answers; summary answers
+  poisson REML: vcov answers; summary answers
+  poisson profile: vcov answers; summary answers
+
+== item 6: poisson y ~ 0 + x at covariate scale s, against glm
+  scale 1      glm -449.965387 default -449.965387 gap -0.000000 conv 0 relative convergence (4)
+  scale 0.01   glm -449.965387 default -449.965387 gap -0.000000 conv 0 relative convergence (4)
+  scale 0.0001 glm -449.965387 default -449.965387 gap 0.000000 conv 0 both X-convergence and relative convergence (5)
+  scale 1e-06  glm -449.965387 default -449.965387 gap 0.000000 conv 0 both X-convergence and relative convergence (5)
+  scale 1e-08  glm -449.965387 default -449.965387 gap 0.000000 conv 0 both X-convergence and relative convergence (5)

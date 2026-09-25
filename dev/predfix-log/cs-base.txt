@@ -1,0 +1,14 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+sratio     in sample, max |z| over all rows 940.8; row x = 2.771: predict (0.415, 0.393, 0.192) fitted (0.940, 0.003, 0.056)
+sratio     newdata, max |z| 1216.7
+    x =  3.0: predict (0.418, 0.391, 0.190) fitted (0.953, 0.002, 0.045)
+    x =  3.0: predict (0.420, 0.388, 0.192) fitted (0.953, 0.002, 0.045)
+    x = -3.0: predict (0.415, 0.394, 0.191) fitted (0.024, 0.965, 0.011)
+    x =  0.0: predict (0.418, 0.393, 0.189) fitted (0.416, 0.390, 0.195)
+acat       in sample, max |z| over all rows 533.4; row x = 2.771: predict (0.437, 0.377, 0.186) fitted (0.869, 0.010, 0.121)
+acat       newdata, max |z| 631.6
+    x =  3.0: predict (0.440, 0.374, 0.187) fitted (0.881, 0.007, 0.112)
+    x =  3.0: predict (0.441, 0.372, 0.187) fitted (0.881, 0.007, 0.112)
+    x = -3.0: predict (0.436, 0.378, 0.187) fitted (0.010, 0.975, 0.015)
+    x =  0.0: predict (0.439, 0.378, 0.183) fitted (0.437, 0.376, 0.187)
+cumulative : frm() refuses cs(x): cs() needs an sratio, cratio, or acat family 

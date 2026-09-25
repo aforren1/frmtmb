@@ -1,0 +1,14 @@
+RESULT test-predfix.R pass=70 fail=0 err=0 skip=0
+RESULT test-autoscale.R pass=46 fail=0 err=0 skip=0
+RESULT test-verbose.R pass=40 fail=0 err=0 skip=0
+RESULT test-diagnostics-ux.R pass=127 fail=0 err=0 skip=0
+RESULT test-quadrature-defects.R pass=59 fail=0 err=0 skip=0
+RESULT test-multivariate.R pass=23 fail=0 err=0 skip=0
+RESULT test-compat.R pass=573 fail=0 err=0 skip=0
+RESULT test-ordinal-fitted.R pass=129 fail=0 err=0 skip=0
+RESULT test-brms-shapes.R pass=72 fail=0 err=0 skip=0
+RESULT test-predict-re-uncertainty.R pass=65 fail=0 err=0 skip=0
+RESULT test-predfix-new-levels.R pass=62 fail=0 err=0 skip=0
+RESULT test-adefects.R pass=20 fail=0 err=0 skip=0
+RESULT test-loo.R pass=74 fail=0 err=0 skip=1
+RESULT test-draws-methods.R pass=147 fail=0 err=0 skip=0

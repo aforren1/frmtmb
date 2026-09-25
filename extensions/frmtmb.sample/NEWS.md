@@ -1,3 +1,26 @@
+# frmtmb.sample (development version)
+
+* **`posterior_predict()` on draws now draws a `cs()` term.** On an
+  `sratio()`, `cratio()` or `acat()` model with a category-specific
+  effect it drew every row as if the term were absent, in sample and at
+  `newdata`, with no warning. `predict()` and `pp_check()` on draws go
+  through it and change with it. `posterior_epred()` and `log_lik()`
+  were right and are unchanged. Needs the frmtmb that exports
+  `cs_offsets_add()`.
+
+* On draws, a `newdata` with a grouping level the fit did not see is
+  refused by the draws methods themselves, with or without
+  `allow_new_levels`, and the refusal says that
+  `allow_new_levels = TRUE` is refused too. Without the flag, core's
+  message reached the caller and recommended "Use
+  allow_new_levels = TRUE", which the draws methods then refused. The
+  same holds for `sample_new_levels` alone and for a `newdata` without
+  the grouping column.
+
+* `re_formula = NA` with `allow_new_levels = TRUE` and an unseen level
+  now answers, as brms does, instead of being refused: the check asked
+  about the level without the `re_formula` that drops it.
+
 # frmtmb.sample 0.10.0
 
 * **The default priors are brms's on a multivariate model**: each

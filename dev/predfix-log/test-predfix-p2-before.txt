@@ -1,0 +1,12 @@
+LIB C:/Users/adf44/source/r/predfix-lib 0.62.0 
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$warnings` >= `b$warnings`. Actual comparison: 0 < 1 Difference: -1 < 0
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$value$opt$par` to be identical to `b$value$opt$par`. Differences:   `actual`: 724.6 78536.6 3115783.9 `expected`: 886.6 84373.8       3.8 
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$warnings` >= `b$warnings`. Actual comparison: 0 < 1 Difference: -1 < 0
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$value$opt$par` to be identical to `b$value$opt$par`. Differences:   `actual`:  577.3 48436.0 6125222.8 `expected`: 1388.3 87072.8       5.8 
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$warnings` >= `b$warnings`. Actual comparison: 0 < 1 Difference: -1 < 0
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$value$opt$par` to be identical to `b$value$opt$par`. Differences:   `actual`: -189.0  36471.7 -4654532.8 `expected`: -129.9 122265.9      -43.1 
+FAILED [a separated fit warns under the default as under FALSE] Expected `a$value$opt$par` to be identical to `b$value$opt$par`. Differences:   `actual`: 339.3 13488.2 1837635.4 `expected`: 553.6 27271.5      14.9 
+FAILED [a pre-fit that errors falls back under the default] Expected `a$error` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE 
+FAILED [a pre-fit that errors falls back under the default] Expected `a$warnings` >= `b$warnings`. Actual comparison: 0 < 1 Difference: -1 < 0
+FAILED [a pre-fit that errors falls back under the default] <frmtmb_fit_error/frmtmb_error/error/condition> Error: The optimizer failed on this model (bernoulli, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_
+RESULT test-predfix.R pass=76 fail=9 err=1 skip=0

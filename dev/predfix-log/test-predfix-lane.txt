@@ -1,0 +1,4 @@
+LIB C:/Users/adf44/source/r/predfix-lib 0.62.0 
+FAILED [vcov() answers a poisson REML fit with no random effect] Expected `unname(if (is.matrix(V)) V else NA)` to equal `unname(Vg)`. Differences: actual vs expected                         [,1]         [,2] - actual[1, ]    0.010308872 -0.003945563 + expected[1, ]  0.010308659 -0.003945398 - actual[2, ]   -0.003945563  0.009649931 + expected[2, ] -0.003945398  
+FAILED [vcov() answers a poisson profile fit with no random effect] Expected `unname(if (is.matrix(V)) V else NA)` to equal `unname(Vg)`. Differences: actual vs expected                         [,1]         [,2] - actual[1, ]    0.010308872 -0.003945563 + expected[1, ]  0.010308659 -0.003945398 - actual[2, ]   -0.003945563  0.009649931 + expected[2, ] -0.003945398  
+RESULT test-predfix.R pass=42 fail=2 err=0 skip=0
