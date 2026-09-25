@@ -486,32 +486,37 @@ test_that("by variables in grouping terms are handled correctly", {
   )
   brms_port("standata:705", "cannot transfer",
     paste0(
-      "frmtmb's gr() takes cov and prec only, not by ",
-      "(dev/brms-suite-audit.md section 5); Nby_1 is also Stan ",
-      "data"),
+      "Nby_1 is Stan data, which frmtmb does not build: it fits ",
+      "gr(g, by = z) as one random-effect block per by-level, five ",
+      "here (dev/grby-findings.md)"),
     expect_equal(sdata$Nby_1, 5)
   )
   brms_port("standata:706", "cannot transfer",
     paste0(
-      "frmtmb's gr() takes cov and prec only, not by; Jby_1 is ",
-      "also Stan data"),
+      "Jby_1 is Stan data, which frmtmb does not build; ",
+      "test-gr-by.R asserts the same level-to-by-level map on the ",
+      "fitted blocks (dev/grby-findings.md)"),
     expect_equal(sdata$Jby_1, as.array(c(2, 2, 1, 1, 5, 4, 4, 5, 3, 3)))
   )
   brms_setup("standata:708",
     sdata <- standata(y ~ x + (x | mm(g, g2, by = cbind(z, z2))), dat)
   )
   brms_port("standata:709", "cannot transfer",
-    "frmtmb's mm() refuses by = by name",
+    paste0(
+      "Nby_1 is Stan data, which frmtmb does not build: it fits ",
+      "mm(g, g2, by = cbind(z, z2)) as one block per by-level, ",
+      "five here (dev/grby-findings.md)"),
     expect_equal(sdata$Nby_1, 5)
   )
   brms_port("standata:710", "cannot transfer",
-    "frmtmb's mm() refuses by = by name",
+    paste0(
+      "Jby_1 is Stan data, which frmtmb does not build; ",
+      "test-gr-by.R asserts the same pooled-level-to-by-level map ",
+      "on the fitted blocks (dev/grby-findings.md)"),
     expect_equal(sdata$Jby_1, as.array(c(2, 2, 1, 1, 5, 4, 4, 5, 3, 3)))
   )
-  brms_port("standata:712", "cannot transfer",
-    paste0(
-      "frmtmb's gr() takes no by, so the level check brms asserts ",
-      "is never reached"),
+  brms_port("standata:712", "pass",
+    "",
     expect_error(standata(y ~ x + (1|gr(g, by = z3)), dat),
                  "Some levels of 'g' correspond to multiple levels of 'z3'")
   )

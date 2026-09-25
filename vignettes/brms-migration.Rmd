@@ -35,6 +35,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
+| `(x | gr(g, by = f))` | same | one set of SDs and correlations per level of `f`, named `sd_g__Intercept:fa` as in brms; not with `cov =` |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
@@ -384,7 +385,8 @@ when it refuses one:
 | `mm(g1, g2, cor = FALSE)` | `diag(x | mm(g1, g2))`, or `(x || mm(g1, g2))` |
 | `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
 | `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
-| `mm(g1, g2, by = )`, `pw =`, `dist =` | no equivalent yet |
+| `mm(g1, g2, by = cbind(f1, f2))` | same, one by-variable column per member |
+| `mm(g1, g2, pw = )`, `dist =` | no equivalent yet |
 
 `?frmtmb-multimembership` is the full page.
 

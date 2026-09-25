@@ -585,11 +585,9 @@ brms_fixture_spec <- function(k) {
     list(
       brms = paste("count ~ Age + (1 | gr(patient, by = gender)),",
                    "mu2 ~ Age; mixture(gaussian, exponential)"),
-      formula = bf(count ~ Age + (1 | patient), mu2 ~ Age),
-      family = mixture(gaussian(), exponential()),
-      changed = paste("gr(patient, by = gender) becomes patient: frmtmb's",
-                      "gr() takes no by (dev/brms-suite-audit.md",
-                      "section 5)")),
+      formula = bf(count ~ Age + (1 | gr(patient, by = gender)),
+                   mu2 ~ Age),
+      family = mixture(gaussian(), exponential())),
     list(
       brms = paste("volume ~ Trt + gp(Age, by = Trt, gr = TRUE); gaussian",
                    "and count ~ Trt + Age; poisson; no rescor"),

@@ -1,0 +1,96 @@
+Warning message:
+In check_dep_version(dep_pkg = "TMB") : package version mismatch: 
+glmmTMB was built with TMB package version 1.9.19
+Current TMB package version is 1.9.23
+Please re-install glmmTMB from source or restore original 'TMB' package (see '?reinstalling' for more information)
+frmtmb 0.63.0 from /opt/rlib/lane-grby/frmtmb 
+brms 2.23.0  lme4 2.0.6  glmmTMB 1.1.14 
+
+data: seed 11, 360 rows, 45 levels of g in 3 levels of f
+
+== (1 | gr(g, by = f))
+logLik frmtmb  -396.4994843 
+logLik brms density at frmtmb's estimates  -396.4994843  diff  2.842170943e-13 
+logLik lme4    -396.4994845 
+logLik glmmTMB -396.4994843 
+sd frmtmb  0.7830644663 0.2620745992 0.6390013762 
+sd lme4    0.7830607484 0.2620696639 0.6390852312 
+max |rel diff| sd frmtmb vs lme4 0.0001312109822 
+
+== (1 + x | gr(g, by = f))
+logLik frmtmb  -350.2927406 
+logLik brms density at frmtmb's estimates  -350.2927406  diff  -5.684341886e-14 
+logLik lme4    -350.2927406 
+logLik glmmTMB -350.2927405 
+sd frmtmb  0.797423868 0.1621072897 0.2449637465 0.6095120708 0.6243308441 0.3732849537 
+sd lme4    0.7974107993  0.16210172 0.2449595443 0.6094886671 0.6243429856 0.3732732882 
+cor frmtmb 0.009094988803 -0.5652199755 -0.1774385733 
+cor lme4   0.009135001162 -0.5652095687 -0.1775082017 
+max |rel diff| sd 3.839881602e-05  max |diff| cor 6.962837581e-05 
+fixef frmtmb 1.065204455 0.5565763455 
+fixef lme4   1.065200084 0.5565803204 
+variables: b_Intercept b_x sd_g__Intercept:fa sd_g__x:fa cor_g__Intercept:fa__x:fa sd_g__Intercept:fb sd_g__x:fb cor_g__Intercept:fb__x:fb sd_g__Intercept:fc sd_g__x:fc cor_g__Intercept:fc__x:fc sigma 
+
+== poisson (1 + x | gr(g, by = f))
+logLik frmtmb  -555.7764683 
+logLik glmmTMB -555.7764683 
+sd frmtmb  0.5913427624 0.1329755262 0.1980995589 0.2303156686 0.1733893711 0.2928103715 
+sd glmmTMB 0.5913420495 0.1329732586 0.198097478 0.230313795 0.1733926652 0.2928094293 
+max |rel diff| sd 1.899757428e-05 
+
+== diag(1 + x | gr(g, by = f))
+logLik frmtmb  -351.9323081 
+logLik glmmTMB -351.9323081 
+
+== ar1(0 + t | gr(g, by = f))
+logLik frmtmb  -129.0979522 
+logLik glmmTMB -129.0979522 
+theta frmtmb  0.123242222 0.979762443 -0.6132571832 -0.2861933008 
+theta glmmTMB 0.1232431798 0.9797635352 -0.6132554643 -0.2861944368 
+max |diff| theta 1.718882061e-06 
+
+== other structures, one glmmTMB term per by-level
+cs       logLik frmtmb -129.3763697 glmmTMB -129.3763697 diff 8.670610896e-10
+homcs    logLik frmtmb -134.6903718 glmmTMB -134.6903718 diff 2.870592652e-12
+toep     logLik frmtmb -120.9401098 glmmTMB -120.9401098 diff 4.132729714e-09
+hetar1   logLik frmtmb -123.1160375 glmmTMB -123.1160375 diff 1.331144972e-09
+
+== factorization over by-levels: by-split fit vs two subset fits
+homdiag    by-split -272.7630642  sum of subsets -272.7630642  diff -4.119101504e-09
+           by-split objective at the subsets' estimates -272.7630642  diff -1.136868377e-13
+homtoep    by-split -217.7695938  sum of subsets -217.7695938  diff -8.366214388e-10
+           by-split objective at the subsets' estimates -217.7695938  diff -1.705302566e-13
+ou         by-split -219.2914857  sum of subsets -219.2914857  diff 7.040057426e-11
+           by-split objective at the subsets' estimates -219.2914857  diff 3.126388037e-13
+exp        by-split -219.2914857  sum of subsets -219.2914857  diff 6.99174052e-11
+           by-split objective at the subsets' estimates -219.2914857  diff 3.97903932e-13
+gau        by-split -218.4999882  sum of subsets -218.4994326  diff -0.0005555817519
+           by-split objective at the subsets' estimates -218.4994247  diff 7.995472657e-06
+mat        by-split -218.5562928  sum of subsets -218.5440368  diff -0.01225601934
+           by-split objective at the subsets' estimates -218.5440369  diff -7.793147461e-08
+us_student by-split -221.8658341  sum of subsets -221.8658341  diff -3.253830982e-09
+           by-split objective at the subsets' estimates -221.8658341  diff -1.762145985e-12
+
+== (1 | mm(g1, g2, by = cbind(f1, f2)))
+brms Nby_1 2  Jby_1 by-level of each pooled level: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
+logLik frmtmb  -308.7559174 
+logLik brms density at frmtmb's estimates  -308.7559174 
+diff 1.705302566e-13 
+variables: b_Intercept | b_x | sd_mmg1g2__Intercept:cbind(f1, f2)1 | sd_mmg1g2__Intercept:cbind(f1, f2)2 | sigma 
+
+== bernoulli (1 | gr(g, by = f)), quadrature = TRUE
+logLik frmtmb quadrature -155.4725458 
+logLik integrate() at frmtmb's estimates -155.4725458 
+diff 7.160281257e-10 
+
+== mvbf(bf(y1 ~ 1 + (1 | p | gr(g, by = f))), bf(y2 ~ ...))
+logLik frmtmb  -421.264699 
+logLik glmmTMB, long format with trait x by-level indicators -421.264699 
+diff 2.030446922e-10 
+variables: b_y1_Intercept | b_y2_Intercept | sd_g__y1_Intercept:fa | sd_g__y2_Intercept:fa | cor_g__y1_Intercept:fa__y2_Intercept:fa | sd_g__y1_Intercept:fb | sd_g__y2_Intercept:fb | cor_g__y1_Intercept:fb__y2_Intercept:fb | sigma_y1 | sigma_y2 
+
+== REML (1 | gr(g, by = f))
+REML logLik frmtmb -400.5261024  lme4 -400.5261024  diff 1.218472789e-08 
+sd frmtmb 0.7868051539 0.2729117189 0.6433301718 
+sd lme4   0.7868250078 0.2729190961 0.6433225191 
+max |rel diff| sd 2.703091906e-05 
