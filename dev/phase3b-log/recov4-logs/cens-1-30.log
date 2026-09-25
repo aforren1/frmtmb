@@ -1,0 +1,14 @@
+cens 1 std::bad_alloc 265 
+cens 2 Caught exception 'std::bad_alloc' in function 'MakeADGradObject'
+ 789.2 
+cens 3 std::bad_alloc 36.4 
+cens 4 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 687.4 
+cens 5 std::bad_alloc 140.1 
+cens 6 std::bad_alloc 54.6 
+cens 7 std::bad_alloc 73.7 
+cens 8 std::bad_alloc 85.2 
+cens 9 std::bad_alloc 38.4 
+cens 10 std::bad_alloc 35.6 
+cens 11 std::bad_alloc 105.8 
+cens 12 std::bad_alloc 161.2 
+cens 13 error in evaluating the argument 'q' in selecting a method for function 'pnorm': std::bad_alloc 48.5 

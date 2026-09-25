@@ -1,0 +1,34 @@
+16:01:25 start 2 free 9 GB
+base 2 ok 213.3 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0022); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+16:05:03 start 4 free 10 GB
+base 4 ok 187.5 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00326); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+16:08:19 start 6 free 8 GB
+base 6 ok 227 
+16:12:12 start 8 free 9 GB
+base 8 ok 176.5 
+16:15:21 start 10 free 10 GB
+base 10 ok 232.9 
+16:19:30 start 12 free 10 GB
+base 12 ok 235.1 
+16:23:34 start 14 free 9 GB
+base 14 ok 175.7 
+16:26:42 start 16 free 9 GB
+base 16 ok 231.9 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00111); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+16:30:48 start 18 free 10 GB
+base 18 ok 168.1 
+16:33:41 start 20 free 8 GB
+base 20 ok 116.6 
+16:35:43 start 22 free 9 GB
+base 22 ok 125.2 
+16:37:55 start 24 free 9 GB
+base 24 ok 195.8 
+16:41:18 start 26 free 9 GB
+base 26 ok 180.7 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0019); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

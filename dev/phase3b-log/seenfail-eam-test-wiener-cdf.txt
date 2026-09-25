@@ -1,0 +1,133 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | wiener-cdf                                                     
+⠙ | 1        1 | wiener-cdf                                                     
+⠴ | 5        1 | wiener-cdf                                                     
+⠧ | 7        1 | wiener-cdf                                                     
+⠏ | 8        2 | wiener-cdf                                                     
+⠙ | 10        2 | wiener-cdf                                                    
+⠹ | 11        2 | wiener-cdf                                                    
+⠼ | 13        2 | wiener-cdf                                                    
+⠦ | 15        2 | wiener-cdf                                                    
+⠧ | 16        2 | wiener-cdf                                                    
+⠇ | 17        2 | wiener-cdf                                                    
+✖ | 17        2 | wiener-cdf [3.9s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-wiener-cdf.R:40:3'): F and S match the 400-bit reference on the density's grid
+Expected `max(eF)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:41:3'): F and S match the 400-bit reference on the density's grid
+Expected `max(eS)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:50:3'): F and S match the reference in the tails too
+Expected `max(eF)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:51:3'): F and S match the reference in the tails too
+Expected `max(eS)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:64:3'): RWiener::pwiener() agrees to 1e-10 on the density's grid
+Expected `max(abs(exp(r$lF) - rw))` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:82:3'): F integrates the density, over both boundaries
+Expected `worst` < 1e-09.
+Actual comparison: NA >= 0.000000001
+
+Failure ('test-wiener-cdf.R:87:3'): at or below the non-decision time F is 0 and S is 1
+Expected `all(exp(r$lF) < 1e-250)` to be TRUE.
+Differences:
+`actual`:   <NA>
+`expected`: TRUE
+
+
+Failure ('test-wiener-cdf.R:88:3'): at or below the non-decision time F is 0 and S is 1
+Expected `r$lS` to be identical to `c(0, 0, 0)`.
+Differences:
+  `actual`:  NA  NA  NA
+`expected`: 0.0 0.0 0.0
+
+
+Failure ('test-wiener-cdf.R:135:3'): a right-censored fit scores what the hand-written likelihood says
+Expected `abs(ll - hand)/abs(hand)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:150:3'): a censored row's boundary is not read, exactly
+Expected `la` to be identical to `lb`.
+Differences:
+  `actual`:   NA
+`expected`: -Inf
+
+
+Failure ('test-wiener-cdf.R:172:3'): all four censoring codes and trunc() match the hand-written likelihood
+Expected `abs(ll - hand)/abs(hand)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:182:3'): all four censoring codes and trunc() match the hand-written likelihood
+Expected `abs(llt - hand_t)/abs(hand_t)` < 1e-10.
+Actual comparison: NA >= 0.0000000001
+
+Failure ('test-wiener-cdf.R:216:3'): censoring reaches a per-group bound through ndt_group()
+Expected `nb` to be identical to 4L.
+Differences:
+  `actual`: NA
+`expected`:  4
+
+
+Failure ('test-wiener-cdf.R:218:3'): censoring reaches a per-group bound through ndt_group()
+Expected `abs(ll - hand)/abs(hand)` < 1e-12.
+Actual comparison: NA >= 0.000000000001
+
+Failure ('test-wiener-cdf.R:230:3'): variability with cens() is refused by name
+Expected `msg` to match regexp "plain model only".
+Actual text:
+x | cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian, cox). The list is not closed: a family supplies one through the lcdf argument of frmtmb_family(), and a family that only ever sees RIGHT censoring may supply the log survivor function through lccdf instead
+
+Failure ('test-wiener-cdf.R:234:3'): the compatibility table says cens() and trunc() work
+Expected `frmtmb::frm_compat("wiener", "cens()")$status` to be identical to "works".
+Differences:
+`actual`:   "refused"
+`expected`: "works"  
+
+
+Failure ('test-wiener-cdf.R:235:3'): the compatibility table says cens() and trunc() work
+Expected `frmtmb::frm_compat("wiener", "trunc()")$status` to be identical to "works".
+Differences:
+`actual`:   "refused"
+`expected`: "works"  
+
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+                                                                     test nb
+1               F and S match the 400-bit reference on the density's grid  3
+2                            F and S match the reference in the tails too  2
+3                RWiener::pwiener() agrees to 1e-10 on the density's grid  1
+4                          F integrates the density, over both boundaries  1
+5                     at or below the non-decision time F is 0 and S is 1  2
+6       a right-censored fit scores what the hand-written likelihood says  2
+7                          a censored row's boundary is not read, exactly  1
+8  all four censoring codes and trunc() match the hand-written likelihood  2
+9                 censoring reaches a per-group bound through ndt_group()  2
+10                             variability with cens() is refused by name  1
+11                   the compatibility table says cens() and trunc() work  2
+   failed skipped error passed
+1       2   FALSE FALSE      1
+2       2   FALSE FALSE      0
+3       1   FALSE FALSE      0
+4       1   FALSE FALSE      0
+5       2   FALSE FALSE      0
+6       1   FALSE FALSE      1
+7       1   FALSE FALSE      0
+8       2   FALSE FALSE      0
+9       2   FALSE FALSE      0
+10      1   FALSE FALSE      0
+11      2   FALSE FALSE      0
+RESULT test-wiener-cdf.R blocks 11 expectations 19 pass 2 fail 17 err 0 skip 0 

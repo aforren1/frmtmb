@@ -1,0 +1,46 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | factorization                                                  
+⠋ |          1 | factorization                                                  
+⠼ |          5 | factorization                                                  
+⠦ |          7 | factorization                                                  
+⠏ |         10 | factorization                                                  
+⠸ |         14 | factorization                                                  
+⠼ |         15 | factorization                                                  
+⠦ |         17 | factorization                                                  
+⠋ |         21 | factorization                                                  
+⠸ |         24 | factorization                                                  
+⠼ |         25 | factorization                                                  
+⠧ |         28 | factorization                                                  
+⠇ |         29 | factorization                                                  
+⠹ |         33 | factorization                                                  
+✔ |         35 | factorization [15.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 15.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 35 ]
+                                                                  test nb
+1       the total, the per-subject values and the per-row values agree  6
+2           a subject's value is the sum of its own rows and no others  3
+3          the slots honor the stacking the correction calls them with  4
+4        a nominal choice has a saturated value and a density has none  3
+5                        the importance correction runs on a learn fit  7
+6          importance refuses a grouping that is not the family's unit  1
+7      the compatibility table says importance works, with the numbers  4
+8                       the per-row values are right on a PADDED block  4
+9 the per-subject values follow levels(group), not order of appearance  3
+  failed skipped error passed
+1      0   FALSE FALSE      6
+2      0   FALSE FALSE      3
+3      0   FALSE FALSE      4
+4      0   FALSE FALSE      3
+5      0   FALSE FALSE      7
+6      0   FALSE FALSE      1
+7      0   FALSE FALSE      4
+8      0   FALSE FALSE      4
+9      0   FALSE FALSE      3
+RESULT test-factorization.R blocks 9 expectations 35 pass 35 fail 0 err 0 skip 0 

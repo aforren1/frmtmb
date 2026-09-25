@@ -1,0 +1,23 @@
+contdl 31 ok 514.8 
+contdl 32 ok 409.1 
+contdl 33 ok 402.3 
+contdl 34 ok 423.6 
+contdl 35 ok 520.8 
+contdl 36 ok 484.7 
+contdl 37 ok 606.9 
+contdl 38 ok 541.1 
+contdl 39 ok 513.3 
+contdl 40 ok 637.7 
+contdl 41 ok 645 
+contdl 42 ok 673.9 
+contdl 43 ok 875.6 
+contdl 44 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 302.2 
+contdl 45 std::bad_alloc 33.3 
+contdl 46 ok 850.7 
+contdl 47 Caught exception 'std::bad_alloc' in function 'TransformADFunObjectTemplate'
+ 125.5 
+contdl 48 std::bad_alloc 65.6 
+contdl 49 std::bad_alloc 39 
+contdl 50 Caught exception 'std::bad_alloc' in function 'MakeADGradObject'
+ 225.5 
+contdl 51 std::bad_alloc 96.7 

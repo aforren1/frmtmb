@@ -1,0 +1,5 @@
+deadline observed  seeds 25 errors 0  lambda mean 0.0518 (truth mean 0.0496)  covered 25 of 25  code 0 on 25  window top mean 4.975
+none     observed  seeds 25 errors 0  lambda mean 0.0212 (truth mean 0.0495)  covered 2 of 25  code 0 on 25  window top mean 7.357
+deadline top5      seeds 25 errors 0  lambda mean 0.0508 (truth mean 0.0496)  covered 25 of 25  code 0 on 25  window top mean 5.000
+deadline zero5     seeds 25 errors 0  lambda mean 0.0498 (truth mean 0.0496)  covered 25 of 25  code 0 on 25  window top mean 5.000
+none     zero5     seeds 25 errors 0  lambda mean 0.0498 (truth mean 0.0495)  covered 25 of 25  code 0 on 25  window top mean 5.000

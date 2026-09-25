@@ -1,0 +1,30 @@
+contdef 1 ok 399 
+contdef 2 ok 405 
+contdef 3 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 106.1 
+contdef 4 ok 418.3 
+contdef 5 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 138 
+contdef 6 ok 441 
+contdef 7 ok 415.3 
+contdef 8 ok 428.9 
+contdef 9 ok 397 
+contdef 10 ok 462.5 
+contdef 11 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 73.1 
+contdef 12 ok 542.3 
+contdef 13 ok 482.4 
+contdef 14 ok 471.3 
+contdef 15 ok 462.4 
+contdef 16 ok 510.2 
+contdef 17 ok 514.3 
+contdef 18 ok 473.9 
+contdef 19 ok 529 
+contdef 20 ok 432.3 
+Warning messages:
+1: In stats::nlminb(par, fnw$fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+2: In he(par) : restarting interrupted promise evaluation
+3: In stats::nlminb(par, fnw$fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+4: In he(par) : restarting interrupted promise evaluation
+5: In stats::nlminb(par, fnw$fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+6: In he(par) : restarting interrupted promise evaluation

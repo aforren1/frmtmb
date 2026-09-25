@@ -1,0 +1,14 @@
+build: C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 0.10.0
+run at 2026-09-24 19:58:45
+
+test-wiener-cdf.R: 42 expectations, 2 failed, 0 blocks errored
+   test                                                          nb failed
+6  an interval's mass matches 1200-bit Rmpfr to 1e-10 in the log 1  1     
+21 lba() and gddm() refuse cens() and trunc() by name            7  1     
+   error
+6  FALSE
+21 FALSE
+
+test-contaminant.R: 32 expectations, 2 failed, 0 blocks errored
+   test                                                     nb failed error
+13 a response outside contaminant_range is refused, classed 2  2      FALSE

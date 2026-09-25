@@ -702,7 +702,7 @@ ndt_time <- function(object, newdata = NULL, ...) {
 #'
 #' @noRd
 ddm_accepts <- list(
-  wiener     = c("dec", "vint", "weights", "ndt_group"),
+  wiener     = c("dec", "vint", "weights", "cens", "trunc", "ndt_group"),
   # gddm has no ndt_group entry, and the exclusion is on SCOPE. Its
   # solver reads every dpar at the FIRST ROW of a condition
   # (`gd_densities()`), and `?gddm` already requires every row sharing a

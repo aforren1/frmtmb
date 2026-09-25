@@ -1,0 +1,52 @@
+cens 1 ok 295.1 
+cens 2 ok 327.1 
+cens 3 ok 310 
+cens 4 std::bad_alloc 28.8 
+cens 5 ok 296.5 
+cens 6 ok 316 
+cens 7 ok 334.8 
+cens 8 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 121.6 
+cens 9 ok 413.8 
+cens 10 ok 318.6 
+cens 11 ok 297.1 
+cens 12 ok 400.9 
+cens 13 error in evaluating the argument 'q' in selecting a method for function 'pnorm': std::bad_alloc 33.8 
+cens 14 The optimizer failed on this model (wiener, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() 115.3 
+cens 15 Caught exception 'std::bad_alloc' in function 'TransformADFunObjectTemplate'
+ 48.3 
+cens 16 std::bad_alloc 56.9 
+cens 17 ok 353.6 
+cens 18 std::bad_alloc 42.1 
+cens 19 std::bad_alloc 23.4 
+cens 20 ok 356.4 
+cens 21 ok 361 
+cens 22 ok 353.9 
+cens 23 ok 357.1 
+cens 24 ok 391.9 
+cens 25 ok 412.5 
+cens 26 ok 427.4 
+cens 27 ok 405.5 
+cens 28 ok 443.4 
+cens 29 ok 417.7 
+cens 30 ok 357.1 
+cens 31 ok 329.4 
+cens 32 ok 326.5 
+cens 33 ok 358.5 
+cens 34 ok 331.5 
+cens 35 ok 347.8 
+cens 36 ok 341.6 
+cens 37 ok 383.7 
+cens 38 ok 248.4 
+cens 39 ok 284.4 
+cens 40 ok 206 
+cens 41 ok 228.7 
+cens 42 ok 224.1 
+cens 43 ok 227.1 
+cens 44 ok 235.4 
+cens 45 ok 200.1 
+cens 46 ok 186.6 
+cens 47 ok 193.7 
+cens 48 ok 189.5 
+cens 49 ok 220.2 
+cens 50 ok 188.9 
+There were 23 warnings (use warnings() to see them)

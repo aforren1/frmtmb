@@ -1,0 +1,9 @@
+cens 1 ok 174.6 
+cens 4 ok 162.9 
+cens 8 ok 147.8 
+cens 13 ok 160.2 
+cens 14 ok 184.1 
+cens 15 ok 162.3 
+cens 16 ok 162.2 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00129); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

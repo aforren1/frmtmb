@@ -152,8 +152,9 @@ ln_stack <- function(block, nrep) {
 #' Walk a value-learning recursion over every subject at once.
 #'
 #' @param block The frame block built by `ln_block()`: `idx` and `mask`
-#'   are subject-by-trial matrices of row numbers, and of 1 for a real
-#'   trial and 0 for padding.
+#'   are sequence-by-trial matrices of row numbers, and of 1 for a real
+#'   trial and 0 for padding. A sequence is a subject, or a subject's
+#'   session under `session =`; the walk does not know which.
 #' @param cd Named list of per-row quantities, each of length `n` or 1:
 #'   the distributional parameters on their natural scales and the
 #'   addition-term columns.
@@ -343,7 +344,10 @@ ln_loglik <- function(block, cd, y, spec) {
 #'
 #' @noRd
 ln_loglik_group <- function(block, cd, y, spec, nrep) {
-  Reduce(`+`, ln_recurse(block, cd, y, spec, "terms", nrep)[["terms"]])
+  # one value per SEQUENCE out of the walk, summed to one per subject
+  # when a subject has several sessions; see ln_pack_sessions()
+  ln_group_sum(Reduce(`+`, ln_recurse(block, cd, y, spec, "terms",
+                                      nrep)[["terms"]]), block, nrep)
 }
 
 #' One value per row: the trial's choice probability CONDITIONAL on

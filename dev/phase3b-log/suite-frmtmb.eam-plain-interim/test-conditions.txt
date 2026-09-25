@@ -1,0 +1,21 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | conditions                                                     
+⠋ |          1 | conditions                                                     
+⠹ |          3 | conditions                                                     
+⠼ |          5 | conditions                                                     
+⠦ |          7 | conditions                                                     
+✔ |          8 | conditions [6.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 8 ]
+                                                      test nb failed skipped
+1         a frmtmb.eam refusal is caught as a frmtmb_error  3      0   FALSE
+2 the refusals classed in punch round 1 carry the subclass  5      0   FALSE
+  error passed
+1 FALSE      3
+2 FALSE      5
+RESULT test-conditions.R blocks 2 expectations 8 pass 8 fail 0 err 0 skip 0 

@@ -1,0 +1,78 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | surface                                                        
+⠋ |          1 | surface                                                        
+⠹ |          3 | surface                                                        
+⠴ |          6 | surface                                                        
+⠙ |         12 | surface                                                        
+⠼ |         15 | surface                                                        
+⠧ |         18 | surface                                                        
+⠙ |         22 | surface                                                        
+⠴ |         26 | surface                                                        
+⠏ |         30 | surface                                                        
+⠇ |         39 | surface                                                        
+⠹ |         43 | surface                                                        
+⠸ |         44 | surface                                                        
+⠴ |         46 | surface                                                        
+⠦ | 1       46 | surface                                                        
+⠇ | 2       47 | surface                                                        
+✖ | 2       48 | surface [5.6s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-surface.R:201:3'): cens() and trunc() fit, and are refused under variability
+Expected `!is.null(ft) && is.finite(as.numeric(logLik(ft)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-surface.R:207:3'): cens() and trunc() fit, and are refused under variability
+Expected `msg` to match regexp "plain model only".
+Actual text:
+x | cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian, cox). The list is not closed: a family supplies one through the lcdf argument of frmtmb_family(), and a family that only ever sees RIGHT censoring may supply the log survivor function through lccdf instead
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.7 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-surface.R:201:3'): cens() and trunc() fit, and are refused under variability
+Expected `!is.null(ft) && is.finite(as.numeric(logLik(ft)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-surface.R:207:3'): cens() and trunc() fit, and are refused under variability
+Expected `msg` to match regexp "plain model only".
+Actual text:
+x | cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian, cox). The list is not closed: a family supplies one through the lcdf argument of frmtmb_family(), and a family that only ever sees RIGHT censoring may supply the log survivor function through lccdf instead
+
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 48 ]
+
+Keep trying!
+                                                        test nb failed skipped
+1                             summary, fixef and logLik work  5      0   FALSE
+2  fitted and predict return conditional mean response times  6      0   FALSE
+3         predict on newdata requires the decision indicator  6      0   FALSE
+4             all four dpars recover when none is held fixed  4      0   FALSE
+5     residuals: response works, pearson and deviance refuse  4      0   FALSE
+6   simulate draws response times at each row's own boundary  4      0   FALSE
+7          par_template and set_prior reach the wiener dpars 13      0   FALSE
+8                    weights() and a random effect both work  4      0   FALSE
+9  cens() and trunc() fit, and are refused under variability  2      2   FALSE
+10   dec() is the spelling now, and vint() is the same model  2      0   FALSE
+   error passed
+1  FALSE      5
+2  FALSE      6
+3  FALSE      6
+4  FALSE      4
+5  FALSE      4
+6  FALSE      4
+7  FALSE     13
+8  FALSE      4
+9  FALSE      0
+10 FALSE      2
+RESULT test-surface.R blocks 10 expectations 50 pass 48 fail 2 err 0 skip 0 

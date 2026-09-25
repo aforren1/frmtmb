@@ -1,0 +1,68 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | gddm-family                                                    
+⠏ |         10 | gddm-family                                                    
+⠼ |         25 | gddm-family                                                    
+⠙ |         42 | gddm-family                                                    
+⠴ |         46 | gddm-family                                                    
+⠦ |         47 | gddm-family                                                    
+⠙ |         52 | gddm-family                                                    
+⠹ |         53 | gddm-family                                                    
+⠸ |         54 | gddm-family                                                    
+⠼ |         55 | gddm-family                                                    
+⠙ |         62 | gddm-family                                                    
+⠴ |         66 | gddm-family                                                    
+⠏ |         70 | gddm-family                                                    
+⠴ |         76 | gddm-family                                                    
+✔ |         77 | gddm-family [4.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 77 ]
+                                                                  test nb
+1      the component catalogue declares the parameters it says it does 10
+2          the family declares the addition terms it cannot do without  2
+3        the boundary and the condition are read under either spelling 10
+4                         gddm() refuses a component in the wrong slot  4
+5                           a drift needs exactly one base term, first  4
+6                             gddm_control validates its own arguments  9
+7                             gddm_drift_coherence validates its scale  2
+8    a decision indicator with more than two values is refused by name  4
+9  a two-valued indicator that is not 0/1 is refused with the recoding  1
+10          a missing addition term is refused, not silently defaulted  5
+11              a response time that is not a response time is refused  1
+12      a covariate that is not constant within a condition is refused  1
+13                  a window that does not contain the data is refused  1
+14     a non-decision-time bound above the fastest response is refused  1
+15           the links refuse to be read before the data resolves them  2
+16                   gddm_conditions numbers the distinct combinations  6
+17         gddm_simulate refuses parameters the components do not have  2
+18                      gddm_simulate draws from the model it is given  6
+19                                        the family prints what it is  4
+20                         every message this family raises is its own  2
+   failed skipped error passed
+1       0   FALSE FALSE     10
+2       0   FALSE FALSE      2
+3       0   FALSE FALSE     10
+4       0   FALSE FALSE      4
+5       0   FALSE FALSE      4
+6       0   FALSE FALSE      9
+7       0   FALSE FALSE      2
+8       0   FALSE FALSE      4
+9       0   FALSE FALSE      1
+10      0   FALSE FALSE      5
+11      0   FALSE FALSE      1
+12      0   FALSE FALSE      1
+13      0   FALSE FALSE      1
+14      0   FALSE FALSE      1
+15      0   FALSE FALSE      2
+16      0   FALSE FALSE      6
+17      0   FALSE FALSE      2
+18      0   FALSE FALSE      6
+19      0   FALSE FALSE      4
+20      0   FALSE FALSE      2
+RESULT test-gddm-family.R blocks 20 expectations 77 pass 77 fail 0 err 0 skip 0 

@@ -1,0 +1,48 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ndt-seam                                                       
+⠧ |          8 | ndt-seam                                                       
+⠏ |         20 | ndt-seam                                                       
+⠙ |         32 | ndt-seam                                                       
+⠹ |         43 | ndt-seam                                                       
+⠧ |         58 | ndt-seam                                                       
+⠹ |         73 | ndt-seam                                                       
+⠋ |         81 | ndt-seam                                                       
+✔ |         83 | ndt-seam [2.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 83 ]
+                                                                test nb failed
+1                      ndt_bound derives one bound, or one per group 10      0
+2       ndt_bound_key is a function of the label and of nothing else  5      0
+3           ndt_bound_pending is the state a family has before frm()  7      0
+4  ndt_bound_attach puts a scalar bound in the link and nothing else  6      0
+5                a per-group bound becomes a logit plus per-row data  5      0
+6       attaching twice replaces the bound instead of stacking on it  4      0
+7                 a family that composes its own aterm_data keeps it  1      0
+8                ndt_bound_attach refuses what it cannot honestly do 11      0
+9                ndt_bound refuses a response no bound can come from 18      0
+10                    ndt_apply multiplies the floor out, or refuses  6      0
+11                     a family that uses the seam end to end scores  2      0
+12     the pending state refuses rather than reporting a wrong scale  5      0
+13        a family carrying the seam's bound is reported by ndt_time  3      0
+   skipped error passed
+1    FALSE FALSE     10
+2    FALSE FALSE      5
+3    FALSE FALSE      7
+4    FALSE FALSE      6
+5    FALSE FALSE      5
+6    FALSE FALSE      4
+7    FALSE FALSE      1
+8    FALSE FALSE     11
+9    FALSE FALSE     18
+10   FALSE FALSE      6
+11   FALSE FALSE      2
+12   FALSE FALSE      5
+13   FALSE FALSE      3
+RESULT test-ndt-seam.R blocks 13 expectations 83 pass 83 fail 0 err 0 skip 0 

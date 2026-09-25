@@ -101,8 +101,8 @@
 #'               sigma0 = 10, sigmaD = 3), seed = 6)[[1]]$choice
 #' table(d$choice)
 #' @export
-bandit4arm2_kalman_filter <- function(subject, trial = NULL, sigma_o = 4,
-                                      bonus = FALSE) {
+bandit4arm2_kalman_filter <- function(subject, trial = NULL, session = NULL,
+                                      sigma_o = 4, bonus = FALSE) {
   if (!is.numeric(sigma_o) || length(sigma_o) != 1L || is.na(sigma_o) ||
         sigma_o <= 0) {
     frm_stop("bandit4arm2_kalman_filter(sigma_o =) is the observation noise ",
@@ -166,7 +166,8 @@ bandit4arm2_kalman_filter <- function(subject, trial = NULL, sigma_o = 4,
       }
       list(state = out, pe = pe)
     })
-  ln_family("bandit4arm2_kalman_filter", substitute(subject),
+  ln_family("bandit4arm2_kalman_filter", session_expr = substitute(session),
+            substitute(subject),
             substitute(trial),
             # tau is primary, so the main right-hand side of the formula
             # reaches the choice sensitivity. Every other family here

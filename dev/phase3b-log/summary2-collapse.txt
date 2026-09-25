@@ -1,0 +1,18 @@
+arm collapse: 30 seeds (1 to 30), 30 with a fit
+errors met on the way (every attempt): none
+builds of the fits used: phase3b-lib7 2; phase3b-lib9 28
+convergence code 0: 30 of 30; diagnose() reported a finding: 27
+   27  Distributional parameter at the end of its link:
+    3  No convergence problems detected
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4034   0.0172   23/29     79.3%  [61.6, 90.2]
+mu condition              0.9000    0.9005   0.0046   28/29     96.6%  [82.8, 99.4]
+log bs                    0.3365    0.3398   0.0055   28/29     96.6%  [82.8, 99.4]
+ndt (link scale)          2.6971    2.6857   0.0504   29/29    100.0%  [88.3, 100.0]
+ndt natural scale: mean 0.2498 (truth 0.25); truth below the bound on 30 of 30
+log sd(mu | s)           -1.0498   -1.1027   0.0290   27/29     93.1%  [78.0, 98.1]
+log sd(log bs | s)       -1.6094   -1.6251   0.0210   29/29    100.0%  [88.3, 100.0]
+lambda at the edge (logit below -15): 25 of 30; diagnose() names it: 27; of those at the edge: 25
+interior lambda: NA to NA
+|logLik - plain logLik| at the edge: max 8.91e-07 over 25 with a plain fit

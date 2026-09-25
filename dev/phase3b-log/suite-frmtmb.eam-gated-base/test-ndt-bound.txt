@@ -1,0 +1,64 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ndt-bound                                                      
+⠋ |          1 | ndt-bound                                                      
+⠴ |          6 | ndt-bound                                                      
+⠋ |         11 | ndt-bound                                                      
+⠼ |         15 | ndt-bound                                                      
+⠧ |         18 | ndt-bound                                                      
+⠇ |         19 | ndt-bound                                                      
+⠹ |         23 | ndt-bound                                                      
+⠦ |         27 | ndt-bound                                                      
+⠇ |         29 | ndt-bound                                                      
+⠋ |         31 | ndt-bound                                                      
+⠼ |         35 | ndt-bound                                                      
+⠦ |         37 | ndt-bound                                                      
+⠏ |         40 | ndt-bound                                                      
+⠼ |         45 | ndt-bound                                                      
+⠇ |         49 | ndt-bound                                                      
+⠧ |         58 | ndt-bound                                                      
+⠏ |         60 | ndt-bound                                                      
+⠼ |         65 | ndt-bound                                                      
+⠦ |         77 | ndt-bound                                                      
+✔ |         79 | ndt-bound [14.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 14.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 79 ]
+                                                           test nb failed
+1  with no ndt_group() the bound is the global fastest response  5      0
+2     ndt_group() bounds each group by its own fastest response  5      0
+3    the global bound pins a group the per-group bound recovers  4      0
+4                    the bound is a property of the fitted data  2      0
+5                  max_ndt and ndt_group() are refused together  2      0
+6          every spelling of the same groups gives the same fit  7      0
+7       gddm refuses ndt_group() by name and keeps its own link  3      0
+8     wiener_gng takes the bound from the go rows of each group  2      0
+9        rdm's censoring seams see the scaled non-decision time  4      0
+10                st follows ndt onto whichever scale ndt is on  5      0
+11           a mixture component needs its bound given up front  9      0
+12     the group's LABEL decides its bound, not its level index 11      0
+13                   a group the fit never saw cannot fail open  5      0
+14                 a settled bound is kept by all four families 12      0
+15         the bound records how many trials each group brought  3      0
+   skipped error passed
+1    FALSE FALSE      5
+2    FALSE FALSE      5
+3    FALSE FALSE      4
+4    FALSE FALSE      2
+5    FALSE FALSE      2
+6    FALSE FALSE      7
+7    FALSE FALSE      3
+8    FALSE FALSE      2
+9    FALSE FALSE      4
+10   FALSE FALSE      5
+11   FALSE FALSE      9
+12   FALSE FALSE     11
+13   FALSE FALSE      5
+14   FALSE FALSE     12
+15   FALSE FALSE      3
+RESULT test-ndt-bound.R blocks 15 expectations 79 pass 79 fail 0 err 0 skip 0 

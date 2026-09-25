@@ -1,0 +1,72 @@
+from C:/Users/adf44/source/r/phase3b-lib5/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | wiener-cdf                                                     
+⠋ |          1 | wiener-cdf                                                     
+⠙ |          2 | wiener-cdf                                                     
+⠸ |          4 | wiener-cdf                                                     
+⠴ |          6 | wiener-cdf                                                     
+⠙ |         12 | wiener-cdf                                                     
+⠹ |         13 | wiener-cdf                                                     
+⠸ |         14 | wiener-cdf                                                     
+⠴ | 2       14 | wiener-cdf                                                     
+⠦ | 3       14 | wiener-cdf                                                     
+⠧ | 3       15 | wiener-cdf                                                     
+⠇ | 3       16 | wiener-cdf                                                     
+⠋ | 3       18 | wiener-cdf                                                     
+⠙ | 3       19 | wiener-cdf                                                     
+⠸ | 3       21 | wiener-cdf                                                     
+⠼ | 3       22 | wiener-cdf                                                     
+⠦ | 3       24 | wiener-cdf                                                     
+⠧ | 3       25 | wiener-cdf                                                     
+⠇ | 3       26 | wiener-cdf                                                     
+⠏ | 3       27 | wiener-cdf                                                     
+⠙ | 3       29 | wiener-cdf                                                     
+⠸ | 3       31 | wiener-cdf                                                     
+⠴ | 3       33 | wiener-cdf                                                     
+⠦ | 3       34 | wiener-cdf                                                     
+✖ | 3       34 | wiener-cdf [86.8s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-wiener-cdf.R:142:3'): an interval's mass is right where F(y2) and F(y) agree to their error
+Expected `worst` < 1e-09.
+Actual comparison: NA >= 0.000000001
+
+Failure ('test-wiener-cdf.R:167:3'): the second derivatives are right at zero drift and far out
+Expected `ok` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-wiener-cdf.R:193:3'): a hierarchical fit with left and interval censoring converges
+Expected `is.finite(ll)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 87.3 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-wiener-cdf.R:142:3'): an interval's mass is right where F(y2) and F(y) agree to their error
+Expected `worst` < 1e-09.
+Actual comparison: NA >= 0.000000001
+
+Failure ('test-wiener-cdf.R:167:3'): the second derivatives are right at zero drift and far out
+Expected `ok` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-wiener-cdf.R:193:3'): a hierarchical fit with left and interval censoring converges
+Expected `is.finite(ll)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 34 ]
+RESULT test-wiener-cdf.R blocks 21 expectations 37 pass 34 fail 3 err 0 

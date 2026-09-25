@@ -187,17 +187,24 @@ test_that("weights() and a random effect both work", {
                 length(ranef(fr)) >= 1)
 })
 
-test_that("cens() and trunc() are refused for want of a CDF", {
+test_that("cens() and trunc() fit, and are refused under variability", {
+  # Until item 3.4 this block asserted the plain family's refusal. The
+  # family now declares its distribution function, and what is still
+  # refused is the averaged one; test-wiener-cdf.R measures the rest.
   skip_if_not_installed("RWiener")
   o <- ddm_fit()
   d <- o$dat
   d$cc <- 0
-  expect_error(frm(bf(rt | vint(upper) + trunc(lb = 0.3) ~ cond,
-                      bias = 0.5), family = wiener(), data = d),
-               "need a family with a CDF")
-  expect_error(frm(bf(rt | vint(upper) + cens(cc) ~ cond, bias = 0.5),
-                   family = wiener(), data = d),
-               "need a family with a CDF")
+  ft <- tryCatch(frm(bf(rt | vint(upper) + trunc(lb = 0.3) ~ cond,
+                        bias = 0.5), family = wiener(), data = d),
+                 error = function(e) NULL)
+  expect_true(!is.null(ft) && is.finite(as.numeric(logLik(ft))))
+  msg <- tryCatch({
+    frm(bf(rt | vint(upper) + cens(cc) ~ cond, bias = 0.5),
+        family = wiener(variability = "sv"), data = d)
+    ""
+  }, error = conditionMessage)
+  expect_match(msg, "plain model only")
 })
 
 test_that("dec() is the spelling now, and vint() is the same model", {

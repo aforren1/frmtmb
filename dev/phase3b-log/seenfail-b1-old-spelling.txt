@@ -1,0 +1,35 @@
+from C:/Users/adf44/source/r/phase3b-lib2/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | contaminant                                                    
+⠋ |          1 | contaminant                                                    
+⠙ |          2 | contaminant                                                    
+⠼ |          5 | contaminant                                                    
+⠦ |          7 | contaminant                                                    
+⠇ |          9 | contaminant                                                    
+⠏ |         10 | contaminant                                                    
+⠹ |         13 | contaminant                                                    
+⠸ |         14 | contaminant                                                    
+⠧ |         18 | contaminant                                                    
+⠇ |         19 | contaminant                                                    
+⠏ |         20 | contaminant                                                    
+⠹ |         23 | contaminant                                                    
+✖ | 1       23 | contaminant [10.4s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-contaminant.R:244:3'): the objective is smooth in lambda when rows sit below ndt
+Expected `abs(narrow - wide)` < `400 * 5 * .Machine$double.eps/1e-08`.
+Actual comparison: 4.76241 >= 0.00004
+Difference: 4.76237 >= 0
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 10.4 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-contaminant.R:244:3'): the objective is smooth in lambda when rows sit below ndt
+Expected `abs(narrow - wide)` < `400 * 5 * .Machine$double.eps/1e-08`.
+Actual comparison: 4.76241 >= 0.00004
+Difference: 4.76237 >= 0
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 23 ]
+RESULT test-contaminant.R blocks 12 expectations 24 pass 23 fail 1 err 0 

@@ -1,0 +1,4 @@
+400-bit reference: 1317 rows (1125 density grid, 192 tail)
+rows where the small-time image series was also summed: 969
+worst relative disagreement of the two 400-bit series: 3.31e-16
+smallest F: 2.87e-68; smallest S: 2.49e-133

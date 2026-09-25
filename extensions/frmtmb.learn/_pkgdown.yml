@@ -39,7 +39,8 @@ reference:
     correlated per-subject random effect the way a mean does. Seven
     turn a value store into a softmax over options; rlddm() turns it
     into the drift rate of a diffusion, so choices and response times
-    are one likelihood.
+    are one likelihood. Every family takes session =, which starts the
+    value store again at each session boundary.
   contents:
   - bandit2arm_delta
   - bandit2arm_dual

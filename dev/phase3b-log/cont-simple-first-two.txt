@@ -1,0 +1,10 @@
+n 4000, contaminants on [0.3, 4], max_ndt none, 30 replicates
+logit lambda: mean -2.9639 (truth -2.9444), sd 0.1201, mean se 0.1142
+sd / se 1.051; covered 30 of 30; code 0 on 30
+estimate minus realized share, logit: mean -0.0015, sd 0.1048
+n 4000, contaminants on [0.1, 5], max_ndt 0.5, 30 replicates
+logit lambda: mean -2.9449 (truth -2.9444), sd 0.0944, mean se 0.1000
+sd / se 0.944; covered 30 of 30; code 0 on 11
+estimate minus realized share, logit: mean 0.0175, sd 0.0740
+
+[exited with code 0]

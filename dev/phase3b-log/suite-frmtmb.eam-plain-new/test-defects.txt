@@ -1,0 +1,49 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | defects                                                        
+⠸ |          4 | defects                                                        
+⠹ |         13 | defects                                                        
+⠸ |         14 | defects                                                        
+⠼ |         15 | defects                                                        
+⠦ |         17 | defects                                                        
+⠇ |         19 | defects                                                        
+⠹ |         23 | defects                                                        
+⠸ |         24 | defects                                                        
+⠼ |         25 | defects                                                        
+⠏ |         30 | defects                                                        
+⠋ |         31 | defects                                                        
+⠸ |         44 | defects                                                        
+⠙ |         52 | defects                                                        
+⠹ |         53 | defects                                                        
+✔ |         59 | defects [19.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 19.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 59 ]
+                                                                test nb failed
+1           the density is -Inf below the non-decision time, not NaN 12      0
+2           the floor on the normalized time is inert on the support  1      0
+3    max_ndt above min(rt) is refused alone and allowed in a mixture  6      0
+4             an unreachable row is a clean zero, not a NaN gradient  4      0
+5                 dec() carries the indicator the way brms spells it  3      0
+6   the missing decision indicator is refused, naming both spellings  2      0
+7  the family derives its link from the data through family_finalize  4      0
+8        ddm_floor() holds its floor where a smooth maximum does not 14      0
+9       a range past the cap whose span rounds NEGATIVE stays finite  6      0
+10                 a mixture survives a negative-span row end to end  7      0
+   skipped error passed
+1    FALSE FALSE     12
+2    FALSE FALSE      1
+3    FALSE FALSE      6
+4    FALSE FALSE      4
+5    FALSE FALSE      3
+6    FALSE FALSE      2
+7    FALSE FALSE      4
+8    FALSE FALSE     14
+9    FALSE FALSE      6
+10   FALSE FALSE      7
+RESULT test-defects.R blocks 10 expectations 59 pass 59 fail 0 err 0 skip 0 

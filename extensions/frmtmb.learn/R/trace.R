@@ -67,7 +67,14 @@ frm_value_trace <- function(fit) {
   }
   blk <- frame_block_of(fit[["frame"]], rspec[["resp_name"]])
   tr <- ln_trace_at(fit, blk, lrn[["spec"]], fam[["family"]])
-  out <- data.frame(subject = blk[["subject"]], trial = blk[["trial"]])
+  out <- if (is.null(blk[["session"]])) {
+    data.frame(subject = blk[["subject"]], trial = blk[["trial"]])
+  } else {
+    # between subject and trial, because trial numbers may restart at
+    # each session and order the rows only within one
+    data.frame(subject = blk[["subject"]], session = blk[["session"]],
+               trial = blk[["trial"]])
+  }
   # the summary column last, because it is the summary of the row rather
   # than part of the trajectory, and the value stores read left to right
   # in trial order

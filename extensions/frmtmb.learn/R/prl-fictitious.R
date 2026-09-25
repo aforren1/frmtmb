@@ -75,7 +75,7 @@
 #'   family = prl_fictitious(subject = id, trial = trial), data = d)
 #' frmtmb::fixef(fit)
 #' @export
-prl_fictitious <- function(subject, trial = NULL) {
+prl_fictitious <- function(subject, trial = NULL, session = NULL) {
   spec <- ln_spec(
     n_option = 2L,
     init = function(ns, d1) list(ev1 = rep(0, ns), ev2 = rep(0, ns)),
@@ -99,7 +99,8 @@ prl_fictitious <- function(subject, trial = NULL) {
                         ev2 = ev2 + a * (t2 - ev2)),
            pe = c1 * (t1 - ev1) + c2 * (t2 - ev2))
     })
-  ln_family("prl_fictitious", substitute(subject), substitute(trial),
+  ln_family("prl_fictitious", session_expr = substitute(session),
+            substitute(subject), substitute(trial),
             dpars = c("alpha", "bias", "tau"),
             links = list(alpha = "logit", bias = "identity", tau = "log"),
             primary = "alpha",

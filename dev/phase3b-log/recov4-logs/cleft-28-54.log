@@ -1,0 +1,13 @@
+cleft 28 std::bad_alloc 240.6 
+cleft 29 std::bad_alloc 29.2 
+cleft 30 std::bad_alloc 271.3 
+cleft 31 std::bad_alloc 209.2 
+cleft 32 std::bad_alloc 142.3 
+cleft 33 std::bad_alloc 224.4 
+cleft 34 std::bad_alloc 232 
+cleft 35 std::bad_alloc 194.6 
+cleft 36 std::bad_alloc 220.4 
+cleft 37 std::bad_alloc 147.1 
+cleft 38 std::bad_alloc 157.1 
+cleft 39 error in evaluating the argument 'q' in selecting a method for function 'pnorm': std::bad_alloc 108.1 
+cleft 40 std::bad_alloc 302.4 

@@ -1,0 +1,95 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | wiener-cdf                                                     
+⠋ |          1 | wiener-cdf                                                     
+⠙ |          2 | wiener-cdf                                                     
+⠸ |          4 | wiener-cdf                                                     
+⠴ | 1        5 | wiener-cdf                                                     
+⠙ | 5        7 | wiener-cdf                                                     
+⠹ | 5        8 | wiener-cdf                                                     
+⠸ | 6        8 | wiener-cdf                                                     
+⠴ | 6       10 | wiener-cdf                                                     
+⠧ | 7       11 | wiener-cdf                                                     
+⠇ | 7       12 | wiener-cdf                                                     
+⠋ | 7       14 | wiener-cdf                                                     
+⠙ | 7       15 | wiener-cdf                                                     
+⠸ | 9       15 | wiener-cdf                                                     
+⠼ | 9       16 | wiener-cdf                                                     
+⠴ | 10       16 | wiener-cdf                                                    
+⠦ | 10       17 | wiener-cdf                                                    
+⠇ | 10       19 | wiener-cdf                                                    
+⠙ | 13       19 | wiener-cdf                                                    
+⠹ | 13       20 | wiener-cdf                                                    
+⠸ | 13       21 | wiener-cdf                                                    
+✖ | 13       21 | wiener-cdf [18.5s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-wiener-cdf.R:75:3'): S, F and both defective functions hold out to |v| a = 120
+Expected `max(abs(r$lS - ref$lS))` < 1e-09.
+Actual comparison: 71371.953312719 >= 0.000000001
+Difference: 71371.953312718 >= 0
+
+Failure ('test-wiener-cdf.R:77:3'): S, F and both defective functions hold out to |v| a = 120
+Expected `max(abs(bl - ref$lFl))` < 1e-11.
+Actual comparison: NA >= 0.00000000001
+
+Failure ('test-wiener-cdf.R:78:3'): S, F and both defective functions hold out to |v| a = 120
+Expected `max(abs(bu - ref$lFu))` < 1e-11.
+Actual comparison: NA >= 0.00000000001
+
+Failure ('test-wiener-cdf.R:83:3'): S, F and both defective functions hold out to |v| a = 120
+Expected `max(abs(r$lS[deep] - ref$lS[deep])/abs(ref$lS[deep]))` < 1e-12.
+Actual comparison: 0.990414246879 >= 0.000000000001
+Difference: 0.990414246878 >= 0
+
+Failure ('test-wiener-cdf.R:94:3'): the two defective functions sum to the marginal one
+Expected `max(abs(lsum - r$lF))` < 1e-12.
+Actual comparison: NA >= 0.000000000001
+
+Failure ('test-wiener-cdf.R:121:3'): WienR agrees per boundary, at the accuracy WienR has
+Expected `max(abs(exp(bl) - wl))` < 1e-11.
+Actual comparison: NA >= 0.00000000001
+
+Failure ('test-wiener-cdf.R:169:3'): the gradients are finite where a fit can step
+Expected `ok` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-wiener-cdf.R:249:3'): a left-censored row's boundary IS read
+Expected `is.finite(la) && is.finite(lb) && abs(la - lb) > 1` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-wiener-cdf.R:271:3'): all four censoring codes match the hand-written likelihood
+Expected `abs(ll - hand)/abs(hand)` < 1e-10.
+Actual comparison: 0.1244370297 >= 0.0000000001
+Difference: 0.1244370296 >= 0
+
+Failure ('test-wiener-cdf.R:301:3'): left or interval censoring with trunc() is refused by name
+Expected `msg` to match regexp "cannot be combined with trunc".
+Actual text:
+x | 
+
+Failure ('test-wiener-cdf.R:357:3'): lba() and gddm() refuse cens() and trunc() by name
+Expected `m1` to match regexp "^lba\\(\\): censoring with cens\\(\\) or trunc\\(\\) is not built".
+Actual text:
+x | cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian, cox). The list is not closed: a family supplies one through the lcdf argument of frmtmb_family(), and a family that only ever sees RIGHT censoring may supply the log survivor function through lccdf instead
+
+Failure ('test-wiener-cdf.R:359:3'): lba() and gddm() refuse cens() and trunc() by name
+Expected `m2` to match regexp "^lba\\(\\): contaminant = TRUE is not built".
+Actual text:
+x | unused argument (contaminant = TRUE)
+
+Failure ('test-wiener-cdf.R:361:3'): lba() and gddm() refuse cens() and trunc() by name
+Expected `m3` to match regexp "^rdm\\(\\): contaminant = TRUE is not built".
+Actual text:
+x | unused argument (contaminant = TRUE)
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+RESULT test-wiener-cdf.R blocks 18 expectations 34 pass 21 fail 13 err 0 

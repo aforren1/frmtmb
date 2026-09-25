@@ -4,7 +4,7 @@
 \alias{rdm}
 \title{The racing diffusion model}
 \usage{
-rdm(n, max_ndt = NULL)
+rdm(n, max_ndt = NULL, contaminant = FALSE)
 }
 \arguments{
 \item{n}{Number of accumulators, so the number of response
@@ -16,6 +16,9 @@ fastest response of each row's \code{ndt_group()}, or of the whole data
 set when the model has no \code{ndt_group()}. It cannot be combined with
 \code{ndt_group()}. Give it when a component of a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}
 needs the bound up front.}
+
+\item{contaminant}{Not built for this family: \code{TRUE} is refused by
+name. The uniform contaminant is built for \code{\link[=wiener]{wiener()}} only.}
 }
 \value{
 A \code{frmtmb_family}.
@@ -191,10 +194,22 @@ multiplied over all \code{n} accumulators instead of over \code{n - 1} of them.
     data = dat)
 }\if{html}{\out{</div>}}
 
-A censored trial has no winner to report, because the race had not
-finished when the clock ran out. \code{vint()} is still required, since a
-declaration cannot be conditional on a censoring code, so give such a
-row any accumulator index: the likelihood does not read it. The
+A RIGHT-censored trial has no winner to report, because the race had
+not finished when the clock ran out. \code{vint()} is still required,
+since a declaration cannot be conditional on a censoring code, so
+give such a row any accumulator index: the likelihood does not read
+it.
+
+A LEFT- or INTERVAL-censored trial did finish, and its winner is
+known, but this family scores it with the distribution function of
+the race over ALL winners and does not read \code{vint()} there either.
+That is a known gap, not a choice. \code{\link[=wiener]{wiener()}} scores such a row with
+its known boundary's defective distribution function; the race's
+analogue, \verb{P(T <= t, winner j)}, is the integral of accumulator
+\code{j}'s density times the other accumulators' survivals, which has no
+closed form and would need a quadrature per row. Until it is
+written, a left- or interval-censored row here discards its winner.
+Right censoring is exact. The
 distribution function is written as \verb{-expm1(log S)}, which keeps its
 digits where \code{1 - S} would lose them, and the log survivor goes to
 \code{frmtmb} on the LOG scale, so a right-censored row stays exact past

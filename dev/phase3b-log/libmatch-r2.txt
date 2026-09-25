@@ -1,0 +1,5 @@
+2026-09-24T19:59:42-04:00
+installed from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+220 source objects compared; 0 differ
+installed from C:/Users/adf44/source/r/phase3b-lib/frmtmb.learn 
+50 source objects compared; 0 differ

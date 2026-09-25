@@ -1,0 +1,7 @@
+(1) dual: two-session 245.948487787616  a + b 245.948487787616  rel 5.78e-17
+(1) dual: two-session 247.031691515449  a + b 247.031691515449  rel 5.75e-17
+(1) dual: two-session 246.866400188865  a + b 246.866400188865  rel 5.76e-17
+(2) rows shuffled: 248.380424799952 vs 248.380424799952  rel 0.00e+00
+(3) constant session vs none: 125.365192295116 vs 125.365192295116 identical TRUE
+(4) (1|id) over sessions: 251.5810725983;  (1|id:session) as separate subjects: 251.3643571080
+    random-effect lengths: 5 vs 10 

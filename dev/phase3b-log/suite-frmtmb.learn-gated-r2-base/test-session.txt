@@ -1,0 +1,187 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | session                                                        
+⠋ | 1        0 | session                                                        
+⠸ | 4        0 | session                                                        
+⠏ | 10        0 | session                                                       
+⠴ | 15        1 | session                                                       
+⠏ | 19        1 | session                                                       
+✖ | 21        1 | session [1.9s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-session.R:45:3'): two sessions fit as two single-session fits sharing parameters
+Expected `one` to equal `two`.
+Differences:
+  `actual`:  NA
+`expected`: 0.0
+
+
+Failure ('test-session.R:59:3'): session = is the same likelihood as one learner per session
+Expected `la` to equal `as.numeric(stats::logLik(fb))`.
+Differences:
+  `actual`:     NA
+`expected`: -171.9
+
+
+Failure ('test-session.R:72:3'): the value store is back at its initial values at every boundary
+Expected `NROW(first)` to equal 12L.
+Differences:
+  `actual`:  0
+`expected`: 12
+
+
+Failure ('test-session.R:73:3'): the value store is back at its initial values at every boundary
+Expected `!is.null(first) && all(first$q1 == 0 & first$q2 == 0)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-session.R:74:3'): the value store is back at its initial values at every boundary
+Expected `names(tr)[1:3]` to be identical to `c("subject", "session", "trial")`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('subject', 'session', 'trial')
+
+
+Failure ('test-session.R:88:3'): the boundary is not a no-op: without session = the store carries
+Expected `is.finite(la) && abs(la - lc) > 1` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-session.R:108:3'): the importance block stays the subject
+Expected `length(grp)` to equal `nlevels(factor(d$id))`.
+Differences:
+  `actual`: 0
+`expected`: 6
+
+
+Failure ('test-session.R:109:3'): the importance block stays the subject
+Expected `blk[["group"]]` to be identical to `factor(d$id)`.
+Differences:
+`actual` is NULL
+`expected` is an S3 object of class <factor>, an integer vector
+
+
+Failure ('test-session.R:112:3'): the importance block stays the subject
+Expected `grp` to equal `byid`.
+Differences:
+`actual` is NULL
+`expected` is a double vector (NA)
+
+
+Failure ('test-session.R:113:3'): the importance block stays the subject
+Expected `sum(grp)` to equal `tot`.
+Differences:
+  `actual`: 0.0
+`expected`:  NA
+
+
+Failure ('test-session.R:141:3'): the stacked per-subject values keep replicate-major order
+Expected `length(g3)` to equal `3L * ng`.
+Differences:
+  `actual`:  1
+`expected`: 18
+
+
+Failure ('test-session.R:142:3'): the stacked per-subject values keep replicate-major order
+Expected `g3[seq_len(ng)]` to equal `g1`.
+Differences:
+  `actual`: NA NA NA NA NA NA
+`expected`: NA               
+
+
+Failure ('test-session.R:143:3'): the stacked per-subject values keep replicate-major order
+Expected `isTRUE(all.equal(g3[seq_len(ng)], g3[ng + seq_len(ng)]))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-session.R:157:3'): the importance correction runs with sessions and (1 | id)
+Expected `length(fit$importance$ess)` to equal 8L.
+Differences:
+  `actual`: 0
+`expected`: 8
+
+
+Failure ('test-session.R:175:3'): trial numbers need only be unique within a session
+Expected `msg` to match regexp "unique within a subject's session".
+Actual text:
+x | unused argument (session = session)
+
+Failure ('test-session.R:189:3'): a missing session is refused by name
+Expected `msg` to match regexp "session variable has 1 missing value".
+Actual text:
+x | unused argument (session = session)
+
+Failure ('test-session.R:202:3'): frm_task_simulate() restarts the store at each session
+Expected `a` to be identical to `b`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (1, 2, 2, 2, 1, ...)
+
+
+Failure ('test-session.R:212:3'): every family takes session =
+Expected `all(has)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+bandit2arm_delta, bandit2arm_dual, bandit4arm2_kalman_filter, igt_orl, igt_pvl_delta, prl_fictitious, rlddm, ts_par7
+
+Failure ('test-session.R:236:3'): rlddm() restarts at each session too
+Expected `la` to equal `as.numeric(stats::logLik(fb))`.
+Differences:
+  `actual`:    NA
+`expected`: -87.5
+
+
+Failure ('test-session.R:255:3'): a session label reused in two separate runs is refused
+Expected `msg` to match regexp "in two runs that are not adjacent".
+Actual text:
+x | unused argument (session = session)
+
+Failure ('test-session.R:260:3'): a session label reused in two separate runs is refused
+Expected `is.null(ok)` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+                                                               test nb failed
+1    two sessions fit as two single-session fits sharing parameters  1      1
+2       session = is the same likelihood as one learner per session  1      1
+3   the value store is back at its initial values at every boundary  3      3
+4  the boundary is not a no-op: without session = the store carries  1      1
+5                            the importance block stays the subject  4      4
+6         the stacked per-subject values keep replicate-major order  3      3
+7         the importance correction runs with sessions and (1 | id)  1      1
+8                trial numbers need only be unique within a session  2      1
+9                              a missing session is refused by name  1      1
+10           frm_task_simulate() restarts the store at each session  1      1
+11                                     every family takes session =  1      1
+12                             rlddm() restarts at each session too  1      1
+13           a session label reused in two separate runs is refused  2      2
+   skipped error passed
+1    FALSE FALSE      0
+2    FALSE FALSE      0
+3    FALSE FALSE      0
+4    FALSE FALSE      0
+5    FALSE FALSE      0
+6    FALSE FALSE      0
+7    FALSE FALSE      0
+8    FALSE FALSE      1
+9    FALSE FALSE      0
+10   FALSE FALSE      0
+11   FALSE FALSE      0
+12   FALSE FALSE      0
+13   FALSE FALSE      0
+RESULT test-session.R blocks 13 expectations 22 pass 1 fail 21 err 0 skip 0 

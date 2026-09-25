@@ -1,0 +1,80 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env: true true true C:/Users/adf44/source/r/frmtmb-wt-phase3b/dev/stan-cache C:/Users/adf44/Documents/.R/Makevars.win C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | wiener-cdf                                                     
+⠋ |          1 | wiener-cdf                                                     
+⠙ |          2 | wiener-cdf                                                     
+⠴ |          6 | wiener-cdf                                                     
+⠙ |         12 | wiener-cdf                                                     
+⠹ |         13 | wiener-cdf                                                     
+⠼ |         15 | wiener-cdf                                                     
+⠴ |         16 | wiener-cdf                                                     
+⠦ |         17 | wiener-cdf                                                     
+⠧ |         18 | wiener-cdf                                                     
+⠏ |         20 | wiener-cdf                                                     
+⠙ |         22 | wiener-cdf                                                     
+⠹ |         23 | wiener-cdf                                                     
+⠼ |         25 | wiener-cdf                                                     
+⠴ |         26 | wiener-cdf                                                     
+⠧ |         28 | wiener-cdf                                                     
+⠇ |         29 | wiener-cdf                                                     
+⠏ |         30 | wiener-cdf                                                     
+⠋ |         31 | wiener-cdf                                                     
+⠹ |         33 | wiener-cdf                                                     
+⠦ |         37 | wiener-cdf                                                     
+⠧ |         38 | wiener-cdf                                                     
+✔ |         38 | wiener-cdf [17.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 17.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 38 ]
+                                                                    test nb
+1              F and S match the 400-bit reference on the density's grid  3
+2              S, F and both defective functions hold out to |v| a = 120  8
+3                    the two defective functions sum to the marginal one  1
+4               RWiener::pwiener() agrees to 1e-10 on the density's grid  1
+5                   WienR agrees per boundary, at the accuracy WienR has  1
+6  an interval's mass is right where F(y2) and F(y) agree to their error  1
+7             the second derivatives are right at zero drift and far out  1
+8          a hierarchical fit with left and interval censoring converges  1
+9         the slots compute the censored rows only, and the same numbers  1
+10                        F integrates the density, over both boundaries  1
+11                   at or below the non-decision time F is 0 and S is 1  2
+12                         the gradients are finite where a fit can step  1
+13     a right-censored fit scores what the hand-written likelihood says  2
+14                  a right-censored row's boundary is not read, exactly  1
+15                                a left-censored row's boundary IS read  2
+16            all four censoring codes match the hand-written likelihood  1
+17             trunc() divides by the window's mass over both boundaries  1
+18            left or interval censoring with trunc() is refused by name  1
+19               censoring reaches a per-group bound through ndt_group()  2
+20                            variability with cens() is refused by name  1
+21                    lba() and gddm() refuse cens() and trunc() by name  3
+22                  the compatibility table says cens() and trunc() work  2
+   failed skipped error passed
+1       0   FALSE FALSE      3
+2       0   FALSE FALSE      8
+3       0   FALSE FALSE      1
+4       0   FALSE FALSE      1
+5       0   FALSE FALSE      1
+6       0   FALSE FALSE      1
+7       0   FALSE FALSE      1
+8       0   FALSE FALSE      1
+9       0   FALSE FALSE      1
+10      0   FALSE FALSE      1
+11      0   FALSE FALSE      2
+12      0   FALSE FALSE      1
+13      0   FALSE FALSE      2
+14      0   FALSE FALSE      1
+15      0   FALSE FALSE      2
+16      0   FALSE FALSE      1
+17      0   FALSE FALSE      1
+18      0   FALSE FALSE      1
+19      0   FALSE FALSE      2
+20      0   FALSE FALSE      1
+21      0   FALSE FALSE      3
+22      0   FALSE FALSE      2
+RESULT test-wiener-cdf.R blocks 22 expectations 38 pass 38 fail 0 err 0 skip 0 

@@ -1,0 +1,4 @@
+rows below ndt inside the window: 4  outside: 3 
+    in_below    out_below        other 
+1.457168e-16 1.110223e-16 6.096268e-11 
+max |value - (log lambda + log g)| on in-window rows below ndt: 4.006102e-08 

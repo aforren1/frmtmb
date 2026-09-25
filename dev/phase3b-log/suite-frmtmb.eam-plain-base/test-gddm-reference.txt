@@ -1,0 +1,71 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | gddm-reference                                                 
+⠙ |          2 | gddm-reference                                                 
+⠸ |         14 | gddm-reference                                                 
+⠏ |         30 | gddm-reference                                                 
+⠸ |         44 | gddm-reference                                                 
+⠙ |         52 | gddm-reference                                                 
+⠇ |         59 | gddm-reference                                                 
+⠇ |         69 | gddm-reference                                                 
+⠦ |         77 | gddm-reference                                                 
+⠹ |         83 | gddm-reference                                                 
+⠼ |         85 | gddm-reference                                                 
+⠧ |         88 | gddm-reference                                                 
+⠇ |         89 | gddm-reference                                                 
+⠏ |         90 | gddm-reference                                                 
+⠋ |         91 | gddm-reference                                                 
+⠙ |         92 | gddm-reference                                                 
+⠹ |         93 | gddm-reference                                                 
+⠸ |         94 | gddm-reference                                                 
+⠼ |         95 | gddm-reference                                                 
+⠴ |         96 | gddm-reference                                                 
+⠦ |         97 | gddm-reference                                                 
+⠧ |         98 | gddm-reference                                                 
+⠋ |        101 | gddm-reference                                                 
+⠸ |        104 | gddm-reference                                                 
+⠦ |        107 | gddm-reference                                                 
+⠏ |        110 | gddm-reference                                                 
+⠹ |        113 | gddm-reference                                                 
+⠴ |        116 | gddm-reference                                                 
+⠇ |        119 | gddm-reference                                                 
+⠙ |        122 | gddm-reference                                                 
+⠼ |        125 | gddm-reference                                                 
+⠏ |        140 | gddm-reference                                                 
+⠧ |        148 | gddm-reference                                                 
+⠏ |        150 | gddm-reference                                                 
+⠙ |        152 | gddm-reference                                                 
+⠸ |        154 | gddm-reference                                                 
+⠴ |        156 | gddm-reference                                                 
+⠧ |        158 | gddm-reference                                                 
+⠇ |        159 | gddm-reference                                                 
+✔ |        166 | gddm-reference [24.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 24.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 166 ]
+
+😸
+                                                             test nb failed
+1             the fixture records the environment it was built in 83      0
+2        the fixture's payload hashes to what the generator wrote  1      0
+3         PyDDM's uniform lapse mixture is the one gddm() applies  3      0
+4          every generalized component reproduces PyDDM's density 10      0
+5                           the two boundary masses match PyDDM's 30      0
+6              the fixed dataset's log-likelihood matches PyDDM's 20      0
+7  refining gddm's grid moves it toward PyDDM, not merely near it 10      0
+8 a path simulation says the two grid solvers do not share a bias  9      0
+  skipped error passed
+1   FALSE FALSE     83
+2   FALSE FALSE      1
+3   FALSE FALSE      3
+4   FALSE FALSE     10
+5   FALSE FALSE     30
+6   FALSE FALSE     20
+7   FALSE FALSE     10
+8   FALSE FALSE      9
+RESULT test-gddm-reference.R blocks 8 expectations 166 pass 166 fail 0 err 0 skip 0 

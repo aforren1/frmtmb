@@ -1,0 +1,31 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.eam C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | extension-api                                                  
+⠋ |          1 | extension-api                                                  
+⠹ |          3 | extension-api                                                  
+⠸ |          4 | extension-api                                                  
+⠦ |          7 | extension-api                                                  
+✔ |         14 | extension-api [4.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 14 ]
+                                                         test nb failed skipped
+1        wiener_lpdf is the density wiener() itself evaluates  2      0   FALSE
+2  wiener_lpdf integrates to the diffusion's exit probability  2      0   FALSE
+3          wiener_lpdf agrees with RWiener on both boundaries  2      0   FALSE
+4                        wiener_lpdf differentiates on a tape  3      0   FALSE
+5 wiener_lpdf refuses a boundary indicator that is not 0 or 1  2      0   FALSE
+6        a decision time at or below zero is -Inf and not NaN  3      0   FALSE
+  error passed
+1 FALSE      2
+2 FALSE      2
+3 FALSE      2
+4 FALSE      3
+5 FALSE      2
+6 FALSE      3
+RESULT test-extension-api.R blocks 6 expectations 14 pass 14 fail 0 err 0 skip 0 

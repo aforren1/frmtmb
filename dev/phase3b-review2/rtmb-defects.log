@@ -1,0 +1,42 @@
+RTMB 2.0  TMB 1.9.25 
+
+(1) d/dx pnorm(x, log.p = TRUE). Truth phi(x)/Phi(x), about -x for x << 0
+x =        -10  value     -53.231285 (R     -53.231285)  tape d      10.098093  truth      10.098093  rel  0.00e+00
+x =     -1e+03  value     -500007.83 (R     -500007.83)  tape d       1000.001  truth       1000.001  rel  0.00e+00
+x =     -3e+04  value -4.5000001e+08 (R -4.5000001e+08)  tape d      30000.001  truth      30000.001  rel  0.00e+00
+x =     -1e+05  value         -5e+09 (R         -5e+09)  tape d      99999.968  truth      99999.968  rel  0.00e+00
+x =     -3e+05  value       -4.5e+10 (R       -4.5e+10)  tape d       300001.2  truth       300001.2  rel  0.00e+00
+x =     -1e+06  value         -5e+11 (R         -5e+11)  tape d      999980.16  truth      999980.16  rel  0.00e+00
+x =     -2e+06  value         -2e+12 (R         -2e+12)  tape d      1999774.4  truth      1999774.4  rel  0.00e+00
+x =     -1e+07  value         -5e+13 (R         -5e+13)  tape d      9990922.6  truth      9990922.6  rel  0.00e+00
+x =     -2e+08  value         -2e+16 (R         -2e+16)  tape d   4.851652e+08  truth   4.851652e+08  rel  0.00e+00
+x =   -8.3e+09  value    -3.4445e+19 (R    -3.4445e+19)  tape d              1  truth              1  rel  0.00e+00
+x =         38  value -2.8854284e-316 (R -2.8854284e-316)  tape d 1.0972211e-314  truth 1.0972211e-314  rel  0.00e+00
+x =      1e+05  value             -0 (R             -0)  tape d              0  truth              0  rel       NaN
+x =    8.3e+09  value             -0 (R             -0)  tape d              0  truth              0  rel       NaN
+upper-tail spelling, pnorm(x, lower.tail = FALSE, log.p = TRUE), truth -phi(x)/(1-Phi(x))
+x =      1e+03  tape d      -1000.001  truth      -1000.001  rel  0.00e+00
+x =      1e+05  tape d     -99999.968  truth     -99999.968  rel  0.00e+00
+x =      1e+06  tape d     -999980.16  truth     -999980.16  rel  0.00e+00
+x =      2e+08  tape d  -4.851652e+08  truth  -4.851652e+08  rel  0.00e+00
+second derivative of pnorm(x, log.p = TRUE): tape vs truth (about -1 for x << 0)
+x =       -10  tape d2    -0.99055462
+x =    -1e+03  tape d2    -0.99995099
+x =    -1e+05  tape d2      3169.5982
+x =    -1e+06  tape d2       19834718
+
+(2) zero drift: d2/dx2 of sqrt(x^2 + 1e-20) at 0. Exact value 1/sqrt(1e-20) = 1e10
+tape d2 at 0: 1e+10   (this is the regularizer's true curvature,  not a tape error)
+log(sinh(x)/x) tape d2 at x = 1e-3: 0.3333332671  truth ~ 1/3
+
+(3) tanh: tape d and d2 against truth (d = sech^2, d2 = -2 tanh sech^2)
+x =      20  d   1.6993e-17  d2  -3.3987e-17
+x =      40  d   7.2194e-35  d2  -1.4439e-34
+x =     300  d  1.0602e-260  d2            0
+x =     700  d            0  d2            0
+x =     710  d            0  d2            0
+x =     711  d            0  d2          NaN
+x =     800  d            0  d2          NaN
+x =   10000  d            0  d2          NaN
+x =    -711  d            0  d2          NaN
+same for cosh overflow proxy: d2 of log(cosh(x)) at 711: NaN 

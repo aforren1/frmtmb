@@ -1,0 +1,48 @@
+from C:/Users/adf44/source/r/phase3b-lib7/frmtmb.eam 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | wiener-cdf                                                     
+⠋ |          1 | wiener-cdf                                                     
+⠙ |          2 | wiener-cdf                                                     
+⠴ |          6 | wiener-cdf                                                     
+⠙ |         12 | wiener-cdf                                                     
+⠹ |         13 | wiener-cdf                                                     
+⠸ |         14 | wiener-cdf                                                     
+⠴ |         16 | wiener-cdf                                                     
+⠦ |         17 | wiener-cdf                                                     
+⠧ | 1       17 | wiener-cdf                                                     
+⠇ | 1       18 | wiener-cdf                                                     
+⠙ | 1       21 | wiener-cdf                                                     
+⠹ | 1       22 | wiener-cdf                                                     
+⠼ | 1       24 | wiener-cdf                                                     
+⠴ | 1       25 | wiener-cdf                                                     
+⠧ | 1       27 | wiener-cdf                                                     
+⠇ | 1       28 | wiener-cdf                                                     
+⠏ | 1       29 | wiener-cdf                                                     
+⠋ | 1       30 | wiener-cdf                                                     
+⠹ | 1       32 | wiener-cdf                                                     
+⠦ | 1       36 | wiener-cdf                                                     
+⠧ | 1       37 | wiener-cdf                                                     
+✖ | 1       37 | wiener-cdf [53.1s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-wiener-cdf.R:224:3'): the slots compute the censored rows only, and the same numbers
+Expected `ok` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 53.2 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-wiener-cdf.R:224:3'): the slots compute the censored rows only, and the same numbers
+Expected `ok` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 37 ]
+RESULT test-wiener-cdf.R blocks 22 expectations 38 pass 37 fail 1 err 0 

@@ -1,0 +1,40 @@
+from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | engine                                                         
+⠋ |          1 | engine                                                         
+⠸ |          4 | engine                                                         
+⠴ |          6 | engine                                                         
+⠏ |         10 | engine                                                         
+⠼ |         15 | engine                                                         
+✔ |         19 | engine [2.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 19 ]
+
+😸
+                                                            test nb failed
+1            the recursion equals the model written out longhand  1      0
+2   the trace's p is the probability of the choice that was made  4      0
+3     padding is inert: an unbalanced design scores its own rows  2      0
+4 one trial per subject is not read as one subject with n trials  2      0
+5    a subject's value store does not leak into the next subject  1      0
+6             the trace records the value the choice was made on  4      0
+7                                the two simulation routes agree  1      0
+8                         the block refuses data it cannot order  3      0
+9                       the response coding is checked and named  1      0
+  skipped error passed
+1   FALSE FALSE      1
+2   FALSE FALSE      4
+3   FALSE FALSE      2
+4   FALSE FALSE      2
+5   FALSE FALSE      1
+6   FALSE FALSE      4
+7   FALSE FALSE      1
+8   FALSE FALSE      3
+9   FALSE FALSE      1
+RESULT test-engine.R blocks 9 expectations 19 pass 19 fail 0 err 0 skip 0 

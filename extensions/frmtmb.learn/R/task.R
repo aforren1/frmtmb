@@ -196,7 +196,8 @@ frm_task_simulate <- function(family, data, pars, nsim = 1L,
   } else {
     as.numeric(eval(lrn[["trial_expr"]], data, parent.frame()))
   }
-  block <- ln_pack(gv, tv, n, nm)
+  block <- ln_pack(gv, tv, n, nm,
+                   ln_session_values(lrn, data, parent.frame()))
   miss <- setdiff(lrn[["dpars"]], names(pars))
   if (length(miss)) {
     frm_stop("frm_task_simulate(): ", nm, "() has no value for ",

@@ -1,0 +1,25 @@
+arm collapse: 60 files, seeds 1 to 60, gaps: 
+first-pass errors: 2; refitted without error on rerun: 2
+control seed 1: logLik first pass -6665.4166852132, rerun -6665.4166852132, identical: TRUE
+errors after the rerun: 0
+convergence code 0: 60 of 60; diagnose() reported a finding: 49; diagnose() failed: 0
+   49  Distributional parameter at the end of its link:
+   11  No convergence problems detected
+max |gradient| at the optimum: median 4.8e-06, max 0.00052
+fits with a confint(): 60 of 60
+
+quantity                   truth      mean     mcse   covered    rate  Wilson 95
+mu intercept              0.4000    0.4039   0.0098   53/60     88.3%  [77.8, 94.2]
+mu condition              0.9000    0.9028   0.0035   58/60     96.7%  [88.6, 99.1]
+log bs                    0.3365    0.3364   0.0044   56/60     93.3%  [84.1, 97.4]
+ndt: the true 0.25 is below the fitted bound on 60 of 60
+ndt (link scale)          2.7119    2.7010   0.0333   58/60     96.7%  [88.6, 99.1]
+ndt natural scale: mean 0.2498 (truth 0.25)
+log sd 1 (mu | s)        -1.0498   -1.0876   0.0206   54/60     90.0%  [79.9, 95.3]
+log sd 2 (log bs | s)    -1.6094   -1.6483   0.0149   60/60    100.0%  [94.0, 100.0]
+lambda at the link edge (logit below -15): 49 of 60
+diagnose() names lambda at the end of its link: 49; of those at the edge: 49
+interior lambda: median 0.00019, min 5.7e-05, max 0.00044
+logLik(contaminant) - logLik(plain): min -9.97e-07, median -6.04e-07, max 1.55
+  at the edge: max |difference| 9.97e-07
+seconds per replicate: median 376

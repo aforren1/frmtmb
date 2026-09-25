@@ -11,6 +11,25 @@
   scale-1 log-likelihood on 3 of 3 seeds (`dev/predfix-p1-ext.R` in the
   frmtmb repository).
 
+* **Every family takes `session =`** (item 3.3 of the extension plan).
+  At the first trial of each session the value store goes back to its
+  initial values, and trial numbers need be unique only within a
+  session. The subject stays the unit that random effects and
+  `frm(importance =)` group on, so a subject's sessions share its
+  effects and are resampled together. A two-session fit's objective is
+  the sum of the two single-session objectives at the same parameters.
+  `frm_value_trace()` gains a `session` column, and
+  `frm_task_simulate()` reads `session =` too. See `?bandit2arm_delta`,
+  "Sessions".
+* A session label reused in two runs that are not adjacent in trial
+  order is refused by name: the runs would join into one sequence and
+  the value store would carry across the trials between them. It is
+  checked where the trial column orders a subject's sessions, that is,
+  where its numbers are unique across them. Interleaved contexts, one
+  value store per context kept across its runs, are not built.
+* No single-session fit moved: every family's fit without `session =`
+  is bit-identical to 0.6.0.
+
 # frmtmb.learn 0.6.0
 
 * Documentation only: the compatibility notes and the family refusals

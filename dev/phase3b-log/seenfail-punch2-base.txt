@@ -1,0 +1,84 @@
+build: C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 0.10.0
+run at 2026-09-24 19:58:45
+
+test-wiener-cdf.R: 42 expectations, 36 failed, 0 blocks errored
+   test                                                              nb failed
+1  F and S match the 400-bit reference on the density's grid         3  2     
+2  S, F and both defective functions hold out to |v| a = 120         8  5     
+3  the two defective functions sum to the marginal one               1  1     
+4  RWiener::pwiener() agrees to 1e-10 on the density's grid          1  1     
+5  WienR agrees per boundary, at the accuracy WienR has              1  1     
+6  an interval's mass matches 1200-bit Rmpfr to 1e-10 in the log     1  1     
+7  the second derivatives are right at zero drift and far out        1  1     
+8  a hierarchical fit with left and interval censoring converges     1  1     
+9  the slots compute the censored rows only, and the same numbers    1  1     
+10 F integrates the density, over both boundaries                    1  1     
+11 at or below the non-decision time F is 0 and S is 1               2  2     
+12 the gradients are finite where a fit can step                     1  1     
+13 a right-censored fit scores what the hand-written likelihood says 2  1     
+14 a right-censored row's boundary is not read, exactly              1  1     
+15 a left-censored row's boundary IS read                            2  1     
+16 all four censoring codes match the hand-written likelihood        1  1     
+17 trunc() divides by the window's mass over both boundaries         1  1     
+18 left or interval censoring with trunc() is refused by name        1  1     
+19 censoring reaches a per-group bound through ndt_group()           2  2     
+20 variability with cens() is refused by name                        1  1     
+21 lba() and gddm() refuse cens() and trunc() by name                7  7     
+22 the compatibility table says cens() and trunc() work              2  2     
+   error
+1  FALSE
+2  FALSE
+3  FALSE
+4  FALSE
+5  FALSE
+6  FALSE
+7  FALSE
+8  FALSE
+9  FALSE
+10 FALSE
+11 FALSE
+12 FALSE
+13 FALSE
+14 FALSE
+15 FALSE
+16 FALSE
+17 FALSE
+18 FALSE
+19 FALSE
+20 FALSE
+21 FALSE
+22 FALSE
+
+test-contaminant.R: 32 expectations, 28 failed, 0 blocks errored
+   test                                                            nb failed
+1  the mixture integrates to one over time and both boundaries     1  1     
+2  at lambda = 0 the density is the plain family's                 3  2     
+3  a fit on clean data is the plain fit, and lambda collapses      4  4     
+4  lambda recovers on contaminated data                            1  1     
+5  a stated bound above the fastest response is allowed            3  2     
+6  censoring composes with the contaminant                         1  1     
+7  a left-censored row under the contaminant is scored at its edge 2  1     
+8  the conditional mean and the draw follow the contaminant        2  2     
+9  contaminant = TRUE refuses what it cannot mean                  2  2     
+10 the default window needs a deadline                             4  4     
+11 a fitted range is kept                                          1  1     
+12 a stated range replaces the observed one                        2  2     
+13 a response outside contaminant_range is refused, classed        2  2     
+14 contaminant_range is refused where it means nothing             2  2     
+15 the objective is smooth in lambda when rows sit below ndt       2  1     
+   error
+1  FALSE
+2  FALSE
+3  FALSE
+4  FALSE
+5  FALSE
+6  FALSE
+7  FALSE
+8  FALSE
+9  FALSE
+10 FALSE
+11 FALSE
+12 FALSE
+13 FALSE
+14 FALSE
+15 FALSE

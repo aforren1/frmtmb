@@ -1,0 +1,136 @@
+cleft 3 std::bad_alloc 89 
+cleft 8 std::bad_alloc 31.1 
+cleft 4 error in evaluating the argument 'q' in selecting a method for function 'pnorm': std::bad_alloc 31.4 
+cleft 10 std::bad_alloc 37.3 
+cleft 15 ok 611 
+Warning messages:
+1: In stats::nlminb(par, fnw$fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+2: In he(par) : restarting interrupted promise evaluation
+cleft 20 std::bad_alloc 67.9 
+cleft 25 std::bad_alloc 47.2 
+cleft 30 std::bad_alloc 98.3 
+cleft 35 ok 499.5 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00171); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 5 ok 282.5 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00256); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 10 ok 350 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0042); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 13 ok 327.1 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00171); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 17 ok 215.9 
+cleft 20 ok 210.8 
+cleft 25 ok 206.8 
+cleft 28 ok 230.4 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00258); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 31 ok 222.1 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00411); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 36 ok 182.6 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0023); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 39 ok 213.7 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00188); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 42 ok 181 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00227); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 45 ok 179.9 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00213); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 48 ok 168.7 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0016); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 51 ok 188.7 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00169); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cleft 55 ok 172.5 
+cleft 58 ok 214.3 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0014); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+contfix 2 ok 156.9 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00757); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+contfix 5 ok 159.8 
+contfix 8 ok 160.5 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00331); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+contfix 11 ok 151.8 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00189); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+contfix 14 ok 172.7 
+contfix 17 ok 132.1 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00109); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+contfix 20 ok 261.1 
+contdl 17 ok 653.8 
+contdl 20 ok 222.4 
+contdl 24 ok 293.6 
+contdl 27 ok 277.3 
+contdl 30 ok 289.8 
+collapse 4 ok 298.3 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00326); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+collapse 8 ok 288.7 
+collapse 11 ok 276.7 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00257); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+collapse 14 ok 274.6 
+collapse 17 ok 263.6 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00148); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+collapse 20 ok 240.8 
+collapse 23 ok 203.1 
+collapse 26 ok 208.2 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0019); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+collapse 29 ok 227.7 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00134); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cont 2 ok 123.9 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00263); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cont 5 ok 218.4 
+cont 8 ok 209.3 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00451); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cont 11 ok 244.8 
+cont 14 ok 215.1 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00326); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cont 17 ok 164.8 
+cont 20 ok 180.4 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00225); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cont 23 ok 179.1 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0102); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cont 26 ok 198.5 
+cont 29 ok 164.3 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00437); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cens 4 ok 170 
+cens 7 ok 135.2 
+cens 10 ok 146.1 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00194); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cens 13 ok 193 
+cens 16 ok 155.6 
+cens 19 ok 166.8 
+cens 22 ok 159.6 
+cens 25 ok 132.9 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00183); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cens 28 ok 153.7 
+cens 32 ok 177.9 
+cens 35 ok 207.2 
+Warning message:
+Large maximum absolute gradient at the optimum (0.0015); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+cens 39 ok 126.6 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00163); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

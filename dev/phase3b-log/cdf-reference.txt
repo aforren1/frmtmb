@@ -1,0 +1,5 @@
+1000-bit reference, 1317 rows, 29434.5 s
+rows where the image series was checked:  969 
+worst relative disagreement between the two 1000-bit series:  4.78 
+smallest F in the grid:  -0.143 
+smallest S in the grid:  2.49e-133 

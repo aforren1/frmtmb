@@ -4,7 +4,13 @@
 \alias{bandit4arm2_kalman_filter}
 \title{A Kalman filter over the restless four-armed bandit}
 \usage{
-bandit4arm2_kalman_filter(subject, trial = NULL, sigma_o = 4, bonus = FALSE)
+bandit4arm2_kalman_filter(
+  subject,
+  trial = NULL,
+  session = NULL,
+  sigma_o = 4,
+  bonus = FALSE
+)
 }
 \arguments{
 \item{subject}{The column separating one learner's trial sequence
@@ -15,6 +21,17 @@ entering a linear predictor.}
 
 \item{trial}{The column giving trial order within a subject, given
 unquoted. \code{NULL} uses the order the rows appear in.}
+
+\item{session}{The column naming the session each trial belongs to,
+given unquoted. \code{NULL}, the default, is one session per subject.
+Every subject's value store starts again from its initial values
+at the first trial of each of its sessions, so nothing learned in
+one session carries into the next. The subject stays the unit a
+random effect and \code{frm(importance =)} group on: the sessions of
+one subject share that subject's effects. Trial numbers need to be
+unique only within a session. A label reused in two runs that are
+not adjacent in trial order is refused. See the Sessions section of
+\code{\link[=bandit2arm_delta]{bandit2arm_delta()}}.}
 
 \item{sigma_o}{The observation noise standard deviation, held FIXED
 rather than estimated. Daw and others use 4. It sets the scale the

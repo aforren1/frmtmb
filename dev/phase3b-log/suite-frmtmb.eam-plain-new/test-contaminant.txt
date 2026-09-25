@@ -1,0 +1,74 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | contaminant                                                    
+⠋ |          1 | contaminant                                                    
+⠙ |          2 | contaminant                                                    
+⠼ |          5 | contaminant                                                    
+⠦ |          7 | contaminant                                                    
+⠇ |   1      8 | contaminant                                                    
+⠏ |   1      9 | contaminant                                                    
+⠋ |   1     10 | contaminant                                                    
+⠸ |   1     13 | contaminant                                                    
+⠼ |   1     14 | contaminant                                                    
+⠦ |   1     16 | contaminant                                                    
+⠋ |   1     20 | contaminant                                                    
+⠹ |   1     22 | contaminant                                                    
+⠼ |   1     24 | contaminant                                                    
+⠴ |   1     25 | contaminant                                                    
+⠦ |   1     26 | contaminant                                                    
+⠏ |   1     29 | contaminant                                                    
+✔ |   1     30 | contaminant [11.4s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-contaminant.R:106:3'): lambda recovers on contaminated data
+Large maximum absolute gradient at the optimum (0.00128); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. ├─frmtmb.eam (local) ct_try(...) at test-contaminant.R:106:3
+ 2. │ └─base::tryCatch(expr, error = function(e) NULL) at test-contaminant.R:9:11
+ 3. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6. └─frmtmb::frm(...)
+ 7.   └─frmtmb:::fit_assembled(...)
+ 8.     └─frmtmb:::check_convergence(fit, control)
+ 9.       └─frmtmb::frm_warning(m, call. = FALSE)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 11.4 s
+
+[ FAIL 0 | WARN 1 | SKIP 0 | PASS 30 ]
+                                                                  test nb
+1          the mixture integrates to one over time and both boundaries  1
+2                      at lambda = 0 the density is the plain family's  3
+3           a fit on clean data is the plain fit, and lambda collapses  4
+4                                 lambda recovers on contaminated data  2
+5                 a stated bound above the fastest response is allowed  3
+6                              censoring composes with the contaminant  1
+7  a left-censored row under the contaminant is scored at its boundary  2
+8             the conditional mean and the draw follow the contaminant  2
+9                       contaminant = TRUE refuses what it cannot mean  2
+10                                 the default window needs a deadline  4
+11                                              a fitted range is kept  1
+12                            a stated range replaces the observed one  2
+13                 contaminant_range is refused where it means nothing  2
+14           the objective is smooth in lambda when rows sit below ndt  2
+   failed skipped error passed
+1       0   FALSE FALSE      1
+2       0   FALSE FALSE      3
+3       0   FALSE FALSE      4
+4       0   FALSE FALSE      1
+5       0   FALSE FALSE      3
+6       0   FALSE FALSE      1
+7       0   FALSE FALSE      2
+8       0   FALSE FALSE      2
+9       0   FALSE FALSE      2
+10      0   FALSE FALSE      4
+11      0   FALSE FALSE      1
+12      0   FALSE FALSE      2
+13      0   FALSE FALSE      2
+14      0   FALSE FALSE      2
+RESULT test-contaminant.R blocks 14 expectations 31 pass 30 fail 0 err 0 skip 0 

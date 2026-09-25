@@ -1,0 +1,16 @@
+RTMB 2.0, TMB 1.9.25, R version 4.6.1 (2026-06-24 ucrt)
+
+(1) d/dx and d2/dx2 of pnorm(x, log.p = TRUE)
+x = -1e+03  d tape 1000.001  truth 1000.001  rel 4.80e-11 | d2 tape -0.999951 truth -0.999999
+x = -1e+05  d tape 99999.9683  truth 100000  rel 3.17e-07 | d2 tape 3169.6 truth -1
+x = -1e+06  d tape 999980.165  truth 1000000  rel 1.98e-05 | d2 tape 1.98347e+07 truth -1
+x = -1e+07  d tape 9990922.61  truth 10000000  rel 9.08e-04 | d2 tape 9.06915e+10 truth -1
+x = -2e+08  d tape 485165195  truth 200000000  rel 1.43e+00 | d2 tape -1.38352e+17 truth -1
+x^2 eps / 2 at -1e5, -1e7: 1.11e-06, 1.11e-02
+
+(2) derivatives of tanh(x); truth 0 to double for both
+x =    700  tanh d 0 d2 0
+x =    710  tanh d 0 d2 0
+x =    711  tanh d 0 d2 NaN
+x =  10000  tanh d 0 d2 NaN
+x =   -711  tanh d 0 d2 NaN

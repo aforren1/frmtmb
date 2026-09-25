@@ -1,0 +1,56 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.learn C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | counterfactual                                                 
+⠋ |          1 | counterfactual                                                 
+⠸ |          4 | counterfactual                                                 
+⠼ |          5 | counterfactual                                                 
+⠸ |         14 | counterfactual                                                 
+⠇ |         19 | counterfactual                                                 
+⠼ |         25 | counterfactual                                                 
+⠇ |         29 | counterfactual                                                 
+⠼ |         35 | counterfactual                                                 
+⠦ |         47 | counterfactual                                                 
+⠴ |         56 | counterfactual                                                 
+⠴ |         66 | counterfactual                                                 
+✔ |         70 | counterfactual [2.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 70 ]
+                                                           test nb failed
+1         the unchosen column cannot reach the objective at all  2      0
+2                 the received outcome alone gives the same fit  2      0
+3                prl_fictitious() reads one column too, bitwise  2      0
+4         simulate() refuses the duplicated column and names it  9      0
+5                        a real two-column schedule still draws  2      0
+6           every reward() family refuses a duplicated schedule  8      0
+7           every payoff() family refuses a duplicated schedule  8      0
+8                      a partial duplicate is not the signature  1      0
+9                     stage2() is not read as a payoff schedule  1      0
+10 every multi-column term this package registers is classified  5      0
+11       the derivation reads the schedule terms and only those  6      0
+12          all eight families derive the groups the docs claim  9      0
+13          counterfactual = TRUE is refused rather than obeyed  9      0
+14             the three legal spellings all mean what they say  4      0
+15           the opt-out really does open the draw, and only it  2      0
+   skipped error passed
+1    FALSE FALSE      2
+2    FALSE FALSE      2
+3    FALSE FALSE      2
+4    FALSE FALSE      9
+5    FALSE FALSE      2
+6    FALSE FALSE      8
+7    FALSE FALSE      8
+8    FALSE FALSE      1
+9    FALSE FALSE      1
+10   FALSE FALSE      5
+11   FALSE FALSE      6
+12   FALSE FALSE      9
+13   FALSE FALSE      9
+14   FALSE FALSE      4
+15   FALSE FALSE      2
+RESULT test-counterfactual.R blocks 15 expectations 70 pass 70 fail 0 err 0 skip 0 

@@ -1,0 +1,18 @@
+from C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam C:/Users/adf44/source/r/phase3b-lib/frmtmb.eam 
+env:      C:\Users\adf44\AppData\Local\Temp\1 
+StanHeaders 2.32.10 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | message-uniqueness                                             
+⠋ |          1 | message-uniqueness                                             
+⠙ |          2 | message-uniqueness                                             
+⠹ |          3 | message-uniqueness                                             
+✔ |          4 | message-uniqueness
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 4 ]
+                                                   test nb failed skipped error
+1 every condition message template in this R/ is unique  4      0   FALSE FALSE
+  passed
+1      4
+RESULT test-message-uniqueness.R blocks 1 expectations 4 pass 4 fail 0 err 0 skip 0 

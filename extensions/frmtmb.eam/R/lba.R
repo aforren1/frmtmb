@@ -210,6 +210,8 @@
 #'   `ndt_group()`. Give it when a component of a [frmtmb::mixture()]
 #'   needs the bound up front.
 #'
+#' @param contaminant Not built for this family: `TRUE` is refused by
+#'   name. The uniform contaminant is built for [wiener()] only.
 #' @return A `frmtmb_family`.
 #'
 #' @references
@@ -232,7 +234,9 @@
 #' fixef(fit)
 #'
 #' @export
-lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
+lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL,
+                contaminant = FALSE) {
+  ddm_refuse_contaminant(contaminant, "lba")
   if (missing(n) || !is.numeric(n) || length(n) != 1L || is.na(n) ||
       n != round(n) || n < 2) {
     frm_stop("lba(): `n` is the number of accumulators, one whole number ",
@@ -278,7 +282,12 @@ lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
       lba_race_lpdf(y - dpars[["ndt"]], aterms[["vint1"]],
                     lba_law, lba_pars(dpars, vp, sd_v, posdrift))
     },
-    valid_y = function(y, aterms) lba_check_response(y, aterms, n),
+    valid_y = function(y, aterms) {
+      lba_check_response(y, aterms, n)
+      ddm_refuse_cens_aterms(aterms, "lba")
+    },
+    lcdf = ddm_refuse_cens_slot("lba"),
+    lccdf = ddm_refuse_cens_slot("lba"),
     family_finalize = function(fam, y, aterms) {
       lba_finalize(fam, y, aterms, max_ndt)
     },

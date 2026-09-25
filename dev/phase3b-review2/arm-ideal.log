@@ -1,0 +1,8 @@
+cleft     fits  55  Wald covers  47 ( 85.5%)  ORACLE on the same seeds  48 ( 87.3%)  seeds 1..60
+cens      fits  38  Wald covers  33 ( 86.8%)  ORACLE on the same seeds  32 ( 84.2%)  seeds 1..40
+contfix   fits  40  Wald covers  34 ( 85.0%)  ORACLE on the same seeds  35 ( 87.5%)  seeds 1..80
+contdl    fits  36  Wald covers  32 ( 88.9%)  ORACLE on the same seeds  30 ( 83.3%)  seeds 1..46
+cont      fits  33  Wald covers  27 ( 81.8%)  ORACLE on the same seeds  28 ( 84.8%)  seeds 1..50
+collapse  fits  29  Wald covers  23 ( 79.3%)  ORACLE on the same seeds  24 ( 82.8%)  seeds 2..30
+pooled    fits 231  Wald covers 196 ( 84.8%)  ORACLE 197 ( 85.3%)
+distinct seeds behind the 231 pooled fits: 80
