@@ -301,8 +301,8 @@ tests.families.R	family functions returns expected results	15	both	pass			famili
 tests.families.R	family functions returns expected results	16	both	pass			families:16	core=TRUE sample=TRUE	expect_equal(Beta("probit")$link, "probit")	
 tests.families.R	family functions returns expected results	17	both	pass			families:17	core=TRUE sample=TRUE	expect_error(Beta("1/mu^2"), "beta")	
 tests.families.R	family functions returns expected results	18	both	pass			families:18	core=TRUE sample=TRUE	expect_equal(hurdle_poisson()$link, "log")	
-tests.families.R	family functions returns expected results	19	both	cannot transfer	absent	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)	families:19	core=FALSE sample=FALSE	expect_equal(hurdle_negbinomial(log)$link, "log")	ERROR: could not find function "hurdle_negbinomial"
-tests.families.R	family functions returns expected results	20	both	cannot transfer	absent	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)	families:20	core=FALSE sample=FALSE	expect_error(hurdle_negbinomial("inverse"), "hurdle_negbinomial")	VACUOUS: could not find function "hurdle_negbinomial"
+tests.families.R	family functions returns expected results	19	both	pass			families:19	core=TRUE sample=TRUE	expect_equal(hurdle_negbinomial(log)$link, "log")	
+tests.families.R	family functions returns expected results	20	both	pass			families:20	core=TRUE sample=TRUE	expect_error(hurdle_negbinomial("inverse"), "hurdle_negbinomial")	
 tests.families.R	family functions returns expected results	21	both	pass			families:21	core=TRUE sample=TRUE	expect_equal(hurdle_gamma()$family, "hurdle_gamma")	
 tests.families.R	family functions returns expected results	22	both	pass			families:22	core=TRUE sample=TRUE	expect_error(hurdle_gamma(sqrt), "hurdle_gamma")	
 tests.families.R	family functions returns expected results	23	both	pass			families:23	core=TRUE sample=TRUE	expect_equal(zero_inflated_poisson(log)$link, "log")	

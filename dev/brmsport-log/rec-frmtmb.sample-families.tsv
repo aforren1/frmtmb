@@ -13,8 +13,8 @@ assert	frmtmb.sample	families:15	pass	TRUE	FALSE		'sqrt' is not a supported link
 assert	frmtmb.sample	families:16	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	families:17	pass	TRUE	FALSE		'1/mu^2' is not a supported link for family 'beta'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
 assert	frmtmb.sample	families:18	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	families:19	cannot transfer	FALSE	TRUE	ERROR: could not find function "hurdle_negbinomial"		FALSE
-assert	frmtmb.sample	families:20	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "hurdle_negbinomial"	could not find function "hurdle_negbinomial"	TRUE
+assert	frmtmb.sample	families:19	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:20	pass	TRUE	FALSE		'inverse' is not a supported link for family 'hurdle_negbinomial'. Supported links are: 'log', 'identity', 'sqrt', 'softplus', 'squareplus'. See ?`frmtmb-links`	TRUE
 assert	frmtmb.sample	families:21	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	families:22	pass	TRUE	FALSE		'sqrt' is not a supported link for family 'hurdle_gamma'. Supported links are: 'log', 'identity', 'inverse', 'softplus', 'squareplus'. See ?`frmtmb-links`	TRUE
 assert	frmtmb.sample	families:23	pass	TRUE	FALSE			TRUE
@@ -71,8 +71,8 @@ setup	frmtmb.sample	families:85		FALSE	FALSE	mixture() has no argument `nmix`. I
 assert	frmtmb.sample	families:86	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
 setup	frmtmb.sample	families:87		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, and `groups`. brms's `nmix` and `order` are not supported: repeat a component to use it twice		FALSE
 assert	frmtmb.sample	families:88	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
-assert	frmtmb.sample	families:92	pass	TRUE	FALSE		x is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal, hurdle_gamma, hurd	TRUE
-assert	frmtmb.sample	families:94	pass	TRUE	FALSE		Some of the families are not allowed in mixture models: categorical. A categorical or multinomial response is not a value the other components can share, and a continuous hurdle or a zero-inflated beta puts a probability mass at zero beside a density	TRUE
+assert	frmtmb.sample	families:92	pass	TRUE	FALSE		x is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, hurdle_negbinomial, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal	TRUE
+assert	frmtmb.sample	families:94	pass	TRUE	FALSE		Some of the families are not allowed in mixture models: categorical. A categorical or multinomial response is not a value the other components can share, and a continuous hurdle or a zero-inflated or zero-one-inflated beta puts a probability mass at zero (or one) beside a density	TRUE
 assert	frmtmb.sample	families:96	pass	TRUE	FALSE		Cannot mix ordinal and non-ordinal families. The components are poisson (discrete), cumulative (ordinal)	TRUE
 assert	frmtmb.sample	families:98	pass	TRUE	FALSE		Cannot mix families with real and integer support. The components are lognormal (continuous), exgaussian (continuous), poisson (discrete), and a weighted sum of a density and a probability mass is not a likelihood	TRUE
 assert	frmtmb.sample	families:100	pass	TRUE	FALSE		Expecting at least 2 mixture components. mixture() needs two or more component families	TRUE

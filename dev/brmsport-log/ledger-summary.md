@@ -11,16 +11,16 @@
 | `tests.brmsterms.R` | 5 | 0 | 0 | 0 | 5 |
 | `tests.data-helpers.R` | 6 | 1 | 2 | 0 | 3 |
 | `tests.emmeans.R` | 11 | 4 | 2 | 0 | 5 |
-| `tests.families.R` | 84 | 45 | 1 | 1 | 37 |
+| `tests.families.R` | 84 | 47 | 1 | 1 | 35 |
 | `tests.priors.R` | 36 | 17 | 4 | 4 | 11 |
 | `tests.standata.R` | 87 | 42 | 5 | 0 | 40 |
-| **total** | **494** | **252** | **62** | **35** | **145** |
+| **total** | **494** | **254** | **62** | **35** | **143** |
 
 ### Outcome by class
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 220 |
+| pass | - | 222 |
 | pass | own-words | 31 |
 | pass | weak-pass | 1 |
 | defect | accepts-refused | 1 |
@@ -37,16 +37,16 @@
 | divergence | hollow | 1 |
 | divergence | no-draws | 9 |
 | divergence | policy | 7 |
-| cannot transfer | absent | 106 |
+| cannot transfer | absent | 104 |
 | cannot transfer | brms-internal | 10 |
 | cannot transfer | fixture | 2 |
 | cannot transfer | mcmc | 4 |
 | cannot transfer | no-draws | 1 |
 | cannot transfer | stan | 22 |
 
-Bin 1 passes: 252 of 494 (51.0%).
-Against bins 1 and 2: 252 of 823 (30.6%); bin 2 was not ported.
-Runs testthat alone would count as a pass and the harness does not, over both packages: 26 (17 vacuous, 9 reading a stale object); hollow passes marked by hand: 1.
+Bin 1 passes: 254 of 494 (51.4%).
+Against bins 1 and 2: 254 of 823 (30.9%); bin 2 was not ported.
+Runs testthat alone would count as a pass and the harness does not, over both packages: 24 (15 vacuous, 9 reading a stale object); hollow passes marked by hand: 1.
 
 ### The frmtmb.sample half
 
@@ -55,7 +55,7 @@ Runs testthat alone would count as a pass and the harness does not, over both pa
 | `tests.brmsfit-methods.R (sample)` | 61 | 13 | 6 | 0 | 42 |
 | `tests.brmsformula.R (both)` | 16 | 9 | 0 | 0 | 7 |
 | `tests.brmsterms.R (both)` | 4 | 4 | 0 | 0 | 0 |
-| `tests.families.R (both)` | 84 | 37 | 1 | 1 | 45 |
-| **total** | **165** | **63** | **7** | **1** | **94** |
+| `tests.families.R (both)` | 84 | 35 | 1 | 1 | 47 |
+| **total** | **165** | **61** | **7** | **1** | **96** |
 
-frmtmb.sample passes 94 of its 165 runs (57.0%): 42 of the 61 sample-tier and 52 of the 104 both-tier assertions.
+frmtmb.sample passes 96 of its 165 runs (58.2%): 42 of the 61 sample-tier and 54 of the 104 both-tier assertions.

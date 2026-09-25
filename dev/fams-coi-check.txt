@@ -1,0 +1,14 @@
+== zeros_only: 54 zeros, 0 ones
+  coi estimated: SE(x) 0.05415; warnings: zero_one_inflated_beta: the response has exact 0s but no 1, so coi goes to 0 and its standard error is not usable. Use zero_inflated_beta() on y, or hold coi at a value with bf(coi = )
+  coi = 0.5:     SE(x) 0.05415; warnings: none
+== ones_only: 0 zeros, 54 ones
+  coi estimated: SE(x) 0.05415; warnings: zero_one_inflated_beta: the response has exact 1s but no 0, so coi goes to 1 and its standard error is not usable. Use zero_inflated_beta() on 1 - y, or hold coi at a value with bf(coi = )
+  coi = 0.5:     SE(x) 0.05415; warnings: none
+== none: 0 zeros, 0 ones
+  coi estimated: SE(x) NaN; warnings: zero_one_inflated_beta: the response has no exact 0 or 1, so zoi goes to 0, coi has no data, the Hessian is singular and no standard error of the fit is usable. Use Beta(), or hold coi at a value with bf(coi = 0.5)
+  coi = 0.5:     SE(x) 0.0478; warnings: none
+== both: 23 zeros, 31 ones
+  coi estimated: SE(x) 0.05415; warnings: none
+  coi = 0.5:     SE(x) 0.05415; warnings: none
+Warning message:
+Some standard errors are not finite, so vcov() and summary() report NaN: the covariance could not be recovered from the Hessian. The likelihood is FLAT in 2 directions: zoi_(Intercept), coi_(Intercept) - zero gradient and an empty Hessian row, so those parameters are not identified AT THIS POINT rather than over-parameterized: moving them does not change the likelihood at all. diagnose() names the offending parameters; see the 'Convergence problems' section of vignette('diagnostics') 

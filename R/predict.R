@@ -1551,6 +1551,15 @@ frm_linpred <- function(object, newdata = NULL,
       disp = intersect(c("sigma", "shape", "phi"),
                        names(rspec$dpars))[1]
     )
+    if (is.na(dpar) && "zoi" %in% names(rspec$dpars)) {
+      # glmmTMB's zprob is P(Y = 0) under one gate; zero-one inflation
+      # has two gates, and P(Y = 0) = zoi * (1 - coi) is neither
+      frm_stop("type = '", type, "' names one zero-inflation gate, and ",
+               "family '", rspec$family[["family"]], "' has two. Use ",
+               "dpar = \"zoi\" for P(Y is 0 or 1) or dpar = \"coi\" for ",
+               "P(Y = 1 | Y is 0 or 1), with type = \"response\" or ",
+               "\"link\"", call. = FALSE)
+    }
     if (is.na(dpar)) {
       frm_stop("type = '", type, "' needs a family with a ",
                if (type == "disp") "dispersion" else "zero-inflation/hurdle",
@@ -3242,6 +3251,20 @@ residual_point_se <- function(object, type, r) {
   se_mu / sc
 }
 
+# The core families whose density branches on y == 0 (and y == 1) for a
+# point mass. oneStepPredict() re-tapes the density with the response as
+# an "osa" object, which has no comparison operator, so each of them
+# failed there with base R's "comparison (==) is possible only for
+# atomic and list types" (all ten measured, dev/fams-findings.md). Named
+# rather than read off a zi, hu or zoi dpar, so that a custom family
+# whose density unwraps the osa object is not refused with them.
+osa_point_mass_families <- c(
+  "zero_inflated_poisson", "zero_inflated_negbinomial",
+  "zero_inflated_binomial", "zero_inflated_beta",
+  "zero_inflated_asym_laplace", "zero_one_inflated_beta",
+  "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
+  "hurdle_lognormal")
+
 #' @noRd
 residual_values <- function(object, type = c("response", "pearson",
                                              "deviance", "osa"),
@@ -3342,6 +3365,14 @@ residual_values <- function(object, type = c("response", "pearson",
                "which divides by the marginal residual SD, or ",
                "dharma_residuals(), which uses simulate() and does draw ",
                "correlated residuals", call. = FALSE)
+    }
+    if (fam[["family"]] %in% osa_point_mass_families) {
+      frm_stop("residuals(type = \"osa\") is not available for family '",
+               fam[["family"]], "': its density puts a point mass on an ",
+               "exact response value and branches on y == 0, and the ",
+               "one-step tape hands the density no value to compare. Use ",
+               "type = \"pearson\", or dharma_residuals(), which uses ",
+               "simulate()", call. = FALSE)
     }
     av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame[["n_obs"]])

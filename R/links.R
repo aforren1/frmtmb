@@ -76,7 +76,7 @@
 #' | `Gamma`, `weibull`, `exponential`, `hurdle_gamma` | `log`, `identity`, `inverse`, `softplus`, `squareplus` |
 #' | `asym_laplace`, `exgaussian`, `zero_inflated_asym_laplace` | `identity`, `log`, `inverse`, `softplus`, `squareplus` |
 #' | `poisson`, `negbinomial`, `geometric`, `compois`, and the zero-inflated and hurdle counts | `log`, `identity`, `sqrt`, `softplus`, `squareplus` |
-#' | `binomial`, `bernoulli`, `Beta`, `zero_inflated_binomial`, `zero_inflated_beta` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity`, `log` |
+#' | `binomial`, `bernoulli`, `Beta`, `zero_inflated_binomial`, `zero_inflated_beta`, `zero_one_inflated_beta` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity`, `log` |
 #' | `beta_binomial` | the same list WITHOUT `log`: brms's own table for this one family stops at `identity` |
 #' | `inverse.gaussian` | `1/mu^2`, `inverse`, `identity`, `log`, `softplus`, `squareplus` |
 #' | `cox` | `log`, `identity`, `softplus`, `squareplus` |
@@ -116,7 +116,7 @@
 #' |---|---|---|
 #' | `sigma`, `shape`, `phi`, `kappa`, `beta`, `ndt`, and the `nu` of `compois` | `link_sigma` and so on | `log`, `identity`, `softplus`, `squareplus` |
 #' | `nu` of `student` | `link_nu` | `logm1`, `identity` |
-#' | `zi`, `hu`, `quantile` | `link_zi`, `link_hu`, `link_quantile` | `logit`, `identity` |
+#' | `zi`, `hu`, `zoi`, `coi`, `quantile` | `link_zi`, `link_hu`, `link_zoi`, `link_coi`, `link_quantile` | `logit`, `identity` |
 #' | `alpha` of `skew_normal` | `link_alpha` | `identity`, `log`, `softplus`, `squareplus` |
 #'
 #' `identity` is in every one of those sets because brms puts it there.

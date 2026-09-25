@@ -21,6 +21,7 @@ brms_mu_link_source <- c(
   zero_inflated_poisson = "zero_inflated_poisson",
   zero_inflated_negbinomial = "zero_inflated_negbinomial",
   hurdle_poisson = "hurdle_poisson",
+  hurdle_negbinomial = "hurdle_negbinomial",
   multinomial = "multinomial",
   cumulative = "cumulative",
   beta_binomial = "beta_binomial",
@@ -36,6 +37,7 @@ brms_mu_link_source <- c(
   hurdle_lognormal = "hurdle_lognormal",
   zero_inflated_binomial = "zero_inflated_binomial",
   zero_inflated_beta = "zero_inflated_beta",
+  zero_one_inflated_beta = "zero_one_inflated_beta",
   asym_laplace = "asym_laplace",
   zero_inflated_asym_laplace = "zero_inflated_asym_laplace",
   huber = "gaussian",
@@ -70,6 +72,8 @@ brms_mu_links <- list(
   zero_inflated_negbinomial = c("log", "identity", "sqrt", "softplus",
       "squareplus"),
   hurdle_poisson = c("log", "identity", "sqrt", "softplus", "squareplus"),
+  hurdle_negbinomial = c("log", "identity", "sqrt", "softplus",
+      "squareplus"),
   multinomial = c("logit"),
   cumulative = c("logit", "probit", "probit_approx", "cloglog",
       "cauchit", "softit"),
@@ -93,6 +97,8 @@ brms_mu_links <- list(
       "cloglog", "cauchit", "softit", "identity", "log"),
   zero_inflated_beta = c("logit", "probit", "probit_approx", "cloglog",
       "cauchit", "softit", "identity", "log"),
+  zero_one_inflated_beta = c("logit", "probit", "probit_approx",
+      "cloglog", "cauchit", "softit", "identity", "log"),
   asym_laplace = c("identity", "log", "inverse", "softplus",
       "squareplus"),
   zero_inflated_asym_laplace = c("identity", "log", "inverse",
@@ -111,4 +117,4 @@ brms_mu_links <- list(
 # The families brms:::no_mixture() bars as mixture components, by
 # frmtmb family name. The analogs above take no verdict.
 brms_no_mixture <- c("multinomial", "hurdle_gamma", "hurdle_lognormal",
-  "zero_inflated_beta", "categorical")
+  "zero_inflated_beta", "zero_one_inflated_beta", "categorical")

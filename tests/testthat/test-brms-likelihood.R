@@ -330,6 +330,45 @@ test_that("row 16: zero-inflated poisson with zi ~ x", {
                 brms::zero_inflated_poisson(), dz, fit)
 })
 
+test_that("row 16b: hurdle negative binomial with hu ~ x", {
+  skip_unless_brms_fit()
+
+  # the positive part drawn above the NB zero, so every zero is the
+  # hurdle's; shape has no predictor and takes the natural-scale rule
+  set.seed(13)
+  n <- 300
+  dh <- data.frame(x = rnorm(n))
+  mu <- exp(0.6 + 0.4 * dh$x)
+  p0 <- stats::dnbinom(0, size = 1.5, mu = mu)
+  yp <- pmax(stats::qnbinom(p0 + runif(n) * (1 - p0), size = 1.5,
+                            mu = mu), 1)
+  dh$y <- ifelse(runif(n) < plogis(-0.5 + 0.3 * dh$x), 0L,
+                 as.integer(yp))
+  fit <- frm(bf(y ~ x, hu ~ x) + hurdle_negbinomial(), data = dh)
+  brms_lp_check(brms::bf(y ~ x, hu ~ x), brms::hurdle_negbinomial(), dh,
+                fit)
+})
+
+test_that("row 16c: zero-one-inflated beta with zoi ~ x", {
+  skip_unless_brms_fit()
+
+  # phi and coi have no predictor. Check B reads the gradient at
+  # frmtmb's optimum, where nlminb stops at 7.6e-4 on this seed, inside
+  # the 1e-3 bound frm()'s own grad_tol also uses. Three Newton steps
+  # from there take it to 1.9e-14 and move no parameter by more than
+  # 6.0e-6, so the point is brms's optimum to that precision.
+  set.seed(14)
+  n <- 300
+  dz <- data.frame(x = rnorm(n))
+  mu <- plogis(-0.2 + 0.5 * dz$x)
+  zoi <- plogis(-1 + 0.6 * dz$x)
+  dz$y <- ifelse(runif(n) < zoi, as.numeric(runif(n) < 0.4),
+                 stats::rbeta(n, mu * 5, (1 - mu) * 5))
+  fit <- frm(bf(y ~ x, zoi ~ x) + zero_one_inflated_beta(), data = dz)
+  brms_lp_check(brms::bf(y ~ x, zoi ~ x), brms::zero_one_inflated_beta(),
+                dz, fit)
+})
+
 test_that("row 20: weights(w)", {
   skip_unless_brms_fit()
 
