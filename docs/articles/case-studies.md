@@ -911,9 +911,11 @@ confint(fcs)
 #> bcs2_3     0.40132291  1.0910031  0.7461630
 ```
 
-`tau_raw` holds the thresholds on an internal increasing scale. `bcs2_k`
-is the effect of `x` at threshold `k`. The three effects grow, which is
-what the simulation put there.
+`tau_raw` holds the thresholds themselves:
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+does not order them, as brms does not. `bcs2_k` is the effect of `x` at
+threshold `k`. The three effects grow, which is what the simulation put
+there.
 
 ### Cross-check against a set of binomial regressions
 
@@ -1261,14 +1263,14 @@ reports.
 
 ### What this does not cover
 
-`rescor` is gaussian only, and it describes the residuals of the
-responses, so it cannot be combined with a term that already describes
-them. An [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`,
-`cosy()` or `unstr()` term next to `rescor = TRUE` is refused, and so
-are mixtures and censored responses. One `|ID|` label must name one
-grouping specification: the same label over two different grouping
-factors is an error, because there is no single block for it to build.
-[`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+`rescor` needs all gaussian or all Student-t responses. It describes the
+residuals of the responses, so it cannot be combined with a term that
+already describes them. An [`ar()`](https://rdrr.io/r/stats/ar.html),
+`ma()`, `arma()`, `cosy()` or `unstr()` term next to `rescor = TRUE` is
+refused, and so are mixtures and censored responses. One `|ID|` label
+must name one grouping specification: the same label over two different
+grouping factors is an error, because there is no single block for it to
+build. [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) are not the
 only parts of the post-fitting surface that step back from a
 `rescor = TRUE` fit. `frm_compat("rescor")` lists the whole set, and

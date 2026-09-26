@@ -194,8 +194,11 @@ Every sub-formula with an intercept is centered separately, as brms does
 is not centered on either side, and neither are a smooth's unpenalized
 columns or a `mo()` term, which sit outside brms's `Xc` as well. To put
 a density on the intercept at zero, name it as a coefficient instead:
-`class = "b", coef = "Intercept"`, which is also how a
-`brms::bf(center = FALSE)` model's prior arrives.
+`class = "b", coef = "Intercept"`. A formula written
+`0 + Intercept + x`, or `bf(center = FALSE)`, makes that the intercept's
+only prior slot, as brms does: the intercept is then class `"b"` and a
+class `"b"` prior without a coef reaches it too, while class
+`"Intercept"` has no slot and is refused.
 
 ## Ordinal thresholds
 
@@ -208,18 +211,18 @@ have no intercept column: the thresholds replace it. brms priors them as
 its `Intercept` class and so does frmtmb, so
 `set_prior("student_t(3, 0, 2.5)", class = "Intercept")` on an ordinal
 model addresses the whole threshold vector. It addresses the THRESHOLDS,
-at the mean of the predictors, with the log-Jacobian of the map from
-frmtmb's internal storage;
+at the mean of the predictors (at zero under `bf(center = FALSE)`, as in
+brms), with the log-Jacobian of the map from frmtmb's internal storage.
 [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
-and
-[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
-hold `(tau_1, log increments)`, which is the same map Stan's `ordered`
-type applies, and
+holds `(tau_1, log increments)`, which is the same map Stan's `ordered`
+type applies to brms's ordered thresholds.
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
 [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
 and
 [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
-hold the thresholds themselves. `lb`/`ub` are refused there, because one
-number cannot box a whole vector of ordered thresholds.
+hold the thresholds themselves, which brms declares as an unconstrained
+vector, so there is no Jacobian. `lb`/`ub` are refused there, because
+one number cannot box a whole vector of thresholds.
 
 `prior = list(tau_raw = prior_normal(0, 5))` reaches the same parameters
 on the INTERNAL scale, one entry per threshold, which is the escape
@@ -387,10 +390,11 @@ hand-written specification reach one code path:
   `lb = 0` on a log-linked dispersion becomes no constraint rather than
   a floor of 1.
 
-- `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`, `sdcar`
-  and `car` are refused by name, each saying where frmtmb keeps that
-  quantity instead. A refusal is deliberate: translating one of them
-  would produce a different model rather than no model.
+- `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`, `sdcar`,
+  `car`, `meanme`, `sdme` and `corme` are refused by name, each saying
+  where frmtmb keeps that quantity instead, or that it has no prior
+  slot. A refusal is deliberate: translating one of them would produce a
+  different model rather than no model.
 
 - a `coef` on a `sd` or `cor` row is refused for the same reason. brms
   narrows such a row to one coefficient of a block; frmtmb resolves

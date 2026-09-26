@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,14 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.sample/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.12.0" id="frmtmbsample-0120">frmtmb.sample 0.12.0<a class="anchor" aria-label="anchor" href="#frmtmbsample-0120"></a></h2>
+<p>Needs frmtmb 0.64.0, for <code>rescor_row_loglik()</code> and <code>fit_extras(resp =)</code>.</p>
+<ul><li><p><strong><code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">log_lik()</a></code> on a Student-t <code>rescor</code> model used the gaussian joint density.</strong> It now uses the multivariate t through frmtmb’s <code>rescor_row_loglik()</code>; on the test fixture the old value was 38.6 log units off. On a multivariate model with an ordinal response, each response reads its own thresholds.</p></li>
+<li><p>Draws of the models frmtmb 0.64.0 adds: <code>thres(gr = )</code> thresholds per group, <code>gr(g, by = f)</code> blocks merged in <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef()</a></code>, <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> and <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code> as brms merges them, and <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> for brms’s <code>cov = FALSE</code> ARMA drawn around each row’s one-step mean.</p></li>
+<li><p>An intercept written <code>0 + Intercept</code>, or under <code>bf(center = FALSE)</code>, gets no default prior, as brms leaves class <code>"b"</code> flat.</p></li>
+<li><p>The flat-prior advice no longer reads <code>class = "Intercept",  = ""</code> for a univariate intercept.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.11.0" id="frmtmbsample-0110">frmtmb.sample 0.11.0<a class="anchor" aria-label="anchor" href="#frmtmbsample-0110"></a></h2>
 <ul><li><p>The <code>pp_check(type = "error_binned")</code> refusal on draws of a multinomial fit calls the response a set of counts over categories, not a category, as the fit method now does.</p></li>

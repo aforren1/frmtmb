@@ -86,7 +86,8 @@ are refused with the reason: a random effect whose level spans two
 clusters (including crossed effects, `mm()` pooled levels, a global
 smooth, `gp()`, `car()` and the SPDE), a group-level mixture whose
 groups span clusters, an `autocor()` residual, a family whose structure
-does not declare `cluster_robust`, `rescor = TRUE`, `mi()`/`me()`,
+does not declare `cluster_robust`, `rescor = TRUE`,
+`mi()`/[`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md),
 `REML = TRUE`, `profile = TRUE`, `quadrature = TRUE`, and any fit made
 with priors.
 [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)

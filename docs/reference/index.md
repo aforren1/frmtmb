@@ -13,11 +13,18 @@
 - [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   : Combine formulas into a multivariate model
+- [`` `+`( ``*`<frmtmb_bform>`*`)`](https://aforren1.github.io/frmtmb/reference/plus-bform.md)
+  : Add to a model formula
+- [`set_mecor()`](https://aforren1.github.io/frmtmb/reference/set_mecor.md)
+  : Control the correlation of noise-free latent variables
 - [`num_factor()`](https://aforren1.github.io/frmtmb/reference/num_factor.md)
   : Factor with numeric-coded levels for coordinate covariance
   structures
 - [`frmtmb-autocor`](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md)
   : Within-group residual correlation (R-side autocorrelation)
+- [`frmtmb-me`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md)
+  [`me`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md) :
+  Noise-free predictors with known measurement error
 - [`frmtmb-multimembership`](https://aforren1.github.io/frmtmb/reference/frmtmb-multimembership.md)
   : Multi-membership random effects
 
@@ -98,6 +105,7 @@
   [`zero_inflated_poisson()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`zero_inflated_negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`hurdle_poisson()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`hurdle_negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`beta_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -112,6 +120,7 @@
   [`hurdle_lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`zero_inflated_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`zero_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`zero_one_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`zero_inflated_asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`huber()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -301,6 +310,7 @@
   [`brms_summarize_draws`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`brms_prob_cols`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`brms_fixef_rows`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`rescor_row_loglik`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
@@ -374,6 +384,8 @@
   : Covariance matrix of the fixed-effect estimates
 - [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
   : The design of a linear predictor over the coefficient vector
+- [`frmtmb-emmeans`](https://aforren1.github.io/frmtmb/reference/frmtmb-emmeans.md)
+  : emmeans support
 - [`frm_joint_cov()`](https://aforren1.github.io/frmtmb/reference/frm_joint_cov.md)
   : The joint covariance of the fixed and random coefficients
 - [`sigma(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/sigma.frmtmb_fit.md)

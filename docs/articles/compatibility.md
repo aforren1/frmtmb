@@ -487,7 +487,10 @@ other.
 and `unstr()` replace the response’s per-row density with one joint
 density per group. That is what decides almost every pair below: a
 family needs a real residual to correlate, and an addition term that
-reshapes a per-row contribution has nothing left to reshape.
+reshapes a per-row contribution has nothing left to reshape. brms’s
+default `cov = FALSE` for [`ar()`](https://rdrr.io/r/stats/ar.html),
+`ma()` and `arma()` keeps the per-row density and shifts `mu` instead,
+so the rows naming those three terms say where its answer differs.
 
 |  | gaussian | student | lognormal | shifted_lognormal | skew_normal | exgaussian | asym_laplace | Gamma | weibull | exponential | inverse.gaussian | beta | tweedie | poisson | negbinomial | nbinom1 | geometric | compois | binomial | bernoulli | beta_binomial | multinomial | zero_inflated_poisson | zero_inflated_negbinomial | zero_inflated_binomial | zero_inflated_beta | hurdle_poisson | hurdle_gamma | hurdle_lognormal | cumulative | sratio | cratio | acat | categorical | von_mises | cox |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|

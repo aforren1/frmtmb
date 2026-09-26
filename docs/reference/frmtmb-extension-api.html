@@ -51,7 +51,7 @@ hypothesis() among them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -146,7 +146,7 @@ family's needs are already public: <code><a href="frm.html">frm()</a></code>, <c
 <span></span>
 <span><span class="fu">single_response</span><span class="op">(</span><span class="va">fit</span>, <span class="va">what</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">fit_extras</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="fu">fit_extras</span><span class="op">(</span><span class="va">fit</span>, resp <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">dpar_linpred</span><span class="op">(</span><span class="va">frame</span>, <span class="va">params</span>, <span class="va">resp</span>, <span class="va">dpar</span><span class="op">)</span></span>
 <span></span>
@@ -194,6 +194,11 @@ family constructor, or a family name.</p></dd>
 own estimates. <code>NULL</code> drops the random-effect contribution.</p></dd>
 
 
+<dt id="arg-resp-dpar">resp, dpar<a class="anchor" aria-label="anchor" href="#arg-resp-dpar"></a></dt>
+<dd><p>The response name and the distributional parameter
+name, as <code>eval_dpars()</code> returns them.</p></dd>
+
+
 <dt id="arg-frame">frame<a class="anchor" aria-label="anchor" href="#arg-frame"></a></dt>
 <dd><p>A <code>fit$frame</code>, or the frame a <code>check_fit</code> slot is given.</p></dd>
 
@@ -201,11 +206,6 @@ own estimates. <code>NULL</code> drops the random-effect contribution.</p></dd>
 <dt id="arg-params">params<a class="anchor" aria-label="anchor" href="#arg-params"></a></dt>
 <dd><p>A parameter list in the frame's layout: a fit's
 <code>estimates</code>, or the starting template a <code>check_fit</code> slot is given.</p></dd>
-
-
-<dt id="arg-resp-dpar">resp, dpar<a class="anchor" aria-label="anchor" href="#arg-resp-dpar"></a></dt>
-<dd><p>The response name and the distributional parameter
-name, as <code>eval_dpars()</code> returns them.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -253,7 +253,11 @@ modes of a resampled fit. This is the same evaluation
 <dd><p>The family's extra (non-dpar) parameters at
 the estimates, as a named list in the order <code>extra_pars</code> declared
 them, or <code>NULL</code> when the family declared none. Item profiles,
-ordinal thresholds and class covariances arrive here.</p></dd>
+ordinal thresholds and class covariances arrive here. In a
+multivariate model each response's block is stored under a name
+that carries the response; <code>resp</code> adds that response's block
+back under the names its family declared, which is the list its
+density and simulator read.</p></dd>
 
 <dt><code>dpar_linpred()</code></dt>
 <dd><p>The FIXED-effect part of one dpar's linear

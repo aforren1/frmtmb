@@ -91,7 +91,7 @@ covariate is the same for every member.
   `dist =` is `gr(g, dist = "student")` over one (see
   [frmtmb-student-re](https://aforren1.github.io/frmtmb/reference/frmtmb-student-re.md)),
   though not over a membership design, whose rows load several levels at
-  once. `by =` and `pw =` have no equivalent yet.
+  once. `pw =` has no equivalent yet.
 
 - Non-name members:
 
@@ -102,6 +102,20 @@ On `newdata`, a membership level that was not in the fitted data needs
 `allow_new_levels = TRUE`; that member then contributes the population
 value while the row's remaining members still contribute their fitted
 effects.
+
+## One covariance per by-level
+
+`mm(g1, g2, by = cbind(f1, f2))` is brms's by-split: `by` is a matrix
+with one column per membership variable, and each pooled level gets the
+covariance of its by-level. A pooled level must have one by-level
+wherever it appears, in any member column; brms refuses the data
+otherwise, and so does frmtmb, with brms's message. The block splits
+into one block per by-level, and the standard deviations take brms's
+names, `sd_mmg1g2__Intercept:cbind(f1, f2)1` (brms evaluates
+[`cbind()`](https://rdrr.io/r/base/cbind.html) of two factors to their
+integer codes). A new level on `newdata` takes the covariance of the
+by-level its own member column names. The same split over a single
+grouping factor is `gr(g, by = f)`.
 
 ## See also
 

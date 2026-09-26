@@ -15,7 +15,7 @@ gamma(shape, rate), lkj(eta); an empty string sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -254,8 +254,11 @@ does (<code>means_X</code>, <code>means_X_sigma</code>, ...). A NONLINEAR parame
 sub-formula is not centered on either side, and neither are a
 smooth's unpenalized columns or a <code>mo()</code> term, which sit outside
 brms's <code>Xc</code> as well. To put a density on the intercept at zero, name
-it as a coefficient instead: <code>class = "b", coef = "Intercept"</code>,
-which is also how a <code>brms::bf(center = FALSE)</code> model's prior arrives.</p>
+it as a coefficient instead: <code>class = "b", coef = "Intercept"</code>.
+A formula written <code>0 + Intercept + x</code>, or <code>bf(center = FALSE)</code>, makes
+that the intercept's only prior slot, as brms does: the intercept is
+then class <code>"b"</code> and a class <code>"b"</code> prior without a coef reaches it
+too, while class <code>"Intercept"</code> has no slot and is refused.</p>
     </div>
     <div class="section level2">
     <h2 id="ordinal-thresholds">Ordinal thresholds<a class="anchor" aria-label="anchor" href="#ordinal-thresholds"></a></h2>
@@ -266,12 +269,14 @@ column: the thresholds replace it. brms priors them as its
 <code>Intercept</code> class and so does frmtmb, so
 <code>set_prior("student_t(3, 0, 2.5)", class = "Intercept")</code> on an
 ordinal model addresses the whole threshold vector. It addresses the
-THRESHOLDS, at the mean of the predictors, with the log-Jacobian of
-the map from frmtmb's internal storage; <code><a href="frmtmb-families.html">cumulative()</a></code> and
-<code><a href="frmtmb-families.html">sratio()</a></code> hold <code>(tau_1, log increments)</code>, which is the same map
-Stan's <code>ordered</code> type applies, and <code><a href="frmtmb-families.html">cratio()</a></code> and <code><a href="frmtmb-families.html">acat()</a></code> hold the
-thresholds themselves. <code>lb</code>/<code>ub</code> are refused there, because one
-number cannot box a whole vector of ordered thresholds.</p>
+THRESHOLDS, at the mean of the predictors (at zero under
+<code>bf(center = FALSE)</code>, as in brms), with the log-Jacobian of
+the map from frmtmb's internal storage. <code><a href="frmtmb-families.html">cumulative()</a></code> holds
+<code>(tau_1, log increments)</code>, which is the same map Stan's <code>ordered</code>
+type applies to brms's ordered thresholds. <code><a href="frmtmb-families.html">sratio()</a></code>, <code><a href="frmtmb-families.html">cratio()</a></code> and
+<code><a href="frmtmb-families.html">acat()</a></code> hold the thresholds themselves, which brms declares as an
+unconstrained vector, so there is no Jacobian. <code>lb</code>/<code>ub</code> are refused
+there, because one number cannot box a whole vector of thresholds.</p>
 <p><code>prior = list(tau_raw = prior_normal(0, 5))</code> reaches the same
 parameters on the INTERNAL scale, one entry per threshold, which is
 the escape hatch to use when the increments rather than the
@@ -426,8 +431,9 @@ log-Jacobian, which is the change of variables class <code>"sd"</code>
 performs. A bound travels with it, so <code>lb = 0</code> on a log-linked
 dispersion becomes no constraint rather than a floor of 1.</p></li>
 <li><p><code>theta</code>/<code>theta1</code>/<code>theta2</code>, <code>simo</code>, <code>sds</code>, <code>sdgp</code>, <code>lscale</code>,
-<code>sdcar</code> and <code>car</code> are refused by name, each saying where frmtmb
-keeps that quantity instead. A refusal is deliberate: translating
+<code>sdcar</code>, <code>car</code>, <code>meanme</code>, <code>sdme</code> and <code>corme</code> are refused by name,
+each saying where frmtmb keeps that quantity instead, or that it
+has no prior slot. A refusal is deliberate: translating
 one of them would produce a different model rather than no model.</p></li>
 <li><p>a <code>coef</code> on a <code>sd</code> or <code>cor</code> row is refused for the same reason.
 brms narrows such a row to one coefficient of a block; frmtmb

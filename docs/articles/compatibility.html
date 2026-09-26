@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -3592,7 +3592,10 @@ predictor.</td>
 per-row density with one joint density per group. That is what decides
 almost every pair below: a family needs a real residual to correlate,
 and an addition term that reshapes a per-row contribution has nothing
-left to reshape.</p>
+left to reshape. brms’s default <code>cov = FALSE</code> for
+<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code> and <code>arma()</code> keeps the
+per-row density and shifts <code>mu</code> instead, so the rows naming
+those three terms say where its answer differs.</p>
 <table class="table">
 <colgroup>
 <col width="1%">

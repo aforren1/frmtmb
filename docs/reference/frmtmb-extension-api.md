@@ -49,7 +49,7 @@ eval_dpars(fit, b = fit$estimates[["b"]])
 
 single_response(fit, what)
 
-fit_extras(fit)
+fit_extras(fit, resp = NULL)
 
 dpar_linpred(frame, params, resp, dpar)
 
@@ -94,6 +94,11 @@ frame_block_of(frame, resp)
   Random-effect vector to evaluate at, defaulting to the fit's own
   estimates. `NULL` drops the random-effect contribution.
 
+- resp, dpar:
+
+  The response name and the distributional parameter name, as
+  `eval_dpars()` returns them.
+
 - frame:
 
   A `fit$frame`, or the frame a `check_fit` slot is given.
@@ -102,11 +107,6 @@ frame_block_of(frame, resp)
 
   A parameter list in the frame's layout: a fit's `estimates`, or the
   starting template a `check_fit` slot is given.
-
-- resp, dpar:
-
-  The response name and the distributional parameter name, as
-  `eval_dpars()` returns them.
 
 - ...:
 
@@ -158,7 +158,10 @@ object is internal and may be renamed without notice.
   The family's extra (non-dpar) parameters at the estimates, as a named
   list in the order `extra_pars` declared them, or `NULL` when the
   family declared none. Item profiles, ordinal thresholds and class
-  covariances arrive here.
+  covariances arrive here. In a multivariate model each response's block
+  is stored under a name that carries the response; `resp` adds that
+  response's block back under the names its family declared, which is
+  the list its density and simulator read.
 
 - `dpar_linpred()`:
 

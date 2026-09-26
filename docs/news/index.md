@@ -1,5 +1,219 @@
 # Changelog
 
+## frmtmb 0.64.0
+
+brms parity: every gap in the model menu that the last round listed is
+closed. Each lane’s `dev/<lane>-findings.md` has the validation, the
+numbers and the scripts that produced them.
+
+### New brms grammar
+
+- **`me(x, sdx)` and `me(x, sdx, gr = g)`** noise-free predictors, with
+  brms’s meaning. The latent values are integrated by the Laplace
+  approximation, which is exact for a gaussian response with linear
+  [`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md)
+  terms. Several terms are correlated unless `set_mecor(FALSE)` is
+  added. The names are brms’s: `bsp_mexsx`, `meanme_mex`, `sdme_mex`,
+  `corme__mex__mez` and `Xme_mex[i]`. The log density agrees with brms
+  2.23.0’s Stan program to 1e-13 on five shapes. New data use the
+  observed value of the noisy variable. brms’s prior classes `meanme`,
+  `sdme` and `corme` are refused by name. `vcov(cluster = )` now refuses
+  [`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md)
+  fits, as its documentation already said, and
+  [`anova()`](https://rdrr.io/r/stats/anova.html) refuses fits whose
+  [`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md)
+  calls differ.
+
+- **`thres()` for the ordinal families.** `y | thres(K) ~ x` fits `K`
+  thresholds, and `y | thres(gr = g) ~ x` fits one threshold vector per
+  level of `g`, with a count per level from the data or from
+  `thres(n, gr = g)`. The log-likelihood equals brms’s compiled
+  program’s to 17 digits on all four families, and agrees with
+  [`MASS::polr()`](https://rdrr.io/pkg/MASS/man/polr.html) and
+  [`ordinal::clm()`](https://rdrr.io/pkg/ordinal/man/clm.html) at the
+  optimum. The thresholds have brms’s names, `Intercept[g,k]` and
+  `b_Intercept[g,k]`, and `set_prior(class = "Intercept", group = "g")`
+  reaches one level.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`predict()`](https://rdrr.io/r/stats/predict.html) give probability 0
+  to a category past a row’s own, as brms does. `cs()` and
+  `residuals(type = "osa")` are refused with `gr`. A threshold above the
+  highest observed category is not identified without a prior, and the
+  fit warns about it.
+
+- **`gr(g, by = f)`** fits brms’s by-split group-level term: one set of
+  standard deviations and correlations per level of `f`, with each level
+  of `g` in exactly one level of `f`. It is fitted as one block per
+  by-level, with any structure whose density is a product over the
+  grouping levels (`us`, `diag`, `cs`, `ar1`, `toep`, the spatial ones,
+  and `dist = "student"`). Parameters take brms’s names
+  (`sd_g__Intercept:fa`, `cor_g__Intercept:fa__x:fa`).
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`coef()`](https://rdrr.io/r/stats/coef.html) and
+  [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) keep
+  one entry over every level of `g`, and a new level in
+  `predict(allow_new_levels = TRUE)` takes the covariance of its own
+  by-level. brms’s refusals are reproduced word for word.
+  `mm(g1, g2, by = cbind(f1, f2))` works the same way over the pooled
+  levels. `gr(g, by = f, cov = A)` is refused by name, because brms
+  correlates the by-levels through `A`, which is not a by-split. It
+  agrees with lme4 and glmmTMB fitted with one indicator term per
+  by-level.
+
+- **[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`
+  without `cov = TRUE`** fit brms’s default residual-regression form,
+  which was refused before. `mu` gains a regression on the group’s
+  earlier residuals and each row keeps the family’s own density,
+  conditional on each group’s first rows. The likelihood matches brms
+  2.23.0’s to 1e-15 relative, for gaussian and student, with
+  [`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
+  [`trunc()`](https://rdrr.io/r/base/Round.html), `mi()`, random effects
+  and `rescor = TRUE`. It also matches `stats::arima(method = "CSS")` on
+  one series. The coefficients are unconstrained, as in brms, and class
+  `ar` and `ma` priors and bounds act on them directly.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) use brms’s
+  one-step mean, and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) runs the
+  recursion over its own draws. Other families are refused in brms’s
+  words.
+
+- **`0 + Intercept`** is brms’s reserved intercept:
+  `y ~ 0 + Intercept + x` fits the model `y ~ 1 + x` with the intercept
+  as an ordinary class `"b"` coefficient, not centered. A class `"b"`
+  prior reaches it and class `"Intercept"` is refused, as in brms. It
+  works in the location, distributional and nonlinear-parameter
+  formulas, factors take treatment contrasts, and `newdata` needs no
+  `Intercept` column. `bf(center = FALSE)` and `lf(center = FALSE)` are
+  the same mechanism. Ordinal families refuse `0 + Intercept`, as brms
+  does. The maximum likelihood fit is unchanged.
+
+### Multivariate models
+
+- **Any number of
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) formulas
+  can be summed with `+`.** The sum of `bf(y1 ~ x)`, `bf(y2 ~ x)` and
+  `bf(y3 ~ x)` used to stop with “non-numeric argument to binary
+  operator”, because the formula and the multivariate formula had two
+  different `+` methods.
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) and
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) take
+  brms’s `resp =` to name the response they belong to.
+  [`summary()`](https://rdrr.io/r/base/summary.html) of a multivariate
+  fit prints brms’s `Family: MV(...)` line and every response’s formula.
+  A family added after several responses fills only the responses that
+  have none; brms instead gives it to every response.
+
+- **[`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  with `rescor = TRUE`** fits brms’s multivariate Student-t: one `nu`
+  shared by all responses (named `nu`, with no response), a sigma per
+  response, and distributional sigma allowed. A formula or a constant
+  for `nu`, and a mix of gaussian and student responses, are refused as
+  brms refuses them. It agrees with
+  [`mvtnorm::dmvt()`](https://rdrr.io/pkg/mvtnorm/man/Mvt.html) and with
+  brms’s own
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md).
+  [`predict()`](https://rdrr.io/r/stats/predict.html) draws the
+  responses jointly from the multivariate t.
+
+- **Ordinal responses in a multivariate model.**
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  responses keep their own thresholds (`b_o_Intercept[1]`,
+  `set_prior(class = "Intercept", resp = "o")`) and can share `|ID|`
+  group effects with other responses. Other families with extra
+  parameters
+  ([`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md))
+  stay refused there, now with the reason.
+
+- [`fit_extras()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  takes `resp`, and the new sampling-API export
+  [`rescor_row_loglik()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  is the joint row density of a rescor fit.
+
+### Families
+
+- New families
+  **[`hurdle_negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)**
+  and
+  **[`zero_one_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)**,
+  with brms’s parameters, links and defaults. Both reach
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) (brms’s
+  expected response),
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html), pearson
+  residuals,
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+  `emmeans()` and `frm_sample()`. The hurdle negative binomial agrees
+  with glmmTMB’s `truncated_nbinom2` hurdle to 7e-11 in the
+  log-likelihood, and both families agree with brms’s densities to a few
+  ulps. A zero-one-inflated beta fit whose response cannot identify
+  `coi` warns and names the remedy.
+
+- **BREAKING:
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  thresholds are unconstrained**, as brms declares them, and no longer
+  kept increasing. frmtmb held them as (first threshold, log
+  increments), like
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  so where the maximum has crossing thresholds the fit stopped on the
+  ordering boundary with two thresholds equal, and was not brms’s mode.
+  brms’s own `inhaler` example with `cs(treat)` was one such fit: its
+  log-likelihood rises from -455.115 to -451.257. Where the thresholds
+  do not cross, a fit is unchanged to optimizer precision. The internal
+  `tau_raw` of an sratio fit is now the thresholds themselves, so a
+  `newparams` or `start` written for the old storage means something
+  else. A class `"Intercept"` prior on sratio’s thresholds carries no
+  Jacobian any more, as in brms and as on
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
+
+### emmeans
+
+- `emmeans()` takes brms’s `dpar`, `nlpar`, `resp`, `epred` and
+  `re_formula`. A nonlinear model is supported: `nlpar =` averages that
+  parameter’s linear predictor, and the whole `mu` or `epred = TRUE`
+  uses the delta method through
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md).
+  A multivariate fit without `resp` stacks its responses as brms’s
+  `rep.meas` factor. See `?frmtmb-emmeans`.
+
+- Silent wrong answers in `emmeans()`, now fixed: `dpar =` was ignored
+  and `mu` returned; `type = "response"` did not apply the inverse link;
+  `s()`, `t2()` and `mo()` terms were left out of the means;
+  `y | weights(w)` was read as a response transformation; `re_formula`
+  was ignored.
+
+- emmeans now shows frmtmb’s reason when it refuses, instead of “Perhaps
+  a ‘data’ or ‘params’ argument is needed”.
+
+### Other fixes
+
+- A class `"Intercept"` prior with `group =` on an ordinal model without
+  grouped thresholds is refused. It used to be applied to every
+  threshold without a word.
+
+- `residuals(type = "osa")` on a zero-inflated, hurdle or
+  zero-one-inflated family is refused by name. It used to fail with base
+  R’s “comparison (==) is possible only for atomic and list types”.
+
+- [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  no longer calls [`simulate()`](https://rdrr.io/r/stats/simulate.html)
+  refused for
+  [`hurdle_poisson()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`compois()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`tweedie()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  whose simulators work.
+
+- [`summary()`](https://rdrr.io/r/base/summary.html) lists a grouping
+  factor’s standard deviations before its correlations when the factor
+  has several blocks, as brms does.
+
 ## frmtmb 0.63.0
 
 - **[`simulate()`](https://rdrr.io/r/stats/simulate.html) takes
@@ -5244,8 +5458,9 @@ sampling, and t2() newdata prediction.
   whose level spans two clusters (crossed effects, `mm()` pooled levels,
   a global smooth, `gp()`, `car()`, `spde()`), a group-level mixture
   whose groups span clusters, `autocor()`, `hmm()`, `rescor = TRUE`,
-  `mi()`/`me()`, `REML = TRUE`, `frmtmb_control(profile = TRUE)`,
-  `quadrature = TRUE`, and any fit made with priors.
+  `mi()`/[`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md),
+  `REML = TRUE`, `frmtmb_control(profile = TRUE)`, `quadrature = TRUE`,
+  and any fit made with priors.
   [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
   is the documented fallback.
 - `"CR2"`/`"CR3"` are refused rather than approximated: the
@@ -6692,11 +6907,12 @@ grammar gaps.
   finite-mixture multimodality caveats apply
   ([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md),
   or order intercepts via bounds).
-- `mi(sdx)` measurement error (brms `me()`): known per-observation
-  measurement SDs make every true value latent, with the observed values
-  entering through a measurement model. Exact against the closed-form
-  bivariate-normal marginal; attenuation bias is corrected and NAs
-  (missing + mismeasured) combine.
+- `mi(sdx)` measurement error (brms
+  [`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md)):
+  known per-observation measurement SDs make every true value latent,
+  with the observed values entering through a measurement model. Exact
+  against the closed-form bivariate-normal marginal; attenuation bias is
+  corrected and NAs (missing + mismeasured) combine.
 - `cs()` category-specific effects for `sratio`, `cratio`, and `acat`
   (refused for `cumulative`, as in brms). Exact against direct ML.
 - `equalto(x + 0 | g, V)` covariance structure: fully fixed known V,
@@ -6728,7 +6944,8 @@ The two deferred architecture features.
   closed-form marginal likelihood). Imputation uncertainty propagates
   into the coefficient standard errors automatically. Rows with NAs in
   non-`mi()` variables still drop; imputation models must be gaussian or
-  student; discrete predictors remain impossible (as in Stan). `me()`
+  student; discrete predictors remain impossible (as in Stan).
+  [`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md)
   measurement error is the natural follow-on.
 
 ## frmtmb 0.15.0

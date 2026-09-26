@@ -11,7 +11,7 @@ the response formula.
 ## Usage
 
 ``` r
-lf(...)
+lf(..., resp = NULL, center = NULL)
 ```
 
 ## Arguments
@@ -24,6 +24,21 @@ lf(...)
   nonlinear parameter's formula `a ~ 1 + (1 | g)`, or one-sided formulas
   named by their parameter, `sigma = ~ x`.
 
+- resp:
+
+  The response the formulas belong to, when the `lf()` is added to a
+  multivariate formula. `NULL` (the default) adds them to the
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) on the
+  left of the `+`, which must then be a single formula.
+
+- center:
+
+  `FALSE` makes the intercept of each of these formulas an ordinary
+  coefficient, class `"b"` with coef `"Intercept"`, instead of brms's
+  class `"Intercept"`: the same as `0 + Intercept` in the formula. See
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md). `NULL`,
+  the default, leaves the intercept as class `"Intercept"`.
+
 ## Value
 
 An object of class `frmtmb_lf`, to be added to a
@@ -32,9 +47,10 @@ An object of class `frmtmb_lf`, to be added to a
 ## Details
 
 `bf(y ~ x) + lf(sigma ~ z)` and `bf(y ~ x, sigma ~ z)` give the same
-model. In a multivariate model an `lf()` must be added to the
+model. In a multivariate model, add an `lf()` to the
 [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) of the
-response it belongs to, before the responses are combined.
+response it belongs to, or name that response with `resp =`:
+`bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")`.
 
 ## Examples
 
@@ -52,4 +68,9 @@ bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
 #> y ~ a * exp(-b * x) (nonlinear)
 #> a ~ 1 
 #> b ~ 1 + (1 | g) 
+
+# in a multivariate formula, resp = says which response it modifies
+bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")
+#> Warning: Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula") for "+"
+#> Error in bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x): non-numeric argument to binary operator
 ```

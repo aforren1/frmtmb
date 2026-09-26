@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -829,8 +829,9 @@ the sequential families <code>sratio</code>, <code>cratio</code>, and
 <span><span class="co">#&gt; bcs2_1    -0.07596964  0.3784579  0.1512441</span></span>
 <span><span class="co">#&gt; bcs2_2     0.47728264  0.9677442  0.7225134</span></span>
 <span><span class="co">#&gt; bcs2_3     0.40132291  1.0910031  0.7461630</span></span></code></pre></div>
-<p><code>tau_raw</code> holds the thresholds on an internal increasing
-scale. <code>bcs2_k</code> is the effect of <code>x</code> at threshold
+<p><code>tau_raw</code> holds the thresholds themselves:
+<code><a href="../reference/frmtmb-families.html">sratio()</a></code> does not order them, as brms does not.
+<code>bcs2_k</code> is the effect of <code>x</code> at threshold
 <code>k</code>. The three effects grow, which is what the simulation put
 there.</p>
 <div class="section level3">
@@ -1126,16 +1127,16 @@ reports.</p>
 <div class="section level3">
 <h3 id="what-this-does-not-cover">What this does not cover<a class="anchor" aria-label="anchor" href="#what-this-does-not-cover"></a>
 </h3>
-<p><code>rescor</code> is gaussian only, and it describes the residuals
-of the responses, so it cannot be combined with a term that already
-describes them. An <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>,
-<code>arma()</code>, <code>cosy()</code> or <code>unstr()</code> term
-next to <code>rescor = TRUE</code> is refused, and so are mixtures and
-censored responses. One <code>|ID|</code> label must name one grouping
-specification: the same label over two different grouping factors is an
-error, because there is no single block for it to build.
-<code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> and <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> are not the only
-parts of the post-fitting surface that step back from a
+<p><code>rescor</code> needs all gaussian or all Student-t responses. It
+describes the residuals of the responses, so it cannot be combined with
+a term that already describes them. An <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>,
+<code>ma()</code>, <code>arma()</code>, <code>cosy()</code> or
+<code>unstr()</code> term next to <code>rescor = TRUE</code> is refused,
+and so are mixtures and censored responses. One <code>|ID|</code> label
+must name one grouping specification: the same label over two different
+grouping factors is an error, because there is no single block for it to
+build. <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> and <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> are not the
+only parts of the post-fitting surface that step back from a
 <code>rescor = TRUE</code> fit. <code>frm_compat("rescor")</code> lists
 the whole set, and <code><a href="../articles/compatibility.html">vignette("compatibility")</a></code> says why the
 list is worth reading before the fit rather than after it.</p>

@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,6 +94,8 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <span></span>
 <span><span class="fu">hurdle_poisson</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_hu <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="fu">hurdle_negbinomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_shape <span class="op">=</span> <span class="st">"log"</span>, link_hu <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu">multinomial</span><span class="op">(</span><span class="va">K</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">cumulative</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
@@ -121,6 +123,13 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <span><span class="fu">zero_inflated_binomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, link_zi <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">zero_inflated_beta</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, link_phi <span class="op">=</span> <span class="st">"log"</span>, link_zi <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">zero_one_inflated_beta</span><span class="op">(</span></span>
+<span>  link <span class="op">=</span> <span class="st">"logit"</span>,</span>
+<span>  link_phi <span class="op">=</span> <span class="st">"log"</span>,</span>
+<span>  link_zoi <span class="op">=</span> <span class="st">"logit"</span>,</span>
+<span>  link_coi <span class="op">=</span> <span class="st">"logit"</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">asym_laplace</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_quantile <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
@@ -166,9 +175,12 @@ one; <code>compois()</code>'s dispersion is an ordinary positive parameter
 and takes the positive set.</p></dd>
 
 
-<dt id="arg-link-zi-link-hu-link-quantile">link_zi, link_hu, link_quantile<a class="anchor" aria-label="anchor" href="#arg-link-zi-link-hu-link-quantile"></a></dt>
-<dd><p>Link for a parameter on the
-unit interval: <code>"logit"</code> (the default) or <code>"identity"</code>.</p></dd>
+<dt id="arg-link-zi-link-hu-link-quantile-link-zoi-link-coi">link_zi, link_hu, link_quantile, link_zoi, link_coi<a class="anchor" aria-label="anchor" href="#arg-link-zi-link-hu-link-quantile-link-zoi-link-coi"></a></dt>
+<dd><p>Link for a
+parameter on the unit interval: <code>"logit"</code> (the default) or
+<code>"identity"</code>. In <code>zero_one_inflated_beta()</code>, <code>zoi</code> is the
+probability of an exact 0 or 1, and <code>coi</code> is the probability that
+such a value is 1.</p></dd>
 
 
 <dt id="arg-k">K<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
@@ -229,6 +241,28 @@ categories, and a <code><a href="https://rdrr.io/r/stats/family.html" class="ext
 <p>Every constructor has brms's fields: <code>$link</code> is the name of the link
 for the mean, and <code>$link_&lt;dpar&gt;</code> the link of each other parameter,
 as in <code>beta_binomial()$link_phi</code>. See <code><a href="frmtmb_family.html">frmtmb_family()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="hurdle-and-zero-one-inflated-responses">Hurdle and zero-one-inflated responses<a class="anchor" aria-label="anchor" href="#hurdle-and-zero-one-inflated-responses"></a></h2>
+
+
+<p>A hurdle family gives every zero to <code>hu</code>, the hurdle probability, and
+truncates its count or continuous part at zero. For
+<code>hurdle_negbinomial()</code>, <code>P(Y = 0) = hu</code> and a positive count <code>y</code> has
+probability <code>(1 - hu) NB(y | mu, shape) / (1 - NB(0 | mu, shape))</code>,
+so <code>mu</code> is the mean of the untruncated negative binomial and not the
+mean of the positive counts.</p>
+<p><code>zero_one_inflated_beta()</code> takes a response in <code>[0, 1]</code>. <code>zoi</code> is the
+probability of an exact 0 or 1, <code>coi</code> is the probability that such a
+value is 1, and a value strictly between 0 and 1 follows a beta
+distribution with mean <code>mu</code> and precision <code>phi</code>. The expected
+response, which <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> returns, is <code>zoi * coi + (1 - zoi) * mu</code>.
+<code>coi</code> is scored only on the values at exactly 0 or 1. A response with
+0s but no 1 (or the reverse) sends <code>coi</code> to that boundary, and one
+with neither gives <code>coi</code> no data at all, so that no standard error of
+the fit is usable; the fit warns in both cases. brms fits such data
+through its prior on <code>coi</code>. Here, hold <code>coi</code> at a value with
+<code>bf(coi = 0.5)</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="categorical-nominal-responses">Categorical (nominal) responses<a class="anchor" aria-label="anchor" href="#categorical-nominal-responses"></a></h2>
@@ -426,6 +460,11 @@ distribution function the thresholds are read through, so
 takes <code>softit</code>), and refuse anything else. <code>acat()</code> takes <code>logit</code>
 alone, because brms defines its other links by a different density
 rather than by substituting a distribution function.</p>
+<p><code>cumulative()</code> keeps its thresholds increasing, because its category
+probabilities are differences of the distribution function. The
+thresholds of <code>sratio()</code>, <code>cratio()</code> and <code>acat()</code> are unconstrained,
+as in brms: their category probabilities are positive for any
+thresholds, so a fit may have two of them cross.</p>
     </div>
 
     <div class="section level2">

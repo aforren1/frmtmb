@@ -69,6 +69,13 @@ evaluated at `newdata` (the fitted rows when `NULL`); it is the one to
 use when drawing at new data. `us_chol_cor(theta, K)` is the
 unstructured correlation matrix of a `thetar` segment, which a
 `set_rescor(TRUE)` model's joint row density needs.
+`rescor_row_loglik(fit, dpv)` is that joint density itself, one value
+per row, at the dpar values `dpv` (the whole list
+[`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+returns): the multivariate normal of a gaussian model or the
+multivariate t of a Student-t one, with its one shared `nu`. A pointwise
+[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md) of
+a `rescor` model reads it rather than assuming the normal.
 
 ## The prior seam
 

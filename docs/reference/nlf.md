@@ -8,7 +8,7 @@ its own formula, or columns of the data.
 ## Usage
 
 ``` r
-nlf(formula, ..., loop = NULL)
+nlf(formula, ..., resp = NULL, loop = NULL)
 ```
 
 ## Arguments
@@ -24,6 +24,12 @@ nlf(formula, ..., loop = NULL)
   exactly as if passed to
   [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) - the brms
   convention.
+
+- resp:
+
+  The response the formulas belong to, when the `nlf()` is added to a
+  multivariate formula, as in
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md).
 
 - loop:
 
@@ -72,9 +78,9 @@ sees" section of
 whole rule, including the `stats::` escape hatch.
 
 Like [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), an
-`nlf()` in a multivariate model must be added to the
+`nlf()` in a multivariate model is added to the
 [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) of the
-response it belongs to, before the responses are combined.
+response it belongs to, or names that response with `resp =`.
 
 ## Examples
 

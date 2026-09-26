@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,7 +152,10 @@ unsupported</td>
 <code><a href="../reference/mvbf.html">set_rescor()</a></code>
 </td>
 <td>same</td>
-<td>per-response families; <code>rescor</code> gaussian-only</td>
+<td>per-response families, ordinal ones included; <code>rescor</code>
+all gaussian or all student, with one shared <code>nu</code>;
+<code>mvbf() + family</code> fills only responses without a family
+(below)</td>
 </tr>
 <tr class="odd">
 <td>
@@ -181,23 +184,33 @@ yet</td>
 (below)</td>
 </tr>
 <tr class="even">
+<td>
+<code>y ~ 0 + Intercept + x</code>,
+<code>bf(center = FALSE)</code>
+</td>
+<td>same</td>
+<td>the intercept is class <code>"b"</code> at zero, not class
+<code>"Intercept"</code> at the predictor means; refused in an ordinal
+family, as in brms</td>
+</tr>
+<tr class="odd">
 <td><code><a href="../reference/frmtmb_family.html">custom_family()</a></code></td>
 <td>same idea</td>
 <td>the lpdf is plain R over RTMB advectors, not Stan code</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>
 <code><a href="../reference/frmtmb-families.html">cumulative()</a></code>, <code><a href="../reference/frmtmb-families.html">multinomial()</a></code>
 </td>
 <td>same</td>
 <td>multinomial takes <code>K</code> explicitly</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>car(M, gr = g, type =)</code></td>
 <td>same</td>
 <td>all four types</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>
 <code>(1 | mm(g1, g2))</code>, <code>mmc(x1, x2)</code>
 </td>
@@ -205,20 +218,38 @@ yet</td>
 <td>multi-membership, <code>weights =</code> and <code>scale =</code>
 included (below)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>
-<code>ar(t, g, cov = TRUE)</code>, <code>ma()</code>,
-<code>arma()</code>, <code>cosy()</code>, <code>unstr()</code>
+<code>me(x, sdx)</code>, <code>me(x, sdx, gr = g)</code>,
+<code><a href="../reference/set_mecor.html">set_mecor()</a></code>
 </td>
 <td>same</td>
-<td>gaussian/student only; <code>cov = TRUE</code> required (below)</td>
+<td>latent values integrated by Laplace; new data uses the observed
+<code>x</code> (below)</td>
+</tr>
+<tr class="even">
+<td><code>(x | gr(g, by = f))</code></td>
+<td>same</td>
+<td>one set of SDs and correlations per level of <code>f</code>, named
+<code>sd_g__Intercept:fa</code> as in brms; not with
+<code>cov =</code>
+</td>
 </tr>
 <tr class="odd">
+<td>
+<code>ar(t, g)</code>, <code>ma()</code>, <code>arma()</code>,
+<code>cosy()</code>, <code>unstr()</code>
+</td>
+<td>same</td>
+<td>gaussian/student only; both <code>cov = FALSE</code> (brms’s
+default) and <code>cov = TRUE</code> (below)</td>
+</tr>
+<tr class="even">
 <td><code>data2 = list(W = W)</code></td>
 <td>same</td>
 <td>also resolves compound expressions (below)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>
 <code>bernoulli(link = "probit")</code>, and every other brms link
 name</td>
@@ -450,10 +481,10 @@ applies the censoring mechanism instead.</p></li>
 draws a parameter vector per simulation and returns it alongside the
 responses.</p></li>
 <li><p><code>mo()</code> monotonic effects, <code>mi()</code> one-step
-imputation of continuous predictors, <code>mi(sdx)</code> measurement
-error (the <code>me()</code> replacement, as in current brms),
-<code>cs()</code> category-specific ordinal effects, <code>gp(x)</code>
-/ <code>gp(x, k =)</code> Gaussian processes, and <code><a href="../reference/mixture.html">mixture()</a></code>
+imputation of continuous predictors, <code>me(x, sdx)</code> noise-free
+predictors and <code>mi(sdx)</code> measurement error, <code>cs()</code>
+category-specific ordinal effects, <code>gp(x)</code> /
+<code>gp(x, k =)</code> Gaussian processes, and <code><a href="../reference/mixture.html">mixture()</a></code>
 families (including group-level latent classes via
 <code>groups = ~g</code>) all work. <code>mo()</code>/<code>mi()</code>
 support two-way <code>:</code>/<code>*</code> interactions with numeric
@@ -467,6 +498,12 @@ needs pooled tests, which brms gets for free from the posterior:
 <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> fits with the D1, D2 and D3 rules of
 <code>mice</code> (D3 by default). Mixture fits are ML: expect
 multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</p></li>
+<li><p><code>thres()</code> works on the four ordinal families.
+<code>y | thres(K) ~ x</code> sets the number of thresholds, and
+<code>y | thres(gr = g) ~ x</code> fits one threshold vector per level
+of <code>g</code>, named <code>Intercept[g,k]</code> as in brms. The
+section “Ordinal thresholds, thres()” of <code><a href="../reference/frm.html">?frm</a></code> says where
+the count and the unobserved categories differ from brms.</p></li>
 <li><p><code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code>, <code><a href="../reference/frmtmb-families.html">beta_binomial()</a></code> and
 <code><a href="../reference/frmtmb-families.html">zero_inflated_binomial()</a></code> without <code>trials()</code> are
 refused, as in brms, with brms’s message. A 0/1 response takes
@@ -543,6 +580,14 @@ silently decouple the likelihood from the simulator
 <li><p><code>mm()</code> ports with its <code>weights =</code> and
 <code>scale =</code> arguments and with <code>mmc()</code>; its other
 arguments have different spellings here (below).</p></li>
+<li><p>A family added to a multivariate formula goes only to the
+responses that have no family yet. So
+<code>bf(o ~ x) + cumulative() + bf(y ~ x) + gaussian()</code> keeps
+<code>o</code> ordinal and makes <code>y</code> gaussian. brms gives the
+last family to every response, so the same line makes <code>o</code>
+gaussian there. Any number of <code><a href="../reference/bf.html">bf()</a></code> formulas can be added
+together, and <code><a href="../reference/lf.html">lf()</a></code> and <code><a href="../reference/nlf.html">nlf()</a></code> take brms’s
+<code>resp =</code> to name the response they belong to.</p></li>
 </ul>
 </div>
 <div class="section level2">
@@ -657,9 +702,12 @@ replacement when it refuses one:</p>
 </td>
 </tr>
 <tr class="even">
+<td><code>mm(g1, g2, by = cbind(f1, f2))</code></td>
+<td>same, one by-variable column per member</td>
+</tr>
+<tr class="odd">
 <td>
-<code>mm(g1, g2, by = )</code>, <code>pw =</code>,
-<code>dist =</code>
+<code>mm(g1, g2, pw = )</code>, <code>dist =</code>
 </td>
 <td>no equivalent yet</td>
 </tr>
@@ -668,12 +716,45 @@ replacement when it refuses one:</p>
 <p><code>?frmtmb-multimembership</code> is the full page.</p>
 </div>
 <div class="section level2">
+<h2 id="noise-free-predictors-me">Noise-free predictors: <code>me()</code><a class="anchor" aria-label="anchor" href="#noise-free-predictors-me"></a>
+</h2>
+<p><code>me(x, sdx)</code> means what it means in brms: the column
+<code>x</code> is a noisy reading of a latent value with known
+measurement SD <code>sdx</code>, the latent values are normal with an
+estimated mean <code>meanme</code> and SD <code>sdme</code>, and the
+model uses the latent value. <code>gr = g</code> gives one latent value
+per level of <code>g</code>. Several <code><a href="../reference/frmtmb-me.html">me()</a></code> terms have
+correlated latent values unless <code>set_mecor(FALSE)</code> is added,
+as in brms.</p>
+<p>frmtmb integrates the latent values out with the Laplace
+approximation. For a gaussian response with linear <code><a href="../reference/frmtmb-me.html">me()</a></code>
+terms the marginal likelihood is multivariate normal and the
+approximation is exact. The names follow brms: the coefficient of
+<code>me(x, sx)</code> is <code>bsp_mexsx</code>, and
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> reports <code>meanme_mex</code>,
+<code>sdme_mex</code> and <code>corme__mex__mez</code>, which brms
+reports only through <code><a href="../reference/variables.html">variables()</a></code>.</p>
+<p>Two differences to know when you port:</p>
+<ul>
+<li>On new data, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> and <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> use
+the observed <code>x</code> in place of the latent value. brms draws it
+from <code>N(x, sdx)</code>, so the two agree on the mean of a linear
+term, but brms’s prediction interval is wider.</li>
+<li>brms’s prior classes <code>meanme</code>, <code>sdme</code> and
+<code>corme</code> have no slot here and are refused by name. The flat
+rows of a <code><a href="../reference/default_prior.html">get_prior()</a></code> table and its <code>lkj(1)</code>
+<code>corme</code> row are dropped, because they apply nothing.</li>
+</ul>
+<p><code>?frmtmb-me</code> is the full page.</p>
+</div>
+<div class="section level2">
 <h2 id="within-group-residual-correlation">Within-group residual correlation<a class="anchor" aria-label="anchor" href="#within-group-residual-correlation"></a>
 </h2>
 <p><code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
 <code>cosy()</code> and <code>unstr()</code> are written where brms
-writes them, in the model formula, and mean what brms means under
-<code>cov = TRUE</code>: the residuals of one group become a single
+writes them, in the model formula, and mean what brms means. Under
+<code>cov = TRUE</code> (and always for <code>cosy()</code> and
+<code>unstr()</code>) the residuals of one group become a single
 correlated draw, <code>y_g ~ N(mu_g, D R D)</code> with <code>D</code>
 the diagonal of that group’s <code>sigma</code> values.
 <code>?frmtmb-autocor</code> has the full page; five things matter when
@@ -685,18 +766,29 @@ expression in either position is refused rather than evaluated, exactly
 as brms refuses it: <code>ar(x + t, g)</code> would index the
 correlation by the sum, and <code>gr = g1/g2</code> would group the
 residual by the quotient. Compute the column first and name it.</p>
-<p><strong><code>cov = TRUE</code> is required for <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>,
-<code>ma()</code> and <code>arma()</code>.</strong> brms defaults to
-<code>cov = FALSE</code>, which is a different likelihood - a residual
-regression that conditions on each group’s first rows - and that form is
-not implemented. The call is refused rather than reinterpreted, so a
-brms model written with the default has to be changed deliberately.
-<code>cosy()</code> and <code>unstr()</code> have no <code>cov</code>
-argument in brms either and port unchanged.</p>
+<p><strong><code>cov = FALSE</code>, brms’s default for
+<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code> and <code>arma()</code>, ports
+unchanged.</strong> It is a different likelihood from
+<code>cov = TRUE</code>: <code>mu</code> gains a regression on the
+group’s earlier residuals, and every row keeps the family’s own density,
+so the likelihood conditions on each group’s first rows. It is brms’s
+likelihood to 1e-15 relative, and for one series it is the conditional
+sum of squares of <code>stats::arima(method = "CSS")</code>. As in brms,
+the coefficients are unconstrained, the lag is counted in rows, and
+<code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>,
+<code>mi()</code> and <code>rescor = TRUE</code> combine with it.
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> give brms’s one-step
+mean, which reads the observed earlier residuals, so
+<code>newdata</code> must carry the response; <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>
+runs the recursion over its own draws. <code>cosy()</code> and
+<code>unstr()</code> have no <code>cov</code> argument in brms either
+and port unchanged.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms</span></span>
+<span><span class="fu">brm</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="fu">brm</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span>, cov <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="co"># frmtmb</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span>, cov <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
 <p><strong><code>sigma</code> is the marginal residual SD, not the
 innovation SD.</strong> brms’s <code>cholesky_cor_ar1()</code> divides
@@ -722,22 +814,24 @@ as one here:</p>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">cnt</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">ar1</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">week</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0</span> <span class="op">|</span> <span class="va">subj</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Higher orders are allowed, and gaps are honored.</strong>
 brms limits <code>cov = TRUE</code> to order one; <code>ar(p = 3)</code>
-and <code>arma(p = 2, q = 1)</code> work here. And the lag between two
-rows is the distance between their positions in the global set of time
-levels, so a subject missing week 3 gets
-<code>cor(week2, week4) = rho^2</code>; brms indexes
-<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>/<code>ma()</code>/<code>arma()</code>/
-<code>cosy()</code> by position within the group and treats the missing
-row as no gap. On complete balanced groups the two agree.</p>
+and <code>arma(p = 2, q = 1)</code> work here. And under
+<code>cov = TRUE</code> the lag between two rows is the distance between
+their positions in the global set of time levels, so a subject missing
+week 3 gets <code>cor(week2, week4) = rho^2</code>; brms indexes
+<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>/<code>ma()</code>/<code>arma()</code>/<code>cosy()</code>
+by position within the group and treats the missing row as no gap. On
+complete balanced groups the two agree. Under <code>cov = FALSE</code>
+the lag is counted in rows, as brms counts it.</p>
 <p>The parameters appear in <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> under “Within-group
 residual correlation” and in <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> under brms’s
 names (<code>ar[1]</code>, <code>cosy</code>,
 <code>cortime__1__2</code>); <code><a href="../reference/autocor_matrix.html">autocor_matrix()</a></code> returns the
-fitted correlation matrix. <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>cens()</code>,
+fitted correlation matrix under <code>cov = TRUE</code>. Under
+<code>cov = TRUE</code>, <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>cens()</code>,
 <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code>, <code>mi()</code>,
 <code>rescor = TRUE</code>, mixtures and <code>quadrature = TRUE</code>
-are refused, because the likelihood no longer factorizes over rows -
-brms refuses the same core set. Random effects alongside the correlated
+are refused, because the likelihood no longer factorizes over rows. brms
+refuses the same core set. Random effects alongside the correlated
 residual are the point of the feature and are supported.</p>
 </div>
 <div class="section level2">
@@ -962,6 +1056,14 @@ unseen level is wider than at a known one. brms’s
 <code>"uncertainty"</code> and <code>"old_levels"</code> resample the
 draws of the levels that were seen, and a maximum-likelihood fit has
 none, so both are refused by name.</p></li>
+<li><p><code>emmeans()</code> takes brms’s <code>dpar</code>,
+<code>nlpar</code>, <code>resp</code>, <code>epred</code> and
+<code>re_formula</code>, with brms’s defaults. A multivariate fit
+without <code>resp</code> stacks its responses as brms’s
+<code>rep.meas</code> factor. Where brms summarizes draws, a nonlinear
+<code>mu</code> and <code>epred = TRUE</code> use the delta method
+through <code><a href="../reference/frm_lp_basis.html">frm_lp_basis()</a></code>; see
+<code>?frmtmb-emmeans</code>.</p></li>
 <li><p><code>plot(fit)</code> draws residual diagnostics, not MCMC
 traces; for simulation-based residual checks use
 <code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code>.</p></li>

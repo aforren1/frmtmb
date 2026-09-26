@@ -1,15 +1,15 @@
 ===== SITE C:/Users/adf44/source/r/frmtmb =====
--- Building pkgdown site for package frmtmb ------------------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb
 Writing to: C:/Users/adf44/source/r/frmtmb/docs
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `authors.html`
 Reading CODE_OF_CONDUCT.md
 Writing `CODE_OF_CONDUCT.html`
@@ -20,7 +20,7 @@ Writing `SPEC.html`
 Reading README.md
 Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `reference/index.html`
 Reading man/anova.frmtmb_fit.Rd
 Writing `reference/anova.frmtmb_fit.html`
@@ -78,12 +78,16 @@ Reading man/frmtmb-autocor.Rd
 Writing `reference/frmtmb-autocor.html`
 Reading man/frmtmb-conditions.Rd
 Writing `reference/frmtmb-conditions.html`
+Reading man/frmtmb-emmeans.Rd
+Writing `reference/frmtmb-emmeans.html`
 Reading man/frmtmb-extension-api.Rd
 Writing `reference/frmtmb-extension-api.html`
 Reading man/frmtmb-families.Rd
 Writing `reference/frmtmb-families.html`
 Reading man/frmtmb-links.Rd
 Writing `reference/frmtmb-links.html`
+Reading man/frmtmb-me.Rd
+Writing `reference/frmtmb-me.html`
 Reading man/frmtmb-multimembership.Rd
 Writing `reference/frmtmb-multimembership.html`
 Reading man/frmtmb-package.Rd
@@ -180,6 +184,8 @@ Reading man/plot.frmtmb_fit.Rd
 Writing `reference/plot.frmtmb_fit.html`
 Reading man/plot.frmtmb_influence.Rd
 Writing `reference/plot.frmtmb_influence.html`
+Reading man/plus-bform.Rd
+Writing `reference/plus-bform.html`
 Reading man/posterior_summary.Rd
 Writing `reference/posterior_summary.html`
 Reading man/pp_check.Rd
@@ -204,6 +210,8 @@ Reading man/rescor_matrix.Rd
 Writing `reference/rescor_matrix.html`
 Reading man/residuals.frmtmb_fit.Rd
 Writing `reference/residuals.frmtmb_fit.html`
+Reading man/set_mecor.Rd
+Writing `reference/set_mecor.html`
 Reading man/set_prior.Rd
 Writing `reference/set_prior.html`
 Reading man/sigma.frmtmb_fit.Rd
@@ -227,7 +235,7 @@ Registered S3 method overwritten by 'clubSandwich':
 Writing `reference/vcov_cluster.html`
 Reading man/whittle.Rd
 Writing `reference/whittle.html`
--- Building articles -----------------------------------------------------------
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `articles/index.html`
 Reading vignettes/bayesian-cognitive-modeling.Rmd
 Writing `articles/bayesian-cognitive-modeling.html`
@@ -249,306 +257,228 @@ Reading vignettes/reinforcement-learning.Rmd
 Writing `articles/reinforcement-learning.html`
 Reading vignettes/spectral.Rmd
 Writing `articles/spectral.html`
--- Building news ---------------------------------------------------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
-Adding redirect from reference/cs_offsets_add.html to
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `sitemap.xml`
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Adding redirect from reference/+.frmtmb_bform.html to
+reference/plus-bform.html.
+Adding redirect from reference/hurdle_negbinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/me.html to reference/frmtmb-me.html.
+Adding redirect from reference/rescor_row_loglik.html to
 reference/frmtmb-sampling-api.html.
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb ---------------------------
+Adding redirect from reference/zero_one_inflated_beta.html to
+reference/frmtmb-families.html.
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam =====
--- Building pkgdown site for package frmtmb.eam --------------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.eam GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.eam
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
-Writing `authors.html`
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
-Writing `reference/index.html`
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Loading required package: frmtmb
 Reading man/ddm_simulate.Rd
-Writing `reference/ddm_simulate.html`
 Reading man/frmtmb.eam-package.Rd
-Writing `reference/frmtmb.eam-package.html`
 Reading man/gddm-bound.Rd
-Writing `reference/gddm-bound.html`
 Reading man/gddm-drift.Rd
-Writing `reference/gddm-drift.html`
 Reading man/gddm-start.Rd
-Writing `reference/gddm-start.html`
 Reading man/gddm.Rd
-Writing `reference/gddm.html`
 Reading man/gddm_bound_term.Rd
-Writing `reference/gddm_bound_term.html`
 Reading man/gddm_conditions.Rd
-Writing `reference/gddm_conditions.html`
 Reading man/gddm_control.Rd
-Writing `reference/gddm_control.html`
 Reading man/gddm_drift_term.Rd
-Writing `reference/gddm_drift_term.html`
 Reading man/gddm_floored.Rd
-Writing `reference/gddm_floored.html`
 Reading man/gddm_simulate.Rd
-Writing `reference/gddm_simulate.html`
 Reading man/gddm_start_term.Rd
-Writing `reference/gddm_start_term.html`
 Reading man/lba.Rd
-Writing `reference/lba.html`
 Reading man/lba_simulate.Rd
-Writing `reference/lba_simulate.html`
 Reading man/ndt_apply.Rd
-Writing `reference/ndt_apply.html`
 Reading man/ndt_bound.Rd
-Writing `reference/ndt_bound.html`
 Reading man/ndt_bound_attach.Rd
-Writing `reference/ndt_bound_attach.html`
 Reading man/ndt_bound_key.Rd
-Writing `reference/ndt_bound_key.html`
 Reading man/ndt_bound_of.Rd
-Writing `reference/ndt_bound_of.html`
 Reading man/ndt_bound_pending.Rd
-Writing `reference/ndt_bound_pending.html`
 Reading man/ndt_time.Rd
-Writing `reference/ndt_time.html`
 Reading man/rdm.Rd
-Writing `reference/rdm.html`
 Reading man/rdm_simulate.Rd
-Writing `reference/rdm_simulate.html`
 Reading man/wiener.Rd
-Writing `reference/wiener.html`
 Reading man/wiener_gng.Rd
-Writing `reference/wiener_gng.html`
 Reading man/wiener_gng_simulate.Rd
-Writing `reference/wiener_gng_simulate.html`
 Reading man/wiener_lpdf.Rd
-Writing `reference/wiener_lpdf.html`
--- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading vignettes/ddm.Rmd
-Writing `articles/ddm.html`
 Reading vignettes/gddm.Rmd
-Writing `articles/gddm.html`
--- Building news ---------------------------------------------------------------
-Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.eam -----------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.eam GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent =====
--- Building pkgdown site for package frmtmb.latent -----------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.latent GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.latent
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
-Writing `authors.html`
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
-Writing `reference/index.html`
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Loading required package: frmtmb
 Reading man/frmtmb.latent-package.Rd
-Writing `reference/frmtmb.latent-package.html`
 Reading man/hmm.Rd
-Writing `reference/hmm.html`
 Reading man/hmm_probs.Rd
-Writing `reference/hmm_probs.html`
 Reading man/hmm_starts.Rd
 Writing `reference/hmm_starts.html`
 Reading man/hmm_viterbi.Rd
-Writing `reference/hmm_viterbi.html`
 Reading man/lca.Rd
-Writing `reference/lca.html`
 Reading man/lca_probs.Rd
-Writing `reference/lca_probs.html`
 Reading man/lca_profiles.Rd
-Writing `reference/lca_profiles.html`
--- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading vignettes/latent.Rmd
-Writing `articles/latent.html`
--- Building news ---------------------------------------------------------------
-Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.latent --------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.latent GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.ode =====
--- Building pkgdown site for package frmtmb.ode --------------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.ode GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.ode
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.ode
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
-Writing `authors.html`
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
-Writing `reference/index.html`
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Loading required package: frmtmb
 Reading man/frmtmb.ode-package.Rd
-Writing `reference/frmtmb.ode-package.html`
 Reading man/frm_lincmt.Rd
-Writing `reference/frm_lincmt.html`
 Reading man/frm_ode.Rd
-Writing `reference/frm_ode.html`
 Reading man/frm_ode_failures.Rd
-Writing `reference/frm_ode_failures.html`
 Reading man/frm_ode_records.Rd
-Writing `reference/frm_ode_records.html`
--- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading vignettes/ode.Rmd
-Writing `articles/ode.html`
--- Building news ---------------------------------------------------------------
-Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
-Writing `sitemap.xml`
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.ode -----------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.ode GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.spline =====
--- Building pkgdown site for package frmtmb.spline -----------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.spline GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.spline
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.spline
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
-Writing `authors.html`
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
-Writing `reference/index.html`
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Loading required package: frmtmb
 Reading man/frmtmb.spline-package.Rd
-Writing `reference/frmtmb.spline-package.html`
 Reading man/frm_curve.Rd
-Writing `reference/frm_curve.html`
 Reading man/frm_curve_deriv.Rd
-Writing `reference/frm_curve_deriv.html`
 Reading man/frm_curve_feature.Rd
-Writing `reference/frm_curve_feature.html`
 Reading man/royston_parmar.Rd
-Writing `reference/royston_parmar.html`
 Reading man/rp_floored.Rd
-Writing `reference/rp_floored.html`
--- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading vignettes/curve-inference.Rmd
-Writing `articles/curve-inference.html`
 Reading vignettes/royston-parmar.Rmd
-Writing `articles/royston-parmar.html`
--- Building news ---------------------------------------------------------------
-Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.spline --------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.spline GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.coupling =====
--- Building pkgdown site for package frmtmb.coupling ---------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.coupling GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.coupling
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.coupling
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
-Writing `authors.html`
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
-Writing `reference/index.html`
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Loading required package: frmtmb
 Reading man/cross_wishart.Rd
-Writing `reference/cross_wishart.html`
 Reading man/frmtmb.coupling-package.Rd
-Writing `reference/frmtmb.coupling-package.html`
 Reading man/frm_coherence.Rd
-Writing `reference/frm_coherence.html`
 Reading man/frm_cross_pairs.Rd
-Writing `reference/frm_cross_pairs.html`
 Reading man/frm_cross_simulate.Rd
-Writing `reference/frm_cross_simulate.html`
 Reading man/frm_cross_spectrum.Rd
-Writing `reference/frm_cross_spectrum.html`
--- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading vignettes/coherence.Rmd
-Writing `articles/coherence.html`
--- Building news ---------------------------------------------------------------
-Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
-Writing `sitemap.xml`
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.coupling ------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.coupling GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.sample =====
--- Building pkgdown site for package frmtmb.sample -----------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.sample GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.sample
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.sample
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `authors.html`
 Reading 'DESCRIPTION'
 Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `reference/index.html`
 Reading man/as_tmbstan.Rd
 Writing `reference/as_tmbstan.html`
@@ -588,7 +518,7 @@ Reading man/sample-loo.Rd
 Writing `reference/sample-loo.html`
 Reading man/sample-posterior_summary.Rd
 Writing `reference/sample-posterior_summary.html`
--- Building articles -----------------------------------------------------------
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `articles/index.html`
 Reading vignettes/brms-posterior.Rmd
 Writing `articles/brms-posterior.html`
@@ -596,71 +526,52 @@ Reading vignettes/posterior-diagnostics.Rmd
 Writing `articles/posterior-diagnostics.html`
 Reading vignettes/sampling.Rmd
 Writing `articles/sampling.html`
--- Building news ---------------------------------------------------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.sample --------------------
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.sample GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 ===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.learn =====
--- Building pkgdown site for package frmtmb.learn ------------------------------
+GöÇGöÇ Building pkgdown site for package frmtmb.learn GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.learn
 Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.learn
--- Sitrep ----------------------------------------------------------------------
-? URLs ok.
-? Favicons ok.
-? Open graph metadata ok.
-? Articles metadata ok.
-? Reference metadata ok.
--- Initialising site -----------------------------------------------------------
--- Building home ---------------------------------------------------------------
-Writing `authors.html`
+GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+G£ö URLs ok.
+G£ö Favicons ok.
+G£ö Open graph metadata ok.
+G£ö Articles metadata ok.
+G£ö Reference metadata ok.
+GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
--- Building function reference -------------------------------------------------
-Writing `reference/index.html`
+GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Loading required package: frmtmb
 Reading man/bandit2arm_delta.Rd
-Writing `reference/bandit2arm_delta.html`
 Reading man/bandit2arm_dual.Rd
-Writing `reference/bandit2arm_dual.html`
 Reading man/bandit4arm2_kalman_filter.Rd
-Writing `reference/bandit4arm2_kalman_filter.html`
 Reading man/frmtmb.learn-package.Rd
-Writing `reference/frmtmb.learn-package.html`
 Reading man/frm_learn_families.Rd
-Writing `reference/frm_learn_families.html`
 Reading man/frm_task_design.Rd
-Writing `reference/frm_task_design.html`
 Reading man/frm_task_simulate.Rd
-Writing `reference/frm_task_simulate.html`
 Reading man/frm_value_trace.Rd
-Writing `reference/frm_value_trace.html`
 Reading man/igt_orl.Rd
-Writing `reference/igt_orl.html`
 Reading man/igt_pvl_delta.Rd
-Writing `reference/igt_pvl_delta.html`
 Reading man/prl_fictitious.Rd
-Writing `reference/prl_fictitious.html`
 Reading man/rlddm.Rd
-Writing `reference/rlddm.html`
 Reading man/ts_par7.Rd
-Writing `reference/ts_par7.html`
--- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
+GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Reading vignettes/learning.Rmd
-Writing `articles/learning.html`
--- Building news ---------------------------------------------------------------
-Writing `news/index.html`
--- Building sitemap ------------------------------------------------------------
--- Building docs for llms ------------------------------------------------------
--- Building redirects ----------------------------------------------------------
--- Building search index -------------------------------------------------------
--- Checking for problems -------------------------------------------------------
--- Finished building pkgdown site for package frmtmb.learn ---------------------
+GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+GöÇGöÇ Finished building pkgdown site for package frmtmb.learn GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 ===== ok =====
 DOCS built 8 of 8

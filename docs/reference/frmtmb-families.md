@@ -33,6 +33,8 @@ zero_inflated_negbinomial(link = "log", link_shape = "log", link_zi = "logit")
 
 hurdle_poisson(link = "log", link_hu = "logit")
 
+hurdle_negbinomial(link = "log", link_shape = "log", link_hu = "logit")
+
 multinomial(K)
 
 cumulative(link = "logit")
@@ -60,6 +62,13 @@ hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit")
 zero_inflated_binomial(link = "logit", link_zi = "logit")
 
 zero_inflated_beta(link = "logit", link_phi = "log", link_zi = "logit")
+
+zero_one_inflated_beta(
+  link = "logit",
+  link_phi = "log",
+  link_zoi = "logit",
+  link_coi = "logit"
+)
 
 asym_laplace(link = "identity", link_sigma = "log", link_quantile = "logit")
 
@@ -104,10 +113,12 @@ cox(link = "log", df = 5, degree = 3, intercept = TRUE)
   dispersion is an ordinary positive parameter and takes the positive
   set.
 
-- link_zi, link_hu, link_quantile:
+- link_zi, link_hu, link_quantile, link_zoi, link_coi:
 
   Link for a parameter on the unit interval: `"logit"` (the default) or
-  `"identity"`.
+  `"identity"`. In `zero_one_inflated_beta()`, `zoi` is the probability
+  of an exact 0 or 1, and `coi` is the probability that such a value is
+  1.
 
 - K:
 
@@ -171,6 +182,27 @@ Every constructor has brms's fields: `$link` is the name of the link for
 the mean, and `$link_<dpar>` the link of each other parameter, as in
 `beta_binomial()$link_phi`. See
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md).
+
+## Hurdle and zero-one-inflated responses
+
+A hurdle family gives every zero to `hu`, the hurdle probability, and
+truncates its count or continuous part at zero. For
+`hurdle_negbinomial()`, `P(Y = 0) = hu` and a positive count `y` has
+probability `(1 - hu) NB(y | mu, shape) / (1 - NB(0 | mu, shape))`, so
+`mu` is the mean of the untruncated negative binomial and not the mean
+of the positive counts.
+
+`zero_one_inflated_beta()` takes a response in `[0, 1]`. `zoi` is the
+probability of an exact 0 or 1, `coi` is the probability that such a
+value is 1, and a value strictly between 0 and 1 follows a beta
+distribution with mean `mu` and precision `phi`. The expected response,
+which [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns,
+is `zoi * coi + (1 - zoi) * mu`. `coi` is scored only on the values at
+exactly 0 or 1. A response with 0s but no 1 (or the reverse) sends `coi`
+to that boundary, and one with neither gives `coi` no data at all, so
+that no standard error of the fit is usable; the fit warns in both
+cases. brms fits such data through its prior on `coi`. Here, hold `coi`
+at a value with `bf(coi = 0.5)`.
 
 ## Categorical (nominal) responses
 
@@ -395,6 +427,12 @@ distribution function the thresholds are read through, so
 `softit`), and refuse anything else. `acat()` takes `logit` alone,
 because brms defines its other links by a different density rather than
 by substituting a distribution function.
+
+`cumulative()` keeps its thresholds increasing, because its category
+probabilities are differences of the distribution function. The
+thresholds of `sratio()`, `cratio()` and `acat()` are unconstrained, as
+in brms: their category probabilities are positive for any thresholds,
+so a fit may have two of them cross.
 
 ## Examples
 

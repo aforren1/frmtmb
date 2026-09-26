@@ -2,8 +2,10 @@
 
 [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
 and `unstr()` are written as terms of the model formula, next to the
-fixed and random effects, and make the residuals of one group a single
-correlated draw instead of independent ones:
+fixed and random effects. They come in two forms. The covariance form
+(`cov = TRUE`, and always for `cosy()` and `unstr()`) makes the
+residuals of one group a single correlated draw instead of independent
+ones:
 
 ## Value
 
@@ -32,6 +34,11 @@ diagonal. Nothing is added to the linear predictor, so
 and `se.fit` are unchanged; what changes is the likelihood. This is the
 model `nlme::gls(correlation = corAR1())` fits, and the one brms fits
 under `cov = TRUE`.
+
+The residual-regression form is brms's DEFAULT for
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`, so it is
+what those terms mean without `cov = TRUE`. It is described in its own
+section below.
 
 ## Structures
 
@@ -105,13 +112,79 @@ and the second is `gr`: write `cosy(gr = subj)`, not `cosy(subj)`.
 
 - `cov`:
 
-  Must be `TRUE`. brms's default `cov = FALSE` is a different likelihood
-  (a residual regression that conditions on each group's first rows),
-  which is not implemented; the call is refused rather than silently
-  reinterpreted.
+  `FALSE`, the default as in brms, gives the residual-regression form;
+  `TRUE` gives the covariance form. They are different likelihoods, not
+  two implementations of one.
+
+## The residual-regression form (`cov = FALSE`)
+
+This is the model brms 2.23.0 fits for
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()` when
+`cov` is not set. Within each group, in time order, let \\r_t = y_t -
+\mu_t\\ and \$\$e_t = r_t - \sum\_{i=1}^{q} \theta_i e\_{t-i},\$\$ with
+\\e_s = 0\\ before the group's first row. The mean of row \\t\\ becomes
+\$\$\mu^\*\_t = \mu_t + \sum\_{i=1}^{q} \theta_i e\_{t-i} +
+\sum\_{i=1}^{p} \phi_i e\_{t-i},\$\$ and every row keeps the family's
+own density at \\\mu^\*\_t\\. The MA part enters \\e\\ and the AR part
+does not, exactly as in brms's Stan code. So:
+
+- It is a CONDITIONAL likelihood. A group's first rows get no lagged
+  term, rather than the stationary distribution the covariance form
+  gives them. For one series this is the conditional sum of squares of
+  `stats::arima(method = "CSS")`.
+
+- The coefficients `ar[i]` and `ma[i]` are unconstrained reals, as in
+  brms, because nothing in this likelihood needs a stationary or
+  invertible process. A prior or a bound with `set_prior(class = "ar")`
+  acts on them directly, at any order.
+
+- `sigma` is the sd of each row around \\\mu^\*\_t\\, which for a
+  correct model is the innovation sd.
+
+- The lag is counted in ROWS of the group, sorted by `time`, as brms
+  counts it: a group that skips a time point treats the next row as one
+  step later. The covariance form counts levels instead (see below).
+
+- Families: [`gaussian()`](https://rdrr.io/r/stats/family.html) and
+  [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  the two families brms gives a residual `y - mu`. A predicted
+  `nu ~ ...` works. For other families brms refuses an MA part ("Please
+  set cov = TRUE when modeling MA structures for this family") and fits
+  latent residuals for an AR part; both are refused here, and the
+  refusal names the random-effect spelling of a latent autoregressive
+  process. With a non-identity link the term is added to `mu` on the
+  response scale, after the inverse link, as brms's Stan code adds it.
+
+- It combines with [`weights()`](https://rdrr.io/r/stats/weights.html),
+  `cens()`, [`trunc()`](https://rdrr.io/r/base/Round.html), `mi()` on
+  the response (the residual is then taken against the imputed value),
+  random effects and `rescor = TRUE`, as in brms. `se()` is refused, as
+  brms refuses it.
+
+- After the fit,
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+  and `predict(type = "response")` give brms's one-step mean
+  \\\mu^\*\_t\\, which reads the OBSERVED earlier residuals; so
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) are against
+  it. `newdata` must then carry the response, and its rows form their
+  own groups in their own time order.
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+  draws each row around its one-step mean, as brms's
+  `posterior_predict()` does.
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) instead runs the
+  recursion over its own draws, so a replicate carries the fitted serial
+  dependence; on `newdata` it starts each group from an empty past and
+  needs no response, which makes it the forecasting route.
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  and `emmeans()` drop the term, as brms's do.
+  [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
+  and `residuals(type = "osa")` are refused: this form defines no
+  correlation matrix, and its tape reads the response as data.
 
 ## Families
 
+This section and the two after it describe the covariance form.
 [`gaussian()`](https://rdrr.io/r/stats/family.html) and
 [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
 only - the two families with a real residual, and exactly the two brms
@@ -245,6 +318,15 @@ autocor_matrix(fit)
 #> 3 0.27311029 0.5225995 1.0000000 0.5225995 0.27311029
 #> 4 0.14272731 0.2731103 0.5225995 1.0000000 0.52259955
 #> 5 0.07458923 0.1427273 0.2731103 0.5225995 1.00000000
+
+# brms's default residual-regression form: mu gains ar * (y - mu) of
+# the previous row of the same subject
+fit0 <- frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
+#> Error: ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+summary(fit0)
+#> Error: object 'fit0' not found
+head(fitted(fit0))
+#> Error: object 'fit0' not found
 
 # compound symmetry, and the unstructured correlation over the five
 # weeks

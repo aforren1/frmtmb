@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -409,6 +409,39 @@ simplex.</p>
 <code>mo(x) * z</code> and <code>mo(x):z</code> are fitted, <code>mo(x) * f</code> for a factor <code>f</code> is
 refused (the simplex carries one coefficient and a contrast expansion
 has no column to go in), and <code>mo(x):mo(w)</code> is refused outright.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ordinal-thresholds-thres-">Ordinal thresholds, thres()<a class="anchor" aria-label="anchor" href="#ordinal-thresholds-thres-"></a></h2>
+
+
+<p>The four ordinal families take brms's <code>thres()</code> addition term.
+<code>y | thres(K) ~ x</code> fits <code>K</code> thresholds, so the response has <code>K + 1</code>
+categories even when the top ones are never observed. The data do
+not place a threshold above the highest observed category: its
+maximum likelihood estimate runs off toward infinity. Set a prior on
+class <code>"Intercept"</code> to hold it, as brms's default prior does. Without
+such a prior the fit warns.</p>
+<p><code>y | thres(gr = g) ~ x</code> gives each level of the factor <code>g</code> a
+threshold vector of its own and keeps one linear predictor for all
+rows. The number of thresholds of a level is the highest category
+observed in that level less one, or <code>n</code> from <code>thres(n, gr = g)</code>,
+where <code>n</code> is a column that is constant within each level. These are
+brms's counts. A category above the highest one a level takes is
+not a category of that level, unless <code>thres(n, gr = g)</code> asks for it.
+An ordered-factor response takes its categories from the levels that
+occur in the data, as in brms, and <code>thres()</code> may not ask for more.
+Code the response as integers to fit categories nobody chose.</p>
+<p>The thresholds have brms's names: <code>Intercept[a,1]</code> in <code><a href="fixef.html">fixef()</a></code> and
+<code>b_Intercept[a,1]</code> in <code><a href="variables.html">variables()</a></code> and <code><a href="hypothesis.html">hypothesis()</a></code>.
+<code>set_prior(..., class = "Intercept", group = "a")</code> puts a prior on
+the thresholds of level <code>a</code> only. As in brms, the design is not
+centered under grouped thresholds.</p>
+<p>A row in level <code>a</code> falls in one of the categories <code>1..n_a + 1</code>.
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> return <code>max(n) + 1</code> categories, and the
+probability of a category past a row's own is 0, as in brms's
+<code>posterior_epred()</code>. <code>newdata</code> must hold the grouping variable, with
+levels the fit has seen. With <code>gr</code>, <code>cs()</code> is refused, as in brms,
+and so is <code>residuals(type = "osa")</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="the-laplace-approximation-and-how-to-check-it">The Laplace approximation, and how to check it<a class="anchor" aria-label="anchor" href="#the-laplace-approximation-and-how-to-check-it"></a></h2>

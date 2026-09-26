@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -146,7 +146,13 @@ dpar-value list, however it was built, and adds that response's
 <code>.cs</code> evaluated at <code>newdata</code> (the fitted rows when <code>NULL</code>); it is the
 one to use when drawing at new data. <code>us_chol_cor(theta, K)</code> is the
 unstructured correlation matrix of a <code>thetar</code> segment, which a
-<code>set_rescor(TRUE)</code> model's joint row density needs.</p>
+<code>set_rescor(TRUE)</code> model's joint row density needs.
+<code>rescor_row_loglik(fit, dpv)</code> is that joint density itself, one value
+per row, at the dpar values <code>dpv</code> (the whole list <code><a href="frmtmb-extension-api.html">eval_dpars()</a></code>
+returns): the multivariate normal of a gaussian model or the
+multivariate t of a Student-t one, with its one shared <code>nu</code>. A
+pointwise <code><a href="log_lik.html">log_lik()</a></code> of a <code>rescor</code> model reads it rather than
+assuming the normal.</p>
     </div>
     <div class="section level2">
     <h2 id="the-prior-seam">The prior seam<a class="anchor" aria-label="anchor" href="#the-prior-seam"></a></h2>
