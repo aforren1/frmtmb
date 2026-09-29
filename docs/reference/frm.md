@@ -399,6 +399,95 @@ constant, so the two log-densities agree up to `lgamma(D)` per simplex.
 refused (the simplex carries one coefficient and a contrast expansion
 has no column to go in), and `mo(x):mo(w)` is refused outright.
 
+## Category-specific effects, cs()
+
+`cs(x)` gives a predictor one coefficient per category boundary instead
+of one for the whole response, in the
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+families. The term contributes an `n` by `K - 1` matrix of offsets to
+the thresholds, so the effect of `x` on the first boundary need not be
+its effect on the second.
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+refuses it, as brms does: category-specific effects are not identified
+under that parameterization, because the cumulative probabilities would
+stop being monotone.
+
+A `cs()` term is expanded by
+[`stats::model.matrix()`](https://rdrr.io/r/stats/model.matrix.html)
+like any other population-level term, which is what brms does too. A
+numeric predictor is one column; a FACTOR or CHARACTER predictor is its
+treatment-contrast dummies, one coefficient per dummy per boundary.
+`cs(f)` on a three-level factor with levels `a`, `b` and `c` is
+therefore four coefficients, named `fb[1]`, `fb[2]`, `fc[1]` and `fc[2]`
+in [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) and
+`bcs_fb[1]` and the rest in
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md),
+with `a` as the reference level. `set_prior(class = "b")` covers them
+all and `set_prior(class = "b", coef = "fb")` reaches one dummy's pair;
+[`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+lists one row per dummy, as brms's
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+does. New data are recoded against the levels and contrasts of the FIT,
+so a one-row `newdata` whose factor carries only the level it needs
+still predicts that level, and a level the fit never saw is refused.
+
+A column written on BOTH sides is refused. `y ~ x + cs(x)` is not
+identified: adding a constant to the population-level coefficient of `x`
+and subtracting the same constant from every one of its
+category-specific coefficients leaves the likelihood unchanged. Write
+`y ~ cs(x)`, which fits the same set of distributions. The same holds
+for a factor on both sides (`y ~ f + cs(f)`) and for a constant `cs()`
+column. brms builds both blocks and samples the ridge; maximum
+likelihood has no prior to hold it, and what frmtmb reported before the
+refusal was a coefficient with a standard error of 2.7e5.
+
+The check is a RANK test, so it also catches a column that only a basis
+or an arithmetic expression spells differently: `y ~ I(x) + cs(x)`,
+`y ~ x1 + x2 + cs(x1 + x2)`, `y ~ poly(x, 2) + cs(x)` and
+`y ~ s(x) + cs(x)` are all refused, and so are two `cs()` terms that are
+the same column under different spellings. The rank comes from
+[`qr()`](https://rdrr.io/r/base/qr.html) at its default `tol = 1e-7`,
+over columns scaled to unit norm, so a merely ill-conditioned design is
+refused once its condition number passes about `1e7`. The message names
+the population-level columns involved and the edit that works, which for
+`poly(x, 2) + cs(x)` is `I(x^2) + cs(x)` (the same maximum, one
+parameter fewer) and for `s(x) + cs(x)` is to drop one of the two terms,
+because there it is the smooth's own unpenalized linear column that is
+aliased.
+
+The rank test cannot see an `mi()` or
+[`me()`](https://aforren1.github.io/frmtmb/reference/frmtmb-me.md) term:
+its design column is a zero placeholder at assembly, filled later with
+observed-or-latent VALUES rather than with a function of a data column,
+so there is no basis to test it against. `mi(x) + cs(x)` and
+`me(x, sdx) + cs(x)` are therefore accepted. `me(x, sdx) + cs(x)` looks
+genuinely identified, its standard errors being finite, and
+`mi(x) + cs(x)` is not settled. `mo()` has a placeholder column too, but
+whatever fills it is a monotone function of the predictor's categories,
+so `mo()` gets a test of its own against that category basis and
+`y ~ mo(m) + cs(m)` is refused.
+
+`cs()` is not available with `thres(gr = )` or under `importance`, and
+`cs()` on the LEFT of a bar (`(cs(x) | g)`) is the covariance structure
+of the same name, not a category-specific effect. A MULTIVARIATE fit
+takes `cs()` in any response: `bf(yo ~ x + cs(f)) + bf(yo2 ~ z + cs(f))`
+fits, and the coefficients carry the response prefix, `yo_fb[1]` in
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) and
+`bcs_yo_fb[1]` in
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md).
+
+One behavior to know when a `cs()` level is rare. The model frame drops
+an unused factor level, as brms does, so a SUBSET in which a level does
+not occur is fitted with one column fewer. In
+[`influence()`](https://rdrr.io/r/stats/lm.influence.html), deleting the
+last row of a level therefore gives a refit whose coefficients are a
+subset of the full fit's: those cells stay `NA`,
+[`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html) is
+`NA` for that unit, and a warning names the unit and the coefficients.
+
 ## Ordinal thresholds, thres()
 
 The four ordinal families take brms's `thres()` addition term.
@@ -437,6 +526,34 @@ categories, and the probability of a category past a row's own is 0, as
 in brms's `posterior_epred()`. `newdata` must hold the grouping
 variable, with levels the fit has seen. With `gr`, `cs()` is refused, as
 in brms, and so is `residuals(type = "osa")`.
+
+A refit inside the package keeps the threshold count of the model it
+came from, and keeps the count of every level of `thres(gr = )`.
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md),
+[`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md),
+[`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md),
+`anova(refit = TRUE)`, `confint(method = "profile")` and the autoscale
+pre-fit reuse the assembled design, so the count cannot move.
+[`influence()`](https://rdrr.io/r/stats/lm.influence.html) and
+[`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html)
+rebuild the design from a subset of the data, and carry over the count
+AND the response's own categories, so a subset that empties ANY
+category, bottom, interior or top, still fits the fitted model with one
+threshold that the subset no longer identifies. An ordered-factor
+response then gives the same table as the same data coded as integers.
+Two cases cannot be refit and are refused per unit, counted and
+reported: a `groups = ` deletion that removes a whole `thres(gr = )`
+level, and a `data = ` holding a response category outside the fitted
+threshold layout or a `thres(gr = )` level the fit never saw. A category
+`thres(K)` declared but nothing observed is inside that layout, so
+`data = ` may reach it. See
+[`influence()`](https://rdrr.io/r/stats/lm.influence.html).
+
+Calling `frm()` again on new data is not a refit: it counts the
+thresholds of that data. That is what `update(newdata = )` does, because
+it re-evaluates the stored call, and what
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) followed by
+`frm()` does. Write `thres(K)` to pin a count there.
 
 ## The Laplace approximation, and how to check it
 

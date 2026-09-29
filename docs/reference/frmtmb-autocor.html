@@ -15,7 +15,7 @@ correlated draw instead of independent ones:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -193,10 +193,14 @@ $$\mu^*_t = \mu_t + \sum_{i=1}^{q} \theta_i e_{t-i} +
       \sum_{i=1}^{p} \phi_i e_{t-i},$$
 and every row keeps the family's own density at \(\mu^*_t\). The
 MA part enters \(e\) and the AR part does not, exactly as in
-brms's Stan code. So:</p><ul><li><p>It is a CONDITIONAL likelihood. A group's first rows get no
-lagged term, rather than the stationary distribution the
-covariance form gives them. For one series this is the
-conditional sum of squares of <code>stats::arima(method = "CSS")</code>.</p></li>
+brms's Stan code. So:</p><ul><li><p>It is a CONDITIONAL likelihood. A group starts with no
+residuals behind it, so lag \(i\) first reaches the row at
+within-group position \(i + 1\): the FIRST row of a group gets
+no lagged term, a row at position \(k\) gets only the lags up
+to \(k - 1\), and from position \(\max(p, q) + 1\) onward a row gets all of them. None of the opening rows
+gets the stationary distribution the covariance form gives them.
+For one series this is the conditional sum of squares of
+<code>stats::arima(method = "CSS")</code>.</p></li>
 <li><p>The coefficients <code>ar[i]</code> and <code>ma[i]</code> are unconstrained reals,
 as in brms, because nothing in this likelihood needs a stationary
 or invertible process. A prior or a bound with <code>set_prior(class = "ar")</code> acts on them directly, at any order.</p></li>
@@ -231,7 +235,15 @@ an empty past and needs no response, which makes it the
 forecasting route. <code><a href="conditional_effects.html">conditional_effects()</a></code> and <code>emmeans()</code> drop
 the term, as brms's do. <code><a href="autocor_matrix.html">autocor_matrix()</a></code> and
 <code>residuals(type = "osa")</code> are refused: this form defines no
-correlation matrix, and its tape reads the response as data.</p></li>
+correlation matrix, and its tape reads the response as data.
+A POINTWISE log-density exists for this form and not for the
+covariance one below, because each row keeps its own density:
+one row's density given its group's observed past, which is what
+brms's <code><a href="log_lik.html">log_lik()</a></code> returns. <code><a href="frmtmb-sampling-api.html">arma_cond_resp()</a></code> and
+<code><a href="frmtmb-sampling-api.html">arma_cond_dpars()</a></code> (<a href="frmtmb-sampling-api.html">frmtmb-sampling-api</a>) are what a sampling
+extension reads to build it. Whether the installed
+<code>frmtmb.sample</code> does is that package's own question, and its
+<code><a href="log_lik.html">?log_lik</a></code> answers it.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="families">Families<a class="anchor" aria-label="anchor" href="#families"></a></h2>
@@ -364,11 +376,34 @@ one"); higher <code>p</code> and <code>q</code> are supported here.</p>
 <span class="r-in"><span><span class="co"># brms's default residual-regression form: mu gains ar * (y - mu) of</span></span></span>
 <span class="r-in"><span><span class="co"># the previous row of the same subject</span></span></span>
 <span class="r-in"><span><span class="va">fit0</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit0</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'fit0' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x + ar(week, subj) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: d (Number of observations: 150) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -214.929   AIC: 437.857   BIC: 449.9 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Correlation Structures:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ar[1]     0.52      0.08     0.37     0.68</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     1.12      0.13     0.86     1.38    8.35  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.47      0.08     0.31     0.63    5.83  5.6e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     1.01      0.06     0.91     1.14</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit0</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'fit0' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate  Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.8236445 0.14500898 0.5394321 1.1078568</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 1.3714204 0.08119606 1.2122791 1.5305617</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.7952454 0.10168270 0.5959510 0.9945399</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 1.7156542 0.17628053 1.3701507 2.0611577</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.6977303 0.11448848 0.4733370 0.9221236</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.7316398 0.15168802 0.4343367 1.0289428</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># compound symmetry, and the unstructured correlation over the five</span></span></span>
 <span class="r-in"><span><span class="co"># weeks</span></span></span>

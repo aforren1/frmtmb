@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -351,49 +351,53 @@ what was tested and what merely was not.</p>
 <span><span class="co">#&gt; 30               mi()     refused</span></span>
 <span><span class="co">#&gt; 31             vint()       works</span></span>
 <span><span class="co">#&gt; 32            vreal()     refused</span></span>
-<span><span class="co">#&gt; 33                s()       works</span></span>
-<span><span class="co">#&gt; 34               t2()       works</span></span>
-<span><span class="co">#&gt; 35               mo() conditional</span></span>
-<span><span class="co">#&gt; 36          mi_pred()       works</span></span>
-<span><span class="co">#&gt; 37          gp_pred()       works</span></span>
-<span><span class="co">#&gt; 38          cs_pred()     refused</span></span>
-<span><span class="co">#&gt; 39               ps()       works</span></span>
-<span><span class="co">#&gt; 40               ar()     refused</span></span>
-<span><span class="co">#&gt; 41               ma()     refused</span></span>
-<span><span class="co">#&gt; 42             arma()     refused</span></span>
-<span><span class="co">#&gt; 43             cosy()     refused</span></span>
-<span><span class="co">#&gt; 44            unstr()     refused</span></span>
-<span><span class="co">#&gt; 45               REML    untested</span></span>
-<span><span class="co">#&gt; 46         quadrature     refused</span></span>
-<span><span class="co">#&gt; 47         importance       works</span></span>
-<span><span class="co">#&gt; 48            profile       works</span></span>
-<span><span class="co">#&gt; 49          autoscale       works</span></span>
-<span><span class="co">#&gt; 50           sparse_x       works</span></span>
-<span><span class="co">#&gt; 51              prior       works</span></span>
-<span><span class="co">#&gt; 52             bounds       works</span></span>
-<span><span class="co">#&gt; 53            verbose       works</span></span>
-<span><span class="co">#&gt; 54               mvbf       works</span></span>
-<span><span class="co">#&gt; 55             rescor     refused</span></span>
-<span><span class="co">#&gt; 56               |ID|    untested</span></span>
-<span><span class="co">#&gt; 57                 nl     refused</span></span>
-<span><span class="co">#&gt; 58            mixture       works</span></span>
-<span><span class="co">#&gt; 59        mixture_mvn    untested</span></span>
-<span><span class="co">#&gt; 60             fitted       works</span></span>
-<span><span class="co">#&gt; 61            predict       works</span></span>
-<span><span class="co">#&gt; 62           simulate       works</span></span>
-<span><span class="co">#&gt; 63          residuals conditional</span></span>
-<span><span class="co">#&gt; 64      residuals_osa    untested</span></span>
-<span><span class="co">#&gt; 65            emmeans conditional</span></span>
-<span><span class="co">#&gt; 66    confint_profile conditional</span></span>
-<span><span class="co">#&gt; 67 hypothesis_profile conditional</span></span>
-<span><span class="co">#&gt; 68       frm_lp_basis conditional</span></span>
-<span><span class="co">#&gt; 69       bar_crossing     refused</span></span>
-<span><span class="co">#&gt; 70         call_group       works</span></span>
-<span><span class="co">#&gt; 71         double_bar       works</span></span>
-<span><span class="co">#&gt; 72               mm()       works</span></span>
-<span><span class="co">#&gt; 73              mmc() conditional</span></span>
-<span><span class="co">#&gt; 74              dec()       works</span></span>
-<span><span class="co">#&gt; 75        ndt_group()       works</span></span></code></pre></div>
+<span><span class="co">#&gt; 33            thres()     refused</span></span>
+<span><span class="co">#&gt; 34                s()       works</span></span>
+<span><span class="co">#&gt; 35               t2()       works</span></span>
+<span><span class="co">#&gt; 36               mo() conditional</span></span>
+<span><span class="co">#&gt; 37          mi_pred()       works</span></span>
+<span><span class="co">#&gt; 38          gp_pred()       works</span></span>
+<span><span class="co">#&gt; 39          cs_pred()     refused</span></span>
+<span><span class="co">#&gt; 40               ps()       works</span></span>
+<span><span class="co">#&gt; 41               me()       works</span></span>
+<span><span class="co">#&gt; 42               ar()     refused</span></span>
+<span><span class="co">#&gt; 43               ma()     refused</span></span>
+<span><span class="co">#&gt; 44             arma()     refused</span></span>
+<span><span class="co">#&gt; 45             cosy()     refused</span></span>
+<span><span class="co">#&gt; 46            unstr()     refused</span></span>
+<span><span class="co">#&gt; 47               REML    untested</span></span>
+<span><span class="co">#&gt; 48         quadrature     refused</span></span>
+<span><span class="co">#&gt; 49         importance       works</span></span>
+<span><span class="co">#&gt; 50            profile       works</span></span>
+<span><span class="co">#&gt; 51          autoscale       works</span></span>
+<span><span class="co">#&gt; 52           sparse_x       works</span></span>
+<span><span class="co">#&gt; 53              prior       works</span></span>
+<span><span class="co">#&gt; 54             bounds       works</span></span>
+<span><span class="co">#&gt; 55            verbose       works</span></span>
+<span><span class="co">#&gt; 56               mvbf       works</span></span>
+<span><span class="co">#&gt; 57             rescor     refused</span></span>
+<span><span class="co">#&gt; 58               |ID|    untested</span></span>
+<span><span class="co">#&gt; 59                 nl     refused</span></span>
+<span><span class="co">#&gt; 60            mixture       works</span></span>
+<span><span class="co">#&gt; 61        mixture_mvn    untested</span></span>
+<span><span class="co">#&gt; 62             fitted       works</span></span>
+<span><span class="co">#&gt; 63            predict       works</span></span>
+<span><span class="co">#&gt; 64           simulate       works</span></span>
+<span><span class="co">#&gt; 65          residuals conditional</span></span>
+<span><span class="co">#&gt; 66      residuals_osa    untested</span></span>
+<span><span class="co">#&gt; 67            emmeans conditional</span></span>
+<span><span class="co">#&gt; 68    confint_profile conditional</span></span>
+<span><span class="co">#&gt; 69 hypothesis_profile conditional</span></span>
+<span><span class="co">#&gt; 70       frm_lp_basis conditional</span></span>
+<span><span class="co">#&gt; 71       bar_crossing     refused</span></span>
+<span><span class="co">#&gt; 72         call_group       works</span></span>
+<span><span class="co">#&gt; 73         double_bar       works</span></span>
+<span><span class="co">#&gt; 74               mm()       works</span></span>
+<span><span class="co">#&gt; 75              mmc() conditional</span></span>
+<span><span class="co">#&gt; 76      0 + Intercept       works</span></span>
+<span><span class="co">#&gt; 77              gr_by       works</span></span>
+<span><span class="co">#&gt; 78              dec()       works</span></span>
+<span><span class="co">#&gt; 79        ndt_group()       works</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-full-model-across-trial-variability">The full model: across-trial variability<a class="anchor" aria-label="anchor" href="#the-full-model-across-trial-variability"></a>

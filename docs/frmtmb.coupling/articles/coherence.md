@@ -295,9 +295,6 @@ sp$band <- factor(ifelse(sp$freq < 32, "low", "high"), c("low", "high"))
 flat <- frm(bf(w11 | vreal(w22, w12r, w12i) + vint(n) ~ 1,
                pow2 ~ 1, coh ~ band, phase ~ 1),
             family = cross_wishart(), data = sp)
-#> Warning: Large maximum absolute gradient at the optimum (0.00116); the fit may
-#> not have converged. diagnose() names the offending parameter; see the
-#> 'Convergence problems' section of vignette('diagnostics') for the remedies
 ```
 
 Nothing warned about the thing that matters. The fit may report a large
@@ -412,9 +409,6 @@ it.
 pf <- frm(bf(w11 | vreal(w22, w12r, w12i) + vint(n) ~ 0 + pair,
              pow2 ~ 0 + pair, coh ~ 1 + (1 | pair), phase ~ 0 + pair),
           family = cross_wishart(), data = xp)
-#> Warning: Large maximum absolute gradient at the optimum (0.00125); the fit may
-#> not have converged. diagnose() names the offending parameter; see the
-#> 'Convergence problems' section of vignette('diagnostics') for the remedies
 nd <- data.frame(pair = factor(levels(xp$pair), levels = levels(xp$pair)))
 cbind(nd, round(frm_coherence(pf, newdata = nd), 3))
 #>    pair .estimate   .se .lower .upper   .eta

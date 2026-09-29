@@ -143,7 +143,6 @@ set.seed(2026)
 dd <- data.frame(x = rnorm(200))
 dd$y <- exp(rnorm(200, 8 + 0.4 * dd$x, 0.4))
 fit <- frm(bf(y ~ x) + lognormal(), data = dd)
-#> Warning: Large maximum absolute gradient at the optimum (0.00143); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
 
 # predict() summarizes the predictive distribution; frm_linpred()
 # is the linear predictor and fitted() the expected response

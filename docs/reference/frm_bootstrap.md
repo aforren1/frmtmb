@@ -56,9 +56,9 @@ frm_bootstrap(
   [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)
   reads it.
 
-  This is not `simulate(re_formula = NA)`, which holds a population
-  smooth at its fitted curve, because a posterior-predictive check needs
-  the curve the model estimated.
+  This is not `simulate(re_formula = NA)`, which holds EVERY smooth at
+  its fitted curve, one indexed by a grouping factor included, because a
+  posterior-predictive check needs the curve the model estimated.
 
 ## Value
 
@@ -73,6 +73,25 @@ There is no standard `bootstrap` generic to implement
 ([`boot::boot`](https://rdrr.io/pkg/boot/man/boot.html) and
 [`lme4::bootMer`](https://rdrr.io/pkg/lme4/man/bootMer.html) are plain
 functions), hence the `frm_` prefix.
+
+## Ordinal thresholds
+
+Every refit reuses the assembled design, so the number of thresholds is
+the fitted model's and `FUN` receives the same parameters in the same
+order in every replicate. A replicate whose response never reaches the
+top category keeps that threshold, which the replicate's own data no
+longer identify: its estimate is large, and the replicate's
+log-likelihood is the one a fit with `thres(K)` pinned on that replicate
+gives, to optimizer tolerance. With `thres(gr = )` the per-level counts
+are kept the same way.
+
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) followed by
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), written
+out by hand, is not a refit:
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) counts the
+thresholds of whatever data it is given, so a replicate that never
+reaches the top category fits one threshold fewer, at the same maximized
+log-likelihood. Write `thres(K)` there to pin it.
 
 ## Examples
 

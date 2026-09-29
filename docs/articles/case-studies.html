@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -823,12 +823,12 @@ the sequential families <code>sratio</code>, <code>cratio</code>, and
 <code class="sourceCode R"><span><span class="va">fcs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu">cs</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/frmtmb-families.html">sratio</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dord</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">fcs</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                   lwr        upr        est</span></span>
-<span><span class="co">#&gt; tau_raw_1 -1.56199837 -1.1273843 -1.3446913</span></span>
-<span><span class="co">#&gt; tau_raw_2 -0.47074653  0.2194181 -0.1256642</span></span>
-<span><span class="co">#&gt; tau_raw_3  0.19217398  0.6924868  0.4423304</span></span>
-<span><span class="co">#&gt; bcs2_1    -0.07596964  0.3784579  0.1512441</span></span>
-<span><span class="co">#&gt; bcs2_2     0.47728264  0.9677442  0.7225134</span></span>
-<span><span class="co">#&gt; bcs2_3     0.40132291  1.0910031  0.7461630</span></span></code></pre></div>
+<span><span class="co">#&gt; tau_raw_1 -1.56199949 -1.1273864 -1.3446929</span></span>
+<span><span class="co">#&gt; tau_raw_2 -0.67583509 -0.2497143 -0.4627747</span></span>
+<span><span class="co">#&gt; tau_raw_3  0.76770573  1.4194112  1.0935585</span></span>
+<span><span class="co">#&gt; bcs2_1    -0.07596909  0.3784586  0.1512448</span></span>
+<span><span class="co">#&gt; bcs2_2     0.47728372  0.9677452  0.7225145</span></span>
+<span><span class="co">#&gt; bcs2_3     0.40132771  1.0910094  0.7461686</span></span></code></pre></div>
 <p><code>tau_raw</code> holds the thresholds themselves:
 <code><a href="../reference/frmtmb-families.html">sratio()</a></code> does not order them, as brms does not.
 <code>bcs2_k</code> is the effect of <code>x</code> at threshold
@@ -853,7 +853,7 @@ and the log likelihoods add up (Laara and Matthews 1985,
 <span>      <span class="co"># the binary question is "stop here", so the sign is reversed</span></span>
 <span>      binomial_glms <span class="op">=</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">glm_fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">[[</span><span class="st">"x"</span><span class="op">]</span><span class="op">]</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                  bcs2_1    bcs2_2    bcs2_3</span></span>
-<span><span class="co">#&gt; frmtmb        0.1512441 0.7225134 0.7461630</span></span>
+<span><span class="co">#&gt; frmtmb        0.1512448 0.7225145 0.7461686</span></span>
 <span><span class="co">#&gt; binomial_glms 0.1512442 0.7225128 0.7461606</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fcs</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  sum_of_glms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">glm_fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1297,12 +1297,20 @@ subject rather than a curve. It costs the same three parameters here and
 is close behind. Use it when the per-subject departures are near linear,
 and use <code>bs = "fs"</code> when they are not.</p>
 <div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">xg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>, x <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">xg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>, x <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                 <span class="co"># an UNSEEN subject: mgcv's fs basis returns a zero row</span></span>
+<span>                 <span class="co"># for a level it does not know, so the per-subject curve</span></span>
+<span>                 <span class="co"># contributes nothing and this IS the population</span></span>
+<span>                 <span class="co"># coefficient function. re_formula = NA would not do it:</span></span>
+<span>                 <span class="co"># it keeps every smooth, as brms does, and removes the</span></span>
+<span>                 <span class="co"># (x | g) group-level terms alone</span></span>
+<span>                 subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="st">"population"</span>,</span>
+<span>                                  levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">fos</span><span class="op">$</span><span class="va">subject</span><span class="op">)</span>,</span>
+<span>                                             <span class="st">"population"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">xg1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="va">xg</span>, x <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co"># re_formula = NA drops the per-subject fs curves, so this IS the</span></span>
-<span><span class="co"># population coefficient function; no subject column is needed</span></span>
-<span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg</span>, re_formula <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">f1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg1</span>, re_formula <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">f0</span></span>
+<span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg</span>, allow_new_levels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">f1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg1</span>,</span>
+<span>                             allow_new_levels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">f0</span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">xg</span><span class="op">$</span><span class="va">t</span>, y <span class="op">=</span> <span class="va">f0</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"steelblue4"</span>,</span>
 <span>                   lwd <span class="op">=</span> <span class="fl">2</span>, theme <span class="op">=</span> <span class="st">"clean2"</span>, xlab <span class="op">=</span> <span class="st">"t"</span>,</span>
 <span>                   ylab <span class="op">=</span> <span class="st">"coefficient function"</span>,</span>
@@ -2006,11 +2014,16 @@ integrated out, which is what mgcv maximizes under
 <code>logLik.gam</code> is the unpenalized likelihood at the fit and is
 the wrong number to compare against. Section 10 compares the right
 pair.</li>
-<li>On a model with an <code>fs</code> factor-smooth,
-<code>frm_linpred(re_formula = NA)</code> drops the per-subject curves
-and gives the population coefficient function directly, with no grouping
-column needed in <code>newdata</code>. Section 10 draws its figure that
-way.</li>
+<li>
+<code>re_formula = NA</code> does NOT drop an <code>fs</code>
+factor-smooth. It removes the <code>(x | g)</code> group-level terms and
+keeps every smooth, which is brms’s rule. To read the population
+coefficient function off such a model, predict at an UNSEEN level of the
+grouping factor with <code>allow_new_levels = TRUE</code>: mgcv’s
+<code>fs</code> basis returns a zero row for a level it does not know,
+so the per-subject curve contributes nothing. Section 10 draws its
+figure that way. The grouping column is needed in <code>newdata</code>
+at every <code>re_formula</code>.</li>
 <li>A custom family may pass a link OBJECT rather than a link name,
 which is how section 11 bounds a shift parameter by the data. The object
 needs <code>name</code>, <code>linkfun</code>, <code>linkinv</code> and

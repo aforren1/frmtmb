@@ -189,6 +189,77 @@ the tag with the code. To see the current state:
 srr::srr_report()
 ```
 
+## Documentation
+
+The website at <https://aforren1.github.io/frmtmb/> is one GitHub Pages
+site that holds eight pkgdown sites: the core package at the root and
+each extension in a subdirectory, which is how the Extensions menu in
+the navbar works.
+
+GitHub Actions builds and deploys it. You do not commit a built site.
+The workflow is `.github/workflows/pkgdown.yaml`, and it runs on a push
+to `main` that touches the documentation, on a release, and on demand.
+
+To build the same site on your own machine, install all eight packages
+and run:
+
+    Rscript dev/release/build-docs.R --dest=/tmp/frmtmb-site
+
+On Windows, `dev/release/run-docs.ps1` is a wrapper that sets the paths
+of the development box and calls the same script.
+
+The core site is built first, then the seven extensions, and then the
+root search index and sitemap are rebuilt. The last step is not
+tidiness: pkgdown builds those two by walking the destination, so the
+search box at the root finds extension pages only if the extension sites
+are already there when the index is written. The script asserts that the
+finished index holds a path under every extension.
+
+The script empties the destination before it starts, which is how a
+renamed package’s directory stops being served, and it exits non-zero
+if:
+
+- fewer than eight sites build, or a site has no `reference/index.html`;
+- a `href` in the Extensions menu of the root `_pkgdown.yml` names a
+  subdirectory that did not build;
+- a `destination` in an extension `_pkgdown.yml` does not end in the
+  package name;
+- an installed package version differs from its `DESCRIPTION`. pkgdown
+  renders the *installed* package, so a stale install publishes stale
+  output.
+
+To rebuild one site while you work, name it and lower the count:
+
+    Rscript dev/release/build-docs.R --dest=/tmp/one \
+      --pkgs=frmtmb.eam --min-sites=1
+
+A partial tree has dead navbar links, so the script says so and skips
+the whole-tree checks. Do not deploy one.
+
+### Articles that do not run their code
+
+Each article gates its fitted output on
+[`requireNamespace()`](https://rdrr.io/r/base/ns-load.html), so a
+machine without a `Suggests` package renders the page with the numbers
+dropped and reports success. Pass `--require-articles` to turn a missing
+one into a failure before the build starts; CI always passes it. The
+script reads the list of gate packages out of the article sources, so
+adding a gate needs no change here.
+
+One of those packages is not on CRAN: `RTMBode`, which the whole
+`frmtmb.ode` article depends on, comes from
+<https://kaskr.r-universe.dev>.
+
+**No article fits a model with brms or Stan.**
+`vignettes/brms-migration.Rmd` and the two brms articles in
+`frmtmb.sample` set `eval = FALSE` for the whole document, and
+`sampling.Rmd` runs only the chunks that need no sampler and says so on
+the page. CI therefore installs no Stan toolchain, and the site is not
+degraded by that. The brms and Stan agreement evidence is in
+`.github/workflows/brms-likelihood.yaml`. If you make an article fit
+with brms, reuse that workflow’s Stan setup in the pkgdown workflow; do
+not let the article render short.
+
 ## Questions
 
 Open an issue with the question. There is no separate mailing list.

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,6 +155,30 @@
 <p>The package carries rOpenSci statistical software standards as <code>@srrstats</code> roxygen tags. If your change affects a tagged behavior, keep the tag with the code. To see the current state:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">srr</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/srr/reference/srr_report.html" class="external-link">srr_report</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a></h2>
+<p>The website at <a href="https://aforren1.github.io/frmtmb/" class="uri">https://aforren1.github.io/frmtmb/</a> is one GitHub Pages site that holds eight pkgdown sites: the core package at the root and each extension in a subdirectory, which is how the Extensions menu in the navbar works.</p>
+<p>GitHub Actions builds and deploys it. You do not commit a built site. The workflow is <code>.github/workflows/pkgdown.yaml</code>, and it runs on a push to <code>main</code> that touches the documentation, on a release, and on demand.</p>
+<p>To build the same site on your own machine, install all eight packages and run:</p>
+<pre><code>Rscript dev/release/build-docs.R --dest=/tmp/frmtmb-site</code></pre>
+<p>On Windows, <code>dev/release/run-docs.ps1</code> is a wrapper that sets the paths of the development box and calls the same script.</p>
+<p>The core site is built first, then the seven extensions, and then the root search index and sitemap are rebuilt. The last step is not tidiness: pkgdown builds those two by walking the destination, so the search box at the root finds extension pages only if the extension sites are already there when the index is written. The script asserts that the finished index holds a path under every extension.</p>
+<p>The script empties the destination before it starts, which is how a renamed package’s directory stops being served, and it exits non-zero if:</p>
+<ul><li>fewer than eight sites build, or a site has no <code>reference/index.html</code>;</li>
+<li>a <code>href</code> in the Extensions menu of the root <code>_pkgdown.yml</code> names a subdirectory that did not build;</li>
+<li>a <code>destination</code> in an extension <code>_pkgdown.yml</code> does not end in the package name;</li>
+<li>an installed package version differs from its <code>DESCRIPTION</code>. pkgdown renders the <em>installed</em> package, so a stale install publishes stale output.</li>
+</ul><p>To rebuild one site while you work, name it and lower the count:</p>
+<pre><code>Rscript dev/release/build-docs.R --dest=/tmp/one \
+  --pkgs=frmtmb.eam --min-sites=1</code></pre>
+<p>A partial tree has dead navbar links, so the script says so and skips the whole-tree checks. Do not deploy one.</p>
+<div class="section level3">
+<h3 id="articles-that-do-not-run-their-code">Articles that do not run their code<a class="anchor" aria-label="anchor" href="#articles-that-do-not-run-their-code"></a></h3>
+<p>Each article gates its fitted output on <code><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace()</a></code>, so a machine without a <code>Suggests</code> package renders the page with the numbers dropped and reports success. Pass <code>--require-articles</code> to turn a missing one into a failure before the build starts; CI always passes it. The script reads the list of gate packages out of the article sources, so adding a gate needs no change here.</p>
+<p>One of those packages is not on CRAN: <code>RTMBode</code>, which the whole <code>frmtmb.ode</code> article depends on, comes from <a href="https://kaskr.r-universe.dev" class="external-link uri">https://kaskr.r-universe.dev</a>.</p>
+<p><strong>No article fits a model with brms or Stan.</strong> <code>vignettes/brms-migration.Rmd</code> and the two brms articles in <code>frmtmb.sample</code> set <code>eval = FALSE</code> for the whole document, and <code>sampling.Rmd</code> runs only the chunks that need no sampler and says so on the page. CI therefore installs no Stan toolchain, and the site is not degraded by that. The brms and Stan agreement evidence is in <code>.github/workflows/brms-likelihood.yaml</code>. If you make an article fit with brms, reuse that workflow’s Stan setup in the pkgdown workflow; do not let the article render short.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="questions">Questions<a class="anchor" aria-label="anchor" href="#questions"></a></h2>

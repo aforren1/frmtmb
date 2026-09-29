@@ -71,6 +71,9 @@ bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
 
 # in a multivariate formula, resp = says which response it modifies
 bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")
-#> Warning: Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula") for "+"
-#> Error in bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x): non-numeric argument to binary operator
+#> y1 ~ x
+#> y2 ~ x
+#> y3 ~ x
+#> sigma ~ z 
+#> rescor: FALSE 
 ```

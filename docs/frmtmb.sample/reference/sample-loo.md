@@ -109,6 +109,23 @@ A `loo`, `waic`, `compare.loo` or `psis` object from the loo package.
 are brms's deprecated capitalized spellings and are defined only to name
 their replacements.
 
+## A time series, and what is left out
+
+On a model with brms's default `cov = FALSE`
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` or `arma()` term, a
+column of the
+[`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html)
+matrix is the density of one row GIVEN THE OBSERVED EARLIER ROWS of its
+group, the one-step-ahead density. That is what brms's
+[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+returns, so this is brms's elpd. It also fixes what the estimate means:
+leaving out column `t` leaves out one conditional density, not the
+series and not the row's influence on its neighbors, because every
+retained column still reads `y_t` through its own lagged residuals. Read
+it as "how well the one-step density fits each row", and refit without a
+group for a held-out-series answer. The `cov = TRUE` covariance form is
+refused instead: there no column is an observation.
+
 ## Priors, and what these numbers mean
 
 These are posterior quantities, and they inherit the standing of the

@@ -1,13 +1,55 @@
 # Changelog
 
+## frmtmb.sample 0.13.0
+
+Needs frmtmb 0.65.0, for
+[`arma_cond_resp()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
+and
+[`arma_cond_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html).
+With an older frmtmb the package installs and loads, and then
+[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html),
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) and
+[`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+stop at their first call with “could not find function”.
+
+- **[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+  and [`loo()`](https://mc-stan.org/loo/reference/loo.html) now work on
+  brms’s default `cov = FALSE` form of
+  [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`**,
+  which was refused before. A row’s log-density is taken at brms’s
+  one-step conditional mean, the regression on the group’s earlier
+  OBSERVED residuals, so a column is an observation and the columns
+  multiply to the whole likelihood. It matches
+  [`brms::log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+  cell for cell at the same parameter values (gaussian `ar(1)` bitwise;
+  student `arma(1,1)` and `arma(1,1) + (1 | g)` to 4.4e-15 absolute),
+  and [`loo()`](https://mc-stan.org/loo/reference/loo.html),
+  [`waic()`](https://mc-stan.org/loo/reference/waic.html) and
+  [`psis()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)
+  follow. [`loo()`](https://mc-stan.org/loo/reference/loo.html)’s help
+  says what that makes the estimate: PSIS-LOO over these columns leaves
+  out one CONDITIONAL density, the one-step-ahead density of a row given
+  its observed past, and not the series. The `cov = TRUE` covariance
+  form, `cosy()` and `unstr()` stay refused, because there the smallest
+  independent unit is a whole group; the refusal now names the form that
+  does factor.
+
+- A draws object with no `stanfit` behind it no longer errors in
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html):
+  `x$stanfit@sim` is an error and not a `NULL` on such an object, so the
+  chain identifier could not be read at all.
+
 ## frmtmb.sample 0.12.0
 
-Needs frmtmb 0.64.0, for `rescor_row_loglik()` and `fit_extras(resp =)`.
+Needs frmtmb 0.64.0, for
+[`rescor_row_loglik()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
+and `fit_extras(resp =)`.
 
 - **[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
   on a Student-t `rescor` model used the gaussian joint density.** It
-  now uses the multivariate t through frmtmb’s `rescor_row_loglik()`; on
-  the test fixture the old value was 38.6 log units off. On a
+  now uses the multivariate t through frmtmb’s
+  [`rescor_row_loglik()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html);
+  on the test fixture the old value was 38.6 log units off. On a
   multivariate model with an ordinal response, each response reads its
   own thresholds.
 

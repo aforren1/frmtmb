@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -153,6 +153,21 @@ returns): the multivariate normal of a gaussian model or the
 multivariate t of a Student-t one, with its one shared <code>nu</code>. A
 pointwise <code><a href="log_lik.html">log_lik()</a></code> of a <code>rescor</code> model reads it rather than
 assuming the normal.</p>
+<p><code>arma_cond_resp(fit)</code> names the responses carrying brms's default
+<code>cov = FALSE</code> form of <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code> or <code>arma()</code>, and
+<code>arma_cond_dpars(fit, dpv)</code> gives the whole <code><a href="frmtmb-extension-api.html">eval_dpars()</a></code> list back
+with each such response's <code>mu</code> moved to brms's one-step conditional
+mean, the regression on the earlier OBSERVED residuals of the row's
+group. The two answer one question between them: whether a pointwise
+log-density exists, and what <code>mu</code> it is evaluated at. Under
+<code>cov = FALSE</code> every row keeps the family's own density, so a
+<code><a href="log_lik.html">log_lik()</a></code> column is an observation; a <code>cov = TRUE</code> covariance block
+has no such column, because its smallest independent unit is a whole
+group. Call <code>arma_cond_dpars()</code> before <code>row_lpdf()</code> (and before
+<code>rescor_row_loglik()</code>), which is the order the taped objective uses
+and which makes the row density read the objective's own <code>mu</code> instead
+of a second one. It is safe to call unconditionally: with no such
+block it returns <code>dpv</code> unchanged.</p>
     </div>
     <div class="section level2">
     <h2 id="the-prior-seam">The prior seam<a class="anchor" aria-label="anchor" href="#the-prior-seam"></a></h2>

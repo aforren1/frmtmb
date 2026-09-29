@@ -72,15 +72,19 @@ frm_linpred(
   Predict unseen grouping-factor levels at the population level instead
   of erroring. A factor-smooth term (`bs = "fs"`) follows the same rule:
   a level it never saw contributes nothing, which leaves the population
-  curve.
+  curve. A smooth with an `re` basis or margin cannot, because its
+  design has one column per fitted level and no zero row, so an unseen
+  level there is refused by name.
 
-  It also makes the grouping COLUMN optional, as it does in brms
-  (`validate_newdata()`: "grouping factors do not need to be specified
-  by the user if new levels are allowed"). A column `newdata` does not
-  carry is filled with `NA`, so every row is an unseen level. Without
-  `allow_new_levels` a missing grouping column is refused by name, and
-  the refusal offers this argument and `re_formula = NA`, which drops
-  the random effects instead.
+  For a `(x | g)` term it also makes the grouping COLUMN optional, as it
+  does in brms (`validate_newdata()`: "grouping factors do not need to
+  be specified by the user if new levels are allowed"). A column
+  `newdata` does not carry is filled with `NA`, so every row is an
+  unseen level. Without `allow_new_levels` a missing grouping column is
+  refused by name, and the refusal offers this argument and
+  `re_formula = NA`, which drops the random effects instead. A SMOOTH
+  term's grouping column is never optional: `re_formula` does not remove
+  the term, so the basis has to be rebuilt at a named level.
 
 - ...:
 
@@ -184,20 +188,19 @@ standard error, and from
 grouping column is not needed in `newdata`, and a level of it the fit
 never saw is not an error.
 
-Two cases are refused. A formula term that matches no term of the fit is
+One case is refused: a formula term that matches no term of the fit is
 an error that names it, because a misspelled grouping factor would
 otherwise change the answer with nothing said; brms drops such a term
-silently. And a formula that keeps SOME terms is refused on a fit that
-also has group-level content a formula cannot name, such as a
-factor-smooth term: `NA` drops that content and `NULL` keeps it, and a
-partial formula cannot say which.
+silently. A `car()` or `spde()` field is a group-level term named by its
+grouping factor, `(1 | loc)`, so a formula keeps or drops it like any
+other. A smooth is not a group-level term: it stays at every
+`re_formula`, a partial one included, as in brms.
 
 ## What `re_formula = NA` drops
 
-`re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
-prediction. Every `(x | g)` block is dropped, and so is any smooth whose
-basis gives each level of a grouping factor its own curve. Everything
-else stays.
+`re_formula = NA` (equivalently `~0` or `~1`) asks for the
+POPULATION-level prediction. It removes the `(x | g)` group-level terms
+and nothing else. Every SMOOTH stays in.
 
 Dropped:
 
@@ -205,54 +208,77 @@ Dropped:
   `cs()`, [`ar()`](https://rdrr.io/r/stats/ar.html), `mm()`, `car()`,
   `spde()`, ...).
 
-- `s(t, g, bs = "fs")`, the factor-smooth interaction: one curve per
-  level of `g`, so the curves ARE the group deviations.
-
-- `s(g, bs = "re")` and `s(x, g, bs = "re")`, which are a random
-  intercept and a random slope written as a smooth.
-
-- `t2(t, g, bs = c("cr", "re"))` and any other tensor product with an
-  `re` margin, which is the same random smooth in a different spelling.
-
 Kept:
 
-- `s(t)`, `s(t, by = x)`, `te()`, `t2()`, and every other population
-  smooth. A smooth's wiggly part is stored as a random-effect block
-  because that is how a penalty is written as a mixed model, but the
-  term is a population effect and the population prediction is the
-  fitted curve, not the null-space line through it.
+- `s(t)`, `s(t, by = x)`, `t2()` and every other smooth. A smooth's
+  wiggly part is stored as a random-effect block because that is how a
+  penalty is written as a mixed model, but the term is part of the
+  formula and the population prediction is the fitted curve, not the
+  null-space line through it.
+
+- `s(t, g, bs = "fs")`, `s(g, bs = "re")`, `s(x, g, bs = "re")` and
+  `t2(t, g, bs = c("cr", "re"))`: a smooth whose basis gives each level
+  of a grouping factor its own curve is still a smooth. It is kept, at
+  each row's own level.
 
 - `gp()` and `hsgp()` terms.
 
-The test is what the basis MEANS, not the `bs` string: `bs = "sz"` names
-a factor the way `bs = "fs"` does, but writes the level curves as
-contrasts against a reference level, which is mgcv's spelling for a
-factor whose levels are fixed effects, so it would count as
-population-level. (`sz` has no random-effect representation, so it is
-not fittable here at all; the classification is stated for
-completeness.)
+This is brms's rule.
+[`brms::posterior_epred()`](https://mc-stan.org/rstantools/reference/posterior_epred.html)
+at `re_formula = NA` is BITWISE the same as at `re_formula = NULL` on a
+fit whose only group-indexed content is `s(g, bs = "re")`,
+`s(x, g, bs = "fs")` or a `t2()` with an `re` margin, and differs on
+`s(x) + (1 | g)` (measured: `dev/resmooth-brms.txt`). Through 0.64.0
+frmtmb dropped those three, which answered a different model: on
+`y ~ s(x, g, bs = "fs")` the whole fitted structure went, so
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+drew a FLAT line and the default
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+compared the data against draws whose per-row spread was 2.93 times the
+fitted sigma.
 
-The result is `mgcv::predict.gam(exclude = )` on the factor-smooth term,
-and `tests/testthat/test-smooth-population.R` asserts the two agree to
-1e-6 on a shared fit.
+The test is what the basis MEANS, not the `bs` string, because the
+grouping factor still has to be named for `newdata` and still may not be
+a level the fit did not see.
 
-This deliberately follows mgcv rather than brms: brms stores every
-smooth's wiggly part as population parameters, so its `re_formula = NA`
-KEEPS factor-smooth curves. A ported brms call with a `bs = "fs"` term
-therefore returns different numbers here, on purpose: the retained
-per-level curve is not a population quantity, and mgcv, the authority
-frmtmb's smooth estimation already follows, drops it too.
+In `mgcv`'s spelling the answer is `predict.gam()` with the group-level
+intercept excluded and every smooth left in, which
+`tests/testthat/test-smooth-population.R` asserts (the two packages'
+independent fits agree to about 8e-7 relative).
 
-A dropped factor-smooth term needs nothing from `newdata`, so the
-grouping column may be left out entirely when `re_formula = NA`. It is
-required for a conditional prediction, and its absence is reported by
-name rather than by an mgcv internal message.
+A kept factor-smooth term reads its grouping column from `newdata` at
+every `re_formula`, and `re_formula = NA` is not a way around a missing
+column or an unseen level. brms refuses both too, and not through its
+group-level machinery: the grouping factor of a smooth is an ordinary
+predictor there, so a missing column is a missing variable and a new
+level is "New factor levels are not allowed" whatever `allow_new_levels`
+says. frmtmb refuses by name, and keeps one opt-in brms does not have:
+under `allow_new_levels = TRUE` an unseen level of an `fs` term takes
+the population curve, because mgcv's `fs` basis returns a zero row for a
+level it does not know. An `re` basis or margin has one column per
+fitted level and no such row, so an unseen level there is refused either
+way.
+
+Because the basis is now rebuilt at every `re_formula`, one fittable
+term is left with no `newdata` route at all: a factor smooth that also
+carries a `by =` factor, `s(x, g, bs = "fs", by = f)`. mgcv's
+random-effect split of that basis is one this version cannot invert, so
+`predict(newdata = )`, `fitted(newdata = )`, `frm_linpred(newdata = )`
+and
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+all stop with that named error at every `re_formula`, where
+`re_formula = NA` used to answer by dropping the term. What it answered
+was the intercept at every row, so the refusal replaces a flat line and
+not a curve. In-sample
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+`frm_linpred()` on such a fit work as they always did.
 
 [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
-draws its curves at the population level, so it follows this rule too:
-on a model with a factor-smooth term the displayed curve is the
-population smooth, and the grouping factor is not offered as an effect
-to plot.
+passes `re_formula = NA`, so it follows this rule too: on a model with a
+factor-smooth term the displayed curve is the curve of the grouping
+factor's REFERENCE level, which is where the display holds every
+predictor it is not varying, and the grouping factor is not offered as
+an effect to plot.
 
 ## Standard errors of the expected response
 

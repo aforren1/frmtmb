@@ -134,9 +134,16 @@ a formula keeps some columns of a term and drops others, as `~ (1 | g)`
 does on a `(1 + x | g)` fit, the dropped columns are drawn given the
 kept ones at their estimates.
 
-A population smooth, `gp()` or `hsgp()` curve is not a group-level term
-and is never redrawn. A factor-smooth term is, with the other
-group-level terms.
+A SMOOTH is never redrawn, `gp()` and `hsgp()` curves included and a
+smooth indexed by a grouping factor included (`s(g, bs = "re")`,
+`s(x, g, bs = "fs")`, a `t2()` with an `re` margin). Its coefficients
+are penalized coefficients of a term of the formula, not group effects,
+and `re_formula = NA` keeps every smooth as brms does, so the draws at
+`NA` are the conditional draws on a fit whose only group-indexed content
+is a smooth.
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+is the exception and asks for the other thing on purpose: a whole-model
+parametric bootstrap redraws every block, smooths included.
 
 ## New data
 
@@ -147,11 +154,14 @@ the level, so newdata must carry the grouping column. A level the fit
 never saw is an error unless `allow_new_levels = TRUE`, which draws its
 effect from the term's estimated distribution, as
 [`predict()`](https://rdrr.io/r/stats/predict.html) does. Under
-`re_formula = NA` (or `~0`, `~1`) every term is redrawn anyway, so an
-unseen level is one more fresh level and needs nothing, except on a fit
-with a factor-smooth term: there an unseen level takes the population
-curve under `allow_new_levels = TRUE`, as in
-[`predict()`](https://rdrr.io/r/stats/predict.html), and is not redrawn.
+`re_formula = NA` (or `~0`, `~1`) every group-level term is redrawn
+anyway, so an unseen level of one is one more fresh level and needs
+nothing. A SMOOTH indexed by a grouping factor is not redrawn and not
+dropped, so it is the exception at every `re_formula`: newdata must
+carry its grouping column, and an unseen level is refused unless
+`allow_new_levels = TRUE`, which gives it the population curve for an
+`fs` basis and is refused for an `re` basis or margin, exactly as in
+[`predict()`](https://rdrr.io/r/stats/predict.html).
 
 ## Censored responses
 

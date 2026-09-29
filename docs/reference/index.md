@@ -311,6 +311,8 @@
   [`brms_prob_cols`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`brms_fixef_rows`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`rescor_row_loglik`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`arma_cond_resp`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`arma_cond_dpars`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)

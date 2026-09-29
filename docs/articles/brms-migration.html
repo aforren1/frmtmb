@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -498,6 +498,37 @@ needs pooled tests, which brms gets for free from the posterior:
 <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> fits with the D1, D2 and D3 rules of
 <code>mice</code> (D3 by default). Mixture fits are ML: expect
 multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</p></li>
+<li>
+<p><strong><code>cs()</code> refuses a column written on both
+sides</strong>, where brms fits it. <code>y ~ x + cs(x)</code> is not
+identified: adding a constant to the population-level coefficient of
+<code>x</code> and subtracting the same constant from every one of its
+category-specific coefficients leaves the likelihood unchanged. brms
+builds both blocks and samples the ridge; maximum likelihood has no
+prior to hold it, so frmtmb refuses and says to write
+<code>y ~ cs(x)</code>, which fits the same set of distributions. The
+same holds for <code>y ~ f + cs(f)</code> on a factor and for a constant
+<code>cs()</code> column. The check is a rank test, so it also covers a
+column that only a basis spells differently:
+<code>y ~ poly(x, 2) + cs(x)</code> is refused and
+<code>y ~ I(x^2) + cs(x)</code> is the edit that keeps the quadratic,
+while <code>y ~ s(x) + cs(x)</code> has no spelling that keeps both,
+because it is the smooth’s own unpenalized linear column that is
+aliased. <code>mo()</code> beside a <code>cs()</code> on the same
+predictor is refused too, a monotone function of the categories always
+lying inside the span <code>cs()</code> already gives them. brms builds
+both blocks in every one of these. <code>mi()</code> and
+<code><a href="../reference/frmtmb-me.html">me()</a></code> are not checked, their design column being a
+placeholder at assembly, so <code>me(x, sdx) + cs(x)</code> is accepted
+as it is in brms.</p>
+<p>Everything else about <code>cs()</code> is brms’s: a factor or a
+character predictor becomes treatment-contrast dummies with one
+coefficient per dummy per category boundary, named
+<code>bcs_fb[k]</code> the way brms names them, <code>newdata</code> is
+recoded against the fit’s levels, an unused level’s column is dropped as
+brms drops it, and a multivariate fit takes <code>cs()</code> in any
+response.</p>
+</li>
 <li><p><code>thres()</code> works on the four ordinal families.
 <code>y | thres(K) ~ x</code> sets the number of thresholds, and
 <code>y | thres(gr = g) ~ x</code> fits one threshold vector per level

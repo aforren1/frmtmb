@@ -21,7 +21,7 @@ plot.frmtmb_influence() draws all three."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -135,6 +135,30 @@ error naming it, rather than silently changing nothing.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>frmtmb_influence</code> object: <code>fixed</code> and <code>theta</code> matrices
 (one row per deleted unit) plus the full-data reference.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Each deletion refits the same model, so an ordinal response keeps the
+threshold count of the full-data fit, and the per-level counts of
+<code>thres(gr = )</code>, whether the response is coded as integers, as a
+character vector or as an ordered factor. Deleting the last
+observation in ANY category, bottom, interior or top, leaves that
+category's threshold in the model and unidentified, which shows as a
+large displacement in its column, never as a shorter row or a
+coefficient under the next column's name.</p>
+<p>Two deletions cannot refit the fitted model at all and are refused by
+name. A <code>groups = </code> deletion that removes a whole level of
+<code>thres(gr = )</code> takes away every observation behind that level's
+thresholds, so they could only be invented. <code>data = </code> holding a
+response category outside the fitted model's threshold layout, or a
+<code>thres(gr = )</code> level the fit never saw, describes a different model. A
+category the fit never OBSERVED is not outside that layout when
+<code>thres(K)</code> declared it, so <code>data = </code> may reach one of those.</p>
+<p>A refit that fails for any reason, these two included, leaves its row
+<code>NA</code>, and the failures are counted. When some units failed the table
+comes back with a warning carrying the count and the first reason;
+when every unit failed there is no table to hand back, so that first
+reason is raised as an error instead of a silent matrix of <code>NA</code>.</p>
     </div>
 
     <div class="section level2">

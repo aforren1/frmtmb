@@ -41,8 +41,10 @@ frm_lp_basis(
 
 - re_formula:
 
-  `NULL` keeps every random effect, `NA` drops them all, a one-sided
-  formula keeps the ones it names.
+  `NULL` keeps every random effect, `NA` drops the group-level terms and
+  keeps every smooth, a one-sided formula keeps the terms it names. See
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+  for the full rule.
 
 - allow_new_levels:
 

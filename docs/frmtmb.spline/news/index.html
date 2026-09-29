@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,18 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.spline/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.0" id="frmtmbspline-090">frmtmb.spline 0.9.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-090"></a></h2>
+<ul><li>Needs frmtmb 0.65.0. <code><a href="../reference/frm_curve.html">frm_curve()</a></code> and its relatives take <code>re_formula</code> from core, which from 0.65.0 keeps every smooth under <code>re_formula = NA</code>, one indexed by a grouping factor included. The help pages say so, and <code>test-curve.R</code> asserts the new rule, so it fails against an older frmtmb.</li>
+<li>
+<code><a href="../reference/frm_curve.html">frm_curve()</a></code>, <code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code> and <code><a href="../reference/frm_curve_feature.html">frm_curve_feature()</a></code> take <code>allow_new_levels = FALSE</code> and pass it to every <code>frm_lp_basis()</code> and <code>frm_linpred()</code> call they make, so the design, the estimate and the covariance check read the same rows. With <code>TRUE</code> at a subject the fit did not see, a model with <code>s(t, subject, bs = "fs")</code> gives its POPULATION curve: the factor smooth contributes a row of zeros and no variance, so the band is the uncertainty of the population smooth alone. The standard errors are <code><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical()</a></code> to the seam restricted to the intercept and <code>s(t)</code> columns, and agree with mgcv’s <code>predict.gam(exclude = )</code> to a ratio between 1.000 and 1.004.</li>
+<li>The <code>curve-inference</code> vignette failed <code>R CMD build</code> against frmtmb 0.65.0: it drew the population curve on a grid with no <code>subject</code> column at <code>re_formula = NA</code>, which now keeps the factor smooth. It now names an unseen subject with <code>allow_new_levels = TRUE</code>, and its prose no longer says that <code>re_formula = NA</code> drops the per-subject curves. Every number it prints is unchanged from 0.8.0.</li>
+<li>
+<code>frm_curve(contrast = , allow_new_levels = TRUE)</code> refuses when either grid carries variance that is not coefficient uncertainty. An unseen level of a <code>(1 | g)</code> term loads no design column, so two different unseen levels look like one. Without the refusal their independent draws cancel and the difference standard error is exactly 0.</li>
+<li>With <code>allow_new_levels = TRUE</code> and a grid row at an unseen level of a term <code>re_formula</code> keeps, such as <code>(1 | g)</code> at <code>NULL</code>, <code>frm_curve(simultaneous = TRUE)</code>, <code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code> and <code><a href="../reference/frm_curve_feature.html">frm_curve_feature()</a></code> refuse and name the grouping factor. One unseen level is one draw shared by every row, <code>frm_lp_basis()</code> returns its variance one number per row, and all three build their answer from <code>A V A'</code> without it. Measured before the refusal: a simultaneous critical value of 0.646 where the full covariance gives 2.146, derivative standard errors 0.40 to 0.50 of the right ones, feature standard errors about a quarter. The pointwise <code><a href="../reference/frm_curve.html">frm_curve()</a></code> band adds that variance and is answered.</li>
+<li>
+<code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code> and <code><a href="../reference/frm_curve_feature.html">frm_curve_feature()</a></code> on a stored curve reuse its <code>allow_new_levels</code> only when the call does not supply the argument. A supplied value wins, <code>FALSE</code> included.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.8.0" id="frmtmbspline-080">frmtmb.spline 0.8.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-080"></a></h2>
 <ul><li>

@@ -13,7 +13,7 @@ and handed to the corresponding bayesplot ppc_* function
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,7 +152,9 @@ one.</p></dd>
 <dd><p>The random-effect switch, in brms's spelling
 (<code>pp_check()</code> is a brms function). On a fit it is passed to
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and defaults to <code>NA</code>, which redraws every group-level
-effect in each replicate; <code>~0</code> and <code>~1</code> mean the same, and a
+effect in each replicate and holds every SMOOTH at its estimate,
+a smooth indexed by a grouping factor included; <code>~0</code> and <code>~1</code> mean
+the same, and a
 one-sided formula keeps the terms it names and redraws the rest
 (see <code><a href="simulate.frmtmb_fit.html">simulate.frmtmb_fit()</a></code>). On draws it is passed to
 <code>posterior_predict()</code> and

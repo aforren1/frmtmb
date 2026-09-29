@@ -128,9 +128,13 @@ This is the model brms 2.23.0 fits for
 own density at \\\mu^\*\_t\\. The MA part enters \\e\\ and the AR part
 does not, exactly as in brms's Stan code. So:
 
-- It is a CONDITIONAL likelihood. A group's first rows get no lagged
-  term, rather than the stationary distribution the covariance form
-  gives them. For one series this is the conditional sum of squares of
+- It is a CONDITIONAL likelihood. A group starts with no residuals
+  behind it, so lag \\i\\ first reaches the row at within-group position
+  \\i + 1\\: the FIRST row of a group gets no lagged term, a row at
+  position \\k\\ gets only the lags up to \\k - 1\\, and from position
+  \\\max(p, q) + 1\\ onward a row gets all of them. None of the opening
+  rows gets the stationary distribution the covariance form gives them.
+  For one series this is the conditional sum of squares of
   `stats::arima(method = "CSS")`.
 
 - The coefficients `ar[i]` and `ma[i]` are unconstrained reals, as in
@@ -180,7 +184,20 @@ does not, exactly as in brms's Stan code. So:
   and `emmeans()` drop the term, as brms's do.
   [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
   and `residuals(type = "osa")` are refused: this form defines no
-  correlation matrix, and its tape reads the response as data.
+  correlation matrix, and its tape reads the response as data. A
+  POINTWISE log-density exists for this form and not for the covariance
+  one below, because each row keeps its own density: one row's density
+  given its group's observed past, which is what brms's
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+  returns.
+  [`arma_cond_resp()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  and
+  [`arma_cond_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  ([frmtmb-sampling-api](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md))
+  are what a sampling extension reads to build it. Whether the installed
+  `frmtmb.sample` does is that package's own question, and its
+  [`?log_lik`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+  answers it.
 
 ## Families
 
@@ -322,11 +339,34 @@ autocor_matrix(fit)
 # brms's default residual-regression form: mu gains ar * (y - mu) of
 # the previous row of the same subject
 fit0 <- frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
-#> Error: ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
 summary(fit0)
-#> Error: object 'fit0' not found
+#>  Family: gaussian 
+#>  Links: mu = identity; sigma = log
+#> 
+#> Formula: y ~ x + ar(week, subj) 
+#>    Data: d (Number of observations: 150) 
+#>  Method: ML   logLik: -214.929   AIC: 437.857   BIC: 449.9 
+#> 
+#> Correlation Structures:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> ar[1]     0.52      0.08     0.37     0.68
+#> 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.12      0.13     0.86     1.38    8.35  < 2e-16
+#> x             0.47      0.08     0.31     0.63    5.83  5.6e-09
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     1.01      0.06     0.91     1.14
 head(fitted(fit0))
-#> Error: object 'fit0' not found
+#>       Estimate  Est.Error      Q2.5     Q97.5
+#> [1,] 0.8236445 0.14500898 0.5394321 1.1078568
+#> [2,] 1.3714204 0.08119606 1.2122791 1.5305617
+#> [3,] 0.7952454 0.10168270 0.5959510 0.9945399
+#> [4,] 1.7156542 0.17628053 1.3701507 2.0611577
+#> [5,] 0.6977303 0.11448848 0.4733370 0.9221236
+#> [6,] 0.7316398 0.15168802 0.4343367 1.0289428
 
 # compound symmetry, and the unstructured correlation over the five
 # weeks

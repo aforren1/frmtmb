@@ -103,18 +103,21 @@ conditional_effects(
 
   The population switch, in brms's spelling: `NA` (the default) draws
   the population-level curve, `NULL` conditions on a NEW, unobserved
-  group, and a one-sided formula keeps the named terms for one. A new
-  group's conditional modes are zero, so its curve IS the population
-  curve and what the group costs is spread: the band carries the
-  random-effect variance on top of the coefficient uncertainty, and the
-  grouping column of the returned frame is `NA` to say which group it
-  is. `band = "boot"` carries it too, by drawing that group's effects
-  once per bootstrap replicate rather than by adding a variance. To
-  condition on an OBSERVED group, name it in `conditions`
-  (`conditions = list(g = "3")`). brms draws a new group's random
-  effects afresh from the fitted covariance in every posterior draw, so
-  its curve is stochastic around this one; a maximum-likelihood fit has
-  the mode and the variance instead of draws.
+  group, and a one-sided formula keeps the named terms for one. `NA`
+  removes the `(x | g)` group-level terms and keeps every SMOOTH, as
+  brms does, so on a model with `s(x, g, bs = "fs")` the drawn curve is
+  the grouping factor's reference level's, that being where the display
+  holds a predictor it is not varying. A new group's conditional modes
+  are zero, so its curve IS the population curve and what the group
+  costs is spread: the band carries the random-effect variance on top of
+  the coefficient uncertainty, and the grouping column of the returned
+  frame is `NA` to say which group it is. `band = "boot"` carries it
+  too, by drawing that group's effects once per bootstrap replicate
+  rather than by adding a variance. To condition on an OBSERVED group,
+  name it in `conditions` (`conditions = list(g = "3")`). brms draws a
+  new group's random effects afresh from the fitted covariance in every
+  posterior draw, so its curve is stochastic around this one; a
+  maximum-likelihood fit has the mode and the variance instead of draws.
   [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
   spells the same setting the same way; lme4's `re.form` is refused and
   says so. `band = "profile"` exists only for the population-level

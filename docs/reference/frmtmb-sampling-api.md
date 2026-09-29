@@ -77,6 +77,24 @@ multivariate t of a Student-t one, with its one shared `nu`. A pointwise
 [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md) of
 a `rescor` model reads it rather than assuming the normal.
 
+`arma_cond_resp(fit)` names the responses carrying brms's default
+`cov = FALSE` form of [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`
+or `arma()`, and `arma_cond_dpars(fit, dpv)` gives the whole
+[`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+list back with each such response's `mu` moved to brms's one-step
+conditional mean, the regression on the earlier OBSERVED residuals of
+the row's group. The two answer one question between them: whether a
+pointwise log-density exists, and what `mu` it is evaluated at. Under
+`cov = FALSE` every row keeps the family's own density, so a
+[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+column is an observation; a `cov = TRUE` covariance block has no such
+column, because its smallest independent unit is a whole group. Call
+`arma_cond_dpars()` before `row_lpdf()` (and before
+`rescor_row_loglik()`), which is the order the taped objective uses and
+which makes the row density read the objective's own `mu` instead of a
+second one. It is safe to call unconditionally: with no such block it
+returns `dpv` unchanged.
+
 ## The prior seam
 
 The prior VOCABULARY -

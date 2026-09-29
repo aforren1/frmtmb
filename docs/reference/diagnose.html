@@ -19,7 +19,7 @@ off the estimates rather than the Hessian)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -128,6 +128,45 @@ tails are heavier than any identified <code>nu</code> can hold. The check
 names that too, with a large NEGATIVE estimate and a natural-scale
 value of one, and there <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code> is the wrong answer: the data
 is the message, and a prior is the way to hold <code>nu</code> finite.</p>
+<p>THE GRADIENT is reported four ways, because the largest component on
+its own is not a convergence verdict. <code>max_grad</code> and <code>worst_grad</code> are
+that largest component and its parameter. <code>grad_bound_held</code> names the
+parameters a bound holds in place, whose gradient points out of the
+feasible set and is the KKT condition rather than a failure, and
+<code>grad_proj</code> and <code>grad_proj_par</code> are the largest component over the rest
+and the parameter it belongs to. On a bounded fit <code>worst_grad</code> and
+<code>grad_proj_par</code> are DIFFERENT parameters, and <code>grad_proj_par</code> is the one
+the verdict is about. <code>grad_headroom</code> is the log likelihood one exact
+Newton step over those parameters would still buy, which is what the
+fit warns on; it is <code>NA</code> when <code>grad_proj</code> stayed under
+<code>frmtmb_control(grad_tol =)</code>, so nothing had to be measured, and also
+when the curvature there is unusable.</p>
+<p>TWO SCALES, on an autoscaled fit. <code>max_grad</code> and <code>worst_grad</code> are read
+off the RAW gradient, because that is what they have always been and
+what extension test suites compare to a log likelihood. <code>grad_proj</code>,
+<code>grad_proj_par</code> and the warning are in the per-parameter units
+<code>frmtmb_control(autoscale = )</code> judges the fit in, which is where a
+badly scaled column's coefficient is not swamped by its own scale. So
+on a fit that was standardized internally the two are not comparable:
+1001 against 1.685 on one measured example. The printed block says so
+when it applies. <code>grad_headroom</code> is invariant to that scaling, because
+a Newton decrement is invariant under any reparameterization.</p>
+<p><code>grad_headroom</code> costs a Hessian, and it is measured only when
+<code>grad_proj</code> exceeds <code>grad_tol</code>. A fit that already warned carries the
+answer on it, so <code>diagnose()</code> is free there; a fit whose cache was
+replaced, which is what perturbing the estimates does, pays between
+0.13 and 0.45 s on the large latent-variable designs this package was
+timed on.</p>
+<p>NOT ON AN IMPORTANCE-CORRECTED FIT. <code>frm(importance = )</code> optimizes a
+Monte Carlo estimate, whose gradient carries an O(N^-1/2) error, so no
+gradient criterion applies to it at all. <code>grad_proj</code>, <code>grad_proj_par</code>
+and <code>grad_headroom</code> are <code>NA</code> there and the printed block says why. That
+fit's accuracy report is its effective sample sizes and its
+round-to-round move, and its gradient is in <code>fit$importance$grad</code>.
+"No convergence problems detected" is still decided there, by
+<code>max_grad</code> against <code>frmtmb_control(grad_tol =)</code>: an absent verdict is
+not a complaint, and withholding the line from every such fit would
+report a problem on fits that have none.</p>
 <p>A FLAT DIRECTION is an outer parameter the likelihood does not depend
 on: zero gradient and an empty Hessian row. It separates the two
 causes of <code>NaN</code> standard errors. Parameters that trade off against

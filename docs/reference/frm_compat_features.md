@@ -53,7 +53,7 @@ head(frm_compat_features())
 table(frm_compat_features()$kind)
 #> 
 #>     aterm   autocor covstruct    family   grammar    method      mode   special 
-#>        13         5        24        49         5        12         9         7 
+#>        14         5        24        51         7        12         9         8 
 #> structure 
 #>         6 
 ```

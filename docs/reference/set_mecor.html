@@ -11,7 +11,7 @@ set_mecor(FALSE) to a formula to model them as independent."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,9 +109,7 @@ formula built with <code><a href="bf.html">bf()</a></code> or <code><a href="mvb
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># independent latent values</span></span></span>
 <span class="r-in"><span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu"><a href="frmtmb-me.html">me</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">sx</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="frmtmb-me.html">me</a></span><span class="op">(</span><span class="va">z</span>, <span class="va">sz</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu">set_mecor</span><span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in set_mecor(FALSE):</span> could not find function "set_mecor"</span>
 <span class="r-in"><span><span class="va">fit0</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="va">f0</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'f0' not found</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -13,7 +13,7 @@ mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ x))."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -113,14 +113,24 @@ with <code>resp =</code>.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># three responses, one family for all of them</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y1</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y2</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y3</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula") for "+"</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x):</span> non-numeric argument to binary operator</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1 ~ x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2 ~ x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y3 ~ x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> rescor: FALSE </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a family per response, and a dpar formula for the third response</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">o</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="frmtmb-families.html">cumulative</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y1</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y2</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="lf.html">lf</a></span><span class="op">(</span><span class="va">sigma</span> <span class="op">~</span> <span class="va">x</span>, resp <span class="op">=</span> <span class="st">"y2"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula") for "+"</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in bf(o ~ x) + cumulative() + bf(y1 ~ x) + gaussian() + bf(y2 ~     x):</span> non-numeric argument to binary operator</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> o ~ x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: cumulative </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1 ~ x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2 ~ x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> rescor: FALSE </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

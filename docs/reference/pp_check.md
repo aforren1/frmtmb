@@ -82,9 +82,10 @@ pp_check(
   The random-effect switch, in brms's spelling (`pp_check()` is a brms
   function). On a fit it is passed to
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) and defaults to
-  `NA`, which redraws every group-level effect in each replicate; `~0`
-  and `~1` mean the same, and a one-sided formula keeps the terms it
-  names and redraws the rest (see
+  `NA`, which redraws every group-level effect in each replicate and
+  holds every SMOOTH at its estimate, a smooth indexed by a grouping
+  factor included; `~0` and `~1` mean the same, and a one-sided formula
+  keeps the terms it names and redraws the rest (see
   [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)).
   On draws it is passed to `posterior_predict()` and defaults to `NULL`,
   because a draw already carries its own. lme4's `re.form` is refused.

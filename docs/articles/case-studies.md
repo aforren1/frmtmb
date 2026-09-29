@@ -903,12 +903,12 @@ dord <- data.frame(y = factor(Y, ordered = TRUE), x = xo)
 fcs <- frm(bf(y ~ cs(x)) + sratio(), data = dord)
 confint(fcs)
 #>                   lwr        upr        est
-#> tau_raw_1 -1.56199837 -1.1273843 -1.3446913
-#> tau_raw_2 -0.47074653  0.2194181 -0.1256642
-#> tau_raw_3  0.19217398  0.6924868  0.4423304
-#> bcs2_1    -0.07596964  0.3784579  0.1512441
-#> bcs2_2     0.47728264  0.9677442  0.7225134
-#> bcs2_3     0.40132291  1.0910031  0.7461630
+#> tau_raw_1 -1.56199949 -1.1273864 -1.3446929
+#> tau_raw_2 -0.67583509 -0.2497143 -0.4627747
+#> tau_raw_3  0.76770573  1.4194112  1.0935585
+#> bcs2_1    -0.07596909  0.3784586  0.1512448
+#> bcs2_2     0.47728372  0.9677452  0.7225145
+#> bcs2_3     0.40132771  1.0910094  0.7461686
 ```
 
 `tau_raw` holds the thresholds themselves:
@@ -937,7 +937,7 @@ rbind(frmtmb = confint(fcs)[paste0("bcs2_", 1:3), "est"],
       # the binary question is "stop here", so the sign is reversed
       binomial_glms = -vapply(glm_fits, function(g) coef(g)[["x"]], 0))
 #>                  bcs2_1    bcs2_2    bcs2_3
-#> frmtmb        0.1512441 0.7225134 0.7461630
+#> frmtmb        0.1512448 0.7225145 0.7461686
 #> binomial_glms 0.1512442 0.7225128 0.7461606
 c(frmtmb = as.numeric(logLik(fcs)),
   sum_of_glms = sum(vapply(glm_fits, function(g) as.numeric(logLik(g)), 0)))
@@ -1460,12 +1460,20 @@ and use `bs = "fs"` when they are not.
 
 ``` r
 
-xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
+xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0,
+                 # an UNSEEN subject: mgcv's fs basis returns a zero row
+                 # for a level it does not know, so the per-subject curve
+                 # contributes nothing and this IS the population
+                 # coefficient function. re_formula = NA would not do it:
+                 # it keeps every smooth, as brms does, and removes the
+                 # (x | g) group-level terms alone
+                 subject = factor("population",
+                                  levels = c(levels(fos$subject),
+                                             "population")))
 xg1 <- transform(xg, x = 1)
-# re_formula = NA drops the per-subject fs curves, so this IS the
-# population coefficient function; no subject column is needed
-f0 <- as.numeric(frm_linpred(ffs, newdata = xg, re_formula = NA))
-f1 <- as.numeric(frm_linpred(ffs, newdata = xg1, re_formula = NA)) - f0
+f0 <- as.numeric(frm_linpred(ffs, newdata = xg, allow_new_levels = TRUE))
+f1 <- as.numeric(frm_linpred(ffs, newdata = xg1,
+                             allow_new_levels = TRUE)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -2276,10 +2284,14 @@ and each one is handled above:
   maximizes under `method = "ML"` and reports as `-gam$gcv.ubre`.
   `logLik.gam` is the unpenalized likelihood at the fit and is the wrong
   number to compare against. Section 10 compares the right pair.
-- On a model with an `fs` factor-smooth, `frm_linpred(re_formula = NA)`
-  drops the per-subject curves and gives the population coefficient
-  function directly, with no grouping column needed in `newdata`.
-  Section 10 draws its figure that way.
+- `re_formula = NA` does NOT drop an `fs` factor-smooth. It removes the
+  `(x | g)` group-level terms and keeps every smooth, which is brms’s
+  rule. To read the population coefficient function off such a model,
+  predict at an UNSEEN level of the grouping factor with
+  `allow_new_levels = TRUE`: mgcv’s `fs` basis returns a zero row for a
+  level it does not know, so the per-subject curve contributes nothing.
+  Section 10 draws its figure that way. The grouping column is needed in
+  `newdata` at every `re_formula`.
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds a shift parameter by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.

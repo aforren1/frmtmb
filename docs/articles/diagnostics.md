@@ -33,15 +33,46 @@ diagnose(fit)
 
 ## Convergence problems
 
-The warning “Large maximum absolute gradient at the optimum” means the
-optimizer stopped at a point where the objective still has slope above
-`frmtmb_control(grad_tol = 1e-3)`. Work through these in order; each
-step tells you something even when it does not fix the warning.
+The warning “Large maximum absolute gradient at the optimum” means two
+things at once, and the second one is the finding. The optimizer stopped
+where the objective still has slope above
+`frmtmb_control(grad_tol = 1e-3)`, AND one exact Newton step from there
+would still gain more than `grad_tol` in log-likelihood. The warning
+gives that second number, so it says how much the fit is short by rather
+than only that a derivative is large.
+
+A gradient alone cannot say this. The optimizer stops on a RELATIVE
+change in an objective that grows with the sample size, so the gradient
+at a perfectly good optimum grows with it too: the same gaussian design
+warned on 0 of 20 replicates at 200 rows and 20 of 20 at 20,000. A
+parameter sitting on a bound from `set_prior(ub = )` also has a nonzero
+gradient by construction, because the constrained optimum is the bound.
+Neither is counted now.
+
+The check has one blind spot, and it is worth knowing because the remedy
+is a setting rather than a refit. The gradient is what admits a fit to
+the second reading, so a fit whose gradient never reaches `grad_tol` is
+never looked at. A predictor column scaled far below one does that: it
+holds the gradient down while the coefficient stalls. With
+`autoscale = FALSE` and a column spread of `1e-7` a gaussian fit reports
+convergence at a gradient of `1.6e-5` and a log-likelihood 297 units
+below the standardized fit of the same data, silently. The default
+`autoscale` rule is what closes it, and
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+names badly scaled columns whether or not the gradient noticed.
+
+Work through these in order; each step tells you something even when it
+does not fix the warning.
 
 1.  **Identify the parameter.** `diagnose(fit)` prints the largest
-    gradient component and its name. A coefficient of a continuous
-    predictor points to scaling; a `theta_*` component points to a
-    variance-parameter problem, and
+    gradient component and its name, the parameters a bound holds in
+    place, the largest gradient over the rest WITH its own parameter,
+    and the log-likelihood still on the table. On a fit with an active
+    bound those are two different parameters, and the one beside the
+    projected gradient is the one to work on: the other is pinned and
+    cannot move. A coefficient of a continuous predictor points to
+    scaling; a `theta_*` component points to a variance-parameter
+    problem, and
     [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
     flags extreme values (a log-SD far below zero is a variance
     collapsing to its boundary, which is a model issue, not an optimizer
@@ -68,12 +99,17 @@ step tells you something even when it does not fix the warning.
     the term and regularize with
     `prior = set_prior("exponential(1)", class = "sd")` (a MAP fit; the
     same move as `blme`’s covariance priors).
-7.  **Judge marginal cases.** A gradient just above the default `1e-3`
-    (say 0.001-0.01) with stable estimates across restarts and
-    optimizers is typically flatness at machine precision for that
-    problem’s scale, not non-convergence. The threshold is a heuristic;
-    `frmtmb_control(grad_tol = )` tunes it, and steps 4-5 are the
-    evidence for deciding.
+7.  **Judge marginal cases by the log-likelihood, not the gradient.**
+    Read the second number in the warning, which
+    [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+    also prints. It is what a Newton step would gain, and it is measured
+    on the scale answers live on: below `1e-3` nothing you report can
+    move, and a warning at `1e-3` to `1e-2` is worth a look but rarely
+    worth a refit. A large one is real, whatever the gradient reads: a
+    near-collinear design can warn with a gradient of `5e-3` and half a
+    log-likelihood unit left, which no restart recovers.
+    `frmtmb_control(grad_tol = )` tunes both readings together, and
+    steps 4-5 are the evidence for deciding.
 
 ## Does the family fit the data?
 

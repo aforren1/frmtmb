@@ -13,7 +13,7 @@ likelihood was normalized on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -191,9 +191,15 @@ needs a group, so here it gets a new one. When a formula keeps some
 columns of a term and drops others, as <code>~ (1 | g)</code> does on a
 <code>(1 + x | g)</code> fit, the dropped columns are drawn given the kept ones
 at their estimates.</p>
-<p>A population smooth, <code>gp()</code> or <code>hsgp()</code> curve is not a group-level
-term and is never redrawn. A factor-smooth term is, with the other
-group-level terms.</p>
+<p>A SMOOTH is never redrawn, <code>gp()</code> and <code>hsgp()</code> curves included and a
+smooth indexed by a grouping factor included (<code>s(g, bs = "re")</code>,
+<code>s(x, g, bs = "fs")</code>, a <code>t2()</code> with an <code>re</code> margin). Its coefficients
+are penalized coefficients of a term of the formula, not group
+effects, and <code>re_formula = NA</code> keeps every smooth as brms does, so
+the draws at <code>NA</code> are the conditional draws on a fit whose only
+group-indexed content is a smooth. <code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> is the exception
+and asks for the other thing on purpose: a whole-model parametric
+bootstrap redraws every block, smooths included.</p>
     </div>
     <div class="section level2">
     <h2 id="new-data">New data<a class="anchor" aria-label="anchor" href="#new-data"></a></h2>
@@ -205,11 +211,14 @@ that level's estimate, and a redrawn term shares one draw across the
 rows of the level, so newdata must carry the grouping column. A level
 the fit never saw is an error unless <code>allow_new_levels = TRUE</code>, which
 draws its effect from the term's estimated distribution, as
-<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> does. Under <code>re_formula = NA</code> (or <code>~0</code>, <code>~1</code>) every term
-is redrawn anyway, so an unseen level is one more fresh level and
-needs nothing, except on a fit with a factor-smooth term: there an
-unseen level takes the population curve under
-<code>allow_new_levels = TRUE</code>, as in <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, and is not redrawn.</p>
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> does. Under <code>re_formula = NA</code> (or <code>~0</code>, <code>~1</code>) every
+group-level term is redrawn anyway, so an unseen level of one is one
+more fresh level and needs nothing. A SMOOTH indexed by a grouping
+factor is not redrawn and not dropped, so it is the exception at every
+<code>re_formula</code>: newdata must carry its grouping column, and an unseen
+level is refused unless <code>allow_new_levels = TRUE</code>, which gives it the
+population curve for an <code>fs</code> basis and is refused for an <code>re</code> basis or
+margin, exactly as in <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="censored-responses">Censored responses<a class="anchor" aria-label="anchor" href="#censored-responses"></a></h2>

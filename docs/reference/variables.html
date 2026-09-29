@@ -8,9 +8,14 @@ with a distributional or nonlinear parameter's name in the
 coefficient part, sd_g__sigma_Intercept), and a distributional
 parameter nobody wrote a formula for, on its natural scale (sigma,
 shape, sigma_ya). Every name is spelled through brms's renaming:
-b_IxE2 for I(x^2), sd_g:h__Intercept for (1 | g:h). For sampled fits,
-variables() on the frmtmb.sample::frm_sample() result lists the
-draw columns, which follow the same convention."><meta property="og:description" content="brms's names for the parameters of a fit, which are the names
+b_IxE2 for I(x^2), sd_g:h__Intercept for (1 | g:h). For sampled
+fits, variables() on the frmtmb.sample::frm_sample() result lists
+the draw columns, which follow the same convention EXCEPT for an
+ordinal fit, where they are the internal names: tau_raw_1,
+tau_raw_2 for the thresholds this page calls b_Intercept[1],
+b_Intercept[2], and bcs2_1 for a cs() coefficient this page calls
+bcs_&amp;lt;column&amp;gt;[1]. fixef() on the draws object does report brms's
+rows."><meta property="og:description" content="brms's names for the parameters of a fit, which are the names
 hypothesis() expressions accept: fixed-effect coefficients with
 brms's b_ prefix (b_Intercept, b_x, and b_sigma_Intercept
 for a coefficient of a sigma formula), natural-scale random-effect
@@ -19,9 +24,14 @@ with a distributional or nonlinear parameter's name in the
 coefficient part, sd_g__sigma_Intercept), and a distributional
 parameter nobody wrote a formula for, on its natural scale (sigma,
 shape, sigma_ya). Every name is spelled through brms's renaming:
-b_IxE2 for I(x^2), sd_g:h__Intercept for (1 | g:h). For sampled fits,
-variables() on the frmtmb.sample::frm_sample() result lists the
-draw columns, which follow the same convention."></head><body>
+b_IxE2 for I(x^2), sd_g:h__Intercept for (1 | g:h). For sampled
+fits, variables() on the frmtmb.sample::frm_sample() result lists
+the draw columns, which follow the same convention EXCEPT for an
+ordinal fit, where they are the internal names: tau_raw_1,
+tau_raw_2 for the thresholds this page calls b_Intercept[1],
+b_Intercept[2], and bcs2_1 for a cs() coefficient this page calls
+bcs_&amp;lt;column&amp;gt;[1]. fixef() on the draws object does report brms's
+rows."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -29,7 +39,7 @@ draw columns, which follow the same convention."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,9 +104,14 @@ with a distributional or nonlinear parameter's name in the
 coefficient part, <code>sd_g__sigma_Intercept</code>), and a distributional
 parameter nobody wrote a formula for, on its natural scale (<code>sigma</code>,
 <code>shape</code>, <code>sigma_ya</code>). Every name is spelled through brms's renaming:
-<code>b_IxE2</code> for <code>I(x^2)</code>, <code>sd_g:h__Intercept</code> for <code>(1 | g:h)</code>. For sampled fits,
-<code>variables()</code> on the <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> result lists the
-draw columns, which follow the same convention.</p>
+<code>b_IxE2</code> for <code>I(x^2)</code>, <code>sd_g:h__Intercept</code> for <code>(1 | g:h)</code>. For sampled
+fits, <code>variables()</code> on the <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> result lists
+the draw columns, which follow the same convention EXCEPT for an
+ordinal fit, where they are the internal names: <code>tau_raw_1</code>,
+<code>tau_raw_2</code> for the thresholds this page calls <code>b_Intercept[1]</code>,
+<code>b_Intercept[2]</code>, and <code>bcs2_1</code> for a <code>cs()</code> coefficient this page calls
+<code>bcs_&lt;column&gt;[1]</code>. <code><a href="fixef.html">fixef()</a></code> on the draws object does report brms's
+rows.</p>
     </div>
 
     <div class="section level2">
@@ -130,6 +145,14 @@ error naming it, rather than silently changing nothing.</p></dd>
 group-level coefficients <code>r_&lt;group&gt;[&lt;level&gt;,&lt;coef&gt;]</code>, the centered
 <code>Intercept</code>, <code>lprior</code> and <code>lp__</code>. A maximum-likelihood fit has no
 draws of those, and <code><a href="ranef.html">ranef()</a></code> reports the conditional modes.</p>
+<p>An ordinal fit's thresholds are <code>b_Intercept[k]</code>, and a <code>cs()</code>
+category-specific term contributes <code>bcs_&lt;column&gt;[k]</code>, one name per
+DESIGN COLUMN per category boundary. The column is the one
+<code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">stats::model.matrix()</a></code> builds, as it is in brms, so <code>cs(x)</code> on a
+numeric predictor gives <code>bcs_x[1]</code>, <code>bcs_x[2]</code>, while <code>cs(f)</code> on a
+factor with levels <code>a</code>, <code>b</code> and <code>c</code> gives the treatment-contrast pairs
+<code>bcs_fb[k]</code> and <code>bcs_fc[k]</code>. See the "Category-specific effects, cs()"
+section of <code><a href="frm.html">frm()</a></code>.</p>
 <p>A residual correlation term (<a href="frmtmb-autocor.html">frmtmb-autocor</a>) contributes its
 natural-scale parameters under brms's names: <code>ar[1]</code>, <code>ar[2]</code>,
 <code>ma[1]</code>, <code>cosy</code>, <code>cortime__&lt;t1&gt;__&lt;t2&gt;</code>.</p>

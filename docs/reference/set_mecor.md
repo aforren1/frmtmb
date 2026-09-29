@@ -46,7 +46,5 @@ d$y <- 1 + 0.5 * tx - 0.4 * tz + rnorm(n, 0, 0.5)
 
 # independent latent values
 f0 <- bf(y ~ me(x, sx) + me(z, sz)) + set_mecor(FALSE)
-#> Error in set_mecor(FALSE): could not find function "set_mecor"
 fit0 <- frm(f0, data = d)
-#> Error: object 'f0' not found
 ```

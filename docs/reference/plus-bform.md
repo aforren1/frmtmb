@@ -51,12 +51,22 @@ to a multivariate formula names its response with `resp =`.
 ``` r
 # three responses, one family for all of them
 bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + gaussian()
-#> Warning: Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula") for "+"
-#> Error in bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x): non-numeric argument to binary operator
+#> y1 ~ x
+#> Family: gaussian 
+#> y2 ~ x
+#> Family: gaussian 
+#> y3 ~ x
+#> Family: gaussian 
+#> rescor: FALSE 
 
 # a family per response, and a dpar formula for the third response
 bf(o ~ x) + cumulative() + bf(y1 ~ x) + gaussian() + bf(y2 ~ x) +
   lf(sigma ~ x, resp = "y2")
-#> Warning: Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula") for "+"
-#> Error in bf(o ~ x) + cumulative() + bf(y1 ~ x) + gaussian() + bf(y2 ~     x): non-numeric argument to binary operator
+#> o ~ x
+#> Family: cumulative 
+#> y1 ~ x
+#> Family: gaussian 
+#> y2 ~ x
+#> sigma ~ x 
+#> rescor: FALSE 
 ```

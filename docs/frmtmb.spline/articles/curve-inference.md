@@ -80,33 +80,50 @@ confint_varcorr(fit)
 ## 1. The curve, with a band that covers all of it
 
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-evaluates the fitted linear predictor on a grid. `re_formula = NA` drops
-the per-subject curves, so what comes back is the POPULATION curve.
+evaluates the fitted linear predictor on a grid. The curve to report
+first is the POPULATION curve, `s(t)` without any subject’s departure
+from it.
+
+`re_formula = NA` does not give you that curve here. It removes the
+`(x | g)` group-level terms and keeps every smooth, as brms does, and
+`s(t, subject, bs = "fs")` is a smooth. So the grid must name a subject
+in every row. To get the population curve, name a subject the fit did
+not see and pass `allow_new_levels = TRUE`. The `fs` basis gives an
+unknown level a row of zeros, so the per-subject term adds nothing to
+the curve:
 
 ``` r
 
-grid <- data.frame(t = seq(0, 1, length.out = 80))
-cv <- frm_curve(fit, newdata = grid, re_formula = NA, nsim = 20000, seed = 1)
+pop <- factor("population", levels = c(levels(d$subject), "population"))
+grid <- data.frame(t = seq(0, 1, length.out = 80), subject = pop)
+cv <- frm_curve(fit, newdata = grid, re_formula = NA,
+                allow_new_levels = TRUE, nsim = 20000, seed = 1)
 cv
 #> <frmtmb curve> value, 80 grid points, level 0.95
 #>   critical value: pointwise 1.96, simultaneous 2.7107 (mcse 0.011)
 #>   covariance checked against frm_linpred(se.fit = TRUE) to 2.22e-16 relative
-#>            t  .estimate        .se    .crit   .lower_ci .upper_ci .crit_sim
-#> 1 0.00000000 0.01721029 0.05442608 1.959964 -0.08946286 0.1238834  2.710666
-#> 2 0.01265823 0.01809867 0.05096266 1.959964 -0.08178630 0.1179836  2.710666
-#> 3 0.02531646 0.01926231 0.04757044 1.959964 -0.07397404 0.1124987  2.710666
-#> 4 0.03797468 0.02097641 0.04425974 1.959964 -0.06577109 0.1077239  2.710666
-#> 5 0.05063291 0.02350881 0.04103768 1.959964 -0.05692357 0.1039412  2.710666
-#> 6 0.06329114 0.02711400 0.03791211 1.959964 -0.04719236 0.1014204  2.710666
-#>    .lower_sim .upper_sim
-#> 1 -0.13032063  0.1647412
-#> 2 -0.12004407  0.1562414
-#> 3 -0.10968527  0.1482099
-#> 4 -0.09899696  0.1409498
-#> 5 -0.08773063  0.1347482
-#> 6 -0.07565305  0.1298811
+#>            t    subject  .estimate        .se    .crit   .lower_ci .upper_ci
+#> 1 0.00000000 population 0.01721029 0.05442608 1.959964 -0.08946286 0.1238834
+#> 2 0.01265823 population 0.01809867 0.05096266 1.959964 -0.08178630 0.1179836
+#> 3 0.02531646 population 0.01926231 0.04757044 1.959964 -0.07397404 0.1124987
+#> 4 0.03797468 population 0.02097641 0.04425974 1.959964 -0.06577109 0.1077239
+#> 5 0.05063291 population 0.02350881 0.04103768 1.959964 -0.05692357 0.1039412
+#> 6 0.06329114 population 0.02711400 0.03791211 1.959964 -0.04719236 0.1014204
+#>   .crit_sim  .lower_sim .upper_sim
+#> 1  2.710666 -0.13032063  0.1647412
+#> 2  2.710666 -0.12004407  0.1562414
+#> 3  2.710666 -0.10968527  0.1482099
+#> 4  2.710666 -0.09899696  0.1409498
+#> 5  2.710666 -0.08773063  0.1347482
+#> 6  2.710666 -0.07565305  0.1298811
 #>   ... 74 more rows
 ```
+
+The unseen subject adds no variance either. The standard errors are the
+uncertainty of the intercept and the `s(t)` coefficients alone, with no
+between-subject variance in them, which is the band a population curve
+needs. Without `allow_new_levels = TRUE` the call stops and names the
+new level, and a grid without the `subject` column stops too.
 
 Two intervals come back. `.lower_ci` and `.upper_ci` are the ordinary
 pointwise interval: each point of the curve, taken on its own, is inside
@@ -139,10 +156,11 @@ attr(cv, "check")$crit_mcse
 ```
 
 The `"check"` attribute carries one more number, and it is the one that
-licenses everything above. frmtmb exports no route to the joint
-covariance of a grid prediction, so this package rebuilds it and then
-checks its own answer against `frm_linpred(se.fit = TRUE)`, which is
-exported. The two agree to about twelve significant figures:
+licenses everything above. The band needs the covariance of the WHOLE
+grid, which this package reads from frmtmb’s `frm_lp_basis()`. It then
+checks the diagonal of that covariance against
+`frm_linpred(se.fit = TRUE)`, a second route through core, with the same
+`re_formula` and `allow_new_levels`. The two agree to machine precision:
 
 ``` r
 
@@ -153,9 +171,9 @@ attr(cv, "check")$cov_rel_error
 If they ever did not,
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
 would refuse rather than report a band. The count of `frm_linpred()`
-calls the rebuild cost is there too, and it is small: at
-`re_formula = NA` the per-subject coefficients contribute nothing and
-are skipped in blocks rather than one at a time.
+calls is there too. It is one, the check itself, whatever the number of
+coefficients: this model has 110 random coefficients, and the 100
+per-subject ones load nothing at the unseen level.
 
 ``` r
 
@@ -218,13 +236,16 @@ the band over part of the range, and the band would not be at fault.
 ## 2. Where the curve is rising
 
 The slope of the curve is a curve of its own, and it has the same two
-intervals. Where its band excludes zero, the speed is changing.
+intervals. Where its band excludes zero, the speed is changing. The grid
+names the same unseen subject as before, so this is the slope of the
+population curve.
 
 ``` r
 
-g2 <- data.frame(t = seq(0.05, 0.95, length.out = 40))
+g2 <- data.frame(t = seq(0.05, 0.95, length.out = 40), subject = pop)
 d1 <- frm_curve_deriv(fit, var = "t", order = 1, newdata = g2,
-                      re_formula = NA, nsim = 20000, seed = 2)
+                      re_formula = NA, allow_new_levels = TRUE,
+                      nsim = 20000, seed = 2)
 rising <- d1$.lower_sim > 0
 falling <- d1$.upper_sim < 0
 c(rising_from = min(g2$t[rising]), rising_to = max(g2$t[rising]),
@@ -249,7 +270,8 @@ first difference notices. Pass `eps =` to override it.
 
 c(order_1 = attr(d1, "eps"),
   order_2 = attr(frm_curve_deriv(fit, var = "t", order = 2, newdata = g2,
-                                 re_formula = NA, simultaneous = FALSE),
+                                 re_formula = NA, allow_new_levels = TRUE,
+                                 simultaneous = FALSE),
                  "eps"))
 #> order_1 order_2 
 #>   9e-07   9e-05
@@ -291,7 +313,7 @@ variance of its location:
 ``` r
 
 pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g2,
-                        re_formula = NA)
+                        re_formula = NA, allow_new_levels = TRUE)
 pk
 #> <frmtmb curve feature> maximum, 1 found, level 0.95
 #>   covariance checked against frm_linpred(se.fit = TRUE) to 2.22e-16 relative
@@ -313,7 +335,7 @@ threshold the profile passes twice gives two rows:
 ``` r
 
 frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
-                  newdata = g2, re_formula = NA)
+                  newdata = g2, re_formula = NA, allow_new_levels = TRUE)
 #> <frmtmb curve feature> crossing, 2 found, level 0.95
 #>   covariance checked against frm_linpred(se.fit = TRUE) to 0 relative
 #>   .feature .var .estimate         .se .lower_ci .upper_ci .value  .value_se
@@ -323,16 +345,17 @@ frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
 
 ## Per-subject curves
 
-Drop `re_formula = NA` and supply the grouping column, and the same
-three functions describe THAT subject’s curve, with the subject’s own
-deviation and its uncertainty included.
+Name a subject the fit saw instead of the unseen one, and leave out
+`allow_new_levels`. The same three functions then describe THAT
+subject’s curve, with the subject’s own deviation and its uncertainty
+included. `re_formula` does not change this: `NA` keeps the factor
+smooth, and this model has no other group-level term to drop.
 
 ``` r
 
 gs <- data.frame(t = seq(0.05, 0.95, length.out = 40),
                  subject = factor(3, levels = levels(d$subject)))
-pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs,
-                         re_formula = NULL)
+pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs)
 pk3[, c(".estimate", ".se", ".value", ".value_se")]
 #> <frmtmb curve feature> , 1 found, level 
 #>   covariance NOT checked: frm_linpred(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
@@ -351,3 +374,6 @@ errors, which is what a second-level analysis wants as input.
 - The simultaneous critical value WITH its Monte Carlo standard error.
 - For a feature, the estimate and its interval, and say which derivative
   the implicit-function delta method was applied to.
+- For a model with a factor smooth, say that the population curve was
+  read at an unseen level, so that its band is the uncertainty of the
+  population smooth alone.

@@ -104,6 +104,37 @@ row's contribution, and `trials()` is the family's own argument. brms
 composes them in the same order (`log_lik_censor()`,
 `log_lik_truncate()`, `log_lik_weight()`).
 
+## Autocorrelation, and what a row conditions on
+
+brms's default `cov = FALSE` form of
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`
+([frmtmb::frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html))
+has a column per observation, and it is the column brms's own
+[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+returns. A row's `mu` is the one-step conditional mean: the linear
+predictor plus a regression on the OBSERVED earlier residuals of that
+row's group. A group starts with no residuals behind it, so lag `i`
+first reaches the row at within-group position `i + 1`: the FIRST row of
+each group takes the unshifted mean, a row at position `k` carries only
+the lags up to `k - 1`, and from position `max(p, q) + 1` on a row
+carries all of them. Only the first row is unshifted, at every order. So
+the density of row `t` is conditional on `y` at the rows before it, and
+the columns multiply to the whole likelihood exactly as they do for an
+independent model.
+
+Say what that makes the leave-one-out quantity. PSIS-LOO over these
+columns leaves out one CONDITIONAL density, the density of `y_t` given
+the observed past, and not the series: the retained columns still read
+`y_t` through their own lagged residuals, so it is not a forecast of an
+unseen point and it is not leave-one-group-out either. It is brms's
+number, computed the way brms computes it, and it answers "how well does
+the one-step-ahead density fit this row" rather than "how well would the
+model predict a held-out series". For the latter, refit without the
+held-out group.
+
+The `cov = TRUE` covariance form is still refused, and for the original
+reason: its smallest independent unit is a whole group.
+
 ## Multivariate models
 
 With `set_rescor(TRUE)` a column is the joint density of the row's
@@ -116,8 +147,9 @@ response's contribution alone.
 
 A model whose smallest independent unit is a group has no
 per-observation column to leave out, and this refuses rather than
-inventing one: R-side residual correlation
-([frmtmb::frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html)),
+inventing one: a residual correlation MATRIX (`cov = TRUE`, `cosy()`,
+`unstr()`;
+[frmtmb::frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html)),
 a
 [`frmtmb.latent::hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.html)
 sequence, and a group-level mixture (`mixture(groups = )`). An

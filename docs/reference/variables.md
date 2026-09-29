@@ -13,7 +13,13 @@ name is spelled through brms's renaming: `b_IxE2` for `I(x^2)`,
 `sd_g:h__Intercept` for `(1 | g:h)`. For sampled fits, `variables()` on
 the
 [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
-result lists the draw columns, which follow the same convention.
+result lists the draw columns, which follow the same convention EXCEPT
+for an ordinal fit, where they are the internal names: `tau_raw_1`,
+`tau_raw_2` for the thresholds this page calls `b_Intercept[1]`,
+`b_Intercept[2]`, and `bcs2_1` for a `cs()` coefficient this page calls
+`bcs_<column>[1]`.
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) on the
+draws object does report brms's rows.
 
 ## Usage
 
@@ -47,6 +53,16 @@ group-level coefficients `r_<group>[<level>,<coef>]`, the centered
 of those, and
 [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)
 reports the conditional modes.
+
+An ordinal fit's thresholds are `b_Intercept[k]`, and a `cs()`
+category-specific term contributes `bcs_<column>[k]`, one name per
+DESIGN COLUMN per category boundary. The column is the one
+[`stats::model.matrix()`](https://rdrr.io/r/stats/model.matrix.html)
+builds, as it is in brms, so `cs(x)` on a numeric predictor gives
+`bcs_x[1]`, `bcs_x[2]`, while `cs(f)` on a factor with levels `a`, `b`
+and `c` gives the treatment-contrast pairs `bcs_fb[k]` and `bcs_fc[k]`.
+See the "Category-specific effects, cs()" section of
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
 
 A residual correlation term
 ([frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md))

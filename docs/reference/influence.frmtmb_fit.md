@@ -63,6 +63,32 @@ dfbetas(model, ...)
 A `frmtmb_influence` object: `fixed` and `theta` matrices (one row per
 deleted unit) plus the full-data reference.
 
+## Details
+
+Each deletion refits the same model, so an ordinal response keeps the
+threshold count of the full-data fit, and the per-level counts of
+`thres(gr = )`, whether the response is coded as integers, as a
+character vector or as an ordered factor. Deleting the last observation
+in ANY category, bottom, interior or top, leaves that category's
+threshold in the model and unidentified, which shows as a large
+displacement in its column, never as a shorter row or a coefficient
+under the next column's name.
+
+Two deletions cannot refit the fitted model at all and are refused by
+name. A `groups = ` deletion that removes a whole level of
+`thres(gr = )` takes away every observation behind that level's
+thresholds, so they could only be invented. `data = ` holding a response
+category outside the fitted model's threshold layout, or a
+`thres(gr = )` level the fit never saw, describes a different model. A
+category the fit never OBSERVED is not outside that layout when
+`thres(K)` declared it, so `data = ` may reach one of those.
+
+A refit that fails for any reason, these two included, leaves its row
+`NA`, and the failures are counted. When some units failed the table
+comes back with a warning carrying the count and the first reason; when
+every unit failed there is no table to hand back, so that first reason
+is raised as an error instead of a silent matrix of `NA`.
+
 ## Examples
 
 ``` r

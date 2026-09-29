@@ -17,7 +17,7 @@ optimizer does not report convergence are kept but flagged."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,9 +127,9 @@ and redraws the observation noise alone. A one-sided formula keeps
 the group-level terms it names at their fitted values and the
 smooths with them, and redraws the other group-level terms, as
 <code><a href="simulate.frmtmb_fit.html">simulate.frmtmb_fit()</a></code> reads it.</p>
-<p>This is not <code>simulate(re_formula = NA)</code>, which holds a population
-smooth at its fitted curve, because a posterior-predictive check
-needs the curve the model estimated.</p></dd>
+<p>This is not <code>simulate(re_formula = NA)</code>, which holds EVERY smooth at
+its fitted curve, one indexed by a grouping factor included, because
+a posterior-predictive check needs the curve the model estimated.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -143,6 +143,24 @@ percentile intervals.</p>
     <p>There is no standard <code>bootstrap</code> generic to implement
 (<code><a href="https://rdrr.io/pkg/boot/man/boot.html" class="external-link">boot::boot</a></code> and <code><a href="https://rdrr.io/pkg/lme4/man/bootMer.html" class="external-link">lme4::bootMer</a></code> are plain functions), hence the
 <code>frm_</code> prefix.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ordinal-thresholds">Ordinal thresholds<a class="anchor" aria-label="anchor" href="#ordinal-thresholds"></a></h2>
+
+
+<p>Every refit reuses the assembled design, so the number of thresholds
+is the fitted model's and <code>FUN</code> receives the same parameters in the
+same order in every replicate. A replicate whose response never
+reaches the top category keeps that threshold, which the replicate's
+own data no longer identify: its estimate is large, and the
+replicate's log-likelihood is the one a fit with <code>thres(K)</code> pinned on
+that replicate gives, to optimizer tolerance. With <code>thres(gr = )</code> the
+per-level counts are kept the same way.</p>
+<p><code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> followed by <code><a href="frm.html">frm()</a></code>, written out by hand, is not a refit:
+<code><a href="frm.html">frm()</a></code> counts the thresholds of whatever data it is given, so a
+replicate that never reaches the top category fits one threshold
+fewer, at the same maximized log-likelihood. Write <code>thres(K)</code> there to
+pin it.</p>
     </div>
 
     <div class="section level2">

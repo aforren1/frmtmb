@@ -11,7 +11,7 @@ method, so that a ported script can be read without guessing."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -166,7 +166,6 @@ last digit.</p>
 <span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">200</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">200</span>, <span class="fl">8</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span>, <span class="fl">0.4</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="frmtmb-families.html">lognormal</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Large maximum absolute gradient at the optimum (0.00143); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># predict() summarizes the predictive distribution; frm_linpred()</span></span></span>
 <span class="r-in"><span><span class="co"># is the linear predictor and fitted() the expected response</span></span></span>

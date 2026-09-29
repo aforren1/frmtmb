@@ -13,7 +13,7 @@ matrix, and frmtmb::loo(), frmtmb::waic() and loo::psis() take it directly."></h
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -154,6 +154,35 @@ same order (<code>log_lik_censor()</code>, <code>log_lik_truncate()</code>,
 <code>log_lik_weight()</code>).</p>
     </div>
     <div class="section level2">
+    <h2 id="autocorrelation-and-what-a-row-conditions-on">Autocorrelation, and what a row conditions on<a class="anchor" aria-label="anchor" href="#autocorrelation-and-what-a-row-conditions-on"></a></h2>
+
+
+<p>brms's default <code>cov = FALSE</code> form of <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code> and <code>arma()</code>
+(<a href="https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html" class="external-link">frmtmb::frmtmb-autocor</a>) has a column per observation, and it is
+the column brms's own <code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">log_lik()</a></code> returns. A row's <code>mu</code> is the
+one-step conditional mean: the linear predictor plus a regression on
+the OBSERVED earlier residuals of that row's group. A group starts
+with no residuals behind it, so lag <code>i</code> first reaches the row at
+within-group position <code>i + 1</code>: the FIRST row of each group takes the
+unshifted mean, a row at position <code>k</code> carries only the lags up to
+<code>k - 1</code>, and from position <code>max(p, q) + 1</code> on a row carries all of
+them. Only the first row is unshifted, at every order. So the density
+of row <code>t</code> is conditional on <code>y</code> at the rows before it, and the
+columns multiply to the whole likelihood exactly as they do for an
+independent model.</p>
+<p>Say what that makes the leave-one-out quantity. PSIS-LOO over these
+columns leaves out one CONDITIONAL density, the density of <code>y_t</code>
+given the observed past, and not the series: the retained columns
+still read <code>y_t</code> through their own lagged residuals, so it is not a
+forecast of an unseen point and it is not leave-one-group-out
+either. It is brms's number, computed the way brms computes it, and
+it answers "how well does the one-step-ahead density fit this row"
+rather than "how well would the model predict a held-out series".
+For the latter, refit without the held-out group.</p>
+<p>The <code>cov = TRUE</code> covariance form is still refused, and for the
+original reason: its smallest independent unit is a whole group.</p>
+    </div>
+    <div class="section level2">
     <h2 id="multivariate-models">Multivariate models<a class="anchor" aria-label="anchor" href="#multivariate-models"></a></h2>
 
 
@@ -169,7 +198,8 @@ one response's contribution alone.</p>
 
 <p>A model whose smallest independent unit is a group has no
 per-observation column to leave out, and this refuses rather than
-inventing one: R-side residual correlation (<a href="https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html" class="external-link">frmtmb::frmtmb-autocor</a>), a
+inventing one: a residual correlation MATRIX
+(<code>cov = TRUE</code>, <code>cosy()</code>, <code>unstr()</code>; <a href="https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html" class="external-link">frmtmb::frmtmb-autocor</a>), a
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.html" class="external-link">frmtmb.latent::hmm()</a></code> sequence, and a group-level mixture (<code>mixture(groups = )</code>).
 An <code><a href="https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.html" class="external-link">frmtmb.latent::lca()</a></code> subject is one row, so its column is well defined and is
 not refused. In-model imputation (<code>mi()</code>, <code>me()</code>) is refused for the

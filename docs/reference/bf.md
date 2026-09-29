@@ -121,5 +121,5 @@ bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
 bf(y ~ 0 + Intercept + x)
 #> y ~ 0 + Intercept + x
 bf(y ~ x, center = FALSE)
-#> Error: Cannot interpret bf() argument 'center': expected a dpar formula or a named numeric constant
+#> y ~ x
 ```

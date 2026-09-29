@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -411,6 +411,77 @@ refused (the simplex carries one coefficient and a contrast expansion
 has no column to go in), and <code>mo(x):mo(w)</code> is refused outright.</p>
     </div>
     <div class="section level2">
+    <h2 id="category-specific-effects-cs-">Category-specific effects, cs()<a class="anchor" aria-label="anchor" href="#category-specific-effects-cs-"></a></h2>
+
+
+<p><code>cs(x)</code> gives a predictor one coefficient per category boundary
+instead of one for the whole response, in the <code><a href="frmtmb-families.html">sratio()</a></code>, <code><a href="frmtmb-families.html">cratio()</a></code>
+and <code><a href="frmtmb-families.html">acat()</a></code> families. The term contributes an <code>n</code> by <code>K - 1</code> matrix
+of offsets to the thresholds, so the effect of <code>x</code> on the first
+boundary need not be its effect on the second. <code><a href="frmtmb-families.html">cumulative()</a></code> refuses
+it, as brms does: category-specific effects are not identified under
+that parameterization, because the cumulative probabilities would stop
+being monotone.</p>
+<p>A <code>cs()</code> term is expanded by <code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">stats::model.matrix()</a></code> like any other
+population-level term, which is what brms does too. A numeric
+predictor is one column; a FACTOR or CHARACTER predictor is its
+treatment-contrast dummies, one coefficient per dummy per boundary.
+<code>cs(f)</code> on a three-level factor with levels <code>a</code>, <code>b</code> and <code>c</code> is
+therefore four coefficients, named <code>fb[1]</code>, <code>fb[2]</code>, <code>fc[1]</code> and
+<code>fc[2]</code> in <code><a href="fixef.html">fixef()</a></code> and <code>bcs_fb[1]</code> and the rest in <code><a href="variables.html">variables()</a></code>,
+with <code>a</code> as the reference level. <code>set_prior(class = "b")</code> covers them
+all and <code>set_prior(class = "b", coef = "fb")</code> reaches one dummy's
+pair; <code><a href="default_prior.html">default_prior()</a></code> lists one row per dummy, as brms's
+<code><a href="default_prior.html">get_prior()</a></code> does. New data are recoded against the levels and
+contrasts of the FIT, so a one-row <code>newdata</code> whose factor carries only
+the level it needs still predicts that level, and a level the fit
+never saw is refused.</p>
+<p>A column written on BOTH sides is refused. <code>y ~ x + cs(x)</code> is not
+identified: adding a constant to the population-level coefficient of
+<code>x</code> and subtracting the same constant from every one of its
+category-specific coefficients leaves the likelihood unchanged. Write
+<code>y ~ cs(x)</code>, which fits the same set of distributions. The same holds
+for a factor on both sides (<code>y ~ f + cs(f)</code>) and for a constant <code>cs()</code>
+column. brms builds both blocks and samples the ridge; maximum
+likelihood has no prior to hold it, and what frmtmb reported before
+the refusal was a coefficient with a standard error of 2.7e5.</p>
+<p>The check is a RANK test, so it also catches a column that only a
+basis or an arithmetic expression spells differently:
+<code>y ~ I(x) + cs(x)</code>, <code>y ~ x1 + x2 + cs(x1 + x2)</code>,
+<code>y ~ poly(x, 2) + cs(x)</code> and <code>y ~ s(x) + cs(x)</code> are all refused, and so
+are two <code>cs()</code> terms that are the same column under different
+spellings. The rank comes from <code><a href="https://rdrr.io/r/base/qr.html" class="external-link">qr()</a></code> at its default <code>tol = 1e-7</code>, over
+columns scaled to unit norm, so a merely ill-conditioned design is
+refused once its condition number passes about <code>1e7</code>. The message names
+the population-level columns involved and the edit that works, which
+for <code>poly(x, 2) + cs(x)</code> is <code>I(x^2) + cs(x)</code> (the same maximum, one
+parameter fewer) and for <code>s(x) + cs(x)</code> is to drop one of the two
+terms, because there it is the smooth's own unpenalized linear column
+that is aliased.</p>
+<p>The rank test cannot see an <code>mi()</code> or <code><a href="frmtmb-me.html">me()</a></code> term: its design column is
+a zero placeholder at assembly, filled later with observed-or-latent
+VALUES rather than with a function of a data column, so there is no
+basis to test it against. <code>mi(x) + cs(x)</code> and <code>me(x, sdx) + cs(x)</code> are
+therefore accepted. <code>me(x, sdx) + cs(x)</code> looks genuinely identified,
+its standard errors being finite, and <code>mi(x) + cs(x)</code> is not settled.
+<code>mo()</code> has a placeholder column too, but whatever fills it is a
+monotone function of the predictor's categories, so <code>mo()</code> gets a test
+of its own against that category basis and <code>y ~ mo(m) + cs(m)</code> is
+refused.</p>
+<p><code>cs()</code> is not available with <code>thres(gr = )</code> or under <code>importance</code>, and
+<code>cs()</code> on the LEFT of a bar (<code>(cs(x) | g)</code>) is the covariance structure
+of the same name, not a category-specific effect. A MULTIVARIATE fit
+takes <code>cs()</code> in any response: <code>bf(yo ~ x + cs(f)) + bf(yo2 ~ z + cs(f))</code> fits, and the coefficients carry the response prefix,
+<code>yo_fb[1]</code> in <code><a href="fixef.html">fixef()</a></code> and <code>bcs_yo_fb[1]</code> in <code><a href="variables.html">variables()</a></code>.</p>
+<p>One behavior to know when a <code>cs()</code> level is rare. The model frame drops
+an unused factor level, as brms does, so a SUBSET in which a level does
+not occur is fitted with one column fewer. In <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code>, deleting
+the last row of a level therefore gives a refit whose coefficients are
+a subset of the full fit's: those cells stay <code>NA</code>,
+<code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code> is <code>NA</code> for that unit, and a warning names the unit
+and the coefficients.</p>
+    </div>
+    <div class="section level2">
     <h2 id="ordinal-thresholds-thres-">Ordinal thresholds, thres()<a class="anchor" aria-label="anchor" href="#ordinal-thresholds-thres-"></a></h2>
 
 
@@ -442,6 +513,26 @@ probability of a category past a row's own is 0, as in brms's
 <code>posterior_epred()</code>. <code>newdata</code> must hold the grouping variable, with
 levels the fit has seen. With <code>gr</code>, <code>cs()</code> is refused, as in brms,
 and so is <code>residuals(type = "osa")</code>.</p>
+<p>A refit inside the package keeps the threshold count of the model it
+came from, and keeps the count of every level of <code>thres(gr = )</code>.
+<code><a href="frm_bootstrap.html">frm_bootstrap()</a></code>, <code><a href="refit.html">refit()</a></code>, <code><a href="frm_allfit.html">frm_allfit()</a></code>, <code>anova(refit = TRUE)</code>,
+<code>confint(method = "profile")</code> and the autoscale pre-fit reuse the
+assembled design, so the count cannot move. <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code> and
+<code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code> rebuild the design from a subset of the data, and
+carry over the count AND the response's own categories, so a subset
+that empties ANY category, bottom, interior or top, still fits the
+fitted model with one threshold that the subset no longer identifies.
+An ordered-factor response then gives the same table as the same data
+coded as integers. Two cases cannot be refit and are refused per unit,
+counted and reported: a <code>groups = </code> deletion that removes a whole
+<code>thres(gr = )</code> level, and a <code>data = </code> holding a response category
+outside the fitted threshold layout or a <code>thres(gr = )</code> level the fit
+never saw. A category <code>thres(K)</code> declared but nothing observed is
+inside that layout, so <code>data = </code> may reach it. See <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code>.</p>
+<p>Calling <code>frm()</code> again on new data is not a refit: it counts the
+thresholds of that data. That is what <code>update(newdata = )</code> does,
+because it re-evaluates the stored call, and what <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>
+followed by <code>frm()</code> does. Write <code>thres(K)</code> to pin a count there.</p>
     </div>
     <div class="section level2">
     <h2 id="the-laplace-approximation-and-how-to-check-it">The Laplace approximation, and how to check it<a class="anchor" aria-label="anchor" href="#the-laplace-approximation-and-how-to-check-it"></a></h2>

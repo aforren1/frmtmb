@@ -11,7 +11,7 @@ SIMULTANEOUS band that covers the whole curve at once."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,6 +64,7 @@ SIMULTANEOUS band that covers the whole curve at once.</p>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  re_formula <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  allow_new_levels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  simultaneous <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  nsim <span class="op">=</span> <span class="fl">10000L</span>,</span>
@@ -103,10 +104,28 @@ the default, is the location parameter <code>mu</code>.</p></dd>
 
 
 <dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
-<dd><p><code>NA</code> (the default) evaluates the population curve, the
-convention <code>mgcv</code> and <code>gratia</code> plot. <code>NULL</code> keeps every random
-effect, so the grid must carry the grouping columns and the curve is
-that group's own.</p></dd>
+<dd><p><code>NA</code> (the default) drops the <code>(x | g)</code> group-level
+terms, the convention <code>mgcv</code> and <code>gratia</code> plot. It KEEPS every
+smooth, as brms does, a smooth indexed by a grouping factor
+included, so on a model with <code>s(t, g, bs = "fs")</code> the grid has to
+carry <code>g</code> at <code>NA</code> too and the curve is that level's. <code>NULL</code> keeps
+every random effect, so the grid must carry every grouping column.
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_linpred.html" class="external-link">?frmtmb::frm_linpred</a></code> has the full rule.</p></dd>
+
+
+<dt id="arg-allow-new-levels">allow_new_levels<a class="anchor" aria-label="anchor" href="#arg-allow-new-levels"></a></dt>
+<dd><p>Allow a grouping level the fit did not see.
+<code>FALSE</code>, the default, refuses such a row by name. <code>TRUE</code> predicts
+it at the population level, and it is the way to read the
+POPULATION curve off a model with <code>s(t, g, bs = "fs")</code>: put <code>g</code> in
+the grid at a level the fit did not see, and the factor smooth
+contributes nothing. Passed to every <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code> and
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_linpred.html" class="external-link">frmtmb::frm_linpred()</a></code> call, so the design, the estimate and the
+covariance check read the same rows. See the section "The
+population curve of a factor-smooth model" of <code>frm_curve()</code>. At an
+unseen level of a term <code>re_formula</code> keeps, such as <code>(1 | g)</code> at
+<code>NULL</code>, only the pointwise band of <code>frm_curve()</code> is answered; see
+its section "An unseen level of a <code>(1 | g)</code> term".</p></dd>
 
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
@@ -165,37 +184,20 @@ package's simulation reproduces gratia's critical value inside its
 Monte Carlo error.</p>
     </div>
     <div class="section level2">
-    <h2 id="what-the-covariance-is-and-how-it-is-checked">What the covariance is, and how it is checked<a class="anchor" aria-label="anchor" href="#what-the-covariance-is-and-how-it-is-checked"></a></h2>
+    <h2 id="the-route-to-the-covariance">The route to the covariance<a class="anchor" aria-label="anchor" href="#the-route-to-the-covariance"></a></h2>
 
 
 <p>A penalized smooth's wiggly part is a random-effect block in the
 fitted objective even when the smooth is a population term, so the
 covariance of a curve needs the joint covariance of the fixed AND
-random coefficients. frmtmb exports no route to it: <code>vcov(full = TRUE)</code> returns the outer parameter vector, which excludes <code>b</code> under
-both of its branches, and <code>frm_linpred(se.fit = TRUE)</code> forms the grid
-covariance internally and returns only its diagonal.</p>
-<p>So this function rebuilds it. The linear predictor is LINEAR in the
-coefficients, so the difference between a prediction and the same
-prediction with one coefficient raised by one is that coefficient's
-design column, exactly. The joint covariance comes from the fit's own
-joint precision matrix.</p>
-<p>Neither piece was handed over by an exported function, so neither is
-trusted. Every call recomputes <code>sqrt(diag(Sigma))</code> and compares it
-with <code>frm_linpred(se.fit = TRUE)</code>, and refuses when the two disagree by
-more than <code>tol</code>. The measured agreement is in the <code>"check"</code> attribute
-and is reported by <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>. On the package's own test models it is
-at the tenth significant figure or better.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="the-route-to-the-covariance">The route to the covariance<a class="anchor" aria-label="anchor" href="#the-route-to-the-covariance"></a></h2>
-
-
-<p>Both halves come from frmtmb's own exported seam,
+random coefficients.</p>
+<p>All of it comes from ONE call to frmtmb's exported seam,
 <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code>, which returns the design <code>A</code> over the
 coefficient vector, the joint covariance <code>V</code> at exactly the rows <code>A</code>'s
 columns sit at, and the variance that is NOT coefficient uncertainty
 (a new grouping level's marginal variance, an exact <code>gp()</code>'s kriging
-variance) as a separate element. <code>Sigma</code> is <code>A V A'</code>.</p>
+variance) as a separate element, <code>extra_var</code>. <code>Sigma</code> is <code>A V A'</code>, and
+the pointwise standard error is <code>sqrt(diag(Sigma) + extra_var)</code>.</p>
 <p>Up to frmtmb 0.51.0 there was no such seam. This package rebuilt <code>A</code>
 by unit perturbation, one <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> call per contributing
 coefficient, and read <code>V</code> out of <code>fit$cache$Vjoint</code>, which was an
@@ -204,10 +206,12 @@ reconstruction and the reach were replaced by one call, this package
 now requires frmtmb (&gt;= 0.52.0), and what the covariance check
 verifies has changed from "the reconstruction reproduced core's
 number" to "the seam is being read correctly".</p>
-<p>The check itself stays. Every call recomputes <code>sqrt(diag(Sigma))</code> and
-compares it with <code>frm_linpred(se.fit = TRUE)</code>, and refuses when the two
-disagree by more than <code>tol</code>. The measured agreement is in the
-<code>"check"</code> attribute and is reported by <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>.</p>
+<p>The check itself stays. Every call compares that pointwise standard
+error with <code>frm_linpred(se.fit = TRUE)</code>, a second route through core,
+and refuses when the two disagree by more than <code>tol</code>. The measured
+agreement is in the <code>"check"</code> attribute and is reported by <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>;
+it is at machine precision, 2.2e-16 relative on the curve-inference
+vignette's model.</p>
 <p>The one case with nothing to check against is a nonlinear (<code>nl = TRUE</code>) body: <code>frm_linpred(se.fit = TRUE)</code> is refused there, so
 <code>frm_lp_basis()</code> is the only route to the number and <code>cov_rel_error</code>
 is <code>NA</code>. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> says so rather than reporting a check that never
@@ -261,6 +265,12 @@ there is nothing to map it through.</p></li>
 <li><p>Two grids that load on different coefficients.</p></li>
 <li><p>Two grids that load DIFFERENT draws of a latent field whose
 variance is not coefficient uncertainty. See the next section.</p></li>
+<li><p><code>allow_new_levels = TRUE</code> when either grid carries such a
+variance. An unseen level loads no column of the design, so two
+different unseen levels look the same as one, and treating them
+as one would cancel two independent draws. Measured on <code>(1 | subject)</code>: the difference standard error came back as exactly 0
+where it is at least 0.0515. An unseen level of an <code>fs</code> smooth
+carries no such variance and is not refused.</p></li>
 </ul><p>The covariance check also means less here, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> says so.
 <code>frm_linpred(se.fit = TRUE)</code> returns a marginal standard error per row
 and never the covariance between the grids, so the check runs on each
@@ -299,6 +309,62 @@ the mathematics is missing. The conditional cross-covariance is
 predicting, but reduces the result to one variance per row before the
 seam returns. Hold every latent term equal between the grids and
 contrast a fixed effect, or read the two curves separately.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="the-population-curve-of-a-factor-smooth-model">The population curve of a factor-smooth model<a class="anchor" aria-label="anchor" href="#the-population-curve-of-a-factor-smooth-model"></a></h2>
+
+
+<p><code>re_formula = NA</code> keeps a factor smooth such as
+<code>s(t, subject, bs = "fs")</code>, as brms does, so on
+<code>v ~ s(t) + s(t, subject, bs = "fs")</code> it gives one subject's curve
+and the grid must name a subject in every row. To read the
+POPULATION curve, name a subject the fit did not see and pass
+<code>allow_new_levels = TRUE</code>. mgcv's <code>fs</code> basis gives an unknown level a
+row of zeros, so the factor smooth contributes nothing:</p>
+<div class="sourceCode"><pre><code><span></span>
+<span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="st">"new"</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">subject</span><span class="op">)</span>, <span class="st">"new"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/frm_curve.html">frm_curve</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="va">tt</span>, subject <span class="op">=</span> <span class="va">pop</span><span class="op">)</span>,</span>
+<span>          allow_new_levels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+
+<p>The band is then the uncertainty of the intercept and the <code>s(t)</code>
+coefficients alone. <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code> adds no variance for an
+unseen <code>fs</code> level: its <code>extra_var</code> is exactly zero and the factor
+smooth's columns of <code>A</code> are exactly zero. Measured on the
+curve-inference vignette's model, 7200 rows over 20 subjects: the
+standard errors are <code><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical()</a></code> to the same seam restricted by
+hand to the intercept and <code>s(t)</code> columns, and agree with
+<code>mgcv::predict.gam(exclude = "s(t,subject)", se.fit = TRUE)</code> on an
+mgcv ML fit of the same model to a ratio between 1.000 and 1.004.</p>
+<p>Two unseen <code>fs</code> levels are the population curve twice, so a
+<code>contrast</code> between them is exactly 0 with a standard error of 0. That
+is NOT the difference between two new subjects, which this package
+cannot report.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="an-unseen-level-of-a-g-term">An unseen level of a <code>(1 | g)</code> term<a class="anchor" aria-label="anchor" href="#an-unseen-level-of-a-g-term"></a></h2>
+
+
+<p>An unseen level of a bar term is different from an unseen <code>fs</code>
+level. Where <code>re_formula</code> keeps the term, <code>frm_lp_basis()</code> returns
+the block's marginal variance as <code>extra_var</code>, one number per row. One
+unseen level is ONE draw shared by every row, so the covariance of
+the grid is <code>A V A'</code> plus a block that the seam does not return. So
+with <code>allow_new_levels = TRUE</code> and a nonzero <code>extra_var</code>:</p>
+<ul><li><p>the POINTWISE band of <code>frm_curve(simultaneous = FALSE)</code> is
+answered and is right, because it adds <code>extra_var</code> row by row. The
+<code>"Sigma"</code> attribute is still <code>A V A'</code> and does not carry it.</p></li>
+<li><p><code>frm_curve(simultaneous = TRUE)</code>, <code><a href="frm_curve_deriv.html">frm_curve_deriv()</a></code> and
+<code><a href="frm_curve_feature.html">frm_curve_feature()</a></code> REFUSE, naming the grouping factor. Each
+builds its answer from <code>A V A'</code> and would omit the new level's
+variance. Measured on the curve-inference vignette's data before
+the refusal: a simultaneous critical value of 0.646 on <code>(1 | subject)</code> and 0.615 on <code>(1 + t | subject)</code>, against 2.146 and
+2.472 from the full covariance; derivative standard errors 0.40 to
+0.50 of the right ones; feature standard errors about a quarter.</p></li>
+</ul><p><code>re_formula = NA</code> drops the term and gives the population curve on
+every route. A model with BOTH <code>s(t, g, bs = "fs")</code> and <code>(1 | g)</code>
+read at an unseen <code>g</code> with <code>re_formula = NULL</code> gets the population
+curve plus the <code>(1 | g)</code> variance in its pointwise band, and the
+other routes refuse.</p>
     </div>
     <div class="section level2">
     <h2 id="past-a-ps-knot-span">Past a <code>ps()</code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>

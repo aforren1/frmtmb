@@ -5,6 +5,18 @@ measurement of a latent, noise-free value, with known measurement
 standard deviation `sdx`, and that the model uses the latent value. It
 is brms's `me()` term with brms's meaning.
 
+## Value
+
+`me()` is a formula term, not a free-standing function:
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) reads it at
+parse time, and the value it contributes is the noise-free predictor's
+coefficient together with the latent values and the measurement-model
+hyperparameters, reachable through
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) and
+the Noise-free Terms section of
+[`summary()`](https://rdrr.io/r/base/summary.html). This page itself
+documents the term grammar and returns nothing.
+
 ## Details
 
 The model is \$\$x_i \sim N(\tilde{x}\_i, sdx_i), \qquad \tilde{x}\_i
@@ -91,9 +103,10 @@ d <- data.frame(x = tx + rnorm(n, 0, 0.4), sx = 0.4)
 d$y <- 2 + 0.7 * tx + rnorm(n, 0, 0.5)
 
 fit <- frm(bf(y ~ me(x, sx)) + gaussian(), data = d)
-#> Error in me(x, sx): could not find function "me"
 fixef(fit)
-#> Error: object 'fit' not found
+#>            Estimate  Est.Error     Q2.5     Q97.5
+#> Intercept 1.9213924 0.08471428 1.755355 2.0874294
+#> mexsx     0.7443341 0.06947988 0.608156 0.8805121
 
 # the naive slope is attenuated by the measurement error
 coef(lm(y ~ x, data = d))[["x"]]

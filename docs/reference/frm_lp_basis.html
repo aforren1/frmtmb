@@ -21,7 +21,7 @@ perturbation, one predict() call per coefficient."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.64.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.65.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -119,8 +119,9 @@ them.</p></dd>
 
 
 <dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
-<dd><p><code>NULL</code> keeps every random effect, <code>NA</code> drops them all,
-a one-sided formula keeps the ones it names.</p></dd>
+<dd><p><code>NULL</code> keeps every random effect, <code>NA</code> drops the
+group-level terms and keeps every smooth, a one-sided formula keeps
+the terms it names. See <code><a href="frm_linpred.html">frm_linpred()</a></code> for the full rule.</p></dd>
 
 
 <dt id="arg-allow-new-levels">allow_new_levels<a class="anchor" aria-label="anchor" href="#arg-allow-new-levels"></a></dt>

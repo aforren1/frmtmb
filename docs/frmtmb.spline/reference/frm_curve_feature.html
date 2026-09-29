@@ -11,7 +11,7 @@ method."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,6 +67,7 @@ method.</p>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  re_formula <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  allow_new_levels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  eps <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  maxit <span class="op">=</span> <span class="fl">50L</span>,</span>
@@ -117,10 +118,28 @@ the default, is the location parameter <code>mu</code>.</p></dd>
 
 
 <dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
-<dd><p><code>NA</code> (the default) evaluates the population curve, the
-convention <code>mgcv</code> and <code>gratia</code> plot. <code>NULL</code> keeps every random
-effect, so the grid must carry the grouping columns and the curve is
-that group's own.</p></dd>
+<dd><p><code>NA</code> (the default) drops the <code>(x | g)</code> group-level
+terms, the convention <code>mgcv</code> and <code>gratia</code> plot. It KEEPS every
+smooth, as brms does, a smooth indexed by a grouping factor
+included, so on a model with <code>s(t, g, bs = "fs")</code> the grid has to
+carry <code>g</code> at <code>NA</code> too and the curve is that level's. <code>NULL</code> keeps
+every random effect, so the grid must carry every grouping column.
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_linpred.html" class="external-link">?frmtmb::frm_linpred</a></code> has the full rule.</p></dd>
+
+
+<dt id="arg-allow-new-levels">allow_new_levels<a class="anchor" aria-label="anchor" href="#arg-allow-new-levels"></a></dt>
+<dd><p>Allow a grouping level the fit did not see.
+<code>FALSE</code>, the default, refuses such a row by name. <code>TRUE</code> predicts
+it at the population level, and it is the way to read the
+POPULATION curve off a model with <code>s(t, g, bs = "fs")</code>: put <code>g</code> in
+the grid at a level the fit did not see, and the factor smooth
+contributes nothing. Passed to every <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code> and
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_linpred.html" class="external-link">frmtmb::frm_linpred()</a></code> call, so the design, the estimate and the
+covariance check read the same rows. See the section "The
+population curve of a factor-smooth model" of <code><a href="frm_curve.html">frm_curve()</a></code>. At an
+unseen level of a term <code>re_formula</code> keeps, such as <code>(1 | g)</code> at
+<code>NULL</code>, only the pointwise band of <code><a href="frm_curve.html">frm_curve()</a></code> is answered; see
+its section "An unseen level of a <code>(1 | g)</code> term".</p></dd>
 
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>

@@ -23,7 +23,7 @@ weights alone."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -156,6 +156,22 @@ package.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code><a href="https://paulbuerkner.com/brms/reference/loo.brmsfit.html" class="external-link">LOO()</a></code> and <code><a href="https://paulbuerkner.com/brms/reference/waic.brmsfit.html" class="external-link">WAIC()</a></code> are brms's deprecated capitalized spellings and
 are defined only to name their replacements.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="a-time-series-and-what-is-left-out">A time series, and what is left out<a class="anchor" aria-label="anchor" href="#a-time-series-and-what-is-left-out"></a></h2>
+
+
+<p>On a model with brms's default <code>cov = FALSE</code> <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code> or
+<code>arma()</code> term, a column of the <code><a href="https://aforren1.github.io/frmtmb/reference/log_lik.html" class="external-link">frmtmb::log_lik()</a></code> matrix is the
+density of one row GIVEN THE OBSERVED EARLIER ROWS of its group, the
+one-step-ahead density. That is what brms's <code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">log_lik()</a></code> returns, so
+this is brms's elpd. It also fixes what the estimate means: leaving
+out column <code>t</code> leaves out one conditional density, not the series and
+not the row's influence on its neighbors, because every retained
+column still reads <code>y_t</code> through its own lagged residuals. Read it as
+"how well the one-step density fits each row", and refit without a
+group for a held-out-series answer. The <code>cov = TRUE</code> covariance form
+is refused instead: there no column is an observation.</p>
     </div>
     <div class="section level2">
     <h2 id="priors-and-what-these-numbers-mean">Priors, and what these numbers mean<a class="anchor" aria-label="anchor" href="#priors-and-what-these-numbers-mean"></a></h2>
