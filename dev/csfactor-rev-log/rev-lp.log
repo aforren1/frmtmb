@@ -1,0 +1,39 @@
+frmtmb 0.64.0 brms 2.23.0 StanHeaders 2.39.1 
+seed 2029  n = 350  table(y) = 142/130/78  table(fc) = 80/85/91/94 
+
+-- sratio, cs(fc) factor --
+bcs names: bcs_fcq[1] bcs_fcq[2] bcs_fcr[1] bcs_fcr[2] bcs_fcs[1] bcs_fcs[2] 
+LPCHECK const 0 grad 0.000319 ours -340.7737581
+PASS const 0.000e+00 grad 3.190e-04 logLik -340.7737581 
+
+-- cratio, cs(fc) factor --
+bcs names: bcs_fcq[1] bcs_fcq[2] bcs_fcr[1] bcs_fcr[2] bcs_fcs[1] bcs_fcs[2] 
+LPCHECK const 0 grad 0.000319 ours -340.7737581
+PASS const 0.000e+00 grad 3.190e-04 logLik -340.7737581 
+
+-- acat, cs(fc) factor --
+bcs names: bcs_fcq[1] bcs_fcq[2] bcs_fcr[1] bcs_fcr[2] bcs_fcs[1] bcs_fcs[2] 
+LPCHECK const -5.684341886e-14 grad 0.000153 ours -339.4784714
+PASS const -5.684e-14 grad 1.531e-04 logLik -339.4784714 
+
+-- sratio, cs(fch) character --
+bcs names: bcs_fchq[1] bcs_fchq[2] bcs_fchr[1] bcs_fchr[2] bcs_fchs[1] bcs_fchs[2] 
+LPCHECK const 0 grad 0.000319 ours -340.7737581
+PASS const 0.000e+00 grad 3.190e-04 logLik -340.7737581 
+
+-- sratio, cs(fnum) numeric-looking levels --
+bcs names: bcs_fnum2[1] bcs_fnum2[2] bcs_fnum3[1] bcs_fnum3[2] bcs_fnum4[1] bcs_fnum4[2] 
+LPCHECK const 0 grad 0.000319 ours -340.7737581
+PASS const 0.000e+00 grad 3.190e-04 logLik -340.7737581 
+
+-- sratio, cs(fc) + cs(z) two terms --
+bcs names: bcs_fcq[1] bcs_fcq[2] bcs_fcr[1] bcs_fcr[2] bcs_fcs[1] bcs_fcs[2] bcs_z[1] bcs_z[2] 
+LPCHECK const 0 grad 9.85e-05 ours -342.1369179
+PASS const 0.000e+00 grad 9.854e-05 logLik -342.1369179 
+
+-- sratio, cs(fo) ORDERED factor --
+bcs names: bcs_fo.L[1] bcs_fo.L[2] bcs_fo.Q[1] bcs_fo.Q[2] bcs_fo.C[1] bcs_fo.C[2] 
+LPCHECK const 0 grad 0.000473 ours -340.7737581
+PASS const 0.000e+00 grad 4.730e-04 logLik -340.7737581 
+
+done

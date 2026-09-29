@@ -283,7 +283,13 @@ test_that("the other three ordinal families predict distributions too", {
 
 test_that("cs() terms enter the ordinal predictions and are re-evaluated", {
   dd <- v29_ordinal_data(43)
-  fit <- frm(bf(y ~ x + cs(x)) + sratio(), data = dd)
+  # `y ~ x + cs(x)` was what this test fitted, and it is refused now:
+  # the global slope and the category-specific slopes of the SAME column
+  # span one direction twice (test-cs-factor.R). `cs(x)` alone fits the
+  # same set of distributions, so every assertion below is unchanged.
+  expect_error(frm(bf(y ~ x + cs(x)) + sratio(), data = dd),
+               "is not identified", fixed = TRUE)
+  fit <- frm(bf(y ~ cs(x)) + sratio(), data = dd)
 
   nd <- data.frame(x = c(-1, 0, 1))
   P <- frm_linpred(fit, newdata = nd, type = "response")

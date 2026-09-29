@@ -123,6 +123,55 @@ test_that("student() rescor is the multivariate t, with one shared nu", {
   expect_identical(gp$resp[gp$class == "nu"], "")
 })
 
+
+test_that("the pointwise rescor density holds at a large nu", {
+  # A weakly identified nu is walked past 1e10 by any sampler, and the
+  # density there is the gaussian limit and still wanted. The Student-t
+  # branch of rescor_row_loglik() therefore may not write
+  # lgamma((nu + K) / 2) - lgamma(nu / 2) or log(nu * pi) as they read.
+  # Against the taped objective, which goes through lgamma_shift_diff(),
+  # the as-written version drifts by 5.6e-6 at nu = 1e10, by 227 log
+  # units at nu = 1e20 and returns NaN at nu = 1e306
+  # (dev/arcovsample-log/tnu.txt). SEEN TO FAIL: on frmtmb 0.64.0 this
+  # block fails at every nu from 1e10 up.
+  set.seed(9)
+  n <- 120
+  x <- rnorm(n)
+  z <- rnorm(n)
+  E <- (matrix(rnorm(2 * n), n) %*% chol(matrix(c(1, 0.5, 0.5, 1), 2))) /
+    sqrt(rchisq(n, 4) / 4)
+  dd <- data.frame(x = x, z = z, y1 = 1 + x + E[, 1],
+                   y2 = exp(0.3 * z) * E[, 2])
+  fit <- frm(bf(y1 ~ x) + bf(y2 ~ x, sigma ~ z) + set_rescor(TRUE) +
+               student(), data = dd)
+  bn <- names(fit$frame$par_template$betad)
+  jnu <- match("nu_(Intercept)", bn)
+  expect_false(is.na(jnu))
+
+  vals <- numeric(0)
+  for (nu in c(1e2, 1e10, 1e20, 1e300)) {
+    p <- fit$opt$par
+    # nu enters through its logm1 link, so the objective and the
+    # pointwise density are given ONE parameter vector, not two values
+    p[which(names(p) == "betad")[jnu]] <- log(nu - 1)
+    obj <- -as.numeric(fit$obj$fn(p))
+    f2 <- fit
+    f2$estimates <- fit$obj$env$parList(p)
+    f2$cache <- new.env(parent = emptyenv())
+    rl <- sum(rescor_row_loglik(f2, eval_dpars(f2)))
+    expect_true(is.finite(rl))
+    expect_lt(abs(rl - obj), 1e4 * .Machine$double.eps * abs(obj))
+    vals <- c(vals, rl)
+  }
+  # and it CONVERGES rather than drifting: the gaussian limit is
+  # approached as O(1 / nu), so 1e20 and 1e300 are the same double
+  expect_lt(abs(vals[3] - vals[4]),
+            64 * .Machine$double.eps * abs(vals[4]))
+  # the block is a claim only because nu MATTERS here: a small nu is a
+  # different density from the limit by many log units
+  expect_gt(abs(vals[1] - vals[4]), 0.01 * abs(vals[4]))
+})
+
 test_that("student() rescor refuses what brms refuses", {
   dd <- mv_gap_data()
   expect_error(frm(bf(y1 ~ x, nu ~ z) + bf(y2 ~ x) + set_rescor(TRUE) +

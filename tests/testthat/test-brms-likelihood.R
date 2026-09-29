@@ -274,6 +274,31 @@ test_that("row 12: ordinal families, cumulative sratio cratio acat", {
   do$z <- rnorm(n)
   brms_lp_check(brms::bf(y ~ x + cs(z)), brms::sratio(), do,
                 frm(bf(y ~ x + cs(z)) + sratio(), data = do))
+
+  # cs() on a DISCRETE predictor. brms expands it with treatment
+  # contrasts, one coefficient row per dummy per threshold, so the
+  # identity holds only if frmtmb builds the same columns in the same
+  # order. Before 0.6x it fitted the factor's integer codes instead and
+  # the translator's own column count caught it. One row per sequential
+  # family, then a character column and a factor whose levels look like
+  # the codes, which is the case the wrong answer was invisible in.
+  do$f <- factor(sample(c("a", "b", "c"), n, TRUE))
+  do$fch <- as.character(do$f)
+  do$fnum <- factor(as.integer(do$f))
+  for (fam in list(list(brms::sratio(), sratio()),
+                   list(brms::cratio(), cratio()),
+                   list(brms::acat(), acat()))) {
+    brms_lp_check(brms::bf(y ~ x + cs(f)), fam[[1L]], do,
+                  frm(bf(y ~ x + cs(f)) + fam[[2L]], data = do))
+  }
+  brms_lp_check(brms::bf(y ~ x + cs(fch)), brms::sratio(), do,
+                frm(bf(y ~ x + cs(fch)) + sratio(), data = do))
+  brms_lp_check(brms::bf(y ~ x + cs(fnum)), brms::sratio(), do,
+                frm(bf(y ~ x + cs(fnum)) + sratio(), data = do))
+  # two cs() terms of different widths, to pin the column ORDER: brms
+  # builds `~ f + z`, so the factor's dummies come before z
+  brms_lp_check(brms::bf(y ~ cs(f) + cs(z)), brms::sratio(), do,
+                frm(bf(y ~ cs(f) + cs(z)) + sratio(), data = do))
 })
 
 test_that("row 13: categorical(y ~ x)", {

@@ -160,7 +160,10 @@ test_that("a term shared by two distributional parameters is kept in both", {
   expect_false(isTRUE(all.equal(mu_g, frm_linpred(fit))))
 })
 
-test_that("a partial formula is refused where a term cannot be named", {
+test_that("a partial formula beside a factor smooth keeps the smooth", {
+  # brms's rule: re_formula removes (x | g) terms and nothing else, so a
+  # partial formula drops the bar terms it does not name and keeps every
+  # smooth. Refused until 0.65.0; the user lifted it on 2026-09-29.
   set.seed(9)
   d <- data.frame(g = factor(rep(1:6, each = 20)), h = factor(rep(1:4, 30)),
                   k = factor(rep(1:5, each = 4, length.out = 120)),
@@ -170,11 +173,52 @@ test_that("a partial formula is refused where a term cannot be named", {
     stats::rnorm(120, 0, 0.3)
   fit <- suppressWarnings(
     frm(bf(y ~ s(x, g, bs = "fs", k = 4) + (1 | h) + (1 | k)), data = d))
-  # the factor smooth is group-level content re_formula = NA drops, and
-  # a formula has no way to name it
-  expect_error(frm_linpred(fit, re_formula = ~(1 | h)),
-               class = "frmtmb_error", regexp = "cannot name")
-  # naming every bar term keeps the smooth, as NULL does
-  expect_identical(frm_linpred(fit, re_formula = ~(1 | h) + (1 | k)),
-                   frm_linpred(fit))
+  full <- frm_linpred(fit)
+  none <- frm_linpred(fit, re_formula = NA)
+  keep_h <- frm_linpred(fit, re_formula = ~(1 | h))
+  keep_k <- frm_linpred(fit, re_formula = ~(1 | k))
+  # NA drops both bar terms and keeps the smooth, so what ~(1 | h) adds
+  # over NA is the (1 | h) effect alone: one value per level of h. Had
+  # the partial formula dropped the smooth, the difference would carry
+  # the smooth's curve and vary within a level.
+  tol <- 64 * .Machine$double.eps * max(abs(full))
+  add_h <- keep_h - none
+  within_h <- tapply(add_h, d$h, function(v) diff(range(v)))
+  expect_true(all(within_h <= tol))
+  expect_gt(max(abs(add_h)), 1e3 * tol)
+  # the linear predictor is additive in its blocks, so the two single-term
+  # predictions add up to the full one over the prediction without either
+  expect_lte(max(abs(keep_h + keep_k - none - full)), tol)
+  # naming every bar term keeps everything, as NULL does
+  expect_identical(frm_linpred(fit, re_formula = ~(1 | h) + (1 | k)), full)
+})
+
+test_that("a car() field is addressed by its grouping factor", {
+  # a car() field is a group-level term with the bar (1 | loc), so a
+  # formula keeps or drops it by that name; it was never the bar-less
+  # content the pre-0.65.0 refusal described
+  set.seed(12)
+  rc <- expand.grid(r = 1:4, c = 1:4)
+  W <- 1 * (as.matrix(stats::dist(rc, method = "manhattan")) == 1)
+  rownames(W) <- colnames(W) <- paste0("s", seq_len(nrow(W)))
+  d <- data.frame(loc = factor(rep(rownames(W), each = 6),
+                               levels = rownames(W)),
+                  g = factor(rep(1:4, 24)), h = factor(rep(1:3, 32)),
+                  x = stats::rnorm(96))
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(16, 0, 0.8)[as.integer(d$loc)] +
+    stats::rnorm(4, 0, 0.5)[d$g] + stats::rnorm(3, 0, 0.5)[d$h] +
+    stats::rnorm(96, 0, 0.4)
+  fit <- suppressWarnings(frm(bf(y ~ x + car(W, gr = loc, type = "icar") +
+                                   (1 | g) + (1 | h)), data = d))
+  full <- frm_linpred(fit)
+  # naming all three terms is the full prediction
+  expect_identical(frm_linpred(fit, re_formula = ~(1 | g) + (1 | h) +
+                                 (1 | loc)), full)
+  # leaving (1 | loc) out drops the field: what it adds back is one value
+  # per location, and it is not zero
+  add_loc <- full - frm_linpred(fit, re_formula = ~(1 | g) + (1 | h))
+  tol <- 64 * .Machine$double.eps * max(abs(full))
+  within_loc <- tapply(add_loc, d$loc, function(v) diff(range(v)))
+  expect_true(all(within_loc <= tol))
+  expect_gt(max(abs(add_loc)), 1e3 * tol)
 })

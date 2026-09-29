@@ -1,0 +1,19 @@
+deriv:   stored TRUE, caller missing, unseen grid          ANSWERED, rows 30
+   identical() to deriv on the fit with TRUE: TRUE 
+feature: stored TRUE, caller missing, unseen grid          ANSWERED, rows 1
+deriv:   stored TRUE, caller FALSE, unseen grid            REFUSED [frmtmb_new_levels]
+feature: stored TRUE, caller FALSE, unseen grid            REFUSED [frmtmb_new_levels]
+deriv:   stored TRUE, caller TRUE, unseen grid             ANSWERED, rows 30
+   identical() to deriv on the fit with TRUE: TRUE 
+feature: stored TRUE, caller TRUE, unseen grid             ANSWERED, rows 1
+deriv:   stored TRUE, caller FALSE, stored seen grid       ANSWERED, rows 30
+deriv:   stored FALSE, caller missing, unseen grid         REFUSED [frmtmb_new_levels]
+feature: stored FALSE, caller missing, unseen grid         REFUSED [frmtmb_new_levels]
+deriv:   stored FALSE, caller FALSE, unseen grid           REFUSED [frmtmb_new_levels]
+feature: stored FALSE, caller FALSE, unseen grid           REFUSED [frmtmb_new_levels]
+deriv:   stored FALSE, caller TRUE, unseen grid            ANSWERED, rows 30
+   identical() to deriv on the fit with TRUE: TRUE 
+feature: stored FALSE, caller TRUE, unseen grid            ANSWERED, rows 1
+deriv:   stored FALSE, caller FALSE, stored seen grid      ANSWERED, rows 30
+deriv:   stored TRUE at unseen, caller missing, stored grid ANSWERED, rows 30
+deriv:   stored TRUE at unseen, caller FALSE, stored grid  REFUSED [frmtmb_new_levels]

@@ -1,0 +1,15 @@
+﻿frmtmb.spline 0.9.0 from C:/Users/adf44/source/r/wt-splinecurve-lib ; formals of sp_spec: object, newdata, contrast, dpar, resp, re_formula, allow_new_levels, anl_given 
+
+==== v ~ s(t, k = 10) + (1 | subject) ====
+-- frm_curve(simultaneous = TRUE), unseen, NULL, TRUE : REFUSED frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid carries a new level 
+-- frm_curve_deriv, unseen, NULL, TRUE : REFUSED frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a new level's marginal v 
+-- frm_curve_feature(maximum), unseen, NULL, TRUE : REFUSED frm_curve_feature(): with allow_new_levels = TRUE this grid carries a new level's marginal 
+==== v ~ s(t, k = 10) + (1 + t | subject) ====
+-- frm_curve(simultaneous = TRUE), unseen, NULL, TRUE : REFUSED frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid carries a new level 
+-- frm_curve_deriv, unseen, NULL, TRUE : REFUSED frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a new level's marginal v 
+-- frm_curve_feature(maximum), unseen, NULL, TRUE : REFUSED frm_curve_feature(): with allow_new_levels = TRUE this grid carries a new level's marginal 
+==== stored-curve rule ====
+-- frm_curve_deriv(stored TRUE, unseen grid, EXPLICIT FALSE) : REFUSED New levels in the factor-smooth term s(t,subject): new. The term has no curve for them. Us 
+NULL
+-- frm_curve_feature(stored TRUE, unseen grid, EXPLICIT FALSE) : REFUSED New levels in the factor-smooth term s(t,subject): new. The term has no curve for them. Us 
+NULL

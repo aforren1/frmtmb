@@ -1,0 +1,17 @@
+N = 69  seed = 4023 
+
+---- rescor + ar(1) on both, gaussian ----
+  draws x cols : 200 x 69
+  max |row sum + nll| : 2.84217094304e-14
+  max relative        : 1.63254808534e-16
+  shifted vs unshifted joint at draw 1 : -178.3768838 vs -180.0273064
+  elpd_loo : -181.4805285 (finite TRUE)
+
+---- rescor + ar(1) on both, student ----
+  draws x cols : 200 x 69
+  max |row sum + nll| : 2.84217094304e-14
+  max relative        : 1.63190387166e-16
+  shifted vs unshifted joint at draw 1 : -176.1550883 vs -176.820696
+  elpd_loo : -182.5533767 (finite TRUE)
+
+DONE

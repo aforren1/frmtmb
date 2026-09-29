@@ -1,0 +1,88 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib  ver = 0.64.0 
+
+data table: 9/16/11/4 
+
+== cumulative : fitted tau_raw = 3 ; replicates losing category 4: 1 (first = 31) 
+   replicate table: 8/15/17 
+   refit  n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   pinned n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   hand   n_tau = 2  names = x,tau_raw_1,tau_raw_2 
+   names identical refit vs pinned: TRUE 
+   logLik refit  = -41.4680285630979
+   logLik pinned = -41.4680285623368  rel = 1.835e-11
+   logLik hand   = -41.4680285592851  rel to pinned = 7.359e-11
+   max rel diff over identified coefs: 7.44e-09 
+   tau_raw_3 refit = 3.1278833  pinned = 3.1375911
+   frm_bootstrap(re_formula = NA ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+   frm_bootstrap(re_formula = NULL ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+== sratio : fitted tau_raw = 3 ; replicates losing category 4: 1 (first = 31) 
+   replicate table: 8/16/16 
+   refit  n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   pinned n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   hand   n_tau = 2  names = x,tau_raw_1,tau_raw_2 
+   names identical refit vs pinned: TRUE 
+   logLik refit  = -41.9541926013013
+   logLik pinned = -41.9541926022876  rel = 2.351e-11
+   logLik hand   = -41.9541925971472  rel to pinned = 1.225e-10
+   max rel diff over identified coefs: 1.07e-09 
+   tau_raw_3 refit = 22.122887  pinned = 21.909859
+   frm_bootstrap(re_formula = NA ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+   frm_bootstrap(re_formula = NULL ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+== cratio : fitted tau_raw = 3 ; replicates losing category 4: 1 (first = 31) 
+   replicate table: 8/16/16 
+   refit  n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   pinned n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   hand   n_tau = 2  names = x,tau_raw_1,tau_raw_2 
+   names identical refit vs pinned: TRUE 
+   logLik refit  = -41.9541926013013
+   logLik pinned = -41.9541926022876  rel = 2.351e-11
+   logLik hand   = -41.9541925971472  rel to pinned = 1.225e-10
+   max rel diff over identified coefs: 1.07e-09 
+   tau_raw_3 refit = 22.122887  pinned = 21.909859
+   frm_bootstrap(re_formula = NA ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+   frm_bootstrap(re_formula = NULL ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+== acat : fitted tau_raw = 3 ; replicates losing category 4: 1 (first = 31) 
+   replicate table: 8/16/16 
+   refit  n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   pinned n_tau = 3  names = x,tau_raw_1,tau_raw_2,tau_raw_3 
+   hand   n_tau = 2  names = x,tau_raw_1,tau_raw_2 
+   names identical refit vs pinned: TRUE 
+   logLik refit  = -41.8570673505459
+   logLik pinned = -41.8570673509218  rel = 8.98e-12
+   logLik hand   = -41.8570673472452  rel to pinned = 8.784e-11
+   max rel diff over identified coefs: 2.026e-09 
+   tau_raw_3 refit = 22.357572  pinned = 22.249723
+   frm_bootstrap(re_formula = NA ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+   frm_bootstrap(re_formula = NULL ): dim = 60x4  cols = x,tau1,tau2,tau3  anyNA = FALSE  NA cells = 0 
+
+#### grouped thres(gr = g)
+== cumulative : nthres = 3/2/2  nraw = 7  replicates losing a level's top: 10 
+   per-level max in replicate: 3/3/3 
+   refit n_tau = 7  pinned = 7  hand = 6 
+   names identical refit vs pinned: TRUE  refit vs hand: FALSE 
+   logLik refit = -100.0406176326258  pinned = -100.0406176387143  rel = 6.086e-11
+   logLik hand  = -100.0406176272129  rel to pinned = 1.15e-10
+   frm_bootstrap dim = 40x8  NA cells = 0 
+== sratio : nthres = 3/2/2  nraw = 7  replicates losing a level's top: 11 
+   per-level max in replicate: 3/3/3 
+   refit n_tau = 7  pinned = 7  hand = 6 
+   names identical refit vs pinned: TRUE  refit vs hand: FALSE 
+   logLik refit = -98.6952837574115  pinned = -98.6952837539433  rel = 3.514e-11
+   logLik hand  = -98.6952837441406  rel to pinned = 9.932e-11
+   frm_bootstrap dim = 40x8  NA cells = 0 
+== cratio : nthres = 3/2/2  nraw = 7  replicates losing a level's top: 11 
+   per-level max in replicate: 3/3/3 
+   refit n_tau = 7  pinned = 7  hand = 6 
+   names identical refit vs pinned: TRUE  refit vs hand: FALSE 
+   logLik refit = -98.6952837574115  pinned = -98.6952837539433  rel = 3.514e-11
+   logLik hand  = -98.6952837441406  rel to pinned = 9.932e-11
+   frm_bootstrap dim = 40x8  NA cells = 0 
+== acat : nthres = 3/2/2  nraw = 7  replicates losing a level's top: 11 
+   per-level max in replicate: 3/3/3 
+   refit n_tau = 7  pinned = 7  hand = 6 
+   names identical refit vs pinned: TRUE  refit vs hand: FALSE 
+   logLik refit = -96.9038008985697  pinned = -96.9038009011302  rel = 2.642e-11
+   logLik hand  = -96.9038008885242  rel to pinned = 1.301e-10
+   frm_bootstrap dim = 40x8  NA cells = 0 
+
+DONE rev-01

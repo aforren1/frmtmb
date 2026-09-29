@@ -1,0 +1,36 @@
+frmtmb from C:/Users/adf44/source/r/wt-csfactor-lib 
+
+== (2) the spelling that keeps the interaction ==
+
+-- cs(m) alone --
+FITTED df 8 logLik -324.812229967 | non-finite SEs 0 of 8 | min vcov eigenvalue 0.01556 
+
+-- mo(m) + cs(m): refused --
+REFUSED: mo(m) and the cs() term(s) of 'yo.mu' are not identified together: cs() already gives every value of 'm' its own coefficient at each category boundary, so the monotonic term adds no direction the cs() coefficients cannot absorb, whatever its simplex. Keep one of the two: mo() alone when the effect is monotone and the same at every boundary, cs() alone when it is not. An INTERACTION of the two survives, because it is not a function of 'm' alone: write 'z + mo(m):z + cs(m)' rather than 'mo(m) * z + cs(m)', whose main effect is the part that is refused. 
+
+-- mo(m) * z + cs(m) --
+REFUSED: mo(m) and the cs() term(s) of 'yo.mu' are not identified together: cs() already gives every value of 'm' its own coefficient at each category boundary, so the monotonic term adds no direction the cs() coefficients cannot absorb, whatever its simplex. Keep one of the two: mo() alone when the effect is monotone and the same at every boundary, cs() alone when it is not. An INTERACTION of the two survives, because it is not a function of 'm' alone: write 'z + mo(m):z + cs(m)' rather than 'mo(m) * z + cs(m)', whose main effect is the part that is refused. 
+
+-- z + mo(m):z + cs(m) --
+FITTED df 12 logLik -324.125678297 | non-finite SEs 0 of 10 | min vcov eigenvalue 0.002812 
+
+-- mo(m):z + cs(m) --
+FITTED df 11 logLik -324.699418765 | non-finite SEs 0 of 9 | min vcov eigenvalue 0.003151 
+
+== (4) the pre-existing mo(m) + m defect, no cs() anywhere ==
+
+-- mo(m) + m --
+FITTED df 8 logLik -328.534572784 | non-finite SEs 6 of 6 | min vcov eigenvalue -6441 
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+
+-- mo(m) + mn (m as an unordered factor) --
+FITTED df 8 logLik -328.534572783 | non-finite SEs 0 of 6 | min vcov eigenvalue -6724 
+
+-- mo(m) alone --
+FITTED df 5 logLik -329.095915609 | non-finite SEs 0 of 3 | min vcov eigenvalue 0.001205 
+
+-- m alone --
+FITTED df 5 logLik -328.534572790 | non-finite SEs 0 of 5 | min vcov eigenvalue 0.01527 
+
+done

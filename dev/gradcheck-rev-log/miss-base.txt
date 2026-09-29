@@ -1,0 +1,48 @@
+CORE: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+M1 sd 1e-7 col, autoscale=FALSE    conv=0 gmax=1.601e-05  head=NA         shortfall=297.175     gradwarn=FALSE anywarn=FALSE MISS=TRUE
+
+Warning message:
+Optimizer did not report convergence: singular convergence (7) 
+M2 poisson rel.tol=1e-02           conv=0 gmax=9.304      head=NA         shortfall=0.0170904   gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (9.3); the fit may not have converged. diagnose() names the off 
+M2 poisson rel.tol=1e-03           conv=0 gmax=4.798      head=NA         shortfall=0.00372271  gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (4.8); the fit may not have converged. diagnose() names the off 
+M2 poisson rel.tol=1e-04           conv=0 gmax=3.167      head=NA         shortfall=0.00100934  gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (3.17); the fit may not have converged. diagnose() names the of 
+M2 poisson rel.tol=1e-05           conv=0 gmax=0.5281     head=NA         shortfall=8.23811e-05 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.528); the fit may not have converged. diagnose() names the o 
+M2 poisson rel.tol=1e-06           conv=0 gmax=0.3179     head=NA         shortfall=1.73227e-05 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.318); the fit may not have converged. diagnose() names the o 
+
+M3a collinear eps=1e-05            conv=0 gmax=0.004986   head=NA         shortfall=0.528636    gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.00499); the fit may not have converged. diagnose() names the 
+M3a collinear eps=1e-06            conv=0 gmax=0.005145   head=NA         shortfall=1.68536e-08 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.00515); the fit may not have converged. diagnose() names the 
+M3a collinear eps=1e-07            conv=0 gmax=0.005147   head=NA         shortfall=1.58004e-08 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.00515); the fit may not have converged. diagnose() names the 
+Fixed-effect design of 'y.mu' is rank deficient; dropping column(s): x2
+Fixed-effect design of 'y.mu' is rank deficient; dropping column(s): x2
+M3a collinear eps=1e-08            conv=0 gmax=0.002077   head=NA         shortfall=2.01089e-09 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.00208); the fit may not have converged. diagnose() names the 
+
+M3b near-separation rel.tol=1e-02  conv=0 gmax=1.496      head=NA         shortfall=0.211266    gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (1.5); the fit may not have converged. diagnose() names the off 
+M3b near-separation rel.tol=1e-04  conv=0 gmax=0.8192     head=NA         shortfall=0.0084897   gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.819); the fit may not have converged. diagnose() names the o 
+M3b near-separation rel.tol=1e-06  conv=0 gmax=0.004284   head=NA         shortfall=3.90061e-07 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.00428); the fit may not have converged. diagnose() names the 
+
+M3c nl decay, b start 5            conv=0 gmax=0.0001822  head=NA         shortfall=1.45945e-11 gradwarn=FALSE anywarn=FALSE MISS=FALSE
+M3c nl decay, b start 12           conv=0 gmax=0.00158    head=NA         shortfall=1.25155e-10 gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (0.00158); the fit may not have converged. diagnose() names the 
+
+M3d mixture rel.tol=1e-02          conv=0 gmax=10.25      head=NA         shortfall=0.281479    gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (10.3); the fit may not have converged. diagnose() names the of 
+M3d mixture rel.tol=1e-04          conv=0 gmax=1.203      head=NA         shortfall=0.122314    gradwarn=TRUE  anywarn=TRUE  MISS=FALSE
+      WARN: Large maximum absolute gradient at the optimum (1.2); the fit may not have converged. diagnose() names the off 
+
+M4 importance rel.tol=1e-03  max_grad=0.8236     grad_proj=NA         headroom=NA         clean=FALSE nwarn=0
+M4 importance rel.tol=1e-02  max_grad=3.843      grad_proj=NA         headroom=NA         clean=FALSE nwarn=0
+M4 importance rel.tol=1e-01  max_grad=6.231      grad_proj=NA         headroom=NA         clean=FALSE nwarn=0
+DONE miss

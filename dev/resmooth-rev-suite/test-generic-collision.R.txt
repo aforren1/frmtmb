@@ -1,0 +1,1 @@
+RESULT test-generic-collision.R lib=lane pass=56 fail=0 error=0 skip=0 warn=0 blocks=13/13

@@ -62,6 +62,22 @@
 #' pointwise `log_lik()` of a `rescor` model reads it rather than
 #' assuming the normal.
 #'
+#' `arma_cond_resp(fit)` names the responses carrying brms's default
+#' `cov = FALSE` form of `ar()`, `ma()` or `arma()`, and
+#' `arma_cond_dpars(fit, dpv)` gives the whole `eval_dpars()` list back
+#' with each such response's `mu` moved to brms's one-step conditional
+#' mean, the regression on the earlier OBSERVED residuals of the row's
+#' group. The two answer one question between them: whether a pointwise
+#' log-density exists, and what `mu` it is evaluated at. Under
+#' `cov = FALSE` every row keeps the family's own density, so a
+#' `log_lik()` column is an observation; a `cov = TRUE` covariance block
+#' has no such column, because its smallest independent unit is a whole
+#' group. Call `arma_cond_dpars()` before `row_lpdf()` (and before
+#' `rescor_row_loglik()`), which is the order the taped objective uses
+#' and which makes the row density read the objective's own `mu` instead
+#' of a second one. It is safe to call unconditionally: with no such
+#' block it returns `dpv` unchanged.
+#'
 #' @section The prior seam:
 #' The prior VOCABULARY - [set_prior()], [prior_normal()] and its
 #' relatives, [get_prior()], [prior_summary()] - is ordinary exported
@@ -395,6 +411,8 @@
 #' @aliases brms_prob_cols
 #' @aliases brms_fixef_rows
 #' @aliases rescor_row_loglik
+#' @aliases arma_cond_resp
+#' @aliases arma_cond_dpars
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
@@ -420,7 +438,8 @@
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
-#'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik)
+#'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
+#'   arma_cond_resp, arma_cond_dpars)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

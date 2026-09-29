@@ -62,7 +62,13 @@ test_that("the spline curves scale row fits and reports its cost", {
                                         data = d, se = TRUE)))
   g1 <- scale_grad(fit$obj, fit$opt$par)
 
-  g <- data.frame(t = seq(0.05, 0.95, length.out = 80))
+  # The POPULATION curve, read at a subject the fit never saw: from
+  # frmtmb 0.65.0 re_formula = NA keeps the factor smooth, so the grid
+  # has to name a subject, and an unseen one contributes the fs basis's
+  # zero row (?frm_curve, "The population curve of a factor-smooth
+  # model"). A grid with no subject column is refused.
+  g <- data.frame(t = seq(0.05, 0.95, length.out = 80),
+                  subject = factor("pop"))
   # THE COLD CALL FIRST, and on purpose.
   #
   # frm_curve() memoizes the joint-precision solve on the fit object, so
@@ -73,22 +79,26 @@ test_that("the spline curves scale row fits and reports its cost", {
   # the feature search here, before anything else touches the curve
   # machinery, is what makes its cold number a real one.
   t_solve <- scale_elapsed(
-    frm_curve_feature(fit, var = "t", type = "maximum", newdata = g))
+    frm_curve_feature(fit, var = "t", type = "maximum", newdata = g,
+                      allow_new_levels = TRUE))
   # interleaved and replicated from here on, all arms warm
   pf <- scale_interleave(list(
     curve_sim = function() {
       frm_curve(fit, newdata = g, re_formula = NA, simultaneous = TRUE,
-                nsim = 10000L, seed = 1)
+                nsim = 10000L, seed = 1, allow_new_levels = TRUE)
     },
     curve_pw = function() {
-      frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
+      frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE,
+                allow_new_levels = TRUE)
     },
     feature = function() {
-      frm_curve_feature(fit, var = "t", type = "maximum", newdata = g)
+      frm_curve_feature(fit, var = "t", type = "maximum", newdata = g,
+                        allow_new_levels = TRUE)
     }))
   cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = TRUE,
-                  nsim = 10000L, seed = 1)
-  ft <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g)
+                  nsim = 10000L, seed = 1, allow_new_levels = TRUE)
+  ft <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g,
+                          allow_new_levels = TRUE)
   mem <- scale_mem_peak_mb()
 
   scale_record(

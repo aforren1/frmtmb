@@ -1,0 +1,40 @@
+﻿* using log directory 'C:/Users/adf44/source/r/frmtmb-wt-gradcheck/dev/gradcheck-check/frmtmb.Rcheck'
+* using R version 4.6.1 (2026-06-24 ucrt)
+* using platform: x86_64-w64-mingw32
+* R was compiled by
+    gcc.exe (GCC) 14.3.0
+    GNU Fortran (GCC) 14.3.0
+* running under: Windows 11 x64 (build 26200)
+* using session charset: UTF-8
+* current time: 2026-09-29 03:07:29 UTC
+* using option '--as-cran'
+* checking for file 'frmtmb/DESCRIPTION' ... OK
+* this is package 'frmtmb' version '0.64.0'
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... NOTE
+Maintainer: 'Alex Forrence <alex.forrence@gmail.com>'
+
+Package has a VignetteBuilder field but no prebuilt vignette index.
+* checking package namespace information ... OK
+* checking package dependencies ... ERROR
+Package suggested but not available: 'drmTMB'
+
+The suggested packages are required for a complete check.
+Checking can be attempted without them by setting the environment
+variable _R_CHECK_FORCE_SUGGESTS_ to a false value.
+
+See section 'The DESCRIPTION file' in the 'Writing R Extensions'
+manual.
+* DONE
+R.exe : 
+At line:1 char:828
++ ... | Out-Null; & "C:\Program Files\R\R-4.6.1\bin\R.exe" CMD check --as-c ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Status: 1 ERROR, 1 NOTE
+See
+  'C:/Users/adf44/source/r/frmtmb-wt-gradcheck/dev/gradcheck-check/frmtmb.Rcheck/00check.log'
+for details.
+

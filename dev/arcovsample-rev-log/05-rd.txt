@@ -1,0 +1,52 @@
+
+================ sample-log_lik.Rd (171 rendered lines)
+  emdash: 0
+  endash: 0
+  lsquo: 0
+  rsquo: 0
+  ldquo: 0
+  rdquo: 0
+  British spellings: none
+  ' - ' spaced hyphens: 0
+  lines over 80 columns: 3
+
+================ sample-loo.Rd (139 rendered lines)
+  emdash: 0
+  endash: 0
+  lsquo: 0
+  rsquo: 0
+  ldquo: 0
+  rdquo: 0
+  British spellings: none
+  ' - ' spaced hyphens: 0
+  lines over 80 columns: 3
+
+================ frmtmb-sampling-api.Rd (343 rendered lines)
+  emdash: 0
+  endash: 0
+  lsquo: 0
+  rsquo: 0
+  ldquo: 0
+  rdquo: 0
+  British spellings: none
+  ' - ' spaced hyphens: 8
+  lines over 80 columns: 5
+
+================ frmtmb-autocor.Rd (294 rendered lines)
+  emdash: 0
+  endash: 0
+  lsquo: 0
+  rsquo: 0
+  ldquo: 0
+  rdquo: 0
+  British spellings: none
+  ' - ' spaced hyphens: 13
+  lines over 80 columns: 4
+
+
+======== the new sections, as rendered ========
+
+---- sample-log_lik.txt: Autocorrelation, and what a row conditions on
+Error in i:max(i, j - 1L) : NA/NaN argument
+Calls: show -> cat -> paste
+Execution halted

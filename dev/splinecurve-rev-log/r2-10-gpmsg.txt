@@ -1,0 +1,10 @@
+frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a new
+level's marginal variance, from a grouping term or an exact gp() this grid
+reaches off the fit. One unseen level is one draw shared by every row, and
+frm_lp_basis() returns its variance one number per row with no covariance
+between rows, so the derivative's standard error would omit it and come out
+too narrow. The pointwise frm_curve(simultaneous = FALSE) band carries it.
+Use re_formula = NA to drop the term and read the population curve, or name a
+level the fit saw
+
+following the advice, re_formula = NA: still REFUSED 

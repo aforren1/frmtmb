@@ -287,6 +287,81 @@
 #' refused (the simplex carries one coefficient and a contrast expansion
 #' has no column to go in), and `mo(x):mo(w)` is refused outright.
 #'
+#' @section Category-specific effects, cs():
+#' `cs(x)` gives a predictor one coefficient per category boundary
+#' instead of one for the whole response, in the `sratio()`, `cratio()`
+#' and `acat()` families. The term contributes an `n` by `K - 1` matrix
+#' of offsets to the thresholds, so the effect of `x` on the first
+#' boundary need not be its effect on the second. `cumulative()` refuses
+#' it, as brms does: category-specific effects are not identified under
+#' that parameterization, because the cumulative probabilities would stop
+#' being monotone.
+#'
+#' A `cs()` term is expanded by `stats::model.matrix()` like any other
+#' population-level term, which is what brms does too. A numeric
+#' predictor is one column; a FACTOR or CHARACTER predictor is its
+#' treatment-contrast dummies, one coefficient per dummy per boundary.
+#' `cs(f)` on a three-level factor with levels `a`, `b` and `c` is
+#' therefore four coefficients, named `fb[1]`, `fb[2]`, `fc[1]` and
+#' `fc[2]` in [fixef()] and `bcs_fb[1]` and the rest in [variables()],
+#' with `a` as the reference level. `set_prior(class = "b")` covers them
+#' all and `set_prior(class = "b", coef = "fb")` reaches one dummy's
+#' pair; [default_prior()] lists one row per dummy, as brms's
+#' `get_prior()` does. New data are recoded against the levels and
+#' contrasts of the FIT, so a one-row `newdata` whose factor carries only
+#' the level it needs still predicts that level, and a level the fit
+#' never saw is refused.
+#'
+#' A column written on BOTH sides is refused. `y ~ x + cs(x)` is not
+#' identified: adding a constant to the population-level coefficient of
+#' `x` and subtracting the same constant from every one of its
+#' category-specific coefficients leaves the likelihood unchanged. Write
+#' `y ~ cs(x)`, which fits the same set of distributions. The same holds
+#' for a factor on both sides (`y ~ f + cs(f)`) and for a constant `cs()`
+#' column. brms builds both blocks and samples the ridge; maximum
+#' likelihood has no prior to hold it, and what frmtmb reported before
+#' the refusal was a coefficient with a standard error of 2.7e5.
+#'
+#' The check is a RANK test, so it also catches a column that only a
+#' basis or an arithmetic expression spells differently:
+#' `y ~ I(x) + cs(x)`, `y ~ x1 + x2 + cs(x1 + x2)`,
+#' `y ~ poly(x, 2) + cs(x)` and `y ~ s(x) + cs(x)` are all refused, and so
+#' are two `cs()` terms that are the same column under different
+#' spellings. The rank comes from `qr()` at its default `tol = 1e-7`, over
+#' columns scaled to unit norm, so a merely ill-conditioned design is
+#' refused once its condition number passes about `1e7`. The message names
+#' the population-level columns involved and the edit that works, which
+#' for `poly(x, 2) + cs(x)` is `I(x^2) + cs(x)` (the same maximum, one
+#' parameter fewer) and for `s(x) + cs(x)` is to drop one of the two
+#' terms, because there it is the smooth's own unpenalized linear column
+#' that is aliased.
+#'
+#' The rank test cannot see an `mi()` or `me()` term: its design column is
+#' a zero placeholder at assembly, filled later with observed-or-latent
+#' VALUES rather than with a function of a data column, so there is no
+#' basis to test it against. `mi(x) + cs(x)` and `me(x, sdx) + cs(x)` are
+#' therefore accepted. `me(x, sdx) + cs(x)` looks genuinely identified,
+#' its standard errors being finite, and `mi(x) + cs(x)` is not settled.
+#' `mo()` has a placeholder column too, but whatever fills it is a
+#' monotone function of the predictor's categories, so `mo()` gets a test
+#' of its own against that category basis and `y ~ mo(m) + cs(m)` is
+#' refused.
+#'
+#' `cs()` is not available with `thres(gr = )` or under `importance`, and
+#' `cs()` on the LEFT of a bar (`(cs(x) | g)`) is the covariance structure
+#' of the same name, not a category-specific effect. A MULTIVARIATE fit
+#' takes `cs()` in any response: `bf(yo ~ x + cs(f)) + bf(yo2 ~ z +
+#' cs(f))` fits, and the coefficients carry the response prefix,
+#' `yo_fb[1]` in [fixef()] and `bcs_yo_fb[1]` in [variables()].
+#'
+#' One behavior to know when a `cs()` level is rare. The model frame drops
+#' an unused factor level, as brms does, so a SUBSET in which a level does
+#' not occur is fitted with one column fewer. In [influence()], deleting
+#' the last row of a level therefore gives a refit whose coefficients are
+#' a subset of the full fit's: those cells stay `NA`,
+#' [cooks.distance()] is `NA` for that unit, and a warning names the unit
+#' and the coefficients.
+#'
 #' @section Ordinal thresholds, thres():
 #' The four ordinal families take brms's `thres()` addition term.
 #' `y | thres(K) ~ x` fits `K` thresholds, so the response has `K + 1`
@@ -319,6 +394,28 @@
 #' `posterior_epred()`. `newdata` must hold the grouping variable, with
 #' levels the fit has seen. With `gr`, `cs()` is refused, as in brms,
 #' and so is `residuals(type = "osa")`.
+#'
+#' A refit inside the package keeps the threshold count of the model it
+#' came from, and keeps the count of every level of `thres(gr = )`.
+#' [frm_bootstrap()], [refit()], [frm_allfit()], `anova(refit = TRUE)`,
+#' `confint(method = "profile")` and the autoscale pre-fit reuse the
+#' assembled design, so the count cannot move. [influence()] and
+#' `cooks.distance()` rebuild the design from a subset of the data, and
+#' carry over the count AND the response's own categories, so a subset
+#' that empties ANY category, bottom, interior or top, still fits the
+#' fitted model with one threshold that the subset no longer identifies.
+#' An ordered-factor response then gives the same table as the same data
+#' coded as integers. Two cases cannot be refit and are refused per unit,
+#' counted and reported: a `groups = ` deletion that removes a whole
+#' `thres(gr = )` level, and a `data = ` holding a response category
+#' outside the fitted threshold layout or a `thres(gr = )` level the fit
+#' never saw. A category `thres(K)` declared but nothing observed is
+#' inside that layout, so `data = ` may reach it. See [influence()].
+#'
+#' Calling `frm()` again on new data is not a refit: it counts the
+#' thresholds of that data. That is what `update(newdata = )` does,
+#' because it re-evaluates the stored call, and what [simulate()]
+#' followed by `frm()` does. Write `thres(K)` to pin a count there.
 #'
 #' @section The Laplace approximation, and how to check it:
 #' Random effects are integrated out by the Laplace approximation,
@@ -450,7 +547,9 @@
 #' @srrstats {RE3.0} Models that fail to converge raise warnings: a
 #'   nonzero optimizer status (with the optimizer's own message and, for
 #'   a nonlinear model, a hint that `start` was not set), a maximum
-#'   absolute gradient above `grad_tol`, and, once the standard-error
+#'   absolute gradient above `grad_tol` that a Newton step confirms is
+#'   worth more than `grad_tol` in log likelihood, and, once the
+#'   standard-error
 #'   machinery has run (at fit time under `se = TRUE`, otherwise on the
 #'   first `vcov()`, `summary()` or [diagnose()] call), a Hessian that is
 #'   not positive definite or, failing that, non-finite standard errors.
@@ -1100,6 +1199,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
   }
+  # the box the optimizer ran under, which is the caller's bounds MERGED
+  # with any a prior spelled; fit$lower and fit$upper hold only the
+  # former, and the convergence check needs both (fit_outer_box())
+  fit$cache$bounds <- bounds
   if (se) {
     if (vb) t0 <- vb_now()
     fit$cache$sdr <- autoscale_sdreport(fit)
@@ -1418,8 +1521,41 @@ sdr_of <- function(fit) {
 #'   ([stats::nlminb()] / [stats::optim()]).
 #' @param restarts Number of times to restart the optimizer from the
 #'   current optimum while the gradient remains above `grad_tol`.
-#' @param grad_tol Warn (and restart) if the maximum absolute gradient at
-#'   the optimum exceeds this value.
+#' @param grad_tol How close to its optimum a fit has to stop. Read
+#'   twice, in this order.
+#'
+#'   As a GRADIENT, it restarts the optimizer while the maximum absolute
+#'   gradient is above it, and it is the trip-wire on the convergence
+#'   warning: a fit whose largest gradient component stays under it says
+#'   nothing further.
+#'
+#'   As a LOG LIKELIHOOD, it decides the warning. A fit that trips the
+#'   trip-wire is measured again, this time by how much log likelihood one
+#'   exact Newton step from the stopping point would still buy, over the
+#'   parameters no bound holds in place, and it warns only when that is
+#'   above `grad_tol` as well. The second reading is what makes the
+#'   default mean the same thing on every design: an absolute gradient
+#'   grows with the sample size, because the optimizer stops on a
+#'   RELATIVE change in an objective that grows with it, while the
+#'   remaining log likelihood does not. Measured over 720 correct fits on
+#'   nine designs at four sample sizes (`dev/gradcheck-findings.md`), the
+#'   gradient alone warned on 289 of them and the two readings together
+#'   on none.
+#'
+#'   WHAT IT DOES NOT COVER. The first reading gates the second, so a fit
+#'   whose largest gradient never reaches `grad_tol` is never looked at,
+#'   however far short of its optimum it is. A predictor column scaled far
+#'   below one does exactly that: it keeps the gradient small while the
+#'   coefficient stalls near zero. Measured, with `autoscale = FALSE`: at
+#'   a column spread of 1e-7 a gaussian fit reports convergence, a maximum
+#'   absolute gradient of 1.6e-5, and a log likelihood 297 units below the
+#'   standardized fit of the same data, with no warning of any kind. The
+#'   default `autoscale` rule is what closes that gap, which is why it
+#'   engages at a spread of 1e-3 (see `autoscale`), and `diagnose()`
+#'   reports badly scaled columns whether or not the gradient noticed.
+#'
+#'   Lower it for a stricter fit and a stricter warning; both readings
+#'   move together. `diagnose()` reports every number the verdict used.
 #' @param profile Experimental: move the primary (`beta`) coefficients
 #'   into the inner (Laplace) problem, TMB's `profile` argument - the
 #'   analog of `glmmTMBControl(profile = TRUE)` and `glmer(nAGQ = 0)`.
@@ -1563,7 +1699,8 @@ sdr_of <- function(fit) {
 #'   shift, and the effect is exercised in `tests/testthat/test-autoscale.R`,
 #'   which checks that the scaled and unscaled fits agree.
 #' @srrstats {RE3.2} Convergence thresholds have documented defaults:
-#'   `grad_tol = 1e-3` on the maximum absolute gradient at the optimum,
+#'   `grad_tol = 1e-3` on the maximum absolute gradient at the optimum
+#'   and on the log likelihood one Newton step from it would still buy,
 #'   and `optCtrl = list(iter.max = 1000, eval.max = 1000)` for the
 #'   built-in optimizers. Both appear in the usage section of the manual
 #'   page with an `@param` describing them.
@@ -2570,6 +2707,245 @@ make_start <- function(frame, start, prior_entries = NULL,
   tpl
 }
 
+#' The box the optimizer ran under, over the outer parameter vector.
+#'
+#' `set_prior(lb = , ub = )` is the ONLY way to put a bound on a frmtmb
+#' fit: `frm()` has no `lower` or `upper` argument, and the internal
+#' callers that still pass those two through (`frm_allfit()`, `refit()`,
+#' `influence()`, the autoscale pre-fit) forward `fit$lower`, which is
+#' that same absent value. The prior's box is merged in AFTER `fit$lower`
+#' and `fit$upper` are filled, so those slots never hold anything and the
+#' resolved box has to come from somewhere else. `fit_assembled()` records
+#' it in the cache and this is the one reader.
+#'
+#' The `resolve_bounds()` fallback below is therefore unreachable today
+#' and returns the same open box as the line above it; it is kept because
+#' an open box is the safe answer for an object assembled outside
+#' `fit_assembled()`, whose cache carries no bounds. Open means nothing is
+#' excluded, which leaves the check exactly as diagnostic as it was.
+#'
+#' @noRd
+fit_outer_box <- function(fit) {
+  np <- length(fit$opt$par)
+  open <- list(lower = rep(-Inf, np), upper = rep(Inf, np))
+  if (!np) return(open)
+  cached <- if (is.environment(fit$cache)) fit$cache$bounds
+  if (!is.null(cached) && length(cached$lower) == np &&
+      length(cached$upper) == np) {
+    return(cached)
+  }
+  # an object assembled outside fit_assembled() still gets the caller's
+  # bounds, and a fit with no box at all gets an open one, so the check
+  # is then no less diagnostic than it was before this function existed
+  out <- tryCatch(resolve_bounds(fit, fit$lower, fit$upper),
+                  error = function(e) NULL)
+  if (is.null(out) || length(out$lower) != np) return(open)
+  out
+}
+
+#' Which gradient components a bound holds in place, so that they are not
+#' evidence about convergence.
+#'
+#' At a constrained optimum the KKT conditions ask only that the gradient
+#' point OUT of the feasible set along a parameter sitting on its bound.
+#' Counting such a component as non-convergence warned on correct fits.
+#' Constructed (`dev/gradcheck-01-construct.R`, seed 101): on a gaussian
+#' fit whose unconstrained slope is 2, under
+#' `set_prior("", class = "b", ub = 0.1)`, the constrained optimum IS the
+#' bound, the objective rises monotonically away from it at every step
+#' tried, and the maximum absolute gradient reads 121. Over 80
+#' replicates of that design the old check warned 80 times while the
+#' projected gradient never reached `grad_tol`
+#' (`dev/gradcheck-03-design.R`, design `bounded`).
+#'
+#' Whether a parameter is ON its bound is judged relative to the bound's
+#' own magnitude, so no absolute step size is assumed.
+#'
+#' @noRd
+grad_bound_active <- function(par, g, bounds) {
+  np <- length(par)
+  if (!np || length(g) != np) return(logical(np))
+  lo <- bounds$lower
+  hi <- bounds$upper
+  if (length(lo) != np || length(hi) != np) return(logical(np))
+  slack <- sqrt(.Machine$double.eps) *
+    pmax(1, abs(ifelse(is.finite(lo), lo, 0)),
+         abs(ifelse(is.finite(hi), hi, 0)))
+  at_lo <- is.finite(lo) & (par - lo) <= slack
+  at_hi <- is.finite(hi) & (hi - par) <= slack
+  # the objective is a NEGATIVE log likelihood, so the feasible
+  # direction out of a lower bound is upward: the bound holds the
+  # parameter there exactly when the gradient is positive
+  (at_lo & g > 0) | (at_hi & g < 0)
+}
+
+#' How much log likelihood is still on the table where the optimizer
+#' stopped: half the Newton decrement over the parameters no bound holds.
+#'
+#' `0.5 * g' H^-1 g` is the drop one exact Newton step from the stopping
+#' point would buy. It answers the question the user has, "is anything
+#' left?", in the units the answer matters in, and it is invariant under
+#' any reparameterization, including the diagonal rescaling `autoscale`
+#' applies, so it does not have to be told which units the gradient is
+#' in. Measured against the real shortfall on fits stopped short of
+#' their optimum (`dev/gradcheck-02-truepos.R`,
+#' `dev/gradcheck-06-truepos2.R`): predicted 7.652e-7 against an actual
+#' 7.6516e-7, 1.586e-2 against 1.578e-2, 2.940e-2 against 2.9339e-2,
+#' 3.972e-3 against 3.9428e-3 and 1.043 against 1.0422, on GLM, ordinal
+#' and Laplace GLMM fits.
+#'
+#' `NA` when the curvature is unusable: a Hessian that cannot be built,
+#' or one that is not positive definite where the optimizer stopped. The
+#' caller warns then, which is the direction that keeps the check
+#' diagnostic.
+#'
+#' Only a fit whose projected gradient already tripped `grad_tol` pays
+#' for this, so a healthy fit pays nothing. Measured on this box
+#' (`dev/gradcheck-04-cost.R`): `he()` where RTMB offers it, otherwise
+#' one gradient evaluation per parameter, which is 4 percent of a whole
+#' fit at 4 parameters and 73 percent at 63.
+#'
+#' @noRd
+grad_headroom <- function(fit, g, active) {
+  p <- fit$opt$par
+  np <- length(p)
+  free <- which(!active)
+  if (!length(free)) return(0)
+  H <- tryCatch(fit$obj$he(p), error = function(e) NULL)
+  if (is.null(H) || !identical(dim(H), c(np, np))) {
+    # he() is not implemented for a Laplace objective, so the Hessian of
+    # the marginal comes from differencing its gradient
+    H <- tryCatch(
+      stats::optimHess(p, function(q) as.numeric(fit$obj$fn(q)),
+                       function(q) drop(fit$obj$gr(q))),
+      error = function(e) NULL)
+    # optimHess() leaves the tape's last evaluation at a PERTURBED point,
+    # and on a Laplace objective that is a displaced inner solve. Nothing
+    # downstream should read it, but diagnose_flat() has the same pattern
+    # and fit_end_checks() runs after this, so put the tape back where the
+    # optimizer left it for one gradient evaluation.
+    try(fit$obj$gr(p), silent = TRUE)
+  }
+  if (is.null(H) || !identical(dim(H), c(np, np)) || anyNA(H)) {
+    return(NA_real_)
+  }
+  H <- (H + t(H)) / 2
+  ch <- tryCatch(chol(H[free, free, drop = FALSE]),
+                 error = function(e) NULL)
+  if (is.null(ch)) return(NA_real_)
+  0.5 * sum(backsolve(ch, g[free], transpose = TRUE)^2)
+}
+
+#' The gradient verdict one fit raises once: what the largest component
+#' is, which components a bound holds, what the largest component no
+#' bound holds is, how much log likelihood a Newton step would still
+#' buy, and whether that is worth warning about.
+#'
+#' Two readings of `grad_tol`, in this order, because they cost
+#' different amounts. The projected gradient is free, and it is a
+#' trip-wire only: it can never warn on its own. The headroom costs a
+#' Hessian and is what decides. Measured over 720 correct fits on nine
+#' designs at four sample sizes (`dev/gradcheck-03-design.R`): the
+#' gradient alone warned on 289 of them, the projected gradient on 251,
+#' and the headroom on none.
+#'
+#' The trip-wire keeps one gap the absolute gradient already had: a
+#' direction flat enough to hide real headroom behind a small gradient
+#' is not looked at. `autoscale_small_sd`'s comment records the same gap
+#' from the other side, and the autoscale default is what closes it.
+#'
+#' Cached, so `diagnose()` right after a fit does not build the Hessian
+#' a second time.
+#'
+#' @noRd
+grad_verdict <- function(fit, g = NULL, control = fit$control) {
+  p <- fit$opt$par
+  tol <- control$grad_tol %||% 1e-3
+  out <- list(gmax = NA_real_, gmax_par = NA_character_, proj = NA_real_,
+              proj_par = NA_character_, bound_held = character(0),
+              headroom = NA_real_, warn = FALSE, tol = tol)
+  if (!length(p)) return(out)
+  cached <- if (is.environment(fit$cache)) fit$cache$grad_verdict
+  if (!is.null(cached) && identical(cached$tol, tol)) return(cached)
+  if (is.null(g)) g <- try(drop(fit$obj$gr(p)), silent = TRUE)
+  if (inherits(g, "try-error") || length(g) != length(p) || anyNA(g)) {
+    return(out)
+  }
+  # under autoscale the gradient is judged in the same natural units the
+  # optimizer used (a 1e6-scale column bounds its coefficient's absolute
+  # gradient near machine noise times 1e6)
+  gu <- g * (fit$par_units %||% 1)
+  act <- grad_bound_active(p, g, fit_outer_box(fit))
+  nm <- outer_par_names(fit)
+  out$gmax <- max(abs(gu))
+  out$gmax_par <- nm[which.max(abs(gu))]
+  gp <- gu
+  gp[act] <- 0
+  out$proj <- max(abs(gp))
+  # the parameter the verdict is ABOUT. `gmax_par` is the argmax of the
+  # raw gradient, which on a bounded fit is the one parameter the
+  # projection removed, so a report that named only that named the wrong
+  # one (dev/gradcheck-rev-16-msg.R)
+  out$proj_par <- if (all(act)) NA_character_ else nm[which.max(abs(gp))]
+  out$bound_held <- nm[act]
+  if (out$proj > tol) {
+    gfree <- g
+    gfree[act] <- 0
+    out$headroom <- grad_headroom(fit, gfree, act)
+    out$warn <- !is.finite(out$headroom) || out$headroom > tol
+  }
+  if (is.environment(fit$cache)) fit$cache$grad_verdict <- out
+  out
+}
+
+#' The sentence the gradient verdict warns with.
+#'
+#' The opening phrase "Large maximum absolute gradient" is kept verbatim,
+#' because `tests/testthat/helper-fuzz.R`'s `FUZZ_NONCONVERGENCE` greps
+#' for it to decide whether a fuzz invariant was measured on a fit that
+#' warned, and muting the wrong invariants is how that harness has gone
+#' wrong before. Checked before touching it: that one line, this file and
+#' `test-grad-verdict.R` are the only matches in `R/`, `tests/` and every
+#' extension's tests and sources.
+#'
+#' The NUMBER after it is now the maximum absolute gradient, which is
+#' what the phrase says. It used to be the projected gradient, so on a
+#' fit with a bound holding a component the sentence named one quantity
+#' and printed another: 52.5 where the maximum was 5971.25
+#' (`dev/gradcheck-rev-16-msg.R`, seed 9301). The projected gradient, the
+#' parameter it belongs to and the headroom follow in their own clauses,
+#' so every number the verdict used is on the page. The old sentence
+#' deferred to `diagnose()` for "the offending parameter" and
+#' `diagnose()` named the argmax of the RAW gradient, which on a bounded
+#' fit is the one parameter the verdict deliberately excluded.
+#'
+#' @noRd
+grad_warning_msg <- function(v) {
+  at <- function(nm) if (is.na(nm) || !nzchar(nm)) "" else paste0(" at ", nm)
+  held <- if (length(v$bound_held)) {
+    one <- length(v$bound_held) == 1L
+    paste0(", of which ", length(v$bound_held),
+           if (one) " component is" else " components are",
+           " held by a bound (", paste(v$bound_held, collapse = ", "),
+           "), leaving ", format(v$proj, digits = 3), at(v$proj_par),
+           " as the largest no bound holds")
+  } else ""
+  paste0("Large maximum absolute gradient at the optimum (",
+         format(v$gmax, digits = 3), at(v$gmax_par), ")", held, ": ",
+         if (is.finite(v$headroom)) {
+           paste0("one Newton step over the parameters no bound holds ",
+                  "would still gain ", format(v$headroom, digits = 3),
+                  " in log-likelihood, more than frmtmb_control(grad_tol",
+                  " = ", format(v$tol, digits = 3), ")")
+         } else {
+           paste0("the curvature there is unusable, so how much ",
+                  "log-likelihood is left could not be measured")
+         },
+         ". The fit may not have converged. diagnose() reports all three ",
+         "numbers; see the 'Convergence problems' section of ",
+         "vignette('diagnostics') for the remedies")
+}
+
 #' The post-fit verdict: the optimizer status, the maximum absolute
 #' gradient, and, when a report is already there, the Hessian and the
 #' standard errors. Each failure is a separate warning, so
@@ -2592,14 +2968,16 @@ check_convergence <- function(fit, control) {
     msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
                            fit$opt$message, nl_hint))
   }
+  gvec <- if (!length(fit$opt$par)) NULL else {
+    try(drop(fit$obj$gr(fit$opt$par)), silent = TRUE)
+  }
+  if (inherits(gvec, "try-error")) gvec <- NULL
   # under autoscale the gradient is judged in the same natural units
   # the optimizer used (a 1e6-scale column bounds its coefficient's
   # absolute gradient near machine noise times 1e6)
-  g <- if (!length(fit$opt$par)) NA_real_ else {
-    try(max(abs(fit$obj$gr(fit$opt$par) * (fit$par_units %||% 1))),
-        silent = TRUE)
+  g <- if (is.null(gvec)) NA_real_ else {
+    max(abs(gvec * (fit$par_units %||% 1)))
   }
-  if (inherits(g, "try-error")) g <- NA_real_
   if (!is.null(fit$importance)) {
     # An importance-corrected objective is a Monte Carlo estimate, and
     # its gradient carries an O(N^-1/2) error that is exactly zero only
@@ -2642,12 +3020,12 @@ check_convergence <- function(fit, control) {
       })
     }
   } else if (is.finite(g) && g > control$grad_tol) {
-    msgs <- c(msgs, paste0("Large maximum absolute gradient at the ",
-                           "optimum (", format(g, digits = 3),
-                           "); the fit may not have converged. ",
-                           "diagnose() names the offending parameter; ",
-                           "see the 'Convergence problems' section of ",
-                           "vignette('diagnostics') for the remedies"))
+    # the absolute gradient is the trip-wire and not the verdict: a
+    # component a bound holds is not evidence, and what decides is how
+    # much log likelihood one Newton step would still buy. See
+    # grad_verdict().
+    v <- grad_verdict(fit, gvec, control)
+    if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
   }
   # Covariance verdicts are only known once sdreport has run (se =
   # TRUE); the lazy path surfaces them through vcov()/summary()/

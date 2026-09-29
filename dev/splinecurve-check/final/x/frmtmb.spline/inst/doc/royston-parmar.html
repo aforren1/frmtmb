@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>How to fit a flexible parametric survival model</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">How to fit a flexible parametric survival
+model</h1>
+
+
+
+<p>A Cox model leaves the baseline hazard unspecified, which is what
+makes it robust and also what stops it from telling you the hazard. A
+Royston-Parmar model writes the log cumulative hazard as a natural cubic
+spline in log time. You get proportional hazards when you want them, a
+smooth estimated baseline you can plot, and time-varying effects when
+the proportional-hazards assumption fails.</p>
+<p><code>royston_parmar()</code> is that family, parameterized exactly
+as <code>flexsurv::flexsurvspline()</code> parameterizes it.</p>
+<div id="the-data" class="section level2">
+<h2>The data</h2>
+<p><code>flexsurv</code>’s <code>bc</code> data: 686 breast cancer
+patients in three prognostic groups, recurrence-free survival in years,
+299 events and 387 right-censored rows.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">data</span>(bc, <span class="at">package =</span> <span class="st">&quot;flexsurv&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">table</span>(bc<span class="sc">$</span>group, <span class="at">event =</span> bc<span class="sc">$</span>censrec)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt;         event</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt;            0   1</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt;   Good   178  51</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt;   Medium 126 103</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;   Poor    83 145</span></span></code></pre></div>
+<p>One thing to get right before anything else. frmtmb’s
+<code>cens()</code> reads <code>0</code> as an observed event and
+<code>1</code> as right censored. A <code>Surv()</code> status column is
+the other way round. Convert it, once, and name the column for what it
+holds:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>bc<span class="sc">$</span>censored <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> bc<span class="sc">$</span>censrec</span></code></pre></div>
+</div>
+<div id="fit-it" class="section level2">
+<h2>Fit it</h2>
+<p><code>df</code> is the degrees of freedom of the spline: the number
+of interior knots plus one. <code>df = 3</code> gives two interior knots
+and four coefficients, which is Royston and Parmar’s usual starting
+point. The knots go at equally spaced quantiles of the log UNCENSORED
+times, which needs the response, so they are chosen when
+<code>frm()</code> assembles the model frame.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">frm</span>(<span class="fu">bf</span>(recyrs <span class="sc">|</span> <span class="fu">cens</span>(censored) <span class="sc">~</span> group),</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>           <span class="at">family =</span> <span class="fu">royston_parmar</span>(<span class="at">df =</span> <span class="dv">3</span>), <span class="at">data =</span> bc)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">fixef</span>(fit)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;               Estimate Est.Error       Q2.5     Q97.5</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Intercept   -2.7467993 0.2506274 -3.2380199 -2.255579</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; groupMedium  0.8342391 0.1712826  0.4985314  1.169947</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; groupPoor    1.6117459 0.1642932  1.2897372  1.933755</span></span></code></pre></div>
+<p><code>mu</code> is <code>gamma0</code>, the spline intercept, and the
+<code>group</code> coefficients sit on it. Because <code>gamma0</code>
+shifts the whole log cumulative hazard, those are LOG HAZARD RATIOS: the
+model is proportional hazards.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">exp</span>(<span class="fu">unlist</span>(<span class="fu">fixef_by_dpar</span>(fit)<span class="sc">$</span>mu)[<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; groupMedium   groupPoor </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;    2.303061    5.011553</span></span></code></pre></div>
+<p><code>gamma1</code> and upward are the other spline coefficients, and
+together with <code>gamma0</code> they are the baseline.</p>
+</div>
+<div id="it-is-the-same-model-flexsurv-fits" class="section level2">
+<h2>It is the same model flexsurv fits</h2>
+<p>Not “close to”. The same. Both packages evaluate one function, and
+the proof is to hand flexsurv’s fitted coefficients to frmtmb’s
+objective:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>fs <span class="ot">&lt;-</span> flexsurv<span class="sc">::</span><span class="fu">flexsurvspline</span>(survival<span class="sc">::</span><span class="fu">Surv</span>(recyrs, censrec) <span class="sc">~</span> group,</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>                               <span class="at">data =</span> bc, <span class="at">k =</span> <span class="dv">2</span>, <span class="at">scale =</span> <span class="st">&quot;hazard&quot;</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>kn <span class="ot">&lt;-</span> fs<span class="sc">$</span>knots</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>o <span class="ot">&lt;-</span> <span class="fu">frm</span>(<span class="fu">bf</span>(recyrs <span class="sc">|</span> <span class="fu">cens</span>(censored) <span class="sc">~</span> group),</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>         <span class="at">family =</span> <span class="fu">royston_parmar</span>(<span class="at">knots =</span> kn[<span class="dv">2</span><span class="sc">:</span>(<span class="fu">length</span>(kn) <span class="sc">-</span> <span class="dv">1</span>)],</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>                                 <span class="at">bknots =</span> kn[<span class="fu">c</span>(<span class="dv">1</span>, <span class="fu">length</span>(kn))]),</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>         <span class="at">data =</span> bc, <span class="at">dry_run =</span> <span class="st">&quot;objective&quot;</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>cf <span class="ot">&lt;-</span> fs<span class="sc">$</span>res[, <span class="st">&quot;est&quot;</span>]</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>gam <span class="ot">&lt;-</span> cf[<span class="fu">grep</span>(<span class="st">&quot;^gamma&quot;</span>, <span class="fu">names</span>(cf))]</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>par <span class="ot">&lt;-</span> <span class="fu">c</span>(gam[<span class="dv">1</span>], cf[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">&quot;^gamma&quot;</span>, <span class="fu">names</span>(cf))], gam[<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="fu">c</span>(<span class="at">flexsurv =</span> fs<span class="sc">$</span>loglik, <span class="at">frmtmb_at_flexsurv_par =</span> <span class="sc">-</span>o<span class="sc">$</span>obj<span class="sc">$</span><span class="fu">fn</span>(par))</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt;               flexsurv frmtmb_at_flexsurv_par </span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;              -791.4957              -791.4957</span></span></code></pre></div>
+<p>Those two numbers agree to about ten units in the last place of a
+number near 800. Note <code>flexsurv</code>’s <code>k</code> is this
+package’s <code>df - 1</code>: <code>k</code> counts the interior knots
+and <code>df</code> counts them plus one.</p>
+<p>The two optima then agree as well:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">c</span>(<span class="at">flexsurv =</span> fs<span class="sc">$</span>loglik, <span class="at">frmtmb =</span> <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(fit)))</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt;  flexsurv    frmtmb </span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; -791.4957 -791.4957</span></span></code></pre></div>
+</div>
+<div id="read-the-baseline-off" class="section level2">
+<h2>Read the baseline off</h2>
+<p>Every spline coefficient is a distributional parameter, so
+<code>frm_linpred(type = &quot;link&quot;, dpar = )</code> reaches each of them
+and the fitted baseline is the basis times those coefficients. There is
+no penalized smooth in this model, so <code>frm_curve()</code> has no
+random-effect block to read and refuses; add an <code>s()</code> term
+and it applies here as it does anywhere else.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>tg <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">seq</span>(<span class="fu">log</span>(<span class="fl">0.3</span>), <span class="fu">log</span>(<span class="fu">max</span>(bc<span class="sc">$</span>recyrs)), <span class="at">length.out =</span> <span class="dv">60</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>nd <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">recyrs =</span> tg,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>                 <span class="at">group =</span> <span class="fu">factor</span>(<span class="st">&quot;Good&quot;</span>, <span class="at">levels =</span> <span class="fu">levels</span>(bc<span class="sc">$</span>group)))</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>lp <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">c</span>(<span class="st">&quot;mu&quot;</span>, <span class="st">&quot;gamma1&quot;</span>, <span class="st">&quot;gamma2&quot;</span>, <span class="st">&quot;gamma3&quot;</span>), <span class="cf">function</span>(dp) {</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="fu">frm_linpred</span>(fit, <span class="at">newdata =</span> nd, <span class="at">type =</span> <span class="st">&quot;link&quot;</span>, <span class="at">dpar =</span> dp)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>})</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>kn <span class="ot">&lt;-</span> <span class="fu">environment</span>(<span class="fu">family</span>(fit)[[<span class="st">&quot;lpdf&quot;</span>]])<span class="sc">$</span>allknots</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">log</span>(tg)</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co"># the Royston-Parmar basis, written out: a constant, x itself, and one</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co"># natural cubic term per interior knot, each linear beyond the boundary</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>rp_basis <span class="ot">&lt;-</span> <span class="cf">function</span>(knots, x) {</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>  nk <span class="ot">&lt;-</span> <span class="fu">length</span>(knots)</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(x)), x)</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq_len</span>(nk <span class="sc">-</span> <span class="dv">2</span>)) {</span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>    kj <span class="ot">&lt;-</span> knots[j <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>    lam <span class="ot">&lt;-</span> (knots[nk] <span class="sc">-</span> kj) <span class="sc">/</span> (knots[nk] <span class="sc">-</span> knots[<span class="dv">1</span>])</span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>    out[[j <span class="sc">+</span> <span class="dv">2</span>]] <span class="ot">&lt;-</span> <span class="fu">pmax</span>(x <span class="sc">-</span> kj, <span class="dv">0</span>)<span class="sc">^</span><span class="dv">3</span> <span class="sc">-</span> lam <span class="sc">*</span> <span class="fu">pmax</span>(x <span class="sc">-</span> knots[<span class="dv">1</span>], <span class="dv">0</span>)<span class="sc">^</span><span class="dv">3</span> <span class="sc">-</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>      (<span class="dv">1</span> <span class="sc">-</span> lam) <span class="sc">*</span> <span class="fu">pmax</span>(x <span class="sc">-</span> knots[nk], <span class="dv">0</span>)<span class="sc">^</span><span class="dv">3</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>  }</span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>  out</span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>}</span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a>bas <span class="ot">&lt;-</span> <span class="fu">rp_basis</span>(kn, x)</span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a>logH <span class="ot">&lt;-</span> <span class="fu">Reduce</span>(<span class="st">`</span><span class="at">+</span><span class="st">`</span>, <span class="fu">Map</span>(<span class="cf">function</span>(b, g) b <span class="sc">*</span> <span class="fu">as.numeric</span>(g), bas, lp))</span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a>S <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fu">exp</span>(logH))</span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">data.frame</span>(<span class="at">t =</span> <span class="fu">round</span>(tg, <span class="dv">3</span>), <span class="at">logH =</span> <span class="fu">round</span>(logH, <span class="dv">3</span>),</span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a>                <span class="at">survival =</span> <span class="fu">round</span>(S, <span class="dv">3</span>)), <span class="dv">4</span>)</span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt;       t   logH survival</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt; 1 0.300 -6.934    0.999</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt; 2 0.317 -6.752    0.999</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#&gt; 3 0.334 -6.570    0.999</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#&gt; 4 0.353 -6.390    0.998</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;steelblue4&quot;</span>, <span class="st">&quot;goldenrod3&quot;</span>, <span class="st">&quot;firebrick&quot;</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>surv_of <span class="ot">&lt;-</span> <span class="cf">function</span>(g) {</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  ndg <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">recyrs =</span> tg,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>                    <span class="at">group =</span> <span class="fu">factor</span>(g, <span class="at">levels =</span> <span class="fu">levels</span>(bc<span class="sc">$</span>group)))</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  lps <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">c</span>(<span class="st">&quot;mu&quot;</span>, <span class="st">&quot;gamma1&quot;</span>, <span class="st">&quot;gamma2&quot;</span>, <span class="st">&quot;gamma3&quot;</span>), <span class="cf">function</span>(dp) {</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>    <span class="fu">as.numeric</span>(<span class="fu">frm_linpred</span>(fit, <span class="at">newdata =</span> ndg, <span class="at">type =</span> <span class="st">&quot;link&quot;</span>, <span class="at">dpar =</span> dp))</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  })</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="fu">exp</span>(<span class="sc">-</span><span class="fu">exp</span>(<span class="fu">Reduce</span>(<span class="st">`</span><span class="at">+</span><span class="st">`</span>, <span class="fu">Map</span>(<span class="st">`</span><span class="at">*</span><span class="st">`</span>, bas, lps))))</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>}</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>tinyplot<span class="sc">::</span><span class="fu">tinyplot</span>(<span class="at">x =</span> tg, <span class="at">y =</span> <span class="fu">surv_of</span>(<span class="st">&quot;Good&quot;</span>), <span class="at">type =</span> <span class="st">&quot;l&quot;</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>                   <span class="at">col =</span> cols[<span class="dv">1</span>], <span class="at">theme =</span> <span class="st">&quot;clean2&quot;</span>, <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>                   <span class="at">xlab =</span> <span class="st">&quot;years&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;survival&quot;</span>,</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>                   <span class="at">main =</span> <span class="st">&quot;Fitted survival against Kaplan-Meier&quot;</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>) {</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>  tinyplot<span class="sc">::</span><span class="fu">tinyplot_add</span>(<span class="at">x =</span> tg, <span class="at">y =</span> <span class="fu">surv_of</span>(<span class="fu">levels</span>(bc<span class="sc">$</span>group)[i]),</span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>                         <span class="at">type =</span> <span class="st">&quot;l&quot;</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">col =</span> cols[i])</span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>}</span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>km <span class="ot">&lt;-</span> survival<span class="sc">::</span><span class="fu">survfit</span>(survival<span class="sc">::</span><span class="fu">Surv</span>(recyrs, censrec) <span class="sc">~</span> group, <span class="at">data =</span> bc)</span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>km_s <span class="ot">&lt;-</span> <span class="fu">summary</span>(km)</span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(<span class="fu">levels</span>(bc<span class="sc">$</span>group))) {</span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>  k <span class="ot">&lt;-</span> km_s<span class="sc">$</span>strata <span class="sc">==</span> <span class="fu">levels</span>(km_s<span class="sc">$</span>strata)[i]</span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a>  <span class="fu">lines</span>(km_s<span class="sc">$</span>time[k], km_s<span class="sc">$</span>surv[k], <span class="at">type =</span> <span class="st">&quot;s&quot;</span>, <span class="at">col =</span> cols[i], <span class="at">lty =</span> <span class="dv">3</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>}</span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">&quot;bottomleft&quot;</span>, <span class="fu">levels</span>(bc<span class="sc">$</span>group), <span class="at">col =</span> cols, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">bty =</span> <span class="st">&quot;n&quot;</span>)</span></code></pre></div>
+<p><img role="img" aria-label="Fitted survival curves for the three prognostic groups against time in years, each falling from 1. The good-prognosis curve stays above 0.8 at eight years, the medium curve reaches about 0.6 and the poor curve about 0.3. Step functions of the same three colors, the Kaplan-Meier estimates, track each fitted curve closely." src="data:image/png;base64,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" alt="Fitted survival curves for the three prognostic groups against time in years, each falling from 1. The good-prognosis curve stays above 0.8 at eight years, the medium curve reaches about 0.6 and the poor curve about 0.3. Step functions of the same three colors, the Kaplan-Meier estimates, track each fitted curve closely." /></p>
+<p>The fitted curves track the Kaplan-Meier estimates, which the model
+was never shown.</p>
+</div>
+<div id="when-hazards-are-not-proportional" class="section level2">
+<h2>When hazards are not proportional</h2>
+<p>A formula on <code>gamma0</code> shifts the whole curve, which is
+proportional hazards. A formula on any OTHER coefficient multiplies a
+function of log time, so it is a TIME-VARYING effect:
+<code>flexsurv</code> spells this <code>anc =</code>, and here it is an
+ordinary second formula.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>ftv <span class="ot">&lt;-</span> <span class="fu">frm</span>(<span class="fu">bf</span>(recyrs <span class="sc">|</span> <span class="fu">cens</span>(censored) <span class="sc">~</span> group, gamma1 <span class="sc">~</span> group),</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>           <span class="at">family =</span> <span class="fu">royston_parmar</span>(<span class="at">df =</span> <span class="dv">3</span>), <span class="at">data =</span> bc)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">c</span>(<span class="at">proportional =</span> <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(fit)),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">time_varying =</span> <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(ftv)),</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">AIC_proportional =</span> <span class="fu">AIC</span>(fit), <span class="at">AIC_time_varying =</span> <span class="fu">AIC</span>(ftv))</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt;     proportional     time_varying AIC_proportional AIC_time_varying </span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;        -791.4957        -785.8381        1594.9913        1587.6762</span></span></code></pre></div>
+<p><code>gamma1</code> multiplies <code>log(t)</code>, so letting it
+vary by group lets each group’s hazard ratio drift with time rather than
+holding still.</p>
+<p>A RANDOM effect can go on either coefficient, and the two mean
+different things. <code>(1 | centre)</code> on <code>mu</code> is a
+shared log-normal frailty, the model
+<code>rstpm2::stpm2(cluster =, RandDist = &quot;LogN&quot;)</code> fits.
+<code>gamma1 ~ (1 | centre)</code> gives each centre its own slope in
+log time, which is a per-centre time-varying effect and not a frailty,
+and it is anchored at <code>t = 1</code> unless you pair it with a block
+on <code>mu</code>. Read <code>?royston_parmar</code>, section “A
+frailty, and a random effect on gamma1”, for what each one estimates and
+what each one was measured to recover.</p>
+</div>
+<div id="what-this-family-will-not-do" class="section level2">
+<h2>What this family will not do</h2>
+<p><code>fitted()</code> and <code>frm_linpred(type = &quot;response&quot;)</code>
+refuse, and say why. The mean of a survival time under this model is an
+integral of the fitted survival function with no closed form, and the
+censored rows do not identify its upper tail. <code>mu</code> is a
+spline coefficient, not a fitted value, and the identity link would let
+it pass for one:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">fitted</span>(fit)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; ! royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. frm_linpred(type = &quot;link&quot;, dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band</span></span></code></pre></div>
+</div>
+<div id="the-check-you-must-run" class="section level2">
+<h2>The check you must run</h2>
+<p>One thing in this family is a floor rather than an answer, and it is
+silent in the fitted object. <code>rp_floored()</code> is where it goes
+to be read. It refuses on that one and reports on a second quantity that
+used to be a floor and is not one any more:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">rp_floored</span>(fit, <span class="at">action =</span> <span class="st">&quot;report&quot;</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; $n_censored_deep</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt; $max_nlogS</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt; [1] 2.088002</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt; $threshold</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; [1] 19.2</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; $n_nonmonotone</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; $n_nonmonotone_censored</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; $max_survival_rise</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt; $scale</span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt; [1] &quot;hazard&quot;</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt; $n_obs</span></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#&gt; [1] 686</span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;rows&quot;)</span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;rows&quot;)$censored</span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt; integer(0)</span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;rows&quot;)$nonmonotone</span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt; integer(0)</span></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;rows&quot;)$nonmonotone_censored</span></span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co">#&gt; integer(0)</span></span></code></pre></div>
+<p>Zero on each count here. Run it on every fit whose data carry
+censoring, because neither <code>logLik()</code> nor <code>AIC()</code>
+can tell you.</p>
+<p><strong>What the censored count used to mean.</strong> Up to frmtmb
+0.51.0 core formed a right-censored contribution as
+<code>log(1 - F(y))</code> on the probability scale and offered a family
+no complementary log-CDF slot to hand back <code>log S</code> directly.
+The scored <code>log S</code> carried absolute error about
+<code>eps / S</code>: exact at <code>-log S</code> of 10, wrong by
+1.7e-04 at 30, and floored at -35.127363 past 36. Past 30 its GRADIENT
+was exactly zero, so the optimizer priced such a row at a constant and
+fitted the others as if it were free.</p>
+<p>frmtmb 0.52.0 added the <code>lccdf</code> slot and this family
+supplies it, in closed form on all three scales, so no complement is
+formed and the floor is gone. <code>n_censored_deep</code> still counts
+the rows that used to fall in it, because a censored row whose fitted
+survival probability is <code>exp(-40)</code> is one the data barely
+constrain whatever the arithmetic does. It is a diagnostic now, and it
+does not refuse.</p>
+<p>Here is the design that made the old floor bite. One subject of 600
+is censored far beyond every event time, <code>flexsurv</code> declines
+to fit it at all, and on 0.51.0 it converged without a warning and
+reported a log likelihood thousands of units away from the model’s:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">20260905</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">600</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>bad <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">grp =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>), <span class="at">each =</span> n <span class="sc">/</span> <span class="dv">2</span>)))</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>bad<span class="sc">$</span>t <span class="ot">&lt;-</span> <span class="fu">rweibull</span>(n, <span class="at">shape =</span> <span class="fl">1.6</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>                  <span class="at">scale =</span> <span class="fu">ifelse</span>(bad<span class="sc">$</span>grp <span class="sc">==</span> <span class="st">&quot;A&quot;</span>, <span class="fl">0.30</span>, <span class="fl">3.0</span>))</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>bad<span class="sc">$</span>censored <span class="ot">&lt;-</span> <span class="dv">0</span><span class="dt">L</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>bad<span class="sc">$</span>t[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">50</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>bad<span class="sc">$</span>censored[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span><span class="dt">L</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>bad_fit <span class="ot">&lt;-</span> <span class="fu">frm</span>(<span class="fu">bf</span>(t <span class="sc">|</span> <span class="fu">cens</span>(censored) <span class="sc">~</span> grp),</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>               <span class="at">family =</span> <span class="fu">royston_parmar</span>(<span class="at">df =</span> <span class="dv">3</span>), <span class="at">data =</span> bad)</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; Warning: Optimizer did not report convergence: false convergence (8)</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="fu">c</span>(<span class="at">converged =</span> bad_fit<span class="sc">$</span>opt<span class="sc">$</span>convergence, <span class="at">logLik =</span> <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(bad_fit)))</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt; converged    logLik </span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt;    1.0000 -575.5379</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="fu">str</span>(<span class="fu">rp_floored</span>(bad_fit, <span class="at">action =</span> <span class="st">&quot;report&quot;</span>))</span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt; List of 8</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt;  $ n_censored_deep       : int 1</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt;  $ max_nlogS             : num 55.7</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co">#&gt;  $ threshold             : num 19.2</span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt;  $ n_nonmonotone         : int 0</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#&gt;  $ n_nonmonotone_censored: int 0</span></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#&gt;  $ max_survival_rise     : num 0</span></span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a><span class="co">#&gt;  $ scale                 : chr &quot;hazard&quot;</span></span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a><span class="co">#&gt;  $ n_obs                 : int 600</span></span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a><span class="co">#&gt;  - attr(*, &quot;rows&quot;)=List of 3</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#&gt;   ..$ censored            : int 1</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#&gt;   ..$ nonmonotone         : int(0) </span></span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a><span class="co">#&gt;   ..$ nonmonotone_censored: int(0)</span></span></code></pre></div>
+<p>That fit is now SCORED CORRECTLY and <code>rp_floored()</code> does
+not refuse it. The one deep row is counted, at <code>-log S</code> of
+55.73, and its contribution is <code>-55.7302136</code> exactly where
+the old form gave <code>-Inf</code> and the floor gave -35.127363. The
+reported log likelihood reproduces an independent one written from the
+hazard-scale definition to 4.2e-12.</p>
+<p>What has NOT changed is that <code>logLik()</code> and
+<code>AIC()</code> cannot be gated from an extension.
+<code>logLik()</code> reads <code>object$opt$objective</code>, one
+number, and the protocol has no per-row or per-group log-likelihood slot
+through which a family could say which rows carried it.
+<code>post$fit_check</code>, frmtmb’s fit-end hook, is what this family
+uses instead: it warns as the fit is returned. That covers the
+monotonicity floor, which is a property of the fitted parameters. It
+cannot cover a row-level accounting that the protocol does not
+expose.</p>
+<p>Monotonicity of the cumulative hazard is the floor that remains, and
+it is not enforced; <code>flexsurv</code> does not enforce it either,
+and a spline that turns over inside the data range is an
+over-parameterized fit rather than something the software should have
+prevented. Where it turns over there is no hazard and the true log
+density is <code>-Inf</code>, so this family floors it to keep the
+optimizer alive, which makes <code>logLik()</code> a pseudo-likelihood.
+<code>rp_floored()</code> counts those rows and refuses on them, and
+<code>post$fit_check</code> warns about them as the fit is returned. You
+can see the same thing directly in the slope of the fitted log
+cumulative hazard, which must stay positive:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>dlogH <span class="ot">&lt;-</span> <span class="fu">diff</span>(logH) <span class="sc">/</span> <span class="fu">diff</span>(x)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">c</span>(<span class="at">min_slope =</span> <span class="fu">min</span>(dlogH), <span class="at">all_increasing =</span> <span class="fu">all</span>(dlogH <span class="sc">&gt;</span> <span class="dv">0</span>))</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt;      min_slope all_increasing </span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;      0.9852775      1.0000000</span></span></code></pre></div>
+<p>A censored row is never floored, because it has no density: its
+<code>log S</code> is scored exactly whatever the slope. A censored row
+where the slope is not positive is still a defect, of the MODEL rather
+than of <code>logLik()</code>: the fitted survival function rises with
+time there. It happens when a group has its own slope on
+<code>gamma1</code> and no events, because the
+<code>log(gamma1 + u)</code> barrier that keeps a slope positive lives
+in the density and that group contributes none. The same happens past an
+arm’s last event in a cure-fraction design with
+<code>gamma1 ~ arm</code>. <code>rp_floored()</code> counts those rows
+apart, as <code>n_nonmonotone_censored</code>, and WARNS on them with
+the size of the rise, since <code>logLik()</code> is still the model’s;
+it refuses only on the event rows.</p>
+</div>
+<div id="how-many-knots" class="section level2">
+<h2>How many knots</h2>
+<p>More knots buy a more flexible baseline and cost degrees of freedom.
+Compare on AIC, as Royston and Parmar do:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="cf">function</span>(k) {</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="fu">AIC</span>(<span class="fu">frm</span>(<span class="fu">bf</span>(recyrs <span class="sc">|</span> <span class="fu">cens</span>(censored) <span class="sc">~</span> group),</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>          <span class="at">family =</span> <span class="fu">royston_parmar</span>(<span class="at">df =</span> k), <span class="at">data =</span> bc))</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>})</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; [1] 1631.884 1595.728 1594.991 1594.012 1596.053</span></span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

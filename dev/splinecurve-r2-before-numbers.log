@@ -1,0 +1,32 @@
+﻿frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/wt-splinecurve-lib ; formals of sp_spec: object, newdata, contrast, dpar, resp, re_formula, allow_new_levels 
+
+==== v ~ s(t, k = 10) + (1 | subject) ====
+-- frm_curve(simultaneous = TRUE), unseen, NULL, TRUE : ANSWERED 
+   crit_sim 0.91152 against qnorm(0.975) 1.96 
+-- frm_curve_deriv, unseen, NULL, TRUE : ANSWERED 
+-- frm_curve_feature(maximum), unseen, NULL, TRUE : ANSWERED 
+   .value_se 0.014337  frm_curve .se at the same t 0.043118 
+==== v ~ s(t, k = 10) + (1 + t | subject) ====
+-- frm_curve(simultaneous = TRUE), unseen, NULL, TRUE : ANSWERED 
+   crit_sim 0.88297 against qnorm(0.975) 1.96 
+-- frm_curve_deriv, unseen, NULL, TRUE : ANSWERED 
+-- frm_curve_feature(maximum), unseen, NULL, TRUE : ANSWERED 
+   .value_se 0.014367  frm_curve .se at the same t 0.04466 
+==== stored-curve rule ====
+-- frm_curve_deriv(stored TRUE, unseen grid, EXPLICIT FALSE) : ANSWERED 
+<frmtmb curve> derivative of order 1 in t, 30 grid points, level 0.95
+  critical value: pointwise 1.96
+  covariance checked against frm_linpred(se.fit = TRUE) to 2.22e-16 relative
+           t subject .estimate       .se    .crit  .lower_ci .upper_ci
+1 0.05000000     new 0.2254597 0.3292336 1.959964 -0.4198263 0.8707457
+2 0.08103448     new 0.4564395 0.3075450 1.959964 -0.1463375 1.0592166
+3 0.11206897     new 0.7718298 0.2963154 1.959964  0.1910623 1.3525973
+4 0.14310345     new 1.1361043 0.2859319 1.959964  0.5756880 1.6965206
+5 0.17413793     new 1.5253181 0.2641707 1.959964  1.0075530 2.0430831
+6 0.20517241     new 1.9429733 0.2404270 1.959964  1.4717451 2.4142015
+  ... 24 more rows
+-- frm_curve_feature(stored TRUE, unseen grid, EXPLICIT FALSE) : ANSWERED 
+<frmtmb curve feature> maximum, 1 found, level 0.95
+  covariance checked against frm_linpred(se.fit = TRUE) to 0 relative
+  .feature .var .estimate         .se .lower_ci .upper_ci   .value  .value_se
+1  maximum    t 0.5193753 0.003460736 0.5125924 0.5261583 1.047813 0.03724812

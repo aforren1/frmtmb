@@ -106,8 +106,10 @@ sp_span_stop <- function(span) {
 #' shape this package documents.
 #'
 #' @noRd
-sp_span_on_grid <- function(fit, nd, dpar, resp, re_formula) {
-  sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re_formula))$span
+sp_span_on_grid <- function(fit, nd, dpar, resp, re_formula,
+                            allow_new_levels) {
+  sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re_formula,
+                               allow_new_levels))$span
 }
 
 #' The same question over BOTH grids of a difference curve, with each
@@ -134,9 +136,11 @@ sp_span_both <- function(span_a, span_b) {
 #' @noRd
 sp_grid_span <- function(sp, nd, ct) {
   sp_span_both(
-    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re_formula),
+    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re_formula,
+                    sp$allow_new_levels),
     if (is.null(ct)) character(0) else
-      sp_span_on_grid(sp$fit, ct, sp$dpar, sp$resp, sp$re_formula))
+      sp_span_on_grid(sp$fit, ct, sp$dpar, sp$resp, sp$re_formula,
+                      sp$allow_new_levels))
 }
 
 #' Does the grid hold every column but `var` at row 1's value?
@@ -167,11 +171,18 @@ sp_grid_pinned <- function(nd, var) {
 
 #' One prediction on the link scale, as a plain numeric vector.
 #'
+#' `allow_new_levels` has no default here or in any helper below: the
+#' design, the estimate and the covariance check must all read the grid
+#' under ONE setting, and a helper that silently fell back to `FALSE`
+#' would refuse the unseen level on a route the caller never chose.
+#'
 #' @noRd
-sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula) {
+sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula,
+                           allow_new_levels) {
   as.numeric(frmtmb::frm_linpred(fit, newdata = newdata, type = "link",
                                  dpar = dpar, resp = resp,
-                                 re_formula = re_formula))
+                                 re_formula = re_formula,
+                                 allow_new_levels = allow_new_levels))
 }
 
 #' The seam read at ONE grid: the design, its covariance and the
@@ -198,9 +209,10 @@ sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula) {
 #' paid on a call whose cost is dominated by one joint-precision solve.
 #'
 #' @noRd
-sp_one_basis <- function(fit, nd, dpar, resp, re_formula) {
-  lbc <- sp_catch_span(frmtmb::frm_lp_basis(fit, newdata = nd, dpar = dpar,
-                                            resp = resp, re_formula = re_formula))
+sp_one_basis <- function(fit, nd, dpar, resp, re_formula, allow_new_levels) {
+  lbc <- sp_catch_span(frmtmb::frm_lp_basis(
+    fit, newdata = nd, dpar = dpar, resp = resp, re_formula = re_formula,
+    allow_new_levels = allow_new_levels))
   lb <- lbc$value
   C <- as.matrix(lb$A)
   Sigma <- unname(C %*% lb$V %*% t(C))
@@ -289,9 +301,11 @@ sp_same_latent <- function(fit, a, b) {
 #' still resolve to one line of source.
 #'
 #' @noRd
-sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
+sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
+                         allow_new_levels, tol, side) {
   ref <- frmtmb::frm_linpred(fit, newdata = nd, type = "link", dpar = dpar,
                              resp = resp, re_formula = re_formula,
+                             allow_new_levels = allow_new_levels,
                              se.fit = TRUE)
   se_ref <- as.numeric(ref$se.fit)
   rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
@@ -305,6 +319,84 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
              "disagree is one it must not report a band for", call. = FALSE)
   }
   rel
+}
+
+#' Refuse a route that would drop a new level's variance.
+#'
+#' `frm_lp_basis()` returns a new grouping level's variance one number
+#' per ROW, as `extra_var`, and no covariance between rows. One unseen
+#' level is ONE draw shared by every row, so the grid's covariance is
+#' `C V C' + Z S Z'` and the seam hands over only the diagonal of the
+#' second part. The pointwise band adds that diagonal and is right. The
+#' simultaneous band draws from `C V C'` and divides by a standard error
+#' that includes it, so its critical value fell BELOW `qnorm(0.975)`
+#' (0.646 on `(1 | subject)`, coverage 0.352); the derivative and the
+#' feature standard errors are built from `C V C'` alone and came out
+#' at 0.40 to 0.50 and about a quarter of the right values
+#' (dev/reviews/2026-09-29-splinecurve.md, Finding A). Before this
+#' package took `allow_new_levels` every one of these calls refused, so
+#' refusing keeps them where they were until the seam returns the
+#' covariance.
+#'
+#' Only under `allow_new_levels = TRUE`. Under `FALSE` the one source
+#' of `extra_var` is an exact `gp()` off the observed positions, which is
+#' older than this argument and of a recorded size of 7e-07; it is filed
+#' for the consolidating session rather than refused here.
+#'
+#' `what` names the route at run time so the three callers share one
+#' template.
+#'
+#' @noRd
+sp_new_level_stop <- function(parts, fn, what) {
+  if (!isTRUE(parts$allow_new_levels) || !any(parts$extra_var != 0)) {
+    return(invisible(NULL))
+  }
+  frm_stop(fn, ": with allow_new_levels = TRUE this grid carries a new ",
+           "level's marginal variance, from ",
+           sp_new_level_terms(parts$fit, parts$newdata), ". One unseen ",
+           "level is one draw shared by every row, and frm_lp_basis() ",
+           "returns its variance one number per row with no covariance ",
+           "between rows, so ", what, " would omit it and come out too ",
+           "narrow. The pointwise frm_curve(simultaneous = FALSE) band ",
+           "carries it. Use re_formula = NA to drop the term and read the ",
+           "population curve, or name a level the fit saw. When no row is ",
+           "at an unseen level, as with an exact gp() read between its ",
+           "observed positions, pass allow_new_levels = FALSE",
+           call. = FALSE)
+}
+
+#' Which grouping factor of the grid holds a level the fit did not see.
+#'
+#' Read through the public `ngrps()` and `ranef()` rather than the
+#' fitted frame. A grouping expression that is not a column, such as
+#' `g1:g2`, cannot be matched to the grid by name and falls through to
+#' the generic phrase; so does an exact `gp()`, the other source of
+#' `extra_var`. Wrapped in `tryCatch()` because a refusal must not fail
+#' while it names the thing it refuses.
+#'
+#' @noRd
+sp_new_level_terms <- function(fit, nd) {
+  found <- tryCatch({
+    re <- frmtmb::ranef(fit)
+    out <- character(0)
+    for (g in names(frmtmb::ngrps(fit))) {
+      if (!g %in% names(nd)) {
+        # core fills an absent grouping column with NA under TRUE, so
+        # every row is at a new level of it
+        out <- c(out, paste0("`", g, "`, absent from the grid"))
+        next
+      }
+      new <- setdiff(unique(as.character(nd[[g]])), rownames(re[[g]]))
+      if (length(new)) {
+        out <- c(out, paste0("`", g, "` at ",
+                             paste(new, collapse = ", ")))
+      }
+    }
+    out
+  }, error = function(e) character(0))
+  if (length(found)) paste(found, collapse = " and ") else {
+    "a grouping term or an exact gp() this grid reaches off the fit"
+  }
 }
 
 #' Everything the three exported functions share: the grid, the design,
@@ -335,8 +427,8 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
 #'    There is no second route to the difference's own standard error.
 #'
 #' @noRd
-sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
-                           contrast = NULL) {
+sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
+                           allow_new_levels, tol, contrast = NULL) {
   if (!inherits(fit, "frmtmb_fit")) {
     frm_stop("frm_curve(): `object` must be a frmtmb fit, the model a curve ",
              "is read off, not an object of class ", class(fit)[1L],
@@ -346,23 +438,25 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
     frm_stop("`newdata` must be a data frame with at least one row: it is ",
              "the grid the curve is evaluated on", call. = FALSE)
   }
-  a <- sp_one_basis(fit, newdata, dpar, resp, re_formula)
+  a <- sp_one_basis(fit, newdata, dpar, resp, re_formula, allow_new_levels)
   nl <- sp_is_nl(fit, dpar, resp)
   out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
               se = a$se, rel = NA_real_, n_predict = 0L,
               newdata = newdata, contrast = contrast, dpar = dpar,
-              resp = resp, re_formula = re_formula, fit = fit, span = a$span)
+              resp = resp, re_formula = re_formula,
+              allow_new_levels = allow_new_levels, fit = fit, span = a$span,
+              extra_var = a$lb$extra_var)
   if (is.null(contrast)) {
     # A nonlinear body is the case core refuses se.fit for, so there is
     # no second number to check against. Everything else is checked.
     if (!nl) {
       out$rel <- sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
-                              tol, "this grid")
+                              allow_new_levels, tol, "this grid")
       out$n_predict <- 1L
     }
     return(out)
   }
-  b <- sp_one_basis(fit, contrast, dpar, resp, re_formula)
+  b <- sp_one_basis(fit, contrast, dpar, resp, re_formula, allow_new_levels)
   if (!identical(a$lb$coef_pos, b$lb$coef_pos)) {
     frm_stop("frm_curve(contrast = ): the two grids load on different ",
              "coefficients (", length(a$lb$coef_pos), " and ",
@@ -376,8 +470,25 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
   # when the two rows carry the SAME residual and it cancels exactly.
   # That is the ordinary case, a contrast across a factor at one gp()
   # position, and refusing it would refuse an answer that is right.
-  if ((any(a$lb$extra_var != 0) || any(b$lb$extra_var != 0)) &&
-      !sp_same_latent(fit, a, b)) {
+  has_extra <- any(a$lb$extra_var != 0) || any(b$lb$extra_var != 0)
+  # An unseen level loads NO column of the design, so sp_same_latent()
+  # cannot tell two unseen levels apart: both show all-zero columns and
+  # the same marginal variance, and the predicate would call two
+  # independent draws one draw and cancel a variance that belongs in the
+  # answer. Refused before that predicate is ever asked.
+  if (has_extra && isTRUE(allow_new_levels)) {
+    frm_stop("frm_curve(contrast = , allow_new_levels = TRUE): a grid here ",
+             "carries variance that is not coefficient uncertainty, a new ",
+             "grouping level's marginal variance or an exact gp() kriging ",
+             "residual. An unseen level loads no column of the design, so ",
+             "nothing the seam returns says whether the two grids name the ",
+             "SAME unseen level, whose draw cancels, or two different ones, ",
+             "whose draws add. Drop the grouping term with re_formula = NA ",
+             "to difference the population curves, or use ",
+             "allow_new_levels = FALSE when no row is at an unseen level",
+             call. = FALSE)
+  }
+  if (has_extra && !sp_same_latent(fit, a, b)) {
     frm_stop("frm_curve(contrast = ): this prediction carries variance that ",
              "is not coefficient uncertainty, which for a curve is an exact ",
              "gp() kriging residual. A difference can only report it when ",
@@ -399,10 +510,10 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
   out$span <- sp_span_both(a$span, b$span)
   if (!nl) {
     out$rel <- max(
-      sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula, tol,
-                   "`newdata`"),
-      sp_cov_check(fit, contrast, b$se, dpar, resp, re_formula, tol,
-                   "`contrast`"))
+      sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
+                   allow_new_levels, tol, "`newdata`"),
+      sp_cov_check(fit, contrast, b$se, dpar, resp, re_formula,
+                   allow_new_levels, tol, "`contrast`"))
     out$n_predict <- 2L
   }
   out

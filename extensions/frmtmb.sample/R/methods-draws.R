@@ -826,8 +826,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   # brms's cov = FALSE ARMA: brms's posterior_predict() draws each row
   # around its one-step mean, which reads the OBSERVED earlier residuals
   # and which frm_linpred() gives; the rows are then drawn one by one,
-  # not by the recursion simulate() runs over its own draws
-  arma_cond <- isFALSE(fit$frame[["autocor"]][[resp]][["cov"]])
+  # not by the recursion simulate() runs over its own draws.
+  # Core's own predicate, not a read of frame$autocor$cov: two files
+  # asking "is this brms's cov = FALSE form" must not answer it twice
+  arma_cond <- resp %in% arma_cond_resp(fit)
   out <- NULL
   arr <- FALSE
   for (k in seq_along(rows)) {

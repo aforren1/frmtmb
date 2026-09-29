@@ -14,6 +14,7 @@ frm_curve_feature(
   dpar = NULL,
   resp = NULL,
   re_formula = NA,
+  allow_new_levels = FALSE,
   level = 0.95,
   eps = NULL,
   maxit = 50L,
@@ -43,10 +44,26 @@ the default, is the location parameter \code{mu}.}
 
 \item{resp}{Response name, for a multivariate fit.}
 
-\item{re_formula}{\code{NA} (the default) evaluates the population curve, the
-convention \code{mgcv} and \code{gratia} plot. \code{NULL} keeps every random
-effect, so the grid must carry the grouping columns and the curve is
-that group's own.}
+\item{re_formula}{\code{NA} (the default) drops the \code{(x | g)} group-level
+terms, the convention \code{mgcv} and \code{gratia} plot. It KEEPS every
+smooth, as brms does, a smooth indexed by a grouping factor
+included, so on a model with \code{s(t, g, bs = "fs")} the grid has to
+carry \code{g} at \code{NA} too and the curve is that level's. \code{NULL} keeps
+every random effect, so the grid must carry every grouping column.
+\code{?frmtmb::frm_linpred} has the full rule.}
+
+\item{allow_new_levels}{Allow a grouping level the fit did not see.
+\code{FALSE}, the default, refuses such a row by name. \code{TRUE} predicts
+it at the population level, and it is the way to read the
+POPULATION curve off a model with \code{s(t, g, bs = "fs")}: put \code{g} in
+the grid at a level the fit did not see, and the factor smooth
+contributes nothing. Passed to every \code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}} and
+\code{\link[frmtmb:frm_linpred]{frmtmb::frm_linpred()}} call, so the design, the estimate and the
+covariance check read the same rows. See the section "The
+population curve of a factor-smooth model" of \code{\link[=frm_curve]{frm_curve()}}. At an
+unseen level of a term \code{re_formula} keeps, such as \code{(1 | g)} at
+\code{NULL}, only the pointwise band of \code{\link[=frm_curve]{frm_curve()}} is answered; see
+its section "An unseen level of a \code{(1 | g)} term".}
 
 \item{level}{Coverage of both intervals.}
 

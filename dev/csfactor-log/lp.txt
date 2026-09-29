@@ -1,0 +1,33 @@
+frmtmb 0.64.0 brms 2.23.0 
+
+-- sratio, cs(fc) factor --
+bcs names: bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2] 
+LPCHECK const 0 grad 0.000713 ours -336.0989836
+PASS const 0.000e+00 grad 7.132e-04 logLik -336.0989836 
+
+-- cratio, cs(fc) factor --
+bcs names: bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2] 
+LPCHECK const 0 grad 0.000713 ours -336.0989836
+PASS const 0.000e+00 grad 7.132e-04 logLik -336.0989836 
+
+-- acat, cs(fc) factor --
+bcs names: bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2] 
+LPCHECK const 0 grad 1.65e-05 ours -335.6000751
+PASS const 0.000e+00 grad 1.653e-05 logLik -335.6000751 
+
+-- sratio, cs(fch) character --
+bcs names: bcs_fchb[1] bcs_fchb[2] bcs_fchc[1] bcs_fchc[2] 
+LPCHECK const 0 grad 0.000713 ours -336.0989836
+PASS const 0.000e+00 grad 7.132e-04 logLik -336.0989836 
+
+-- sratio, cs(fnum) numeric-looking levels --
+bcs names: bcs_fnum2[1] bcs_fnum2[2] bcs_fnum3[1] bcs_fnum3[2] 
+LPCHECK const 0 grad 0.000713 ours -336.0989836
+PASS const 0.000e+00 grad 7.132e-04 logLik -336.0989836 
+
+-- sratio, cs(fc) + cs(x) two terms --
+bcs names: bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2] bcs_x[1] bcs_x[2] 
+LPCHECK const 0 grad 7.99e-05 ours -331.9562306
+PASS const 0.000e+00 grad 7.994e-05 logLik -331.9562306 
+
+done

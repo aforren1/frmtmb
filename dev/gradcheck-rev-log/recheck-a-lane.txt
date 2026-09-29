@@ -1,0 +1,96 @@
+CORE: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
+
+=================== seed 9301: ub on x binds, free set short
+INDEPENDENT:
+  natural-unit max|g| = 5971.250447 at x 
+  raw        max|g|   = 5971.250447 at x 
+  par_units           = 1 1 1 
+  bound-held          = [ x ]
+  projected max       = 52.48866159 at z 
+  headroom            = 0.1308330663 
+PACKAGE (diagnose):
+  max_grad = 5971.250447 at x 
+  grad_proj = 52.48866159 at z 
+  grad_bound_held = [ x ]
+  grad_headroom = 0.1308330663 
+AGREEMENT:
+  diagnose max_grad == raw max      : TRUE 
+  diagnose worst_grad == raw argmax : TRUE 
+  diagnose grad_proj == indep proj  : TRUE 
+  diagnose grad_proj_par == indep   : TRUE 
+  diagnose held == indep held       : TRUE 
+  headroom identical                : TRUE  rel gap 0 
+WARNING TEXT:
+  Large maximum absolute gradient at the optimum (5971 at x), of which 1 component is held by a bound (x), leaving 52.5 at z as the largest no bound holds: one Newton step over the parameters no bound holds would still gain 0.131 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+  prefix verbatim: TRUE 
+PRINTED diagnose():
+  Optimizer convergence code: 0 (relative convergence (4)) 
+  Max |gradient|: 5971 at x 
+    1 parameter is held by a bound (x); the largest gradient no bound holds is 52.49 at z
+    One Newton step over the parameters no bound holds would still gain 0.1308 in log-likelihood (frmtmb_control(grad_tol) is 0.001)
+  Hessian positive definite: TRUE 
+
+=================== seed 9202: autoscaled AND ub on z
+INDEPENDENT:
+  natural-unit max|g| = 1026.993245 at z 
+  raw        max|g|   = 1000.889458 at z 
+  par_units           = 1.00000e+00 1.01016e+05 1.02608e+00 1.00000e+00 
+  bound-held          = [ z ]
+  projected max       = 1.685440903 at xs 
+  headroom            = 0.0005910311251 
+PACKAGE (diagnose):
+  max_grad = 1000.889458 at z 
+  grad_proj = 1.685440903 at xs 
+  grad_bound_held = [ z ]
+  grad_headroom = 0.0005910311251 
+AGREEMENT:
+  diagnose max_grad == raw max      : TRUE 
+  diagnose worst_grad == raw argmax : TRUE 
+  diagnose grad_proj == indep proj  : TRUE 
+  diagnose grad_proj_par == indep   : TRUE 
+  diagnose held == indep held       : TRUE 
+  headroom identical                : TRUE  rel gap 0 
+WARNING TEXT:
+  (no warning)
+  prefix verbatim: FALSE 
+PRINTED diagnose():
+  Optimizer convergence code: 0 (relative convergence (4)) 
+  Max |gradient|: 1001 at z 
+    1 parameter is held by a bound (z); the largest gradient no bound holds is 1.685 at xs
+    One Newton step over the parameters no bound holds would still gain 0.000591 in log-likelihood (frmtmb_control(grad_tol) is 0.001)
+    This fit was standardized internally, so 'Max |gradient|' is on the raw scale and every number below it is in the per-parameter units the fit was judged in
+  Hessian positive definite: TRUE 
+  Badly scaled predictors: mu: xs (sd 9.9e-06)
+    The fit was already standardized internally (frmtmb_control(autoscale = )); rescaling the column is still the cleaner model.
+
+=================== seed 9103: two bounds bind, interior sigma
+INDEPENDENT:
+  natural-unit max|g| = 147.0915445 at x1 
+  raw        max|g|   = 147.0915445 at x1 
+  par_units           = 1 1 1 1 
+  bound-held          = [ x1,x2 ]
+  projected max       = 2.583063028e-07 at sigma_(Intercept) 
+  headroom            = 5.303248365e-17 
+PACKAGE (diagnose):
+  max_grad = 147.0915445 at x1 
+  grad_proj = 2.583063028e-07 at sigma_(Intercept) 
+  grad_bound_held = [ x1,x2 ]
+  grad_headroom = NA 
+AGREEMENT:
+  diagnose max_grad == raw max      : TRUE 
+  diagnose worst_grad == raw argmax : TRUE 
+  diagnose grad_proj == indep proj  : TRUE 
+  diagnose grad_proj_par == indep   : TRUE 
+  diagnose held == indep held       : TRUE 
+  headroom identical                : FALSE  rel gap NA 
+WARNING TEXT:
+  (no warning)
+  prefix verbatim: FALSE 
+PRINTED diagnose():
+  Optimizer convergence code: 0 (relative convergence (4)) 
+  Max |gradient|: 147.1 at x1 
+    2 parameters are held by a bound (x1, x2); the largest gradient no bound holds is 2.583e-07 at sigma_(Intercept)
+  Hessian positive definite: FALSE 
+  Non-finite standard errors: x1, x2, sigma_(Intercept) 
+
+DONE recheck-a

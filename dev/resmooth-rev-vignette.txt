@@ -1,0 +1,5 @@
+frmtmb: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+[1] TRUE
+KNIT OK in 56 s | output lines: 2260 
+figures written: 8 
+lines matching 'Error': 0 

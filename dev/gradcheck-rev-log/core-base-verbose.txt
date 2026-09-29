@@ -1,0 +1,4 @@
+CORE  : C:/Users/adf44/source/r/rellib-r3 
+FILE  : C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-verbose.R 
+frmtmb: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+RESULT test-verbose.R pass=40 fail=0 error=0 skip=0

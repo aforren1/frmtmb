@@ -1,3 +1,315 @@
+# frmtmb 0.65.0
+
+Seven lanes, each with an adversarial review. Each lane's
+`dev/<lane>-findings.md` has the validation, the numbers and the scripts,
+and `dev/reviews/2026-09-29-<lane>.md` has the review. Three silent wrong
+answers are fixed: `cs()` on a factor, `re_formula = NA` on a fit with a
+factor-indexed smooth, and the standard error of a category probability
+on any fit with a smooth.
+
+## Breaking changes
+
+* **`re_formula = NA` now keeps EVERY smooth**, which is brms's rule:
+  `re_formula` removes the `(x | g)` group-level terms and nothing else.
+  Three kinds of smooth were dropped before, and each is indexed by a
+  grouping factor: `s(g, bs = "re")` and `s(x, g, bs = "re")`, the
+  factor smooth `s(x, g, bs = "fs")`, and a `t2()` with an `re` margin.
+  `brms::posterior_epred(re_formula = NA)` is bitwise the same as at
+  `re_formula = NULL` on a fit whose only group-indexed content is one
+  of those, and differs on `s(x) + (1 | g)`; frmtmb now agrees on both.
+  `(1 | g)` is still dropped under `NA`, unchanged.
+
+  This changes numbers, silently before and reported here:
+
+  - `predict()`, `fitted()`, `frm_linpred()`, `frm_lp_basis()`,
+    `posterior_epred()` and `posterior_linpred()` at `re_formula = NA`
+    now return the full prediction on a fit whose only group-level
+    content is such a smooth. On `y ~ t2(x, g, bs = c("cr", "re"))` the
+    old answer was the intercept at every row.
+  - `conditional_effects()` passes `re_formula = NA`, so its curves
+    change on those fits. On `y ~ s(x, g, bs = "fs")` the drawn curve
+    was FLAT, the whole fitted structure having been removed; it is now
+    the curve of the grouping factor's reference level, which is where
+    the display holds every predictor it is not varying.
+  - `emmeans()` on such a fit now carries the grouping factor in its
+    reference grid and averages the mean over its levels, where it used
+    to drop the term. `emmeans(re_formula = NULL)` on the same fit works
+    now too; it was refused for want of that column.
+  - `simulate(re_formula = NA)` no longer redraws those smooths, so the
+    **default `pp_check()` changes on any fit that has one**. The draws
+    were far more spread out than the model says: on
+    `y ~ s(x, g, bs = "fs")` the per-row standard deviation of the
+    draws over the fitted sigma was 2.93, and the pooled standard
+    deviation over the data's own was 1.34; both are 1.00 now. A
+    `pp_check()` that looked mismatched on such a fit may now look
+    right, and the earlier picture was the wrong comparison, not a
+    finding about the model.
+  - A smooth indexed by a grouping factor is kept, so `newdata` must
+    carry its grouping column at every `re_formula`, and a level the fit
+    never saw is refused. `re_formula = NA` was a way out of both and is
+    not any more; the refusals say so. brms refuses both too, and not
+    through its group-level machinery: the grouping factor of a smooth
+    is an ordinary predictor there, so a missing column is a missing
+    variable and an unseen level is "New factor levels are not allowed"
+    whatever `allow_new_levels` says. frmtmb keeps one opt-in brms does
+    not have: under `allow_new_levels = TRUE` an unseen level of an `fs`
+    term takes the population curve, mgcv's `fs` basis returning a zero
+    row for a level it does not know. An `re` basis or margin has one
+    column per fitted level and no such row, so an unseen level there is
+    refused either way.
+  - To read the population curve off a model with an `fs` term, predict
+    at an unseen level of the grouping factor with
+    `allow_new_levels = TRUE`. The functional regression section of
+    `vignette("case-studies")` now draws its figure that way.
+  - One fittable term is left with no `newdata` route at all: a factor
+    smooth that also carries a `by =` factor,
+    `s(x, g, bs = "fs", by = f)`. mgcv's random-effect split of that
+    basis is one this version cannot invert, so `predict(newdata = )`,
+    `fitted(newdata = )`, `frm_linpred(newdata = )` and
+    `conditional_effects()` stop with that named error at every
+    `re_formula`, where `re_formula = NA` answered before by dropping the
+    term. What it answered was the intercept at every row, so a flat line
+    became a named refusal, not a curve became an error. In-sample
+    `fitted()` and `frm_linpred()` on such a fit are unaffected.
+  - A PARTIAL `re_formula` on a fit with such a smooth, for example
+    `re_formula = ~(1 | f)` on `y ~ s(x, g, bs = "fs") + (1 | f) +
+    (1 | h)`, is now accepted: it drops `(1 | h)` and keeps the smooth,
+    as brms does. It was refused, because `NA` used to drop the smooth
+    and a partial formula could not say which of the two it meant; with
+    every `re_formula` keeping the smooth there is nothing left to
+    decide. `predict()`, `fitted()`, `frm_linpred()` and `simulate()`
+    all take it. With it goes the last case of that refusal:
+    `?frm_linpred` also listed a `car()` or `spde()` field, but a field
+    is a group-level term named by its grouping factor, `(1 | loc)`, and
+    was never refused. The help page now says so.
+
+  `frm_bootstrap()` is unchanged. Its default is a whole-model
+  parametric bootstrap that redraws every block including the smooths,
+  which `simulate()` does not offer.
+
+* **`cs()` on a factor or a character column was fitted and predicted on
+  the factor's INTEGER CODES, a silent wrong answer.** The term is now
+  expanded by `stats::model.matrix()` with the fit's contrasts, so a
+  discrete predictor becomes treatment-contrast dummies with one
+  coefficient per dummy per category boundary, exactly as brms 2.23.0
+  builds its `Xcs`. What changes for a fitted model: a three-level factor
+  gets FOUR coefficients where it had two, and their names move from
+  `fc[1]`, `fc[2]` (`bcs_fc[k]`) to `fcb[1]`, `fcb[2]`, `fcc[1]`,
+  `fcc[2]` (`bcs_fcb[k]`, `bcs_fcc[k]`), which is what brms calls them.
+  Every estimate moves with them: on the recorded construction the log
+  likelihood went from -446.9233 to -446.6361, the value the same model
+  written with hand-built dummy columns already reached. `newdata` is
+  recoded against the levels of the FIT rather than against its own, so a
+  one-row `newdata` holding `factor("c")` no longer returns the reference
+  level's probabilities, from `fitted()`, `predict()`, `simulate()` and
+  `conditional_effects()` alike, and a level the fit never saw is refused
+  by name. A CHARACTER `cs()` column did not fit at all before:
+  `as.numeric()` on it gave `NA`s and the optimizer died on a NaN
+  gradient. `set_prior(class = "b")` and `default_prior()` list and reach
+  one row per dummy, under brms's `coef` spelling.
+
+* **`y ~ x + cs(x)` is refused instead of fitted.** The global
+  coefficient of a column and the category-specific coefficients of the
+  same column span one direction twice: adding a constant to the first
+  and subtracting it from each of the others leaves the likelihood
+  unchanged. It was fitted, and reported standard errors of 2.7e5 on
+  every coefficient involved. The message names the edit that fixes it,
+  `y ~ cs(x)`, which fits the same set of distributions. A factor on both
+  sides (`y ~ f + cs(f)`) and a constant `cs()` column are refused the
+  same way. This is a deliberate departure from brms 2.23.0, which builds
+  both blocks and samples the ridge: a Bayesian fit has a prior to hold
+  the ridge and maximum likelihood has none.
+  `vignette("brms-migration")` records the departure.
+
+  The check is a rank test, so it catches a column that only a basis or
+  an expression spells differently (`y ~ poly(x, 2) + cs(x)`,
+  `y ~ s(x) + cs(x)`, `y ~ x1 + x2 + cs(x1 + x2)`, and two `cs()` terms
+  that are the same column twice), and the message names the columns
+  involved and the edit that works, which for `poly(x, 2) + cs(x)` is
+  `I(x^2) + cs(x)` and for `s(x) + cs(x)` is to drop one of the two. It
+  does NOT reach an `mi()` or `me()` term, whose design column is a zero
+  placeholder at assembly filled later with observed-or-latent values:
+  `me(x, sdx) + cs(x)` appears to be identified and `mi(x) + cs(x)` is
+  not settled. `mo()` has a placeholder column too, but whatever fills it
+  is a monotone function of the predictor's categories, so `mo()` is
+  tested against that category basis and `y ~ mo(m) + cs(m)` is now
+  refused as well. It used to fit, buying 3 degrees of freedom for
+  6.4e-09 of log likelihood with NaN on all 9 standard errors.
+  `?frm` states the `mi()`/`me()` gap.
+
+## The convergence check
+
+* The convergence warning "Large maximum absolute gradient at the
+  optimum" no longer fires on correct fits. It used to read one
+  absolute number, `frmtmb_control(grad_tol = 1e-3)`, against the
+  largest gradient component, and that number does not mean the same
+  thing on every design: the optimizer stops on a RELATIVE change in an
+  objective that grows with the sample size, so the gradient at a good
+  optimum grows with it too, and a parameter held on a bound by
+  `set_prior(ub = )` has a nonzero gradient by construction. Over 720
+  correct fits on nine designs at four sample sizes the old check
+  warned on 289 of them, rising from 11 percent of the fits at 200 rows
+  to 75 percent at 20,000. It now warns on none of them.
+
+  `grad_tol` is read twice: first as the gradient trip-wire it always
+  was, then on the objective's own scale. A fit that trips the
+  trip-wire warns only if one exact Newton step over the parameters no
+  bound holds would still gain more than `grad_tol` in log-likelihood,
+  and the warning reports that number, so it says how far short the fit
+  is rather than only that a derivative is large. Every fit's
+  estimates, objective and optimizer status are bitwise unchanged; only
+  the warning and `diagnose()` differ. The warning names every number
+  it used and the parameter each belongs to, so on a bounded fit it no
+  longer prints the projected gradient under a phrase that says
+  "maximum", and it no longer sends the reader to the one parameter the
+  verdict excluded.
+
+  `diagnose()` gains `grad_proj`, `grad_proj_par`, `grad_bound_held` and
+  `grad_headroom`, names the bounds that hold a gradient, and judges the
+  gradient by `grad_tol` instead of a hardcoded `1e-3` that ignored the
+  setting. On an importance-corrected fit it reports no verdict at all,
+  because `frm(importance = )` optimizes a Monte Carlo estimate whose
+  gradient no convergence criterion applies to, and there the clean
+  verdict keeps being decided by the raw gradient against `grad_tol`, as
+  it was before.
+
+  The new criterion also reports what the gradient could not: a
+  near-collinear design that nlminb calls converged at a gradient of
+  `5.1e-3` is short by 0.528 log-likelihood units, which the Newton step
+  confirms to 0.2 percent and which a re-optimization from the same
+  point does not recover. What it does NOT cover is documented on
+  `?frmtmb_control`: the gradient is what admits a fit to the second
+  reading, so a badly scaled column that holds the gradient down is
+  never looked at, and the `autoscale` default is what closes that.
+
+## Refits and `influence()`
+
+* A refit inside the package now carries the FITTED model's ordinal
+  threshold count, and the per-level counts of `thres(gr = )`, instead
+  of recounting them from the data it is given. `influence()` and
+  `cooks.distance()` rebuild the design from a subset, so deleting the
+  last observation in a category used to refit a model with one
+  threshold fewer: the deleted unit's row of the table held an `NA`, its
+  Cook's distance was `NA`, and the coefficients above the emptied
+  category were reported one column early, with nothing but that
+  trailing `NA` to show it. The deletion now refits the model that was
+  fitted, and the row agrees with a fit that pins the count by hand.
+
+* A refit also carries the fitted model's response CATEGORIES. The model
+  frame drops a factor level that no row of a subset takes, which
+  renumbers every category above it, so an ordered-factor response could
+  give a different influence table from the same data coded as integers.
+  Emptying an INTERIOR category, and a hand-written `thres(K)`, were the
+  two cases where it did. Integer, character and ordered-factor codings
+  now give the same table, bitwise.
+
+* `influence()` and `cooks.distance()` now count the deletion refits
+  that failed. A partly failed table warns with the count and the first
+  reason; a table whose every refit failed is an error instead of a
+  silent matrix of `NA`. Two refits cannot represent the fitted model at
+  all and are refused by name: `data = ` holding a response category, or
+  a `thres(gr = )` level, that the fit never saw, and `groups = `
+  deleting a whole `thres(gr = )` level.
+
+* **`influence()` warns when deleting a unit drops a coefficient.** A
+  deletion refit can succeed and still estimate fewer coefficients than
+  the full fit, because the model frame drops an unused factor level: the
+  last row of a rare level disappears from the subset. Those cells of the
+  influence table stay `NA` and `cooks.distance()` is `NA` for that unit,
+  which it already did, in silence. The warning names the unit and the
+  coefficients, and it fires for ANY factor level a deletion empties, not
+  only a `cs()` one: `y ~ x + f` warns where it gave one silent `NA`
+  before. A `cs()` factor level makes the case easier to meet, because
+  `cs()` gives each level `K - 1` coefficients rather than one.
+
+* `frm_bootstrap()`, `refit()`, `frm_allfit()`, `anova(refit = TRUE)`,
+  `confint(method = "profile")` and the autoscale pre-fit reuse the
+  assembled design and already kept the count; that is now documented
+  in `?frm_bootstrap` and pinned by a test. `simulate()` followed by
+  `frm()`, written out by hand, is not a refit and still counts from the
+  data it is given, which `?frm_bootstrap` now says.
+
+## Standard errors and the sampling API
+
+* **A category probability's `Est.Error` now carries the smooth's
+  uncertainty.** `fitted()` on an ordinal, categorical or multinomial fit
+  takes its standard errors by finite differences, and the coefficients
+  it differenced never included a smooth's. The differenced function was
+  therefore "move the thresholds with the fitted curve frozen", which is
+  not the standard error of anything, while the analytic route used
+  everywhere else has always carried the curve. Checked against Monte
+  Carlo over the same joint covariance the delta method uses: on
+  `y ~ s(x, k = 8)` with `cumulative()` the shipped value was 74 percent
+  from the Monte Carlo standard deviation at the median cell, 0.37825
+  against 0.06509 on the first row, and is 2 percent from it now; on a
+  `s(x, g, bs = "fs")` fit it was 50 percent from it, and understated
+  rather than overstated, because the cross term between the outer
+  parameters and the coefficients can go either way. The same fix applies
+  to the standard error of an `autocor(cov = FALSE)` quantity.
+
+  What is left is first-order curvature, not a missing term, and it is
+  the same on every earlier release: the corrected standard error is
+  within 2 percent of Monte Carlo on a population smooth and within 8
+  percent beside a group effect, the worst measured cell being
+  `s(x) + (1 | g)` at `re_formula = NULL`.
+
+* **`rescor_row_loglik()` lost the Student-t joint density at a large
+  `nu`.** It wrote `lgamma((nu + K) / 2) - lgamma(nu / 2)` and
+  `log(nu * pi)` as they read, where the taped objective goes through
+  `lgamma_shift_diff()`. The as-written difference of two `lgamma()`
+  values loses its leading digits as `nu` grows and overflows to
+  `Inf - Inf` above `nu = 5.1e305`, so the density left the gaussian
+  limit it should approach and then stopped being a number. How far it
+  drifted depends on the design, so no single figure is quoted here:
+  `dev/arcovsample-log/tnu.txt` has one construction and
+  `dev/arcovsample-rev-log/13-rrl-ref.txt` another, with the loss
+  reaching hundreds to tens of thousands of log units before the `NaN`.
+  A sampler reaches those values whenever `nu` is weakly identified, so
+  `frmtmb.sample`'s `log_lik()` of a `set_rescor(TRUE)` Student-t model
+  gave `NaN` for most draws. It now equals the objective's own
+  `mvt_std_loglik()` at every `nu` tried, and agrees with it to 2.8e-14
+  absolute over 200 NUTS draws whose `nu` reaches 3e306. `logLik()` and
+  the fit itself were never affected: those use the objective.
+
+* Two exports for the sampling extension, documented with the rest of
+  the contract on `?frmtmb-sampling-api`: `arma_cond_resp()` names the
+  responses carrying brms's default `cov = FALSE` form of `ar()`,
+  `ma()` or `arma()`, and `arma_cond_dpars()` gives an `eval_dpars()`
+  list back with each such response's `mu` moved to brms's one-step
+  conditional mean. They exist so that the pointwise log-density of
+  such a fit and the taped objective share ONE definition of the
+  shifted mean rather than each holding its own; `frmtmb.sample`'s
+  `log_lik()` reads them.
+
+## Other fixes
+
+* `frm_simulate(prior = )` used to fail inside `vapply()` with "values
+  must be length 1" whenever one prior covered several parameters at
+  once. It now says what it cannot do and names the alternative. This is
+  about the shape of a prior entry, not one family: it is reached by
+  class `"Intercept"` on an ordinal model with more than one threshold,
+  by class `"cor"` on a block with more than one correlation, and by
+  class `"ar"`, `"ma"` or `"cortime"` above order 1. The underlying
+  defect, one draw written into every parameter the entry covers, is
+  refused rather than performed; an entry covering exactly one parameter
+  still draws.
+
+* **A `cov = FALSE` `ar()`/`ma()`/`arma()` group's opening rows were
+  described wrongly.** `?frmtmb-autocor`, the comment in `R/autocor.R`
+  and the compatibility note all said a group's first rows get no lagged
+  term. Measured false: lag `i` first reaches the row at within-group
+  position `i + 1`, so only the FIRST row of a group is unshifted, a row
+  at position `k` carries the lags up to `k - 1`, and from
+  `max(p, q) + 1` on a row carries all of them. Measured over `ar(1)`,
+  `ar(2)`, `ar(3)`, `ma(2)`, `arma(2, 2)` and `arma(3, 1)` on groups of
+  unequal length, one of them a single row
+  (`dev/arcovsample-log/firstrows.txt`). The likelihood was always this;
+  only the sentences were wrong.
+
+* `?frmtmb-me` documents what `me()` returns, and a roxygen block in
+  `R/ad-env.R` no longer carries text after `@noRd`; both failed
+  pkgcheck on the 0.64.0 release.
+
 # frmtmb 0.64.0
 
 brms parity: every gap in the model menu that the last round listed is

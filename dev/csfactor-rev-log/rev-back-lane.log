@@ -1,0 +1,58 @@
+== build LANE : 0.64.0 from C:/Users/adf44/source/r/wt-csfactor-lib  mode load 
+loaded. cs entries: 1  cs_mm entries: 0  first cs names: vals,par,label
+
+-- frm_linpred on the LANE build from a cs_mm-less frame --
+         1        2        3
+1 0.486643 0.365653 0.147703
+2 0.483357 0.346762 0.169881
+3 0.480073 0.326144 0.193783
+
+-- fitted() in sample from the same object --
+     P(Y = 1) P(Y = 2) P(Y = 3)
+[1,] 0.484101 0.351196 0.164704
+[2,] 0.481233 0.333613 0.185154
+[3,] 0.475654 0.296180 0.228167
+
+### multivariate cs(): every prediction path
+
+[WITH cs]
+
+-- fitted() in sample --
+[1] 240   4   6
+
+-- frm_linpred(resp='yo', newdata) --
+[1] 3 3
+
+-- predict(resp='yo', newdata) --
+[1] 3 3
+
+-- simulate(nsim=2) --
+[1] "ERROR: simulate() is not supported yet for multivariate fits"
+
+-- conditional_effects(effects='fc') --
+[1] 9
+
+-- summary() fixef rows --
+[1] 14
+
+[WITHOUT cs]
+
+-- fitted() in sample --
+[1] 240   4   6
+
+-- frm_linpred(resp='yo', newdata) --
+[1] 3 3
+
+-- predict(resp='yo', newdata) --
+[1] 3 3
+
+-- simulate(nsim=2) --
+[1] "ERROR: simulate() is not supported yet for multivariate fits"
+
+-- conditional_effects(effects='fc') --
+[1] 9
+
+-- summary() fixef rows --
+[1] 10
+
+DONE  LANE 

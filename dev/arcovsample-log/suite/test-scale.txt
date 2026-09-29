@@ -1,0 +1,1 @@
+RESULT lane frmtmb.sample test-scale.R pass=0 fail=0 err=0 skip=1

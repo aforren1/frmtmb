@@ -1,0 +1,1 @@
+REVRESULT test-bcm-retention.R arm=lane blocks=6 pass=15 fail=0 err=0 warn=0 skip=3

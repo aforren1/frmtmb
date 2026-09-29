@@ -393,3 +393,143 @@ test_that("a block whose b is not positionwise refuses to batch", {
   expect_lt(max(abs(unname(as.vector(ref)) - got) /
                   (.Machine$double.eps * abs(unname(as.vector(ref))))), 8)
 })
+
+test_that("Est.Error at re_formula = NA carries a kept smooth's uncertainty", {
+  skip_on_cran()
+  # re_formula = NA keeps every smooth, so the finite-difference route
+  # has to difference the smooth's coefficients there. It differenced
+  # none: on this fit the smooth's 30 coefficients supply a median 0.5163
+  # of the standard error (min 0.0074, max 0.6760), so Est.Error was that
+  # much short of the uncertainty of the estimate beside it
+  # (dev/resmooth-fdse.txt against dev/resmooth-fdse-fixed.txt). SEEN TO
+  # FAIL on 0.64.0 and on the first pass of this lane's own fix.
+  set.seed(21)
+  ng <- 6
+  d <- data.frame(g = factor(rep(seq_len(ng), each = 25)),
+                  x = stats::runif(ng * 25, -2, 2))
+  lat <- stats::rnorm(ng, 0, 1)[d$g] * sin(d$x) + 0.5 * d$x +
+    stats::rlogis(nrow(d))
+  d$y <- factor(cut(lat, c(-Inf, -0.8, 0.8, Inf), labels = FALSE),
+                ordered = TRUE)
+  fit <- suppressWarnings(frm(bf(y ~ s(x, g, bs = "fs", k = 5)) +
+                                cumulative(), data = d))
+  nd <- d[c(3, 40, 90), c("x", "g")]
+  f <- function(x) frmtmb:::fitted_point(x, nd, re_formula = NA)
+  # the smooth's b positions read off the FRAME rather than through
+  # smooth_b_idx(), so that the assertion below fails behaviourally on a
+  # build without the fix instead of failing on a missing symbol
+  bl <- fit$frame[["re_blocks"]]
+  sm <- sort(unique(unlist(lapply(bl[vapply(bl, function(b) {
+    b[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+  }, NA)], `[[`, "b_idx"))))
+  expect_gt(length(sm), 0L)
+  ref <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = NULL))
+  got <- as.vector(fitted(fit, newdata = nd,
+                          re_formula = NA)[, "Est.Error", ])
+  # the batched route is the same arithmetic, so it agrees to round-off
+  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 8)
+  # and the smooth supplies a large share of it, which is what the old
+  # answer left out
+  bare <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = NULL))
+  expect_gt(stats::median((ref - bare) / ref), 0.3)
+})
+
+test_that("Est.Error of a category probability carries a POPULATION smooth", {
+  skip_on_cran()
+  # The same gap at the DEFAULT re_formula, and older than this lane: a
+  # population smooth's coefficients were never in the differenced set,
+  # so a category probability's Est.Error was the movement of the
+  # thresholds with the curve FROZEN, which is not the standard error of
+  # anything. Checked against Monte Carlo over the same joint covariance
+  # (dev/resmooth-mcse.R, 4000 draws): with the smooth's 6 coefficients in
+  # the differenced set the delta method is 2.09 percent from the Monte
+  # Carlo standard deviation at the median row; without them it is 74.47
+  # percent from it, 0.37825 against 0.06509 on the first row. SEEN TO
+  # FAIL on 0.64.0.
+  set.seed(23)
+  n <- 240L
+  d <- data.frame(x = stats::runif(n, -2, 2))
+  lat <- 1.2 * sin(2 * d$x) + stats::rlogis(n)
+  d$y <- factor(cut(lat, c(-Inf, -0.8, 0.8, Inf), labels = FALSE),
+                ordered = TRUE)
+  fit <- suppressWarnings(frm(bf(y ~ s(x, k = 8)) + cumulative(), data = d))
+  nd <- data.frame(x = c(-1.5, 0, 1.5))
+  f <- function(x) frmtmb:::fitted_point(x, nd)
+  bl <- fit$frame[["re_blocks"]]
+  sm <- sort(unique(unlist(lapply(bl[vapply(bl, function(b) {
+    b[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+  }, NA)], `[[`, "b_idx"))))
+  ref <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = NULL))
+  got <- as.vector(fitted(fit, newdata = nd)[, "Est.Error", ])
+  # the same arithmetic in a different summation order: 27.9 ulp measured
+  # here, against the 8 the block above needs, because this route sums
+  # over the whole smooth rather than one block of a factor smooth
+  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 100)
+  # the old answer was several times the right one on the extreme rows
+  bare <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = NULL))
+  expect_gt(max(bare / ref), 3)
+})
+
+test_that("a block whose rows are column-disjoint is ONE batch", {
+  skip_on_cran()
+  # An exact gp() block's design is an indicator in sample, so no row
+  # loads two of its columns and the whole block is one exact batch. The
+  # split re_b_batches() uses for a `(1 + x | g)` term is per column
+  # POSITION, and a gp block's `dim` IS its coefficient count, so the
+  # split degenerated to one batch per coefficient: 160 batches, 329
+  # model evaluations and 1.25 s for one fitted() call, against 1 batch,
+  # 11 evaluations and 0.02 s now
+  # (dev/resmooth-batchcost-before.txt against -after.txt, counts exact
+  # and load-independent). Est.Error is identical() across the change on
+  # 44 cells (dev/resmooth-batchident.txt).
+  set.seed(41)
+  nD <- 160L
+  d <- data.frame(x = stats::runif(nD, -2, 2))
+  lat <- 1.1 * sin(2 * d$x) + stats::rlogis(nD)
+  d$y <- factor(cut(lat, c(-Inf, -0.8, 0.8, Inf), labels = FALSE),
+                ordered = TRUE)
+  fit <- suppressWarnings(frm(bf(y ~ gp(x)), family = cumulative(),
+                              data = d))
+  sm <- frmtmb:::smooth_b_idx(fit)
+  expect_gt(length(sm), 100L)
+  bt <- frmtmb:::re_b_batches(fit, NULL, NULL, FALSE, sm)
+  expect_length(bt, 1L)
+  expect_identical(sort(bt[[1L]]$idx), sm)
+  # and the batched answer IS the unbatched one, which is what makes the
+  # batch legitimate rather than merely cheap. Not identical(): the two
+  # take different summation paths through the variance, the batched one
+  # holding b as one column-and-value pair per batch and the dense one as
+  # columns of J, so they agree to round-off and not to the bit. The
+  # worst cell here is 0.7 ulp; the SHIPPED fitted() is bit-identical
+  # across this change on 44 cells (dev/resmooth-batchident.txt), because
+  # both arms of that comparison take the batched path.
+  f <- function(x) frmtmb:::fitted_point(x, NULL, NA)
+  ref <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = NULL))
+  got <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = bt))
+  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 100)
+
+  # the complement: a (1 + x | g) block must NOT collapse, because a row
+  # loads its level's intercept and its slope. Without this the whole
+  # block would be batched and the difference misattributed.
+  set.seed(67)
+  ngJ <- 12L
+  perJ <- 25L
+  dJ <- data.frame(g = factor(rep(seq_len(ngJ), each = perJ)),
+                   x = stats::runif(ngJ * perJ, -2, 2))
+  bJ <- matrix(stats::rnorm(ngJ * 2, 0, 0.6), ngJ, 2)
+  latJ <- sin(dJ$x) + bJ[dJ$g, 1L] + bJ[dJ$g, 2L] * dJ$x +
+    stats::rlogis(nrow(dJ))
+  dJ$y <- factor(cut(latJ, c(-Inf, -0.8, 0.8, Inf), labels = FALSE),
+                 ordered = TRUE)
+  fJ <- suppressWarnings(frm(bf(y ~ s(x, k = 6) + (1 + x | g)),
+                             family = cumulative(), data = dJ))
+  bl <- fJ$frame[["re_blocks"]]
+  us <- which(vapply(bl, function(b) b[["dim"]] == 2L, NA))
+  expect_length(us, 1L)
+  bJidx <- bl[[us]][["b_idx"]]
+  btJ <- frmtmb:::re_b_batches(fJ, NULL, NULL, FALSE, bJidx)
+  # two batches, one per position, each covering every level
+  expect_length(btJ, 2L)
+  expect_identical(sort(unlist(lapply(btJ, `[[`, "idx"))), sort(bJidx))
+  expect_true(all(vapply(btJ, function(b) length(b$idx) == ngJ, NA)))
+})

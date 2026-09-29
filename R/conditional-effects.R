@@ -1141,7 +1141,11 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' @param re_formula The population switch, in brms's spelling: `NA`
 #'   (the default) draws the population-level curve, `NULL` conditions
 #'   on a NEW, unobserved group, and a one-sided formula keeps the named
-#'   terms for one. A new group's conditional modes are zero, so its
+#'   terms for one. `NA` removes the `(x | g)` group-level terms and
+#'   keeps every SMOOTH, as brms does, so on a model with
+#'   `s(x, g, bs = "fs")` the drawn curve is the grouping factor's
+#'   reference level's, that being where the display holds a predictor it
+#'   is not varying. A new group's conditional modes are zero, so its
 #'   curve IS the population curve and what the group costs is spread:
 #'   the band carries the random-effect variance on top of the
 #'   coefficient uncertainty, and the grouping column of the returned
@@ -2525,7 +2529,9 @@ pp_check_retired <- c(
 #' @param re_formula The random-effect switch, in brms's spelling
 #'   (`pp_check()` is a brms function). On a fit it is passed to
 #'   [simulate()] and defaults to `NA`, which redraws every group-level
-#'   effect in each replicate; `~0` and `~1` mean the same, and a
+#'   effect in each replicate and holds every SMOOTH at its estimate,
+#'   a smooth indexed by a grouping factor included; `~0` and `~1` mean
+#'   the same, and a
 #'   one-sided formula keeps the terms it names and redraws the rest
 #'   (see [simulate.frmtmb_fit()]). On draws it is passed to
 #'   `posterior_predict()` and

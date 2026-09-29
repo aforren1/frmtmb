@@ -1,0 +1,126 @@
+_T_h_e _d_e_s_i_g_n _o_f _a _l_i_n_e_a_r _p_r_e_d_i_c_t_o_r _o_v_e_r _t_h_e _c_o_e_f_f_i_c_i_e_n_t _v_e_c_t_o_r
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     'frm_linpred(se.fit = TRUE)' builds a matrix 'A' with one row per
+     prediction and one column per contributing coefficient, forms A V
+     A' and keeps only its diagonal. Every delta-method quantity over a
+     fitted curve needs the whole thing: a contrast between two grids,
+     an average marginal effect with a correct standard error, a
+     simultaneous band, a derivative, the time of a peak. This returns
+     the pieces so that an extension does not have to rebuild 'A' by
+     perturbation, one 'predict()' call per coefficient.
+
+_U_s_a_g_e:
+
+     frm_lp_basis(
+       object,
+       newdata = NULL,
+       dpar = NULL,
+       resp = NULL,
+       re_formula = NULL,
+       allow_new_levels = FALSE
+     )
+     
+_A_r_g_u_m_e_n_t_s:
+
+  object: A fitted 'frmtmb_fit'.
+
+ newdata: Data to build the design at, or 'NULL' for the training data.
+
+dpar, resp: The distributional parameter and response to take the
+          linear predictor of. Both default the way 'predict()'
+          defaults them.
+
+re_formula: 'NULL' keeps every random effect, 'NA' drops the
+          group-level terms and keeps every smooth, a one-sided formula
+          keeps the terms it names. See 'frm_linpred()' for the full
+          rule.
+
+allow_new_levels: Whether a grouping level the fit never saw is
+          allowed.
+
+_D_e_t_a_i_l_s:
+
+     The name follows 'emmeans::emm_basis()', which is the same idea
+     for the fixed block alone.
+
+_V_a_l_u_e:
+
+     A list with
+
+     'eta'
+          the linear predictor, exactly 'frm_linpred(type = "link")'.
+
+     'A'
+          n x p; d eta / d coef.
+
+     'coef_pos'
+          length 'p'; the rows of 'V' the columns of 'A' belong to, in
+          'V''s own order.
+
+     'V'
+          p x p; 'frm_joint_cov()' subset to 'coef_pos'.
+
+     'coef_names'
+          length 'p'; the labels of those rows.
+
+     'extra_var'
+          length 'n'; variance that is NOT coefficient uncertainty,
+          kept separate rather than folded into A V A' because an exact
+          'gp()''s kriging variance and a new grouping level's marginal
+          variance are not.
+
+     'nonest'
+          length 'n'; rows that load on a direction the rank-deficient
+          design could not identify.
+
+     'var(eta)' is 'rowSums((A %*% V) * A) + extra_var', and
+     'frm_linpred(se.fit = TRUE)' is written that way.
+
+_A _n_o_n_l_i_n_e_a_r _b_o_d_y:
+
+     For a nonlinear predictor 'A' is a JACOBIAN rather than a design,
+     and it is computed by taping the body against the coefficients it
+     reaches through. That includes a 'ps()' block, whose coefficients
+     enter the body through a spline evaluated at an argument the
+     parameters move. 'frm_linpred(se.fit = TRUE)' stays refused for a
+     nonlinear predictor; this is the route.
+
+     The Jacobian is exact, and the delta method built on it is still a
+     first-order approximation, which for a warped curve is a stronger
+     assumption than it is for a linear one. 'allow_new_levels = TRUE'
+     is refused there, and so is a contributing exact 'gp()', because
+     neither variance has a chain rule through the body that has been
+     measured.
+
+_A _r_e_d_u_c_e_d-_r_a_n_k _b_l_o_c_k:
+
+     An 'rr()' block's loadings live in 'theta', so a design over
+     (beta, b) alone is INCOMPLETE. 'A' carries the loading columns
+     too, through 'rr_jacobians()', and 'coef_pos' names their 'theta'
+     rows; a caller therefore gets the whole delta method rather than
+     discovering a missing piece.
+
+_S_e_e _A_l_s_o:
+
+     'frm_joint_cov()' for the covariance alone, frmtmb-extension-api
+
+_E_x_a_m_p_l_e_s:
+
+     set.seed(1)
+     dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
+     dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
+     fit <- frm(bf(y ~ x + (1 | g)), data = dd)
+     nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
+     lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
+     str(lb$A)
+     lb$coef_names
+     
+     # the covariance of the WHOLE grid, which frm_linpred() reduces to
+     # diagonal
+     Sigma <- lb$A %*% lb$V %*% t(lb$A)
+     all.equal(sqrt(diag(Sigma)),
+               frm_linpred(fit, newdata = nd, re_formula = NA,
+                           se.fit = TRUE)$se.fit)
+     

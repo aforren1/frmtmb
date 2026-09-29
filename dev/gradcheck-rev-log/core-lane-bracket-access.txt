@@ -1,0 +1,4 @@
+CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
+FILE  : C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-bracket-access.R 
+frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
+RESULT test-bracket-access.R pass=33 fail=0 error=0 skip=0

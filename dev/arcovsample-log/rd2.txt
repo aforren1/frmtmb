@@ -1,0 +1,57 @@
+
+==== sample-log_lik.Rd (173 rendered lines)
+     one-step conditional mean: the linear predictor plus a regression
+     on the OBSERVED earlier residuals of that row's group. A group
+     starts with no residuals behind it, so lag 'i' first reaches the
+     row at within-group position 'i + 1': the FIRST row of each group
+     takes the unshifted mean, a row at position 'k' carries only the
+     lags up to 'k - 1', and from position 'max(p, q) + 1' on a row
+     carries all of them. Only the first row is unshifted, at every
+     order. So the density of row 't' is conditional on 'y' at the rows
+     before it, and the columns multiply to the whole likelihood
+     exactly as they do for an independent model.
+
+     Say what that makes the leave-one-out quantity. PSIS-LOO over
+     these columns leaves out one CONDITIONAL density, the density of
+     'y_t' given the observed past, and not the series: the retained
+     columns still read 'y_t' through their own lagged residuals, so it
+     is not a forecast of an unseen point and it is not
+     leave-one-group-out either. It is brms's number, computed the way
+     brms computes it, and it answers "how well does the one-step-ahead
+     density fit this row" rather than "how well would the model
+     predict a held-out series". For the latter, refit without the
+     held-out group.
+
+     The 'cov = TRUE' covariance form is still refused, and for the 
+  refuted wording still present: FALSE
+  '%' surviving into the rendering: FALSE
+
+==== frmtmb-autocor.Rd (300 rendered lines)
+     code. So:
+
+        * It is a CONDITIONAL likelihood. A group starts with no
+          residuals behind it, so lag i first reaches the row at
+          within-group position i + 1: the FIRST row of a group gets no
+          lagged term, a row at position k gets only the lags up to k -
+          1, and from position max(p, q) + 1 onward a row gets all of
+          them. None of the opening rows gets the stationary
+          distribution the covariance form gives them. For one series
+          this is the conditional sum of squares of
+          'stats::arima(method = "CSS")'. 
+  refuted wording still present: FALSE
+  '%' surviving into the rendering: FALSE
+
+==== frmtmb-autocor.Rd (300 rendered lines)
+          and 'residuals(type = "osa")' are refused: this form defines
+          no correlation matrix, and its tape reads the response as
+          data. A POINTWISE log-density exists for this form and not
+          for the covariance one below, because each row keeps its own
+          density: one row's density given its group's observed past,
+          which is what brms's 'log_lik()' returns. 'arma_cond_resp()'
+          and 'arma_cond_dpars()' (frmtmb-sampling-api) are what a
+          sampling extension reads to build it. Whether the installed
+          'frmtmb.sample' does is that package's own question, and its
+          '?log_lik' answers it.
+ 
+  refuted wording still present: FALSE
+  '%' surviving into the rendering: FALSE

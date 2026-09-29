@@ -1,0 +1,27 @@
+ARM ref newexports=FALSE bayesplot 1.16.0 loo 2.10.1
+
+---- model plain
+  [dens_overlay] OK ggplot2::ggplot/ggplot/ggplot2::gg/S7_object/gg
+  [stat] OK ggplot2::ggplot/ggplot/ggplot2::gg/S7_object/gg
+  [loo_pit_overlay] rlang_error: One of 'lw' and 'psis_object' must be specified.
+  [loo_pit] getvarError: argument "lw" is missing, with no default
+  [loo_intervals] getvarError: argument "psis_object" is missing, with no default
+  [loo_ribbon] getvarError: argument "psis_object" is missing, with no default
+
+---- model re
+  [dens_overlay] OK ggplot2::ggplot/ggplot/ggplot2::gg/S7_object/gg
+  [stat] OK ggplot2::ggplot/ggplot/ggplot2::gg/S7_object/gg
+  [loo_pit_overlay] rlang_error: One of 'lw' and 'psis_object' must be specified.
+  [loo_pit] getvarError: argument "lw" is missing, with no default
+  [loo_intervals] getvarError: argument "psis_object" is missing, with no default
+  [loo_ribbon] getvarError: argument "psis_object" is missing, with no default
+
+---- model arma
+  [dens_overlay] OK ggplot2::ggplot/ggplot/ggplot2::gg/S7_object/gg
+  [stat] OK ggplot2::ggplot/ggplot/ggplot2::gg/S7_object/gg
+  [loo_pit_overlay] rlang_error: One of 'lw' and 'psis_object' must be specified.
+  [loo_pit] getvarError: argument "lw" is missing, with no default
+  [loo_intervals] getvarError: argument "psis_object" is missing, with no default
+  [loo_ribbon] getvarError: argument "psis_object" is missing, with no default
+
+DONE

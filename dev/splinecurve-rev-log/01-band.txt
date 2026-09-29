@@ -1,0 +1,36 @@
+frmtmb 0.65.0 frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/wt-splinecurve-lib 
+
+A. fs: ncol(A) 112  fs cols 100  fs cols all exactly 0: TRUE  extra_var all exactly 0: TRUE 
+A. crit 2.710666008  mcse 0.0112596 
+A. NA vs NULL at the unseen fs level: identical() after aligning the stored re_formula: TRUE 
+A. .se identical() to hand restriction: TRUE 
+Warning message:
+In gam.side(sm, X, tol = .Machine$double.eps^0.5) :
+  model has repeated 1-d smooths of same variable.
+A. mgcv ML exclude=: max |est diff| 7.889e-07  se ratio range 0.99999 1.00357  median 1.0015 
+A. median se: unseen 0.027695  seen subject 3 0.0072886 
+
+B. sd(subject intercept) 6.9914889e-05 
+B. re_formula = NA : extra_var range 0 0  max |extra_var / sd^2 - 1| 1  max |.se^2 - coef_var - extra_var| / .se^2 2.17e-16  median .se 0.027695 
+B. re_formula = NULL : extra_var range 4.8880917e-09 4.8880917e-09  max |extra_var / sd^2 - 1| 0  max |.se^2 - coef_var - extra_var| / .se^2 2.83e-16  median .se 0.027695 
+
+C. re smooth, unseen, TRUE, NA  : REFUSED [frmtmb_error/error/condition]: allow_new_levels = TRUE cannot predict the new level(s) population of the smooth term s(subject), whose basis has an `re` factor in it: its design has one column per fitted level and no zero row for a 
+C. re smooth, unseen, TRUE, NULL: REFUSED [frmtmb_error/error/condition]: allow_new_levels = TRUE cannot predict the new level(s) population of the smooth term s(subject), whose basis has an `re` factor in it: its design has one column per fitted level and no zero row for a 
+C. re smooth, unseen, FALSE     : REFUSED [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(subject): population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, as brm 
+C. re smooth, unseen, deriv TRUE: REFUSED [frmtmb_error/error/condition]: allow_new_levels = TRUE cannot predict the new level(s) population of the smooth term s(subject), whose basis has an `re` factor in it: its design has one column per fitted level and no zero row for a 
+C. re smooth, SEEN, TRUE        : ANSWERED 
+
+D. t2 re margin, unseen, TRUE   : REFUSED [frmtmb_error/error/condition]: allow_new_levels = TRUE cannot predict the new level(s) population of the smooth term t2(t,subject), whose basis has an `re` factor in it: its design has one column per fitted level and no zero row fo 
+D. t2 re margin, unseen, FALSE  : REFUSED [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term t2(t,subject): population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, as  
+D. t2 re margin, feature TRUE   : REFUSED [frmtmb_error/error/condition]: allow_new_levels = TRUE cannot predict the new level(s) population of the smooth term t2(t,subject), whose basis has an `re` factor in it: its design has one column per fitted level and no zero row fo 
+D. t2 re margin, SEEN, TRUE     : ANSWERED 
+
+E. fs by=f, seen, FALSE , re_formula = NA : REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 
+E. fs by=f, seen, FALSE , re_formula = NULL : REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 
+E. fs by=f, seen, TRUE , re_formula = NA : REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 
+E. fs by=f, seen, TRUE , re_formula = NULL : REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 
+E. fs by=f, unseen, TRUE , re_formula = NA : REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 
+E. fs by=f, unseen, TRUE , re_formula = NULL : REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 
+E. fs by=f, unseen, FALSE , re_formula = NA : REFUSED [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(t,subject):fa: population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, a 
+E. fs by=f, unseen, FALSE , re_formula = NULL : REFUSED [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(t,subject):fa: population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, a 
+E. fs by=f, frm_linpred unseen TRUE: REFUSED [frmtmb_error/error/condition]: predict(newdata = ) is not supported for the smooth s(t,subject):fb: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/predict() work; predict at the observed rows ins 

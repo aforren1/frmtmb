@@ -1,0 +1,302 @@
+frmtmb-autocor                package:x                R Documentation
+
+_W_i_t_h_i_n-_g_r_o_u_p _r_e_s_i_d_u_a_l _c_o_r_r_e_l_a_t_i_o_n (_R-_s_i_d_e _a_u_t_o_c_o_r_r_e_l_a_t_i_o_n)
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     'ar()', 'ma()', 'arma()', 'cosy()' and 'unstr()' are written as
+     terms of the model formula, next to the fixed and random effects.
+     They come in two forms. The covariance form ('cov = TRUE', and
+     always for 'cosy()' and 'unstr()') makes the residuals of one
+     group a single correlated draw instead of independent ones:
+
+_D_e_t_a_i_l_s:
+
+     y_g \sim N(mu_g,\; D_g R D_g), \qquad
+           D_g = \mathrm{diag}(sigma_i, i \in g).
+     
+     'R' is a unit-diagonal correlation matrix over the time points, so
+     'sigma' keeps its usual meaning - the marginal residual standard
+     deviation - and a 'sigma ~ ...' distributional model enters
+     through the diagonal. Nothing is added to the linear predictor, so
+     'fitted()', 'predict.frmtmb_fit()' and 'se.fit' are unchanged;
+     what changes is the likelihood. This is the model
+     'nlme::gls(correlation = corAR1())' fits, and the one brms fits
+     under 'cov = TRUE'.
+
+     The residual-regression form is brms's DEFAULT for 'ar()', 'ma()'
+     and 'arma()', so it is what those terms mean without 'cov = TRUE'.
+     It is described in its own section below.
+
+_V_a_l_u_e:
+
+     'ar()', 'ma()', 'arma()', 'cosy()' and 'unstr()' are formula
+     terms, not free-standing functions: 'bf()' reads them at parse
+     time, and the value they contribute is the fitted autocorrelation
+     block of the model, reachable through 'autocor_matrix()',
+     'VarCorr()' and 'confint_varcorr()'. This page itself documents
+     the term grammar and returns nothing.
+
+_S_t_r_u_c_t_u_r_e_s:
+
+     'ar(time, gr, p = 1, cov = TRUE)'
+          Stationary AR('p') correlation. 'p = 1' gives R_{ij} =
+          rho^{|i-j|}.
+
+     'ma(time, gr, q = 1, cov = TRUE)'
+          Invertible MA('q'): correlation dies after lag 'q'.
+
+     'arma(time, gr, p = 1, q = 1, cov = TRUE)'
+          Stationary, invertible ARMA('p', 'q').
+
+     'cosy(time, gr)'
+          Compound symmetry - one correlation shared by every pair.
+          Equivalent in fit to a random intercept per group, but the
+          correlation may also be negative (down to '-1 / (d - 1)'),
+          which a variance component cannot express.
+
+     'unstr(time, gr)'
+          One free correlation per pair of time levels, through the
+          same Cholesky parameterization the 'us()' random-effect
+          structure uses.
+
+     The AR and MA coefficients are estimated through partial
+     autocorrelations (the Monahan/Jones transform 'nlme::corARMA' also
+     uses), so every parameter value is a stationary and invertible
+     process and the optimizer cannot leave the parameter space. The
+     ARMA autocorrelation function is exact, not a truncated MA(Inf)
+     expansion.
+
+_A_r_g_u_m_e_n_t_s:
+
+     The argument order is brms's, so the FIRST positional argument is
+     'time' and the second is 'gr': write 'cosy(gr = subj)', not
+     'cosy(subj)'.
+
+     'time'
+          ONE variable name, whose levels index the correlation. Omit
+          it (brms's 'time = NA') to use each row's position within its
+          group. An expression is refused rather than evaluated, as it
+          is in brms: the distinct values of the index are the time
+          points and the distance between them is the lag, so 'ar(x +
+          t, g)' would be indexed by the sum. Compute the column first
+          and name it.
+
+     'gr'
+          The grouping variable the residual factorizes over, or
+          several crossed with ':'. Omit it to treat the whole data set
+          as one series. 'gr = a:b' crosses the two, on numeric codes
+          as well as on factors; every other operator is refused rather
+          than evaluated, again as in brms ("It may contain only
+          variable names combined by the symbol ':'"), because 'gr =
+          a/b' would otherwise group by the quotient. 'gr = factor(g)'
+          and 'gr = interaction(a, b)' are refused for the same reason:
+          the grouping variable is made a factor here anyway, so write
+          'gr = g' and 'gr = a:b'. The crossing PASTES the levels with
+          an underscore, as brms's 'combine_groups()' does, so it is
+          not injective: levels ("x_1", "2") and ("x", "1_2") both
+          become '"x_1_2"' and share one series, where 'interaction()'
+          would keep them apart. brms merges them too; make the column
+          yourself if the labels can collide.
+
+     'p', 'q'
+          Autoregressive and moving-average orders.
+
+     'cov'
+          'FALSE', the default as in brms, gives the
+          residual-regression form; 'TRUE' gives the covariance form.
+          They are different likelihoods, not two implementations of
+          one.
+
+_T_h_e _r_e_s_i_d_u_a_l-_r_e_g_r_e_s_s_i_o_n _f_o_r_m ('_c_o_v = _F_A_L_S_E'):
+
+     This is the model brms 2.23.0 fits for 'ar()', 'ma()' and 'arma()'
+     when 'cov' is not set. Within each group, in time order, let r_t =
+     y_t - mu_t and
+
+                 e_t = r_t - sum_{i=1}^{q} theta_i e_{t-i},             
+     
+     with e_s = 0 before the group's first row. The mean of row t
+     becomes
+
+     mu^*_t = mu_t + sum_{i=1}^{q} theta_i e_{t-i} +
+           sum_{i=1}^{p} phi_i e_{t-i},
+     
+     and every row keeps the family's own density at mu^*_t. The MA
+     part enters e and the AR part does not, exactly as in brms's Stan
+     code. So:
+
+        * It is a CONDITIONAL likelihood. A group starts with no
+          residuals behind it, so lag i first reaches the row at
+          within-group position i + 1: the FIRST row of a group gets no
+          lagged term, a row at position k gets only the lags up to k -
+          1, and from position max(p, q) + 1 onward a row gets all of
+          them. None of the opening rows gets the stationary
+          distribution the covariance form gives them. For one series
+          this is the conditional sum of squares of
+          'stats::arima(method = "CSS")'.
+
+        * The coefficients 'ar[i]' and 'ma[i]' are unconstrained reals,
+          as in brms, because nothing in this likelihood needs a
+          stationary or invertible process. A prior or a bound with
+          'set_prior(class = "ar")' acts on them directly, at any
+          order.
+
+        * 'sigma' is the sd of each row around mu^*_t, which for a
+          correct model is the innovation sd.
+
+        * The lag is counted in ROWS of the group, sorted by 'time', as
+          brms counts it: a group that skips a time point treats the
+          next row as one step later. The covariance form counts levels
+          instead (see below).
+
+        * Families: 'gaussian()' and 'student()', the two families brms
+          gives a residual 'y - mu'. A predicted 'nu ~ ...' works. For
+          other families brms refuses an MA part ("Please set cov =
+          TRUE when modeling MA structures for this family") and fits
+          latent residuals for an AR part; both are refused here, and
+          the refusal names the random-effect spelling of a latent
+          autoregressive process. With a non-identity link the term is
+          added to 'mu' on the response scale, after the inverse link,
+          as brms's Stan code adds it.
+
+        * It combines with 'weights()', 'cens()', 'trunc()', 'mi()' on
+          the response (the residual is then taken against the imputed
+          value), random effects and 'rescor = TRUE', as in brms.
+          'se()' is refused, as brms refuses it.
+
+        * After the fit, 'fitted()', 'frm_linpred()' and 'predict(type
+          = "response")' give brms's one-step mean mu^*_t, which reads
+          the OBSERVED earlier residuals; so 'residuals()' are against
+          it. 'newdata' must then carry the response, and its rows form
+          their own groups in their own time order.
+          'predict.frmtmb_fit()' draws each row around its one-step
+          mean, as brms's 'posterior_predict()' does. 'simulate()'
+          instead runs the recursion over its own draws, so a replicate
+          carries the fitted serial dependence; on 'newdata' it starts
+          each group from an empty past and needs no response, which
+          makes it the forecasting route. 'conditional_effects()' and
+          'emmeans()' drop the term, as brms's do. 'autocor_matrix()'
+          and 'residuals(type = "osa")' are refused: this form defines
+          no correlation matrix, and its tape reads the response as
+          data. A POINTWISE log-density exists for this form and not
+          for the covariance one below, because each row keeps its own
+          density: one row's density given its group's observed past,
+          which is what brms's 'log_lik()' returns. 'arma_cond_resp()'
+          and 'arma_cond_dpars()' (frmtmb-sampling-api) are what a
+          sampling extension reads to build it. Whether the installed
+          'frmtmb.sample' does is that package's own question, and its
+          '?log_lik' answers it.
+
+_F_a_m_i_l_i_e_s:
+
+     This section and the two after it describe the covariance form.
+     'gaussian()' and 'student()' only - the two families with a real
+     residual, and exactly the two brms treats this way ('student()'
+     gets the multivariate-t analog, with one 'nu' per group, so a
+     predicted 'nu ~ ...' is refused). brms accepts the same spelling
+     for other families but fits a different model there: a latent
+     Gaussian AR process added to the linear predictor. That model has
+     a spelling of its own here - a random effect over the time factor,
+     '+ ar1(factor(week) + 0 | subj)', or 'toep()' / 'us()' for a freer
+     lag structure - and the refusal names it.
+
+_T_i_m_e _p_o_i_n_t_s, _g_a_p_s _a_n_d _r_a_g_g_e_d _g_r_o_u_p_s:
+
+     The lag between two rows is the distance between their positions
+     in the GLOBAL set of time levels, so a group missing week 3 gets
+     'cor(week2, week4) = rho^2'. That is 'nlme''s reading
+     ('corAR1(form = ~ week | subj)') and what the agreement tests pin
+     down; brms instead indexes 'ar()'/'ma()'/'arma()'/'cosy()' by
+     position within the group and treats a missing row as no gap (only
+     its 'unstr()' carries a time index). On complete balanced groups
+     the two coincide. Time levels that are whole numbers but not
+     consecutive warn, because the lag is then not the one the labels
+     suggest.
+
+     Groups of different sizes are handled by construction: the density
+     is evaluated one PATTERN at a time (a pattern being a distinct set
+     of present time levels), so a balanced design costs one Cholesky
+     per gradient evaluation and ragged data costs one per distinct
+     pattern. Duplicate (gr, time) pairs are refused, as they are in
+     brms.
+
+_W_h_a_t _c_a_n_n_o_t _b_e _c_o_m_b_i_n_e_d _w_i_t_h _i_t:
+
+     The likelihood is a joint density over each group, so it no longer
+     factorizes into per-row contributions. 'weights()', 'cens()',
+     'trunc()', 'se()' and 'mi()' on the same response are therefore
+     refused, as are 'rescor = TRUE', mixture families, 'quadrature =
+     TRUE', 'frm_simulate()' and 'residuals(type = "osa")'. brms
+     refuses the same core set. Random effects ARE allowed and are the
+     point of the feature: the marginal likelihood is a Laplace
+     approximation over the modes with the correlated residual density
+     inside, which reproduces 'nlme::lme(random = ~ 1 | subj,
+     correlation = corAR1())'.
+
+_W_h_e_r_e _t_h_e _p_a_r_a_m_e_t_e_r_s _a_p_p_e_a_r:
+
+     On the internal (unconstrained) scale they are the thetaac_* rows
+     of 'confint.frmtmb_fit()' and of 'vcov(full = TRUE)'. On the
+     natural scale, 'summary()' prints them under "Within-group
+     residual correlation" and 'confint_varcorr()' reports one row per
+     parameter under brms's names - 'ar[1]', 'ma[1]', 'cosy',
+     cortime__<t1>__<t2> - with a delta-method interval (Fisher-z for
+     the bounded ones, the identity for the coefficients of a
+     higher-order AR/MA process). 'hypothesis()' sees them under the
+     same names, 'ar[1]' included, which brms's renaming lets an
+     expression carry. 'autocor_matrix()' returns the fitted 'R'. They
+     are NOT part of 'VarCorr()', which reports random-effect blocks.
+     'set_prior()' cannot target them yet.
+
+_D_i_v_e_r_g_e_n_c_e _f_r_o_m _b_r_m_s:
+
+     brms parameterizes 'ar()', 'ma()' and 'arma()' by the INNOVATION
+     standard deviation (its 'cholesky_cor_ar1()' divides by '1 -
+     ar^2'), while 'cosy()' and 'unstr()' use the marginal one. Here
+     every structure uses the marginal 'sigma', so that 'sigma()',
+     pearson residuals and a 'sigma ~ x' model mean one thing
+     throughout. The correlation parameters agree with brms exactly;
+     the scales relate by 'sigma_marginal = sigma_innovation / sqrt(1 -
+     phi^2)' for AR(1) and 'sigma_marginal = sigma_innovation * sqrt(1
+     + theta^2)' for MA(1). brms also limits 'cov = TRUE' to order one
+     ("Covariance formulation of ARMA structures is only possible for
+     effects of maximal order one"); higher 'p' and 'q' are supported
+     here.
+
+_S_e_e _A_l_s_o:
+
+     'autocor_matrix()' for the fitted correlation matrix,
+     'confint_varcorr()' for natural-scale intervals, and
+     'vignette("brms-migration")' for the porting notes.
+
+_E_x_a_m_p_l_e_s:
+
+     set.seed(1)
+     d <- expand.grid(week = 1:5, subj = factor(1:30))
+     d$x <- rnorm(150)
+     e <- as.vector(vapply(1:30, function(i) {
+       as.vector(stats::filter(rnorm(5), 0.6, "recursive"))
+     }, numeric(5)))
+     d$y <- 1 + 0.5 * d$x + e
+     
+     fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
+                data = d)
+     summary(fit)
+     autocor_matrix(fit)
+     
+     # brms's default residual-regression form: mu gains ar * (y - mu) of
+     # the previous row of the same subject
+     fit0 <- frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
+     summary(fit0)
+     head(fitted(fit0))
+     
+     # compound symmetry, and the unstructured correlation over the five
+     # weeks
+     frm(bf(y ~ x + cosy(week, subj)) + gaussian(), data = d)
+     frm(bf(y ~ x + unstr(week, subj)) + gaussian(), data = d)
+     
+     # a random intercept alongside the correlated residual is allowed
+     frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
+         data = d)
+     

@@ -7,27 +7,37 @@
 # extension's own tree, because the extension consumes core's family and
 # compat seams and a change to either is what would break it.
 #
-# No extra-repositories here, unlike the ODE extension: every suggested
-# dependency of this package (RWiener, numDeriv, brms, RTMB) is on CRAN,
-# and the package itself compiles nothing. Its density is plain R
-# arithmetic that runs on RTMB advectors and on doubles alike.
+# TWO PACKAGES COME FROM THE CHECKOUT, not from a repository: frmtmb
+# itself and frmtmb.sample, which test-sampling.R calls to run a short
+# NUTS chain over the Wiener density. install.packages() cannot resolve
+# either, so both are installed from source below, frmtmb.sample after
+# core because it imports core. frmtmb.sample is installed before the
+# step that reads this package's own Suggests, so that step finds it in
+# installed.packages() and does not try a repository for it.
+#
+# No extra-repositories here, unlike the ODE extension: every other
+# suggested dependency of this package (RWiener, numDeriv, brms, RTMB)
+# is on CRAN, and the package itself compiles nothing. Its density is
+# plain R arithmetic that runs on RTMB advectors and on doubles alike.
 on:
   push:
     branches: [main, master]
     paths:
       - 'extensions/frmtmb.eam/**'
+      - 'extensions/frmtmb.sample/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
-      - '.github/workflows/check-frmtmb-ddm.yaml'
+      - '.github/workflows/check-frmtmb-eam.yaml'
   pull_request:
     branches: [main, master]
     paths:
       - 'extensions/frmtmb.eam/**'
+      - 'extensions/frmtmb.sample/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
-      - '.github/workflows/check-frmtmb-ddm.yaml'
+      - '.github/workflows/check-frmtmb-eam.yaml'
   workflow_dispatch:
 
 name: check-frmtmb.eam
@@ -55,12 +65,19 @@ jobs:
       - name: Install the core package from this checkout
         run: R CMD INSTALL --no-multiarch --with-keep.source .
         shell: bash
+      # frmtmb.sample imports only frmtmb and base packages, and core's
+      # own resolution above already brought RTMB, so nothing else has
+      # to be installed for it. Its Suggests are not installed, because
+      # nothing here runs its tests.
+      - name: Install frmtmb.sample from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.sample
+        shell: bash
       # The extension's own dependencies, read from its DESCRIPTION and
       # installed directly rather than through pak. pak resolves every
       # dependency against a repository, and frmtmb is in no repository:
       # the build wanted here is the one installed from the checkout in
-      # the step above, so frmtmb is skipped along with anything else
-      # already present.
+      # the steps above, so frmtmb and frmtmb.sample are both skipped
+      # along with anything else already present.
       - name: Install the extension's dependencies
         run: |
           d <- read.dcf("extensions/frmtmb.eam/DESCRIPTION")

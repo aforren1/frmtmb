@@ -1,0 +1,57 @@
+library: lane  frmtmb 0.64.0 
+
+
+== U1. a badly scaled predictor, autoscale off
+scaled 1e6 predictor               seed 401   np   3 conv 1 obj    2883.830837 gmax  8.766e+00 (xbig)
+                                   warned FALSE active  0 gproj  8.766e+00 decr  6.950e-10 gsc  3.194e-05 grel  3.040e-03
+  logLik shortfall against the well-scaled fit: 6.63476e-10 
+
+== U2. nlminb's own tolerances loosened: code 0, not at the optimum
+poisson, rel.tol = 0.01            seed 402   np   3 conv 0 obj    2305.121410 gmax  4.546e+01 (x)
+                                   warned TRUE  active  0 gproj  4.546e+01 decr  3.825e-01 gsc  7.291e-01 grel  1.972e-02
+  logLik shortfall: 0.382518 
+poisson, rel.tol = 0.001           seed 402   np   3 conv 0 obj    2304.740216 gmax  2.534e+00 ((Intercept))
+                                   warned TRUE  active  0 gproj  2.534e+00 decr  1.323e-03 gsc  4.648e-02 grel  1.099e-03
+  logLik shortfall: 0.00132367 
+poisson, rel.tol = 1e-04           seed 402   np   3 conv 0 obj    2304.740216 gmax  2.534e+00 ((Intercept))
+                                   warned TRUE  active  0 gproj  2.534e+00 decr  1.323e-03 gsc  4.648e-02 grel  1.099e-03
+  logLik shortfall: 0.00132367 
+poisson, rel.tol = 1e-05           seed 402   np   3 conv 0 obj    2304.739118 gmax  1.150e+00 ((Intercept))
+                                   warned FALSE active  0 gproj  1.150e+00 decr  2.256e-04 gsc  2.109e-02 grel  4.988e-04
+  logLik shortfall: 0.000225669 
+
+== U3. the same, on a GLMM (Laplace, so the Hessian is numeric)
+poisson GLMM, rel.tol = 0.01       seed 403   np   3 conv 0 obj    1894.940288 gmax  6.980e+01 (x)
+                                   warned TRUE  active  0 gproj  6.980e+01 decr  1.043e+00 gsc  1.436e+00 grel  3.684e-02
+  logLik shortfall: 1.04218 
+poisson GLMM, rel.tol = 0.001      seed 403   np   3 conv 0 obj    1893.927445 gmax  1.001e+01 (x)
+                                   warned TRUE  active  0 gproj  1.001e+01 decr  2.940e-02 gsc  2.059e-01 grel  5.288e-03
+  logLik shortfall: 0.0293391 
+poisson GLMM, rel.tol = 1e-04      seed 403   np   3 conv 0 obj    1893.902048 gmax  1.042e+00 (x)
+                                   warned TRUE  active  0 gproj  1.042e+00 decr  3.972e-03 gsc  7.337e-02 grel  5.500e-04
+  logLik shortfall: 0.00394279 
+
+== U4. a near-collinear design: a flat ridge nlminb stops on
+near-collinear ridge               seed 404   np   4 conv 0 obj    1438.545539 gmax  5.966e-03 (sigma_(Intercept))
+                                   warned TRUE  active  0 gproj  5.966e-03 decr  1.003e-02 gsc  1.889e-04 grel  4.147e-06
+  condition number of the design: 198708 
+
+== U5. a genuinely flat direction: a bump off its own support
+flat nonlinear peak                seed 405   np   4 conv 0 obj      24.258869 gmax  1.533e-05 (lamp_(Intercept))
+                                   warned FALSE active  0 gproj  1.533e-05 decr         NA gsc         NA grel  6.319e-07
+
+== U6. complete separation in a bernoulli fit
+complete separation                seed 406   np   2 conv 0 obj       0.000000 gmax 1.167e-257 ((Intercept))
+                                   warned FALSE active  0 gproj 1.167e-257 decr         NA gsc 3.416e-129 grel 1.167e-257
+
+== U7. how far can a CORRECT fit's headroom go? bigger n
+gaussian n = 100000                seed 407   np   4 conv 0 obj  182459.787498 gmax  2.550e-03 (sigma_(Intercept))
+                                   warned FALSE active  0 gproj  2.550e-03 decr  2.074e-11 gsc  5.702e-06 grel  1.397e-08
+gaussian n = 400000                seed 407   np   4 conv 0 obj  730139.855808 gmax  9.946e-03 (sigma_(Intercept))
+                                   warned FALSE active  0 gproj  9.946e-03 decr  1.128e-10 gsc  1.112e-05 grel  1.362e-08
+nearzero n = 100000                seed 407   np   4 conv 0 obj  141751.118453 gmax  6.811e-04 ((Intercept))
+                                   warned FALSE active  0 gproj  6.811e-04 decr  6.871e-10 gsc  3.657e-05 grel  4.805e-09
+nearzero n = 400000                seed 407   np   4 conv 0 obj  567173.595607 gmax  1.433e-02 (sigma_(Intercept))
+                                   warned FALSE active  0 gproj  1.433e-02 decr  3.348e-05 gsc  8.183e-03 grel  2.526e-08
+
+rows: 15   warned: 7 

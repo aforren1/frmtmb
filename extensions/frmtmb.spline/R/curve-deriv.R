@@ -45,7 +45,9 @@
 #'
 #' @param object A `frmtmb_fit`, or a `frmtmb_curve` from [frm_curve()],
 #'   in which case its grid and its `dpar`, `resp` and `re_formula` are
-#'   reused.
+#'   reused. Its `allow_new_levels` is reused too when this call does
+#'   not supply the argument; a value supplied here, `FALSE` included,
+#'   wins.
 #' @param var Name of the covariate to differentiate with respect to. It
 #'   must be a numeric column of the grid.
 #' @param order 1 or 2.
@@ -99,10 +101,12 @@
 #' @export
 frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
                             contrast = NULL, dpar = NULL, resp = NULL,
-                            re_formula = NA, level = 0.95,
-                            simultaneous = TRUE, nsim = 10000L,
-                            eps = NULL, seed = NULL, tol = 1e-6) {
+                            re_formula = NA, allow_new_levels = FALSE,
+                            level = 0.95, simultaneous = TRUE,
+                            nsim = 10000L, eps = NULL, seed = NULL,
+                            tol = 1e-6) {
   sp_check_level(level)
+  sp_check_flag(allow_new_levels, "allow_new_levels")
   sp_check_flag(simultaneous, "simultaneous")
   if (!identical(order, 1L) && !identical(order, 2L) &&
       !identical(order, 1) && !identical(order, 2)) {
@@ -112,7 +116,8 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
              call. = FALSE)
   }
   order <- as.integer(order)
-  sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula)
+  sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula,
+                allow_new_levels, !missing(allow_new_levels))
   sp_rp_gate(sp$fit)
   nd <- sp$newdata
   ct <- sp$contrast
@@ -135,8 +140,10 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
     cstack <- rbind(ct, ct, ct)
     cstack[[var]] <- c(x - e, x, x + e)
   }
-  parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re_formula, tol,
-                          cstack)
+  parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re_formula,
+                          sp$allow_new_levels, tol, cstack)
+  sp_new_level_stop(parts, "frm_curve_deriv()",
+                    "the derivative's standard error")
   m <- nrow(nd)
   lo <- seq_len(m)
   mid <- m + lo
@@ -188,8 +195,17 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
 #' of the FIRST curve, returned without complaint, for an object whose
 #' every printed row is a difference.
 #'
+#' A curve's stored `allow_new_levels` applies only when the caller did
+#' not supply the argument (`anl_given` is `!missing()` in the exported
+#' function). A value the caller supplies wins, `FALSE` included, so a
+#' caller can still ask for the refusal on a curve stored with `TRUE`.
+#' An OR of the two could not express that, and answered an explicit
+#' `FALSE` on an unseen grid (dev/reviews/2026-09-29-splinecurve.md,
+#' claim 2).
+#'
 #' @noRd
-sp_spec <- function(object, newdata, contrast, dpar, resp, re_formula) {
+sp_spec <- function(object, newdata, contrast, dpar, resp, re_formula,
+                    allow_new_levels, anl_given) {
   if (inherits(object, "frmtmb_curve")) {
     s <- attr(object, "spec")
     nd <- if (is.null(newdata)) s$newdata else newdata
@@ -208,7 +224,10 @@ sp_spec <- function(object, newdata, contrast, dpar, resp, re_formula) {
                "the difference was built on is reused", call. = FALSE)
     }
     return(list(fit = attr(object, "fit"), newdata = nd, contrast = ct,
-                dpar = s$dpar, resp = s$resp, re_formula = s$re_formula))
+                dpar = s$dpar, resp = s$resp, re_formula = s$re_formula,
+                allow_new_levels = if (anl_given) allow_new_levels else {
+                  isTRUE(s$allow_new_levels)
+                }))
   }
   if (is.null(newdata)) {
     frm_stop("`newdata` is required when the first argument is a fit: it is ",
@@ -216,7 +235,8 @@ sp_spec <- function(object, newdata, contrast, dpar, resp, re_formula) {
              "frm_curve() to reuse a grid instead", call. = FALSE)
   }
   list(fit = object, newdata = newdata, contrast = contrast, dpar = dpar,
-       resp = resp, re_formula = re_formula)
+       resp = resp, re_formula = re_formula,
+       allow_new_levels = allow_new_levels)
 }
 
 #' The second grid of a difference must carry the SAME values of the

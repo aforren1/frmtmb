@@ -45,6 +45,31 @@ give the per-unit coefficient changes, raw and scaled by the
 coefficient standard errors (the lme4 influence surface).
 \code{\link[=plot.frmtmb_influence]{plot.frmtmb_influence()}} draws all three.
 }
+\details{
+Each deletion refits the same model, so an ordinal response keeps the
+threshold count of the full-data fit, and the per-level counts of
+\code{thres(gr = )}, whether the response is coded as integers, as a
+character vector or as an ordered factor. Deleting the last
+observation in ANY category, bottom, interior or top, leaves that
+category's threshold in the model and unidentified, which shows as a
+large displacement in its column, never as a shorter row or a
+coefficient under the next column's name.
+
+Two deletions cannot refit the fitted model at all and are refused by
+name. A \verb{groups = } deletion that removes a whole level of
+\code{thres(gr = )} takes away every observation behind that level's
+thresholds, so they could only be invented. \verb{data = } holding a
+response category outside the fitted model's threshold layout, or a
+\code{thres(gr = )} level the fit never saw, describes a different model. A
+category the fit never OBSERVED is not outside that layout when
+\code{thres(K)} declared it, so \verb{data = } may reach one of those.
+
+A refit that fails for any reason, these two included, leaves its row
+\code{NA}, and the failures are counted. When some units failed the table
+comes back with a warning carrying the count and the first reason;
+when every unit failed there is no table to hand back, so that first
+reason is raised as an error instead of a silent matrix of \code{NA}.
+}
 \examples{
 \donttest{
 set.seed(7)

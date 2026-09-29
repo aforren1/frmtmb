@@ -1,0 +1,62 @@
+frmtmb 0.64.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== A: cs(fc) on a factor ==
+             Estimate Est.Error
+Intercept[1]  -2.7297    0.2887
+Intercept[2]   2.6785    0.3745
+fc[1]         -1.2637    0.1356
+fc[2]          1.1086    0.1982
+variables():
+[1] "bcs_fc[1]" "bcs_fc[2]"
+fitted at 3 rows (a, b, c):
+     P(Y = 1) P(Y = 2) P(Y = 3)
+[1,]   0.1876   0.6725   0.1399
+[2,]   0.4496   0.3376   0.2128
+[3,]   0.7430   0.0883   0.1687
+fitted at the single row fc = factor('c'):
+P(Y = 1) P(Y = 2) P(Y = 3) 
+  0.1876   0.6725   0.1399 
+empirical shares by level:
+   
+         1      2      3
+  a 0.1944 0.6722 0.1333
+  b 0.4358 0.3352 0.2291
+  c 0.7518 0.0922 0.1560
+logLik cs(fc) -446.9233 | hand dummies -446.6361 | diff -0.2872
+hand-dummy fitted at 3 rows (a, b, c):
+     P(Y = 1) P(Y = 2) P(Y = 3)
+[1,]   0.1944   0.6722   0.1333
+[2,]   0.4358   0.3352   0.2291
+[3,]   0.7518   0.0922   0.1560
+hand-dummy variables():
+[1] "bcs_fb[1]"  "bcs_fb[2]"  "bcs_fcc[1]" "bcs_fcc[2]"
+default_prior() rows for the factor fit:
+route = "fit": the prior defaults frm() applies
+   prior     class coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                            NA NA default
+2 (flat)         b                            NA NA default
+3 (flat)         b   fc                       NA NA default
+
+== A2: cs() on a character column ==
+[1] "The optimizer failed on this model (sratio, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = \"optim\")), or start the fit nearer the optimum with the `start` argument of frm()"
+Warning messages:
+1: In assemble_frame(spec, data, na.action = na.action, sparse_x = isTRUE(control$sparse_x),  :
+  NAs introduced by coercion
+2: In stats::nlminb(par, fnw$fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+
+== A3: cs() on a numeric factor (levels 1, 2, 3) ==
+   logLik     ncoef 
+-446.9233    2.0000 
+
+== B: y ~ x + cs(x) ==
+              Estimate    Est.Error          Q2.5         Q97.5
+Intercept[1] -0.248400 9.024900e-02 -4.252840e-01     -0.071515
+Intercept[2]  0.804003 1.308960e-01  5.474510e-01      1.060556
+x             0.110717 2.709529e+05 -5.310579e+05 531058.082754
+x[1]         -0.129316 2.709529e+05 -5.310581e+05 531057.842721
+x[2]          0.240033 2.709529e+05 -5.310577e+05 531058.212070
+logLik -513.249191 
+max |se| 270953 
+
+done

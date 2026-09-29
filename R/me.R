@@ -620,6 +620,12 @@ set_mecor <- function(mecor = TRUE) {
 #' the mean of a linear term, and frmtmb does not add the measurement
 #' noise to a prediction interval.
 #'
+#' @return `me()` is a formula term, not a free-standing function:
+#'   `bf()` reads it at parse time, and the value it contributes is the
+#'   noise-free predictor's coefficient together with the latent values
+#'   and the measurement-model hyperparameters, reachable through
+#'   [fixef()] and the Noise-free Terms section of [summary()]. This
+#'   page itself documents the term grammar and returns nothing.
 #' @name frmtmb-me
 #' @aliases me
 #' @seealso [set_mecor()]; `mi()` for a measurement model that has

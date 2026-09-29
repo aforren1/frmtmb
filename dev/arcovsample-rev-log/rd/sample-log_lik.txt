@@ -1,0 +1,171 @@
+sample-log_lik                package:x                R Documentation
+
+_P_o_i_n_t_w_i_s_e _l_o_g-_l_i_k_e_l_i_h_o_o_d _o_f _p_o_s_t_e_r_i_o_r _d_r_a_w_s
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     The ndraws x nobs matrix of per-observation log-densities, each
+     row evaluated at one draw's own parameter vector. Every
+     leave-one-out and information-criterion quantity in this package
+     is a function of this matrix, and 'frmtmb::loo()',
+     'frmtmb::waic()' and 'loo::psis()' take it directly.
+
+_U_s_a_g_e:
+
+     ## S3 method for class 'frmtmb_draws'
+     log_lik(
+       object,
+       newdata = NULL,
+       re_formula = arg_unset(),
+       resp = NULL,
+       ndraws = NULL,
+       draw_ids = NULL,
+       pointwise = FALSE,
+       combine = TRUE,
+       add_point_estimate = FALSE,
+       cores = NULL,
+       point_estimate = NULL,
+       ndraws_point_estimate = 1,
+       ...
+     )
+     
+_A_r_g_u_m_e_n_t_s:
+
+  object: A 'frmtmb_draws' from 'frm_sample()'.
+
+newdata, re_formula: Accepted in brms's own second and third positions
+          and refused: see _What is conditioned on_. The refusal names
+          the reason and the replacement.
+
+    resp: For a multivariate model without 'rescor', the response whose
+          contribution to report; the default sums over responses.
+
+  ndraws: Number of draws to use, evenly spaced through the matrix
+          (default: all of them).
+
+draw_ids: The draws to use, by row index, instead of the evenly spaced
+          subsample 'ndraws' takes. Give one or the other.
+
+pointwise, combine, add_point_estimate, cores: brms's slots, in brms's
+          positions. 'pointwise = TRUE' (brms's function of one
+          observation) and 'add_point_estimate = TRUE' are refused by
+          name; 'combine = FALSE' is accepted on a univariate model,
+          where there is nothing to combine; 'cores' is accepted and
+          unused, because the matrix is built in this process.
+
+point_estimate, ndraws_point_estimate: brms's arguments: collapse the
+          draws to their '"mean"' or '"median"' first and use that one
+          parameter vector, repeated 'ndraws_point_estimate' times.
+
+     ...: Refused: an argument the method does not have is an error
+          naming it, rather than silently changing nothing.
+
+_V_a_l_u_e:
+
+     A numeric matrix with one row per draw and one column per
+     observation (the rows the model was fitted on).
+
+_W_h_a_t _i_s _c_o_n_d_i_t_i_o_n_e_d _o_n:
+
+     The density is CONDITIONAL on the draw's own group-level values:
+     'frm_sample()' samples 'b' alongside everything else, so each row
+     of the draws matrix is a complete parameter vector and no
+     integration is left to do. This is exactly brms's convention,
+     where the Stan model also samples the group-level parameters. The
+     consequence is worth stating plainly: 'loo()' on such a matrix is
+     leave-one-OBSERVATION-out with the groups held fixed, not
+     leave-one-group-out, and for a model with few observations per
+     group the two differ.
+
+     Addition terms enter exactly as they enter the fitted objective,
+     because they enter through the same code: 'cens()' replaces a
+     row's density by the matching CDF difference, 'trunc()' divides by
+     the window mass, 'weights()' multiplies the row's contribution,
+     and 'trials()' is the family's own argument. brms composes them in
+     the same order ('log_lik_censor()', 'log_lik_truncate()',
+     'log_lik_weight()').
+
+_A_u_t_o_c_o_r_r_e_l_a_t_i_o_n, _a_n_d _w_h_a_t _a _r_o_w _c_o_n_d_i_t_i_o_n_s _o_n:
+
+     brms's default 'cov = FALSE' form of 'ar()', 'ma()' and 'arma()'
+     (frmtmb::frmtmb-autocor) has a column per observation, and it is
+     the column brms's own 'log_lik()' returns. A row's 'mu' is the
+     one-step conditional mean: the linear predictor plus a regression
+     on the OBSERVED earlier residuals of that row's group, with each
+     group's first 'max(p, q)' rows taking the unshifted mean. So the
+     density of row 't' is conditional on 'y' at the rows before it,
+     and the columns multiply to the whole likelihood exactly as they
+     do for an independent model.
+
+     Say what that makes the leave-one-out quantity. PSIS-LOO over
+     these columns leaves out one CONDITIONAL density, the density of
+     'y_t' given the observed past, and not the series: the retained
+     columns still read 'y_t' through their own lagged residuals, so it
+     is not a forecast of an unseen point and it is not
+     leave-one-group-out either. It is brms's number, computed the way
+     brms computes it, and it answers "how well does the one-step-ahead
+     density fit this row" rather than "how well would the model
+     predict a held-out series". For the latter, refit without the
+     held-out group.
+
+     The 'cov = TRUE' covariance form is still refused, and for the
+     original reason: its smallest independent unit is a whole group.
+
+_M_u_l_t_i_v_a_r_i_a_t_e _m_o_d_e_l_s:
+
+     With 'set_rescor(TRUE)' a column is the joint density of the row's
+     response VECTOR, so the matrix keeps one column per observation.
+     Without 'rescor', the responses are independent given the
+     predictors and the default sums their log-densities per row; pass
+     'resp' to get one response's contribution alone.
+
+_L_i_k_e_l_i_h_o_o_d_s _w_i_t_h _n_o _p_e_r-_o_b_s_e_r_v_a_t_i_o_n _c_o_l_u_m_n:
+
+     A model whose smallest independent unit is a group has no
+     per-observation column to leave out, and this refuses rather than
+     inventing one: a residual correlation MATRIX ('cov = TRUE',
+     'cosy()', 'unstr()'; frmtmb::frmtmb-autocor), a
+     'frmtmb.latent::hmm()' sequence, and a group-level mixture
+     ('mixture(groups = )'). An 'frmtmb.latent::lca()' subject is one
+     row, so its column is well defined and is not refused. In-model
+     imputation ('mi()', 'me()') is refused for the same kind of
+     reason: a latent value is a parameter, not an observation. Use
+     'AIC()' on the maximum-likelihood fits or
+     'frmtmb::frm_bootstrap()' for those.
+
+     A family that declares how its likelihood factorizes
+     ('frmtmb::frmtmb_structure(loglik_group = )' or (loglik_row = ))
+     is not in that position and is not refused. Its columns are the
+     pieces it declares, at the COARSEST granularity it gives: a family
+     that groups its likelihood is saying that its rows are not
+     independently droppable, which is exactly the question a
+     leave-one-out column asks. The matrix then carries 'attr(x,
+     "unit")' naming what a column is. 'loo::loo.matrix()' never sees
+     that attribute and its printout says only "Computed from N by K
+     log-likelihood matrix", which reads exactly like a per-observation
+     one, so 'loo()', 'waic()' and 'psis()' emit a message naming the
+     unit and the column count when they are handed such a matrix. The
+     elpd is then leave-one-UNIT-out, and the number itself carries no
+     mark of that.
+
+_S_e_e _A_l_s_o:
+
+     'frmtmb::loo()', 'frmtmb::waic()', 'frmtmb::bayes_R2()'
+
+_E_x_a_m_p_l_e_s:
+
+     if (requireNamespace("tmbstan", quietly = TRUE) &&
+         requireNamespace("rstan", quietly = TRUE) &&
+         !frmtmb.sample:::tmbstan_build_broken()) {
+       set.seed(9)
+       dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+       dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+       fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+       ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+     
+       ll <- log_lik(ds)
+       dim(ll)
+       # the column means are the per-observation expected log-densities
+       head(colMeans(ll))
+     }
+     

@@ -1,0 +1,4 @@
+frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-splinecurve-lib md5 443c188d7b1120d082e18270078198f2 
+frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/wt-splinecurve-lib md5 68ea7b73ceb0353ff4b3272c83d0dd9b 
+frm_curve formals: object, newdata, contrast, dpar, resp, re_formula, allow_new_levels, level, simultaneous, nsim, transform, seed, tol 
+functions compared with the tree's source: 55  differing: 0 

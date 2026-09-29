@@ -1,0 +1,139 @@
+sample-loo                  package:x                  R Documentation
+
+_A_p_p_r_o_x_i_m_a_t_e _l_e_a_v_e-_o_n_e-_o_u_t _c_r_o_s_s-_v_a_l_i_d_a_t_i_o_n
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     'loo()' runs Pareto-smoothed importance-sampling LOO and 'waic()'
+     the widely applicable information criterion, both on the
+     'frmtmb::log_lik()' matrix, by handing it to 'loo::loo.matrix()'
+     and 'loo::waic.matrix()' unchanged. The returned objects are the
+     loo package's own, so 'print()' and 'loo::pareto_k_table()' work
+     on them directly. 'loo_compare()' computes the criterion for each
+     draws object it is given and ranks them; handed criteria instead
+     of draws, it is 'loo::loo_compare()' itself. 'psis()' returns the
+     smoothed importance weights alone.
+
+_U_s_a_g_e:
+
+     ## S3 method for class 'frmtmb_draws'
+     loo(x, ndraws = NULL, resp = NULL, ...)
+     
+     ## S3 method for class 'frmtmb_draws'
+     waic(x, ndraws = NULL, resp = NULL, ...)
+     
+     ## S3 method for class 'frmtmb_draws'
+     loo_compare(x, ..., criterion = c("loo", "waic"), model_names = NULL)
+     
+     psis(log_ratios, ...)
+     
+     ## S3 method for class 'frmtmb_draws'
+     psis(
+       log_ratios,
+       newdata = NULL,
+       resp = NULL,
+       model_name = NULL,
+       ndraws = NULL,
+       ...
+     )
+     
+     ## S3 method for class 'frmtmb_draws'
+     LOO(x, ...)
+     
+     ## S3 method for class 'frmtmb_draws'
+     WAIC(x, ...)
+     
+_A_r_g_u_m_e_n_t_s:
+
+       x: A 'frmtmb_draws' from 'frm_sample()', or (for
+          'loo_compare()') already-computed criteria.
+
+ndraws, resp: Passed to 'frmtmb::log_lik()'.
+
+     ...: Further models for 'loo_compare()'; otherwise passed to the
+          loo package function.
+
+criterion: Which criterion 'loo_compare()' computes for each draws
+          object.
+
+model_names: Row names for the comparison; the default deparses the
+          arguments, as loo does.
+
+log_ratios: For 'psis()', the draws object whose negative pointwise
+          log-likelihood supplies the importance ratios.
+
+ newdata: For 'psis()', accepted in brms's own second position and
+          refused, because 'frmtmb::log_lik()' does not take it.
+
+model_name: For 'psis()', brms's label for the model. Accepted and
+          unused: a 'psis' object has nothing to label.
+
+_D_e_t_a_i_l_s:
+
+     'LOO()' and 'WAIC()' are brms's deprecated capitalized spellings
+     and are defined only to name their replacements.
+
+_V_a_l_u_e:
+
+     A 'loo', 'waic', 'compare.loo' or 'psis' object from the loo
+     package.
+
+_A _t_i_m_e _s_e_r_i_e_s, _a_n_d _w_h_a_t _i_s _l_e_f_t _o_u_t:
+
+     On a model with brms's default 'cov = FALSE' 'ar()', 'ma()' or
+     'arma()' term, a column of the 'frmtmb::log_lik()' matrix is the
+     density of one row GIVEN THE OBSERVED EARLIER ROWS of its group,
+     the one-step-ahead density. That is what brms's 'log_lik()'
+     returns, so this is brms's elpd. It also fixes what the estimate
+     means: leaving out column 't' leaves out one conditional density,
+     not the series and not the row's influence on its neighbors,
+     because every retained column still reads 'y_t' through its own
+     lagged residuals. Read it as "how well the one-step density fits
+     each row", and refit without a group for a held-out-series answer.
+     The 'cov = TRUE' covariance form is refused instead: there no
+     column is an observation.
+
+_P_r_i_o_r_s, _a_n_d _w_h_a_t _t_h_e_s_e _n_u_m_b_e_r_s _m_e_a_n:
+
+     These are posterior quantities, and they inherit the standing of
+     the draws they are computed from. Both of 'frm_sample()''s routes
+     apply brms's default priors, so these numbers are regularized the
+     way brms regularizes them unless the call opted out with 'prior =
+     "flat"'. Under that opt-out the elpd is likelihood-shaped and
+     unregularized: expect Pareto k warnings for models with many
+     group-level parameters, because a flat prior leaves those to be
+     identified by the data alone, and an influential observation then
+     moves them a long way. The maximum-likelihood answer to the same
+     question is 'AIC()' on the fits, or 'frmtmb::frm_bootstrap()'.
+
+_R_e_l_a_t_i_v_e _e_f_f_i_c_i_e_n_c_y:
+
+     'r_eff' defaults to 'loo::relative_eff()' on the chain structure
+     of the draws, which is what brms does. Thinning with 'ndraws'
+     breaks that structure, so 'r_eff' is then dropped and the estimate
+     is the one loo computes without an autocorrelation correction.
+
+_S_e_e _A_l_s_o:
+
+     'frmtmb::log_lik()', 'frmtmb::bayes_R2()'
+
+_E_x_a_m_p_l_e_s:
+
+     if (requireNamespace("tmbstan", quietly = TRUE) &&
+         requireNamespace("rstan", quietly = TRUE) &&
+         requireNamespace("loo", quietly = TRUE) &&
+         !frmtmb.sample:::tmbstan_build_broken()) {
+       set.seed(9)
+       dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+       dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+     
+       # sample with priors: an elpd is a posterior quantity
+       d1 <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
+                        data = dd, chains = 1, iter = 500, refresh = 0)
+       d2 <- frm_sample(bf(y ~ 1 + (1 | g)), family = gaussian(),
+                        data = dd, chains = 1, iter = 500, refresh = 0)
+       loo_compare(d1, d2)
+       # the same thing, one step at a time
+       loo_compare(loo(d1), loo(d2))
+     }
+     

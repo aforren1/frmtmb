@@ -1,0 +1,556 @@
+﻿files: 180
+NO RESULT test-adefects.R
+    library: lane  frmtmb 0.64.0 
+    test-adefects.R                            pass=85 fail=0 error=0 skip=0
+NO RESULT test-aliased-grouping.R
+    library: lane  frmtmb 0.64.0 
+    test-aliased-grouping.R                    pass=33 fail=0 error=0 skip=0
+NO RESULT test-api-spellings.R
+    library: lane  frmtmb 0.64.0 
+    test-api-spellings.R                       pass=36 fail=0 error=0 skip=0
+NO RESULT test-arg-refusal.R
+    library: lane  frmtmb 0.64.0 
+    test-arg-refusal.R                         pass=123 fail=0 error=0 skip=0
+NO RESULT test-autocor.R
+    library: lane  frmtmb 0.64.0 
+    test-autocor.R                             pass=192 fail=0 error=0 skip=0
+NO RESULT test-autocor-cond.R
+    library: lane  frmtmb 0.64.0 
+    test-autocor-cond.R                        pass=46 fail=0 error=0 skip=0
+NO RESULT test-autoscale.R
+    library: lane  frmtmb 0.64.0 
+    test-autoscale.R                           pass=46 fail=0 error=0 skip=0
+NO RESULT test-backlog.R
+     
+    2 rows removed because of missing values (na.action)
+    test-backlog.R                             pass=35 fail=0 error=0 skip=0
+NO RESULT test-bcm-bart.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-bart.R                            pass=8 fail=0 error=0 skip=1
+NO RESULT test-bcm-binomial.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-binomial.R                        pass=17 fail=0 error=0 skip=6
+NO RESULT test-bcm-data-analysis.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-data-analysis.R                   pass=20 fail=0 error=0 skip=6
+NO RESULT test-bcm-esp.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-esp.R                             pass=5 fail=0 error=0 skip=2
+NO RESULT test-bcm-gaussian.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-gaussian.R                        pass=11 fail=0 error=0 skip=3
+NO RESULT test-bcm-gcm.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-gcm.R                             pass=9 fail=0 error=0 skip=2
+NO RESULT test-bcm-latent-mixtures.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-latent-mixtures.R                 pass=30 fail=0 error=0 skip=5
+NO RESULT test-bcm-model-selection.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-model-selection.R                 pass=13 fail=0 error=0 skip=3
+NO RESULT test-bcm-mpt.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-mpt.R                             pass=15 fail=0 error=0 skip=2
+NO RESULT test-bcm-psychophysics.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-psychophysics.R                   pass=7 fail=0 error=0 skip=2
+NO RESULT test-bcm-retention.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-retention.R                       pass=15 fail=0 error=0 skip=3
+NO RESULT test-bcm-signal-detection.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-signal-detection.R                pass=6 fail=0 error=0 skip=3
+NO RESULT test-bcm-simple.R
+    library: lane  frmtmb 0.64.0 
+    test-bcm-simple.R                          pass=8 fail=0 error=0 skip=1
+NO RESULT test-boot.R
+    library: lane  frmtmb 0.64.0 
+    test-boot.R                                pass=49 fail=0 error=0 skip=0
+NO RESULT test-bracket-access.R
+    library: lane  frmtmb 0.64.0 
+    test-bracket-access.R                      pass=33 fail=0 error=0 skip=0
+NO RESULT test-brms-agreement.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-agreement.R                      pass=168 fail=0 error=0 skip=2
+NO RESULT test-brms-families.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-families.R                       pass=1033 fail=0 error=0 skip=0
+NO RESULT test-brms-formula-priors.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-formula-priors.R                 pass=208 fail=0 error=0 skip=0
+NO RESULT test-brms-likelihood.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-likelihood.R                     pass=17 fail=0 error=0 skip=37
+NO RESULT test-brms-methods.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-methods.R                        pass=16 fail=0 error=0 skip=46
+NO RESULT test-brms-names.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-names.R                          pass=138 fail=0 error=0 skip=0
+NO RESULT test-brms-port.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-port.R                           pass=21 fail=0 error=0 skip=0
+NO RESULT test-brms-priors.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-priors.R                         pass=0 fail=0 error=0 skip=12
+NO RESULT test-brms-shapes.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-shapes.R                         pass=72 fail=0 error=0 skip=0
+NO RESULT test-brms-shapes-punch.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-shapes-punch.R                   pass=55 fail=0 error=0 skip=0
+NO RESULT test-brms-shapes-punch2.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-shapes-punch2.R                  pass=22 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-brm.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-brm.R                      pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-brmsfit-helpers.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-brmsfit-helpers.R          pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-brmsformula.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-brmsformula.R              pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-brmsterms.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-brmsterms.R                pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-data-helpers.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-data-helpers.R             pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-emmeans.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-emmeans.R                  pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-families.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-families.R                 pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-methods.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-methods.R                  pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-priors.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-priors.R                   pass=0 fail=0 error=0 skip=0
+NO RESULT test-brms-suite-standata.R
+    library: lane  frmtmb 0.64.0 
+    test-brms-suite-standata.R                 pass=0 fail=0 error=0 skip=0
+NO RESULT test-car-spde.R
+    library: lane  frmtmb 0.64.0 
+    test-car-spde.R                            pass=136 fail=0 error=0 skip=0
+NO RESULT test-case-studies.R
+    library: lane  frmtmb 0.64.0 
+    test-case-studies.R                        pass=30 fail=0 error=0 skip=0
+NO RESULT test-ce-bands.R
+    library: lane  frmtmb 0.64.0 
+    test-ce-bands.R                            pass=167 fail=0 error=0 skip=0
+NO RESULT test-ce-facets.R
+    library: lane  frmtmb 0.64.0 
+    test-ce-facets.R                           pass=92 fail=0 error=0 skip=0
+NO RESULT test-cens-lccdf.R
+    library: lane  frmtmb 0.64.0 
+    test-cens-lccdf.R                          pass=27 fail=0 error=0 skip=0
+NO RESULT test-cens-trunc.R
+    library: lane  frmtmb 0.64.0 
+    test-cens-trunc.R                          pass=69 fail=0 error=0 skip=0
+NO RESULT test-ci-siblings.R
+    library: lane  frmtmb 0.64.0 
+    test-ci-siblings.R                         pass=11 fail=0 error=0 skip=0
+NO RESULT test-compat.R
+    library: lane  frmtmb 0.64.0 
+    test-compat.R                              pass=639 fail=0 error=0 skip=0
+NO RESULT test-compat-register.R
+    library: lane  frmtmb 0.64.0 
+    test-compat-register.R                     pass=103 fail=0 error=0 skip=0
+NO RESULT test-conditions.R
+    library: lane  frmtmb 0.64.0 
+    test-conditions.R                          pass=150 fail=0 error=0 skip=0
+NO RESULT test-conditions-census.R
+    library: lane  frmtmb 0.64.0 
+    test-conditions-census.R                   pass=11 fail=0 error=0 skip=0
+NO RESULT test-confint-anova.R
+    library: lane  frmtmb 0.64.0 
+    test-confint-anova.R                       pass=35 fail=0 error=0 skip=0
+NO RESULT test-core-boundary.R
+    library: lane  frmtmb 0.64.0 
+    test-core-boundary.R                       pass=4 fail=0 error=0 skip=0
+NO RESULT test-covstruct.R
+    library: lane  frmtmb 0.64.0 
+    test-covstruct.R                           pass=7 fail=0 error=0 skip=0
+NO RESULT test-custom-family.R
+    library: lane  frmtmb 0.64.0 
+    test-custom-family.R                       pass=126 fail=0 error=0 skip=0
+NO RESULT test-data2.R
+    library: lane  frmtmb 0.64.0 
+    test-data2.R                               pass=30 fail=0 error=0 skip=0
+NO RESULT test-dates.R
+    library: lane  frmtmb 0.64.0 
+    test-dates.R                               pass=13 fail=0 error=0 skip=0
+NO RESULT test-diagnostics-ux.R
+    2 rows removed because of missing values (na.action)
+    2 rows removed because of missing values (na.action)
+    test-diagnostics-ux.R                      pass=127 fail=0 error=0 skip=0
+NO RESULT test-distributional.R
+    library: lane  frmtmb 0.64.0 
+    test-distributional.R                      pass=28 fail=0 error=0 skip=0
+NO RESULT test-dpar-eta-api.R
+    library: lane  frmtmb 0.64.0 
+    test-dpar-eta-api.R                        pass=123 fail=0 error=0 skip=0
+NO RESULT test-drmtmb-agreement.R
+    library: lane  frmtmb 0.64.0 
+    test-drmtmb-agreement.R                    pass=0 fail=0 error=0 skip=13
+NO RESULT test-dry-run.R
+    library: lane  frmtmb 0.64.0 
+    test-dry-run.R                             pass=23 fail=0 error=0 skip=0
+NO RESULT test-edgecases.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-edgecases.R                           pass=64 fail=0 error=0 skip=0
+NO RESULT test-effects.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-effects.R                             pass=54 fail=0 error=0 skip=0
+NO RESULT test-emmeans.R
+    library: lane  frmtmb 0.64.0 
+    test-emmeans.R                             pass=38 fail=0 error=0 skip=0
+NO RESULT test-famgaps.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-famgaps.R                             pass=100 fail=0 error=0 skip=0
+NO RESULT test-families.R
+    library: lane  frmtmb 0.64.0 
+    test-families.R                            pass=252 fail=0 error=0 skip=0
+NO RESULT test-fit-end-hook.R
+    library: lane  frmtmb 0.64.0 
+    test-fit-end-hook.R                        pass=18 fail=0 error=0 skip=0
+NO RESULT test-frame.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-frame.R                               pass=22 fail=0 error=0 skip=0
+NO RESULT test-functional.R
+    library: lane  frmtmb 0.64.0 
+    test-functional.R                          pass=3 fail=0 error=0 skip=0
+NO RESULT test-fuzz.R
+    library: lane  frmtmb 0.64.0 
+    test-fuzz.R                                pass=0 fail=0 error=0 skip=1
+NO RESULT test-generic-collision.R
+    library: lane  frmtmb 0.64.0 
+    test-generic-collision.R                   pass=56 fail=0 error=0 skip=0
+NO RESULT test-get-prior-route.R
+    library: lane  frmtmb 0.64.0 
+    test-get-prior-route.R                     pass=79 fail=0 error=0 skip=0
+NO RESULT test-glmm-binomial.R
+    library: lane  frmtmb 0.64.0 
+    test-glmm-binomial.R                       pass=10 fail=0 error=0 skip=0
+NO RESULT test-glmm-gaussian.R
+    library: lane  frmtmb 0.64.0 
+    test-glmm-gaussian.R                       pass=17 fail=0 error=0 skip=0
+NO RESULT test-glmm-poisson.R
+    library: lane  frmtmb 0.64.0 
+    test-glmm-poisson.R                        pass=12 fail=0 error=0 skip=0
+NO RESULT test-gp-multidim.R
+    library: lane  frmtmb 0.64.0 
+    test-gp-multidim.R                         pass=42 fail=0 error=0 skip=0
+NO RESULT test-grad-verdict.R
+    library: lane  frmtmb 0.64.0 
+    test-grad-verdict.R                        pass=63 fail=0 error=0 skip=0
+NO RESULT test-gr-by.R
+    library: lane  frmtmb 0.64.0 
+    test-gr-by.R                               pass=71 fail=0 error=0 skip=0
+NO RESULT test-habit-prep.R
+    library: lane  frmtmb 0.64.0 
+    test-habit-prep.R                          pass=16 fail=0 error=0 skip=0
+NO RESULT test-hurdle-nb-zoib.R
+    library: lane  frmtmb 0.64.0 
+    test-hurdle-nb-zoib.R                      pass=85 fail=0 error=0 skip=0
+NO RESULT test-id-kron.R
+    library: lane  frmtmb 0.64.0 
+    test-id-kron.R                             pass=60 fail=0 error=0 skip=0
+NO RESULT test-importance.R
+    library: lane  frmtmb 0.64.0 
+    test-importance.R                          pass=226 fail=0 error=0 skip=0
+NO RESULT test-influence-plot.R
+    library: lane  frmtmb 0.64.0 
+    test-influence-plot.R                      pass=21 fail=0 error=0 skip=0
+NO RESULT test-input-validation.R
+    library: lane  frmtmb 0.64.0 
+    test-input-validation.R                    pass=43 fail=0 error=0 skip=0
+NO RESULT test-interop.R
+    library: lane  frmtmb 0.64.0 
+    test-interop.R                             pass=45 fail=0 error=0 skip=0
+NO RESULT test-lkj.R
+    library: lane  frmtmb 0.64.0 
+    test-lkj.R                                 pass=212 fail=0 error=0 skip=0
+NO RESULT test-map.R
+    library: lane  frmtmb 0.64.0 
+    test-map.R                                 pass=7 fail=0 error=0 skip=0
+NO RESULT test-me.R
+    library: lane  frmtmb 0.64.0 
+    test-me.R                                  pass=70 fail=0 error=0 skip=0
+NO RESULT test-mean-fn.R
+    library: lane  frmtmb 0.64.0 
+    test-mean-fn.R                             pass=4 fail=0 error=0 skip=0
+NO RESULT test-message-uniqueness.R
+    library: lane  frmtmb 0.64.0 
+    test-message-uniqueness.R                  pass=6 fail=0 error=0 skip=0
+NO RESULT test-method-residue.R
+    library: lane  frmtmb 0.64.0 
+    test-method-residue.R                      pass=64 fail=0 error=0 skip=0
+NO RESULT test-methods.R
+    library: lane  frmtmb 0.64.0 
+    test-methods.R                             pass=64 fail=0 error=0 skip=0
+NO RESULT test-methods-audit.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-methods-audit.R                       pass=58 fail=0 error=0 skip=0
+NO RESULT test-mi-bsp-names.R
+    library: lane  frmtmb 0.64.0 
+    test-mi-bsp-names.R                        pass=11 fail=0 error=0 skip=0
+NO RESULT test-mixture-reference.R
+    library: lane  frmtmb 0.64.0 
+    test-mixture-reference.R                   pass=12 fail=0 error=0 skip=0
+NO RESULT test-mixture-start.R
+    library: lane  frmtmb 0.64.0 
+    test-mixture-start.R                       pass=5 fail=0 error=0 skip=0
+NO RESULT test-mm.R
+    library: lane  frmtmb 0.64.0 
+    test-mm.R                                  pass=116 fail=0 error=0 skip=0
+NO RESULT test-mo-terms.R
+    library: lane  frmtmb 0.64.0 
+    test-mo-terms.R                            pass=74 fail=0 error=0 skip=0
+NO RESULT test-multinomial.R
+    library: lane  frmtmb 0.64.0 
+    test-multinomial.R                         pass=17 fail=0 error=0 skip=0
+NO RESULT test-multiple-pooling.R
+    library: lane  frmtmb 0.64.0 
+    test-multiple-pooling.R                    pass=33 fail=0 error=0 skip=0
+NO RESULT test-multivariate.R
+    library: lane  frmtmb 0.64.0 
+    test-multivariate.R                        pass=23 fail=0 error=0 skip=0
+NO RESULT test-mv-gaps.R
+    library: lane  frmtmb 0.64.0 
+    test-mv-gaps.R                             pass=46 fail=0 error=0 skip=0
+NO RESULT test-mvn-mixture.R
+    library: lane  frmtmb 0.64.0 
+    test-mvn-mixture.R                         pass=277 fail=0 error=0 skip=0
+NO RESULT test-naming-collisions.R
+    library: lane  frmtmb 0.64.0 
+    test-naming-collisions.R                   pass=29 fail=0 error=0 skip=0
+NO RESULT test-nl.R
+    library: lane  frmtmb 0.64.0 
+    test-nl.R                                  pass=44 fail=0 error=0 skip=0
+NO RESULT test-nl-body-vars.R
+    library: lane  frmtmb 0.64.0 
+    test-nl-body-vars.R                        pass=23 fail=0 error=0 skip=0
+NO RESULT test-nlf.R
+    library: lane  frmtmb 0.64.0 
+    test-nlf.R                                 pass=75 fail=0 error=0 skip=0
+NO RESULT test-nl-lexical.R
+    library: lane  frmtmb 0.64.0 
+    test-nl-lexical.R                          pass=31 fail=0 error=0 skip=0
+NO RESULT test-nl-rtmb-scope.R
+    library: lane  frmtmb 0.64.0 
+    test-nl-rtmb-scope.R                       pass=105 fail=0 error=0 skip=0
+NO RESULT test-numerical-robustness.R
+    library: lane  frmtmb 0.64.0 
+    test-numerical-robustness.R                pass=709 fail=0 error=0 skip=0
+NO RESULT test-open-issues.R
+    library: lane  frmtmb 0.64.0 
+    test-open-issues.R                         pass=43 fail=0 error=0 skip=0
+NO RESULT test-ordinal.R
+    library: lane  frmtmb 0.64.0 
+    test-ordinal.R                             pass=109 fail=0 error=0 skip=0
+NO RESULT test-ordinal-fitted.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-ordinal-fitted.R                      pass=129 fail=0 error=0 skip=0
+NO RESULT test-osa-inference.R
+    library: lane  frmtmb 0.64.0 
+    test-osa-inference.R                       pass=34 fail=0 error=0 skip=0
+NO RESULT test-parity-integration.R
+    library: lane  frmtmb 0.64.0 
+    No priors were set (plain maximum likelihood).
+    test-parity-integration.R                  pass=8 fail=0 error=0 skip=0
+NO RESULT test-parse.R
+    library: lane  frmtmb 0.64.0 
+    test-parse.R                               pass=43 fail=0 error=0 skip=0
+NO RESULT test-par-template.R
+    library: lane  frmtmb 0.64.0 
+    test-par-template.R                        pass=51 fail=0 error=0 skip=0
+NO RESULT test-perf.R
+    library: lane  frmtmb 0.64.0 
+    test-perf.R                                pass=3 fail=0 error=0 skip=0
+NO RESULT test-pooled-anova.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-pooled-anova.R                        pass=64 fail=0 error=0 skip=0
+NO RESULT test-portability.R
+    library: lane  frmtmb 0.64.0 
+    test-portability.R                         pass=95 fail=0 error=0 skip=0
+NO RESULT test-pp-check-types.R
+        + FullyQualifiedErrorId : NativeCommandError
+     
+    test-pp-check-types.R                      pass=193 fail=0 error=0 skip=0
+NO RESULT test-predfix.R
+    library: lane  frmtmb 0.64.0 
+    test-predfix.R                             pass=92 fail=0 error=0 skip=0
+NO RESULT test-predict-lp-basis.R
+    library: lane  frmtmb 0.64.0 
+    test-predict-lp-basis.R                    pass=30 fail=0 error=0 skip=0
+NO RESULT test-predict-newdata.R
+    library: lane  frmtmb 0.64.0 
+    test-predict-newdata.R                     pass=12 fail=0 error=0 skip=0
+NO RESULT test-predict-re-uncertainty.R
+    library: lane  frmtmb 0.64.0 
+    test-predict-re-uncertainty.R              pass=65 fail=0 error=0 skip=0
+NO RESULT test-prior-compat.R
+    library: lane  frmtmb 0.64.0 
+    test-prior-compat.R                        pass=194 fail=0 error=0 skip=0
+NO RESULT test-prior-location-dpar.R
+    library: lane  frmtmb 0.64.0 
+    test-prior-location-dpar.R                 pass=55 fail=0 error=0 skip=0
+NO RESULT test-prior-mv-resp.R
+    library: lane  frmtmb 0.64.0 
+    test-prior-mv-resp.R                       pass=36 fail=0 error=0 skip=0
+NO RESULT test-priors-autocor-classes.R
+    library: lane  frmtmb 0.64.0 
+    test-priors-autocor-classes.R              pass=62 fail=0 error=0 skip=0
+NO RESULT test-priors-bounds-grcov.R
+    library: lane  frmtmb 0.64.0 
+    test-priors-bounds-grcov.R                 pass=50 fail=0 error=0 skip=0
+NO RESULT test-prior-sd-scope.R
+    library: lane  frmtmb 0.64.0 
+    test-prior-sd-scope.R                      pass=24 fail=0 error=0 skip=0
+NO RESULT test-ps.R
+    library: lane  frmtmb 0.64.0 
+    test-ps.R                                  pass=71 fail=0 error=0 skip=0
+NO RESULT test-quadrature-defects.R
+    library: lane  frmtmb 0.64.0 
+    test-quadrature-defects.R                  pass=59 fail=0 error=0 skip=0
+NO RESULT test-re-formula-partial.R
+    library: lane  frmtmb 0.64.0 
+    test-re-formula-partial.R                  pass=39 fail=0 error=0 skip=0
+NO RESULT test-reml-nongaussian.R
+    library: lane  frmtmb 0.64.0 
+    test-reml-nongaussian.R                    pass=9 fail=0 error=0 skip=0
+NO RESULT test-reml-shapes.R
+    library: lane  frmtmb 0.64.0 
+    test-reml-shapes.R                         pass=8 fail=0 error=0 skip=0
+NO RESULT test-review-fixes.R
+    library: lane  frmtmb 0.64.0 
+    test-review-fixes.R                        pass=18 fail=0 error=0 skip=0
+NO RESULT test-review-v25.R
+    library: lane  frmtmb 0.64.0 
+    test-review-v25.R                          pass=60 fail=0 error=0 skip=0
+NO RESULT test-review-v28.R
+    library: lane  frmtmb 0.64.0 
+    test-review-v28.R                          pass=74 fail=0 error=0 skip=0
+NO RESULT test-review-v29.R
+    library: lane  frmtmb 0.64.0 
+    test-review-v29.R                          pass=137 fail=0 error=0 skip=0
+NO RESULT test-rl-example.R
+    library: lane  frmtmb 0.64.0 
+    test-rl-example.R                          pass=96 fail=0 error=0 skip=2
+NO RESULT test-rsv-intercept.R
+    library: lane  frmtmb 0.64.0 
+    test-rsv-intercept.R                       pass=55 fail=0 error=0 skip=0
+NO RESULT test-sandwich.R
+      method    from    
+      bread.mlm sandwich
+    test-sandwich.R                            pass=58 fail=0 error=0 skip=0
+NO RESULT test-scale-contract.R
+    library: lane  frmtmb 0.64.0 
+    test-scale-contract.R                      pass=37 fail=0 error=0 skip=0
+NO RESULT test-setprior.R
+    library: lane  frmtmb 0.64.0 
+    test-setprior.R                            pass=27 fail=0 error=0 skip=0
+NO RESULT test-simulate-density.R
+    library: lane  frmtmb 0.64.0 
+    test-simulate-density.R                    pass=459 fail=0 error=0 skip=0
+NO RESULT test-simulate-ergonomics.R
+    library: lane  frmtmb 0.64.0 
+    test-simulate-ergonomics.R                 pass=50 fail=0 error=0 skip=0
+NO RESULT test-simulate-newdata.R
+    library: lane  frmtmb 0.64.0 
+    test-simulate-newdata.R                    pass=44 fail=0 error=0 skip=0
+NO RESULT test-skew-normal-start.R
+    library: lane  frmtmb 0.64.0 
+    test-skew-normal-start.R                   pass=70 fail=0 error=0 skip=0
+NO RESULT test-smooth-population.R
+    library: lane  frmtmb 0.64.0 
+    test-smooth-population.R                   pass=33 fail=0 error=0 skip=0
+NO RESULT test-smooths.R
+    library: lane  frmtmb 0.64.0 
+    test-smooths.R                             pass=33 fail=0 error=0 skip=0
+NO RESULT test-sparsear1.R
+    library: lane  frmtmb 0.64.0 
+    test-sparsear1.R                           pass=24 fail=0 error=0 skip=0
+NO RESULT test-sparsex.R
+    library: lane  frmtmb 0.64.0 
+    test-sparsex.R                             pass=64 fail=0 error=0 skip=0
+NO RESULT test-spectral.R
+    library: lane  frmtmb 0.64.0 
+    test-spectral.R                            pass=113 fail=0 error=0 skip=0
+NO RESULT test-sratio-thresholds.R
+    library: lane  frmtmb 0.64.0 
+    test-sratio-thresholds.R                   pass=29 fail=0 error=0 skip=0
+NO RESULT test-structure.R
+    library: lane  frmtmb 0.64.0 
+    test-structure.R                           pass=135 fail=0 error=0 skip=0
+NO RESULT test-sugar.R
+    library: lane  frmtmb 0.64.0 
+    test-sugar.R                               pass=45 fail=0 error=0 skip=0
+NO RESULT test-tabular-inputs.R
+    library: lane  frmtmb 0.64.0 
+    test-tabular-inputs.R                      pass=9 fail=0 error=0 skip=0
+NO RESULT test-thres.R
+    library: lane  frmtmb 0.64.0 
+    test-thres.R                               pass=67 fail=0 error=0 skip=0
+NO RESULT test-tmb-examples.R
+    library: lane  frmtmb 0.64.0 
+    test-tmb-examples.R                        pass=28 fail=0 error=0 skip=0
+NO RESULT test-tre.R
+    library: lane  frmtmb 0.64.0 
+    test-tre.R                                 pass=102 fail=0 error=0 skip=0
+NO RESULT test-trunc-postfit.R
+    library: lane  frmtmb 0.64.0 
+    test-trunc-postfit.R                       pass=35 fail=0 error=0 skip=0
+NO RESULT test-unpinned-seams.R
+    library: lane  frmtmb 0.64.0 
+    test-unpinned-seams.R                      pass=30 fail=0 error=0 skip=0
+NO RESULT test-v07.R
+    library: lane  frmtmb 0.64.0 
+    test-v07.R                                 pass=25 fail=0 error=0 skip=0
+NO RESULT test-v11.R
+    library: lane  frmtmb 0.64.0 
+    test-v11.R                                 pass=22 fail=0 error=0 skip=0
+NO RESULT test-v12.R
+    library: lane  frmtmb 0.64.0 
+    test-v12.R                                 pass=26 fail=0 error=0 skip=0
+NO RESULT test-v14.R
+    library: lane  frmtmb 0.64.0 
+    test-v14.R                                 pass=81 fail=0 error=0 skip=0
+NO RESULT test-v15.R
+    Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+    Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+    test-v15.R                                 pass=41 fail=0 error=0 skip=0
+NO RESULT test-v16.R
+     
+    5 rows removed because of missing values (na.action)
+    test-v16.R                                 pass=24 fail=0 error=0 skip=0
+NO RESULT test-v17.R
+    library: lane  frmtmb 0.64.0 
+    test-v17.R                                 pass=35 fail=0 error=0 skip=0
+NO RESULT test-v18.R
+    library: lane  frmtmb 0.64.0 
+    test-v18.R                                 pass=27 fail=0 error=0 skip=0
+NO RESULT test-v19.R
+    library: lane  frmtmb 0.64.0 
+    test-v19.R                                 pass=23 fail=0 error=0 skip=0
+NO RESULT test-verbose.R
+    library: lane  frmtmb 0.64.0 
+    test-verbose.R                             pass=40 fail=0 error=0 skip=0
+NO RESULT test-vignette-wiener.R
+    library: lane  frmtmb 0.64.0 
+    test-vignette-wiener.R                     pass=21 fail=0 error=0 skip=0
+NO RESULT test-zi.R
+    library: lane  frmtmb 0.64.0 
+    test-zi.R                                  pass=11 fail=0 error=0 skip=0
+SUITE ran 0 of 180

@@ -1,0 +1,41 @@
+== build LANE : 0.64.0 
+
+### thres(gr = g) beside cs()
+thres(gr) + x + cs(f)        REFUSED  Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group
+thres(gr) + cs(x)            REFUSED  Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group
+thres(gr) + x + cs(x)        REFUSED  Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group
+thres(gr) + g + cs(g)        REFUSED  Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group
+thres(gr) + cs(g)            REFUSED  Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group
+
+### mo(): a zero placeholder column in X, so the rank test is blind
+cs(m) alone                  FITTED npar=8   logLik=-326.2937155 NaN-se=0
+mo(m) + cs(m)                FITTED npar=11  logLik=-326.2937155 NaN-se=9
+Warning message:
+In sqrt(diag(v)) : NaNs produced
+mo(m) alone                  FITTED npar=5   logLik=-328.4413322 NaN-se=0
+  logLik(cs(m)) - logLik(mo(m)+cs(m)) = 8.176e-09 
+  df:  8  vs  11 
+  mo(m)+cs(m) coefficient table:
+             Estimate Est.Error Q2.5 Q97.5
+Intercept[1] -0.57750       NaN  NaN   NaN
+Intercept[2]  0.32000       NaN  NaN   NaN
+mom           0.09661       NaN  NaN   NaN
+m.L[1]       -0.27940       NaN  NaN   NaN
+m.L[2]        0.08821       NaN  NaN   NaN
+m.Q[1]       -0.10210       NaN  NaN   NaN
+m.Q[2]       -0.15300       NaN  NaN   NaN
+m.C[1]        0.17950       NaN  NaN   NaN
+m.C[2]       -0.44300       NaN  NaN   NaN
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+
+### the same shape from two different starts: a flat direction
+
+### me(): also a placeholder column
+me(x,sdx) + cs(x)            FITTED npar=7   logLik=-758.5073460 NaN-se=0
+me(x,sdx) + cs(z)            FITTED npar=7   logLik=-751.7844028 NaN-se=0
+
+### mi(): a missing covariate imputed, beside cs() on it
+mi(xm) + cs(z)               REFUSED  Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+
+DONE  LANE 

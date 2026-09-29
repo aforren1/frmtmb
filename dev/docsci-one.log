@@ -1,0 +1,90 @@
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-one
+DOCS sites 1: frmtmb.coupling
+DOCS article gates 17, missing 0
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-one/frmtmb.coupling =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.coupling ───────────────────────────
+Reading from:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.coupling
+Writing to:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-one/frmtmb.coupling
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/cross_wishart.Rd
+Writing `reference/cross_wishart.html`
+Reading man/frmtmb.coupling-package.Rd
+Writing `reference/frmtmb.coupling-package.html`
+Reading man/frm_coherence.Rd
+Writing `reference/frm_coherence.html`
+Reading man/frm_cross_pairs.Rd
+Writing `reference/frm_cross_pairs.html`
+Reading man/frm_cross_simulate.Rd
+Writing `reference/frm_cross_simulate.html`
+Reading man/frm_cross_spectrum.Rd
+Writing `reference/frm_cross_spectrum.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/coherence.Rmd
+Writing `articles/coherence.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frm_phase.html to reference/frm_coherence.html.
+Adding redirect from reference/frmtmb.coupling.html to
+reference/frmtmb.coupling-package.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.coupling ──────────────────
+
+===== ok 17s =====
+DOCS whole-tree checks SKIPPED: this is a partial build. Do not deploy it. Pass --check-links to run them anyway.
+DOCS seconds per site: frmtmb.coupling 17
+DOCS total 17s (0.3 min)
+DOCS built 1 of 1 (minimum 1)
+DOCS ok

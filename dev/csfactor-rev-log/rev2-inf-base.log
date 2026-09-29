@@ -1,0 +1,36 @@
+== build BASE : 0.64.0 from C:/Users/adf44/source/r/rellib-r3 
+table(f) = 79 40 1   the single 'c' row is 120
+cs fit coef names (get_coef): x, tau_raw_1, tau_raw_2, bcs2_1, bcs2_2
+cs par components: beta, tau_raw, bcs2
+
+[cs(f) with a singleton level: the warning case]
+  influence-table columns: x, tau_raw_1, tau_raw_2, bcs2_1, bcs2_2
+  warnings: 0
+  cooks.distance NA count = 0 of 120
+  rows with any NA in the coefficient table = 0
+
+[no cs(): f as an ordinary factor]
+  influence-table columns: x, fb, fc, tau_raw_1, tau_raw_2
+  warnings: 0
+  cooks.distance NA count = 1 of 120
+  rows with any NA in the coefficient table = 1
+
+table(f2) = 40 40 40
+
+[cs(f2), every level with many rows]
+  influence-table columns: x, tau_raw_1, tau_raw_2, bcs2_1, bcs2_2
+  warnings: 0
+  cooks.distance NA count = 0 of 120
+  rows with any NA in the coefficient table = 0
+
+[cs(z) numeric]
+  influence-table columns: x, tau_raw_1, tau_raw_2, bcs2_1, bcs2_2
+  warnings: 0
+  cooks.distance NA count = 0 of 120
+  rows with any NA in the coefficient table = 0
+
+=== the direct mapping helper, called on both spellings ===
+Error in paste(frmtmb:::influence_coef_labels(fit_cs, c("fcc[1]", "bcs3_1",  : 
+  object 'influence_coef_labels' not found
+Calls: say -> cat -> paste
+Execution halted

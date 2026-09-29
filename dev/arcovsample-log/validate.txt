@@ -1,0 +1,87 @@
+frmtmb         0.64.0 
+frmtmb.sample  0.12.0 
+N = 95  groups = 10  seed = 4021 
+
+---- gaussian ar(1), no random effect ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 0
+  max relative residual             : 0
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -103.639712 / 6.93605
+  p_loo                             : 3.9742461
+  elpd_waic                         : -103.6196686
+  max pareto k                      : 0.4925
+
+---- student arma(1,1) + (1 | g) ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 1.42108547152e-14
+  max relative residual             : 1.61061613444e-16
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -100.2705299 / 6.19158
+  p_loo                             : 12.696748
+  elpd_waic                         : -100.1278175
+  max pareto k                      : 0.9409
+
+---- gaussian ar(1), sigma ~ x ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 0
+  max relative residual             : 0
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -103.6737083 / 6.87997
+  p_loo                             : 4.5496327
+  elpd_waic                         : -103.6182283
+  max pareto k                      : 0.5721
+
+---- gaussian ma(1), weights(w) ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 0
+  max relative residual             : 0
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -145.1580932 / 10.4665
+  p_loo                             : 4.7901661
+  elpd_waic                         : -145.1080013
+  max pareto k                      : 0.4632
+
+---- gaussian arma(1,1), cens(cc) ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 0
+  max relative residual             : 0
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -89.45336089 / 5.76694
+  p_loo                             : 4.9886851
+  elpd_waic                         : -89.40922392
+  max pareto k                      : 0.593
+
+---- gaussian ma(1), trunc(lb = 0) ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 0
+  max relative residual             : 0
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -112.3521302 / 6.67396
+  p_loo                             : 3.3910302
+  elpd_waic                         : -112.3171283
+  max pareto k                      : 0.4707
+
+---- gaussian ar(2) + (1 | g) ----
+  draws x cols      : 250 x 95 (N = 95)
+  max |row sum - (-nll - re_prior)| : 1.42108547152e-14
+  max relative residual             : 1.61944655586e-16
+  any non-finite log_lik cell       : FALSE
+  elpd_loo / se                     : -100.4203723 / 6.22957
+  p_loo                             : 12.409202
+  elpd_waic                         : -100.078233
+  max pareto k                      : 0.9778
+
+---- log_lik()'s mu against posterior_epred()'s ----
+  ar1: max |mu - epred| = 0 (epred sd 0.8701)
+  arma_re: max |mu - epred| = 0 (epred sd 0.9375)
+  sigma: max |mu - epred| = 0 (epred sd 0.8468)
+  weights: max |mu - epred| = 0 (epred sd 0.6905)
+  cens: max |mu - epred| = 0 (epred sd 0.7989)
+  ar2: max |mu - epred| = 0 (epred sd 0.9355)
+
+---- cov = TRUE is still refused ----
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries ar(t, g, cov = TRUE), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. brms's default cov = FALSE form of ar() does factor, one term per row given that group's observed earlier residuals, and log_lik() supports it: refit without cov = TRUE for the pointwise density. Compare these models with AIC() on the ML fits, or with frm_bootstrap() 
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries unstr(t, g), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. Compare these models with AIC() on the ML fits, or with frm_bootstrap() 
+
+DONE

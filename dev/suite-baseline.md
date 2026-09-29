@@ -1,16 +1,13 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the 0.64.0
-release, at frmtmb 0.64.0 and every extension's version of that release:
+`dev/suite-baseline.tsv` records one row per test file as of the 0.65.0
+release, at frmtmb 0.65.0 and every extension's version of that release:
 package, file, passing assertions, skips. It is a floor, not a target.
 
-Every row is from the suite run of 2026-09-28 on the 0.64.0 tree
-(`dev/release/suite.log`, 305 files, 17,893 assertions, 0 fail, 0
-error). 13 files are new. One file's passing count fell against 0.63.0,
-by design: `frmtmb/test-brms-likelihood.R` went from 20 to 17 ungated
-passes, because lane `arcov` turned the row-18 refusal of `cov = FALSE`
-into a gated identity against brms. No other file fell. See "What the
-0.64.0 release changed" below for why this run postdates the release.
+Every row is from the release run of 2026-09-29 on the 0.65.0 tree
+(`dev/release/suite.log`, 309 files, 18,345 assertions, 0 fail, 0
+error). Four files are new and no file's passing count fell against
+0.64.0. See "What the 0.65.0 release changed" below.
 
 Read a tier log only when it POSTDATES every file it covers. Three lanes
 of this round quoted a suite log written before their last edit, and in
@@ -236,3 +233,26 @@ its line re-entered, so the count above is from results, not from the
 driver's tally. Read the `RESULT` count against the declared count
 before reading the tallies.
 
+
+## What the 0.65.0 release changed
+
+Regenerated at 309 rows and 18,345 assertions, from 305 and 17,893.
+Four files are new: `frmtmb/test-cs-factor.R` at 84,
+`frmtmb/test-grad-verdict.R` at 72, `frmtmb/test-thres-refit.R` at 118
+and `frmtmb.spline/test-new-levels.R` at 59. No file was removed and no
+passing count fell. One file gained a skip: frmtmb.sample's
+`test-loo.R`, from 1 to 2, because lane `arcovsample` added a block
+gated on `FRMTMB_BRMS_FIT_TESTS`; the gated tier runs it.
+
+The log is two runs joined, and it says so on its last line. Core and
+six extensions ran first; frmtmb.spline ran after lane `splinecurve`
+merged into the release tree, because that lane was opened during the
+consolidation and was still editing the package. Neither run's files
+overlap the other's, and each file's line is from a run on the final
+source of its package.
+
+This consolidation also lost two whole tier runs to its own log
+watcher, a `tail -F` that kept the logs locked after the watcher was
+stopped (`dev/lane-rules.md`, shell traps). Both were rerun from empty
+logs, and every count above comes from a log whose `RESULT` lines equal
+the files it declares.

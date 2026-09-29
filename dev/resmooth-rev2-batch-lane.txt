@@ -1,0 +1,120 @@
+ARM: lane | frmtmb: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+re_batch_try present: TRUE 
+
+#### (a) blocks where a row loads TWO of the block's columns ####
+
+== J cumulative s(x,k=6) + (1 + x | g) | newdata NULL (in sample) | re_formula = NULL
+   block 1 us      dim 2    kept coefs 20   | MY max row load over kept cols: 2 -> whole-block batch MUST be refused
+   block 2 smooth  dim 4    kept coefs 4    | MY max row load over kept cols: 4 -> whole-block batch MUST be refused
+   shipped batches: 6 | batches failing MY re-check: 0
+   evals: shipped 27    pre-nits split 27    unbatched dense 63    | b 24
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 1.665e-16
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== J cumulative s(x,k=6) + (1 + x | g) | newdata 3 | re_formula = NULL
+   block 1 us      dim 2    kept coefs 6    | MY max row load over kept cols: 2 -> whole-block batch MUST be refused
+   block 2 smooth  dim 4    kept coefs 4    | MY max row load over kept cols: 4 -> whole-block batch MUST be refused
+   shipped batches: 6 | batches failing MY re-check: 6
+   evals: shipped 27    pre-nits split 35    unbatched dense 35    | b 10
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 1.110e-16
+   Est.Error shipped vs PRE-NITS : identical FALSE max|d| 1.110e-16
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== M cumulative s(x,k=6) + (1 | mm(g1,g2)) | newdata NULL (in sample) | re_formula = NULL
+   block 1 us      dim 1    kept coefs 7    | MY max row load over kept cols: 2 -> whole-block batch MUST be refused
+   block 2 smooth  dim 4    kept coefs 4    | MY max row load over kept cols: 4 -> whole-block batch MUST be refused
+   shipped batches: NULL (no batching) | batches failing MY re-check: 0
+   evals: shipped 33    pre-nits split 33    unbatched dense 33    | b 11
+   Est.Error shipped vs UNBATCHED: identical TRUE  max|d| 0.000e+00
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== FS cumulative s(x, g, bs = 'fs', k = 5) | newdata NULL (in sample) | re_formula = NA
+   block 1 smooth  dim 18   kept coefs 18   | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 2 smooth  dim 6    kept coefs 6    | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   block 3 smooth  dim 6    kept coefs 6    | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   shipped batches: 20 | batches failing MY re-check: 0
+   evals: shipped 51    pre-nits split 71    unbatched dense 71    | b 30
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 2.776e-17
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== FS cumulative s(x, g, bs = 'fs', k = 5) | newdata 3 | re_formula = NA
+   block 1 smooth  dim 18   kept coefs 9    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 2 smooth  dim 6    kept coefs 3    | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   block 3 smooth  dim 6    kept coefs 3    | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   shipped batches: 11 | batches failing MY re-check: 11
+   evals: shipped 33    pre-nits split 41    unbatched dense 41    | b 15
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 2.776e-17
+   Est.Error shipped vs PRE-NITS : identical FALSE max|d| 2.776e-17
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== BY cumulative g + s(x, by = g, k = 5) | newdata NULL (in sample) | re_formula = NA
+   block 1 smooth  dim 3    kept coefs 3    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 2 smooth  dim 3    kept coefs 3    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 3 smooth  dim 3    kept coefs 3    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 4 smooth  dim 3    kept coefs 3    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 5 smooth  dim 3    kept coefs 3    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   shipped batches: 15 | batches failing MY re-check: 0
+   evals: shipped 63    pre-nits split 63    unbatched dense 63    | b 15
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 5.551e-17
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== T2 cumulative t2(x, g, c('cr','re'), k = 5) | newdata NULL (in sample) | re_formula = NA
+   block 1 smooth  dim 24   kept coefs 24   | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 2 smooth  dim 16   kept coefs 16   | MY max row load over kept cols: 2 -> whole-block batch MUST be refused
+   shipped batches: 40 | batches failing MY re-check: 0
+   evals: shipped 89    pre-nits split 89    unbatched dense 89    | b 40
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 4.163e-17
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== T2 cumulative t2(x, g, c('cr','re'), k = 5) | newdata 3 | re_formula = NA
+   block 1 smooth  dim 24   kept coefs 9    | MY max row load over kept cols: 3 -> whole-block batch MUST be refused
+   block 2 smooth  dim 16   kept coefs 6    | MY max row load over kept cols: 2 -> whole-block batch MUST be refused
+   shipped batches: 15 | batches failing MY re-check: 15
+   evals: shipped 39    pre-nits split 39    unbatched dense 39    | b 15
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 1.388e-17
+   Est.Error shipped vs PRE-NITS : identical FALSE max|d| 1.388e-17
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+#### (b) the worker's cells, by evaluation COUNT ####
+
+gp(x) n_b = 160 
+== A gp(x), newdata 3 NEW positions | newdata 3 | re_formula = NA
+   block 1 gp      dim 160  kept coefs 160  | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   shipped batches: 160 | batches failing MY re-check: 160
+   evals: shipped 329   pre-nits split 329   unbatched dense 329   | b 160
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 5.274e-16
+   Est.Error shipped vs PRE-NITS : identical FALSE max|d| 5.274e-16
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== B gp(x), in sample | newdata NULL (in sample) | re_formula = NA
+   block 1 gp      dim 160  kept coefs 160  | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   shipped batches: 1 | batches failing MY re-check: 0
+   evals: shipped 11    pre-nits split 329   unbatched dense 329   | b 160
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 2.776e-17
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== D s(x,k=8)+(1|g) 40 levels, in sample | newdata NULL (in sample) | re_formula = NULL
+   block 1 us      dim 1    kept coefs 40   | MY max row load over kept cols: 1 -> whole-block batch is allowed
+   block 2 smooth  dim 6    kept coefs 6    | MY max row load over kept cols: 6 -> whole-block batch MUST be refused
+   shipped batches: 7 | batches failing MY re-check: 0
+   evals: shipped 25    pre-nits split 25    unbatched dense 103   | b 46
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 2.637e-16
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+== E s(x,k=8)+(1|g) 40 levels, in sample | newdata NULL (in sample) | re_formula = NA
+   block 1 us      not in b_idx
+   block 2 smooth  dim 6    kept coefs 6    | MY max row load over kept cols: 6 -> whole-block batch MUST be refused
+   shipped batches: 6 | batches failing MY re-check: 0
+   evals: shipped 23    pre-nits split 23    unbatched dense 23    | b 6
+   Est.Error shipped vs UNBATCHED: identical FALSE max|d| 3.678e-16
+   Est.Error shipped vs PRE-NITS : identical TRUE  max|d| 0.000e+00
+   equals fitted()[, Est.Error]:   identical TRUE 
+
+DONE

@@ -593,6 +593,16 @@ emm_grid_vars <- function(object, t, tg) {
       for (gi in lpk[["gps"]] %||% list()) {
         v <- c(v, unlist(lapply(gi$exprs, all.vars)))
       }
+      # A smooth indexed by a grouping factor is rebuilt at EVERY
+      # re_formula, so the grid has to carry its factor whatever
+      # `use_re` says, and the mean is then averaged over that factor's
+      # levels. `ce_plot_vars()` leaves it out on purpose (it is not a
+      # curve to draw), which left emmeans() refusing the fit for want
+      # of a column once re_formula = NA stopped dropping the term
+      # (dev/resmooth-emm-before.txt against -after.txt).
+      for (si in lpk[["smooths"]] %||% list()) {
+        if (!is.null(si[["group_var"]])) v <- c(v, si[["group_var"]])
+      }
       if (tg$use_re) {
         gv <- emm_group_vars(rspec, lpk[["dpar"]])
         # a factor whose terms re_formula drops would only multiply the

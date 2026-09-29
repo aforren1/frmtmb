@@ -149,7 +149,25 @@ to do, and every closure carries the measurement that closed it.
   does, and a term that is not kept is redrawn
   (`dev/simnewdata-findings.md`).
 
-- DECIDED, waiting for a lane (user, 2026-09-24): `re_formula = NA`
+- DONE, lane wt-resmooth (`dev/resmooth-findings.md`). `re_formula = NA`
+  keeps every smooth. brms's `posterior_epred(re_formula = NA)` is
+  BITWISE its `re_formula = NULL` on all three constructions and differs
+  on `s(x) + (1 | g)` (`dev/resmooth-brms.txt`), and frmtmb now agrees on
+  both: the row sd over sigma is 1.000 for each of the three, against
+  1.260, 1.741 and 1.919, and 1.258 for `s(x) + (1 | g)` before and
+  after (`dev/resmooth-before.txt`, `dev/resmooth-after.txt`). brms
+  REFUSES a new level of the grouping factor of a smooth whatever
+  `allow_new_levels` says, so frmtmb refuses too, and a missing grouping
+  column with it: `re_formula = NA` is no longer a way out of either.
+  Two open items go with it. The partial-formula refusal beside a factor
+  smooth is now conservative rather than forced, and section 4 of the
+  findings PROPOSES dropping it, for the user to decide. And the lane
+  found and fixed a separate defect on the way: the finite-difference
+  `Est.Error` of a category probability differenced no smooth
+  coefficients at any `re_formula`, which put it 74 percent from a Monte
+  Carlo reference on an ordinal `s(x)` fit (findings section 5).
+  The entry as filed:
+  `re_formula = NA`
   must keep EVERY smooth, as brms keeps every smooth under any
   `re_formula`. Today `predict(re_formula = NA)`, and so
   `simulate(re_formula = NA)`, drops three kinds of smooth that are
@@ -220,6 +238,39 @@ to do, and every closure carries the measurement that closed it.
   "Verified immune" below. [lme4#635/#636/#945]
 
 ## Open - medium
+
+- The finite-difference `Est.Error` route costs one pair of model
+  evaluations per differenced coefficient, and a smooth or `gp()` block
+  can have as many coefficients as there are observations. Filed by lane
+  wt-resmooth after its nits round fixed the part that was fixable.
+  Counted, not timed (`dev/resmooth-batchcost.R`, log
+  `dev/resmooth-batchcost-after.txt`; wall clock on three arms in
+  `dev/resmooth-cost3-*.txt`):
+  * `fitted(newdata = 3 rows, re_formula = NA)` on a `cumulative()`
+    `gp(x)` fit with 160 coefficients makes 329 model evaluations and
+    takes 1.56 s against 0.0497 s on 0.64.0, about 31x. The three rows
+    are OFF the fitted `gp()` positions, so every kriging row loads all
+    160 columns and no batch of two columns can be attributed by row.
+  * `fitted()` on `s(x, k = 8) + (1 | g)` at 40 levels is 1.70x at
+    `re_formula = NULL` and 1.48x at `NA` for the same reason at a
+    smaller size: 25 and 23 evaluations against 11 and 9. Every row
+    loads every basis column of a smooth, so the block cannot batch.
+  * A CONTROL with no smooth is 11 evaluations on both arms and moves
+    0.0731 s to 0.0537 s, which bounds the wall-clock noise at about
+    1.36x and is why the counts are the instrument here.
+  The route that would fix it: a category probability depends on `b`
+  only through `eta`, and `eta` is LINEAR in `b`, so
+  `dp/db = (dp/deta) Z` needs one evaluation pair per ROW rather than
+  per coefficient, and `Z` is already built by `lp_delta_A()`. That
+  needs a seam `fit_fd_se()` does not have, because it differences the
+  composite `f` and cannot perturb `eta` alone. A cheaper partial
+  measure this round did not take: an `fs` block's columns partition by
+  LEVEL, so a row loads only its own level's basis columns and its 50
+  columns could be 5 batches rather than 50. `re_b_batches()`'s
+  whole-block test cannot see that; a greedy grouping on the column
+  conflict graph would, at the cost of an `O(ncol^2)` sparse product
+  that has to stay off the path a fit with thousands of levels takes.
+
 
 - DONE 2026-09-22 (lane `wt-correct`, `dev/correct-findings.md`
   section 7). `?frm` says it under `REML`, and `test-smooths.R`
@@ -966,9 +1017,10 @@ neither is the defect that lane fixed.
   drew every `cs()` model as if the term were absent, in sample and at
   newdata, silently (max |z| 1216.7). `dev/predfix-findings.md`, the
   cs() section.
-- OPEN, A SILENT WRONG ANSWER, pre-existing (0.62.0 and every lane
-  build): `cs()` on a factor is fitted and predicted on the factor's
-  INTEGER CODES. `ord_cs_values()` calls `as.numeric()` on the factor,
+- DONE by lane wt-csfactor (`dev/csfactor-findings.md`), A SILENT WRONG
+  ANSWER, pre-existing (0.62.0 through 0.64.0): `cs()` on a factor is
+  fitted and predicted on the factor's INTEGER CODES.
+  `ord_cs_values()` calls `as.numeric()` on the factor,
   so the model is linear in the codes (logLik -446.9233 against
   -446.6361 with the two dummy columns written out), and a `newdata`
   factor is re-coded from its own levels: a single row
@@ -979,7 +1031,10 @@ neither is the defect that lane fixed.
   treatment-contrast dummy columns, `fcb` and `fcc`, with one `b` row
   each (`dev/predfix-brms-csfactor.R`, `dev/predfix-log/brms-csfactor.txt`),
   so the fix is to build `cs()` from `model.matrix()` with the fit's
-  contrasts and levels, in the frame and at `newdata`.
+  contrasts and levels, in the frame and at `newdata`. That is what was
+  done, one `bcs<j>` per design COLUMN; `tests/testthat/test-cs-factor.R`
+  pins it and was seen to fail 27 of 46 with 3 errors on the 0.64.0
+  reference build.
 - The frmtmb.sample floor must move to the core that carries
   `frmtmb_new_levels` and exports `cs_offsets_add()`: against 0.62.0
   core the draws check falls back to its flagged path, core's old hint
@@ -992,9 +1047,12 @@ Found by the punch-round reviewer, reproduced on the lane build and on
 brms 2.23.0's `stancode()` with the same data
 (`dev/mvprior-filed.R`, `dev/mvprior-log/filed.txt`). All five are
 pre-existing and none is a wrong answer: each is a loud refusal where
-brms accepts the model. Not fixed; outside that lane.
+brms accepts the model. Not fixed by that lane.
 
-### Open - medium
+### Closed at 0.64.0
+
+All five shipped in the brms-parity round. The entries are kept with
+what closed each one; NEWS.md's 0.64.0 section has the detail.
 
 - **Three `bf()` summed with `+` fail at construction.**
   `bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ w) + set_rescor(FALSE)` warns
@@ -1002,19 +1060,37 @@ brms accepts the model. Not fixed; outside that lane.
   and stops with R's "non-numeric argument to binary operator". Two
   `bf()` work, and `mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ w))` works.
   brms accepts the three-term sum.
+  SHIPPED: any number of `bf()` can be summed. The formula and the
+  multivariate formula had two `+` methods and now have one, and `lf()`
+  and `nlf()` take brms's `resp =` (lane mv, `dev/mv-findings.md`).
 - **`cumulative()` in a multivariate model** is refused: "Families with
   extra parameters ('cumulative') are not supported in multivariate
   fits yet". brms accepts `bf(y1 ~ x) + bf(o ~ x, family =
   cumulative())`.
+  SHIPPED: `cumulative()`, `sratio()`, `cratio()` and `acat()`
+  responses keep their own thresholds and can share `|ID|` group
+  effects. `cox()` and `mixture_mvn()` stay refused, now with the
+  reason (lanes mv and thres).
 - **`me()`** is not a function: `bf(y1 ~ me(xe, sde))` stops with
   `could not find function "me"`, R's message rather than a designed
   refusal. brms accepts it.
+  SHIPPED: `me(x, sdx)` and `me(x, sdx, gr = g)` with brms's meaning
+  and brms's names, agreeing with brms 2.23.0's Stan program to 1e-13
+  on five shapes. See `?frmtmb-me` (lane me, `dev/me-findings.md`).
 - **`0 + Intercept`** reads `Intercept` as a data column: "The model uses
   `Intercept`, which is not a column of `data`". brms accepts
   `y1 ~ 0 + Intercept + x` as its uncentered intercept.
+  SHIPPED: brms's reserved intercept, as an uncentered class `"b"`
+  coefficient, in the location, distributional and nonlinear-parameter
+  formulas. `bf(center = FALSE)` is the same mechanism, and ordinal
+  families refuse it as brms does (lane icpt0,
+  `dev/icpt0-findings.md`).
 - **`student()` with `set_rescor(TRUE)`** is refused: "rescor = TRUE
   requires all responses to be gaussian (got: student)". brms accepts
   it (a multivariate student-t).
+  SHIPPED: brms's multivariate Student-t, one shared `nu`, a sigma per
+  response, checked against `mvtnorm::dmvt()` and brms's own
+  `log_lik()` (lane mv, `dev/mv-findings.md`).
 
 ## Filed by wt-mvprior after punch round 2, 2026-09-24
 
@@ -1076,6 +1152,284 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   3.4 or 3.5; not investigated. Test: coverage of that quantity on
   independent seeds, with enough replicates for the Wilson interval to
   exclude or include 95.
+
+## Filed at the 0.64.0 release (2026-09-25)
+
+The brms-parity round's "Left open" list, from
+`dev/parity-round-20260925.md`. Each bullet names the lane that found
+the item and the findings file with its measurement. Six lanes started
+on 2026-09-28; the items they closed at 0.65.0 say so.
+
+### Open - high priority
+
+- **The convergence check fires on correct fits.** "Large maximum
+  absolute gradient" appears on ordinal and multivariate fits whose
+  likelihood identities hold to 1e-12, and on fits with an active
+  bound. The 1e-3 threshold is absolute, so it does not scale with the
+  data or the parameter count. Found by lanes thres, mv and arcov
+  (`dev/thres-findings.md`, `dev/mv-findings.md`,
+  `dev/arcov-findings.md`). Done at 0.65.0, lane wt-gradcheck.
+- **Refits can lose a threshold.** `frm_bootstrap()` and other refits
+  recount the ordinal thresholds on each simulated data set, so a
+  category that is empty in one draw silently changes the model that
+  draw fits. Lane thres (`dev/thres-findings.md`). Done at 0.65.0,
+  lane wt-thresrefit: the bootstrap never recounted; `influence()` did.
+- **`y ~ x + cs(x)` is not identified and is not refused.** The
+  category-specific effect and the population effect of the same
+  column carry the same information. Lane sratio
+  (`dev/sratio-findings.md`). Done at 0.65.0, lane wt-csfactor.
+- **`draw_prior_entry()` on an unordered threshold vector** may copy
+  one draw into every threshold. Not known to be reachable, so prove
+  reachability or unreachability by construction before fixing it.
+  Lane sratio (`dev/sratio-findings.md`). Done at 0.65.0: unreachable,
+  and now refused, lane wt-thresrefit.
+
+### Open - medium
+
+- **Adding a family to a multivariate formula.** In
+  `bf(o ~ x) + cumulative() + bf(y ~ x) + gaussian()`, frmtmb fills
+  only the responses that have no family, so `o` stays ordinal, while
+  brms gives the last family to every response. frmtmb behaved this way
+  before the round and the behavior is now documented. CLOSED
+  2026-09-29: the user keeps frmtmb's rule, because brms's silently
+  overwrites an ordinal response's family. Lane mv
+  (`dev/mv-findings.md`).
+- **Priors on `me()` hyperparameters.** brms's classes `meanme`, `sdme`
+  and `corme` are refused by name, not implemented. Lane me
+  (`dev/me-findings.md`).
+- **REML with `me()` in `mu` is approximate**, and is registered as
+  conditional. The same argument applies to the existing `mi()`
+  predictor, which is registered as working, so one of the two
+  registrations is wrong. Lane me (`dev/me-findings.md`).
+- **frmtmb.sample `log_lik()` and `loo()` for `cov = FALSE` ARMA** are
+  not built. Lane arcov (`dev/arcov-findings.md`). Done at 0.65.0,
+  lane wt-arcovsample.
+- **brms's latent-residual AR for non-gaussian families** is not built;
+  the 0.64.0 form is brms's residual-regression one. Lane arcov
+  (`dev/arcov-findings.md`).
+- **`gr(g, by = f, cov = A)`** is refused by name, because brms
+  correlates the by-levels through `A`, which is not a by-split. Lane
+  grby (`dev/grby-findings.md`).
+
+### Upstream
+
+- **brms `posterior_predict_hurdle_negbinomial()` does not draw the
+  zero-truncated negative binomial.** Lane fams
+  (`dev/fams-findings.md`). Drafted nowhere yet; see
+  `dev/round-handoff.md` for the other unfiled upstream reports.
+
+### Closed at 0.64.0 by lane wt-records, 2026-09-28
+
+The round also listed two older record inconsistencies, both closed:
+
+- frmtmb.eam's tests called `frmtmb.sample::` while its Suggests was
+  empty of it. `frmtmb.sample` is now suggested, and
+  `.github/workflows/check-frmtmb-eam.yaml` installs it from the
+  checkout and lists `extensions/frmtmb.sample/**` in `paths:`, which
+  `tests/testthat/test-ci-siblings.R` asserts.
+- `codemeta.json` said 0.50.0 and lacked `ordinal`. Regenerated with
+  `codemetar::write_codemeta()` at 0.64.0.
+
+
+## Filed by wt-thresrefit, 2026-09-29
+
+### Open - medium
+
+- **A character-coded ordinal response with non-numeric labels dies in
+  an internal error.** `frm(bf(y ~ x), family = cumulative())` on a
+  character `y` whose values are not numeric text stops with "missing
+  value where TRUE/FALSE needed", which names neither the response nor
+  the requirement. Reported by the punch-round-1 reviewer as nit 3, on
+  the ground that this lane's new `?influence.frmtmb_fit` and `?frm` text
+  tells readers a character coding gives the same influence table as
+  integers, which points them at the refusal. Re-measured rather than
+  filed as reported (`dev/thresrefit-p2-charresp.R`, seed 2501, n = 60,
+  four categories): with labels `"none" < "mild" < "moderate" <
+  "severe"` the message above, on the lane build and on base 0.64.0
+  alike, so it is pre-existing and was not fixed here; with labels
+  `"1"..."4"` the fit runs; and `factor(..., levels = , ordered = TRUE)`
+  over the SAME four non-numeric labels fits with `n_tau = 3` on both
+  arms. So the capability is there and only the spelling fails, loudly
+  but anonymously. Test: the refusal names the response and says an
+  ordinal response is positive integers or an ordered factor, and the
+  ordered factor over the same labels still fits.
+## Filed by lane wt-csfactor after punch round 1, 2026-09-29
+
+Both found by the wt-csfactor reviewer
+(`dev/reviews/2026-09-29-csfactor.md`), both pre-existing on the 0.64.0
+reference build, neither this lane's.
+
+### Open - medium
+
+- **`fitted(mv, newdata = )` errors on ANY multivariate ordinal fit**
+  with "values must be length 1, but FUN(X[[1]]) result is length 0",
+  R's own `vapply()` message rather than a designed refusal. Measured
+  with `cs()` and without it, same message either way, so it is not
+  about `cs()`; in-sample `fitted(mv)` returns the `n x 4 x K` array
+  both ways (300 x 4 x 6), and `predict(mv, newdata = )` refuses with a
+  designed message. Construction:
+  `frm(bf(yo ~ x + cs(fc)) + bf(yo2 ~ z + cs(fc)), sratio())` on seed 77,
+  n = 300, then `fitted(mv, newdata = data.frame(x = 0, z = 0, fc =
+  factor("a", levels = c("a","b","c"))))`
+  (`dev/csfactor-rev-docs.R`, `dev/csfactor-rev-log/rev-docs-lane.log`).
+- **`y ~ mo(m) + m` is not identified and is fitted in silence**, with no
+  `cs()` term anywhere. A monotone function of `m`'s categories lies in
+  the span of `m`'s own dummies, so the two coefficient blocks share a
+  flat direction. Measured on both builds, seed 1907, n = 300, `m` an
+  ordered factor with 4 levels (`dev/csfactor-p2.R`,
+  `dev/csfactor-log/p2.txt`): `mo(m) + m` gives df 8 and logLik
+  -328.534572784 where `m` ALONE gives df 5 and -328.534572790, so three
+  extra parameters buy 6e-09 of log likelihood; the covariance matrix has
+  a smallest eigenvalue of -6441 and 6 of 6 standard errors are
+  non-finite, with only R's own `In sqrt(diag(V)) : NaNs produced` to show
+  for it. Written with `m` as an UNORDERED factor the eigenvalue is -6724
+  and the standard errors happen to stay finite, which is worse: nothing
+  at all is visible. Lane wt-csfactor's `check_cs_identified()`
+  deliberately does NOT refuse this, being about `mo()` rather than about
+  `cs()`, and its comment points here. The fix belongs with a rank check
+  over the FILLED design rather than the assembly-time one, since the
+  `mo()` column is a zero placeholder at assembly.
+
+### Open - minor
+
+- **`variables()` on a `frm_sample()` draws object of an ORDINAL fit
+  lists the raw internal names.** It gives `tau_raw_1`, `tau_raw_2` where
+  `variables(fit)` gives `b_Intercept[1]`, `b_Intercept[2]`, and
+  `bcs2_1`, `bcs2_2`, `bcs3_1`, `bcs3_2` where `variables(fit)` gives
+  `bcs_fcb[1]` and the rest. It does the `tau_raw` half for an ordinal
+  fit with NO `cs()` term, so the defect is about ordinal draws and not
+  about `cs()`: `variables(ds)` for `sratio, yo ~ x` gives
+  `b_x tau_raw_1 tau_raw_2 lp__`, while `fixef(ds)` for the same fit
+  gives `Intercept[1] Intercept[2] x`. A gaussian fit's draws are
+  correct (`b_Intercept b_x sigma lp__`). So `fixef()` on the draws
+  object goes through `draws_fixef_ordinal()` and `variables()` does
+  not. `?variables` now records the exception rather than claiming the
+  draw columns follow the same convention
+  (`dev/csfactor-rev-docs2.R`, `dev/csfactor-log/sample.txt`).
+- **The covariance machinery is not bound-aware.** At a constrained
+  optimum the UNCONSTRAINED Hessian can be indefinite, because the fit
+  is only a minimum along the feasible directions. `sdreport()` reads
+  the full Hessian, so such a fit reports `pdHess = FALSE` and NaN
+  standard errors while being exactly right. Constructed
+  (`dev/gradcheck-01-construct.R`, seed 101,
+  `dev/gradcheck-rev-10-flip.R` for the cap sweep): gaussian
+  `y ~ x` with a true slope of 2 under
+  `set_prior("", class = "b", ub = 0.1)` stops with `x` on the bound;
+  the full Hessian's eigenvalues are 693.40, 73.10 and -29.63, and the
+  same Hessian restricted to the two parameters no bound holds is
+  positive definite, which is why the convergence check can measure a
+  headroom there. Whether it bites depends on how far the bound is from
+  the unconstrained optimum, not on bound-awareness: over caps 0.1 to
+  1.99 on that design the bound holds `x` at every cap while `pdHess`
+  is FALSE at 0.1 and 0.5 and TRUE at 1 and above. Fix: restrict the
+  reported covariance to the free subspace, and say in the report that
+  a bound-held parameter has no standard error rather than returning
+  NaN for every parameter. Test: on the `ub = 0.1` fit, the free-set
+  Hessian is positive definite while `pdHess` is FALSE, and the free
+  parameters get finite standard errors.
+## Filed by wt-arcovsample after punch round 1, 2026-09-29
+
+Found by the punch-round reviewer
+(`dev/reviews/2026-09-29-arcovsample.md`, section 9) and by this lane
+while probing `log_lik()` for brms's `cov = FALSE` ARMA. Every item was
+reproduced on the LANE build and on the base build `rellib-r3`, so none
+is caused by that change. Item 1 is a wrong ANSWER and item 3 fails on
+every model, which is what makes them worth tests; item 2 is a bare
+internal error. Not fixed: all four are outside that lane's gap.
+
+### Open - high
+
+- **`posterior_predict()` and `posterior_epred()` on
+  `frm_sample(laplace = TRUE)` draws return NaN silently.** The draws
+  hold only the outer parameters, because the Laplace route integrates
+  the random effects out, and the predictive methods evaluate the model
+  as if `b` were there. `dev/arcovsample-rev-11-laplace.R` (seed 1212,
+  N = 30 in 6 groups of 5), re-run by the lane into
+  `dev/arcovsample-log/punch1-laplace-{lane,ref}.txt`, byte-identical on
+  the two builds: `y ~ x + ar(t, g) + (1 | g)` gives **4500 non-finite
+  cells of 4500**, `y ~ x + (1 | g)` gives **3000 of 4500**, and the
+  only signal is a repeated base warning "NAs produced". `log_lik()` on
+  the same object already refuses with a designed message
+  ("needs draws of the random effects ... Resample without
+  laplace = TRUE", `draws_require_b()`); the two predictive methods
+  should reach the same refusal. Test: assert the refusal on a laplace
+  draws object for `posterior_predict()` and `posterior_epred()`, and
+  assert no NaN is returned.
+
+### Open - medium
+
+- **`frm_sample(laplace = TRUE)` on a model with NO random effect dies
+  with a bare internal error.** Same script, same on both builds:
+  `Error in -obj$env$random : invalid argument to unary operator`. With
+  nothing to marginalize, `obj$env$random` is `NULL` and the negation
+  is R's error rather than a designed one. Either accept the
+  combination as a no-op (there is nothing to integrate out, so the
+  Laplace route and the full route are the same model) or refuse it by
+  name. Test: construct `frm_sample(bf(y ~ x), family = gaussian(),
+  laplace = TRUE)` and assert whichever is chosen, not the unary-minus
+  error.
+- **`pp_check()`'s four `loo_*` types fail on every model.**
+  `pp_check.frmtmb_draws` resolves the bayesplot function and calls it
+  with the response and the predictions, and nothing in it computes
+  `lw` or a `psis_object`, which `bayesplot::ppc_loo_*` require and
+  which `brms:::pp_check.brmsfit` builds from `log_lik()`.
+  `dev/arcovsample-rev-07-ppcheck.R` (seed 31) over THREE models, a
+  plain `y ~ x` gaussian fit, one with `(1 | g)` and one with
+  `ar(t, g)`: **4 of 6 types tried, 3 of 3 models, 2 of 2 builds**,
+  character for character identical.
+
+  ```
+  [dens_overlay]    OK ggplot2::ggplot
+  [stat]            OK ggplot2::ggplot
+  [loo_pit_overlay] rlang_error: One of 'lw' and 'psis_object' must be
+                    specified.
+  [loo_pit]         getvarError: argument "lw" is missing, with no
+                    default
+  [loo_intervals]   getvarError: argument "psis_object" is missing,
+                    with no default
+  [loo_ribbon]      getvarError: argument "psis_object" is missing,
+                    with no default
+  ```
+
+  The lane measured the same thing independently
+  (`dev/arcovsample-ppcheck.R`, one model, both builds). Test: one
+  block per `loo_*` type asserting a plot object, which will fail until
+  `pp_check()` passes the PSIS weights.
+
+### Open - low
+
+- **`nchains.frmtmb_draws()` and `draws_derived_matrix()` share the
+  `NULL`-`stanfit` bug that `draws_chain_id()` had.**
+  `x$stanfit@sim$chains %||% 1L` cannot guard a `NULL` `stanfit`,
+  because `@` on `NULL` is an error and never reaches `%||%`.
+  `draws_chain_id()` was fixed in the arcovsample round, and the
+  reviewer saw the unfixed form fail behaviorally
+  (`log_lik -> draws_chain_id -> %||%` on the base build,
+  `dev/arcovsample-rev-log/12-nan-ref.txt`). The remaining two show up
+  as `print(VarCorr(ds))` dying in
+  `nchains.frmtmb_draws -> %||%` on a draws object built with
+  `stanfit = NULL`, which is how a test supplies a chosen parameter
+  vector without a sampler. A sweep of every `@` read behind a `%||%`
+  is its own change. Test: `nchains()`, `ndraws()` and `VarCorr()` on a
+  `stanfit = NULL` draws object.
+
+## Filed by lane splinecurve at the 0.65.0 consolidation, 2026-09-29
+
+### Open - medium
+
+- **An exact `gp()` read off its observed positions leaves out the
+  kriging variance in three frmtmb.spline routes.** Under the default
+  `allow_new_levels = FALSE`, `frm_curve(simultaneous = TRUE)`,
+  `frm_curve_deriv()` and `frm_curve_feature()` build their draws or
+  their delta method from `A V A'`, while the pointwise `frm_curve()`
+  band adds `frm_lp_basis()`'s per-row `extra_var`. Pre-existing, and
+  small where measured: `extra_var` 7.3e-07 to 8.5e-07 on `y ~ gp(x)`
+  (`dev/splinecurve-findings.md`, "For the consolidating session to
+  file"). Under `allow_new_levels = TRUE` the 0.9.0 refusal already
+  covers it. The fix that makes every route right is a core seam that
+  returns the between-row covariance block, not only its diagonal.
+  Test: at grid points off the observed `x`, the simultaneous critical
+  value from the full covariance against the one `frm_curve()` reports.
 
 ## Reference
 

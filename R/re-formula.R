@@ -108,20 +108,26 @@ re_term_cnms <- function(fit, term) {
   colnames(stats::model.matrix(tt, mf))
 }
 
-#' The fitted components a re_formula can address, and the ones it
-#' cannot name.
+#' The fitted components a re_formula can address.
 #'
-#' A component is addressable when it carries a `(lhs | group)` bar.
-#' Blocks that `re_formula = NA` drops but that have no bar (a
-#' factor-smooth term, a `car()` or `spde()` field) cannot be named in
-#' a formula, so a formula that keeps SOME terms cannot say whether they
-#' stay; those are returned so the caller can refuse rather than guess.
+#' Every group-level component carries a `(lhs | group)` bar, and a
+#' `car()` or `spde()` field is one of them, named by its grouping
+#' factor as `(1 | loc)`. Smooth, `gp()` and `hsgp()` blocks carry no
+#' bar and are skipped: a smooth is kept at every `re_formula`, as brms
+#' keeps every smooth, so a formula has nothing to decide about it.
+#'
+#' Until 0.65.0 a smooth indexed by a grouping factor was listed as
+#' content a formula cannot name, and a partial formula beside one was
+#' refused. That refusal was a decision of 0.63.0 whose reason, that
+#' `NA` dropped the smooth, stopped being true at 0.65.0, and the user
+#' lifted it on 2026-09-29 (`dev/resmooth-findings.md`, section 4). The
+#' refusal's other stated case, a `car()` or `spde()` field, was never
+#' reachable: both have always carried a bar.
 #'
 #' @noRd
 re_fit_components <- function(fit) {
   blocks <- fit$frame[["re_blocks"]]
   named <- list()
-  unnamed <- character(0)
   for (i in seq_along(blocks)) {
     bk <- blocks[[i]]
     if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) next
@@ -129,8 +135,12 @@ re_fit_components <- function(fit) {
       cp <- bk[["components"]][[j]]
       bar <- cp[["bar"]]
       if (is.null(bar) || !is.call(bar)) {
-        unnamed <- c(unnamed, cp[["label"]] %||% bk[["covstruct"]])
-        next
+        # a new kind of term that builds a component with no bar would
+        # otherwise be skipped here, and re_formula would keep it at
+        # every value without anyone having decided that it should
+        frm_stop("internal: a '", bk[["covstruct"]], "' group-level ",
+                 "component has no (lhs | group) bar, so re_formula ",
+                 "cannot address it. Please report this", call. = FALSE)
       }
       named[[length(named) + 1L]] <- list(
         block = i, comp = j, lp_key = cp[["lp_key"]],
@@ -138,12 +148,7 @@ re_fit_components <- function(fit) {
         label = deparse1(bar))
     }
   }
-  for (lp in fit$frame[["linpreds"]]) {
-    for (si in lp[["smooths"]] %||% list()) {
-      if (!is.null(si[["group_var"]])) unnamed <- c(unnamed, si[["label"]])
-    }
-  }
-  list(named = named, unnamed = unique(unnamed))
+  list(named = named)
 }
 
 #' Resolve `re_formula` against a fit.
@@ -232,19 +237,10 @@ re_keep_plan <- function(fit, re_formula, what = "predict()") {
                call. = FALSE)
     }
   }
-  # every column of every named term kept: the full prediction, and the
-  # content a formula cannot name stays in, as it does under NULL and
-  # as brms keeps a smooth under any re_formula
+  # every column of every named term kept: the full prediction. The
+  # smooths stay in here and in the partial view alike, as brms keeps a
+  # smooth under any re_formula
   if (all(vapply(keep, all, NA))) return(list(kind = "all"))
-  if (length(fc$unnamed)) {
-    frm_stop(what, ": re_formula = ", deparse1(re_formula), " keeps some ",
-             "group-level terms, and this fit also has group-level ",
-             "content a formula cannot name: ",
-             paste(fc$unnamed, collapse = ", "), ". re_formula = NA drops ",
-             "it with every other group-level term and NULL keeps it, ",
-             "but a partial formula cannot say which, so it is refused ",
-             "rather than guessed", call. = FALSE)
-  }
   list(kind = "partial", named = named, keep = keep)
 }
 

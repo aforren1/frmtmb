@@ -1,0 +1,24 @@
+ARM lane newexports=TRUE
+labels: b_y1_Intercept b_y1_x b_y2_Intercept b_y2_x sigma_y1 nu sigma_y2 thetar_1 lp__
+
+        nu     rowSum log_lik      NaN
+   3.0e+00      -151.70285505        0
+   1.0e+01      -150.14754571        0
+   1.0e+02      -153.18453132        0
+   1.0e+03      -153.92643667        0
+   1.0e+05      -154.01766655        0
+   1.0e+07      -154.01858950        0
+   1.0e+09      -154.01859873        0
+   1.0e+11      -154.01859882        0
+   1.0e+15      -154.01859882        0
+   1.0e+20      -154.01859882        0
+   1.0e+50      -154.01859882        0
+  1.0e+100      -154.01859882        0
+  1.0e+200      -154.01859882        0
+  1.0e+300      -154.01859882        0
+  1.0e+306      -154.01859882        0
+
+draws with a non-finite cell: 0 of 15
+draws whose rowSum is more than 1 log unit from the nu = 1e300 one: 0 of 9
+loo(): -154.01832
+DONE

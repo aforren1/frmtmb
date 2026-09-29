@@ -107,10 +107,15 @@ and every row keeps the family's own density at \eqn{\mu^*_t}. The
 MA part enters \eqn{e} and the AR part does not, exactly as in
 brms's Stan code. So:
 \itemize{
-\item It is a CONDITIONAL likelihood. A group's first rows get no
-lagged term, rather than the stationary distribution the
-covariance form gives them. For one series this is the
-conditional sum of squares of \code{stats::arima(method = "CSS")}.
+\item It is a CONDITIONAL likelihood. A group starts with no
+residuals behind it, so lag \eqn{i} first reaches the row at
+within-group position \eqn{i + 1}: the FIRST row of a group gets
+no lagged term, a row at position \eqn{k} gets only the lags up
+to \eqn{k - 1}, and from position \eqn{\max(p, q) + 1}{max(p,
+    q) + 1} onward a row gets all of them. None of the opening rows
+gets the stationary distribution the covariance form gives them.
+For one series this is the conditional sum of squares of
+\code{stats::arima(method = "CSS")}.
 \item The coefficients \code{ar[i]} and \code{ma[i]} are unconstrained reals,
 as in brms, because nothing in this likelihood needs a stationary
 or invertible process. A prior or a bound with \code{set_prior(class = "ar")} acts on them directly, at any order.
@@ -146,6 +151,14 @@ forecasting route. \code{conditional_effects()} and \code{emmeans()} drop
 the term, as brms's do. \code{\link[=autocor_matrix]{autocor_matrix()}} and
 \code{residuals(type = "osa")} are refused: this form defines no
 correlation matrix, and its tape reads the response as data.
+A POINTWISE log-density exists for this form and not for the
+covariance one below, because each row keeps its own density:
+one row's density given its group's observed past, which is what
+brms's \code{log_lik()} returns. \code{arma_cond_resp()} and
+\code{arma_cond_dpars()} (\link{frmtmb-sampling-api}) are what a sampling
+extension reads to build it. Whether the installed
+\code{frmtmb.sample} does is that package's own question, and its
+\code{?log_lik} answers it.
 }
 }
 

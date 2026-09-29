@@ -1127,6 +1127,49 @@ log_sd_theta_index <- function(fit) {
 #' value of one, and there `gaussian()` is the wrong answer: the data
 #' is the message, and a prior is the way to hold `nu` finite.
 #'
+#' THE GRADIENT is reported four ways, because the largest component on
+#' its own is not a convergence verdict. `max_grad` and `worst_grad` are
+#' that largest component and its parameter. `grad_bound_held` names the
+#' parameters a bound holds in place, whose gradient points out of the
+#' feasible set and is the KKT condition rather than a failure, and
+#' `grad_proj` and `grad_proj_par` are the largest component over the rest
+#' and the parameter it belongs to. On a bounded fit `worst_grad` and
+#' `grad_proj_par` are DIFFERENT parameters, and `grad_proj_par` is the one
+#' the verdict is about. `grad_headroom` is the log likelihood one exact
+#' Newton step over those parameters would still buy, which is what the
+#' fit warns on; it is `NA` when `grad_proj` stayed under
+#' `frmtmb_control(grad_tol =)`, so nothing had to be measured, and also
+#' when the curvature there is unusable.
+#'
+#' TWO SCALES, on an autoscaled fit. `max_grad` and `worst_grad` are read
+#' off the RAW gradient, because that is what they have always been and
+#' what extension test suites compare to a log likelihood. `grad_proj`,
+#' `grad_proj_par` and the warning are in the per-parameter units
+#' `frmtmb_control(autoscale = )` judges the fit in, which is where a
+#' badly scaled column's coefficient is not swamped by its own scale. So
+#' on a fit that was standardized internally the two are not comparable:
+#' 1001 against 1.685 on one measured example. The printed block says so
+#' when it applies. `grad_headroom` is invariant to that scaling, because
+#' a Newton decrement is invariant under any reparameterization.
+#'
+#' `grad_headroom` costs a Hessian, and it is measured only when
+#' `grad_proj` exceeds `grad_tol`. A fit that already warned carries the
+#' answer on it, so `diagnose()` is free there; a fit whose cache was
+#' replaced, which is what perturbing the estimates does, pays between
+#' 0.13 and 0.45 s on the large latent-variable designs this package was
+#' timed on.
+#'
+#' NOT ON AN IMPORTANCE-CORRECTED FIT. `frm(importance = )` optimizes a
+#' Monte Carlo estimate, whose gradient carries an O(N^-1/2) error, so no
+#' gradient criterion applies to it at all. `grad_proj`, `grad_proj_par`
+#' and `grad_headroom` are `NA` there and the printed block says why. That
+#' fit's accuracy report is its effective sample sizes and its
+#' round-to-round move, and its gradient is in `fit$importance$grad`.
+#' "No convergence problems detected" is still decided there, by
+#' `max_grad` against `frmtmb_control(grad_tol =)`: an absent verdict is
+#' not a complaint, and withholding the line from every such fit would
+#' report a problem on fits that have none.
+#'
 #' A FLAT DIRECTION is an outer parameter the likelihood does not depend
 #' on: zero gradient and an empty Hessian row. It separates the two
 #' causes of `NaN` standard errors. Parameters that trade off against
@@ -1156,7 +1199,10 @@ log_sd_theta_index <- function(fit) {
 #' @srrstats {RE4.7} Convergence statistics are available from the model
 #'   object. `fit$opt$convergence` and `fit$opt$message` carry the
 #'   optimizer's verdict, and `diagnose()` returns the maximum absolute
-#'   gradient, the worst-offending parameter, the positive-definiteness
+#'   gradient, the worst-offending parameter, the parameters a bound
+#'   holds in place, the largest gradient over the rest with the parameter
+#'   it belongs to, the log
+#'   likelihood one Newton step would still buy, the positive-definiteness
 #'   of the Hessian, non-finite standard errors, the smallest eigenvalue
 #'   of the covariance, the flat directions, boundary (singular)
 #'   variance components, separation, distributional parameters at the
@@ -1194,6 +1240,23 @@ diagnose <- function(fit, quiet = FALSE) {
   # covariance and no theta to report on
   degenerate <- !length(fit$opt$par)
   gr <- if (degenerate) numeric(0) else drop(fit$obj$gr(fit$opt$par))
+  # The same verdict the fit warned with, so the report and the warning
+  # cannot disagree; cached on the fit, so a Hessian it already built is
+  # not built again.
+  #
+  # NOT on an importance-corrected fit. check_convergence() refuses to
+  # judge that gradient at all, because a Monte Carlo objective's gradient
+  # carries an O(N^-1/2) error, so a headroom differenced from it is a
+  # number the package's own reasoning calls inapplicable. Measured on a
+  # 60-group poisson GLMM with importance = 500L: 0.002337, 0.06561 and
+  # 0.2312 at three optimizer tolerances, on a fit that warns on neither
+  # build (dev/gradcheck-rev-09-miss.R row M4, seed 506). The gradient
+  # stays visible in fit$importance$grad.
+  gv <- if (degenerate || !is.null(fit$importance)) {
+    NULL
+  } else {
+    grad_verdict(fit, gr)
+  }
   V <- sdr_of(fit)$cov.fixed
   # on the pathological fits diagnose() exists for, cov.fixed can carry
   # negative diagonal entries; the resulting NaN SEs are the finding
@@ -1217,6 +1280,16 @@ diagnose <- function(fit, quiet = FALSE) {
     nonfinite_trials = fit$opt$nonfinite_trials,
     max_grad =if (length(gr)) max(abs(gr)) else NA_real_,
     worst_grad = if (length(gr)) nm[which.max(abs(gr))] else NA_character_,
+    # `max_grad` stays the raw largest component, which extensions read
+    # as a ratio to the log likelihood. The three fields below are the
+    # criterion the fit is JUDGED by: the largest component no bound
+    # holds, the parameters a bound does hold, and the log likelihood one
+    # Newton step from here would still buy (NA when the check did not
+    # need to measure it, or could not).
+    grad_proj = if (is.null(gv)) NA_real_ else gv$proj,
+    grad_proj_par = if (is.null(gv)) NA_character_ else gv$proj_par,
+    grad_bound_held = if (is.null(gv)) character(0) else gv$bound_held,
+    grad_headroom = if (is.null(gv)) NA_real_ else gv$headroom,
     pdHess = isTRUE(sdr_of(fit)$pdHess),
     bad_se = nm[!is.finite(se)],
     # gated on a covariance that already failed: on a healthy fit every
@@ -1242,6 +1315,43 @@ diagnose <- function(fit, quiet = FALSE) {
     } else {
       cat("Max |gradient|:", format(out$max_grad, digits = 4),
           "at", out$worst_grad, "\n")
+      if (is.null(gv)) {
+        cat("  The importance correction makes this a Monte Carlo ",
+            "gradient, which no convergence criterion applies to; read ",
+            "the effective sample sizes and the round-to-round move ",
+            "instead\n", sep = "")
+      }
+      if (length(out$grad_bound_held)) {
+        # the constrained optimum sits ON the bound, where a nonzero
+        # gradient is the KKT condition and not a failure
+        one <- length(out$grad_bound_held) == 1L
+        cat("  ", length(out$grad_bound_held),
+            if (one) " parameter is" else " parameters are",
+            " held by a bound (",
+            paste(out$grad_bound_held, collapse = ", "),
+            "); the largest gradient no bound holds is ",
+            format(out$grad_proj, digits = 4),
+            if (!is.na(out$grad_proj_par)) {
+              paste0(" at ", out$grad_proj_par)
+            }, "\n", sep = "")
+      }
+      if (is.finite(out$grad_headroom)) {
+        cat("  One Newton step over the parameters no bound holds would ",
+            "still gain ", format(out$grad_headroom, digits = 4),
+            " in log-likelihood (frmtmb_control(grad_tol) is ",
+            format(fit$control$grad_tol, digits = 3), ")\n", sep = "")
+      }
+      # `max_grad` is the RAW largest component and `grad_proj` is in the
+      # per-parameter units the optimizer and the warning use, so under
+      # autoscale the two lines above are on different scales. Say so
+      # rather than let a reader subtract them: measured 1001 against
+      # 1.685 on an autoscaled fit with a bound (seed 9202,
+      # dev/gradcheck-rev-03-probe.R row B2).
+      if (!is.null(fit$par_units) && !all(fit$par_units == 1)) {
+        cat("  This fit was standardized internally, so 'Max |gradient|'",
+            " is on the raw scale and every number below it is in the",
+            " per-parameter units the fit was judged in\n", sep = "")
+      }
     }
     cat("Hessian positive definite:", out$pdHess, "\n")
     # the optimizer no longer warns for these (see nlminb_trial_fn()),
@@ -1363,7 +1473,29 @@ diagnose <- function(fit, quiet = FALSE) {
     clean <- out$convergence == 0 && out$pdHess && !length(out$bad_se) &&
       is.null(out$singular) && is.null(out$separation) &&
       is.null(out$unbounded_dpar) && is.null(out$predictor_scale) &&
-      (degenerate || out$max_grad < 1e-3)
+      # The fit's own gradient verdict, not a second threshold: the
+      # hardcoded 1e-3 here ignored frmtmb_control(grad_tol =) and read
+      # the raw gradient, so a fit with an active bound could not print a
+      # clean line however well it had converged.
+      #
+      # NO VERDICT MEANS THE OLD GATE DECIDES. An importance-corrected fit
+      # has none (see `gv`), and both ways of reading that absence are
+      # wrong: calling it clean would claim convergence on a fit whose
+      # gradient is large, and calling it a complaint withholds the line
+      # from every such fit however well it converged. The first spelling
+      # of this guard did the second, and it was a REGRESSION against
+      # 0.64.0, which gated the line on the raw gradient alone: a 20-group
+      # poisson GLMM with `importance = 2000L` converges at max|grad|
+      # 0.00094754 with a positive definite Hessian and every other check
+      # clean, and base printed the line where this withheld it
+      # (`dev/gradcheck-rev-20-impclean.R`, seed 9503). So the fallback is
+      # that same gate with `grad_tol` honoured instead of hardcoded.
+      (degenerate ||
+         if (is.null(gv)) {
+           isTRUE(out$max_grad < (fit$control$grad_tol %||% 1e-3))
+         } else {
+           !isTRUE(gv$warn)
+         })
     if (clean) cat("No convergence problems detected\n")
   }
   invisible(out)
@@ -2724,14 +2856,28 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' coefficient part, `sd_g__sigma_Intercept`), and a distributional
 #' parameter nobody wrote a formula for, on its natural scale (`sigma`,
 #' `shape`, `sigma_ya`). Every name is spelled through brms's renaming:
-#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`. For sampled fits,
-#' `variables()` on the `frmtmb.sample::frm_sample()` result lists the
-#' draw columns, which follow the same convention.
+#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`. For sampled
+#' fits, `variables()` on the `frmtmb.sample::frm_sample()` result lists
+#' the draw columns, which follow the same convention EXCEPT for an
+#' ordinal fit, where they are the internal names: `tau_raw_1`,
+#' `tau_raw_2` for the thresholds this page calls `b_Intercept[1]`,
+#' `b_Intercept[2]`, and `bcs2_1` for a `cs()` coefficient this page calls
+#' `bcs_<column>[1]`. `fixef()` on the draws object does report brms's
+#' rows.
 #'
 #' brms's `variables()` also lists what a fit has no counterpart of:
 #' group-level coefficients `r_<group>[<level>,<coef>]`, the centered
 #' `Intercept`, `lprior` and `lp__`. A maximum-likelihood fit has no
 #' draws of those, and [ranef()] reports the conditional modes.
+#'
+#' An ordinal fit's thresholds are `b_Intercept[k]`, and a `cs()`
+#' category-specific term contributes `bcs_<column>[k]`, one name per
+#' DESIGN COLUMN per category boundary. The column is the one
+#' `stats::model.matrix()` builds, as it is in brms, so `cs(x)` on a
+#' numeric predictor gives `bcs_x[1]`, `bcs_x[2]`, while `cs(f)` on a
+#' factor with levels `a`, `b` and `c` gives the treatment-contrast pairs
+#' `bcs_fb[k]` and `bcs_fc[k]`. See the "Category-specific effects, cs()"
+#' section of [frm()].
 #'
 #' A residual correlation term ([frmtmb-autocor]) contributes its
 #' natural-scale parameters under brms's names: `ar[1]`, `ar[2]`,

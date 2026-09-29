@@ -1,0 +1,1 @@
+RESULT lane frmtmb test-autocor-cond.R pass=56 fail=0 err=0 skip=0

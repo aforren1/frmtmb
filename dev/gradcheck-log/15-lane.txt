@@ -1,0 +1,16 @@
+library: lane  frmtmb 0.64.0 
+
+FUZZ_NONCONVERGENCE from helper-fuzz.R:
+   Optimizer did not report convergence|Large maximum absolute gradient|Hessian is not positive definite 
+
+bounded_short  grep TRUE   Large maximum absolute gradient at the optimum (5971 at x), of which 1 component is held by a bound (x), leaving 52.5 at z as the largest no bound holds: one Newton step over the parameters no bound holds would still gain 0.131 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+plain_short    grep TRUE   Large maximum absolute gradient at the optimum (0.00499 at (Intercept)): one Newton step over the parameters no bound holds would still gain 0.529 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+unusable       grep TRUE   Large maximum absolute gradient at the optimum (50170 at sigma_(Intercept)): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+two_bounds     grep TRUE   Large maximum absolute gradient at the optimum (147 at x1), of which 2 components are held by a bound (x1, x2), leaving 2.58e-07 at (Intercept) as the largest no bound holds: one Newton step over the parameters no bound holds would still gain 1e-09 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+no_names       grep TRUE   Large maximum absolute gradient at the optimum (12.5): one Newton step over the parameters no bound holds would still gain 0.02 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+every branch matched: TRUE 

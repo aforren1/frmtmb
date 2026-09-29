@@ -1,0 +1,23 @@
+frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+== cumulative gp(x), n_b = 160 | re_formula = NA 
+   b_idx length: 160 of 160 
+   re_row_support: 3x160 
+   block 1 gp      dim 160, 160 coefs, positionwise TRUE , max row load 1
+   re_b_batches: 160 batches covering 160 coefficients 
+== cumulative s(x,k=8)+(1|g), 40 levels | re_formula = NULL 
+   b_idx length: 46 of 46 
+   re_row_support: 800x46 
+   block 1 us      dim 1, 40 coefs, positionwise TRUE , max row load 1
+   block 2 smooth  dim 6, 6 coefs, positionwise TRUE , max row load 1
+   re_b_batches: 7 batches covering 46 coefficients 
+== cumulative s(x,k=8)+(1|g), 40 levels | re_formula = NA 
+   b_idx length: 6 of 46 
+   re_row_support: 800x46 
+   block 1 us      not in b_idx
+   block 2 smooth  dim 6, 6 coefs, positionwise TRUE , max row load 1
+   re_b_batches: 6 batches covering 6 coefficients 
+== CONTROL cumulative x+(1|g), 40 levels | re_formula = NULL 
+   b_idx length: 40 of 40 
+   re_row_support: 800x40 
+   block 1 us      dim 1, 40 coefs, positionwise TRUE , max row load 1
+   re_b_batches: 1 batches covering 40 coefficients 

@@ -1,3 +1,11 @@
+# frmtmb.eam 0.11.1
+
+* `frmtmb.sample` is now a suggested package. `test-sampling.R` already
+  called it and skipped without it, so the undeclared dependency never
+  failed a check; it only skipped a test in silence. The CI job now
+  installs it from the checkout, as `test-ci-siblings.R` requires. No
+  change to the package's code.
+
 # frmtmb.eam 0.11.0
 
 * **BREAKING:** a prior on a drift rate of `lba()` or `rdm()` names its

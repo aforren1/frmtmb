@@ -1,0 +1,6 @@
+frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib2/frmtmb 
+emmeans(fs fit, ~f)                OK: 0.1424 0.8836
+emmeans(fs fit, ~f, re_formula=NULL) OK: 0.1424 0.8836
+emmeans(re fit, ~f)                OK: 0.1722 0.8954
+emmeans((1|g) fit, ~f)             OK: 0.1722 0.8954
+emmeans(t2 fit, ~f)                OK: 0.1494 0.8836

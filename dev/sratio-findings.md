@@ -235,6 +235,15 @@ no verdict changed.
   standard errors were 9.2e5 on the old build and are NaN now (one
   negative eigenvalue of order 1e12 in the covariance); the estimates
   are the same to 9e-6. Not this lane's.
+
+  FIXED by lane wt-csfactor: refused at frame assembly, with a message
+  naming the edit that fixes it. On seed 405, n = 500 the 0.64.0 build
+  reported finite estimates with a standard error of 2.7e5 on all three
+  coefficients rather than NaN, so the NaN above belongs to that
+  construction and not to the model (`dev/csfactor-repro.R`,
+  `dev/csfactor-log/before.txt`). brms 2.23.0 builds both blocks and
+  samples the ridge, so the refusal is a deliberate departure, recorded
+  in `dev/csfactor-findings.md` and in `vignette("brms-migration")`.
 - **A prior draw on an unordered threshold vector would recycle one
   value.** `draw_prior_entry()` draws one number per entry, and a
   class `"Intercept"` entry on cratio, acat and now sratio covers the

@@ -1,15 +1,49 @@
-===== SITE C:/Users/adf44/source/r/frmtmb =====
-GöÇGöÇ Building pkgdown site for package frmtmb GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb
-Writing to: C:/Users/adf44/source/r/frmtmb/docs
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-release
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-release/docs
+DOCS sites 8: frmtmb frmtmb.eam frmtmb.latent frmtmb.ode frmtmb.spline frmtmb.coupling frmtmb.sample frmtmb.learn
+DOCS article gates 17, missing 0
+===== SITE frmtmb -> C:/Users/adf44/source/r/frmtmb-wt-release/docs =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-release
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `authors.html`
 Reading CODE_OF_CONDUCT.md
 Writing `CODE_OF_CONDUCT.html`
@@ -20,7 +54,7 @@ Writing `SPEC.html`
 Reading README.md
 Writing `index.html`
 Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `reference/index.html`
 Reading man/anova.frmtmb_fit.Rd
 Writing `reference/anova.frmtmb_fit.html`
@@ -161,9 +195,9 @@ Writing `reference/latent_probs.html`
 Reading man/lf.Rd
 Writing `reference/lf.html`
 Reading man/log_lik.Rd
-Skipping 'reference/log_lik.html': not generated by pkgdown
+Writing `reference/log_lik.html`
 Reading man/loo.Rd
-Skipping 'reference/loo.html': not generated by pkgdown
+Writing `reference/loo.html`
 Reading man/mixture.Rd
 Writing `reference/mixture.html`
 Reading man/mixture_mvn.Rd
@@ -235,7 +269,7 @@ Registered S3 method overwritten by 'clubSandwich':
 Writing `reference/vcov_cluster.html`
 Reading man/whittle.Rd
 Writing `reference/whittle.html`
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `articles/index.html`
 Reading vignettes/bayesian-cognitive-modeling.Rmd
 Writing `articles/bayesian-cognitive-modeling.html`
@@ -257,228 +291,1098 @@ Reading vignettes/reinforcement-learning.Rmd
 Writing `articles/reinforcement-learning.html`
 Reading vignettes/spectral.Rmd
 Writing `articles/spectral.html`
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `news/index.html`
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `sitemap.xml`
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/$.frmtmb_family.html to
+reference/frmtmb_family-access.html.
+Adding redirect from reference/$.frmtmb_priorlist.html to
+reference/frmtmb_priorlist-columns.html.
 Adding redirect from reference/+.frmtmb_bform.html to
 reference/plus-bform.html.
+Adding redirect from reference/acat.html to reference/frmtmb-families.html.
+Adding redirect from reference/arg_unset.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/arma_cond_dpars.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/arma_cond_resp.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/as_draws.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws.frmtmb_multiple.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_array.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_array.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_df.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_df.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_list.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_list.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_matrix.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_matrix.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_rvars.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_rvars.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_frmtmb_family.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/as_priorlist.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/asym_laplace.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/aterms_for_newdata.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/bayes_R2.frmtmb_fit.html to
+reference/bayes_R2.html.
+Adding redirect from reference/bernoulli.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/Beta.html to reference/frmtmb-families.html.
+Adding redirect from reference/beta_binomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/block_cor_prior.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/block_n_cor.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/block_sd_idx.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_block_has_r.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_coef_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_coef_table.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_fixef_rows.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_group_name.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_levels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_par_labels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_prob_cols.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_re_parts.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_re_rnames.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_stan_name.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_summarize_draws.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_summary_array.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_summary_matrix.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/build_objective.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/categorical.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/ce_boot_grids.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_boot_one.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_cats_display.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_display_kind.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_dots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_draw_new_levels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_finalize.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_frame.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_grids_build.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_group_vars.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_new_level_spec.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_pred_dpar.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_re_formula.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_structure_check.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/check_prior_slots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/compat_aterm_rules.html to
+reference/frmtmb_register_compat.html.
+Adding redirect from reference/compat_rule_builder.html to
+reference/frmtmb_register_compat.html.
+Adding redirect from reference/compois.html to reference/frmtmb-families.html.
+Adding redirect from reference/conditional_effects.frmtmb_fit.html to
+reference/conditional_effects.html.
+Adding redirect from reference/cooks.distance.frmtmb_fit.html to
+reference/influence.frmtmb_fit.html.
+Adding redirect from reference/covstruct_has_chol.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/cox.html to reference/frmtmb-families.html.
+Adding redirect from reference/cratio.html to reference/frmtmb-families.html.
+Adding redirect from reference/cs_offsets_add.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/cumulative.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/custom_family.html to
+reference/frmtmb_family.html.
+Adding redirect from reference/dfbeta.frmtmb_influence.html to
+reference/influence.frmtmb_fit.html.
+Adding redirect from reference/dfbetas.frmtmb_influence.html to
+reference/influence.frmtmb_fit.html.
+Adding redirect from reference/dpar_complement.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/dpar_linpred.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/dpar_log.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/dpar_log_complement.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/dpar_log1m.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/estimated_coef_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/eval_dpars.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/exgaussian.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/expand_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/exponential.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/expose_functions.frmtmb_fit.html to
+reference/expose_functions.html.
+Adding redirect from reference/fam_is_category_valued.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/find_linpred.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/fit_extras.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/frame_block_of.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/frm_check_dots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/frm_family_package.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_install_generics.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/frm_match_arg.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_message.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_stop.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_warning.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frmtmb.html to reference/frmtmb-package.html.
+Adding redirect from reference/frmtmb_register_prior_defaults.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/geometric.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/get_prior.html to reference/default_prior.html.
+Adding redirect from reference/has_trunc.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/huber.html to reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_gamma.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_lognormal.html to
+reference/frmtmb-families.html.
 Adding redirect from reference/hurdle_negbinomial.html to
 reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_poisson.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/hyp_brms_result.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_class_prefix.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_env_vals.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_eval.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_eval_in.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_expr_vars.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_labels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_parse_all.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_samples_frame.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_tail_p.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_vals_only.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hypothesis.frmtmb_fit.html to
+reference/hypothesis.html.
+Adding redirect from reference/hypothesis.frmtmb_multiple.html to
+reference/hypothesis.html.
+Adding redirect from reference/is_student_block.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/log_lik.frmtmb_fit.html to
+reference/log_lik.html.
+Adding redirect from reference/log_sd_theta_index.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/lognormal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/loo.frmtmb_fit.html to reference/loo.html.
+Adding redirect from reference/loo_compare.html to reference/loo.html.
+Adding redirect from reference/loo_compare.default.html to reference/loo.html.
 Adding redirect from reference/me.html to reference/frmtmb-me.html.
+Adding redirect from reference/mixture_multimodal_refusals.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/mixture_posterior.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/multinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/nbinom1.html to reference/frmtmb-families.html.
+Adding redirect from reference/nchains.html to reference/draws-dimensions.html.
+Adding redirect from reference/nchains.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/ncp_eligible.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ncp_scale_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ncp_unscale_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ndraws.html to reference/draws-dimensions.html.
+Adding redirect from reference/ndraws.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/neg_log_prior_fn.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/negbinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/ngrps.frmtmb_fit.html to reference/ngrps.html.
+Adding redirect from reference/niterations.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/niterations.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nvariables.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nvariables.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/outer_par_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/par_name_bare.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/par_template.default.html to
+reference/par_template.html.
+Adding redirect from reference/par_template.frmtmb_fit.html to
+reference/par_template.html.
+Adding redirect from reference/posterior_summary.default.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_summary.frmtmb_fit.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_summary.frmtmb_multiple.html to
+reference/posterior_summary.html.
+Adding redirect from reference/pp_check.frmtmb_fit.html to
+reference/pp_check.html.
+Adding redirect from reference/predict_category_props.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/prior_.html to reference/prior.html.
+Adding redirect from reference/prior_beta.html to reference/frmtmb-priors.html.
+Adding redirect from reference/prior_gamma.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_inv_gamma.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_lkj.html to reference/frmtmb-priors.html.
+Adding redirect from reference/prior_logistic.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_normal.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_string.html to reference/prior.html.
+Adding redirect from reference/prior_summary.frmtmb_fit.html to
+reference/prior_summary.html.
+Adding redirect from reference/prior_t.html to reference/frmtmb-priors.html.
+Adding redirect from reference/re_form_arg.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/refit.frmtmb_fit.html to reference/refit.html.
+Adding redirect from reference/require_fitted.html to
+reference/frmtmb-sampling-api.html.
 Adding redirect from reference/rescor_row_loglik.html to
 reference/frmtmb-sampling-api.html.
+Adding redirect from reference/resolve_bounds.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/resolve_prior_input.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/row_lpdf.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sdr_of.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/set_rescor.html to reference/mvbf.html.
+Adding redirect from reference/shifted_lognormal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/sim_can.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_context.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_draw.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_is_structured.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_note.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/single_response.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/skew_normal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/spec_spelling.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/spec_target.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sratio.html to reference/frmtmb-families.html.
+Adding redirect from reference/structure_supports_all.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/student.html to reference/frmtmb-families.html.
+Adding redirect from reference/tweedie.html to reference/frmtmb-families.html.
+Adding redirect from reference/us_chol_cor.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_layout.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_matrices.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_values.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/variables.frmtmb_fit.html to
+reference/variables.html.
+Adding redirect from reference/vcov_estimated.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/von_mises.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/waic.html to reference/loo.html.
+Adding redirect from reference/waic.frmtmb_fit.html to reference/loo.html.
+Adding redirect from reference/weibull.html to reference/frmtmb-families.html.
+Adding redirect from reference/with_cs_offsets.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/zero_inflated_asym_laplace.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_beta.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_binomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_negbinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_poisson.html to
+reference/frmtmb-families.html.
 Adding redirect from reference/zero_one_inflated_beta.html to
 reference/frmtmb-families.html.
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam =====
-GöÇGöÇ Building pkgdown site for package frmtmb.eam GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.eam
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading 'DESCRIPTION'
-Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Loading required package: frmtmb
-Reading man/ddm_simulate.Rd
-Reading man/frmtmb.eam-package.Rd
-Reading man/gddm-bound.Rd
-Reading man/gddm-drift.Rd
-Reading man/gddm-start.Rd
-Reading man/gddm.Rd
-Reading man/gddm_bound_term.Rd
-Reading man/gddm_conditions.Rd
-Reading man/gddm_control.Rd
-Reading man/gddm_drift_term.Rd
-Reading man/gddm_floored.Rd
-Reading man/gddm_simulate.Rd
-Reading man/gddm_start_term.Rd
-Reading man/lba.Rd
-Reading man/lba_simulate.Rd
-Reading man/ndt_apply.Rd
-Reading man/ndt_bound.Rd
-Reading man/ndt_bound_attach.Rd
-Reading man/ndt_bound_key.Rd
-Reading man/ndt_bound_of.Rd
-Reading man/ndt_bound_pending.Rd
-Reading man/ndt_time.Rd
-Reading man/rdm.Rd
-Reading man/rdm_simulate.Rd
-Reading man/wiener.Rd
-Reading man/wiener_gng.Rd
-Reading man/wiener_gng_simulate.Rd
-Reading man/wiener_lpdf.Rd
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading vignettes/ddm.Rmd
-Reading vignettes/gddm.Rmd
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.eam GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent =====
-GöÇGöÇ Building pkgdown site for package frmtmb.latent GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.latent
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading 'DESCRIPTION'
-Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Loading required package: frmtmb
-Reading man/frmtmb.latent-package.Rd
-Reading man/hmm.Rd
-Reading man/hmm_probs.Rd
-Reading man/hmm_starts.Rd
-Writing `reference/hmm_starts.html`
-Reading man/hmm_viterbi.Rd
-Reading man/lca.Rd
-Reading man/lca_probs.Rd
-Reading man/lca_profiles.Rd
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading vignettes/latent.Rmd
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.latent GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.ode =====
-GöÇGöÇ Building pkgdown site for package frmtmb.ode GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.ode
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.ode
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading 'DESCRIPTION'
-Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Loading required package: frmtmb
-Reading man/frmtmb.ode-package.Rd
-Reading man/frm_lincmt.Rd
-Reading man/frm_ode.Rd
-Reading man/frm_ode_failures.Rd
-Reading man/frm_ode_records.Rd
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading vignettes/ode.Rmd
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.ode GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.spline =====
-GöÇGöÇ Building pkgdown site for package frmtmb.spline GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.spline
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.spline
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading 'DESCRIPTION'
-Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Loading required package: frmtmb
-Reading man/frmtmb.spline-package.Rd
-Reading man/frm_curve.Rd
-Reading man/frm_curve_deriv.Rd
-Reading man/frm_curve_feature.Rd
-Reading man/royston_parmar.Rd
-Reading man/rp_floored.Rd
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading vignettes/curve-inference.Rmd
-Reading vignettes/royston-parmar.Rmd
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.spline GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.coupling =====
-GöÇGöÇ Building pkgdown site for package frmtmb.coupling GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.coupling
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.coupling
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading 'DESCRIPTION'
-Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Loading required package: frmtmb
-Reading man/cross_wishart.Rd
-Reading man/frmtmb.coupling-package.Rd
-Reading man/frm_coherence.Rd
-Reading man/frm_cross_pairs.Rd
-Reading man/frm_cross_simulate.Rd
-Reading man/frm_cross_spectrum.Rd
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading vignettes/coherence.Rmd
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.coupling GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.sample =====
-GöÇGöÇ Building pkgdown site for package frmtmb.sample GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.sample
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.sample
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Adding redirect from reference/as.array.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as.mcmc.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as.mcmc.html to reference/as_draws.html.
+Adding redirect from reference/as_draws.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_array.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_df.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_list.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_matrix.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_rvars.frmtmb_draws.html to
+reference/as_draws.html.
+Adding redirect from reference/as_tmbstan.html to
+frmtmb.sample/reference/as_tmbstan.html.
+Adding redirect from reference/bayes_factor.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bayes_factor.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bayes_R2.frmtmb_draws.html to
+reference/bayes_R2.html.
+Adding redirect from reference/bridge_sampler.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bridge_sampler.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/check_laplace.html to
+frmtmb.sample/reference/check_laplace.html.
+Adding redirect from reference/coef.frmtmb_draws.html to
+frmtmb.sample/reference/draws-structure.html.
+Adding redirect from reference/conditional_effects.frmtmb_draws.html to
+reference/conditional_effects.html.
+Adding redirect from reference/draws-diagnostics.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/draws-structure.html to
+frmtmb.sample/reference/draws-structure.html.
+Adding redirect from reference/expose_functions.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/family.frmtmb_draws.html to
+frmtmb.sample/reference/draws-structure.html.
+Adding redirect from reference/fixef.frmtmb_fit.html to reference/fixef.html.
+Adding redirect from reference/formula.frmtmb_draws.html to
+frmtmb.sample/reference/draws-structure.html.
+Adding redirect from reference/frm_ode.html to
+frmtmb.ode/reference/frm_ode.html.
+Adding redirect from reference/frm_ode_failures.html to
+frmtmb.ode/reference/frm_ode_failures.html.
+Adding redirect from reference/frm_sample.html to
+frmtmb.sample/reference/frm_sample.html.
+Adding redirect from reference/frmtmb-draws-refusals.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/frmtmb-loo-refusals.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/getCall.frmtmb_draws.html to
+frmtmb.sample/reference/draws-structure.html.
+Adding redirect from reference/hmm.html to frmtmb.latent/reference/hmm.html.
+Adding redirect from reference/hmm_probs.html to
+frmtmb.latent/reference/hmm_probs.html.
+Adding redirect from reference/hmm_viterbi.html to
+frmtmb.latent/reference/hmm_viterbi.html.
+Adding redirect from reference/hyp_shadow_arm.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_shadow_disarm.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hypothesis.frmtmb_draws.html to
+reference/hypothesis.html.
+Adding redirect from reference/kfold.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/kfold.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/lca.html to frmtmb.latent/reference/lca.html.
+Adding redirect from reference/lca_probs.html to
+frmtmb.latent/reference/lca_probs.html.
+Adding redirect from reference/lca_profiles.html to
+frmtmb.latent/reference/lca_profiles.html.
+Adding redirect from reference/log_lik.frmtmb_draws.html to
+reference/log_lik.html.
+Adding redirect from reference/log_posterior.frmtmb_draws.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/log_posterior.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/loo.frmtmb_draws.html to reference/loo.html.
+Adding redirect from reference/loo_compare.frmtmb_draws.html to
+reference/loo.html.
+Adding redirect from reference/loo_moment_match.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_moment_match.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_subsample.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_subsample.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/mcmc_plot.frmtmb_draws.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/mcmc_plot.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/nchains.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/ndraws.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/neff_ratio.frmtmb_draws.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/neff_ratio.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/niterations.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nobs.frmtmb_draws.html to
+frmtmb.sample/reference/draws-structure.html.
+Adding redirect from reference/nsamples.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/nsamples.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/nuts_params.frmtmb_draws.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/nuts_params.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/nvariables.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/pairs.frmtmb_draws.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/parnames.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/parnames.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/plot.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/post_prob.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/post_prob.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/posterior_epred.frmtmb_draws.html to
+frmtmb.sample/reference/posterior_epred.html.
+Adding redirect from reference/posterior_epred.html to
+frmtmb.sample/reference/posterior_epred.html.
+Adding redirect from reference/posterior_interval.frmtmb_draws.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_interval.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_linpred.frmtmb_draws.html to
+frmtmb.sample/reference/posterior_epred.html.
+Adding redirect from reference/posterior_linpred.html to
+frmtmb.sample/reference/posterior_epred.html.
+Adding redirect from reference/posterior_predict.frmtmb_draws.html to
+frmtmb.sample/reference/posterior_epred.html.
+Adding redirect from reference/posterior_predict.html to
+frmtmb.sample/reference/posterior_epred.html.
+Adding redirect from reference/posterior_samples.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/posterior_samples.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/posterior_summary.frmtmb_draws.html to
+reference/posterior_summary.html.
+Adding redirect from reference/pp_check.frmtmb_draws.html to
+reference/pp_check.html.
+Adding redirect from reference/pp_mixture.frmtmb_draws.html to
+frmtmb.sample/reference/pp_mixture.html.
+Adding redirect from reference/pp_mixture.html to
+frmtmb.sample/reference/pp_mixture.html.
+Adding redirect from reference/predictive_error.frmtmb_draws.html to
+reference/posterior_summary.html.
+Adding redirect from reference/predictive_error.html to
+reference/posterior_summary.html.
+Adding redirect from reference/predictive_interval.frmtmb_draws.html to
+reference/posterior_summary.html.
+Adding redirect from reference/predictive_interval.html to
+reference/posterior_summary.html.
+Adding redirect from reference/psis.frmtmb_draws.html to reference/loo.html.
+Adding redirect from reference/psis.html to reference/loo.html.
+Adding redirect from reference/ranef.frmtmb_fit.html to reference/ranef.html.
+Adding redirect from reference/reloo.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/reloo.html to
+frmtmb.sample/reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/restructure.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/restructure.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/rhat.frmtmb_draws.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/rhat.html to
+frmtmb.sample/reference/draws-diagnostics.html.
+Adding redirect from reference/stancode.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/stancode.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/standata.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/standata.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/update.frmtmb_draws.html to
+frmtmb.sample/reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/VarCorr.frmtmb_fit.html to
+reference/VarCorr.html.
+Adding redirect from reference/variables.frmtmb_draws.html to
+reference/variables.html.
+Adding redirect from reference/waic.frmtmb_draws.html to reference/loo.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 259s =====
+===== SITE frmtmb.eam -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.eam =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.eam â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.eam
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.eam
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `authors.html`
 Reading 'DESCRIPTION'
 Writing `index.html`
 Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/ddm_simulate.Rd
+Writing `reference/ddm_simulate.html`
+Reading man/frmtmb.eam-package.Rd
+Writing `reference/frmtmb.eam-package.html`
+Reading man/gddm-bound.Rd
+Writing `reference/gddm-bound.html`
+Reading man/gddm-drift.Rd
+Writing `reference/gddm-drift.html`
+Reading man/gddm-start.Rd
+Writing `reference/gddm-start.html`
+Reading man/gddm.Rd
+Writing `reference/gddm.html`
+Reading man/gddm_bound_term.Rd
+Writing `reference/gddm_bound_term.html`
+Reading man/gddm_conditions.Rd
+Writing `reference/gddm_conditions.html`
+Reading man/gddm_control.Rd
+Writing `reference/gddm_control.html`
+Reading man/gddm_drift_term.Rd
+Writing `reference/gddm_drift_term.html`
+Reading man/gddm_floored.Rd
+Writing `reference/gddm_floored.html`
+Reading man/gddm_simulate.Rd
+Writing `reference/gddm_simulate.html`
+Reading man/gddm_start_term.Rd
+Writing `reference/gddm_start_term.html`
+Reading man/lba.Rd
+Writing `reference/lba.html`
+Reading man/lba_simulate.Rd
+Writing `reference/lba_simulate.html`
+Reading man/ndt_apply.Rd
+Writing `reference/ndt_apply.html`
+Reading man/ndt_bound.Rd
+Writing `reference/ndt_bound.html`
+Reading man/ndt_bound_attach.Rd
+Writing `reference/ndt_bound_attach.html`
+Reading man/ndt_bound_key.Rd
+Writing `reference/ndt_bound_key.html`
+Reading man/ndt_bound_of.Rd
+Writing `reference/ndt_bound_of.html`
+Reading man/ndt_bound_pending.Rd
+Writing `reference/ndt_bound_pending.html`
+Reading man/ndt_time.Rd
+Writing `reference/ndt_time.html`
+Reading man/rdm.Rd
+Writing `reference/rdm.html`
+Reading man/rdm_simulate.Rd
+Writing `reference/rdm_simulate.html`
+Reading man/wiener.Rd
+Writing `reference/wiener.html`
+Reading man/wiener_gng.Rd
+Writing `reference/wiener_gng.html`
+Reading man/wiener_gng_simulate.Rd
+Writing `reference/wiener_gng_simulate.html`
+Reading man/wiener_lpdf.Rd
+Writing `reference/wiener_lpdf.html`
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `articles/index.html`
+Reading vignettes/ddm.Rmd
+Writing `articles/ddm.html`
+Reading vignettes/gddm.Rmd
+Writing `articles/gddm.html`
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `news/index.html`
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/frmtmb.eam.html to
+reference/frmtmb.eam-package.html.
+Adding redirect from reference/gddm_bound_constant.html to
+reference/gddm-bound.html.
+Adding redirect from reference/gddm_bound_exponential.html to
+reference/gddm-bound.html.
+Adding redirect from reference/gddm_bound_linear.html to
+reference/gddm-bound.html.
+Adding redirect from reference/gddm_drift_coherence.html to
+reference/gddm-drift.html.
+Adding redirect from reference/gddm_drift_constant.html to
+reference/gddm-drift.html.
+Adding redirect from reference/gddm_drift_leak.html to
+reference/gddm-drift.html.
+Adding redirect from reference/gddm_start_point.html to
+reference/gddm-start.html.
+Adding redirect from reference/gddm_start_uniform.html to
+reference/gddm-start.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.eam â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 53s =====
+===== SITE frmtmb.latent -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.latent =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.latent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from:
+C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.latent
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.latent
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/frmtmb.latent-package.Rd
+Writing `reference/frmtmb.latent-package.html`
+Reading man/hmm.Rd
+Writing `reference/hmm.html`
+Reading man/hmm_probs.Rd
+Writing `reference/hmm_probs.html`
+Reading man/hmm_starts.Rd
+Writing `reference/hmm_starts.html`
+Reading man/hmm_viterbi.Rd
+Writing `reference/hmm_viterbi.html`
+Reading man/lca.Rd
+Writing `reference/lca.html`
+Reading man/lca_probs.Rd
+Writing `reference/lca_probs.html`
+Reading man/lca_profiles.Rd
+Writing `reference/lca_profiles.html`
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `articles/index.html`
+Reading vignettes/latent.Rmd
+Writing `articles/latent.html`
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `news/index.html`
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/frmtmb.latent.html to
+reference/frmtmb.latent-package.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.latent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 17s =====
+===== SITE frmtmb.ode -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.ode =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.ode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.ode
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.ode
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/frmtmb.ode-package.Rd
+Writing `reference/frmtmb.ode-package.html`
+Reading man/frm_lincmt.Rd
+Writing `reference/frm_lincmt.html`
+Reading man/frm_ode.Rd
+Writing `reference/frm_ode.html`
+Reading man/frm_ode_failures.Rd
+Writing `reference/frm_ode_failures.html`
+Reading man/frm_ode_records.Rd
+Writing `reference/frm_ode_records.html`
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `articles/index.html`
+Reading vignettes/ode.Rmd
+Writing `articles/ode.html`
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `news/index.html`
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/frmtmb.ode.html to
+reference/frmtmb.ode-package.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.ode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 27s =====
+===== SITE frmtmb.spline -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.spline =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.spline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from:
+C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.spline
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.spline
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/frmtmb.spline-package.Rd
+Writing `reference/frmtmb.spline-package.html`
+Reading man/frm_curve.Rd
+Writing `reference/frm_curve.html`
+Reading man/frm_curve_deriv.Rd
+Writing `reference/frm_curve_deriv.html`
+Reading man/frm_curve_feature.Rd
+Writing `reference/frm_curve_feature.html`
+Reading man/royston_parmar.Rd
+Writing `reference/royston_parmar.html`
+Reading man/rp_floored.Rd
+Writing `reference/rp_floored.html`
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `articles/index.html`
+Reading vignettes/curve-inference.Rmd
+Writing `articles/curve-inference.html`
+Reading vignettes/royston-parmar.Rmd
+Writing `articles/royston-parmar.html`
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `news/index.html`
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/frmtmb.spline.html to
+reference/frmtmb.spline-package.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.spline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 20s =====
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.coupling =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.coupling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from:
+C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.coupling
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.coupling
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/cross_wishart.Rd
+Writing `reference/cross_wishart.html`
+Reading man/frmtmb.coupling-package.Rd
+Writing `reference/frmtmb.coupling-package.html`
+Reading man/frm_coherence.Rd
+Writing `reference/frm_coherence.html`
+Reading man/frm_cross_pairs.Rd
+Writing `reference/frm_cross_pairs.html`
+Reading man/frm_cross_simulate.Rd
+Writing `reference/frm_cross_simulate.html`
+Reading man/frm_cross_spectrum.Rd
+Writing `reference/frm_cross_spectrum.html`
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `articles/index.html`
+Reading vignettes/coherence.Rmd
+Writing `articles/coherence.html`
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `news/index.html`
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/frm_phase.html to reference/frm_coherence.html.
+Adding redirect from reference/frmtmb.coupling.html to
+reference/frmtmb.coupling-package.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.coupling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 14s =====
+===== SITE frmtmb.sample -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.sample =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.sample â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from:
+C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.sample
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.sample
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `reference/index.html`
 Reading man/as_tmbstan.Rd
 Writing `reference/as_tmbstan.html`
@@ -518,7 +1422,7 @@ Reading man/sample-loo.Rd
 Writing `reference/sample-loo.html`
 Reading man/sample-posterior_summary.Rd
 Writing `reference/sample-posterior_summary.html`
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `articles/index.html`
 Reading vignettes/brms-posterior.Rmd
 Writing `articles/brms-posterior.html`
@@ -526,52 +1430,317 @@ Reading vignettes/posterior-diagnostics.Rmd
 Writing `articles/posterior-diagnostics.html`
 Reading vignettes/sampling.Rmd
 Writing `articles/sampling.html`
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Writing `news/index.html`
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.sample GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-===== ok =====
-===== SITE C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.learn =====
-GöÇGöÇ Building pkgdown site for package frmtmb.learn GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Reading from: C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.learn
-Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.learn
-GöÇGöÇ Sitrep GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-G£ö URLs ok.
-G£ö Favicons ok.
-G£ö Open graph metadata ok.
-G£ö Articles metadata ok.
-G£ö Reference metadata ok.
-GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/as.array.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.data.frame.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.matrix.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.mcmc.html to reference/sample-as_draws.html.
+Adding redirect from reference/as.mcmc.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws.html to reference/reexports.html.
+Adding redirect from reference/as_draws.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_array.html to reference/reexports.html.
+Adding redirect from reference/as_draws_array.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_df.html to reference/reexports.html.
+Adding redirect from reference/as_draws_df.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_list.html to reference/reexports.html.
+Adding redirect from reference/as_draws_list.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_matrix.html to
+reference/reexports.html.
+Adding redirect from reference/as_draws_matrix.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_rvars.html to reference/reexports.html.
+Adding redirect from reference/as_draws_rvars.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/bayes_factor.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bayes_factor.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bayes_R2.html to reference/reexports.html.
+Adding redirect from reference/bayes_R2.frmtmb_draws.html to
+reference/sample-bayes_R2.html.
+Adding redirect from reference/bf.html to reference/reexports.html.
+Adding redirect from reference/bridge_sampler.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bridge_sampler.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/coef.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/conditional_effects.html to
+reference/reexports.html.
+Adding redirect from reference/expose_functions.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/family.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/fitted.frmtmb_draws.html to
+reference/frmtmb-draws-summaries.html.
+Adding redirect from reference/fixef.html to reference/reexports.html.
+Adding redirect from reference/formula.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/frm.html to reference/reexports.html.
+Adding redirect from reference/frmtmb.sample.html to
+reference/frmtmb.sample-package.html.
+Adding redirect from reference/getCall.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/hypothesis.html to reference/reexports.html.
+Adding redirect from reference/kfold.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/kfold.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/log_lik.html to reference/reexports.html.
+Adding redirect from reference/log_lik.frmtmb_draws.html to
+reference/sample-log_lik.html.
+Adding redirect from reference/log_posterior.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/log_posterior.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/loo.html to reference/reexports.html.
+Adding redirect from reference/loo.frmtmb_draws.html to
+reference/sample-loo.html.
+Adding redirect from reference/loo_compare.html to reference/reexports.html.
+Adding redirect from reference/loo_compare.frmtmb_draws.html to
+reference/sample-loo.html.
+Adding redirect from reference/loo_moment_match.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_moment_match.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_subsample.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_subsample.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/mcmc_plot.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/mcmc_plot.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/nchains.html to reference/reexports.html.
+Adding redirect from reference/nchains.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/ndraws.html to reference/reexports.html.
+Adding redirect from reference/ndraws.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/neff_ratio.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/neff_ratio.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/ngrps.html to reference/reexports.html.
+Adding redirect from reference/niterations.html to reference/reexports.html.
+Adding redirect from reference/niterations.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nobs.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/nsamples.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/nsamples.frmtmb_draws.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/nuts_params.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/nuts_params.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/nvariables.html to reference/reexports.html.
+Adding redirect from reference/nvariables.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/pairs.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/parnames.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/parnames.frmtmb_draws.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/plot.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/post_prob.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/post_prob.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/posterior_epred.frmtmb_draws.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_interval.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/posterior_interval.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/posterior_linpred.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_linpred.frmtmb_draws.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_predict.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_predict.frmtmb_draws.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_samples.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/posterior_samples.frmtmb_draws.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/posterior_summary.html to
+reference/reexports.html.
+Adding redirect from reference/posterior_summary.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/pp_check.html to reference/reexports.html.
+Adding redirect from reference/pp_mixture.frmtmb_draws.html to
+reference/pp_mixture.html.
+Adding redirect from reference/predict.frmtmb_draws.html to
+reference/frmtmb-draws-summaries.html.
+Adding redirect from reference/predictive_error.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/predictive_error.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/predictive_interval.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/predictive_interval.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/prior_summary.html to reference/reexports.html.
+Adding redirect from reference/psis.html to reference/sample-loo.html.
+Adding redirect from reference/psis.frmtmb_draws.html to
+reference/sample-loo.html.
+Adding redirect from reference/ranef.html to reference/reexports.html.
+Adding redirect from reference/ranef.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/reloo.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/reloo.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/residuals.frmtmb_draws.html to
+reference/frmtmb-draws-summaries.html.
+Adding redirect from reference/restructure.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/restructure.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/rhat.html to reference/draws-diagnostics.html.
+Adding redirect from reference/rhat.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/set_prior.html to reference/reexports.html.
+Adding redirect from reference/stancode.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/stancode.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/standata.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/standata.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/update.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/VarCorr.html to reference/reexports.html.
+Adding redirect from reference/VarCorr.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/variables.html to reference/reexports.html.
+Adding redirect from reference/waic.html to reference/reexports.html.
+Adding redirect from reference/waic.frmtmb_draws.html to
+reference/sample-loo.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.sample â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 31s =====
+===== SITE frmtmb.learn -> C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.learn =====
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+â”€â”€ Building pkgdown site for package frmtmb.learn â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-release/extensions/frmtmb.learn
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-release/docs/frmtmb.learn
+â”€â”€ Sitrep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ” URLs ok.
+âœ” Favicons ok.
+âœ” Open graph metadata ok.
+âœ” Articles metadata ok.
+âœ” Reference metadata ok.
+â”€â”€ Initialising site â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
-GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+â”€â”€ Building function reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/bandit2arm_delta.Rd
+Writing `reference/bandit2arm_delta.html`
 Reading man/bandit2arm_dual.Rd
+Writing `reference/bandit2arm_dual.html`
 Reading man/bandit4arm2_kalman_filter.Rd
+Writing `reference/bandit4arm2_kalman_filter.html`
 Reading man/frmtmb.learn-package.Rd
+Writing `reference/frmtmb.learn-package.html`
 Reading man/frm_learn_families.Rd
+Writing `reference/frm_learn_families.html`
 Reading man/frm_task_design.Rd
+Writing `reference/frm_task_design.html`
 Reading man/frm_task_simulate.Rd
+Writing `reference/frm_task_simulate.html`
 Reading man/frm_value_trace.Rd
+Writing `reference/frm_value_trace.html`
 Reading man/igt_orl.Rd
+Writing `reference/igt_orl.html`
 Reading man/igt_pvl_delta.Rd
+Writing `reference/igt_pvl_delta.html`
 Reading man/prl_fictitious.Rd
+Writing `reference/prl_fictitious.html`
 Reading man/rlddm.Rd
+Writing `reference/rlddm.html`
 Reading man/ts_par7.Rd
-GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `reference/ts_par7.html`
+â”€â”€ Building articles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `articles/index.html`
 Reading vignettes/learning.Rmd
-GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-GöÇGöÇ Finished building pkgdown site for package frmtmb.learn GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `articles/learning.html`
+â”€â”€ Building news â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `news/index.html`
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+â”€â”€ Building docs for llms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building redirects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Adding redirect from reference/frmtmb.learn.html to
+reference/frmtmb.learn-package.html.
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Checking for problems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Finished building pkgdown site for package frmtmb.learn â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+===== ok 21s =====
+===== REINDEX root search and sitemap =====
+â”€â”€ Building search index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+â”€â”€ Building sitemap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Writing `sitemap.xml`
+
 ===== ok =====
-DOCS built 8 of 8
+DOCS stray directories: tutorials
+DOCS seconds per site: frmtmb 259, frmtmb.eam 53, frmtmb.latent 17, frmtmb.ode 27, frmtmb.spline 20, frmtmb.coupling 14, frmtmb.sample 31, frmtmb.learn 21
+DOCS total 478s (8.0 min)
+DOCS built 8 of 8 (minimum 8)
+DOCS ok

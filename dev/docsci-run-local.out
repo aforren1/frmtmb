@@ -1,0 +1,24 @@
+﻿DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site
+DOCS sites 8: frmtmb frmtmb.eam frmtmb.latent frmtmb.ode frmtmb.spline frmtmb.coupling frmtmb.sample frmtmb.learn
+DOCS article gates 17, missing 0
+===== SITE frmtmb -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site =====
+===== ok =====
+===== SITE frmtmb.eam -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.eam =====
+===== ok =====
+===== SITE frmtmb.latent -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.latent =====
+===== ok =====
+===== SITE frmtmb.ode -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.ode =====
+===== ok =====
+===== SITE frmtmb.spline -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.spline =====
+===== ok =====
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.coupling =====
+===== ok =====
+===== SITE frmtmb.sample -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.sample =====
+===== ok =====
+===== SITE frmtmb.learn -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.learn =====
+===== ok =====
+DOCS stray directories: tutorials
+DOCS built 8 of 8 (minimum 8)
+DOCS ok
+EXIT 0

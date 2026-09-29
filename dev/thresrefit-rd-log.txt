@@ -1,0 +1,62 @@
+===== influence.frmtmb_fit.Rd =====
+     Each deletion refits the same model, so an ordinal response keeps
+     the threshold count of the full-data fit, and the per-level counts
+     of 'thres(gr = )', whether the response is coded as integers, as a
+     character vector or as an ordered factor. Deleting the last
+     observation in ANY category, bottom, interior or top, leaves that
+     category's threshold in the model and unidentified, which shows as
+     a large displacement in its column, never as a shorter row or a
+     coefficient under the next column's name. 
+
+     Two deletions cannot refit the fitted model at all and are refused
+     by name. A groups = deletion that removes a whole level of
+     'thres(gr = )' takes away every observation behind that level's
+     thresholds, so they could only be invented. data = holding a
+     response category outside the fitted model's threshold layout, or
+     a 'thres(gr = )' level the fit never saw, describes a different
+     model. A category the fit never OBSERVED is not outside that
+     layout when 'thres(K)' declared it, so data = may reach one of
+     those. 
+
+     A refit that fails for any reason, these two included, leaves its
+     row 'NA', and the failures are counted. When some units failed the
+     table comes back with a warning carrying the count and the first
+     reason; when every unit failed there is no table to hand back, so
+     that first reason is raised as an error instead of a silent matrix
+     of 'NA'. 
+
+===== frm.Rd =====
+     A refit inside the package keeps the threshold count of the model
+     it came from, and keeps the count of every level of 'thres(gr =
+     )'. 'frm_bootstrap()', 'refit()', 'frm_allfit()', 'anova(refit =
+     TRUE)', 'confint(method = "profile")' and the autoscale pre-fit
+     reuse the assembled design, so the count cannot move.
+     'influence()' and 'cooks.distance()' rebuild the design from a
+     subset of the data, and carry over the count AND the response's
+     own categories, so a subset that empties ANY category, bottom,
+     interior or top, still fits the fitted model with one threshold
+     that the subset no longer identifies. An ordered-factor response
+     then gives the same table as the same data coded as integers. Two
+     cases cannot be refit and are refused per unit, counted and
+     reported: a groups = deletion that removes a whole 'thres(gr = )'
+     level, and a data = holding a response category outside the fitted
+     threshold layout or a 'thres(gr = )' level the fit never saw. A
+     category 'thres(K)' declared but nothing observed is inside that
+     layout, so data = may reach it. See 'influence()'. 
+
+     Calling 'frm()' again on new data is not a refit: it counts the
+     thresholds of that data. That is what 'update(newdata = )' does,
+     because it re-evaluates the stored call, and what 'simulate()'
+     followed by 'frm()' does. Write 'thres(K)' to pin a count there. 
+
+===== frm_bootstrap.Rd =====
+     Every refit reuses the assembled design, so the number of
+     thresholds is the fitted model's and 'FUN' receives the same
+     parameters in the same order in every replicate. A replicate whose
+     response never reaches the top category keeps that threshold,
+     which the replicate's own data no longer identify: its estimate is
+     large, and the replicate's log-likelihood is the one a fit with
+     'thres(K)' pinned on that replicate gives, to optimizer tolerance.
+     With 'thres(gr = )' the per-level counts are kept the same way. 
+
+style problems: none 

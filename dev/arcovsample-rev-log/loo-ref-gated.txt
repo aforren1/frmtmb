@@ -1,0 +1,7 @@
+ARM ref gated=TRUE frmtmb=0.64.0 at C:/Users/adf44/source/r/rellib-r3/frmtmb newexports=FALSE
+RESULT ref gated test-loo.R pass=83 fail=0 err=5 skip=0
+--- BAD: log_lik() is brms's one-step density for a cov = FALSE ar()
+--- BAD: a cov = FALSE row sum is the objective at the same draw
+--- BAD: log_lik() carries student, sigma ~ x and (1 | g) under arma()
+--- BAD: loo() runs on a cov = FALSE fit and cov = TRUE still refuses
+--- BAD: log_lik() matches brms row by row on a cov = FALSE ARMA

@@ -1,0 +1,5 @@
+CORE  : C:/Users/adf44/source/r/rellib-r3 
+FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.sample/tests/testthat/test-draws-methods.R 
+frmtmb: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.sample 
+RESULT test-draws-methods.R pass=148 fail=0 error=0 skip=0

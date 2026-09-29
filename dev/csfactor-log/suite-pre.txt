@@ -1,0 +1,333 @@
+RESULT test-adefects.R pass=85 fail=0 error=0 skip=0 warn=0
+RESULT test-aliased-grouping.R pass=33 fail=0 error=0 skip=0 warn=0
+RESULT test-api-spellings.R pass=36 fail=0 error=0 skip=0 warn=0
+RESULT test-arg-refusal.R pass=123 fail=0 error=0 skip=0 warn=0
+RESULT test-autocor-cond.R pass=46 fail=0 error=0 skip=0 warn=1
+RESULT test-autocor.R pass=192 fail=0 error=0 skip=0 warn=0
+RESULT test-autoscale.R pass=46 fail=0 error=0 skip=0 warn=0
+RESULT test-backlog.R pass=35 fail=0 error=0 skip=0 warn=0
+RESULT test-bcm-bart.R pass=8 fail=0 error=0 skip=1 warn=0
+  SKIP: BART_1 matches its Stan program 
+RESULT test-bcm-binomial.R pass=17 fail=0 error=0 skip=6 warn=0
+  SKIP: Rate_1 matches its Stan program 
+  SKIP: Rate_2 matches its Stan program 
+  SKIP: Rate_3 matches its Stan program 
+  SKIP: Rate_4 matches its Stan program 
+  SKIP: Rate_5 matches its Stan program 
+  SKIP: Survey matches its Stan program 
+RESULT test-bcm-data-analysis.R pass=20 fail=0 error=0 skip=6 warn=0
+  SKIP: Correlation_1 matches its Stan program 
+  SKIP: Correlation_2 matches its Stan program 
+  SKIP: Kappa matches its Stan program 
+  SKIP: ChangeDetection matches its Stan program 
+  SKIP: Planes matches its Stan program 
+  SKIP: ChaSaSoon matches its Stan program 
+RESULT test-bcm-esp.R pass=5 fail=0 error=0 skip=2 warn=0
+  SKIP: OptionalStopping matches Correlation_1's Stan program 
+  SKIP: Extraversion matches its Stan program 
+RESULT test-bcm-gaussian.R pass=11 fail=0 error=0 skip=3 warn=0
+  SKIP: Gaussian matches its Stan program 
+  SKIP: Seven Scientists matches its Stan program 
+  SKIP: IQ matches its Stan program 
+RESULT test-bcm-gcm.R pass=9 fail=0 error=0 skip=2 warn=0
+  SKIP: GCM_1 matches its Stan program 
+  SKIP: GCM_2 matches its Stan program 
+RESULT test-bcm-latent-mixtures.R pass=30 fail=0 error=0 skip=5 warn=0
+  SKIP: Exams_1 matches its Stan program 
+  SKIP: Exams_2 matches its Stan program 
+  SKIP: Malingering_1 matches its Stan program 
+  SKIP: Malingering_2 matches its Stan program 
+  SKIP: TwentyQuestions matches its Stan program 
+RESULT test-bcm-model-selection.R pass=13 fail=0 error=0 skip=3 warn=0
+  SKIP: Pledgers_1 matches its Stan program 
+  SKIP: Geurts matches its Stan program 
+  SKIP: TwoSample matches its Stan program 
+RESULT test-bcm-mpt.R pass=15 fail=0 error=0 skip=2 warn=0
+  SKIP: MPT_1 matches its Stan program 
+  SKIP: MPT_2 to MPT_5 match their Stan program 
+RESULT test-bcm-psychophysics.R pass=7 fail=0 error=0 skip=2 warn=0
+  SKIP: PsychophysicalFunction1 matches its Stan program 
+  SKIP: PsychophysicalFunction2 matches its Stan program 
+RESULT test-bcm-retention.R pass=15 fail=0 error=0 skip=3 warn=0
+  SKIP: Retention_1 matches its Stan program 
+  SKIP: Retention_2 matches its Stan program 
+  SKIP: Retention_3 matches its Stan program 
+RESULT test-bcm-signal-detection.R pass=6 fail=0 error=0 skip=3 warn=0
+  SKIP: SDT_1 matches its Stan program 
+  SKIP: SDT_2 matches its Stan program 
+  SKIP: SDT_3's parameter expansion is a ridge, not a model 
+RESULT test-bcm-simple.R pass=8 fail=0 error=0 skip=1 warn=0
+  SKIP: SIMPLE_1 matches its Stan program 
+RESULT test-boot.R pass=49 fail=0 error=0 skip=0 warn=0
+RESULT test-bracket-access.R pass=33 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-agreement.R pass=168 fail=0 error=0 skip=2 warn=0
+  SKIP: distributional gaussian ML matches the brms posterior mode 
+  SKIP: mo() ML matches brms's monotonic likelihood (vignette model) 
+RESULT test-brms-families.R pass=1033 fail=0 error=0 skip=0 warn=12
+RESULT test-brms-formula-priors.R pass=208 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-likelihood.R pass=17 fail=0 error=0 skip=37 warn=0
+  SKIP: the translator round-trips through Stan's constraints 
+  SKIP: the simplex and group-level rules round-trip 
+  SKIP: row 1: distributional gaussian, y ~ x + z with sigma ~ x 
+  SKIP: row 2: monotonic effects, y ~ mo(inc) + z 
+  SKIP: row 3: monotonic interaction, y ~ mo(inc):z 
+  SKIP: row 3: mo(inc) * z is the same model in both packages 
+  SKIP: row 5: nonlinear, y ~ a * exp(-b * x) with a + b ~ 1 
+  SKIP: row 12: ordinal families, cumulative sratio cratio acat 
+  SKIP: row 13: categorical(y ~ x) 
+  SKIP: row 14: censoring and known standard errors 
+  SKIP: row 15: binomial with trials(n) 
+  SKIP: row 16: zero-inflated poisson with zi ~ x 
+  SKIP: row 16b: hurdle negative binomial with hu ~ x 
+  SKIP: row 16c: zero-one-inflated beta with zoi ~ x 
+  SKIP: row 20: weights(w) 
+  SKIP: row 21: one-predictor fits across the family roster 
+  SKIP: check C: sleepstudy joint density with (Days | Subject) 
+  SKIP: row 17: mixture(gaussian, gaussian) with theta1 ~ x 
+  SKIP: row 17b: theta2 ~ x makes component 1 the reference, as brms 
+  SKIP: check C: row 7, (1 | q | g) merged across mu and sigma 
+  SKIP: check C: row 3's (1 | g) variant, monotonic interaction 
+  SKIP: check C: row 16's (1 | g) variant, zero-inflated poisson 
+  SKIP: row 8: mvbf(y1 ~ x, y2 ~ x) with set_rescor(TRUE) 
+  SKIP: check C: row 9, multivariate with (1 | p | g) in both 
+  SKIP: check C: row 4, mi() imputation and mi(sdx) measurement error 
+  SKIP: check C: row 23, me() noise-free terms 
+  SKIP: check C: row 6, nonlinear with a ~ 1 + (1 | g) 
+  SKIP: check C: row 11, s(x) is a random effect with one basis 
+  SKIP: check C: row 11, t2(x, z) is three bases under one term 
+  SKIP: check C: row 10, gp(x, k = 10) Hilbert-space approximation 
+  SKIP: row 18: ar(p = 1), cosy and unstr residual correlation 
+  SKIP: row 18d: brms's default cov = FALSE ARMA is an identity 
+  SKIP: check C: row 19, car(escar) and car(icar) 
+  SKIP: row 19c-esicar: car(esicar) is the same model in both packages 
+  SKIP: row 12b: an ordinal fit with mo() is the same model in both packages 
+  SKIP: row 22: the brms link roster on (0, 1) responses 
+  SKIP: row 22: the brms link roster on positive-mean responses 
+RESULT test-brms-methods.R pass=16 fail=0 error=0 skip=46 warn=0
+  SKIP: the mechanism: brms draws ARE frmtmb's estimates 
+  SKIP: the mechanism holds for every shape in the matrix 
+  SKIP: summing log_lik is not logLik once there are random effects 
+  SKIP: no deferred exclusion is a repaired defect 
+  SKIP: posterior_epred is frmtmb's fitted() on the response scale 
+  SKIP: posterior_linpred is frmtmb's frm_linpred(type = 'link') 
+  SKIP: a multi-column linear predictor is one vector to frmtmb 
+  SKIP: transform = TRUE is the inverse link, not always the mean 
+  SKIP: each dpar's epred is frmtmb's response-scale prediction 
+  SKIP: a dpar's linpred agrees where the dpar has a predictor 
+  SKIP: se() leaves a residual sigma both packages report as absent 
+  SKIP: a mixture's theta is the softmax on the response scale 
+  SKIP: conditional_effects finds a mixture's covariate on theta 
+  SKIP: a dpar with no predictor puts linpred on different scales 
+  SKIP: fixef point estimates agree, under brms's spelling 
+  SKIP: ranef and coef agree at the mapped conditional modes 
+  SKIP: ranef and coef key their lists the same way, as brms does 
+  SKIP: coef() is the same generic for two different contracts 
+  SKIP: VarCorr standard deviations agree 
+  SKIP: brms's ordinary residual is frmtmb's response residual 
+  SKIP: residuals are refused on the shapes brms refuses them on 
+  SKIP: the pearson residuals divide by different quantities 
+  SKIP: frm_linpred() is fitted(), not brms's predict() 
+  SKIP: one-way conditional_effects agree on grid and estimate 
+  SKIP: conditional_effects draws the expected response, zero-inflated 
+  SKIP: a mo() predictor gets its levels, not a continuous grid 
+  SKIP: a nonlinear predictor is refused a wald band 
+  SKIP: conditional_effects returns brms's columns 
+  SKIP: the two-way grid agrees elementwise, order included 
+  SKIP: the two-way factor moderator agrees elementwise too 
+  SKIP: conditional_effects(int_conditions =) conditions the effect 
+  SKIP: conditional_effects(conditions =) agrees on values 
+  SKIP: conditional_effects(dpar =) enumerates different effects 
+  SKIP: an ordinal fit's conditional_effects reach both layouts 
+  SKIP: a nominal per-category display needs a bootstrap band 
+  SKIP: conditional_effects(method =) takes brms's vocabulary too 
+  SKIP: hypothesis point estimates agree on every expression 
+  SKIP: hypothesis reaches sd and cor by brms's names 
+  SKIP: re_formula: prediction agrees, and so does the population curve 
+  SKIP: an unknown argument is reported against the function called 
+  SKIP: hypothesis returns brms's object 
+  SKIP: the interval columns are a documented difference in kind 
+  SKIP: loo and bayes_R2 refuse on a maximum-likelihood fit 
+  SKIP: pp_check returns a plot on both sides 
+  SKIP: newdata: both agree on the values and on what is refused 
+  SKIP: newdata: dropping a factor level, and adding one 
+RESULT test-brms-names.R pass=138 fail=0 error=0 skip=0 warn=3
+RESULT test-brms-port.R pass=21 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-priors.R pass=0 fail=0 error=0 skip=12 warn=0
+  SKIP: a brms get_prior() table applies what its rows say 
+  SKIP: a row the USER edited in a get_prior() table is honored 
+  SKIP: every default row's fate is one of five, by shape 
+  SKIP: both routes are one code path, class by class 
+  SKIP: row 5: a dpar prior lands on the parameter brms means 
+  SKIP: row 5: the translated table reproduces brms's mode 
+  SKIP: row C: class sd is brms's placement, up to log(2) 
+  SKIP: row C: class cor is the same LKJ in another coordinate 
+  SKIP: row 1: a dpar WITH a linear predictor agrees exactly 
+  SKIP: S7: the centering no longer biases a regression slope 
+  SKIP: row 12: brms's ordinal threshold prior lands on tau_raw 
+  SKIP: row 17: a mixture keeps everything but its reference theta 
+RESULT test-brms-shapes-punch.R pass=55 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-shapes-punch2.R pass=22 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-shapes.R pass=72 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-brm.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-brmsfit-helpers.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-brmsformula.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-brmsterms.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-data-helpers.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-emmeans.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-families.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-methods.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-priors.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-brms-suite-standata.R pass=0 fail=0 error=0 skip=0 warn=0
+RESULT test-car-spde.R pass=136 fail=0 error=0 skip=0 warn=0
+RESULT test-case-studies.R pass=30 fail=0 error=0 skip=0 warn=0
+RESULT test-ce-bands.R pass=167 fail=0 error=0 skip=0 warn=0
+RESULT test-ce-facets.R pass=92 fail=0 error=0 skip=0 warn=0
+RESULT test-cens-lccdf.R pass=27 fail=0 error=0 skip=0 warn=0
+RESULT test-cens-trunc.R pass=69 fail=0 error=0 skip=0 warn=0
+RESULT test-ci-siblings.R pass=11 fail=0 error=0 skip=0 warn=0
+RESULT test-compat-register.R pass=103 fail=0 error=0 skip=0 warn=0
+RESULT test-compat.R pass=639 fail=0 error=0 skip=0 warn=0
+RESULT test-conditions-census.R pass=11 fail=0 error=0 skip=0 warn=0
+RESULT test-conditions.R pass=150 fail=0 error=0 skip=0 warn=0
+RESULT test-confint-anova.R pass=35 fail=0 error=0 skip=0 warn=0
+RESULT test-core-boundary.R pass=4 fail=0 error=0 skip=0 warn=0
+RESULT test-covstruct.R pass=7 fail=0 error=0 skip=0 warn=0
+RESULT test-cs-factor.R pass=43 fail=0 error=0 skip=0 warn=0
+RESULT test-custom-family.R pass=126 fail=0 error=0 skip=0 warn=0
+RESULT test-data2.R pass=30 fail=0 error=0 skip=0 warn=0
+RESULT test-dates.R pass=13 fail=0 error=0 skip=0 warn=0
+RESULT test-diagnostics-ux.R pass=127 fail=0 error=0 skip=0 warn=0
+RESULT test-distributional.R pass=28 fail=0 error=0 skip=0 warn=0
+RESULT test-dpar-eta-api.R pass=123 fail=0 error=0 skip=0 warn=0
+RESULT test-drmtmb-agreement.R pass=0 fail=0 error=0 skip=13 warn=0
+  SKIP: gaussian location-scale with a mu random intercept, ML and REML 
+  SKIP: random intercepts in mu and sigma, independent and correlated 
+  SKIP: beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) 
+  SKIP: bivariate gaussian: rho12, correlated group effects, REML 
+  SKIP: animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) 
+  SKIP: phylo(tree) rescales the tree to unit height 
+  SKIP: student and cumulative logit with a mu random intercept 
+  SKIP: more families: lognormal, Gamma, beta-binomial, ZI NB2 
+  SKIP: meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE) 
+  SKIP: sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz 
+  SKIP: mi(): a gaussian missing predictor with its own model 
+  SKIP: skew_normal: same likelihood, from frmtmb's default start 
+  SKIP: REML with a sigma random effect: not the same criterion 
+RESULT test-dry-run.R pass=23 fail=0 error=0 skip=0 warn=0
+RESULT test-edgecases.R pass=64 fail=0 error=0 skip=0 warn=0
+RESULT test-effects.R pass=54 fail=0 error=0 skip=0 warn=0
+RESULT test-emmeans.R pass=38 fail=0 error=0 skip=0 warn=0
+RESULT test-famgaps.R pass=100 fail=0 error=0 skip=0 warn=0
+RESULT test-families.R pass=252 fail=0 error=0 skip=0 warn=0
+RESULT test-fit-end-hook.R pass=18 fail=0 error=0 skip=0 warn=0
+RESULT test-frame.R pass=22 fail=0 error=0 skip=0 warn=0
+RESULT test-functional.R pass=3 fail=0 error=0 skip=0 warn=0
+RESULT test-fuzz.R pass=0 fail=0 error=0 skip=1 warn=0
+  SKIP: pairwise grammar fuzz finds no new invariant violations 
+RESULT test-generic-collision.R pass=56 fail=0 error=0 skip=0 warn=0
+RESULT test-get-prior-route.R pass=79 fail=0 error=0 skip=0 warn=0
+RESULT test-glmm-binomial.R pass=10 fail=0 error=0 skip=0 warn=0
+RESULT test-glmm-gaussian.R pass=17 fail=0 error=0 skip=0 warn=0
+RESULT test-glmm-poisson.R pass=12 fail=0 error=0 skip=0 warn=0
+RESULT test-gp-multidim.R pass=42 fail=0 error=0 skip=0 warn=0
+RESULT test-gr-by.R pass=71 fail=0 error=0 skip=0 warn=0
+RESULT test-habit-prep.R pass=16 fail=0 error=0 skip=0 warn=0
+RESULT test-hurdle-nb-zoib.R pass=85 fail=0 error=0 skip=0 warn=0
+RESULT test-id-kron.R pass=60 fail=0 error=0 skip=0 warn=0
+RESULT test-importance.R pass=226 fail=0 error=0 skip=0 warn=0
+RESULT test-influence-plot.R pass=21 fail=0 error=0 skip=0 warn=0
+RESULT test-input-validation.R pass=43 fail=0 error=0 skip=0 warn=0
+RESULT test-interop.R pass=45 fail=0 error=0 skip=0 warn=0
+RESULT test-lkj.R pass=212 fail=0 error=0 skip=0 warn=0
+RESULT test-map.R pass=7 fail=0 error=0 skip=0 warn=0
+RESULT test-me.R pass=70 fail=0 error=0 skip=0 warn=0
+RESULT test-mean-fn.R pass=4 fail=0 error=0 skip=0 warn=0
+RESULT test-message-uniqueness.R pass=6 fail=0 error=0 skip=0 warn=0
+RESULT test-method-residue.R pass=64 fail=0 error=0 skip=0 warn=0
+RESULT test-methods-audit.R pass=58 fail=0 error=0 skip=0 warn=0
+RESULT test-methods.R pass=64 fail=0 error=0 skip=0 warn=0
+RESULT test-mi-bsp-names.R pass=11 fail=0 error=0 skip=0 warn=0
+RESULT test-mixture-reference.R pass=12 fail=0 error=0 skip=0 warn=0
+RESULT test-mixture-start.R pass=5 fail=0 error=0 skip=0 warn=0
+RESULT test-mm.R pass=116 fail=0 error=0 skip=0 warn=0
+RESULT test-mo-terms.R pass=74 fail=0 error=0 skip=0 warn=0
+RESULT test-multinomial.R pass=17 fail=0 error=0 skip=0 warn=0
+RESULT test-multiple-pooling.R pass=33 fail=0 error=0 skip=0 warn=0
+RESULT test-multivariate.R pass=23 fail=0 error=0 skip=0 warn=0
+RESULT test-mv-gaps.R pass=46 fail=0 error=0 skip=0 warn=0
+RESULT test-mvn-mixture.R pass=277 fail=0 error=0 skip=0 warn=0
+RESULT test-naming-collisions.R pass=29 fail=0 error=0 skip=0 warn=0
+RESULT test-nl-body-vars.R pass=23 fail=0 error=0 skip=0 warn=0
+RESULT test-nl-lexical.R pass=31 fail=0 error=0 skip=0 warn=0
+RESULT test-nl-rtmb-scope.R pass=105 fail=0 error=0 skip=0 warn=1
+RESULT test-nl.R pass=44 fail=0 error=0 skip=0 warn=0
+RESULT test-nlf.R pass=75 fail=0 error=0 skip=0 warn=0
+RESULT test-numerical-robustness.R pass=709 fail=0 error=0 skip=0 warn=0
+RESULT test-open-issues.R pass=43 fail=0 error=0 skip=0 warn=0
+RESULT test-ordinal-fitted.R pass=129 fail=0 error=0 skip=0 warn=0
+RESULT test-ordinal.R pass=109 fail=0 error=0 skip=0 warn=0
+RESULT test-osa-inference.R pass=34 fail=0 error=0 skip=0 warn=0
+RESULT test-par-template.R pass=51 fail=0 error=0 skip=0 warn=0
+RESULT test-parity-integration.R pass=8 fail=0 error=0 skip=0 warn=0
+RESULT test-parse.R pass=43 fail=0 error=0 skip=0 warn=0
+RESULT test-perf.R pass=3 fail=0 error=0 skip=0 warn=0
+RESULT test-pooled-anova.R pass=64 fail=0 error=0 skip=0 warn=0
+RESULT test-portability.R pass=95 fail=0 error=0 skip=0 warn=0
+RESULT test-pp-check-types.R pass=193 fail=0 error=0 skip=0 warn=0
+RESULT test-predfix.R pass=92 fail=0 error=0 skip=0 warn=0
+RESULT test-predict-lp-basis.R pass=30 fail=0 error=0 skip=0 warn=0
+RESULT test-predict-newdata.R pass=12 fail=0 error=0 skip=0 warn=0
+RESULT test-predict-re-uncertainty.R pass=65 fail=0 error=0 skip=0 warn=0
+RESULT test-prior-compat.R pass=194 fail=0 error=0 skip=0 warn=0
+RESULT test-prior-location-dpar.R pass=55 fail=0 error=0 skip=0 warn=0
+RESULT test-prior-mv-resp.R pass=36 fail=0 error=0 skip=0 warn=0
+RESULT test-prior-sd-scope.R pass=24 fail=0 error=0 skip=0 warn=0
+RESULT test-priors-autocor-classes.R pass=62 fail=0 error=0 skip=0 warn=0
+RESULT test-priors-bounds-grcov.R pass=50 fail=0 error=0 skip=0 warn=0
+RESULT test-ps.R pass=71 fail=0 error=0 skip=0 warn=0
+RESULT test-quadrature-defects.R pass=59 fail=0 error=0 skip=0 warn=0
+RESULT test-re-formula-partial.R pass=39 fail=0 error=0 skip=0 warn=0
+RESULT test-reml-nongaussian.R pass=9 fail=0 error=0 skip=0 warn=0
+RESULT test-reml-shapes.R pass=8 fail=0 error=0 skip=0 warn=0
+RESULT test-review-fixes.R pass=18 fail=0 error=0 skip=0 warn=0
+RESULT test-review-v25.R pass=60 fail=0 error=0 skip=0 warn=0
+RESULT test-review-v28.R pass=74 fail=0 error=0 skip=0 warn=0
+RESULT test-review-v29.R pass=138 fail=0 error=0 skip=0 warn=0
+RESULT test-rl-example.R pass=96 fail=0 error=0 skip=2 warn=0
+  SKIP: the taped joint density equals a Stan program's log_prob 
+  SKIP: the Stan identity holds away from the optimum too 
+RESULT test-rsv-intercept.R pass=55 fail=0 error=0 skip=0 warn=0
+RESULT test-sandwich.R pass=58 fail=0 error=0 skip=0 warn=0
+RESULT test-scale-contract.R pass=37 fail=0 error=0 skip=0 warn=0
+RESULT test-setprior.R pass=27 fail=0 error=0 skip=0 warn=0
+RESULT test-simulate-density.R pass=459 fail=0 error=0 skip=0 warn=0
+RESULT test-simulate-ergonomics.R pass=50 fail=0 error=0 skip=0 warn=0
+RESULT test-simulate-newdata.R pass=44 fail=0 error=0 skip=0 warn=0
+RESULT test-skew-normal-start.R pass=70 fail=0 error=0 skip=0 warn=0
+RESULT test-smooth-population.R pass=33 fail=0 error=0 skip=0 warn=0
+RESULT test-smooths.R pass=33 fail=0 error=0 skip=0 warn=0
+RESULT test-sparsear1.R pass=24 fail=0 error=0 skip=0 warn=0
+RESULT test-sparsex.R pass=64 fail=0 error=0 skip=0 warn=0
+RESULT test-spectral.R pass=113 fail=0 error=0 skip=0 warn=0
+RESULT test-sratio-thresholds.R pass=29 fail=0 error=0 skip=0 warn=0
+RESULT test-structure.R pass=135 fail=0 error=0 skip=0 warn=0
+RESULT test-sugar.R pass=45 fail=0 error=0 skip=0 warn=0
+RESULT test-tabular-inputs.R pass=9 fail=0 error=0 skip=0 warn=0
+RESULT test-thres.R pass=67 fail=0 error=0 skip=0 warn=0
+RESULT test-tmb-examples.R pass=28 fail=0 error=0 skip=0 warn=0
+RESULT test-tre.R pass=102 fail=0 error=0 skip=0 warn=0
+RESULT test-trunc-postfit.R pass=35 fail=0 error=0 skip=0 warn=0
+RESULT test-unpinned-seams.R pass=30 fail=0 error=0 skip=0 warn=0
+RESULT test-v07.R pass=25 fail=0 error=0 skip=0 warn=0
+RESULT test-v11.R pass=22 fail=0 error=0 skip=0 warn=0
+RESULT test-v12.R pass=26 fail=0 error=0 skip=0 warn=0
+RESULT test-v14.R pass=81 fail=0 error=0 skip=0 warn=0
+RESULT test-v15.R pass=41 fail=0 error=0 skip=0 warn=0
+RESULT test-v16.R pass=24 fail=0 error=0 skip=0 warn=0
+RESULT test-v17.R pass=36 fail=0 error=0 skip=0 warn=0
+RESULT test-v18.R pass=27 fail=0 error=0 skip=0 warn=0
+RESULT test-v19.R pass=23 fail=0 error=0 skip=0 warn=0
+RESULT test-verbose.R pass=40 fail=0 error=0 skip=0 warn=0
+RESULT test-vignette-wiener.R pass=21 fail=0 error=0 skip=0 warn=0
+RESULT test-zi.R pass=11 fail=0 error=0 skip=0 warn=0
+BATCH produced a RESULT line for 180 of 180 files

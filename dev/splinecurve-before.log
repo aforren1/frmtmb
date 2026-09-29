@@ -1,0 +1,20 @@
+﻿frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3 
+frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/rellib-r3 
+frm_curve() formals: object, newdata, contrast, dpar, resp, re_formula, level, simultaneous, nsim, transform, seed, tol 
+
+-- vignette chunk `curve`: grid without subject, re_formula = NA 
+   ERROR [frmtmb_error/error/condition]: predict(newdata = ) for the factor-smooth term s(t,subject) needs the grouping column `subject`: the term holds one curve per level of `subject`, so every prediction from it has to say which level each row belongs to. Add the column to newdata. re_formula = NA does not remove the need: it keeps every smooth, as brms does
+
+-- grid at an UNSEEN subject, re_formula = NA (no flag to pass) 
+   ERROR [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(t,subject): population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, as brms does, so it does not help here
+
+-- grid at an UNSEEN subject, re_formula = NULL 
+   ERROR [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(t,subject): population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, as brms does, so it does not help here
+
+-- frm_curve_deriv at an UNSEEN subject 
+   ERROR [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(t,subject): population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, as brms does, so it does not help here
+
+-- frm_curve_feature at an UNSEEN subject 
+   ERROR [frmtmb_error/frmtmb_new_levels/error/condition]: New levels in the factor-smooth term s(t,subject): population. The term has no curve for them. Use allow_new_levels = TRUE to predict them at the population level; re_formula = NA keeps the term, as brms does, so it does not help here
+
+-- core frm_linpred(allow_new_levels = TRUE) at the unseen subject: 80 values, first 0.01721029 

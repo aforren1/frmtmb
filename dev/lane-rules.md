@@ -37,41 +37,41 @@ leaves hollow directories.
 - Other lanes may be running. Your private library is yours alone, so
   your installs are safe; installing anywhere else is not.
 
-## The pinned-package library, and why `.libPaths()` order matters
+## Stan on this machine, and what replaced the pinned library
 
-`C:/Users/adf44/source/r/pinlib` holds packages this project pins to a
-version the shared user library does not have. It is READ-ONLY to you:
-never install into it.
+There is no pin library any more. `rstan` 2.32.7 compiles a fresh Stan
+program against the StanHeaders 2.39.1 that the user library carries,
+as long as one line is present in
+`C:/Users/adf44/Documents/.R/Makevars.win`:
 
-Today it holds one, and it is not optional if you touch Stan. `rstan`
-2.32.7 declares `StanHeaders (>= 2.32.0)`, an open bound, so the user
-library carries 2.39.1, which rstan cannot compile against. Any test
-that compiles a FRESH Stan program dies in `compileCode()` at
-`make: *** Error 1`, while anything served from `FRMTMB_STAN_CACHE`
-passes, so a green suite is not evidence. `dev/machine-library.md` has
-the measurement.
+    CXX17FLAGS += -std=gnu++17
 
-Order your paths so the pin wins over the user library and your own
-library wins over both:
+StanHeaders 2.39 needs C++17 and R does not select it by default, so
+without that line a fresh compile dies in `compileCode()` at
+`make: *** Error 1`.
+
+`dev/release/run-tests.R` asserts both halves of this before it runs a
+test, because the failure is quiet:
+
+    packageVersion("tmbstan") >= "1.2.1"
+    any(grepl("-std=gnu++17", readLines(tools::makevars_user())))
+
+A GREEN SUITE IS WEAKER EVIDENCE THAN ONE FRESH COMPILE. Anything
+served from `FRMTMB_STAN_CACHE` passes whether or not the toolchain can
+build anything, so a tier that compiles nothing new says nothing about
+Stan. Those two assertions are the stronger evidence.
+
+History, in one sentence: `C:/Users/adf44/source/r/pinlib` held
+StanHeaders 2.32.10 until 2026-09-17, for a tmbstan build that sampled
+a standard normal instead of the model and for the compile failure
+above; tmbstan 1.2.1 fixed the first and the Makevars line fixed the
+second, so the pin was retired and `pinlib` holds nothing today.
+`dev/tmbstan121-findings.md` has the measurements, arm by arm.
+
+Your `.libPaths()` therefore has two entries, your own library first:
 
     .libPaths(c(LIB,
-                "C:/Users/adf44/source/r/pinlib",
                 "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
-
-Check it rather than assume it, because the failure is quiet:
-
-    packageVersion("StanHeaders")   # must be 2.32.10, not 2.39.1
-    packageVersion("rstan")         # 2.32.7
-
-Rebuilding the pin, if it is ever lost. The tarball is kept beside it
-in `pinlib/.src`, and its source is the CRAN archive:
-
-    https://cran.r-project.org/src/contrib/Archive/StanHeaders/StanHeaders_2.32.10.tar.gz
-
-`R CMD INSTALL --library=<pinlib>` with Rtools 4.5 on PATH, which takes
-about a minute. A dated Posit Package Manager snapshot would serve the
-same purpose on a fresh machine; the archive URL is used here because
-it names the exact version rather than a date that has to be looked up.
 
 ## Toolchain
 
@@ -119,6 +119,12 @@ it names the exact version rather than a date that has to be looked up.
   write, so the run finishes and reports `SUITE ran 272 of 272` over a log
   holding 17 of them. The count was right and the evidence was gone. Found
   by lane wt-reunc, 2026-09-23, at the cost of one full suite run.
+  An agent harness MONITOR is the same trap in a new form: a `tail -F`
+  under a monitor keeps running after the monitor is stopped or
+  expires, so the file stays locked for the rest of the session. At the
+  0.65.0 consolidation ten orphaned `tail` processes cost two tier runs.
+  Before trusting a log, check `tasklist | grep tail` and kill them, and
+  watch the driver PROCESS instead of the log.
 - The GATED tier must skip NOTHING; it exists to run what the ungated
   tier skips. Read its skip column, not only pass and fail. At 0.62.0
   the release reported "39 of 39, 0 fail" while test-drmtmb-agreement.R
@@ -130,14 +136,18 @@ it names the exact version rather than a date that has to be looked up.
   R_TempDir". It also sent one lane's gated runs into its plain logs
   before it was caught (wt-phase3b, 2026-09-24). Call Rscript directly,
   or check TMP inside the shell that launches R.
-- Memory is shared by every lane. On 2026-09-24 the machine crashed
-  with memory exhausted while one lane ran 11 R fitting processes at up
-  to 2.4 GB each beside four other lanes; 34 of its fits had already
-  failed with `std::bad_alloc`, and NaN gradients clustered in the same
-  time windows. Run at most 3 fitting processes at a time, and before
-  starting each one check that at least 5 GB is free. A fit that
-  fails with `bad_alloc` or a NaN gradient under memory pressure is not
-  evidence about the model until it reproduces alone.
+- Memory. On the machine of 2026-09-28, which has 63 GB of RAM and a
+  fast disk, test runs need no process cap: keep ONE TEST FILE PER R
+  PROCESS and run as many of them at once as the work needs.
+
+  The history stays because the failure mode is real on a smaller box.
+  On 2026-09-24 the machine of that time crashed with memory exhausted
+  while one lane ran 11 R fitting processes at up to 2.4 GB each beside
+  four other lanes; 34 of its fits had already failed with
+  `std::bad_alloc`, and NaN gradients clustered in the same time
+  windows. A fit that fails with `bad_alloc` or a NaN gradient under
+  memory pressure is not evidence about the model until it reproduces
+  alone.
 - Prefix every scratch file and log with your lane name.
 
 ## House style, which the reviewer will check

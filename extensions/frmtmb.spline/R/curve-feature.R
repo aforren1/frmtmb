@@ -120,16 +120,18 @@ frm_curve_feature <- function(object, var,
                                        "crossing"),
                               at = 0, newdata = NULL, contrast = NULL,
                               dpar = NULL, resp = NULL, re_formula = NA,
-                              level = 0.95, eps = NULL, maxit = 50L,
-                              tol = 1e-6) {
+                              allow_new_levels = FALSE, level = 0.95,
+                              eps = NULL, maxit = 50L, tol = 1e-6) {
   type <- frm_match_arg(type)
   sp_check_level(level)
+  sp_check_flag(allow_new_levels, "allow_new_levels")
   sp_check_count(maxit, "maxit")
   if (!is.numeric(at) || length(at) != 1L || !is.finite(at)) {
     frm_stop("`at` must be one finite number: the level the crossing is of",
              call. = FALSE)
   }
-  sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula)
+  sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula,
+                allow_new_levels, !missing(allow_new_levels))
   # before the root scan, not after: a search that finds no root returns
   # early and would otherwise never reach the covariance
   sp_rp_gate(sp$fit)
@@ -162,11 +164,13 @@ frm_curve_feature <- function(object, var,
   eta_at <- function(tv) {
     d <- row1[rep(1L, length(tv)), , drop = FALSE]
     d[[var]] <- tv
-    ev <- sp_predict_eta(sp$fit, d, sp$dpar, sp$resp, sp$re_formula)
+    ev <- sp_predict_eta(sp$fit, d, sp$dpar, sp$resp, sp$re_formula,
+                         sp$allow_new_levels)
     if (is.null(crow1)) return(ev)
     d2 <- crow1[rep(1L, length(tv)), , drop = FALSE]
     d2[[var]] <- tv
-    ev - sp_predict_eta(sp$fit, d2, sp$dpar, sp$resp, sp$re_formula)
+    ev - sp_predict_eta(sp$fit, d2, sp$dpar, sp$resp, sp$re_formula,
+                        sp$allow_new_levels)
   }
   gfun <- if (type == "crossing") {
     function(tv) eta_at(tv) - at
@@ -301,8 +305,12 @@ frm_curve_feature <- function(object, var,
     cstk <- crow1[rep(1L, 5L * length(roots)), , drop = FALSE]
     cstk[[var]] <- sv
   }
-  parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re_formula, tol,
-                          cstk)
+  parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re_formula,
+                          sp$allow_new_levels, tol, cstk)
+  # after the root search, so a window with no root still returns its
+  # zero-row answer, which carries no standard error to be wrong
+  sp_new_level_stop(parts, "frm_curve_feature()",
+                    "the standard errors of the location and the height")
   nr <- length(roots)
   blk <- function(k) parts$C[(k - 1L) * nr + seq_len(nr), , drop = FALSE]
   eta <- function(k) parts$eta[(k - 1L) * nr + seq_len(nr)]

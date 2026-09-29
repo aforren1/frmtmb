@@ -1,0 +1,2 @@
+ARM lane gated=FALSE frmtmb=0.64.0 at C:/Users/adf44/source/r/wt-arcovsample-lib/frmtmb newexports=TRUE
+RESULT lane test-autocor.R pass=192 fail=0 err=0 skip=0

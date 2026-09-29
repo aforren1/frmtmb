@@ -1,0 +1,11 @@
+CORE: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+nonlinear          err=NA conv=0 logLik=107.145941906656 gmax=5.56272e-05 nwarn=0
+     max_grad=5.5627e-05 grad_proj=NA headroom=NA
+nonlinear_short    err=NA conv=0 logLik=107.10857958448 gmax=11.2409 nwarn=1
+     WARN: Large maximum absolute gradient at the optimum (11.2); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+     max_grad=11.241 grad_proj=NA headroom=NA
+importance         err=NA conv=0 logLik=-1448.7044474742 gmax=0.00389172 nwarn=0
+     max_grad=0.0038917 grad_proj=NA headroom=NA
+importance_big     err=NA conv=0 logLik=-9343.16432713229 gmax=0.00215222 nwarn=0
+     max_grad=0.0021522 grad_proj=NA headroom=NA
+DONE ident2

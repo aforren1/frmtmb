@@ -1,0 +1,31 @@
+library: lane  frmtmb 0.64.0 
+
+== an active bound (silent, but diagnose names it)
+  (no warnings)
+  Optimizer convergence code: 0 (relative convergence (4)) 
+  Max |gradient|: 121.2 at x 
+    1 parameter is held by a bound (x); the largest gradient no bound holds is 4.86e-07 at (Intercept)
+  Hessian positive definite: FALSE 
+  Non-finite standard errors: x, sigma_(Intercept) 
+
+== a loosened optimizer (warns, headroom measured)
+  WARNING: Large maximum absolute gradient at the optimum (45.5 at x): one Newton step over the parameters no bound holds would still gain 0.383 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+  Optimizer convergence code: 0 (relative convergence (4)) 
+  Max |gradient|: 45.46 at x 
+    One Newton step over the parameters no bound holds would still gain 0.3825 in log-likelihood (frmtmb_control(grad_tol) is 0.001)
+  Hessian positive definite: TRUE 
+
+== a far start (warns, curvature unusable)
+  WARNING: Optimizer did not report convergence: iteration limit reached without convergence (10)
+  WARNING: Large maximum absolute gradient at the optimum (50170 at sigma_(Intercept)): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+  Optimizer convergence code: 1 (iteration limit reached without convergence (10)) 
+  Max |gradient|: 50170 at sigma_(Intercept) 
+  Hessian positive definite: FALSE 
+  Non-finite standard errors: sigma_(Intercept) 
+
+== a collinear ridge (warns on curvature, not size)
+  WARNING: Large maximum absolute gradient at the optimum (0.00499 at (Intercept)): one Newton step over the parameters no bound holds would still gain 0.529 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+  Optimizer convergence code: 0 (relative convergence (4)) 
+  Max |gradient|: 0.004986 at (Intercept) 
+    One Newton step over the parameters no bound holds would still gain 0.5295 in log-likelihood (frmtmb_control(grad_tol) is 0.001)
+  Hessian positive definite: TRUE 

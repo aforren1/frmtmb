@@ -1,3 +1,46 @@
+# frmtmb.spline 0.9.0
+
+* Needs frmtmb 0.65.0. `frm_curve()` and its relatives take
+  `re_formula` from core, which from 0.65.0 keeps every smooth under
+  `re_formula = NA`, one indexed by a grouping factor included. The help
+  pages say so, and `test-curve.R` asserts the new rule, so it fails
+  against an older frmtmb.
+* `frm_curve()`, `frm_curve_deriv()` and `frm_curve_feature()` take
+  `allow_new_levels = FALSE` and pass it to every `frm_lp_basis()` and
+  `frm_linpred()` call they make, so the design, the estimate and the
+  covariance check read the same rows. With `TRUE` at a subject the fit
+  did not see, a model with `s(t, subject, bs = "fs")` gives its
+  POPULATION curve: the factor smooth contributes a row of zeros and no
+  variance, so the band is the uncertainty of the population smooth
+  alone. The standard errors are `identical()` to the seam restricted
+  to the intercept and `s(t)` columns, and agree with mgcv's
+  `predict.gam(exclude = )` to a ratio between 1.000 and 1.004.
+* The `curve-inference` vignette failed `R CMD build` against frmtmb
+  0.65.0: it drew the population curve on a grid with no `subject`
+  column at `re_formula = NA`, which now keeps the factor smooth. It now
+  names an unseen subject with `allow_new_levels = TRUE`, and its prose
+  no longer says that `re_formula = NA` drops the per-subject curves.
+  Every number it prints is unchanged from 0.8.0.
+* `frm_curve(contrast = , allow_new_levels = TRUE)` refuses when either
+  grid carries variance that is not coefficient uncertainty. An unseen
+  level of a `(1 | g)` term loads no design column, so two different
+  unseen levels look like one. Without the refusal their independent
+  draws cancel and the difference standard error is exactly 0.
+* With `allow_new_levels = TRUE` and a grid row at an unseen level of a
+  term `re_formula` keeps, such as `(1 | g)` at `NULL`,
+  `frm_curve(simultaneous = TRUE)`, `frm_curve_deriv()` and
+  `frm_curve_feature()` refuse and name the grouping factor. One unseen
+  level is one draw shared by every row, `frm_lp_basis()` returns its
+  variance one number per row, and all three build their answer from
+  `A V A'` without it. Measured before the refusal: a simultaneous
+  critical value of 0.646 where the full covariance gives 2.146,
+  derivative standard errors 0.40 to 0.50 of the right ones, feature
+  standard errors about a quarter. The pointwise `frm_curve()` band adds
+  that variance and is answered.
+* `frm_curve_deriv()` and `frm_curve_feature()` on a stored curve reuse
+  its `allow_new_levels` only when the call does not supply the
+  argument. A supplied value wins, `FALSE` included.
+
 # frmtmb.spline 0.8.0
 
 * **`rp_floored()` sees a group with no events.** It tested only the

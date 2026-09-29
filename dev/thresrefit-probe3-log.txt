@@ -1,0 +1,21 @@
+frmtmb 0.64.0 from C:/Users/adf44/source/r/rellib-r3 
+B: cratio -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+B: acat -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+B: sratio -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+B: cumulative -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+---- B: the entry the resolver builds ----
+B: cratio entry comp = tau_raw idx = 1,2,3 scale = internal offset = beta[1]
+B: cratio tau_raw after the draw = -1.5335921 -1.5335921 -1.5335921
+B: cratio identical across thresholds = TRUE
+B: cumulative entry comp = tau_raw idx = 1,2,3 scale = ordthres offset = beta[1]
+B: cumulative draw_prior_pars -> ERROR: A prior on tau is a density on the whole threshold vector, and drawing from it one threshold at a time would not produce an ordered one. Pin the thresholds with newparams = list(tau_raw = ) instead
+A4: update(newdata) table = 9/16/15/0
+A4: update() -> thresholds = 2
+A5: frm_multiple per-fit threshold counts = 3,2,3
+A5: summary(frm_multiple) -> 60311data.frame-none--none--none--none-listNULLlistnumericnumeric
+A6: autoscale fit -> thresholds = 3
+A7: frm_simulate seed 17 nsim 40: replicates with max < 4: 2

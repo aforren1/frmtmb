@@ -23,3 +23,14 @@ dev/brms-suite/
 
 # lane wt-correct: brms fits its probes cache
 dev/correct-brmsfits/
+
+# scratch destinations for a local dev/release/build-docs.R run
+dev/docsci-site/
+dev/docsci-site-*/
+# lane wt-csfactor: compiled Stan programs, and the R CMD check tree
+dev/csfactor-stan-cache/
+dev/csfactor-check/
+# cached brms fits from the re_formula-keeps-every-smooth round: about
+# 10 MB each, and rebuildable by the script beside them
+dev/resmooth-brms-fits.rds
+dev/resmooth-rev-brms-fits.rds

@@ -236,3 +236,46 @@ test_that("an exact gp() off its fitted positions is refused by name", {
   s <- emm_df(emmeans::emmeans(fit, "f", at = list(x = d$x[1])))
   expect_true(all(is.finite(s$SE)))
 })
+
+test_that("a group-indexed smooth puts its factor in the reference grid", {
+  # re_formula = NA keeps every smooth, a smooth indexed by a grouping
+  # factor included, so the grid has to carry that factor. ce_plot_vars()
+  # leaves it out on purpose (it is not a curve to draw), which left
+  # emmeans() refusing the fit for want of the column: an ERROR where
+  # 0.64.0 answered, because there the term was dropped
+  # (dev/resmooth-emm-before.txt, dev/resmooth-emm-after.txt). SEEN TO
+  # FAIL on 0.64.0 on the grid assertion, which is the cause rather than
+  # the symptom.
+  set.seed(5)
+  n <- 300L
+  d <- data.frame(x = stats::runif(n),
+                  f = factor(rep(c("a", "b"), length.out = n)),
+                  # g CROSSED with f, not nested. With g cycling 1..10
+                  # against an alternating f both have period 2, so g's
+                  # parity would fix f, emmeans would read the design as
+                  # nested ("g %in% f") and contrast something else.
+                  g = factor(rep(1:10, each = 30L)))
+  d$y <- sin(2 * pi * d$x) + 0.7 * (d$f == "b") +
+    stats::rnorm(10, 0, 0.5)[d$g] * d$x + stats::rnorm(n, 0, 0.3)
+  for (fm in list(bf(y ~ f + s(x, g, bs = "fs", k = 5)),
+                  bf(y ~ f + s(x) + s(g, bs = "re")),
+                  bf(y ~ f + t2(x, g, bs = c("cr", "re"))))) {
+    fit <- suppressWarnings(frm(fm, data = d))
+    rg <- emmeans::ref_grid(fit)
+    expect_true("g" %in% names(rg@levels))
+    s <- emm_df(emmeans::emmeans(fit, "f"))
+    expect_true(all(is.finite(s$emmean)))
+    expect_true(all(is.finite(s$SE)))
+    # the contrast across f cannot touch the smooth, which names no f, so
+    # it is the fitted coefficient itself
+    ct <- emm_df(emmeans::contrast(emmeans::emmeans(fit, "f"),
+                                   method = "revpairwise"))
+    fx <- fixef(fit)["fb", "Estimate"]
+    expect_lt(abs(ct$estimate[1] - fx) / abs(fx), 1e-8)
+    # and re_formula = NULL now works on the same fit, where it was
+    # refused for want of the same column
+    expect_true(all(is.finite(emm_df(emmeans::emmeans(fit, "f",
+                                                      re_formula = NULL)
+                                     )$emmean)))
+  }
+})

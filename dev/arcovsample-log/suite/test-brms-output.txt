@@ -1,0 +1,1 @@
+RESULT lane frmtmb.sample test-brms-output.R pass=21 fail=0 err=0 skip=0

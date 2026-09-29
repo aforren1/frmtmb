@@ -1,0 +1,28 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib 
+
+table(y) = 12/10/16/2 
+fitted n_tau = 3 
+
+== frm_allfit(): threshold count of every optimizer arm 
+      nlminb        optim       bobyqa nloptr_lbfgs 
+           3            3            3            3 
+
+== anova(refit = TRUE): the reduced model's threshold count 
+          Df      Chisq    logLik
+y ~ x      4         NA -48.83520
+y ~ x + z  5 0.08344738 -48.79348
+
+== confint(method = 'profile') on the top threshold 
+                lwr      upr      est
+tau_raw_3 0.4777619 1.515879 1.010424
+
+== conditional_effects(band = 'boot') 
+conditional_effects(band = "boot"): refitting the model 200 times (one bootstrap shared by all 1 grid(s)). Pass boot = <draws> for a cheaper run, or boot = attr(ce, "boot") to reuse this one.
+    rows na_lower na_upper 
+     400        0        0 
+
+== the autoscale pre-fit keeps the count 
+n_tau 
+    3 
+
+DONE rev-15

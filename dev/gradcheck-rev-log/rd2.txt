@@ -1,0 +1,398 @@
+
+========================  man/diagnose.Rd 
+_C_o_n_v_e_r_g_e_n_c_e _d_i_a_g_n_o_s_t_i_c_s _f_o_r _a _f_r_m_t_m_b _f_i_t
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Reports the optimizer's own verdict plus six checks that a
+     converged fit can still fail: non-finite standard errors, flat
+     directions, complete separation in a binomial-type fit, a
+     distributional parameter whose maximum likelihood is outside its
+     own range, predictor columns scaled far from one, and variance
+     components on the boundary of their parameter space (lme4's
+     'isSingular()', read off the estimates rather than the Hessian).
+
+_U_s_a_g_e:
+
+     diagnose(fit, quiet = FALSE)
+     
+_A_r_g_u_m_e_n_t_s:
+
+     fit: A 'frmtmb_fit'.
+
+   quiet: If 'TRUE', return the diagnostics without printing.
+
+_D_e_t_a_i_l_s:
+
+     NON-FINITE TRIALS are points where the optimizer found the
+     objective undefined and stepped back, for example a line search
+     that crosses below zero on the '1/mu^2' link. They do not make a
+     fit wrong, so they are reported as a count and do not count
+     against "No convergence problems detected". A large count on a
+     model with no restricted link can point to a density that is
+     undefined where it should not be.
+
+     A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
+     estimate is far out on the link scale AND whose standard error
+     is larger than the estimate itself. The likelihood was still
+     rising where the optimizer stopped, so the number reported is
+     the stopping point and not an estimate. 'student()''s 'nu' does
+     this on any data with no heavy tails, because a student-t
+     reaches the gaussian only as 'nu' goes to infinity: the maximum
+     is never attained, and two runs of the same model can report
+     degrees of freedom orders of magnitude apart while agreeing on
+     every coefficient. Refit with 'gaussian()', or hold 'nu'
+     somewhere finite with 'set_prior()'. The same parameter runs the
+     other way, down to one, on data whose tails are heavier than any
+     identified 'nu' can hold. The check names that too, with a large
+     NEGATIVE estimate and a natural-scale value of one, and there
+     'gaussian()' is the wrong answer: the data is the message, and a
+     prior is the way to hold 'nu' finite.
+
+     THE GRADIENT is reported four ways, because the largest
+     component on its own is not a convergence verdict. 'max_grad'
+     and 'worst_grad' are that largest component and its parameter.
+     'grad_bound_held' names the parameters a bound holds in place,
+     whose gradient points out of the feasible set and is the KKT
+     condition rather than a failure, and 'grad_proj' and
+     'grad_proj_par' are the largest component over the rest and the
+     parameter it belongs to. On a bounded fit 'worst_grad' and
+     'grad_proj_par' are DIFFERENT parameters, and 'grad_proj_par' is
+     the one the verdict is about. 'grad_headroom' is the log
+     likelihood one exact Newton step over those parameters would
+     still buy, which is what the fit warns on; it is 'NA' when
+     'grad_proj' stayed under 'frmtmb_control(grad_tol =)', so
+     nothing had to be measured, and also when the curvature there is
+     unusable.
+
+     TWO SCALES, on an autoscaled fit. 'max_grad' and 'worst_grad'
+     are read off the RAW gradient, because that is what they have
+     always been and what extension test suites compare to a log
+     likelihood. 'grad_proj', 'grad_proj_par' and the warning are in
+     the per-parameter units 'frmtmb_control(autoscale = )' judges
+     the fit in, which is where a badly scaled column's coefficient
+     is not swamped by its own scale. So on a fit that was
+     standardized internally the two are not comparable: 1001 against
+     1.685 on one measured example. The printed block says so when it
+     applies. 'grad_headroom' is invariant to that scaling, because a
+     Newton decrement is invariant under any reparameterization.
+
+     'grad_headroom' costs a Hessian, and it is measured only when
+     'grad_proj' exceeds 'grad_tol'. A fit that already warned
+     carries the answer on it, so 'diagnose()' is free there; a fit
+     whose cache was replaced, which is what perturbing the estimates
+     does, pays between 0.13 and 0.45 s on the large latent-variable
+     designs this package was timed on.
+
+     NOT ON AN IMPORTANCE-CORRECTED FIT. 'frm(importance = )'
+     optimizes a Monte Carlo estimate, whose gradient carries an
+     O(N^-1/2) error, so no gradient criterion applies to it at all.
+     'grad_proj', 'grad_proj_par' and 'grad_headroom' are 'NA' there
+     and the printed block says why. That fit's accuracy report is
+     its effective sample sizes and its round-to-round move, and its
+     gradient is in 'fit$importance$grad'.
+
+     A FLAT DIRECTION is an outer parameter the likelihood does not
+     depend on: zero gradient and an empty Hessian row. It separates
+     the two causes of 'NaN' standard errors. Parameters that trade
+     off against each other are over-parameterization, and the model
+     is too big. Parameters the likelihood is flat in are
+     unidentified AT THIS POINT, and the remedy is a starting value:
+     a nonlinear term evaluated outside its own support (a bump whose
+     centre starts far from the data) is flat in several of its
+     parameters at once. One unusable direction makes EVERY standard
+     error 'NaN', so 'bad_se' names the whole vector and 'flat' names
+     the cause. The check is measured by perturbing each candidate
+     and seeing whether the gradient moves, and runs only when the
+     covariance has already failed.
+
+_V_a_l_u_e:
+
+     Invisibly, a list of diagnostics.
+
+_E_x_a_m_p_l_e_s:
+
+     set.seed(1)
+     dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+     dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+     fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+     diagnose(fit)
+     
+     # a random effect the data cannot support collapses to the boundary,
+     # which is a valid fit but a warning about the model
+     dd$h <- factor(rep(1:10, each = 10))
+     fit_s <- frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), data = dd)
+     d <- diagnose(fit_s, quiet = TRUE)
+     d$singular
+     
+     # a predictor scaled far from one slows the optimizer down; the
+     # remedy is frmtmb_control(autoscale = TRUE)
+     dd$xbig <- dd$x * 1e5
+     diagnose(frm(bf(xbig ~ 1) + gaussian(), data = dd), quiet = TRUE)$scale
+     
+
+========================  man/frmtmb_control.Rd 
+_C_o_n_t_r_o_l _p_a_r_a_m_e_t_e_r_s _f_o_r _f_r_m_t_m_b _f_i_t_s
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Control parameters for frmtmb fits
+
+_U_s_a_g_e:
+
+     frmtmb_control(
+       optimizer = "nlminb",
+       optCtrl = list(iter.max = 1000, eval.max = 1000),
+       restarts = 1,
+       grad_tol = 0.001,
+       profile = FALSE,
+       sparse_x = FALSE,
+       autoscale = NULL,
+       check_nlev_1 = c("warning", "ignore", "stop"),
+       check_olre = c("warning", "ignore", "stop"),
+       importance_seed = 1L,
+       importance_rounds = 5L,
+       importance_ess = 0.25,
+       verbose = NULL
+     )
+     
+_A_r_g_u_m_e_n_t_s:
+
+optimizer: '"nlminb"' (default), '"optim"' (L-BFGS-B), or a function
+          with signature (par, fn, gr, lower, upper, control)
+          returning a list with elements 'par', 'objective',
+          'convergence' (0 = success), and optionally 'message' - the
+          hook for optimx, nloptr, and friends without frmtmb
+          depending on them. Example:
+
+          nlopt <- function(par, fn, gr, lower, upper, control) {
+            r <- nloptr::nloptr(par, fn, gr, lb = lower, ub = upper,
+                                opts = list(algorithm = "NLOPT_LD_LBFGS",
+                                            xtol_rel = 1e-10, maxeval = 2000))
+            list(par = r$solution, objective = r$objective,
+                 convergence = as.integer(r$status < 0), message = r$message)
+          }
+          frm(..., control = frmtmb_control(optimizer = nlopt))
+          
+ optCtrl: Control list passed to the built-in optimizers
+          ('stats::nlminb()' / 'stats::optim()').
+
+restarts: Number of times to restart the optimizer from the current
+          optimum while the gradient remains above 'grad_tol'.
+
+grad_tol: How close to its optimum a fit has to stop. Read twice, in
+          this order.
+
+          As a GRADIENT, it restarts the optimizer while the maximum
+          absolute gradient is above it, and it is the trip-wire on
+          the convergence warning: a fit whose largest gradient
+          component stays under it says nothing further.
+
+          As a LOG LIKELIHOOD, it decides the warning. A fit that
+          trips the trip-wire is measured again, this time by how
+          much log likelihood one exact Newton step from the stopping
+          point would still buy, over the parameters no bound holds
+          in place, and it warns only when that is above 'grad_tol'
+          as well. The second reading is what makes the default mean
+          the same thing on every design: an absolute gradient grows
+          with the sample size, because the optimizer stops on a
+          RELATIVE change in an objective that grows with it, while
+          the remaining log likelihood does not. Measured over 720
+          correct fits on nine designs at four sample sizes
+          ('dev/gradcheck-findings.md'), the gradient alone warned on
+          289 of them and the two readings together on none.
+
+          WHAT IT DOES NOT COVER. The first reading gates the second,
+          so a fit whose largest gradient never reaches 'grad_tol' is
+          never looked at, however far short of its optimum it is. A
+          predictor column scaled far below one does exactly that: it
+          keeps the gradient small while the coefficient stalls near
+          zero. Measured, with 'autoscale = FALSE': at a column
+          spread of 1e-7 a gaussian fit reports convergence, a
+          maximum absolute gradient of 1.6e-5, and a log likelihood
+          297 units below the standardized fit of the same data, with
+          no warning of any kind. The default 'autoscale' rule is
+          what closes that gap, which is why it engages at a spread
+          of 1e-3 (see 'autoscale'), and 'diagnose()' reports badly
+          scaled columns whether or not the gradient noticed.
+
+          Lower it for a stricter fit and a stricter warning; both
+          readings move together. 'diagnose()' reports every number
+          the verdict used.
+
+ profile: Experimental: move the primary ('beta') coefficients into
+          the inner (Laplace) problem, TMB's 'profile' argument - the
+          analog of 'glmmTMBControl(profile = TRUE)' and 'glmer(nAGQ
+          = 0)'. Speeds up models with many fixed effects, and like
+          those it is an approximation: estimates differ slightly
+          from the exact fit. Coefficient covariance comes from the
+          joint precision. Not compatible with 'REML = TRUE' or
+          'quadrature = TRUE'; profile/uniroot 'confint()' and
+          'hypothesis(method = "profile")' need a non-profiled fit.
+
+sparse_x: Build the parametric fixed-effect design matrices as sparse
+          'Matrix::sparse.model.matrix()' objects, the analog of
+          'glmmTMB(sparseX =)'. Worth it when a many-level fixed
+          factor makes the dense design dominate memory; estimates
+          are identical either way. 'model.matrix()' on the fit then
+          returns a sparse matrix.
+
+autoscale: Standardize badly scaled continuous predictors internally
+          (the lme4 >= 1.1.37 feature): fit a copy of the model with
+          each qualifying fixed-effect column centered and scaled
+          (scaled only, in a linear predictor without an intercept),
+          map that optimum back to the original parameterization
+          exactly, and warm-start the ordinary fit there. Reported
+          results are always on the original scale, so every
+          downstream method works unchanged; the cost is a second
+          (cheap) optimization. Columns qualify when they are
+          parametric and take more than two distinct values;
+          intercepts, factor contrasts, smooth bases, and mo()/mi()
+          columns are never touched, and the whole step is a silent
+          no-op when nothing qualifies. Compatible with 'profile =
+          TRUE'. Under 'prior' or bounds, the first stage applies
+          them to the scaled coefficients; the second stage is the
+          fit that is reported. A random slope on a rescaled column
+          ('(1 + x | g)') is rescaled with it in 'us()', 'diag()' and
+          the Student-t blocks, its log standard deviation and its
+          effects mapped back exactly; other covariance structures
+          keep their slope unscaled. The pre-fit's own warnings are
+          not shown. Under the default, a pre-fit that errors or does
+          not converge in its coefficients never makes the reported
+          fit less diagnostic than 'autoscale = FALSE': the default
+          then reports the plain fit, unless the fit from the pre-fit
+          has the better likelihood and either warns at least as
+          often or is a verified optimum. Under 'TRUE' the pre-fit's
+          error stands and its non-convergence is a warning. 'TRUE'
+          always does this, 'FALSE' never does. The default, 'NULL',
+          does it when a qualifying column has a standard deviation
+          below 1e-3 and its coefficient is optimized directly (not a
+          'mu' coefficient under 'REML = TRUE' or 'profile = TRUE',
+          which the inner solver integrates), or when a column
+          carrying such a random slope has one below 0.05. Without it
+          such a fit can stop short and report convergence: a poisson
+          'y ~ 0 + x' with 'x' on a 1e-6 scale lost 62.6
+          log-likelihood units against 'stats::glm()', and a random
+          slope on a column spread 0.01 lost up to 14.4. Every other
+          fit is the fit 'autoscale = FALSE' gives, bit for bit.
+
+check_nlev_1: What to do about a scalar random-effect term whose
+          grouping factor has a single level: '"warning"' (default),
+          '"ignore"', or '"stop"', following lme4's 'lmerControl()'
+          check vocabulary. Such a term has no variance to estimate -
+          the single level is absorbed by the intercept - and its
+          standard deviation collapses to zero. Structured blocks
+          over several terms per level ('ar1()', 'us()', the spatial
+          covariance structures) are never flagged: one grouping
+          level there is a single realization of a field, which is
+          the normal way to write them.
+
+check_olre: What to do about an observation-level random effect - one
+          level per row - on a gaussian, student or lognormal
+          response: '"warning"' (default), '"ignore"', or '"stop"'.
+          Its variance is confounded with the residual standard
+          deviation, so only their sum is identified and the split
+          between them is arbitrary. The check is skipped when
+          'sigma' is not free to absorb it - a 'se()' response or a
+          constant 'sigma' - which is the random-effects
+          meta-analysis, and for discrete families, where an
+          observation-level term is the usual overdispersion model.
+          It is also skipped for the known-structure blocks 'gr(cov =
+          )', 'gr(prec = )' and 'equalto()': their level covariance
+          is not proportional to the identity, so the block and the
+          residual are separately identified. That is the animal
+          model with one measurement per individual.
+
+importance_seed: Seed for the standard normal draws of
+          'frm(importance =)'. The draws are taken from a private
+          random stream, so the fit neither reads nor disturbs the
+          session's random state: the same seed gives the same answer
+          to the last bit, whatever else has drawn random numbers.
+
+importance_rounds: Cap on the number of times 'frm(importance =)'
+          refreezes its proposal. Each round rebuilds the proposal at
+          the current estimate and optimizes again, and the loop
+          stops as soon as either the estimates move less than '1e-3'
+          or the freshly anchored objective is stationary at them to
+          'grad_tol'. Measured on this package's own designs that
+          takes two to four rounds, with the move falling about
+          tenfold each time, so the default leaves one in hand; an
+          unused round costs nothing, and each round actually taken
+          costs one tape. A fit that uses every round warns, and the
+          warning distinguishes two cases: moves that are still
+          shrinking want a larger cap, while moves that are all the
+          SAME size are a stalled iteration, whose reported shift is
+          that step times the round count and grows with the cap
+          instead of settling.
+
+importance_ess: Effective sample size, as a fraction of the draw
+          count, below which 'frm(importance =)' warns and names the
+          groups. The default '0.25' separates two measured regimes
+          rather than clearing every design. A proposal that is
+          working sits near the top of the range: the probe design
+          behind this correction (60 groups of 8 Bernoulli rows,
+          correlated slope) holds a worst group of '0.95' at 1000
+          draws, and a gaussian response, where the correction has
+          nothing to correct, holds exactly '1' at any draw count.
+          Displacing that probe's two log standard deviations by half
+          a unit takes its worst group to '0.03'. The designs the
+          warning is FOR sit between the two, and draws are what move
+          them: a correlated slope in 'mu' plus a 'sigma' block over
+          12 groups of 10 rows holds a worst group of '0.17' at 500
+          draws and '0.40' at 2000.
+
+ verbose: Report fit progress through 'message()', one terse line per
+          stage with its elapsed seconds, so a slow fit shows where
+          the time went. 'FALSE' (default) is silent and costs
+          nothing. 'TRUE' (or '1') reports parsing, frame assembly,
+          the autoscale pre-fit, tape construction, each optimizer
+          run and restart, 'sdreport()' when 'se = TRUE', and a
+          closing line with the objective, the maximum absolute
+          gradient, and the number of convergence warnings. The fit
+          itself opens with a line naming the family, the mode (ML or
+          REML, plus profile, quadrature, autoscale, prior), and the
+          optimizer. '2' adds the optimizer's own trace, by setting
+          'optCtrl$trace' unless you set it yourself. That trace is
+          printed by 'stats::nlminb()' / 'stats::optim()' to standard
+          output, not through 'message()', and a custom optimizer
+          function receives 'optCtrl' unchanged, so 'verbose' does
+          not reach it.
+
+          Use 'suppressMessages()' to silence a verbose fit. The
+          refit loops in 'frm_bootstrap()', 'influence()', and
+          'frm_allfit()' force 'verbose' off, so a verbose fit does
+          not make them print hundreds of lines; 'refit()' and
+          'frm_multiple()' report normally.
+
+_V_a_l_u_e:
+
+     A list of control settings.
+
+_E_x_a_m_p_l_e_s:
+
+     set.seed(1)
+     n <- 200
+     dd <- data.frame(x = rnorm(n), g = factor(rep(1:10, 20)))
+     dd$y <- rnorm(n, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+     
+     # another optimizer, with its own control list
+     fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+                control = frmtmb_control(optimizer = "optim",
+                                         optCtrl = list(maxit = 500)))
+     fit$opt$convergence
+     
+     # a tighter gradient criterion, with restarts from the current
+     # optimum until it is met
+     frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+         control = frmtmb_control(grad_tol = 1e-4, restarts = 3))
+     
+     # badly scaled predictors: fit an internally standardized copy first,
+     # then warm-start the reported fit from it
+     dd$xbig <- dd$x * 1e5
+     frm(bf(y ~ xbig + (1 | g)) + gaussian(), data = dd,
+         control = frmtmb_control(autoscale = TRUE))
+     
+     # the object is a plain list, so it can be built once and reused
+     ctrl <- frmtmb_control(check_nlev_1 = "ignore")
+     ctrl$optimizer
+     

@@ -1,0 +1,8 @@
+﻿LIB C:/Users/adf44/source/r/rellib-r3 frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3; frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/rellib-r3
+FAILED [an unseen fs level gives the population prediction, checked] Error in `frm_curve(o$fit, newdata = o$unseen, re_formula = NA, allow_new_levels = TRUE, simultaneous = FALSE)`: unused argument (allow_new_levels = TRUE)
+FAILED [the population band carries no between-subject variance] Error in `frm_curve(o$fit, newdata = o$unseen, re_formula = NA, allow_new_levels = TRUE, simultaneous = FALSE)`: unused argument (allow_new_levels = TRUE)
+FAILED [the default still refuses an unseen fs level, by name] Error in `frm_curve(o$fit, newdata = o$unseen[, "t", drop = FALSE], re_formula = NA, allow_new_levels = TRUE, simultaneous = FALSE)`: unused argument (allow_new_levels = TRUE)
+FAILED [the flag is validated like the package's other flags] Error in `frm_curve(o$fit, newdata = o$unseen, allow_new_levels = bad)`: unused argument (allow_new_levels = bad)
+FAILED [the derivative and the feature read the unseen level too] Error in `frm_curve(o$fit, newdata = o$unseen, re_formula = NA, allow_new_levels = TRUE, simultaneous = FALSE)`: unused argument (allow_new_levels = TRUE)
+FAILED [a difference across two unseen levels is refused, not cancelled] Error in `sp_one_basis(fit, gA, NULL, NULL, NULL, TRUE)`: unused argument (TRUE)
+RESULT test-new-levels.R pass=6 fail=0 err=6 skip=0

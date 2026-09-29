@@ -1,0 +1,1 @@
+REVRESULT test-brms-formula-priors.R arm=lane blocks=29 pass=208 fail=0 err=0 warn=0 skip=0

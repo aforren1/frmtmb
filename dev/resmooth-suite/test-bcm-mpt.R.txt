@@ -1,0 +1,1 @@
+RESULT test-bcm-mpt.R lib=lane pass=27 fail=0 error=0 skip=0 warn=0

@@ -693,6 +693,17 @@ predict_rescor_draw <- function(fs, rspecs, dps, ok) {
 #' - 1/2 log|Sigma| - (nu + K) / 2 log(1 + q / nu)`, with
 #' `Sigma = D C D` entering as `log|C| + 2 sum(log sigma)`.
 #'
+#' The first two terms are NOT written as they read, and neither is
+#' `log(nu pi)`. `lgamma_shift_diff()` and `log(nu) + log(pi)` are the
+#' same numbers at a moderate `nu` and the only ones that survive a
+#' large one, which a sampler reaches whenever `nu` is weakly
+#' identified: against `mvt_std_loglik()`, the objective's own form, the
+#' as-written version drifts by 5.6e-6 at `nu = 1e10`, by 227 log units
+#' at `nu = 1e20`, and returns `NaN` from `Inf - Inf` at `nu = 1e306`,
+#' where the density is still the gaussian limit and still wanted
+#' (`dev/arcovsample-log/tnu.txt`). See `lgamma_shift_diff()` for why
+#' the blend and the branch are both unavailable here.
+#'
 #' @noRd
 rescor_row_loglik <- function(fit, dpv) {
   frame <- fit$frame
@@ -712,7 +723,7 @@ rescor_row_loglik <- function(fit, dpv) {
   }
   q <- rowSums((Z %*% solve(C)) * Z)
   ldet <- as.numeric(determinant(C, logarithm = TRUE)$modulus)
-  lgamma((nu + K) / 2) - lgamma(nu / 2) - K / 2 * log(nu * pi) -
+  lgamma_shift_diff(nu / 2, K / 2) - K / 2 * (log(nu) + log(pi)) -
     ldet / 2 - (nu + K) / 2 * log1p(q / nu) - lsig
 }
 
@@ -1219,33 +1230,98 @@ re_b_batches <- function(fit, newdata, resp, allow_new_levels, b_idx) {
     # because everything below indexes b_idx through c_idx's length
     if (length(ci) != length(bi)) return(NULL)
     D <- max(1L, bk[["dim"]])
-    # one batch per COLUMN POSITION of the block, not per block: a row
-    # of a `(1 + x | g)` term loads its level's intercept AND its slope,
-    # so a batch over the whole block could not attribute the
-    # difference, while a batch over one position holds one nonzero per
-    # row. An |ID| block spanning two predictors splits the same way,
-    # because each predictor is its own position.
+    # The WHOLE kept set as ONE batch, when no row loads two of its
+    # columns. The per-position split below is what a `(1 + x | g)` term
+    # needs, but it costs one batch per POSITION, and for a smooth,
+    # `gp()` or `hsgp()` block `dim` IS the coefficient count, so there
+    # the split degenerates to one batch per coefficient and buys
+    # nothing. An exact `gp()` in sample loads one column per row, its
+    # design being an indicator, so the whole block is one exact batch:
+    # 329 model evaluations become 11 and `fitted()` goes from 0.63 s to
+    # 0.02 s on a 160-coefficient cumulative fit
+    # (dev/resmooth-batchcost-before.txt against -after.txt).
+    # A `(1 | g)` block has one position, so it reaches the same single
+    # batch by a shorter route; a `(1 + x | g)` block FAILS this test,
+    # because a row loads its level's intercept and its slope, and falls
+    # through to the split unchanged.
+    whole <- re_batch_try(S, ci, bi, which(bi %in% b_idx))
+    if (!is.null(whole)) {
+      out[[length(out) + 1L]] <- whole
+      next
+    }
+    # one batch per COLUMN POSITION of the block: a row of a
+    # `(1 + x | g)` term loads its level's intercept AND its slope, so a
+    # batch over the whole block could not attribute the difference,
+    # while a batch over one position holds one nonzero per row. An |ID|
+    # block spanning two predictors splits the same way, because each
+    # predictor is its own position.
     for (k in seq_len(D)) {
       at <- seq.int(k, length(ci), by = D)
       keep <- at[bi[at] %in% b_idx]
       if (!length(keep)) next
-      Sb <- S[, ci[keep], drop = FALSE]
+      one <- re_batch_try(S, ci, bi, keep)
       # a row that loads two levels at this position cannot be
       # attributed (a multi-membership term does exactly that)
-      if (max(Matrix::rowSums(Sb)) > 1) return(NULL)
-      owner <- rep(NA_integer_, nrow(Sb))
-      nz <- Matrix::which(Sb != 0, arr.ind = TRUE)
-      owner[nz[, 1L]] <- nz[, 2L]
-      out[[length(out) + 1L]] <- list(idx = bi[keep], owner = owner)
+      if (is.null(one)) return(NULL)
+      out[[length(out) + 1L]] <- one
     }
   }
   out
 }
 
-#' Positions in `b` of the blocks `re_formula` governs: every block with
-#' a component left in the (possibly reduced) design, and a smooth whose
-#' basis is indexed by a grouping factor. A population smooth, `gp()`
-#' and `hsgp()` stay out, because `re_formula = NA` keeps them too.
+#' One batch over `keep`, positions within a block's `c_idx`, or `NULL`
+#' when a row loads two of those columns, so that the difference read off
+#' that row could not be attributed to one of them.
+#'
+#' @noRd
+re_batch_try <- function(S, ci, bi, keep) {
+  if (!length(keep)) return(NULL)
+  Sb <- S[, ci[keep], drop = FALSE]
+  if (max(Matrix::rowSums(Sb)) > 1) return(NULL)
+  owner <- rep(NA_integer_, nrow(Sb))
+  nz <- Matrix::which(Sb != 0, arr.ind = TRUE)
+  owner[nz[, 1L]] <- nz[, 2L]
+  list(idx = bi[keep], owner = owner)
+}
+
+#' Positions in `b` of EVERY smooth, `gp()` and `hsgp()` block.
+#'
+#' `re_formula` does not govern these: `NA` keeps them, so the
+#' finite-difference standard error has to difference them at every
+#' `re_formula` or it reports the uncertainty of a smaller model than the
+#' one the estimate came from. Measured before this was added: on a
+#' cumulative fit with `s(x, g, bs = "fs")`, `Est.Error` at
+#' `re_formula = NA` was short of a reference that differences the
+#' smooth's 30 coefficients by 0.52 of itself at the median row and 0.68
+#' at the worst (`dev/resmooth-fdse.txt`).
+#'
+#' @noRd
+smooth_b_idx <- function(fit) {
+  ids <- integer(0)
+  for (bk in fit$frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) {
+      ids <- c(ids, bk[["b_idx"]])
+    }
+  }
+  sort(unique(ids))
+}
+
+#' Positions in `b` the finite-difference standard error has to
+#' difference when `re_formula` KEEPS the group-level effects: every
+#' block with a component left in the (possibly reduced) design, and a
+#' smooth whose basis is indexed by a grouping factor.
+#'
+#' The group-indexed smooth is here for the standard error's sake, not
+#' because `re_formula` drops it: it does not, any more than it drops
+#' `s(x)` (`lp_eta_design()`). It stays because leaving its columns out
+#' of the differenced set put `Est.Error` 68 percent wrong on a
+#' cumulative fit (`dev/reunc-log/fdsmooth-prefix.txt`).
+#'
+#' A population smooth, `gp()` and `hsgp()` are deliberately NOT here,
+#' and their absence is no longer a gap: `smooth_b_idx()` carries every
+#' smooth block at every `re_formula`, and each caller unions the two.
+#' What this function adds on top is the `(x | g)` group-level part,
+#' which is the part `re_formula` governs. See dev/resmooth-findings.md.
 #'
 #' @noRd
 re_governed_b <- function(fit) {

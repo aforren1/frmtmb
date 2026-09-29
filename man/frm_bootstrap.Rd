@@ -36,9 +36,9 @@ the group-level terms it names at their fitted values and the
 smooths with them, and redraws the other group-level terms, as
 \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} reads it.
 
-This is not \code{simulate(re_formula = NA)}, which holds a population
-smooth at its fitted curve, because a posterior-predictive check
-needs the curve the model estimated.}
+This is not \code{simulate(re_formula = NA)}, which holds EVERY smooth at
+its fitted curve, one indexed by a grouping factor included, because
+a posterior-predictive check needs the curve the model estimated.}
 }
 \value{
 A \code{frmtmb_boot} object: \code{t0} (FUN at the original fit), \code{t}
@@ -58,6 +58,24 @@ There is no standard \code{bootstrap} generic to implement
 (\code{boot::boot} and \code{lme4::bootMer} are plain functions), hence the
 \code{frm_} prefix.
 }
+\section{Ordinal thresholds}{
+
+Every refit reuses the assembled design, so the number of thresholds
+is the fitted model's and \code{FUN} receives the same parameters in the
+same order in every replicate. A replicate whose response never
+reaches the top category keeps that threshold, which the replicate's
+own data no longer identify: its estimate is large, and the
+replicate's log-likelihood is the one a fit with \code{thres(K)} pinned on
+that replicate gives, to optimizer tolerance. With \code{thres(gr = )} the
+per-level counts are kept the same way.
+
+\code{simulate()} followed by \code{frm()}, written out by hand, is not a refit:
+\code{frm()} counts the thresholds of whatever data it is given, so a
+replicate that never reaches the top category fits one threshold
+fewer, at the same maximized log-likelihood. Write \code{thres(K)} there to
+pin it.
+}
+
 \examples{
 set.seed(3)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))

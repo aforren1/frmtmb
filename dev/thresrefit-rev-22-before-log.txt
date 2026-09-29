@@ -1,0 +1,53 @@
+## lib = C:/Users/adf44/source/r/rellib-r3 
+
+fit n_tau = 2  table(y) = 21/15/14 
+
+== case 1: data = with TWO rows in a category the fit never saw 
+   warnings: 0 
+   ERROR ( subscriptOutOfBoundsError ):
+      subscript out of bounds 
+
+== case 4: data = with ONE row in an unseen category (row 7) 
+   warnings: 0 
+   ERROR ( subscriptOutOfBoundsError ):
+      subscript out of bounds 
+
+== case 4b: the same as an ordered factor (recode route) 
+   warnings: 0 
+   ERROR ( subscriptOutOfBoundsError ):
+      subscript out of bounds 
+
+grouped fit nthres = 3/2/2 
+
+== case 2: data = with a FOURTH thres(gr = ) level 'd' 
+   warnings: 0 
+   ERROR ( subscriptOutOfBoundsError ):
+      subscript out of bounds 
+
+== case 3: influence(groups = 'g') where g IS the threshold factor 
+   warnings: 0 
+   table 3x8  NA cells = 7  rows entirely NA = 0  rows with any value = 3 
+     row a : 0.14658412  -1.0724637  0.87131033  -0.79218185  0.26099933  NA  NA  NA 
+     row b : -0.10741935  -0.3810798  -0.11684854  0.78661367  -0.78642193  0.26426005  NA  NA 
+     row c : 0.13448118  -0.3778142  -0.11348439  0.78898685  -1.0745203  0.87051798  NA  NA 
+   cooks NA = 3 of 3 
+
+control: per-level max = 4/3/3 
+control: smallest rows any g level keeps over the 8 id deletions = 35 
+
+== item 5 control: influence(groups = 'id'), id is NOT the thres factor 
+   warnings: 0 
+   table 8x8  NA cells = 0  rows entirely NA = 0  rows with any value = 8 
+   cooks NA = 0 of 8 
+
+== item 5 control: observation-wise on the same model 
+   warnings: 0 
+   table 120x8  NA cells = 0  rows entirely NA = 0  rows with any value = 120 
+   cooks NA = 0 of 120 
+
+== item 5 control: seed 1101 with no doctored data 
+   warnings: 0 
+   table 50x3  NA cells = 0  rows entirely NA = 0  rows with any value = 50 
+   cooks NA = 0 of 50 
+
+DONE rev-22

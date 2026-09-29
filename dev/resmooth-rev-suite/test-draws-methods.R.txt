@@ -1,0 +1,1 @@
+RESULT test-draws-methods.R lib=lane pass=148 fail=0 error=0 skip=0 warn=1 blocks=22/22

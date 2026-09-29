@@ -1,0 +1,16 @@
+﻿RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT test-conditions.R pass=5 fail=0 err=0 skip=0
+RESULT test-curve.R pass=65 fail=0 err=0 skip=0
+RESULT test-deriv.R pass=38 fail=0 err=0 skip=0
+RESULT test-difference.R pass=59 fail=0 err=0 skip=0
+RESULT test-frailty.R pass=30 fail=0 err=0 skip=0
+RESULT test-gratia.R pass=13 fail=0 err=0 skip=0
+RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+RESULT test-new-levels.R pass=59 fail=0 err=0 skip=0
+RESULT test-royston-parmar.R pass=67 fail=0 err=0 skip=0
+RESULT test-rp-floored.R pass=81 fail=0 err=0 skip=0
+RESULT test-scale.R pass=0 fail=0 err=0 skip=1
+RESULT test-span.R pass=73 fail=0 err=0 skip=0
+RESULT test-surface.R pass=47 fail=0 err=0 skip=0
+SUITE ran 15 of 15

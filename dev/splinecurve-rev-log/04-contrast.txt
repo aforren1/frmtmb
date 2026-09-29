@@ -1,0 +1,29 @@
+sd(subject), (1|subject) fit: 0.0365551  sqrt(2) * sd: 0.0516968 
+sd(subject), cond fit: 0.0364452 
+
+GUARDED   1 two unseen (1|g) levels A-B, NULL, TRUE : REFUSED: frm_curve(contrast = , allow_new_levels = TRUE): a grid here carries variance th 
+GUARDED   2 same unseen level A, cond b-a, NULL, TRUE : REFUSED: frm_curve(contrast = , allow_new_levels = TRUE): a grid here carries variance th 
+GUARDED   2' same, re_formula = NA (the refusal's advice) : est 0.048891 0.048891 0.048891 0.048891 0.048891 
+                                                            se  0.0025604 0.0025604 0.0025604 0.0025604 0.0025604 
+GUARDED   3 two unseen fs levels A-B, TRUE : est 0 0 0 0 0 
+                                             se  0 0 0 0 0 
+GUARDED   3' same, simultaneous = TRUE : REFUSED: simultaneous = TRUE: every point on this grid has a standard error of exactly ze 
+GUARDED   4 seen fs level 3 minus unseen fs level A, TRUE : est  0.032021 -0.119301  0.040172  0.165023 -0.052615 
+                                                            se  0.055786 0.019962 0.034008 0.020559 0.056239 
+GUARDED   4 hand (A3 - Anew) V (A3 - Anew)': max rel diff in se 0  est vs linpred(3) - linpred(new): max abs 0 
+[1] TRUE
+
+removed lines 400 to 411 of curve-cov.R
+noguard frm_curve from: frmtmb.spline 
+UNGUARDED 1 two unseen (1|g) levels A-B, NULL, TRUE : est 0 0 0 0 0 
+                                                      se  0 0 0 0 0 
+UNGUARDED 2 same unseen level A, cond b-a, NULL, TRUE : est 0.048891 0.048891 0.048891 0.048891 0.048891 
+                                                        se  0.0025604 0.0025604 0.0025604 0.0025604 0.0025604 
+UNGUARDED 2' same, re_formula = NA (the refusal's advice) : est 0.048891 0.048891 0.048891 0.048891 0.048891 
+                                                            se  0.0025604 0.0025604 0.0025604 0.0025604 0.0025604 
+UNGUARDED 3 two unseen fs levels A-B, TRUE : est 0 0 0 0 0 
+                                             se  0 0 0 0 0 
+UNGUARDED 3' same, simultaneous = TRUE : REFUSED: simultaneous = TRUE: every point on this grid has a standard error of exactly ze 
+UNGUARDED 4 seen fs level 3 minus unseen fs level A, TRUE : est  0.032021 -0.119301  0.040172  0.165023 -0.052615 
+                                                            se  0.055786 0.019962 0.034008 0.020559 0.056239 
+UNGUARDED 4 hand (A3 - Anew) V (A3 - Anew)': max rel diff in se 0  est vs linpred(3) - linpred(new): max abs 0 

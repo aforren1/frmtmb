@@ -1,0 +1,14 @@
+library: base  frmtmb 0.64.0  group: g3  reps: 20 
+rescor      n    200  done   1.0 s
+rescor      n   1000  done   1.4 s
+rescor      n   5000  done   2.8 s
+rescor      n  20000  done   8.4 s
+bounded     n    200  done   8.6 s
+bounded     n   1000  done   8.8 s
+bounded     n   5000  done   9.3 s
+bounded     n  20000  done  11.2 s
+nonlinear   n    200  done  11.4 s
+nonlinear   n   1000  done  11.6 s
+nonlinear   n   5000  done  12.4 s
+nonlinear   n  20000  done  15.5 s
+wrote dev/gradcheck-03-base-g3.rds  rows 240 

@@ -1,0 +1,97 @@
+frmtmb.spline 0.9.0 from C:/Users/adf44/source/r/wt-splinecurve-lib 
+
+==== v ~ s(t, k = 12) + (1 | subject) ====
+-- unseen level re_formula = NULL allow_new_levels = TRUE 
+  extra_var range 0.0013281 0.0013281 
+  frm_curve(simultaneous = FALSE)                ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE)                 REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve(simultaneous = TRUE, transform = TRUE) REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve_deriv(order = 1)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_deriv(order = 2)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_feature(maximum)                     REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  frm_curve_feature(crossing, at = 0.5)          REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  feature(crossing 0.5) on a ROOTLESS tail window ANSWERED, 0 rows
+  pointwise .se vs sqrt(diag(A V A') + extra_var): max rel 0 ; vs frm_linpred(se.fit): max rel 2.22e-16 
+-- grouping column absent re_formula = NULL allow_new_levels = TRUE 
+  extra_var range 0.0013281 0.0013281 
+  frm_curve(simultaneous = FALSE)                ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE)                 REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve(simultaneous = TRUE, transform = TRUE) REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve_deriv(order = 1)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_deriv(order = 2)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_feature(maximum)                     REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  frm_curve_feature(crossing, at = 0.5)          REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  feature(crossing 0.5) on a ROOTLESS tail window ANSWERED, 0 rows
+  pointwise .se vs sqrt(diag(A V A') + extra_var): max rel 0 ; vs frm_linpred(se.fit): max rel 2.22e-16 
+-- unseen level re_formula = NA allow_new_levels = TRUE 
+  extra_var range 0 0 
+  frm_curve(simultaneous = FALSE)                ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE)                 ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE, transform = TRUE) ANSWERED, 60 rows
+  frm_curve_deriv(order = 1)                     ANSWERED, 60 rows
+  frm_curve_deriv(order = 2)                     ANSWERED, 60 rows
+  frm_curve_feature(maximum)                     ANSWERED, 1 rows
+  frm_curve_feature(crossing, at = 0.5)          ANSWERED, 2 rows
+  feature(crossing 0.5) on a ROOTLESS tail window ANSWERED, 0 rows
+  pointwise .se vs sqrt(diag(A V A') + extra_var): max rel 0 ; vs frm_linpred(se.fit): max rel 2.22e-16 
+  NA, unseen+TRUE vs seen+FALSE, pw : .estimate and .se identical(): TRUE 
+  NA, unseen+TRUE vs seen+FALSE, sim : .estimate and .se identical(): TRUE 
+  NA, unseen+TRUE vs seen+FALSE, d1 : .estimate and .se identical(): TRUE 
+  NA, unseen+TRUE vs seen+FALSE, fc : .estimate and .se identical(): TRUE 
+
+==== v ~ s(t, k = 12) + (1 + t | subject) ====
+-- unseen level re_formula = NULL allow_new_levels = TRUE 
+  extra_var range 0.0013334 0.0066986 
+  frm_curve(simultaneous = FALSE)                ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE)                 REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve(simultaneous = TRUE, transform = TRUE) REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve_deriv(order = 1)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_deriv(order = 2)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_feature(maximum)                     REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  frm_curve_feature(crossing, at = 0.5)          REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  feature(crossing 0.5) on a ROOTLESS tail window ANSWERED, 0 rows
+  pointwise .se vs sqrt(diag(A V A') + extra_var): max rel 0 ; vs frm_linpred(se.fit): max rel 2.22e-16 
+-- grouping column absent re_formula = NULL allow_new_levels = TRUE 
+  extra_var range 0.0013334 0.0066986 
+  frm_curve(simultaneous = FALSE)                ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE)                 REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve(simultaneous = TRUE, transform = TRUE) REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+  frm_curve_deriv(order = 1)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_deriv(order = 2)                     REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne
+  frm_curve_feature(maximum)                     REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  frm_curve_feature(crossing, at = 0.5)          REFUSED: frm_curve_feature(): with allow_new_levels = TRUE this grid carries a 
+  feature(crossing 0.5) on a ROOTLESS tail window ANSWERED, 0 rows
+  pointwise .se vs sqrt(diag(A V A') + extra_var): max rel 0 ; vs frm_linpred(se.fit): max rel 2.22e-16 
+-- unseen level re_formula = NA allow_new_levels = TRUE 
+  extra_var range 0 0 
+  frm_curve(simultaneous = FALSE)                ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE)                 ANSWERED, 60 rows
+  frm_curve(simultaneous = TRUE, transform = TRUE) ANSWERED, 60 rows
+  frm_curve_deriv(order = 1)                     ANSWERED, 60 rows
+  frm_curve_deriv(order = 2)                     ANSWERED, 60 rows
+  frm_curve_feature(maximum)                     ANSWERED, 1 rows
+  frm_curve_feature(crossing, at = 0.5)          ANSWERED, 2 rows
+  feature(crossing 0.5) on a ROOTLESS tail window ANSWERED, 0 rows
+  pointwise .se vs sqrt(diag(A V A') + extra_var): max rel 0 ; vs frm_linpred(se.fit): max rel 2.22e-16 
+  NA, unseen+TRUE vs seen+FALSE, pw : .estimate and .se identical(): TRUE 
+  NA, unseen+TRUE vs seen+FALSE, sim : .estimate and .se identical(): TRUE 
+  NA, unseen+TRUE vs seen+FALSE, d1 : .estimate and .se identical(): TRUE 
+  NA, unseen+TRUE vs seen+FALSE, fc : .estimate and .se identical(): TRUE 
+
+==== vignette fs model, population curve at an unseen subject ====
+  frm_curve(nsim = 20000, seed = 1)              ANSWERED, 80 rows
+  crit 2.710666008  mcse 0.01125959 
+  frm_curve_deriv(nsim = 20000, seed = 2)        ANSWERED, 40 rows
+  frm_curve_feature(maximum)                     ANSWERED, 1 rows
+  peak 0.513161  se 0.003104161 
+  frm_curve_feature(crossing, at = 0.2)          ANSWERED, 2 rows
+  frm_curve(simultaneous = FALSE)                ANSWERED, 80 rows
+
+==== exact gp(), TRUE, no unseen level (the other extra_var) ====
+  extra_var range 8.15e-07 1.09e-06 
+  allow_new_levels = FALSE 
+    frm_curve(simultaneous = TRUE)               ANSWERED, 59 rows
+    frm_curve_deriv()                            ANSWERED, 59 rows
+  allow_new_levels = TRUE 
+    frm_curve(simultaneous = TRUE)               REFUSED: frm_curve(simultaneous = TRUE): with allow_new_levels = TRUE this grid
+    frm_curve_deriv()                            REFUSED: frm_curve_deriv(): with allow_new_levels = TRUE this grid carries a ne

@@ -1,0 +1,2 @@
+2 rows removed because of missing values (na.action)
+REVRESULT test-ordinal-fitted.R arm=base blocks=16 pass=129 fail=0 err=0 warn=0 skip=0

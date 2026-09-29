@@ -1,0 +1,65 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib 
+
+table(y) = 30/1/28/1   interior row = 2   top row = 1 
+
+== integer : n_tau = 3  y_levels = NULL 
+   FULL fit logLik = -48.83081807764106  coefs = 0.44353012035667 0.056162848217368 -2.6624160839987 1.4164579117824 
+   pin: nthres = 3  levels_y = NULL 
+   influence: NA cells = 0  warnings = 0  NA in interior row = 0  NA in top row = 0 
+   interior row: 0.437020246  0.0914650015  -21.8854316  1.42012955 
+   top row     : 0.423783085  0.0854846974  -2.64761354  3.13957992 
+
+== ordered : n_tau = 3  y_levels = 1,2,3,4 
+   FULL fit logLik = -48.83081807764106  coefs = 0.44353012035667 0.056162848217368 -2.6624160839987 1.4164579117824 
+   pin: nthres = 3  levels_y = 1,2,3,4 
+   influence: NA cells = 0  warnings = 0  NA in interior row = 0  NA in top row = 0 
+   interior row: 0.437020246  0.0914650015  -21.8854316  1.42012955 
+   top row     : 0.423783085  0.0854846974  -2.64761354  3.13957992 
+
+== labelled : n_tau = 3  y_levels = lo,mid,hi,top 
+   FULL fit logLik = -48.83081807764106  coefs = 0.44353012035667 0.056162848217368 -2.6624160839987 1.4164579117824 
+   pin: nthres = 3  levels_y = lo,mid,hi,top 
+   influence: NA cells = 0  warnings = 0  NA in interior row = 0  NA in top row = 0 
+   interior row: 0.437020246  0.0914650015  -21.8854316  1.42012955 
+   top row     : 0.423783085  0.0854846974  -2.64761354  3.13957992 
+
+== descend : n_tau = 3  y_levels = d,c,b,a 
+   FULL fit logLik = -48.83081807764106  coefs = 0.44353012035667 0.056162848217368 -2.6624160839987 1.4164579117824 
+   pin: nthres = 3  levels_y = d,c,b,a 
+   influence: NA cells = 0  warnings = 0  NA in interior row = 0  NA in top row = 0 
+   interior row: 0.437020246  0.0914650015  -21.8854316  1.42012955 
+   top row     : 0.423783085  0.0854846974  -2.64761354  3.13957992 
+
+== wide : n_tau = 3  y_levels = 1,2,3,4 
+   FULL fit logLik = -48.83081807764106  coefs = 0.44353012035667 0.056162848217368 -2.6624160839987 1.4164579117824 
+   pin: nthres = 3  levels_y = 1,2,3,4 
+   influence: NA cells = 0  warnings = 0  NA in interior row = 0  NA in top row = 0 
+   interior row: 0.437020246  0.0914650015  -21.8854316  1.42012955 
+   top row     : 0.423783085  0.0854846974  -2.64761354  3.13957992 
+
+== character : n_tau = 3  y_levels = NULL 
+   FULL fit logLik = -48.83081807764106  coefs = 0.44353012035667 0.056162848217368 -2.6624160839987 1.4164579117824 
+   pin: nthres = 3  levels_y = NULL 
+   influence: NA cells = 0  warnings = 0  NA in interior row = 0  NA in top row = 0 
+   interior row: 0.437020246  0.0914650015  -21.8854316  1.42012955 
+   top row     : 0.423783085  0.0854846974  -2.64761354  3.13957992 
+
+== charlab : frm() REFUSED: missing value where TRUE/FALSE needed 
+
+#### identical() against the integer coding, whole table
+   ordered : TRUE   dim match: TRUE 
+   labelled : TRUE   dim match: TRUE 
+   descend : TRUE   dim match: TRUE 
+   wide : TRUE   dim match: TRUE 
+   character : TRUE   dim match: TRUE 
+
+#### bf(y | thres(3) ~ x) on the labelled ordered factor
+   NA cells = 0  warnings = 0   identical to the integer thres(3) table: TRUE 
+
+#### grouped thres(gr = g) with labelled response levels
+   integer : nthres = 3/2/2  NA = 0  warnings = 0 
+       interior row: 0.384528587  0.0917042771  -21.5898433  0.689524379  1.98708768  -20.4051298  0.222758149  -21.2345895 
+   labelled : nthres = 3/2/2  NA = 0  warnings = 0 
+       interior row: 0.384528587  0.0917042771  -21.5898433  0.689524379  1.98708768  -20.4051298  0.222758149  -21.2345895 
+   identical(labelled, integer): TRUE 
+DONE rev-21

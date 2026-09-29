@@ -1,0 +1,1 @@
+REVRESULT test-confint-anova.R arm=lane blocks=9 pass=35 fail=0 err=0 warn=0 skip=0

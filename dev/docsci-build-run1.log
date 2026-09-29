@@ -1,0 +1,1537 @@
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site
+DOCS sites 8: frmtmb frmtmb.eam frmtmb.latent frmtmb.ode frmtmb.spline frmtmb.coupling frmtmb.sample frmtmb.learn
+DOCS article gates 17, missing 0
+===== SITE frmtmb -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb ────────────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading CODE_OF_CONDUCT.md
+Writing `CODE_OF_CONDUCT.html`
+Reading CONTRIBUTING.md
+Writing `CONTRIBUTING.html`
+Reading SPEC.md
+Writing `SPEC.html`
+Reading README.md
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Reading man/anova.frmtmb_fit.Rd
+Writing `reference/anova.frmtmb_fit.html`
+Reading man/anova.frmtmb_multiple.Rd
+Writing `reference/anova.frmtmb_multiple.html`
+Reading man/as.brmsprior.Rd
+Writing `reference/as.brmsprior.html`
+Reading man/as_draws.Rd
+Writing `reference/as_draws.html`
+Reading man/autocor_matrix.Rd
+Writing `reference/autocor_matrix.html`
+Reading man/bayes_R2.Rd
+Writing `reference/bayes_R2.html`
+Reading man/bf.Rd
+Writing `reference/bf.html`
+Reading man/brmsfamily.Rd
+Writing `reference/brmsfamily.html`
+Reading man/check_custom_family.Rd
+Writing `reference/check_custom_family.html`
+Reading man/cluster_scores.Rd
+Writing `reference/cluster_scores.html`
+Reading man/coef.frmtmb_fit.Rd
+Writing `reference/coef.frmtmb_fit.html`
+Reading man/conditional_effects.Rd
+Writing `reference/conditional_effects.html`
+Reading man/confint.frmtmb_fit.Rd
+Writing `reference/confint.frmtmb_fit.html`
+Reading man/confint_varcorr.Rd
+Writing `reference/confint_varcorr.html`
+Reading man/cox_baseline.Rd
+Writing `reference/cox_baseline.html`
+Reading man/default_prior.Rd
+Writing `reference/default_prior.html`
+Reading man/dharma_residuals.Rd
+Writing `reference/dharma_residuals.html`
+Reading man/diagnose.Rd
+Writing `reference/diagnose.html`
+Reading man/draws-dimensions.Rd
+Writing `reference/draws-dimensions.html`
+Reading man/drop1.frmtmb_fit.Rd
+Writing `reference/drop1.frmtmb_fit.html`
+Reading man/empty_prior.Rd
+Writing `reference/empty_prior.html`
+Reading man/expose_functions.Rd
+Writing `reference/expose_functions.html`
+Reading man/fitted.frmtmb_fit.Rd
+Writing `reference/fitted.frmtmb_fit.html`
+Reading man/fixef.Rd
+Writing `reference/fixef.html`
+Reading man/fixef_by_dpar.Rd
+Writing `reference/fixef_by_dpar.html`
+Reading man/frm.Rd
+Writing `reference/frm.html`
+Reading man/frmtmb-autocor.Rd
+Writing `reference/frmtmb-autocor.html`
+Reading man/frmtmb-conditions.Rd
+Writing `reference/frmtmb-conditions.html`
+Reading man/frmtmb-emmeans.Rd
+Writing `reference/frmtmb-emmeans.html`
+Reading man/frmtmb-extension-api.Rd
+Writing `reference/frmtmb-extension-api.html`
+Reading man/frmtmb-families.Rd
+Writing `reference/frmtmb-families.html`
+Reading man/frmtmb-links.Rd
+Writing `reference/frmtmb-links.html`
+Reading man/frmtmb-me.Rd
+Writing `reference/frmtmb-me.html`
+Reading man/frmtmb-multimembership.Rd
+Writing `reference/frmtmb-multimembership.html`
+Reading man/frmtmb-package.Rd
+Writing `reference/frmtmb-package.html`
+Reading man/frmtmb-priors.Rd
+Writing `reference/frmtmb-priors.html`
+Reading man/frmtmb-robust-dpars.Rd
+Writing `reference/frmtmb-robust-dpars.html`
+Reading man/frmtmb-sampling-api.Rd
+Writing `reference/frmtmb-sampling-api.html`
+Reading man/frmtmb-scales.Rd
+Writing `reference/frmtmb-scales.html`
+Reading man/frmtmb-shared-generics.Rd
+Writing `reference/frmtmb-shared-generics.html`
+Reading man/frmtmb-student-re.Rd
+Writing `reference/frmtmb-student-re.html`
+Reading man/frmtmb_ad_overload.Rd
+Writing `reference/frmtmb_ad_overload.html`
+Reading man/frmtmb_control.Rd
+Writing `reference/frmtmb_control.html`
+Reading man/frmtmb_family-access.Rd
+Writing `reference/frmtmb_family-access.html`
+Reading man/frmtmb_family.Rd
+Writing `reference/frmtmb_family.html`
+Reading man/frmtmb_priorlist-columns.Rd
+Writing `reference/frmtmb_priorlist-columns.html`
+Reading man/frmtmb_register_aterm.Rd
+Writing `reference/frmtmb_register_aterm.html`
+Reading man/frmtmb_register_compat.Rd
+Writing `reference/frmtmb_register_compat.html`
+Reading man/frmtmb_register_frame_check.Rd
+Writing `reference/frmtmb_register_frame_check.html`
+Reading man/frmtmb_structure.Rd
+Writing `reference/frmtmb_structure.html`
+Reading man/frm_allfit.Rd
+Writing `reference/frm_allfit.html`
+Reading man/frm_bootstrap.Rd
+Writing `reference/frm_bootstrap.html`
+Reading man/frm_compat.Rd
+Writing `reference/frm_compat.html`
+Reading man/frm_compat_features.Rd
+Writing `reference/frm_compat_features.html`
+Reading man/frm_compat_rules.Rd
+Writing `reference/frm_compat_rules.html`
+Reading man/frm_hazard_reads.Rd
+Writing `reference/frm_hazard_reads.html`
+Reading man/frm_joint_cov.Rd
+Writing `reference/frm_joint_cov.html`
+Reading man/frm_linpred.Rd
+Writing `reference/frm_linpred.html`
+Reading man/frm_lp_basis.Rd
+Writing `reference/frm_lp_basis.html`
+Reading man/frm_multiple.Rd
+Writing `reference/frm_multiple.html`
+Reading man/frm_periodogram.Rd
+Writing `reference/frm_periodogram.html`
+Reading man/frm_series_draw.Rd
+Writing `reference/frm_series_draw.html`
+Reading man/frm_simulate.Rd
+Writing `reference/frm_simulate.html`
+Reading man/getME.frmtmb_fit.Rd
+Writing `reference/getME.frmtmb_fit.html`
+Reading man/habit_prep.Rd
+Writing `reference/habit_prep.html`
+Reading man/hypothesis.Rd
+Writing `reference/hypothesis.html`
+Reading man/influence.frmtmb_fit.Rd
+Writing `reference/influence.frmtmb_fit.html`
+Reading man/latent_probs.Rd
+Writing `reference/latent_probs.html`
+Reading man/lf.Rd
+Writing `reference/lf.html`
+Reading man/log_lik.Rd
+Writing `reference/log_lik.html`
+Reading man/loo.Rd
+Writing `reference/loo.html`
+Reading man/mixture.Rd
+Writing `reference/mixture.html`
+Reading man/mixture_mvn.Rd
+Writing `reference/mixture_mvn.html`
+Reading man/mixture_probs.Rd
+Writing `reference/mixture_probs.html`
+Reading man/mvbf.Rd
+Writing `reference/mvbf.html`
+Reading man/ngrps.Rd
+Writing `reference/ngrps.html`
+Reading man/nlf.Rd
+Writing `reference/nlf.html`
+Reading man/num_factor.Rd
+Writing `reference/num_factor.html`
+Reading man/par_template.Rd
+Writing `reference/par_template.html`
+Reading man/plot.frmtmb_fit.Rd
+Writing `reference/plot.frmtmb_fit.html`
+Reading man/plot.frmtmb_influence.Rd
+Writing `reference/plot.frmtmb_influence.html`
+Reading man/plus-bform.Rd
+Writing `reference/plus-bform.html`
+Reading man/posterior_summary.Rd
+Writing `reference/posterior_summary.html`
+Reading man/pp_check.Rd
+Writing `reference/pp_check.html`
+Reading man/predict.frmtmb_fit.Rd
+Writing `reference/predict.frmtmb_fit.html`
+Reading man/print.frmtmb_priorlist.Rd
+Writing `reference/print.frmtmb_priorlist.html`
+Reading man/prior.Rd
+Writing `reference/prior.html`
+Reading man/prior_summary.Rd
+Writing `reference/prior_summary.html`
+Reading man/profile.frmtmb_fit.Rd
+Writing `reference/profile.frmtmb_fit.html`
+Reading man/ps.Rd
+Writing `reference/ps.html`
+Reading man/ranef.Rd
+Writing `reference/ranef.html`
+Reading man/refit.Rd
+Writing `reference/refit.html`
+Reading man/rescor_matrix.Rd
+Writing `reference/rescor_matrix.html`
+Reading man/residuals.frmtmb_fit.Rd
+Writing `reference/residuals.frmtmb_fit.html`
+Reading man/set_mecor.Rd
+Writing `reference/set_mecor.html`
+Reading man/set_prior.Rd
+Writing `reference/set_prior.html`
+Reading man/sigma.frmtmb_fit.Rd
+Writing `reference/sigma.frmtmb_fit.html`
+Reading man/simulate.frmtmb_fit.Rd
+Writing `reference/simulate.frmtmb_fit.html`
+Reading man/update.frmtmb_fit.Rd
+Writing `reference/update.frmtmb_fit.html`
+Reading man/validate_prior.Rd
+Writing `reference/validate_prior.html`
+Reading man/VarCorr.Rd
+Writing `reference/VarCorr.html`
+Reading man/variables.Rd
+Writing `reference/variables.html`
+Reading man/vcov.frmtmb_fit.Rd
+Writing `reference/vcov.frmtmb_fit.html`
+Reading man/vcov_cluster.Rd
+Registered S3 method overwritten by 'clubSandwich':
+  method    from    
+  bread.mlm sandwich
+Writing `reference/vcov_cluster.html`
+Reading man/whittle.Rd
+Writing `reference/whittle.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/bayesian-cognitive-modeling.Rmd
+Writing `articles/bayesian-cognitive-modeling.html`
+Reading vignettes/brms-migration.Rmd
+Writing `articles/brms-migration.html`
+Reading vignettes/case-studies.Rmd
+Writing `articles/case-studies.html`
+Reading vignettes/compatibility.Rmd
+Writing `articles/compatibility.html`
+Reading vignettes/diagnostics.Rmd
+Writing `articles/diagnostics.html`
+Reading vignettes/frmtmb.Rmd
+Writing `articles/frmtmb.html`
+Reading vignettes/habit.Rmd
+Writing `articles/habit.html`
+Reading vignettes/inputs.Rmd
+Writing `articles/inputs.html`
+Reading vignettes/reinforcement-learning.Rmd
+Writing `articles/reinforcement-learning.html`
+Reading vignettes/spectral.Rmd
+Writing `articles/spectral.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/$.frmtmb_family.html to
+reference/frmtmb_family-access.html.
+Adding redirect from reference/$.frmtmb_priorlist.html to
+reference/frmtmb_priorlist-columns.html.
+Adding redirect from reference/+.frmtmb_bform.html to
+reference/plus-bform.html.
+Adding redirect from reference/acat.html to reference/frmtmb-families.html.
+Adding redirect from reference/arg_unset.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/as_draws.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws.frmtmb_multiple.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_array.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_array.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_df.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_df.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_list.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_list.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_matrix.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_matrix.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_draws_rvars.html to reference/as_draws.html.
+Adding redirect from reference/as_draws_rvars.frmtmb_fit.html to
+reference/as_draws.html.
+Adding redirect from reference/as_frmtmb_family.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/as_priorlist.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/asym_laplace.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/aterms_for_newdata.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/bayes_R2.frmtmb_fit.html to
+reference/bayes_R2.html.
+Adding redirect from reference/bernoulli.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/Beta.html to reference/frmtmb-families.html.
+Adding redirect from reference/beta_binomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/block_cor_prior.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/block_n_cor.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/block_sd_idx.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_block_has_r.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_coef_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_coef_table.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_fixef_rows.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_group_name.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_levels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_par_labels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_prob_cols.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_re_parts.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_re_rnames.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_stan_name.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_summarize_draws.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_summary_array.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_summary_matrix.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/build_objective.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/categorical.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/ce_boot_grids.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_boot_one.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_cats_display.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_display_kind.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_dots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_draw_new_levels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_finalize.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_frame.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_grids_build.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_group_vars.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_new_level_spec.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_pred_dpar.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_re_formula.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ce_structure_check.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/check_prior_slots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/compat_aterm_rules.html to
+reference/frmtmb_register_compat.html.
+Adding redirect from reference/compat_rule_builder.html to
+reference/frmtmb_register_compat.html.
+Adding redirect from reference/compois.html to reference/frmtmb-families.html.
+Adding redirect from reference/conditional_effects.frmtmb_fit.html to
+reference/conditional_effects.html.
+Adding redirect from reference/cooks.distance.frmtmb_fit.html to
+reference/influence.frmtmb_fit.html.
+Adding redirect from reference/covstruct_has_chol.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/cox.html to reference/frmtmb-families.html.
+Adding redirect from reference/cratio.html to reference/frmtmb-families.html.
+Adding redirect from reference/cs_offsets_add.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/cumulative.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/custom_family.html to
+reference/frmtmb_family.html.
+Adding redirect from reference/dfbeta.frmtmb_influence.html to
+reference/influence.frmtmb_fit.html.
+Adding redirect from reference/dfbetas.frmtmb_influence.html to
+reference/influence.frmtmb_fit.html.
+Adding redirect from reference/dpar_complement.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/dpar_linpred.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/dpar_log.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/dpar_log_complement.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/dpar_log1m.html to
+reference/frmtmb-robust-dpars.html.
+Adding redirect from reference/estimated_coef_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/eval_dpars.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/exgaussian.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/expand_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/exponential.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/expose_functions.frmtmb_fit.html to
+reference/expose_functions.html.
+Adding redirect from reference/fam_is_category_valued.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/find_linpred.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/fit_extras.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/frame_block_of.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/frm_check_dots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/frm_family_package.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_install_generics.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/frm_match_arg.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_message.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_stop.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_warning.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frmtmb.html to reference/frmtmb-package.html.
+Adding redirect from reference/frmtmb_register_prior_defaults.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/geometric.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/get_prior.html to reference/default_prior.html.
+Adding redirect from reference/has_trunc.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/huber.html to reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_gamma.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_lognormal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_negbinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/hurdle_poisson.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/hyp_brms_result.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_class_prefix.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_env_vals.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_eval.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_eval_in.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_expr_vars.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_labels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_parse_all.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_samples_frame.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_tail_p.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_vals_only.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hypothesis.frmtmb_fit.html to
+reference/hypothesis.html.
+Adding redirect from reference/hypothesis.frmtmb_multiple.html to
+reference/hypothesis.html.
+Adding redirect from reference/is_student_block.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/log_lik.frmtmb_fit.html to
+reference/log_lik.html.
+Adding redirect from reference/log_sd_theta_index.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/lognormal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/loo.frmtmb_fit.html to reference/loo.html.
+Adding redirect from reference/loo_compare.html to reference/loo.html.
+Adding redirect from reference/loo_compare.default.html to reference/loo.html.
+Adding redirect from reference/me.html to reference/frmtmb-me.html.
+Adding redirect from reference/mixture_multimodal_refusals.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/mixture_posterior.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/multinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/nbinom1.html to reference/frmtmb-families.html.
+Adding redirect from reference/nchains.html to reference/draws-dimensions.html.
+Adding redirect from reference/nchains.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/ncp_eligible.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ncp_scale_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ncp_unscale_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/ndraws.html to reference/draws-dimensions.html.
+Adding redirect from reference/ndraws.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/neg_log_prior_fn.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/negbinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/ngrps.frmtmb_fit.html to reference/ngrps.html.
+Adding redirect from reference/niterations.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/niterations.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nvariables.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nvariables.frmtmb_fit.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/outer_par_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/par_name_bare.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/par_template.default.html to
+reference/par_template.html.
+Adding redirect from reference/par_template.frmtmb_fit.html to
+reference/par_template.html.
+Adding redirect from reference/posterior_summary.default.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_summary.frmtmb_fit.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_summary.frmtmb_multiple.html to
+reference/posterior_summary.html.
+Adding redirect from reference/pp_check.frmtmb_fit.html to
+reference/pp_check.html.
+Adding redirect from reference/predict_category_props.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/prior_.html to reference/prior.html.
+Adding redirect from reference/prior_beta.html to reference/frmtmb-priors.html.
+Adding redirect from reference/prior_gamma.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_inv_gamma.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_lkj.html to reference/frmtmb-priors.html.
+Adding redirect from reference/prior_logistic.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_normal.html to
+reference/frmtmb-priors.html.
+Adding redirect from reference/prior_string.html to reference/prior.html.
+Adding redirect from reference/prior_summary.frmtmb_fit.html to
+reference/prior_summary.html.
+Adding redirect from reference/prior_t.html to reference/frmtmb-priors.html.
+Adding redirect from reference/re_form_arg.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/refit.frmtmb_fit.html to reference/refit.html.
+Adding redirect from reference/require_fitted.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/rescor_row_loglik.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/resolve_bounds.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/resolve_prior_input.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/row_lpdf.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sdr_of.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/set_rescor.html to reference/mvbf.html.
+Adding redirect from reference/shifted_lognormal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/sim_can.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_context.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_draw.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_is_structured.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sim_note.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/single_response.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/skew_normal.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/spec_spelling.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/spec_target.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/sratio.html to reference/frmtmb-families.html.
+Adding redirect from reference/structure_supports_all.html to
+reference/frmtmb-extension-api.html.
+Adding redirect from reference/student.html to reference/frmtmb-families.html.
+Adding redirect from reference/tweedie.html to reference/frmtmb-families.html.
+Adding redirect from reference/us_chol_cor.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_layout.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_matrices.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_values.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/variables.frmtmb_fit.html to
+reference/variables.html.
+Adding redirect from reference/vcov_estimated.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/von_mises.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/waic.html to reference/loo.html.
+Adding redirect from reference/waic.frmtmb_fit.html to reference/loo.html.
+Adding redirect from reference/weibull.html to reference/frmtmb-families.html.
+Adding redirect from reference/with_cs_offsets.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/zero_inflated_asym_laplace.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_beta.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_binomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_negbinomial.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_inflated_poisson.html to
+reference/frmtmb-families.html.
+Adding redirect from reference/zero_one_inflated_beta.html to
+reference/frmtmb-families.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb ───────────────────────────
+
+===== ok =====
+===== SITE frmtmb.eam -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.eam =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.eam ────────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.eam
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.eam
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/ddm_simulate.Rd
+Writing `reference/ddm_simulate.html`
+Reading man/frmtmb.eam-package.Rd
+Writing `reference/frmtmb.eam-package.html`
+Reading man/gddm-bound.Rd
+Writing `reference/gddm-bound.html`
+Reading man/gddm-drift.Rd
+Writing `reference/gddm-drift.html`
+Reading man/gddm-start.Rd
+Writing `reference/gddm-start.html`
+Reading man/gddm.Rd
+Writing `reference/gddm.html`
+Reading man/gddm_bound_term.Rd
+Writing `reference/gddm_bound_term.html`
+Reading man/gddm_conditions.Rd
+Writing `reference/gddm_conditions.html`
+Reading man/gddm_control.Rd
+Writing `reference/gddm_control.html`
+Reading man/gddm_drift_term.Rd
+Writing `reference/gddm_drift_term.html`
+Reading man/gddm_floored.Rd
+Writing `reference/gddm_floored.html`
+Reading man/gddm_simulate.Rd
+Writing `reference/gddm_simulate.html`
+Reading man/gddm_start_term.Rd
+Writing `reference/gddm_start_term.html`
+Reading man/lba.Rd
+Writing `reference/lba.html`
+Reading man/lba_simulate.Rd
+Writing `reference/lba_simulate.html`
+Reading man/ndt_apply.Rd
+Writing `reference/ndt_apply.html`
+Reading man/ndt_bound.Rd
+Writing `reference/ndt_bound.html`
+Reading man/ndt_bound_attach.Rd
+Writing `reference/ndt_bound_attach.html`
+Reading man/ndt_bound_key.Rd
+Writing `reference/ndt_bound_key.html`
+Reading man/ndt_bound_of.Rd
+Writing `reference/ndt_bound_of.html`
+Reading man/ndt_bound_pending.Rd
+Writing `reference/ndt_bound_pending.html`
+Reading man/ndt_time.Rd
+Writing `reference/ndt_time.html`
+Reading man/rdm.Rd
+Writing `reference/rdm.html`
+Reading man/rdm_simulate.Rd
+Writing `reference/rdm_simulate.html`
+Reading man/wiener.Rd
+Writing `reference/wiener.html`
+Reading man/wiener_gng.Rd
+Writing `reference/wiener_gng.html`
+Reading man/wiener_gng_simulate.Rd
+Writing `reference/wiener_gng_simulate.html`
+Reading man/wiener_lpdf.Rd
+Writing `reference/wiener_lpdf.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/ddm.Rmd
+Writing `articles/ddm.html`
+Reading vignettes/gddm.Rmd
+Writing `articles/gddm.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frmtmb.eam.html to
+reference/frmtmb.eam-package.html.
+Adding redirect from reference/gddm_bound_constant.html to
+reference/gddm-bound.html.
+Adding redirect from reference/gddm_bound_exponential.html to
+reference/gddm-bound.html.
+Adding redirect from reference/gddm_bound_linear.html to
+reference/gddm-bound.html.
+Adding redirect from reference/gddm_drift_coherence.html to
+reference/gddm-drift.html.
+Adding redirect from reference/gddm_drift_constant.html to
+reference/gddm-drift.html.
+Adding redirect from reference/gddm_drift_leak.html to
+reference/gddm-drift.html.
+Adding redirect from reference/gddm_start_point.html to
+reference/gddm-start.html.
+Adding redirect from reference/gddm_start_uniform.html to
+reference/gddm-start.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.eam ───────────────────────
+
+===== ok =====
+===== SITE frmtmb.latent -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.latent =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.latent ─────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.latent
+Writing to:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.latent
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/frmtmb.latent-package.Rd
+Writing `reference/frmtmb.latent-package.html`
+Reading man/hmm.Rd
+Writing `reference/hmm.html`
+Reading man/hmm_probs.Rd
+Writing `reference/hmm_probs.html`
+Reading man/hmm_starts.Rd
+Writing `reference/hmm_starts.html`
+Reading man/hmm_viterbi.Rd
+Writing `reference/hmm_viterbi.html`
+Reading man/lca.Rd
+Writing `reference/lca.html`
+Reading man/lca_probs.Rd
+Writing `reference/lca_probs.html`
+Reading man/lca_profiles.Rd
+Writing `reference/lca_profiles.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/latent.Rmd
+Writing `articles/latent.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frmtmb.latent.html to
+reference/frmtmb.latent-package.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.latent ────────────────────
+
+===== ok =====
+===== SITE frmtmb.ode -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.ode =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.ode ────────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.ode
+Writing to: C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.ode
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/frmtmb.ode-package.Rd
+Writing `reference/frmtmb.ode-package.html`
+Reading man/frm_lincmt.Rd
+Writing `reference/frm_lincmt.html`
+Reading man/frm_ode.Rd
+Writing `reference/frm_ode.html`
+Reading man/frm_ode_failures.Rd
+Writing `reference/frm_ode_failures.html`
+Reading man/frm_ode_records.Rd
+Writing `reference/frm_ode_records.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/ode.Rmd
+Writing `articles/ode.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frmtmb.ode.html to
+reference/frmtmb.ode-package.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.ode ───────────────────────
+
+===== ok =====
+===== SITE frmtmb.spline -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.spline =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.spline ─────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.spline
+Writing to:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.spline
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/frmtmb.spline-package.Rd
+Writing `reference/frmtmb.spline-package.html`
+Reading man/frm_curve.Rd
+Writing `reference/frm_curve.html`
+Reading man/frm_curve_deriv.Rd
+Writing `reference/frm_curve_deriv.html`
+Reading man/frm_curve_feature.Rd
+Writing `reference/frm_curve_feature.html`
+Reading man/royston_parmar.Rd
+Writing `reference/royston_parmar.html`
+Reading man/rp_floored.Rd
+Writing `reference/rp_floored.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/curve-inference.Rmd
+Writing `articles/curve-inference.html`
+Reading vignettes/royston-parmar.Rmd
+Writing `articles/royston-parmar.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frmtmb.spline.html to
+reference/frmtmb.spline-package.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.spline ────────────────────
+
+===== ok =====
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.coupling =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.coupling ───────────────────────────
+Reading from:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.coupling
+Writing to:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.coupling
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/cross_wishart.Rd
+Writing `reference/cross_wishart.html`
+Reading man/frmtmb.coupling-package.Rd
+Writing `reference/frmtmb.coupling-package.html`
+Reading man/frm_coherence.Rd
+Writing `reference/frm_coherence.html`
+Reading man/frm_cross_pairs.Rd
+Writing `reference/frm_cross_pairs.html`
+Reading man/frm_cross_simulate.Rd
+Writing `reference/frm_cross_simulate.html`
+Reading man/frm_cross_spectrum.Rd
+Writing `reference/frm_cross_spectrum.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/coherence.Rmd
+Writing `articles/coherence.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frm_phase.html to reference/frm_coherence.html.
+Adding redirect from reference/frmtmb.coupling.html to
+reference/frmtmb.coupling-package.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.coupling ──────────────────
+
+===== ok =====
+===== SITE frmtmb.sample -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.sample =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.sample ─────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.sample
+Writing to:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.sample
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Reading man/as_tmbstan.Rd
+Writing `reference/as_tmbstan.html`
+Reading man/check_laplace.Rd
+Writing `reference/check_laplace.html`
+Reading man/draws-diagnostics.Rd
+Writing `reference/draws-diagnostics.html`
+Reading man/draws-dimensions.Rd
+Writing `reference/draws-dimensions.html`
+Reading man/draws-structure.Rd
+Writing `reference/draws-structure.html`
+Reading man/frmtmb-draws-deprecated.Rd
+Writing `reference/frmtmb-draws-deprecated.html`
+Reading man/frmtmb-draws-refusals.Rd
+Writing `reference/frmtmb-draws-refusals.html`
+Reading man/frmtmb-draws-summaries.Rd
+Writing `reference/frmtmb-draws-summaries.html`
+Reading man/frmtmb-loo-refusals.Rd
+Writing `reference/frmtmb-loo-refusals.html`
+Reading man/frmtmb.sample-package.Rd
+Writing `reference/frmtmb.sample-package.html`
+Reading man/frm_sample.Rd
+Writing `reference/frm_sample.html`
+Reading man/posterior_epred.Rd
+Writing `reference/posterior_epred.html`
+Reading man/pp_mixture.Rd
+Writing `reference/pp_mixture.html`
+Reading man/reexports.Rd
+Writing `reference/reexports.html`
+Reading man/sample-as_draws.Rd
+Writing `reference/sample-as_draws.html`
+Reading man/sample-bayes_R2.Rd
+Writing `reference/sample-bayes_R2.html`
+Reading man/sample-log_lik.Rd
+Writing `reference/sample-log_lik.html`
+Reading man/sample-loo.Rd
+Writing `reference/sample-loo.html`
+Reading man/sample-posterior_summary.Rd
+Writing `reference/sample-posterior_summary.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/brms-posterior.Rmd
+Writing `articles/brms-posterior.html`
+Reading vignettes/posterior-diagnostics.Rmd
+Writing `articles/posterior-diagnostics.html`
+Reading vignettes/sampling.Rmd
+Writing `articles/sampling.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/as.array.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.data.frame.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.matrix.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.mcmc.html to reference/sample-as_draws.html.
+Adding redirect from reference/as.mcmc.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws.html to reference/reexports.html.
+Adding redirect from reference/as_draws.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_array.html to reference/reexports.html.
+Adding redirect from reference/as_draws_array.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_df.html to reference/reexports.html.
+Adding redirect from reference/as_draws_df.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_list.html to reference/reexports.html.
+Adding redirect from reference/as_draws_list.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_matrix.html to
+reference/reexports.html.
+Adding redirect from reference/as_draws_matrix.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as_draws_rvars.html to reference/reexports.html.
+Adding redirect from reference/as_draws_rvars.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/bayes_factor.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bayes_factor.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bayes_R2.html to reference/reexports.html.
+Adding redirect from reference/bayes_R2.frmtmb_draws.html to
+reference/sample-bayes_R2.html.
+Adding redirect from reference/bf.html to reference/reexports.html.
+Adding redirect from reference/bridge_sampler.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/bridge_sampler.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/coef.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/conditional_effects.html to
+reference/reexports.html.
+Adding redirect from reference/expose_functions.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/family.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/fitted.frmtmb_draws.html to
+reference/frmtmb-draws-summaries.html.
+Adding redirect from reference/fixef.html to reference/reexports.html.
+Adding redirect from reference/formula.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/frm.html to reference/reexports.html.
+Adding redirect from reference/frmtmb.sample.html to
+reference/frmtmb.sample-package.html.
+Adding redirect from reference/getCall.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/hypothesis.html to reference/reexports.html.
+Adding redirect from reference/kfold.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/kfold.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/log_lik.html to reference/reexports.html.
+Adding redirect from reference/log_lik.frmtmb_draws.html to
+reference/sample-log_lik.html.
+Adding redirect from reference/log_posterior.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/log_posterior.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/loo.html to reference/reexports.html.
+Adding redirect from reference/loo.frmtmb_draws.html to
+reference/sample-loo.html.
+Adding redirect from reference/loo_compare.html to reference/reexports.html.
+Adding redirect from reference/loo_compare.frmtmb_draws.html to
+reference/sample-loo.html.
+Adding redirect from reference/loo_moment_match.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_moment_match.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_subsample.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/loo_subsample.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/mcmc_plot.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/mcmc_plot.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/nchains.html to reference/reexports.html.
+Adding redirect from reference/nchains.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/ndraws.html to reference/reexports.html.
+Adding redirect from reference/ndraws.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/neff_ratio.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/neff_ratio.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/ngrps.html to reference/reexports.html.
+Adding redirect from reference/niterations.html to reference/reexports.html.
+Adding redirect from reference/niterations.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/nobs.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/nsamples.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/nsamples.frmtmb_draws.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/nuts_params.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/nuts_params.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/nvariables.html to reference/reexports.html.
+Adding redirect from reference/nvariables.frmtmb_draws.html to
+reference/draws-dimensions.html.
+Adding redirect from reference/pairs.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/parnames.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/parnames.frmtmb_draws.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/plot.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/post_prob.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/post_prob.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/posterior_epred.frmtmb_draws.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_interval.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/posterior_interval.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/posterior_linpred.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_linpred.frmtmb_draws.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_predict.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_predict.frmtmb_draws.html to
+reference/posterior_epred.html.
+Adding redirect from reference/posterior_samples.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/posterior_samples.frmtmb_draws.html to
+reference/frmtmb-draws-deprecated.html.
+Adding redirect from reference/posterior_summary.html to
+reference/reexports.html.
+Adding redirect from reference/posterior_summary.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/pp_check.html to reference/reexports.html.
+Adding redirect from reference/pp_mixture.frmtmb_draws.html to
+reference/pp_mixture.html.
+Adding redirect from reference/predict.frmtmb_draws.html to
+reference/frmtmb-draws-summaries.html.
+Adding redirect from reference/predictive_error.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/predictive_error.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/predictive_interval.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/predictive_interval.frmtmb_draws.html to
+reference/sample-posterior_summary.html.
+Adding redirect from reference/prior_summary.html to reference/reexports.html.
+Adding redirect from reference/psis.html to reference/sample-loo.html.
+Adding redirect from reference/psis.frmtmb_draws.html to
+reference/sample-loo.html.
+Adding redirect from reference/ranef.html to reference/reexports.html.
+Adding redirect from reference/ranef.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/reloo.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/reloo.frmtmb_draws.html to
+reference/frmtmb-loo-refusals.html.
+Adding redirect from reference/residuals.frmtmb_draws.html to
+reference/frmtmb-draws-summaries.html.
+Adding redirect from reference/restructure.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/restructure.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/rhat.html to reference/draws-diagnostics.html.
+Adding redirect from reference/rhat.frmtmb_draws.html to
+reference/draws-diagnostics.html.
+Adding redirect from reference/set_prior.html to reference/reexports.html.
+Adding redirect from reference/stancode.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/stancode.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/standata.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/standata.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/update.frmtmb_draws.html to
+reference/frmtmb-draws-refusals.html.
+Adding redirect from reference/VarCorr.html to reference/reexports.html.
+Adding redirect from reference/VarCorr.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/variables.html to reference/reexports.html.
+Adding redirect from reference/waic.html to reference/reexports.html.
+Adding redirect from reference/waic.frmtmb_draws.html to
+reference/sample-loo.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.sample ────────────────────
+
+===== ok =====
+===== SITE frmtmb.learn -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.learn =====
+── Initialising site ───────────────────────────────────────────────────────────
+Copying <pkgdown>/BS5/assets/katex-auto.js to katex-auto.js
+Copying <pkgdown>/BS5/assets/lightswitch.js to lightswitch.js
+Copying <pkgdown>/BS5/assets/link.svg to link.svg
+Copying <pkgdown>/BS5/assets/pkgdown.js to pkgdown.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js
+Updating deps/bootstrap-5.3.8/bootstrap.bundle.min.js.map
+Updating deps/bootstrap-5.3.8/bootstrap.min.css
+Updating deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js
+Updating deps/clipboard.js-2.0.11/clipboard.min.js
+Updating deps/font-awesome-6.5.2/css/all.css
+Updating deps/font-awesome-6.5.2/css/all.min.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.css
+Updating deps/font-awesome-6.5.2/css/v4-shims.min.css
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-brands-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-regular-400.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-solid-900.woff2
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.ttf
+Updating deps/font-awesome-6.5.2/webfonts/fa-v4compatibility.woff2
+Updating deps/headroom-0.11.0/headroom.min.js
+Updating deps/headroom-0.11.0/jQuery.headroom.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.js
+Updating deps/jquery-3.6.0/jquery-3.6.0.min.map
+Updating deps/search-1.0.0/autocomplete.jquery.min.js
+Updating deps/search-1.0.0/fuse.min.js
+Updating deps/search-1.0.0/mark.min.js
+── Building pkgdown site for package frmtmb.learn ──────────────────────────────
+Reading from: C:/Users/adf44/source/r/frmtmb-wt-docsci/extensions/frmtmb.learn
+Writing to:
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.learn
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✔ Favicons ok.
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Writing `authors.html`
+Reading 'DESCRIPTION'
+Writing `index.html`
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Writing `reference/index.html`
+Loading required package: frmtmb
+Reading man/bandit2arm_delta.Rd
+Writing `reference/bandit2arm_delta.html`
+Reading man/bandit2arm_dual.Rd
+Writing `reference/bandit2arm_dual.html`
+Reading man/bandit4arm2_kalman_filter.Rd
+Writing `reference/bandit4arm2_kalman_filter.html`
+Reading man/frmtmb.learn-package.Rd
+Writing `reference/frmtmb.learn-package.html`
+Reading man/frm_learn_families.Rd
+Writing `reference/frm_learn_families.html`
+Reading man/frm_task_design.Rd
+Writing `reference/frm_task_design.html`
+Reading man/frm_task_simulate.Rd
+Writing `reference/frm_task_simulate.html`
+Reading man/frm_value_trace.Rd
+Writing `reference/frm_value_trace.html`
+Reading man/igt_orl.Rd
+Writing `reference/igt_orl.html`
+Reading man/igt_pvl_delta.Rd
+Writing `reference/igt_pvl_delta.html`
+Reading man/prl_fictitious.Rd
+Writing `reference/prl_fictitious.html`
+Reading man/rlddm.Rd
+Writing `reference/rlddm.html`
+Reading man/ts_par7.Rd
+Writing `reference/ts_par7.html`
+── Building articles ───────────────────────────────────────────────────────────
+Writing `articles/index.html`
+Reading vignettes/learning.Rmd
+Writing `articles/learning.html`
+── Building news ───────────────────────────────────────────────────────────────
+Writing `news/index.html`
+── Building sitemap ────────────────────────────────────────────────────────────
+Writing `sitemap.xml`
+── Building docs for llms ──────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+Adding redirect from reference/frmtmb.learn.html to
+reference/frmtmb.learn-package.html.
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package frmtmb.learn ─────────────────────
+
+===== ok =====
+DOCS stray directories: tutorials
+DOCS built 8 of 8 (minimum 8)
+DOCS ok

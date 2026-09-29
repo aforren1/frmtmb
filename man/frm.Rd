@@ -329,6 +329,82 @@ refused (the simplex carries one coefficient and a contrast expansion
 has no column to go in), and \code{mo(x):mo(w)} is refused outright.
 }
 
+\section{Category-specific effects, cs()}{
+
+\code{cs(x)} gives a predictor one coefficient per category boundary
+instead of one for the whole response, in the \code{sratio()}, \code{cratio()}
+and \code{acat()} families. The term contributes an \code{n} by \code{K - 1} matrix
+of offsets to the thresholds, so the effect of \code{x} on the first
+boundary need not be its effect on the second. \code{cumulative()} refuses
+it, as brms does: category-specific effects are not identified under
+that parameterization, because the cumulative probabilities would stop
+being monotone.
+
+A \code{cs()} term is expanded by \code{stats::model.matrix()} like any other
+population-level term, which is what brms does too. A numeric
+predictor is one column; a FACTOR or CHARACTER predictor is its
+treatment-contrast dummies, one coefficient per dummy per boundary.
+\code{cs(f)} on a three-level factor with levels \code{a}, \code{b} and \code{c} is
+therefore four coefficients, named \code{fb[1]}, \code{fb[2]}, \code{fc[1]} and
+\code{fc[2]} in \code{\link[=fixef]{fixef()}} and \code{bcs_fb[1]} and the rest in \code{\link[=variables]{variables()}},
+with \code{a} as the reference level. \code{set_prior(class = "b")} covers them
+all and \code{set_prior(class = "b", coef = "fb")} reaches one dummy's
+pair; \code{\link[=default_prior]{default_prior()}} lists one row per dummy, as brms's
+\code{get_prior()} does. New data are recoded against the levels and
+contrasts of the FIT, so a one-row \code{newdata} whose factor carries only
+the level it needs still predicts that level, and a level the fit
+never saw is refused.
+
+A column written on BOTH sides is refused. \code{y ~ x + cs(x)} is not
+identified: adding a constant to the population-level coefficient of
+\code{x} and subtracting the same constant from every one of its
+category-specific coefficients leaves the likelihood unchanged. Write
+\code{y ~ cs(x)}, which fits the same set of distributions. The same holds
+for a factor on both sides (\code{y ~ f + cs(f)}) and for a constant \code{cs()}
+column. brms builds both blocks and samples the ridge; maximum
+likelihood has no prior to hold it, and what frmtmb reported before
+the refusal was a coefficient with a standard error of 2.7e5.
+
+The check is a RANK test, so it also catches a column that only a
+basis or an arithmetic expression spells differently:
+\code{y ~ I(x) + cs(x)}, \code{y ~ x1 + x2 + cs(x1 + x2)},
+\code{y ~ poly(x, 2) + cs(x)} and \code{y ~ s(x) + cs(x)} are all refused, and so
+are two \code{cs()} terms that are the same column under different
+spellings. The rank comes from \code{qr()} at its default \code{tol = 1e-7}, over
+columns scaled to unit norm, so a merely ill-conditioned design is
+refused once its condition number passes about \code{1e7}. The message names
+the population-level columns involved and the edit that works, which
+for \code{poly(x, 2) + cs(x)} is \code{I(x^2) + cs(x)} (the same maximum, one
+parameter fewer) and for \code{s(x) + cs(x)} is to drop one of the two
+terms, because there it is the smooth's own unpenalized linear column
+that is aliased.
+
+The rank test cannot see an \code{mi()} or \code{me()} term: its design column is
+a zero placeholder at assembly, filled later with observed-or-latent
+VALUES rather than with a function of a data column, so there is no
+basis to test it against. \code{mi(x) + cs(x)} and \code{me(x, sdx) + cs(x)} are
+therefore accepted. \code{me(x, sdx) + cs(x)} looks genuinely identified,
+its standard errors being finite, and \code{mi(x) + cs(x)} is not settled.
+\code{mo()} has a placeholder column too, but whatever fills it is a
+monotone function of the predictor's categories, so \code{mo()} gets a test
+of its own against that category basis and \code{y ~ mo(m) + cs(m)} is
+refused.
+
+\code{cs()} is not available with \code{thres(gr = )} or under \code{importance}, and
+\code{cs()} on the LEFT of a bar (\code{(cs(x) | g)}) is the covariance structure
+of the same name, not a category-specific effect. A MULTIVARIATE fit
+takes \code{cs()} in any response: \code{bf(yo ~ x + cs(f)) + bf(yo2 ~ z + cs(f))} fits, and the coefficients carry the response prefix,
+\code{yo_fb[1]} in \code{\link[=fixef]{fixef()}} and \code{bcs_yo_fb[1]} in \code{\link[=variables]{variables()}}.
+
+One behavior to know when a \code{cs()} level is rare. The model frame drops
+an unused factor level, as brms does, so a SUBSET in which a level does
+not occur is fitted with one column fewer. In \code{\link[=influence]{influence()}}, deleting
+the last row of a level therefore gives a refit whose coefficients are
+a subset of the full fit's: those cells stay \code{NA},
+\code{\link[=cooks.distance]{cooks.distance()}} is \code{NA} for that unit, and a warning names the unit
+and the coefficients.
+}
+
 \section{Ordinal thresholds, thres()}{
 
 The four ordinal families take brms's \code{thres()} addition term.
@@ -362,6 +438,28 @@ probability of a category past a row's own is 0, as in brms's
 \code{posterior_epred()}. \code{newdata} must hold the grouping variable, with
 levels the fit has seen. With \code{gr}, \code{cs()} is refused, as in brms,
 and so is \code{residuals(type = "osa")}.
+
+A refit inside the package keeps the threshold count of the model it
+came from, and keeps the count of every level of \code{thres(gr = )}.
+\code{\link[=frm_bootstrap]{frm_bootstrap()}}, \code{\link[=refit]{refit()}}, \code{\link[=frm_allfit]{frm_allfit()}}, \code{anova(refit = TRUE)},
+\code{confint(method = "profile")} and the autoscale pre-fit reuse the
+assembled design, so the count cannot move. \code{\link[=influence]{influence()}} and
+\code{cooks.distance()} rebuild the design from a subset of the data, and
+carry over the count AND the response's own categories, so a subset
+that empties ANY category, bottom, interior or top, still fits the
+fitted model with one threshold that the subset no longer identifies.
+An ordered-factor response then gives the same table as the same data
+coded as integers. Two cases cannot be refit and are refused per unit,
+counted and reported: a \verb{groups = } deletion that removes a whole
+\code{thres(gr = )} level, and a \verb{data = } holding a response category
+outside the fitted threshold layout or a \code{thres(gr = )} level the fit
+never saw. A category \code{thres(K)} declared but nothing observed is
+inside that layout, so \verb{data = } may reach it. See \code{\link[=influence]{influence()}}.
+
+Calling \code{frm()} again on new data is not a refit: it counts the
+thresholds of that data. That is what \code{update(newdata = )} does,
+because it re-evaluates the stored call, and what \code{\link[=simulate]{simulate()}}
+followed by \code{frm()} does. Write \code{thres(K)} to pin a count there.
 }
 
 \section{The Laplace approximation, and how to check it}{

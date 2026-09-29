@@ -1,0 +1,24 @@
+frmtmb.spline from C:/Users/adf44/source/r/wt-splinecurve-lib 
+s_sim ok 0 warnings
+s_deriv1 ok 0 warnings
+s_deriv2 ok 0 warnings
+s_stored_deriv ok 0 warnings
+s_feature_max ok 0 warnings
+s_feature_cross ok 0 warnings
+pois_transform ok 0 warnings
+re_NA ok 0 warnings
+re_NULL_seen ok 0 warnings
+re_NULL_seen_contrast ok 0 warnings
+re_unseen_default ERROR 0 warnings
+sigma_dpar ok 0 warnings
+diff ok 0 warnings
+diff_deriv ok 0 warnings
+diff_feature ok 0 warnings
+gp_curve ok 0 warnings
+gp_diff ok 0 warnings
+nl_inside ok 0 warnings
+nl_past_span ok 1 warnings
+nl_deriv ok 0 warnings
+fs_seen ok 0 warnings
+fs_seen_feature ok 0 warnings
+saved 22 results to splinecurve-rev-log/05-after.rds 

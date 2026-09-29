@@ -43,8 +43,41 @@ frm(..., control = frmtmb_control(optimizer = nlopt))
 \item{restarts}{Number of times to restart the optimizer from the
 current optimum while the gradient remains above \code{grad_tol}.}
 
-\item{grad_tol}{Warn (and restart) if the maximum absolute gradient at
-the optimum exceeds this value.}
+\item{grad_tol}{How close to its optimum a fit has to stop. Read
+twice, in this order.
+
+As a GRADIENT, it restarts the optimizer while the maximum absolute
+gradient is above it, and it is the trip-wire on the convergence
+warning: a fit whose largest gradient component stays under it says
+nothing further.
+
+As a LOG LIKELIHOOD, it decides the warning. A fit that trips the
+trip-wire is measured again, this time by how much log likelihood one
+exact Newton step from the stopping point would still buy, over the
+parameters no bound holds in place, and it warns only when that is
+above \code{grad_tol} as well. The second reading is what makes the
+default mean the same thing on every design: an absolute gradient
+grows with the sample size, because the optimizer stops on a
+RELATIVE change in an objective that grows with it, while the
+remaining log likelihood does not. Measured over 720 correct fits on
+nine designs at four sample sizes (\code{dev/gradcheck-findings.md}), the
+gradient alone warned on 289 of them and the two readings together
+on none.
+
+WHAT IT DOES NOT COVER. The first reading gates the second, so a fit
+whose largest gradient never reaches \code{grad_tol} is never looked at,
+however far short of its optimum it is. A predictor column scaled far
+below one does exactly that: it keeps the gradient small while the
+coefficient stalls near zero. Measured, with \code{autoscale = FALSE}: at
+a column spread of 1e-7 a gaussian fit reports convergence, a maximum
+absolute gradient of 1.6e-5, and a log likelihood 297 units below the
+standardized fit of the same data, with no warning of any kind. The
+default \code{autoscale} rule is what closes that gap, which is why it
+engages at a spread of 1e-3 (see \code{autoscale}), and \code{diagnose()}
+reports badly scaled columns whether or not the gradient noticed.
+
+Lower it for a stricter fit and a stricter warning; both readings
+move together. \code{diagnose()} reports every number the verdict used.}
 
 \item{profile}{Experimental: move the primary (\code{beta}) coefficients
 into the inner (Laplace) problem, TMB's \code{profile} argument - the

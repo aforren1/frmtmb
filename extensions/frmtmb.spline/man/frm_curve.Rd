@@ -11,6 +11,7 @@ frm_curve(
   dpar = NULL,
   resp = NULL,
   re_formula = NA,
+  allow_new_levels = FALSE,
   level = 0.95,
   simultaneous = TRUE,
   nsim = 10000L,
@@ -35,10 +36,26 @@ the default, is the location parameter \code{mu}.}
 
 \item{resp}{Response name, for a multivariate fit.}
 
-\item{re_formula}{\code{NA} (the default) evaluates the population curve, the
-convention \code{mgcv} and \code{gratia} plot. \code{NULL} keeps every random
-effect, so the grid must carry the grouping columns and the curve is
-that group's own.}
+\item{re_formula}{\code{NA} (the default) drops the \code{(x | g)} group-level
+terms, the convention \code{mgcv} and \code{gratia} plot. It KEEPS every
+smooth, as brms does, a smooth indexed by a grouping factor
+included, so on a model with \code{s(t, g, bs = "fs")} the grid has to
+carry \code{g} at \code{NA} too and the curve is that level's. \code{NULL} keeps
+every random effect, so the grid must carry every grouping column.
+\code{?frmtmb::frm_linpred} has the full rule.}
+
+\item{allow_new_levels}{Allow a grouping level the fit did not see.
+\code{FALSE}, the default, refuses such a row by name. \code{TRUE} predicts
+it at the population level, and it is the way to read the
+POPULATION curve off a model with \code{s(t, g, bs = "fs")}: put \code{g} in
+the grid at a level the fit did not see, and the factor smooth
+contributes nothing. Passed to every \code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}} and
+\code{\link[frmtmb:frm_linpred]{frmtmb::frm_linpred()}} call, so the design, the estimate and the
+covariance check read the same rows. See the section "The
+population curve of a factor-smooth model" of \code{\link[=frm_curve]{frm_curve()}}. At an
+unseen level of a term \code{re_formula} keeps, such as \code{(1 | g)} at
+\code{NULL}, only the pointwise band of \code{\link[=frm_curve]{frm_curve()}} is answered; see
+its section "An unseen level of a \code{(1 | g)} term".}
 
 \item{level}{Coverage of both intervals.}
 
@@ -86,37 +103,20 @@ those maxima in place of \code{qnorm(0.975)}. It is the construction
 package's simulation reproduces gratia's critical value inside its
 Monte Carlo error.
 }
-\section{What the covariance is, and how it is checked}{
+\section{The route to the covariance}{
 
 A penalized smooth's wiggly part is a random-effect block in the
 fitted objective even when the smooth is a population term, so the
 covariance of a curve needs the joint covariance of the fixed AND
-random coefficients. frmtmb exports no route to it: \code{vcov(full = TRUE)} returns the outer parameter vector, which excludes \code{b} under
-both of its branches, and \code{frm_linpred(se.fit = TRUE)} forms the grid
-covariance internally and returns only its diagonal.
+random coefficients.
 
-So this function rebuilds it. The linear predictor is LINEAR in the
-coefficients, so the difference between a prediction and the same
-prediction with one coefficient raised by one is that coefficient's
-design column, exactly. The joint covariance comes from the fit's own
-joint precision matrix.
-
-Neither piece was handed over by an exported function, so neither is
-trusted. Every call recomputes \code{sqrt(diag(Sigma))} and compares it
-with \code{frm_linpred(se.fit = TRUE)}, and refuses when the two disagree by
-more than \code{tol}. The measured agreement is in the \code{"check"} attribute
-and is reported by \code{print()}. On the package's own test models it is
-at the tenth significant figure or better.
-}
-
-\section{The route to the covariance}{
-
-Both halves come from frmtmb's own exported seam,
+All of it comes from ONE call to frmtmb's exported seam,
 \code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}}, which returns the design \code{A} over the
 coefficient vector, the joint covariance \code{V} at exactly the rows \code{A}'s
 columns sit at, and the variance that is NOT coefficient uncertainty
 (a new grouping level's marginal variance, an exact \code{gp()}'s kriging
-variance) as a separate element. \code{Sigma} is \verb{A V A'}.
+variance) as a separate element, \code{extra_var}. \code{Sigma} is \verb{A V A'}, and
+the pointwise standard error is \code{sqrt(diag(Sigma) + extra_var)}.
 
 Up to frmtmb 0.51.0 there was no such seam. This package rebuilt \code{A}
 by unit perturbation, one \code{predict()} call per contributing
@@ -127,10 +127,12 @@ now requires frmtmb (>= 0.52.0), and what the covariance check
 verifies has changed from "the reconstruction reproduced core's
 number" to "the seam is being read correctly".
 
-The check itself stays. Every call recomputes \code{sqrt(diag(Sigma))} and
-compares it with \code{frm_linpred(se.fit = TRUE)}, and refuses when the two
-disagree by more than \code{tol}. The measured agreement is in the
-\code{"check"} attribute and is reported by \code{print()}.
+The check itself stays. Every call compares that pointwise standard
+error with \code{frm_linpred(se.fit = TRUE)}, a second route through core,
+and refuses when the two disagree by more than \code{tol}. The measured
+agreement is in the \code{"check"} attribute and is reported by \code{print()};
+it is at machine precision, 2.2e-16 relative on the curve-inference
+vignette's model.
 
 The one case with nothing to check against is a nonlinear (\code{nl = TRUE}) body: \code{frm_linpred(se.fit = TRUE)} is refused there, so
 \code{frm_lp_basis()} is the only route to the number and \code{cov_rel_error}
@@ -191,6 +193,12 @@ there is nothing to map it through.
 \item Two grids that load on different coefficients.
 \item Two grids that load DIFFERENT draws of a latent field whose
 variance is not coefficient uncertainty. See the next section.
+\item \code{allow_new_levels = TRUE} when either grid carries such a
+variance. An unseen level loads no column of the design, so two
+different unseen levels look the same as one, and treating them
+as one would cancel two independent draws. Measured on \code{(1 | subject)}: the difference standard error came back as exactly 0
+where it is at least 0.0515. An unseen level of an \code{fs} smooth
+carries no such variance and is not refused.
 }
 
 The covariance check also means less here, and \code{print()} says so.
@@ -234,6 +242,67 @@ the mathematics is missing. The conditional cross-covariance is
 predicting, but reduces the result to one variance per row before the
 seam returns. Hold every latent term equal between the grids and
 contrast a fixed effect, or read the two curves separately.
+}
+
+\section{The population curve of a factor-smooth model}{
+
+\code{re_formula = NA} keeps a factor smooth such as
+\code{s(t, subject, bs = "fs")}, as brms does, so on
+\code{v ~ s(t) + s(t, subject, bs = "fs")} it gives one subject's curve
+and the grid must name a subject in every row. To read the
+POPULATION curve, name a subject the fit did not see and pass
+\code{allow_new_levels = TRUE}. mgcv's \code{fs} basis gives an unknown level a
+row of zeros, so the factor smooth contributes nothing:
+
+\preformatted{
+pop <- factor("new", levels = c(levels(d$subject), "new"))
+frm_curve(fit, newdata = data.frame(t = tt, subject = pop),
+          allow_new_levels = TRUE)
+}
+
+The band is then the uncertainty of the intercept and the \code{s(t)}
+coefficients alone. \code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}} adds no variance for an
+unseen \code{fs} level: its \code{extra_var} is exactly zero and the factor
+smooth's columns of \code{A} are exactly zero. Measured on the
+curve-inference vignette's model, 7200 rows over 20 subjects: the
+standard errors are \code{identical()} to the same seam restricted by
+hand to the intercept and \code{s(t)} columns, and agree with
+\code{mgcv::predict.gam(exclude = "s(t,subject)", se.fit = TRUE)} on an
+mgcv ML fit of the same model to a ratio between 1.000 and 1.004.
+
+Two unseen \code{fs} levels are the population curve twice, so a
+\code{contrast} between them is exactly 0 with a standard error of 0. That
+is NOT the difference between two new subjects, which this package
+cannot report.
+}
+
+\section{An unseen level of a \code{(1 | g)} term}{
+
+An unseen level of a bar term is different from an unseen \code{fs}
+level. Where \code{re_formula} keeps the term, \code{frm_lp_basis()} returns
+the block's marginal variance as \code{extra_var}, one number per row. One
+unseen level is ONE draw shared by every row, so the covariance of
+the grid is \verb{A V A'} plus a block that the seam does not return. So
+with \code{allow_new_levels = TRUE} and a nonzero \code{extra_var}:
+
+\itemize{
+\item the POINTWISE band of \code{frm_curve(simultaneous = FALSE)} is
+answered and is right, because it adds \code{extra_var} row by row. The
+\code{"Sigma"} attribute is still \verb{A V A'} and does not carry it.
+\item \code{frm_curve(simultaneous = TRUE)}, \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} and
+\code{\link[=frm_curve_feature]{frm_curve_feature()}} REFUSE, naming the grouping factor. Each
+builds its answer from \verb{A V A'} and would omit the new level's
+variance. Measured on the curve-inference vignette's data before
+the refusal: a simultaneous critical value of 0.646 on \code{(1 | subject)} and 0.615 on \code{(1 + t | subject)}, against 2.146 and
+2.472 from the full covariance; derivative standard errors 0.40 to
+0.50 of the right ones; feature standard errors about a quarter.
+}
+
+\code{re_formula = NA} drops the term and gives the population curve on
+every route. A model with BOTH \code{s(t, g, bs = "fs")} and \code{(1 | g)}
+read at an unseen \code{g} with \code{re_formula = NULL} gets the population
+curve plus the \code{(1 | g)} variance in its pointwise band, and the
+other routes refuse.
 }
 
 \section{Past a \code{ps()} knot span}{

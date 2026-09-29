@@ -88,6 +88,8 @@
 \alias{brms_prob_cols}
 \alias{brms_fixef_rows}
 \alias{rescor_row_loglik}
+\alias{arma_cond_resp}
+\alias{arma_cond_dpars}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -150,6 +152,22 @@ returns): the multivariate normal of a gaussian model or the
 multivariate t of a Student-t one, with its one shared \code{nu}. A
 pointwise \code{log_lik()} of a \code{rescor} model reads it rather than
 assuming the normal.
+
+\code{arma_cond_resp(fit)} names the responses carrying brms's default
+\code{cov = FALSE} form of \code{ar()}, \code{ma()} or \code{arma()}, and
+\code{arma_cond_dpars(fit, dpv)} gives the whole \code{eval_dpars()} list back
+with each such response's \code{mu} moved to brms's one-step conditional
+mean, the regression on the earlier OBSERVED residuals of the row's
+group. The two answer one question between them: whether a pointwise
+log-density exists, and what \code{mu} it is evaluated at. Under
+\code{cov = FALSE} every row keeps the family's own density, so a
+\code{log_lik()} column is an observation; a \code{cov = TRUE} covariance block
+has no such column, because its smallest independent unit is a whole
+group. Call \code{arma_cond_dpars()} before \code{row_lpdf()} (and before
+\code{rescor_row_loglik()}), which is the order the taped objective uses
+and which makes the row density read the objective's own \code{mu} instead
+of a second one. It is safe to call unconditionally: with no such
+block it returns \code{dpv} unchanged.
 }
 
 \section{The prior seam}{

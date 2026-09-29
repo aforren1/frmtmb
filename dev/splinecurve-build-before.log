@@ -1,0 +1,39 @@
+﻿* checking for file '..\..\..\extensions\frmtmb.spline/DESCRIPTION' ... OK
+* preparing 'frmtmb.spline':
+* checking DESCRIPTION meta-information ... OK
+* installing the package (it is needed to build vignettes)
+* creating vignettes ... ERROR
+--- re-building 'curve-inference.Rmd' using rmarkdown
+
+Quitting from curve-inference.Rmd:86-90 [curve]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<error/rlang_error>
+Error:
+! predict(newdata = ) for the factor-smooth term s(t,subject) needs the grouping column `subject`: the term holds one curve per level of `subject`, so every prediction from it has to say which level each row belongs to. Add the column to newdata. re_formula = NA does not remove the need: it keeps every smooth, as brms does
+---
+Backtrace:
+     ▆
+  1. └─frmtmb.spline::frm_curve(...)
+  2.   └─frmtmb.spline:::sp_curve_parts(...)
+  3.     └─frmtmb.spline:::sp_one_basis(fit, newdata, dpar, resp, re_formula)
+  4.       ├─frmtmb.spline:::sp_catch_span(...)
+  5.       │ └─base::withCallingHandlers(...)
+  6.       └─frmtmb::frm_lp_basis(...)
+  7.         └─frmtmb:::lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  8.           └─frmtmb:::pred_design(object, lp, newdata, allow_new_levels, use_re = use_re)
+  9.             └─frmtmb:::smooth_newdata_check(si, newdata, allow_new_levels)
+ 10.               └─frmtmb::frm_stop(...)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Error: processing vignette 'curve-inference.Rmd' failed with diagnostics:
+predict(newdata = ) for the factor-smooth term s(t,subject) needs the grouping column `subject`: the term holds one curve per level of `subject`, so every prediction from it has to say which level each row belongs to. Add the column to newdata. re_formula = NA does not remove the need: it keeps every smooth, as brms does
+--- failed re-building 'curve-inference.Rmd'
+
+--- re-building 'royston-parmar.Rmd' using rmarkdown
+--- finished re-building 'royston-parmar.Rmd'
+
+SUMMARY: processing the following file failed:
+  'curve-inference.Rmd'
+
+Error: Vignette re-building failed.
+Execution halted

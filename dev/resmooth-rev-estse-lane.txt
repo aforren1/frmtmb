@@ -1,0 +1,89 @@
+ARM: lane | frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+MC draws: 6000 | relative MC se of one sd: 0.00913 
+
+== A cumulative y ~ s(x, k = 8) 
+   blocks: smooth | n_b: 6 
+  re_formula = NA    b differenced by reference: 6
+    shipped Est.Error: 0.06645 0.06253 0.05759 0.03516 0.03462 0.03488 0.05903 0.06332 0.05160 
+    Monte Carlo sd   : 0.06583 0.06157 0.05694 0.03564 0.03529 0.03503 0.05934 0.06215 0.05141 
+    ratio ship/MC: min 0.9811 med 1.0037 max 1.0188
+  re_formula = NULL  b differenced by reference: 6
+    shipped Est.Error: 0.06645 0.06253 0.05759 0.03516 0.03462 0.03488 0.05903 0.06332 0.05160 
+    Monte Carlo sd   : 0.06583 0.06157 0.05694 0.03564 0.03529 0.03503 0.05934 0.06215 0.05141 
+    ratio ship/MC: min 0.9811 med 1.0037 max 1.0188
+
+== B cumulative y ~ s(x, k = 8) + (1 | g) 
+   blocks: us,smooth | n_b: 14 
+  re_formula = NA    b differenced by reference: 6
+    shipped Est.Error: 0.06359 0.07435 0.09020 0.05284 0.03844 0.06158 0.10650 0.05345 0.14297 
+    Monte Carlo sd   : 0.06524 0.07375 0.09260 0.05101 0.03896 0.05839 0.10285 0.05411 0.13390 
+    ratio ship/MC: min 0.9741 med 1.0082 max 1.0678
+  re_formula = NULL  b differenced by reference: 14
+    shipped Est.Error: 0.07721 0.09409 0.09364 0.04850 0.05107 0.05866 0.11314 0.05131 0.14267 
+    Monte Carlo sd   : 0.07705 0.09040 0.09418 0.04753 0.04847 0.05612 0.10679 0.05256 0.13229 
+    ratio ship/MC: min 0.9763 med 1.0408 max 1.0785
+
+== C cumulative y ~ t2(x, z, k = 4) 
+   blocks: smooth,smooth,smooth | n_b: 12 
+  re_formula = NA    b differenced by reference: 12
+    shipped Est.Error: 0.05821 0.06753 0.03228 0.03412 0.03589 0.04010 0.04988 0.05188 0.06243 
+    Monte Carlo sd   : 0.05703 0.06536 0.03301 0.03406 0.03569 0.03897 0.04890 0.05104 0.06127 
+    ratio ship/MC: min 0.9779 med 1.0189 max 1.0332
+  re_formula = NULL  b differenced by reference: 12
+    shipped Est.Error: 0.05821 0.06753 0.03228 0.03412 0.03589 0.04010 0.04988 0.05188 0.06243 
+    Monte Carlo sd   : 0.05703 0.06536 0.03301 0.03406 0.03569 0.03897 0.04890 0.05104 0.06127 
+    ratio ship/MC: min 0.9779 med 1.0189 max 1.0332
+
+== D cumulative y ~ gp(x) 
+   blocks: gp | n_b: 160 
+  re_formula = NA    b differenced by reference: 160
+    shipped Est.Error: 0.08182 0.07574 0.08996 0.04645 0.04414 0.04311 0.10227 0.08984 0.08076 
+    Monte Carlo sd   : 0.08231 0.07565 0.08628 0.04829 0.04519 0.04455 0.09915 0.08756 0.07875 
+    ratio ship/MC: min 0.9620 med 1.0012 max 1.0426
+  re_formula = NULL  b differenced by reference: 160
+    shipped Est.Error: 0.08182 0.07574 0.08996 0.04645 0.04414 0.04311 0.10227 0.08984 0.08076 
+    Monte Carlo sd   : 0.08231 0.07565 0.08628 0.04829 0.04519 0.04455 0.09915 0.08756 0.07875 
+    ratio ship/MC: min 0.9620 med 1.0012 max 1.0426
+
+== F cumulative y | thres(gr = g) ~ s(x, k = 6) 
+   blocks: smooth | n_b: 4 
+  re_formula = NA    b differenced by reference: 4
+    shipped Est.Error: 0.08948 0.08104 0.07193 0.07113 0.07001 0.06101 0.05868 0.05347 0.05443 0.04621 0.09874 0.03345 
+    Monte Carlo sd   : 0.08835 0.07780 0.07134 0.07127 0.07017 0.05947 0.05836 0.05338 0.05524 0.04681 0.09441 0.03432 
+    ratio ship/MC: min 0.9748 med 1.0036 max 1.0459
+  re_formula = NULL  b differenced by reference: 4
+    shipped Est.Error: 0.08948 0.08104 0.07193 0.07113 0.07001 0.06101 0.05868 0.05347 0.05443 0.04621 0.09874 0.03345 
+    Monte Carlo sd   : 0.08835 0.07780 0.07134 0.07127 0.07017 0.05947 0.05836 0.05338 0.05524 0.04681 0.09441 0.03432 
+    ratio ship/MC: min 0.9748 med 1.0036 max 1.0459
+
+I smooth sd estimates: 9.98617e-05 
+== I cumulative y ~ s(x, k = 8), near-linear truth 
+   blocks: smooth | n_b: 6 
+  re_formula = NA    b differenced by reference: 6
+    shipped Est.Error: 0.04007 0.02543 0.01861 0.02877 0.02823 0.02739 0.01768 0.02424 0.03758 
+    Monte Carlo sd   : 0.03945 0.02527 0.01898 0.02834 0.02837 0.02736 0.01783 0.02408 0.03744 
+    ratio ship/MC: min 0.9808 med 1.0035 max 1.0156
+  re_formula = NULL  b differenced by reference: 6
+    shipped Est.Error: 0.04007 0.02543 0.01861 0.02877 0.02823 0.02739 0.01768 0.02424 0.03758 
+    Monte Carlo sd   : 0.03945 0.02527 0.01898 0.02834 0.02837 0.02736 0.01783 0.02408 0.03744 
+    ratio ship/MC: min 0.9808 med 1.0035 max 1.0156
+
+E gaussian sigma ~ s(x): fitted() dim 3x4 | re_formula = NA | is.matrix: TRUE 
+   mu    Est.Error: 0.070492 0.064295 0.083803 
+   sigma Est.Error: 0.048553 0.044520 0.057527 
+E gaussian sigma ~ s(x): fitted() dim 3x4 | re_formula = NULL | is.matrix: TRUE 
+   mu    Est.Error: 0.070492 0.064295 0.083803 
+   sigma Est.Error: 0.048553 0.044520 0.057527 
+E: matrix route reached? TRUE 
+E re_formula = NA | ratio ship/MC: 0.9941 1.0109 0.9998 
+E re_formula = NULL | ratio ship/MC: 0.9941 1.0109 0.9998 
+
+H no-smooth fitted() saved for lane 
+H ordinal Est.Error[1,,1..3]: 0.0990914357 0.0587097534 0.0460135421 
+
+G nl fit, re_formula = NA | Estimate: 1.089877 0.742162 | Est.Error: NA NA 
+G   MC sd (2000): 0.038802 0.017208 | ratio: NA NA 
+G nl fit, re_formula = NULL | Estimate: 1.089877 0.742162 | Est.Error: NA NA 
+G   MC sd (2000): 0.038802 0.017208 | ratio: NA NA 
+
+DONE

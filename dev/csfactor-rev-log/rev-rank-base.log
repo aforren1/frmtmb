@@ -1,0 +1,69 @@
+== build BASE : 0.64.0 
+
+### grammar and interaction shapes
+cs(x:z)                                FITTED   npar=6  logLik=-308.08192  [Intercept[1] Intercept[2] x z x:z[1] x:z[2]]
+cs(x*z)                                FITTED   npar=4  logLik=-325.43013  [Intercept[1] Intercept[2] xMUz[1] xMUz[2]]
+cs(f:z)                                FITTED   npar=5  logLik=-317.52507  [Intercept[1] Intercept[2] z f:z[1] f:z[2]]
+f:z main + cs(f)                       FITTED   npar=7  logLik=-316.79016  [Intercept[1] Intercept[2] fa:z fb:z fc:z f[1] f[2]]
+f*z main + cs(f)                       FITTED   npar=9  logLik=-316.46632  [Intercept[1] Intercept[2] fb fc z fb:z fc:z f[1] f[2]]
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+cs(x)+cs(x:z)                          FITTED   npar=6  logLik=-313.83071  [Intercept[1] Intercept[2] x[1] x[2] x:z[1] x:z[2]]
+cs(x)+cs(z) share none                 FITTED   npar=6  logLik=-305.26563  [Intercept[1] Intercept[2] x[1] x[2] z[1] z[2]]
+cs(x)+cs(x)  twice                     FITTED   npar=4  logLik=-313.95046  [Intercept[1] Intercept[2] x[1] x[2]]
+cs(f)+cs(f:z)                          FITTED   npar=6  logLik=-326.67317  [Intercept[1] Intercept[2] f[1] f[2] f:z[1] f:z[2]]
+cs(f)+cs(f)  twice                     FITTED   npar=4  logLik=-328.05222  [Intercept[1] Intercept[2] f[1] f[2]]
+
+### cs() beside a basis or a monotonic term on the SAME variable
+poly(x,2) + cs(x)                      FITTED   npar=6  logLik=-313.90324  [Intercept[1] Intercept[2] polyx21 polyx22 x[1] x[2]]
+poly(x,2) + cs(z)                      FITTED   npar=6  logLik=-307.95345  [Intercept[1] Intercept[2] polyx21 polyx22 z[1] z[2]]
+s(x) + cs(x)                           FITTED   npar=6  logLik=-313.95046  [Intercept[1] Intercept[2] sx_1 x[1] x[2]]
+s(x) + cs(z)                           FITTED   npar=6  logLik=-308.12514  [Intercept[1] Intercept[2] sx_1 z[1] z[2]]
+mo(m) + cs(x)                          FITTED   npar=7  logLik=-313.89019  [Intercept[1] Intercept[2] mom x[1] x[2]]
+mo(m) + cs(m)                          FITTED   npar=7  logLik=-327.49891  [Intercept[1] Intercept[2] mom m[1] m[2]]
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+x + cs(log(exp(x)))                    FITTED   npar=5  logLik=-313.95046  [Intercept[1] Intercept[2] x logexpx[1] logexpx[2]]
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+x + cs(scale(x))                       FITTED   npar=5  logLik=-313.95046  [Intercept[1] Intercept[2] x scalex[1] scalex[2]]
+x + cs(2*x+1)                          FITTED   npar=5  logLik=-313.95046  [Intercept[1] Intercept[2] x I2MUxP1[1] I2MUxP1[2]]
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+
+### cs(f) with f in a random slope, and a random intercept
+cs(f) + (f|g)                          FITTED   npar=10  logLik=-327.35499  [Intercept[1] Intercept[2] f[1] f[2]]
+f + cs(z) + (f|g)                      FITTED   npar=12  logLik=-316.49113  [Intercept[1] Intercept[2] fb fc z[1] z[2]]
+cs(x) + (1+x||g)                       FITTED   npar=6  logLik=-313.95046  [Intercept[1] Intercept[2] x[1] x[2]]
+
+### thres(gr = ) with cs()
+thres(gr) + cs(f) REFUSED  could not find function "thres" 
+
+### multivariate ordinal with cs()
+mv cs FITTED npar=10 logLik=-635.60396 
+mv one bad lp FITTED (should have been refused) 
+
+### near collinearity: at what scale does the rank test fire?
+  eps=1e-01    kappa=21.7       FITTED logLik=-314.018497
+  eps=1e-02    kappa=233        FITTED logLik=-313.864295
+  eps=1e-03    kappa=2.3e+03    FITTED logLik=-313.935997
+  eps=1e-04    kappa=2.26e+04   FITTED logLik=-313.950888
+  eps=1e-05    kappa=2.15e+05   FITTED logLik=-313.950445
+  eps=1e-06    kappa=2.24e+06   FITTED logLik=-313.950457
+  eps=1e-07    kappa=2.29e+07   FITTED logLik=-313.950456
+  eps=1e-08    kappa=2.04e+08   FITTED logLik=-313.950456
+  eps=1e-09    kappa=2.38e+09   FITTED logLik=-313.950456
+  eps=1e-10    kappa=2.12e+10   FITTED logLik=-313.950456
+  eps=1e-11    kappa=2.19e+11   FITTED logLik=-313.950456
+
+### the refusals that SHOULD happen
+x + cs(x)                              FITTED   npar=5  logLik=-313.95046  [Intercept[1] Intercept[2] x x[1] x[2]]
+I(x) + cs(x)                           FITTED   npar=5  logLik=-313.95046  [Intercept[1] Intercept[2] Ix x[1] x[2]]
+f + cs(f)                              FITTED   npar=6  logLik=-327.35238  [Intercept[1] Intercept[2] fb fc f[1] f[2]]
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+x1+x2 + cs(x1+x2)                      FITTED   npar=6  logLik=-306.16100  [Intercept[1] Intercept[2] x z IxPz[1] IxPz[2]]
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+
+DONE  BASE 

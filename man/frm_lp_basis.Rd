@@ -23,8 +23,9 @@ training data.}
 the linear predictor of. Both default the way \code{\link[=predict]{predict()}} defaults
 them.}
 
-\item{re_formula}{\code{NULL} keeps every random effect, \code{NA} drops them all,
-a one-sided formula keeps the ones it names.}
+\item{re_formula}{\code{NULL} keeps every random effect, \code{NA} drops the
+group-level terms and keeps every smooth, a one-sided formula keeps
+the terms it names. See \code{\link[=frm_linpred]{frm_linpred()}} for the full rule.}
 
 \item{allow_new_levels}{Whether a grouping level the fit never saw is
 allowed.}

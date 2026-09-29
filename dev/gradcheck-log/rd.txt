@@ -1,0 +1,33 @@
+===  man/frmtmb_control.Rd  rendered lines: 261 
+  |           likelihood one exact Newton step from the stopping point 
+  |           would still buy, over the parameters no bound holds in place, 
+  |           and it warns only when that is above 'grad_tol' as well. The 
+  |           WHAT IT DOES NOT COVER. The first reading gates the second, 
+  |           so a fit whose largest gradient never reaches 'grad_tol' is 
+  |           absolute gradient of 1.6e-5, and a log likelihood 297 units 
+  |           below the standardized fit of the same data, with no warning 
+  stray percent signs: 0 
+
+===  man/diagnose.Rd  rendered lines: 129 
+  |      THE GRADIENT is reported four ways, because the largest component 
+  |      on its own is not a convergence verdict. 'max_grad' and 
+  |      'grad_bound_held' names the parameters a bound holds in place, 
+  |      whose gradient points out of the feasible set and is the KKT 
+  |      'grad_proj_par' are the largest component over the rest and the 
+  |      parameter it belongs to. On a bounded fit 'worst_grad' and 
+  |      'grad_proj_par' are DIFFERENT parameters, and 'grad_proj_par' is 
+  |      the one the verdict is about. 'grad_headroom' is the log 
+  |      likelihood one exact Newton step over those parameters would still 
+  |      buy, which is what the fit warns on; it is 'NA' when 'grad_proj' 
+  |      TWO SCALES, on an autoscaled fit. 'max_grad' and 'worst_grad' are 
+  |      read off the RAW gradient, because that is what they have always 
+  |      'grad_proj', 'grad_proj_par' and the warning are in the 
+  |      per-parameter units 'frmtmb_control(autoscale = )' judges the fit 
+  |      between 0.13 and 0.45 s on the large latent-variable designs this 
+  |      package was timed on. 
+  |      NOT ON AN IMPORTANCE-CORRECTED FIT. 'frm(importance = )' optimizes 
+  |      a Monte Carlo estimate, whose gradient carries an O(N^-1/2) error, 
+  |      'grad_proj_par' and 'grad_headroom' are 'NA' there and the printed 
+  |      block says why. That fit's accuracy report is its effective sample 
+  stray percent signs: 0 
+

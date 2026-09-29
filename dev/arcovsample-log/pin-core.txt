@@ -1,0 +1,2 @@
+RESULT ref frmtmb test-autocor-cond.R pass=46 fail=0 err=1 skip=0
+  BAD [the sampling seam reports brms's one-step mean] fail=0 err=TRUE

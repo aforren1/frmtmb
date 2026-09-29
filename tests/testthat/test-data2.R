@@ -201,11 +201,16 @@ test_that("data2 outlives its calling environment across saveRDS", {
                                         data2 = r_d2$data2))
 
   # influence() re-assembles once per deleted group: every refit of the
-  # environment fit fails (NA rows), every refit of the data2 fit works
+  # data2 fit works, and every refit of the environment fit fails. That
+  # used to come back as a table of nothing but NA without a word.
+  # influence() now counts the failures and, when all of them failed,
+  # reports the first reason instead of the empty table.
   i_d2 <- suppressWarnings(influence(r_d2, groups = "g"))
   expect_false(anyNA(i_d2$fixed))
-  i_env <- suppressWarnings(influence(r_env, groups = "g"))
-  expect_true(all(is.na(i_env$fixed)))
+  expect_error(suppressWarnings(influence(r_env, groups = "g")),
+               "all 6 deletion refits failed")
+  expect_error(suppressWarnings(influence(r_env, groups = "g")),
+               "cannot find 'A'")
 
   # refit() reuses the assembled frame, so it only has to survive the
   # round trip: the restored objective is a dead pointer and is rebuilt

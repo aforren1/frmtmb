@@ -1,0 +1,47 @@
+RESULT test-brms-methods.R lib=lane pass=16 fail=0 error=0 skip=46 warn=0 blocks=48/48
+  SKIP: the mechanism: brms draws ARE frmtmb's estimates 
+  SKIP: the mechanism holds for every shape in the matrix 
+  SKIP: summing log_lik is not logLik once there are random effects 
+  SKIP: no deferred exclusion is a repaired defect 
+  SKIP: posterior_epred is frmtmb's fitted() on the response scale 
+  SKIP: posterior_linpred is frmtmb's frm_linpred(type = 'link') 
+  SKIP: a multi-column linear predictor is one vector to frmtmb 
+  SKIP: transform = TRUE is the inverse link, not always the mean 
+  SKIP: each dpar's epred is frmtmb's response-scale prediction 
+  SKIP: a dpar's linpred agrees where the dpar has a predictor 
+  SKIP: se() leaves a residual sigma both packages report as absent 
+  SKIP: a mixture's theta is the softmax on the response scale 
+  SKIP: conditional_effects finds a mixture's covariate on theta 
+  SKIP: a dpar with no predictor puts linpred on different scales 
+  SKIP: fixef point estimates agree, under brms's spelling 
+  SKIP: ranef and coef agree at the mapped conditional modes 
+  SKIP: ranef and coef key their lists the same way, as brms does 
+  SKIP: coef() is the same generic for two different contracts 
+  SKIP: VarCorr standard deviations agree 
+  SKIP: brms's ordinary residual is frmtmb's response residual 
+  SKIP: residuals are refused on the shapes brms refuses them on 
+  SKIP: the pearson residuals divide by different quantities 
+  SKIP: frm_linpred() is fitted(), not brms's predict() 
+  SKIP: one-way conditional_effects agree on grid and estimate 
+  SKIP: conditional_effects draws the expected response, zero-inflated 
+  SKIP: a mo() predictor gets its levels, not a continuous grid 
+  SKIP: a nonlinear predictor is refused a wald band 
+  SKIP: conditional_effects returns brms's columns 
+  SKIP: the two-way grid agrees elementwise, order included 
+  SKIP: the two-way factor moderator agrees elementwise too 
+  SKIP: conditional_effects(int_conditions =) conditions the effect 
+  SKIP: conditional_effects(conditions =) agrees on values 
+  SKIP: conditional_effects(dpar =) enumerates different effects 
+  SKIP: an ordinal fit's conditional_effects reach both layouts 
+  SKIP: a nominal per-category display needs a bootstrap band 
+  SKIP: conditional_effects(method =) takes brms's vocabulary too 
+  SKIP: hypothesis point estimates agree on every expression 
+  SKIP: hypothesis reaches sd and cor by brms's names 
+  SKIP: re_formula: prediction agrees, and so does the population curve 
+  SKIP: an unknown argument is reported against the function called 
+  SKIP: hypothesis returns brms's object 
+  SKIP: the interval columns are a documented difference in kind 
+  SKIP: loo and bayes_R2 refuse on a maximum-likelihood fit 
+  SKIP: pp_check returns a plot on both sides 
+  SKIP: newdata: both agree on the values and on what is refused 
+  SKIP: newdata: dropping a factor level, and adding one 

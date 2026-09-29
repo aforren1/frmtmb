@@ -1,0 +1,25 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib 
+
+data table(y) = 16/26/18  (max 3), and the model pins thres(4), so 5 categories
+   fitted n_tau = 4 
+== (a) influence(data = ) with one row in category 4, a category the fit never saw but thres(4) declares 
+   table 60x5  NA cells = 0  rows entirely NA = 0  warnings = 0 
+
+== (a2) the same with category 6, beyond thres(4) too 
+   W: influence(): 59 of 60 deletion refits failed and their rows are NA. The first was observation 2: Number of thresholds is smaller than required by the response. thres(x = ) counts thresholds, one less than the number of categories, and the response reaches category 6 
+   table 60x5  NA cells = 295  rows entirely NA = 59  warnings = 1 
+
+== (a3) the same model with an ordered factor of 5 declared levels: REFUSED: thres(x = 4) asks for 5 categories, and the response is an ordered factor with 3 levels in the data: a level n 
+
+bottom-category construction: table(y) = 1/20/13/26  single bottom row = 2 
+   integer : n_tau = 3  NA = 0  warnings = 0  NA in the bottom row = 0 
+       bottom row: 0.941043415  -18.3906173  2.86427352  0.0631224034 
+   ordered : n_tau = 3  NA = 0  warnings = 0  NA in the bottom row = 0 
+       bottom row: 0.941043415  -18.3906173  2.86427352  0.0631224034 
+   character : n_tau = 3  NA = 0  warnings = 0  NA in the bottom row = 0 
+       bottom row: 0.941043415  -18.3906173  2.86427352  0.0631224034 
+   identical(ordered, integer): TRUE   identical(character, integer): TRUE 
+   thres(3) reference: 0.941044168  -18.4600017  2.86822225  0.0631241205 
+   names match: TRUE 
+   per coefficient |row - reference| / sd(column): 2.21e-05 0.0388 0.0197 5.09e-05 
+DONE rev-24

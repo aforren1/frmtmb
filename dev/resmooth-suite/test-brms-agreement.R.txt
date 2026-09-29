@@ -1,0 +1,2 @@
+the number of chains is less than 1; sampling not done
+RESULT test-brms-agreement.R lib=lane pass=187 fail=0 error=0 skip=0 warn=0

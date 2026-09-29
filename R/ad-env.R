@@ -82,7 +82,6 @@ frmtmb_ad_overload <- function(f) {
 #' bit. `stats::qchisq()` keeps working in a body, and `RTMB::qchisq()`
 #' is there for anyone who wants the AD-capable one.
 #'
-#' @noRd
 #' `atan2` arrived with RTMB 2.0 and is shadowed although this machine's
 #' RTMB 1.9 does not export it: `nl_shadow_fun()` skips a name the
 #' installed RTMB lacks, so listing it early is free, and CI's R-devel

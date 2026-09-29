@@ -1,0 +1,2 @@
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+RESULTtest-effects.Rarm=lane pass=54 fail=0 err=0 skip=0

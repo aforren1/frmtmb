@@ -1,0 +1,25 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb 0.64.0 
+s(x)                   blocks 1:smooth                     | in-sample keeps 1       | newdata keeps 1       | sim redraws       | max|NA-NULL|         0 | max|nd-ins|  5.38e-14 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.996
+s(g, bs = re)          blocks 1:smooth,2:smooth            | in-sample keeps 1       | newdata keeps 1       | sim redraws 2     | max|NA-NULL|     0.906 | max|nd-ins|  1.89e-13 | rowsd/sigma 1.260 | sd(yrep)/sd(y) 1.008
+s(x, g, bs = fs)       blocks 1:smooth,2:smooth,3:smooth   | in-sample keeps         | newdata keeps         | sim redraws 1,2,3 | max|NA-NULL|      2.08 | max|nd-ins|         0 | rowsd/sigma 1.741 | sd(yrep)/sd(y) 1.167
+t2(x, g, cr+re)        blocks 1:smooth,2:smooth            | in-sample keeps         | newdata keeps         | sim redraws 1,2   | max|NA-NULL|      1.84 | max|nd-ins|         0 | rowsd/sigma 1.919 | sd(yrep)/sd(y) 1.195
+s(x) + (1 | g)         blocks 1:us,2:smooth                | in-sample keeps 2       | newdata keeps 2       | sim redraws 1     | max|NA-NULL|     0.906 | max|nd-ins|  1.88e-13 | rowsd/sigma 1.258 | sd(yrep)/sd(y) 1.012
+sigma ~ s(x)           blocks 1:smooth,2:smooth            | in-sample keeps 1,2     | newdata keeps 1,2     | sim redraws       | max|NA-NULL|         0 | max|nd-ins|  3.33e-14 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.990
+t2(x, z)               blocks 1:smooth,2:smooth,3:smooth   | in-sample keeps 1,2,3   | newdata keeps 1,2,3   | sim redraws       | max|NA-NULL|  4.44e-16 | max|nd-ins|  8.88e-16 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.996
+gp(x)                  blocks 1:gp                         | in-sample keeps 1       | newdata keeps 1       | sim redraws       | max|NA-NULL|         0 | max|nd-ins|         0 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.995
+
+-- newdata with a NEW level of g, re_formula = NA --
+s(g, bs = re)      allow_new_levels=FALSE OK: 1.4114 -0.2816 -0.1751 1.3684 1.0840
+s(g, bs = re)      allow_new_levels=TRUE  OK: 1.4492 -0.3241 -0.3252 1.3956 1.1588
+s(g, bs = re)      no g column        OK
+s(x, g, bs = fs)   allow_new_levels=FALSE OK: 0.4847 0.5148 0.4979 0.4999 0.4868
+s(x, g, bs = fs)   allow_new_levels=TRUE  OK: 0.4798 0.5280 0.5001 0.5367 0.4978
+s(x, g, bs = fs)   no g column        OK
+
+-- conditional_effects(re_formula = NA) --
+s(x, g, bs = fs)   OK range 0.4901 0.4901
+s(g, bs = re)      OK range -0.5156 1.4002
+
+-- partial re_formula beside a factor smooth --
+partial: OK 
+nosuch : ERROR: predict(): the re_formula term (1 | nosuch) matches no group-level term of this fit. A term is kept when its grouping fa 
