@@ -268,11 +268,17 @@ test_that("a mixture survives a negative-span row end to end", {
   dat$rt[k] <- stats::runif(40, 0.15, 0.26)
   dat$upper[k] <- stats::rbinom(40, 1, 0.5)
 
-  fit <- frm(bf(rt | dec(upper) ~ 1, bias1 = 0.5),
-             family = mixture(wiener(max_ndt = 0.4, variability = "st",
-                                     allow_unreachable = TRUE),
-                              lognormal()),
-             data = dat)
+  # nlminb reports false convergence on this design on Ubuntu and not on
+  # Windows; the test is that the fit SURVIVES the rows, so a nonzero
+  # optimizer code is allowed and any other warning still escapes
+  fit <- allow_warnings(
+    frm(bf(rt | dec(upper) ~ 1, bias1 = 0.5),
+        family = mixture(wiener(max_ndt = 0.4, variability = "st",
+                                allow_unreachable = TRUE),
+                         lognormal()),
+        data = dat),
+    c("Optimizer did not report convergence",
+      "Large maximum absolute gradient"))
   expect_true(is.finite(as.numeric(logLik(fit))))
   expect_true(all(is.finite(unlist(fixef_by_dpar(fit)))))
 

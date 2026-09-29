@@ -7,6 +7,12 @@
 # returned NULL through stats::fitted.default(), nsamples() and
 # posterior_samples() were refused, and point_estimate was ignored.
 
+# The chains here are short on purpose: these tests are about the SHAPE
+# of what the draws methods return, and rstan says the effective sample
+# size is low, which is true and beside the point.
+short_chain <- c("Bulk Effective Samples Size",
+                 "Tail Effective Samples Size")
+
 shapes_draws <- local({
   cache <- new.env(parent = emptyenv())
   function() {
@@ -16,8 +22,10 @@ shapes_draws <- local({
     dd <- data.frame(x = rnorm(n))
     dd$y <- rnorm(n, 1 + 0.5 * dd$x, 1)
     fit <- frm(bf(y ~ x) + gaussian(), data = dd)
-    cache$ds <- frm_sample(fit, chains = 1, iter = 150, warmup = 100,
-                           seed = 20260917, refresh = 0)
+    cache$ds <- allow_warnings(
+      frm_sample(fit, chains = 1, iter = 150, warmup = 100,
+                 seed = 20260917, refresh = 0),
+      short_chain)
     cache$ds
   }
 })
@@ -112,8 +120,9 @@ test_that("fixef() on ordinal draws has the thresholds, in brms's order", {
                        c(-Inf, -0.5, 0.8, Inf), labels = 1:3),
                    ordered = TRUE)
   fit <- frm(bf(ord ~ x) + cumulative(), data = dd)
-  ds <- frm_sample(fit, chains = 1, iter = 300, warmup = 150,
-                   seed = 20260921, refresh = 0)
+  ds <- allow_warnings(frm_sample(fit, chains = 1, iter = 300, warmup = 150,
+                                  seed = 20260921, refresh = 0),
+                       short_chain)
   fe <- fixef(ds)
   # the fit's rows and brms's: it used to report `x` alone
   expect_equal(rownames(fe), rownames(fixef(fit)))
@@ -132,8 +141,9 @@ test_that("allow_new_levels on draws refuses only an unseen level", {
   dd <- data.frame(x = rnorm(n), g = factor(rep(1:6, each = 10)))
   dd$y <- rnorm(n, 1 + 0.5 * dd$x + rnorm(6, 0, 0.7)[dd$g], 1)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  ds <- frm_sample(fit, chains = 1, iter = 200, warmup = 100,
-                   seed = 20260922, refresh = 0)
+  ds <- allow_warnings(frm_sample(fit, chains = 1, iter = 200, warmup = 100,
+                                  seed = 20260922, refresh = 0),
+                       short_chain)
   known <- data.frame(x = c(0, 1), g = factor(c("1", "2")))
   unseen <- data.frame(x = 0, g = factor("new"))
   for (fn in c("posterior_predict", "posterior_epred", "posterior_linpred",

@@ -207,8 +207,13 @@ test_that("the hierarchical fit beats averaging per-subject coherences", {
                   lb = stats::rnorm(N, 0, 0.3))
     naive[r] <- mean((d$w12r^2 + d$w12i^2) / (d$w11 * d$w22))
     pooled[r] <- (sum(d$w12r)^2 + sum(d$w12i)^2) / (sum(d$w11) * sum(d$w22))
-    fit <- try(frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(),
-                           data = d), silent = TRUE)
+    # a replicate may stop short, and the check says so; this loop
+    # measures bias over the replicates, not convergence of each one
+    fit <- allow_warnings(
+      try(frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(),
+                      data = d), silent = TRUE),
+      c("Optimizer did not report convergence",
+        "Large maximum absolute gradient"))
     model[r] <- if (inherits(fit, "try-error")) NA_real_ else
       frm_coherence(fit, newdata = d[1, ], re_formula = NA)$.estimate
   }
@@ -237,8 +242,13 @@ test_that("a random effect on every dpar keeps the variance component alive", {
     eta <- stats::rnorm(N, 0, 0.4)
     d <- cp_units(eta, stats::rnorm(N, 0.8, 0.8), n,
                   la = stats::rnorm(N, 0, 0.3), lb = stats::rnorm(N, 0, 0.3))
-    fit <- try(frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(),
-                           data = d), silent = TRUE)
+    # a replicate may stop short, and the check says so; this loop
+    # counts collapsed variance components, not convergence
+    fit <- allow_warnings(
+      try(frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(),
+                      data = d), silent = TRUE),
+      c("Optimizer did not report convergence",
+        "Large maximum absolute gradient"))
     if (inherits(fit, "try-error")) next
     # VarCorr returns one variance MATRIX per block, so the standard
     # deviation is the square root of its diagonal

@@ -341,8 +341,9 @@ test_that("brms's positional calls mean here what they mean in brms", {
   # both is a refusal, because that slot is `pars` and brms takes only
   # NA or a character vector there
   expect_error(as.mcmc(ds, TRUE), "must be NA or a character vector")
-  expect_error(posterior_interval(ds, 0.9),
-               "must be NA or a character vector")
+  allow_warnings(expect_error(posterior_interval(ds, 0.9),
+               "must be NA or a character vector"),
+                 "Argument 'pars' is deprecated")
   # and the call brms does answer in that slot works
   # posterior_interval() reaches brms's as.matrix(pars =), which warns
   # that `pars` is deprecated, as brms's does

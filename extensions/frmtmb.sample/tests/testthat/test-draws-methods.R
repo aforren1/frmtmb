@@ -331,8 +331,9 @@ test_that("rhat() and neff_ratio() take brms's OTHER `pars` rule", {
                "missing in the draws object: 'nosuchvariable'",
                class = "frmtmb_sample_error")
   # the extract_pars rule is the OTHER methods', and they still have it
-  expect_error(posterior_interval(cs$ds, 0.9),
-               "must be NA or a character vector")
+  allow_warnings(expect_error(posterior_interval(cs$ds, 0.9),
+               "must be NA or a character vector"),
+                 "Argument 'pars' is deprecated")
   expect_equal(rownames(suppressWarnings(posterior_interval(cs$ds, "^b_x$"))),
                "b_x")
 })

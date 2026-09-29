@@ -407,9 +407,11 @@ test_that("a trial step past a link's domain does not warn; a NaN start does", {
     stats::nlminb(par, fn, gr, control = control, lower = lower,
                   upper = upper)
   }
-  expect_warning(ref <- frm(y ~ x, d, family = "inverse.gaussian",
+  # nlminb warns once per non-finite trial, ten times on this design
+  allow_warnings(ref <- frm(y ~ x, d, family = "inverse.gaussian",
                             control = frmtmb_control(optimizer = raw)),
-                 "NA/NaN function evaluation")
+                 "NA/NaN function evaluation",
+                 require = "NA/NaN function evaluation")
   expect_identical(ref$opt$par, fit$opt$par)
   # a density that is NaN everywhere, the start included, still warns
   broken <- frmtmb_family(
@@ -418,8 +420,12 @@ test_that("a trial step past a link's domain does not warn; a NaN start does", {
     lpdf = function(y, dpars, aterms) {
       log(-exp(dpars[["sigma"]])) + 0 * dpars[["mu"]]
     })
-  expect_warning(try(frm(y ~ x, d, family = broken), silent = TRUE),
-                 "NA/NaN function evaluation")
+  # and the convergence check then says the curvature is unusable, which
+  # is the right verdict on a density with no finite value anywhere
+  allow_warnings(try(frm(y ~ x, d, family = broken), silent = TRUE),
+                 c("NA/NaN function evaluation",
+                   "Large maximum absolute gradient"),
+                 require = "NA/NaN function evaluation")
 })
 
 test_that("nonfinite_trials counts every optimizer run, restarts included", {

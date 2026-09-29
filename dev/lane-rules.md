@@ -169,7 +169,15 @@ Your `.libPaths()` therefore has two entries, your own library first:
   ratio to something the run itself measures. Four have broken on CI or
   in review: `test-deriv.R`, `test-gratia.R`, the fuzz harness's
   permutation check, and a spectral assertion that passed only on a
-  pinned seed.
+  pinned seed. Two more broke on the macOS and Ubuntu runners at 0.65.0:
+  `test-smooth-population.R` and `test-predict-re-uncertainty.R`.
+- A test lets NO warning escape. Where a call is expected to warn, wrap
+  it in the test helper `allow_warnings(expr, allowed, require = )`,
+  not `expect_warning()`: testthat 3 absorbs the first matching warning
+  and lets the rest reach the suite's WARN count, which is how 31
+  escaped warnings accumulated before 0.65.0. `dev/warnleak-scan.R`
+  lists every escaped warning with its location; the count after
+  0.65.0 is 0 on Windows.
 
 ## The evidence standard
 

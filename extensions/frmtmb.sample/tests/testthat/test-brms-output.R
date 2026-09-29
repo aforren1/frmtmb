@@ -100,10 +100,12 @@ test_that("the accessors and summaries are brms's, identical()", {
   expect_identical(fixef(ds, FALSE), brms:::fixef.brmsfit(sh, FALSE))
   expect_identical(rhat(ds), brms:::rhat.brmsfit(sh))
   h <- c("x > 0", "x = 0.5")
-  expect_identical(hypothesis(ds, h)$hypothesis[1:5],
+  # a point hypothesis has no evidence ratio without prior draws, and
+  # hypothesis() says so; the rest of the table is what is compared
+  hd <- allow_warnings(hypothesis(ds, h), "no evidence ratio")
+  expect_identical(hd$hypothesis[1:5],
                    brms:::hypothesis.brmsfit(sh, h)$hypothesis[1:5])
-  expect_identical(hypothesis(ds, h)$samples,
-                   brms:::hypothesis.brmsfit(sh, h)$samples)
+  expect_identical(hd$samples, brms:::hypothesis.brmsfit(sh, h)$samples)
 
   # the inverse case: one draw moved, and identical() says so, so the
   # assertions above cannot pass by comparing an object with itself

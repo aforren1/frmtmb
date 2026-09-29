@@ -24,7 +24,11 @@ bn_fd <- function(got, ref) bn_rel(got, ref, .Machine$double.eps^(1 / 3))
 bn_data <- function(seed = 31) {
   set.seed(seed)
   dd <- data.frame(x = stats::rnorm(200), g = factor(rep(1:20, 10)))
-  u <- cbind(stats::rnorm(20, 0, 0.7), stats::rnorm(20, 0, 0.35))
+  # the slope's sd is 0.8 and not 0.35, where the fitted sd collapsed to
+  # 0.074 and nlminb reported singular convergence on every (1 + x | g)
+  # fit here. These tests are about names, so the fit should be clean;
+  # at 0.8 the fitted sd is 0.64, far from the boundary
+  u <- cbind(stats::rnorm(20, 0, 0.7), stats::rnorm(20, 0, 0.8))
   dd$y <- stats::rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] +
                          u[dd$g, 2] * dd$x, 1)
   dd

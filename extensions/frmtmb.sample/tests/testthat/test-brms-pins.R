@@ -198,7 +198,8 @@ test_that("a mixture's weights are brms's theta1 and theta2 on draws", {
   expect_gt(mean(p1), 0.8)
   bp_rel(unname(ds$draws[, "theta1"]), p1)
   bp_rel(unname(ds$draws[, "theta2"]), 1 - p1)
-  h <- hypothesis(ds, "theta1 = 0.5", class = NULL)$hypothesis
+  h <- allow_warnings(hypothesis(ds, "theta1 = 0.5", class = NULL),
+                      "no evidence ratio")$hypothesis
   bp_rel(h$Estimate, mean(p1) - 0.5)
   # every reader that hands a draw back to the model gets the log ratio
   idx <- frmtmb.sample:::draws_par_index(fit)
@@ -238,7 +239,9 @@ test_that("r_ labels a level repeats are suffixed as brms suffixes them", {
   bp_rel(unname(ds$draws[, "r_gd[lvl.1,Intercept]__1"]),
          unname(re[, "lvl.1", "Intercept"]))
   # the unsuffixed name reads its own column, the first level
-  h <- hypothesis(ds, "r_gd[lvl.1,Intercept] = 0", class = NULL)
+  h <- allow_warnings(
+    hypothesis(ds, "r_gd[lvl.1,Intercept] = 0", class = NULL),
+    "no evidence ratio")
   bp_rel(h$hypothesis$Estimate, mean(re[, "lvl 1", "Intercept"]))
   # draws that carry a name twice are refused, not read at the first
   dup <- ds
