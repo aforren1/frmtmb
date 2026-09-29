@@ -1,0 +1,180 @@
+﻿########## FULL BUILD
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site
+DOCS sites 8: frmtmb frmtmb.eam frmtmb.latent frmtmb.ode frmtmb.spline frmtmb.coupling frmtmb.sample frmtmb.learn
+DOCS article gates 17, missing 0
+===== SITE frmtmb -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site =====
+===== ok 334s =====
+===== SITE frmtmb.eam -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.eam =====
+===== ok 73s =====
+===== SITE frmtmb.latent -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.latent =====
+===== ok 22s =====
+===== SITE frmtmb.ode -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.ode =====
+===== ok 36s =====
+===== SITE frmtmb.spline -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.spline =====
+===== ok 25s =====
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.coupling =====
+===== ok 18s =====
+===== SITE frmtmb.sample -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.sample =====
+===== ok 42s =====
+===== SITE frmtmb.learn -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.learn =====
+===== ok 27s =====
+DOCS stray directories: tutorials
+DOCS seconds per site: frmtmb 334, frmtmb.eam 73, frmtmb.latent 22, frmtmb.ode 36, frmtmb.spline 25, frmtmb.coupling 18, frmtmb.sample 42, frmtmb.learn 27
+DOCS total 577s (9.6 min)
+DOCS built 8 of 8 (minimum 8)
+DOCS ok
+EXIT 0
+########## FULL BUILD done
+########## GUARD CASES
+
+########## CASE C-one-package-min-1 (expect pass)
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-one
+DOCS sites 1: frmtmb.coupling
+DOCS article gates 17, missing 0
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-one/frmtmb.coupling =====
+===== ok 17s =====
+DOCS whole-tree checks SKIPPED: this is a partial build. Do not deploy it. Pass --check-links to run them anyway.
+DOCS seconds per site: frmtmb.coupling 17
+DOCS total 17s (0.3 min)
+DOCS built 1 of 1 (minimum 1)
+DOCS ok
+########## CASE C-one-package-min-1 exit 0 -> pass, AS EXPECTED
+
+########## CASE D-one-package-min-8 (expect fail)
+Rscript.exe : Error: refusing to clean C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-one: not empty and 
+holds no pkgdown.yml or index.html. Pass --no-clean, or point --dest somewhere else.
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: refusing...somewhere else.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted
+########## CASE D-one-package-min-8 exit 1 -> fail, AS EXPECTED
+
+########## CASE B-seven-packages-min-8 (expect fail)
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven
+DOCS sites 7: frmtmb.eam frmtmb.latent frmtmb.ode frmtmb.spline frmtmb.coupling frmtmb.sample frmtmb.learn
+DOCS article gates 17, missing 0
+===== SITE frmtmb.eam -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.eam =====
+===== ok 72s =====
+===== SITE frmtmb.latent -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.latent =====
+===== ok 21s =====
+===== SITE frmtmb.ode -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.ode =====
+===== ok 35s =====
+===== SITE frmtmb.spline -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.spline =====
+===== ok 26s =====
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.coupling =====
+===== ok 19s =====
+===== SITE frmtmb.sample -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.sample =====
+===== ok 39s =====
+===== SITE frmtmb.learn -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-seven/frmtmb.learn =====
+===== ok 26s =====
+DOCS whole-tree checks SKIPPED: this is a partial build. Do not deploy it. Pass --check-links to run them anyway.
+DOCS seconds per site: frmtmb.eam 72, frmtmb.latent 21, frmtmb.ode 35, frmtmb.spline 26, frmtmb.coupling 19, frmtmb.sample 39, frmtmb.learn 26
+DOCS total 238s (4.0 min)
+DOCS built 7 of 7 (minimum 8)
+DOCS FAILED
+  - built 7 sites, expected at least 8
+Rscript.exe : Error: the documentation build failed 1 check(s); see 
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-seven.log
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: the docu...ocsci-seven.log:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted
+########## CASE B-seven-packages-min-8 exit 1 -> fail, AS EXPECTED
+
+########## CASE E-clean-refusal (expect fail)
+Rscript.exe : Error: refusing to clean C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-notasite: not empty and 
+holds no pkgdown.yml or index.html. Pass --no-clean, or point --dest somewhere else.
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: refusing...somewhere else.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted
+########## CASE E-clean-refusal exit 1 -> fail, AS EXPECTED
+E: precious.txt survived: True
+
+########## CASE F-gate-absent-required (expect fail)
+Rscript.exe : Error: articles gate themselves on 1 package(s) that are not installed: nosuch.docsci.pkg
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: articles...such.docsci.pkg:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted
+########## CASE F-gate-absent-required exit 1 -> fail, AS EXPECTED
+F: entries left in the destination: 0 (want 0)
+
+########## CASE G-gate-absent-not-required (expect pass)
+Rscript.exe : Warning: articles gate themselves on 1 package(s) that are not installed: nosuch.docsci.pkg
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning: articl...such.docsci.pkg:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-gate2
+DOCS sites 1: frmtmb.coupling
+DOCS article gates 18, missing 1: nosuch.docsci.pkg
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site-gate2/frmtmb.coupling =====
+===== FAILED exit 1 16s =====
+DOCS whole-tree checks SKIPPED: this is a partial build. Do not deploy it. Pass --check-links to run them anyway.
+DOCS seconds per site: frmtmb.coupling 16
+DOCS total 16s (0.3 min)
+DOCS built 1 of 1 (minimum 1)
+DOCS FAILED
+  - site frmtmb.coupling exited 1
+Error: the documentation build failed 1 check(s); see C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-gate2.log
+Execution halted
+########## CASE G-gate-absent-not-required exit 1 -> fail, WRONG
+probe removed: True
+
+########## CASE H-destination-name-mismatch (expect fail)
+Rscript.exe : Error: destination does not end in the package name: frmtmb.coupling -> frmtmb.coupled
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: destinat... frmtmb.coupled:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted
+########## CASE H-destination-name-mismatch exit 1 -> fail, AS EXPECTED
+H: _pkgdown.yml restored: True
+
+########## CASE I-navbar-href-dead (expect fail)
+DOCS root C:/Users/adf44/source/r/frmtmb-wt-docsci
+DOCS dest C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site
+DOCS sites 1: frmtmb.coupling
+DOCS article gates 17, missing 0
+DOCS WARNING --no-clean: a file from an earlier run can satisfy a check this run did not produce.
+===== SITE frmtmb.coupling -> C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-site/frmtmb.coupling =====
+===== ok 15s =====
+DOCS stray directories: frmtmb.eam frmtmb.latent frmtmb.learn frmtmb.ode frmtmb.sample frmtmb.spline tutorials
+DOCS seconds per site: frmtmb.coupling 15
+DOCS total 15s (0.2 min)
+DOCS built 1 of 1 (minimum 1)
+DOCS FAILED
+  - navbar href https://aforren1.github.io/frmtmb/frmtmb.coupled/ has no built site at frmtmb.coupled/index.html
+Rscript.exe : Error: the documentation build failed 1 check(s); see 
+C:/Users/adf44/source/r/frmtmb-wt-docsci/dev/docsci-navbar.log
+At C:\Users\adf44\source\r\frmtmb-wt-docsci\dev\docsci-guard-tests.ps1:26 char:3
++   & $R $a.ToArray()
++   ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: the docu...csci-navbar.log:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted
+########## CASE I-navbar-href-dead exit 1 -> fail, AS EXPECTED
+I: core _pkgdown.yml restored: True
+########## GUARD CASES done

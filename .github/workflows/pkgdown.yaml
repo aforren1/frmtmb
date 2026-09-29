@@ -1,0 +1,290 @@
+# Build the eight pkgdown sites of this monorepo and deploy them to
+# GitHub Pages as one site: the core site at the root and each extension
+# in a subdirectory the core navbar links to.
+#
+# WHY THIS WORKFLOW EXISTS. The site used to be built by
+# dev/release/run-docs.ps1 on one Windows box and committed to docs/,
+# which Pages served in `legacy` mode. That made the published
+# documentation a function of one machine's installed library, and it
+# made every rebuild a commit touching hundreds of files. The build
+# script here, dev/release/build-docs.R, is the same script a person
+# runs locally, so a local build and the published build differ only in
+# the machine.
+#
+# STAN AND brms DO NOT RUN HERE, AND THE SITE IS NOT DEGRADED BY THAT.
+# Measured against the committed docs/ tree on 2026-09-28: no rendered
+# article contains a single line of brms or Stan output. vignettes/
+# brms-migration.Rmd, extensions/frmtmb.sample/vignettes/
+# brms-posterior.Rmd and posterior-diagnostics.Rmd set
+# `eval = FALSE` for the whole document; sampling.Rmd runs only its two
+# sampler-free chunks and says why in its own prose; the
+# FRMTMB_BRMS_FIT_TESTS lines in bayesian-cognitive-modeling.Rmd and
+# reinforcement-learning.Rmd are prose about the test suite, not
+# chunks. So this workflow installs no Stan toolchain and sets no
+# FRMTMB_* gate. The brms and Stan agreement evidence lives in
+# .github/workflows/brms-likelihood.yaml, which is where a divergence
+# has to be caught. If an article is ever changed to fit with brms,
+# reuse that workflow's Stan setup here rather than letting the article
+# render short.
+#
+# THE ROOT SEARCH INDEX IS REBUILT AFTER THE SUBSITES EXIST. pkgdown
+# builds the search index and the sitemap by walking the destination, so
+# the search box at the root covers the extension pages only if those
+# sites are already on disk. The old driver got that by accident, from
+# the previous run's leftovers in an uncleaned docs/: the committed root
+# index holds 2,088 entries of which 125 paths are subsite pages, and a
+# plain core-first build into a clean destination drops them all.
+# dev/release/build-docs.R rebuilds the root index at the end instead,
+# and asserts that it holds a path under every extension. Building core
+# last does NOT work and was tried; see dev/docsci-findings.md.
+#
+# WHAT WOULD DEGRADE THE SITE, and what stops it. Every article gates
+# its fitted output on `requireNamespace()`, so a build machine missing
+# a Suggests renders the page with the numbers dropped and still exits
+# 0. build-docs.R reads those gate names out of the article sources and
+# `--require-articles` makes a missing one a failure before the build
+# starts. RTMBode is the one gate that is not on CRAN, hence the
+# r-universe repository below; without it the whole frmtmb.ode article
+# would go quiet.
+#
+# THE DEPLOY JOB IS CONDITIONAL ON PAGES BEING IN `workflow` MODE.
+# While the repository is still `build_type: legacy`, serving the
+# committed docs/ directory, a deploy-pages step would fail. The build
+# job therefore asks the API and the deploy job skips itself with a
+# warning until the owner flips the setting. Nothing in this file
+# changes that setting: see the runbook in dev/docsci-findings.md.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'man/**'
+      - 'vignettes/**'
+      - 'inst/**'
+      - 'README.md'
+      - 'NEWS.md'
+      - '_pkgdown.yml'
+      - 'pkgdown/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - 'extensions/**'
+      - 'dev/release/build-docs.R'
+      - '.github/workflows/pkgdown.yaml'
+  # A release publishes the site of the TAGGED tree, which can be behind
+  # main. That is deliberate for a package site, but it means a release
+  # cut from an old tag would roll the published documentation back. If
+  # that is not wanted, delete these two lines; the push trigger already
+  # covers every release made from the tip of main.
+  release:
+    types: [published]
+  workflow_dispatch:
+
+name: pkgdown
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # The build is cancellable because it deploys nothing: a newer push
+    # should not wait behind an older one. The deploy job has its own,
+    # uncancellable group.
+    concurrency:
+      group: pkgdown-build-${{ github.ref }}
+      cancel-in-progress: true
+    # Measured on the Windows development box, sequential, with every
+    # package already installed and with four other R processes on the
+    # machine: 577 s for the eight sites, of which 334 s is the core
+    # site alone. The seven extensions are 17 to 60 s each. The ceiling
+    # below is therefore mostly for the dependency install, which is the
+    # full Suggests of eight packages and is the part this box does not
+    # measure.
+    timeout-minutes: 90
+    outputs:
+      pages_mode: ${{ steps.pages.outputs.mode }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      # Not a gate any article reads today. It is set so that an article
+      # added later with a skip_on_cran-style guard renders rather than
+      # silently not rendering.
+      NOT_CRAN: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+          # RTMBode is on r-universe, not CRAN, and the frmtmb.ode
+          # article drops every fitted chunk without it. pak does not
+          # read Additional_repositories from the extension's
+          # DESCRIPTION, but it honors the repos option this input
+          # writes to the Rprofile. Same reasoning as
+          # check-frmtmb-ode.yaml.
+          extra-repositories: 'https://kaskr.r-universe.dev'
+      # The core's dependencies, resolved from the root DESCRIPTION, plus
+      # pkgdown itself.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown
+          needs: website
+      # The core's SUGGESTS, named explicitly rather than left to what
+      # the step above resolves by default. Suggests are not optional on
+      # this job: they are what every article gates its fitted output on,
+      # and a page that renders without them still exits 0. Making the
+      # guarantee explicit costs one step and removes a dependency on a
+      # pak default that a future action release could change. Anything
+      # already installed is skipped, so on a warm resolution this step
+      # installs nothing.
+      - name: Install the core package's Suggests
+        run: |
+          d <- read.dcf("DESCRIPTION")
+          if (!"Suggests" %in% colnames(d)) quit(save = "no")
+          p <- unlist(strsplit(d[, "Suggests"], ","))
+          p <- trimws(sub("[(].*", "", p))
+          p <- p[nzchar(p)]
+          p <- p[!startsWith(p, "frmtmb")]
+          p <- setdiff(p, rownames(installed.packages()))
+          cat("installing", length(p), "Suggests:",
+              paste(p, collapse = " "), "\n")
+          if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      - name: Install the core package from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source .
+        shell: bash
+      # The seven extensions, in dependency order, each with its own
+      # Imports and Suggests read from its DESCRIPTION and installed
+      # directly rather than through pak. pak resolves against a
+      # repository and no frmtmb package is in one: the builds wanted
+      # here are the ones installed from this checkout, so every
+      # frmtmb* name is skipped. This is the scheme the seven
+      # check-frmtmb-*.yaml workflows use; the only difference is that
+      # this one installs all seven in one job, because pkgdown has to
+      # load them all to resolve the links between the sites.
+      #
+      # The order is not arbitrary. frmtmb.learn imports frmtmb.eam,
+      # and frmtmb.sample suggests frmtmb.eam, frmtmb.latent and
+      # frmtmb.ode.
+      #
+      # install.packages() only warns on a package it cannot get, which
+      # would be a silent hole. It is not left uncovered: a missing HARD
+      # dependency fails the R CMD INSTALL below, which is checked, and
+      # a missing Suggests that an article gates on fails the
+      # --require-articles check in the build step. Nothing else a
+      # Suggests provides reaches the published site.
+      - name: Install the seven extensions from this checkout
+        run: |
+          ext <- c("frmtmb.eam", "frmtmb.latent", "frmtmb.ode",
+                   "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
+                   "frmtmb.learn")
+          for (nm in ext) {
+            dir <- file.path("extensions", nm)
+            d <- read.dcf(file.path(dir, "DESCRIPTION"))
+            f <- intersect(c("Imports", "Suggests"), colnames(d))
+            p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+            p <- trimws(sub("[(].*", "", p))
+            p <- p[nzchar(p)]
+            p <- p[!startsWith(p, "frmtmb")]
+            p <- setdiff(p, rownames(installed.packages()))
+            if (length(p)) install.packages(p)
+            st <- system2("R", c("CMD", "INSTALL", "--no-multiarch",
+                                 "--with-keep.source", dir))
+            if (st != 0L) stop("R CMD INSTALL failed for ", nm)
+          }
+        shell: Rscript {0}
+      # Asked before the build so that a legacy-mode repository gets its
+      # warning in the first minute rather than after the site is built.
+      # A read failure is reported as unknown, which skips the deploy:
+      # this job never guesses that Pages is ready.
+      - name: Ask whether Pages is in workflow mode
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mode=$(gh api "repos/$GITHUB_REPOSITORY/pages" \
+                   --jq '.build_type' 2>/dev/null || echo unknown)
+          [ -n "$mode" ] || mode=unknown
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Pages build_type: $mode"
+          if [ "$mode" != "workflow" ]; then
+            echo "::warning title=Pages not on the workflow builder::" \
+              "build_type is '$mode', so the deploy job will skip." \
+              "The site is still built and uploaded as an artifact." \
+              "See the runbook in dev/docsci-findings.md."
+          fi
+        shell: bash
+      # The count guard, the per-site index.html and reference
+      # assertions, the core navbar href check and the article-gate
+      # check all live in this script, so a local run is held to the
+      # same standard as this job.
+      - name: Build the eight sites
+        run: |
+          Rscript dev/release/build-docs.R \
+            --dest="${{ runner.temp }}/pkgdown-site" \
+            --log="${{ runner.temp }}/pkgdown-build.log" \
+            --require-articles
+        shell: bash
+      # A second, independent count. Every count this project has had to
+      # retract came from the process that did the work, so here the
+      # expected number comes from the checkout and the found number
+      # comes off the filesystem, and neither side is the build script's
+      # own tally. Run against the committed docs/ tree this same `find`
+      # returns 9 rather than 8, because of the stale frmtmb.ddm
+      # directory, which is how it was checked to discriminate.
+      #
+      # The floor of 8 is separate and absolute: it fails when an
+      # extension directory has gone missing from the checkout, which the
+      # derived number alone would accept. Raise it when a ninth
+      # extension ships.
+      - name: Count the built sites again, independently
+        run: |
+          site="${{ runner.temp }}/pkgdown-site"
+          want=$(( 1 + $(ls -1 extensions/*/_pkgdown.yml | wc -l) ))
+          n=$(find "$site" -maxdepth 2 -name index.html \
+                \( -path "$site/index.html" \
+                   -o -path "$site/frmtmb.*/index.html" \) | wc -l)
+          echo "site roots expected $want, found $n"
+          find "$site" -maxdepth 1 -mindepth 1 -type d | sort
+          if [ "$want" -lt 8 ]; then
+            echo "::error::the checkout offers only $want sites, not 8"
+            exit 1
+          fi
+          if [ "$n" -ne "$want" ]; then
+            echo "::error::expected $want site roots, found $n"
+            exit 1
+          fi
+        shell: bash
+      - name: Upload the build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgdown-build-log
+          path: ${{ runner.temp }}/pkgdown-build.log
+          if-no-files-found: warn
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/pkgdown-site
+
+  deploy:
+    needs: build
+    # Skipped until the owner switches Pages to the workflow builder.
+    # Until then the build job still runs and still uploads the site, so
+    # a broken build is caught on the push that broke it.
+    if: needs.build.outputs.pages_mode == 'workflow'
+    runs-on: ubuntu-latest
+    # A deploy is never cancelled part way, and runs queue instead of
+    # racing, so the newest run is the last to write. GitHub's own Pages
+    # starter workflow uses this group for the same reason.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

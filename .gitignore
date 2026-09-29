@@ -23,3 +23,7 @@ dev/brms-suite/
 
 # lane wt-correct: brms fits its probes cache
 dev/correct-brmsfits/
+
+# scratch destinations for a local dev/release/build-docs.R run
+dev/docsci-site/
+dev/docsci-site-*/

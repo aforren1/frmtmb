@@ -1,10 +1,9 @@
 # Subsite for the drift-diffusion extension.
 #
-# The site builds into the core package's docs/ tree, so that one
-# GitHub Pages deployment serves the core site and the four extension
-# sites together. Build it with dev/build-docs.R, not on its own: the
-# links between packages resolve only when every package is installed
-# first.
+# The site builds into the core package's docs/ tree, so that one GitHub Pages
+# deployment serves the core site and the four extension sites together. Build
+# it with dev/release/build-docs.R, not on its own: the links between packages
+# resolve only when every package is installed first.
 url: https://aforren1.github.io/frmtmb/frmtmb.eam
 destination: ../../docs/frmtmb.eam
 
