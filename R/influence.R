@@ -11,6 +11,30 @@
 #' coefficient standard errors (the lme4 influence surface).
 #' [plot.frmtmb_influence()] draws all three.
 #'
+#' Each deletion refits the same model, so an ordinal response keeps the
+#' threshold count of the full-data fit, and the per-level counts of
+#' `thres(gr = )`, whether the response is coded as integers, as a
+#' character vector or as an ordered factor. Deleting the last
+#' observation in ANY category, bottom, interior or top, leaves that
+#' category's threshold in the model and unidentified, which shows as a
+#' large displacement in its column, never as a shorter row or a
+#' coefficient under the next column's name.
+#'
+#' Two deletions cannot refit the fitted model at all and are refused by
+#' name. A `groups = ` deletion that removes a whole level of
+#' `thres(gr = )` takes away every observation behind that level's
+#' thresholds, so they could only be invented. `data = ` holding a
+#' response category outside the fitted model's threshold layout, or a
+#' `thres(gr = )` level the fit never saw, describes a different model. A
+#' category the fit never OBSERVED is not outside that layout when
+#' `thres(K)` declared it, so `data = ` may reach one of those.
+#'
+#' A refit that fails for any reason, these two included, leaves its row
+#' `NA`, and the failures are counted. When some units failed the table
+#' comes back with a warning carrying the count and the first reason;
+#' when every unit failed there is no table to hand back, so that first
+#' reason is raised as an error instead of a silent matrix of `NA`.
+#'
 #' @param model A `frmtmb_fit`.
 #' @param groups Name of a random-effect grouping factor (see
 #'   [ngrps()]) to delete level-wise; `NULL` deletes single
@@ -71,12 +95,25 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                dimnames = list(units, names(outer_theta_names(model))))
 
   data2 <- model$data2 %||% list()
+  # Every deletion refits the SAME model, so an ordinal threshold count
+  # comes from the fit and not from the subset: deleting the one row in
+  # the top category used to drop a threshold, and that row of the table
+  # then mixed a shorter model's coefficients with an NA.
+  pin <- thres_pin_of_fit(model)
+  # A refit that fails leaves its row NA, and a table of nothing but NA
+  # used to come back without a word. Count them and say so: on a
+  # documented argument (`data = `) whose categories do not match the
+  # fit, EVERY unit fails, and silence there is worse than the error
+  # 0.64.0 raised.
+  n_fail <- 0L
+  first_msg <- NULL
+  first_unit <- NULL
   for (i in seq_along(units)) {
     fit_i <- tryCatch(suppressWarnings({
       frame_i <- assemble_frame(model$spec,
                                 data[unit_rows[[i]], , drop = FALSE],
                                 sparse_x = isTRUE(ctl$sparse_x),
-                                data2 = data2)
+                                data2 = data2, thres_pin = pin)
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {
@@ -90,14 +127,35 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                     quadrature = isTRUE(model$quadrature),
                     importance = model$importance$draws %||% 0L,
                     template = tpl, data2 = data2)
-    }), error = function(e) NULL)
-    if (is.null(fit_i)) next
+    }), error = function(e) e)
+    if (inherits(fit_i, "condition")) {
+      n_fail <- n_fail + 1L
+      if (is.null(first_msg)) {
+        first_msg <- conditionMessage(fit_i)
+        first_unit <- units[i]
+      }
+      next
+    }
     fe_i <- get_coef.frmtmb_fit(fit_i)
     fe[i, names(fe_i)] <- fe_i
     if (length(full_th) &&
         length(fit_i$estimates[["theta"]]) == length(full_th)) {
       th[i, ] <- fit_i$estimates[["theta"]]
     }
+  }
+  if (n_fail) {
+    what <- if (is.null(groups)) "observation" else paste0("'", groups,
+                                                           "' level")
+    where <- paste0(" The first was ", what, " ", first_unit, ": ",
+                    first_msg)
+    if (n_fail == length(units)) {
+      # every row would be NA, so there is no table to hand back
+      frm_stop("influence(): all ", n_fail, " deletion refits failed, so ",
+               "every row of the table would be NA.", where, call. = FALSE)
+    }
+    frm_warning("influence(): ", n_fail, " of ", length(units),
+                " deletion refits failed and their rows are NA.", where,
+                call. = FALSE)
   }
   structure(list(fixed = fe, theta = th, fixed_full = full_fe,
                  theta_full = full_th, groups = groups, fit = model),

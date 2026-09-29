@@ -281,9 +281,9 @@ test_that("a prior draw undoes the placement it was written on", {
 
   # an ordinal threshold prior is a density on a whole ordered vector,
   # and one draw per threshold would not be ordered, so it is refused
-  # rather than approximated. frm_simulate() stops earlier than this on
-  # an ordinal model, at the natural-scale newparams check, so the
-  # guard is pinned where it lives.
+  # rather than approximated. frm_simulate() does reach this refusal on
+  # a cumulative() model: test-thres-refit.R covers the public path and
+  # the unordered families, whose entries have a refusal of their own.
   e <- list(comp = "tau_raw", idx = 1:2, scale = "ordthres",
             dist = prior_t(3, 0, 2.5))
   expect_error(frmtmb:::draw_prior_entry(e, "tau_raw"),

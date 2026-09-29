@@ -1,0 +1,14 @@
+test-thres-refit.R
+test-frame.R
+test-influence-plot.R
+test-thres.R
+test-ordinal.R
+test-ordinal-fitted.R
+test-sratio-thresholds.R
+test-simulate-ergonomics.R
+test-boot.R
+test-setprior.R
+test-unpinned-seams.R
+test-multiple-pooling.R
+test-autoscale.R
+test-ce-bands.R

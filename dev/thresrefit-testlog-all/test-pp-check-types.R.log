@@ -1,0 +1,2 @@
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+RESULTtest-pp-check-types.Rarm=lane pass=193 fail=0 err=0 skip=0

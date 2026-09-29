@@ -210,6 +210,158 @@ thres_finalizer <- function(family, ordered, link) {
   }
 }
 
+# ---------------------------------------------------------------------
+# Pinning a refit's threshold count to the FITTED model's
+# ---------------------------------------------------------------------
+
+#' The threshold layout of a fitted model, in the form the pin applies.
+#'
+#' A refit inside the package describes the SAME model as the fit it
+#' came from, so its threshold count has to come from the fitted object
+#' and never from the refit's own response. Recounting is what
+#' `thres_counts()` does at frame assembly, and a data set whose top
+#' category is absent then yields one threshold fewer, so the refit's
+#' parameter vector has a different length and a different meaning.
+#'
+#' Returns `NULL` when no response can be pinned, and otherwise one
+#' element per ordinal response: `nthres` (one count, or one per level
+#' of `thres(gr = )`), `gr_levels` when grouped (the `thres(gr = )` level
+#' labels the counts go with, because a row subset can drop a level and
+#' `factor()` would then renumber the codes), and `levels_y`, the
+#' RESPONSE's own category labels when it is a factor, for the same
+#' reason.
+#'
+#' The gate is the family's own allow-list: `thres` is the declared
+#' spelling of a pinned count, so a family that does not accept it
+#' cannot be pinned this way and is left alone. No family in this package
+#' makes that half false; an ordinal family from an extension can, and
+#' `test-thres-refit.R` constructs one.
+#'
+#' @noRd
+thres_pin_of_fit <- function(fit) {
+  frame <- fit[["frame"]]
+  spec <- fit[["spec"]]
+  if (is.null(frame) || is.null(spec)) return(NULL)
+  out <- list()
+  for (resp in spec$responses) {
+    fam <- resp$family
+    if (!identical(fam[["type"]], "ordinal")) next
+    if (!"thres" %in% (fam[["accepts_aterms"]] %||% character(0))) next
+    lv_y <- frame[["y_levels"]][[resp$resp_name]]
+    th <- fam[["thres"]]
+    if (!is.null(th) && isTRUE(th[["grouped"]])) {
+      out[[resp$resp_name]] <- list(grouped = TRUE,
+                                    nthres = as.integer(th[["nthres"]]),
+                                    gr_levels = th[["levels"]],
+                                    levels_y = lv_y)
+      next
+    }
+    # ungrouped: the count IS the length of the threshold block, whether
+    # it was counted from the data or written as thres(x = )
+    comp <- extra_tpl_name(frame, resp$resp_name, "tau_raw")
+    raw <- frame[["par_template"]][[comp]]
+    if (is.null(raw) || !length(raw)) next
+    out[[resp$resp_name]] <- list(grouped = FALSE, nthres = length(raw),
+                                  levels_y = lv_y)
+  }
+  if (!length(out)) NULL else out
+}
+
+#' Recode a factor response against the FITTED model's categories.
+#'
+#' `assemble_frame()` builds its model frame with
+#' `drop.unused.levels = TRUE`, so a factor level that no row of a subset
+#' takes disappears, and `extract_y()` then codes what is left as
+#' `1..K'`. That renumbers every category above the one that went: with
+#' four categories and an empty second, a row truly in the third is coded
+#' 2. A refit on those codes is a different model, and the influence
+#' table built from it reports one column's coefficient under another's
+#' name, with nothing but a trailing NA to show it.
+#'
+#' So the codes are put back on the fitted model's scale before anything
+#' reads them. An interior category then simply has no observations, and
+#' the refit is the integer-coded one to the bit, which is what a
+#' comparable influence table needs. A response holding a category the
+#' FIT never saw cannot be placed at all and is refused by name.
+#'
+#' Runs whether or not the user wrote `thres()`: a hand-written count is
+#' a statement about the model, not about how a subset happens to code
+#' its rows.
+#'
+#' @noRd
+thres_pin_recode <- function(pin, resp, y, levels) {
+  if (is.null(pin) || is.null(levels)) return(list(y = y, levels = levels))
+  p <- pin[[resp$resp_name]]
+  if (is.null(p)) return(list(y = y, levels = levels))
+  lv_fit <- p[["levels_y"]]
+  if (is.null(lv_fit) || identical(levels, lv_fit)) {
+    return(list(y = y, levels = levels))
+  }
+  m <- match(levels, lv_fit)
+  if (anyNA(m)) {
+    frm_stop("Refitting an ordinal model: the response holds categor",
+             if (sum(is.na(m)) == 1L) "y " else "ies ",
+             paste0("'", levels[is.na(m)], "'", collapse = ", "),
+             " that the fitted model never saw, whose categories are ",
+             paste0("'", lv_fit, "'", collapse = ", "),
+             ". A refit carries the fitted model's categories, so it ",
+             "cannot add one", call. = FALSE)
+  }
+  list(y = m[as.integer(y)], levels = lv_fit)
+}
+
+#' Write the pinned count into one response's addition-term values, as
+#' if `thres(x = )` or `thres(x = , gr = )` had been written.
+#'
+#' A count written by the user wins: the pin exists to replace a count
+#' the refit would otherwise take from its own response, not to override
+#' the model. `thres_pin_recode()` has already put the response's own
+#' codes back on the fitted scale, so by here `max(y)` means what it
+#' meant in the fit.
+#'
+#' A `thres(gr = )` level with no rows left is refused rather than
+#' pinned. Its thresholds have no data at all, so they could only be
+#' invented, and dropping them instead would slide every later level's
+#' thresholds into the wrong columns. The caller turns this into an
+#' all-NA row, which is honest.
+#'
+#' @noRd
+thres_pin_apply <- function(pin, resp, av) {
+  if (is.null(pin) || !is.null(av[["thres"]])) return(av)
+  p <- pin[[resp$resp_name]]
+  if (is.null(p)) return(av)
+  gi <- av[["thres_gr"]]
+  if (!isTRUE(p$grouped)) {
+    # a pin from an ungrouped fit says nothing about a grouped layout
+    if (!is.null(gi)) return(av)
+    av[["thres"]] <- as.numeric(p$nthres)
+    return(av)
+  }
+  if (is.null(gi)) return(av)
+  lv <- attr(gi, "thres_levels")
+  gone <- setdiff(p$gr_levels, lv)
+  if (length(gone)) {
+    frm_stop("Refitting an ordinal model with grouped thresholds: level(s) ",
+             paste0("'", gone, "'", collapse = ", "),
+             " of thres(gr = ) have no rows left, so the ",
+             sum(p$nthres[match(gone, p$gr_levels)]),
+             " threshold(s) the fitted model gives them cannot be ",
+             "estimated. A refit carries the fitted model's threshold ",
+             "counts, so it cannot drop a level", call. = FALSE)
+  }
+  k <- p$nthres[match(lv, p$gr_levels)]
+  if (anyNA(k)) {
+    frm_stop("Refitting an ordinal model with grouped thresholds: level(s) ",
+             paste0("'", lv[is.na(k)], "'", collapse = ", "),
+             " of thres(gr = ) are not in the fitted model, whose levels ",
+             "are ", paste0("'", p$gr_levels, "'", collapse = ", "),
+             ". A refit carries the fitted model's threshold counts, so it ",
+             "cannot add a level", call. = FALSE)
+  }
+  av[["thres"]] <- as.numeric(k[as.integer(gi)])
+  av
+}
+
 #' The grouped-threshold log-density of one ordinal family.
 #'
 #' Row `i` reads the slice of its group, `nthres[g_i]` thresholds long,

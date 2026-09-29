@@ -35,6 +35,23 @@
 #'   This is not `simulate(re_formula = NA)`, which holds a population
 #'   smooth at its fitted curve, because a posterior-predictive check
 #'   needs the curve the model estimated.
+#'
+#' @section Ordinal thresholds:
+#' Every refit reuses the assembled design, so the number of thresholds
+#' is the fitted model's and `FUN` receives the same parameters in the
+#' same order in every replicate. A replicate whose response never
+#' reaches the top category keeps that threshold, which the replicate's
+#' own data no longer identify: its estimate is large, and the
+#' replicate's log-likelihood is the one a fit with `thres(K)` pinned on
+#' that replicate gives, to optimizer tolerance. With `thres(gr = )` the
+#' per-level counts are kept the same way.
+#'
+#' `simulate()` followed by `frm()`, written out by hand, is not a refit:
+#' `frm()` counts the thresholds of whatever data it is given, so a
+#' replicate that never reaches the top category fits one threshold
+#' fewer, at the same maximized log-likelihood. Write `thres(K)` there to
+#' pin it.
+#'
 #' @return A `frmtmb_boot` object: `t0` (FUN at the original fit), `t`
 #'   (`nsim` x `length(t0)` matrix), and `converged`. `confint()` gives
 #'   percentile intervals.

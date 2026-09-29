@@ -1,0 +1,59 @@
+ARM base frmtmb 0.64.0 
+1: seed 501 n = 50 table(y) = 20/11/18/1
+1: the single top-category row is 1
+1 cumulative: colnames = x,tau_raw_1,tau_raw_2,tau_raw_3
+1 cumulative: NA cells in the whole table = 1
+1 cumulative: row 1 =  0.0006186946584 -0.3713461710944 -0.0886369803511               NA
+1 cumulative: cooks.distance NA count = 1; value at row 1 = NA
+1 cumulative: thres(3) reference =  0.000627417853 -0.371346636048 -0.088635535487  3.123116327865
+1 sratio: colnames = x,tau_raw_1,tau_raw_2,tau_raw_3
+1 sratio: NA cells in the whole table = 1
+1 sratio: row 1 = -0.07497641439 -0.39380247681 -0.51901702497             NA
+1 sratio: cooks.distance NA count = 1; value at row 1 = NA
+1 sratio: thres(3) reference = -0.07497641093 -0.39380242101 -0.51901699906 22.24157596568
+   
+     1  2  3  4
+  a  9 10 12  1
+  b 12 12  8  0
+  c 11 15  6  0
+2: fitted tau_raw length = 7 per-level counts = 3,2,2
+2: the single top row of level a is 10
+2: colnames = x,tau_raw_1,tau_raw_2,tau_raw_3,tau_raw_4,tau_raw_5,tau_raw_6,tau_raw_7
+2: NA cells = 1
+2: row 10 =  0.50921167 -0.91462934  0.32926521 -0.55576307  0.53683315 -0.66443626  0.79322835          NA
+2: cooks.distance NA count = 1; value at row 10 = NA
+2: reference =  0.50921975 -0.91463523  0.32926979  3.09096292 -0.55579306  0.53684125 -0.66445177  0.79322886
+3: seed 202 n = 40 table(y) = 9/16/11/4
+3 cumulative: replicates without the top category (seed 11, 60) = 31
+3 cumulative: t dim = 60x4 colnames = x,tau1,tau2,tau3 NA cells = 0
+3 cumulative: replicate 31 refit logLik = -41.4680285630979 thres(3) logLik = -41.4680285623368 relative difference = 1.835e-11
+3 cumulative: replicate 31 tau_raw length refit = 3 pinned = 3
+3 sratio: replicates without the top category (seed 11, 60) = 31
+3 sratio: t dim = 60x4 colnames = x,tau1,tau2,tau3 NA cells = 0
+3 sratio: replicate 31 refit logLik = -41.9541926013013 thres(3) logLik = -41.9541926022876 relative difference = 2.351e-11
+3 sratio: replicate 31 tau_raw length refit = 3 pinned = 3
+3g: fitted per-level counts = 3,2,2
+3g: replicates where a level lost its top category = 18 (6,7,11,12,13,14,15,17)
+3g: t dim = 40x8 NA cells = 0
+3g: replicate 6 refit logLik = -99.7389620475353 pinned logLik = -99.738962045463 relative difference = 2.078e-11
+4: table(y) = 23/26/1
+4: dpars = mu2,mu3
+4: the single level-3 row is 36
+4: colnames = mu2_(Intercept),mu2_x,mu3_(Intercept),mu3_x
+4: NA cells = 0
+4: row 36 =   0.0519726   0.6611287 -76.7541678 -23.5355808
+4: boot t dim = 20x4 NA cells = 0
+5a cratio (3 thresholds) -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+5a acat (3 thresholds) -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+5a sratio (3 thresholds) -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+5a cumulative (3 thresholds) -> ERROR: values must be length 1,
+ but FUN(X[[1]]) result is length 3
+5b cratio (1 threshold) -> drew tau_raw_1,b_x =  2.711685 -0.840855
+5b acat (1 threshold) -> drew tau_raw_1,b_x =  2.711685 -0.840855
+5b sratio (1 threshold) -> drew tau_raw_1,b_x =  2.711685 -0.840855
+5b cumulative (1 threshold) -> ERROR: A prior on tau_raw_1 is a density on the whole threshold vector, and drawing from it one threshold at a time would not produce an ordered one. Pin the thresholds with newparams = list(tau_raw = ) instead
+5c draw_prior_entry on idx 1:3 -> returned 2.7687187
+5c draw_prior_pars -> tau_raw = -2.5109837 -2.5109837 -2.5109837

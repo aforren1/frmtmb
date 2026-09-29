@@ -339,6 +339,20 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
              "not produce an ordered one. Pin the thresholds with ",
              "newparams = list(tau_raw = ) instead", call. = FALSE)
   }
+  if (length(e$idx) > 1L) {
+    # ONE draw written into several parameters is the same number
+    # repeated, which is not a draw from the entry's density. This is
+    # about the SHAPE of an entry, not about one family: the unordered
+    # ordinal threshold vectors of sratio, cratio and acat reach it, and
+    # so do class "cor" on a block with more than one correlation and
+    # class "ar", "ma" or "cortime" above order 1. A report column per
+    # entry is what stops it being a draw per index here, so the refusal
+    # names the working alternative
+    frm_stop("A prior on ", label, " is a density on ", length(e$idx),
+             " parameters at once, and frm_simulate() reports one drawn ",
+             "value per prior. Pin them with newparams = ", e$comp,
+             " = instead", call. = FALSE)
+  }
   # a "natural" entry's density is about the dpar itself, so a draw
   # outside the link's own support has no internal value to write and is
   # rejected the same way a non-positive sd is
@@ -393,8 +407,26 @@ prior_draw_report <- function(e, v, x) {
 #' Label for a prior entry: the natural name where one exists, else the
 #' internal spelling.
 #'
+#' A label is ONE string. An entry whose density covers several
+#' parameters at once has no natural name, and every caller reads the
+#' label as scalar: the `pars` report names a column with it and the
+#' refusals name their target with it. Without this branch the sd search
+#' below compares a vector in `if`, and `frm_simulate()` died inside
+#' `vapply` with "result is length 3" instead of saying what it could not
+#' do. Reached by an ordinal threshold vector, by `class = "cor"` on a
+#' block with more than one correlation, by `class = "ar"`, `"ma"` or
+#' `"cortime"` above order 1, and by `class = "rescor"`.
+#'
+#' Written on `length() != 1L` rather than `> 1L` so that a zero-length
+#' index, which no resolver builds today, cannot reach the vector
+#' comparison either. It gets an empty-range label rather than `[NA:NA]`.
+#'
 #' @noRd
 prior_entry_label <- function(frame, slots, e) {
+  if (length(e$idx) != 1L) {
+    if (!length(e$idx)) return(paste0(e$comp, "[]"))
+    return(paste0(e$comp, "[", e$idx[1L], ":", e$idx[length(e$idx)], "]"))
+  }
   if (e$comp %in% c("beta", "betad")) {
     nm <- nat_coef_name(slots, e$comp, e$idx)
     if (!is.null(nm)) return(nm)

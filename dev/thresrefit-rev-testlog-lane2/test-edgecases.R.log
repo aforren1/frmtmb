@@ -1,0 +1,2 @@
+4 rows removed because of missing values (na.action)
+REVRESULT test-edgecases.R arm=lane blocks=17 pass=64 fail=0 err=0 warn=0 skip=0

@@ -1,0 +1,71 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib  ver = 0.64.0 
+
+table(y) = 30/1/18/11  single interior row = 2 
+
+== integer : n_tau = 3 
+-- integer 
+   cols: x,tau_raw_1,tau_raw_2,tau_raw_3 
+   NA cells in whole table: 0 
+   NA cells in the interior row: 0 
+   interior row: 0.282734278  0.0886563053  -21.8788664  0.384413086 
+   cooks.distance at that row: 95.96657   NA in cooks: 0 
+   thres(3) hand reference (integer codes 1,3,4 kept as is):
+       x  tau_raw_1  tau_raw_2  tau_raw_3 
+       0.282734278  0.0886563053  -21.4148732  0.384413086 
+   logLik pinned reference = -59.3658051495 
+   bare frm() on the subset: n_tau = 3  coefs: x=0.282734278  tau_raw_1=0.0886563053  tau_raw_2=-21.4148732  tau_raw_3=0.384413086 
+   logLik bare = -59.3658051495 
+
+== ordered : n_tau = 3 
+-- ordered 
+   cols: x,tau_raw_1,tau_raw_2,tau_raw_3 
+   NA cells in whole table: 1 
+   NA cells in the interior row: 1 
+   interior row: 0.282731951  0.0886511169  0.384408733  NA 
+   cooks.distance at that row: NA   NA in cooks: 1 
+   thres(3) hand reference (integer codes 1,3,4 kept as is):
+       x  tau_raw_1  tau_raw_2  tau_raw_3 
+       0.282734278  0.0886563053  -21.4148732  0.384413086 
+   logLik pinned reference = -59.3658051495 
+   bare frm() on the subset: n_tau = 3  coefs: x=0.282734278  tau_raw_1=0.0886563053  tau_raw_2=-21.4148732  tau_raw_3=0.384413086 
+   logLik bare = -59.3658051495 
+
+== unordered : frm() REFUSED: Family 'cumulative' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, whose level order (1 < 2 < 3 < 4) is not a category order anyone stated. Use factor(..., levels = ..., ordered = TRUE) 
+
+== character : n_tau = 3 
+-- character 
+   cols: x,tau_raw_1,tau_raw_2,tau_raw_3 
+   NA cells in whole table: 0 
+   NA cells in the interior row: 0 
+   interior row: 0.282734278  0.0886563053  -21.8788664  0.384413086 
+   cooks.distance at that row: 95.96657   NA in cooks: 0 
+   thres(3) hand reference (integer codes 1,3,4 kept as is):
+       x  tau_raw_1  tau_raw_2  tau_raw_3 
+       0.282734278  0.0886563053  -21.4148732  0.384413086 
+   logLik pinned reference = -59.3658051495 
+   bare frm() on the subset: n_tau = 3  coefs: x=0.282734278  tau_raw_1=0.0886563053  tau_raw_2=-21.4148732  tau_raw_3=0.384413086 
+   logLik bare = -59.3658051495 
+
+#### grouped thres(gr = g) with a single interior-category row
+table(y) = 74/1/17/4  per-level max = 4/3/3  interior row = 2  in level b 
+== integer : nthres = 3/2/2  nraw = 7 
+-- integer 
+   cols: x,tau_raw_1,tau_raw_2,tau_raw_3,tau_raw_4,tau_raw_5,tau_raw_6,tau_raw_7 
+   NA cells in whole table: 0 
+   NA cells in the interior row: 0 
+   interior row: 0.0991082092  1.09908382  -23.291561  -0.168138181  1.24759251  -20.714477  1.47990302  -20.7706535 
+   cooks.distance at that row: 46.62783   NA in cooks: 0 
+   thres(k, gr) reference:
+       0.0991082092  1.09908382  -23.1346723  -0.168138177  1.24759251  -21.9741049  1.47990302  -20.8608018 
+
+== ordered : nthres = 3/2/2  nraw = 7 
+-- ordered 
+   cols: x,tau_raw_1,tau_raw_2,tau_raw_3,tau_raw_4,tau_raw_5,tau_raw_6,tau_raw_7 
+   NA cells in whole table: 3 
+   NA cells in the interior row: 3 
+   interior row: 0.0991004049  1.09910277  -0.168122769  1.2476021  1.47989557  NA  NA  NA 
+   cooks.distance at that row: NA   NA in cooks: 1 
+   thres(k, gr) reference:
+       0.0991082092  1.09908382  -23.1346723  -0.168138177  1.24759251  -21.9741049  1.47990302  -20.8608018 
+
+DONE rev-02

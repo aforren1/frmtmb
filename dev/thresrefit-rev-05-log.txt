@@ -1,0 +1,123 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib  ver = 0.64.0 
+
+== seed 501 cumulative  table(y) = 20/11/18/1  deleted row = 1 
+   x          got 0.000627432768754419  want 0.000627417852989218  rel 2.38e-05
+   tau_raw_1  got -0.371346624172049  want -0.371346636047913  rel 3.2e-08
+   tau_raw_2  got -0.0886355345190902  want -0.0886355354867559  rel 1.09e-08
+   tau_raw_3  got 3.11120658611246  want 3.1231163278655  rel 0.00381
+   max rel over identified: 2.377e-05   max |diff|/sd(col): 3.119e-07 
+   logLik loo-refit = -52.38100757488011
+   logLik reference = -52.38100757368454   rel = 2.282e-11  abs = 1.2e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 52.87780250219912, at the loo point 53.37445730236123, gap 0.497
+
+== seed 501 sratio  table(y) = 20/11/18/1  deleted row = 1 
+   x          got -0.0749764108220967  want -0.0749764109267025  rel 1.4e-09
+   tau_raw_1  got -0.393802420902748  want -0.393802421005823  rel 2.62e-10
+   tau_raw_2  got -0.519016999258604  want -0.519016999063165  rel 3.77e-10
+   tau_raw_3  got 21.6608807211552  want 22.2415759656778  rel 0.0261
+   max rel over identified: 1.395e-09   max |diff|/sd(col): 3.334e-09 
+   logLik loo-refit = -52.34085133678953
+   logLik reference = -52.34085133372233   rel = 5.86e-11  abs = 3.07e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 56.37611386583674, at the loo point 53.34360548835648, gap -3.03
+
+== seed 1501 cumulative  table(y) = 15/15/19/1  deleted row = 2 
+   x          got 0.344390145083543  want 0.344390270495979  rel 3.64e-07
+   tau_raw_1  got -0.80110745466414  want -0.801107523071391  rel 8.54e-08
+   tau_raw_2  got 0.257683731751749  want 0.257683732519443  rel 2.98e-09
+   tau_raw_3  got 3.10304216083841  want 3.1034312597195  rel 0.000125
+   max rel over identified: 3.642e-07   max |diff|/sd(col): 1.6e-06 
+   logLik loo-refit = -53.07071216707108
+   logLik reference = -53.07071216701262   rel = 1.101e-12  abs = 5.85e-11
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 54.00977716923173, at the loo point 54.12514734485018, gap 0.115
+
+== seed 1501 sratio  table(y) = 15/15/19/1  deleted row = 2 
+   x          got 0.219612942140444  want 0.219612942112704  rel 1.26e-10
+   tau_raw_1  got -0.811967799954918  want -0.81196779977348  rel 2.23e-10
+   tau_raw_2  got -0.208657874189869  want -0.208657873989792  rel 9.59e-10
+   tau_raw_3  got 21.9038005510358  want 22.209956772425  rel 0.0138
+   max rel over identified: 9.589e-10   max |diff|/sd(col): 3.91e-09 
+   logLik loo-refit = -53.23155609707752
+   logLik reference = -53.23155609546244   rel = 3.034e-11  abs = 1.62e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 55.73272894182121, at the loo point 54.30558409480285, gap -1.43
+
+== seed 1502 cumulative  table(y) = 21/14/14/1  deleted row = 1 
+   x          got 0.360201022726034  want 0.360201012947894  rel 2.71e-08
+   tau_raw_1  got -0.303767688714464  want -0.303767680131036  rel 2.83e-08
+   tau_raw_2  got 0.205471919317691  want 0.205471920465105  rel 5.58e-09
+   tau_raw_3  got 3.1120584422696  want 3.09052355205499  rel 0.00697
+   max rel over identified: 2.826e-08   max |diff|/sd(col): 2.239e-07 
+   logLik loo-refit = -52.22040333172659
+   logLik reference = -52.22040333387736   rel = 4.119e-11  abs = 2.15e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 53.36939867300567, at the loo point 53.21375007394980, gap -0.156
+
+== seed 1502 sratio  table(y) = 21/14/14/1  deleted row = 1 
+   x          got 0.37137475346121  want 0.371374753136188  rel 8.75e-10
+   tau_raw_1  got -0.297382336170716  want -0.297382336528875  rel 1.2e-09
+   tau_raw_2  got 0.0324298383084759  want 0.0324298388524267  rel 1.68e-08
+   tau_raw_3  got 21.9216874226483  want 21.55771556989  rel 0.0169
+   max rel over identified: 1.677e-08   max |diff|/sd(col): 9.857e-09 
+   logLik loo-refit = -52.08626202779279
+   logLik reference = -52.08626202981490   rel = 3.882e-11  abs = 2.02e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 55.85249470390421, at the loo point 53.08009658376113, gap -2.77
+
+== seed 1503 cumulative  table(y) = 16/20/13/1  deleted row = 7 
+   x          got 0.562983697502002  want 0.562983709362331  rel 2.11e-08
+   tau_raw_1  got -0.667100567247549  want -0.667100568980122  rel 2.6e-09
+   tau_raw_2  got 0.619163599219548  want 0.619163605372575  rel 9.94e-09
+   tau_raw_3  got 3.09239902787724  want 3.11428964106018  rel 0.00703
+   max rel over identified: 2.107e-08   max |diff|/sd(col): 3.019e-07 
+   logLik loo-refit = -51.13064696036680
+   logLik reference = -51.13064695834981   rel = 3.945e-11  abs = 2.02e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 53.57826136227973, at the loo point 52.12300537802719, gap -1.46
+
+== seed 1503 sratio  table(y) = 16/20/13/1  deleted row = 7 
+   x          got 0.437504225210785  want 0.437504225210761  rel 5.48e-14
+   tau_raw_1  got -0.687759774898066  want -0.687759774901881  rel 5.55e-12
+   tau_raw_2  got 0.594752689249684  want 0.594752689242671  rel 1.18e-11
+   tau_raw_3  got 21.9011614256224  want 21.7485099921585  rel 0.00702
+   max rel over identified: 1.179e-11   max |diff|/sd(col): 1.199e-10 
+   logLik loo-refit = -51.46531501426501
+   logLik reference = -51.46531501518086   rel = 1.78e-11  abs = 9.16e-10
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 54.49902931081441, at the loo point 52.46818230234577, gap -2.03
+
+== seed 1504 cumulative  table(y) = 10/17/22/1  deleted row = 9 
+   x          got 0.470562839705277  want 0.470562841763755  rel 4.37e-09
+   tau_raw_1  got -1.42005430061334  want -1.42005432109885  rel 1.44e-08
+   tau_raw_2  got 0.522764692775977  want 0.52276470467701  rel 2.28e-08
+   tau_raw_3  got 3.13491831613488  want 3.12943303153204  rel 0.00175
+   max rel over identified: 2.277e-08   max |diff|/sd(col): 3.639e-07 
+   logLik loo-refit = -49.28730542568737
+   logLik reference = -49.28730542631965   rel = 1.283e-11  abs = 6.32e-10
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 52.00132207637252, at the loo point 50.29943317690522, gap -1.7
+
+== seed 1504 sratio  table(y) = 10/17/22/1  deleted row = 9 
+   x          got 0.452401002916588  want 0.452401002912316  rel 9.44e-12
+   tau_raw_1  got -1.39473724805752  want -1.39473724806071  rel 2.29e-12
+   tau_raw_2  got -0.162463755320577  want -0.162463755319252  rel 8.15e-12
+   tau_raw_3  got 22.1596877444593  want 22.3643828510694  rel 0.00915
+   max rel over identified: 9.444e-12   max |diff|/sd(col): 1.451e-10 
+   logLik loo-refit = -49.10842818985080
+   logLik reference = -49.10842818852837   rel = 2.693e-11  abs = 1.32e-09
+   n_tau loo-refit = 3  reference = 3   coef names identical = TRUE 
+   loo-refit coefs match the influence row bitwise: TRUE 
+   reference objective at its own optimum 52.76437779755896, at the loo point 50.15717474136046, gap -2.61
+
+DONE rev-05

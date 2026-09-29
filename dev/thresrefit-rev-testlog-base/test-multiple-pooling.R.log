@@ -1,0 +1,1 @@
+REVRESULT test-multiple-pooling.R arm=base blocks=3 pass=33 fail=0 err=0 warn=0 skip=0

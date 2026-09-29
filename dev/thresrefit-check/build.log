@@ -1,0 +1,6 @@
+* checking for file 'C:/Users/adf44/source/r/frmtmb-wt-thresrefit/DESCRIPTION' ... OK
+* preparing 'frmtmb':
+* checking DESCRIPTION meta-information ... OK
+Error in loadVignetteBuilder(pkgdir, TRUE, lib.loc = c(libdir, .libPaths())) : 
+  vignette builder 'knitr' not found
+Execution halted

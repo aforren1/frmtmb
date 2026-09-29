@@ -1,0 +1,24 @@
+## lib = C:/Users/adf44/source/r/rellib-r3  ver = 0.64.0 
+
+fitted table(y) = 21/15/14 
+fitted n_tau = 2 
+== influence(data = ) whose response reaches category 4 
+    subscriptOutOfBoundsError : subscript out of bounds 
+
+mv tables: 23/18/18/1  and  23/17/20 
+== two ordinal responses, influence() 
+    returned without error
+  ncol     na na_top 
+     7      1      1 
+
+== influence(groups = 'sub') on a thres(gr = g) model 
+    returned without error
+nrow ncol   na 
+  12    8    1 
+
+== influence(groups = 'g') on a thres(gr = g) model: a level goes 
+    returned without error
+nrow ncol   na 
+   3    8    7 
+
+DONE rev-11

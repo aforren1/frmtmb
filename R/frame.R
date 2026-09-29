@@ -1325,10 +1325,22 @@ check_frame_variables <- function(rhs, data, env) {
 #' the trials refusal and the response check of every family that reads
 #' trials. A fit never passes it.
 #'
+#' `thres_pin` is for a refit INSIDE the package that reassembles the
+#' frame from a subset or a replacement of the fitted data
+#' (`influence()`). It carries the fitted model's ordinal threshold
+#' counts and category labels, from `thres_pin_of_fit()`. A factor
+#' response is recoded against the fitted categories first
+#' (`thres_pin_recode()`), because `drop.unused.levels = TRUE` renumbers
+#' them when a subset leaves a level empty; the count is then written
+#' into the addition-term values as if `thres(x = )` had been in the
+#' formula (`thres_pin_apply()`), so that a subset whose top category is
+#' absent refits the FITTED model rather than a shorter one. A count the
+#' user wrote wins over the pinned count, but not over the recoding.
+#'
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
-                           check_trials = TRUE) {
+                           check_trials = TRUE, thres_pin = NULL) {
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -1487,9 +1499,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
     yv0 <- extract_y(resp, mf)
-    y_levels[[resp$resp_name]] <- attr(yv0, "y_levels")
+    lv0 <- attr(yv0, "y_levels")
     attr(yv0, "y_levels") <- NULL   # nothing on the tape carries labels
-    y[[resp$resp_name]] <- yv0
+    # FIRST, before anything reads the codes: a refit inside the package
+    # codes its response against the FITTED model's categories, because
+    # `drop.unused.levels = TRUE` above renumbers them when a subset
+    # leaves a level empty
+    rc <- thres_pin_recode(thres_pin, resp, yv0, lv0)
+    y_levels[[resp$resp_name]] <- rc$levels
+    y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
                         c("cens_y2", "se_sigma", "mi"))
     av <- stats::setNames(lapply(at_names, function(nm_at) {
@@ -1515,6 +1533,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$aterms[["se_sigma"]])) {
       av[["se_sigma"]] <- resp$aterms[["se_sigma"]]   # logical flag, not data
     }
+    # before every guard and before family_finalize(), which is what
+    # reads the count: an in-package refit's threshold count comes from
+    # the fitted model, never from the refit's own response
+    av <- thres_pin_apply(thres_pin, resp, av)
     if (check_trials) check_trials_given(resp, av)
     # Before EVERY other guard, including the structured one, because
     # each of them is handed `av`: a declared term that is absent leaves

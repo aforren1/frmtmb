@@ -1077,6 +1077,31 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   independent seeds, with enough replicates for the Wilson interval to
   exclude or include 95.
 
+
+
+## Filed by wt-thresrefit, 2026-09-29
+
+### Open - medium
+
+- **A character-coded ordinal response with non-numeric labels dies in
+  an internal error.** `frm(bf(y ~ x), family = cumulative())` on a
+  character `y` whose values are not numeric text stops with "missing
+  value where TRUE/FALSE needed", which names neither the response nor
+  the requirement. Reported by the punch-round-1 reviewer as nit 3, on
+  the ground that this lane's new `?influence.frmtmb_fit` and `?frm` text
+  tells readers a character coding gives the same influence table as
+  integers, which points them at the refusal. Re-measured rather than
+  filed as reported (`dev/thresrefit-p2-charresp.R`, seed 2501, n = 60,
+  four categories): with labels `"none" < "mild" < "moderate" <
+  "severe"` the message above, on the lane build and on base 0.64.0
+  alike, so it is pre-existing and was not fixed here; with labels
+  `"1"..."4"` the fit runs; and `factor(..., levels = , ordered = TRUE)`
+  over the SAME four non-numeric labels fits with `n_tau = 3` on both
+  arms. So the capability is there and only the spelling fails, loudly
+  but anonymously. Test: the refusal names the response and says an
+  ordinal response is positive integers or an ordered factor, and the
+  ordered factor over the same labels still fits.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

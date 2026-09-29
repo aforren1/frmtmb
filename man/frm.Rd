@@ -362,6 +362,28 @@ probability of a category past a row's own is 0, as in brms's
 \code{posterior_epred()}. \code{newdata} must hold the grouping variable, with
 levels the fit has seen. With \code{gr}, \code{cs()} is refused, as in brms,
 and so is \code{residuals(type = "osa")}.
+
+A refit inside the package keeps the threshold count of the model it
+came from, and keeps the count of every level of \code{thres(gr = )}.
+\code{\link[=frm_bootstrap]{frm_bootstrap()}}, \code{\link[=refit]{refit()}}, \code{\link[=frm_allfit]{frm_allfit()}}, \code{anova(refit = TRUE)},
+\code{confint(method = "profile")} and the autoscale pre-fit reuse the
+assembled design, so the count cannot move. \code{\link[=influence]{influence()}} and
+\code{cooks.distance()} rebuild the design from a subset of the data, and
+carry over the count AND the response's own categories, so a subset
+that empties ANY category, bottom, interior or top, still fits the
+fitted model with one threshold that the subset no longer identifies.
+An ordered-factor response then gives the same table as the same data
+coded as integers. Two cases cannot be refit and are refused per unit,
+counted and reported: a \verb{groups = } deletion that removes a whole
+\code{thres(gr = )} level, and a \verb{data = } holding a response category
+outside the fitted threshold layout or a \code{thres(gr = )} level the fit
+never saw. A category \code{thres(K)} declared but nothing observed is
+inside that layout, so \verb{data = } may reach it. See \code{\link[=influence]{influence()}}.
+
+Calling \code{frm()} again on new data is not a refit: it counts the
+thresholds of that data. That is what \code{update(newdata = )} does,
+because it re-evaluates the stored call, and what \code{\link[=simulate]{simulate()}}
+followed by \code{frm()} does. Write \code{thres(K)} to pin a count there.
 }
 
 \section{The Laplace approximation, and how to check it}{

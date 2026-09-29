@@ -1,0 +1,48 @@
+launched 44 files  arm=lane
+REVRESULT test-api-spellings.R arm=lane blocks=11 pass=36 fail=0 err=0 warn=0 skip=0
+REVRESULT test-arg-refusal.R arm=lane blocks=13 pass=123 fail=0 err=0 warn=0 skip=0
+REVRESULT test-autoscale.R arm=lane blocks=6 pass=46 fail=0 err=0 warn=0 skip=0
+REVRESULT test-boot.R arm=lane blocks=7 pass=49 fail=0 err=0 warn=0 skip=0
+REVRESULT test-bracket-access.R arm=lane blocks=6 pass=33 fail=0 err=0 warn=0 skip=0
+REVRESULT test-brms-agreement.R arm=lane blocks=19 pass=168 fail=0 err=0 warn=0 skip=2
+REVRESULT test-brms-families.R arm=lane blocks=23 pass=1033 fail=0 err=0 warn=12 skip=0
+REVRESULT test-brms-shapes-punch.R arm=lane blocks=14 pass=55 fail=0 err=0 warn=0 skip=0
+REVRESULT test-brms-shapes.R arm=lane blocks=21 pass=72 fail=0 err=0 warn=0 skip=0
+REVRESULT test-case-studies.R arm=lane blocks=9 pass=30 fail=0 err=0 warn=0 skip=0
+REVRESULT test-ce-bands.R arm=lane blocks=22 pass=167 fail=0 err=0 warn=0 skip=0
+REVRESULT test-compat.R arm=lane blocks=34 pass=639 fail=0 err=0 warn=0 skip=0
+REVRESULT test-data2.R arm=lane blocks=8 pass=31 fail=0 err=0 warn=0 skip=0
+REVRESULT test-diagnostics-ux.R arm=lane blocks=27 pass=127 fail=0 err=0 warn=0 skip=0
+REVRESULT test-edgecases.R arm=lane blocks=17 pass=64 fail=0 err=0 warn=0 skip=0
+REVRESULT test-frame.R arm=lane blocks=5 pass=22 fail=0 err=0 warn=0 skip=0
+REVRESULT test-importance.R arm=lane blocks=38 pass=226 fail=0 err=0 warn=0 skip=0
+REVRESULT test-influence-plot.R arm=lane blocks=4 pass=21 fail=0 err=0 warn=0 skip=0
+REVRESULT test-input-validation.R arm=lane blocks=7 pass=43 fail=0 err=0 warn=0 skip=0
+REVRESULT test-methods-audit.R arm=lane blocks=10 pass=58 fail=0 err=0 warn=0 skip=0
+REVRESULT test-multiple-pooling.R arm=lane blocks=3 pass=33 fail=0 err=0 warn=0 skip=0
+REVRESULT test-mv-gaps.R arm=lane blocks=8 pass=46 fail=0 err=0 warn=0 skip=0
+REVRESULT test-numerical-robustness.R arm=lane blocks=37 pass=709 fail=0 err=0 warn=0 skip=0
+REVRESULT test-ordinal-fitted.R arm=lane blocks=16 pass=129 fail=0 err=0 warn=0 skip=0
+REVRESULT test-ordinal.R arm=lane blocks=11 pass=109 fail=0 err=0 warn=0 skip=0
+REVRESULT test-osa-inference.R arm=lane blocks=6 pass=34 fail=0 err=0 warn=0 skip=0
+REVRESULT test-predfix.R arm=lane blocks=23 pass=92 fail=0 err=0 warn=0 skip=0
+REVRESULT test-review-fixes.R arm=lane blocks=6 pass=18 fail=0 err=0 warn=0 skip=0
+REVRESULT test-review-v29.R arm=lane blocks=18 pass=137 fail=0 err=0 warn=0 skip=0
+REVRESULT test-setprior.R arm=lane blocks=5 pass=27 fail=0 err=0 warn=0 skip=0
+REVRESULT test-simulate-density.R arm=lane blocks=52 pass=459 fail=0 err=0 warn=0 skip=0
+REVRESULT test-simulate-ergonomics.R arm=lane blocks=9 pass=50 fail=0 err=0 warn=0 skip=0
+REVRESULT test-simulate-newdata.R arm=lane blocks=24 pass=44 fail=0 err=0 warn=0 skip=0
+REVRESULT test-spectral.R arm=lane blocks=21 pass=113 fail=0 err=0 warn=0 skip=0
+REVRESULT test-sratio-thresholds.R arm=lane blocks=7 pass=29 fail=0 err=0 warn=0 skip=0
+REVRESULT test-structure.R arm=lane blocks=28 pass=135 fail=0 err=0 warn=0 skip=0
+REVRESULT test-tabular-inputs.R arm=lane blocks=4 pass=9 fail=0 err=0 warn=0 skip=0
+REVRESULT test-thres-refit.R arm=lane blocks=14 pass=118 fail=0 err=0 warn=0 skip=0
+REVRESULT test-thres.R arm=lane blocks=12 pass=67 fail=0 err=0 warn=0 skip=0
+REVRESULT test-unpinned-seams.R arm=lane blocks=4 pass=30 fail=0 err=0 warn=0 skip=0
+REVRESULT test-v07.R arm=lane blocks=6 pass=25 fail=0 err=0 warn=0 skip=0
+REVRESULT test-v14.R arm=lane blocks=14 pass=81 fail=0 err=0 warn=0 skip=0
+REVRESULT test-v15.R arm=lane blocks=9 pass=41 fail=0 err=0 warn=0 skip=0
+REVRESULT test-verbose.R arm=lane blocks=9 pass=40 fail=0 err=0 warn=0 skip=0
+--- files with no REVRESULT line (aborted) ---
+--- totals ---
+files=44 pass=5618 fail=0 err=0 skip=2

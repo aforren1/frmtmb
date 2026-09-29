@@ -1,0 +1,60 @@
+## lib = C:/Users/adf44/source/r/wt-thresrefit-lib  ver = 0.64.0 
+
+== frm_simulate, (1 + x + z | g), prior on class cor (idx length 3) 
+    frmtmb_error : newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x, z -> b_z 
+
+== frm_simulate, ar(p = 2), prior on class ar (idx length 2) 
+    frmtmb_error : Natural-scale newparams does not cover the parameter component(s) thetaac; use the internal spelling 
+
+== frm_simulate on a multivariate model (rescor route) 
+    frmtmb_error : frm_simulate() supports univariate models 
+
+== frm_simulate, cumulative, prior on class Intercept (K = 4) 
+    frmtmb_error : A prior on tau_raw[1:3] is a density on the whole threshold vector, and drawing from it one threshold at a time would not produce an ordered one. Pin the thresholds with newparams = list(tau_raw = ) instead 
+
+== frm_simulate, sratio, prior on class Intercept (K = 4) 
+    frmtmb_error : A prior on tau_raw[1:3] is a density on 3 parameters at once, and frm_simulate() reports one drawn value per prior. Pin them with newparams = tau_raw = instead 
+
+== frm_simulate, cratio, prior on class Intercept (K = 4) 
+    frmtmb_error : A prior on tau_raw[1:3] is a density on 3 parameters at once, and frm_simulate() reports one drawn value per prior. Pin them with newparams = tau_raw = instead 
+
+== frm_simulate, acat, prior on class Intercept (K = 4) 
+    frmtmb_error : A prior on tau_raw[1:3] is a density on 3 parameters at once, and frm_simulate() reports one drawn value per prior. Pin them with newparams = tau_raw = instead 
+
+== frm_simulate, cratio, K = 2 (one threshold) 
+    OK
+  tau_raw_1        b_x
+1 3.2534387  0.9604788
+2 0.9516278 -0.8118185
+
+== frm_simulate, acat, K = 2 (one threshold) 
+    OK
+  tau_raw_1        b_x
+1 3.2534387  0.9604788
+2 0.9516278 -0.8118185
+
+== frm_simulate, sratio, K = 2 (one threshold) 
+    OK
+  tau_raw_1        b_x
+1 3.2534387  0.9604788
+2 0.9516278 -0.8118185
+
+#### the prior objective and the prior reports
+== cumulative : logLik = -61.26023248446688  objective = 61.26023248446688 
+   coefs: x=0.064231514360034  tau_raw_1=-1.1509802567745  tau_raw_2=0.14461732746481  tau_raw_3=0.13823133443516 
+   prior_summary rows: 2 
+         prior     class coef group resp dpar nlpar   lb   ub source
+1 normal(0, 2) Intercept                            <NA> <NA>   user
+2 normal(0, 1)         b                            <NA> <NA>   user
+== sratio : logLik = -61.38101822691157  objective = 61.38101822691157 
+   coefs: x=-0.058056664981907  tau_raw_1=-1.058978907579  tau_raw_2=-0.67193342566627  tau_raw_3=0.0070474267564502 
+   prior_summary rows: 2 
+         prior     class coef group resp dpar nlpar   lb   ub source
+1 normal(0, 2) Intercept                            <NA> <NA>   user
+2 normal(0, 1)         b                            <NA> <NA>   user
+== default_prior rows: 3 
+   prior     class coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                            NA NA default
+2 (flat)         b                            NA NA default
+3 (flat)         b    x                       NA NA default
+DONE rev-06

@@ -320,6 +320,28 @@
 #' levels the fit has seen. With `gr`, `cs()` is refused, as in brms,
 #' and so is `residuals(type = "osa")`.
 #'
+#' A refit inside the package keeps the threshold count of the model it
+#' came from, and keeps the count of every level of `thres(gr = )`.
+#' [frm_bootstrap()], [refit()], [frm_allfit()], `anova(refit = TRUE)`,
+#' `confint(method = "profile")` and the autoscale pre-fit reuse the
+#' assembled design, so the count cannot move. [influence()] and
+#' `cooks.distance()` rebuild the design from a subset of the data, and
+#' carry over the count AND the response's own categories, so a subset
+#' that empties ANY category, bottom, interior or top, still fits the
+#' fitted model with one threshold that the subset no longer identifies.
+#' An ordered-factor response then gives the same table as the same data
+#' coded as integers. Two cases cannot be refit and are refused per unit,
+#' counted and reported: a `groups = ` deletion that removes a whole
+#' `thres(gr = )` level, and a `data = ` holding a response category
+#' outside the fitted threshold layout or a `thres(gr = )` level the fit
+#' never saw. A category `thres(K)` declared but nothing observed is
+#' inside that layout, so `data = ` may reach it. See [influence()].
+#'
+#' Calling `frm()` again on new data is not a refit: it counts the
+#' thresholds of that data. That is what `update(newdata = )` does,
+#' because it re-evaluates the stored call, and what [simulate()]
+#' followed by `frm()` does. Write `thres(K)` to pin a count there.
+#'
 #' @section The Laplace approximation, and how to check it:
 #' Random effects are integrated out by the Laplace approximation,
 #' which assumes the integrand is close to Gaussian around the

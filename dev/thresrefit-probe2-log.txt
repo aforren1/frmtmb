@@ -1,0 +1,39 @@
+frmtmb 0.64.0 from C:/Users/adf44/source/r/rellib-r3 
+data seed 202, n = 40, table(y) = 9/16/11/4
+== cumulative: fitted thresholds = 3 logLik = -51.4543245423
+cumulative: seed 11, nsim 60: replicates with max(y) < 4: 1 (31)
+cumulative: replicate 31 table = 8/15/17/0
+cumulative: refit() thresholds = 3 logLik = -41.4680285630979
+cumulative: thres(3) pinned -> thresholds = 3 logLik = -41.4680285623368
+cumulative: default fresh -> thresholds = 2 logLik = -41.4680285592851
+cumulative: boot t dim = 20x4 colnames = x,tau1,tau2,tau3
+cumulative: all-NA rows = 0 any-NA rows = 0
+== sratio: fitted thresholds = 3 logLik = -51.482532955
+sratio: seed 11, nsim 60: replicates with max(y) < 4: 1 (31)
+sratio: replicate 31 table = 8/16/16/0
+sratio: refit() thresholds = 3 logLik = -41.9541926013013
+sratio: thres(3) pinned -> thresholds = 3 logLik = -41.9541926022876
+sratio: default fresh -> thresholds = 2 logLik = -41.9541925971472
+sratio: boot t dim = 20x4 colnames = x,tau1,tau2,tau3
+sratio: all-NA rows = 0 any-NA rows = 0
+grouped: seed 303 n = 90, per-level tables:
+   
+     1  2  3  4
+  a  8  8 12  2
+  b 12 10  8  0
+  c 17  8  3  2
+grouped: tau_raw length = 8
+grouped: seed 13, nsim 60: replicates where some level lost its top category: 17 (5,9,15,17,20,21,22,29,35,43,46,47)
+   yb
+     1  2  3  4
+  a  9  3 15  3
+  b 15  5 10  0
+  c 19  8  3  0
+grouped: refit() -> tau_raw length = 8 logLik = -85.1792563000528
+grouped: fitted per-level counts = 3,2,3
+grouped: thres(k, gr = g) pinned -> tau_raw length = 8 logLik = -85.1792562969488
+grouped: default fresh -> tau_raw length = 7 logLik = -85.1792562926674
+B: cratio -> ERROR: Family 'cratio' needs at least 2 observed response categories
+B: acat -> ERROR: Family 'acat' needs at least 2 observed response categories
+B: sratio -> ERROR: Family 'sratio' needs at least 2 observed response categories
+B: cumulative -> ERROR: Family 'cumulative' needs at least 2 observed response categories

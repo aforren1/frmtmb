@@ -1,0 +1,20 @@
+ARM base frmtmb 0.64.0 
+   
+     1  2  3  4
+  a 13 15  8  4
+  b 21 10  9  0
+  c 13 11 16  0
+C1: fitted nthres = 3/2/2 tau_raw length 7
+C1: rows of g surviving each id deletion (min over id and level) = 35
+C1: dim 8x8 NA cells 0 of 64 warnings 0
+C1: cooks.distance NA count = 0
+C2: fit n_tau = 2 table = 19/15/6/0
+C2 -> ERROR: subscript out of bounds
+C3 ordinal table = 7/19/14
+C3 cumulative: NA cells 0 warnings 0
+C3 sratio: NA cells 0 warnings 0
+C3 cratio: NA cells 0 warnings 0
+C3 acat: NA cells 0 warnings 0
+Error in cat(..., "\n", sep = "") : object 'thres_pin_of_fit' not found
+Calls: say -> cat
+Execution halted
