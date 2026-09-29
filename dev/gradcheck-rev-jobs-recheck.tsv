@@ -1,0 +1,7 @@
+rc-lane-grad-verdict	C:/Users/adf44/source/r/wt-gradcheck-lib	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-grad-verdict.R
+rc-base-grad-verdict	C:/Users/adf44/source/r/rellib-r3	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-grad-verdict.R
+rc-lane-diagnostics-ux	C:/Users/adf44/source/r/wt-gradcheck-lib	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-diagnostics-ux.R
+rc-lane-autoscale	C:/Users/adf44/source/r/wt-gradcheck-lib	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-autoscale.R
+rc-lane-importance	C:/Users/adf44/source/r/wt-gradcheck-lib	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-importance.R
+rc-lane-verbose	C:/Users/adf44/source/r/wt-gradcheck-lib	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-verbose.R
+rc-lane-confint-anova	C:/Users/adf44/source/r/wt-gradcheck-lib	C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-confint-anova.R

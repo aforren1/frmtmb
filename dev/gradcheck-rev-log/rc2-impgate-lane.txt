@@ -1,0 +1,14 @@
+CORE: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
+
+seed   max|grad|    gt=1e-04   gt=1e-03   gt=1e-02   gt=1e-01  
+9501   0.00344187   FALSE      FALSE      TRUE       TRUE      
+                    expected: FALSE      FALSE      TRUE       TRUE      
+9502   0.0133543    FALSE      FALSE      FALSE      TRUE      
+                    expected: FALSE      FALSE      FALSE      TRUE      
+9503   0.000947541  FALSE      TRUE       TRUE       TRUE      
+                    expected: FALSE      TRUE       TRUE       TRUE      
+
+* = some other conjunct was not clean, so that cell does not measure the gradient gate
+The line must follow max|grad| < grad_tol in every cell, or the fallback
+is not honouring frmtmb_control(grad_tol =).
+DONE impgate

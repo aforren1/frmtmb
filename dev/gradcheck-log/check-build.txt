@@ -1,0 +1,14 @@
+﻿* checking for file './DESCRIPTION' ... OK
+* preparing 'frmtmb':
+* checking DESCRIPTION meta-information ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'frmtmb/tests/testthat/_snaps'
+* building 'frmtmb_0.64.0.tar.gz'
+R.exe : 
+At line:1 char:760
++ ... -gradcheck; & "C:\Program Files\R\R-4.6.1\bin\R.exe" CMD build --no-b ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

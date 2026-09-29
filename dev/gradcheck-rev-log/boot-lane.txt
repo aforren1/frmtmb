@@ -1,0 +1,18 @@
+CORE: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb  rounds: 5  nsim: 20 
+
+gaussian n=20000 (trips)         np  4 gmax 2.242e-02 trips TRUE   tol   2.860 s  off   1.560 s  ratio 1.833  CONTROL 1.064
+                                 per-round tol 2.86 3.02 3.07 2.86 3.11
+                                 per-round off 1.69 1.77 1.56 1.63 1.77
+                                 per-round ctl 1.83 1.75 1.69 1.66 1.88
+
+gaussian n=400 (does not trip)   np  4 gmax 4.566e-05 trips FALSE  tol   0.060 s  off   0.070 s  ratio 0.857  CONTROL 0.857
+                                 per-round tol 0.11 0.12 0.09 0.10 0.06
+                                 per-round off 0.09 0.11 0.09 0.11 0.07
+                                 per-round ctl 0.11 0.10 0.08 0.09 0.06
+
+cumulative n=20000 (trips)       np  5 gmax 2.989e-02 trips TRUE   tol  10.240 s  off   7.840 s  ratio 1.306  CONTROL 1.034
+                                 per-round tol 12.67 10.24 11.91 12.72 12.83
+                                 per-round off 8.86 7.84 9.67 8.56 9.17
+                                 per-round ctl 8.11 8.58 8.68 8.38 8.70
+
+DONE boot

@@ -47,6 +47,49 @@ names that too, with a large NEGATIVE estimate and a natural-scale
 value of one, and there \code{gaussian()} is the wrong answer: the data
 is the message, and a prior is the way to hold \code{nu} finite.
 
+THE GRADIENT is reported four ways, because the largest component on
+its own is not a convergence verdict. \code{max_grad} and \code{worst_grad} are
+that largest component and its parameter. \code{grad_bound_held} names the
+parameters a bound holds in place, whose gradient points out of the
+feasible set and is the KKT condition rather than a failure, and
+\code{grad_proj} and \code{grad_proj_par} are the largest component over the rest
+and the parameter it belongs to. On a bounded fit \code{worst_grad} and
+\code{grad_proj_par} are DIFFERENT parameters, and \code{grad_proj_par} is the one
+the verdict is about. \code{grad_headroom} is the log likelihood one exact
+Newton step over those parameters would still buy, which is what the
+fit warns on; it is \code{NA} when \code{grad_proj} stayed under
+\code{frmtmb_control(grad_tol =)}, so nothing had to be measured, and also
+when the curvature there is unusable.
+
+TWO SCALES, on an autoscaled fit. \code{max_grad} and \code{worst_grad} are read
+off the RAW gradient, because that is what they have always been and
+what extension test suites compare to a log likelihood. \code{grad_proj},
+\code{grad_proj_par} and the warning are in the per-parameter units
+\code{frmtmb_control(autoscale = )} judges the fit in, which is where a
+badly scaled column's coefficient is not swamped by its own scale. So
+on a fit that was standardized internally the two are not comparable:
+1001 against 1.685 on one measured example. The printed block says so
+when it applies. \code{grad_headroom} is invariant to that scaling, because
+a Newton decrement is invariant under any reparameterization.
+
+\code{grad_headroom} costs a Hessian, and it is measured only when
+\code{grad_proj} exceeds \code{grad_tol}. A fit that already warned carries the
+answer on it, so \code{diagnose()} is free there; a fit whose cache was
+replaced, which is what perturbing the estimates does, pays between
+0.13 and 0.45 s on the large latent-variable designs this package was
+timed on.
+
+NOT ON AN IMPORTANCE-CORRECTED FIT. \code{frm(importance = )} optimizes a
+Monte Carlo estimate, whose gradient carries an O(N^-1/2) error, so no
+gradient criterion applies to it at all. \code{grad_proj}, \code{grad_proj_par}
+and \code{grad_headroom} are \code{NA} there and the printed block says why. That
+fit's accuracy report is its effective sample sizes and its
+round-to-round move, and its gradient is in \code{fit$importance$grad}.
+"No convergence problems detected" is still decided there, by
+\code{max_grad} against \code{frmtmb_control(grad_tol =)}: an absent verdict is
+not a complaint, and withholding the line from every such fit would
+report a problem on fits that have none.
+
 A FLAT DIRECTION is an outer parameter the likelihood does not depend
 on: zero gradient and an empty Hessian row. It separates the two
 causes of \code{NaN} standard errors. Parameters that trade off against

@@ -1,0 +1,9 @@
+CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
+FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam/tests/testthat/test-gddm-reference.R 
+frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
+ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
+RESULT test-gddm-reference.R pass=128 fail=0 error=2 skip=0
+### expectation_error in: the two boundary masses match PyDDM's
+Error in `gd_densities(f$dp, bag$comp, bag$ctl, f$at[[".gddm"]])`: could not find function "gd_densities" 
+### expectation_error in: a path simulation says the two grid solvers do not share a bias
+Error in `gd_densities(f$dp, bag$comp, bag$ctl, f$at[[".gddm"]])`: could not find function "gd_densities" 

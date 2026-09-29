@@ -1,0 +1,58 @@
+files read: 3  rows: 720 
+distinct seeds: 720 of 720  fit errors: 0 
+
+<<<BLOCK design-falsealarm>>>
+design           n reps   warn  proj>t     new    max gmax   max gproj    max decr
+binomial       200   20      0       0       0   8.645e-04   8.645e-04   8.910e-09
+binomial      1000   20      0       0       0   9.587e-04   9.587e-04   5.261e-09
+binomial      5000   20      0       0       0   6.653e-04   6.653e-04   5.181e-10
+binomial     20000   20      4       4       0   1.264e-03   1.264e-03   3.946e-10
+bounded        200   20     20       0       0   6.633e+01   2.461e-04   2.575e-10
+bounded       1000   20     20       6       0   2.860e+02   2.478e-03   1.538e-09
+bounded       5000   20     20      16       0   1.395e+03   9.939e-03   9.567e-09
+bounded      20000   20     20      20       0   5.348e+03   1.547e-02   3.018e-09
+cumulative     200   20      0       0       0   8.361e-04   8.361e-04   7.013e-09
+cumulative    1000   20      2       2       0   2.183e-03   2.183e-03   7.929e-09
+cumulative    5000   20     14      14       0   3.849e-03   3.849e-03   6.841e-09
+cumulative   20000   20     17      17       0   7.941e-03   7.941e-03   3.759e-09
+gaussian       200   20      0       0       0   9.302e-04   9.302e-04   4.351e-09
+gaussian      1000   20      7       7       0   3.141e-03   3.141e-03   5.443e-09
+gaussian      5000   20     18      18       0   3.058e-02   3.058e-02   4.848e-08
+gaussian     20000   20     20      20       0   5.472e-02   5.472e-02   4.771e-08
+nearzero       200   20      0       0       0   8.127e-05   8.127e-05   2.091e-08
+nearzero      1000   20      0       0       0   6.818e-04   6.818e-04   1.014e-07
+nearzero      5000   20      0       0       0   8.291e-04   8.291e-04   4.090e-07
+nearzero     20000   20      5       5       0   1.136e-02   1.136e-02   2.105e-06
+nonlinear      200   20      0       0       0   4.544e-04   4.544e-04   1.483e-10
+nonlinear     1000   20      0       0       0   9.867e-04   9.867e-04   6.642e-11
+nonlinear     5000   20      8       8       0   3.347e-03   3.347e-03   9.899e-11
+nonlinear    20000   20     18      18       0   1.997e-02   1.997e-02   8.132e-10
+poisson        200   20      0       0       0   8.996e-04   8.996e-04   1.597e-09
+poisson       1000   20      5       5       0   1.480e-03   1.480e-03   7.341e-10
+poisson       5000   20     13      13       0   8.234e-03   8.234e-03   5.293e-09
+poisson      20000   20     18      18       0   4.525e-03   4.525e-03   3.681e-10
+rescor         200   20      0       0       0   9.813e-04   9.813e-04   7.553e-09
+rescor        1000   20      5       5       0   2.022e-03   2.022e-03   1.286e-09
+rescor        5000   20     13      13       0   4.166e-03   4.166e-03   1.297e-09
+rescor       20000   20     17      17       0   1.054e-02   1.054e-02   2.091e-09
+sratio         200   20      0       0       0   7.642e-04   7.642e-04   1.237e-08
+sratio        1000   20      1       1       0   1.205e-03   1.205e-03   5.258e-09
+sratio        5000   20      8       8       0   3.374e-03   3.374e-03   3.382e-09
+sratio       20000   20     16      16       0   8.922e-03   8.922e-03   9.448e-09
+
+TOTAL               720    289     251       0
+
+false-alarm rate, current check : 289 / 720 = 0.401 
+false-alarm rate, projected only: 251 / 720 = 0.349 
+false-alarm rate, proposed      : 0 / 720 = 0 
+largest Newton decrement over all 720 correct fits: 2.105e-06  (tolerance 1e-06 , margin 0.475 x)
+decrements that could not be computed: 0 
+<<<END design-falsealarm>>>
+
+<<<BLOCK design-ndependence>>>
+     n   fits    med gmax   med |obj|    med decr med gmax/|obj|
+   200    180   1.895e-04   2.854e+02   1.997e-10   9.060e-07
+  1000    180   5.283e-04   1.422e+03   3.172e-10   4.385e-07
+  5000    180   1.125e-03   7.082e+03   1.901e-10   1.820e-07
+ 20000    180   2.249e-03   2.840e+04   2.778e-10   8.956e-08
+<<<END design-ndependence>>>

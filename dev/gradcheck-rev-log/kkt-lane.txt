@@ -1,0 +1,60 @@
+CORE: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
+
+### A1 lb=0.1 on b, started AT the bound, iter.max=1
+  conv=1  logLik=-816.965761813  GRADWARN=TRUE
+  par: (Intercept)=0.39270519  x=1.0107075  sigma_(Intercept)=0.95368151
+  grad: (Intercept)=-29.79  x=-59.83  sigma_(Intercept)=264.2 
+  box lower: -Inf  0.1 -Inf 
+  box upper: Inf Inf Inf 
+  max_grad=264.16  grad_proj=264.16  headroom=NA  held=[]  pdHess=FALSE
+  WARN: Optimizer did not report convergence: iteration limit reached without convergence (10)
+  WARN: Large maximum absolute gradient at the optimum (264): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+A1 shortfall vs converged bounded fit: 251.66332 log-lik units
+A1 converged bounded fit x = 2.0156792 (bound 0.1, so NOT binding)
+
+### A2 ub=0.1 on b (binds), sigma interior
+  conv=0  logLik=-637.54378651  GRADWARN=FALSE
+  par: (Intercept)=0.88876127  x=0.1  sigma_(Intercept)=0.70620742
+  grad: (Intercept)=-4.86e-07  x=-121.2  sigma_(Intercept)=1.513e-07 
+  box lower: -Inf -Inf -Inf 
+  box upper: Inf 0.1 Inf 
+  max_grad=121.25  grad_proj=4.8601e-07  headroom=NA  held=[x]  pdHess=FALSE
+
+### A3 ub on x1 AND lb on x2, both bind
+  conv=0  logLik=-1476.17947848  GRADWARN=FALSE
+  par: (Intercept)=1.0301839  x1=0.1  x2=-0.1  sigma_(Intercept)=1.0413606
+  grad: (Intercept)=-6.142e-08  x1=-147.1  x2=132.3  sigma_(Intercept)=-2.583e-07 
+  box lower: -Inf -Inf -0.1 -Inf 
+  box upper: Inf 0.1 Inf Inf 
+  max_grad=147.09  grad_proj=2.5831e-07  headroom=NA  held=[x1,x2]  pdHess=FALSE
+
+### A4 lb=2 on class sd (log scale internally), binds from below
+  conv=0  logLik=-1511.5016583  GRADWARN=FALSE
+  par: (Intercept)=0.92457214  x=0.5152674  sigma_(Intercept)=0.020637958  theta_1=0.69314718
+  grad: (Intercept)=-1.659e-05  x=-0.000211  sigma_(Intercept)=0.0001341  theta_1=39.12 
+  box lower:    -Inf    -Inf    -Inf 0.69315 
+  box upper: Inf Inf Inf Inf 
+  max_grad=39.12  grad_proj=0.00021103  headroom=NA  held=[theta_1]  pdHess=TRUE
+
+### A5 autoscaled column (spread 1e-4), autoscale default
+  conv=0  logLik=-5712.23836454  GRADWARN=FALSE
+  par: (Intercept)=1.0610383  xs=1876.6598  sigma_(Intercept)=0.0091211009
+  grad: (Intercept)=7.77e-12  xs=-5.586e-09  sigma_(Intercept)=0.0003437 
+  box lower: -Inf -Inf -Inf 
+  box upper: Inf Inf Inf 
+  max_grad=0.00034374  grad_proj=0.00034374  headroom=NA  held=[]  pdHess=TRUE
+
+A5 par_units:    1.00 9947.68    1.00 
+A5 raw max|g| = 0.000343736  natural-unit max|g| = 0.000343736 
+
+### A6 autoscaled column AND ub=100 on b
+  conv=0  logLik=-5773.9051864  GRADWARN=FALSE
+  par: (Intercept)=1.9437213  xs=100  sigma_(Intercept)=0.024537772
+  grad: (Intercept)=-0.0001898  xs=-0.06836  sigma_(Intercept)=6.759e-05 
+  box lower: -Inf -Inf -Inf 
+  box upper: Inf 100 Inf 
+  max_grad=0.06836  grad_proj=0.00018984  headroom=NA  held=[xs]  pdHess=TRUE
+
+A6 par_units:    1.00 9947.68    1.00 
+DONE kkt

@@ -1077,6 +1077,28 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   independent seeds, with enough replicates for the Wilson interval to
   exclude or include 95.
 
+- **The covariance machinery is not bound-aware.** At a constrained
+  optimum the UNCONSTRAINED Hessian can be indefinite, because the fit
+  is only a minimum along the feasible directions. `sdreport()` reads
+  the full Hessian, so such a fit reports `pdHess = FALSE` and NaN
+  standard errors while being exactly right. Constructed
+  (`dev/gradcheck-01-construct.R`, seed 101,
+  `dev/gradcheck-rev-10-flip.R` for the cap sweep): gaussian
+  `y ~ x` with a true slope of 2 under
+  `set_prior("", class = "b", ub = 0.1)` stops with `x` on the bound;
+  the full Hessian's eigenvalues are 693.40, 73.10 and -29.63, and the
+  same Hessian restricted to the two parameters no bound holds is
+  positive definite, which is why the convergence check can measure a
+  headroom there. Whether it bites depends on how far the bound is from
+  the unconstrained optimum, not on bound-awareness: over caps 0.1 to
+  1.99 on that design the bound holds `x` at every cap while `pdHess`
+  is FALSE at 0.1 and 0.5 and TRUE at 1 and above. Fix: restrict the
+  reported covariance to the free subspace, and say in the report that
+  a bound-held parameter has no standard error rather than returning
+  NaN for every parameter. Test: on the `ub = 0.1` fit, the free-set
+  Hessian is positive definite while `pdHess` is FALSE, and the free
+  parameters get finite standard errors.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

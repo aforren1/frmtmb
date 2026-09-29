@@ -1,0 +1,28 @@
+rows: 15 15   same names: TRUE 
+
+mixture            fit bitwise identical: TRUE   warnings identical: TRUE 
+mixture_collapsed  fit bitwise identical: TRUE   warnings identical: TRUE 
+nonlinear          ERRORED in both identically: TRUE
+rescor             fit bitwise identical: TRUE   warnings identical: FALSE
+   base-only warnings:
+     - Large maximum absolute gradient at the optimum (0.00107); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+   lane-only warnings:
+ordinal_thres_gr   fit bitwise identical: TRUE   warnings identical: FALSE
+   base-only warnings:
+     - Large maximum absolute gradient at the optimum (0.00101); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+   lane-only warnings:
+mi                 fit bitwise identical: TRUE   warnings identical: TRUE 
+importance         ERRORED in both identically: TRUE
+gp                 fit bitwise identical: TRUE   warnings identical: TRUE 
+smooth             fit bitwise identical: TRUE   warnings identical: TRUE 
+reml               fit bitwise identical: TRUE   warnings identical: TRUE 
+zi                 fit bitwise identical: TRUE   warnings identical: TRUE 
+separation         fit bitwise identical: TRUE   warnings identical: TRUE 
+rare_top           fit bitwise identical: TRUE   warnings identical: TRUE 
+student_nu         fit bitwise identical: TRUE   warnings identical: TRUE 
+glmm_big           fit bitwise identical: TRUE   warnings identical: FALSE
+   base-only warnings:
+     - Large maximum absolute gradient at the optimum (0.00681); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+   lane-only warnings:
+
+ALL FITS BITWISE IDENTICAL: TRUE 

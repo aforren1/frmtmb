@@ -1,0 +1,26 @@
+files: 180   with no result: 1
+--- files that are not clean:
+NO RESULT test-importance.R.txt
+--- files with skips:
+test-bcm-bart.R                            pass=8 fail=0 error=0 skip=1
+test-bcm-binomial.R                        pass=17 fail=0 error=0 skip=6
+test-bcm-data-analysis.R                   pass=20 fail=0 error=0 skip=6
+test-bcm-esp.R                             pass=5 fail=0 error=0 skip=2
+test-bcm-gaussian.R                        pass=11 fail=0 error=0 skip=3
+test-bcm-gcm.R                             pass=9 fail=0 error=0 skip=2
+test-bcm-latent-mixtures.R                 pass=30 fail=0 error=0 skip=5
+test-bcm-model-selection.R                 pass=13 fail=0 error=0 skip=3
+test-bcm-mpt.R                             pass=15 fail=0 error=0 skip=2
+test-bcm-psychophysics.R                   pass=7 fail=0 error=0 skip=2
+test-bcm-retention.R                       pass=15 fail=0 error=0 skip=3
+test-bcm-signal-detection.R                pass=6 fail=0 error=0 skip=3
+test-bcm-simple.R                          pass=8 fail=0 error=0 skip=1
+test-brms-agreement.R                      pass=168 fail=0 error=0 skip=2
+test-brms-likelihood.R                     pass=17 fail=0 error=0 skip=37
+test-brms-methods.R                        pass=16 fail=0 error=0 skip=46
+test-brms-priors.R                         pass=0 fail=0 error=0 skip=12
+test-drmtmb-agreement.R                    pass=0 fail=0 error=0 skip=13
+test-fuzz.R                                pass=0 fail=0 error=0 skip=1
+test-rl-example.R                          pass=96 fail=0 error=0 skip=2
+--- totals:
+PASS 11698  FAIL 0  ERROR 0  SKIP 152

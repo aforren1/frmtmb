@@ -99,8 +99,10 @@ autoscale_plan_z <- function(frame, key, lp, cols, scale) {
 #' badly scaled (three orders of magnitude from one). Measured on
 #' 0.62.0 (`dev/predfix-scalescan.R`, `dev/predfix-scalecal.R`): below
 #' it the plain fit can stall with the coefficient near zero, because
-#' the coefficient's absolute gradient is under `grad_tol` before the
-#' optimizer has moved, and it reports convergence 0. Up to 91
+#' the coefficient's absolute gradient is under `grad_tol`, the
+#' convergence check's trip-wire, before the optimizer has moved, and it
+#' reports convergence 0. That is the one gap the trip-wire leaves, and
+#' this default is what closes it (`grad_verdict()`). Up to 91
 #' log-likelihood units were lost at a spread of 1e-6. At a spread of
 #' 1e-3 the plain fit fell short by at most 4.6e-4 units (n = 20), and
 #' on the LARGE side it was right in 450 of 450 fits up to 1e10, so a
@@ -242,10 +244,13 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
   }
   # The pre-fit only supplies a starting point, and the fit that follows
   # re-derives every check on the model the user wrote, so its warnings
-  # would be duplicates at best. At worst they are false: a bound on the
-  # Intercept binds on the CENTERED intercept here and not in the model,
-  # and the pre-fit then warned "Large maximum absolute gradient" on a
-  # fit that converged cleanly. What the outcome means for the reported
+  # would be duplicates. They used to be worse: a bound on the Intercept
+  # binds on the CENTERED intercept here and not in the model, and the
+  # pre-fit then warned "Large maximum absolute gradient" on a fit that
+  # converged cleanly. grad_verdict() no longer counts a gradient
+  # component a bound holds in place, so that case is gone at its source
+  # and the muffling stays only for the duplication. What the outcome
+  # means for the reported
   # fit is decided by autoscale_prefit_verdict(), so an error is
   # returned rather than raised.
   sfit <- tryCatch(withCallingHandlers(
