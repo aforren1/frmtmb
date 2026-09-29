@@ -1,0 +1,1 @@
+RESULT test-simulate-ergonomics.R lib=lane pass=50 fail=0 error=0 skip=0 warn=0 blocks=9/9

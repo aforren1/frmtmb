@@ -1311,8 +1311,14 @@ autocor_cond_mu_values <- function(fit, lp, rspec, ac, use_re) {
 #'
 #' @noRd
 autocor_cond_fd_se <- function(object, f, use_re) {
-  b_idx <- if (use_re && length(object$estimates[["b"]])) {
-    re_governed_b(object)
+  # every smooth is in the estimate whatever re_formula says, so its
+  # coefficients are differenced whatever re_formula says
+  # (smooth_b_idx(), and dev/resmooth-fdse.txt for what leaving them out
+  # costs); `use_re` still governs the group-level blocks
+  b_idx <- if (length(object$estimates[["b"]])) {
+    ids <- smooth_b_idx(object)
+    if (use_re) ids <- sort(unique(c(ids, re_governed_b(object))))
+    if (length(ids)) ids
   }
   se <- fit_fd_se(object, f, b_idx = b_idx)
   if (is.null(se)) {

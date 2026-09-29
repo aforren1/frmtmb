@@ -1,0 +1,3 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+re_formula = NULL | shipped Est.Error 0.37825 0.04261 0.31556 0.06215 0.03457 0.04817 0.32623 0.04056 0.28141 | with the smooth's 6 coefficients 0.06645 0.06253 0.05759 0.03516 0.03462 0.03488 0.05903 0.06332 0.05160 | median shortfall -0.7678
+re_formula = NA   | shipped Est.Error 0.37825 0.04261 0.31556 0.06215 0.03457 0.04817 0.32623 0.04056 0.28141 | with the smooth's 6 coefficients 0.06645 0.06253 0.05759 0.03516 0.03462 0.03488 0.05903 0.06332 0.05160 | median shortfall -0.7678

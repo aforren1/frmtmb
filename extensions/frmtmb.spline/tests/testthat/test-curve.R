@@ -266,12 +266,16 @@ test_that("a dpar held fixed does not become a design column", {
 })
 
 test_that("a factor-smooth model costs the documented number of calls", {
-  # The @section Cost: of frm_curve() quotes this model by name, and the
-  # review could not reproduce the figure from a DIFFERENT fs model: one
-  # with no population smooth, where at re_formula = NA the fs term
-  # contributes nothing and the population curve is a constant. Both
-  # facts are pinned here so the number in the documentation is attached
-  # to the model it came from.
+  # The @section Cost: of frm_curve() quotes this model by name, so the
+  # number in the documentation is pinned to the model it came from.
+  #
+  # `re_formula = NA` KEEPS every smooth from the development version
+  # after 0.64.0, a factor smooth included, so the grid has to name a
+  # level of `subject` and the curve is that level's. The second fit,
+  # with no population smooth, used to give a CONSTANT here because the
+  # fs term was dropped; it now gives that subject's own curve, and two
+  # subjects give different curves. The call count, which is what this
+  # block is for, is unchanged either way.
   set.seed(4)
   n_sub <- 20
   n_rep <- 12
@@ -293,24 +297,36 @@ test_that("a factor-smooth model costs the documented number of calls", {
     frmtmb::bf(v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)),
     family = stats::gaussian(), data = d))
   expect_equal(length(fit$estimates$b), 110L)
-  g <- data.frame(t = seq(0, 1, length.out = 80))
+  g <- data.frame(t = seq(0, 1, length.out = 80),
+                  subject = factor(levels(d$subject)[1],
+                                   levels = levels(d$subject)))
   cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
   # 32 frm_linpred() calls before the seam; one now, on a model with 110
   # random coefficients, which is the point of the seam
   expect_equal(attr(cv, "check")$n_predict, 1L)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
-  # the population curve is a real bell, not a constant: the population
-  # smooth is what those calls are for
+  # a real bell, not a constant
   expect_gt(stats::sd(cv$.estimate), 0.2)
+  # the grouping column is required, and says so by name
+  expect_error(frm_curve(fit, newdata = g[, "t", drop = FALSE],
+                         re_formula = NA, simultaneous = FALSE),
+               "needs the grouping column `subject`")
 
-  # the same fs term with NO population smooth: the curve IS a constant
-  # and the call count collapses
+  # the same fs term with NO population smooth: the curve is that
+  # subject's own, and a different subject gives a different one
   fit2 <- frmtmb::frm(
     frmtmb::bf(v ~ s(t, subject, bs = "fs", k = 5)),
     family = stats::gaussian(), data = d)
   cv2 <- frm_curve(fit2, newdata = g, re_formula = NA, simultaneous = FALSE)
   expect_equal(attr(cv2, "check")$n_predict, attr(cv, "check")$n_predict)
-  expect_lt(stats::sd(cv2$.estimate), 1e-8)
+  expect_lt(attr(cv2, "check")$cov_rel_error, 1e-10)
+  expect_gt(stats::sd(cv2$.estimate), 0.2)
+  g2 <- transform(g, subject = factor(levels(d$subject)[2],
+                                      levels = levels(d$subject)))
+  cv3 <- frm_curve(fit2, newdata = g2, re_formula = NA, simultaneous = FALSE)
+  # relative to the size of the curves themselves, not an absolute gap
+  expect_gt(max(abs(cv3$.estimate - cv2$.estimate)) /
+              stats::sd(cv2$.estimate), 0.1)
 })
 
 test_that("an autoscaled fit works, because the covariance is core's", {

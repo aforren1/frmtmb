@@ -32,9 +32,9 @@
 #'   smooths with them, and redraws the other group-level terms, as
 #'   [simulate.frmtmb_fit()] reads it.
 #'
-#'   This is not `simulate(re_formula = NA)`, which holds a population
-#'   smooth at its fitted curve, because a posterior-predictive check
-#'   needs the curve the model estimated.
+#'   This is not `simulate(re_formula = NA)`, which holds EVERY smooth at
+#'   its fitted curve, one indexed by a grouping factor included, because
+#'   a posterior-predictive check needs the curve the model estimated.
 #' @return A `frmtmb_boot` object: `t0` (FUN at the original fit), `t`
 #'   (`nsim` x `length(t0)` matrix), and `converged`. `confint()` gives
 #'   percentile intervals.

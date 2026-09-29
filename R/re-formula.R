@@ -112,10 +112,26 @@ re_term_cnms <- function(fit, term) {
 #' cannot name.
 #'
 #' A component is addressable when it carries a `(lhs | group)` bar.
-#' Blocks that `re_formula = NA` drops but that have no bar (a
-#' factor-smooth term, a `car()` or `spde()` field) cannot be named in
-#' a formula, so a formula that keeps SOME terms cannot say whether they
-#' stay; those are returned so the caller can refuse rather than guess.
+#' Content with no bar cannot be named in a formula, and it is returned
+#' here so that `re_keep_plan()` can refuse the one shape that reaches
+#' inside a term rather than guess at it.
+#'
+#' The two kinds of unnamed content are no longer alike, and the
+#' refusal's reason differs between them.
+#'
+#' A `car()` or `spde()` field is dropped by `NA` and kept by `NULL`, so
+#' a partial formula genuinely sits between two answers and has to be
+#' refused.
+#'
+#' A factor smooth does NOT: it is kept at every `re_formula` this
+#' package accepts, measured on
+#' `y ~ s(x, g, bs = "fs") + (1 | f) + (1 | h)` at `NULL`, `NA`, `~0`,
+#' `~1` and `~(1 | f) + (1 | h)`, with only `~(1 | f)` refused
+#' (`dev/reviews/2026-09-29-resmooth.md` section 5). So for a smooth
+#' nothing is being guessed, and the entry is a CONSERVATIVE refusal
+#' that survives only because the user settled it for 0.63.0.
+#' dev/resmooth-findings.md section 4 proposes removing it and does not
+#' remove it here.
 #'
 #' @noRd
 re_fit_components <- function(fit) {
@@ -237,13 +253,17 @@ re_keep_plan <- function(fit, re_formula, what = "predict()") {
   # as brms keeps a smooth under any re_formula
   if (all(vapply(keep, all, NA))) return(list(kind = "all"))
   if (length(fc$unnamed)) {
-    frm_stop(what, ": re_formula = ", deparse1(re_formula), " keeps some ",
-             "group-level terms, and this fit also has group-level ",
-             "content a formula cannot name: ",
-             paste(fc$unnamed, collapse = ", "), ". re_formula = NA drops ",
-             "it with every other group-level term and NULL keeps it, ",
-             "but a partial formula cannot say which, so it is refused ",
-             "rather than guessed", call. = FALSE)
+    frm_stop(what, ": re_formula = ", deparse1(re_formula), " names fewer ",
+             "group-level terms, or fewer columns of one, than this fit ",
+             "has, and the fit also carries content a formula cannot ",
+             "name: ", paste(fc$unnamed, collapse = ", "), ". That ",
+             "combination is refused. Every re_formula this package ",
+             "accepts keeps that content, so nothing about it is being ",
+             "guessed here; the refusal is a deliberate limit. Name every ",
+             "group-level term and every column of each, or use ",
+             "re_formula = NULL to keep them all, or NA to drop them; ",
+             "either way the smooths stay, as they do in brms",
+             call. = FALSE)
   }
   list(kind = "partial", named = named, keep = keep)
 }

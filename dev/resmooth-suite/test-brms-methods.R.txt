@@ -1,0 +1,2 @@
+Setting order = 'mu' for mixtures of the same family.
+RESULT test-brms-methods.R lib=lane pass=979 fail=0 error=0 skip=0 warn=0

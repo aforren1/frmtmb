@@ -1,0 +1,7 @@
+RESULT test-smooth-population.R lib=base pass=26 fail=11 error=1 skip=0 warn=0 blocks=8/8
+  BAD: re_formula = NA keeps the fs smooth and drops (1 | g) 
+  BAD: an fs term needs its grouping column at every re_formula 
+  BAD: an unseen fs level errors at every re_formula 
+  BAD: s(g, bs = 're') is a smooth, so re_formula = NA keeps it 
+  BAD: a t2() with an re margin is kept by re_formula = NA 
+  BAD: conditional_effects draws the reference level's fs curve 

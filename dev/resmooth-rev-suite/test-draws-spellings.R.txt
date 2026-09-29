@@ -1,0 +1,1 @@
+RESULT test-draws-spellings.R lib=lane pass=97 fail=0 error=0 skip=0 warn=1 blocks=11/11

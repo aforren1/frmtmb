@@ -1,0 +1,3 @@
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+RESULT test-backlog.R lib=lib2 pass=35 fail=0 error=0 skip=0 warn=0

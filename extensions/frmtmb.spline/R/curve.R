@@ -170,10 +170,13 @@
 #' @param dpar Distributional parameter to read the curve off. `NULL`,
 #'   the default, is the location parameter `mu`.
 #' @param resp Response name, for a multivariate fit.
-#' @param re_formula `NA` (the default) evaluates the population curve, the
-#'   convention `mgcv` and `gratia` plot. `NULL` keeps every random
-#'   effect, so the grid must carry the grouping columns and the curve is
-#'   that group's own.
+#' @param re_formula `NA` (the default) drops the `(x | g)` group-level
+#'   terms, the convention `mgcv` and `gratia` plot. It KEEPS every
+#'   smooth, as brms does, a smooth indexed by a grouping factor
+#'   included, so on a model with `s(t, g, bs = "fs")` the grid has to
+#'   carry `g` at `NA` too and the curve is that level's. `NULL` keeps
+#'   every random effect, so the grid must carry every grouping column.
+#'   `?frmtmb::frm_linpred` has the full rule.
 #' @param level Coverage of both intervals.
 #' @param simultaneous Compute the simultaneous band. `FALSE` returns the
 #'   pointwise interval alone and skips the simulation.

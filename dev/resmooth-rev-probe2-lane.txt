@@ -1,0 +1,58 @@
+ARM: lane | frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+
+---- 1. s(g, bs = 're') beside (1 | g) on the same factor ----
+s(x)+s(g,re)+(1|g)         blocks 1:us,2:smooth,3:smooth
+   kept: NA in-sample 2,3       NA newdata 2,3       NULL 2,3      
+   max|NA-NULL|     0.423 | max|NA - independent ref|  6.94e-16
+   re_formula = ~(1|g): OK max|-NULL| 0 max|-NA| 0.423
+
+---- 2. an fs smooth with a by = factor ----
+s(x,g,fs,by=f)             blocks 1:smooth,2:smooth,3:smooth,4:smooth,5:smooth,6:smooth,7:smooth,8:smooth,9:smooth
+   kept: NA in-sample 1,2,3,4,5,6,7,8,9 NA newdata ERR:predict(newdata = ) is not supported for the smooth s(x,g):fa: mgcv reported a random-effect split this version cannot invert. In-sample fitted()/pred NULL 1,2,3,4,5,6,7,8,9
+   max|NA-NULL|  4.44e-16 | max|NA - independent ref|  4.44e-16
+   re_formula = ~(1|g): ERROR: frm_linpred(): the re_formula term (1 | g) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its
+
+---- 3. t2(x, z, g, c(cr,cr,re)) ----
+t2(x,z,g,cr,cr,re)         blocks 1:smooth,2:smooth,3:smooth,4:smooth
+   kept: NA in-sample 1,2,3,4   NA newdata 1,2,3,4   NULL 1,2,3,4  
+   max|NA-NULL|  4.44e-16 | max|NA - independent ref|  4.44e-16
+   re_formula = ~(1|g): ERROR: frm_linpred(): the re_formula term (1 | g) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its
+
+---- 4. s(x, by = g): a by-FACTOR smooth, not group-indexed ----
+s(x, by = g)               blocks 1:smooth,2:smooth,3:smooth,4:smooth,5:smooth,6:smooth,7:smooth,8:smooth,9:smooth,10:smooth
+   kept: NA in-sample 1,2,3,4,5,6,7,8,9,10 NA newdata 1,2,3,4,5,6,7,8,9,10 NULL 1,2,3,4,5,6,7,8,9,10
+   max|NA-NULL|         0 | max|NA - independent ref|         0
+   re_formula = ~(1|g): ERROR: frm_linpred(): the re_formula term (1 | g) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its
+
+---- 5. gp(x, by = g) ----
+gp(x, by = g)              FIT ERROR: gp() takes 1-3 variables plus optional k = (basis size per dimension), c = (boundary factor), and iso = (shared lengthscale): gp(x), gp(x, k = 30), gp
+NULL
+
+---- 6. te(x, z) ----
+te(x, z)                   FIT ERROR: te() and ti() smooths are not supported (no random-effect representation); use t2() instead
+NULL
+
+---- 7. a smooth in a dpar formula: sigma ~ s(g, bs = 're') ----
+sigma ~ s(g, re)           blocks 1:smooth,2:smooth
+   kept: NA in-sample 1,2       NA newdata 1,2       NULL 1,2      
+   max|NA-NULL|         0 | max|NA - independent ref|         0
+   re_formula = ~(1|g): ERROR: frm_linpred(): the re_formula term (1 | g) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its
+
+---- 8. multivariate, a smooth on ONE response ----
+mv blocks: 1:smooth,2:smooth,3:smooth,4:us 
+  resp y   max|NA-NULL|  2.22e-16 | max|NA-ref|  2.22e-16
+  resp y2  max|NA-NULL|  1.67e-09 | max|NA-ref|         0
+
+---- 9. a mixture with a smooth ----
+mixture blocks: 1:smooth,2:smooth,3:smooth,4:smooth,5:smooth,6:smooth 
+  dpar mu1  max|NA-NULL|  4.44e-16 | max|NA-ref|  4.44e-16
+  dpar mu2  max|NA-NULL|  4.44e-16 | max|NA-ref|  4.44e-16
+
+---- 10. the partial-formula refusal, three shapes ----
+  re_formula = ~(1 | f)               ERROR: frm_linpred(): re_formula = ~(1 | f) keeps some group-level terms, and this fit also has group-level content a formula cannot name: s(x,g). A partial 
+  re_formula = ~(1 | f) + (1 | h)     OK max|-NULL| 0
+  re_formula = ~0                     OK max|-NULL| 0.529
+  re_formula = ~1                     OK max|-NULL| 0.529
+  ONE bar term, re_formula = ~(1|f): OK max|-NULL| 0 
+
+DONE

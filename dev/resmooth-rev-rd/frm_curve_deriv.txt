@@ -1,0 +1,138 @@
+_D_e_r_i_v_a_t_i_v_e_s _o_f _a _f_i_t_t_e_d _c_u_r_v_e
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     The first or second derivative of a fitted linear predictor with
+     respect to one covariate, on a grid, with delta-method standard
+     errors and the same pair of intervals 'frm_curve()' gives:
+     pointwise, and simultaneous over the whole grid.
+
+_U_s_a_g_e:
+
+     frm_curve_deriv(
+       object,
+       var,
+       order = 1L,
+       newdata = NULL,
+       contrast = NULL,
+       dpar = NULL,
+       resp = NULL,
+       re_formula = NA,
+       level = 0.95,
+       simultaneous = TRUE,
+       nsim = 10000L,
+       eps = NULL,
+       seed = NULL,
+       tol = 1e-06
+     )
+     
+_A_r_g_u_m_e_n_t_s:
+
+  object: A 'frmtmb_fit', or a 'frmtmb_curve' from 'frm_curve()', in
+          which case its grid and its 'dpar', 'resp' and 're_formula'
+          are reused.
+
+     var: Name of the covariate to differentiate with respect to. It
+          must be a numeric column of the grid.
+
+   order: 1 or 2.
+
+ newdata: The grid. Required when 'object' is a fit; taken from the
+          curve otherwise.
+
+contrast: A second grid with the same number of rows, or 'NULL' for an
+          ordinary curve. With it the curve is 'newdata' minus
+          'contrast', row by row.
+
+    dpar: Distributional parameter to read the curve off. 'NULL', the
+          default, is the location parameter 'mu'.
+
+    resp: Response name, for a multivariate fit.
+
+re_formula: 'NA' (the default) drops the '(x | g)' group-level terms,
+          the convention 'mgcv' and 'gratia' plot. It KEEPS every
+          smooth, as brms does, a smooth indexed by a grouping factor
+          included, so on a model with 's(t, g, bs = "fs")' the grid
+          has to carry 'g' at 'NA' too and the curve is that level's.
+          'NULL' keeps every random effect, so the grid must carry
+          every grouping column. '?frmtmb::frm_linpred' has the full
+          rule.
+
+   level: Coverage of both intervals.
+
+simultaneous: Compute the simultaneous band. 'FALSE' returns the
+          pointwise interval alone and skips the simulation.
+
+    nsim: Draws in the max-deviation simulation. The default 10000 puts
+          the Monte Carlo error of the critical value near 0.013;
+          200000 puts it near 0.003.
+
+     eps: Step size. 'NULL', the default, is '1e-6' of the grid's range
+          at 'order = 1' and '1e-4' of it at 'order = 2'.
+
+    seed: Seed for the simulation, for a reproducible band.
+
+     tol: Largest relative disagreement with 'frm_linpred(se.fit =
+          TRUE)' the assembled covariance may show before the call
+          refuses.
+
+_D_e_t_a_i_l_s:
+
+     The derivative is taken by central differences of the DESIGN, not
+     of the fitted values, so the estimate and its standard error
+     describe one function rather than two. Writing 'D' for the
+     differenced design and 'V' for the joint coefficient covariance,
+     the reported curve is D c and its covariance is D V D', which is
+     exact for the differenced basis; the only approximation is the
+     difference itself, and 'eps' controls that.
+
+_V_a_l_u_e:
+
+     A 'frmtmb_curve' data frame, as 'frm_curve()' returns, whose
+     '.estimate' is the derivative.
+
+_O_n _a _d_i_f_f_e_r_e_n_c_e _c_u_r_v_e:
+
+     A 'frmtmb_curve' from 'frm_curve(contrast = )' carries its second
+     grid here, so what is differentiated is the DIFFERENCE. 'var'
+     moves in both grids together, so 'contrast' must hold the same
+     values of it as 'newdata' does.
+
+     A new 'newdata' on a difference curve needs a new 'contrast' with
+     it, and a call that gives one grid and not the other is refused.
+     Without the refusal the answer would be the derivative of the
+     FIRST curve alone, for an object whose every row is a difference.
+
+_P_a_s_t _a '_p_s()' _k_n_o_t _s_p_a_n:
+
+     Warned once per 'frmtmb::ps()' term per call, as 'frm_curve()''s
+     section describes, and counted over the grid you passed rather
+     than over the three-point stencil the design is built on. A
+     difference warns for each of its two grids and says which one.
+
+     Past the outer knot the basis is exactly zero, so the DERIVATIVE
+     design is exactly zero and those rows carry a standard error of
+     exactly zero. They are covered with probability one, so they leave
+     the max-deviation simulation instead of standardizing a zero
+     deviation by a zero divisor; 'simultaneous = TRUE' therefore still
+     returns a band, computed over the rows that carry uncertainty. A
+     grid on which EVERY row is past the outer knot has no such row,
+     and the call refuses rather than returning a band with no content.
+
+_S_e_e _A_l_s_o:
+
+     'frm_curve()', 'frm_curve_feature()'
+
+_E_x_a_m_p_l_e_s:
+
+     set.seed(1)
+     dd <- data.frame(x = sort(runif(200)))
+     dd$y <- 2 * sin(pi * dd$x) + rnorm(200, 0, 0.4)
+     fit <- frmtmb::frm(frmtmb::bf(y ~ s(x, k = 8)),
+                        family = stats::gaussian(), data = dd)
+     g <- data.frame(x = seq(0.05, 0.95, length.out = 19))
+     d1 <- frm_curve_deriv(fit, var = "x", order = 1, newdata = g,
+                           simultaneous = FALSE)
+     # the derivative of 2 sin(pi x) is 2 pi cos(pi x)
+     head(cbind(g, fitted = d1$.estimate, truth = 2 * pi * cos(pi * g$x)))
+     

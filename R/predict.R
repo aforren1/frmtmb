@@ -255,7 +255,13 @@ smooth_group_var <- function(sm, mf = NULL) {
 }
 
 #' The `re_blocks` indices of one linear predictor's GROUP-indexed
-#' smooths, which is what `re_formula = NA` drops.
+#' smooths.
+#'
+#' `re_formula` no longer reads this: `NA` keeps every smooth block, as
+#' brms does. What is left of it is the question "can an unseen level of
+#' this fit be invented", which `sim_re_plan()` asks: a group-indexed
+#' smooth places its level through the basis, so an unseen one is not
+#' simply one more fresh draw.
 #'
 #' @noRd
 smooth_group_block_ids <- function(lp) {
@@ -285,28 +291,37 @@ smooth_pred_vars <- function(sm) {
 #' `PredictMat()` reports it as an internal length mismatch.
 #'
 #' Two faults meet here and they have different fixes. A missing
-#' GROUPING column is only needed because the prediction is conditional
-#' on the group, so `re_formula = NA` is a way out of it; any other missing
-#' column is simply absent data. The unseen-level check restates for a
-#' factor-smooth term what the ordinary random-effect blocks already
-#' promise: a level the fit never saw errors unless it is allowed
-#' explicitly. mgcv's own basis matches levels by LABEL and returns a
-#' zero row for one it does not know, so allowing them predicts the
-#' population curve there, exactly as a new level of `(1 | g)` does.
+#' GROUPING column stops the basis being rebuilt at all; any other
+#' missing column is simply absent data. Neither has `re_formula = NA`
+#' as a way out any more: `NA` keeps every smooth, as brms does, so a
+#' smooth indexed by a grouping factor is rebuilt at every `re_formula`
+#' and needs its column and a known level either way. brms refuses both
+#' too, and not through its group-level machinery: the grouping factor
+#' of a smooth is an ordinary predictor there, so a missing column is a
+#' missing variable and an unseen level is "New factor levels are not
+#' allowed", whatever `allow_new_levels` says
+#' (dev/resmooth-brms.txt).
+#'
+#' The unseen-level check restates for a factor-smooth term what the
+#' ordinary random-effect blocks already promise: a level the fit never
+#' saw errors unless it is allowed explicitly. mgcv's `fs` basis matches
+#' levels by LABEL and returns a zero row for one it does not know, so
+#' `allow_new_levels = TRUE` predicts the population curve there,
+#' exactly as a new level of `(1 | g)` does. That opt-in is kept, and is
+#' one place frmtmb is more permissive than brms.
 #'
 #' @noRd
-smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
+smooth_newdata_check <- function(si, newdata, allow_new_levels) {
   gv <- si$group_var
   miss <- setdiff(smooth_pred_vars(si$sm), names(newdata))
   if (length(miss)) {
     if (!is.null(gv) && gv %in% miss) {
       frm_stop("predict(newdata = ) for the factor-smooth term ", si$label,
                " needs the grouping column `", gv, "`: the term holds one ",
-               "curve per level of `", gv, "`, so a prediction conditional ",
-               "on it has to say which level each row belongs to. Add the ",
-               "column to newdata, or ask for the population curve with ",
-               "re_formula = NA, which drops the term and needs no level",
-               call. = FALSE)
+               "curve per level of `", gv, "`, so every prediction from it ",
+               "has to say which level each row belongs to. Add the column ",
+               "to newdata. re_formula = NA does not remove the need: it ",
+               "keeps every smooth, as brms does", call. = FALSE)
     }
     frm_stop("predict(newdata = ) for the smooth term ", si$label,
              " needs the column(s) ", paste0("`", miss, "`", collapse = ", "),
@@ -316,7 +331,7 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
   # do not, so the frame records group_levels for both (older fits
   # without the field fall back to flev and keep their old behavior)
   lev <- si$group_levels %||% si$sm$flev
-  if (use_re && !is.null(gv) && !is.null(lev)) {
+  if (!is.null(gv) && !is.null(lev)) {
     new <- setdiff(unique(as.character(newdata[[gv]])),
                    as.character(lev))
     if (length(new) && !allow_new_levels) {
@@ -324,19 +339,21 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
         paste0("New levels in the factor-smooth term ", si$label, ": ",
                paste(new, collapse = ", ")),
         paste0("The term has no curve for them. Use allow_new_levels = ",
-               "TRUE to predict them at the population level, or ",
-               "re_formula = NA for the population curve at every row"))
+               "TRUE to predict them at the population level; re_formula ",
+               "= NA keeps the term, as brms does, so it does not help ",
+               "here"))
     }
     if (length(new) && is.null(si$sm$flev)) {
       # an fs basis zero-rows an unknown level; a factor bs = "re"
       # basis has one design column per fitted level and nothing else,
       # so there is no population row to hand back
       frm_stop("allow_new_levels = TRUE cannot predict the new level(s) ",
-               paste(new, collapse = ", "), " of the bs = \"re\" smooth ",
-               "term ", si$label, ": its design has one column per fitted ",
-               "level and no zero row for a new one. Use re_formula = NA for ",
-               "the population curve, which is what a new level would ",
-               "receive anyway", call. = FALSE)
+               paste(new, collapse = ", "), " of the smooth term ", si$label,
+               ", whose basis has an `re` factor in it: its design has one ",
+               "column per fitted level and no zero row for a new one. ",
+               "Predict at a level the fit saw, or drop the term from the ",
+               "model. re_formula = NA keeps the term, as brms does, so it ",
+               "is not a way out", call. = FALSE)
     }
   }
   invisible(NULL)
@@ -445,16 +462,12 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # and the null-space columns last, matching the fitted X layout.
   sm_parts <- list()
   for (si in lp[["smooths"]] %||% list()) {
-    # A smooth indexed by a grouping factor holds that factor's own
-    # deviations, so a population-level prediction drops it the way it
-    # drops (1 | g). smooth2random() leaves such a term no null space,
-    # so dropping it usually removes the term entirely, and with it the
-    # need for the grouping column in newdata. A group smooth
-    # that DOES have unpenalized columns still has them rebuilt, because
-    # they sit in X and the coefficient vector is not reindexed here.
-    drop_grp <- !use_re && !is.null(si$group_var)
-    if (drop_grp && si$nf == 0L) next
-    smooth_newdata_check(si, newdata, use_re, allow_new_levels)
+    # Every smooth is rebuilt whatever `use_re` says, a smooth indexed
+    # by a grouping factor included: brms keeps every smooth under any
+    # re_formula (lp_eta_design()). So such a term still needs its
+    # grouping column in newdata, and still needs a level the basis
+    # knows, at re_formula = NA as much as at NULL.
+    smooth_newdata_check(si, newdata, allow_new_levels)
     M <- mgcv::PredictMat(si$sm, newdata)
     if (is.null(si$U)) {
       # t2(): smooth2random() gives no rotation, only pen.ind, so the
@@ -475,7 +488,6 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     for (r in seq_along(si$nr)) {
       Xr_new <- M[, pos + seq_len(si$nr[r]), drop = FALSE]
       pos <- pos + si$nr[r]
-      if (drop_grp) next
       sm_parts[[length(sm_parts) + 1L]] <- list(
         bk = fit$frame[["re_blocks"]][[si$block_ids[r]]],
         Xr = Xr_new
@@ -563,9 +575,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
 
   if (!use_re) {
-    # a POPULATION smooth's wiggly part is part of the curve, not a
-    # group-level effect, so it stays in; the group-indexed ones were
-    # already left out of sm_parts above
+    # a smooth's wiggly part is part of the curve, not a group-level
+    # effect, so every smooth stays in and only the `(... | g)` blocks
+    # below are left out
     return(list(X = X, off = off, re_parts = list(), sm_parts = sm_parts,
                 nonest = nonest))
   }
@@ -1241,65 +1253,81 @@ predict_retired <- c(
 #' fit is an error that names it, because a misspelled grouping factor
 #' would otherwise change the answer with nothing said; brms drops such
 #' a term silently. And a formula that keeps SOME terms is refused on a
-#' fit that also has group-level content a formula cannot name, such as
-#' a factor-smooth term: `NA` drops that content and `NULL` keeps it,
-#' and a partial formula cannot say which.
+#' fit that also has content a formula cannot name, such as a
+#' factor-smooth term, a `car()` field or an `spde()` field: a partial
+#' formula cannot say whether that content stays.
 #' @section What `re_formula = NA` drops:
-#' `re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
-#' prediction. Every `(x | g)` block is dropped, and so is any smooth
-#' whose basis gives each level of a grouping factor its own curve.
-#' Everything else stays.
+#' `re_formula = NA` (equivalently `~0` or `~1`) asks for the
+#' POPULATION-level prediction. It removes the `(x | g)` group-level
+#' terms and nothing else. Every SMOOTH stays in.
 #'
 #' Dropped:
 #'
 #' * `(1 | g)`, `(x | g)`, and the structured spellings of them
 #'   (`gr()`, `cs()`, `ar()`, `mm()`, `car()`, `spde()`, ...).
-#' * `s(t, g, bs = "fs")`, the factor-smooth interaction: one curve per
-#'   level of `g`, so the curves ARE the group deviations.
-#' * `s(g, bs = "re")` and `s(x, g, bs = "re")`, which are a random
-#'   intercept and a random slope written as a smooth.
-#' * `t2(t, g, bs = c("cr", "re"))` and any other tensor product with an
-#'   `re` margin, which is the same random smooth in a different
-#'   spelling.
 #'
 #' Kept:
 #'
-#' * `s(t)`, `s(t, by = x)`, `te()`, `t2()`, and every other population
-#'   smooth. A smooth's wiggly part is stored as a random-effect block
-#'   because that is how a penalty is written as a mixed model, but the
-#'   term is a population effect and the population prediction is the
-#'   fitted curve, not the null-space line through it.
+#' * `s(t)`, `s(t, by = x)`, `t2()` and every other smooth. A smooth's
+#'   wiggly part is stored as a random-effect block because that is how a
+#'   penalty is written as a mixed model, but the term is part of the
+#'   formula and the population prediction is the fitted curve, not the
+#'   null-space line through it.
+#' * `s(t, g, bs = "fs")`, `s(g, bs = "re")`, `s(x, g, bs = "re")` and
+#'   `t2(t, g, bs = c("cr", "re"))`: a smooth whose basis gives each
+#'   level of a grouping factor its own curve is still a smooth. It is
+#'   kept, at each row's own level.
 #' * `gp()` and `hsgp()` terms.
 #'
-#' The test is what the basis MEANS, not the `bs` string: `bs = "sz"`
-#' names a factor the way `bs = "fs"` does, but writes the level curves
-#' as contrasts against a reference level, which is mgcv's spelling for
-#' a factor whose levels are fixed effects, so it would count as
-#' population-level. (`sz` has no random-effect representation, so it is
-#' not fittable here at all; the classification is stated for
-#' completeness.)
+#' This is brms's rule. `brms::posterior_epred()` at `re_formula = NA`
+#' is BITWISE the same as at `re_formula = NULL` on a fit whose only
+#' group-indexed content is `s(g, bs = "re")`, `s(x, g, bs = "fs")` or a
+#' `t2()` with an `re` margin, and differs on `s(x) + (1 | g)` (measured:
+#' `dev/resmooth-brms.txt`). Through 0.64.0 frmtmb dropped those three,
+#' which answered a different model: on `y ~ s(x, g, bs = "fs")` the
+#' whole fitted structure went, so `conditional_effects()` drew a FLAT
+#' line and the default `pp_check()` compared the data against draws
+#' whose per-row spread was 2.93 times the fitted sigma.
 #'
-#' The result is `mgcv::predict.gam(exclude = )` on the factor-smooth
-#' term, and `tests/testthat/test-smooth-population.R` asserts the two
-#' agree to 1e-6 on a shared fit.
+#' The test is what the basis MEANS, not the `bs` string, because the
+#' grouping factor still has to be named for `newdata` and still may not
+#' be a level the fit did not see.
 #'
-#' This deliberately follows mgcv rather than brms: brms stores every
-#' smooth's wiggly part as population parameters, so its
-#' `re_formula = NA` KEEPS factor-smooth curves. A ported brms call
-#' with a `bs = "fs"` term therefore returns different numbers here,
-#' on purpose: the retained per-level curve is not a population
-#' quantity, and mgcv, the authority frmtmb's smooth estimation
-#' already follows, drops it too.
+#' In `mgcv`'s spelling the answer is `predict.gam()` with the
+#' group-level intercept excluded and every smooth left in, which
+#' `tests/testthat/test-smooth-population.R` asserts (the two packages'
+#' independent fits agree to about 8e-7 relative).
 #'
-#' A dropped factor-smooth term needs nothing from `newdata`, so the
-#' grouping column may be left out entirely when `re_formula = NA`. It is
-#' required for a conditional prediction, and its absence is reported by
-#' name rather than by an mgcv internal message.
+#' A kept factor-smooth term reads its grouping column from `newdata` at
+#' every `re_formula`, and `re_formula = NA` is not a way around a
+#' missing column or an unseen level. brms refuses both too, and not
+#' through its group-level machinery: the grouping factor of a smooth is
+#' an ordinary predictor there, so a missing column is a missing variable
+#' and a new level is "New factor levels are not allowed" whatever
+#' `allow_new_levels` says. frmtmb refuses by name, and keeps one opt-in
+#' brms does not have: under `allow_new_levels = TRUE` an unseen level of
+#' an `fs` term takes the population curve, because mgcv's `fs` basis
+#' returns a zero row for a level it does not know. An `re` basis or
+#' margin has one column per fitted level and no such row, so an unseen
+#' level there is refused either way.
 #'
-#' `conditional_effects()` draws its curves at the population level, so
-#' it follows this rule too: on a model with a factor-smooth term the
-#' displayed curve is the population smooth, and the grouping factor is
-#' not offered as an effect to plot.
+#' Because the basis is now rebuilt at every `re_formula`, one fittable
+#' term is left with no `newdata` route at all: a factor smooth that also
+#' carries a `by =` factor, `s(x, g, bs = "fs", by = f)`. mgcv's
+#' random-effect split of that basis is one this version cannot invert,
+#' so `predict(newdata = )`, `fitted(newdata = )`,
+#' `frm_linpred(newdata = )` and `conditional_effects()` all stop with
+#' that named error at every `re_formula`, where `re_formula = NA` used to
+#' answer by dropping the term. What it answered was the intercept at
+#' every row, so the refusal replaces a flat line and not a curve.
+#' In-sample `fitted()` and `frm_linpred()` on such a fit work as they
+#' always did.
+#'
+#' `conditional_effects()` passes `re_formula = NA`, so it follows this
+#' rule too: on a model with a factor-smooth term the displayed curve is
+#' the curve of the grouping factor's REFERENCE level, which is where
+#' the display holds every predictor it is not varying, and the grouping
+#' factor is not offered as an effect to plot.
 #' @param se.fit If `TRUE`, return a list with elements `fit` and `se.fit`
 #'   (delta-method standard errors accounting for fixed-effect and
 #'   random-effect uncertainty). Exact `gp()` terms predict unseen
@@ -1334,15 +1362,20 @@ predict_retired <- c(
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
 #'   population level instead of erroring. A factor-smooth term
 #'   (`bs = "fs"`) follows the same rule: a level it never saw
-#'   contributes nothing, which leaves the population curve.
+#'   contributes nothing, which leaves the population curve. A smooth
+#'   with an `re` basis or margin cannot, because its design has one
+#'   column per fitted level and no zero row, so an unseen level there
+#'   is refused by name.
 #'
-#'   It also makes the grouping COLUMN optional, as it does in brms
-#'   (`validate_newdata()`: "grouping factors do not need to be
-#'   specified by the user if new levels are allowed"). A column
+#'   For a `(x | g)` term it also makes the grouping COLUMN optional, as
+#'   it does in brms (`validate_newdata()`: "grouping factors do not need
+#'   to be specified by the user if new levels are allowed"). A column
 #'   `newdata` does not carry is filled with `NA`, so every row is an
 #'   unseen level. Without `allow_new_levels` a missing grouping column
 #'   is refused by name, and the refusal offers this argument and
-#'   `re_formula = NA`, which drops the random effects instead.
+#'   `re_formula = NA`, which drops the random effects instead. A SMOOTH
+#'   term's grouping column is never optional: `re_formula` does not
+#'   remove the term, so the basis has to be rebuilt at a named level.
 #' @param ... Refused. An argument this method does not have is an
 #'   error naming it, and the two lme4 spellings that were live in
 #'   0.57.0 (`re.form`, `allow.new.levels`) are refused by name with
@@ -1782,10 +1815,13 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
       any(vapply(bk[["components"]], function(cp) cp$lp_key == key, TRUE))
   }, TRUE))
-  # the blocks a population-level prediction keeps: gp()/hsgp() curves
-  # and the POPULATION smooths, but not a smooth whose basis is indexed
-  # by a grouping factor (see smooth_group_var())
-  if (!use_re) sm_ids <- setdiff(sm_ids, smooth_group_block_ids(lp))
+  # EVERY smooth block is kept at population level, including one whose
+  # basis is indexed by a grouping factor. brms removes only the
+  # `(... | g)` group-level terms under any re_formula and keeps every
+  # smooth; a smooth is a penalized term of the formula rather than an
+  # exchangeable group effect, so dropping it answered a different
+  # model (dev/resmooth-findings.md has the numbers). `use_re` still
+  # governs the group-level blocks below.
   sm_blocks <- object$frame[["re_blocks"]][sm_ids]
 
   if (is.null(newdata)) {
@@ -1798,7 +1834,8 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
       if (use_re) {
         eta <- eta + as.numeric(lp[["Z"]] %*% cvec)
       } else if (length(sm_blocks)) {
-        # population-level: drop group effects but keep the smooth curve
+        # population-level: drop the group-level blocks, keep every
+        # smooth, gp() and hsgp() curve (sm_blocks is all of them)
         for (bk in sm_blocks) {
           eta <- eta + as.numeric(lp[["Z"]][, bk[["c_idx"]], drop = FALSE] %*%
                                     cvec[bk[["c_idx"]]])
@@ -2479,10 +2516,19 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
     # model evaluations, which on a fit with many levels is the whole
     # cost. `NULL` from re_used_b() means the design could not be
     # rebuilt, and then every kept level is differenced, as before.
-    b_idx <- if (re_form_keeps(re_formula)) {
-      gov <- re_governed_b(object)
-      used <- re_used_b(object, newdata, resp, allow_new_levels)
-      if (is.null(used)) gov else intersect(gov, used)
+    # Every SMOOTH is in the estimate whatever re_formula says, so its
+    # coefficients are differenced whatever re_formula says. Leaving them
+    # out understated Est.Error at re_formula = NA by 0.52 of itself at
+    # the median row of a cumulative fs fit (dev/resmooth-fdse.txt).
+    b_idx <- {
+      want <- smooth_b_idx(object)
+      if (re_form_keeps(re_formula)) {
+        want <- sort(unique(c(want, re_governed_b(object))))
+      }
+      if (!length(want)) NULL else {
+        used <- re_used_b(object, newdata, resp, allow_new_levels)
+        if (is.null(used)) want else intersect(want, used)
+      }
     }
     # In sample every level IS loaded, so the bound above cannot help
     # there; what does is that the levels of ONE block can be perturbed
@@ -3707,9 +3753,15 @@ apply_censoring <- function(y, win) {
 #' `(1 + x | g)` fit, the dropped columns are drawn given the kept ones
 #' at their estimates.
 #'
-#' A population smooth, `gp()` or `hsgp()` curve is not a group-level
-#' term and is never redrawn. A factor-smooth term is, with the other
-#' group-level terms.
+#' A SMOOTH is never redrawn, `gp()` and `hsgp()` curves included and a
+#' smooth indexed by a grouping factor included (`s(g, bs = "re")`,
+#' `s(x, g, bs = "fs")`, a `t2()` with an `re` margin). Its coefficients
+#' are penalized coefficients of a term of the formula, not group
+#' effects, and `re_formula = NA` keeps every smooth as brms does, so
+#' the draws at `NA` are the conditional draws on a fit whose only
+#' group-indexed content is a smooth. `frm_bootstrap()` is the exception
+#' and asks for the other thing on purpose: a whole-model parametric
+#' bootstrap redraws every block, smooths included.
 #'
 #' @section New data:
 #' With `newdata` the draws are for its rows. The response column is
@@ -3718,11 +3770,14 @@ apply_censoring <- function(y, win) {
 #' rows of the level, so newdata must carry the grouping column. A level
 #' the fit never saw is an error unless `allow_new_levels = TRUE`, which
 #' draws its effect from the term's estimated distribution, as
-#' `predict()` does. Under `re_formula = NA` (or `~0`, `~1`) every term
-#' is redrawn anyway, so an unseen level is one more fresh level and
-#' needs nothing, except on a fit with a factor-smooth term: there an
-#' unseen level takes the population curve under
-#' `allow_new_levels = TRUE`, as in `predict()`, and is not redrawn.
+#' `predict()` does. Under `re_formula = NA` (or `~0`, `~1`) every
+#' group-level term is redrawn anyway, so an unseen level of one is one
+#' more fresh level and needs nothing. A SMOOTH indexed by a grouping
+#' factor is not redrawn and not dropped, so it is the exception at every
+#' `re_formula`: newdata must carry its grouping column, and an unseen
+#' level is refused unless `allow_new_levels = TRUE`, which gives it the
+#' population curve for an `fs` basis and is refused for an `re` basis or
+#' margin, exactly as in `predict()`.
 #'
 #' @section Censored responses:
 #' On a `cens()` fit the default draws the LATENT, uncensored response:
@@ -3803,9 +3858,10 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
 
 #' The body of `simulate.frmtmb_fit()`, with one setting the public
 #' method does not offer: `redraw_smooths = TRUE` makes `re_formula = NA`
-#' redraw the penalized coefficients of population smooths as well,
-#' which is `frm_bootstrap()`'s whole-model bootstrap and 0.62.0's
-#' `simulate(re_formula = NA)` (see `sim_re_plan()`).
+#' redraw the penalized coefficients of every smooth as well, which is
+#' `frm_bootstrap()`'s whole-model bootstrap, and was 0.62.0's
+#' `simulate(re_formula = NA)` for a population smooth and 0.64.0's for
+#' one indexed by a grouping factor (see `sim_re_plan()`).
 #'
 #' @noRd
 sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
@@ -4208,8 +4264,9 @@ b_coef_labels <- function(fit) {
 #' @param dpar,resp The distributional parameter and response to take
 #'   the linear predictor of. Both default the way [predict()] defaults
 #'   them.
-#' @param re_formula `NULL` keeps every random effect, `NA` drops them all,
-#'   a one-sided formula keeps the ones it names.
+#' @param re_formula `NULL` keeps every random effect, `NA` drops the
+#'   group-level terms and keeps every smooth, a one-sided formula keeps
+#'   the terms it names. See [frm_linpred()] for the full rule.
 #' @param allow_new_levels Whether a grouping level the fit never saw is
 #'   allowed.
 #' @return A list with

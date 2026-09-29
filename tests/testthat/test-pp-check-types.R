@@ -352,3 +352,75 @@ test_that("error_binned on a multinomial fit calls it counts, not a category", {
                "response is a set of counts over categories",
                class = "frmtmb_error")
 })
+
+test_that("pp_check reproduces an fs fit's spread at the default re_formula", {
+  # Through 0.64.0 the default pp_check() redrew a factor smooth's
+  # coefficients from the smoothing prior each replicate, so the check
+  # compared the data against draws far more spread out than the model
+  # says: the per-row sd of the draws over the fitted sigma was 2.9348
+  # against 1.0023 now, and the pooled sd over the data's was 1.3359
+  # against 0.9845 (dev/resmooth-ppcheck-before.txt,
+  # dev/resmooth-ppcheck-after.txt). SEEN TO FAIL on that build.
+  set.seed(5)
+  n <- 300L
+  d <- data.frame(x = stats::runif(n),
+                  g = factor(rep(1:10, length.out = n)))
+  d$y <- sin(2 * pi * d$x) + stats::rnorm(10, 0, 0.5)[d$g] * d$x +
+    stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(frm(bf(y ~ s(x, g, bs = "fs", k = 5)),
+                              family = gaussian(), data = d))
+  nsim <- 400L
+  # pp_check()'s own draws: simulate(re_formula = NA) is what it calls
+  s <- as.matrix(simulate(fit, nsim = nsim, seed = 3, re_formula = NA))
+  sig <- as.vector(frm_linpred(fit, dpar = "sigma", type = "response",
+                               re_formula = NA))
+  if (length(sig) == 1L) sig <- rep(sig, nrow(s))
+  # Nothing but the observation draw is random now, so each row's draws
+  # have the model's own sigma. The band is the sampling error of ONE
+  # row's sd estimate at nsim draws, 1 / sqrt(2 (nsim - 1)), times six;
+  # it comes from the run's nsim and not from a chosen number, and it is
+  # deliberately generous for the pooled statistic below, whose error is
+  # smaller.
+  tol <- 6 / sqrt(2 * (nsim - 1))
+  expect_lt(abs(stats::median(apply(s, 1, stats::sd) / sig) - 1), tol)
+  # and the draws reproduce the data's own spread
+  expect_lt(abs(stats::sd(as.vector(s)) /
+                  stats::sd(fit$frame[["y"]][[1L]]) - 1), tol)
+  # the check itself still draws
+  expect_s3_class(pp_check(fit, ndraws = 5), "ggplot")
+})
+
+test_that("pp_check still redraws (1 | g) at the default re_formula", {
+  # the complement of the test above: the fix must not stop pp_check
+  # being the frequentist analog of the posterior predictive check for
+  # an ordinary group-level term
+  set.seed(5)
+  n <- 300L
+  d <- data.frame(x = stats::runif(n),
+                  g = factor(rep(1:10, length.out = n)))
+  d$y <- sin(2 * pi * d$x) + stats::rnorm(10, 0, 0.5)[d$g] * d$x +
+    stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(frm(bf(y ~ s(x) + (1 | g)), family = gaussian(),
+                              data = d))
+  # 2000 draws, not 400: the band below is 6 / sqrt(2 (nsim - 1)), and on
+  # this fixture the effect it has to resolve is sqrt(1 + tau^2/sigma^2)
+  # - 1 = 0.139. At 400 draws the band is 0.212, WIDER than the effect,
+  # so the agreement assertion would have passed on a build that redrew
+  # nothing at all. At 2000 it is 0.095 and the pair has teeth. The
+  # guard below is what caught that, and it is kept for that reason.
+  nsim <- 2000L
+  s <- as.matrix(simulate(fit, nsim = nsim, seed = 3, re_formula = NA))
+  # a redrawn intercept adds its own variance to every row, so the ratio
+  # the run should see is sqrt(1 + tau^2 / sigma^2), which the fit's own
+  # estimates give
+  tau2 <- varcorr_matrices(fit)[[1L]][1L, 1L]
+  want <- sqrt(1 + tau2 / sigma(fit)^2)
+  got <- stats::median(apply(s, 1, stats::sd)) / sigma(fit)
+  tol <- 6 / sqrt(2 * (nsim - 1))
+  expect_lt(abs(got / want - 1), tol)
+  # and the redrawn term is not a no-op, or the line above would pass on
+  # a build that redrew nothing: the target itself has to sit above 1 by
+  # more than that same band. Both sides come from the fit, so this is a
+  # measured requirement and not a chosen floor.
+  expect_gt(want - 1, tol)
+})

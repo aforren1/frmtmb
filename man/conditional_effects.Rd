@@ -78,7 +78,11 @@ percentiles). See the band section. Only for \code{method = "epred"}.}
 \item{re_formula}{The population switch, in brms's spelling: \code{NA}
 (the default) draws the population-level curve, \code{NULL} conditions
 on a NEW, unobserved group, and a one-sided formula keeps the named
-terms for one. A new group's conditional modes are zero, so its
+terms for one. \code{NA} removes the \code{(x | g)} group-level terms and
+keeps every SMOOTH, as brms does, so on a model with
+\code{s(x, g, bs = "fs")} the drawn curve is the grouping factor's
+reference level's, that being where the display holds a predictor it
+is not varying. A new group's conditional modes are zero, so its
 curve IS the population curve and what the group costs is spread:
 the band carries the random-effect variance on top of the
 coefficient uncertainty, and the grouping column of the returned

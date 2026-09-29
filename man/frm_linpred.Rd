@@ -54,15 +54,20 @@ with the GP conditional variance added to the standard errors.}
 \item{allow_new_levels}{Predict unseen grouping-factor levels at the
 population level instead of erroring. A factor-smooth term
 (\code{bs = "fs"}) follows the same rule: a level it never saw
-contributes nothing, which leaves the population curve.
+contributes nothing, which leaves the population curve. A smooth
+with an \code{re} basis or margin cannot, because its design has one
+column per fitted level and no zero row, so an unseen level there
+is refused by name.
 
-It also makes the grouping COLUMN optional, as it does in brms
-(\code{validate_newdata()}: "grouping factors do not need to be
-specified by the user if new levels are allowed"). A column
+For a \code{(x | g)} term it also makes the grouping COLUMN optional, as
+it does in brms (\code{validate_newdata()}: "grouping factors do not need
+to be specified by the user if new levels are allowed"). A column
 \code{newdata} does not carry is filled with \code{NA}, so every row is an
 unseen level. Without \code{allow_new_levels} a missing grouping column
 is refused by name, and the refusal offers this argument and
-\code{re_formula = NA}, which drops the random effects instead.}
+\code{re_formula = NA}, which drops the random effects instead. A SMOOTH
+term's grouping column is never optional: \code{re_formula} does not
+remove the term, so the basis has to be rebuilt at a named level.}
 
 \item{...}{Refused. An argument this method does not have is an
 error naming it, and the two lme4 spellings that were live in
@@ -161,70 +166,86 @@ Two cases are refused. A formula term that matches no term of the
 fit is an error that names it, because a misspelled grouping factor
 would otherwise change the answer with nothing said; brms drops such
 a term silently. And a formula that keeps SOME terms is refused on a
-fit that also has group-level content a formula cannot name, such as
-a factor-smooth term: \code{NA} drops that content and \code{NULL} keeps it,
-and a partial formula cannot say which.
+fit that also has content a formula cannot name, such as a
+factor-smooth term, a \code{car()} field or an \code{spde()} field: a partial
+formula cannot say whether that content stays.
 }
 
 \section{What \code{re_formula = NA} drops}{
 
-\code{re_formula = NA} (equivalently \code{~0}) asks for the POPULATION-level
-prediction. Every \code{(x | g)} block is dropped, and so is any smooth
-whose basis gives each level of a grouping factor its own curve.
-Everything else stays.
+\code{re_formula = NA} (equivalently \code{~0} or \code{~1}) asks for the
+POPULATION-level prediction. It removes the \code{(x | g)} group-level
+terms and nothing else. Every SMOOTH stays in.
 
 Dropped:
 \itemize{
 \item \code{(1 | g)}, \code{(x | g)}, and the structured spellings of them
 (\code{gr()}, \code{cs()}, \code{ar()}, \code{mm()}, \code{car()}, \code{spde()}, ...).
-\item \code{s(t, g, bs = "fs")}, the factor-smooth interaction: one curve per
-level of \code{g}, so the curves ARE the group deviations.
-\item \code{s(g, bs = "re")} and \code{s(x, g, bs = "re")}, which are a random
-intercept and a random slope written as a smooth.
-\item \code{t2(t, g, bs = c("cr", "re"))} and any other tensor product with an
-\code{re} margin, which is the same random smooth in a different
-spelling.
 }
 
 Kept:
 \itemize{
-\item \code{s(t)}, \code{s(t, by = x)}, \code{te()}, \code{t2()}, and every other population
-smooth. A smooth's wiggly part is stored as a random-effect block
-because that is how a penalty is written as a mixed model, but the
-term is a population effect and the population prediction is the
-fitted curve, not the null-space line through it.
+\item \code{s(t)}, \code{s(t, by = x)}, \code{t2()} and every other smooth. A smooth's
+wiggly part is stored as a random-effect block because that is how a
+penalty is written as a mixed model, but the term is part of the
+formula and the population prediction is the fitted curve, not the
+null-space line through it.
+\item \code{s(t, g, bs = "fs")}, \code{s(g, bs = "re")}, \code{s(x, g, bs = "re")} and
+\code{t2(t, g, bs = c("cr", "re"))}: a smooth whose basis gives each
+level of a grouping factor its own curve is still a smooth. It is
+kept, at each row's own level.
 \item \code{gp()} and \code{hsgp()} terms.
 }
 
-The test is what the basis MEANS, not the \code{bs} string: \code{bs = "sz"}
-names a factor the way \code{bs = "fs"} does, but writes the level curves
-as contrasts against a reference level, which is mgcv's spelling for
-a factor whose levels are fixed effects, so it would count as
-population-level. (\code{sz} has no random-effect representation, so it is
-not fittable here at all; the classification is stated for
-completeness.)
+This is brms's rule. \code{brms::posterior_epred()} at \code{re_formula = NA}
+is BITWISE the same as at \code{re_formula = NULL} on a fit whose only
+group-indexed content is \code{s(g, bs = "re")}, \code{s(x, g, bs = "fs")} or a
+\code{t2()} with an \code{re} margin, and differs on \code{s(x) + (1 | g)} (measured:
+\code{dev/resmooth-brms.txt}). Through 0.64.0 frmtmb dropped those three,
+which answered a different model: on \code{y ~ s(x, g, bs = "fs")} the
+whole fitted structure went, so \code{conditional_effects()} drew a FLAT
+line and the default \code{pp_check()} compared the data against draws
+whose per-row spread was 2.93 times the fitted sigma.
 
-The result is \code{mgcv::predict.gam(exclude = )} on the factor-smooth
-term, and \code{tests/testthat/test-smooth-population.R} asserts the two
-agree to 1e-6 on a shared fit.
+The test is what the basis MEANS, not the \code{bs} string, because the
+grouping factor still has to be named for \code{newdata} and still may not
+be a level the fit did not see.
 
-This deliberately follows mgcv rather than brms: brms stores every
-smooth's wiggly part as population parameters, so its
-\code{re_formula = NA} KEEPS factor-smooth curves. A ported brms call
-with a \code{bs = "fs"} term therefore returns different numbers here,
-on purpose: the retained per-level curve is not a population
-quantity, and mgcv, the authority frmtmb's smooth estimation
-already follows, drops it too.
+In \code{mgcv}'s spelling the answer is \code{predict.gam()} with the
+group-level intercept excluded and every smooth left in, which
+\code{tests/testthat/test-smooth-population.R} asserts (the two packages'
+independent fits agree to about 8e-7 relative).
 
-A dropped factor-smooth term needs nothing from \code{newdata}, so the
-grouping column may be left out entirely when \code{re_formula = NA}. It is
-required for a conditional prediction, and its absence is reported by
-name rather than by an mgcv internal message.
+A kept factor-smooth term reads its grouping column from \code{newdata} at
+every \code{re_formula}, and \code{re_formula = NA} is not a way around a
+missing column or an unseen level. brms refuses both too, and not
+through its group-level machinery: the grouping factor of a smooth is
+an ordinary predictor there, so a missing column is a missing variable
+and a new level is "New factor levels are not allowed" whatever
+\code{allow_new_levels} says. frmtmb refuses by name, and keeps one opt-in
+brms does not have: under \code{allow_new_levels = TRUE} an unseen level of
+an \code{fs} term takes the population curve, because mgcv's \code{fs} basis
+returns a zero row for a level it does not know. An \code{re} basis or
+margin has one column per fitted level and no such row, so an unseen
+level there is refused either way.
 
-\code{conditional_effects()} draws its curves at the population level, so
-it follows this rule too: on a model with a factor-smooth term the
-displayed curve is the population smooth, and the grouping factor is
-not offered as an effect to plot.
+Because the basis is now rebuilt at every \code{re_formula}, one fittable
+term is left with no \code{newdata} route at all: a factor smooth that also
+carries a \verb{by =} factor, \code{s(x, g, bs = "fs", by = f)}. mgcv's
+random-effect split of that basis is one this version cannot invert,
+so \code{predict(newdata = )}, \code{fitted(newdata = )},
+\code{frm_linpred(newdata = )} and \code{conditional_effects()} all stop with
+that named error at every \code{re_formula}, where \code{re_formula = NA} used to
+answer by dropping the term. What it answered was the intercept at
+every row, so the refusal replaces a flat line and not a curve.
+In-sample \code{fitted()} and \code{frm_linpred()} on such a fit work as they
+always did.
+
+\code{conditional_effects()} passes \code{re_formula = NA}, so it follows this
+rule too: on a model with a factor-smooth term the displayed curve is
+the curve of the grouping factor's REFERENCE level, which is where
+the display holds every predictor it is not varying, and the grouping
+factor is not offered as an effect to plot.
 }
 
 \section{Standard errors of the expected response}{

@@ -104,9 +104,15 @@ columns of a term and drops others, as \code{~ (1 | g)} does on a
 \code{(1 + x | g)} fit, the dropped columns are drawn given the kept ones
 at their estimates.
 
-A population smooth, \code{gp()} or \code{hsgp()} curve is not a group-level
-term and is never redrawn. A factor-smooth term is, with the other
-group-level terms.
+A SMOOTH is never redrawn, \code{gp()} and \code{hsgp()} curves included and a
+smooth indexed by a grouping factor included (\code{s(g, bs = "re")},
+\code{s(x, g, bs = "fs")}, a \code{t2()} with an \code{re} margin). Its coefficients
+are penalized coefficients of a term of the formula, not group
+effects, and \code{re_formula = NA} keeps every smooth as brms does, so
+the draws at \code{NA} are the conditional draws on a fit whose only
+group-indexed content is a smooth. \code{frm_bootstrap()} is the exception
+and asks for the other thing on purpose: a whole-model parametric
+bootstrap redraws every block, smooths included.
 }
 
 \section{New data}{
@@ -117,11 +123,14 @@ that level's estimate, and a redrawn term shares one draw across the
 rows of the level, so newdata must carry the grouping column. A level
 the fit never saw is an error unless \code{allow_new_levels = TRUE}, which
 draws its effect from the term's estimated distribution, as
-\code{predict()} does. Under \code{re_formula = NA} (or \code{~0}, \code{~1}) every term
-is redrawn anyway, so an unseen level is one more fresh level and
-needs nothing, except on a fit with a factor-smooth term: there an
-unseen level takes the population curve under
-\code{allow_new_levels = TRUE}, as in \code{predict()}, and is not redrawn.
+\code{predict()} does. Under \code{re_formula = NA} (or \code{~0}, \code{~1}) every
+group-level term is redrawn anyway, so an unseen level of one is one
+more fresh level and needs nothing. A SMOOTH indexed by a grouping
+factor is not redrawn and not dropped, so it is the exception at every
+\code{re_formula}: newdata must carry its grouping column, and an unseen
+level is refused unless \code{allow_new_levels = TRUE}, which gives it the
+population curve for an \code{fs} basis and is refused for an \code{re} basis or
+margin, exactly as in \code{predict()}.
 }
 
 \section{Censored responses}{

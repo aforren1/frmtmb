@@ -1,0 +1,14 @@
+RESULT test-drmtmb-agreement.R lib=lane pass=0 fail=0 error=0 skip=13 warn=0 blocks=13/13
+  SKIP: gaussian location-scale with a mu random intercept, ML and REML 
+  SKIP: random intercepts in mu and sigma, independent and correlated 
+  SKIP: beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) 
+  SKIP: bivariate gaussian: rho12, correlated group effects, REML 
+  SKIP: animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) 
+  SKIP: phylo(tree) rescales the tree to unit height 
+  SKIP: student and cumulative logit with a mu random intercept 
+  SKIP: more families: lognormal, Gamma, beta-binomial, ZI NB2 
+  SKIP: meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE) 
+  SKIP: sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz 
+  SKIP: mi(): a gaussian missing predictor with its own model 
+  SKIP: skew_normal: same likelihood, from frmtmb's default start 
+  SKIP: REML with a sigma random effect: not the same criterion 

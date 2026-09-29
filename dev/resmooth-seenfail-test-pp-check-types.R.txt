@@ -1,0 +1,5 @@
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+RESULT test-pp-check-types.R lib=base pass=196 fail=2 error=0 skip=0 warn=0
+  BAD: pp_check reproduces an fs fit's spread at the default re_formula 
+     Expected `abs(stats::median(apply(s, 1, stats::sd)/sig) - 1)` < `tol`. | Actual comparison: 1.9 >= 0.2 | Difference: 1.7 >= 0 
+     Expected `abs(...)` < `tol`. | Actual comparison: 0.34 >= 0.21 | Difference: 0.12 >= 0 

@@ -170,8 +170,9 @@ test_that("a partial formula is refused where a term cannot be named", {
     stats::rnorm(120, 0, 0.3)
   fit <- suppressWarnings(
     frm(bf(y ~ s(x, g, bs = "fs", k = 4) + (1 | h) + (1 | k)), data = d))
-  # the factor smooth is group-level content re_formula = NA drops, and
-  # a formula has no way to name it
+  # the factor smooth is content a formula has no way to name. NA keeps
+  # it now, as brms does, so this refusal is conservative rather than
+  # forced; dev/resmooth-findings.md proposes dropping it
   expect_error(frm_linpred(fit, re_formula = ~(1 | h)),
                class = "frmtmb_error", regexp = "cannot name")
   # naming every bar term keeps the smooth, as NULL does

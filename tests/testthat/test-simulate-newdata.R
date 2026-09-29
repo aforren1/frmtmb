@@ -218,6 +218,71 @@ test_that("re_formula = NA keeps a population smooth curve", {
                    simulate(fit, nsim = 5, seed = 1))
 })
 
+test_that("re_formula = NA keeps a GROUP-INDEXED smooth curve too", {
+  # brms keeps every smooth under any re_formula, so these three draws
+  # must be the conditional ones. Through 0.64.0 all three were redrawn
+  # from the smoothing prior: the per-row sd of the draws over the fitted
+  # sigma was 1.1363 for s(g, bs = "re"), 2.9348 for s(x, g, bs = "fs")
+  # and 3.2380 for a t2() with an re margin, against 1.0023 for each now
+  # (dev/resmooth-ppcheck-before.txt, dev/resmooth-ppcheck-after.txt).
+  # SEEN TO FAIL on that build, on the identity below, for all three.
+  set.seed(5)
+  n <- 300L
+  d <- data.frame(x = stats::runif(n),
+                  g = factor(rep(1:10, length.out = n)))
+  d$y <- sin(2 * pi * d$x) + stats::rnorm(10, 0, 0.5)[d$g] * d$x +
+    stats::rnorm(n, 0, 0.3)
+  forms <- list(re = bf(y ~ s(x) + s(g, bs = "re")),
+                fs = bf(y ~ s(x, g, bs = "fs", k = 5)),
+                t2 = bf(y ~ t2(x, g, bs = c("cr", "re"))))
+  for (nm in names(forms)) {
+    fit <- suppressWarnings(frm(forms[[nm]], family = gaussian(), data = d))
+    # nothing is redrawn, so the draws ARE the conditional ones
+    expect_identical(simulate(fit, nsim = 5, seed = 1, re_formula = NA),
+                     simulate(fit, nsim = 5, seed = 1))
+    expect_identical(frmtmb:::sim_re_plan(fit, NA)$redraw, integer(0))
+  }
+})
+
+test_that("a smooth beside (1 | g): NA redraws the group term only", {
+  set.seed(5)
+  n <- 300L
+  d <- data.frame(x = stats::runif(n),
+                  g = factor(rep(1:10, length.out = n)))
+  d$y <- sin(2 * pi * d$x) + stats::rnorm(10, 0, 0.5)[d$g] +
+    stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(frm(bf(y ~ s(x) + (1 | g)), family = gaussian(),
+                              data = d))
+  bl <- fit$frame[["re_blocks"]]
+  gi <- which(vapply(bl, function(b) b[["covstruct"]] != "smooth", NA))
+  expect_identical(frmtmb:::sim_re_plan(fit, NA)$blocks, gi)
+  expect_false(identical(simulate(fit, nsim = 5, seed = 1, re_formula = NA),
+                         simulate(fit, nsim = 5, seed = 1)))
+})
+
+test_that("an unseen level of a KEPT smooth is not a fresh level", {
+  # `every` says whether simulate(newdata = ) may invent a level. A
+  # group-indexed smooth places its level through its basis, so it may
+  # not: with the guard removed the design builds silently and the row
+  # gets the population curve while the draw claims a fresh level
+  # (dev/resmooth-edge-after.txt, which builds both arms).
+  set.seed(5)
+  n <- 240L
+  d <- data.frame(x = stats::runif(n), g = factor(rep(1:8, length.out = n)))
+  d$y <- sin(2 * pi * d$x) + stats::rnorm(8, 0, 0.5)[d$g] * d$x +
+    stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(frm(bf(y ~ s(x, g, bs = "fs", k = 5)),
+                              family = gaussian(), data = d))
+  expect_false(isTRUE(frmtmb:::sim_re_plan(fit, NA)$every))
+  nd <- data.frame(x = c(0.2, 0.6), g = factor(c("zz", "zz")))
+  expect_error(simulate(fit, nsim = 2, newdata = nd, re_formula = NA),
+               "New levels in the factor-smooth term",
+               class = "frmtmb_error")
+  s <- simulate(fit, nsim = 2, newdata = nd, re_formula = NA,
+                allow_new_levels = TRUE)
+  expect_identical(dim(s), c(2L, 2L))
+})
+
 test_that("an unseen level needs allow_new_levels under a kept term", {
   fit <- sn_fit()
   nd <- data.frame(x = 0, g = factor("new"))

@@ -1,0 +1,7 @@
+ARM: before from C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+A gp(x) n_b=160, newdata 3 NEW positions, NA   1.9500 s
+B gp(x) n_b=160, in sample, NA                 1.2500 s
+D s(x,k=8)+(1|g) 40 lv, in sample, NULL        0.1725 s
+E s(x,k=8)+(1|g) 40 lv, in sample, NA          0.1444 s
+CONTROL x+(1|g) 40 lv, in sample, NULL         0.0644 s
+DONE

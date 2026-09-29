@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+s(g, bs = re)      sd(y) 0.7653 | median sd(yrep) 0.7614 | pooled ratio 0.9930 | rowsd/sigma 1.0023 | tol 0.2124 | P(sd(yrep) >= sd(y)) 0.3875 | identical(NA, NULL draws) TRUE
+    pp_check() returns a ggplot: TRUE 
+s(x, g, bs = fs)   sd(y) 0.7653 | median sd(yrep) 0.7551 | pooled ratio 0.9845 | rowsd/sigma 1.0023 | tol 0.2124 | P(sd(yrep) >= sd(y)) 0.2450 | identical(NA, NULL draws) TRUE
+    pp_check() returns a ggplot: TRUE 
+t2(x, g, cr+re)    sd(y) 0.7653 | median sd(yrep) 0.7550 | pooled ratio 0.9848 | rowsd/sigma 1.0023 | tol 0.2124 | P(sd(yrep) >= sd(y)) 0.2525 | identical(NA, NULL draws) TRUE
+    pp_check() returns a ggplot: TRUE 
+s(x) + (1 | g)     sd(y) 0.7653 | median sd(yrep) 0.7655 | pooled ratio 1.0017 | rowsd/sigma 1.1395 | tol 0.2124 | P(sd(yrep) >= sd(y)) 0.5025 | identical(NA, NULL draws) FALSE
+    pp_check() returns a ggplot: TRUE 
+s(x)               sd(y) 0.7653 | median sd(yrep) 0.7632 | pooled ratio 0.9951 | rowsd/sigma 1.0023 | tol 0.2124 | P(sd(yrep) >= sd(y)) 0.4400 | identical(NA, NULL draws) TRUE
+    pp_check() returns a ggplot: TRUE 

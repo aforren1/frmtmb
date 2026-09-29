@@ -1,0 +1,2 @@
+No priors were set (plain maximum likelihood).
+RESULT test-parity-integration.R lib=lane pass=8 fail=0 error=0 skip=0 warn=0

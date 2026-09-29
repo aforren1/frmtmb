@@ -1,0 +1,6 @@
+tests/testthat/test-predict-re-uncertainty.R
+tests/testthat/test-smooth-population.R
+tests/testthat/test-pp-check-types.R
+tests/testthat/test-emmeans.R
+tests/testthat/test-re-formula-partial.R
+extensions/frmtmb.spline/tests/testthat/test-curve.R

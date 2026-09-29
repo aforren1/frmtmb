@@ -36,9 +36,9 @@ the group-level terms it names at their fitted values and the
 smooths with them, and redraws the other group-level terms, as
 \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} reads it.
 
-This is not \code{simulate(re_formula = NA)}, which holds a population
-smooth at its fitted curve, because a posterior-predictive check
-needs the curve the model estimated.}
+This is not \code{simulate(re_formula = NA)}, which holds EVERY smooth at
+its fitted curve, one indexed by a grouping factor included, because
+a posterior-predictive check needs the curve the model estimated.}
 }
 \value{
 A \code{frmtmb_boot} object: \code{t0} (FUN at the original fit), \code{t}

@@ -1,0 +1,25 @@
+frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib2/frmtmb 0.64.0 
+s(x)                   blocks 1:smooth                     | in-sample keeps 1       | newdata keeps 1       | sim redraws       | max|NA-NULL|         0 | max|nd-ins|  5.38e-14 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.996
+s(g, bs = re)          blocks 1:smooth,2:smooth            | in-sample keeps 1,2     | newdata keeps 1,2     | sim redraws       | max|NA-NULL|  4.44e-16 | max|nd-ins|  1.89e-13 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.990
+s(x, g, bs = fs)       blocks 1:smooth,2:smooth,3:smooth   | in-sample keeps 1,2,3   | newdata keeps 1,2,3   | sim redraws       | max|NA-NULL|  4.44e-16 | max|nd-ins|  2.82e-14 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.973
+t2(x, g, cr+re)        blocks 1:smooth,2:smooth            | in-sample keeps 1,2     | newdata keeps 1,2     | sim redraws       | max|NA-NULL|  4.44e-16 | max|nd-ins|  5.55e-16 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.974
+s(x) + (1 | g)         blocks 1:us,2:smooth                | in-sample keeps 2       | newdata keeps 2       | sim redraws 1     | max|NA-NULL|     0.906 | max|nd-ins|  1.88e-13 | rowsd/sigma 1.258 | sd(yrep)/sd(y) 1.012
+sigma ~ s(x)           blocks 1:smooth,2:smooth            | in-sample keeps 1,2     | newdata keeps 1,2     | sim redraws       | max|NA-NULL|         0 | max|nd-ins|  3.33e-14 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.990
+t2(x, z)               blocks 1:smooth,2:smooth,3:smooth   | in-sample keeps 1,2,3   | newdata keeps 1,2,3   | sim redraws       | max|NA-NULL|  4.44e-16 | max|nd-ins|  8.88e-16 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.996
+gp(x)                  blocks 1:gp                         | in-sample keeps 1       | newdata keeps 1       | sim redraws       | max|NA-NULL|         0 | max|nd-ins|         0 | rowsd/sigma 1.000 | sd(yrep)/sd(y) 0.995
+
+-- newdata with a NEW level of g, re_formula = NA --
+s(g, bs = re)      allow_new_levels=FALSE ERROR: New levels in the factor-smooth term s(g): 99. The term has no curve for them. Use allow_new_levels = TRUE to predict th
+s(g, bs = re)      allow_new_levels=TRUE  ERROR: allow_new_levels = TRUE cannot predict the new level(s) 99 of the smooth term s(g), whose basis has an `re` factor in it
+s(g, bs = re)      no g column        ERROR: predict(newdata = ) for the factor-smooth term s(g) needs the grouping column `g`: the term holds one curve per level of
+s(x, g, bs = fs)   allow_new_levels=FALSE ERROR: New levels in the factor-smooth term s(x,g): 99. The term has no curve for them. Use allow_new_levels = TRUE to predict 
+s(x, g, bs = fs)   allow_new_levels=TRUE  OK: 0.4798 0.5280 0.5001 0.5367 0.4978
+s(x, g, bs = fs)   no g column        ERROR: predict(newdata = ) for the factor-smooth term s(x,g) needs the grouping column `g`: the term holds one curve per level 
+
+-- conditional_effects(re_formula = NA) --
+s(x, g, bs = fs)   OK range -0.1814 1.7905
+s(g, bs = re)      OK range -0.0723 1.8434
+
+-- partial re_formula beside a factor smooth --
+partial: OK 
+nosuch : ERROR: predict(): the re_formula term (1 | nosuch) matches no group-level term of this fit. A term is kept when its grouping fa 

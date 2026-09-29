@@ -1198,12 +1198,20 @@ close behind. Use it when the per-subject departures are near linear,
 and use `bs = "fs"` when they are not.
 
 ```{r fosr-fig, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Plot of the two functional coefficients against t on the unit interval. A blue line is the fitted intercept function, which rises to about 3 near t equal to 0.25 and falls to about minus 1 near t equal to 0.75. A red line is the fitted slope function, an inverted parabola peaking near 1.5 at t equal to 0.5. Dashed gray lines are the simulated truth, and each fitted line follows its own dashed line closely."}
-xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
+xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0,
+                 # an UNSEEN subject: mgcv's fs basis returns a zero row
+                 # for a level it does not know, so the per-subject curve
+                 # contributes nothing and this IS the population
+                 # coefficient function. re_formula = NA would not do it:
+                 # it keeps every smooth, as brms does, and removes the
+                 # (x | g) group-level terms alone
+                 subject = factor("population",
+                                  levels = c(levels(fos$subject),
+                                             "population")))
 xg1 <- transform(xg, x = 1)
-# re_formula = NA drops the per-subject fs curves, so this IS the
-# population coefficient function; no subject column is needed
-f0 <- as.numeric(frm_linpred(ffs, newdata = xg, re_formula = NA))
-f1 <- as.numeric(frm_linpred(ffs, newdata = xg1, re_formula = NA)) - f0
+f0 <- as.numeric(frm_linpred(ffs, newdata = xg, allow_new_levels = TRUE))
+f1 <- as.numeric(frm_linpred(ffs, newdata = xg1,
+                             allow_new_levels = TRUE)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -1859,10 +1867,14 @@ and each one is handled above:
   and reports as `-gam$gcv.ubre`. `logLik.gam` is the unpenalized
   likelihood at the fit and is the wrong number to compare against.
   Section 10 compares the right pair.
-- On a model with an `fs` factor-smooth, `frm_linpred(re_formula = NA)`
-  drops the per-subject curves and gives the population coefficient
-  function directly, with no grouping column needed in `newdata`.
-  Section 10 draws its figure that way.
+- `re_formula = NA` does NOT drop an `fs` factor-smooth. It removes the
+  `(x | g)` group-level terms and keeps every smooth, which is brms's
+  rule. To read the population coefficient function off such a model,
+  predict at an UNSEEN level of the grouping factor with
+  `allow_new_levels = TRUE`: mgcv's `fs` basis returns a zero row for a
+  level it does not know, so the per-subject curve contributes nothing.
+  Section 10 draws its figure that way. The grouping column is needed in
+  `newdata` at every `re_formula`.
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds a shift parameter by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.

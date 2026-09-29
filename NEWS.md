@@ -1,3 +1,98 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`re_formula = NA` now keeps EVERY smooth**, which is brms's rule:
+  `re_formula` removes the `(x | g)` group-level terms and nothing else.
+  Three kinds of smooth were dropped before, and each is indexed by a
+  grouping factor: `s(g, bs = "re")` and `s(x, g, bs = "re")`, the
+  factor smooth `s(x, g, bs = "fs")`, and a `t2()` with an `re` margin.
+  `brms::posterior_epred(re_formula = NA)` is bitwise the same as at
+  `re_formula = NULL` on a fit whose only group-indexed content is one
+  of those, and differs on `s(x) + (1 | g)`; frmtmb now agrees on both.
+  `(1 | g)` is still dropped under `NA`, unchanged.
+
+  This changes numbers, silently before and reported here:
+
+  - `predict()`, `fitted()`, `frm_linpred()`, `frm_lp_basis()`,
+    `posterior_epred()` and `posterior_linpred()` at `re_formula = NA`
+    now return the full prediction on a fit whose only group-level
+    content is such a smooth. On `y ~ t2(x, g, bs = c("cr", "re"))` the
+    old answer was the intercept at every row.
+  - `conditional_effects()` passes `re_formula = NA`, so its curves
+    change on those fits. On `y ~ s(x, g, bs = "fs")` the drawn curve
+    was FLAT, the whole fitted structure having been removed; it is now
+    the curve of the grouping factor's reference level, which is where
+    the display holds every predictor it is not varying.
+  - `emmeans()` on such a fit now carries the grouping factor in its
+    reference grid and averages the mean over its levels, where it used
+    to drop the term. `emmeans(re_formula = NULL)` on the same fit works
+    now too; it was refused for want of that column.
+  - `simulate(re_formula = NA)` no longer redraws those smooths, so the
+    **default `pp_check()` changes on any fit that has one**. The draws
+    were far more spread out than the model says: on
+    `y ~ s(x, g, bs = "fs")` the per-row standard deviation of the
+    draws over the fitted sigma was 2.93, and the pooled standard
+    deviation over the data's own was 1.34; both are 1.00 now. A
+    `pp_check()` that looked mismatched on such a fit may now look
+    right, and the earlier picture was the wrong comparison, not a
+    finding about the model.
+  - A smooth indexed by a grouping factor is kept, so `newdata` must
+    carry its grouping column at every `re_formula`, and a level the fit
+    never saw is refused. `re_formula = NA` was a way out of both and is
+    not any more; the refusals say so. brms refuses both too, and not
+    through its group-level machinery: the grouping factor of a smooth
+    is an ordinary predictor there, so a missing column is a missing
+    variable and an unseen level is "New factor levels are not allowed"
+    whatever `allow_new_levels` says. frmtmb keeps one opt-in brms does
+    not have: under `allow_new_levels = TRUE` an unseen level of an `fs`
+    term takes the population curve, mgcv's `fs` basis returning a zero
+    row for a level it does not know. An `re` basis or margin has one
+    column per fitted level and no such row, so an unseen level there is
+    refused either way.
+  - To read the population curve off a model with an `fs` term, predict
+    at an unseen level of the grouping factor with
+    `allow_new_levels = TRUE`. The functional regression section of
+    `vignette("case-studies")` now draws its figure that way.
+  - One fittable term is left with no `newdata` route at all: a factor
+    smooth that also carries a `by =` factor,
+    `s(x, g, bs = "fs", by = f)`. mgcv's random-effect split of that
+    basis is one this version cannot invert, so `predict(newdata = )`,
+    `fitted(newdata = )`, `frm_linpred(newdata = )` and
+    `conditional_effects()` stop with that named error at every
+    `re_formula`, where `re_formula = NA` answered before by dropping the
+    term. What it answered was the intercept at every row, so a flat line
+    became a named refusal, not a curve became an error. In-sample
+    `fitted()` and `frm_linpred()` on such a fit are unaffected.
+
+* `frm_bootstrap()` is unchanged. Its default is a whole-model
+  parametric bootstrap that redraws every block including the smooths,
+  which `simulate()` does not offer.
+
+## Bug fixes
+
+* **A category probability's `Est.Error` now carries the smooth's
+  uncertainty.** `fitted()` on an ordinal, categorical or multinomial fit
+  takes its standard errors by finite differences, and the coefficients
+  it differenced never included a smooth's. The differenced function was
+  therefore "move the thresholds with the fitted curve frozen", which is
+  not the standard error of anything, while the analytic route used
+  everywhere else has always carried the curve. Checked against Monte
+  Carlo over the same joint covariance the delta method uses: on
+  `y ~ s(x, k = 8)` with `cumulative()` the shipped value was 74 percent
+  from the Monte Carlo standard deviation at the median cell, 0.37825
+  against 0.06509 on the first row, and is 2 percent from it now; on a
+  `s(x, g, bs = "fs")` fit it was 50 percent from it, and understated
+  rather than overstated, because the cross term between the outer
+  parameters and the coefficients can go either way. The same fix applies
+  to the standard error of an `autocor(cov = FALSE)` quantity.
+
+  What is left is first-order curvature, not a missing term, and it is
+  the same on every earlier release: the corrected standard error is
+  within 2 percent of Monte Carlo on a population smooth and within 8
+  percent beside a group effect, the worst measured cell being
+  `s(x) + (1 | g)` at `re_formula = NULL`.
+
 # frmtmb 0.64.0
 
 brms parity: every gap in the model menu that the last round listed is

@@ -1,0 +1,19 @@
+frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
+smooth b positions differenced by the reference: 30 
+shipped Est.Error at re_formula = NA (rows x categories):
+     P(Y = 1) P(Y = 2) P(Y = 3)
+[1,] 0.059595 0.066036 0.110310
+[2,] 0.097170 0.050812 0.085943
+[3,] 0.138944 0.059080 0.102965
+reference that also differences the smooth's coefficients:
+         [,1]     [,2]     [,3]
+[1,] 0.059595 0.066036 0.110310
+[2,] 0.097170 0.050812 0.085943
+[3,] 0.138944 0.059080 0.102965
+max relative gap 3.523e-16, median 1.366e-16
+share of the SE that the smooth's coefficients supply: Warning message:
+In sprintf("share of the SE that the smooth's coefficients supply: ",  :
+  one argument not used by format 'share of the SE that the smooth's coefficients supply: '
+median 0.5163, min 0.0074, max 0.6760
+analytic se(eta) at NA : 0.436762 0.445320 0.601869 
+analytic se(eta) at NULL: 0.436762 0.445320 0.601869 

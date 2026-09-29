@@ -149,7 +149,25 @@ to do, and every closure carries the measurement that closed it.
   does, and a term that is not kept is redrawn
   (`dev/simnewdata-findings.md`).
 
-- DECIDED, waiting for a lane (user, 2026-09-24): `re_formula = NA`
+- DONE, lane wt-resmooth (`dev/resmooth-findings.md`). `re_formula = NA`
+  keeps every smooth. brms's `posterior_epred(re_formula = NA)` is
+  BITWISE its `re_formula = NULL` on all three constructions and differs
+  on `s(x) + (1 | g)` (`dev/resmooth-brms.txt`), and frmtmb now agrees on
+  both: the row sd over sigma is 1.000 for each of the three, against
+  1.260, 1.741 and 1.919, and 1.258 for `s(x) + (1 | g)` before and
+  after (`dev/resmooth-before.txt`, `dev/resmooth-after.txt`). brms
+  REFUSES a new level of the grouping factor of a smooth whatever
+  `allow_new_levels` says, so frmtmb refuses too, and a missing grouping
+  column with it: `re_formula = NA` is no longer a way out of either.
+  Two open items go with it. The partial-formula refusal beside a factor
+  smooth is now conservative rather than forced, and section 4 of the
+  findings PROPOSES dropping it, for the user to decide. And the lane
+  found and fixed a separate defect on the way: the finite-difference
+  `Est.Error` of a category probability differenced no smooth
+  coefficients at any `re_formula`, which put it 74 percent from a Monte
+  Carlo reference on an ordinal `s(x)` fit (findings section 5).
+  The entry as filed:
+  `re_formula = NA`
   must keep EVERY smooth, as brms keeps every smooth under any
   `re_formula`. Today `predict(re_formula = NA)`, and so
   `simulate(re_formula = NA)`, drops three kinds of smooth that are
@@ -220,6 +238,39 @@ to do, and every closure carries the measurement that closed it.
   "Verified immune" below. [lme4#635/#636/#945]
 
 ## Open - medium
+
+- The finite-difference `Est.Error` route costs one pair of model
+  evaluations per differenced coefficient, and a smooth or `gp()` block
+  can have as many coefficients as there are observations. Filed by lane
+  wt-resmooth after its nits round fixed the part that was fixable.
+  Counted, not timed (`dev/resmooth-batchcost.R`, log
+  `dev/resmooth-batchcost-after.txt`; wall clock on three arms in
+  `dev/resmooth-cost3-*.txt`):
+  * `fitted(newdata = 3 rows, re_formula = NA)` on a `cumulative()`
+    `gp(x)` fit with 160 coefficients makes 329 model evaluations and
+    takes 1.56 s against 0.0497 s on 0.64.0, about 31x. The three rows
+    are OFF the fitted `gp()` positions, so every kriging row loads all
+    160 columns and no batch of two columns can be attributed by row.
+  * `fitted()` on `s(x, k = 8) + (1 | g)` at 40 levels is 1.70x at
+    `re_formula = NULL` and 1.48x at `NA` for the same reason at a
+    smaller size: 25 and 23 evaluations against 11 and 9. Every row
+    loads every basis column of a smooth, so the block cannot batch.
+  * A CONTROL with no smooth is 11 evaluations on both arms and moves
+    0.0731 s to 0.0537 s, which bounds the wall-clock noise at about
+    1.36x and is why the counts are the instrument here.
+  The route that would fix it: a category probability depends on `b`
+  only through `eta`, and `eta` is LINEAR in `b`, so
+  `dp/db = (dp/deta) Z` needs one evaluation pair per ROW rather than
+  per coefficient, and `Z` is already built by `lp_delta_A()`. That
+  needs a seam `fit_fd_se()` does not have, because it differences the
+  composite `f` and cannot perturb `eta` alone. A cheaper partial
+  measure this round did not take: an `fs` block's columns partition by
+  LEVEL, so a row loads only its own level's basis columns and its 50
+  columns could be 5 batches rather than 50. `re_b_batches()`'s
+  whole-block test cannot see that; a greedy grouping on the column
+  conflict graph would, at the cost of an `O(ncol^2)` sparse product
+  that has to stay off the path a fit with thousands of levels takes.
+
 
 - DONE 2026-09-22 (lane `wt-correct`, `dev/correct-findings.md`
   section 7). `?frm` says it under `REML`, and `test-smooths.R`

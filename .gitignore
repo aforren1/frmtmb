@@ -23,3 +23,8 @@ dev/brms-suite/
 
 # lane wt-correct: brms fits its probes cache
 dev/correct-brmsfits/
+
+# cached brms fits from the re_formula-keeps-every-smooth round: about
+# 10 MB each, and rebuildable by the script beside them
+dev/resmooth-brms-fits.rds
+dev/resmooth-rev-brms-fits.rds

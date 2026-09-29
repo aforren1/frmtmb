@@ -22,19 +22,25 @@
 #' block where a formula keeps some columns and drops others, whose
 #' dropped columns are drawn given the kept ones at their estimates;
 #' `blocks` is every block touched; `every` is `TRUE` when no
-#' group-level term is kept at all and none is a factor smooth, which
-#' is when an unseen level at `newdata` is simply one more fresh level:
-#' the newdata design gives an unseen level of a factor smooth the
-#' population curve, not a fresh one, so there the level is left to
-#' `allow_new_levels`, as in `predict()`.
+#' group-level term is kept at all and the fit has no smooth indexed by
+#' a grouping factor, which is when an unseen level at `newdata` is
+#' simply one more fresh level. Such a smooth is KEPT under `NA`, and
+#' its level is placed by its basis, so an unseen level there is not a
+#' fresh draw but a question for `allow_new_levels`, as in `predict()`.
 #'
 #' `NA` redraws exactly what predict(re_formula = NA) drops: every block
-#' but a POPULATION smooth, `gp()` or `hsgp()` curve. Those are
-#' penalized coefficients of a population-level term, not group
-#' effects. Redrawing them from the smoothing prior, as every release
-#' through 0.62.0 did, replaced the fitted curve with a random one: on
-#' `y ~ s(x)` the draws spread with an sd of 2.13 around a curve whose
-#' residual sd is 0.28 (dev/simnewdata-log/probe2-base.txt).
+#' but a SMOOTH, `gp()` or `hsgp()` one. Those are penalized
+#' coefficients of a term of the formula, not group effects, and that
+#' holds for a smooth indexed by a grouping factor too (`s(g, bs =
+#' "re")`, `s(x, g, bs = "fs")`, a `t2()` with an `re` margin): brms
+#' keeps every smooth under any `re_formula`. Redrawing them from the
+#' smoothing prior, as every release through 0.62.0 did for a
+#' population smooth and through 0.64.0 for a group-indexed one,
+#' replaced the fitted curve with a random one: on `y ~ s(x)` the draws
+#' spread with an sd of 2.13 around a curve whose residual sd is 0.28
+#' (dev/simnewdata-log/probe2-base.txt), and on
+#' `y ~ s(x, g, bs = "fs")` with 1.741 times sigma against 1.000 now
+#' (dev/resmooth-before.txt, dev/resmooth-after.txt).
 #'
 #' `smooths = TRUE` restores that for `NA`, `~0` and `~1`: every block
 #' is redrawn. It is `frm_bootstrap()`'s setting (user decision,
@@ -52,10 +58,20 @@ sim_re_plan <- function(fit, re_formula, smooths = FALSE) {
   if (kp$kind %in% c("asis", "none")) {
     # asis here is NA: check_re_form() has refused anything else
     ids <- if (smooths) seq_along(blocks) else sim_group_block_ids(fit)
-    fs <- any(vapply(blocks[ids], function(bk) {
-      bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
-    }, NA))
-    return(list(redraw = unlist(lapply(blocks[ids], `[[`, "b_idx")),
+    # An unseen level at newdata is "one more fresh level" only when
+    # nothing in the design has to PLACE that level. A group-indexed
+    # smooth is kept under NA now, so its level still has to be one its
+    # basis knows: that question is asked of the fit rather than of the
+    # redrawn blocks, which no longer hold any smooth.
+    fs <- length(unlist(lapply(fit$frame[["linpreds"]],
+                              smooth_group_block_ids))) > 0L ||
+      any(vapply(blocks[ids], function(bk) {
+        bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+      }, NA))
+    # integer(0) rather than unlist()'s NULL when nothing is redrawn, so
+    # the slot has one type whichever branch fills it
+    return(list(redraw = unlist(lapply(blocks[ids], `[[`, "b_idx")) %||%
+                  integer(0),
                 cond = list(), blocks = ids, every = !fs))
   }
   # a partial formula: per block, which columns stay
@@ -94,17 +110,14 @@ sim_re_plan <- function(fit, re_formula, smooths = FALSE) {
 }
 
 #' The blocks `re_formula = NA` removes from a prediction: every block
-#' except the population smooth, `gp()` and `hsgp()` blocks
-#' (`lp_eta_design()`'s rule, from the same `smooth_group_block_ids()`).
+#' except a smooth, `gp()` or `hsgp()` one, which `lp_eta_design()`
+#' keeps whatever `re_formula` says.
 #'
 #' @noRd
 sim_group_block_ids <- function(fit) {
   blocks <- fit$frame[["re_blocks"]]
-  grp_sm <- unique(unlist(lapply(fit$frame[["linpreds"]],
-                                 smooth_group_block_ids)))
-  which(!vapply(seq_along(blocks), function(i) {
-    blocks[[i]][["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
-      !i %in% grp_sm
+  which(!vapply(blocks, function(bk) {
+    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
   }, NA))
 }
 

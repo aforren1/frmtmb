@@ -43,10 +43,13 @@ the default, is the location parameter \code{mu}.}
 
 \item{resp}{Response name, for a multivariate fit.}
 
-\item{re_formula}{\code{NA} (the default) evaluates the population curve, the
-convention \code{mgcv} and \code{gratia} plot. \code{NULL} keeps every random
-effect, so the grid must carry the grouping columns and the curve is
-that group's own.}
+\item{re_formula}{\code{NA} (the default) drops the \code{(x | g)} group-level
+terms, the convention \code{mgcv} and \code{gratia} plot. It KEEPS every
+smooth, as brms does, a smooth indexed by a grouping factor
+included, so on a model with \code{s(t, g, bs = "fs")} the grid has to
+carry \code{g} at \code{NA} too and the curve is that level's. \code{NULL} keeps
+every random effect, so the grid must carry every grouping column.
+\code{?frmtmb::frm_linpred} has the full rule.}
 
 \item{level}{Coverage of both intervals.}
 

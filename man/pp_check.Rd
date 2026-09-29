@@ -58,7 +58,9 @@ one.}
 \item{re_formula}{The random-effect switch, in brms's spelling
 (\code{pp_check()} is a brms function). On a fit it is passed to
 \code{\link[=simulate]{simulate()}} and defaults to \code{NA}, which redraws every group-level
-effect in each replicate; \code{~0} and \code{~1} mean the same, and a
+effect in each replicate and holds every SMOOTH at its estimate,
+a smooth indexed by a grouping factor included; \code{~0} and \code{~1} mean
+the same, and a
 one-sided formula keeps the terms it names and redraws the rest
 (see \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}). On draws it is passed to
 \code{posterior_predict()} and
