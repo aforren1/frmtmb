@@ -1,14 +1,16 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the 0.63.0
-release, at frmtmb 0.63.0 and every extension's version of that release:
+`dev/suite-baseline.tsv` records one row per test file as of the 0.64.0
+release, at frmtmb 0.64.0 and every extension's version of that release:
 package, file, passing assertions, skips. It is a floor, not a target.
 
-Every row is from the release run (`dev/release/suite.log`, 292 files).
-13 files are new. One file's passing count fell against 0.62.0, by
-design: frmtmb.learn's `test-counterfactual.R` went from 70 to 69,
-because lane `wt-simnewdata` removed an assertion that `simulate()` has
-no `newdata` argument, which it now has. No other file fell.
+Every row is from the suite run of 2026-09-28 on the 0.64.0 tree
+(`dev/release/suite.log`, 305 files, 17,893 assertions, 0 fail, 0
+error). 13 files are new. One file's passing count fell against 0.63.0,
+by design: `frmtmb/test-brms-likelihood.R` went from 20 to 17 ungated
+passes, because lane `arcov` turned the row-18 refusal of `cov = FALSE`
+into a gated identity against brms. No other file fell. See "What the
+0.64.0 release changed" below for why this run postdates the release.
 
 Read a tier log only when it POSTDATES every file it covers. Three lanes
 of this round quoted a suite log written before their last edit, and in
@@ -198,4 +200,39 @@ assertions at this release, from 23 files and 2496, and it compiled 109
 Stan programs from an EMPTY cache against StanHeaders 2.39.1. That is
 the evidence that dropping the StanHeaders pin is safe; the ungated
 suite compiles no Stan program and cannot show it.
+
+## What the 0.64.0 release changed
+
+Regenerated at 305 rows and 17,893 assertions, from 292 rows and
+17,167. 13 files are new, the nine parity lanes' test files in core
+(`test-me.R`, `test-thres.R`, `test-gr-by.R`, `test-autocor-cond.R`,
+`test-mv-gaps.R`, `test-rsv-intercept.R`, `test-hurdle-nb-zoib.R`,
+`test-sratio-thresholds.R`, `test-emmeans.R`,
+`test-parity-integration.R`) and in frmtmb.sample (`test-gr-by-draws.R`,
+`test-sratio-draws.R`, `test-thres-draws.R`), plus none removed.
+
+This baseline was NOT regenerated at the release. The 0.64.0 round was
+consolidated on a Linux container (`dev/parity-round-20260925.md`) and
+the Windows harness did not run; the rows here come from the first run
+of `dev/release/run-suite.ps1` on the 0.64.0 tree, on 2026-09-28, on a
+fresh R 4.6.1 install restored from `dev/restore-cran-2026-09-28.txt`.
+The run was 305 of 305 with 0 fail and 0 error.
+
+Exactly one count fell, and it had an answer in the diff:
+`frmtmb/test-brms-likelihood.R` from 20 to 17 ungated passes and from
+33 to 37 skips. Lane `arcov` replaced the ungated row-18 block, which
+asserted that `ar(cov = FALSE)` is REFUSED, with a gated row-18d
+identity against brms; that block and three other new gated blocks
+(16b, 16c and the `me()` check) are the four added skips. The ungated
+suite asserts less about `cov = FALSE` because the claim it made is no
+longer true.
+
+One trap for the harness, found by the join against 0.63.0: the log
+came back with 305 declared and 304 `RESULT` lines, and the join named
+the missing row, `frmtmb.sample/test-conditions.R`. The file passes at
+6 when run alone through `run-tests.R`; the driver's `$hit.Line` write
+dropped it. Every `test-conditions.R` was rerun through the harness and
+its line re-entered, so the count above is from results, not from the
+driver's tally. Read the `RESULT` count against the declared count
+before reading the tallies.
 
