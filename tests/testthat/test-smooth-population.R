@@ -40,42 +40,54 @@ fosr_data <- function(N = 20L, nt = 15L, seed = 101) {
 }
 
 test_that("re_formula = NA keeps the fs smooth and drops (1 | g)", {
+  # The dropped group-level term is a RATER crossed with subject and
+  # time, not (1 | subject). mgcv's fs basis already carries a level per
+  # subject, so beside (1 | subject) the data fix only the SUM of the
+  # two: the conditional prediction is well determined and the split,
+  # which the population prediction exposes, is not. Refitting at three
+  # optimizer tolerances moved the population prediction 14.8 times as
+  # far as the conditional one with (1 | subject), and 1.7 times with
+  # the crossed rater; on the macOS CI runner of 2026-09-29 the
+  # (1 | subject) design failed at 24 times.
   d <- fosr_data()
+  set.seed(7)
+  d$rater <- factor(rep_len(1:5, nrow(d)))
+  d$y <- d$y + stats::rnorm(5, 0, 0.5)[d$rater]
   fit <- frm(bf(y ~ s(t, k = 8) + s(t, subject, bs = "fs", k = 5) +
-                  (1 | subject)),
+                  (1 | rater)),
              family = gaussian(), data = d)
   gm <- suppressWarnings(
     mgcv::gam(y ~ s(t, k = 8) + s(t, subject, bs = "fs", k = 5) +
-                s(subject, bs = "re"), data = d, method = "ML"))
+                s(rater, bs = "re"), data = d, method = "ML"))
 
   # conditional prediction: the two packages fit the same model
   expect_lt(max(abs(as.numeric(fitted(fit)[, "Estimate"]) -
                       as.numeric(fitted(gm)))), 1e-4)
   # how far apart two optimizers leave the SAME model on this platform,
-  # which is the yardstick for the population comparison below: a fixed
-  # 1e-5 passed on Windows and failed at 1.3e-5 on the macOS and Ubuntu
-  # CI runners of 2026-09-29, where both fits were right
+  # which is the yardstick for the population comparisons below
   cond_gap <- rel_gap(fitted(fit)[, "Estimate"], fitted(gm))
+  bound <- 10 * max(cond_gap, sqrt(.Machine$double.eps))
 
   # population prediction: the group-level intercept goes and both
-  # smooths stay, which is mgcv excluding s(subject) alone
-  pop <- as.numeric(predict(gm, exclude = "s(subject)"))
-  expect_lt(rel_gap(frm_linpred(fit, re_formula = NA), pop),
-            10 * max(cond_gap, sqrt(.Machine$double.eps)))
+  # smooths stay, which is mgcv excluding s(rater) alone
+  pop <- as.numeric(predict(gm, exclude = "s(rater)"))
+  expect_lt(rel_gap(frm_linpred(fit, re_formula = NA), pop), bound)
 
   # SEEN TO FAIL through 0.64.0, which returned this instead: the fs
   # term excluded as well. The two predictions are far apart, so the
   # assertion above cannot pass under the old rule.
   dropped_fs <- as.numeric(predict(gm,
-                                   exclude = c("s(t,subject)", "s(subject)")))
+                                   exclude = c("s(t,subject)", "s(rater)")))
   expect_gt(max(abs(pop - dropped_fs)) / stats::sd(pop), 0.1)
 
   nd <- data.frame(t = seq(0, 1, length.out = 11), x = 0,
                    subject = factor(levels(d$subject)[1],
-                                    levels = levels(d$subject)))
+                                    levels = levels(d$subject)),
+                   rater = factor(levels(d$rater)[1],
+                                  levels = levels(d$rater)))
   expect_lt(rel_gap(frm_linpred(fit, newdata = nd, re_formula = NA),
-                    predict(gm, newdata = nd, exclude = "s(subject)")),
-            1e-5)
+                    predict(gm, newdata = nd, exclude = "s(rater)")),
+            bound)
 
   # the population prediction still carries a standard error
   se <- frm_linpred(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
