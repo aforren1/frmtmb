@@ -8,7 +8,7 @@
   "codeRepository": "https://github.com/aforren1/frmtmb",
   "issueTracker": "https://github.com/aforren1/frmtmb/issues",
   "license": "https://spdx.org/licenses/GPL-2.0",
-  "version": "0.50.0",
+  "version": "0.64.0",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
@@ -57,6 +57,18 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=bayesplot"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "brokenstick",
+      "name": "brokenstick",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=brokenstick"
     },
     {
       "@type": "SoftwareApplication",
@@ -120,6 +132,19 @@
     },
     {
       "@type": "SoftwareApplication",
+      "identifier": "drmTMB",
+      "name": "drmTMB",
+      "version": ">= 0.7.0",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=drmTMB"
+    },
+    {
+      "@type": "SoftwareApplication",
       "identifier": "emmeans",
       "name": "emmeans",
       "provider": {
@@ -153,6 +178,18 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=GLMMadaptive"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "ggplot2",
+      "name": "ggplot2",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=ggplot2"
     },
     {
       "@type": "SoftwareApplication",
@@ -300,18 +337,6 @@
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "nlme",
-      "name": "nlme",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=nlme"
-    },
-    {
-      "@type": "SoftwareApplication",
       "identifier": "nloptr",
       "name": "nloptr",
       "provider": {
@@ -336,8 +361,33 @@
     },
     {
       "@type": "SoftwareApplication",
+      "identifier": "numDeriv",
+      "name": "numDeriv",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=numDeriv"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "ordinal",
+      "name": "ordinal",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=ordinal"
+    },
+    {
+      "@type": "SoftwareApplication",
       "identifier": "posterior",
       "name": "posterior",
+      "version": ">= 1.0.0",
       "provider": {
         "@id": "https://cran.r-project.org",
         "@type": "Organization",
@@ -483,6 +533,7 @@
       "@type": "SoftwareApplication",
       "identifier": "tmbstan",
       "name": "tmbstan",
+      "version": ">= 1.2.1",
       "provider": {
         "@id": "https://cran.r-project.org",
         "@type": "Organization",
@@ -513,15 +564,27 @@
     },
     "2": {
       "@type": "SoftwareApplication",
+      "identifier": "generics",
+      "name": "generics",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=generics"
+    },
+    "3": {
+      "@type": "SoftwareApplication",
       "identifier": "graphics",
       "name": "graphics"
     },
-    "3": {
+    "4": {
       "@type": "SoftwareApplication",
       "identifier": "grDevices",
       "name": "grDevices"
     },
-    "4": {
+    "5": {
       "@type": "SoftwareApplication",
       "identifier": "Matrix",
       "name": "Matrix",
@@ -533,12 +596,12 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=Matrix"
     },
-    "5": {
+    "6": {
       "@type": "SoftwareApplication",
       "identifier": "methods",
       "name": "methods"
     },
-    "6": {
+    "7": {
       "@type": "SoftwareApplication",
       "identifier": "mgcv",
       "name": "mgcv",
@@ -550,7 +613,19 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=mgcv"
     },
-    "7": {
+    "8": {
+      "@type": "SoftwareApplication",
+      "identifier": "nlme",
+      "name": "nlme",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=nlme"
+    },
+    "9": {
       "@type": "SoftwareApplication",
       "identifier": "reformulas",
       "name": "reformulas",
@@ -563,7 +638,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=reformulas"
     },
-    "8": {
+    "10": {
       "@type": "SoftwareApplication",
       "identifier": "RTMB",
       "name": "RTMB",
@@ -576,7 +651,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=RTMB"
     },
-    "9": {
+    "11": {
       "@type": "SoftwareApplication",
       "identifier": "RTMBdist",
       "name": "RTMBdist",
@@ -589,12 +664,12 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=RTMBdist"
     },
-    "10": {
+    "12": {
       "@type": "SoftwareApplication",
       "identifier": "stats",
       "name": "stats"
     },
-    "11": {
+    "13": {
       "@type": "SoftwareApplication",
       "identifier": "TMB",
       "name": "TMB",
@@ -606,14 +681,14 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=TMB"
     },
-    "12": {
+    "14": {
       "@type": "SoftwareApplication",
       "identifier": "utils",
       "name": "utils"
     },
     "SystemRequirements": null
   },
-  "fileSize": "2779.599KB",
+  "fileSize": "6511.271KB",
   "citation": [
     {
       "@type": "SoftwareSourceCode",
@@ -627,7 +702,7 @@
       ],
       "name": "frmtmb: Formula-Based Regression Models via RTMB",
       "url": "https://github.com/aforren1/frmtmb",
-      "description": "R package version 0.47.0"
+      "description": "R package version 0.64.0"
     }
   ],
   "releaseNotes": "https://github.com/aforren1/frmtmb/blob/main/NEWS.md",

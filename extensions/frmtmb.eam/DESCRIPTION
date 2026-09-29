@@ -46,6 +46,7 @@ Imports:
     stats
 Suggests:
     brms,
+    frmtmb.sample,
     knitr,
     numDeriv,
     rmarkdown,

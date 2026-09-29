@@ -1,91 +1,160 @@
 # Handing a round to a new session
 
-Written 2026-09-24, at the 0.63.0 release. Read this, then
+Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
+0.64.0 brms-parity release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
 
-Five lanes merged:
+`dev/parity-round-20260925.md` is the 0.64.0 round's own record. Each
+lane's findings file has its validation, its numbers and its scripts.
 
-- `wt-simnewdata`: `simulate(newdata = )` and `pp_check(newdata = )`,
-  and `re_formula` in `simulate()` read as in `predict()`.
-- `wt-mvprior`: a prior whose target brms refuses is refused, not
-  broadcast, in multivariate, nonlinear, categorical, mixture and
-  several-location extension families.
-- `wt-predfix`: the filed `predict()`/`fitted()` defects, `cs()` in
-  `predict()`, and the `autoscale = NULL` default.
-- `wt-phase3a`: items 3.1, 3.2 and 3.6 (`frm_ode_records()`, coupling
-  ingestion, `rp_floored()` on groups with no events).
-- `wt-phase3b`: items 3.3, 3.4 and 3.5 (learn sessions, `wiener()`
-  censoring, the `wiener()` contaminant).
+Nine lanes merged:
 
-Versions: frmtmb **0.63.0**; frmtmb.sample **0.11.0**, frmtmb.eam
-**0.11.0**, frmtmb.latent **0.6.0** and frmtmb.learn **0.7.0**, which
-floor on frmtmb 0.63.0 because each needs something only it has;
+- `me`: `me()` noise-free predictors and `set_mecor()`.
+  `dev/me-findings.md`
+- `thres`: `thres()` for the ordinal families.
+  `dev/thres-findings.md`
+- `grby`: `gr(g, by = )` and `mm(g1, g2, by = )`.
+  `dev/grby-findings.md`
+- `arcov`: `ar()`, `ma()` and `arma()` without `cov = TRUE`.
+  `dev/arcov-findings.md`
+- `mv`: three or more responses summed with `+`; `student()` with
+  `rescor`; ordinal families in a multivariate model.
+  `dev/mv-findings.md`
+- `icpt0`: `0 + Intercept` and `bf(center = FALSE)`.
+  `dev/icpt0-findings.md`
+- `fams`: `hurdle_negbinomial()` and `zero_one_inflated_beta()`.
+  `dev/fams-findings.md`
+- `emm`: emmeans on nonlinear and multivariate fits.
+  `dev/emm-findings.md`
+- `sratio`: `sratio()` thresholds unordered, found by lane thres.
+  `dev/sratio-findings.md`
+
+Versions: frmtmb **0.64.0**; frmtmb.sample **0.12.0**, which floors on
+frmtmb 0.64.0 because it needs `rescor_row_loglik()` and the new
+`fit_extras(resp = )`. Every other extension is unchanged from the
+0.63.0 release: frmtmb.eam **0.11.0**, frmtmb.latent **0.6.0** and
+frmtmb.learn **0.7.0** keep their floor at frmtmb 0.63.0;
 frmtmb.coupling **0.6.0**, frmtmb.spline **0.8.0** and frmtmb.ode
-**0.7.0**, whose floors stay at 0.61.0 because they call nothing new.
+**0.7.0** keep theirs at 0.61.0.
 
 ### Verified at the release commit
 
-- Suite: 292 files, 17,167 assertions, 0 fail, 0 error. 13 files are
-  new; one fell by one assertion, by design (`dev/suite-baseline.md`).
-- Gated: 39 of 39 files, 3,288 assertions, 0 fail, 0 files with a skip.
-- Scale: 7 of 7.
-- `R CMD check --as-cran`: 8 of 8. Five with 1 NOTE, the environmental
-  V8 one on the HTML manual; three OK. No examples-timing NOTE, on a
-  quiet machine. In-check tests FAIL 0 everywhere; core PASS 11,115,
-  kept as `dev/release/frmtmb-testthat.Rout`.
-- Ported brms bin 1: 252 of 494, from 250.
+Verification ran on a LINUX CONTAINER, not on the Windows box, which is
+why `R CMD check` was `--no-manual` there: the container has no LaTeX.
+The Windows run with the manual was done on 2026-09-28 on the fresh
+install (`dev/release/check.log`; core and eam rerun in
+`dev/release/check-rerun.log` after drmTMB and makeindex were
+installed): core, frmtmb.eam, frmtmb.latent, frmtmb.ode and
+frmtmb.spline at 1 NOTE, the environmental V8 one; frmtmb.coupling,
+frmtmb.sample and frmtmb.learn OK. The ungated suite on the same tree
+was 305 files, 17,893 assertions, 0 fail, 0 error
+(`dev/suite-baseline.md`). The reference log-likelihoods of
+`dev/machine-library.md` reproduce exactly on the container:
+-295.602189818 and -332.137876329.
 
-**Silent wrong answers found and fixed this round**, most by adversarial
-review rather than by any tier:
+- Suite, core and all seven extensions, one file per process: 305
+  files, 17,815 assertions. Two files fail, and both fail identically
+  on the unmodified base build there: `test-pp-check-types.R` (4), from
+  conda's bayesplot 1.15.0, and frmtmb.sample `test-reparam.R` (1).
+- Gated: 54 files, 3,767 assertions, 0 fail, 0 error, with Stan
+  compiling. `test-drmtmb-agreement.R` (131) and `test-fuzz.R` ran
+  separately behind their own gates, 0 skip.
+- Ported brms suite: the regenerated verdicts file and every generated
+  test file are byte-identical to the committed ones. Bin 1 passes 275
+  of 494, up from 252.
+- `R CMD build`: OK, vignettes included.
+- `R CMD check --as-cran --no-manual`: in-check tests 9,098 pass, 4
+  fail, all four `test-pp-check-types.R`. The other warnings and notes
+  are the container's: the locale, a missing `qpdf`, no CRAN index and
+  the clock check. One warning was real, an undeclared `ordinal::` in
+  `test-thres.R`; `ordinal` is now suggested.
 
-- `simulate(re_formula = NA)` redrew population smooths, so
-  `pp_check()` was wrong on every smooth model by default.
-- `predict()` and draws `posterior_predict()` dropped `cs()` entirely.
-- Priors: `b` without `nlpar` on `a ~ 1 + z` went to `a_z` only;
-  categorical and mixture models broadcast `b` and `Intercept` across
-  every `mu`; `class = "b"` left `cs()` coefficients out.
-- `wiener()`'s contaminant gradient was a staircase (in-lane, never
-  released).
-- The new autoscale default hid separation and turned returned fits into
-  errors (in-lane, caught by review, never released).
+The Windows machine got a FRESH R INSTALL on 2026-09-28, R 4.6.1, with
+the user library restored from `dev/restore-cran-2026-09-28.txt` and
+the manifest `dev/win-library-4.6-manifest-2026-09-28.csv` (412
+packages, 402 of them from CRAN). Several Windows-side records were
+stale after that and are corrected in this round: the StanHeaders pin
+is gone (`dev/lane-rules.md`, `dev/machine-library.md`), and
+`codemeta.json` is regenerated at 0.64.0.
+
+**Defects the merge created, found and fixed on the branch.** A lane
+can only test its own feature, so these appeared where two lanes met or
+in test files a lane did not run: `ordinal_ncat()` read the first
+response's family; `cs()` in a multivariate ordinal response had zero
+coefficients; `lp$center` was read with `$`; two refusals shared one
+message; a nonlinear body with `m[, 1]` stopped with 'argument "ei" is
+missing'; nine manual port verdicts were stale. Both
+`test-parity-integration.R` pins were seen failing on a build without
+the fixes. The table with each cause is in
+`dev/parity-round-20260925.md`.
 
 ## What is next, in order
 
-**Silent wrong answers filed and not fixed**, highest first:
+**Six lanes are running now**, each in its own worktree:
 
-1. `cs()` on a factor is fitted on the factor's integer codes, and a
-   newdata factor is re-coded from its own levels. brms builds treatment
-   dummies. `dev/test-backlog.md`, wt-predfix section.
-2. `predict(re_formula = NA)`, and so `simulate(NA)`, drops
-   `s(g, bs = "re")`, `fs` smooths and `t2` smooths with an `re` margin;
-   brms keeps every smooth. User decision 2026-09-24: match brms.
+1. `wt-gradcheck`: the convergence check fires on correct fits. "Large
+   maximum absolute gradient" appears on ordinal and multivariate fits
+   whose likelihood identities hold to 1e-12, and on fits with an
+   active bound. The 1e-3 threshold is absolute.
+2. `wt-csfactor`: `cs()` on a factor is fitted and predicted on the
+   factor's INTEGER CODES, a silent wrong answer; and `y ~ x + cs(x)`
+   is not identified and is not refused.
+3. `wt-resmooth`: `predict(re_formula = NA)`, and so `simulate(NA)`,
+   drops re-indexed smooths. User decision 2026-09-24: match brms.
+4. `wt-thresrefit`: refits recount the ordinal thresholds, so
+   `frm_bootstrap()` can lose one; and `draw_prior_entry()` on an
+   unordered threshold vector may copy one draw into every threshold.
+5. `wt-arcovsample`: frmtmb.sample `log_lik()` and `loo()` for
+   `cov = FALSE` ARMA.
+6. `wt-records`: the documentation and repository records of this
+   round, including the pkgcheck failures on `R/me.R` and
+   `R/ad-env.R`.
 
-**Filed defects and gaps**, in `dev/test-backlog.md`: autoscale on
-covariance structures other than `us`, `diag` and Student-t; `frm_sample()`
-on a one-parameter model; mixture sampling defaults for `sigma` and
-`theta`; six prior spellings where frmtmb and brms disagree on accept or
-refuse; missing `default_prior()` rows; `bf + bf + bf`, `cumulative` in a
-multivariate model, `me()`, `0 + Intercept`, and `student` with
-`rescor`; a negative-hazard penalty for `royston_parmar()`;
-`frm_curve()` refusing on `gamma1 ~ x`; two core seams for frmtmb.eam
-(a log-difference `lcdf` slot, a refusal of NA `dec()` on censored
-rows); `lba()` and `gddm()` censoring and `lba()`/`rdm()` contaminant,
-not built; base under-coverage of `log sd(log bs | s)`.
+**Then, in order:**
+
+- **Priors on `me()` hyperparameters.** Classes `meanme`, `sdme` and
+  `corme` are refused, not implemented (lane me).
+- **`gr(g, by = f, cov = A)`.** Refused by name today, because brms
+  correlates the by-levels through `A`, which is not a by-split
+  (lane grby).
+- **Latent-residual AR for non-gaussian families**, which is brms's
+  other autocorrelation form (lane arcov).
+- **The multivariate family-fill decision.** In
+  `bf(o ~ x) + cumulative() + bf(y ~ x) + gaussian()`, frmtmb fills
+  only the responses that have no family, so `o` stays ordinal; brms
+  gives the last family to every response. frmtmb behaved this way
+  before the round and the behavior is now documented. The user has to
+  decide whether it should follow brms.
+- **Phases 4 and 5 of `dev/extension-gaps-plan.md` are untouched.**
+
+**Also open, and filed in `dev/test-backlog.md`:** REML with `me()` in
+`mu` is approximate and registered as conditional, and the same
+argument applies to `mi()`, which is registered as working; autoscale
+on covariance structures other than `us`, `diag` and Student-t;
+`frm_sample()` on a one-parameter model; mixture sampling defaults for
+`sigma` and `theta`; six prior spellings where frmtmb and brms disagree
+on accept or refuse; missing `default_prior()` rows; a negative-hazard
+penalty for `royston_parmar()`; `frm_curve()` refusing on `gamma1 ~ x`;
+two core seams for frmtmb.eam (a log-difference `lcdf` slot, a refusal
+of NA `dec()` on censored rows); `lba()` and `gddm()` censoring and
+`lba()`/`rdm()` contaminant, not built; base under-coverage of
+`log sd(log bs | s)`.
 
 **Upstream reports, drafted and NOT filed**: RTMB `log_pnorm_both`'s
 derivative (`dev/phase3b-rtmb-report-pnorm.md`); TMB `TanhOp::reverse`
 (`dev/phase3b-rtmb-report-tanh.md`); drmTMB's REML and `beta_sigma`
-(`dev/drmtmb-findings.md`); TMB's macOS binary and OpenMP.
+(`dev/drmtmb-findings.md`); TMB's macOS binary and OpenMP. One more is
+ready to draft: brms's `posterior_predict_hurdle_negbinomial()` does
+not draw the zero-truncated negative binomial (lane fams).
 
-**From the drmTMB comparison** (`dev/drmtmb-findings.md`):
-`hurdle_negbinomial`, `zero_one_inflated_beta`, a negbinomial CDF for
-`trunc()`, `gr(g, by = f)`, `fcor()`, boundary-corrected
-variance-component tests, heritability and ICC accessors.
-
-**Phases 4 and 5 of `dev/extension-gaps-plan.md` are untouched.**
+**From the drmTMB comparison** (`dev/drmtmb-findings.md`), what is
+left after this round: `fcor()`, boundary-corrected variance-component
+tests, heritability and ICC accessors. `hurdle_negbinomial`,
+`zero_one_inflated_beta` and `gr(g, by = f)` shipped at 0.64.0; a
+negbinomial CDF for `trunc()` has not.
 
 ## Decisions the user made on 2026-09-24
 
@@ -152,11 +221,15 @@ remove the worktrees, prune branches, regenerate
 any lane still uses it as its base build.
 
 **Run `R CMD check` on a QUIET machine.** Its examples-timing NOTE
-measures load here; it did not appear at this release, run alone.
+measures load here; it did not appear at the 0.63.0 release, run alone.
 
-**Memory is shared.** At most 3 R fitting processes per lane, each
-started with 5 GB free (`dev/lane-rules.md`). One lane running 11 at
-once crashed the machine this round.
+**Memory.** On the machine of 2026-09-28, which has 63 GB of RAM and a
+fast disk, test runs need no process cap. Keep ONE TEST FILE PER R
+PROCESS and run as many at once as the work needs. The history stays
+because the failure mode is real on a smaller box: in the 0.63.0 round
+one lane running 11 R fitting processes at once crashed the machine of
+that time, and 34 of its fits had already failed with `std::bad_alloc`
+(`dev/lane-rules.md`).
 
 ## What the user has settled
 
@@ -165,23 +238,44 @@ once crashed the machine this round.
 - **Nobody uses this package yet.** Break backward compatibility
   freely: ship the refusal, bump, and say plainly in NEWS what stops
   working.
-- **StanHeaders is pinned OUTSIDE `%LOCALAPPDATA%`**, in `pinlib` at
-  2.32.10. It survived every library loss. The user library keeps
-  2.39.1.
+- **Nothing pins StanHeaders.** The `pinlib` at 2.32.10 was retired on
+  2026-09-17. rstan 2.32.7 compiles against the user library's
+  StanHeaders 2.39.1 because
+  `C:/Users/adf44/Documents/.R/Makevars.win` carries
+  `CXX17FLAGS += -std=gnu++17`, and tmbstan 1.2.1 no longer samples a
+  standard normal. That file is outside `%LOCALAPPDATA%`, so a library
+  loss does not touch it (`dev/tmbstan121-findings.md`).
 - **The R user library stays under `%LOCALAPPDATA%`** by the user's
   decision, knowing it will recur. RTMB 2.0 comes from r-universe after
   a restore, because CRAN's Windows binary is 1.9.
 - Core is the user's lane except where they ask otherwise.
 
-## What this round is evidence for
+## What the 0.64.0 round is evidence for
+
+Nine lanes, consolidated and verified on a Linux container.
+
+**A lane cannot test the seam it shares with another lane.** Six
+defects came out of the merge itself, not out of any lane, and two of
+them were wrong answers rather than refusals. The consolidating session
+found them by running the whole suite on the merged tree, which is the
+only place they exist.
+
+**Verification on one platform leaves a hole.** `--no-manual` on the
+container skipped the manual sections, which is where an unescaped `%`
+in Rd has bitten this project before, and the pkgcheck failures this
+lane fixed were on a Windows-side check that the container run never
+reached. A record round after a platform move is not optional.
+
+## What the 0.63.0 round was evidence for
 
 Five lanes, each with at least one adversarial review and one or two
 punch rounds; one machine crash and one power loss.
 
 **Review still finds silent wrong answers at about one per lane.** Most
-of those listed above were found by a reviewer, not by a tier, and
-several predate this round. Until that rate falls, a result should not
-be trusted without a check against brms or an exact reference.
+of the defects that round listed were found by a reviewer, not by a
+tier, and several predated the round. Until that rate falls, a result
+should not be trusted without a check against brms or an exact
+reference.
 
 **A shared seed is a hidden replicate count.** Phase 3b reported a
 drift-intercept interval covering 84.8 percent over 231 fits. The arms
@@ -196,13 +290,16 @@ reported success with no warning. The rule that closed it is general:
 a default must never be LESS diagnostic than the setting it replaces.
 
 **Interrupted runs are a standing condition, not an accident.** A crash
-and a battery shutdown each cut every lane mid-tier this round. What
+and a battery shutdown each cut every lane mid-tier that round. What
 held: treat every log after the cut as void, check each saved result
 reads back, verify each lane library against its source before trusting
 it.
 
 ## Worktrees
 
-`wt-simnewdata`, `wt-mvprior`, `wt-predfix`, `wt-phase3a` and
-`wt-phase3b` are merged and removed, with their evidence committed on
-main under `dev/`. Create fresh worktrees off the current main.
+Six are live, all off the 0.64.0 release commit `ec0e6d5f`:
+`wt-gradcheck`, `wt-csfactor`, `wt-resmooth`, `wt-thresrefit`,
+`wt-arcovsample` and `wt-records`, each on the branch of its own name
+in `../frmtmb-wt-<name>`. What each one carries is listed under "What
+is next". Remove a worktree and prune its branch only after its work
+is merged and its evidence is committed on main under `dev/`.

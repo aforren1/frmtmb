@@ -4,6 +4,14 @@
 \alias{frmtmb-me}
 \alias{me}
 \title{Noise-free predictors with known measurement error}
+\value{
+\code{me()} is a formula term, not a free-standing function:
+\code{bf()} reads it at parse time, and the value it contributes is the
+noise-free predictor's coefficient together with the latent values
+and the measurement-model hyperparameters, reachable through
+\code{\link[=fixef]{fixef()}} and the Noise-free Terms section of \code{\link[=summary]{summary()}}. This
+page itself documents the term grammar and returns nothing.
+}
 \description{
 \code{me(x, sdx)} in a formula says that the column \code{x} is a noisy
 measurement of a latent, noise-free value, with known measurement

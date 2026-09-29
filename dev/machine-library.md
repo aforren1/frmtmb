@@ -73,9 +73,21 @@ of them CRAN serves. The other ten are the eight `frmtmb*` packages,
 `RTMBode` and `RTMBp` from `https://kaskr.r-universe.dev`, and
 `cmdstanr` from `https://stan-dev.r-universe.dev`. On a fresh machine,
 install the CRAN list with `type = "binary"` and `dependencies = FALSE`,
-then the three r-universe packages, then StanHeaders 2.32.10 into a
-separate pin library as `dev/lane-rules.md` describes, and set
-`R_LIBS_USER` outside `%LOCALAPPDATA%` before any of it.
+then the three r-universe packages, and set `R_LIBS_USER` outside
+`%LOCALAPPDATA%` before any of it.
+
+Nothing is pinned now. The StanHeaders 2.32.10 pin library was retired
+on 2026-09-17: tmbstan 1.2.1 fixed the build that sampled a standard
+normal, and `CXX17FLAGS += -std=gnu++17` in
+`C:/Users/adf44/Documents/.R/Makevars.win` lets rstan 2.32.7 compile
+against the StanHeaders 2.39.1 that the user library carries
+(`dev/tmbstan121-findings.md`). So a restore gains one step instead of
+a pin: put that line in that file. The file sits outside the library,
+so a library restore does not write it, and nothing else reports its
+absence until a fresh Stan compile fails.
+`dev/release/run-tests.R` asserts the tmbstan version and that line
+before it runs a test, and a suite served from `FRMTMB_STAN_CACHE` is
+weaker evidence than one fresh compile.
 
 The 2026-09-09 restore took about ten minutes. Install nothing by hand:
 list the hollow directories, take the ones CRAN has a binary for, and
@@ -229,8 +241,9 @@ against the 187 the 0.55.1 release recorded, because its two blocks at
 lines 522 and 554 call `rstan::stan_model()` directly rather than
 through the cache.
 
-The remedy is the one `frmtmb.sample`'s own `check_tmbstan_build()`
-names: install StanHeaders 2.32.10 to match rstan 2.32.7.
+The remedy in 2026-09 was the one `frmtmb.sample`'s own
+`check_tmbstan_build()` named: install StanHeaders 2.32.10 to match
+rstan 2.32.7.
 
 This is the same defect as the CI failure of the same day, seen from
 the other side. There, public RSPM built `tmbstan` against StanHeaders
@@ -238,10 +251,13 @@ the other side. There, public RSPM built `tmbstan` against StanHeaders
 build against 2.39 at all. One open version bound, two very different
 symptoms, and only one of them was loud.
 
-So: after any restore, pin StanHeaders before believing a Stan-backed
-tier, and check `packageVersion("StanHeaders")` against
-`packageVersion("rstan")` rather than checking that the suite is green.
-A cache makes a green suite the weaker evidence.
+SUPERSEDED ON 2026-09-17, and the trap remains, with a different
+remedy. `CXX17FLAGS += -std=gnu++17` in
+`C:/Users/adf44/Documents/.R/Makevars.win` makes rstan 2.32.7 compile
+against 2.39.1, so nothing is pinned and nothing is downgraded
+(`dev/tmbstan121-findings.md`). After any restore, check that line and
+`packageVersion("tmbstan")` rather than checking that the suite is
+green. A cache still makes a green suite the weaker evidence.
 
 ## What was decided, 2026-09-09
 
@@ -252,12 +268,15 @@ than being rediscovered by a failing build, and the restore recipe
 above recovers 364 packages in about ten minutes.
 
 The user library also keeps StanHeaders 2.39.1. Rather than downgrade
-it, the pin lives in a separate read-only library,
-`C:/Users/adf44/source/r/pinlib`, which holds StanHeaders 2.32.10 and
-the tarball it was built from. A lane puts it on `.libPaths()` between
-its own private library and the user library. `dev/lane-rules.md` has
-the ordering and the two version checks worth running before believing
-a Stan-backed tier.
+it, the pin lived in a separate read-only library,
+`C:/Users/adf44/source/r/pinlib`, which held StanHeaders 2.32.10 and
+the tarball it was built from. A lane put it on `.libPaths()` between
+its own private library and the user library.
+
+That arrangement ended on 2026-09-17. `pinlib` holds nothing, a lane's
+`.libPaths()` is its own library then the user library, and
+`dev/lane-rules.md` carries the two checks that replaced the two
+version checks.
 
 That split is deliberate. The user library is the one that keeps being
 destroyed and the one a restore rewrites to latest, so a pin placed
@@ -342,8 +361,11 @@ only if the evidence is captured before the restore overwrites it:
 The two decisions from 2026-09-09 both survived five losses:
 
 **The pin lives outside `%LOCALAPPDATA%`.** `pinlib` was untouched by
-the fourth AND the fifth, and StanHeaders still reads 2.32.10 against
-rstan 2.32.7. A pin inside the user library would have gone twice.
+the fourth AND the fifth, and StanHeaders still read 2.32.10 against
+rstan 2.32.7. A pin inside the user library would have gone twice. The
+pin itself went on 2026-09-17, and what replaced it has the same
+property: `C:/Users/adf44/Documents/.R/Makevars.win` is outside the
+library too, so no loss touches it.
 
 **The restore is a script, not a recipe to retype under pressure.**
 `dev/release/restore-library.R` recovered 129 of 129 at the fourth

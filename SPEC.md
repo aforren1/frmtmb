@@ -5,9 +5,10 @@ grammar and a frequentist backend. It fits models by maximum likelihood with
 the Laplace approximation for latent effects, through RTMB. It does not use
 MCMC and it does not compile code at run time.
 
-Status: design specification; v0.19 implemented (see NEWS.md for the
-consolidated changelog). The original roadmap and its extensions are
-complete: v0.19 latent classes with continuous random effects (growth
+Status: the roadmap of this specification is complete, and the package
+has gone past it. NEWS.md is the changelog, through 0.64.0. What
+follows is the record of how the roadmap was built, milestone by
+milestone: v0.19 latent classes with continuous random effects (growth
 mixtures, via the sum-integral swap); v0.18 gp() exact and
 Hilbert-space Gaussian processes, mo()/mi() interactions, group-level
 latent-class mixtures; v0.17 mixture() families, mi(sdx) measurement
@@ -462,9 +463,13 @@ Each milestone ends green against a reference implementation.
 | v0.4 | mvbf, per-response families, rescor (gaussian/student), `\|ID\|` cross-formula RE correlation, zi/hurdle wrappers, cumulative ordinal, cens/trunc | ordinal vs `ordinal::clmm` 1e-5; zi vs glmmTMB 1e-6; censored gaussian vs `survival::survreg` |
 | v0.5 | `nl = TRUE`, `custom_family()` public, emmeans/marginaleffects polish, `conditional_effects`, `as_tmbstan`, `mm()`, pkgdown + brms-migration vignette | nl growth models vs `nlme::nlme`; custom nbinom2 matches built-in to 1e-10 |
 
-Deferred (candidates for v0.6+): `mo()`, `gp()` (HSGP or `dgmrf`),
-CAR/SAR, `me()`, `cs()`, `mixture()` (not latent-Gaussian; Laplace
-inappropriate; multimodal ML). Excluded: `mi()` missing-data terms.
+Deferred (candidates for v0.6+): `sar()`, which `frm()` refuses by name.
+
+Shipped since this list was written, and no longer deferred: `me()` at
+0.64.0 (`?frmtmb-me`), `car()` (`?frmtmb-autocor`), `mo()` at v0.15,
+`cs()` and `mixture()` at v0.17, and `gp()` exact and Hilbert-space at
+v0.18. `mi()` missing-data terms were excluded here and shipped at
+v0.16 and v0.17. NEWS.md has each one.
 
 ## 7. Testing strategy
 

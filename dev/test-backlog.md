@@ -149,9 +149,9 @@ to do, and every closure carries the measurement that closed it.
   does, and a term that is not kept is redrawn
   (`dev/simnewdata-findings.md`).
 
-- DECIDED, waiting for a lane (user, 2026-09-24): `re_formula = NA`
-  must keep EVERY smooth, as brms keeps every smooth under any
-  `re_formula`. Today `predict(re_formula = NA)`, and so
+- IN PROGRESS: wt-resmooth. Decided by the user on 2026-09-24:
+  `re_formula = NA` must keep EVERY smooth, as brms keeps every smooth
+  under any `re_formula`. Today `predict(re_formula = NA)`, and so
   `simulate(re_formula = NA)`, drops three kinds of smooth that are
   indexed by a grouping factor: `s(g, bs = "re")`, a factor smooth
   `s(x, g, bs = "fs")`, and a `t2()` with an `re` margin. Measured by
@@ -966,12 +966,12 @@ neither is the defect that lane fixed.
   drew every `cs()` model as if the term were absent, in sample and at
   newdata, silently (max |z| 1216.7). `dev/predfix-findings.md`, the
   cs() section.
-- OPEN, A SILENT WRONG ANSWER, pre-existing (0.62.0 and every lane
-  build): `cs()` on a factor is fitted and predicted on the factor's
-  INTEGER CODES. `ord_cs_values()` calls `as.numeric()` on the factor,
-  so the model is linear in the codes (logLik -446.9233 against
-  -446.6361 with the two dummy columns written out), and a `newdata`
-  factor is re-coded from its own levels: a single row
+- IN PROGRESS: wt-csfactor. A SILENT WRONG ANSWER, pre-existing (0.62.0
+  and every lane build): `cs()` on a factor is fitted and predicted on
+  the factor's INTEGER CODES. `ord_cs_values()` calls `as.numeric()` on
+  the factor, so the model is linear in the codes (logLik -446.9233
+  against -446.6361 with the two dummy columns written out), and a
+  `newdata` factor is re-coded from its own levels: a single row
   `factor("c")` gets level a's probabilities (0.1876, 0.6725, 0.1399)
   instead of (0.7430, 0.0883, 0.1687), from `fitted()` and `predict()`
   alike. Found by the wt-predfix reviewer, punch round 2
@@ -992,9 +992,12 @@ Found by the punch-round reviewer, reproduced on the lane build and on
 brms 2.23.0's `stancode()` with the same data
 (`dev/mvprior-filed.R`, `dev/mvprior-log/filed.txt`). All five are
 pre-existing and none is a wrong answer: each is a loud refusal where
-brms accepts the model. Not fixed; outside that lane.
+brms accepts the model. Not fixed by that lane.
 
-### Open - medium
+### Closed at 0.64.0
+
+All five shipped in the brms-parity round. The entries are kept with
+what closed each one; NEWS.md's 0.64.0 section has the detail.
 
 - **Three `bf()` summed with `+` fail at construction.**
   `bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ w) + set_rescor(FALSE)` warns
@@ -1002,19 +1005,37 @@ brms accepts the model. Not fixed; outside that lane.
   and stops with R's "non-numeric argument to binary operator". Two
   `bf()` work, and `mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ w))` works.
   brms accepts the three-term sum.
+  SHIPPED: any number of `bf()` can be summed. The formula and the
+  multivariate formula had two `+` methods and now have one, and `lf()`
+  and `nlf()` take brms's `resp =` (lane mv, `dev/mv-findings.md`).
 - **`cumulative()` in a multivariate model** is refused: "Families with
   extra parameters ('cumulative') are not supported in multivariate
   fits yet". brms accepts `bf(y1 ~ x) + bf(o ~ x, family =
   cumulative())`.
+  SHIPPED: `cumulative()`, `sratio()`, `cratio()` and `acat()`
+  responses keep their own thresholds and can share `|ID|` group
+  effects. `cox()` and `mixture_mvn()` stay refused, now with the
+  reason (lanes mv and thres).
 - **`me()`** is not a function: `bf(y1 ~ me(xe, sde))` stops with
   `could not find function "me"`, R's message rather than a designed
   refusal. brms accepts it.
+  SHIPPED: `me(x, sdx)` and `me(x, sdx, gr = g)` with brms's meaning
+  and brms's names, agreeing with brms 2.23.0's Stan program to 1e-13
+  on five shapes. See `?frmtmb-me` (lane me, `dev/me-findings.md`).
 - **`0 + Intercept`** reads `Intercept` as a data column: "The model uses
   `Intercept`, which is not a column of `data`". brms accepts
   `y1 ~ 0 + Intercept + x` as its uncentered intercept.
+  SHIPPED: brms's reserved intercept, as an uncentered class `"b"`
+  coefficient, in the location, distributional and nonlinear-parameter
+  formulas. `bf(center = FALSE)` is the same mechanism, and ordinal
+  families refuse it as brms does (lane icpt0,
+  `dev/icpt0-findings.md`).
 - **`student()` with `set_rescor(TRUE)`** is refused: "rescor = TRUE
   requires all responses to be gaussian (got: student)". brms accepts
   it (a multivariate student-t).
+  SHIPPED: brms's multivariate Student-t, one shared `nu`, a sigma per
+  response, checked against `mvtnorm::dmvt()` and brms's own
+  `log_lik()` (lane mv, `dev/mv-findings.md`).
 
 ## Filed by wt-mvprior after punch round 2, 2026-09-24
 
@@ -1076,6 +1097,81 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   3.4 or 3.5; not investigated. Test: coverage of that quantity on
   independent seeds, with enough replicates for the Wilson interval to
   exclude or include 95.
+
+## Filed at the 0.64.0 release (2026-09-25)
+
+The brms-parity round's "Left open" list, from
+`dev/parity-round-20260925.md`. Each bullet names the lane that found
+the item and the findings file with its measurement. Six lanes started
+on 2026-09-28 and the items they carry say so.
+
+### Open - high priority
+
+- **The convergence check fires on correct fits.** "Large maximum
+  absolute gradient" appears on ordinal and multivariate fits whose
+  likelihood identities hold to 1e-12, and on fits with an active
+  bound. The 1e-3 threshold is absolute, so it does not scale with the
+  data or the parameter count. Found by lanes thres, mv and arcov
+  (`dev/thres-findings.md`, `dev/mv-findings.md`,
+  `dev/arcov-findings.md`). In progress: wt-gradcheck.
+- **Refits can lose a threshold.** `frm_bootstrap()` and other refits
+  recount the ordinal thresholds on each simulated data set, so a
+  category that is empty in one draw silently changes the model that
+  draw fits. Lane thres (`dev/thres-findings.md`). In progress:
+  wt-thresrefit.
+- **`y ~ x + cs(x)` is not identified and is not refused.** The
+  category-specific effect and the population effect of the same
+  column carry the same information. Lane sratio
+  (`dev/sratio-findings.md`). In progress: wt-csfactor.
+- **`draw_prior_entry()` on an unordered threshold vector** may copy
+  one draw into every threshold. Not known to be reachable, so prove
+  reachability or unreachability by construction before fixing it.
+  Lane sratio (`dev/sratio-findings.md`). In progress: wt-thresrefit.
+
+### Open - medium
+
+- **Adding a family to a multivariate formula.** In
+  `bf(o ~ x) + cumulative() + bf(y ~ x) + gaussian()`, frmtmb fills
+  only the responses that have no family, so `o` stays ordinal, while
+  brms gives the last family to every response. frmtmb behaved this way
+  before the round and the behavior is now documented. The user has to
+  decide whether it should follow brms. Lane mv
+  (`dev/mv-findings.md`).
+- **Priors on `me()` hyperparameters.** brms's classes `meanme`, `sdme`
+  and `corme` are refused by name, not implemented. Lane me
+  (`dev/me-findings.md`).
+- **REML with `me()` in `mu` is approximate**, and is registered as
+  conditional. The same argument applies to the existing `mi()`
+  predictor, which is registered as working, so one of the two
+  registrations is wrong. Lane me (`dev/me-findings.md`).
+- **frmtmb.sample `log_lik()` and `loo()` for `cov = FALSE` ARMA** are
+  not built. Lane arcov (`dev/arcov-findings.md`). In progress:
+  wt-arcovsample.
+- **brms's latent-residual AR for non-gaussian families** is not built;
+  the 0.64.0 form is brms's residual-regression one. Lane arcov
+  (`dev/arcov-findings.md`).
+- **`gr(g, by = f, cov = A)`** is refused by name, because brms
+  correlates the by-levels through `A`, which is not a by-split. Lane
+  grby (`dev/grby-findings.md`).
+
+### Upstream
+
+- **brms `posterior_predict_hurdle_negbinomial()` does not draw the
+  zero-truncated negative binomial.** Lane fams
+  (`dev/fams-findings.md`). Drafted nowhere yet; see
+  `dev/round-handoff.md` for the other unfiled upstream reports.
+
+### Closed at 0.64.0 by lane wt-records, 2026-09-28
+
+The round also listed two older record inconsistencies, both closed:
+
+- frmtmb.eam's tests called `frmtmb.sample::` while its Suggests was
+  empty of it. `frmtmb.sample` is now suggested, and
+  `.github/workflows/check-frmtmb-eam.yaml` installs it from the
+  checkout and lists `extensions/frmtmb.sample/**` in `paths:`, which
+  `tests/testthat/test-ci-siblings.R` asserts.
+- `codemeta.json` said 0.50.0 and lacked `ordinal`. Regenerated with
+  `codemetar::write_codemeta()` at 0.64.0.
 
 ## Reference
 
