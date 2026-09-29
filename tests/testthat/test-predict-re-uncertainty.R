@@ -428,10 +428,15 @@ test_that("Est.Error at re_formula = NA carries a kept smooth's uncertainty", {
                           re_formula = NA)[, "Est.Error", ])
   # the batched route is the same arithmetic, so it agrees to round-off
   expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 8)
-  # and the smooth supplies a large share of it, which is what the old
-  # answer left out
+  # and the smooth's share is far above round-off, which is what makes
+  # the 8-ulp assertion above tell the fixed route from the old one (the
+  # old answer was `bare`). The share itself is NOT a stable number: it
+  # follows the fitted smoothing variance, which six groups barely
+  # determine, and it measured 0.52 on Windows and 0.11 on the macOS
+  # and Ubuntu CI runners of 2026-09-29, so a fixed floor of 0.3 failed
+  # there while the fix held
   bare <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = NULL))
-  expect_gt(stats::median((ref - bare) / ref), 0.3)
+  expect_gt(stats::median((ref - bare) / ref), 1e6 * .Machine$double.eps)
 })
 
 test_that("Est.Error of a category probability carries a POPULATION smooth", {

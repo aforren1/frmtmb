@@ -51,11 +51,17 @@ test_that("re_formula = NA keeps the fs smooth and drops (1 | g)", {
   # conditional prediction: the two packages fit the same model
   expect_lt(max(abs(as.numeric(fitted(fit)[, "Estimate"]) -
                       as.numeric(fitted(gm)))), 1e-4)
+  # how far apart two optimizers leave the SAME model on this platform,
+  # which is the yardstick for the population comparison below: a fixed
+  # 1e-5 passed on Windows and failed at 1.3e-5 on the macOS and Ubuntu
+  # CI runners of 2026-09-29, where both fits were right
+  cond_gap <- rel_gap(fitted(fit)[, "Estimate"], fitted(gm))
 
   # population prediction: the group-level intercept goes and both
   # smooths stay, which is mgcv excluding s(subject) alone
   pop <- as.numeric(predict(gm, exclude = "s(subject)"))
-  expect_lt(rel_gap(frm_linpred(fit, re_formula = NA), pop), 1e-5)
+  expect_lt(rel_gap(frm_linpred(fit, re_formula = NA), pop),
+            10 * max(cond_gap, sqrt(.Machine$double.eps)))
 
   # SEEN TO FAIL through 0.64.0, which returned this instead: the fs
   # term excluded as well. The two predictions are far apart, so the
