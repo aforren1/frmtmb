@@ -66,6 +66,17 @@ A manifest of what was installed sits beside the library as
 `win-library-4.6-manifest-<date>.csv`, with a package list in
 `restore-cran.txt`. Regenerate the manifest after any large install.
 
+A copy is also kept in the repository, so that a new machine can be
+set up from a clone alone: `dev/win-library-4.6-manifest-2026-09-28.csv`
+(412 packages, R 4.6.1) and `dev/restore-cran-2026-09-28.txt`, the 402
+of them CRAN serves. The other ten are the eight `frmtmb*` packages,
+`RTMBode` and `RTMBp` from `https://kaskr.r-universe.dev`, and
+`cmdstanr` from `https://stan-dev.r-universe.dev`. On a fresh machine,
+install the CRAN list with `type = "binary"` and `dependencies = FALSE`,
+then the three r-universe packages, then StanHeaders 2.32.10 into a
+separate pin library as `dev/lane-rules.md` describes, and set
+`R_LIBS_USER` outside `%LOCALAPPDATA%` before any of it.
+
 The 2026-09-09 restore took about ten minutes. Install nothing by hand:
 list the hollow directories, take the ones CRAN has a binary for, and
 install those in one call.

@@ -75,6 +75,11 @@ it names the exact version rather than a date that has to be looked up.
 
 ## Toolchain
 
+- Read `dev/rtmb-pitfalls.md` before you write or review objective
+  code, a covariance block, a custom family or a hand-rolled reference.
+  It lists the RTMB class-stripping, tape and toolchain traps that have
+  each cost a lane a run.
+
 - R 4.6.1 at `C:\Program Files\R\R-4.6.1\bin`.
 - `.libPaths(c(LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))`
   at the top of every script.
@@ -143,6 +148,11 @@ it names the exact version rather than a date that has to be looked up.
 - Documentation follows ASD-STE100 and the Google developer style guide;
   structure follows diataxis.
 - Comments say WHY, not how.
+- Examples, vignettes and the README lead with the separate-family
+  spelling, `frm(bf(y ~ x), family = gaussian(), data = dd)`. The
+  `bf(y ~ x) + gaussian()` form stays valid and is documented as the
+  alternative. The user chose this on 2026-09-02 because it matches
+  brms, lme4 and glmmTMB.
 - A `@noRd` block must not be followed by any text; pkgcheck fails on
   it. Never let two roxygen blocks run together.
 - NEVER write an absolute numeric tolerance in a test. Express it as a

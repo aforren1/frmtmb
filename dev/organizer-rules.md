@@ -109,6 +109,17 @@ the reference build. A lane that adds documentation, or that inherits a
 fix another lane already proved, does not. Decide which you are buying
 before you spawn the reviewer, and say it in the brief.
 
+**Do not poll a lane.** The harness notifies you when a subagent or a
+background command exits. Do not read a running worker's partial output
+file: on 2026-09-18 a partial read showed a standard error moving from
+0.1597 to 0.0804 and it was reported as a finding, when it was an
+intermediate state the lane had already fixed. For external state the
+harness cannot track, such as a CI run, pick ONE delay matched to how
+fast that state moves. When a lane goes out, queue the independent work
+that does not depend on it: pending commits, the release checklist, the
+next lane's brief. One early look at a long R run is fine to catch a
+doomed run; after that, wait for the exit.
+
 **Cap the punch rounds.** Two, and a third only when a finding is a
 BLOCKER rather than a nit. A re-check that moves nothing is a signal to
 stop, not to look harder.
