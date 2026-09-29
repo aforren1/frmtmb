@@ -133,12 +133,16 @@ the fixes. The table with each cause is in
 
 ## What is next, in order
 
-**The docs cutover is the owner's next step.** The workflow and the
-104 redirects (as a `redirects:` block in `_pkgdown.yml`) shipped with
-0.65.0; switching Pages to the workflow builder and untracking `docs/`
-follow the runbook in `dev/docsci-findings.md`, steps 3 to 7. A
-released site beside a development site is recorded there as later
-work, for when a tagged release exists that people install.
+**The docs cutover is DONE, 2026-09-29.** GitHub Pages builds from
+`.github/workflows/pkgdown.yaml`: every push to main that touches the
+documented sources rebuilds and deploys the eight sites, and `docs/` is
+no longer tracked (it is in `.gitignore`; a local build still writes
+there by default). The first deploy was of `c9d9126b`, and all 22 checks
+of runbook step 5 passed on the live site. To roll back, re-track a
+built `docs/` and switch Pages to `legacy` from `main:/docs` (runbook
+step 7). A released site beside a development site is recorded in
+`dev/docsci-findings.md` as later work, for when a tagged release
+exists that people install.
 
 **Filed at 0.65.0, in `dev/test-backlog.md`:** `pp_check()`'s four
 `loo_*` types fail on every model (no PSIS object is built);

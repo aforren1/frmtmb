@@ -524,6 +524,15 @@ closes this gap along with the 404s.
 
 ## The cutover runbook, for the repository owner
 
+CARRIED OUT 2026-09-29, at the owner's request. Steps 1 and 2 at
+consolidation. The first build on a runner failed at the frmtmb.eam
+site for a missing system GSL (fixed in `c9d9126b`; see
+`dev/round-20260929.md`, "After the push"), which is why step 1 exists:
+the site was still served in legacy mode meanwhile. Step 3 was done
+only after a green build of `c9d9126b`; step 4's dispatched run built
+and deployed it; step 5 passed 22 of 22 checks on the live site;
+step 6 is the commit that untracked `docs/`.
+
 None of this was done by the lane. Step 2 is a judgement and step 3 is
 the owner's setting, and the workflow is written so that it does no harm
 before either.

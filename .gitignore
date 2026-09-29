@@ -34,3 +34,7 @@ dev/csfactor-check/
 # 10 MB each, and rebuildable by the script beside them
 dev/resmooth-brms-fits.rds
 dev/resmooth-rev-brms-fits.rds
+
+# the built pkgdown site: .github/workflows/pkgdown.yaml builds and
+# deploys it, so no built copy is tracked (cutover of 2026-09-29)
+docs/
