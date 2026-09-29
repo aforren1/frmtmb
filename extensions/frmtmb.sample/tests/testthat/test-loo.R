@@ -461,6 +461,259 @@ test_that("multi-model loo() and the draws-surface odd ends refuse", {
   expect_error(rescor_matrix(fd), "fitted point estimate")
 })
 
+## ---- brms's cov = FALSE ARMA has a column per observation ------------
+
+# brms 2.23.0's model block, transliterated, and its J_lag. Copied from
+# frmtmb's tests/testthat/test-autocor-cond.R rather than reached for:
+# the claim here is that log_lik() reports brms's one-step density, so
+# the reference must not be core's own recursion.
+#
+# for (n in 1:N) {
+#   mu[n] += Err[n, 1:Kma] * ma;
+#   err[n] = Y[n] - mu[n];
+#   for (i in 1:J_lag[n]) Err[n + 1, i] = err[n + 1 - i];
+#   mu[n] += Err[n, 1:Kar] * ar;
+# }
+arma_brms_mu <- function(mu, Y, J_lag, ar, ma) {
+  N <- length(Y)
+  Err <- matrix(0, N + 1, max(length(ar), length(ma)))
+  err <- numeric(N)
+  for (n in seq_len(N)) {
+    if (length(ma)) mu[n] <- mu[n] + sum(Err[n, seq_along(ma)] * ma)
+    err[n] <- Y[n] - mu[n]
+    for (i in seq_len(J_lag[n])) Err[n + 1, i] <- err[n + 1 - i]
+    if (length(ar)) mu[n] <- mu[n] + sum(Err[n, seq_along(ar)] * ar)
+  }
+  mu
+}
+
+arma_brms_jlag <- function(g, max_lag) {
+  N <- length(g)
+  J <- integer(N)
+  for (n in seq_len(N - 1L)) {
+    ind <- n:max(1L, n + 1L - max_lag)
+    J[n] <- sum(g[ind] == g[n + 1L])
+  }
+  J
+}
+
+# ragged groups with interior gaps, rows shuffled: brms counts lags in
+# ROWS of the (gr, time) order, so neither the gaps nor the data order
+# may reach the answer
+arma_data <- function(seed = 21L, ng = 8L, nt = 8L) {
+  set.seed(seed)
+  d <- expand.grid(t = seq_len(nt), g = factor(seq_len(ng)))
+  d <- d[-c(3L, 11L, 12L, 30L, 44L), ]
+  d$x <- stats::rnorm(nrow(d))
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(nrow(d))
+  d <- d[sample(nrow(d)), ]
+  rownames(d) <- NULL
+  d
+}
+
+# A draws object at CHOSEN parameter values and no sampler behind it.
+# The stored matrix carries brms's scale where brms has the same
+# parameter (`b_*`, `sigma`, `nu`, `r_*`) and frmtmb's internal one
+# where it does not: `theta_1` is a log standard deviation, `thetaac_k`
+# the raw ARMA coefficients with AR before MA. A vector of length
+# `n` per name gives each draw its own value, which is what makes the
+# per-draw loop testable without NUTS.
+arma_draws <- function(fit, vals, n = 3L) {
+  lab <- c(frmtmb::brms_par_labels(fit), "lp__")
+  m <- matrix(0, n, length(lab), dimnames = list(NULL, lab))
+  for (nm in names(vals)) m[, nm] <- vals[[nm]]
+  structure(list(stanfit = NULL, draws = m, fit = fit),
+            class = "frmtmb_draws")
+}
+
+test_that("log_lik() is brms's one-step density for a cov = FALSE ar()", {
+  d <- arma_data()
+  fit <- frm(bf(y ~ x + ar(t, g)), family = gaussian(), data = d,
+             dry_run = "objective")
+  # the third draw sets ar = 0, where the shift must vanish entirely
+  ars <- c(0.55, -0.3, 0)
+  ds <- arma_draws(fit, list(b_Intercept = 1.2, b_x = 0.4, sigma = 0.9,
+                             thetaac_1 = ars))
+  ll <- log_lik(ds)
+  expect_equal(dim(ll), c(3L, nrow(d)))
+
+  ord <- order(d$g, d$t)
+  mu0 <- 1.2 + 0.4 * d$x
+  J <- arma_brms_jlag(as.integer(d$g)[ord], 1L)
+  for (k in seq_along(ars)) {
+    mu <- arma_brms_mu(mu0[ord], d$y[ord], J, ars[k], numeric(0))
+    ref <- numeric(nrow(d))
+    ref[ord] <- stats::dnorm(d$y[ord], mu, 0.9, log = TRUE)
+    expect_equal(ll[k, ], ref, tolerance = 1e3 * .Machine$double.eps)
+  }
+  # ar = 0 is the plain density, which pins the shift's direction: the
+  # draw with ar = 0.55 must NOT be that, by far more than the residual
+  plain <- stats::dnorm(d$y, mu0, 0.9, log = TRUE)
+  expect_equal(ll[3L, ], plain, tolerance = 1e3 * .Machine$double.eps)
+  expect_gt(abs(sum(ll[1L, ]) - sum(plain)), 0.05 * abs(sum(plain)))
+})
+
+test_that("a cov = FALSE row sum is the objective at the same draw", {
+  d <- arma_data()
+  # no random effect: build_objective() is then the row product alone,
+  # so the identity needs no correction term
+  fit <- frm(bf(y ~ x + arma(t, g, p = 1, q = 1)), family = gaussian(),
+             data = d, dry_run = "objective")
+  ds <- arma_draws(fit, list(b_Intercept = 1.1, b_x = 0.45,
+                             sigma = 0.85, thetaac_1 = c(0.5, -0.2, 0.3),
+                             thetaac_2 = c(0.25, 0.4, -0.35)))
+  ll <- log_lik(ds)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
+  for (k in seq_len(nrow(ds$draws))) {
+    sh <- frmtmb.sample:::draws_fit_at(ds, k, idx)
+    nll <- frmtmb::build_objective(sh$frame)(sh$estimates)
+    expect_equal(sum(ll[k, ]), -as.numeric(nll),
+                 tolerance = 1e3 * .Machine$double.eps)
+  }
+  # the three draws are three different likelihoods, so the identity is
+  # not being satisfied by a constant
+  expect_gt(stats::sd(rowSums(ll)), 0)
+})
+
+test_that("log_lik() carries student, sigma ~ x and (1 | g) under arma()", {
+  d <- arma_data()
+  fit <- frm(bf(y ~ x + arma(t, g, p = 1, q = 1) + (1 | g)),
+             family = student(), data = d, dry_run = "objective")
+  rn <- grep("^r_", frmtmb::brms_par_labels(fit), value = TRUE)
+  bvals <- seq(-0.5, 0.5, length.out = length(rn))
+  v <- as.list(stats::setNames(bvals, rn))
+  v$b_Intercept <- 1.1
+  v$b_x <- 0.45
+  v$sigma <- 0.8
+  v$nu <- 7
+  v$theta_1 <- log(0.6)
+  v$thetaac_1 <- 0.5
+  v$thetaac_2 <- 0.25
+  ds <- arma_draws(fit, v, n = 2L)
+  ll <- log_lik(ds)
+
+  ord <- order(d$g, d$t)
+  mu0 <- 1.1 + 0.45 * d$x + bvals[as.integer(d$g)]
+  mu <- arma_brms_mu(mu0[ord], d$y[ord],
+                     arma_brms_jlag(as.integer(d$g)[ord], 1L), 0.5, 0.25)
+  ref <- numeric(nrow(d))
+  # brms's student_t_lpdf(nu, mu, sigma), the scaled t
+  ref[ord] <- stats::dt((d$y[ord] - mu) / 0.8, df = 7, log = TRUE) -
+    log(0.8)
+  expect_equal(ll[1L, ], ref, tolerance = 1e3 * .Machine$double.eps)
+
+  # the row product against the objective needs the block's own prior
+  # back out: build_objective() carries it and log_lik() must not
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
+  sh <- frmtmb.sample:::draws_fit_at(ds, 1L, idx)
+  bk <- sh$frame$re_blocks[[1L]]
+  rp <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
+    sh$estimates[["b"]][bk$b_idx], sh$estimates[["theta"]][bk$theta_idx],
+    bk)
+  nll <- frmtmb::build_objective(sh$frame)(sh$estimates)
+  expect_equal(sum(ll[1L, ]), -as.numeric(nll) - as.numeric(rp),
+               tolerance = 1e3 * .Machine$double.eps)
+
+  # a distributional sigma travels the same way
+  fs <- frm(bf(y ~ x + ar(t, g), sigma ~ x), family = gaussian(),
+            data = d, dry_run = "objective")
+  dss <- arma_draws(fs, list(b_Intercept = 1.2, b_x = 0.4,
+                             b_sigma_Intercept = -0.2, b_sigma_x = 0.3,
+                             thetaac_1 = 0.55), n = 1L)
+  lls <- log_lik(dss)
+  sg <- exp(-0.2 + 0.3 * d$x)
+  mus <- arma_brms_mu((1.2 + 0.4 * d$x)[ord], d$y[ord],
+                      arma_brms_jlag(as.integer(d$g)[ord], 1L), 0.55,
+                      numeric(0))
+  refs <- numeric(nrow(d))
+  refs[ord] <- stats::dnorm(d$y[ord], mus, sg[ord], log = TRUE)
+  expect_equal(lls[1L, ], refs, tolerance = 1e3 * .Machine$double.eps)
+})
+
+test_that("loo() runs on a cov = FALSE fit and cov = TRUE still refuses", {
+  skip_if_not_installed("loo")
+  d <- arma_data()
+  fit <- frm(bf(y ~ x + ar(t, g)), family = gaussian(), data = d,
+             dry_run = "objective")
+  # a spread of ar values so PSIS has something to smooth
+  set.seed(5)
+  n <- 40L
+  ds <- arma_draws(fit, list(
+    b_Intercept = stats::rnorm(n, 1.2, 0.1),
+    b_x = stats::rnorm(n, 0.4, 0.1),
+    sigma = exp(stats::rnorm(n, log(0.9), 0.05)),
+    thetaac_1 = stats::rnorm(n, 0.5, 0.1)), n = n)
+  lo <- suppressWarnings(loo(ds))
+  expect_true(is.finite(lo$estimates["elpd_loo", "Estimate"]))
+  expect_true(is.finite(lo$estimates["p_loo", "Estimate"]))
+  expect_equal(length(lo$pointwise[, "elpd_loo"]), nrow(d))
+  expect_true(all(is.finite(lo$pointwise[, "elpd_loo"])))
+  # a per-observation matrix carries no unit, so loo() says nothing
+  expect_no_message(suppressWarnings(loo(ds)))
+  wa <- suppressWarnings(waic(ds))
+  expect_true(is.finite(wa$estimates["elpd_waic", "Estimate"]))
+
+  # the covariance form keeps its refusal, and the message names the
+  # form that does factor
+  uc <- frm(bf(y ~ x + ar(t, g, cov = TRUE)), family = gaussian(),
+            data = d, dry_run = "objective")
+  expect_error(log_lik(fake_draws(uc)), "residual correlation MATRIX")
+  expect_error(log_lik(fake_draws(uc)), "cov = FALSE form of ar()",
+               fixed = TRUE)
+  expect_error(loo(fake_draws(uc)), "residual correlation MATRIX")
+  # cosy() and unstr() have no cov = FALSE form, so the message must not
+  # offer one
+  uu <- frm(bf(y ~ x + unstr(t, g)), family = gaussian(), data = d,
+            dry_run = "objective")
+  expect_error(log_lik(fake_draws(uu)), "residual correlation MATRIX")
+  expect_error(log_lik(fake_draws(uu)), "unstr(t, g)", fixed = TRUE)
+  msg <- conditionMessage(tryCatch(log_lik(fake_draws(uu)),
+                                   error = identity))
+  expect_false(grepl("cov = FALSE", msg, fixed = TRUE))
+
+  # mi() on the response stays refused for its own reason, which is not
+  # about autocorrelation
+  d2 <- d
+  d2$y[c(4L, 9L)] <- NA
+  um <- frm(bf(y | mi() ~ x + ar(t, g)) + gaussian(), data = d2,
+            dry_run = "objective")
+  expect_error(log_lik(fake_draws(um)), "in-model imputation")
+})
+
+test_that("log_lik() matches brms row by row on a cov = FALSE ARMA", {
+  skip_unless_brms_fit()
+  # no skip_sampler(): the draws are a fixed matrix with stanfit = NULL,
+  # so tmbstan is not on this block's path at all
+  d <- arma_data(seed = 22L, ng = 6L, nt = 8L)
+  bfit <- suppressWarnings(suppressMessages(
+    brms::brm(brms::bf(y ~ x + arma(t, g, p = 1, q = 1)), data = d,
+              family = brms::brmsfamily("gaussian"), chains = 1,
+              iter = 300, warmup = 200, refresh = 0, seed = 5,
+              silent = 2)))
+  fit <- frm(bf(y ~ x + arma(t, g, p = 1, q = 1)), family = gaussian(),
+             data = d, dry_run = "objective")
+  # brms's own draws, written into a frmtmb draws object by name: the
+  # two packages then report the same quantity at the same parameter
+  # vector, and nothing rests on the two samplers agreeing
+  bm <- as.matrix(brms::as_draws_matrix(bfit))
+  ds <- arma_draws(fit, list(b_Intercept = bm[, "b_Intercept"],
+                             b_x = bm[, "b_x"],
+                             sigma = bm[, "sigma"],
+                             thetaac_1 = bm[, "ar[1]"],
+                             thetaac_2 = bm[, "ma[1]"]),
+                   n = nrow(bm))
+  # the transplant is checked before the claim rests on it: the one-step
+  # mean reads every transplanted parameter
+  expect_lt(max(abs(posterior_epred(ds) - brms::posterior_epred(bfit))),
+            1e-10 * stats::sd(d$y))
+  llb <- brms::log_lik(bfit)
+  llf <- log_lik(ds)
+  expect_equal(dim(llf), dim(llb))
+  # brms's log_lik undoes its own order(gr, time) sort (reorder_obs), so
+  # both matrices are in the user's row order
+  expect_lt(max(abs(llf - llb)), 1e-10 * stats::sd(llb))
+})
+
 ## ---- brms cross-check (opt-in; compiles Stan) ------------------------
 
 test_that("loo() and log_lik() agree with brms on the same model", {

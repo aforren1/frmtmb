@@ -11,9 +11,17 @@
 #' a thinned subsample no longer has the autocorrelation structure the
 #' relative efficiency estimates.
 #'
+#' A draws object with no `stanfit` behind it counts as one chain.
+#' `%||%` cannot guard this on its own, because `@` on `NULL` is an
+#' error and not a `NULL`: the whole matrix then reached
+#' `loo::relative_eff()` through an expression that could not be
+#' evaluated. Such an object is what a test builds when it wants a
+#' parameter vector without a sampler.
+#'
 #' @noRd
 draws_chain_id <- function(x) {
-  nc <- x$stanfit@sim$chains %||% 1L
+  sf <- x$stanfit
+  nc <- if (is.null(sf)) 1L else sf@sim$chains %||% 1L
   n <- nrow(x$draws)
   if (nc <= 1L || n %% nc != 0L) return(rep(1L, n))
   rep(seq_len(nc), each = n %/% nc)
@@ -44,19 +52,26 @@ draws_require_b <- function(x, what) {
 #'
 #' The columns of a `log_lik()` matrix are observations, and every
 #' consumer of it (`loo()`, `waic()`, PSIS) leaves ONE of them out. A
-#' likelihood whose smallest independent unit is a group (an R-side
-#' autocorrelation block, a hidden-Markov sequence, a group-level latent
+#' likelihood whose smallest independent unit is a group (a residual
+#' COVARIANCE block, a hidden-Markov sequence, a group-level latent
 #' class) has no such column: dropping one row of a sequence is not a
 #' model refit anyone asked for. brms has no families in this position,
 #' so there is no convention to follow and the honest answer is to say
 #' so rather than to hand back a matrix whose leave-one-out meaning is
 #' undefined.
 #'
+#' brms's DEFAULT `cov = FALSE` form of `ar()`, `ma()` and `arma()` is
+#' not in that position and is not refused: it shifts `mu` by a
+#' regression on the group's earlier observed residuals and leaves every
+#' row with the family's own density, so a column is an observation
+#' again. `arma_cond_resp()` is what tells the two forms apart.
+#'
 #' @noRd
 draws_loglik_factors <- function(fit, what) {
   # [[ ]] throughout: `$` partial-matches, and a frame field that gains
   # a longer sibling name would silently change which structure is read
   frame <- fit$frame
+  cond <- arma_cond_resp(fit)
   for (r in names(fit$spec$responses)) {
     # a structure that supplies its own `loglik` is exactly the one
     # whose density replaces the rowwise product, and it names its own
@@ -83,9 +98,32 @@ draws_loglik_factors <- function(fit, what) {
       }
       next
     }
-    unit <- if (!is.null((frame[["autocor"]] %||% list())[[r]])) {
-      "an R-side residual correlation (ar/ma/arma/cosy/unstr) block"
-    } else if (!is.null(st[["loglik"]])) {
+    ac <- (frame[["autocor"]] %||% list())[[r]]
+    if (!is.null(ac) && !r %in% cond) {
+      # A residual COVARIANCE block has its own refusal because it has
+      # its own remedy: brms's default form of the same term does
+      # factor, and naming it is more use than the generic advice below.
+      # cosy() and unstr() have no such form, so the sentence is only
+      # added for the terms that do.
+      alt <- if (ac[["fn"]] %in% c("ar", "ma", "arma")) {
+        paste0(" brms's default cov = FALSE form of ", ac[["fn"]],
+               "() does factor, one term per row given that group's ",
+               "observed earlier residuals, and ", what,
+               " supports it: refit without cov = TRUE for the ",
+               "pointwise density.")
+      } else {
+        ""
+      }
+      frm_stop(what, " needs a likelihood that factors into one term per ",
+               "observation, and the response '", r, "' does not: it ",
+               "carries ", ac[["label"]], ", an R-side residual ",
+               "correlation MATRIX, whose smallest independent unit is a ",
+               "whole group, so a column of the matrix would be a GROUP ",
+               "and leaving one out would drop part of a joint density.",
+               alt, " Compare these models with AIC() on the ML fits, or ",
+               "with frm_bootstrap()", call. = FALSE)
+    }
+    unit <- if (!is.null(st[["loglik"]])) {
       st[["unit"]] %||% "a group the likelihood does not factor within"
     } else {
       next
@@ -121,7 +159,11 @@ draws_loglik_factors <- function(fit, what) {
 draws_row_loglik <- function(fit, resp) {
   frame <- fit$frame
   rspecs <- fit$spec$responses
-  dpv <- with_cs_offsets(fit, NULL, eval_dpars(fit))
+  # brms's cov = FALSE ARMA moves mu to the one-step conditional mean
+  # before any density is taken, which is where the taped objective
+  # applies it too. Called unconditionally: it is a no-op on every other
+  # model, and a branch here would be a second place to keep in step.
+  dpv <- arma_cond_dpars(fit, with_cs_offsets(fit, NULL, eval_dpars(fit)))
   n <- frame[["n_obs"]]
   if (isTRUE(fit$spec$rescor)) {
     # the joint likelihood contributes ONE K-variate density per row
@@ -186,6 +228,34 @@ draws_row_loglik <- function(fit, resp) {
 #' same order (`log_lik_censor()`, `log_lik_truncate()`,
 #' `log_lik_weight()`).
 #'
+#' @section Autocorrelation, and what a row conditions on:
+#' brms's default `cov = FALSE` form of `ar()`, `ma()` and `arma()`
+#' ([frmtmb::frmtmb-autocor]) has a column per observation, and it is
+#' the column brms's own `log_lik()` returns. A row's `mu` is the
+#' one-step conditional mean: the linear predictor plus a regression on
+#' the OBSERVED earlier residuals of that row's group. A group starts
+#' with no residuals behind it, so lag `i` first reaches the row at
+#' within-group position `i + 1`: the FIRST row of each group takes the
+#' unshifted mean, a row at position `k` carries only the lags up to
+#' `k - 1`, and from position `max(p, q) + 1` on a row carries all of
+#' them. Only the first row is unshifted, at every order. So the density
+#' of row `t` is conditional on `y` at the rows before it, and the
+#' columns multiply to the whole likelihood exactly as they do for an
+#' independent model.
+#'
+#' Say what that makes the leave-one-out quantity. PSIS-LOO over these
+#' columns leaves out one CONDITIONAL density, the density of `y_t`
+#' given the observed past, and not the series: the retained columns
+#' still read `y_t` through their own lagged residuals, so it is not a
+#' forecast of an unseen point and it is not leave-one-group-out
+#' either. It is brms's number, computed the way brms computes it, and
+#' it answers "how well does the one-step-ahead density fit this row"
+#' rather than "how well would the model predict a held-out series".
+#' For the latter, refit without the held-out group.
+#'
+#' The `cov = TRUE` covariance form is still refused, and for the
+#' original reason: its smallest independent unit is a whole group.
+#'
 #' @section Multivariate models:
 #' With `set_rescor(TRUE)` a column is the joint density of the row's
 #' response VECTOR, so the matrix keeps one column per observation.
@@ -196,7 +266,8 @@ draws_row_loglik <- function(fit, resp) {
 #' @section Likelihoods with no per-observation column:
 #' A model whose smallest independent unit is a group has no
 #' per-observation column to leave out, and this refuses rather than
-#' inventing one: R-side residual correlation ([frmtmb::frmtmb-autocor]), a
+#' inventing one: a residual correlation MATRIX
+#' (`cov = TRUE`, `cosy()`, `unstr()`; [frmtmb::frmtmb-autocor]), a
 #' `frmtmb.latent::hmm()` sequence, and a group-level mixture (`mixture(groups = )`).
 #' An `frmtmb.latent::lca()` subject is one row, so its column is well defined and is
 #' not refused. In-model imputation (`mi()`, `me()`) is refused for the
@@ -364,6 +435,19 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
 #'
 #' `LOO()` and `WAIC()` are brms's deprecated capitalized spellings and
 #' are defined only to name their replacements.
+#'
+#' @section A time series, and what is left out:
+#' On a model with brms's default `cov = FALSE` `ar()`, `ma()` or
+#' `arma()` term, a column of the [frmtmb::log_lik()] matrix is the
+#' density of one row GIVEN THE OBSERVED EARLIER ROWS of its group, the
+#' one-step-ahead density. That is what brms's `log_lik()` returns, so
+#' this is brms's elpd. It also fixes what the estimate means: leaving
+#' out column `t` leaves out one conditional density, not the series and
+#' not the row's influence on its neighbors, because every retained
+#' column still reads `y_t` through its own lagged residuals. Read it as
+#' "how well the one-step density fits each row", and refit without a
+#' group for a held-out-series answer. The `cov = TRUE` covariance form
+#' is refused instead: there no column is an observation.
 #'
 #' @section Priors, and what these numbers mean:
 #' These are posterior quantities, and they inherit the standing of the

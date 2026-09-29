@@ -1,0 +1,54 @@
+ARM ref frmtmb at C:/Users/adf44/source/r/rellib-r3/frmtmb newexports=FALSE
+Warning messages:
+1: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+2: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+3: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+4: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+5: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+6: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+wrote dev/arcovsample-rev-log/pp-ref.rds
+
+[msg_loglik_covar]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_covar]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_cosy]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_cosy]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_unstr]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_unstr]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_mi]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_mi]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_condarma]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_condarma]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence. brms has no family in this position, so there is no leave-one-out convention to follow. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+shapes:
+  pp_condarma: 6 x 30
+  pp_covar: 6 x 30
+  pp_plain: 6 x 30
+  pp_rescor: 6 x 30
+  pp_laplace: 6 x 30
+  pp_re: 6 x 30
+DONE

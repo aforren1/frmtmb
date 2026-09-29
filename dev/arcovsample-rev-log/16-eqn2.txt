@@ -1,0 +1,14 @@
+Warning message:
+In utils::packageDescription(package, fields = "Version") :
+  no package 'frmtmb' was found
+Rd2HTML: 350 lines; lines mentioning 'max':
+  [162] to <code class="reqn">k - 1</code>, and from position <code class="reqn">\max(p, q) + 1</code> onward a row gets all of them. None of the opening rows
+  [303] of ARMA structures is only possible for effects of maximal order
+
+Rd2latex: 287 lines parsed
+  [122] to \eqn{k - 1}{}, and from position \eqn{\max(p, q) + 1}{} onward a row gets all of them. None of the opening rows
+  [247] of ARMA structures is only possible for effects of maximal order
+
+Rd parse warnings, if any:
+[1] "checkRd returned no condition"
+DONE

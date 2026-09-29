@@ -1,0 +1,44 @@
+frmtmb 0.64.0 
+N = 26  group lengths 9,7,3,1,6  seed = 6162 
+
+---- ar(t, g, p = 1): p = 1, q = 0, max(p, q) = 1
+  positions with NO shift in ANY group : 1
+  shifted groups by position           : 1:0/5 2:4/4 3:4/4 4:3/3 5:3/3 6:3/3 7:2/2 8:1/1 9:1/1
+    ar[1] (lag 1) first moves position 2
+
+---- ar(t, g, p = 2): p = 2, q = 0, max(p, q) = 2
+  positions with NO shift in ANY group : 1
+  shifted groups by position           : 1:0/5 2:4/4 3:4/4 4:3/3 5:3/3 6:3/3 7:2/2 8:1/1 9:1/1
+    ar[1] (lag 1) first moves position 2
+    ar[2] (lag 2) first moves position 3
+
+---- ar(t, g, p = 3): p = 3, q = 0, max(p, q) = 3
+  positions with NO shift in ANY group : 1
+  shifted groups by position           : 1:0/5 2:4/4 3:4/4 4:3/3 5:3/3 6:3/3 7:2/2 8:1/1 9:1/1
+    ar[1] (lag 1) first moves position 2
+    ar[2] (lag 2) first moves position 3
+    ar[3] (lag 3) first moves position 4
+
+---- ma(t, g, q = 2): p = 0, q = 2, max(p, q) = 2
+  positions with NO shift in ANY group : 1
+  shifted groups by position           : 1:0/5 2:4/4 3:4/4 4:3/3 5:3/3 6:3/3 7:2/2 8:1/1 9:1/1
+    ma[1] (lag 1) first moves position 2
+    ma[2] (lag 2) first moves position 3
+
+---- arma(t, g, p = 2, q = 2): p = 2, q = 2, max(p, q) = 2
+  positions with NO shift in ANY group : 1
+  shifted groups by position           : 1:0/5 2:4/4 3:4/4 4:3/3 5:3/3 6:3/3 7:2/2 8:1/1 9:1/1
+    ar[1] (lag 1) first moves position 2
+    ar[2] (lag 2) first moves position 3
+    ma[1] (lag 1) first moves position 2
+    ma[2] (lag 2) first moves position 3
+
+---- arma(t, g, p = 3, q = 1): p = 3, q = 1, max(p, q) = 3
+  positions with NO shift in ANY group : 1
+  shifted groups by position           : 1:0/5 2:4/4 3:4/4 4:3/3 5:3/3 6:3/3 7:2/2 8:1/1 9:1/1
+    ar[1] (lag 1) first moves position 2
+    ar[2] (lag 2) first moves position 3
+    ar[3] (lag 3) first moves position 4
+    ma[1] (lag 1) first moves position 2
+
+DONE

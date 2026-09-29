@@ -693,6 +693,17 @@ predict_rescor_draw <- function(fs, rspecs, dps, ok) {
 #' - 1/2 log|Sigma| - (nu + K) / 2 log(1 + q / nu)`, with
 #' `Sigma = D C D` entering as `log|C| + 2 sum(log sigma)`.
 #'
+#' The first two terms are NOT written as they read, and neither is
+#' `log(nu pi)`. `lgamma_shift_diff()` and `log(nu) + log(pi)` are the
+#' same numbers at a moderate `nu` and the only ones that survive a
+#' large one, which a sampler reaches whenever `nu` is weakly
+#' identified: against `mvt_std_loglik()`, the objective's own form, the
+#' as-written version drifts by 5.6e-6 at `nu = 1e10`, by 227 log units
+#' at `nu = 1e20`, and returns `NaN` from `Inf - Inf` at `nu = 1e306`,
+#' where the density is still the gaussian limit and still wanted
+#' (`dev/arcovsample-log/tnu.txt`). See `lgamma_shift_diff()` for why
+#' the blend and the branch are both unavailable here.
+#'
 #' @noRd
 rescor_row_loglik <- function(fit, dpv) {
   frame <- fit$frame
@@ -712,7 +723,7 @@ rescor_row_loglik <- function(fit, dpv) {
   }
   q <- rowSums((Z %*% solve(C)) * Z)
   ldet <- as.numeric(determinant(C, logarithm = TRUE)$modulus)
-  lgamma((nu + K) / 2) - lgamma(nu / 2) - K / 2 * log(nu * pi) -
+  lgamma_shift_diff(nu / 2, K / 2) - K / 2 * (log(nu) + log(pi)) -
     ldet / 2 - (nu + K) / 2 * log1p(q / nu) - lsig
 }
 

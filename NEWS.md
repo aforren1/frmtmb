@@ -1,3 +1,45 @@
+# frmtmb (development version)
+
+* Two exports for the sampling extension, documented with the rest of
+  the contract on `?frmtmb-sampling-api`: `arma_cond_resp()` names the
+  responses carrying brms's default `cov = FALSE` form of `ar()`,
+  `ma()` or `arma()`, and `arma_cond_dpars()` gives an `eval_dpars()`
+  list back with each such response's `mu` moved to brms's one-step
+  conditional mean. They exist so that the pointwise log-density of
+  such a fit and the taped objective share ONE definition of the
+  shifted mean rather than each holding its own; `frmtmb.sample`'s
+  `log_lik()` reads them.
+
+* **`rescor_row_loglik()` lost the Student-t joint density at a large
+  `nu`.** It wrote `lgamma((nu + K) / 2) - lgamma(nu / 2)` and
+  `log(nu * pi)` as they read, where the taped objective goes through
+  `lgamma_shift_diff()`. The as-written difference of two `lgamma()`
+  values loses its leading digits as `nu` grows and overflows to
+  `Inf - Inf` above `nu = 5.1e305`, so the density left the gaussian
+  limit it should approach and then stopped being a number. How far it
+  drifted depends on the design, so no single figure is quoted here:
+  `dev/arcovsample-log/tnu.txt` has one construction and
+  `dev/arcovsample-rev-log/13-rrl-ref.txt` another, with the loss reaching
+  hundreds to tens of thousands of log units before the `NaN`. A sampler
+  reaches those values whenever `nu` is weakly identified, so
+  `frmtmb.sample`'s `log_lik()` of a `set_rescor(TRUE)` Student-t model
+  gave `NaN` for most draws. It now equals the objective's own
+  `mvt_std_loglik()` at every `nu` tried, and agrees with it to 2.8e-14
+  absolute over 200 NUTS draws whose `nu` reaches 3e306. `logLik()` and
+  the fit itself were never affected: those use the objective.
+
+* **A `cov = FALSE` `ar()`/`ma()`/`arma()` group's opening rows were
+  described wrongly.** `?frmtmb-autocor`, the comment in `R/autocor.R`
+  and the compatibility note all said a group's first rows get no lagged
+  term. Measured false: lag `i` first reaches the row at within-group
+  position `i + 1`, so only the FIRST row of a group is unshifted, a row
+  at position `k` carries the lags up to `k - 1`, and from
+  `max(p, q) + 1` on a row carries all of them. Measured over `ar(1)`,
+  `ar(2)`, `ar(3)`, `ma(2)`, `arma(2, 2)` and `arma(3, 1)` on groups of
+  unequal length, one of them a single row
+  (`dev/arcovsample-log/firstrows.txt`). The likelihood was always this;
+  only the sentences were wrong.
+
 # frmtmb 0.64.0
 
 brms parity: every gap in the model menu that the last round listed is

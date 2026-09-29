@@ -1,0 +1,9 @@
+RESULT lane frmtmb test-adefects.R pass=85 fail=0 err=0 skip=0
+RESULT lane frmtmb test-autocor-cond.R pass=55 fail=1 err=0 skip=0
+  BAD [the sampling seam reports brms's one-step mean] fail=1 err=FALSE
+RESULT lane frmtmb test-autocor.R pass=192 fail=0 err=0 skip=0
+RESULT lane frmtmb test-bracket-access.R pass=33 fail=0 err=0 skip=0
+RESULT lane frmtmb test-conditions.R pass=150 fail=0 err=0 skip=0
+RESULT lane frmtmb test-generic-collision.R pass=56 fail=0 err=0 skip=0
+RESULT lane frmtmb test-portability.R pass=95 fail=0 err=0 skip=0
+RESULT lane frmtmb test-priors-autocor-classes.R pass=62 fail=0 err=0 skip=0

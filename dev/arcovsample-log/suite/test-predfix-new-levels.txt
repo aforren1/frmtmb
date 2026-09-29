@@ -1,0 +1,1 @@
+RESULT lane frmtmb.sample test-predfix-new-levels.R pass=62 fail=0 err=0 skip=0

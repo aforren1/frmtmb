@@ -1,0 +1,1 @@
+RESULT lane frmtmb.sample test-draws-spellings.R pass=97 fail=0 err=0 skip=0

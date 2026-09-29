@@ -145,10 +145,15 @@
 #' MA part enters \eqn{e} and the AR part does not, exactly as in
 #' brms's Stan code. So:
 #' \itemize{
-#'   \item It is a CONDITIONAL likelihood. A group's first rows get no
-#'     lagged term, rather than the stationary distribution the
-#'     covariance form gives them. For one series this is the
-#'     conditional sum of squares of `stats::arima(method = "CSS")`.
+#'   \item It is a CONDITIONAL likelihood. A group starts with no
+#'     residuals behind it, so lag \eqn{i} first reaches the row at
+#'     within-group position \eqn{i + 1}: the FIRST row of a group gets
+#'     no lagged term, a row at position \eqn{k} gets only the lags up
+#'     to \eqn{k - 1}, and from position \eqn{\max(p, q) + 1}{max(p,
+#'     q) + 1} onward a row gets all of them. None of the opening rows
+#'     gets the stationary distribution the covariance form gives them.
+#'     For one series this is the conditional sum of squares of
+#'     `stats::arima(method = "CSS")`.
 #'   \item The coefficients `ar[i]` and `ma[i]` are unconstrained reals,
 #'     as in brms, because nothing in this likelihood needs a stationary
 #'     or invertible process. A prior or a bound with `set_prior(class =
@@ -185,6 +190,14 @@
 #'     the term, as brms's do. [autocor_matrix()] and
 #'     `residuals(type = "osa")` are refused: this form defines no
 #'     correlation matrix, and its tape reads the response as data.
+#'     A POINTWISE log-density exists for this form and not for the
+#'     covariance one below, because each row keeps its own density:
+#'     one row's density given its group's observed past, which is what
+#'     brms's `log_lik()` returns. `arma_cond_resp()` and
+#'     `arma_cond_dpars()` ([frmtmb-sampling-api]) are what a sampling
+#'     extension reads to build it. Whether the installed
+#'     `frmtmb.sample` does is that package's own question, and its
+#'     `?log_lik` answers it.
 #' }
 #'
 #' @section Families:
@@ -1000,8 +1013,10 @@ autocor_block <- function(ac, resp, mf, env, n) {
 #   mu*_t = mu_t + sum_i ma_i err_{t-i} + sum_i ar_i err_{t-i},
 #
 # with err_s = 0 before a group's first row. The MA part enters err and
-# the AR part does not. This is a CONDITIONAL likelihood: a group's
-# first rows get no lagged term at all, rather than the stationary
+# the AR part does not. This is a CONDITIONAL likelihood: lag i first
+# reaches within-group position i + 1, so only the FIRST row of a group
+# gets no lagged term and positions 2..max(p, q) get some of the lags
+# but not all, rather than the stationary
 # distribution the cov = TRUE form gives them. The coefficients are
 # unconstrained reals, as they are in brms (`vector[Kar] ar;`) and in
 # the conditional sum of squares of stats::arima(method = "CSS"),
@@ -1286,6 +1301,42 @@ autocor_cond_dpars <- function(fit, resp, dp) {
   if (!autocor_is_cond(ac)) return(dp)
   dp[["mu"]] <- autocor_cond_mu(fit, ac, dp[["mu"]], mi_values(fit, resp))
   dp
+}
+
+#' The responses whose autocorrelation term is brms's default
+#' `cov = FALSE` residual regression.
+#'
+#' Exported for the sampling extension, which has to tell the two forms
+#' apart to decide whether a pointwise log-density exists: under
+#' `cov = FALSE` a row keeps the family's own density and the columns of
+#' a `log_lik()` matrix are observations, while a covariance block's
+#' smallest unit is a whole group. The alternative was for the
+#' extension to read `frame$autocor[[r]]$cov` itself, which would make
+#' every field of a block into API.
+#'
+#' @noRd
+arma_cond_resp <- function(fit) {
+  acs <- fit$frame[["autocor"]] %||% list()
+  if (!length(acs)) return(character(0))
+  names(acs)[vapply(acs, autocor_is_cond, TRUE)]
+}
+
+#' Every response's dpar values with the `cov = FALSE` ARMA shift of
+#' `mu` applied, and any other response left alone.
+#'
+#' This is the ONE definition of the shift that the row density reads.
+#' The taped objective applies it in the same place, from the same
+#' `autocor_cond_shift()`, so a per-draw pointwise log-density built on
+#' top of this reproduces the objective rather than approximating it.
+#' Safe to call on any fit: with no `cov = FALSE` block it gives `dpv`
+#' back unchanged.
+#'
+#' @noRd
+arma_cond_dpars <- function(fit, dpv) {
+  for (r in arma_cond_resp(fit)) {
+    dpv[[r]] <- autocor_cond_dpars(fit, r, dpv[[r]])
+  }
+  dpv
 }
 
 #' In-sample `mu` of a `cov = FALSE` response on the fitted rows,

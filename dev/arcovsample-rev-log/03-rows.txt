@@ -1,0 +1,65 @@
+frmtmb 0.64.0 frmtmb.sample 0.12.0 (lane build)
+N = 42  group sizes: 4 7 11 5 9 6  seed 5701
+
+---- gaussian arma(2,2), p = q = 2, no RE ----
+  draws x cols: 200 x 42; any non-finite cell: FALSE
+  (2) max |rowsum - (-build_objective + re_prior)| : 0  rel 0
+  (1) max |rowsum - (-obj$fn)| TAPE                 : 2.84217094304e-14  rel 7.345e-16
+  (3) max |cell - brms transliteration| over draws  : 4.44089e-15  cell sd 0.6284
+      spread of rowSums across draws: 1.62917
+  elpd_loo -43.8976119  finite pointwise: TRUE
+
+---- gaussian ar(2), sigma ~ z ----
+  draws x cols: 200 x 42; any non-finite cell: FALSE
+  (2) max |rowsum - (-build_objective + re_prior)| : 0  rel 0
+  (1) max |rowsum - (-obj$fn)| TAPE                 : 2.84217094304e-14  rel 7.221e-16
+  (3) max |cell - brms transliteration| over draws  : 0  cell sd 0.6625
+      spread of rowSums across draws: 2.02939
+  elpd_loo -42.4958796  finite pointwise: TRUE
+
+---- gaussian ma(2), weights(w) ----
+  draws x cols: 200 x 42; any non-finite cell: FALSE
+  (2) max |rowsum - (-build_objective + re_prior)| : 0  rel 0
+  (1) max |rowsum - (-obj$fn)| TAPE                 : 2.84217094304e-14  rel 5.001e-16
+  (3) max |cell - brms transliteration| over draws  : 3.55271e-15  cell sd 1.01
+      spread of rowSums across draws: 1.74402
+  elpd_loo -62.9762657  finite pointwise: TRUE
+
+---- gaussian arma(2,2), cens(cc) ----
+  draws x cols: 200 x 42; any non-finite cell: FALSE
+  (2) max |rowsum - (-build_objective + re_prior)| : 0  rel 0
+  (1) max |rowsum - (-obj$fn)| TAPE                 : 2.13162820728e-14  rel 5.943e-16
+  (3) max |cell - brms transliteration| over draws  : 6.21725e-15  cell sd 0.7048
+      spread of rowSums across draws: 1.80611
+  elpd_loo -41.4444789  finite pointwise: TRUE
+
+---- gaussian ar(2), trunc(lb = 0) on y + 4 ----
+  draws x cols: 200 x 42; any non-finite cell: FALSE
+  (2) max |rowsum - (-build_objective + re_prior)| : 0  rel 0
+  (1) max |rowsum - (-obj$fn)| TAPE                 : 2.13162820728e-14  rel 5.358e-16
+  (3) max |cell - brms transliteration| over draws  : 4.44089e-16  cell sd 0.6571
+      spread of rowSums across draws: 1.60156
+  elpd_loo -44.1152932  finite pointwise: TRUE
+
+---- student arma(2,2) + (1 | g), nu fitted ----
+  draws x cols: 200 x 42; any non-finite cell: FALSE
+  (2) max |rowsum - (-build_objective + re_prior)| : 7.1054273576e-15  rel 2.066e-16
+  (1) obj$fn is a LAPLACE marginal here, not compared
+  (3) max |cell - brms transliteration| over draws  : 3.37508e-14  cell sd 1.034
+      spread of rowSums across draws: 3.70852
+  elpd_loo -34.4194448  finite pointwise: TRUE
+
+---- rescor + ar(1) on both, gaussian ----
+  draws x cols: 200 x 42; non-finite cell: FALSE
+  (1) max |rowsum - (-obj$fn)| TAPE : 7.1054273576e-14  rel 8.455e-16
+  (3) max |cell - mvtnorm| over draws: 2.22045e-15  cell sd 0.882
+  elpd_loo -91.368091
+
+---- rescor + ar(1) on both, student ----
+  draws x cols: 200 x 42; non-finite cell: FALSE
+  (1) max |rowsum - (-obj$fn)| TAPE : 5.68434188608e-14  rel 6.854e-16
+  (3) max |cell - mvtnorm| over draws: 5.22957  cell sd 0.8535
+      nu range: 17271 to 1.012e+304
+  elpd_loo -90.4297695
+
+DONE

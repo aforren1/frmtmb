@@ -1,0 +1,3 @@
+SKIP [an hmm() draw walks the chain from every entry point] Reason: {frmtmb.latent} is not installed
+SKIP [lca() simulates item codes from every entry point] Reason: {frmtmb.latent} is not installed
+SKIP [simulate() still refuses re_formula and censored on an hmm] Reason: {frmtmb.latent} is not installed

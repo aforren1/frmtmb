@@ -1,0 +1,59 @@
+ARM lane frmtmb at C:/Users/adf44/source/r/wt-arcovsample-lib/frmtmb newexports=TRUE
+Warning messages:
+1: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+2: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+3: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+4: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+5: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+6: In stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms)) :
+  NAs produced
+Warning: Not enough tail samples to fit the generalized Pareto distribution in some or all columns of matrix of log importance ratios. Skipping the following columns: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ... [20 more not printed].
+
+Warning message:
+Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 
+wrote dev/arcovsample-rev-log/pp-lane.rds
+
+[msg_loglik_covar]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries ar(t, g, cov = TRUE), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. brms's default cov = FALSE form of ar() does factor, one term per row given that group's observed earlier residuals, and log_lik() supports it: refit without cov = TRUE for the pointwise density. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_covar]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries ar(t, g, cov = TRUE), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. brms's default cov = FALSE form of ar() does factor, one term per row given that group's observed earlier residuals, and log_lik() supports it: refit without cov = TRUE for the pointwise density. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_cosy]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries cosy(t, g), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_cosy]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries cosy(t, g), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_unstr]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries unstr(t, g), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loo_unstr]
+log_lik() needs a likelihood that factors into one term per observation, and the response 'y' does not: it carries unstr(t, g), an R-side residual correlation MATRIX, whose smallest independent unit is a whole group, so a column of the matrix would be a GROUP and leaving one out would drop part of a joint density. Compare these models with AIC() on the ML fits, or with frm_bootstrap()
+
+[msg_loglik_mi]
+log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not be the observation's own likelihood and leaving it out would not leave out the latent value. Fit the completed data with frm_multiple() and compare with AIC(), or use frm_bootstrap()
+
+[msg_loo_mi]
+log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not be the observation's own likelihood and leaving it out would not leave out the latent value. Fit the completed data with frm_multiple() and compare with AIC(), or use frm_bootstrap()
+
+[msg_loglik_condarma]
+NO ERROR
+
+[msg_loo_condarma]
+NO ERROR
+
+shapes:
+  pp_condarma: 6 x 30
+  pp_covar: 6 x 30
+  pp_plain: 6 x 30
+  pp_rescor: 6 x 30
+  pp_laplace: 6 x 30
+  pp_re: 6 x 30
+DONE

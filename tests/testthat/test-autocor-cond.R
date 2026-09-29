@@ -300,3 +300,42 @@ test_that("rescor and student() fit with the term", {
             family = student())
   expect_true(is.finite(logLik(fs)))
 })
+
+test_that("the sampling seam reports brms's one-step mean", {
+  # arma_cond_resp() and arma_cond_dpars() are what frmtmb.sample's
+  # log_lik() reads, so the mu they hand over is checked against the
+  # same brms transliteration the objective is checked against.
+  d <- cond_data()
+  f <- frm(bf(y ~ x + arma(week, subj, p = 1, q = 1)), data = d,
+           family = gaussian())
+  expect_identical(arma_cond_resp(f), "y")
+  dpv <- arma_cond_dpars(f, eval_dpars(f))
+  rp <- cond_ref_parts(f, d, f$obj$env$last.par.best)
+  mu <- cond_brms_mu(rp$mu0, rp$y, rp$J, rp$ar, rp$ma)
+  expect_equal(as.numeric(dpv$y$mu)[rp$ord], unname(mu),
+               tolerance = cond_tol)
+  # the shift is not a no-op on this data, so the line above is a claim
+  expect_gt(max(abs(as.numeric(dpv$y$mu) - as.numeric(eval_dpars(f)$y$mu))),
+            0.05 * stats::sd(d$y))
+
+  # a covariance block is not this form, and a model with no block at
+  # all is left alone: the extension calls this unconditionally
+  fc <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)), data = d,
+            family = gaussian())
+  expect_identical(arma_cond_resp(fc), character(0))
+  expect_identical(arma_cond_dpars(fc, eval_dpars(fc)), eval_dpars(fc))
+  fp <- frm(bf(y ~ x), data = d, family = gaussian())
+  expect_identical(arma_cond_resp(fp), character(0))
+  expect_identical(arma_cond_dpars(fp, eval_dpars(fp)), eval_dpars(fp))
+
+  # one response of two, so the loop has to leave the other untouched
+  d$y2 <- d$y + stats::rnorm(nrow(d))
+  fm <- frm(bf(y ~ x + ar(week, subj)) + bf(y2 ~ x), data = d,
+            family = gaussian())
+  expect_identical(arma_cond_resp(fm), "y")
+  e0 <- eval_dpars(fm)
+  e1 <- arma_cond_dpars(fm, e0)
+  expect_identical(e1$y2, e0$y2)
+  expect_false(isTRUE(all.equal(as.numeric(e1$y$mu),
+                                as.numeric(e0$y$mu))))
+})

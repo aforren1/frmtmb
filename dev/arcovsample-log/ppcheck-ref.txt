@@ -1,0 +1,8 @@
+library      : C:/Users/adf44/source/r/rellib-r3 
+frmtmb       : 0.64.0 
+frmtmb.sample: 0.12.0 
+[dens_overlay] ggplot2::ggplot OK
+[loo_pit_overlay] rlang_error: One of 'lw' and 'psis_object' must be specified.
+[loo_pit] getvarError: argument "lw" is missing, with no default
+[loo_intervals] getvarError: argument "psis_object" is missing, with no default
+[loo_ribbon] getvarError: argument "psis_object" is missing, with no default

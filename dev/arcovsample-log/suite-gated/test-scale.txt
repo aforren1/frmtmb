@@ -1,0 +1,2 @@
+RESULT gated frmtmb.sample test-scale.R pass=0 fail=0 err=0 skip=1
+SKIP [the sample scale row samples and reports its cost] Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier

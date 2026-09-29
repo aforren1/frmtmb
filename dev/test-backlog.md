@@ -1077,6 +1077,92 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   independent seeds, with enough replicates for the Wilson interval to
   exclude or include 95.
 
+## Filed by wt-arcovsample after punch round 1, 2026-09-29
+
+Found by the punch-round reviewer
+(`dev/reviews/2026-09-29-arcovsample.md`, section 9) and by this lane
+while probing `log_lik()` for brms's `cov = FALSE` ARMA. Every item was
+reproduced on the LANE build and on the base build `rellib-r3`, so none
+is caused by that change. Item 1 is a wrong ANSWER and item 3 fails on
+every model, which is what makes them worth tests; item 2 is a bare
+internal error. Not fixed: all four are outside that lane's gap.
+
+### Open - high
+
+- **`posterior_predict()` and `posterior_epred()` on
+  `frm_sample(laplace = TRUE)` draws return NaN silently.** The draws
+  hold only the outer parameters, because the Laplace route integrates
+  the random effects out, and the predictive methods evaluate the model
+  as if `b` were there. `dev/arcovsample-rev-11-laplace.R` (seed 1212,
+  N = 30 in 6 groups of 5), re-run by the lane into
+  `dev/arcovsample-log/punch1-laplace-{lane,ref}.txt`, byte-identical on
+  the two builds: `y ~ x + ar(t, g) + (1 | g)` gives **4500 non-finite
+  cells of 4500**, `y ~ x + (1 | g)` gives **3000 of 4500**, and the
+  only signal is a repeated base warning "NAs produced". `log_lik()` on
+  the same object already refuses with a designed message
+  ("needs draws of the random effects ... Resample without
+  laplace = TRUE", `draws_require_b()`); the two predictive methods
+  should reach the same refusal. Test: assert the refusal on a laplace
+  draws object for `posterior_predict()` and `posterior_epred()`, and
+  assert no NaN is returned.
+
+### Open - medium
+
+- **`frm_sample(laplace = TRUE)` on a model with NO random effect dies
+  with a bare internal error.** Same script, same on both builds:
+  `Error in -obj$env$random : invalid argument to unary operator`. With
+  nothing to marginalize, `obj$env$random` is `NULL` and the negation
+  is R's error rather than a designed one. Either accept the
+  combination as a no-op (there is nothing to integrate out, so the
+  Laplace route and the full route are the same model) or refuse it by
+  name. Test: construct `frm_sample(bf(y ~ x), family = gaussian(),
+  laplace = TRUE)` and assert whichever is chosen, not the unary-minus
+  error.
+- **`pp_check()`'s four `loo_*` types fail on every model.**
+  `pp_check.frmtmb_draws` resolves the bayesplot function and calls it
+  with the response and the predictions, and nothing in it computes
+  `lw` or a `psis_object`, which `bayesplot::ppc_loo_*` require and
+  which `brms:::pp_check.brmsfit` builds from `log_lik()`.
+  `dev/arcovsample-rev-07-ppcheck.R` (seed 31) over THREE models, a
+  plain `y ~ x` gaussian fit, one with `(1 | g)` and one with
+  `ar(t, g)`: **4 of 6 types tried, 3 of 3 models, 2 of 2 builds**,
+  character for character identical.
+
+  ```
+  [dens_overlay]    OK ggplot2::ggplot
+  [stat]            OK ggplot2::ggplot
+  [loo_pit_overlay] rlang_error: One of 'lw' and 'psis_object' must be
+                    specified.
+  [loo_pit]         getvarError: argument "lw" is missing, with no
+                    default
+  [loo_intervals]   getvarError: argument "psis_object" is missing,
+                    with no default
+  [loo_ribbon]      getvarError: argument "psis_object" is missing,
+                    with no default
+  ```
+
+  The lane measured the same thing independently
+  (`dev/arcovsample-ppcheck.R`, one model, both builds). Test: one
+  block per `loo_*` type asserting a plot object, which will fail until
+  `pp_check()` passes the PSIS weights.
+
+### Open - low
+
+- **`nchains.frmtmb_draws()` and `draws_derived_matrix()` share the
+  `NULL`-`stanfit` bug that `draws_chain_id()` had.**
+  `x$stanfit@sim$chains %||% 1L` cannot guard a `NULL` `stanfit`,
+  because `@` on `NULL` is an error and never reaches `%||%`.
+  `draws_chain_id()` was fixed in the arcovsample round, and the
+  reviewer saw the unfixed form fail behaviorally
+  (`log_lik -> draws_chain_id -> %||%` on the base build,
+  `dev/arcovsample-rev-log/12-nan-ref.txt`). The remaining two show up
+  as `print(VarCorr(ds))` dying in
+  `nchains.frmtmb_draws -> %||%` on a draws object built with
+  `stanfit = NULL`, which is how a test supplies a chosen parameter
+  vector without a sampler. A sweep of every `@` read behind a `%||%`
+  is its own change. Test: `nchains()`, `ndraws()` and `VarCorr()` on a
+  `stanfit = NULL` draws object.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

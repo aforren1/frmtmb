@@ -1,0 +1,16 @@
+K = 1: as-written head finite to nu = 5.0654746e+305, NaN above it
+K = 2: as-written head finite to nu = 5.0654746e+305, NaN above it
+K = 3: as-written head finite to nu = 5.0654746e+305, NaN above it
+K = 5: as-written head finite to nu = 5.0654746e+305, NaN above it
+lgamma() finite to argument 2.5327373e+305
+
+the head at nu values the NEWS entry brackets, K = 2:
+  nu 1.00e+305  as-written              0   truth about   701.5953
+  nu 2.00e+305  as-written              0   truth about   702.2885
+  nu 3.00e+305  as-written              0   truth about   702.6939
+  nu 3.60e+305  as-written              0   truth about   702.8762
+  nu 4.00e+305  as-written              0   truth about   702.9816
+  nu 5.00e+305  as-written              0   truth about   703.2047
+  nu 5.10e+305  as-written            NaN   truth about   703.2245
+  nu 5.20e+305  as-written            NaN   truth about   703.2440
+DONE

@@ -1,0 +1,5 @@
+RESULT ref frmtmb.sample test-loo.R pass=77 fail=0 err=4 skip=2
+  BAD [log_lik() is brms's one-step density for a cov = FALSE ar()] fail=0 err=TRUE
+  BAD [a cov = FALSE row sum is the objective at the same draw] fail=0 err=TRUE
+  BAD [log_lik() carries student, sigma ~ x and (1 | g) under arma()] fail=0 err=TRUE
+  BAD [loo() runs on a cov = FALSE fit and cov = TRUE still refuses] fail=0 err=TRUE

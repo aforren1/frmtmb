@@ -1,0 +1,67 @@
+
+---- ar(t, g, p = 1)  max(p, q) = 1
+  within-group position :  1  2  3  4  5  6  7  1 ...
+  shift nonzero        :  .  Y  Y  Y  Y  Y  Y  . ...
+  groups with a nonzero shift, by within-group position:
+    position 1: 0 of 4
+    position 2: 4 of 4
+    position 3: 4 of 4
+    position 4: 4 of 4
+    position 5: 4 of 4
+    position 6: 4 of 4
+    position 7: 4 of 4
+  rows per group with NO shift: 1
+
+---- ar(t, g, p = 2)  max(p, q) = 2
+  within-group position :  1  2  3  4  5  6  7  1 ...
+  shift nonzero        :  .  Y  Y  Y  Y  Y  Y  . ...
+  groups with a nonzero shift, by within-group position:
+    position 1: 0 of 4
+    position 2: 4 of 4
+    position 3: 4 of 4
+    position 4: 4 of 4
+    position 5: 4 of 4
+    position 6: 4 of 4
+    position 7: 4 of 4
+  rows per group with NO shift: 1
+
+---- ma(t, g, q = 2)  max(p, q) = 2
+  within-group position :  1  2  3  4  5  6  7  1 ...
+  shift nonzero        :  .  Y  Y  Y  Y  Y  Y  . ...
+  groups with a nonzero shift, by within-group position:
+    position 1: 0 of 4
+    position 2: 4 of 4
+    position 3: 4 of 4
+    position 4: 4 of 4
+    position 5: 4 of 4
+    position 6: 4 of 4
+    position 7: 4 of 4
+  rows per group with NO shift: 1
+
+---- arma(t, g, p = 2, q = 2)  max(p, q) = 2
+  within-group position :  1  2  3  4  5  6  7  1 ...
+  shift nonzero        :  .  Y  Y  Y  Y  Y  Y  . ...
+  groups with a nonzero shift, by within-group position:
+    position 1: 0 of 4
+    position 2: 4 of 4
+    position 3: 4 of 4
+    position 4: 4 of 4
+    position 5: 4 of 4
+    position 6: 4 of 4
+    position 7: 4 of 4
+  rows per group with NO shift: 1
+
+---- arma(t, g, p = 3, q = 1)  max(p, q) = 3
+  within-group position :  1  2  3  4  5  6  7  1 ...
+  shift nonzero        :  .  Y  Y  Y  Y  Y  Y  . ...
+  groups with a nonzero shift, by within-group position:
+    position 1: 0 of 4
+    position 2: 4 of 4
+    position 3: 4 of 4
+    position 4: 4 of 4
+    position 5: 4 of 4
+    position 6: 4 of 4
+    position 7: 4 of 4
+  rows per group with NO shift: 1
+
+DONE

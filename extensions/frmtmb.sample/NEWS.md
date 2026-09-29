@@ -1,3 +1,26 @@
+# frmtmb.sample (development version)
+
+Needs a frmtmb that exports `arma_cond_resp()` and `arma_cond_dpars()`.
+
+* **`log_lik()` and `loo()` now work on brms's default `cov = FALSE`
+  form of `ar()`, `ma()` and `arma()`**, which was refused before. A
+  row's log-density is taken at brms's one-step conditional mean, the
+  regression on the group's earlier OBSERVED residuals, so a column is
+  an observation and the columns multiply to the whole likelihood. It
+  matches `brms::log_lik()` cell for cell at the same parameter values
+  (gaussian `ar(1)` bitwise; student `arma(1,1)` and
+  `arma(1,1) + (1 | g)` to 4.4e-15 absolute), and `loo()`, `waic()` and
+  `psis()` follow. `loo()`'s help says what that makes the estimate:
+  PSIS-LOO over these columns leaves out one CONDITIONAL density, the
+  one-step-ahead density of a row given its observed past, and not the
+  series. The `cov = TRUE` covariance form, `cosy()` and `unstr()` stay
+  refused, because there the smallest independent unit is a whole
+  group; the refusal now names the form that does factor.
+
+* A draws object with no `stanfit` behind it no longer errors in
+  `log_lik()`: `x$stanfit@sim` is an error and not a `NULL` on such an
+  object, so the chain identifier could not be read at all.
+
 # frmtmb.sample 0.12.0
 
 Needs frmtmb 0.64.0, for `rescor_row_loglik()` and `fit_extras(resp =)`.

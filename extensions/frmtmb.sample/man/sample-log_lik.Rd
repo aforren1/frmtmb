@@ -81,6 +81,36 @@ same order (\code{log_lik_censor()}, \code{log_lik_truncate()},
 \code{log_lik_weight()}).
 }
 
+\section{Autocorrelation, and what a row conditions on}{
+
+brms's default \code{cov = FALSE} form of \code{ar()}, \code{ma()} and \code{arma()}
+(\link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}) has a column per observation, and it is
+the column brms's own \code{log_lik()} returns. A row's \code{mu} is the
+one-step conditional mean: the linear predictor plus a regression on
+the OBSERVED earlier residuals of that row's group. A group starts
+with no residuals behind it, so lag \code{i} first reaches the row at
+within-group position \code{i + 1}: the FIRST row of each group takes the
+unshifted mean, a row at position \code{k} carries only the lags up to
+\code{k - 1}, and from position \code{max(p, q) + 1} on a row carries all of
+them. Only the first row is unshifted, at every order. So the density
+of row \code{t} is conditional on \code{y} at the rows before it, and the
+columns multiply to the whole likelihood exactly as they do for an
+independent model.
+
+Say what that makes the leave-one-out quantity. PSIS-LOO over these
+columns leaves out one CONDITIONAL density, the density of \code{y_t}
+given the observed past, and not the series: the retained columns
+still read \code{y_t} through their own lagged residuals, so it is not a
+forecast of an unseen point and it is not leave-one-group-out
+either. It is brms's number, computed the way brms computes it, and
+it answers "how well does the one-step-ahead density fit this row"
+rather than "how well would the model predict a held-out series".
+For the latter, refit without the held-out group.
+
+The \code{cov = TRUE} covariance form is still refused, and for the
+original reason: its smallest independent unit is a whole group.
+}
+
 \section{Multivariate models}{
 
 With \code{set_rescor(TRUE)} a column is the joint density of the row's
@@ -94,7 +124,8 @@ one response's contribution alone.
 
 A model whose smallest independent unit is a group has no
 per-observation column to leave out, and this refuses rather than
-inventing one: R-side residual correlation (\link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}), a
+inventing one: a residual correlation MATRIX
+(\code{cov = TRUE}, \code{cosy()}, \code{unstr()}; \link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}), a
 \code{frmtmb.latent::hmm()} sequence, and a group-level mixture (\code{mixture(groups = )}).
 An \code{frmtmb.latent::lca()} subject is one row, so its column is well defined and is
 not refused. In-model imputation (\code{mi()}, \code{me()}) is refused for the
