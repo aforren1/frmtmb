@@ -232,6 +232,31 @@ has not written.
   nested `frm_multiple()` fits with the D1, D2 and D3 rules of `mice`
   (D3 by default). Mixture fits are ML: expect multimodality, compare
   starts (`frm_allfit()`).
+- **`cs()` refuses a column written on both sides**, where brms fits it.
+  `y ~ x + cs(x)` is not identified: adding a constant to the
+  population-level coefficient of `x` and subtracting the same constant
+  from every one of its category-specific coefficients leaves the
+  likelihood unchanged. brms builds both blocks and samples the ridge;
+  maximum likelihood has no prior to hold it, so frmtmb refuses and says
+  to write `y ~ cs(x)`, which fits the same set of distributions. The
+  same holds for `y ~ f + cs(f)` on a factor and for a constant `cs()`
+  column. The check is a rank test, so it also covers a column that only
+  a basis spells differently: `y ~ poly(x, 2) + cs(x)` is refused and
+  `y ~ I(x^2) + cs(x)` is the edit that keeps the quadratic, while
+  `y ~ s(x) + cs(x)` has no spelling that keeps both, because it is the
+  smooth's own unpenalized linear column that is aliased. `mo()` beside a
+  `cs()` on the same predictor is refused too, a monotone function of the
+  categories always lying inside the span `cs()` already gives them. brms
+  builds both blocks in every one of these. `mi()` and `me()` are not
+  checked, their design column being a placeholder at assembly, so
+  `me(x, sdx) + cs(x)` is accepted as it is in brms.
+
+  Everything else about `cs()` is brms's: a factor or a character
+  predictor becomes treatment-contrast dummies with one coefficient per
+  dummy per category boundary, named `bcs_fb[k]` the way brms names them,
+  `newdata` is recoded against the fit's levels, an unused level's column
+  is dropped as brms drops it, and a multivariate fit takes `cs()` in any
+  response.
 - `thres()` works on the four ordinal families. `y | thres(K) ~ x`
   sets the number of thresholds, and `y | thres(gr = g) ~ x` fits one
   threshold vector per level of `g`, named `Intercept[g,k]` as in

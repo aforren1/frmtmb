@@ -2599,31 +2599,65 @@ ord_prob_aterms <- function(object, rspec, newdata) {
   aterms_for_newdata(rspec, newdata)
 }
 
-#' The `n x (K-1)` matrix of threshold-specific offsets a `cs()` term
-#' contributes, or NULL when the predictor has none. In sample the
-#' column values were kept at frame time; on newdata the term has to be
-#' re-evaluated, which is what `label` carries (it is `"cs"` followed by
-#' the deparsed expression).
+#' One entry per `cs()` DESIGN COLUMN of a linear predictor, with the
+#' column's values on the rows being predicted, or an empty list when the
+#' predictor has no `cs()` term. In sample the values were kept at frame
+#' time; on newdata each term's model matrix is rebuilt through the FIT's
+#' terms, levels and contrasts, so a factor column is recoded against the
+#' levels the fit saw rather than against newdata's own (a single row
+#' `factor("c")` used to be read as level 1).
 #'
 #' @noRd
 ord_cs_values <- function(object, lp, newdata, n) {
   cst <- lp[["cs"]] %||% list()
   if (!length(cst)) return(list())
-  env <- object$spec$responses[[lp[["resp"]]]]$formula_env
-  lapply(cst, function(ct) {
-    v <- if (is.null(newdata)) {
-      ct$vals
-    } else {
-      ex <- ct$expr %||% str2lang(sub("^cs", "", ct$label))
-      as.numeric(eval(ex, newdata, env))
-    }
+  cols <- if (!is.null(newdata)) cs_newdata_columns(object, lp, newdata)
+  out <- vector("list", length(cst))
+  for (i in seq_along(cst)) {
+    ct <- cst[[i]]
+    v <- if (is.null(cols)) ct[["vals"]] else cols[[i]]
     if (length(v) == 1L) v <- rep(v, n)
     if (length(v) != n) {
-      frm_stop("cs() term '", ct$label, "' evaluated to ", length(v),
+      frm_stop("cs() term '", ct[["label"]], "' evaluated to ", length(v),
                " value(s) on ", n, " rows of newdata", call. = FALSE)
     }
-    list(par = ct$par, vals = v, label = ct$label)
-  })
+    out[[i]] <- list(par = ct[["par"]], vals = v, label = ct[["label"]])
+  }
+  out
+}
+
+#' The `cs()` column values on `newdata`, one numeric vector per entry of
+#' `lp[["cs"]]`. Each TERM's model matrix is built once and its columns
+#' handed to the entries that came out of it.
+#'
+#' @noRd
+cs_newdata_columns <- function(object, lp, newdata) {
+  cst <- lp[["cs"]]
+  mm <- lp[["cs_mm"]]
+  env <- object$spec$responses[[lp[["resp"]]]]$formula_env
+  built <- list()
+  out <- vector("list", length(cst))
+  for (i in seq_along(cst)) {
+    ct <- cst[[i]]
+    tid <- ct[["tid"]]
+    # `[[` on a list ERRORS for an out-of-range integer and returns NULL
+    # only for a missing NAME, so the length is checked rather than the
+    # value (dev/csfactor-bracket.R)
+    spec <- if (!is.null(tid) && length(mm) >= tid) mm[[tid]]
+    if (is.null(spec)) {
+      # a frame assembled before cs() carried its model matrix: the
+      # single-column path, the expression evaluated in newdata
+      ex <- ct[["expr"]] %||% str2lang(sub("^cs", "", ct[["label"]]))
+      out[[i]] <- as.numeric(eval(ex, newdata, env))
+      next
+    }
+    key <- as.character(tid)
+    if (is.null(built[[key]])) {
+      built[[key]] <- cs_term_newdata(spec, newdata)
+    }
+    out[[i]] <- as.numeric(built[[key]][, ct[["col"]]])
+  }
+  out
 }
 
 #' Category-specific offsets for an ordinal linear predictor.

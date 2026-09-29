@@ -1613,7 +1613,8 @@ compat_hand_rules_tbl <- function() {
 
   r("cs_pred()", "kind:family", "refused",
     "Refused: cs() needs an sratio, cratio, or acat family.")
-  r("cs_pred()", "group:ordinal_cs", "works", "")
+  r("cs_pred()", "group:ordinal_cs", "works",
+    "A cs() term is expanded by model.matrix() as brms expands its Xcs, so a factor or character predictor gives treatment-contrast dummies with one coefficient per dummy per threshold (bcs_fb[k]), and new data are recoded against the fit's levels. A column written on both sides (y ~ x + cs(x)) is refused: it is not identified, and brms fits it.")
   r("cs_pred()", "cumulative", "refused",
     "Refused: category-specific effects are not identified under the cumulative parameterization.")
   r("gp_pred()", "kind:mode", "untested", "", override = TRUE)

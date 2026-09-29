@@ -1,0 +1,3 @@
+R_MAKEVARS_USER = C:/Users/adf44/Documents/.R/Makevars.win 
+StanHeaders 2.39.1 rstan 2.32.7 
+OK lp = -9.75681559961402 

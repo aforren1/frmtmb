@@ -28,15 +28,29 @@ with a distributional or nonlinear parameter's name in the
 coefficient part, \code{sd_g__sigma_Intercept}), and a distributional
 parameter nobody wrote a formula for, on its natural scale (\code{sigma},
 \code{shape}, \code{sigma_ya}). Every name is spelled through brms's renaming:
-\code{b_IxE2} for \code{I(x^2)}, \code{sd_g:h__Intercept} for \code{(1 | g:h)}. For sampled fits,
-\code{variables()} on the \code{frmtmb.sample::frm_sample()} result lists the
-draw columns, which follow the same convention.
+\code{b_IxE2} for \code{I(x^2)}, \code{sd_g:h__Intercept} for \code{(1 | g:h)}. For sampled
+fits, \code{variables()} on the \code{frmtmb.sample::frm_sample()} result lists
+the draw columns, which follow the same convention EXCEPT for an
+ordinal fit, where they are the internal names: \code{tau_raw_1},
+\code{tau_raw_2} for the thresholds this page calls \code{b_Intercept[1]},
+\code{b_Intercept[2]}, and \code{bcs2_1} for a \code{cs()} coefficient this page calls
+\verb{bcs_<column>[1]}. \code{fixef()} on the draws object does report brms's
+rows.
 }
 \details{
 brms's \code{variables()} also lists what a fit has no counterpart of:
 group-level coefficients \verb{r_<group>[<level>,<coef>]}, the centered
 \code{Intercept}, \code{lprior} and \code{lp__}. A maximum-likelihood fit has no
 draws of those, and \code{\link[=ranef]{ranef()}} reports the conditional modes.
+
+An ordinal fit's thresholds are \code{b_Intercept[k]}, and a \code{cs()}
+category-specific term contributes \verb{bcs_<column>[k]}, one name per
+DESIGN COLUMN per category boundary. The column is the one
+\code{stats::model.matrix()} builds, as it is in brms, so \code{cs(x)} on a
+numeric predictor gives \code{bcs_x[1]}, \code{bcs_x[2]}, while \code{cs(f)} on a
+factor with levels \code{a}, \code{b} and \code{c} gives the treatment-contrast pairs
+\code{bcs_fb[k]} and \code{bcs_fc[k]}. See the "Category-specific effects, cs()"
+section of \code{\link[=frm]{frm()}}.
 
 A residual correlation term (\link{frmtmb-autocor}) contributes its
 natural-scale parameters under brms's names: \code{ar[1]}, \code{ar[2]},

@@ -1,0 +1,25 @@
+frmtmb variables(): bcs_fo.L[1] bcs_fo.L[2] bcs_fo.Q[1] bcs_fo.Q[2] 
+frmtmb logLik: -332.454415 
+frmtmb fitted at the three levels:
+         1        2        3
+1 0.179311 0.710344 0.110345
+2 0.470085 0.350427 0.179487
+3 0.753623 0.065217 0.181159
+empirical shares:
+     
+             1        2        3
+  lo  0.179310 0.710345 0.110345
+  mid 0.470085 0.350427 0.179487
+  hi  0.753623 0.065217 0.181159
+one row, fo = ordered('hi') with all three levels declared:
+         1        2        3
+1 0.753623 0.065217 0.181159
+brms Kcs = 2 Xcs columns: fo.L, fo.Q 
+brms Xcs head:
+           fo.L       fo.Q
+1 -7.071068e-01  0.4082483
+2 -7.071068e-01  0.4082483
+3 -7.850462e-17 -0.8164966
+frmtmb stored cs columns:
+  csfo.L : -0.707107 -0.707107 0 
+  csfo.Q : 0.408248 0.408248 -0.816497 

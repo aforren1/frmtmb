@@ -1,0 +1,73 @@
+== build LANE : 0.64.0 from C:/Users/adf44/source/r/wt-csfactor-lib 
+table(f) = 79 40 1
+table(yo) = 43 38 39
+base logLik = -123.384190  npar = 7
+coef names: Intercept[1], Intercept[2], x, fb[1], fb[2], fc[1], fc[2]
+
+---- 1a influence() observation-wise (deletes the only row of level c) ----
+influence rows = 120  all-NA rows = 0
+all-NA row ids = 
+row of the single 'c' observation = 120
+cooks.distance NA count = 1 of 120
+max cooks (na.rm) = 0.0588407
+
+---- 1a' the refusal message a deleted singleton level produces ----
+levels kept in the subset: a,b,c   counts 79 40 0
+assembled, cs entries = 0
+
+---- 1b frm_bootstrap() nsim=200 on the cs(f) model ----
+nsim = 200  all-NA replicate rows = 0  not converged = 0
+t0 names: x
+elapsed = 0.8s
+
+---- 1b' a bootstrap replicate whose response lacks a category ----
+forced response table = 43 77
+refit logLik = -68.815223  npar = 7
+
+---- 1c frm_allfit() ----
+allfit class = frmtmb_allfit
+    optimizer    logLik convergence seconds
+       nlminb -123.3842           0    0.00
+        optim -123.3842           0    0.00
+       bobyqa -123.3842           1    0.22
+ nloptr_lbfgs -123.3842           0    0.00
+
+logLik spread: 9.98e-07 
+max fixed-effect spread: 9.06e-06 
+
+---- 1d anova(refit = TRUE) ----
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+                   Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
+yo ~ x + cs(f)      7 -123.38 260.77                         
+yo ~ x + z + cs(f)  8 -123.33 262.65 0.1182      1      0.731
+
+---- 1d' drop1() ----
+Single term deletions
+
+Model: yo ~ x + z + cs(f)
+
+       Df    AIC    LRT Pr(>Chi)   
+<none>    262.65                   
+x       1 269.10 8.4497 0.003651 **
+z       1 260.77 0.1182 0.731046   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+---- 1e conditional_effects(band = 'boot') ----
+rows = 9  NA in estimate = 0  NA in lower = 0
+
+---- 1f the autoscale pre-fit ----
+autoscale fit ERRORED: `autoscale` must be TRUE or FALSE, not character "always"
+
+---- 1g frm_multiple() over imputations, one missing level c's row ----
+imp2 levels a,b,c  imp3 levels a,b
+frm_multiple fits = 3
+frm_multiple (all levels) fits = 3
+
+---- 1h influence(groups = ) where a group holds the only 'c' row ----
+group of the 'c' row = 12
+influence(groups) ERRORED: Grouping variable 'g' not found in the data
+
+DONE  LANE 

@@ -1,0 +1,27 @@
+== build LANE : 0.64.0 
+
+### the stored X of yo ~ mo(m) + cs(m)
+X columns: mom
+X column sums of squares: 0
+cs labels: csm.L,csm.Q,csm.C
+rank(cbind(1, X)) = 1  ncol = 2
+  j=1 rank(cbind(M, Z[,1:j])) = 2  needs >= 2
+  j=2 rank(cbind(M, Z[,1:j])) = 3  needs >= 3
+  j=3 rank(cbind(M, Z[,1:j])) = 4  needs >= 4
+qr() default tol (the rank test's tolerance) = 1e-07
+
+### the flat direction, measured as a profile
+logLik(mo(m) + cs(m)) = -327.579435714  df = 11
+logLik(cs(m))         = -327.579435720  df = 8
+difference = 6.425751e-09
+vcov eigenvalues of mo(m)+cs(m): 1.197e+04 0.0725 0.07128 0.06997 0.04112 0.01772 0.003413 -1.473e+04 -2.713e+05
+NaN standard errors: 9 of 9
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+
+### the compat registry row for cs_pred x group:ordinal_cs
+
+### the importance refusal with cs()
+REFUSED: `importance` cannot correct a cs() term (yo.mu): its threshold-specific offsets are a matrix per observation, which the first version does not stack over draws. Use importance = 0 
+
+DONE  LANE 

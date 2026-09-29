@@ -1,0 +1,11 @@
+﻿frmtmb 0.64.0 from C:/Users/adf44/source/r/wt-csfactor-lib 
+Rscript.exe : Setting order = 'mu' for mixtures of the same family.
+At line:2 char:1
++ & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" "C:/Users/adf44/source ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Setting order =...he same family.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Setting order = 'mu' for mixtures of the same family.
+RESULT test-brms-likelihood.R pass=440 fail=0 error=0 skip=0 warn=0
+done

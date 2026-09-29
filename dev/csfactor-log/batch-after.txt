@@ -1,0 +1,4 @@
+RESULT test-brms-agreement.R pass=168 fail=0 error=0 skip=2 warn=0
+  SKIP: distributional gaussian ML matches the brms posterior mode 
+  SKIP: mo() ML matches brms's monotonic likelihood (vignette model) 
+BATCH produced a RESULT line for 1 of 1 files

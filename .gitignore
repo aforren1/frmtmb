@@ -23,3 +23,7 @@ dev/brms-suite/
 
 # lane wt-correct: brms fits its probes cache
 dev/correct-brmsfits/
+
+# lane wt-csfactor: compiled Stan programs, and the R CMD check tree
+dev/csfactor-stan-cache/
+dev/csfactor-check/

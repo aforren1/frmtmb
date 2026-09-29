@@ -1,0 +1,22 @@
+== build LANE : 0.64.0 
+cs(x) alone                FITTED   df=4   logLik=-318.393510826  NaN-se=0
+poly(x,2) + cs(x)          REFUSED  cs(x) is not identified in 'yo.mu': the column is already spanned by the population-level part of the predictor, so adding a constant to the population-level co
+I(x^2) + cs(x)             FITTED   df=5   logLik=-317.979080807  NaN-se=0
+poly(x,2) alone            FITTED   df=4   logLik=-318.785917746  NaN-se=0
+s(x) + cs(x)               REFUSED  cs(x) is not identified in 'yo.mu': the column is already spanned by the population-level part of the predictor, so adding a constant to the population-level co
+s(x) alone                 FITTED   df=4   logLik=-319.592365252  NaN-se=0
+
+DONE  LANE 
+== build BASE : 0.64.0 
+cs(x) alone                FITTED   df=4   logLik=-318.393510826  NaN-se=0
+poly(x,2) + cs(x)          FITTED   df=6   logLik=-317.979080807  NaN-se=5
+Warning message:
+In sqrt(diag(v)) : NaNs produced
+I(x^2) + cs(x)             FITTED   df=5   logLik=-317.979080807  NaN-se=0
+poly(x,2) alone            FITTED   df=4   logLik=-318.785917746  NaN-se=0
+s(x) + cs(x)               FITTED   df=6   logLik=-318.393510860  NaN-se=5
+Warning message:
+In sqrt(diag(v)) : NaNs produced
+s(x) alone                 FITTED   df=4   logLik=-319.592365252  NaN-se=0
+
+DONE  BASE 

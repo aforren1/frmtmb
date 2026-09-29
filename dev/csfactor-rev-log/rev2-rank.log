@@ -1,0 +1,16 @@
+== frmtmb 0.64.0 
+cs design               ncolZ rk(1Z)  rk(1ZD)   rk(1D)  verdict
+cs(m)                       3      4        4        4  REFUSE
+cs(mr) refinement           7      8        8        4  REFUSE
+cs(mc) coarsening           1      2        4        4  accept
+cs(m2) correlated           3      4        7        4  accept
+cs(f) unrelated             2      3        6        4  accept
+cs(x)                       1      2        5        4  accept
+cs(m) vs mo(m):z            3      4        7        4  accept
+cs(m) vs mo(m):zb           3      4        7        4  accept
+
+# the refinement, stated as an identity: every indicator of m is a
+# sum of indicators of mr, so col(Dmo) is inside col(cbind(1, Zmr)).
+max || residual of a Dmo column on cbind(1, Zmr) || = 7.631692e-14
+min || residual of a Dmo column on cbind(1, Zmc) || (coarsening) = 8.51116
+done

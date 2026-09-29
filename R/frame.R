@@ -435,6 +435,261 @@ patch_predvars <- function(tt, map) {
   tt
 }
 
+#' The design columns one `cs()` term contributes, and what a `newdata`
+#' row is recoded against.
+#'
+#' brms hands a `cs()` term to `model.matrix()` like any other
+#' population-level term, so a factor or character predictor becomes
+#' treatment-contrast dummies with one coefficient per dummy per
+#' threshold: `cs(fc)` is the pair `fcb`, `fcc`, `cs(fch)` on a
+#' character column is `fchb`, `fchc`, and a factor with numeric-looking
+#' levels is `fnum2`, `fnum3` (`dev/csfactor-log/brms.txt`). frmtmb
+#' called `as.numeric()` on the value instead, so a factor model was
+#' fitted on the INTEGER CODES and a character column died in the
+#' optimizer.
+#'
+#' The returned `terms` object carries `predvars`, so a data-dependent
+#' basis inside `cs()` (`poly()`, `scale()`, `ns()`) is frozen at the
+#' fit as it is for the ordinary design; `xlevels` and `contrasts` are
+#' the FIT's, which is what a `newdata` factor is recoded against
+#' rather than against its own levels.
+#'
+#' @noRd
+cs_term_design <- function(cexpr, mf, env) {
+  tt <- stats::terms(stats::as.formula(call("~", cexpr), env = env))
+  mfc <- stats::model.frame(tt, mf, na.action = stats::na.pass)
+  tt <- attr(mfc, "terms")
+  X <- stats::model.matrix(tt, mfc)
+  contr <- attr(X, "contrasts")
+  X <- X[, setdiff(colnames(X), "(Intercept)"), drop = FALSE]
+  if (!ncol(X)) {
+    frm_stop("cs(", deparse1(cexpr), ") contributes no design column",
+             call. = FALSE)
+  }
+  list(X = X, terms = tt, xlevels = stats::.getXlevels(tt, mfc),
+       contrasts = contr, colnames = colnames(X),
+       label = deparse1(cexpr))
+}
+
+#' The same columns on `newdata`, through the fit's terms, levels and
+#' contrasts. A column set that does not match the fit's is a refusal
+#' rather than a silent recoding.
+#'
+#' @noRd
+cs_term_newdata <- function(spec, newdata) {
+  tt <- spec[["terms"]]
+  check_newdata_frame(tt, newdata, spec[["xlevels"]])
+  mfc <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
+                            xlev = spec[["xlevels"]])
+  X <- stats::model.matrix(tt, mfc, contrasts.arg = spec[["contrasts"]])
+  X <- X[, setdiff(colnames(X), "(Intercept)"), drop = FALSE]
+  if (!identical(colnames(X), spec[["colnames"]])) {
+    frm_stop("cs(", spec[["label"]], "): newdata gives the design ",
+             "column(s) ", paste(colnames(X), collapse = ", "),
+             " where the fit has ",
+             paste(spec[["colnames"]], collapse = ", "), call. = FALSE)
+  }
+  X
+}
+
+#' The population-level columns a refused `cs()` column is aliased with,
+#' named rather than left to the reader. They come from the least-squares
+#' weights of the cs column on `cbind(1, X)`, which is exact here because
+#' the column IS in that span, so a weight below a thousandth of the
+#' largest one is rounding.
+#'
+#' @noRd
+cs_alias_cols <- function(M, z, xnames) {
+  if (!length(xnames)) return(character(0))
+  co <- tryCatch(stats::setNames(qr.coef(qr(M), z)[-1L], xnames),
+                 error = function(e) NULL)
+  if (is.null(co) || all(is.na(co))) return(character(0))
+  co[is.na(co)] <- 0
+  names(co)[abs(co) > 1e-3 * max(abs(co))]
+}
+
+#' The same names as a phrase, capped so a wide design does not produce a
+#' paragraph.
+#'
+#' @noRd
+cs_alias_phrase <- function(alias, cap = 6L) {
+  if (!length(alias)) return("the design as a whole")
+  paste0(paste0("'", utils::head(alias, cap), "'", collapse = ", "),
+         if (length(alias) > cap) ", ..." else "")
+}
+
+#' The edit that actually works, which depends on what the formula holds.
+#' Advising "write `x + cs(x)` as `cs(x)`" on `poly(x, 2) + cs(x)` sends
+#' the reader to delete a term that is not there and loses the quadratic;
+#' the edit that works is `I(x^2) + cs(x)`, which reaches the identical
+#' maximum with one parameter fewer (-317.979080807 either way,
+#' `dev/csfactor-rev-log/rev-poly.log`). A SMOOTH has no such spelling,
+#' because it is the smooth's own unpenalized linear column
+#' (`s(x).fx1`) that is aliased, so there one of the two terms has to go.
+#' Each worked example stays in ITS OWN branch: the polynomial rewrite
+#' pasted into the general case advertised a `poly()` that
+#' `x + z + cs(I(x + z))` does not contain.
+#'
+#' @noRd
+cs_alias_advice <- function(term, xnames, alias) {
+  if (term %in% (xnames %||% character(0))) {
+    return(paste0("Write '", term, " + cs(", term, ")' as 'cs(", term,
+                  ")' alone, which fits the same set of distributions, ",
+                  "or drop the cs()."))
+  }
+  if (any(grepl("\\.fx[0-9]+$", alias))) {
+    return(paste0("That column is a SMOOTH's unpenalized linear part, ",
+                  "and no spelling of the formula keeps both it and the ",
+                  "cs() term, so drop one of the two."))
+  }
+  if (any(grepl("^poly\\(", alias))) {
+    return(paste0("That column is a POLYNOMIAL basis's linear part. Drop ",
+                  "the cs(), or respell the basis without it: ",
+                  "'I(x^2) + cs(x)' in place of 'poly(x, 2) + cs(x)' ",
+                  "reaches the same maximum with one parameter fewer."))
+  }
+  paste0("No population-level term spells '", term, "' on its own, so ",
+         "there is nothing to delete by that name: drop either the cs() ",
+         "term or the population-level term(s) carrying the column(s) ",
+         "named above.")
+}
+
+#' The code-indicator basis of one `mo()` term, the space every simplex
+#' the objective could choose puts that term's column in.
+#'
+#' `mo()` contributes `b * D * cumsum(zeta)[codes + 1]`. Over the simplex
+#' those vectors span the functions of `codes` that vanish at code 0,
+#' which is exactly the treatment-dummy basis of the codes, times the
+#' interaction multiplier when the term carries one (`mo(x):z`). `NULL`
+#' when the term has no usable codes.
+#'
+#' @noRd
+mo_indicator_basis <- function(mi) {
+  codes <- mi[["codes"]]
+  D <- mi[["D"]]
+  if (!length(codes) || !length(D) || D < 1L) return(NULL)
+  B <- outer(as.integer(codes), seq_len(D), "==") * 1
+  mult <- mi[["mult"]]
+  if (!is.null(mult)) B <- B * as.numeric(mult)
+  colnames(B) <- paste0(mi[["label"]], ".", seq_len(D))
+  B
+}
+
+#' Refuse a `cs()` model whose category-specific columns the data cannot
+#' separate from the rest of the predictor.
+#'
+#' `cs()` gives a column one coefficient per threshold and the
+#' thresholds are already one intercept per threshold, so a cs column
+#' inside the span of the population-level design plus the constant adds
+#' nothing: in `y ~ x + cs(x)` the substitution `b -> b + t`,
+#' `bcs[k] -> bcs[k] - t` leaves every row's density unchanged, and the
+#' same holds for a factor written on both sides. brms 2.23.0 builds
+#' both blocks and samples the ridge (`dev/csfactor-log/brms.txt`, cases
+#' B1 and B2); frmtmb refuses, because maximum likelihood has no prior
+#' to hold the ridge and what it reported was an estimate with a
+#' standard error of 2.7e5 (`dev/csfactor-log/before.txt`).
+#'
+#' The test is on RANKS, not column counts, because the stored `X`
+#' carries zero placeholder columns for `mo()`, `mi()` and `me()` terms
+#' that the objective fills later. That is also why the rank test ALONE
+#' is blind to those terms, and why `mo()` gets the separate test below.
+#' `mi()` and `me()` do not: their columns are observed-or-latent values
+#' rather than a function of a data column, so there is no basis to test
+#' them against at frame time. `?frm` says so.
+#'
+#' The rank is `qr()`'s, at its default `tol = 1e-7` on columns scaled to
+#' unit norm, so the boundary is a condition number near 1e7: measured, a
+#' `cs()` column correlated with a population-level one at `eps = 1e-6`
+#' (condition number 2.2e6) fits and `eps = 1e-7` (2.3e7) is refused
+#' (`dev/csfactor-rev-log/rev-rank-lane.log`).
+#'
+#' @noRd
+check_cs_identified <- function(X, cs_info, lp_key, mo_info = list()) {
+  if (length(cs_info) < 1L) return(invisible(NULL))
+  Z <- matrix(unlist(lapply(cs_info, `[[`, "vals"), use.names = FALSE),
+              nrow = length(cs_info[[1L]][["vals"]]))
+  Xm <- if (is.null(X) || !ncol(X)) NULL else as.matrix(X)
+  M <- if (is.null(Xm)) matrix(1, nrow(Z), 1L) else cbind(1, Xm)
+  scal <- function(A) {
+    s <- sqrt(colSums(A^2))
+    s[!(s > 0)] <- 1                 # a zero column keeps its zeros
+    sweep(A, 2L, s, "/")
+  }
+  rnk <- function(A) qr(scal(A))$rank
+  base <- rnk(M)
+  for (j in seq_len(ncol(Z))) {
+    if (rnk(cbind(M, Z[, seq_len(j), drop = FALSE])) >= base + j) next
+    col <- sub("^cs", "", cs_info[[j]][["label"]])
+    term <- deparse1(cs_info[[j]][["expr"]] %||% str2lang(col))
+    # the column names the culprit, the TERM names what to edit: a
+    # factor's dummy is not something the formula mentions
+    which_col <- if (identical(col, term)) "the column " else {
+      paste0("its column '", col, "' ")
+    }
+    alone <- rnk(cbind(M, Z[, j, drop = FALSE])) < base + 1L
+    frm_stop(
+      "cs(", term, ") is not identified in '", lp_key, "': ", which_col,
+      if (alone && diff(range(Z[, j])) == 0) {
+        paste0("is constant over the rows, and an ordinal family ",
+               "already has one threshold per category boundary, so ",
+               "nothing separates a category-specific coefficient from ",
+               "its threshold. Drop the term.")
+      } else if (alone) {
+        alias <- cs_alias_cols(M, Z[, j], colnames(Xm))
+        paste0("is already spanned by the population-level part of the ",
+               "predictor (", cs_alias_phrase(alias),
+               "), so adding a constant to that coefficient and ",
+               "subtracting the same constant from every threshold's ",
+               "coefficient leaves the likelihood unchanged. ",
+               cs_alias_advice(term, colnames(Xm), alias),
+               " brms 2.23.0 builds both blocks and samples the ridge; ",
+               "maximum likelihood has no prior to hold it.")
+      } else {
+        paste0("is a linear combination of the other cs() columns and ",
+               "the population-level design, so its coefficients are ",
+               "not separately estimable. Drop the redundant term.")
+      },
+      call. = FALSE)
+  }
+  # mo() terms. The stored column is a zero placeholder, so the rank
+  # loop above cannot see it, but what the objective puts there is
+  # D * cumsum(zeta)[codes + 1] for a simplex zeta, and every such vector
+  # lies in the span of the code INDICATORS. When the cs() columns plus
+  # the rest of the predictor already span that indicator space, no
+  # simplex escapes: shifting the mo() coefficient is absorbed exactly.
+  # Measured on `yo ~ mo(m) + cs(m)`, m an ordered factor with 4 levels:
+  # 3 extra parameters bought 6.4e-09 of log likelihood and every one of
+  # 9 standard errors came back NaN (dev/csfactor-rev-log/rev-gap-lane.log,
+  # seed 1907). The second condition keeps the refusal ABOUT cs(): a mo()
+  # term that the population-level design alone already absorbs is a
+  # different and PRE-EXISTING problem, which nothing reports today -
+  # `yo ~ mo(m) + m` fits with a negative covariance eigenvalue (-6441)
+  # and 6 of 6 non-finite standard errors, in silence. Filed in
+  # dev/test-backlog.md; refusing it here would be a change about mo()
+  # rather than about cs().
+  bz <- rnk(cbind(M, Z))
+  for (mi in mo_info) {
+    Dm <- mo_indicator_basis(mi)
+    if (is.null(Dm)) next
+    if (rnk(cbind(M, Z, Dm)) > bz) next
+    if (rnk(cbind(M, Dm)) <= base) next
+    mnm <- deparse1(mi[["expr"]])
+    frm_stop(
+      "mo(", mnm, ") and the cs() term(s) of '",
+      lp_key, "' are not identified together: cs() already gives every ",
+      "value of '", mnm, "' its own coefficient at ",
+      "each category boundary, so the monotonic term adds no direction ",
+      "the cs() coefficients cannot absorb, whatever its simplex. Keep ",
+      "one of the two: mo() alone when the effect is monotone and the ",
+      "same at every boundary, cs() alone when it is not. An INTERACTION ",
+      "of the two survives, because it is not a function of '", mnm,
+      "' alone: write 'z + mo(", mnm, "):z + cs(", mnm, ")' rather than ",
+      "'mo(", mnm, ") * z + cs(", mnm, ")', whose main effect is the part ",
+      "that is refused.", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' sparse.model.matrix names the columns of matrix-valued terms (poly,
 #' ns, scale) by bare index instead of the term-prefixed dense names.
 #' Names are load-bearing (frozen param_colnames, coefficient labels), so
@@ -2616,8 +2871,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       me_info <- mec$info
 
       # Category-specific ordinal effects cs(x): K-1 coefficients per
-      # term (extras), entering the threshold-specific predictors.
+      # design COLUMN (extras), entering the threshold-specific
+      # predictors. A factor or character term is several columns, as it
+      # is in brms, so the term's model matrix is kept beside the
+      # columns for the newdata paths to recode against.
       cs_info <- list()
+      cs_mm <- list()
       if (length(dp[["csterms"]] %||% list())) {
         if (!identical(resp$family[["type"]], "ordinal") ||
             identical(resp$family[["family"]], "cumulative")) {
@@ -2636,15 +2895,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # frame holds this response's thresholds under its own name
         tau_nm <- extra_map[[resp$resp_name]][["tau_raw"]] %||% "tau_raw"
         K_cs <- length(extras[[tau_nm]]) + 1L
-        for (cexpr in dp[["csterms"]]) {
-          v <- as.numeric(eval(cexpr, mf, resp$formula_env))
-          csname <- paste0("bcs", length(extras) + 1L)
-          extras[[csname]] <- numeric(K_cs - 1L)
-          cs_info[[length(cs_info) + 1L]] <- list(
-            vals = v, par = csname,
-            label = paste0("cs", deparse1(cexpr))
-          )
+        for (ti in seq_along(dp[["csterms"]])) {
+          cexpr <- dp[["csterms"]][[ti]]
+          cd <- cs_term_design(cexpr, mf, resp$formula_env)
+          cs_mm[[ti]] <- cd[setdiff(names(cd), "X")]
+          for (j in seq_len(ncol(cd[["X"]]))) {
+            csname <- paste0("bcs", length(extras) + 1L)
+            extras[[csname]] <- numeric(K_cs - 1L)
+            cs_info[[length(cs_info) + 1L]] <- list(
+              vals = as.numeric(cd[["X"]][, j]), par = csname,
+              label = paste0("cs", cd[["colnames"]][j]),
+              expr = cexpr, tid = ti, col = j
+            )
+          }
         }
+        check_cs_identified(X, cs_info, lp_key, mo_info)
       }
 
       # `paste()` recycles to the LONGEST argument, so a design with no
@@ -2705,6 +2970,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         mi = mi_info,
         me = me_info,
         cs = cs_info,
+        cs_mm = cs_mm,
         comp_ids = comp_ids,
         constant = dp[["constant"]],
         # FALSE: the intercept is class "b" and not centered (brms's

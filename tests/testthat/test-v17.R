@@ -142,10 +142,17 @@ test_that("cs() category-specific effects match direct ML", {
   y <- apply(P, 1, function(p) sample.int(4, 1, prob = p))
   dd <- data.frame(y = y, x = x)
 
-  fit <- frm(bf(y ~ x + cs(x)) + sratio(), data = dd)
+  # The generating model writes x TWICE, as a global slope and as
+  # category-specific slopes, and that pair is not identified: only the
+  # sums 0.3 + g_t[k] enter the density. `y ~ x + cs(x)` is refused for
+  # that reason now (test-cs-factor.R), and `cs(x)` alone fits the same
+  # set of distributions, which is what the reference below optimizes.
+  expect_error(frm(bf(y ~ x + cs(x)) + sratio(), data = dd),
+               "is not identified", fixed = TRUE)
+  fit <- frm(bf(y ~ cs(x)) + sratio(), data = dd)
   nll <- function(p) {
-    Fm <- stats::plogis(outer(-p[1] * x, p[2:4], `+`) -
-                          outer(x, p[5:7]))
+    Fm <- stats::plogis(matrix(p[1:3], n, 3, byrow = TRUE) -
+                          outer(x, p[4:6]))
     Pm <- matrix(0, n, 4)
     surv <- rep(1, n)
     for (k in 1:3) {
@@ -155,15 +162,17 @@ test_that("cs() category-specific effects match direct ML", {
     Pm[, 4] <- surv
     -sum(log(Pm[cbind(seq_len(n), y)]))
   }
-  op <- stats::optim(c(0.3, tau_t, g_t), nll, method = "BFGS",
+  op <- stats::optim(c(tau_t, 0.3 + g_t), nll, method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
-  expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
+  expect_lt(abs(as.numeric(logLik(fit)) + op$value),
+            1e-8 * max(1, abs(op$value)))
   # a plain sratio fit is strictly worse (cs is real here)
   f0 <- frm(bf(y ~ x) + sratio(), data = dd)
   expect_gt(as.numeric(logLik(fit)), as.numeric(logLik(f0)) + 5)
-  # cs works for cratio and acat, refuses cumulative
-  expect_no_error(frm(bf(y ~ x + cs(x)) + cratio(), data = dd))
-  expect_no_error(frm(bf(y ~ x + cs(x)) + acat(), data = dd))
+  # cs works for cratio and acat, refuses cumulative; the family refusal
+  # comes before the identifiability check, so it still names the family
+  expect_no_error(frm(bf(y ~ cs(x)) + cratio(), data = dd))
+  expect_no_error(frm(bf(y ~ cs(x)) + acat(), data = dd))
   expect_error(frm(bf(y ~ x + cs(x)) + cumulative(), data = dd),
                "sratio, cratio, or acat")
 })

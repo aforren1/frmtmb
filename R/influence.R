@@ -71,6 +71,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                dimnames = list(units, names(outer_theta_names(model))))
 
   data2 <- model$data2 %||% list()
+  dropped <- list()
   for (i in seq_along(units)) {
     fit_i <- tryCatch(suppressWarnings({
       frame_i <- assemble_frame(model$spec,
@@ -94,14 +95,60 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
     if (is.null(fit_i)) next
     fe_i <- get_coef.frmtmb_fit(fit_i)
     fe[i, names(fe_i)] <- fe_i
+    # A refit that SUCCEEDS can still estimate fewer coefficients than the
+    # full fit, because the model frame drops an unused factor level:
+    # deleting the last row of a level leaves those cells NA and
+    # cooks.distance() NA for that unit. It used to do that in silence.
+    gone <- setdiff(names(full_fe), names(fe_i))
+    if (length(gone)) dropped[[units[i]]] <- gone
     if (length(full_th) &&
         length(fit_i$estimates[["theta"]]) == length(full_th)) {
       th[i, ] <- fit_i$estimates[["theta"]]
     }
   }
+  if (length(dropped)) {
+    nm <- names(dropped)
+    gone <- unique(unlist(dropped, use.names = FALSE))
+    frm_warning(
+      "Deleting ", if (length(nm) == 1L) "unit " else "units ",
+      paste0("'", utils::head(nm, 5L), "'", collapse = ", "),
+      if (length(nm) > 5L) paste0(" and ", length(nm) - 5L, " more") else "",
+      " left a design without ",
+      paste0("'", utils::head(influence_coef_labels(model, gone), 5L), "'",
+             collapse = ", "),
+      ", so those cells are NA and cooks.distance() is NA for ",
+      if (length(nm) == 1L) "that unit" else "those units",
+      ". A factor level holding one row of its own disappears from the ",
+      "deletion subset, and the refit then estimates one coefficient ",
+      "fewer.")
+  }
   structure(list(fixed = fe, theta = th, fixed_full = full_fe,
                  theta_full = full_th, groups = groups, fit = model),
             class = "frmtmb_influence")
+}
+
+#' Readable labels for influence-table columns in a warning.
+#'
+#' The table's own names are the internal ones, and a `cs()` coefficient's
+#' internal name (`bcs3_1`) does not say which factor LEVEL vanished from
+#' the deletion subset, which is the whole point of the message. Map the
+#' `bcs<j>` part back to the term's design column through the frame, so
+#' `bcs3_1` reads `bcs3_1 (cs fcc, boundary 1)`. Anything else is left as
+#' it is.
+#'
+#' @noRd
+influence_coef_labels <- function(fit, nms) {
+  lab <- character(0)
+  for (lp in fit$frame[["linpreds"]]) {
+    for (ct in lp[["cs"]] %||% list()) {
+      lab[ct[["par"]]] <- sub("^cs", "", ct[["label"]])
+    }
+  }
+  vapply(nms, function(nm) {
+    p <- sub("_[0-9]+$", "", nm)
+    if (!nzchar(p) || is.na(lab[p]) || !p %in% names(lab)) return(nm)
+    paste0(nm, " (cs ", lab[[p]], ", boundary ", sub("^.*_", "", nm), ")")
+  }, "", USE.NAMES = FALSE)
 }
 
 #' theta labels for the influence table

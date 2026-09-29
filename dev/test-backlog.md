@@ -966,9 +966,10 @@ neither is the defect that lane fixed.
   drew every `cs()` model as if the term were absent, in sample and at
   newdata, silently (max |z| 1216.7). `dev/predfix-findings.md`, the
   cs() section.
-- OPEN, A SILENT WRONG ANSWER, pre-existing (0.62.0 and every lane
-  build): `cs()` on a factor is fitted and predicted on the factor's
-  INTEGER CODES. `ord_cs_values()` calls `as.numeric()` on the factor,
+- DONE by lane wt-csfactor (`dev/csfactor-findings.md`), A SILENT WRONG
+  ANSWER, pre-existing (0.62.0 through 0.64.0): `cs()` on a factor is
+  fitted and predicted on the factor's INTEGER CODES.
+  `ord_cs_values()` calls `as.numeric()` on the factor,
   so the model is linear in the codes (logLik -446.9233 against
   -446.6361 with the two dummy columns written out), and a `newdata`
   factor is re-coded from its own levels: a single row
@@ -979,7 +980,10 @@ neither is the defect that lane fixed.
   treatment-contrast dummy columns, `fcb` and `fcc`, with one `b` row
   each (`dev/predfix-brms-csfactor.R`, `dev/predfix-log/brms-csfactor.txt`),
   so the fix is to build `cs()` from `model.matrix()` with the fit's
-  contrasts and levels, in the frame and at `newdata`.
+  contrasts and levels, in the frame and at `newdata`. That is what was
+  done, one `bcs<j>` per design COLUMN; `tests/testthat/test-cs-factor.R`
+  pins it and was seen to fail 27 of 46 with 3 errors on the 0.64.0
+  reference build.
 - The frmtmb.sample floor must move to the core that carries
   `frmtmb_new_levels` and exports `cs_offsets_add()`: against 0.62.0
   core the draws check falls back to its flagged path, core's old hint
@@ -1076,6 +1080,60 @@ the lane did not re-measure them. None is a wrong answer from the fit.
   3.4 or 3.5; not investigated. Test: coverage of that quantity on
   independent seeds, with enough replicates for the Wilson interval to
   exclude or include 95.
+
+## Filed by lane wt-csfactor after punch round 1, 2026-09-29
+
+Both found by the wt-csfactor reviewer
+(`dev/reviews/2026-09-29-csfactor.md`), both pre-existing on the 0.64.0
+reference build, neither this lane's.
+
+### Open - medium
+
+- **`fitted(mv, newdata = )` errors on ANY multivariate ordinal fit**
+  with "values must be length 1, but FUN(X[[1]]) result is length 0",
+  R's own `vapply()` message rather than a designed refusal. Measured
+  with `cs()` and without it, same message either way, so it is not
+  about `cs()`; in-sample `fitted(mv)` returns the `n x 4 x K` array
+  both ways (300 x 4 x 6), and `predict(mv, newdata = )` refuses with a
+  designed message. Construction:
+  `frm(bf(yo ~ x + cs(fc)) + bf(yo2 ~ z + cs(fc)), sratio())` on seed 77,
+  n = 300, then `fitted(mv, newdata = data.frame(x = 0, z = 0, fc =
+  factor("a", levels = c("a","b","c"))))`
+  (`dev/csfactor-rev-docs.R`, `dev/csfactor-rev-log/rev-docs-lane.log`).
+- **`y ~ mo(m) + m` is not identified and is fitted in silence**, with no
+  `cs()` term anywhere. A monotone function of `m`'s categories lies in
+  the span of `m`'s own dummies, so the two coefficient blocks share a
+  flat direction. Measured on both builds, seed 1907, n = 300, `m` an
+  ordered factor with 4 levels (`dev/csfactor-p2.R`,
+  `dev/csfactor-log/p2.txt`): `mo(m) + m` gives df 8 and logLik
+  -328.534572784 where `m` ALONE gives df 5 and -328.534572790, so three
+  extra parameters buy 6e-09 of log likelihood; the covariance matrix has
+  a smallest eigenvalue of -6441 and 6 of 6 standard errors are
+  non-finite, with only R's own `In sqrt(diag(V)) : NaNs produced` to show
+  for it. Written with `m` as an UNORDERED factor the eigenvalue is -6724
+  and the standard errors happen to stay finite, which is worse: nothing
+  at all is visible. Lane wt-csfactor's `check_cs_identified()`
+  deliberately does NOT refuse this, being about `mo()` rather than about
+  `cs()`, and its comment points here. The fix belongs with a rank check
+  over the FILLED design rather than the assembly-time one, since the
+  `mo()` column is a zero placeholder at assembly.
+
+### Open - minor
+
+- **`variables()` on a `frm_sample()` draws object of an ORDINAL fit
+  lists the raw internal names.** It gives `tau_raw_1`, `tau_raw_2` where
+  `variables(fit)` gives `b_Intercept[1]`, `b_Intercept[2]`, and
+  `bcs2_1`, `bcs2_2`, `bcs3_1`, `bcs3_2` where `variables(fit)` gives
+  `bcs_fcb[1]` and the rest. It does the `tau_raw` half for an ordinal
+  fit with NO `cs()` term, so the defect is about ordinal draws and not
+  about `cs()`: `variables(ds)` for `sratio, yo ~ x` gives
+  `b_x tau_raw_1 tau_raw_2 lp__`, while `fixef(ds)` for the same fit
+  gives `Intercept[1] Intercept[2] x`. A gaussian fit's draws are
+  correct (`b_Intercept b_x sigma lp__`). So `fixef()` on the draws
+  object goes through `draws_fixef_ordinal()` and `variables()` does
+  not. `?variables` now records the exception rather than claiming the
+  draw columns follow the same convention
+  (`dev/csfactor-rev-docs2.R`, `dev/csfactor-log/sample.txt`).
 
 ## Reference
 

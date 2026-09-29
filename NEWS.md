@@ -1,3 +1,68 @@
+# frmtmb (development version)
+
+## Bug fixes
+
+* **`cs()` on a factor or a character column was fitted and predicted on
+  the factor's INTEGER CODES, a silent wrong answer.** The term is now
+  expanded by `stats::model.matrix()` with the fit's contrasts, so a
+  discrete predictor becomes treatment-contrast dummies with one
+  coefficient per dummy per category boundary, exactly as brms 2.23.0
+  builds its `Xcs`. What changes for a fitted model: a three-level factor
+  gets FOUR coefficients where it had two, and their names move from
+  `fc[1]`, `fc[2]` (`bcs_fc[k]`) to `fcb[1]`, `fcb[2]`, `fcc[1]`,
+  `fcc[2]` (`bcs_fcb[k]`, `bcs_fcc[k]`), which is what brms calls them.
+  Every estimate moves with them: on the recorded construction the log
+  likelihood went from -446.9233 to -446.6361, the value the same model
+  written with hand-built dummy columns already reached. `newdata` is
+  recoded against the levels of the FIT rather than against its own, so a
+  one-row `newdata` holding `factor("c")` no longer returns the reference
+  level's probabilities, from `fitted()`, `predict()`, `simulate()` and
+  `conditional_effects()` alike, and a level the fit never saw is refused
+  by name. A CHARACTER `cs()` column did not fit at all before:
+  `as.numeric()` on it gave `NA`s and the optimizer died on a NaN
+  gradient. `set_prior(class = "b")` and `default_prior()` list and reach
+  one row per dummy, under brms's `coef` spelling.
+
+* **`y ~ x + cs(x)` is refused instead of fitted.** The global
+  coefficient of a column and the category-specific coefficients of the
+  same column span one direction twice: adding a constant to the first
+  and subtracting it from each of the others leaves the likelihood
+  unchanged. It was fitted, and reported standard errors of 2.7e5 on
+  every coefficient involved. The message names the edit that fixes it,
+  `y ~ cs(x)`, which fits the same set of distributions. A factor on both
+  sides (`y ~ f + cs(f)`) and a constant `cs()` column are refused the
+  same way. This is a deliberate departure from brms 2.23.0, which builds
+  both blocks and samples the ridge: a Bayesian fit has a prior to hold
+  the ridge and maximum likelihood has none.
+  `vignette("brms-migration")` records the departure.
+
+  The check is a rank test, so it catches a column that only a basis or
+  an expression spells differently (`y ~ poly(x, 2) + cs(x)`,
+  `y ~ s(x) + cs(x)`, `y ~ x1 + x2 + cs(x1 + x2)`, and two `cs()` terms
+  that are the same column twice), and the message names the columns
+  involved and the edit that works, which for `poly(x, 2) + cs(x)` is
+  `I(x^2) + cs(x)` and for `s(x) + cs(x)` is to drop one of the two. It
+  does NOT reach an `mi()` or `me()` term, whose design column is a zero
+  placeholder at assembly filled later with observed-or-latent values:
+  `me(x, sdx) + cs(x)` appears to be identified and `mi(x) + cs(x)` is
+  not settled. `mo()` has a placeholder column too, but whatever fills it
+  is a monotone function of the predictor's categories, so `mo()` is
+  tested against that category basis and `y ~ mo(m) + cs(m)` is now
+  refused as well. It used to fit, buying 3 degrees of freedom for
+  6.4e-09 of log likelihood with NaN on all 9 standard errors.
+  `?frm` states the `mi()`/`me()` gap.
+
+* **`influence()` warns when deleting a unit drops a coefficient.** A
+  deletion refit can succeed and still estimate fewer coefficients than
+  the full fit, because the model frame drops an unused factor level: the
+  last row of a rare level disappears from the subset. Those cells of the
+  influence table stay `NA` and `cooks.distance()` is `NA` for that unit,
+  which it already did, in silence. The warning names the unit and the
+  coefficients, and it fires for ANY factor level a deletion empties, not
+  only a `cs()` one: `y ~ x + f` warns where it gave one silent `NA`
+  before. A `cs()` factor level makes the case easier to meet, because
+  `cs()` gives each level `K - 1` coefficients rather than one.
+
 # frmtmb 0.64.0
 
 brms parity: every gap in the model menu that the last round listed is

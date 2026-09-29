@@ -287,6 +287,81 @@
 #' refused (the simplex carries one coefficient and a contrast expansion
 #' has no column to go in), and `mo(x):mo(w)` is refused outright.
 #'
+#' @section Category-specific effects, cs():
+#' `cs(x)` gives a predictor one coefficient per category boundary
+#' instead of one for the whole response, in the `sratio()`, `cratio()`
+#' and `acat()` families. The term contributes an `n` by `K - 1` matrix
+#' of offsets to the thresholds, so the effect of `x` on the first
+#' boundary need not be its effect on the second. `cumulative()` refuses
+#' it, as brms does: category-specific effects are not identified under
+#' that parameterization, because the cumulative probabilities would stop
+#' being monotone.
+#'
+#' A `cs()` term is expanded by `stats::model.matrix()` like any other
+#' population-level term, which is what brms does too. A numeric
+#' predictor is one column; a FACTOR or CHARACTER predictor is its
+#' treatment-contrast dummies, one coefficient per dummy per boundary.
+#' `cs(f)` on a three-level factor with levels `a`, `b` and `c` is
+#' therefore four coefficients, named `fb[1]`, `fb[2]`, `fc[1]` and
+#' `fc[2]` in [fixef()] and `bcs_fb[1]` and the rest in [variables()],
+#' with `a` as the reference level. `set_prior(class = "b")` covers them
+#' all and `set_prior(class = "b", coef = "fb")` reaches one dummy's
+#' pair; [default_prior()] lists one row per dummy, as brms's
+#' `get_prior()` does. New data are recoded against the levels and
+#' contrasts of the FIT, so a one-row `newdata` whose factor carries only
+#' the level it needs still predicts that level, and a level the fit
+#' never saw is refused.
+#'
+#' A column written on BOTH sides is refused. `y ~ x + cs(x)` is not
+#' identified: adding a constant to the population-level coefficient of
+#' `x` and subtracting the same constant from every one of its
+#' category-specific coefficients leaves the likelihood unchanged. Write
+#' `y ~ cs(x)`, which fits the same set of distributions. The same holds
+#' for a factor on both sides (`y ~ f + cs(f)`) and for a constant `cs()`
+#' column. brms builds both blocks and samples the ridge; maximum
+#' likelihood has no prior to hold it, and what frmtmb reported before
+#' the refusal was a coefficient with a standard error of 2.7e5.
+#'
+#' The check is a RANK test, so it also catches a column that only a
+#' basis or an arithmetic expression spells differently:
+#' `y ~ I(x) + cs(x)`, `y ~ x1 + x2 + cs(x1 + x2)`,
+#' `y ~ poly(x, 2) + cs(x)` and `y ~ s(x) + cs(x)` are all refused, and so
+#' are two `cs()` terms that are the same column under different
+#' spellings. The rank comes from `qr()` at its default `tol = 1e-7`, over
+#' columns scaled to unit norm, so a merely ill-conditioned design is
+#' refused once its condition number passes about `1e7`. The message names
+#' the population-level columns involved and the edit that works, which
+#' for `poly(x, 2) + cs(x)` is `I(x^2) + cs(x)` (the same maximum, one
+#' parameter fewer) and for `s(x) + cs(x)` is to drop one of the two
+#' terms, because there it is the smooth's own unpenalized linear column
+#' that is aliased.
+#'
+#' The rank test cannot see an `mi()` or `me()` term: its design column is
+#' a zero placeholder at assembly, filled later with observed-or-latent
+#' VALUES rather than with a function of a data column, so there is no
+#' basis to test it against. `mi(x) + cs(x)` and `me(x, sdx) + cs(x)` are
+#' therefore accepted. `me(x, sdx) + cs(x)` looks genuinely identified,
+#' its standard errors being finite, and `mi(x) + cs(x)` is not settled.
+#' `mo()` has a placeholder column too, but whatever fills it is a
+#' monotone function of the predictor's categories, so `mo()` gets a test
+#' of its own against that category basis and `y ~ mo(m) + cs(m)` is
+#' refused.
+#'
+#' `cs()` is not available with `thres(gr = )` or under `importance`, and
+#' `cs()` on the LEFT of a bar (`(cs(x) | g)`) is the covariance structure
+#' of the same name, not a category-specific effect. A MULTIVARIATE fit
+#' takes `cs()` in any response: `bf(yo ~ x + cs(f)) + bf(yo2 ~ z +
+#' cs(f))` fits, and the coefficients carry the response prefix,
+#' `yo_fb[1]` in [fixef()] and `bcs_yo_fb[1]` in [variables()].
+#'
+#' One behavior to know when a `cs()` level is rare. The model frame drops
+#' an unused factor level, as brms does, so a SUBSET in which a level does
+#' not occur is fitted with one column fewer. In [influence()], deleting
+#' the last row of a level therefore gives a refit whose coefficients are
+#' a subset of the full fit's: those cells stay `NA`,
+#' [cooks.distance()] is `NA` for that unit, and a warning names the unit
+#' and the coefficients.
+#'
 #' @section Ordinal thresholds, thres():
 #' The four ordinal families take brms's `thres()` addition term.
 #' `y | thres(K) ~ x` fits `K` thresholds, so the response has `K + 1`

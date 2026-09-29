@@ -2724,14 +2724,28 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' coefficient part, `sd_g__sigma_Intercept`), and a distributional
 #' parameter nobody wrote a formula for, on its natural scale (`sigma`,
 #' `shape`, `sigma_ya`). Every name is spelled through brms's renaming:
-#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`. For sampled fits,
-#' `variables()` on the `frmtmb.sample::frm_sample()` result lists the
-#' draw columns, which follow the same convention.
+#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`. For sampled
+#' fits, `variables()` on the `frmtmb.sample::frm_sample()` result lists
+#' the draw columns, which follow the same convention EXCEPT for an
+#' ordinal fit, where they are the internal names: `tau_raw_1`,
+#' `tau_raw_2` for the thresholds this page calls `b_Intercept[1]`,
+#' `b_Intercept[2]`, and `bcs2_1` for a `cs()` coefficient this page calls
+#' `bcs_<column>[1]`. `fixef()` on the draws object does report brms's
+#' rows.
 #'
 #' brms's `variables()` also lists what a fit has no counterpart of:
 #' group-level coefficients `r_<group>[<level>,<coef>]`, the centered
 #' `Intercept`, `lprior` and `lp__`. A maximum-likelihood fit has no
 #' draws of those, and [ranef()] reports the conditional modes.
+#'
+#' An ordinal fit's thresholds are `b_Intercept[k]`, and a `cs()`
+#' category-specific term contributes `bcs_<column>[k]`, one name per
+#' DESIGN COLUMN per category boundary. The column is the one
+#' `stats::model.matrix()` builds, as it is in brms, so `cs(x)` on a
+#' numeric predictor gives `bcs_x[1]`, `bcs_x[2]`, while `cs(f)` on a
+#' factor with levels `a`, `b` and `c` gives the treatment-contrast pairs
+#' `bcs_fb[k]` and `bcs_fc[k]`. See the "Category-specific effects, cs()"
+#' section of [frm()].
 #'
 #' A residual correlation term ([frmtmb-autocor]) contributes its
 #' natural-scale parameters under brms's names: `ar[1]`, `ar[2]`,

@@ -1,0 +1,159 @@
+brms 2.23.0 
+
+--- A1 cs(fc), factor ---
+K = 0 ; X columns:  
+Kcs = 2 ; Xcs columns: fcb, fcc 
+standata: built 
+stancode parameters / model lines mentioning b or bcs:
+  matrix[N, Kcs] Xcs;  // category specific design matrix
+  matrix[Kcs, nthres] bcs;  // category specific effects
+    matrix[N, nthres] mucs = Xcs * bcs;
+      target += sratio_logit_lpmf(Y[n] | mu[n], disc, Intercept - transpose(mucs[n]));
+  target += lprior; 
+get_prior:
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b  fcb                                
+               (flat)         b  fcc                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+       source
+      default
+ (vectorized)
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+
+--- A2 cs(fch), character ---
+K = 0 ; X columns:  
+Kcs = 2 ; Xcs columns: fchb, fchc 
+standata: built 
+stancode parameters / model lines mentioning b or bcs:
+  matrix[N, Kcs] Xcs;  // category specific design matrix
+  matrix[Kcs, nthres] bcs;  // category specific effects
+    matrix[N, nthres] mucs = Xcs * bcs;
+      target += sratio_logit_lpmf(Y[n] | mu[n], disc, Intercept - transpose(mucs[n]));
+  target += lprior; 
+get_prior:
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b fchb                                
+               (flat)         b fchc                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+       source
+      default
+ (vectorized)
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+
+--- A3 cs(fnum), factor with numeric-looking levels ---
+K = 0 ; X columns:  
+Kcs = 2 ; Xcs columns: fnum2, fnum3 
+standata: built 
+stancode parameters / model lines mentioning b or bcs:
+  matrix[N, Kcs] Xcs;  // category specific design matrix
+  matrix[Kcs, nthres] bcs;  // category specific effects
+    matrix[N, nthres] mucs = Xcs * bcs;
+      target += sratio_logit_lpmf(Y[n] | mu[n], disc, Intercept - transpose(mucs[n]));
+  target += lprior; 
+get_prior:
+                prior     class  coef group resp dpar nlpar lb ub tag
+               (flat)         b                                      
+               (flat)         b fnum2                                
+               (flat)         b fnum3                                
+ student_t(3, 0, 2.5) Intercept                                      
+ student_t(3, 0, 2.5) Intercept     1                                
+ student_t(3, 0, 2.5) Intercept     2                                
+       source
+      default
+ (vectorized)
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+
+--- B1 yo ~ x + cs(x) ---
+K = 1 ; X columns: x 
+Kcs = 1 ; Xcs columns: x 
+standata: built 
+stancode parameters / model lines mentioning b or bcs:
+  matrix[N, Kcs] Xcs;  // category specific design matrix
+  vector[Kc] b;  // regression coefficients
+  matrix[Kcs, nthres] bcs;  // category specific effects
+    matrix[N, nthres] mucs = Xcs * bcs;
+    mu += Xc * b;
+      target += sratio_logit_lpmf(Y[n] | mu[n], disc, Intercept - transpose(mucs[n]));
+  target += lprior; 
+get_prior:
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b    x                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+       source
+      default
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+
+--- B2 yo ~ fc + cs(fc) ---
+K = 2 ; X columns: fcb, fcc 
+Kcs = 2 ; Xcs columns: fcb, fcc 
+standata: built 
+stancode parameters / model lines mentioning b or bcs:
+  matrix[N, Kcs] Xcs;  // category specific design matrix
+  vector[Kc] b;  // regression coefficients
+  matrix[Kcs, nthres] bcs;  // category specific effects
+    matrix[N, nthres] mucs = Xcs * bcs;
+    mu += Xc * b;
+      target += sratio_logit_lpmf(Y[n] | mu[n], disc, Intercept - transpose(mucs[n]));
+  target += lprior; 
+get_prior:
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b  fcb                                
+               (flat)         b  fcc                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+       source
+      default
+ (vectorized)
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+
+--- B3 yo ~ cs(x) alone (control) ---
+K = 0 ; X columns:  
+Kcs = 1 ; Xcs columns: x 
+standata: built 
+stancode parameters / model lines mentioning b or bcs:
+  matrix[N, Kcs] Xcs;  // category specific design matrix
+  matrix[Kcs, nthres] bcs;  // category specific effects
+    matrix[N, nthres] mucs = Xcs * bcs;
+      target += sratio_logit_lpmf(Y[n] | mu[n], disc, Intercept - transpose(mucs[n]));
+  target += lprior; 
+get_prior:
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b    x                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+       source
+      default
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+
+done
