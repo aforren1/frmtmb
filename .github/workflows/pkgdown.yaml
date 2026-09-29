@@ -173,6 +173,17 @@ jobs:
       # a missing Suggests that an article gates on fails the
       # --require-articles check in the build step. Nothing else a
       # Suggests provides reaches the published site.
+      #
+      # install.packages() also installs no SYSTEM library, which pak
+      # would have. frmtmb.eam suggests rtdists, rtdists imports gsl, and
+      # the gsl binary links the system GSL; pkgdown loads a package's
+      # namespace to resolve a link to it, so without libgsl the
+      # frmtmb.eam site stopped at lba.Rd (the first run of this
+      # workflow, 2026-09-29). A new extension dependency that links a
+      # system library needs its line here too.
+      - name: Install the system libraries the extensions' Suggests link
+        run: sudo apt-get update && sudo apt-get install -y libgsl-dev
+        shell: bash
       - name: Install the seven extensions from this checkout
         run: |
           ext <- c("frmtmb.eam", "frmtmb.latent", "frmtmb.ode",

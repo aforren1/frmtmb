@@ -72,6 +72,14 @@ jobs:
       - name: Install frmtmb.sample from this checkout
         run: R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.sample
         shell: bash
+      # rtdists, the reference implementation test-lba.R compares against,
+      # imports gsl, whose binary links the system GSL. install.packages()
+      # below installs no system library, so without this step rtdists
+      # installed but could not load, and all six rtdists comparisons in
+      # test-lba.R skipped on this job with "{rtdists} cannot be loaded".
+      - name: Install the system GSL that rtdists needs
+        run: sudo apt-get update && sudo apt-get install -y libgsl-dev
+        shell: bash
       # The extension's own dependencies, read from its DESCRIPTION and
       # installed directly rather than through pak. pak resolves every
       # dependency against a repository, and frmtmb is in no repository:
