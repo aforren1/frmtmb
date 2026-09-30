@@ -1,0 +1,12 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-postfit2-lib","C:/Users/adf44/source/r/rellib-r3","C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressMessages({library(frmtmb); library(frmtmb.sample)})
+set.seed(22)
+db <- data.frame(x = rnorm(160), g = factor(rep(1:8, 20)), h = factor(rep(1:10, each = 16)))
+db$y <- rnorm(160, 1 + 0.5 * db$x + rnorm(8, 0, 2)[db$g] + rnorm(10, 0, 0.5)[db$h], 1)
+fb <- frm(bf(y ~ x + (1 | g) + (1 | h)), family = gaussian(), data = db)
+tpl <- fb$frame$par_template
+est <- unlist(lapply(names(tpl), function(cp) fb$estimates[[cp]]))
+print(names(tpl)); print(length(est)); print(length(brms_par_labels(fb))); print(est)
+M <- matrix(rep(est, each = 2), 2, dimnames = list(NULL, brms_par_labels(fb)))
+N <- frmtmb.sample:::draws_to_natural(M, fb)
+print(colnames(N)); print(N[1, c("sigma", "theta_1", "theta_2", "b_x")])

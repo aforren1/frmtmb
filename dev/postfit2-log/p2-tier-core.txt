@@ -1,0 +1,28 @@
+tier core, jobs: 186
+logs with RESULT: 186
+failed=3 error=5 skipped=152 warning=0 passed=12394
+files with a failure, an error, a warning or a skip:
+RESULT frmtmb test-bcm-bart.R: tests=9 failed=0 error=0 skipped=1 warning=0 passed=8
+RESULT frmtmb test-bcm-binomial.R: tests=23 failed=0 error=0 skipped=6 warning=0 passed=17
+RESULT frmtmb test-bcm-data-analysis.R: tests=26 failed=0 error=0 skipped=6 warning=0 passed=20
+RESULT frmtmb test-bcm-esp.R: tests=7 failed=0 error=0 skipped=2 warning=0 passed=5
+RESULT frmtmb test-bcm-gaussian.R: tests=14 failed=0 error=0 skipped=3 warning=0 passed=11
+RESULT frmtmb test-bcm-gcm.R: tests=11 failed=0 error=0 skipped=2 warning=0 passed=9
+RESULT frmtmb test-bcm-latent-mixtures.R: tests=35 failed=0 error=0 skipped=5 warning=0 passed=30
+RESULT frmtmb test-bcm-model-selection.R: tests=16 failed=0 error=0 skipped=3 warning=0 passed=13
+RESULT frmtmb test-bcm-mpt.R: tests=17 failed=0 error=0 skipped=2 warning=0 passed=15
+RESULT frmtmb test-bcm-psychophysics.R: tests=9 failed=0 error=0 skipped=2 warning=0 passed=7
+RESULT frmtmb test-bcm-retention.R: tests=18 failed=0 error=0 skipped=3 warning=0 passed=15
+RESULT frmtmb test-bcm-signal-detection.R: tests=9 failed=0 error=0 skipped=3 warning=0 passed=6
+RESULT frmtmb test-bcm-simple.R: tests=9 failed=0 error=0 skipped=1 warning=0 passed=8
+RESULT frmtmb test-brms-agreement.R: tests=170 failed=0 error=0 skipped=2 warning=0 passed=168
+RESULT frmtmb test-brms-likelihood.R: tests=54 failed=0 error=0 skipped=37 warning=0 passed=17
+RESULT frmtmb test-brms-methods.R: tests=62 failed=0 error=0 skipped=46 warning=0 passed=16
+RESULT frmtmb test-brms-priors.R: tests=12 failed=0 error=0 skipped=12 warning=0 passed=0
+RESULT frmtmb test-conditions.R: tests=145 failed=3 error=3 skipped=0 warning=0 passed=142
+RESULT frmtmb test-data2.R: tests=29 failed=0 error=1 skipped=0 warning=0 passed=29
+RESULT frmtmb test-drmtmb-agreement.R: tests=13 failed=0 error=0 skipped=13 warning=0 passed=0
+RESULT frmtmb test-fuzz.R: tests=1 failed=0 error=0 skipped=1 warning=0 passed=0
+RESULT frmtmb test-id-kron.R: tests=59 failed=0 error=1 skipped=0 warning=0 passed=59
+RESULT frmtmb test-rl-example.R: tests=98 failed=0 error=0 skipped=2 warning=0 passed=96
+files without a RESULT line:

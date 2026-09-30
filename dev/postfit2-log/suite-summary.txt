@@ -1,0 +1,8 @@
+jobs: 222
+logs with RESULT: 222
+failed=4 error=5 skipped=156 warning=0 passed=14306
+files with failures or errors:
+RESULT frmtmb test-conditions.R: tests=145 failed=4 error=3 skipped=0 warning=0 passed=141
+RESULT frmtmb test-data2.R: tests=29 failed=0 error=1 skipped=0 warning=0 passed=29
+RESULT frmtmb test-id-kron.R: tests=59 failed=0 error=1 skipped=0 warning=0 passed=59
+files without a RESULT line:

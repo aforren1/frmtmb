@@ -188,8 +188,10 @@ test_that("brms's slots are brms's positions and brms's defaults", {
   avg <- conditional_effects(cs$ds, effects = "x", resolution = 4,
                              robust = FALSE)
   expect_false(isTRUE(all.equal(med$x$estimate__, avg$x$estimate__)))
-  expect_error(conditional_effects(cs$ds, effects = "x", spaghetti = TRUE),
-               "cannot honor `spaghetti`")
+  # brms's spaghetti: one curve per draw, the grid stacked per draw
+  sp <- conditional_effects(cs$ds, effects = "x", resolution = 4,
+                            ndraws = 5, spaghetti = TRUE)
+  expect_equal(nrow(attr(sp$x, "spaghetti")), 5 * 4)
   expect_warning(conditional_effects(cs$ds, effects = "x", resolution = 4,
                                      probs = c(0.1, 0.9)),
                  "'probs' is deprecated")

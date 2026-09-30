@@ -81,6 +81,7 @@ sample_generic_owners <- list(
   rhat = c("posterior", "bayesplot"),
   mcmc_plot = "brms",
   parnames = "brms",
+  posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
   pp_mixture = "brms",
   reloo = "brms",

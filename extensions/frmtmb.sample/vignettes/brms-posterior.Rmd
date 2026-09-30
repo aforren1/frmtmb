@@ -126,9 +126,13 @@ arrays, the raw draws at `summary = FALSE`, and the same list
 `ranef()`,
 `VarCorr()`, `posterior_epred()`, `posterior_predict()`,
 `posterior_linpred()`, `log_lik()`, `loo()`, `waic()`, `bayes_R2()`,
-`hypothesis()`, `conditional_effects()`, `pp_check()`, `mcmc_plot()`,
-`prior_summary()`, `as_draws()` and the `posterior` and `coda`
-conversions.
+`hypothesis()`, `conditional_effects()` (with `spaghetti`),
+`conditional_smooths()`, `posterior_average()`, `pp_check()`,
+`mcmc_plot()`, `prior_summary()`, `as_draws()` and the `posterior` and
+`coda` conversions. `posterior_average()` takes numeric weights or
+brms's `"stacking"`, `"pseudobma"`, `"loo"` and `"waic"`; its
+`"kfold"` and `"bma"` need the refits and the marginal likelihood
+described below, and are refused.
 
 `loo()` here is the real leave-one-out, not the `AIC()` substitute core
 offers, and it returns the loo package's own object.

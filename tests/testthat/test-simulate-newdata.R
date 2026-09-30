@@ -388,15 +388,13 @@ test_that("simulate() refuses a newdata that is not a data frame", {
                class = "frmtmb_error")
 })
 
-test_that("frm_bootstrap() redraws a smooth by default, and NULL holds it", {
-  # The whole-model bootstrap of 0.62.0, kept by the user's decision of
-  # 2026-09-24 although simulate(re_formula = NA) now holds a population
-  # smooth: every replicate redraws the smooth's penalized coefficients,
-  # so the refitted curve at one x spreads far more than the conditional
-  # bootstrap's (re_formula = NULL), which redraws the noise alone.
-  # Measured 1.80 against 0.054 at 20 replicates on this design
-  # (dev/simnewdata-log/boot-test-*.txt); the pre-fix lane build gave
-  # the two the same spread.
+test_that("frm_bootstrap() never redraws a smooth; NA still redraws a group", {
+  # A smooth is a term of the formula under any re_formula (user
+  # decision, 2026-09-29, withdrawing the whole-model default of
+  # 2026-09-24): every replicate holds it at its fit, so NA and NULL
+  # simulate the same responses on a model with no group-level term.
+  # The base build redrew it under NA: 1.80 against 0.054 at 20
+  # replicates on this design (dev/simnewdata-log/boot-test-*.txt).
   set.seed(21)
   d <- data.frame(x = stats::runif(200))
   d$y <- 2 * sin(2 * pi * d$x) + stats::rnorm(200, 0, 0.3)
@@ -406,7 +404,16 @@ test_that("frm_bootstrap() redraws a smooth by default, and NULL holds it", {
   whole <- frm_bootstrap(fit, FUN = FUN, nsim = 20, seed = 1)
   cond <- frm_bootstrap(fit, FUN = FUN, nsim = 20, seed = 1,
                         re_formula = NULL)
-  expect_gt(stats::sd(whole$t) / stats::sd(cond$t), 5)
+  expect_identical(whole$t, cond$t)
+  # beside (1 | g), NA still redraws g, and NULL holds it: the fitted
+  # intercept spreads more when every replicate brings new groups
+  d$g <- factor(rep(1:10, 20))
+  d$y <- d$y + stats::rnorm(10, 0, 1.5)[d$g]
+  fg <- frm(bf(y ~ s(x) + (1 | g)), data = d)
+  F0 <- function(f) fixef(f, flatten = TRUE)[1]
+  a <- frm_bootstrap(fg, FUN = F0, nsim = 20, seed = 1)
+  b <- frm_bootstrap(fg, FUN = F0, nsim = 20, seed = 1, re_formula = NULL)
+  expect_gt(stats::sd(a$t) / stats::sd(b$t), 2)
 })
 
 test_that("a newdata row with a missing covariate draws NA, as predict()", {

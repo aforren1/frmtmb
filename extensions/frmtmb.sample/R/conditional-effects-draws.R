@@ -63,12 +63,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
              "predictive bands, quantile posterior_predict() over your own ",
              "grid", call. = FALSE)
   }
-  unsupported <- c(spaghetti = !isFALSE(spaghetti),
-                   surface = !isFALSE(surface),
-                   ordinal = !isFALSE(ordinal),
-                   transform = !is.null(transform),
-                   select_points = !identical(select_points, 0),
-                   too_far = !identical(too_far, 0))
+  check_flag(spaghetti, "spaghetti")
+  check_flag(surface, "surface")
+  ce_check_distance(select_points, "select_points")
+  ce_check_distance(too_far, "too_far")
+  unsupported <- c(ordinal = !isFALSE(ordinal),
+                   transform = !is.null(transform))
   if (any(unsupported)) {
     nm <- names(unsupported)[unsupported][1L]
     why <- switch(nm,
@@ -142,25 +142,17 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # group is not the population curve under another name.
   pop_level <- !inherits(re_formula, "formula") &&
     length(re_formula) == 1L && is.na(re_formula)
+  # a grouping variable the grid sets keeps its value; core's
+  # ce_level_plan() decides per row and per block whether it is a level
+  # the fit saw, as brms does with allow_new_levels = TRUE
   na_vars <- if (!pop_level) ce_group_vars(fit) else character(0)
   gb <- ce_grids_build(fit, rspec, lp, effects, resp, dpar, resolution,
-                       conditions, data, int_conditions, na_vars)
-  anl <- allow_new_levels ||
-    length(setdiff(na_vars, names(conditions))) > 0L
-  nspec <- if (length(na_vars)) {
-    ce_new_level_spec(fit, na_vars, gb$base)
-  } else {
-    list()
-  }
-  # the returned frame reports the NA level; the PREDICTION runs on the
-  # placeholder level the design can map, whose coefficients each draw
-  # overwrites
-  egrids <- if (length(nspec)) {
-    ce_boot_grids(gb$grids, nspec, gb$base)
-  } else {
-    gb$grids
-  }
-  if (!is.null(seed) && length(nspec)) {
+                       conditions, data, int_conditions, na_vars,
+                       surface = surface, too_far = too_far)
+  ce_spaghetti_check(spaghetti, surface, gb$grids, gb$base)
+  anl <- allow_new_levels || !pop_level
+  plan <- if (!pop_level) ce_level_plan(fit, gb$grids, gb$base, re_formula)
+  if (!is.null(seed) && !is.null(plan) && ce_plan_has_new(plan)) {
     if (!exists(".Random.seed", envir = globalenv())) stats::runif(1)
     old_seed <- get(".Random.seed", envir = globalenv())
     on.exit(assign(".Random.seed", old_seed, envir = globalenv()),
@@ -176,20 +168,27 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   rows <- draws_subsample(x, ndraws)
   f1 <- draws_fit_at(x, rows[1L], idx)
   cats <- if (poly) {
-    colnames(frm_linpred(f1, newdata = egrids[[1L]]$nd, type = "response",
-                         resp = resp, re_formula = re_formula,
-                         allow_new_levels = anl))
+    colnames(frm_linpred(f1, newdata = gb$grids[[1L]]$nd,
+                         type = "response", resp = resp,
+                         re_formula = re_formula, allow_new_levels = anl))
   }
-  lens <- vapply(egrids, function(g) {
+  lens <- vapply(gb$grids, function(g) {
     length(ce_boot_one(f1, g$nd, poly, resp, pred_dpar, re_formula, anl))
   }, 1L)
   offsets <- cumsum(c(0L, lens))
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
     fi <- if (i == 1L) f1 else draws_fit_at(x, rows[i], idx)
-    if (length(nspec)) fi <- ce_draw_new_levels(fi, nspec)
-    M[i, ] <- unlist(lapply(egrids, function(g) {
-      ce_boot_one(fi, g$nd, poly, resp, pred_dpar, re_formula, anl)
+    # one draw per new level per posterior draw, shared by the panels
+    cache <- new.env(parent = emptyenv())
+    M[i, ] <- unlist(lapply(seq_along(gb$grids), function(gi) {
+      if (is.null(plan)) {
+        ce_boot_one(fi, gb$grids[[gi]]$nd, poly, resp, pred_dpar,
+                    re_formula, anl)
+      } else {
+        ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
+                     re_formula, anl)
+      }
     }), use.names = FALSE)
   }
 
@@ -198,10 +197,14 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # faceting call has nothing to facet on without it
   clev <- names(gb$cond_sets) %||% as.character(seq_along(gb$cond_sets))
   dfs_by_eff <- list()
+  draws_by_eff <- list()
   for (gi in seq_along(gb$grids)) {
     g <- gb$grids[[gi]]
     seg <- M[, offsets[gi] + seq_len(lens[gi]), drop = FALSE]
     if (cats_mean) seg <- ce_cat_mean(seg, g$n, length(cats))
+    if (spaghetti) {
+      draws_by_eff[[g$eff]] <- c(draws_by_eff[[g$eff]], list(seg))
+    }
     # brms's estimate__ and se__: the median and MAD under its default
     # robust = TRUE, the mean and SD otherwise
     est <- if (robust) apply(seg, 2, stats::median) else colMeans(seg)
@@ -221,7 +224,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
         d
       }))
     } else {
-      df <- ce_frame(g$nd, g$ev, g$v2, cond)
+      df <- ce_frame(g$nd, g$ev, g$v2, cond, surface = isTRUE(g$surface))
       df$estimate__ <- est
       df$se__ <- se
       df$lower__ <- lo
@@ -230,5 +233,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
   }
   ce_finalize(dfs_by_eff, gb$effects, rspec, resp, dpar, "posterior",
-              gb$base, categorical, gb$cond_sets, gb$groups, categorical)
+              gb$base, categorical, gb$cond_sets, gb$groups, categorical,
+              select_points = select_points, pred_vars = gb$pred_vars,
+              draws_by_eff = if (spaghetti) draws_by_eff)
 }

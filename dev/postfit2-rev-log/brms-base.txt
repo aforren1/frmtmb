@@ -1,0 +1,20 @@
+ARM base: frmtmb.sample from C:/Users/adf44/source/r/rellib-r3/frmtmb.sample
+1 crossed: brms r_g / r_h vs frmtmb: 0 0
+1a both set g=7,h=4: rows 5/5; max |brms - frmtmb| estimate 2.27 se 1.14 lower 3.74 upper 0.692 (scale 4.55)
+1b g=7 set, h unset (h pinned at 0): rows 5/5; max |brms - frmtmb| estimate 1.76 se 0.664 lower 2.85 upper 1.46 (scale 4.36)
+1c x:g effect, h unset (h pinned): rows 40/40; max |brms - frmtmb| estimate 1.76 se 0.665 lower 2.85 upper 1.85 (scale 4.36)
+1d re_formula ~(1|g), g=7: rows 5/5; max |brms - frmtmb| estimate 2.01 se 0.567 lower 2.64 upper 1.52 (scale 4.36)
+2 sigma: brms group variables r_g[1,Intercept] r_g__sigma[6,Intercept] r_g[2,Intercept] r_g__sigma[7,Intercept] r_g[3,Intercept] r_g__sigma[8,Intercept]
+2 sigma: brms r_g__sigma[3,Intercept] vs frmtmb r_g__sigma[3,Intercept] 0
+2a mu, g=3: rows 5/5; max |brms - frmtmb| estimate 1.77 se 0.714 lower 2.46 upper 1.28 (scale 3.08)
+2b dpar sigma, g=3: rows 5/5; max |brms - frmtmb| estimate 0.0436 se 0.129 lower 0.119 upper 0.154 (scale 1.25)
+3 pop (re_formula NA): width brms 0.4504 0.1761 0.5638 | frmtmb 0.4504 0.1761 0.5638
+3 observed g=2: width brms 0.5982 0.2826 0.5338 | frmtmb 0.9005 0.9485 1.0463
+3 unseen g='99': width brms 0.7054 0.5372 0.6592 | frmtmb 0.9005 0.9485 1.0463
+3 unseen g='99' allow_new_levels: width brms ERROR formal argument "allow_new_levels" matched by multiple actual arguments | frmtmb 0.9005 0.9485 1.0463
+3 unset (no conditions): width brms 0.5979 0.5125 0.7499 | frmtmb 0.9005 0.9485 1.0463
+3 mixed rows anl=FALSE cond lev2: width brms ERROR formal argument "allow_new_levels" matched by multiple actual arguments | frmtmb 0.9005 0.9485 1.0463
+3 mixed rows anl=FALSE cond unset: width brms ERROR formal argument "allow_new_levels" matched by multiple actual arguments | frmtmb 0.9005 0.9485 1.0463
+3 mixed rows anl=TRUE cond lev2: width brms ERROR formal argument "allow_new_levels" matched by multiple actual arguments | frmtmb 0.9005 0.9485 1.0463
+3 mixed rows anl=TRUE cond unset: width brms ERROR formal argument "allow_new_levels" matched by multiple actual arguments | frmtmb 0.9005 0.9485 1.0463
+done

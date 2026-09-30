@@ -1,0 +1,35 @@
+arm lane mutant p1_noshare ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+mutant p1_noshare : 1 replacement(s) in frmtmb :: ce_plan_eval 
+function (f, plan, gi, cache, categorical, resp, dpar, re_form, 
+    anl) 
+{
+    gp <- plan$grids[[gi]]
+    if (length(gp$parts) == 1L && !length(gp$parts[[1L]]$new)) {
+        return(ce_boot_one(f, gp$parts[[1L]]$nd, categorical, 
+            resp, dpar, re_form, anl))
+    }
+    out <- NULL
+    for (p in gp$parts) {
+        fp <- f
+        if (length(p$new)) {
+            b <- fp$estimates[["b"]]
+            for (e in p$new) {
+                ck <- paste0(e$block, "\r", e$key)
+                if (TRUE) {
+                  cache[[ck]] <- ce_plan_draw(fp, plan$blocks[[e$block]])
+                }
+                b[e$idx] <- cache[[ck]]
+            }
+            fp$estimates[["b"]] <- b
+        }
+        v <- ce_boot_one(fp, p$nd, categorical, resp, dpar, re_form, 
+            anl)
+        K <- length(v)%/%length(p$rows)
+        if (is.null(out)) 
+            out <- matrix(NA_real_, gp$n, K)
+        out[p$rows, ] <- matrix(v, length(p$rows), K)
+    }
+    as.vector(out)
+}
+<environment: namespace:frmtmb>
+RESULT lane frmtmb test-simulate-newdata.R [p1_noshare]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57

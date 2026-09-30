@@ -1,0 +1,27 @@
+arm lane mutant setvars0 ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+mutant setvars0: ce_set_vars returns character(0)
+RESULT lane frmtmb.sample test-postfit-draws.R [setvars0]: tests=33 failed=4 error=0 skipped=0 warning=0 passed=29
+---- expectation_failure at line 159 in a curve at an observed group reads that group's draws 
+Expected `at(moved, l)$estimate__ - at(ds, l)$estimate__` to equal `rep(10, 3)`.
+Differences:
+  `actual`: -0.1  0.1 -0.0
+`expected`: 10.0 10.0 10.0
+ 
+---- expectation_failure at line 163 in a curve at an observed group reads that group's draws 
+Expected `sp1$estimate__ - sp0$estimate__` to equal `rep(10, nrow(sp0))`.
+Differences:
+  `actual`: -0.5 -0.5 -0.5 -0.4 -0.4 -0.4  0.2  0.2  0.2  0.0 and 5 more...
+`expected`: 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.0           ...
+ 
+---- expectation_failure at line 159 in a curve at an observed group reads that group's draws 
+Expected `at(moved, l)$estimate__ - at(ds, l)$estimate__` to equal `rep(10, 3)`.
+Differences:
+  `actual`: -0.1 -0.1 -0.0
+`expected`: 10.0 10.0 10.0
+ 
+---- expectation_failure at line 163 in a curve at an observed group reads that group's draws 
+Expected `sp1$estimate__ - sp0$estimate__` to equal `rep(10, nrow(sp0))`.
+Differences:
+  `actual`:  0.2  0.2  0.2  0.3  0.3  0.3 -0.3 -0.3 -0.3  0.4 and 5 more...
+`expected`: 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.0           ...
+ 

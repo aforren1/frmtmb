@@ -1,0 +1,11 @@
+arm base: frmtmb 0.65.0, frmtmb.sample 0.13.0
+draws, g = 1: curve moves by 0 0 0 when r_g[1,] moves by 10
+draws, g = 2: curve moves by 0 0 0 when r_g[2,] moves by 10
+draws: level 1 minus level 2: 0 0 0 (the median of r_g[1] - r_g[2]: 0.24946)
+draws, g = 2: spaghetti: conditional_effects() on draws cannot honor `spaghetti`: this method does not implement it, so leave it at its default
+fit, g = 2 (mode -0.2075): wald estimate -0.77695  0.60839  1.99374
+fit, boot mean of the refit curves -0.58557  0.85491  2.29540; its offset from the estimate over the mode: 1.454
+fit, boot band width / wald band width: 0.825
+fit, boot band at g = 1 minus at g = 2: lower 0 0 0 (estimates differ by 0.2508 0.2508 0.2508)
+fit (group SD 2, seed 21), g = 1, mode 1.983: boot mean minus estimate -1.699 -1.670 -1.642; over the mode: 0.857
+  estimate inside the boot band at every point: TRUE; band width / wald width 3.117

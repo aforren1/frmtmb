@@ -415,10 +415,11 @@ test_that("a nonlinear fit finds the covariates of its nl body", {
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
   expect_no_error(plot(ce, ask = FALSE, points = TRUE))
-  # a nonlinear predictor has no delta-method se, so the other bands say
-  # so instead of failing somewhere inside frm_linpred()
-  expect_error(conditional_effects(fnl, resolution = 5),
-               "cannot put a wald band on a nonlinear predictor")
+  # the Wald band is the delta method through the body's Jacobian; the
+  # profile band inverts a linear combination, which this is not
+  cw <- conditional_effects(fnl, resolution = 5)
+  expect_true(all(is.finite(cw$x$se__)))
+  expect_equal(cw$x$estimate__, ce$x$estimate__)
   expect_error(
     conditional_effects(fnl, resolution = 5, band = "profile"),
     "not available for a nonlinear predictor"
@@ -465,15 +466,17 @@ test_that("an mi() fit builds a grid from the complete cases", {
 
 # --- brms compatibility (FN-4) ---------------------------------------
 
-test_that("surface = TRUE is refused and names the two-variable effect", {
+test_that("surface = TRUE draws the two-variable effect over both ranges", {
   set.seed(1)
   d <- data.frame(x = rnorm(60), z = rnorm(60))
   d$y <- 1 + d$x * d$z + rnorm(60)
   fs <- frm(y ~ s(x, z), data = d, family = gaussian())
 
-  expect_error(conditional_effects(fs, surface = TRUE),
-               "surface = TRUE\\) is not implemented")
-  # the alternative the message names actually works
+  sf <- conditional_effects(fs, effects = "x:z", surface = TRUE,
+                            resolution = 5)
+  expect_true(attr(sf$`x:z`, "surface"))
+  expect_equal(nrow(sf$`x:z`), 25L)
+  # without it the second variable is a moderator at three values
   ce <- conditional_effects(fs, effects = "x:z", resolution = 5)
   expect_equal(nrow(ce$`x:z`), 15L)
   # and the brms default spelling is accepted, not refused

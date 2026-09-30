@@ -1,0 +1,8 @@
+arm base mutant none ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+RESULT base frmtmb test-ce-bands.R: tests=162 failed=0 error=2 skipped=0 warning=0 passed=162
+---- expectation_error at line 420 in a nonlinear fit finds the covariates of its nl body 
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot put a wald band on a nonlinear predictor: predict() has no standard error for it. Use band = "boot", which refits instead of differentiating, method = "predict", whose band is a quantile of simulated responses, or display one nonlinear parameter with dpar = "a" 
+---- expectation_error at line 475 in surface = TRUE draws the two-variable effect over both ranges 
+<frmtmb_error/error/condition>
+Error: conditional_effects(surface = TRUE) is not implemented: the display draws curves with bands, not a fitted surface. Ask for the two-variable effect instead, e.g. effects = "x1:x2", which varies x1 over its range at three values of x2 (or at its levels) 

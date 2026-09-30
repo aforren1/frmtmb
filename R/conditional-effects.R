@@ -309,7 +309,8 @@ ce_plot_pairs <- function(x, rspec, lp, resp, seen = character(0)) {
 #' covariates sat while this one moved.
 #'
 #' @noRd
-ce_frame <- function(nd, ev, v2 = NULL, cond = NULL, cats = NULL) {
+ce_frame <- function(nd, ev, v2 = NULL, cond = NULL, cats = NULL,
+                     surface = FALSE) {
   d <- nd[c(ev, setdiff(names(nd), ev))]
   if (!is.null(cond)) d[["cond__"]] <- cond
   if (!is.null(cats)) d[["cats__"]] <- cats
@@ -319,7 +320,12 @@ ce_frame <- function(nd, ev, v2 = NULL, cond = NULL, cats = NULL) {
   } else if (length(ev) == 2L) {
     nd[[ev[2L]]]
   }
-  if (!is.null(e2)) d[["effect2__"]] <- ce_effect2(e2, v2)
+  # a surface's second axis is a coordinate, which brms leaves numeric
+  if (!is.null(e2)) {
+    d[["effect2__"]] <- if (surface) e2 else ce_effect2(e2, v2)
+  }
+  # read by ce_finalize(), which sets brms's "surface" attribute from it
+  if (surface) attr(d, "surface_grid") <- TRUE
   d
 }
 
@@ -503,6 +509,12 @@ ce_group_vars <- function(x) {
   }, x$frame[["re_blocks"]] %||% list())
   g <- vapply(bks, function(bk) bk[["group_name"]] %||% "", "")
   g <- unique(unlist(strsplit(g, ":", fixed = TRUE)))
+  # an mm() term's grouping is its MEMBER columns: left at their
+  # reference level they read the first observed group silently
+  mm <- unlist(lapply(bks, function(bk) {
+    unlist(lapply(bk[["components"]], function(cp) cp[["mm"]][["gvars"]]))
+  }))
+  g <- unique(c(g, mm))
   g[nzchar(g)]
 }
 
@@ -606,13 +618,20 @@ ce_pred_dpar <- function(rspec, dpar, dpar_given = FALSE,
 #'
 #' @noRd
 ce_build_nd <- function(base, ev, v1, v2, cset, n, n2,
-                        na_vars = character(0)) {
+                        na_vars = character(0),
+                        extend_vars = character(0)) {
   nd <- data.frame(.ce_row = seq_len(n))
   for (nm in names(base)) {
     val <- if (nm %in% names(cset)) {
       cnd <- cset[[nm]]
       if (is.factor(base[[nm]])) {
-        factor(cnd, levels = levels(base[[nm]]))
+        lev <- levels(base[[nm]])
+        # a grouping level the fit never saw is a NEW group, and the
+        # frame keeps the name the caller gave it rather than NA
+        if (nm %in% extend_vars) {
+          lev <- union(lev, as.character(cnd[!is.na(cnd)]))
+        }
+        factor(cnd, levels = lev)
       } else {
         cnd
       }
@@ -699,6 +718,10 @@ ce_re_formula <- function(re_formula, dots) {
 #' need not contain its own estimate. The grid values and the condition
 #' sets therefore go into the key themselves.
 #'
+#' `re_formula` goes in too: on `(1 + x | g)` at an observed `g`, the
+#' calls under `NULL` and under `~ (1 | g)` read the same grid and hold
+#' the same term in the simulation, and predict different curves.
+#'
 #' `serialize()` rather than a hash: no new dependency, and an exact
 #' comparison has no collision to reason about. The data frames are
 #' stripped to their columns first, so the key does not turn on row
@@ -707,147 +730,36 @@ ce_re_formula <- function(re_formula, dots) {
 #'
 #' @noRd
 ce_boot_key <- function(grids, categorical, resp, dpar, lens,
-                        nspec = list()) {
+                        plan = NULL, kept = integer(0), re_form = NA) {
   serialize(list(
     resp = resp, dpar = dpar, categorical = categorical, lens = lens,
-    new_level = ce_new_level_key(nspec),
+    re_formula = ce_re_key(re_form),
+    new_level = ce_plan_key(plan),
+    # a population grid and an observed-level grid can be byte
+    # identical, and their refits are simulated differently
+    kept = kept,
     grids = lapply(grids, function(g) {
       list(eff = g$eff, ci = g$ci, cset = g$cset, nd = as.list(g$nd))
     })
   ), NULL, xdr = FALSE)
 }
 
-#' WHICH GROUP a bootstrap's draws belong to, as a comparable value.
-#'
-#' The grid alone cannot say. `ce_ref_value()` holds an unvaried factor
-#' at `levels(col)[1L]` and `ce_new_level_spec()` uses
-#' `bk[["levels"]][1L]` as its placeholder, so on sleepstudy both are
-#' `"308"` and a population grid and a new-group grid are BYTE
-#' IDENTICAL. Without this in the key, `boot =` reuse accepted a
-#' population bootstrap for a `re_formula = NULL` call and handed back
-#' the population band, which is the exact defect the per-replicate
-#' draw was added to fix, reached through the path the help page
-#' recommends; the converse handed a population call a band four times
-#' too wide.
-#'
-#' The block object itself is deliberately not in here: what identifies
-#' the draws is which blocks are redrawn, where they are written, and
-#' whether they are drawn or zeroed.
+#' `re_formula` as a comparable value: a formula's text, without the
+#' environment that would make two equal formulas differ.
 #'
 #' @noRd
-ce_new_level_key <- function(nspec) {
-  lapply(nspec, function(sp) {
-    list(vars = sp$vars, parts = sp$parts, idx = sp$idx,
-         dim = sp$dim, rr = sp$rr, draw = sp$draw)
-  })
+ce_re_key <- function(re_form) {
+  if (inherits(re_form, "formula")) {
+    paste(deparse(re_form, width.cutoff = 500L), collapse = " ")
+  } else if (is.null(re_form)) {
+    "NULL"
+  } else {
+    "NA"
+  }
 }
 
-#' What a NEW group's effects are, per random-effect block, so that
-#' `band = "boot"` under `re_formula = NULL` means what the wald band
-#' means.
-#'
-#' The wald band adds an unseen level's MARGINAL variance to the linear
-#' predictor (`lp_extra_var()`). A bootstrap has no variance to add: it
-#' has replicates, so the analog is to DRAW that level's effects once
-#' per replicate. Without the draw every refit predicted the new
-#' level's ZERO modes and the interval was the POPULATION interval
-#' under another name, bit-identically so on an ordinal fit, where
-#' `band = "boot"` is the only band this function allows with
-#' `re_formula`.
-#'
-#' The mechanism is a placeholder level: the boot grid carries an
-#' OBSERVED level so the design maps it, and each replicate overwrites
-#' that level's coefficients, which is exactly `z_i' u` through the
-#' ordinary `Z`. The covariance drawn from, and the blocks that get no
-#' draw at all, are `lp_extra_var()`'s own choices rather than a second
-#' opinion: a block whose levels ARE the structure (`gr_cov`,
-#' `gr_prec`, `car`, `spde`) has no marginal covariance for an unseen
-#' level, so its placeholder entries are ZEROED, which is what the
-#' wald band assumes for it too.
-#'
-#' @noRd
-ce_new_level_spec <- function(fit, na_vars, base) {
-  out <- list()
-  for (bk in fit$frame[["re_blocks"]] %||% list()) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) next
-    gv <- unlist(strsplit(bk[["group_name"]] %||% "", ":", fixed = TRUE))
-    gv <- gv[nzchar(gv)]
-    if (!length(gv) || !all(gv %in% na_vars)) next
-    lvl <- bk[["levels"]][1L]
-    parts <- strsplit(lvl, ":", fixed = TRUE)[[1L]]
-    if (length(parts) != length(gv)) next
-    if (!all(vapply(gv, function(v) !is.null(base[[v]]), TRUE))) next
-    # rr blocks carry standard-normal FACTORS, rank per level; every
-    # other block carries the coefficients themselves, dim per level
-    rr <- identical(bk[["covstruct"]], "rr")
-    d <- if (rr) bk[["rank"]] else bk[["dim"]]
-    out[[length(out) + 1L]] <- list(
-      bk = bk, rr = rr, dim = d,
-      idx = bk[["b_idx"]][seq_len(d)],   # level one occupies the first d
-      vars = gv, parts = parts,
-      draw = rr || !bk[["covstruct"]] %in%
-        c("gr_cov", "gr_prec", "car", "spde")
-    )
-  }
-  out
-}
-
-#' The boot grids: the same points, with the placeholder level in place
-#' of the `NA` the returned frame reports.
-#'
-#' @noRd
-ce_boot_grids <- function(grids, nspec, base) {
-  for (gi in seq_along(grids)) {
-    for (sp in nspec) {
-      for (k in seq_along(sp$vars)) {
-        v <- sp$vars[[k]]
-        col <- base[[v]]
-        val <- if (is.factor(col)) {
-          factor(sp$parts[[k]], levels = levels(col))
-        } else if (is.numeric(col)) {
-          as.numeric(sp$parts[[k]])
-        } else {
-          sp$parts[[k]]
-        }
-        grids[[gi]]$nd[[v]] <- rep(val, length.out = nrow(grids[[gi]]$nd))
-      }
-    }
-  }
-  grids
-}
-
-#' One replicate's new-group draw, written into the placeholder level.
-#'
-#' @noRd
-ce_draw_new_levels <- function(f, nspec) {
-  b <- f$estimates[["b"]]
-  th <- f$estimates[["theta"]]
-  # a refit that came back without the blocks this spec was built from
-  # gets no draw rather than a length error inside the replicate
-  need <- max(unlist(lapply(nspec, function(sp) sp$idx)), 0L)
-  if (!length(b) || length(b) < need) return(f)
-  for (sp in nspec) {
-    if (!isTRUE(sp$draw)) {
-      b[sp$idx] <- 0
-      next
-    }
-    if (sp$rr) {
-      b[sp$idx] <- stats::rnorm(sp$dim)
-      next
-    }
-    bk <- sp$bk
-    S <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
-                                                      bk)
-    if (is_student_block(bk)) S <- S * student_var_factor(bk[["dist_nu"]])
-    S <- as.matrix(S)
-    L <- tryCatch(t(chol(S)), error = function(e) {
-      ev <- eigen(S, symmetric = TRUE)
-      ev$vectors %*% diag(sqrt(pmax(ev$values, 0)), nrow(S))
-    })
-    b[sp$idx] <- as.numeric(L %*% stats::rnorm(nrow(S)))
-  }
-  f$estimates[["b"]] <- b
-  f
+ce_re_label <- function(k) {
+  if (k %in% c("NULL", "NA")) paste("re_formula =", k) else k
 }
 
 #' ONE parametric bootstrap for every grid of the call.
@@ -865,16 +777,27 @@ ce_draw_new_levels <- function(f, nspec) {
 #'
 #' @noRd
 ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
-                          seed, re_form = NA, anl = FALSE,
-                          nspec = list()) {
+                          seed, re_form = NA, anl = FALSE, plan = NULL) {
   lens <- vapply(grids, function(g) {
     length(ce_boot_one(x, g$nd, categorical, resp, dpar, re_form, anl))
   }, 1L)
   tot <- sum(lens)
-  nkey <- ce_new_level_key(nspec)
-  key <- ce_boot_key(grids, categorical, resp, dpar, lens, nspec)
+  nkey <- ce_plan_key(plan)
+  # the blocks some row reads at an OBSERVED level are held at their
+  # fitted effects in the simulation, so each refit estimates THOSE
+  # groups again; simulated with fresh effects, the refit's level was a
+  # different group in every replicate and the band sat on the
+  # population curve.
+  kept <- if (is.null(plan)) integer(0) else ce_plan_kept(plan)
+  key <- ce_boot_key(grids, categorical, resp, dpar, lens, plan, kept,
+                     re_form)
   if (inherits(boot, "frmtmb_boot")) {
-    if (!identical(boot$ce_key, key)) {
+    # compared as VALUES: two calls can build the same key from objects
+    # R stores differently (a factor's levels built by union() in one and
+    # read off the data in the other), and their serialized bytes differ
+    same <- is.raw(boot$ce_key) &&
+      identical(unserialize(boot$ce_key), unserialize(key))
+    if (!same) {
       frm_stop("boot = was not produced by a conditional_effects(band = ",
                "\"boot\") call on this grid: its draws are ",
                if (is.null(boot$ce_key)) {
@@ -883,19 +806,38 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
                  # the grids can be byte identical here, so this reason has
                  # to be checked before the grid one or it would never be
                  # the one reported
-                 if (length(nkey)) {
+                 if (ce_plan_has_new(plan)) {
                    paste0("predictions for a different group: this call ",
                           "conditions on a NEW group (re_formula = NULL), ",
                           "and those draws do not carry that group's ",
-                          "effects, so their percentiles are the ",
-                          "population band")
+                          "effects in the same rows")
                  } else {
                    paste0("predictions for a different group: those draws ",
                           "carry a NEW group's effects (they came from a ",
-                          "re_formula = NULL call) and this call is the ",
-                          "population curve, so their percentiles are too ",
-                          "wide for it")
+                          "re_formula = NULL call) and this call reads no ",
+                          "new group, so their percentiles are too wide ",
+                          "for it")
                  }
+               } else if (!identical(boot$ce_kept %||% integer(0), kept)) {
+                 # the grids are byte identical here too: a population
+                 # grid holds a factor at its first level, which is an
+                 # observed-level grid's value as well
+                 paste0("refits of a different simulation: ",
+                        if (length(kept)) {
+                          paste0("this call reads observed groups, whose ",
+                                 "refits keep the fitted group effects, ",
+                                 "and those redrew them")
+                        } else {
+                          paste0("those refits kept the fitted effects of ",
+                                 "observed groups, and this call needs ",
+                                 "refits that redraw them")
+                        })
+               } else if (!is.null(boot$ce_re) &&
+                          !identical(boot$ce_re, ce_re_key(re_form))) {
+                 paste0("predictions under a different re_formula (",
+                        ce_re_label(boot$ce_re), " there, ",
+                        ce_re_label(ce_re_key(re_form)), " here), which ",
+                        "keeps different group-level terms")
                } else {
                  paste0("predictions over a different grid (the effects, ",
                         "the resolution, the conditions or the data are ",
@@ -916,12 +858,18 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
   }
   nsim <- if (is.null(boot)) 200L else as.integer(boot)
   FUN <- function(f) {
-    # the new group is drawn ONCE per replicate, before the grids are
-    # evaluated, so every panel of the call shares that group
-    if (length(nspec)) f <- ce_draw_new_levels(f, nspec)
+    # a new level is drawn ONCE per replicate and per written level, so
+    # every row and panel that names it shares it
+    cache <- new.env(parent = emptyenv())
     v <- tryCatch(
-      unlist(lapply(grids, function(g) {
-        ce_boot_one(f, g$nd, categorical, resp, dpar, re_form, anl)
+      unlist(lapply(seq_along(grids), function(gi) {
+        if (is.null(plan)) {
+          ce_boot_one(f, grids[[gi]]$nd, categorical, resp, dpar, re_form,
+                      anl)
+        } else {
+          ce_plan_eval(f, plan, gi, cache, categorical, resp, dpar,
+                       re_form, anl)
+        }
       }), use.names = FALSE),
       error = function(e) NULL
     )
@@ -933,10 +881,21 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
                 length(grids), " grid(s)). Pass boot = <draws> for a ",
                 "cheaper run, or boot = attr(ce, \"boot\") to reuse this one.")
   }
-  bs <- frm_bootstrap(x, FUN = FUN, nsim = nsim, seed = seed)
+  # frm_bootstrap()'s own rule, which holds every smooth and redraws the
+  # group-level terms, except that a term the grid reads at an observed
+  # level is held as well: a set of held terms read off the grid, which
+  # no single re_formula spells when the display mixes them
+  re_plan <- sim_re_plan(x, NA)
+  held <- unlist(lapply(x$frame[["re_blocks"]][kept], `[[`, "b_idx"))
+  re_plan$redraw <- setdiff(re_plan$redraw, held)
+  re_plan$blocks <- setdiff(re_plan$blocks, kept)
+  re_plan$every <- FALSE
+  bs <- boot_refits(x, FUN, nsim, seed, NA, re_plan)
   bs$ce_key <- key
-  # kept beside the key so a mismatch can say WHICH of the two it is
+  # kept beside the key so a mismatch can say WHICH part differs
   bs$ce_new <- nkey
+  bs$ce_kept <- kept
+  bs$ce_re <- ce_re_key(re_form)
   list(bs = bs, lens = lens, offsets = cumsum(c(0L, lens)))
 }
 
@@ -1122,8 +1081,8 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' factor: first level; matrix covariate: column means) and random
 #' effects excluded (`re_formula = NA`). Confidence bands are Wald
 #' intervals computed on the link scale and back-transformed. Smooth
-#' terms are included, so this also covers what brms calls
-#' `conditional_smooths()`.
+#' terms are part of the predicted curve; [conditional_smooths()] draws
+#' each smooth term on its own, as brms's function of that name does.
 #'
 #' @param x A `frmtmb_fit`.
 #' @param effects Character vector of variable names, or `"x:z"` pairs;
@@ -1152,7 +1111,17 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   frame is `NA` to say which group it is. `band = "boot"` carries it
 #'   too, by drawing that group's effects once per bootstrap replicate
 #'   rather than by adding a variance. To condition on an OBSERVED
-#'   group, name it in `conditions` (`conditions = list(g = "3")`).
+#'   group, name it in `conditions` (`conditions = list(g = "3")`) or
+#'   vary it as an effect (`effects = "x:g"`). The rule is brms's, whose
+#'   display predicts with `allow_new_levels = TRUE`: per grid row and
+#'   per group-level term, the term reads its fitted effects where every
+#'   one of its grouping variables is set to a level the fit saw, and a
+#'   NEW level everywhere else, which covers a variable left unset or
+#'   `NA`, a level the fit never saw (`"99"`, which the frame keeps), and
+#'   a nested `(1 | g / h)` with `g` set and `h` unset, where `g`'s
+#'   effect is read and a new `g:h` level is drawn within it. Each
+#'   distinct new level is drawn once per replicate (per posterior draw
+#'   on draws) and shared by the rows and panels that name it.
 #'   brms draws a new group's random effects afresh from the fitted
 #'   covariance in every posterior draw, so its curve is stochastic
 #'   around this one; a maximum-likelihood fit has the mode and the
@@ -1195,10 +1164,28 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   `list(x2 = 1, g = "b")`; or a data frame whose rows define
 #'   multiple condition sets (brms style), labeled by a `cond__`
 #'   column from its row names.
-#' @param surface Accepted for brms compatibility. `TRUE` (a fitted
-#'   surface over two predictors) is refused: ask for the two-variable
-#'   effect `"x1:x2"` instead, which varies the first predictor at three
-#'   values of the second.
+#' @param surface `TRUE` draws a two-variable effect `"x1:x2"` of two
+#'   numeric predictors as a surface: both vary over their range at
+#'   `resolution` values each, `effect2__` stays numeric, and `plot()`
+#'   draws an image with contours. brms's argument, with brms's meaning.
+#'   `FALSE` (the default) varies the first predictor at three values of
+#'   the second.
+#' @param spaghetti `TRUE` adds one curve per draw as the attribute
+#'   `"spaghetti"` of an effect whose first predictor is numeric: the
+#'   grid once per draw, stacked, with that draw's curve in `estimate__`
+#'   and its id in `sample__`, as brms lays it out. A
+#'   maximum-likelihood fit has draws only under `band = "boot"`, where a
+#'   draw is one refit; with any other band it is refused. It cannot be
+#'   combined with `surface = TRUE`.
+#' @param select_points For `plot(points = TRUE)`: `0` (the default)
+#'   draws the observations the faceting section describes. A positive
+#'   number also drops each observation whose value of a numeric
+#'   predictor is farther than this from the value the curve holds that
+#'   predictor at, both scaled to the unit interval over the observed
+#'   range. brms's argument; the points are in the attribute `"points"`.
+#' @param too_far For `surface = TRUE`: remove the grid points farther
+#'   than this from every observation, on the unit square, with
+#'   [mgcv::exclude.too.far()]. `0` (the default) keeps all.
 #' @param data The original model data. Only needed when the model frame
 #'   does not store a raw variable (e.g. a variable used only inside
 #'   `poly()`).
@@ -1321,14 +1308,27 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   through it. The band is not symmetric and does not assume a
 #'   quadratic log-likelihood, which is what makes it worth its cost
 #'   near a boundary or at a small sample size.
-#' - `"boot"`: percentiles of the grid predictions across the refits of
-#'   ONE [frm_bootstrap()]. One bootstrap serves every effect, condition
-#'   set and ordinal category of the call; `attr(ce, "boot")` returns
-#'   it, and passing it back as `boot =` costs no refits at all. Draws
-#'   taken under `re_formula = NULL` carry a new group's effects and
-#'   draws taken without it do not, so the two are not
-#'   interchangeable and `boot =` refuses the swap by name rather than
-#'   returning the wrong band.
+#' - `"boot"`: percentiles of the grid predictions across ONE
+#'   parametric bootstrap of refits, run as [frm_bootstrap()] runs it.
+#'   One bootstrap serves every effect, condition set and ordinal
+#'   category of the call; `attr(ce, "boot")` returns it, and passing
+#'   it back as `boot =` costs no refits at all. The responses are
+#'   simulated with every smooth, `gp()` and `hsgp()` curve held at its
+#'   fit, a smooth indexed by a grouping factor included, as
+#'   `frm_bootstrap()` holds them: brms's band is the posterior of the
+#'   smooth coefficients, not their prior. A group-level term is redrawn
+#'   fresh, unless the grid reads it at an OBSERVED level (see
+#'   `re_formula`): then it is held at its fitted effects too, so that
+#'   every refit estimates the same group again; responses simulated
+#'   with fresh effects for it would make the refit's level a different
+#'   group each time and center the band on the population curve. A
+#'   term the grid reads at an observed level in some rows and at a new
+#'   level in others needs both simulations at once, and that call is
+#'   refused by name; `band = "wald"` answers it. Draws taken under
+#'   `re_formula = NULL` carry a new group's effects and draws taken
+#'   without it do not, and draws simulated with a group held are not
+#'   draws simulated with it redrawn, so `boot =` refuses either swap
+#'   by name rather than returning the wrong band.
 #'
 #' A Student-t random-effect block enters either band as a GAUSSIAN
 #' with the t variance, `nu / (nu - 2)` times the scale matrix: the
@@ -1374,17 +1374,79 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' fit or `frmtmb_control(profile = TRUE)` (the coefficients are not
 #' outer parameters there).
 #'
-#' A nonlinear predictor (`nl = TRUE`) has no delta-method standard
-#' error at all, so `band = "boot"` is its only band and the other two
-#' are refused. The same holds for the per-category display of a nominal
-#' family, whose probabilities have no threshold Jacobian to
-#' differentiate.
+#' A nonlinear predictor (`nl = TRUE`) gets its `"wald"` band from the
+#' Jacobian of the nonlinear body, which [frm_lp_basis()] tapes: the
+#' delta method on the link scale, back-transformed, as for a linear
+#' predictor. On `y ~ a * exp(b * z)` fitted to 150 rows the standard
+#' error agreed with the standard deviation of 20000 curves drawn from
+#' the fit's covariance to within that Monte Carlo error. It is a
+#' first-order
+#' approximation, which is a stronger assumption for a curved body than
+#' for a linear one; `band = "boot"` makes none. The Wald band is refused
+#' for a nonlinear display that runs through several predictors (the
+#' expected response of a zero-inflated or hurdle family, a reported
+#' mixing weight, the ordinal categories) and at a new level of a term
+#' the displayed predictor itself reads, where the Jacobian of one
+#' predictor is not enough; `band = "boot"` covers both. `band =
+#' "profile"` stays refused.
+#' The per-category display of a nominal family has no Wald band either,
+#' since its probabilities have no threshold Jacobian to differentiate.
+#' @section New group levels:
+#' Under `re_formula = NULL`, or a formula that keeps a term, each grid
+#' row reads each group-level term at an observed level or at a new
+#' level (see `re_formula`). Some terms read a row in their own way:
+#'
+#' - `gr(g, by = f)` is one term per level of `f`. A row reads only the
+#'   term of its own `f` level. With `g` unset, the row reads a new
+#'   level of that term, drawn with the covariance of that `f` level,
+#'   as brms draws it.
+#' - `mm(g1, g2)` has one grouping variable per member. An unset member
+#'   is `NA` and reads a new level. Members with the same new value (for
+#'   example, two unset members) read one new level, and their weights
+#'   add, as in brms. Members with different unseen values (`"99"` and
+#'   `"98"`) read different new levels, each drawn on its own, as two
+#'   unseen levels of `(1 | g)` are. brms 2.23.0 gives them one shared
+#'   draw, because it numbers unseen values per member, not by value.
+#'   With `band = "boot"`, a row with one member at an
+#'   observed level and one at a new level is refused by name, as are
+#'   rows that mix the two. An `mm()` term with a `by` variable draws no
+#'   new level with `band = "boot"` or on draws, and such a call is
+#'   refused by name; the Wald band answers it.
+#' - A factor-smooth (`s(x, g, bs = "fs")`) or a smooth with a `by`
+#'   factor has no curve for a level that the fit did not see. When
+#'   `conditions` sets such a factor to an unseen level, or the grid
+#'   leaves it unset, the call is refused by name. brms also refuses the
+#'   unseen level.
+#'
+#' With `band = "boot"` and on draws, a new level is drawn as follows.
+#' The rows are predicted at a placeholder level of the term, and the
+#' draw replaces the effects of that level. The placeholder can change
+#' only a grouping column that no other part of the model reads: not a
+#' column of a fixed effect, a smooth, a `by` variable or a nonlinear
+#' body, and not a column of a term that the same rows read at an
+#' observed level. Two terms that both read a new level in the same rows
+#' can share a placeholder column (for example `mm(g1, g2)` beside
+#' `(1 | g1)`), because their effects are separate coefficients. If no
+#' placeholder exists, the call is refused by
+#' name ("cannot draw a new level of the group-level term"). Then set
+#' the grouping variables in `conditions` to levels that the fit saw
+#' together, or use `re_formula = NA`.
+#'
+#' Known limitation: crossed terms such as
+#' `(1 | g) + (1 | h) + (1 | g:h)`, with `g` and `h` set to observed
+#' levels that the data never has together. The `g:h` term then reads a
+#' new level, but its placeholder would change `g` or `h`, which the
+#' observed terms read. `band = "boot"` and draws refuse this call;
+#' brms answers it. `band = "wald"` answers it too.
 #' @section Draws objects:
 #' On a `frmtmb_draws` object from `frmtmb.sample::frm_sample()` the
 #' same grids are evaluated once per posterior draw, and `estimate__`,
 #' `lower__`,
-#' `upper__` and `se__` are the pointwise mean, quantiles and standard
-#' deviation of the drawn curves. There is no `band =` or `method =` to
+#' `upper__` and `se__` are the pointwise median, quantiles and median
+#' absolute deviation of the drawn curves under brms's default
+#' `robust = TRUE` (the mean and standard deviation under
+#' `robust = FALSE`). `spaghetti = TRUE` keeps the curves themselves.
+#' There is no `band =` or `method =` to
 #' choose (the band IS the posterior quantile band), a nonlinear
 #' predictor and a nominal per-category display work without a delta
 #' method, and the method runs on formula-route draws that have no
@@ -1455,7 +1517,8 @@ ce_structure_check <- function(rspec) {
 #' @noRd
 ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                            conditions, data, int_conditions = list(),
-                           na_vars = character(0)) {
+                           na_vars = character(0), surface = FALSE,
+                           too_far = 0) {
   base <- data %||% x$frame[["data_frame"]]
 
   vars <- ce_plot_vars(x, rspec, lp, resp)
@@ -1557,20 +1620,38 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
     v1 <- ce_grid_values(base[[ev[1L]]], resolution, ev[1L],
                          int_conditions[[ev[1L]]],
                          stepwise = ev[1L] %in% step_vars)
-    v2 <- if (length(ev) == 2L) {
+    # brms's surface: two numeric predictors, both over their range, so
+    # the display is a grid over the plane rather than three curves
+    surf <- surface && length(ev) == 2L &&
+      all(vapply(base[ev], function(v) is.numeric(v) && !is.matrix(v), NA))
+    v2 <- if (surf) {
+      ce_grid_values(base[[ev[2L]]], resolution, ev[2L],
+                     int_conditions[[ev[2L]]],
+                     stepwise = ev[2L] %in% step_vars)
+    } else if (length(ev) == 2L) {
       ce_second_values(base[[ev[2L]]], int_conditions[[ev[2L]]])
     }
     n1 <- length(v1)
     n2 <- max(1L, length(v2))
     for (ci in seq_along(cond_sets)) {
+      nd <- ce_build_nd(base, ev, v1, v2, cond_sets[[ci]], n1 * n2, n2,
+                        na_vars, setdiff(na_vars, ce_locked_vars(x)))
+      if (surf && too_far > 0) {
+        # brms's too_far: grid points farther than this from every
+        # observation, on the unit square, are not drawn at all
+        far <- mgcv::exclude.too.far(g1 = nd[[ev[1L]]], g2 = nd[[ev[2L]]],
+                                     d1 = base[[ev[1L]]],
+                                     d2 = base[[ev[2L]]], dist = too_far)
+        nd <- nd[!far, , drop = FALSE]
+        rownames(nd) <- NULL
+      }
       grids[[length(grids) + 1L]] <- list(
         eff = eff, ev = ev, ci = ci, v1 = v1, v2 = v2, n1 = n1, n2 = n2,
-        n = n1 * n2, cset = cond_sets[[ci]],
-        nd = ce_build_nd(base, ev, v1, v2, cond_sets[[ci]], n1 * n2, n2,
-                         na_vars)
+        n = nrow(nd), cset = cond_sets[[ci]], nd = nd, surface = surf
       )
     }
   }
+  ce_check_smooth_levels(x, cond_sets, grids, base)
   # brms exempts a random-effects grouping factor from the rule that
   # drops numeric condition variables from the raw-point match: a group
   # id is a label an observation carries, even when it is stored as a
@@ -1580,7 +1661,48 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   groups <- unique(unlist(strsplit(groups, ":", fixed = TRUE)))
 
   list(base = base, effects = effects, cond_sets = cond_sets,
-       grids = grids, groups = groups[nzchar(groups)])
+       grids = grids, groups = groups[nzchar(groups)],
+       pred_vars = intersect(ce_plot_vars_any(x, rspec, resp), names(base)))
+}
+
+#' A smooth's factor (a factor-smooth's, or a `by` factor's) set to a
+#' level the fit never saw, or left unset by `re_formula = NULL`: the
+#' smooth has no curve there, and the estimate came back NA without a
+#' word. brms refuses the unseen level too.
+#'
+#' @noRd
+ce_check_smooth_levels <- function(x, cond_sets, grids, base) {
+  sms <- unlist(lapply(x$frame[["linpreds"]] %||% list(), function(lp) {
+    lp[["smooths"]] %||% list()
+  }), recursive = FALSE)
+  for (si in sms) {
+    for (v in smooth_pred_vars(si$sm)) {
+      if (!is.factor(base[[v]])) next
+      lev <- levels(base[[v]])
+      for (cs in cond_sets) {
+        val <- as.character(cs[[v]])
+        bad <- setdiff(val[!is.na(val)], lev)
+        if (length(bad)) {
+          frm_stop("conditions sets ", v, " to ",
+                   paste0("\"", bad, "\"", collapse = ", "), ", a level ",
+                   "the fit never saw, and the smooth ", si$label,
+                   " reads ", v, ": it has no curve for that level. Set ",
+                   v, " to one of ", paste(utils::head(lev, 5L),
+                                           collapse = ", "),
+                   if (length(lev) > 5L) ", ...", call. = FALSE)
+        }
+      }
+      if (any(vapply(grids, function(g) anyNA(g$nd[[v]]), NA))) {
+        frm_stop("the grid leaves ", v, " unset (NA), and the smooth ",
+                 si$label, " reads ", v, ": it has no curve for an unset ",
+                 "level. Under re_formula = NULL an unset grouping ",
+                 "variable is a new group; set ", v, " in conditions to ",
+                 "a level the fit saw, or use re_formula = NA",
+                 call. = FALSE)
+      }
+    }
+  }
+  invisible(NULL)
 }
 
 #' Split the raw observations across the condition sets the way brms's
@@ -1604,11 +1726,21 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
 #' panel draws all of them, as brms's ggplot layer does when the point
 #' frame carries no `cond__`.
 #'
+#' `select_points > 0` is brms's argument of that name: a numeric
+#' variable then selects the observations within that distance of its
+#' value, both scaled to the unit interval over the observed range. That
+#' value is the one the curve holds the variable at (`held`, one list
+#' per condition), whether a condition set it or it sits at its mean,
+#' because either way it is where the curve was evaluated. A factor
+#' still selects only when a condition sets it.
+#'
 #' @noRd
-ce_points_by_cond <- function(pts, base, cond_sets, ev, groups) {
-  if (is.null(pts) || length(cond_sets) < 2L) return(pts)
+ce_points_by_cond <- function(pts, base, cond_sets, ev, groups,
+                              select_points = 0, held = NULL) {
+  near <- select_points > 0 && length(held)
+  if (is.null(pts) || (length(cond_sets) < 2L && !near)) return(pts)
   cvars <- intersect(names(cond_sets[[1L]]), setdiff(names(base), ev))
-  if (!length(cvars)) return(pts)
+  if (!length(cvars) && !near) return(pts)
   labs <- names(cond_sets) %||% as.character(seq_along(cond_sets))
   parts <- lapply(seq_along(cond_sets), function(i) {
     cs <- cond_sets[[i]][cvars]
@@ -1617,20 +1749,30 @@ ce_points_by_cond <- function(pts, base, cond_sets, ev, groups) {
       length(v) == 1L && !is.na(v) && !identical(as.character(v), "zero__")
     }, TRUE)
     mv <- cvars[set]
-    keep <- !vapply(mv, function(v) is.numeric(base[[v]]), TRUE) |
-      mv %in% groups
-    mv <- mv[keep]
-    rows <- if (!length(mv)) {
-      seq_len(nrow(pts))
-    } else {
+    num <- vapply(mv, function(v) is.numeric(base[[v]]), TRUE) &
+      !mv %in% groups
+    mv <- mv[!num]
+    ok <- rep(TRUE, nrow(pts))
+    if (length(mv)) {
       # "\r" cannot occur in a factor level, so pasting the columns
       # together compares the whole condition in one shot
       lhs <- do.call(paste, c(lapply(mv, function(v) {
         as.character(base[[v]])
       }), sep = "\r"))
       rhs <- do.call(paste, c(lapply(cs[mv], as.character), sep = "\r"))
-      which(lhs %in% rhs)
+      ok <- lhs %in% rhs
     }
+    if (near) {
+      hv <- held[[i]]
+      for (v in names(hv)) {
+        col <- base[[v]]
+        lo <- min(col, na.rm = TRUE)
+        hi <- max(col, na.rm = TRUE)
+        d <- abs((col - lo) / (hi - lo) - (hv[[v]] - lo) / (hi - lo))
+        ok <- ok & !is.na(d) & d <= select_points
+      }
+    }
+    rows <- which(ok)
     if (!length(rows)) return(NULL)
     d <- pts[rows, , drop = FALSE]
     d$cond__ <- labs[i]
@@ -1653,11 +1795,41 @@ ce_points_by_cond <- function(pts, base, cond_sets, ev, groups) {
 #' @noRd
 ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
                         base, categorical, cond_sets = list(),
-                        groups = character(0), cats_key = FALSE) {
+                        groups = character(0), cats_key = FALSE,
+                        select_points = 0, pred_vars = character(0),
+                        draws_by_eff = NULL) {
   out <- list()
   for (eff in effects) {
     ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
     df <- do.call(rbind, dfs_by_eff[[eff]])
+    # brms's surface flag: set only where both predictors were numeric
+    attr(df, "surface") <- isTRUE(attr(dfs_by_eff[[eff]][[1L]],
+                                       "surface_grid"))
+    attr(df, "surface_grid") <- NULL
+    if (!is.null(draws_by_eff[[eff]])) {
+      m <- do.call(cbind, draws_by_eff[[eff]])
+      grid <- df[setdiff(names(df), c("estimate__", "se__", "lower__",
+                                      "upper__"))]
+      if (is.numeric(df[[ev[1L]]]) && ncol(m) == nrow(grid)) {
+        attr(df, "spaghetti") <- ce_spaghetti(
+          grid, m, if (isTRUE(cats_key) && length(ev) == 1L) {
+            c(ev, "cats__")
+          } else {
+            ev
+          })
+      }
+    }
+    # the value each numeric predictor is held at, per condition: what
+    # select_points measures an observation's distance from
+    held <- if (select_points > 0) {
+      lapply(dfs_by_eff[[eff]], function(d) {
+        hv <- setdiff(pred_vars, c(ev, groups))
+        hv <- hv[vapply(hv, function(v) {
+          is.numeric(base[[v]]) && !is.matrix(base[[v]])
+        }, NA)]
+        as.list(d[1L, hv, drop = FALSE])
+      })
+    }
     # brms keys the per-category layout "x:cats__", the category being
     # the second display dimension, and its own plot() reads the pair
     # back out of the effects attribute
@@ -1680,12 +1852,87 @@ ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
         is.null(dim(base[[resp]]))) {
       pdf_ <- data.frame(x = base[[ev[1L]]], y = base[[resp]])
       if (length(ev) == 2L) pdf_$grp <- base[[ev[2L]]]
-      attr(df, "points_df") <- ce_points_by_cond(pdf_, base, cond_sets,
-                                                 ev, groups)
+      pts <- ce_points_by_cond(pdf_, base, cond_sets, ev, groups,
+                               select_points, held)
+      attr(df, "points_df") <- pts
+      attr(df, "points") <- ce_points_brms(pts, ev)
     }
     out[[key]] <- df
   }
   structure(out, class = "frmtmb_conditional_effects")
+}
+
+#' The raw points in brms's `points` layout: the effect columns, the
+#' response as `resp__`, `cond__` where the points are split, then
+#' `effect1__` and `effect2__`. A ported script reads this attribute by
+#' name and counts its rows.
+#'
+#' @noRd
+ce_points_brms <- function(pts, ev) {
+  if (is.null(pts)) return(NULL)
+  out <- stats::setNames(list(pts$x), ev[1L])
+  if (length(ev) == 2L) out[[ev[2L]]] <- pts$grp
+  out$resp__ <- pts$y
+  if (!is.null(pts[["cond__"]])) out$cond__ <- pts$cond__
+  out$effect1__ <- pts$x
+  if (length(ev) == 2L) out$effect2__ <- pts$grp
+  as.data.frame(out, stringsAsFactors = FALSE, optional = TRUE)
+}
+
+#' A distance argument of brms's (`select_points`, `too_far`): one
+#' number of at least zero, zero meaning off.
+#'
+#' @noRd
+ce_check_distance <- function(x, arg) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || x < 0) {
+    frm_stop("`", arg, "` must be one number of at least 0, not ",
+             arg_desc(x), call. = FALSE)
+  }
+  invisible(x)
+}
+
+#' brms's refusal of spaghetti on a surface, raised where brms raises it:
+#' only for an effect whose first predictor is numeric, since that is
+#' the only effect spaghetti would draw.
+#'
+#' @noRd
+ce_spaghetti_check <- function(spaghetti, surface, grids, base) {
+  if (!spaghetti || !surface) return(invisible(NULL))
+  first_num <- vapply(grids, function(g) {
+    is.numeric(base[[g$ev[1L]]])
+  }, NA)
+  if (any(first_num)) {
+    frm_stop("Cannot use 'spaghetti' and 'surface' at the same time.",
+             call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The Wald band of a nonlinear predictor on its link scale: the delta
+#' method through the Jacobian [frm_lp_basis()] tapes, the same variance
+#' `A V A'` a linear predictor's `se.fit` is, plus the variance that is
+#' not coefficient uncertainty.
+#'
+#' @noRd
+ce_nl_link_se <- function(x, nd, dpar, resp, re_formula) {
+  # asked of the DISPLAYED predictor alone: a new group that only
+  # another parameter reads (sigma ~ (1 | g) under a nonlinear mu) puts
+  # no variance through this body
+  lb <- tryCatch(
+    frm_lp_basis(x, newdata = nd, dpar = dpar, resp = resp,
+                 re_formula = re_formula),
+    frmtmb_new_levels = function(e) {
+      frm_stop("conditional_effects() has no Wald band for a nonlinear ",
+               "predictor at a new group: ", e$what, ". A ",
+               "new level contributes its block's marginal variance, and ",
+               "how that variance passes through the nonlinear body has ",
+               "not been measured. Use band = \"boot\", which draws the ",
+               "group's effects per refit, or set the group in conditions ",
+               "to a level the fit saw", call. = FALSE)
+    })
+  se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0) + lb$extra_var)
+  se[lb$nonest] <- NA_real_
+  list(fit = as.vector(lb$eta), se.fit = se)
 }
 
 #' @rdname conditional_effects
@@ -1703,6 +1950,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            seed = NULL,
                                            conditions = list(),
                                            surface = FALSE,
+                                           spaghetti = FALSE,
+                                           select_points = 0, too_far = 0,
                                            data = NULL,
                                            int_conditions = list(),
                                            categorical = NULL, ...) {
@@ -1716,6 +1965,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   check_count(ndraws, "ndraws", min = 1L)
   check_count(profile_points, "profile_points", min = 1L)
   check_flag(surface, "surface")
+  check_flag(spaghetti, "spaghetti")
+  ce_check_distance(select_points, "select_points")
+  ce_check_distance(too_far, "too_far")
   check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   check_named_list(int_conditions, "int_conditions",
                    "int_conditions = list(z = c(-1, 0, 1))")
@@ -1734,13 +1986,6 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # a grid has no response for a cov = FALSE term to regress on; brms
   # drops the term here too (incl_autocor = FALSE)
   x <- autocor_cond_strip(x)
-  if (isTRUE(surface)) {
-    frm_stop("conditional_effects(surface = TRUE) is not implemented: the ",
-             "display draws curves with bands, not a fitted surface. Ask ",
-             "for the two-variable effect instead, e.g. ",
-             "effects = \"x1:x2\", which varies x1 over its range at three ",
-             "values of x2 (or at its levels)", call. = FALSE)
-  }
   # a per-category effect display is on the CATEGORIES, not the latent
   # scale; naming a dpar explicitly is the way back to the predictor
   kind <- ce_display_kind(rspec, dpar, categorical)
@@ -1830,15 +2075,21 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
              "population-level curve; with re_formula use band = ",
              "\"boot\", or ask for dpar = \"mu\"", call. = FALSE)
   }
-  # a nonlinear predictor has no delta-method standard error, so it
-  # needs a band that never asks for one: boot refits, predict simulates
-  if (!is.null(lp[["nl_body"]]) && band != "boot" && method != "predict") {
-    frm_stop("conditional_effects() cannot put a ", band, " band on a ",
-             "nonlinear predictor: predict() has no standard error for it. ",
-             "Use band = \"boot\", which refits instead of differentiating, ",
+  # a nonlinear predictor's Wald band is the delta method through the
+  # Jacobian frm_lp_basis() tapes. That Jacobian is of ONE predictor, so
+  # a display that runs through several (the expected response of a
+  # zero-inflated family, a reported mixing weight, the ordinal
+  # categories) has no band from it and still needs refits
+  nl <- !is.null(lp[["nl_body"]])
+  if (nl && band == "wald" && method != "predict" &&
+      (mean_display || !is.null(hook) || categorical || cats_mean)) {
+    frm_stop("conditional_effects() has no Wald band for this display of a ",
+             "nonlinear predictor: the delta method differentiates one ",
+             "predictor, and this display runs through several. Use ",
+             "band = \"boot\", which refits instead of differentiating, ",
              "method = \"predict\", whose band is a quantile of simulated ",
-             "responses, or display one nonlinear parameter with dpar = \"",
-             rspec$nlpars[1L], "\"", call. = FALSE)
+             "responses, or display the predictor itself with dpar = \"",
+             dpar, "\"", call. = FALSE)
   }
   # every grid of the call is built before any band is: one bootstrap
   # covers all of them, which is the whole point of doing it here rather
@@ -1850,30 +2101,43 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # for an unobserved level). brms draws a new group's effects per
   # posterior draw instead, which is the paradigm difference; what
   # frmtmb did before was to take the FIRST OBSERVED level silently.
+  # A grouping variable the grid sets (in `conditions` or as an effect)
+  # keeps its value, and ce_level_plan() decides per row and per block
+  # whether that value is a level the fit saw.
   na_vars <- if (!pop_level) ce_group_vars(x) else character(0)
   gb <- ce_grids_build(x, rspec, lp, effects, resp, dpar, resolution,
-                       conditions, data, int_conditions, na_vars)
+                       conditions, data, int_conditions, na_vars,
+                       surface = surface, too_far = too_far)
   base <- gb$base
   effects <- gb$effects
   cond_sets <- gb$cond_sets
   grids <- gb$grids
-  # a new level is not in the fit's factor levels, so the design builder
-  # has to be told it may meet one
-  anl <- allow_new_levels || length(setdiff(na_vars, names(conditions)))
+  ce_spaghetti_check(spaghetti, surface, grids, base)
+  if (spaghetti && band != "boot") {
+    frm_stop("spaghetti = TRUE draws one curve per draw, and with band = \"",
+             band, "\" a maximum-likelihood fit has only its estimate. Use ",
+             "band = \"boot\", whose refits give one curve each, or draw ",
+             "from the posterior with frmtmb.sample::frm_sample()",
+             call. = FALSE)
+  }
+  if (band == "profile" && too_far > 0 &&
+      any(vapply(grids, function(g) isTRUE(g$surface), NA))) {
+    frm_stop("band = \"profile\" interpolates along the first predictor, ",
+             "and too_far removes points from that line. Use band = ",
+             "\"wald\" or \"boot\", or too_far = 0", call. = FALSE)
+  }
+  # brms predicts every conditional-effects grid with allow_new_levels =
+  # TRUE: a row whose group is unset or unseen reads a new level, and
+  # that is an answer, not an error
+  anl <- allow_new_levels || !pop_level
   z <- stats::qnorm(1 - (1 - prob) / 2)
   bd <- if (band == "boot") {
-    # a new group's effects are DRAWN per replicate rather than left at
+    # a new level's effects are DRAWN per replicate rather than left at
     # their zero modes; without that the interval collapsed onto the
-    # population one while the frame's NA grouping column claimed
-    # otherwise
-    nspec <- if (length(na_vars)) {
-      ce_new_level_spec(x, na_vars, base)
-    } else {
-      list()
-    }
-    bgrids <- if (length(nspec)) ce_boot_grids(grids, nspec, base) else grids
-    ce_boot_draws(x, bgrids, categorical, resp, pred_dpar, boot, seed,
-                  re_formula, anl, nspec)
+    # population one while the frame's grouping column claimed otherwise
+    plan <- if (!pop_level) ce_level_plan(x, grids, base, re_formula)
+    ce_boot_draws(x, grids, categorical, resp, pred_dpar, boot, seed,
+                  re_formula, anl, plan)
   }
   pfail <- c(0L, 0L)
   # grid points whose band the link's domain does not reach, counted
@@ -1883,6 +2147,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   blink <- NULL
 
   dfs_by_eff <- list()
+  draws_by_eff <- list()
   for (gi in seq_along(grids)) {
     g <- grids[[gi]]
     ev <- g$ev
@@ -1935,13 +2200,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
       ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
                         weights = seq_len(ordinal_ncat(x, rspec$resp_name)))
-      df <- ce_frame(nd, ev, g$v2, cond)
+      df <- ce_frame(nd, ev, g$v2, cond, surface = isTRUE(g$surface))
       df$estimate__ <- as.vector(ps$P)
       df$se__ <- as.vector(ps$se)
       df$lower__ <- df$estimate__ - z * df$se__
       df$upper__ <- df$estimate__ + z * df$se__
     } else {
-      df <- ce_frame(nd, ev, g$v2, cond)
+      df <- ce_frame(nd, ev, g$v2, cond, surface = isTRUE(g$surface))
       if (band == "boot" || method == "predict") {
         # the draws (or simulated responses) are the band AND the
         # standard error here, so the delta method is not asked for:
@@ -1993,9 +2258,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         bfail <- bfail + c(be$outside, length(be$lower))
         blink <- blink %||% bl[["name"]]
       } else {
-        p <- frm_linpred(x, newdata = nd, type = "link", dpar = dpar,
-                         resp = resp, re_formula = re_formula,
-                         se.fit = TRUE, allow_new_levels = anl)
+        p <- if (nl) {
+          ce_nl_link_se(x, nd, dpar, resp, re_formula)
+        } else {
+          frm_linpred(x, newdata = nd, type = "link", dpar = dpar,
+                      resp = resp, re_formula = re_formula,
+                      se.fit = TRUE, allow_new_levels = anl)
+        }
         df$estimate__ <- lp[["link"]]$linkinv(p$fit)
         df$se__ <- p$se.fit
         be <- ce_band_ends(lp[["link"]]$linkinv, p$fit - z * p$se.fit,
@@ -2048,6 +2317,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       pfail <- pfail + c(pci$fails, pci$tried)
     }
     dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
+    if (spaghetti) {
+      draws_by_eff[[g$eff]] <- c(draws_by_eff[[g$eff]], list(bcols))
+    }
   }
   if (pfail[1L] > 0L) {
     frm_warning("band = \"profile\": the likelihood-root search did not ",
@@ -2063,7 +2335,10 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   }
 
   out <- ce_finalize(dfs_by_eff, effects, rspec, resp, dpar, band, base,
-                     categorical, cond_sets, gb$groups, categorical)
+                     categorical, cond_sets, gb$groups, categorical,
+                     select_points = select_points,
+                     pred_vars = gb$pred_vars,
+                     draws_by_eff = if (spaghetti) draws_by_eff)
   # the bootstrap rides along so a second call can reuse it: refits are
   # the expensive part and nobody should pay for them twice
   if (!is.null(bd)) attr(out, "boot") <- bd$bs
@@ -2105,10 +2380,13 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
     if (points && is.null(attr(df, "points_df"))) {
       frm_message("points = TRUE: no observations to draw for effect '", nm,
                   "' (the display is per-category, on a non-mean ",
-                  "distributional parameter, or the response is not a ",
-                  "plain numeric column)")
+                  "distributional parameter, the response is not a ",
+                  "plain numeric column, or the display is a smooth ",
+                  "term, which is not on the response scale)")
     }
-    if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
+    if (isTRUE(attr(df, "surface"))) {
+      ce_plot_surface(df)
+    } else if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
       ce_plot_facets(df, points = points, ncol = ncol)
     } else {
       ce_plot_one(df, points = points)
@@ -2156,7 +2434,9 @@ ce_plot_facets <- function(df, points = FALSE, ncol = NULL) {
   lv <- unique(as.character(df$cond__))
   lay <- ce_facet_layout(length(lv), ncol)
   pts <- if (points) attr(df, "points_df")
-  if (is.null(df[["cats__"]]) &&
+  # the tinyplot layer has no slot for one curve per draw, and dropping
+  # them silently would hide what the caller asked to see
+  if (is.null(df[["cats__"]]) && is.null(attr(df, "spaghetti")) &&
       requireNamespace("tinyplot", quietly = TRUE)) {
     ce_facet_tinyplot(df, lv, lay, pts)
   } else {
@@ -2172,13 +2452,14 @@ ce_facet_base <- function(df, lv, lay, points) {
   # different heights look alike, which is the opposite of what small
   # multiples are for
   ylim <- range(df$lower__, df$upper__, df$estimate__,
+                attr(df, "spaghetti")$estimate__,
                 if (!is.null(pts)) pts$y, na.rm = TRUE)
   op <- graphics::par(mfrow = c(lay[["nrow"]], lay[["ncol"]]),
                       mar = c(4, 4, 2.5, 1))
   on.exit(graphics::par(op), add = TRUE)
   for (cv in lv) {
     sub <- df[as.character(df$cond__) == cv, , drop = FALSE]
-    for (a in c("effects", "response", "dpar")) {
+    for (a in c("effects", "response", "dpar", "spaghetti")) {
       attr(sub, a) <- attr(df, a)
     }
     attr(sub, "points_df") <- ce_points_at(pts, cv)
@@ -2199,7 +2480,7 @@ ce_facet_tinyplot <- function(df, lv, lay, pts) {
     facet.args = list(ncol = lay[["ncol"]]),
     type = if (is.numeric(xv)) "ribbon" else "pointrange",
     xlab = ev[1L],
-    ylab = paste0(attr(df, "response"), " (", attr(df, "dpar"), ")"),
+    ylab = ce_ylab(df),
     ylim = ylim,
     # tinyplot leaves the facet layout in par() otherwise, and the next
     # effect of the same call may be an ordinary single base panel
@@ -2268,12 +2549,63 @@ ce_plot_one <- function(df, cond = NULL, points = FALSE, ylim = NULL) {
     }
     return(invisible(NULL))
   }
-  ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")
+  ylab <- ce_ylab(df)
   if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
   grp <- if (length(ev) == 2L) factor(df[[ev[2L]]])
-  ylim <- ylim %||% range(df$lower__, df$upper__,
+  spag <- attr(df, "spaghetti")
+  if (!is.null(spag) && !is.null(cond) && !is.null(spag[["cond__"]])) {
+    spag <- spag[as.character(spag$cond__) == cond, , drop = FALSE]
+  }
+  ylim <- ylim %||% range(df$lower__, df$upper__, spag$estimate__,
                           if (!is.null(pts)) pts$y, na.rm = TRUE)
   ce_draw_panel(df, ev[1L], grp, ev[2L], ylab, ylim, pts = pts)
+  # one thin line per draw over the band, as brms draws them
+  if (!is.null(spag) && nrow(spag) && is.numeric(spag[[ev[1L]]])) {
+    for (s in split(spag, spag$sample__, drop = TRUE)) {
+      col <- if (length(ev) == 2L) {
+        match(as.character(s[[ev[2L]]][1L]), levels(grp))
+      } else {
+        1L
+      }
+      graphics::lines(s[[ev[1L]]], s$estimate__, lwd = 0.5,
+                      col = grDevices::adjustcolor(col, 0.2))
+    }
+  }
+}
+
+#' The y-axis label: the response and the parameter drawn, or, for a
+#' smooth term, its key alone, which already names both.
+#'
+#' @noRd
+ce_ylab <- function(df) {
+  dp <- attr(df, "dpar")
+  if (is.null(dp)) return(attr(df, "response"))
+  paste0(attr(df, "response"), " (", dp, ")")
+}
+
+#' A surface over two numeric predictors: the estimate as an image with
+#' contours, one panel per condition. Grid points `too_far` removed stay
+#' blank.
+#'
+#' @noRd
+ce_plot_surface <- function(df) {
+  ev <- attr(df, "effects")
+  for (cv in unique(as.character(df$cond__ %||% "1"))) {
+    sub <- if (is.null(df$cond__)) df else
+      df[as.character(df$cond__) == cv, , drop = FALSE]
+    xs <- sort(unique(sub[[ev[1L]]]))
+    ys <- sort(unique(sub[[ev[2L]]]))
+    z <- matrix(NA_real_, length(xs), length(ys))
+    z[cbind(match(sub[[ev[1L]]], xs), match(sub[[ev[2L]]], ys))] <-
+      sub$estimate__
+    main <- ce_ylab(df)
+    if (length(unique(df$cond__)) > 1L) main <- paste0(main, " | ", cv)
+    graphics::image(xs, ys, z, xlab = ev[1L], ylab = ev[2L], main = main,
+                    col = grDevices::hcl.colors(50))
+    if (length(xs) > 1L && length(ys) > 1L) {
+      graphics::contour(xs, ys, z, add = TRUE)
+    }
+  }
 }
 
 #' Draw one panel: the estimate over the varied predictor `xv` with its

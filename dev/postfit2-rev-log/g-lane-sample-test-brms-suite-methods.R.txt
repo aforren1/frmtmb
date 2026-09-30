@@ -1,0 +1,6 @@
+arm lane mutant none ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+RESULT lane frmtmb.sample test-brms-suite-methods.R: tests=61 failed=2 error=0 skipped=0 warning=0 passed=59
+---- expectation_failure at line 287 in posterior_average has reasonable outputs 
+brms brmsfit-methods:619 now HOLDS but is recorded as 'cannot transfer' (frmtmb.sample has no posterior_average()). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 291 in posterior_average has reasonable outputs 
+brms brmsfit-methods:620 now HOLDS but is recorded as 'cannot transfer' (frmtmb.sample has no posterior_average()). Change its row in dev/brmsport-verdicts.tsv and regenerate. 

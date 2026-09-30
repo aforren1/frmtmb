@@ -1,0 +1,5 @@
+arm lane mutant p2_rekey ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+mutant p2_rekey: ce_re_key returns a constant
+RESULT lane frmtmb test-ce-levels.R [p2_rekey]: tests=65 failed=1 error=0 skipped=0 warning=0 passed=64
+---- expectation_failure at line 319 in a bootstrap is not reused under another re_formula 
+Expected `conditional_effects(...)` to throw a error. 

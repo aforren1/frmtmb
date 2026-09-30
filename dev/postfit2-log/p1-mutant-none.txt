@@ -1,0 +1,4 @@
+mutant: none 
+RESULT keydrop-run none: failed=0 error=0 passed=21
+[1] test   failed error 
+<0 rows> (or 0-length row.names)

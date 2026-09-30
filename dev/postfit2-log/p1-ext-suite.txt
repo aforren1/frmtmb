@@ -1,0 +1,30 @@
+jobs: 38
+logs with RESULT: 38
+failed=65 error=163 skipped=10 warning=4 passed=1582
+files with a failure, an error or a skip:
+RESULT frmtmb.coupling test-scale.R: tests=5 failed=0 error=0 skipped=5 warning=0 passed=0
+RESULT frmtmb.coupling test-surface.R: tests=37 failed=0 error=4 skipped=0 warning=0 passed=37
+RESULT frmtmb.eam test-conditions.R: tests=8 failed=1 error=0 skipped=0 warning=0 passed=7
+RESULT frmtmb.eam test-contaminant.R: tests=24 failed=17 error=2 skipped=0 warning=0 passed=7
+RESULT frmtmb.eam test-defects.R: tests=40 failed=0 error=5 skipped=0 warning=0 passed=40
+RESULT frmtmb.eam test-family.R: tests=14 failed=2 error=10 skipped=0 warning=0 passed=12
+RESULT frmtmb.eam test-gddm-conditions.R: tests=40 failed=16 error=8 skipped=0 warning=0 passed=24
+RESULT frmtmb.eam test-gddm-family.R: tests=63 failed=0 error=7 skipped=0 warning=0 passed=63
+RESULT frmtmb.eam test-gddm-gradients.R: tests=19 failed=0 error=1 skipped=0 warning=0 passed=19
+RESULT frmtmb.eam test-gddm-recovery.R: tests=2 failed=2 error=5 skipped=0 warning=0 passed=0
+RESULT frmtmb.eam test-lba.R: tests=81 failed=5 error=13 skipped=0 warning=0 passed=76
+RESULT frmtmb.eam test-ndt-bound.R: tests=14 failed=0 error=14 skipped=0 warning=0 passed=14
+RESULT frmtmb.eam test-ndt-seam.R: tests=80 failed=0 error=1 skipped=0 warning=0 passed=80
+RESULT frmtmb.eam test-rdm-gng.R: tests=160 failed=9 error=19 skipped=0 warning=0 passed=151
+RESULT frmtmb.eam test-sampling.R: tests=94 failed=0 error=1 skipped=0 warning=0 passed=94
+RESULT frmtmb.eam test-scale.R: tests=3 failed=0 error=0 skipped=3 warning=0 passed=0
+RESULT frmtmb.eam test-surface.R: tests=0 failed=0 error=10 skipped=0 warning=0 passed=0
+RESULT frmtmb.eam test-variability.R: tests=132 failed=0 error=4 skipped=0 warning=0 passed=132
+RESULT frmtmb.eam test-wiener-cdf.R: tests=39 failed=13 error=2 skipped=0 warning=0 passed=26
+RESULT frmtmb.latent test-hmm.R: tests=3 failed=0 error=25 skipped=0 warning=0 passed=3
+RESULT frmtmb.latent test-lca.R: tests=3 failed=0 error=15 skipped=0 warning=0 passed=3
+RESULT frmtmb.learn test-counterfactual.R: tests=53 failed=0 error=5 skipped=0 warning=0 passed=53
+RESULT frmtmb.learn test-rlddm-ndt.R: tests=6 failed=0 error=11 skipped=0 warning=0 passed=6
+RESULT frmtmb.learn test-scale.R: tests=2 failed=0 error=0 skipped=2 warning=0 passed=0
+RESULT frmtmb.learn test-surface.R: tests=136 failed=0 error=1 skipped=0 warning=0 passed=136
+files without a RESULT line:

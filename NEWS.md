@@ -1,3 +1,179 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **BREAKING: `frm_bootstrap()` never redraws a smooth** (user
+  decision, 2026-09-29, withdrawing the whole-model default of
+  2026-09-24). It now reads `re_formula` exactly as `predict()` and
+  `simulate()` do. A smooth, `gp()` or `hsgp()` term, one indexed by a
+  grouping factor included (`s(g, bs = "re")`, `s(x, g, bs = "fs")`, a
+  `t2()` with an `re` margin), is a term of the formula and not a group
+  effect: every replicate holds it at its fitted coefficients and the
+  refit estimates it again. `NA`, `~0` and `~1` redraw every true
+  group-level effect, `NULL` holds all of them, and a one-sided formula
+  holds the terms it names. The old `NA` default redrew each smooth
+  from its prior, which treated a smooth as a group effect, contrary to
+  the package's own `re_formula` rule, and turned the spread of the
+  fitted curve into the spread of random curves. On
+  `dev/simnewdata-boot.R`'s `y ~ s(x)` (200 rows, 40 refits) the
+  bootstrap SD of the smooth's SD parameter was 1.4376 at `NA` and
+  0.3693 at `NULL`; it is 0.3693 at both now, and the replicates are
+  identical (`dev/postfit2-p1-simboot.R`). `confint(method = "boot")`
+  calls `frm_bootstrap()` and changes with it on a model with a smooth.
+
+  `conditional_effects(band = "boot")` inherits the rule. Its band on
+  `y ~ s(x)` was 10.2 to 17.8 times the Wald band; it is 0.73 to 1.03
+  times now, the same under `re_formula = NA` and `NULL`, and 0.75 to
+  1.03 times on `y ~ s(x) + (1 | g)` at the population, at a new group
+  and at an observed one, where the base band missed its own estimate
+  (`dev/postfit2-p1-smooth.R`, 60 refits).
+
+## Bug fixes
+
+* **`conditional_effects()` under `re_formula = NULL` now reads each
+  grid row's groups by brms's rule.** brms predicts its display with
+  `allow_new_levels = TRUE`: per grid row and per group-level term, the
+  term reads its fitted effects where every one of its grouping
+  variables is set to a level the fit saw, and a NEW level everywhere
+  else. frmtmb used one rule for the whole grid: every grouping
+  variable was a new group, even one `conditions` set to an observed
+  level, and a variable varied as an effect (`"x:g"`) was overwritten
+  by a placeholder. Under `band = "boot"` every replicate then drew
+  fresh effects into the first level, so levels 1 and 2 got the same
+  band, bit for bit, and the band did not contain its own estimate.
+  Found by lane sampfix on the draws method, which shares the
+  construction. Now:
+
+  - a row reads its groups' fitted effects where it sets them to
+    observed levels, in `conditions` or as an effect;
+  - an unset variable, a level the fit never saw (`"99"`, which the
+    frame now keeps instead of `NA`) and a nested `(1 | g / h)` with
+    `g` set and `h` unset each draw a new level, the last one within
+    `g`'s own level;
+  - rows that mix a level and `NA` in one grouping column each get
+    their own answer, where they stopped with "New levels ... NA";
+  - under `band = "boot"`, a term read at an observed level is held at
+    its fitted effects when the responses are simulated, and the other
+    group-level terms are redrawn fresh (the smooths are held; see the
+    breaking change above). A term read at an observed level in some
+    rows and at a new one in others is refused by name.
+
+  On `y ~ x + (1 | g)` with a group SD of 2 the refits' mean at an
+  observed level sat 0.857 modes from its estimate before and 0.089
+  after, and the boot band went from 3.117 to 0.998 times the Wald
+  band (`dev/postfit2-celevel.R`). Only group-level terms enter this
+  rule: a model with none reads nothing new under `re_formula = NULL`,
+  so its band there is its band under `NA`. Reusing a
+  bootstrap (`boot = attr(ce, "boot")`) for a call whose refits are
+  simulated the other way is refused, saying so: a population call and
+  an observed-level call can have the same grid.
+
+  Two kinds of term read a row in their own way, and a third is
+  refused:
+
+  - `gr(g, by = f)` is one term per level of `f`, and a row now reads
+    only the term of its own level. The first build of this rule read
+    every level's term in every row, so `band = "boot"` and draws
+    refused every `re_formula = NULL` display of such a model, even at
+    an observed `g`. With `g` unset or unseen, the row draws a new
+    level with the SD of its own `f` level. On draws at brms's
+    parameter values, at `g = "99"` with `f = "a"` or `"b"`, the curve
+    and band equal brms's (`sample_new_levels = "gaussian"`, same seed)
+    to 8.9e-16 (`dev/postfit2-p2-brms.R`). With `g` unset, brms 2.23.0
+    stops ("missing sd_g__Intercept:f"); frmtmb answers as for `"99"`.
+  - `mm(g1, g2)`: the grid held unset members at their first level, an
+    observed group, without a word. They are now `NA` and read a new
+    level, as brms reads them. Members with the same new value share
+    one draw, and their weights add. At nothing set, the Wald band had
+    the width of level 1's curve (0.58 to 0.72); it is 3.73 to 3.75
+    now. The draws band equals brms's at the same draws and seed
+    (3.52 to 3.63). At an observed `g1 = g2 = "2"`, the boot band was
+    5.1 to 6.0 times the Wald band, near the population curve, because
+    the term was redrawn; the term is held now, and the ratio is 1.03
+    to 1.23 (`dev/postfit2-p2-checks.R`). A row with one member
+    observed and one new is refused by name on `band = "boot"`.
+    Beside a plain `(1 | g1)`, with `g1` unset or unseen, both terms
+    now draw a new level on `band = "boot"` and on draws; they were
+    refused. The new-level offsets have the model's variance in both
+    packages: 1.0085 against brms's 0.9994, SE 0.013, over 12000 draws
+    (`dev/postfit2-p3-brms.R`).
+  - A factor-smooth, or a smooth with a `by` factor, set to a level
+    that the fit never saw returned an `NA` estimate under
+    `re_formula = NULL`, and under `re_formula = NA` a message that
+    called the level `NA`. Both now stop and name the variable, the
+    level and the smooth. A grid that leaves such a factor unset (a
+    `(1 | g)` beside `s(x, g, bs = "fs")` under `re_formula = NULL`)
+    stops too.
+
+  Reusing a bootstrap under another `re_formula` is refused: on
+  `(1 + x | g)` at an observed `g`, a `re_formula = NULL` bootstrap was
+  accepted by a `~ (1 | g)` call, whose estimate is a different curve.
+
+## New features
+
+* **`conditional_smooths()`** draws each smooth term (`s()`, `t2()`) on
+  its own, which is brms's function of that name, with brms's grid,
+  keys (`"mu: s(x)"`, `"sigma: s(z)"`, `"mu_a: s(x)"`) and columns. On a
+  fit, `estimate__` is the term at the estimate and `se__` its
+  delta-method standard error over the term's coefficients. A term of
+  two numeric covariates is a surface, and `too_far` trims it. Every
+  smooth is drawn, a factor-smooth `s(x, g, bs = "fs")` included, which
+  is the `re_formula = NA` rule of 0.65.0. At brms's parameter values
+  (a `fixed_param` brms fit at the frmtmb estimate) the curve equals
+  brms's to 3.8e-15 on `s(x)`, `s(z, by = f)` and `t2(x, z)`, with
+  identical rows, columns and attributes
+  (`dev/postfit2-brms-compare.R`). The help page of
+  `conditional_effects()` said that function "also covers what brms
+  calls `conditional_smooths()`". It did not: it draws the expected
+  response, which on `y ~ f + s(x) + s(z, by = f)` sits 0.0213 above
+  the `s(x)` term with a standard error up to 1.214 times the term's
+  (`dev/postfit2-before.R`). The sentence is gone.
+* **`make_conditions()`** and **`update_adterms()`**, brms's helpers.
+  Their output is `identical()` to brms's on 5 and 9 inputs.
+  `update_adterms()` also takes a `bf()` formula and keeps its other
+  parts.
+* **`conditional_effects()` takes brms's `surface`, `too_far`,
+  `select_points` and `spaghetti`.** `surface = TRUE` was refused
+  before; it now draws a two-numeric effect over both ranges, and
+  `plot()` draws the surface as an image with contours.
+  `select_points` drops the observations far from the values the curve
+  holds the numeric predictors at. It measures the predictors only:
+  brms also measures the RESPONSE against its mean, which hides the
+  scatter the points are there to show (5 observations kept here where
+  brms keeps 3 at `select_points = 0.1`, the 2 dropped by the response
+  alone). `spaghetti = TRUE` needs draws, so on a fit it needs
+  `band = "boot"`, one curve per refit, and is refused by name with
+  any other band.
+* **A nonlinear predictor gets the default Wald band.**
+  `conditional_effects()` refused it before and named `band = "boot"`.
+  The band is the delta method through the Jacobian that
+  `frm_lp_basis()` tapes, which agrees with central differences to
+  2.1e-11 relative. Its standard error matched the standard deviation
+  of 20000 curves drawn from the fit's covariance: median ratio 1.0014
+  and 1.0008 over 100 grid points for two seeds, against a Monte Carlo
+  error of 0.005 (`dev/postfit2-nlmc.R`). A display that runs through
+  several predictors (the mean of a zero-inflated family, say), or a
+  new level of a group-level term the displayed predictor itself reads,
+  still needs `band = "boot"`, and says so; a group only another
+  parameter reads (`sigma ~ (1 | g)`) does not.
+
+## Extension API
+
+* `?frmtmb-sampling-api` adds the engine of `conditional_smooths()`
+  (`cs_build()`, `cs_coef()`, `cs_frame()`, `cs_finalize()`,
+  `cs_probs()`), brms's display options (`ce_spaghetti()`,
+  `ce_spaghetti_check()`, `ce_check_distance()`) and brms's per-row,
+  per-term rule for which group a grid row reads (`ce_level_plan()`,
+  `ce_plan_eval()`, `ce_plan_has_new()`), which replaces
+  `ce_new_level_spec()`, `ce_boot_grids()` and `ce_draw_new_levels()`
+  in both methods. Those three are removed, with
+  `ce_new_level_key()`: nothing called them any more. An extension
+  that did calls `ce_level_plan()` and `ce_plan_eval()` instead.
+  `ce_grids_build()`
+  takes `surface` and `too_far`, `ce_frame()` takes `surface`, and
+  `ce_finalize()` takes `select_points`, `pred_vars` and
+  `draws_by_eff`. The effect frames carry brms's `"points"` attribute.
+
 # frmtmb 0.65.0
 
 Seven lanes, each with an adversarial review. Each lane's

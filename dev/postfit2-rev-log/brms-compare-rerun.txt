@@ -1,0 +1,146 @@
+== A. make_conditions(), update_adterms(): identical() to brms
+make_conditions(list(c("zBase", "zAge"))): identical TRUE, dim 9x3
+make_conditions(list(c("zBase", "Trt"))): identical TRUE, dim 6x3
+make_conditions(list(c("fz", "zAge"), digits = 1)): identical TRUE, dim 6x3
+make_conditions(list("Trt", incl_vars = FALSE)): identical TRUE, dim 2x2
+make_conditions(list(c("zAge", "zBase"), sep = " | ")): identical TRUE, dim 9x3
+update_adterms(y | trials(size) ~ x, ~trials(10)) = y | trials(10) ~ x; identical TRUE
+update_adterms(y | trials(size) ~ x, ~weights(w)) = y | trials(size) + weights(w) ~ x; identical TRUE
+update_adterms(y | trials(size) ~ x, ~weights(w), replace) = y | weights(w) ~ x; identical TRUE
+update_adterms(y ~ x, ~trials(10)) = y | trials(10) ~ x; identical TRUE
+update_adterms(y | se(s, sigma = TRUE) + weights(w) ~ x + (1 | g), ~se(s2)) = y | weights(w) + se(s2) ~ x + (1 | g); identical TRUE
+update_adterms(y | resp_se(s) ~ x, ~se(s3) + cens(c)) = y | se(s3) + cens(c) ~ x; identical TRUE
+update_adterms(y | cens(c, y2) ~ x, ~weights(w), replace) = y | weights(w) ~ x; identical TRUE
+update_adterms(y | weights(w) ~ x, ~1, replace) = y ~ x; identical TRUE
+update_adterms(log(y) | trunc(lb = 0) ~ s(x), ~trunc(ub = 5)) = log(y) | trunc(ub = 5) ~ s(x); identical TRUE
+
+== B1. conditional_smooths(): ML fit vs brms at the ML estimate
+projection residual (relative): 3.86e-15
+default: keys brms [mu: s(x), mu: s(z,by=f)] frmtmb [mu: s(x), mu: s(z,by=f)]
+  mu: s(x): rows 100 / 100; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 3.77e-15 (scale 1.03)
+    se__       max |brms - frmtmb| = 0.128 (scale 0)
+    lower__    max |brms - frmtmb| = 0.251 (scale 1.03)
+    upper__    max |brms - frmtmb| = 0.251 (scale 1.03)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms x | frmtmb x
+    attr response brms mu: s(x) | frmtmb mu: s(x)
+    attr surface  brms FALSE | frmtmb FALSE
+  mu: s(z,by=f): rows 200 / 200; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 1.67e-16 (scale 0.589)
+    se__       max |brms - frmtmb| = 0.0631 (scale 0)
+    lower__    max |brms - frmtmb| = 0.124 (scale 0.589)
+    upper__    max |brms - frmtmb| = 0.124 (scale 0.589)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms z f | frmtmb z f
+    attr response brms mu: s(z,by=f) | frmtmb mu: s(z,by=f)
+    attr surface  brms FALSE | frmtmb FALSE
+surface = FALSE, int_conditions: keys brms [mu: s(z,by=f)] frmtmb [mu: s(z,by=f)]
+  mu: s(z,by=f): rows 4 / 4; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 1.67e-16 (scale 0.308)
+    se__       max |brms - frmtmb| = 0.033 (scale 0)
+    lower__    max |brms - frmtmb| = 0.0646 (scale 0.308)
+    upper__    max |brms - frmtmb| = 0.0646 (scale 0.308)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms z f | frmtmb z f
+    attr response brms mu: s(z,by=f) | frmtmb mu: s(z,by=f)
+    attr surface  brms FALSE | frmtmb FALSE
+brms s3: No valid smooth terms found in the model.
+frmtmb s3: No valid smooth terms found in the model.
+
+== B2. t2(x, z): surface and too_far
+projection residual (relative): 6.57e-16
+t2 surface, resolution 20, too_far 0: keys brms [mu: t2(x,z)] frmtmb [mu: t2(x,z)]
+  mu: t2(x,z): rows 400 / 400; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 1.44e-15 (scale 1.41)
+    se__       max |brms - frmtmb| = 0.32 (scale 0)
+    lower__    max |brms - frmtmb| = 0.627 (scale 1.41)
+    upper__    max |brms - frmtmb| = 0.627 (scale 1.41)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms x z | frmtmb x z
+    attr response brms mu: t2(x,z) | frmtmb mu: t2(x,z)
+    attr surface  brms TRUE | frmtmb TRUE
+t2 surface, resolution 20, too_far 0.1: keys brms [mu: t2(x,z)] frmtmb [mu: t2(x,z)]
+  mu: t2(x,z): rows 390 / 390; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 1.33e-15 (scale 1.41)
+    se__       max |brms - frmtmb| = 0.32 (scale 0)
+    lower__    max |brms - frmtmb| = 0.627 (scale 1.41)
+    upper__    max |brms - frmtmb| = 0.627 (scale 1.41)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms x z | frmtmb x z
+    attr response brms mu: t2(x,z) | frmtmb mu: t2(x,z)
+    attr surface  brms TRUE | frmtmb TRUE
+t2 surface = FALSE: keys brms [mu: t2(x,z)] frmtmb [mu: t2(x,z)]
+  mu: t2(x,z): rows 60 / 60; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 1.33e-15 (scale 1.16)
+    se__       max |brms - frmtmb| = 0.187 (scale 0)
+    lower__    max |brms - frmtmb| = 0.367 (scale 1.16)
+    upper__    max |brms - frmtmb| = 0.367 (scale 1.16)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms x z | frmtmb x z
+    attr response brms mu: t2(x,z) | frmtmb mu: t2(x,z)
+    attr surface  brms FALSE | frmtmb FALSE
+conditional_effects x:z surface, too_far 0.2: keys brms [x:z] frmtmb [x:z]
+  x:z: rows 225 / 225; columns identical TRUE; grid max diff 0.647 (in se__, lower__, upper__: brms 0 NA frmtmb 0.2605 0.2222)
+    estimate__ max |brms - frmtmb| = 1.5e-15 (scale 1.57)
+    cond__ equal TRUE; attr names brms [categorical,effects,ordinal,points,response,surface] frmtmb [band,dpar,effects,points,points_df,response,surface]
+    attr effects  brms x z | frmtmb x z
+    attr response brms y | frmtmb y
+    attr surface  brms TRUE | frmtmb TRUE
+
+== B3. select_points: the observations each keeps
+select_points 0.00: brms 150 rows, frmtmb 150 rows, same rows TRUE; frmtmb plus brms's response filter 150 rows, same as brms TRUE
+select_points 0.05: brms 1 rows, frmtmb 1 rows, same rows TRUE; frmtmb plus brms's response filter 1 rows, same as brms TRUE
+select_points 0.10: brms 3 rows, frmtmb 5 rows, same rows FALSE; frmtmb plus brms's response filter 3 rows, same as brms TRUE
+select_points 0.30: brms 45 rows, frmtmb 58 rows, same rows FALSE; frmtmb plus brms's response filter 45 rows, same as brms TRUE
+estimate__ of x at the ML estimate: max diff 2.22e-16
+
+== B4. nonlinear predictor: estimate vs brms, band vs Monte Carlo
+brms estimate__ vs frmtmb estimate__, z: max diff 0 (scale 4.36)
+brms estimate__ vs frmtmb estimate__, z:f: max diff 0
+R = 4000, seed 20260929: se__/MC sd over 100 grid points: min 0.9767, median 0.9812, max 1.0110
+  |z| of (se__ - MC sd) against the MC error of an SD: max 2.08, points beyond 2: 21, beyond 3: 0
+  band ends vs MC 2.5%/97.5% quantiles: max |diff| / MC width 0.0154
+
+== C. draws at the same parameter vectors
+projection residual over the 10 draws (relative): max 5.22e-15
+brms draws: 10
+conditional_smooths on draws: keys brms [mu: s(x), mu: s(z,by=f)] frmtmb [mu: s(x), mu: s(z,by=f)]
+  mu: s(x): rows 100 / 100; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 3.55e-15 (scale 1.02)
+    se__       max |brms - frmtmb| = 3.14e-15 (scale 0.154)
+    lower__    max |brms - frmtmb| = 3.55e-15 (scale 1.07)
+    upper__    max |brms - frmtmb| = 3.44e-15 (scale 1.11)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms x | frmtmb x
+    attr response brms mu: s(x) | frmtmb mu: s(x)
+    attr surface  brms FALSE | frmtmb FALSE
+  mu: s(z,by=f): rows 200 / 200; columns identical TRUE; grid max diff 0
+    estimate__ max |brms - frmtmb| = 5.13e-16 (scale 0.641)
+    se__       max |brms - frmtmb| = 9.99e-16 (scale 0.134)
+    lower__    max |brms - frmtmb| = 1.39e-15 (scale 0.767)
+    upper__    max |brms - frmtmb| = 1.55e-15 (scale 0.739)
+    cond__ equal TRUE; attr names brms [effects,points,response,surface] frmtmb [effects,points,response,surface]
+    attr effects  brms z f | frmtmb z f
+    attr response brms mu: s(z,by=f) | frmtmb mu: s(z,by=f)
+    attr surface  brms FALSE | frmtmb FALSE
+  mu: s(x) spaghetti: rows 1000 / 1000, names identical TRUE, estimate__ max diff 5.33e-15, sample__ identical TRUE
+  mu: s(z,by=f) spaghetti: rows 2000 / 2000, names identical TRUE, estimate__ max diff 2e-15, sample__ identical TRUE
+conditional_effects(x, spaghetti): rows 1000 / 1000, names brms [x,y,f,z,cond__,effect1__,estimate__,sample__] frmtmb [x,y,f,z,cond__,effect1__,estimate__,sample__]
+  estimate__ max diff 5.36e-15; sample__ identical TRUE; band estimate__ max diff 4.27e-15
+conditional_effects(x:f, spaghetti): rows 2000 / 2000, names brms [x,f,y,z,cond__,effect1__,effect2__,estimate__,sample__] frmtmb [x,f,y,z,cond__,effect1__,effect2__,estimate__,sample__]
+  estimate__ max diff 5.44e-15; sample__ identical TRUE; band estimate__ max diff 4.27e-15
+brms spaghetti + surface: Cannot use 'spaghetti' and 'surface' at the same time.
+frmtmb spaghetti + surface: Cannot use 'spaghetti' and 'surface' at the same time.
+
+== C2. posterior_average(): same draws, weights and seed
+variables present: brms TRUE, frmtmb TRUE
+weights 0.3/0.7: dim brms 10x3 frmtmb 10x3; names identical TRUE; max diff 1.39e-17; attr ndraws brms 3/7 frmtmb 3/7; weights identical TRUE
+weights 1/0: dim brms 10x3 frmtmb 10x3; names identical TRUE; max diff 1.39e-17; attr ndraws brms 10/0 frmtmb 10/0; weights identical TRUE
+weights 0.5/0.5: dim brms 10x3 frmtmb 10x3; names identical TRUE; max diff 1.39e-17; attr ndraws brms 5/5 frmtmb 5/5; weights identical TRUE
+ndraws = 7: brms 7x3, frmtmb 7x3, max diff 1.39e-17
+names(attr(, 'weights')): brms bK,bK | frmtmb dsK,dsK
+unknown variable: brms 'Parameters 'nope' cannot be found in all of the models. Consider using argument 'missing'.' | frmtmb 'Parameters nope cannot be found in all of the models. Consider using argument 'missing'.'
+missing = 0, a variable no model has: brms 'Parameters 'nope' cannot be found in any of the models.' | frmtmb 'Parameters nope cannot be found in any of the models.'
+missing = 0 across two models: dims 10x2 / 10x2, max diff 0, ndraws 4/6 / 4/6
+done

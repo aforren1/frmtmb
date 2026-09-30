@@ -1,0 +1,156 @@
+arm lane mutant p1_redrawsmooth ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+mutant p1_redrawsmooth : 1 replacement(s) in frmtmb :: sim_re_plan 
+function (fit, re_formula) 
+{
+    none <- list(redraw = integer(0), cond = list(), blocks = integer(0))
+    blocks <- fit$frame[["re_blocks"]] %||% list()
+    if (!length(blocks) || is.null(re_formula)) 
+        return(none)
+    kp <- re_keep_plan(fit, re_formula, "simulate()")
+    if (identical(kp$kind, "all")) 
+        return(none)
+    if (kp$kind %in% c("asis", "none")) {
+        ids <- seq_along(blocks)
+        fs <- length(unlist(lapply(fit$frame[["linpreds"]], smooth_group_block_ids))) > 
+            0L || any(vapply(blocks[ids], function(bk) {
+            bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+        }, NA))
+        return(list(redraw = unlist(lapply(blocks[ids], `[[`, 
+            "b_idx")) %||% integer(0), cond = list(), blocks = ids, 
+            every = !fs))
+    }
+    colkeep <- lapply(blocks, function(bk) rep(TRUE, bk[["dim"]]))
+    for (k in seq_along(kp$named)) {
+        nc <- kp$named[[k]]
+        cp <- blocks[[nc$block]][["components"]][[nc$comp]]
+        colkeep[[nc$block]][cp[["offset"]] + which(!kp$keep[[k]])] <- FALSE
+    }
+    redraw <- integer(0)
+    cond <- list()
+    ids <- integer(0)
+    for (i in seq_along(blocks)) {
+        ck <- colkeep[[i]]
+        if (all(ck)) 
+            next
+        bk <- blocks[[i]]
+        ids <- c(ids, i)
+        if (!any(ck)) {
+            redraw <- c(redraw, bk[["b_idx"]])
+            next
+        }
+        if (bk[["covstruct"]] %in% c("rr", "gr_cov", "gr_prec", 
+            "car", "spde") || is_student_block(bk)) {
+            frm_stop("simulate(): re_formula keeps some columns of the ", 
+                "group-level term ", bk[["term_label"]] %||% 
+                  bk[["covstruct"]], " and drops others. A dropped column is redrawn given the ", 
+                "kept ones, which needs the conditional law of one set of ", 
+                "columns given another; this term's '", bk[["covstruct"]], 
+                "' structure", if (is_student_block(bk)) 
+                  " (Student-t)", " has no such law here. Keep or drop the whole term", 
+                call. = FALSE)
+        }
+        cond[[length(cond) + 1L]] <- list(block = i, keep = ck)
+    }
+    list(redraw = redraw, cond = cond, blocks = ids)
+}
+<environment: namespace:frmtmb>
+RESULT lane frmtmb test-simulate-newdata.R [p1_redrawsmooth]: tests=57 failed=9 error=0 skipped=0 warning=0 passed=48
+---- expectation_failure at line 231 in re_formula = NA keeps a population smooth curve 
+Expected `simulate(fit, nsim = 5, seed = 1, re_formula = NA)` to be identical to `simulate(fit, nsim = 5, seed = 1)`.
+Differences:
+actual vs expected
+                        sim_1        sim_2         sim_3        sim_4        sim_5
+- actual[1, ]      2.73624419  1.232536121  3.578234e+00  4.904604998   5.51563345
++ expected[1, ]   -2.12570433 -1.832647832 -1.644500e+00 -2.044964829  -2.25597279
+- actual[2, ]     -3.63212847 -2.810944083 -3.213287e+00 -5.906362929  -6.92143288
++ expected[2, ]    2.01432715  2.440175498  2.498677e+00  2.387426818   1.44575048
+- actual[3, ]      1.69129526  0.919058218  2.067575e+00  2.782483388   3.93857154
++ expected[3, ]   -2.24114711 -1.555871667 -2.175333e+00 -1.855272493  -1.72315969
+- actual[4, ]     -4.61077143 -3.497844522 -5.476954e+00 -6.732316349 
+---- expectation_failure at line 255 in re_formula = NA keeps a GROUP-INDEXED smooth curve too 
+Expected `simulate(fit, nsim = 5, seed = 1, re_formula = NA)` to be identical to `simulate(fit, nsim = 5, seed = 1)`.
+Differences:
+actual vs expected
+                         sim_1        sim_2         sim_3        sim_4       sim_5
+- actual[1, ]     -1.005576800 -1.152237157 -1.5814154625 -3.359564312 -1.20926431
++ expected[1, ]    0.838217669  1.312925991  0.9273388136  0.552495725  0.54761377
+- actual[2, ]      1.682930219  1.694576183 -0.2034985980  2.496433449  1.44467653
++ expected[2, ]   -0.596224216 -0.980624969 -0.1843927025 -0.592889749 -0.05300349
+- actual[3, ]      1.657769962  1.066544741  2.6384065982  2.178483689  3.44618515
++ expected[3, ]   -0.778574615  0.097990085 -0.3526419764 -0.435048539 -1.09747722
+- actual[4, ]      0.110544347 -0.391370593 -0.7126809728 -1.93565148 
+---- expectation_failure at line 257 in re_formula = NA keeps a GROUP-INDEXED smooth curve too 
+Expected `frmtmb:::sim_re_plan(fit, NA)$redraw` to be identical to `integer(0)`.
+Differences:
+  `actual`: 1 2 3 4 5 6 7 8 9 10 and 8 more...
+`expected`:                                ...
+ 
+---- expectation_failure at line 255 in re_formula = NA keeps a GROUP-INDEXED smooth curve too 
+Expected `simulate(fit, nsim = 5, seed = 1, re_formula = NA)` to be identical to `simulate(fit, nsim = 5, seed = 1)`.
+Differences:
+actual vs expected
+                          sim_1        sim_2         sim_3         sim_4        sim_5
+- actual[1, ]     -0.5660102410  0.041042533 -0.1806020341 -0.6078835837  0.384794512
++ expected[1, ]    0.6747863819  1.147970658  0.7636214040  0.3899817446  0.385115460
+- actual[2, ]      0.6204794436  1.365173579  0.7501106227  0.2351181476  1.256471375
++ expected[2, ]   -0.5193184129 -0.902485052 -0.1088090792 -0.5159946514  0.022158313
+- actual[3, ]      0.8213191852 -2.460260238 -0.0548223515  2.4789458947  0.828877446
++ expected[3, ]   -0.8676973273  0.006053173 -0.4431321396 -0.5252741367 -1.185576097
+- actual[4, ]     -0.9440289931  0.290340609 -0. 
+---- expectation_failure at line 257 in re_formula = NA keeps a GROUP-INDEXED smooth curve too 
+Expected `frmtmb:::sim_re_plan(fit, NA)$redraw` to be identical to `integer(0)`.
+Differences:
+  `actual`: 1 2 3 4 5 6 7 8 9 10 and 40 more...
+`expected`:                                 ...
+ 
+---- expectation_failure at line 255 in re_formula = NA keeps a GROUP-INDEXED smooth curve too 
+Expected `simulate(fit, nsim = 5, seed = 1, re_formula = NA)` to be identical to `simulate(fit, nsim = 5, seed = 1)`.
+Differences:
+actual vs expected
+                         sim_1         sim_2         sim_3        sim_4         sim_5
+- actual[1, ]     -0.043565142  0.9383685312 -0.8437557538  0.269231468 -0.9807420595
++ expected[1, ]    0.700737537  1.1719935049  0.7892105406  0.417093528  0.4122470737
+- actual[2, ]      0.435186169  1.2344027125 -1.1475393911 -1.304481884  0.9537486497
++ expected[2, ]   -0.501505200 -0.8831103680 -0.0926687628 -0.498194983  0.0377649140
+- actual[3, ]     -0.743796061 -0.2030977780  0.6125414659 -0.685180212  1.2694005615
++ expected[3, ]   -0.846056444  0.0241333709 -0.4232214333 -0.505028688 -1.1626398025
+- actual[4, ]     -0.034608647  0.5515484884  1. 
+---- expectation_failure at line 257 in re_formula = NA keeps a GROUP-INDEXED smooth curve too 
+Expected `frmtmb:::sim_re_plan(fit, NA)$redraw` to be identical to `integer(0)`.
+Differences:
+  `actual`: 1 2 3 4 5 6 7 8 9 10 and 40 more...
+`expected`:                                 ...
+ 
+---- expectation_failure at line 272 in a smooth beside (1 | g): NA redraws the group term only 
+Expected `frmtmb:::sim_re_plan(fit, NA)$blocks` to be identical to `gi`.
+Differences:
+  `actual`: 1 2
+`expected`: 1  
+ 
+---- expectation_failure at line 407 in frm_bootstrap() never redraws a smooth; NA still redraws a group 
+Expected `whole$t` to be identical to `cond$t`.
+Differences:
+actual vs expected
+                      [,1]
+- actual[1, ]    -3.635620
++ expected[1, ]   2.096424
+- actual[2, ]    -2.581083
++ expected[2, ]   1.990253
+- actual[3, ]    -3.692997
++ expected[3, ]   1.968292
+- actual[4, ]    -5.851154
++ expected[4, ]   1.919991
+- actual[5, ]    -6.490280
++ expected[5, ]   1.984482
+- actual[6, ]    -2.189607
++ expected[6, ]   1.957555
+- actual[7, ]    -5.883686
++ expected[7, ]   1.984914
+- actual[8, ]    -3.214345
++ expected[8, ]   2.035026
+- actual[9, ]    -4.960995
++ expected[9, ]   1.957214
+- actual[10, ]   -4.532023
++ expected[10, ]  2.133189
+and 10 more ...
+ 

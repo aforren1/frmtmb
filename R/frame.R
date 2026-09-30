@@ -2626,7 +2626,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               if (is.null(gv) || is.null(mf[[gv]])) NULL else
                 levels(as.factor(mf[[gv]]))
             }),
-            label = sm$label
+            label = sm$label,
+            # the written term this basis came from: a factor `by`
+            # splits one term into a basis per level, and
+            # conditional_smooths() draws the term, not the level
+            term = attr(sspec, "frm_term") %||% sm$label
           )
         }
       }

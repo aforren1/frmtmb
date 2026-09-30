@@ -1,0 +1,123 @@
+arm lane mutant p2_mmsplit ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+mutant p2_mmsplit : 1 replacement(s) in frmtmb :: ce_plan_part 
+mutant p2_mmsplit : 1 replacement(s) in frmtmb :: ce_plan_part 
+mutant p2_mmsplit : 1 replacement(s) in frmtmb :: ce_plan_part 
+function (rows, nd, st, blocks, locked, base) 
+{
+    r1 <- rows[1L]
+    newk <- which(startsWith(st[r1, ], "new:"))
+    ndp <- nd[rows, , drop = FALSE]
+    if (!length(newk)) 
+        return(list(rows = rows, nd = ndp, new = list()))
+    obsk <- which(st[r1, ] == "")
+    held <- union(locked, unlist(lapply(blocks[obsk], `[[`, "gv")))
+    mmk <- newk[vapply(blocks[newk], `[[`, NA, "mm")]
+    for (k in mmk) {
+        b <- blocks[[k]]
+        vals <- vapply(b$gv, function(v) as.character(nd[[v]][r1]), 
+            "")
+        held <- union(held, b$gv[!is.na(vals) & vals %in% b$known])
+    }
+    given <- list()
+    moved <- character(0)
+    new <- list()
+    regk <- setdiff(newk, mmk)
+    ord <- regk[order(-vapply(blocks[regk], function(b) length(b$gv), 
+        1L))]
+    for (k in ord) {
+        b <- blocks[[k]]
+        ok <- rep(TRUE, nrow(b$parts))
+        for (j in seq_along(b$gv)) {
+            v <- b$gv[j]
+            want <- if (!is.null(given[[v]])) {
+                given[[v]]
+            }
+            else if (v %in% held) {
+                as.character(nd[[v]][r1])
+            }
+            if (!is.null(want)) 
+                ok <- ok & !is.na(want) & b$parts[, j] == want
+        }
+        if (!any(ok)) 
+            ce_plan_refuse(b, nd, r1)
+        lv <- which(ok)[1L]
+        for (j in seq_along(b$gv)) {
+            v <- b$gv[j]
+            if (is.null(given[[v]])) {
+                given[[v]] <- b$parts[lv, j]
+                if (!v %in% held) 
+                  moved <- c(moved, v)
+            }
+        }
+        new[[length(new) + 1L]] <- list(block = k, key = st[r1, 
+            k], idx = b$bk[["b_idx"]][(lv - 1L) * b$d + seq_len(b$d)])
+    }
+    for (k in mmk) {
+        b <- blocks[[k]]
+        vals <- vapply(b$gv, function(v) as.character(nd[[v]][r1]), 
+            "")
+        isnew <- is.na(vals) | !vals %in% b$known
+        if (!is.null(b$bk[["by"]])) {
+            frm_stop("conditional_effects() cannot draw a new level of the ", 
+                "multi-membership term (", b$bk[["term_label"]], 
+                ") with ", "a by variable on band = \"boot\" or on draws: ", 
+                paste0(b$gv[isnew], collapse = ", "), " is unset or at a ", 
+                "level the fit never saw. Set every member to a level the ", 
+                "fit saw, use band = \"wald\" on a fit, or use re_formula ", 
+                "= NA", call. = FALSE)
+        }
+        u <- vals[isnew]
+        mt <- cumsum(isnew)
+        free <- setdiff(b$parts[, 1L], vals[!isnew])
+        for (v in b$gv[isnew]) {
+            if (is.factor(base[[v]])) 
+                free <- intersect(free, levels(base[[v]]))
+        }
+        if (any(b$gv[isnew] %in% held)) 
+            ce_plan_refuse(b, nd, r1)
+        place <- rep(NA_character_, length(u))
+        for (j in which(isnew)) {
+            gj <- given[[b$gv[j]]]
+            if (is.null(gj)) 
+                next
+            if (!is.na(place[mt[j]]) && place[mt[j]] != gj) {
+                ce_plan_refuse(b, nd, r1)
+            }
+            place[mt[j]] <- gj
+        }
+        pre <- place[!is.na(place)]
+        if (!all(pre %in% free) || anyDuplicated(pre)) 
+            ce_plan_refuse(b, nd, r1)
+        need <- which(is.na(place))
+        free <- setdiff(free, pre)
+        if (length(free) < length(need)) 
+            ce_plan_refuse(b, nd, r1)
+        place[need] <- free[seq_along(need)]
+        for (j in which(isnew)) {
+            if (is.null(given[[b$gv[j]]])) {
+                given[[b$gv[j]]] <- place[mt[j]]
+                moved <- c(moved, b$gv[j])
+            }
+        }
+        for (j in seq_along(u)) {
+            lv <- match(place[j], b$parts[, 1L])
+            new[[length(new) + 1L]] <- list(block = k, key = paste0("new:", 
+                u[j], "#", j), idx = b$bk[["b_idx"]][(lv - 1L) * 
+                b$d + seq_len(b$d)])
+        }
+    }
+    for (v in unique(moved)) {
+        col <- base[[v]]
+        val <- given[[v]]
+        ndp[[v]] <- rep(if (is.factor(col)) {
+            factor(val, levels = levels(col))
+        } else if (is.numeric(col)) {
+            as.numeric(val)
+        } else {
+            val
+        }, length.out = length(rows))
+    }
+    list(rows = rows, nd = ndp, new = new)
+}
+<environment: namespace:frmtmb>
+RESULT lane frmtmb test-ce-options.R [p2_mmsplit]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32

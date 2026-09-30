@@ -468,22 +468,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     # grouping column in newdata, and still needs a level the basis
     # knows, at re_formula = NA as much as at NULL.
     smooth_newdata_check(si, newdata, allow_new_levels)
-    M <- mgcv::PredictMat(si$sm, newdata)
-    if (is.null(si$U)) {
-      # t2(): smooth2random() gives no rotation, only pen.ind, so the
-      # split is a trans.D scaling plus the frozen column permutation
-      # (see smooth_pen_order()). NULL `ord` means that identity did not
-      # hold at fit time; refusing beats returning wrong numbers.
-      if (is.null(si$ord)) {
-        frm_stop("predict(newdata = ) is not supported for the smooth ",
-                 si$label, ": mgcv reported a random-effect split this ",
-                 "version cannot invert. In-sample fitted()/predict() work; ",
-                 "predict at the observed rows instead", call. = FALSE)
-      }
-      M <- sweep(M, 2, si$D, `*`)[, si$ord, drop = FALSE]
-    } else {
-      M <- sweep(M %*% si$U, 2, si$D, `*`)
-    }
+    M <- smooth_basis_at(si, newdata)
     pos <- 0L
     for (r in seq_along(si$nr)) {
       Xr_new <- M[, pos + seq_len(si$nr[r]), drop = FALSE]
@@ -737,6 +722,31 @@ re_eta <- function(re_parts, cvec, n) {
     eta <- eta + contrib
   }
   eta
+}
+
+#' One smooth's basis at new data, in the fitted parameterization: the
+#' wiggly columns first, in `rand` order, then the null-space columns.
+#' Shared by prediction and conditional_smooths(), so that the curve a
+#' display draws is the one the fit predicts.
+#'
+#' @noRd
+smooth_basis_at <- function(si, newdata) {
+  M <- mgcv::PredictMat(si$sm, newdata)
+  if (is.null(si$U)) {
+    # t2(): smooth2random() gives no rotation, only pen.ind, so the
+    # split is a trans.D scaling plus the frozen column permutation
+    # (see smooth_pen_order()). NULL `ord` means that identity did not
+    # hold at fit time; refusing beats returning wrong numbers.
+    if (is.null(si$ord)) {
+      frm_stop("predict(newdata = ) is not supported for the smooth ",
+               si$label, ": mgcv reported a random-effect split this ",
+               "version cannot invert. In-sample fitted()/predict() work; ",
+               "predict at the observed rows instead", call. = FALSE)
+    }
+    sweep(M, 2, si$D, `*`)[, si$ord, drop = FALSE]
+  } else {
+    sweep(M %*% si$U, 2, si$D, `*`)
+  }
 }
 
 #' Smooth wiggly contribution to eta for one linear predictor.
@@ -3793,9 +3803,8 @@ apply_censoring <- function(y, win) {
 #' are penalized coefficients of a term of the formula, not group
 #' effects, and `re_formula = NA` keeps every smooth as brms does, so
 #' the draws at `NA` are the conditional draws on a fit whose only
-#' group-indexed content is a smooth. `frm_bootstrap()` is the exception
-#' and asks for the other thing on purpose: a whole-model parametric
-#' bootstrap redraws every block, smooths included.
+#' group-indexed content is a smooth. [frm_bootstrap()] reads
+#' `re_formula` the same way.
 #'
 #' @section New data:
 #' With `newdata` the draws are for its rows. The response column is
@@ -3891,17 +3900,14 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
 }
 
 #' The body of `simulate.frmtmb_fit()`, with one setting the public
-#' method does not offer: `redraw_smooths = TRUE` makes `re_formula = NA`
-#' redraw the penalized coefficients of every smooth as well, which is
-#' `frm_bootstrap()`'s whole-model bootstrap, and was 0.62.0's
-#' `simulate(re_formula = NA)` for a population smooth and 0.64.0's for
-#' one indexed by a grouping factor (see `sim_re_plan()`).
+#' method does not offer: `re_plan`, a `sim_re_plan()` list that says
+#' which blocks each draw redraws, for a caller whose set of held terms
+#' no `re_formula` spells (`conditional_effects()`'s bootstrap).
 #'
 #' @noRd
 sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
                           censored = FALSE, newdata = NULL,
-                          allow_new_levels = FALSE,
-                          redraw_smooths = FALSE) {
+                          allow_new_levels = FALSE, re_plan = NULL) {
   # nsim reaches vapply()/replicate() as a length, where a length-2 or
   # character value reports "invalid 'length' argument" and names
   # neither simulate() nor nsim
@@ -3951,7 +3957,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
              sim_note(fam), call. = FALSE,
              package = frm_family_package(fam))
   }
-  plan <- sim_re_plan(object, re_formula, smooths = redraw_smooths)
+  plan <- re_plan %||% sim_re_plan(object, re_formula)
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   cwin <- NULL
   if (isTRUE(censored)) {

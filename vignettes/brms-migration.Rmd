@@ -604,8 +604,8 @@ dropped and refused, not kept as an alias. What still follows stats is
 the SHAPE of what a standard generic returns:
 
 - brms-origin, same names and argument spellings:
-  `conditional_effects()` (includes what `conditional_smooths()`
-  covers), `hypothesis()` (a delta-method Wald test here),
+  `conditional_effects()`, `conditional_smooths()`, `make_conditions()`,
+  `update_adterms()`, `hypothesis()` (a delta-method Wald test here),
   `pp_check()` (simulate-based, through bayesplot's `ppc_*`
   functions), `prior_summary()`, `fixef()`, `ranef()`, `VarCorr()`,
   `ngrps()`, `variables()` (brms's parameter names, e.g. `b_Days` and
@@ -677,6 +677,24 @@ the SHAPE of what a standard generic returns:
   `Intercept` and not `(Intercept)`, so that anything pairing `coef()` with `vcov()`
   by name, `lmtest::coeftest()` among them, keeps every row. The
   design-column spelling is `fixef_by_dpar()`.
+- `conditional_effects()` takes brms's `surface`, `too_far`,
+  `select_points` and `spaghetti`. `spaghetti = TRUE` needs draws: on
+  a fit it takes `band = "boot"`, where each refit is one curve, and
+  it is refused with any other band. `select_points` measures the
+  predictors only, where brms also drops the observations whose
+  RESPONSE is far from its mean. A nonlinear predictor gets the Wald
+  band by the delta method through the Jacobian of the body, where it
+  needed `band = "boot"` before. `conditional_smooths()` draws each
+  smooth term alone, with brms's grid, keys and columns; on a fit the
+  band is the delta method, on draws brms's median and quantiles.
+  Under `re_formula = NULL` a grid row reads a group's fitted effects
+  where it sets the group to a level the fit saw, and a new level
+  where it sets none or an unseen one, as brms does with its own
+  `allow_new_levels = TRUE`. `band = "boot"` and `frm_bootstrap()`
+  hold every smooth at its fit and redraw only group-level terms. A row
+  reads only its own `f` level's block of `gr(g, by = f)`, and each
+  member of `mm(g1, g2)` is a grouping variable; the "New group
+  levels" section of `?conditional_effects` has the refusals.
 - `conditional_effects()` on an ordinal fit draws one probability
   curve per response category, which is what brms draws under
   `categorical = TRUE`, and keys the effect `"x:cats__"` as brms does

@@ -1,3 +1,54 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb that carries `cs_build()`, `ce_level_plan()` and the
+other `conditional_smooths()` seams.
+
+* **`conditional_effects()` on draws under `re_formula = NULL` reads
+  each grid row's groups by brms's rule** (found by lane sampfix). With
+  `conditions = data.frame(g = <a level>)`, every draw's effects for a
+  NEW group were drawn into the first level and predicted there: moving
+  `r_g[1,]` or `r_g[2,]` by 10 left the curve where it was, and levels
+  1 and 2 drew the same curve. The rule is now core's, per row and per
+  group-level term: a term reads its draws where the row sets every one
+  of its grouping variables to an observed level, in `conditions` or as
+  an effect (`"x:g"`), and draws a new level otherwise, from each
+  draw's own covariance: an unset variable, an unseen level (`"99"`),
+  a row of a mixed `conditions` column, or a nested `(1 | g / h)` with
+  `g` set and `h` unset. At levels 1, 2 and 3 every column and the
+  spaghetti frame equal brms's at the same five draws, with a
+  difference of 0 (`dev/postfit2-celevel-brms.R` in the frmtmb
+  repository), and `"x:g"` equals brms's to 1.6e-8.
+
+  On a `gr(g, by = f)` term a row reads only the term of its own `f`
+  level; every `re_formula = NULL` display of such a model was refused
+  before, even at an observed `g`. An `mm(g1, g2)` term's unset members
+  are new levels instead of the first observed one. At the same draws
+  and seed, the `gr()` band at an unseen `g` and the `mm()` band with
+  members unset equal brms's `sample_new_levels = "gaussian"` bands to
+  8.9e-16 (`dev/postfit2-p2-brms.R` in the frmtmb repository). Two
+  different unseen members are two new levels here; brms 2.23.0 draws
+  them once, an artifact of how it numbers unseen values. `mm(g1, g2)`
+  beside `(1 | g1)` with `g1` unset or unseen now draws both new
+  levels, where it was refused. One
+  new level is drawn once per draw and shared by every panel that
+  names it. The core NEWS has the details.
+
+* **`posterior_average()`**, brms's model-averaged draws: draws from
+  several `frm_sample()` objects in proportion to their weights, given
+  as numbers or computed by `"stacking"` (the default), `"pseudobma"`,
+  `"loo"` or `"waic"`. `"kfold"` and `"bma"` are refused, as `kfold()`
+  and `post_prob()` are. On the same draws, weights and seed its output
+  equals brms's to 1.4e-17, with the same rows, names and attributes
+  (`dev/postfit2-brms-compare.R` in the frmtmb repository).
+* **`conditional_smooths()` on draws**: brms's median, MAD and
+  quantiles of each smooth term's curves, and brms's `spaghetti`. On
+  ten draws that a `fixed_param` brms fit shares, every column and the
+  spaghetti frame equal brms's to 5.3e-15.
+* **`conditional_effects()` on draws takes `spaghetti`, `surface`,
+  `too_far` and `select_points`**, which it refused before. The
+  spaghetti frame equals brms's to 5.4e-15 on the same ten draws, for a
+  one- and a two-variable effect.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

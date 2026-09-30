@@ -1,0 +1,125 @@
+## punch round 1: whole ungated suites, lane, all 8 packages
+files with RESULT: 314 of 314
+frmtmb files: failed=1 error=0 skipped=152 warning=0 passed=12375
+frmtmb.coupling files: failed=0 error=0 skipped=5 warning=0 passed=542
+frmtmb.eam files: failed=0 error=0 skipped=3 warning=0 passed=1733
+frmtmb.latent files: failed=0 error=0 skipped=2 warning=0 passed=359
+frmtmb.learn files: failed=0 error=0 skipped=13 warning=0 passed=429
+frmtmb.ode files: failed=0 error=0 skipped=1 warning=0 passed=547
+frmtmb.sample files: failed=0 error=0 skipped=4 warning=0 passed=1988
+frmtmb.spline files: failed=0 error=0 skipped=1 warning=0 passed=553
+files with a failure or error:
+RESULT lane frmtmb test-conditions.R: tests=150 failed=1 error=0 skipped=0 warning=0 passed=149
+## gated
+RESULT base frmtmb test-brms-methods.R: tests=975 failed=0 error=1 skipped=0 warning=0 passed=975
+RESULT base frmtmb test-brms-suite-brmsfit-helpers.R: tests=3 failed=0 error=0 skipped=0 warning=0 passed=3
+RESULT base frmtmb test-brms-suite-brmsformula.R: tests=16 failed=0 error=0 skipped=0 warning=0 passed=16
+RESULT base frmtmb test-brms-suite-methods.R: tests=162 failed=0 error=0 skipped=0 warning=0 passed=162
+RESULT base frmtmb.sample test-brms-suite-brmsformula.R: tests=16 failed=0 error=0 skipped=0 warning=0 passed=16
+RESULT base frmtmb.sample test-brms-suite-methods.R: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+RESULT base frmtmb.sample test-sampling-ported.R: tests=213 failed=0 error=0 skipped=0 warning=0 passed=213
+RESULT lane frmtmb test-brms-methods.R: tests=983 failed=0 error=0 skipped=0 warning=0 passed=983
+RESULT lane frmtmb test-brms-suite-brmsfit-helpers.R: tests=3 failed=2 error=0 skipped=0 warning=0 passed=1
+RESULT lane frmtmb test-brms-suite-brmsformula.R: tests=16 failed=4 error=0 skipped=0 warning=0 passed=12
+RESULT lane frmtmb test-brms-suite-methods.R: tests=162 failed=7 error=0 skipped=0 warning=0 passed=155
+RESULT lane frmtmb.sample test-brms-suite-brmsformula.R: tests=16 failed=4 error=0 skipped=0 warning=0 passed=12
+RESULT lane frmtmb.sample test-brms-suite-methods.R: tests=61 failed=2 error=0 skipped=0 warning=0 passed=59
+RESULT lane frmtmb.sample test-sampling-ported.R: tests=213 failed=0 error=0 skipped=0 warning=0 passed=213
+## base runs of the new/changed files
+RESULT base frmtmb test-boot.R: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+RESULT base frmtmb test-ce-levels.R: tests=25 failed=9 error=4 skipped=0 warning=0 passed=16
+RESULT base frmtmb test-ce-options.R: tests=5 failed=4 error=5 skipped=0 warning=0 passed=1
+RESULT base frmtmb test-simulate-newdata.R: tests=57 failed=1 error=0 skipped=0 warning=0 passed=56
+RESULT base frmtmb.sample test-postfit-draws.R: tests=10 failed=6 error=5 skipped=0 warning=0 passed=4
+## mutants
+frmtmb test-boot.R [p1_allblocks]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_draw0]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_keptkey]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_nohold]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_nolock]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_nonest]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_norefuse]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_noshare]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_redrawsmooth]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-boot.R [p1_unseen_obs]: tests=49 failed=0 error=0 skipped=0 warning=0 passed=49
+frmtmb test-ce-bands.R [p1_allblocks]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_draw0]: tests=169 failed=5 error=0 skipped=0 warning=0 passed=164
+frmtmb test-ce-bands.R [p1_keptkey]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_nohold]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_nolock]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_nonest]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_norefuse]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_noshare]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_redrawsmooth]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-bands.R [p1_unseen_obs]: tests=169 failed=0 error=0 skipped=0 warning=0 passed=169
+frmtmb test-ce-levels.R [p1_allblocks]: tests=36 failed=0 error=0 skipped=0 warning=0 passed=36
+frmtmb test-ce-levels.R [p1_draw0]: tests=36 failed=3 error=0 skipped=0 warning=0 passed=33
+frmtmb test-ce-levels.R [p1_keptkey]: tests=36 failed=2 error=0 skipped=0 warning=0 passed=34
+frmtmb test-ce-levels.R [p1_nohold]: tests=36 failed=3 error=0 skipped=0 warning=0 passed=33
+frmtmb test-ce-levels.R [p1_nolock]: tests=36 failed=0 error=0 skipped=0 warning=0 passed=36
+frmtmb test-ce-levels.R [p1_nonest]: tests=36 failed=0 error=0 skipped=0 warning=0 passed=36
+frmtmb test-ce-levels.R [p1_norefuse]: tests=36 failed=1 error=0 skipped=0 warning=0 passed=35
+frmtmb test-ce-levels.R [p1_noshare]: tests=36 failed=0 error=0 skipped=0 warning=0 passed=36
+frmtmb test-ce-levels.R [p1_redrawsmooth]: tests=36 failed=7 error=0 skipped=0 warning=0 passed=29
+frmtmb test-ce-levels.R [p1_unseen_obs]: tests=36 failed=1 error=0 skipped=0 warning=0 passed=35
+frmtmb test-ce-options.R [p1_allblocks]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_draw0]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_keptkey]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_nohold]: tests=32 failed=2 error=0 skipped=0 warning=0 passed=30
+frmtmb test-ce-options.R [p1_nolock]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_nonest]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_norefuse]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_noshare]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_redrawsmooth]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-ce-options.R [p1_unseen_obs]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+frmtmb test-simulate-newdata.R [p1_allblocks]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_draw0]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_keptkey]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_nohold]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_nolock]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_nonest]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_norefuse]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_noshare]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb test-simulate-newdata.R [p1_redrawsmooth]: tests=57 failed=9 error=0 skipped=0 warning=0 passed=48
+frmtmb test-simulate-newdata.R [p1_unseen_obs]: tests=57 failed=0 error=0 skipped=0 warning=0 passed=57
+frmtmb.sample test-conditional-effects-draws.R [p1_allblocks]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_draw0]: tests=61 failed=1 error=0 skipped=0 warning=0 passed=60
+frmtmb.sample test-conditional-effects-draws.R [p1_keptkey]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_nohold]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_nolock]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_nonest]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_norefuse]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_noshare]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_redrawsmooth]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-conditional-effects-draws.R [p1_unseen_obs]: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+frmtmb.sample test-postfit-draws.R [p1_allblocks]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_draw0]: tests=42 failed=2 error=0 skipped=0 warning=0 passed=40
+frmtmb.sample test-postfit-draws.R [p1_keptkey]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_nohold]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_nolock]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_nonest]: tests=42 failed=1 error=0 skipped=0 warning=0 passed=41
+frmtmb.sample test-postfit-draws.R [p1_norefuse]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_noshare]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_redrawsmooth]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42
+frmtmb.sample test-postfit-draws.R [p1_unseen_obs]: tests=42 failed=2 error=0 skipped=0 warning=0 passed=40
+frmtmb.sample test-predfix-new-levels.R [p1_allblocks]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_draw0]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_keptkey]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_nohold]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_nolock]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_nonest]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_norefuse]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_noshare]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_redrawsmooth]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-predfix-new-levels.R [p1_unseen_obs]: tests=62 failed=0 error=0 skipped=0 warning=0 passed=62
+frmtmb.sample test-re-formula-draws.R [p1_allblocks]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_draw0]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_keptkey]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_nohold]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_nolock]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_nonest]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_norefuse]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_noshare]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_redrawsmooth]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+frmtmb.sample test-re-formula-draws.R [p1_unseen_obs]: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22
+escaped warnings (expectation_warning lines) in p1 logs: 0

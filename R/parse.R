@@ -1207,8 +1207,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         frm_stop("te() and ti() smooths are not supported (no random-effect ",
                  "representation); use t2() instead", call. = FALSE)
       }
-      smooth[[length(smooth) + 1L]] <-
-        eval(tm, list(s = mgcv::s, t2 = mgcv::t2), enclos = env)
+      smsp <- eval(tm, list(s = mgcv::s, t2 = mgcv::t2), enclos = env)
+      # the term as written, whitespace removed: brms's name for it, and
+      # the key conditional_smooths() selects and labels a term by
+      attr(smsp, "frm_term") <- gsub("[ \t\r\n]+", "", deparse1(tm))
+      smooth[[length(smooth) + 1L]] <- smsp
     } else if (is.call(tm) && identical(tm[[1]], as.name("mo"))) {
       if (length(tm) != 2L) {
         frm_stop("mo() takes exactly one variable", call. = FALSE)

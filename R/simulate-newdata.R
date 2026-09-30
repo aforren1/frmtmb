@@ -42,14 +42,13 @@
 #' `y ~ s(x, g, bs = "fs")` with 1.741 times sigma against 1.000 now
 #' (dev/resmooth-before.txt, dev/resmooth-after.txt).
 #'
-#' `smooths = TRUE` restores that for `NA`, `~0` and `~1`: every block
-#' is redrawn. It is `frm_bootstrap()`'s setting (user decision,
-#' 2026-09-24), a whole-model parametric bootstrap in the manner of
-#' lme4's `bootMer(use.u = FALSE)` with the smooths treated as random
-#' effects; `simulate()` does not offer it.
+#' `frm_bootstrap()` reads this plan too. It used to redraw the smooths
+#' under `NA` as well (user decision, 2026-09-24), which the user
+#' withdrew on 2026-09-29: a smooth is a term of the formula under any
+#' `re_formula`, in a bootstrap as much as in a prediction.
 #'
 #' @noRd
-sim_re_plan <- function(fit, re_formula, smooths = FALSE) {
+sim_re_plan <- function(fit, re_formula) {
   none <- list(redraw = integer(0), cond = list(), blocks = integer(0))
   blocks <- fit$frame[["re_blocks"]] %||% list()
   if (!length(blocks) || is.null(re_formula)) return(none)
@@ -57,7 +56,7 @@ sim_re_plan <- function(fit, re_formula, smooths = FALSE) {
   if (identical(kp$kind, "all")) return(none)
   if (kp$kind %in% c("asis", "none")) {
     # asis here is NA: check_re_form() has refused anything else
-    ids <- if (smooths) seq_along(blocks) else sim_group_block_ids(fit)
+    ids <- sim_group_block_ids(fit)
     # An unseen level at newdata is "one more fresh level" only when
     # nothing in the design has to PLACE that level. A group-indexed
     # smooth is kept under NA now, so its level still has to be one its

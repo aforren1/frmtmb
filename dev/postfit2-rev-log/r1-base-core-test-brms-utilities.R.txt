@@ -1,0 +1,6 @@
+arm base mutant none ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+RESULT base frmtmb test-brms-utilities.R: tests=0 failed=0 error=2 skipped=0 warning=0 passed=0
+---- expectation_error at line 8 in make_conditions() crosses levels and mean +/- sd 
+Error in `make_conditions(d, c("a", "f"))`: could not find function "make_conditions" 
+---- expectation_error at line 31 in update_adterms() replaces, adds and removes addition terms 
+Error in `update_adterms(form, ~trials(10))`: could not find function "update_adterms" 

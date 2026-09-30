@@ -1,0 +1,6 @@
+arm lane mutant p2_byall ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+mutant p2_byall: ce_by_reads returns TRUE for every row
+RESULT lane frmtmb.sample test-postfit-draws.R [p2_byall]: tests=49 failed=0 error=1 skipped=0 warning=0 passed=49
+---- expectation_error at line 263 in on draws, a gr(g, by = f) row reads its own f level's term 
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot draw a new level of the group-level term (1 | g [f = b]) at the grid rows with g = 3: to place one it would move a column that another term or an observed group reads, to a level the fit saw with the values the grid holds. Set the variables in conditions to levels the fit saw together, or use re_formula = NA 
