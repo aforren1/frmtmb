@@ -1,5 +1,0 @@
-default-priors-brms: .........................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-default-priors-brms.R pass=25 fail=0 error=0 skip=0 warn=0

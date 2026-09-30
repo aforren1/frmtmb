@@ -1,7 +1,0 @@
-MUTATED frmtmb::assemble_frame
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/P04_na_expr_allowed.R
-DETAIL [expectation_warning] an expression that gives NA is refused, as brms refuses it: NA/NaN function evaluation
-DETAIL [expectation_error] an expression that gives NA is refused, as brms refuses it: <frmtmb_fit_error/frmtmb_error/error/condition>
-Error: The optimizer failed on this model (gaussian, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm()
-RESULT test-aterm-expr.R pass=58 fail=0 err=1 skip=0 warn=1 tests=11
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -1,6 +1,0 @@
-re-formula-draws: ......................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-💅 Your tests are beautiful 💅
-
-RESULT test-re-formula-draws.R pass=22 fail=0 error=0 skip=0 warn=0

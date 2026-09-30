@@ -1,3 +1,0 @@
-pp_check class: ggplot2::ggplot ggplot2::ggplot 
-pp_check_newdata_y on -2 rows: 0 0 0 0 0 0 
-predict re_formula = NA, NA response: anyNA FALSE 

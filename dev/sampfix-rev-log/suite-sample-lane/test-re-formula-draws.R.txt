@@ -1,8 +1,0 @@
-ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
-frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-  Intercept          student_t(3, 1.4, 2.5)
-  sigma              student_t(3, 0, 2.5)  [natural scale]
-  sd                 student_t(3, 0, 2.5)  [natural sd scale]
-  cor                lkj(1)  [correlation matrix]
-  b                  (flat), as brms leaves slopes
-RESULT lane test-re-formula-draws.R: tests 3 pass 22 fail 0 error 0 skip 0 warn 0

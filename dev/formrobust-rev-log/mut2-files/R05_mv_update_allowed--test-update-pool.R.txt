@@ -1,6 +1,0 @@
-MUTATED frmtmb::update.frmtmb_fit
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R05_mv_update_allowed.R
-DETAIL [expectation_failure] a complete formula on a multivariate fit is refused, as brms: Expected `update(fm, y ~ x + z)` to throw a error.
-DETAIL [expectation_failure] a complete formula on a multivariate fit is refused, as brms: Expected `update(fm, mvbf(bf(y ~ x), bf(z ~ x)))` to throw a error.
-RESULT test-update-pool.R pass=14 fail=2 err=0 skip=0 warn=0 tests=4
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

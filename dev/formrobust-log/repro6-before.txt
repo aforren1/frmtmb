@@ -1,5 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
-0 + intercept + x coefs            ERROR: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
-same logLik as y ~ x               ERROR: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
-Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
-Execution halted

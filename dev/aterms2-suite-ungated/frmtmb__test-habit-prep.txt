@@ -1,5 +1,0 @@
-habit-prep: ................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-habit-prep.R pass=16 fail=0 error=0 skip=0 warn=0

@@ -1,5 +1,0 @@
-tabular-inputs: .........
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-tabular-inputs.R pass=9 fail=0 error=0 skip=0 warn=0

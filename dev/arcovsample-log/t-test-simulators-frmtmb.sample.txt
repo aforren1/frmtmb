@@ -1,1 +1,0 @@
-RESULT lane frmtmb.sample test-simulators.R pass=43 fail=0 err=0 skip=3

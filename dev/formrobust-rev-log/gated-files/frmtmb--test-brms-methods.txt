@@ -1,3 +1,0 @@
-Setting order = 'mu' for mixtures of the same family.
-RESULT test-brms-methods.R pass=983 fail=0 err=0 skip=0 warn=0 tests=48
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

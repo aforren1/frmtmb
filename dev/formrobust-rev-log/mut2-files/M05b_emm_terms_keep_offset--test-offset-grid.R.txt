@@ -1,4 +1,0 @@
-Error in mut("emm_terms", "attr(tt, \"offset\") <- NULL", "NULL") : 
-  mutant emm_terms: pattern matched 0 times, expected 1: attr(tt, "offset") <- NULL
-Calls: source -> withVisible -> eval -> eval -> mut
-Execution halted

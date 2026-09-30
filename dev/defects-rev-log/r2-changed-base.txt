@@ -1,2 +1,0 @@
-RESULT base frmtmb 0.65.0 C:/Users/adf44/source/r/rellib-r3 test-brms-parity-defects.R pass= 9 fail= 14 err= 19 skip= 0 warn= 1 
-SUITE base frmtmb ran 1 of 1 files

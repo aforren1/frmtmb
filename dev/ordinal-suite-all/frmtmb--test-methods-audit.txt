@@ -1,3 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-1 row removed because of missing values (na.action)
-RESULT test-methods-audit.R pass=58 fail=0 err=0 skip=0 warn=0

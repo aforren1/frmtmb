@@ -1,8 +1,0 @@
-arm base frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
-cumulative(), disc ~ 0 + z                     ERROR: dpar(s) not available for family 'cumulative': disc (available: )
-hurdle_cumulative(threshold = 'equidistant')   ERROR: hurdle_cumulative(threshold = 'equidistant') is not implemented: frmtmb fits flexible thresholds only
-hurdle_cumulative(threshold = 'sum_to_zero')   ERROR: hurdle_cumulative(threshold = 'sum_to_zero') is not implemented: frmtmb fits flexible thresholds only
-acat('probit')                                 ERROR: acat() takes the 'logit' link only, and not because character "probit" is a bad link: brms accepts "probit", "probit_approx", "cloglog", "cauch
-brmsfamily('sratio', threshold = 'equidistant') ERROR: brmsfamily("sratio") has no argument `threshold`. It takes `link`. See ?`frmtmb-links`
-flexible cumulative (unchanged)                fits; logLik -461.2922747
-flexible acat, cs(z) (unchanged)               fits; logLik -442.4638492

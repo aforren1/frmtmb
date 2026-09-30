@@ -1,1 +1,0 @@
-RESULT lane frmtmb.sample test-sratio-draws.R pass=2 fail=0 err=0 skip=0

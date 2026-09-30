@@ -1,4 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | cache:  
-mutant: relabel_wrongslot 
-RESULT lane frmtmb test-ce-levels.R relabel_wrongslot: tests=101 failed=1 error=0 skipped=0 warning=0 passed=100
-  fails: a renamed level reads the draw, not a fitted level's effect 

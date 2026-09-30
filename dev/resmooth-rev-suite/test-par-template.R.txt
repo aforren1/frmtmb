@@ -1,1 +1,0 @@
-RESULT test-par-template.R lib=lane pass=51 fail=0 error=0 skip=0 warn=0 blocks=11/11

@@ -1,5 +1,0 @@
-frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-  Intercept          student_t(3, 0.6, 2.5)
-  b                  (flat), as brms leaves slopes
-RESULT test-sampling.R pass=97 fail=0 err=0 skip=0 warn=0
-lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

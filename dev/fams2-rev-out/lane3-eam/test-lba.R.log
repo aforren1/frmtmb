@@ -1,7 +1,0 @@
-arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.eam  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.eam/tests/testthat 
-Loading required package: frmtmb
-lba: .............................................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-Nice code.
-RESULT lane frmtmb.eam test-lba.R pass=109 fail=0 err=0 skip=0 warn=0 blocks=31

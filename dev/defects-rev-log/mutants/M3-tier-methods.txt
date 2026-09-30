@@ -1,2 +1,0 @@
-No priors were set (plain maximum likelihood).
-MUTANT M3 predict_new_level_draw test-brms-suite-methods.R pass= 162 fail= 0 err= 0 

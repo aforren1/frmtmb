@@ -1,5 +1,0 @@
-frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3 md5 443c188d7b1120d082e18270078198f2 
-frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/rellib-r3 md5 4915774b5cc350cc594af25bd019ce54 
-frm_curve formals: object, newdata, contrast, dpar, resp, re_formula, level, simultaneous, nsim, transform, seed, tol 
-functions compared with the tree's source: 55  differing: 12 
-   frm_curve, frm_curve_deriv, frm_curve_feature, sp_assemble, sp_cov_check, sp_curve_parts, sp_grid_span, sp_linkinv, sp_one_basis, sp_predict_eta, sp_span_on_grid, sp_spec 

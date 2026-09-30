@@ -1,3 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
-2 rows removed because of missing values (na.action)
-RESULT lane frmtmb test-ordinal-fitted.R: tests=129 failed=0 error=0 skipped=0 warning=0 passed=129

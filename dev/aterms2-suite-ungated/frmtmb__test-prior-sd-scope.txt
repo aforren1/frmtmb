@@ -1,6 +1,0 @@
-prior-sd-scope: ........................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-HURRAH - great code.
-
-RESULT test-prior-sd-scope.R pass=24 fail=0 error=0 skip=0 warn=0

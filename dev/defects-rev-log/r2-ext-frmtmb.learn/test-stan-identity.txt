@@ -1,9 +1,0 @@
-RESULT lane frmtmb.learn 0.7.0 C:/Users/adf44/source/r/rellib-r3 test-stan-identity.R pass= 71 fail= 0 err= 0 skip= 0 warn= 4 
--- expectation_warning line 73 in: bandit2arm_dual reproduces Stan under both splits 
-   Optimizer did not report convergence: false convergence (8) 
--- expectation_warning line 73 in: bandit2arm_dual reproduces Stan under both splits 
-   Large maximum absolute gradient at the optimum (0.293 at tau_(Intercept)): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
--- expectation_warning line 372 in: rlddm reproduces Stan with a correlated block on all four 
-   Optimizer did not report convergence: false convergence (8) 
--- expectation_warning line 372 in: rlddm reproduces Stan with a correlated block on all four 
-   Large maximum absolute gradient at the optimum (0.0451 at theta_4): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

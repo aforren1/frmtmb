@@ -1,2 +1,0 @@
-RESULT test-brms-shapes.R pass=72 fail=0 err=0 skip=0 warn=0 tests=21
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

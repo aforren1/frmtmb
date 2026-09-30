@@ -1,4 +1,0 @@
-RESULT base frmtmb 0.65.0 C:/Users/adf44/source/r/rellib-r3 test-compat.R pass= 634 fail= 0 err= 1 skip= 0 warn= 0 
--- expectation_error line 523 in: the multivariate declarations match a multivariate fit 
-   <frmtmb_error/error/condition>
-   Error: residuals() is not supported yet for multivariate fits 

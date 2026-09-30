@@ -1,1 +1,0 @@
-REVRESULT test-bcm-latent-mixtures.R arm=lane blocks=13 pass=30 fail=0 err=0 warn=0 skip=5

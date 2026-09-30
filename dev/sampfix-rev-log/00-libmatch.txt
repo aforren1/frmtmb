@@ -1,6 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib 
-  functions compared: 1297  differing: 0 
-  installed version: 0.65.0 
-frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib 
-  functions compared: 221  differing: 0 
-  installed version: 0.13.0 

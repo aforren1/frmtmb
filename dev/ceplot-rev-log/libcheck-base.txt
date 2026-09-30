@@ -1,7 +1,0 @@
-﻿arm base : frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb ; frmtmb.sample from C:/Users/adf44/source/r/rellib-r4/frmtmb.sample 
-frmtmb: 1422 source functions; 22 not installed; 18 differ
-  missing: ce_col ce_design_label ce_do_plot ce_draw ce_gg_ignored ce_gg_par ce_mi_idx_check ce_mm_in_block ce_plot_defaults ce_theme_check ce_valid_effects fitted_old_levels hyp_draw_page hyp_limit_chars new_level_pick_apply old_level_pick_add parnames parnames.frmtmb_fit plot.frmtmb_ce_plot plot.frmtmb_hyp_plot print.frmtmb_ce_plot print.frmtmb_hyp_plot 
-  differ: ce_display_kind ce_draw_panel ce_facet_base ce_facet_layout ce_grids_build ce_level_plan ce_plan_eval ce_plan_part ce_plot_facets ce_plot_one ce_plot_surface fitted.frmtmb_fit fitted_mv mm_newdata_parts plot.frmtmb_conditional_effects plot.frmtmb_hypothesis pred_design predict_new_level_spec 
-frmtmb.sample: 234 source functions; 2 not installed; 2 differ
-  missing: nsamples_saved ps_select 
-  differ: nsamples.frmtmb_draws posterior_samples.frmtmb_draws 

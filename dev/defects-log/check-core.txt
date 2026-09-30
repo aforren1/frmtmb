@@ -1,2 +1,0 @@
-* checking HTML version of manual ... [20s] NOTE
-Status: 1 NOTE

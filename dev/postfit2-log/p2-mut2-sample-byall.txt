@@ -1,3 +1,0 @@
-RESULT frmtmb.sample test-postfit-draws.R [byall]: failed=0 error=1 passed=49
-                                                        test failed error
-9 on draws, a gr(g, by = f) row reads its own f level's term      0  TRUE

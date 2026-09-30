@@ -1,6 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.coupling C:/Users/adf44/source/r/rellib-r3/frmtmb 
-bracket-access: .
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-🎯 Your tests hit the mark 🎯
-RESULT before frmtmb.coupling test-bracket-access.R gated=FALSE pass=1 fail=0 err=0 skip=0 warn=0

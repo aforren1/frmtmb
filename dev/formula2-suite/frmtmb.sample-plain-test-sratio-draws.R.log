@@ -1,5 +1,0 @@
-LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb.sample 
-sratio-draws: ..
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT frmtmb.sample test-sratio-draws.R pass=2 fail=0 err=0 skip=0 warn=0

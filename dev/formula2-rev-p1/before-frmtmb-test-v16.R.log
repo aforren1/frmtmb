@@ -1,7 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
-v16: ...................5 rows removed because of missing values (na.action)
-...5 rows removed because of missing values (na.action)
-..
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT before frmtmb test-v16.R gated=TRUE pass=24 fail=0 err=0 skip=0 warn=0

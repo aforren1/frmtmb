@@ -1,6 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-RESULT test-brms-suite-standata.R pass=81 fail=6 err=0 skip=0 warn=0
-FAILING TESTS:
-                                            test failed error
- standata allows fixed distributional parameters      2 FALSE
-                Cell-mean coding can be disabled      4 FALSE

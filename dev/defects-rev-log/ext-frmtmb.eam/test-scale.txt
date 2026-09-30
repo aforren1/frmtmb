@@ -1,7 +1,0 @@
-RESULT lane frmtmb.eam 0.11.1 C:/Users/adf44/source/r/rellib-r3 test-scale.R pass= 0 fail= 0 err= 0 skip= 3 warn= 0 
--- expectation_skip line 198 in: the eam scale row fits and reports its cost 
-   Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier 
--- expectation_skip line 272 in: the eam scale row fits with the ndt bound lifted 
-   Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier 
--- expectation_skip line 291 in: the eam scale row fits with across-trial drift variability 
-   Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier 

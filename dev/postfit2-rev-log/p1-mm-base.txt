@@ -1,5 +1,0 @@
-ARM base 
-nothing set: g1 g2 in the frame: 1 1 ; est -0.2411 0.9321 2.1053 
-g1 = g2 = 1 set: est -0.2411 0.9321 2.1053 ; identical to nothing set: TRUE 
-g1 = g2 = 2: wald est -0.3167 0.8564 2.0296 ; boot refit mean -0.0548 1.0984 2.2517 ; boot width / wald width 5.1167 6.0353 5.0659 
-VarCorr sd: 0.9071 

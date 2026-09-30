@@ -1,6 +1,0 @@
-ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
-ce-facets: ............................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT base test-ce-facets.R pass=92 fail=0 error=0 skip=0 warn=0

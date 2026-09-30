@@ -1,8 +1,0 @@
-lane: uni dharma: 64 64 64 0 
-lane: uni osa: ERROR: 'observation.name' must be in data component 
-lane: sdy dharma: 75 75 75 0 
-lane: sdy osa: ERROR: 'observation.name' must be in data component 
-base: uni dharma: 80 80 80 16 
-base: uni osa: ERROR: 'observation.name' must be in data component 
-base: sdy dharma: 80 80 80 5 
-base: sdy osa: ERROR: 'observation.name' must be in data component 

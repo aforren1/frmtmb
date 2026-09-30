@@ -1,3 +1,0 @@
-﻿blocks: 2 
-seed 1..12: the (x = 0, x = 1) answer equals seen group: none none none none none none none none none none none none 
-answers that are one seen group's:  0 of 12

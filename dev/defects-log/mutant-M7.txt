@@ -1,2 +1,0 @@
-MUTANT M7 predict_new_level_spec test-brms-parity-defects.R pass= 100 fail= 1 err= 0 
-  caught by: "old_levels" picks the seen level at random, per call 

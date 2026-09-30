@@ -1,2 +1,0 @@
-RESULT test-emmeans.R lib=base pass=41 fail=1 error=1 skip=0 warn=0 blocks=11/11
-  BAD: a group-indexed smooth puts its factor in the reference grid 

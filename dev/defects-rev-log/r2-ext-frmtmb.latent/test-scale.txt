@@ -1,5 +1,0 @@
-RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-scale.R pass= 0 fail= 0 err= 0 skip= 2 warn= 0 
--- expectation_skip line 117 in: the hmm scale row fits and reports its cost 
-   Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier 
--- expectation_skip line 162 in: the lca scale row fits and reports its cost 
-   Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier 

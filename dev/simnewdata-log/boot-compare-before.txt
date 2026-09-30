@@ -1,4 +1,0 @@
-smooth default               DIFFERS
-mixed default                identical
-smooth NULL                  identical
-mixed NULL                   identical

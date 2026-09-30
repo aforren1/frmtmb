@@ -1,7 +1,0 @@
-frmtmb RESULT test-brms-suite-standata.R pass=81 fail=6 err=0 skip=0 warn=0
-frmtmb.sample RESULT test-brms-suite-helper-copy.R pass=36 fail=0 err=0 skip=0 warn=0
-frmtmb.sample RESULT test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0 warn=0
-frmtmb.sample RESULT test-brms-suite-brmsterms.R pass=4 fail=0 err=0 skip=0 warn=0
-frmtmb.sample RESULT test-brms-suite-families.R pass=83 fail=1 err=0 skip=0 warn=0
-frmtmb.sample RESULT test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 warn=0
-RAN 6 of 6

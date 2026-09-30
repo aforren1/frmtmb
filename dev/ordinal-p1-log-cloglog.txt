@@ -1,4 +1,0 @@
-seed 20260930: largest th below the observed category 8.746
-seed 20260931: largest th below the observed category 4.701
-LPCHECK const 5.684341886e-14 grad 0.00016 ours -429.0775097
-identity at seed 20260931 : const 5.684342e-14  max grad 0.000160489 

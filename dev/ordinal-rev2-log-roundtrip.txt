@@ -1,3 +1,0 @@
-base flexible: refit from template, logLik rel diff 1.328416e-12  par identical: FALSE 
-lane flexible: refit from template, logLik rel diff 1.328416e-12  par identical: FALSE 
-gr_stz_disc: refit from template, logLik rel diff 0 

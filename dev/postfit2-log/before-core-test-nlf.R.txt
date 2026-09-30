@@ -1,6 +1,0 @@
-libs: C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/AppData/Local/R/win-library/4.6 | C:/Program Files/R/R-4.6.1/library 
-frmtmb version 0.65.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
-RESULT frmtmb test-nlf.R: tests=69 failed=0 error=1 skipped=0 warning=0 passed=69
----- expectation_error in post-processing follows the nonlinear parameter a body names 
-<frmtmb_error/error/condition>
-Error: conditional_effects() cannot put a wald band on a nonlinear predictor: predict() has no standard error for it. Use band = "boot", which refits instead of differentiating, method = "predict", whose band is a quantile of simulated responses, or display one nonlinear parameter with dpar = "a" 

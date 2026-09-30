@@ -1,1 +1,0 @@
-RESULT test-loo.R lib=lane pass=82 fail=0 error=0 skip=0 warn=0

@@ -1,3 +1,0 @@
-ARM after frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-defects-lib 
-sratio P1 residual 1.11e-16, P2 residual 1.67e-16
-lscale 0.1362008, x 10 = 1.3620077, range 1.3620077, difference -2.22e-16

@@ -1,1 +1,0 @@
-RESULT after frmtmb 0.65.0 test-map.R pass= 7 fail= 0 err= 0 skip= 0 warn= 0 

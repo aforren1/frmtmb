@@ -1,5 +1,0 @@
-ARM lane 
-nothing set: g1 g2 in the frame: NA NA ; est -0.0884 1.0848 2.2579 
-g1 = g2 = 1 set: est -0.2411 0.9321 2.1053 ; identical to nothing set: FALSE 
-g1 = g2 = 2: wald est -0.3167 0.8564 2.0296 ; boot refit mean -0.3302 0.8440 2.0182 ; boot width / wald width 1.2346 1.0283 1.0480 
-VarCorr sd: 0.9071 

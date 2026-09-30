@@ -1,1 +1,0 @@
-RESULT test-ordinal.R lib=lane pass=109 fail=0 error=0 skip=0 warn=0

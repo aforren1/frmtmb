@@ -1,1 +1,0 @@
-RESULT lane frmtmb test-portability.R pass=95 fail=0 err=0 skip=0

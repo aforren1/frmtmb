@@ -1,6 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-  Intercept          student_t(3, 0.2, 2.5)
-  sigma              student_t(3, 0, 2.5)  [natural scale]
-  b                  (flat), as brms leaves slopes
-RESULT test-laplace-draws.R pass=92 fail=0 err=0 skip=0 warn=0

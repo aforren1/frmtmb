@@ -1,9 +1,0 @@
-<environment: namespace:frmtmb>
-loaded frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-defects-lib 
-functions compared: 1310  objects: 75 
-DIFFERENT functions: 0 
-   
-DIFFERENT objects: 12 
-  compat_accepts_cache compat_hand_cache covstruct_registry family_registry frmtmb_aterm_registry frmtmb_compat_cache frmtmb_compat_contrib frmtmb_frame_checks frmtmb_links frmtmb_notice_state frmtmb_prior_defaults nl_shadow_cache 
-MISSING from namespace: 0 
-   

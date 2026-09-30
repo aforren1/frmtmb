@@ -1,3 +1,0 @@
-brms stored: y ~ (x1 + w) - w 
-standata(stored formula, data without w): Intercept x1 
-stats: y ~ (x1 + w) - w 

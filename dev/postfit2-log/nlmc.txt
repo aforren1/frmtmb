@@ -1,7 +1,0 @@
-coefficients: beta.a_(Intercept), beta.a_fb, beta.b_(Intercept)
-se__ equals sqrt(diag(A V A')): max rel diff 0
-1. Jacobian vs central differences (h = 1e-05): max |diff| / max |A| = 2.14e-11
-2. V = 1, R = 20000, seed 20260929: se/MCsd min 0.9909 median 1.0014 max 1.0077; |z| max 1.81, mean z -0.02; MC error of one SD 0.0050
-2. V = 1, R = 20000, seed 20260930: se/MCsd min 0.9969 median 1.0008 max 1.0033; |z| max 0.65, mean z 0.11; MC error of one SD 0.0050
-3. V = 0.01, R = 20000, seed 20260929: se/MCsd min 0.9909 median 1.0014 max 1.0081; |z| max 1.81, mean z 0.01; MC error of one SD 0.0050
-3. V = 0.01, R = 20000, seed 20260930: se/MCsd min 0.9972 median 1.0010 max 1.0032; |z| max 0.65, mean z 0.14; MC error of one SD 0.0050

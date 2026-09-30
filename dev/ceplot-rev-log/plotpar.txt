@@ -1,8 +1,0 @@
-﻿ce           par changed: none
-facets       par changed: none
-facets_base  par changed: none
-surface      par changed: none
-hyp          par changed: none
-print_obj    par changed: none
-null device 
-          1 

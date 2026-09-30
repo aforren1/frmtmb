@@ -1,8 +1,0 @@
-ARM lane
-outer parameters: 1
-[default init (mode)] OK 300x2 mean b_x 0.312645
-[init = random] OK 300x2 mean b_x 0.304895
-[init_jitter = 0] OK 300x2 mean b_x 0.314585
-[tmbstan init numeric] NO DRAWS
-[tmbstan init array] OK
-DONE

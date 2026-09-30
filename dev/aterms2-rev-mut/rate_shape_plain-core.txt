@@ -1,2 +1,0 @@
-MUTANT rate_shape_plain     core   pass=69 fail=1 error=0 skip=0
-   failing blocks: rate() scales the negative binomial's mean and shape 

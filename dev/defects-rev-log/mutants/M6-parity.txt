@@ -1,2 +1,0 @@
-MUTANT M6 fitted_point test-brms-parity-defects.R pass= 73 fail= 1 err= 1 
-  caught by: fitted(scale = "linear") of a cs() fit is one layer per threshold 

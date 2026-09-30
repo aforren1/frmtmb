@@ -1,6 +1,0 @@
-DETAIL [expectation_failure] a term reads its variables from the data alone, as brms: Expected `frm(bf(y | weights(wt * k) ~ x), data = ae_data)` to throw a error.
-DETAIL [expectation_failure] a term reads its variables from the data alone, as brms: Expected `frm(bf(yc | rate(time * k) ~ x), data = ae_data, family = poisson())` to throw a error.
-DETAIL [expectation_failure] a term reads its variables from the data alone, as brms: Expected `frm(bf(yt | trials(kt) ~ x), data = d, family = binomial())` to throw a error.
-DETAIL [expectation_failure] a term reads its variables from the data alone, as brms: Expected `frm(bf(yt | trials(kt + 0L) ~ x), data = d, family = binomial())` to throw a error.
-RESULT test-aterm-expr.R pass=64 fail=4 err=0 skip=0 warn=0 tests=11
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

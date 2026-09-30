@@ -1,2 +1,0 @@
-ARM base frmtmb from C:/Users/adf44/source/r/rellib-r3 
-arm base 212 pairs

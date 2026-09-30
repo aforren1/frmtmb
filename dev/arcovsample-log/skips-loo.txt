@@ -1,2 +1,0 @@
-SKIP [log_lik() matches brms row by row on a cov = FALSE ARMA] Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
-SKIP [loo() and log_lik() agree with brms on the same model] Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests

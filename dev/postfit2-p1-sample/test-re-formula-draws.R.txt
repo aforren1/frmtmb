@@ -1,9 +1,0 @@
-libs: C:/Users/adf44/source/r/wt-postfit2-lib | C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/AppData/Local/R/win-library/4.6 | C:/Program Files/R/R-4.6.1/library 
-frmtmb.sample version 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
-frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-  Intercept          student_t(3, 1.4, 2.5)
-  sigma              student_t(3, 0, 2.5)  [natural scale]
-  sd                 student_t(3, 0, 2.5)  [natural sd scale]
-  cor                lkj(1)  [correlation matrix]
-  b                  (flat), as brms leaves slopes
-RESULT frmtmb.sample test-re-formula-draws.R: tests=22 failed=0 error=0 skipped=0 warning=0 passed=22

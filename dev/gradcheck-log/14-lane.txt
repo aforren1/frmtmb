@@ -1,8 +1,0 @@
-library: lane  frmtmb 0.64.0 
-
-poisson rel.tol = 0.01             d1     0.38249  d05/d1  0.75002  nonquad 2.499e-05  err 2.397e-05  err/nonquad    0.959
-poisson rel.tol = 0.001            d1   0.0013237  d05/d1  0.74975  nonquad 3.279e-04  err 3.935e-04  err/nonquad    1.200
-poisson rel.tol = 1e-04            d1   0.0013237  d05/d1  0.74975  nonquad 3.279e-04  err 3.935e-04  err/nonquad    1.200
-poisson bounded, rel.tol = 1e-2    d1      1972.5  d05/d1  0.87438  nonquad 1.658e-01  err 9.999e-01  err/nonquad    6.030
-cumulative n=6000, cap 4           d1       2.058  d05/d1  0.74978  nonquad 2.881e-04  err 3.710e-04  err/nonquad    1.288
-cumulative n=6000, cap 8           d1     0.06279  d05/d1  0.75168  nonquad 2.236e-03  err 2.682e-03  err/nonquad    1.199

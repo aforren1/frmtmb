@@ -1,9 +1,0 @@
-ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
-brms-suite-emmeans: Welcome to emmeans.
-Caution: You lose important information if you filter this package's results.
-See '? untidy'
-...........
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT base test-brms-suite-emmeans.R pass=11 fail=0 error=0 skip=0 warn=0

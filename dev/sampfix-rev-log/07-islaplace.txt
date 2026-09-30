@@ -1,9 +1,0 @@
-sigma_const      laplace=FALSE ncol 6  draws_is_laplace FALSE  correct TRUE  epred(re NA) finite TRUE
-sigma_const      laplace=TRUE  ncol 4  draws_is_laplace TRUE   correct TRUE  epred(re NA) finite TRUE
-mix_2lev         laplace=FALSE ncol 13  draws_is_laplace FALSE  correct TRUE  epred(re NA) finite TRUE
-mix_2lev         laplace=TRUE  ncol 9  draws_is_laplace TRUE   correct TRUE  epred(re NA) finite TRUE
-mix_theta_const  laplace=FALSE ncol 11  draws_is_laplace FALSE  correct TRUE  epred(re NA) finite TRUE
-mix_theta_const  laplace=TRUE  ncol 7  draws_is_laplace TRUE   correct TRUE  epred(re NA) finite TRUE
-me_term          laplace=FALSE ncol 46  draws_is_laplace FALSE  correct TRUE  epred(re NA) finite TRUE
-me_term          laplace=TRUE  ncol 6  draws_is_laplace TRUE   correct TRUE  epred(re NA) ERROR posterior_epred() needs the random effects, and these draws 
-DONE

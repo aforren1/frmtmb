@@ -1,2 +1,0 @@
-RESULT ref frmtmb test-mv-gaps.R pass=53 fail=4 err=0 skip=0
-  BAD [the pointwise rescor density holds at a large nu, as the objective does] fail=4 err=FALSE

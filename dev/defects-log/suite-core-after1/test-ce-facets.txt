@@ -1,1 +1,0 @@
-RESULT after frmtmb 0.65.0 test-ce-facets.R pass= 92 fail= 0 err= 0 skip= 0 warn= 0 

@@ -1,6 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
-skew-normal-start: ......................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT lane test-skew-normal-start.R pass=70 fail=0 error=0 skip=0 warn=0

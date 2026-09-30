@@ -1,6 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.spline 
-Loading required package: frmtmb
-rp-floored: .................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT frmtmb.spline test-rp-floored.R pass=81 fail=0 err=0 skip=0 warn=0 blocks=15

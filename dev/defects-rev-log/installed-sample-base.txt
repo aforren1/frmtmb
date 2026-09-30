@@ -1,9 +1,0 @@
-<environment: namespace:frmtmb.sample>
-loaded frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/rellib-r3 
-functions compared: 213  objects: 7 
-DIFFERENT functions: 1 
-  draws_accessor_args 
-DIFFERENT objects: 0 
-   
-MISSING from namespace: 0 
-   

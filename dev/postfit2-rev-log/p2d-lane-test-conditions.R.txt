@@ -1,8 +1,0 @@
-arm lane mutant none ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
-RESULT lane frmtmb test-conditions.R: tests=150 failed=1 error=0 skipped=0 warning=0 passed=149
----- expectation_failure at line 207 in immediate. = TRUE prints the warning at once 
-Expected `out` to be identical to `c(...)`.
-Differences:
-`attr(actual, 'status')` is an integer vector (5)
-`attr(expected, 'status')` is absent
- 

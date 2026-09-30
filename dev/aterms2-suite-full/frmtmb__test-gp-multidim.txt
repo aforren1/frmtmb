@@ -1,6 +1,0 @@
-gp-multidim: ..........................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-🧿 Your tests look perfect 🧿
-
-RESULT test-gp-multidim.R pass=42 fail=0 error=0 skip=0 warn=0

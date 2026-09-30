@@ -1,5 +1,0 @@
-LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb.sample C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
-draws-methods: ....................................................................................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT after frmtmb.sample test-draws-methods.R gated=TRUE pass=148 fail=0 err=0 skip=0 warn=0

@@ -1,3 +1,0 @@
-<environment: namespace:frmtmb>
-MUTANT M12 assemble_frame test-brms-parity-defects.R pass= 100 fail= 1 err= 0 
-  caught by: the prior table refuses an ordinal response it cannot count 

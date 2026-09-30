@@ -1,6 +1,0 @@
-ARM lane gated=FALSE frmtmb=0.64.0 at C:/Users/adf44/source/r/wt-arcovsample-lib/frmtmb newexports=TRUE
-RESULT lane test-loo.R pass=103 fail=0 err=0 skip=2
---- SKIP: log_lik() matches brms row by row on a cov = FALSE ARMA
-    Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
---- SKIP: loo() and log_lik() agree with brms on the same model
-    Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests

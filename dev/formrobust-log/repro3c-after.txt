@@ -1,4 +1,0 @@
-frmtmb.sample from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb.sample 
-dim 2000 16  anyNA FALSE 
-sd row 6 / sd row 5: 1.0937  sd row 4 / sd row 5: 0.99195 
-epred anyNA: FALSE 

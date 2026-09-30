@@ -1,2 +1,0 @@
-RESULT test-fuzz.R lib=lane pass=0 fail=0 error=0 skip=1 warn=0 blocks=1/1
-  SKIP: pairwise grammar fuzz finds no new invariant violations 

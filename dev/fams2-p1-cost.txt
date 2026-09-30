@@ -1,3 +1,0 @@
-rows 500 
-gradient sweep, ms (min of 7): control 8.906  old 9.063  new 10.703  pbeta 1.221
-ratios: control/old 0.983  new/old 1.181  new/pbeta 8.768

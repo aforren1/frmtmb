@@ -1,5 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-RESULT test-brms-suite-priors.R pass=35 fail=1 err=0 skip=0 warn=0
-FAILING TESTS:
-                                                              test failed error
- default_prior finds all classes for which priors can be specified      1 FALSE

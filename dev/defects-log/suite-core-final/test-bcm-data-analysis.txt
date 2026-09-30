@@ -1,1 +1,0 @@
-RESULT after frmtmb 0.65.0 test-bcm-data-analysis.R pass= 20 fail= 0 err= 0 skip= 6 warn= 0 

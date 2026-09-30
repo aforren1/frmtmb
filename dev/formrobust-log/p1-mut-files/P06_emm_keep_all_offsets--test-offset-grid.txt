@@ -1,7 +1,0 @@
-MUTATED frmtmb::emm_drop_offsets
-MUTANT dev/formrobust-p1-mut/P06_emm_keep_all_offsets.R
-DETAIL [expectation_failure] a dpar's offset is included, a nonlinear parameter's is not: Expected `og_rel(...)` < `64 * .Machine$double.eps`.
-Actual comparison: 0.81818220372654 >= 0.00000000000001
-Difference: 0.81818220372653 >= 0
-RESULT test-offset-grid.R pass=30 fail=1 err=0 skip=0 warn=0 tests=7
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

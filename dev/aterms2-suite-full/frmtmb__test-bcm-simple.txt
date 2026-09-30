@@ -1,8 +1,0 @@
-bcm-simple: .....S...
-
-══ Skipped ═════════════════════════════════════════════════════════════════════
-1. SIMPLE_1 matches its Stan program ('test-bcm-simple.R:188:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-bcm-simple.R pass=8 fail=0 error=0 skip=1 warn=0

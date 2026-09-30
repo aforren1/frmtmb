@@ -1,4 +1,0 @@
-lane2-core         files 59 pass 7179 fail 0 err 0 skip 114 warn 0
-lane2-sample       files 14 pass 875 fail 0 err 0 skip 3 warn 0
-lane2-core-gated   files 15 pass 3546 fail 27 err 0 skip 0 warn 0
-lane2-sample-gated files 8 pass 587 fail 27 err 0 skip 0 warn 0

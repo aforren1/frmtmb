@@ -1,3 +1,0 @@
-Error : 'control' list contains unknown members of names: nonsense_option.
-error in specifying arguments; sampling not done
-RESULT lane frmtmb.sample test-stan-control.R pass=47 fail=0 err=0 skip=0

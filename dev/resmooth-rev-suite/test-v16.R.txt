@@ -1,3 +1,0 @@
-5 rows removed because of missing values (na.action)
-5 rows removed because of missing values (na.action)
-RESULT test-v16.R lib=lane pass=24 fail=0 error=0 skip=0 warn=0 blocks=3/3

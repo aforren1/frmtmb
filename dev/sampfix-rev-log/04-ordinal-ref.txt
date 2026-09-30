@@ -1,4 +1,0 @@
-ARM ref frmtmb.sample from C:/Users/adf44/source/r/rellib-r3
-mixture(cumulative, cumulative) refused by frm(): mixture() does not support component family 'cumulative'
-saved
-DONE

@@ -1,2 +1,0 @@
-library: lane  frmtmb 0.64.0 
-test-confint-anova.R                       pass=35 fail=0 error=0 skip=0

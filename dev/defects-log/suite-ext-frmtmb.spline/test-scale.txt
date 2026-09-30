@@ -1,1 +1,0 @@
-RESULT after frmtmb.spline 0.9.0 test-scale.R pass= 0 fail= 0 err= 0 skip= 1 warn= 0 

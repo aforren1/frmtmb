@@ -1,2 +1,0 @@
-RESULT test-scale.R pass=0 fail=0 err=0 skip=2 warn=0
-lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.latent frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

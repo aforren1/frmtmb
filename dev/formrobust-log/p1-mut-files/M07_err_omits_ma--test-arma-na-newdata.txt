@@ -1,7 +1,0 @@
-MUTATED frmtmb::autocor_cond_mu_fill
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M07_err_omits_ma.R
-DETAIL [expectation_failure] an arma() fill leaves the residual net of its MA term: Expected `max(abs(f - m)/abs(m))` < `64 * .Machine$double.eps`.
-Actual comparison: 0.05334800186361 >= 0.00000000000001
-Difference: 0.05334800186360 >= 0
-RESULT test-arma-na-newdata.R pass=13 fail=1 err=0 skip=0 warn=0 tests=5
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -1,1 +1,0 @@
-RESULT r1 frmtmb test-xbeta-zibb-hurdle-cum.R pass=366 fail=29 err=2 skip=0 warn=1 blocks=22

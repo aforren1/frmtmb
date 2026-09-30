@@ -1,8 +1,0 @@
-LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
-fuzz: S
-
-══ Skipped ═════════════════════════════════════════════════════════════════════
-1. pairwise grammar fuzz finds no new invariant violations ('test-fuzz.R:43:3') - Reason: set FRMTMB_FUZZ=true to run the grammar fuzz tier
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT after frmtmb test-fuzz.R gated=TRUE pass=0 fail=0 err=0 skip=1 warn=0

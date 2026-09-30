@@ -1,6 +1,0 @@
-phi 3e+03 (zeros 344): xbeta ok phi-hat 1997 | Beta() on the interior rows ok phi-hat 359
-phi 5e+03 (zeros 295): xbeta ok phi-hat 2713 | Beta() on the interior rows ok phi-hat 441
-phi 1e+04 (zeros 227): xbeta ok phi-hat 6813 | Beta() on the interior rows ok phi-hat 641
-Warning messages:
-1: Optimizer did not report convergence: false convergence (8) 
-2: Optimizer did not report convergence: false convergence (8) 

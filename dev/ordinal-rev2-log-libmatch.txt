@@ -1,6 +1,0 @@
-frmtmb : objects scratch 1496 lane 1496  only-scratch:   only-lane:  
-frmtmb : objects that differ: 0 
-frmtmb : NAMESPACE identical: TRUE 
-frmtmb.sample : objects scratch 247 lane 247  only-scratch:   only-lane:  
-frmtmb.sample : objects that differ: 0 
-frmtmb.sample : NAMESPACE identical: TRUE 

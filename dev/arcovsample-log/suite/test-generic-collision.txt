@@ -1,1 +1,0 @@
-RESULT lane frmtmb.sample test-generic-collision.R pass=58 fail=0 err=0 skip=0

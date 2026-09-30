@@ -1,1 +1,0 @@
-RESULT lane frmtmb.eam 0.11.1 C:/Users/adf44/source/r/rellib-r3 test-conditions.R pass= 8 fail= 0 err= 0 skip= 0 warn= 0 

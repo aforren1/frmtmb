@@ -1,1 +1,0 @@
-RESULT lane frmtmb.sample test-thres-draws.R pass=4 fail=0 err=0 skip=0

@@ -1,4 +1,0 @@
-lane:           wald est 1.0120 2.0831 3.1542 | boot mean of refits 1.0917 2.1500 3.2083 | draws est 0.9883 2.0616 3.1308 
-Error: All specified effects are invalid for this model.
-Valid effects are (combinations of): 'trt', 'subj'
-Execution halted

@@ -1,6 +1,0 @@
-arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.eam  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.eam/tests/testthat 
-Loading required package: frmtmb
-ndt-bound: ...............................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT lane frmtmb.eam test-ndt-bound.R pass=79 fail=0 err=0 skip=0 warn=0 blocks=15

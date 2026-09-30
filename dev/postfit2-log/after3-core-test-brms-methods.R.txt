@@ -1,6 +1,0 @@
-libs: C:/Users/adf44/source/r/wt-postfit2-lib | C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/AppData/Local/R/win-library/4.6 | C:/Program Files/R/R-4.6.1/library 
-frmtmb version 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
-Setting order = 'mu' for mixtures of the same family.
-RESULT frmtmb test-brms-methods.R: tests=979 failed=1 error=0 skipped=0 warning=0 passed=978
----- expectation_failure in a nonlinear predictor is refused a wald band 
-Expected `conditional_effects(s$fit)` to throw a error. 

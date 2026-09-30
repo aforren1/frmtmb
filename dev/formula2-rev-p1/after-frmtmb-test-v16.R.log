@@ -1,7 +1,0 @@
-LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
-v16: ...................5 rows removed because of missing values (na.action)
-...5 rows removed because of missing values (na.action)
-..
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT after frmtmb test-v16.R gated=TRUE pass=24 fail=0 err=0 skip=0 warn=0

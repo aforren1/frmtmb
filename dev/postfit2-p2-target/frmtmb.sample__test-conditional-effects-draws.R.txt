@@ -1,3 +1,0 @@
-libs: C:/Users/adf44/source/r/wt-postfit2-lib | C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/AppData/Local/R/win-library/4.6 | C:/Program Files/R/R-4.6.1/library 
-frmtmb.sample version 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
-RESULT frmtmb.sample test-conditional-effects-draws.R: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61

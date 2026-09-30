@@ -1,8 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
-sandwich: .........Registered S3 method overwritten by 'clubSandwich':
-  method    from    
-  bread.mlm sandwich
-.................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT before frmtmb test-sandwich.R gated=FALSE pass=58 fail=0 err=0 skip=0 warn=0

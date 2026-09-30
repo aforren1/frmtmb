@@ -1,2 +1,0 @@
-RESULT test-bernoulli-coding.R pass=0 fail=0 err=5 skip=0 warn=0
-lib: C:/Users/adf44/source/r/rellib-r4/frmtmb frmtmb=C:/Users/adf44/source/r/rellib-r4/frmtmb

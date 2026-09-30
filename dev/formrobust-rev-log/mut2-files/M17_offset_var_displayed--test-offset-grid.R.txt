@@ -1,9 +1,0 @@
-MUTATED frmtmb::ce_lp_vars
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M17_offset_var_displayed.R
-DETAIL [expectation_failure] conditional_effects() holds an offset's variable at its mean: Expected `names(conditional_effects(fit))` to be identical to `c("x", "f")`.
-Differences:
-`actual`:   "x" "f" "time"
-`expected`: "x" "f"       
-
-RESULT test-offset-grid.R pass=30 fail=1 err=0 skip=0 warn=0 tests=7
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -1,9 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
-bcm-bart: ....S....
-
-══ Skipped ═════════════════════════════════════════════════════════════════════
-1. BART_1 matches its Stan program ('test-bcm-bart.R:131:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-You rock!
-RESULT before frmtmb test-bcm-bart.R gated=FALSE pass=8 fail=0 err=0 skip=1 warn=0

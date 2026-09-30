@@ -1,3 +1,0 @@
-ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
-2 rows removed because of missing values (na.action)
-RESULT lane test-ordinal-fitted.R: tests 16 pass 129 fail 0 error 0 skip 0 warn 0

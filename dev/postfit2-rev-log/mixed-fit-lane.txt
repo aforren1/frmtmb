@@ -1,5 +1,0 @@
-ARM lane
-wald cond lev2: est 0.5409 1.6871 2.8332 | width 1.5004 1.1929 1.5354
-wald cond unset: est -0.5572 0.5889 1.7351 | width 4.9123 4.8110 4.8912
-boot cond lev2: est 0.5409 1.6871 2.8332 | width 1.2155 1.0035 1.4200
-boot cond unset: est -0.5572 0.5889 1.7351 | width 0.8404 0.3132 1.0051

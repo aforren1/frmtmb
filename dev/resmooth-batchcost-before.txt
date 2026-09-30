@@ -1,9 +1,0 @@
-frmtmb from: C:/Users/adf44/source/r/wt-resmooth-lib/frmtmb 
-A gp(x) n_b=160, newdata 3 NEW positions, NA   evals  329 | b 160 | batches 160 | 0.9600 s
-B gp(x) n_b=160, in sample, NA                 evals  329 | b 160 | batches 160 | 0.6300 s
-C gp(x) n_b=160, newdata 3 observed, NA        evals   15 | b   3 | batches   3 | 0.0200 s
-D s(x,k=8)+(1|g) 40 lv, in sample, NULL        evals   25 | b  46 | batches   7 | 0.0938 s
-E s(x,k=8)+(1|g) 40 lv, in sample, NA          evals   23 | b   6 | batches   6 | 0.0919 s
-F hsgp(x) k=12, in sample, NA                  evals   33 | b  12 | batches  12 | 0.0394 s
-CONTROL x+(1|g) 40 lv, in sample, NULL         evals   11 | b  40 | batches   1 | 0.0459 s
-DONE

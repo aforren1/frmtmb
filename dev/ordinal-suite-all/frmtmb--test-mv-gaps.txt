@@ -1,6 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-RESULT test-mv-gaps.R pass=47 fail=1 err=1 skip=0 warn=22
-FAILING TESTS:
-                                                              test failed error
-     an ordinal response in a multivariate model is its own factor      0  TRUE
- a shared |ID| effect across ordinal and gaussian is Laplace-exact      1 FALSE

@@ -1,5 +1,0 @@
-ARM lane
-wald cond lev2: est 0.5409 1.6871 2.8332 | width 1.5004 1.1929 1.5354
-wald cond unset: est -0.5572 0.5889 1.7351 | width 4.9123 4.8110 4.8912
-Error: band = "boot" cannot cover this call: the group-level term (1 | g) is read at an observed level in some grid rows and at a new level in others. The observed rows need refits that keep that term's fitted effects and the new rows refits that redraw them, and one bootstrap cannot do both. Use band = "wald", or call conditional_effects() once per kind of row
-Execution halted

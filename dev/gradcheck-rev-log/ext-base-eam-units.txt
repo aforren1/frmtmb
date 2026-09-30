@@ -1,7 +1,0 @@
-CORE  : C:/Users/adf44/source/r/rellib-r3 
-FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam/tests/testthat/test-units.R 
-frmtmb: C:/Users/adf44/source/r/rellib-r3/frmtmb 
-ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
-RESULT test-units.R pass=29 fail=0 error=1 skip=0
-### expectation_error in: the band is the documented one, and open at the bottom
-Error in `eval(code, test_env)`: object 'ddm_seconds_ceiling' not found 

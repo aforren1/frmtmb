@@ -1,2 +1,0 @@
-2 rows removed because of missing values (na.action)
-REVRESULT test-frame.R arm=base blocks=5 pass=22 fail=0 err=0 warn=0 skip=0

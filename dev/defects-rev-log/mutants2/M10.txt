@@ -1,3 +1,0 @@
-<environment: namespace:frmtmb.sample>
-MUTANT M10 draws_observed_y test-draws-methods.R pass= 157 fail= 2 err= 0 
-  caught by: a missing mi() response is no observation on draws 

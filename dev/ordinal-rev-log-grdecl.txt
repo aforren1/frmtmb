@@ -1,5 +1,0 @@
-  array[ngrthres] int<lower=1> nthres;  // number of thresholds
---
-  int<lower=2> nthres;  // number of thresholds
---
-escape hatch fits; thresholds: -0.8969315 -0.6360493 0.3211873 1.211793 

@@ -1,5 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-RESULT test-brms-suite-families.R pass=83 fail=1 err=0 skip=0 warn=0
-FAILING TESTS:
-                                      test failed error
- family functions returns expected results      1 FALSE

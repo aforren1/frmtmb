@@ -1,6 +1,0 @@
-f0 range -1.1467 2.9176 
-f1 range -1.6227 1.6045 
-max |f0 - b0(t)| 0.1735 
-max |f1 - b1(t)| 0.2862 
-max relative gap to mgcv exclude = s(t,subject): 8.011e-07 
-old call: predict(newdata = ) for the factor-smooth term s(t,subject) needs the grouping column `subject`: the term hold 

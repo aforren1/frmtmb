@@ -1,8 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
-brms-suite-emmeans: Welcome to emmeans.
-Caution: You lose important information if you filter this package's results.
-See '? untidy'
-...........
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT before frmtmb test-brms-suite-emmeans.R gated=TRUE pass=11 fail=0 err=0 skip=0 warn=0

@@ -1,9 +1,0 @@
-p2mut-p2_byall-core-test-ce-levels.R frmtmb test-ce-levels.R lane --mutant=p2_byall
-p2mut-p2_byall-core-test-ce-options.R frmtmb test-ce-options.R lane --mutant=p2_byall
-p2mut-p2_byall-sample-test-postfit-draws.R frmtmb.sample test-postfit-draws.R lane --mutant=p2_byall
-p2mut-p2_mmsplit-core-test-ce-levels.R frmtmb test-ce-levels.R lane --mutant=p2_mmsplit
-p2mut-p2_mmsplit-core-test-ce-options.R frmtmb test-ce-options.R lane --mutant=p2_mmsplit
-p2mut-p2_mmsplit-sample-test-postfit-draws.R frmtmb.sample test-postfit-draws.R lane --mutant=p2_mmsplit
-p2mut-p2_rekey-core-test-ce-levels.R frmtmb test-ce-levels.R lane --mutant=p2_rekey
-p2mut-p2_rekey-core-test-ce-options.R frmtmb test-ce-options.R lane --mutant=p2_rekey
-p2mut-p2_rekey-sample-test-postfit-draws.R frmtmb.sample test-postfit-draws.R lane --mutant=p2_rekey

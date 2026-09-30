@@ -1,6 +1,0 @@
-library: lane  frmtmb 0.64.0 
-
-pass=71 fail=1 error=0 skip=0
-
-== an importance fit under grad_tol still prints the clean line
-   [expectation_failure] Expected `any(grepl("No convergence problems detected", r$out, fixed = TRUE))` to be TRUE. | Differences: | `actual`:   FALSE | `expected`: TRUE  | 

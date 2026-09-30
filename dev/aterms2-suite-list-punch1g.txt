@@ -1,3 +1,0 @@
-frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-brms-suite-standata.R
-frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-brms-likelihood.R
-frmtmb.sample C:\Users\adf44\source\r\frmtmb-wt-aterms2\extensions\frmtmb.sample\tests\testthat test-brms-suite-methods.R

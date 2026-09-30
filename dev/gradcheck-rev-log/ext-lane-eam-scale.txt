@@ -1,8 +1,0 @@
-CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
-FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam/tests/testthat/test-scale.R 
-frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
-ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
-RESULT test-scale.R pass=0 fail=0 error=0 skip=3
---- skip in: the eam scale row fits and reports its cost: Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
---- skip in: the eam scale row fits with the ndt bound lifted: Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
---- skip in: the eam scale row fits with across-trial drift variability: Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier

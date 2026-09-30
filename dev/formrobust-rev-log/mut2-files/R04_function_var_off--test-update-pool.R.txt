@@ -1,4 +1,0 @@
-MUTATED frmtmb::expr_frame_vars
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R04_function_var_off.R
-RESULT test-update-pool.R pass=16 fail=0 err=0 skip=0 warn=0 tests=4
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

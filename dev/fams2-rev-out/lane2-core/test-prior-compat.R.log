@@ -1,5 +1,0 @@
-arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
-prior-compat: ..................................................................................................................................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT lane frmtmb test-prior-compat.R pass=194 fail=0 err=0 skip=0 warn=0 blocks=28

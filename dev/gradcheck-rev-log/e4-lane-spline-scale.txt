@@ -1,6 +1,0 @@
-CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
-FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.spline/tests/testthat/test-scale.R 
-frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
-ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.spline 
-SCALE row=spline	small=FALSE	rows=   8000	n_coef=    258	n_par=      7	build_s=      0	frame_s=0.225292	grad_start_s=0.00655464	grad_start_calls=    256	grad_opt_s=0.00558215	control_ratio=1.01579	fit_s=3.45708	mem_mb=  331.8	rounds=      3	solve_cold_s=0.40658	curve_sim_s=0.0461659	curve_sim_spread=1.22268	curve_pw_s=0.00316095	feature_s=0.010205	feature_spread=1.12513	curve_n_predict=      1	curve_cov_rel_error=2.22045e-16	logLik=  10476	peak_t=0.44925	peak_t_se=0.00355155	peak_t_true=   0.45	peak_t_lo=0.442289	peak_t_hi=0.456211	peak_v=0.975274	peak_v_true=      1	sigma=0.0606762	sigma_true=   0.06	diag=conv=0,maxgrad=0.00517,pdHess=TRUE,nbadse=0,nflat=0,unbounded=none
-RESULT test-scale.R pass=2 fail=0 error=0 skip=0

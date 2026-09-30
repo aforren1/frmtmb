@@ -1,3 +1,0 @@
-ARM ref gated=FALSE frmtmb=0.64.0 at C:/Users/adf44/source/r/rellib-r3/frmtmb newexports=FALSE
-RESULT ref test-autocor-cond.R pass=46 fail=0 err=1 skip=0
---- BAD: the sampling seam reports brms's one-step mean

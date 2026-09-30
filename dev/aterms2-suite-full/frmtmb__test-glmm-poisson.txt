@@ -1,5 +1,0 @@
-glmm-poisson: ............
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-glmm-poisson.R pass=12 fail=0 error=0 skip=0 warn=0

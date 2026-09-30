@@ -1,2 +1,0 @@
-arm lane mutant none ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
-RESULT lane frmtmb test-cens-trunc.R: tests=69 failed=0 error=0 skipped=0 warning=0 passed=69

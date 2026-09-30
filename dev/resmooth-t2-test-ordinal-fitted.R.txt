@@ -1,2 +1,0 @@
-2 rows removed because of missing values (na.action)
-RESULT test-ordinal-fitted.R lib=lib2 pass=129 fail=0 error=0 skip=0 warn=0

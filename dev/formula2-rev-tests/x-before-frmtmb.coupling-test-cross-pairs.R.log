@@ -1,6 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.coupling C:/Users/adf44/source/r/rellib-r3/frmtmb 
-cross-pairs: ....................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-😸
-RESULT before frmtmb.coupling test-cross-pairs.R gated=FALSE pass=52 fail=0 err=0 skip=0 warn=0

@@ -1,2 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
-simpleWarning : NA/NaN function evaluation 

@@ -1,2 +1,0 @@
-use.names = TRUE : 2.090 s for 1000 draws
-use.names = FALSE: 0.140 s for 1000 draws

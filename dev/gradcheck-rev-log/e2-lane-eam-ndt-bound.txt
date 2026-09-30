@@ -1,5 +1,0 @@
-CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
-FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.eam/tests/testthat/test-ndt-bound.R 
-frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
-ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
-RESULT test-ndt-bound.R pass=79 fail=0 error=0 skip=0

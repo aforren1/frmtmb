@@ -1,2 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | cache: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ceplot-rev-stan-cache 
-RESULT lane frmtmb test-predfix.R : tests=92 failed=0 error=0 skipped=0 warning=0 passed=92

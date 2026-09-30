@@ -1,1 +1,0 @@
-RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-rp-floored.R pass= 81 fail= 0 err= 0 skip= 0 warn= 0 

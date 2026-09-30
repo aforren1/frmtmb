@@ -1,7 +1,0 @@
-== frmtmb build 07:23:02
-== frmtmb check frmtmb_0.67.0.tar.gz 07:26:04
-Status: 1 NOTE
-== frmtmb.sample build 07:41:24
-== frmtmb.sample check frmtmb.sample_0.15.0.tar.gz 07:41:30
-Status: OK
-CHECK DONE 07:44:41

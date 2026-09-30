@@ -1,5 +1,0 @@
-extension-api: ..............
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-extension-api.R pass=14 fail=0 error=0 skip=0 warn=0

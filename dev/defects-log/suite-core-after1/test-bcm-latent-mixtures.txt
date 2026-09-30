@@ -1,1 +1,0 @@
-RESULT after frmtmb 0.65.0 test-bcm-latent-mixtures.R pass= 30 fail= 0 err= 0 skip= 5 warn= 0 

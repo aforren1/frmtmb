@@ -1,7 +1,0 @@
-arm lane: frmtmb 0.65.0, frmtmb.sample 0.13.0
-draws, g = 1: curve moves by 0 0 0 when r_g[1,] moves by 10
-draws, g = 2: curve moves by 0 0 0 when r_g[2,] moves by 10
-draws: level 1 minus level 2: 0 0 0 (the median of r_g[1] - r_g[2]: 0.24946)
-draws, g = 2: spaghetti moves by 0 to 0
-Error in ranef(fit)$g[, 1, 1] : incorrect number of dimensions
-Execution halted

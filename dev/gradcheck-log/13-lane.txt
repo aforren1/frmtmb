@@ -1,5 +1,0 @@
-library: lane  frmtmb 0.64.0 
-
-gaussian n=20000 (trips)       max|grad| 2.242e-02  on    2.660 s  off    1.390 s  ratio  1.914  control  1.022
-cumulative n=20000 (trips)     max|grad| 2.989e-02  on    5.090 s  off    3.480 s  ratio  1.463  control  0.989
-gaussian n=6000, grad_tol raised max|grad| 2.576e-02  on    0.447 s  off    0.453 s  ratio  0.985  control  0.993

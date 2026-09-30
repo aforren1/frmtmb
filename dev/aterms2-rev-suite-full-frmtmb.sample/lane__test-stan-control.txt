@@ -1,9 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb.sample 
-stan-control: ...................Error : 'control' list contains unknown members of names: nonsense_option.
-error in specifying arguments; sampling not done
-............................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-You rock!
-
-RESULT lane test-stan-control.R pass=47 fail=0 error=0 skip=0 warn=0

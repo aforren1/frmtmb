@@ -1,3 +1,0 @@
-ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
-No priors were set (plain maximum likelihood).
-RESULT lane test-parity-integration.R: tests 3 pass 8 fail 0 error 0 skip 0 warn 0

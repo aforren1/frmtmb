@@ -1,6 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/rellib-r3/frmtmb.latent 
-prior-dpar: ..........
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT lane test-prior-dpar.R pass=10 fail=0 error=0 skip=0 warn=0

@@ -1,2 +1,0 @@
-frm gr(by =): REFUSED: gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q)) 
-drm sd(g) ~ wf: logLik -584.117229864 

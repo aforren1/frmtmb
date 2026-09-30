@@ -1,8 +1,0 @@
-jobs: 38
-logs with RESULT: 38
-failed=0 error=0 skipped=10 warning=4 passed=2304
-files with a failure, an error or a skip:
-RESULT frmtmb.coupling test-scale.R: tests=5 failed=0 error=0 skipped=5 warning=0 passed=0
-RESULT frmtmb.eam test-scale.R: tests=3 failed=0 error=0 skipped=3 warning=0 passed=0
-RESULT frmtmb.learn test-scale.R: tests=2 failed=0 error=0 skipped=2 warning=0 passed=0
-files without a RESULT line:

@@ -1,6 +1,0 @@
-arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.latent  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.latent/tests/testthat 
-Loading required package: frmtmb
-structure-latent: ....................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT lane frmtmb.latent test-structure-latent.R pass=20 fail=0 err=0 skip=0 warn=0 blocks=3

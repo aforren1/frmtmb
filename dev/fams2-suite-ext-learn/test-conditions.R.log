@@ -1,6 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.learn 
-Loading required package: frmtmb
-conditions: ........
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT frmtmb.learn test-conditions.R pass=8 fail=0 err=0 skip=0 warn=0 blocks=2

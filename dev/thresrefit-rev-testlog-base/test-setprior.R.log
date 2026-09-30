@@ -1,1 +1,0 @@
-REVRESULT test-setprior.R arm=base blocks=5 pass=27 fail=0 err=0 warn=0 skip=0

@@ -1,6 +1,0 @@
-arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
-brms-agreement: ....................................................................................................................................................................the number of chains is less than 1; sampling not done
-.......................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT lane frmtmb test-brms-agreement.R pass=187 fail=0 err=0 skip=0 warn=0 blocks=19

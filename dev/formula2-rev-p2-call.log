@@ -1,4 +1,0 @@
-frm(formula = y ~ x1 + x2 + g, data = d, family = poisson())
-eval(call) logLik identical: TRUE 
-update() logLik identical: TRUE 
-bf() call formula class: frmtmb_formula frmtmb_bform 

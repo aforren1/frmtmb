@@ -1,4 +1,0 @@
-ARM lane frmtmb 0.64.0 
-character, numeric labels ('1'..'4') -> NO ERROR
-character, non-numeric labels -> missing value where TRUE/FALSE needed
-ordered factor, the same labels -> fits, n_tau = 3

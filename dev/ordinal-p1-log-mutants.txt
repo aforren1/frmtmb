@@ -1,4 +1,0 @@
-M2_acat_logit_nodisc : matches 1  install: * DONE (frmtmb) 
-M2b_grouped_seq_nodisc : matches 1  install: * DONE (frmtmb) 
-M2c_cratio_nodisc : matches 1  install: * DONE (frmtmb) 
-M3b_stz_inverse : matches 1  install: * DONE (frmtmb) 

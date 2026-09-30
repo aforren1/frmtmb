@@ -1,2 +1,0 @@
-arm lane mutant none ns FALSE : frmtmb.learn 0.7.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb.learn 
-RESULT lane frmtmb.learn test-message-uniqueness.R: tests=4 failed=0 error=0 skipped=0 warning=0 passed=4

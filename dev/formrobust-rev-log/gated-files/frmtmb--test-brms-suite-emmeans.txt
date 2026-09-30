@@ -1,5 +1,0 @@
-Welcome to emmeans.
-Caution: You lose important information if you filter this package's results.
-See '? untidy'
-RESULT test-brms-suite-emmeans.R pass=11 fail=0 err=0 skip=0 warn=0 tests=3
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

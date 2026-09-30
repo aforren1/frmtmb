@@ -1,4 +1,0 @@
-brmsfit-methods:326	cannot transfer	FALSE	FALSE	all	160	expect_true(all(fi > 0))
-brmsfit-methods:978	divergence	FALSE	FALSE	all	11	expect_true(all(c("b_Intercept", "bsp_moExp", "ar[1]", "cor_visit__Intercept__Trt1", "nu", "simo_moExp1[2]", "r_visit[4,Trt1]", "s_sAge_1[8]", "prior_
-brmsfit-methods:984	divergence	FALSE	FALSE	all	7	expect_true(all(c("b_a_Intercept", "b_b_Age", "sd_patient__b_Intercept", "cor_patient__a_Intercept__b_Intercept", "r_patient__a[1,Intercept]", "r_pati
-brmsfit-methods:991	cannot transfer	FALSE	FALSE	all	2	expect_true(all(c("lscale_volume_gpAgeTrt0", "lscale_volume_gpAgeTrt1") %in% variables(fit6)))

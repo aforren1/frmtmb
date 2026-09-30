@@ -1,5 +1,0 @@
-tmbstan-build-guard: ........................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-tmbstan-build-guard.R pass=24 fail=0 error=0 skip=0 warn=0

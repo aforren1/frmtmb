@@ -1,1 +1,0 @@
-RESULT after frmtmb.sample 0.13.0 test-draws-spellings.R pass= 97 fail= 0 err= 0 skip= 0 warn= 0 

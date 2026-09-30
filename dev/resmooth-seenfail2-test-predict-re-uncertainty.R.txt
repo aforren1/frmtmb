@@ -1,5 +1,0 @@
-RESULT test-predict-re-uncertainty.R lib=base pass=68 fail=2 error=0 skip=0 warn=0
-  BAD: Est.Error at re_formula = NA carries a kept smooth's uncertainty 
-     Expected `stats::median((ref - bare)/ref)` > 0.3. | Actual comparison: -0.0000000000000006 <= 0.3000000000000000 | Difference: -0.3000000000000005 <= 0 
-  BAD: Est.Error of a category probability carries a POPULATION smooth 
-     Expected `max(abs(ref - got)/(.Machine$double.eps * abs(ref)))` < 100. | Actual comparison: 21133819259832892.0 >= 100.0 | Difference: 21133819259832792.0 >= 0 

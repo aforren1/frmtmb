@@ -1,5 +1,0 @@
-mutant mmskip : 1 replacement(s) in ce_level_plan 
-RESULT frmtmb test-ce-levels.R [mmskip]: failed=5 error=0 passed=60
-                                                         test failed error
-12              an mm() term's members are grouping variables      3 FALSE
-13 an mm() term with a by variable holds its observed members      2 FALSE

@@ -1,5 +1,0 @@
-MUTATED frmtmb::expr_frame_vars
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R04_function_var_off.R
-DETAIL [expectation_error] a variable R finds only as a function is refused by name: Error in `t * 2`: non-numeric argument to binary operator
-RESULT test-aterm-expr.R pass=57 fail=0 err=1 skip=0 warn=0 tests=11
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -1,6 +1,0 @@
-frmtmb.spline 0.8.1 from C:/Users/adf44/source/r/rellib-r3 
-
--- before-arm check: the default refuses an unseen level of both models
-frm_curve(fs fit, unseen) : REFUSED [frmtmb_new_levels]: New levels in the factor-smooth term s(t,subject): population. The term has no curve for t 
-frm_curve(re fit, unseen, re_formula = NULL) : REFUSED [frmtmb_new_levels]: New levels in grouping factor `subject`: population. Use allow_new_levels = TRUE to predic 
-frm_curve(re fit, no subject column, re_formula = NULL) : REFUSED [frmtmb_new_levels]: newdata has no column `subject`, the grouping factor of a random effect. Add it, or say wh 

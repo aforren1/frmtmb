@@ -1,6 +1,0 @@
-MUTATED frmtmb::assemble_frame
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R07_bare_const_to_frame.R
-DETAIL [expectation_error] a term reads a constant from the formula environment: <frmtmb_error/error/condition>
-Error: `kt` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
-RESULT test-aterm-expr.R pass=60 fail=0 err=1 skip=0 warn=0 tests=11
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

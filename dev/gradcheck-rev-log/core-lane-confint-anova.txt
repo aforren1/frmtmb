@@ -1,4 +1,0 @@
-CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
-FILE  : C:/Users/adf44/source/r/frmtmb-wt-gradcheck/tests/testthat/test-confint-anova.R 
-frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
-RESULT test-confint-anova.R pass=35 fail=0 error=0 skip=0

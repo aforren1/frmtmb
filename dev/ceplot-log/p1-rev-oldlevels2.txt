@@ -1,3 +1,0 @@
-blocks: 2 
-seed 1..12: the (x = 0, x = 1) answer equals seen group: 9 5 5 8 2 5 10 4 11 11 10 2 
-answers that are one seen group's:  12 of 12

@@ -1,1 +1,0 @@
-RESULT after frmtmb.coupling 0.6.0 test-scale.R pass= 0 fail= 0 err= 0 skip= 5 warn= 0 

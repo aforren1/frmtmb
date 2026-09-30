@@ -1,2 +1,0 @@
-RESULT test-curve.R lib=base pass=62 fail=3 error=0 skip=0 warn=0 blocks=16/16
-  BAD: a factor-smooth model costs the documented number of calls 

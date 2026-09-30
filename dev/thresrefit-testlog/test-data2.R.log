@@ -1,4 +1,0 @@
-RESULTtest-data2.Rarm=lane pass=27 fail=0 err=1 skip=0
---- data2 outlives its calling environment across saveRDS [expectation_error]
-<frmtmb_error/error/condition>
-Error: influence(): all 6 deletion refits failed, so every row of the table would be NA. The first was 'g' level g1: gr(cov = ): cannot find 'A'. Pass structural objects in data2, e.g. frm(..., data2 = list(A = A)); a fit whose matrices come from data2 also survives saveRDS() and refits in a new session. data2 is empty. 

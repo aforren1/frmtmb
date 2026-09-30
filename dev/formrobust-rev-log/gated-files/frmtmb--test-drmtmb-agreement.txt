@@ -1,2 +1,0 @@
-RESULT test-drmtmb-agreement.R pass=0 fail=0 err=0 skip=13 warn=0 tests=13
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

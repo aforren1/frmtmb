@@ -1,5 +1,0 @@
-CORE  : C:/Users/adf44/source/r/wt-gradcheck-lib 
-FILE  : C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.coupling/tests/testthat/test-cross-pairs.R 
-frmtmb: C:/Users/adf44/source/r/wt-gradcheck-lib/frmtmb 
-ext   : C:/Users/adf44/source/r/rellib-r3/frmtmb.coupling 
-RESULT test-cross-pairs.R pass=52 fail=0 error=0 skip=0

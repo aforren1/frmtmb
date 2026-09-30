@@ -1,2 +1,0 @@
-frmtmb.sample from C:/Users/adf44/source/r/rellib-r4/frmtmb.sample 
-posterior_predict: ERROR: posterior_predict(newdata =) is not supported for this model: its draws are structured (a hidden state sequence, a group-level latent class, or a correlated residual) and that structure indexes the rows the model was fitted on. Drop newdata to predict those rows 

@@ -1,2 +1,0 @@
-base ERROR: Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group 
-lane ERROR: Cannot use category specific effects in models with multiple thresholds. cs() gives each threshold position one coefficient, and with thres(gr = ) the positions differ by group 

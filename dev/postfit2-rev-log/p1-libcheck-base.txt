@@ -1,7 +1,0 @@
-arm base : frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb ; frmtmb.sample from C:/Users/adf44/source/r/rellib-r3/frmtmb.sample 
-frmtmb: 1326 source functions; 31 not in the installed namespace; 19 differ
-  missing: boot_refits brms_like_factor brms_rows2labels ce_check_distance ce_kept_blocks ce_level_plan ce_locked_vars ce_nl_link_se ce_plan_draw ce_plan_eval ce_plan_has_new ce_plan_kept ce_plan_key ce_plan_part ce_plot_surface ce_points_brms ce_spaghetti ce_spaghetti_check ce_ylab conditional_smooths conditional_smooths.frmtmb_fit cs_build cs_coef cs_finalize cs_frame cs_joint_pos cs_probs cs_term_grid make_conditions smooth_basis_at update_adterms 
-  differ: assemble_frame ce_boot_draws ce_boot_key ce_build_nd ce_facet_base ce_facet_tinyplot ce_finalize ce_frame ce_grids_build ce_plot_facets ce_plot_one ce_points_by_cond conditional_effects.frmtmb_fit frm_bootstrap parse_linpred plot.frmtmb_conditional_effects pred_design sim_fit_draws sim_re_plan 
-frmtmb.sample: 216 source functions; 5 not in the installed namespace; 1 differ
-  missing: conditional_smooths.frmtmb_draws pa_round_largest_remainder pa_weights posterior_average posterior_average.frmtmb_draws 
-  differ: conditional_effects.frmtmb_draws 

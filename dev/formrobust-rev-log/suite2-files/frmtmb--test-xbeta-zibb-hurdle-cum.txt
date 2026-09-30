@@ -1,2 +1,0 @@
-RESULT test-xbeta-zibb-hurdle-cum.R pass=604 fail=0 err=0 skip=0 warn=0 tests=22
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

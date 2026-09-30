@@ -1,6 +1,0 @@
-tmb-examples: ............................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-You rock!
-
-RESULT test-tmb-examples.R pass=28 fail=0 error=0 skip=0 warn=0

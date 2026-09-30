@@ -1,5 +1,0 @@
-ci-siblings: ..............
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-ci-siblings.R pass=14 fail=0 error=0 skip=0 warn=0

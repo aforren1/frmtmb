@@ -1,3 +1,0 @@
-grid row 1 done
-grid row 2 done
-grid row 3 done

@@ -1,8 +1,0 @@
--- frmtmb.spline start 07:22:44 (rerun)
-SCALE row=spline	small=FALSE	rows=   8000	n_coef=    258	n_par=      7	build_s=0.12343	frame_s=0.170019	grad_start_s=0.0060872	grad_start_calls=    256	grad_opt_s=0.00471159	control_ratio= 1.0241	fit_s=3.12174	mem_mb=  351.6	rounds=      3	solve_cold_s=0.354789	curve_sim_s=0.0472021	curve_sim_spread=1.15821	curve_pw_s=0.00725293	feature_s=0.0129519	feature_spread=1.11698	curve_n_predict=      1	curve_cov_rel_error=2.22045e-16	logLik=  10476	peak_t=0.44925	peak_t_se=0.00355155	peak_t_true=   0.45	peak_t_lo=0.442289	peak_t_hi=0.456211	peak_v=0.975274	peak_v_true=      1	sigma=0.0606762	sigma_true=   0.06	diag=conv=0,maxgrad=0.00517,pdHess=TRUE,nbadse=0,nflat=0,unbounded=none
-RESULT test-scale.R pass=2 fail=0 err=0 skip=0
-SCALE ran 1 of 1
-# The first run of this file at 07:19 gave err=1: its grid had no
-# subject column, which 0.65.0 refuses for a factor smooth at every
-# re_formula. The test now reads the population curve at an unseen
-# subject with allow_new_levels = TRUE, as the vignette does.

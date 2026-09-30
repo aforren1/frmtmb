@@ -1,8 +1,0 @@
-arm lane frmtmb from C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-cumulative(), disc ~ 0 + z                     fits; logLik -433.5962674
-hurdle_cumulative(threshold = 'equidistant')   fits; logLik -506.0636022
-hurdle_cumulative(threshold = 'sum_to_zero')   fits; logLik -510.3454685
-acat('probit')                                 fits; logLik -461.7194604
-brmsfamily('sratio', threshold = 'equidistant') fits; logLik -464.0760151
-flexible cumulative (unchanged)                fits; logLik -461.2922747
-flexible acat, cs(z) (unchanged)               fits; logLik -442.4638492

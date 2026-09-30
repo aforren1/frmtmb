@@ -1,1 +1,0 @@
-REVRESULT test-bcm-data-analysis.R arm=lane blocks=15 pass=20 fail=0 err=0 warn=0 skip=6

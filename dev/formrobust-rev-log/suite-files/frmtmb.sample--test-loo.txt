@@ -1,2 +1,0 @@
-RESULT test-loo.R pass=103 fail=0 err=0 skip=2 warn=0 tests=26
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb.sample frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

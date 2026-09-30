@@ -1,3 +1,0 @@
-<environment: namespace:frmtmb>
-MUTANT M9 frame_observed_y test-brms-parity-defects.R pass= 94 fail= 7 err= 0 
-  caught by: a missing mi() response has no residual 

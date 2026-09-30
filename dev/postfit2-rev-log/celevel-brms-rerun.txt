@@ -1,7 +1,0 @@
-exp(theta) 0.220984; the VarCorr() sd:
-           Estimate Est.Error       Q2.5    Q97.5
-Intercept 0.2209842 0.1829048 -0.1375027 0.579471
-brms draws 5; r_g[2,Intercept] brms vs frmtmb max diff 0
-g = 1: estimate__ max |brms - frmtmb| 0, se__ 0, lower__ 0, upper__ 0; spaghetti rows 35 / 35, estimate__ 0
-g = 2: estimate__ max |brms - frmtmb| 0, se__ 0, lower__ 0, upper__ 0; spaghetti rows 35 / 35, estimate__ 0
-g = 3: estimate__ max |brms - frmtmb| 0, se__ 0, lower__ 0, upper__ 0; spaghetti rows 35 / 35, estimate__ 0

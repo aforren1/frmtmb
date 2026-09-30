@@ -1,3 +1,0 @@
-<environment: namespace:frmtmb>
-MUTANT M11 fitted.frmtmb_fit test-brms-parity-defects.R pass= 96 fail= 1 err= 1 
-  caught by: fitted(scale = "linear") on a cs() fit: a layer per threshold | fitted(scale = "linear") stacks a cs() response's layers 

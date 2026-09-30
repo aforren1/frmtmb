@@ -1,2 +1,0 @@
-MUTANT newdata_unfiltered   core   pass=67 fail=3 error=0 skip=0
-   failing blocks: subset() in a univariate model is a row filter | post-fit methods take one response at a time, as brms asks 

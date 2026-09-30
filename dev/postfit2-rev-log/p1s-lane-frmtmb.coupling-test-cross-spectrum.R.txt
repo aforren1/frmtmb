@@ -1,2 +1,0 @@
-arm lane mutant none ns FALSE : frmtmb.coupling 0.6.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb.coupling 
-RESULT lane frmtmb.coupling test-cross-spectrum.R: tests=96 failed=0 error=0 skipped=0 warning=0 passed=96

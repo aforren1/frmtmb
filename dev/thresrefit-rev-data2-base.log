@@ -1,5 +1,0 @@
-REVRESULT test-data2.R arm=base blocks=8 pass=29 fail=2 err=0 warn=0 skip=0
---- data2 outlives its calling environment across saveRDS [expectation_failure]
-Expected `suppressWarnings(influence(r_env, groups = "g"))` to throw a error. 
---- data2 outlives its calling environment across saveRDS [expectation_failure]
-Expected `suppressWarnings(influence(r_env, groups = "g"))` to throw a error. 

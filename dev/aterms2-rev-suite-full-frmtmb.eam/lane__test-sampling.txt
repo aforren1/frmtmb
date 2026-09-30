@@ -1,9 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/rellib-r3/frmtmb.eam 
-sampling: frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-  Intercept          student_t(3, 0.6, 2.5)
-  b                  (flat), as brms leaves slopes
-.................................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT lane test-sampling.R pass=97 fail=0 error=0 skip=0 warn=0

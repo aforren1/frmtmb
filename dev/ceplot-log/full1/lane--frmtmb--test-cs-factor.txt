@@ -1,3 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
-RESULT lane frmtmb test-cs-factor.R: tests=83 failed=0 error=1 skipped=0 warning=0 passed=83
-  fails: conditional_effects() on a cs() factor gives the level's row 

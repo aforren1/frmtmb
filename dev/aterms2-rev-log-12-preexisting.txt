@@ -1,4 +1,0 @@
-base emmeans offset: undefined columns selected 
-base weights(wt * 2): invalid model formula in ExtractVars 
-lane emmeans offset: undefined columns selected 
-lane weights(wt * 2): invalid model formula in ExtractVars 

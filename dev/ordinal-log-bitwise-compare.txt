@@ -1,7 +1,0 @@
-cumulative                 par TRUE  logLik TRUE  fitted TRUE  osa TRUE
-cumulative_probit          par TRUE  logLik TRUE  fitted TRUE  osa TRUE
-sratio_cs                  par TRUE  logLik TRUE  fitted TRUE  osa TRUE
-cratio_cloglog             par TRUE  logLik TRUE  fitted TRUE  osa TRUE
-acat_cs                    par TRUE  logLik TRUE  fitted TRUE  osa TRUE
-cumulative_thres_gr        par TRUE  logLik TRUE  fitted TRUE  osa TRUE
-hurdle                     par TRUE  logLik TRUE  fitted TRUE  osa TRUE

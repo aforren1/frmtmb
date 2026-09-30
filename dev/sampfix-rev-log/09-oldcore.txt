@@ -1,7 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/rellib-r3 
-frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib 
-core declares ord_thresholds_raw: FALSE 
-cumulative: b_x tau_raw_1 tau_raw_2 lp__
-  fixef rows: Intercept[1],Intercept[2],x  epred finite: TRUE
-sratio: b_x tau_raw_1 tau_raw_2 bcs2_1 bcs2_2 bcs3_1 bcs3_2 lp__
-  fixef rows: Intercept[1],Intercept[2],x,fcb[1],fcb[2],fcc[1],fcc[2]  epred finite: TRUE

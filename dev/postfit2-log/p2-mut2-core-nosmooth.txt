@@ -1,3 +1,0 @@
-RESULT frmtmb test-ce-levels.R [nosmooth]: failed=1 error=1 passed=61
-                                                          test failed error
-15 a smooth's factor at a level it has no curve for is refused      1  TRUE

@@ -1,2 +1,0 @@
-MUTANT M3 predict_new_level_draw test-brms-parity-defects.R pass= 77 fail= 1 err= 0 
-  caught by: predict() takes brms's sample_new_levels = "old_levels" 

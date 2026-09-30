@@ -1,8 +1,0 @@
-blocks: y 1 | g y2 1 | g 
-fitted  frmtmb y/y2: 9/9 5/5 5/5 8/8 2/2 5/5 10/10 4/4 11/11 11/11 10/10 2/2
-fitted  brms   y/y2: 9/9 5/5 5/5 8/8 2/2 5/5 10/10 4/4 11/11 11/11 10/10 2/2
-one seen group for both responses: frmtmb 12 of 12, brms 12 of 12
-frmtmb's y level equals brms's at 12 of 12
-predict_new_level_spec y/y2 per seed (each called at the seed): 9/9 5/5 5/5 8/8 2/2 5/5 10/10 4/4 11/11 11/11 10/10 2/2
-predict(mv, old_levels) answers: 5x1x2
-done

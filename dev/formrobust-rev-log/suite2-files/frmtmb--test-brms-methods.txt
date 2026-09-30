@@ -1,2 +1,0 @@
-RESULT test-brms-methods.R pass=16 fail=0 err=0 skip=46 warn=0 tests=48
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

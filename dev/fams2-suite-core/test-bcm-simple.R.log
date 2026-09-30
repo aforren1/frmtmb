@@ -1,8 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
-bcm-simple: .....S...
-
-══ Skipped ═════════════════════════════════════════════════════════════════════
-1. SIMPLE_1 matches its Stan program ('test-bcm-simple.R:188:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT frmtmb test-bcm-simple.R pass=8 fail=0 err=0 skip=1 warn=0 blocks=3

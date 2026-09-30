@@ -1,6 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/rellib-r3/frmtmb.learn 
-conditions: ........
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT lane test-conditions.R pass=8 fail=0 error=0 skip=0 warn=0

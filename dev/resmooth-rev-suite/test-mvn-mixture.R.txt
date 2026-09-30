@@ -1,1 +1,0 @@
-RESULT test-mvn-mixture.R lib=lane pass=277 fail=0 error=0 skip=0 warn=0 blocks=9/9

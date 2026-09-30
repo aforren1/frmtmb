@@ -1,4 +1,0 @@
-joint: -482.4615890294 
-separate y1 on its rows: -482.4615890267 
-brms N_1: 9 
-separate with A[-i,-i]: -239.2838248777  with full A: -239.2838248777 

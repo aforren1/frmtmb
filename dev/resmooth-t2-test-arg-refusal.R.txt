@@ -1,1 +1,0 @@
-RESULT test-arg-refusal.R lib=lib2 pass=123 fail=0 error=0 skip=0 warn=0

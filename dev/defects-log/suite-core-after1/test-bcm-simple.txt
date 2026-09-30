@@ -1,1 +1,0 @@
-RESULT after frmtmb 0.65.0 test-bcm-simple.R pass= 8 fail= 0 err= 0 skip= 1 warn= 0 

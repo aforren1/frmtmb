@@ -1,2 +1,0 @@
-RESULT test-bcm-bart.R pass=8 fail=0 err=0 skip=1 warn=0
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

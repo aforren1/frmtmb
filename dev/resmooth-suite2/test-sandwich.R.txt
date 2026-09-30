@@ -1,4 +1,0 @@
-Registered S3 method overwritten by 'clubSandwich':
-  method    from    
-  bread.mlm sandwich
-RESULT test-sandwich.R lib=lane pass=58 fail=0 error=0 skip=0 warn=0

@@ -1,1 +1,0 @@
-RESULT test-surface.R lib=lane pass=47 fail=0 error=0 skip=0 warn=0

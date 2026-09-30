@@ -1,2 +1,0 @@
-ARM lane gated=TRUE frmtmb=0.64.0 at C:/Users/adf44/source/r/wt-arcovsample-lib/frmtmb newexports=TRUE
-RESULT lane gated test-loo.R pass=111 fail=0 err=0 skip=0

@@ -1,7 +1,0 @@
-# control: a test file that warns on purpose, scanned by dev/warnleak-scan.R on rellib-r5
-test_that("control warns on purpose", {
-  warning("r067 control warning")
-  expect_true(TRUE)
-})
-# scan output:
-frmtmb	test-r067-control.R	2	control warns on purpose	r067 control warning

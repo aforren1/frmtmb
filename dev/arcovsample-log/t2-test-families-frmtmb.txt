@@ -1,1 +1,0 @@
-RESULT lane frmtmb test-families.R pass=252 fail=0 err=0 skip=0

@@ -1,5 +1,0 @@
-library: lane  frmtmb 0.64.0 
-
-gaussian n=20000 (trips)       np  4  max|grad| 4.725e-03  bootstrap(20)    3.570 s  20 plain fits    4.610 s
-gaussian n=400 (does not trip) np  4  max|grad| 4.566e-05  bootstrap(20)    0.130 s  20 plain fits    0.210 s
-cumulative n=20000 (trips)     np  5  max|grad| 4.019e-03  bootstrap(10)    7.990 s  10 plain fits    9.280 s

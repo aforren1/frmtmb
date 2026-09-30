@@ -1,2 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-RESULT test-brms-suite-brmsfit-helpers.R pass=3 fail=0 err=0 skip=0 warn=0

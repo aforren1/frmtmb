@@ -1,9 +1,0 @@
-MUTATED frmtmb::update_pool_pars
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M12_pool_keeps_old.R
-DETAIL [expectation_failure] a new nonlinear body keeps the fit's parameter formulas: Expected `sort(rownames(fixef(up2)))` to be identical to `c("a_Intercept", "b_Intercept")`.
-Differences:
-`actual`:   "a_Intercept" "a_z" "b_Intercept"
-`expected`: "a_Intercept"       "b_Intercept"
-
-RESULT test-update-pool.R pass=15 fail=1 err=0 skip=0 warn=0 tests=4
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

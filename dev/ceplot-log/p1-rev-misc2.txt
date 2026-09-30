@@ -1,6 +1,0 @@
-1 effects = c('a', 'x') : answered, effects x 
-   warning: Some specified effects are invalid for this model: 'a' Valid effects are (combinations of): 'z', 'x' 
-1 effects = 'b' : ERROR All specified effects are invalid for this model.
-Valid effects are (combinations of): 'z', 'x' 
-2 categorical = FALSE, method = 'predict' : ERROR method = "predict" has no meaning on an ordinal family: the category probabilities conditional_effects() draws ARE the predictive distribution, so there is no further observation noise to add. U 
-2 categorical = FALSE, method = 'posterior_predict' : ERROR method = "predict" has no meaning on an ordinal family: the category probabilities conditional_effects() draws ARE the predictive distribution, so there is no further observation noise to add. U 

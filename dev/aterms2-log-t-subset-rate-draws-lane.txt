@@ -1,6 +1,0 @@
-subset-rate-draws: .................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-AHH - outstanding code.
-
-RESULT test-subset-rate-draws.R pass=17 fail=0 error=0 skip=0 warn=0

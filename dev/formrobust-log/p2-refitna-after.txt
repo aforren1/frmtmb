@@ -1,2 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
-frmtmb_error : refit(): newresp has 1 NA value(s); it replaces the response of the fitted rows, which are complete. Give every row a value 

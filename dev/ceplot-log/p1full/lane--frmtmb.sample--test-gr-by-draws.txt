@@ -1,2 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb.sample | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
-RESULT lane frmtmb.sample test-gr-by-draws.R: tests=7 failed=0 error=0 skipped=0 warning=0 passed=7

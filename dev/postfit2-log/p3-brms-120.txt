@@ -1,5 +1,0 @@
-brms sd_mmg1g2 / sd_g1 max rel diff 0 0
-population spaghetti, brms vs frmtmb: max diff 2.22e-16
-nothing set: 12000 offsets per package; var(offset / frmtmb's model SD): brms 0.9994, frmtmb 1.0085 (SE about 0.0129); brms's own model: 0.9994
-g1 = 99, g2 unset: 12000 offsets per package; var(offset / frmtmb's model SD): brms 1.2324, frmtmb 1.0157 (SE about 0.0129); brms's own model: 0.9994
-done

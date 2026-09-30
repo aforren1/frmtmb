@@ -1,4 +1,0 @@
-MUTATED frmtmb::assemble_frame
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R07_bare_const_to_frame.R
-RESULT test-open-issues.R pass=43 fail=0 err=0 skip=0 warn=0 tests=13
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

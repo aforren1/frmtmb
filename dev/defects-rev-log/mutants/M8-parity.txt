@@ -1,2 +1,0 @@
-MUTANT M8 summary_gp_frame test-brms-parity-defects.R pass= 77 fail= 1 err= 0 
-  caught by: summary() reports a gp() term's hyperparameters, as brms does 

@@ -1,5 +1,0 @@
-arm base mutant none ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb.sample 
-RESULT base frmtmb.sample test-conditional-effects-draws.R: tests=59 failed=0 error=1 skipped=0 warning=0 passed=59
----- expectation_error at line 192 in brms's slots are brms's positions and brms's defaults 
-<frmtmb_sample_error/frmtmb_error/error/condition>
-Error: conditional_effects() on draws cannot honor `spaghetti`: this method does not implement it, so leave it at its default 

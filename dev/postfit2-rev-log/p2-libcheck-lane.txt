@@ -1,3 +1,0 @@
-arm lane : frmtmb from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb ; frmtmb.sample from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
-frmtmb: 1327 source functions; 0 not in the installed namespace; 0 differ
-frmtmb.sample: 216 source functions; 0 not in the installed namespace; 0 differ

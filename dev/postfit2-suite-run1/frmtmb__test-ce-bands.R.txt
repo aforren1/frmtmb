@@ -1,7 +1,0 @@
-libs: C:/Users/adf44/source/r/wt-postfit2-lib | C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/AppData/Local/R/win-library/4.6 | C:/Program Files/R/R-4.6.1/library 
-frmtmb version 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
-RESULT frmtmb test-ce-bands.R: tests=167 failed=2 error=0 skipped=0 warning=0 passed=165
----- expectation_failure in a nonlinear fit finds the covariates of its nl body 
-Expected `conditional_effects(fnl, resolution = 5)` to throw a error. 
----- expectation_failure in surface = TRUE is refused and names the two-variable effect 
-Expected `conditional_effects(fs, surface = TRUE)` to throw a error. 

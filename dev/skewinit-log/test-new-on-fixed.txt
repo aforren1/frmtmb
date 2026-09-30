@@ -1,2 +1,0 @@
-Error in library(testthat) : there is no package called 'testthat'
-Execution halted

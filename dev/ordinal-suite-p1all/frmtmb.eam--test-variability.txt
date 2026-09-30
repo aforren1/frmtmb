@@ -1,2 +1,0 @@
-lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-RESULT test-variability.R pass=140 fail=0 err=0 skip=0 warn=0

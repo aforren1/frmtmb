@@ -1,5 +1,0 @@
-LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.sample C:/Users/adf44/source/r/rellib-r3/frmtmb 
-compat-preflight: .................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT before frmtmb.sample test-compat-preflight.R gated=FALSE pass=81 fail=0 err=0 skip=0 warn=0

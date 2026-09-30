@@ -1,3 +1,0 @@
-RESULT lane frmtmb.ode 0.7.0 C:/Users/adf44/source/r/rellib-r3 test-scale.R pass= 0 fail= 0 err= 0 skip= 1 warn= 0 
--- expectation_skip line 101 in: the ode scale row fits and reports its cost 
-   Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier 

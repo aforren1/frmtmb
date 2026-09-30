@@ -1,5 +1,0 @@
-re-formula-partial: ............................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-re-formula-partial.R pass=44 fail=0 error=0 skip=0 warn=0

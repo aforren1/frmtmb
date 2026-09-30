@@ -1,4 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/wt-postfit2-lib 
-lane: re_formula NA, estimate -0.2833 / 5.2011; bootstrap sd 0.0432 / 0.3693; converged 40 of 40
-lane: re_formula NULL, estimate -0.2833 / 5.2011; bootstrap sd 0.0432 / 0.3693; converged 40 of 40
-lane: intercept Wald se 0.0460

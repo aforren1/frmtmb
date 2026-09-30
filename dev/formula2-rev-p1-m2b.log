@@ -1,4 +1,0 @@
-y.mu : fa fb fc 
-y.sigma : fb fc 
-mu term == full: TRUE  full != NA: TRUE 
-sigma term == full: TRUE  full != NA: TRUE 

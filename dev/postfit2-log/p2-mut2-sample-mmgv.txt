@@ -1,4 +1,0 @@
-mutant mmgv : 1 replacement(s) in ce_group_vars 
-RESULT frmtmb.sample test-postfit-draws.R [mmgv]: failed=2 error=0 passed=49
-                                              test failed error
-10 on draws, an mm() term reads a level per member      2 FALSE

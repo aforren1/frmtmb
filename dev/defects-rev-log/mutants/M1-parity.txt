@@ -1,2 +1,0 @@
-MUTANT M1 ord_linear_per_threshold test-brms-parity-defects.R pass= 76 fail= 2 err= 0 
-  caught by: fitted(scale = "linear") of a cs() fit is one layer per threshold 

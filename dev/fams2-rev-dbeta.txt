@@ -1,4 +1,0 @@
-1000 vector y const: 0.3117391 -0.1028587  scalar 0.3 const: 0.001167509 0.0002143724  vector y taped: 0.3117391 -0.1028587  rep(0.3, 2): 0.002335019 0.0004287449 
-1500 vector y const: NaN NaN  scalar 0.3 const: NaN NaN  vector y taped: NaN NaN  rep(0.3, 2): NaN NaN 
-5000 vector y const: NaN NaN  scalar 0.3 const: NaN NaN  vector y taped: NaN NaN  rep(0.3, 2): NaN NaN 
-20000 vector y const: NaN NaN  scalar 0.3 const: NaN NaN  vector y taped: NaN NaN  rep(0.3, 2): NaN NaN 

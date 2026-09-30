@@ -1,4 +1,0 @@
-Welcome to emmeans.
-Caution: You lose important information if you filter this package's results.
-See '? untidy'
-RESULT lane frmtmb 0.65.0 C:/Users/adf44/source/r/wt-defects-lib test-brms-suite-emmeans.R pass= 11 fail= 0 err= 0 skip= 0 warn= 0 

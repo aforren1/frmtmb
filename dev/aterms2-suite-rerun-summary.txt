@@ -1,6 +1,0 @@
-﻿RESULT test-conditions.R pass=150 fail=0 error=0 skip=0 warn=0
-RESULT test-data2.R pass=31 fail=0 error=0 skip=0 warn=0
-RESULT test-id-kron.R pass=60 fail=0 error=0 skip=0 warn=0
-RESULT test-importance.R pass=226 fail=0 error=0 skip=0 warn=0
-RESULT test-subset-rate.R pass=70 fail=0 error=0 skip=0 warn=0
-RESULT test-thres.R pass=67 fail=0 error=0 skip=0 warn=0

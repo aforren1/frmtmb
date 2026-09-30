@@ -1,6 +1,0 @@
-ARM ref newexports=FALSE
-labels: b_y1_Intercept b_y1_x b_y2_Intercept b_y2_x sigma_y1 nu sigma_y2 thetar_1 lp__
-Error in x$stanfit@sim : 
-  no applicable method for `@` applied to an object of class "NULL"
-Calls: log_lik -> log_lik.frmtmb_draws -> draws_chain_id -> %||%
-Execution halted

@@ -1,4 +1,0 @@
-function (formula, ...) 
-{
-    UseMethod("brmsterms")
-}

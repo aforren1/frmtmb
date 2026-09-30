@@ -1,6 +1,0 @@
-LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
-methods-audit: ...............1 row removed because of missing values (na.action)
-...........................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT after frmtmb test-methods-audit.R gated=TRUE pass=58 fail=0 err=0 skip=0 warn=0

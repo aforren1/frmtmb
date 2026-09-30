@@ -1,4 +1,0 @@
-MUTATED frmtmb::family_call_of
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R08_family_call_always.R
-RESULT test-arma-na-newdata.R pass=14 fail=0 err=0 skip=0 warn=0 tests=5
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

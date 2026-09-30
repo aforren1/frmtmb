@@ -1,2 +1,0 @@
-RESULT frmtmb test-brms-families.R pass=1102 fail=0 err=0 skip=0 warn=0 blocks=23
-RESULT frmtmb test-brms-likelihood.R pass=450 fail=0 err=0 skip=0 warn=0 blocks=44

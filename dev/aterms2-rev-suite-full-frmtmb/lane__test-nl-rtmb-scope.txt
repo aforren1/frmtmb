@@ -1,6 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
-nl-rtmb-scope: .........................................................................................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT lane test-nl-rtmb-scope.R pass=105 fail=0 error=0 skip=0 warn=0

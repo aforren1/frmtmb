@@ -1,9 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-✔ | F W  S  OK | Context
-
-⠏ |          0 | prior-update                                                   
-✔ |          7 | prior-update
-
-══ Results ═════════════════════════════════════════════════════════════════════
-[ FAIL 0 | WARN 0 | SKIP 0 | PASS 7 ]
-RESULT lane frmtmb.sample test-prior-update.R pass=7 fail=0 err=0 skip=0 warn=0

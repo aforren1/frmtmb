@@ -1,1 +1,0 @@
-REVRESULT test-unpinned-seams.R arm=lane blocks=4 pass=30 fail=0 err=0 warn=0 skip=0

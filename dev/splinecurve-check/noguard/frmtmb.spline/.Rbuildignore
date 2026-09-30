@@ -1,7 +1,0 @@
-^.*\.Rcheck$
-^.*\.tar\.gz$
-^\.Rproj\.user$
-^.*\.Rproj$
-^dev$
-^_pkgdown\.yml$
-^vignettes/figure$

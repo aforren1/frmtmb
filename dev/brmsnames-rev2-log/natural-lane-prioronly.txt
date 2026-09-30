@@ -1,2 +1,0 @@
-arm lane frmtmb from C:/Users/adf44/source/r/brmsnames-lib  sample from C:/Users/adf44/source/r/brmsnames-lib 
-gauss_prior done; natural-looking columns: sigma 

@@ -1,1 +1,0 @@
-RESULT after frmtmb.coupling 0.6.0 test-cross-wishart.R pass= 211 fail= 0 err= 0 skip= 0 warn= 0 

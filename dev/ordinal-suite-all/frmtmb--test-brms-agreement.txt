@@ -1,3 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
-the number of chains is less than 1; sampling not done
-RESULT test-brms-agreement.R pass=187 fail=0 err=0 skip=0 warn=0

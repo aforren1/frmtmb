@@ -1,8 +1,0 @@
-LPCHECK const 1.136868377e-13 grad 0.000323 ours -610.260451
-RESULT row 17c: sigma1 = "sigma2" equates the components' sigma pass=4 fail=0 err=0 skip=0
-LPCHECK const 5.684341886e-14 grad 4.66e-15 ours -306.5260617
-RESULT row 24: cmc = FALSE on a population- and a group-level term pass=3 fail=0 err=0 skip=0
-LPCHECK const -2.842170943e-14 grad 3.7e-05 ours -102.9563961
-RESULT row 25: y ~ . expands against the data as in brms pass=2 fail=0 err=0 skip=0
-LPCHECK const -2.842170943e-14 grad 0.000118 ours -185.9433169
-RESULT row 26: a list of families, one per response pass=2 fail=0 err=0 skip=0

@@ -1,4 +1,0 @@
-﻿* checking for file './DESCRIPTION' ... OK
-* preparing 'frmtmb':
-* checking DESCRIPTION meta-information ... OK
-* installing the package (it is needed to build vignettes)

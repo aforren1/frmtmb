@@ -1,6 +1,0 @@
-frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
-weights(w_out) env vector  Addition term weights(w_out) of response 'y' reads `w_out`, which is not a column of `data`. An addition term reads its variables from the data alone, as brms does: a value from the formula environment would be read again, possibly changed, by predictions and refits. Put `w_out` in the data
-trials(k) env scalar       Addition term trials(k) of response 'yb' reads `k`, which is not a column of `data`. An addition term reads its variables from the data alone, as brms does: a value from the formula environment would be read again, possibly changed, by predictions and refits. Put `k` in the data
-trials(k + 0L)             Addition term trials(k + 0L) of response 'yb' reads `k`, which is not a column of `data`. An addition term reads its variables from the data alone, as brms does: a value from the formula environment would be read again, possibly changed, by predictions and refits. Put `k` in the data
-weights(x^2 + k)           Addition term weights(x^2 + k) of response 'y' reads `k`, which is not a column of `data`. An addition term reads its variables from the data alone, as brms does: a value from the formula environment would be read again, possibly changed, by predictions and refits. Put `k` in the data
-trials(n) data column      fits

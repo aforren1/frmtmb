@@ -1,5 +1,0 @@
-MUTATED frmtmb::extract_y
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M19_bern_fraction_guard_off.R
-DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(c(0.1, 0.9, 0.1))` to throw a error.
-RESULT test-bernoulli-coding.R pass=36 fail=1 err=0 skip=0 warn=0 tests=5
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

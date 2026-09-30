@@ -1,2 +1,0 @@
-RESULT baselib frmtmb test-simulate-density.R pass=458 fail=1 err=3 skip=0 warn=0 blocks=55
-RESULT baselib frmtmb test-xbeta-zibb-hurdle-cum.R pass=1 fail=1 err=20 skip=0 warn=0 blocks=20

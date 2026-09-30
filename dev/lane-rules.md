@@ -411,6 +411,18 @@ own work rather than in review.
   without its construction gets re-derived from scratch by whoever reads
   it next, and that has twice produced a confident and wrong claim that
   a shipped figure was false.
+- **Logs and dumps are local; the findings are the record.**
+  `dev/.gitignore` keeps machine output out of the repository: `*.log`,
+  `*.txt`, `*.err`, `*.out`, `*.Rout`, `*.rds`, root-level `*.tsv`,
+  `*.csv` and `*.json`, and directories named `*-log/`, `*-suite*/`,
+  `*-out/`, `*-cov/`, `*-check/`, `*-mut/` and `*-tests/`. Write logs
+  there. Scripts (`.R`, `.sh`, `.ps1`) and `.md` records stay tracked.
+  So paste into the findings every count and number a claim rests on,
+  generated from the log, and cite the log as the local source. Do not
+  copy another package's source into `dev/`: read it where it is
+  installed. Up to 0.67.0 the repository tracked about 30,000 such
+  files; they stay in history (`git show a6e860cb:<path>`) and were
+  untracked after it.
 
 ## What you deliver
 

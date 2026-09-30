@@ -1,9 +1,0 @@
-ARM base frmtmb 0.64.0 
-table(y) = 20/11/18/1; the single top row is 1
-levels kept by the subset: 1,2,3,4
-fit tau_raw length = 3
-colnames = x,tau_raw_1,tau_raw_2,tau_raw_3
-NA cells = 1
-row 1 =  0.0006186946584 -0.3713461710944 -0.0886369803511               NA
-cooks.distance NA count = 1; at row 1 = NA
-dropped-level variant: levels = 1,2,3,4

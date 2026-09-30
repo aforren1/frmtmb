@@ -1,3 +1,0 @@
-Error in r[, "Intercept"] : subscript out of bounds
-Calls: t -> vapply -> FUN -> pick_f -> which
-Execution halted

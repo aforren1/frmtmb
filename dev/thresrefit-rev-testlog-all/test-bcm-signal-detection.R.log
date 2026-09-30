@@ -1,1 +1,0 @@
-REVRESULT test-bcm-signal-detection.R arm=lane blocks=5 pass=6 fail=0 err=0 warn=0 skip=3

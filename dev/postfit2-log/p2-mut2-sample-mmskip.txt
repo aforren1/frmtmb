@@ -1,4 +1,0 @@
-mutant mmskip : 1 replacement(s) in ce_level_plan 
-RESULT frmtmb.sample test-postfit-draws.R [mmskip]: failed=1 error=0 passed=50
-                                              test failed error
-10 on draws, an mm() term reads a level per member      1 FALSE

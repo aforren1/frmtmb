@@ -1,9 +1,0 @@
-MUTATED frmtmb::emm_drop_offsets
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M05_emm_keep_offsets.R
-DETAIL [expectation_error] emmeans() includes the offset at the grid's value, as brms: Error in `emm_drop_offsets(object, tg)`: unused argument (tg)
-DETAIL [expectation_error] a dpar's offset is included, a nonlinear parameter's is not: Error in `emm_drop_offsets(object, tg)`: unused argument (tg)
-DETAIL [expectation_error] the grid route and a multivariate fit add each offset once: Error in `emm_drop_offsets(object, tg)`: unused argument (tg)
-DETAIL [expectation_error] an offset in other positions reaches both grids: Error in `emm_drop_offsets(object, tg)`: unused argument (tg)
-DETAIL [expectation_error] emmeans() equals brms's emmeans() at fixed parameters: Error in `emm_drop_offsets(object, tg)`: unused argument (tg)
-RESULT test-offset-grid.R pass=5 fail=0 err=5 skip=0 warn=0 tests=7
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

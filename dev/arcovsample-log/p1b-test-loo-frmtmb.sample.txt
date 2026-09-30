@@ -1,1 +1,0 @@
-RESULT lane frmtmb.sample test-loo.R pass=103 fail=0 err=0 skip=2

@@ -1,8 +1,0 @@
-scale: S
-
-══ Skipped ═════════════════════════════════════════════════════════════════════
-1. the ode scale row fits and reports its cost ('test-scale.R:101:3') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT test-scale.R pass=0 fail=0 error=0 skip=1 warn=0

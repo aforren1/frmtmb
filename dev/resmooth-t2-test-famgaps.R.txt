@@ -1,2 +1,0 @@
-Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
-RESULT test-famgaps.R lib=lib2 pass=100 fail=0 error=0 skip=0 warn=0

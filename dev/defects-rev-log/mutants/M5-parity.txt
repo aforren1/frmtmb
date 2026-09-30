@@ -1,2 +1,0 @@
-MUTANT M5 residuals_newdata test-brms-parity-defects.R pass= 76 fail= 2 err= 0 
-  caught by: residuals() takes newdata and answers a multivariate fit 

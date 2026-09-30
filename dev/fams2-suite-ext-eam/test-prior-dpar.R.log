@@ -1,7 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.eam 
-Loading required package: frmtmb
-prior-dpar: .......
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-🌈 Your tests are over the rainbow 🌈
-RESULT frmtmb.eam test-prior-dpar.R pass=7 fail=0 err=0 skip=0 warn=0 blocks=3

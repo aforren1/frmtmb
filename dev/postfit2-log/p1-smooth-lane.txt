@@ -1,6 +1,0 @@
-ARM lane: frmtmb from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb
-s(x), re_formula NA: boot/wald width 0.840 0.941 0.913 1.029 0.730; estimate inside the boot band TRUE
-s(x), re_formula NULL: boot/wald width 0.840 0.941 0.913 1.029 0.730; estimate inside the boot band TRUE
-s(x) + (1 | g), re_formula NA: boot/wald width 0.910 0.961 0.936 0.994 0.820; estimate inside the boot band TRUE
-s(x) + (1 | g), re_formula NULL (new g): boot/wald width 0.759 0.749 0.759 0.751 0.767; estimate inside the boot band TRUE
-s(x) + (1 | g), observed g = 3: boot/wald width 0.810 0.812 0.871 1.032 0.953; estimate inside the boot band TRUE

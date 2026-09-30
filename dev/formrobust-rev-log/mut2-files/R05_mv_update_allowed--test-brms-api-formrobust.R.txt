@@ -1,4 +1,0 @@
-MUTATED frmtmb::update.frmtmb_fit
-MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R05_mv_update_allowed.R
-RESULT test-brms-api-formrobust.R pass=26 fail=0 err=0 skip=0 warn=0 tests=6
-lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -1,8 +1,0 @@
-lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.sample 
-scale: S
-
-══ Skipped ═════════════════════════════════════════════════════════════════════
-1. the sample scale row samples and reports its cost ('test-scale.R:43:3') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-RESULT frmtmb.sample test-scale.R pass=0 fail=0 err=0 skip=1 warn=0 blocks=1

@@ -1,1 +1,0 @@
-RESULT test-v12.R lib=lane pass=26 fail=0 error=0 skip=0 warn=0 blocks=5/5

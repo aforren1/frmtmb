@@ -1,4 +1,0 @@
-frmtmb : functions compared 1313  differing 0  absent from namespace 0 
-frmtmb.sample : functions compared 211  differing 0  absent from namespace 0 
-frmtmb path C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
-sample path C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb.sample 

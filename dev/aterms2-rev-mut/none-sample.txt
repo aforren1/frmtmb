@@ -1,2 +1,0 @@
-NULL
-MUTANT none                 sample pass=17 fail=0 error=0 skip=0

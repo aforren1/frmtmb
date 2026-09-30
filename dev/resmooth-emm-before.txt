@@ -1,6 +1,0 @@
-frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb 
-emmeans(fs fit, ~f)                OK: 0.1389 0.8801
-emmeans(fs fit, ~f, re_formula=NULL) ERROR: predict(newdata = ) for the factor-smooth term s(x,g) needs the grouping column `g`: the term holds one curve per level of `g`, so a prediction conditional on i
-emmeans(re fit, ~f)                OK: 0.1722 0.8954
-emmeans((1|g) fit, ~f)             OK: 0.1722 0.8954
-emmeans(t2 fit, ~f)                OK: 0.0766 0.8108

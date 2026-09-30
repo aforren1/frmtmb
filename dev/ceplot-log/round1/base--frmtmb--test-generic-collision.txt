@@ -1,3 +1,0 @@
-lib: C:/Users/adf44/source/r/rellib-r4/frmtmb | frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
-RESULT base frmtmb test-generic-collision.R: tests=56 failed=2 error=0 skipped=0 warning=0 passed=54
-  fails: brms loaded but never attached is reachable too 

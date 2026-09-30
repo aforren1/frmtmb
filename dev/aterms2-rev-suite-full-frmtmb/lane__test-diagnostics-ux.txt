@@ -1,9 +1,0 @@
-ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
-diagnostics-ux: ..............................................................................2 rows removed because of missing values (na.action)
-...2 rows removed because of missing values (na.action)
-.2 rows removed because of missing values (na.action)
-.............................................
-
-══ DONE ════════════════════════════════════════════════════════════════════════
-
-RESULT lane test-diagnostics-ux.R pass=127 fail=0 error=0 skip=0 warn=0

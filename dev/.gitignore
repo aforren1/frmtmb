@@ -11,3 +11,53 @@ upstream-rtmb/
 
 /.quarto/
 **/*.quarto_ipynb
+
+# Machine output of lanes and reviews stays on the machine that made it.
+# A lane's findings quote every number they rest on, so the record does
+# not depend on these files; committed ones up to 0.67.0 stay in history.
+*.log
+*.txt
+*.err
+*.out
+*.Rout
+*.rds
+*.RData
+*.rda
+*.driverlog
+*.lst
+/*.tsv
+/*.csv
+/*.json
+*-log/
+*-logs/
+*/log/
+*/logs/
+*-suite*/
+*-cov/
+*-out/
+*-rec/
+*-check/
+*-mut/
+*-run/
+*-runs/
+*-test/
+*-tests/
+*brmssrc/
+*brms-src/
+*basehelper/
+*mutant/
+*mutants/
+*mixlib/
+release/checkout/
+release/check-*/
+
+# Inputs that dev/brmsport-*.R reads, the curated port harness, and the
+# records the release harness writes
+!brmsport-log/
+!brmsport-log/**
+!brms-port/**
+!brms-vignettes/**
+!/brmsport-*.tsv
+!/brmssuite-classified.tsv
+!/suite-baseline.tsv
+!/win-library-4.6-manifest-2026-09-28.csv

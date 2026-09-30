@@ -1,1 +1,0 @@
-RESULT test-vignette-wiener.R lib=lane pass=21 fail=0 error=0 skip=0 warn=0
