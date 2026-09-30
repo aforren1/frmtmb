@@ -622,6 +622,9 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_epred()")
+  # subset(): one response at a time, as brms asks
+  subset_resp_check(object$fit, resp %||% names(object$fit$spec$responses),
+                    "posterior_epred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws, draw_ids)
   out <- NULL
@@ -696,6 +699,9 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
              "the thresholds are coefficients you can read off ",
              "posterior_summary()", call. = FALSE)
   }
+  # subset(): one response at a time, as brms asks
+  subset_resp_check(object$fit, resp %||% names(object$fit$spec$responses),
+                    "posterior_linpred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws, draw_ids)
   # This function is about ONE distributional parameter, so the dpar is
@@ -784,7 +790,12 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
              "documentation in frmtmb.eam", call. = FALSE)
   }
   fit <- object$fit
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks
+  subset_resp_check(fit, resp %||% names(fit$spec$responses),
+                    "posterior_predict()")
   resp <- resp %||% names(fit$spec$responses)[1L]
+  newdata <- subset_newdata(fit, resp, newdata)
   rspec <- fit$spec$responses[[resp]]
   if (!sim_can(rspec$family)) {
     frm_stop("posterior_predict(): family '", rspec$family[["family"]],
@@ -794,10 +805,12 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   rows <- draws_subsample(object, ndraws, draw_ids)
   av <- if (is.null(newdata)) {
     fit$frame[["aterm_values"]][[resp]]
-  } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
+  } else if (has_trunc(rspec) ||
+             any(c("thres_gr", "rate") %in% names(rspec$aterms))) {
     # truncation bounds must follow the newdata rows, or the draws land
     # outside the support the likelihood was normalized on; so must a
-    # row's group under grouped thresholds, thres(gr = )
+    # row's group under grouped thresholds, thres(gr = ), and a row's
+    # exposure under rate(), which scales its mean
     aterms_for_newdata(rspec, newdata)
   } else {
     list()
@@ -1492,7 +1505,12 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   method <- frm_match_arg(method,
                           c("posterior_predict", "posterior_epred"))
   fit <- draws_base_fit(object)
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks
+  subset_resp_check(fit, resp %||% names(fit$spec$responses),
+                    "predictive_error()")
   resp <- resp %||% names(fit$spec$responses)[1L]
+  newdata <- subset_newdata(fit, resp, newdata)
   # brms refuses a predictive error, and so residuals(), for every
   # polytomous family whatever the method (its is_polytomous(); brms
   # 2.23.0, dev/correct-log/brms-resid.txt). The same families as
@@ -1615,8 +1633,8 @@ NULL
 #' @rdname draws-structure
 #' @export
 nobs.frmtmb_draws <- function(object, ...) {
-  frm_check_dots(...)
-  stats::nobs(draws_base_fit(object))
+  # the fit's own method checks the arguments and reads brms's `resp`
+  stats::nobs(draws_base_fit(object), ...)
 }
 
 #' @rdname draws-structure

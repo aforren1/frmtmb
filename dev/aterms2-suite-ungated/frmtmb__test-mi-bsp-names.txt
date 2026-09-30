@@ -1,0 +1,5 @@
+mi-bsp-names: ...........
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-mi-bsp-names.R pass=11 fail=0 error=0 skip=0 warn=0

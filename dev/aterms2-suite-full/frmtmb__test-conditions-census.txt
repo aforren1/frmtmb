@@ -1,0 +1,6 @@
+conditions-census: ...........
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🥇 Your tests deserve a gold medal 🥇
+
+RESULT test-conditions-census.R pass=11 fail=0 error=0 skip=0 warn=0

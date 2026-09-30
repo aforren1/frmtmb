@@ -147,7 +147,6 @@ test_that("a brms argument is refused with its reason, not as unknown", {
     list(quote(ranef(fit, groups = "g")), "groups", "named list"),
     list(quote(VarCorr(fit, robust = TRUE)), "robust", "draws"),
     list(quote(fixef(fit, summary = FALSE)), "summary = FALSE", "draws"),
-    list(quote(nobs(fit, resp = "y")), "resp", "same nobs"),
     list(quote(family(fit, resp = "y")), "resp", "NAMED LIST"),
     list(quote(predict(fit, type = "link")), "type", "frm_linpred"),
     list(quote(predict(fit, se.fit = TRUE)), "se.fit", "frm_linpred"),
@@ -156,7 +155,8 @@ test_that("a brms argument is refused with its reason, not as unknown", {
   # `prob`, `priors`, `pars` and `correlation` left this list at item
   # 2.6f: summary() sets the interval width and prints the priors,
   # fixef() and vcov() filter rows, and vcov() returns the correlation
-  # matrix, each as brms does
+  # matrix, each as brms does. nobs(resp =) left it with subset(): it
+  # counts that response's rows, as brms's does (test-subset-rate.R)
   for (cs in cases) {
     msg <- tryCatch(eval(cs[[1L]]), error = conditionMessage)
     expect_true(is.character(msg), info = deparse(cs[[1L]]))

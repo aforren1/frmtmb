@@ -1,0 +1,64 @@
+mv_rescor_gauss          elements  25  differ  0  base-errors  4 
+mv_rescor_student        elements  25  differ  0  base-errors  4 
+mv_ordinal               elements  25  differ  0  base-errors  5 
+mv_ordinal_cs            elements  25  differ  0  base-errors  6 
+mv_ordinal_thronly       elements  25  differ  0  base-errors  5 
+mv_id_mixed              elements  26  differ  1  base-errors  4 frame
+    frame : base  y1        , gaussian  , mu        , sigma     , identity  , log       , continuous, mu        , weights   , cens      , trunc     , se        , mi        , sigm 
+    frame : lane  y1        , gaussian  , mu        , sigma     , identity  , log       , continuous, mu        , weights   , cens      , trunc     , se        , mi        , sigm 
+mv_mi                    elements  26  differ  0  base-errors  6 
+mv_mi_inter              elements  25  differ  0  base-errors  6 
+me                       elements  20  differ  0  base-errors  1 
+cens_gauss               elements  20  differ  0  base-errors  1 
+cens_interval            elements  20  differ  0  base-errors  1 
+cens_pois                elements  21  differ  1  base-errors  2 frame
+    frame : base  yc      , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , FALSE   , mu      , log     , mu      , FALSE   , FALSE   , TRUE     1 
+    frame : lane  yc      , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , rate    , FALSE   , mu      , log     , mu      , FALSE   , FALSE   ,  
+trunc_gauss              elements  20  differ  0  base-errors  1 
+trunc_pois               elements  21  differ  1  base-errors  2 frame
+    frame : base  ypt     , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , FALSE   , 1       , mu      , log     , mu      , FALSE   , FALSE   ,  
+    frame : lane  ypt     , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , rate    , FALSE   , 1       , mu      , log     , mu      , FALSE   ,  
+weights_re               elements  20  differ  0  base-errors  1 
+trials                   elements  21  differ  0  base-errors  1 
+thres_gr                 elements  20  differ  0  base-errors  3 
+gr_by                    elements  20  differ  0  base-errors  1 
+mv_ar_percresp           elements  25  differ  0  base-errors  4 
+mv_na_one_resp           elements  25  differ  0  base-errors  4 
+mv_na_both_pred          elements  25  differ  0  base-errors  4 
+uni_na_omit              elements  20  differ  0  base-errors  1 
+uni_na_exclude           elements  20  differ  0  base-errors  1 
+mv_na_exclude            elements  25  differ  0  base-errors  4 
+mv_smooth                elements  25  differ  0  base-errors  4 
+mv_mo                    elements  25  differ  0  base-errors  4 
+pois_re                  elements  21  differ  1  base-errors  1 frame
+    frame : base  yc      , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , FALSE   , mu      , log     , us      , FALSE   , mu      , FALSE   ,  
+    frame : lane  yc      , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , rate    , FALSE   , mu      , log     , us      , FALSE   , mu      ,  
+pois_identity            elements  20  differ  1  base-errors  2 frame
+    frame : base  yc      , poisson , mu      , identity, discrete, mu      , weights , cens    , trunc   , FALSE   , mu      , identity, mu      , FALSE   , FALSE   , TRUE     1 
+    frame : lane  yc      , poisson , mu      , identity, discrete, mu      , weights , cens    , trunc   , rate    , FALSE   , mu      , identity, mu      , FALSE   , FALSE   ,  
+pois_offset              elements  20  differ  1  base-errors  2 frame
+    frame : base  yc      , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , FALSE   , mu      , log     , mu      , FALSE   , FALSE   , TRUE     1 
+    frame : lane  yc      , poisson , mu      , log     , discrete, mu      , weights , cens    , trunc   , rate    , FALSE   , mu      , log     , mu      , FALSE   , FALSE   ,  
+negbin                   elements  21  differ  1  base-errors  2 frame
+    frame : base  yn         , negbinomial, mu         , shape      , log        , log        , discrete   , mu         , weights    , FALSE      , mu         , log        , shap 
+    frame : lane  yn         , negbinomial, mu         , shape      , log        , log        , discrete   , mu         , weights    , rate       , FALSE      , mu         , log  
+negbin_identity          elements  20  differ  1  base-errors  2 frame
+    frame : base  yn         , negbinomial, mu         , shape      , identity   , log        , discrete   , mu         , weights    , FALSE      , mu         , identity   , shap 
+    frame : lane  yn         , negbinomial, mu         , shape      , identity   , log        , discrete   , mu         , weights    , rate       , FALSE      , mu         , iden 
+geometric                elements  20  differ  1  base-errors  2 frame
+    frame : base  yn       , geometric, mu       , log      , discrete , mu       , weights  , FALSE    , mu       , log      , mu       , FALSE    , FALSE    , TRUE      120 3,  
+    frame : lane  yn       , geometric, mu       , log      , discrete , mu       , weights  , rate     , FALSE    , mu       , log      , mu       , FALSE    , FALSE    , TRUE   
+geometric_sqrt           elements  20  differ  1  base-errors  2 frame
+    frame : base  yn       , geometric, mu       , sqrt     , discrete , mu       , weights  , FALSE    , mu       , sqrt     , mu       , FALSE    , FALSE    , TRUE      120 3,  
+    frame : lane  yn       , geometric, mu       , sqrt     , discrete , mu       , weights  , rate     , FALSE    , mu       , sqrt     , mu       , FALSE    , FALSE    , TRUE   
+zip                      elements  20  differ  0  base-errors  2 
+zinb                     elements  20  differ  0  base-errors  3 
+hurdle_nb                elements  20  differ  0  base-errors  2 
+hurdle_pois              elements  20  differ  0  base-errors  3 
+mix_pois                 elements  20  differ  1  base-errors  3 frame
+    frame : base  yn                                                                                                                                                               
+    frame : lane  yn                                                                                                                                                               
+mv_poisson_mixed_links   elements  25  differ  1  base-errors  5 frame
+    frame : base  yc         , poisson    , mu         , log        , discrete   , mu         , weights    , cens       , trunc      , FALSE      , mu         , log        , mu   
+    frame : lane  yc         , poisson    , mu         , log        , discrete   , mu         , weights    , cens       , trunc      , rate       , FALSE      , mu         , log  
+TOTAL models 39 elements 862 differ 12 error-elements (same on both unless listed) 111 

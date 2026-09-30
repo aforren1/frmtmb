@@ -487,6 +487,10 @@ brms_standata_view <- function(fr) {
     for (nm in intersect(names(av), c("se", "weights", "trials"))) {
       out[[sfx(nm, r)]] <- as.array(rep_len(av[[nm]], length(y)))
     }
+    # rate(denom) is brms's `denom`
+    if (!is.null(av[["rate"]])) {
+      out[[sfx("denom", r)]] <- as.array(rep_len(av[["rate"]], length(y)))
+    }
     if (!is.null(av[["cens"]])) {
       out[[sfx("cens", r)]] <- as.array(av[["cens"]])
       if (!is.null(av[["cens_y2"]])) {
@@ -500,6 +504,20 @@ brms_standata_view <- function(fr) {
       if (!identical(lp$resp, r) || is.null(lp$X)) next
       nm <- if (identical(lp$dpar, "mu")) "X" else paste0("X_", lp$dpar)
       out[[sfx(nm, r)]] <- brms_x_names(lp$X)
+      # mi(x, idx = ): brms's idxl_<resp>_<x>_<k>, k counting the
+      # distinct idx variables of x in this predictor
+      seen <- list()
+      for (mt in lp$mi) {
+        if (is.null(mt$idxl)) next
+        key <- deparse1(mt$idx_expr)
+        k <- match(key, seen[[mt$var]] %||% character(0))
+        if (is.na(k)) {
+          seen[[mt$var]] <- c(seen[[mt$var]], key)
+          k <- length(seen[[mt$var]])
+        }
+        out[[paste0("idxl", if (mv) paste0("_", r), "_", mt$var, "_", k)]] <-
+          as.array(mt$idxl)
+      }
     }
   }
   tau <- fr$par_template$tau_raw

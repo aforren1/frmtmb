@@ -1,0 +1,2 @@
+MUTANT has_rate_false       sample pass=15 fail=2 error=0 skip=0
+   failing blocks: the posterior predictions take one response and its rows 

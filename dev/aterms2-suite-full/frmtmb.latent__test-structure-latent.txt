@@ -1,0 +1,5 @@
+structure-latent: ....................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-structure-latent.R pass=20 fail=0 error=0 skip=0 warn=0

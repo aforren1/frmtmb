@@ -657,13 +657,28 @@ logLik.frmtmb_fit <- function(object, ...) {
 }
 
 #' @export
-nobs.frmtmb_fit <- function(object, ...) {
+nobs.frmtmb_fit <- function(object, ..., resp = NULL) {
   # `use.fallback` is not named here: it is in `s3_contract_args`, with
-  # every other name R's own machinery passes through a generic.
-  frm_check_dots(..., .unsupported = c(resp = paste(
-                   "a multivariate fit here shares one set of rows, so",
-                   "every response has the same nobs()")))
-  object$frame[["n_obs"]]
+  # every other name R's own machinery passes through a generic. `resp`
+  # sits after the dots so that an unnamed argument is still refused.
+  frm_check_dots(...)
+  # brms's nobs(): the rows of the data, and in a multivariate model the
+  # rows of the response `resp` names, which subset() can make fewer
+  if (!is.null(resp)) {
+    if (!is.character(resp) || length(resp) != 1L || is.na(resp)) {
+      frm_stop("nobs(): `resp` names one response, not ", arg_desc(resp),
+               call. = FALSE)
+    }
+    if (!resp %in% names(object$spec$responses)) {
+      stop_unknown_response(object, resp)
+    }
+    if (length(object$spec$responses) > 1L) {
+      return(NROW(object$frame[["y"]][[resp]]))
+    }
+  }
+  # a univariate subset() model is fitted on the subset's rows, and
+  # brms's nobs() still counts the data's
+  object$frame[["nobs_data"]] %||% object$frame[["n_obs"]]
 }
 
 #' @export

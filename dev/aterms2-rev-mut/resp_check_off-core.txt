@@ -1,0 +1,2 @@
+MUTANT resp_check_off       core   pass=59 fail=0 error=1 skip=0
+   failing blocks: post-fit methods take one response at a time, as brms asks 

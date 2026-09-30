@@ -1,3 +1,19 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb that carries `subset_resp_check()` and
+`subset_newdata()`.
+
+* `log_lik()`, `posterior_epred()`, `posterior_linpred()`,
+  `posterior_predict()` and `predictive_error()` on a multivariate
+  model whose responses use `subset()` need one `resp =`, as brms's
+  do, and on `newdata` keep the rows where the response's subset is
+  `TRUE`. `log_lik(resp = )` returns one column per row of that
+  response.
+* `posterior_predict(newdata = )` reads the exposure of a `rate()`
+  response from `newdata`.
+* `nobs()` passes brms's `resp =` to the fit's method, which counts
+  that response's rows.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

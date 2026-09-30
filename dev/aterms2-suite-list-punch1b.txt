@@ -1,0 +1,4 @@
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-subset-rate.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-arg-refusal.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-compat.R
+frmtmb.sample C:\Users\adf44\source\r\frmtmb-wt-aterms2\extensions\frmtmb.sample\tests\testthat test-subset-rate-draws.R

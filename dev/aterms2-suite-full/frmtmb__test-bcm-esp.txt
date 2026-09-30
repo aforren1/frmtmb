@@ -1,0 +1,10 @@
+bcm-esp: ..S...S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. OptionalStopping matches Correlation_1's Stan program ('test-bcm-esp.R:42:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. Extraversion matches its Stan program ('test-bcm-esp.R:144:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-bcm-esp.R pass=5 fail=0 error=0 skip=2 warn=0

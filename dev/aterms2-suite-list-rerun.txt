@@ -1,0 +1,6 @@
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-conditions.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-data2.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-id-kron.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-thres.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-importance.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-subset-rate.R

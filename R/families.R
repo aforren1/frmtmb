@@ -1495,41 +1495,87 @@ fam_gaussian <- function(link = "identity", link_sigma = "log") {
   )
 }
 
+#' brms's `rate(denom)` on a count family: the exposure multiplies the
+#' mean, `mu * denom`. Without the term this returns `dpars$mu` itself,
+#' so a model without it is unchanged.
+#'
+#' Under a log link the product is taken on the linear-predictor scale,
+#' `exp(eta + log(denom))`, which is brms's `eta + log_denom` and is
+#' the same arithmetic as `offset(log(denom))`; the numeric post-fit
+#' paths, where no linear predictor rides along, multiply.
+#'
+#' @noRd
+rate_mu <- function(dpars, link, aterms) {
+  d <- aterms[["rate"]]
+  if (is.null(d)) return(dpars[["mu"]])
+  lm <- robust_logmu(dpars, link)
+  if (!is.null(lm)) return(exp(lm + log(d)))
+  dpars[["mu"]] * d
+}
+
+#' The mean of a count family under `rate()`, for the post-fit paths.
+#' A mean function spelled this way still counts as "the mean is mu"
+#' (`mean_is_mu()`), because it is exactly mu when the term is absent;
+#' `has_rate()` routes a response that carries it through the mean.
+#'
+#' @noRd
+rate_mean <- function(dpars, aterms) {
+  d <- aterms[["rate"]]
+  if (is.null(d)) dpars[["mu"]] else dpars[["mu"]] * d
+}
+
+#' A count family's shape under `rate()`: brms multiplies it by the
+#' exposure too (`shape .* denom`), so the variance becomes
+#' `mu d (1 + mu / shape)`.
+#'
+#' @noRd
+rate_shape <- function(shape, aterms) {
+  d <- aterms[["rate"]]
+  if (is.null(d)) shape else shape * d
+}
+
 #' Poisson family, single dpar `mu` (the mean). It supplies a CDF and a
-#' truncated mean, so `cens()` and `trunc()` apply to it.
+#' truncated mean, so `cens()` and `trunc()` apply to it. `rate()`
+#' multiplies the mean by an exposure, as in brms.
 #'
 #' @noRd
 fam_poisson <- function(link = "log") {
+  lk <- mu_link(link, "poisson")
   frmtmb_family(
     "poisson",
-    accepts_aterms = c("weights", "cens", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc", "rate"),
     dpars = "mu",
-    links = list(mu = mu_link(link, "poisson")),
+    links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dpois(y, dpars[["mu"]], log = TRUE)
+      RTMB::dpois(y, rate_mu(dpars, lk, aterms), log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
-      RTMB::ppois(q, dpars[["mu"]])
+      RTMB::ppois(q, rate_mu(dpars, lk, aterms))
     },
     valid_y = count_y("poisson"),
-    init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
+    init_dpars = list(mu = function(y, aterms) {
+      mean(y / (aterms[["rate"]] %||% 1)) + 0.1
+    }),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars[["mu"]],
-      var_fn = function(dpars, aterms) dpars[["mu"]],
+      mean_fn = function(dpars, aterms) rate_mean(dpars, aterms),
+      var_fn = function(dpars, aterms) rate_mean(dpars, aterms),
       dev_fn = function(y, dpars, aterms) {
-        2 * (ylogy_mu(y, dpars[["mu"]]) - (y - dpars[["mu"]]))
+        mu <- rate_mean(dpars, aterms)
+        2 * (ylogy_mu(y, mu) - (y - mu))
       },
       # sum_{lb}^{ub} y dpois(y) = mu * (F(ub-1) - F(lb-2)), over the
       # same F(ub) - F(lb-1) normalizer the likelihood uses: the
       # inclusive lower bound keeps its own mass (brms#1903)
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        mu <- dpars[["mu"]]
+        mu <- rate_mean(dpars, aterms)
         mu * (stats::ppois(ub - 1, mu) - stats::ppois(lb - 2, mu)) /
           (stats::ppois(ub, mu) - stats::ppois(lb - 1, mu))
       }
     ),
-    sim = function(dpars, aterms, n) stats::rpois(n, dpars[["mu"]])
+    sim = function(dpars, aterms, n) {
+      stats::rpois(n, rate_mean(dpars, aterms))
+    }
   )
 }
 
@@ -1838,7 +1884,7 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
   lk <- mu_link(link, "negbinomial")
   frmtmb_family(
     "negbinomial",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "rate"),
     dpars = c("mu", "shape"),
     links = list(mu = lk, shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
@@ -1846,14 +1892,21 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
       # has underflowed; dnbinom_robust takes log(mu) and
       # log(var - mu) = 2 log(mu) - log(shape) and never divides.
       lmu <- robust_logmu(dpars, lk)
+      d <- aterms[["rate"]]
       if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars[["mu"]],
-                              dpars[["mu"]] + dpars[["mu"]]^2 /
-                                       dpars[["shape"]],
+        mu <- rate_mu(dpars, lk, aterms)
+        return(RTMB::dnbinom2(y, mu,
+                              mu + mu^2 / rate_shape(dpars[["shape"]],
+                                                     aterms),
                               log = TRUE))
       }
-      RTMB::dnbinom_robust(y, lmu, 2 * lmu - dpar_log(dpars, "shape", lk_shape),
-                           log = TRUE)
+      lsh <- dpar_log(dpars, "shape", lk_shape)
+      # rate(): brms's neg_binomial_2_log(eta + log d, shape * d)
+      if (!is.null(d)) {
+        lmu <- lmu + log(d)
+        lsh <- lsh + log(d)
+      }
+      RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
     },
     valid_y = count_y("negbinomial"),
     init_dpars = list(
@@ -1866,15 +1919,19 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars[["mu"]],
-      var_fn = function(dpars,
-        aterms) dpars[["mu"]] + dpars[["mu"]]^2 / dpars[["shape"]],
+      mean_fn = function(dpars, aterms) rate_mean(dpars, aterms),
+      var_fn = function(dpars, aterms) {
+        mu <- rate_mean(dpars, aterms)
+        mu + mu^2 / rate_shape(dpars[["shape"]], aterms)
+      },
       dev_fn = function(y, dpars, aterms) {
-        nbinom_deviance(y, dpars[["mu"]], dpars[["shape"]])
+        nbinom_deviance(y, rate_mean(dpars, aterms),
+                        rate_shape(dpars[["shape"]], aterms))
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rnbinom(n, size = dpars[["shape"]], mu = dpars[["mu"]])
+      stats::rnbinom(n, size = rate_shape(dpars[["shape"]], aterms),
+                     mu = rate_mean(dpars, aterms))
     }
   )
 }
@@ -2439,19 +2496,31 @@ fam_bernoulli <- function(link = "logit") {
 }
 
 #' Geometric family, single dpar `mu` (the mean). It is the negative
-#' binomial with the shape held at one.
+#' binomial with the shape held at one. Under `rate(d)` brms multiplies
+#' that shape by `d` as well as the mean, so the density becomes the
+#' negative binomial of size `d`.
 #'
 #' @noRd
 fam_geometric <- function(link = "log") {
   lk <- mu_link(link, "geometric")
   frmtmb_family(
     "geometric",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "rate"),
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
       # var - mu = mu^2 (the negative binomial at shape 1)
       lmu <- robust_logmu(dpars, lk)
+      d <- aterms[["rate"]]
+      if (!is.null(d)) {
+        # brms's neg_binomial_2_log(eta + log d, 1 .* d)
+        if (is.null(lmu)) {
+          mu <- rate_mu(dpars, lk, aterms)
+          return(RTMB::dnbinom2(y, mu, mu + mu^2 / d, log = TRUE))
+        }
+        lmu <- lmu + log(d)
+        return(RTMB::dnbinom_robust(y, lmu, 2 * lmu - log(d), log = TRUE))
+      }
       if (is.null(lmu)) {
         return(RTMB::dnbinom2(y, dpars[["mu"]],
                dpars[["mu"]] * (1 + dpars[["mu"]]),
@@ -2463,15 +2532,19 @@ fam_geometric <- function(link = "log") {
     init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars[["mu"]],
-      var_fn = function(dpars, aterms) dpars[["mu"]] * (1 + dpars[["mu"]]),
+      mean_fn = function(dpars, aterms) rate_mean(dpars, aterms),
+      var_fn = function(dpars, aterms) {
+        mu <- rate_mean(dpars, aterms)
+        mu * (1 + mu / rate_shape(1, aterms))
+      },
       # negbinomial with the shape fixed at 1
       dev_fn = function(y, dpars, aterms) {
-        nbinom_deviance(y, dpars[["mu"]], 1)
+        nbinom_deviance(y, rate_mean(dpars, aterms), rate_shape(1, aterms))
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rnbinom(n, size = 1, mu = dpars[["mu"]])
+      stats::rnbinom(n, size = rate_shape(1, aterms),
+                     mu = rate_mean(dpars, aterms))
     }
   )
 }
@@ -6791,7 +6864,9 @@ check_accepted_aterms <- function(resp, av) {
   fam <- resp$family
   ok <- accepted_aterm_names(fam)
   if (is.null(ok)) return(invisible(NULL))
-  have <- unique(c(names(resp$aterms), names(av)))
+  # subset() and index() choose rows for every family and reach no
+  # density, so no family declares them (R/subset.R)
+  have <- setdiff(unique(c(names(resp$aterms), names(av))), row_aterms)
   bad <- setdiff(unique(vapply(have, aterm_base, "")), ok)
   if (!length(bad)) return(invisible(NULL))
   frm_stop(fam[["family"]], ": the addition term",

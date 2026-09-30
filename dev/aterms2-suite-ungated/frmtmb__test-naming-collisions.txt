@@ -1,0 +1,5 @@
+naming-collisions: .............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-naming-collisions.R pass=29 fail=0 error=0 skip=0 warn=0

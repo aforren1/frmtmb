@@ -1,0 +1,4 @@
+wiener subset: -104.540797755  on d[s, ]: -104.540797755 
+  fitted rows 200  vs 200  simulate rows 200 
+lba subset: -19.06464560445  on d[s, ]: -19.06464560445 
+mv wiener + gaussian subset: -251.1494823341  sum of parts: -251.1494823341 

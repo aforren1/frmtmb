@@ -19,7 +19,15 @@ frmtmb_aterm_registry$reg <- list()
 #'
 #' @noRd
 core_aterms <- c("weights", "trials", "cens", "trunc", "se",
-                 "vint", "vreal", "mi", "thres")
+                 "vint", "vreal", "mi", "thres", "rate", "subset",
+                 "index", "cat")
+
+#' The addition terms that choose ROWS rather than carry data to a
+#' density. The core acts on them for every family, so no family
+#' declares them and no density reads them.
+#'
+#' @noRd
+row_aterms <- c("subset", "index")
 
 #' Add an addition term from another package
 #'
@@ -194,6 +202,7 @@ parse_response <- function(formula) {
   resp <- lhs
   if (is.call(lhs) && identical(lhs[[1]], as.name("|"))) {
     resp <- lhs[[2]]
+    cat_seen <- FALSE
     for (tm in split_plus(lhs[[3]])) {
       if (!is.call(tm)) {
         frm_stop("Malformed addition term: ", deparse1(tm), call. = FALSE)
@@ -212,6 +221,15 @@ parse_response <- function(formula) {
       }
       multi <- nm %in% c("vint", "vreal") ||
         isTRUE((frmtmb_aterm_registry$reg[[nm]] %||% list())$arity > 1L)
+      # cat(x) is brms's older spelling of thres(x - 1): the two set one
+      # datum, and brms lets cat() win silently
+      if ((nm == "cat" &&
+             any(c("thres", "thres_gr") %in% names(aterms))) ||
+          (nm == "thres" && cat_seen)) {
+        frm_stop("The number of thresholds is set twice. cat(x) is brms's ",
+                 "deprecated spelling of thres(x - 1); write one cat() or ",
+                 "one thres()", call. = FALSE)
+      }
       if (nm %in% names(aterms) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
@@ -261,6 +279,26 @@ parse_response <- function(formula) {
         args <- as.list(mc)[-1L]
         if (!is.null(args$x)) aterms[["thres"]] <- args$x
         if (!is.null(args$gr)) aterms[["thres_gr"]] <- args$gr
+      } else if (nm == "cat") {
+        # brms's resp_cat(): the number of CATEGORIES, kept as the
+        # threshold count one below it, with no threshold groups
+        if (length(tm) != 2L || !is.null(names(tm)) &&
+              !names(tm)[2L] %in% c("", "x")) {
+          frm_stop("cat() takes the number of categories: cat(x)",
+                   call. = FALSE)
+        }
+        frm_warning("Addition argument 'cat' is deprecated. Use 'thres' ",
+                    "instead: cat(", deparse1(tm[[2L]]), ") is thres(",
+                    deparse1(tm[[2L]]), " - 1)", call. = FALSE)
+        # a literal stays a literal: a call would enter the model frame
+        # as a length-one column
+        aterms[["thres"]] <- if (is.numeric(tm[[2L]])) {
+          tm[[2L]] - 1
+        } else {
+          call("-", tm[[2L]], 1)
+        }
+        # so that a thres() after it is refused as a second count
+        cat_seen <- TRUE
       } else if (nm %in% c("vint", "vreal")) {
         # custom-family data vectors (brms vint()/vreal()): each
         # argument becomes aterms$vint1, vint2, ... for the lpdf
@@ -311,6 +349,27 @@ parse_response <- function(formula) {
     }
   }
   list(resp = resp, aterms = aterms)
+}
+
+#' The arguments of a predictor `mi()` call, brms's `mi(x, idx = NA)`.
+#' `idx` names the variable whose values locate each row among the
+#' rows of the response `x`, through that response's `index()` term;
+#' it is `NULL` when absent. brms takes one plain variable for each.
+#'
+#' @noRd
+mi_pred_args <- function(tm, msg) {
+  mc <- tryCatch(match.call(function(x, idx) NULL, tm),
+                 error = function(e) frm_stop(msg, call. = FALSE))
+  args <- as.list(mc)[-1L]
+  if (!is.name(args$x)) frm_stop(msg, call. = FALSE)
+  idx <- args$idx
+  if (!is.null(idx) && !is.name(idx) &&
+        !(is.logical(idx) && length(idx) == 1L && is.na(idx))) {
+    frm_stop("mi(", deparse1(args$x), ", idx = ", deparse1(idx), "): ",
+             "idx takes one variable name, as brms's does", call. = FALSE)
+  }
+  if (is.logical(idx)) idx <- NULL
+  list(expr = args$x, idx = idx)
 }
 
 #' glm(), lme4 and glmmTMB all spell a two-column binomial response
@@ -1215,14 +1274,12 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       }
       mo[[length(mo) + 1L]] <- list(expr = tm[[2]], mult = NULL)
     } else if (is.call(tm) && identical(tm[[1]], as.name("mi"))) {
-      if (length(tm) != 2L || !is.name(tm[[2]])) {
-        frm_stop("mi() in a predictor takes one variable name: mi(x)",
-                 call. = FALSE)
-      }
-      # the interaction branch below repeats this check with its own
+      # the interaction branch below reads the call with its own
       # message, because there the offending mi() sits inside a `:`
-      miterms[[length(miterms) + 1L]] <- list(expr = tm[[2]],
-                                              mult = NULL)
+      ma <- mi_pred_args(tm, paste0("mi() in a predictor takes one ",
+                                    "variable name: mi(x)"))
+      miterms[[length(miterms) + 1L]] <- list(expr = ma$expr,
+                                              mult = NULL, idx = ma$idx)
     } else if (is.call(tm) &&
                (identical(tm[[1]], as.name(":")) ||
                   identical(tm[[1]], as.name("*"))) &&
@@ -1248,19 +1305,18 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                  deparse1(tm), call. = FALSE)
       }
       spn <- as.character(sp[[1]])[1]
-      entry <- list(expr = sp[[2]], mult = other)
       if (spn == "mo") {
+        entry <- list(expr = sp[[2]], mult = other)
         mo[[length(mo) + 1L]] <- entry
         if (op_star) mo[[length(mo) + 1L]] <- list(expr = sp[[2]],
                                                    mult = NULL)
       } else {
-        if (!is.name(sp[[2]])) {
-          frm_stop("mi() in an interaction takes one variable name: ",
-                   "mi(x):z", call. = FALSE)
-        }
-        miterms[[length(miterms) + 1L]] <- entry
+        ma <- mi_pred_args(sp, paste0("mi() in an interaction takes one ",
+                                      "variable name: mi(x):z"))
+        miterms[[length(miterms) + 1L]] <- list(expr = ma$expr,
+                                                mult = other, idx = ma$idx)
         if (op_star) miterms[[length(miterms) + 1L]] <-
-          list(expr = sp[[2]], mult = NULL)
+          list(expr = ma$expr, mult = NULL, idx = ma$idx)
       }
       if (op_star) rest[[length(rest) + 1L]] <- other
     } else if (is.call(tm) && identical(tm[[1]], as.name("gp"))) {

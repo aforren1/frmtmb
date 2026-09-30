@@ -1,0 +1,21 @@
+arg-refusal: ...............1........................................................................................................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-arg-refusal.R:99:3'): a misspelled argument is refused and na
+<frmtmb_error/error/condition>
+Error: nobs(): `resp` names one response, not numeric "7"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(nobs(fit, 7), "no name") at test-arg-refusal.R:99:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. ├─stats::nobs(fit, 7)
+ 8. └─frmtmb:::nobs.frmtmb_fit(fit, 7)
+ 9.   └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-arg-refusal.R pass=119 fail=0 error=1 skip=0 warn=0

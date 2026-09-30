@@ -1,3 +1,39 @@
+# frmtmb (development version)
+
+## New features
+
+* brms's addition terms `subset()` and `index()`, and the predictor
+  `mi(x, idx = )`. In a multivariate model, `y1 | subset(s) ~ x` fits
+  `y1` on the rows where `s` is `TRUE`, so each response has its own
+  rows, design, smooth bases and grouping levels. A missing value does
+  not drop a row that every response using the variable leaves out,
+  brms's `na_omit()` rule. `x | mi() + index(id)` names the rows of an
+  imputed response and `mi(x, idx = ref)` reads them by value, which
+  brms requires when either response uses `subset()`; brms's refusals
+  are brms's words. The log-likelihood equals brms 2.23.0's compiled
+  program at the same parameters, with and without `mi(idx = )`
+  (`test-brms-likelihood.R`, rows 25 and 25b), and a subset model is
+  the sum of the separate fits. `fitted()`, `predict()` and
+  `frm_linpred()` on such a model need one `resp =`, as brms's do, and
+  on `newdata` keep the rows where the subset is `TRUE`. In a
+  univariate model `subset()` filters the rows. `nobs()` counts the
+  data's rows, and `nobs(resp = )` one response's, as brms's do. See
+  "Response subsets, subset() and index()" in `?frm` for what is
+  refused and the three differences from brms, all levels that occur
+  only outside a response's rows.
+* brms's `rate()` on `poisson()`, `negbinomial()` and `geometric()`:
+  the expected count is `mu * d`, and the negative binomial's shape is
+  multiplied by `d` too, as in brms. On `poisson()` with the log link it
+  is the `offset(log(d))` model bit for bit. The log-likelihood equals
+  brms's compiled program on all three families (`test-brms-likelihood.R`,
+  row 24). `fitted()`, `predict()`, `simulate()` and the residuals read
+  the exposure; `newdata` must hold it, and it must be positive there
+  too, as brms requires.
+* brms's deprecated `cat(K)` is read as `thres(K - 1)`, with brms's
+  warning; `cat()` beside `thres()` is refused.
+* `subset_resp_check()` and `subset_newdata()` join the sampling API
+  (`?frmtmb-sampling-api`).
+
 # frmtmb 0.65.0
 
 Seven lanes, each with an adversarial review. Each lane's

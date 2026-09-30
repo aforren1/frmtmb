@@ -639,7 +639,9 @@ compat_aterm_rules <- function(accepts, existing = NULL) {
                ", and an entry is a family object, a character vector of ",
                "term names, or NULL", call. = FALSE)
     }
-    bad <- terms[!(base %in% ok)]
+    # subset() and index() choose rows for every family, so no
+    # allow-list names them and none refuses them
+    bad <- terms[!(base %in% c(ok, row_aterms))]
     if (length(bad)) {
       cand[[length(cand) + 1L]] <- data.frame(
         feature_a = fm, feature_b = bad, stringsAsFactors = FALSE)
@@ -765,7 +767,9 @@ compat_core_family_accepts <- function() {
     fam <- tryCatch(
       do.call(family_registry[[nm]], compat_family_ctor_args[[nm]] %||% list()),
       error = function(e) NULL)
-    if (is.null(fam)) NULL else accepted_aterm_names(fam)
+    ok <- if (!is.null(fam)) accepted_aterm_names(fam)
+    # the row-choosing terms every family takes (R/subset.R)
+    if (is.null(ok)) NULL else sort(c(ok, row_aterms))
   })
   names(acc) <- nms
   compat_accepts_cache$acc <- acc
@@ -838,7 +842,8 @@ compat_features_build <- function(extra = NULL) {
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
-             "mi()", "vint()", "vreal()", "thres()"), f, kind = "aterm"),
+             "mi()", "vint()", "vreal()", "thres()", "rate()",
+             "subset()", "index()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
              "cs_pred()", "ps()", "me()"), f, kind = "special"),
     # R-side (within-group residual) correlation terms. They carry no
@@ -1366,6 +1371,35 @@ compat_hand_rules_tbl <- function() {
     "thres(x = K) works. thres(gr = ) is refused: the one-step density selects the category over one shared set, and here the set differs by group. dharma_residuals() is the check to use.")
   r("thres()", "emmeans", "works",
     "The latent-scale means of the ordinal families; the thresholds, grouped or not, do not enter them.")
+
+  ## rate() --------------------------------------------------------------
+  r("rate()", "kind:family", "refused",
+    "Refused by name: rate() is an exposure for a count, and brms 2.23.0 takes it for poisson, negbinomial, negbinomial2 and geometric only.")
+  r("rate()", "poisson", "works",
+    "rate(d) multiplies the mean by d: brms's poisson_log_lpmf(y | eta + log(d)) under the log link and poisson_lpmf(y | mu .* d) under any other. With the log link it is the offset(log(d)) model. fitted() and predict() report the mean times d, frm_linpred() and fitted(dpar = \"mu\") report mu without it, and newdata must hold d. Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "negbinomial", "works",
+    "As brms: the mean AND the shape are multiplied by d, so the variance is mu d (1 + mu / shape). Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "geometric", "works",
+    "As brms: the geometric is the negative binomial at shape 1, and rate(d) multiplies both the mean and that shape by d, so the fitted density is a negative binomial of size d. Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "cens()", "untested",
+    "Under cens() brms scores the censored rows at mu * d; frmtmb's poisson CDF reads the same product, but no comparison has been run.")
+  r("rate()", "trunc()", "untested", "")
+
+  ## subset() and index() ------------------------------------------------
+  r("subset()", "kind:family", "works",
+    "subset(s) fits a response on the rows where s is TRUE, for every family, as in brms. In a univariate model it is a row filter. In a multivariate model each response has its own rows, its own design, smooth bases and grouping levels, and an NA on a row that every response using the variable leaves out does not drop the row (brms's na_omit()). fitted(), predict() and frm_linpred() need a single resp =, as brms asks, and on newdata they return the rows where the subset is TRUE. nobs() counts the rows of the data, and nobs(resp =) one response's rows, as brms's do. A factor predictor level or an ordinal category that occurs only outside a response's rows is not a column or a threshold of that response; brms keeps both.")
+  r("subset()", "rescor", "refused",
+    "Refused: the residual correlation pairs the responses row by row.")
+  r("subset()", "me()", "refused",
+    "Refused, as brms refuses it: a noise-free value is shared by every response on the same row.")
+  r("subset()", "|ID|", "conditional",
+    "A grouping level takes a parameter only in the responses whose rows carry it; brms keeps every level of the whole data. |ID|-linked terms therefore need the same levels on every linked response's rows, and are refused by name otherwise. A level with no rows adds nothing to the marginal likelihood, so the fit is the same where both run.")
+  r("subset()", "mi()", "works",
+    "An imputed response fitted on its own rows: its NAs outside the subset are left alone, and those inside become latent values. A predictor mi(x) of another response then needs idx = and x needs index(), as brms asks.")
+  r("index()", "kind:family", "works",
+    "index(id) names each row of a response by value, for mi(x, idx = ) in another response's predictor; duplicated values are refused, as brms refuses them.")
+  r("index()", "mi_pred()", "conditional",
+    "mi(x, idx = ref) reads, for each row, the value of x on the row whose index equals ref; a value with no match is refused by name. Required when either response uses subset().")
 
   ## vint() and vreal() --------------------------------------------------
   # override: "nothing checks this" outranks the permissive blanket

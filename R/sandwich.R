@@ -208,6 +208,12 @@ cluster_guard <- function(fit, cl) {
              "cluster weights do not reach. Use frm_bootstrap()",
              call. = FALSE)
   }
+  if (length(frame[["subset_rows"]] %||% list())) {
+    frm_stop("vcov_cluster() does not support a multivariate fit whose ",
+             "responses use subset(): each response has its own rows, and ",
+             "`cluster` is given for the rows of the whole data. Use ",
+             "frm_bootstrap()", call. = FALSE)
+  }
   if (length(frame[["mi_map"]] %||% list()) || !is.null(frame[["me"]])) {
     frm_stop("vcov_cluster() does not support mi() / me() fits: the latent ",
              "values are parameters of the outer problem and their ",

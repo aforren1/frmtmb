@@ -1,0 +1,57 @@
+﻿
+========== rate poisson 
+LPCHECK const 1.136868377e-12 grad 0.000504 ours -535.8578043
+measured_const 1.13687e-12 max_grad 0.000504 ours -535.8578043
+
+========== rate negbinomial 
+LPCHECK const 5.684341886e-13 grad 1.21e-05 ours -582.5509407
+measured_const 5.68434e-13 max_grad 1.21e-05 ours -582.5509407
+
+========== rate negbinomial shape ~ x 
+LPCHECK const -3.410605132e-13 grad 2.29e-06 ours -582.2076408
+measured_const -3.41061e-13 max_grad 2.29e-06 ours -582.2076408
+
+========== rate geometric 
+LPCHECK const 1.136868377e-13 grad 3.33e-06 ours -568.253836
+measured_const 1.13687e-13 max_grad 3.33e-06 ours -568.253836
+
+========== rate poisson sqrt 
+LPCHECK const -4.547473509e-13 grad 3.79e-08 ours -539.1491859
+measured_const -4.54747e-13 max_grad 3.79e-08 ours -539.1491859
+
+========== subset two responses 
+LPCHECK const 0 grad 0.000783 ours -379.0914169
+measured_const 0 max_grad 0.000783 ours -379.0914169
+ Family: MV(gaussian, gaussian) 
+ Links: y: mu = identity; sigma = log; x: mu = identity; sigma = log
+
+Formula: y ~ mi(x, idx = g1) + w 
+         x | mi() + index(g2) + subset(s) ~ 1 
+   Data: dm (Number of observations: 240) 
+ Method: ML   logLik: -352.496   AIC: 716.992   BIC: 737.876 
+
+Regression Coefficients:
+             Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+y_Intercept      1.01      0.03     0.94     1.08   29.20   <2e-16
+x_Intercept     -0.10      0.09    -0.28     0.08   -1.14     0.25
+y_w              0.30      0.03     0.23     0.37    8.87   <2e-16
+y_mixidxEQg1     0.49      0.03     0.42     0.56   14.30   <2e-16
+
+Further Distributional Parameters:
+        Estimate Est.Error l-95% CI u-95% CI
+sigma_y     0.52      0.02     0.48     0.57
+sigma_x     1.00      0.06     0.88     1.13
+
+========== subset + mi idx 
+LPCHECK const 0 grad 6.94e-16 ours -354.2344413
+measured_const 0 max_grad 6.94e-16 ours -354.2344413
+
+brms prior coef names:
+     class       coef resp    source
+ Intercept               x (unknown)
+     sigma               x (unknown)
+         b               y (unknown)
+         b mixidxEQg1    y (unknown)
+         b          w    y (unknown)
+ Intercept               y (unknown)
+     sigma               y (unknown)

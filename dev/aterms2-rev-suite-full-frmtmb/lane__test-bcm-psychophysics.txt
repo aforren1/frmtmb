@@ -1,0 +1,11 @@
+ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
+bcm-psychophysics: ....S...S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. PsychophysicalFunction1 matches its Stan program ('test-bcm-psychophysics.R:100:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. PsychophysicalFunction2 matches its Stan program ('test-bcm-psychophysics.R:148:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-bcm-psychophysics.R pass=7 fail=0 error=0 skip=2 warn=0

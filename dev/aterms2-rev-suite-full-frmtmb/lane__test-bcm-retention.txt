@@ -1,0 +1,13 @@
+ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
+bcm-retention: ....S....S.......S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. Retention_1 matches its Stan program ('test-bcm-retention.R:134:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. Retention_2 matches its Stan program ('test-bcm-retention.R:176:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+3. Retention_3 matches its Stan program ('test-bcm-retention.R:223:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-bcm-retention.R pass=15 fail=0 error=0 skip=3 warn=0

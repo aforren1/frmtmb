@@ -78,6 +78,15 @@
 #' of a second one. It is safe to call unconditionally: with no such
 #' block it returns `dpv` unchanged.
 #'
+#' `subset_resp_check(fit, resp, what)` and
+#' `subset_newdata(fit, resp, newdata)` carry brms's rule for a
+#' multivariate model whose responses use `subset()`: each response has
+#' its own rows, so a method is asked for one response at a time, and
+#' on `newdata` it answers for the rows where that response's subset is
+#' TRUE. The first refuses anything but a single `resp` on such a model
+#' and is silent on every other; the second returns `newdata` unchanged
+#' when the response has no `subset()`.
+#'
 #' @section The prior seam:
 #' The prior VOCABULARY - [set_prior()], [prior_normal()] and its
 #' relatives, [get_prior()], [prior_summary()] - is ordinary exported
@@ -413,6 +422,8 @@
 #' @aliases rescor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
+#' @aliases subset_resp_check
+#' @aliases subset_newdata
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
@@ -439,7 +450,7 @@
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
 #'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
-#'   arma_cond_resp, arma_cond_dpars)
+#'   arma_cond_resp, arma_cond_dpars, subset_resp_check, subset_newdata)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

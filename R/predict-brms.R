@@ -324,6 +324,10 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     }
   }
   rspecs <- object$spec$responses[resp]
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks (R/subset.R)
+  subset_resp_check(object, resp, "predict()")
+  newdata <- subset_newdata(object, resp, newdata)
   if (length(rspecs) > 1L) predict_mv_refuse(object, rspecs)
   # once, here: every replicate then predicts on the reduced design, and
   # the group-effect draw sees which blocks are left in it
@@ -473,7 +477,8 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
     }
     av[[nm]] <- if (is.null(newdata)) {
       object$frame[["aterm_values"]][[rspec$resp_name]]
-    } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
+    } else if (has_trunc(rspec) || has_rate(rspec) ||
+               "thres_gr" %in% names(rspec$aterms)) {
       # truncation bounds must follow the newdata rows, or the draws
       # land outside the support the likelihood was normalized on; so
       # must a row's group under grouped thresholds, which picks the

@@ -1411,3 +1411,101 @@ test_that("row 22c: brms 2.23.0 cannot compile its own softit program", {
   expect_false(grepl("log1p_exp(y) ./ (1 + log1p_exp(y))", code,
                      fixed = TRUE))
 })
+
+test_that("row 24: rate() on poisson, negbinomial and geometric", {
+  skip_unless_brms_fit()
+
+  # brms 2.23.0 writes rate(denom) as poisson_log_lpmf(Y | mu +
+  # log_denom) under the log link and poisson_lpmf(Y | mu .* denom)
+  # under any other, and multiplies the negative binomial's shape by
+  # denom as well: neg_binomial_2_log_lpmf(Y | mu + log_denom,
+  # shape .* denom), with shape 1 for geometric. Each shape below is
+  # check A against that program.
+  set.seed(24)
+  n <- 300
+  dr <- data.frame(x = rnorm(n), time = runif(n, 0.5, 4))
+  dr$y <- rpois(n, exp(0.2 + 0.5 * dr$x) * dr$time)
+  dr$yn <- rnbinom(n, mu = exp(0.2 + 0.5 * dr$x) * dr$time,
+                   size = 2 * dr$time)
+
+  fp <- frm(y | rate(time) ~ x, data = dr, family = poisson())
+  brms_lp_check(brms::bf(y | rate(time) ~ x), poisson(), dr, fp)
+  fps <- frm(y | rate(time) ~ x, data = dr, family = poisson("sqrt"))
+  brms_lp_check(brms::bf(y | rate(time) ~ x), poisson("sqrt"), dr, fps)
+  fn <- frm(yn | rate(time) ~ x, data = dr, family = negbinomial())
+  brms_lp_check(brms::bf(yn | rate(time) ~ x), brms::negbinomial(), dr, fn)
+  fns <- frm(bf(yn | rate(time) ~ x, shape ~ x), data = dr,
+             family = negbinomial())
+  brms_lp_check(brms::bf(yn | rate(time) ~ x, shape ~ x),
+                brms::negbinomial(), dr, fns)
+  fg <- frm(y | rate(time) ~ x, data = dr, family = geometric())
+  brms_lp_check(brms::bf(y | rate(time) ~ x), brms::geometric(), dr, fg)
+})
+
+test_that("row 25: subset() in a two-response model", {
+  skip_unless_brms_fit()
+
+  # Each response on its own rows: y2 and z are NA outside y2's subset,
+  # and brms keeps those rows because y1 does not use either variable.
+  # The family goes into each bf(), because brms's `+ family` on a
+  # multivariate formula replaces every response's family.
+  set.seed(25)
+  n <- 200
+  d <- data.frame(x = rnorm(n), z = rnorm(n),
+                  g = factor(rep(rep(letters[1:5], each = 2), n / 10)),
+                  s1 = rep(c(TRUE, FALSE), n / 2),
+                  s2 = c(rep(TRUE, 150), rep(FALSE, 50)))
+  d$y1 <- 1 + d$x + rnorm(5, 0, 0.6)[d$g] + rnorm(n)
+  d$y2 <- rpois(n, exp(0.5 - 0.3 * d$z))
+  d$y2[!d$s2] <- NA
+  d$z[!d$s2] <- NA
+
+  bfs <- brms::bf(y1 | subset(s1) ~ x, family = gaussian()) +
+    brms::bf(y2 | subset(s2) ~ z, family = poisson()) +
+    brms::set_rescor(FALSE)
+  fs <- frm(bf(y1 | subset(s1) ~ x) + gaussian() +
+              bf(y2 | subset(s2) ~ z) + poisson(), data = d)
+  chk <- brms_lp_check(bfs, NULL, d, fs)
+  expect_identical(as.integer(chk$sdat$N_y1), sum(d$s1))
+  expect_identical(as.integer(chk$sdat$N_y2), sum(d$s2))
+
+  # check C: a group-level term on a subsetted response, whose rows
+  # carry every level of g, so brms's levels and frmtmb's are one set
+  bfr <- brms::bf(y1 | subset(s1) ~ x + (1 | g), family = gaussian()) +
+    brms::bf(y2 | subset(s2) ~ z, family = poisson()) +
+    brms::set_rescor(FALSE)
+  fr <- frm(bf(y1 | subset(s1) ~ x + (1 | g)) + gaussian() +
+              bf(y2 | subset(s2) ~ z) + poisson(), data = d)
+  brms_lp_check(bfr, NULL, d, fr, joint = TRUE)
+})
+
+test_that("check C: row 25b, subset() with mi(x, idx = ) and index()", {
+  skip_unless_brms_fit()
+
+  # x is fitted on the odd rows only and imputed where it is missing
+  # there (rows 3, 7 and 21); row 8 is outside its subset and is left
+  # alone. y reads x through idx = g1, which names a row of x by its
+  # index g2, brms's Yl_x[idxl_y_x_1[n]].
+  set.seed(26)
+  n <- 240
+  dm <- data.frame(g1 = sample(seq(1, n - 1, 2), n, TRUE), g2 = seq_len(n),
+                   s = rep(c(TRUE, FALSE), n / 2), w = rnorm(n))
+  dm$x <- rnorm(n)
+  dm$y <- 1 + 0.5 * dm$x[match(dm$g1, dm$g2)] + 0.3 * dm$w +
+    rnorm(n, sd = 0.5)
+  dm$x[c(3, 7, 8, 21)] <- NA
+  bm <- brms::bf(y ~ mi(x, idx = g1) + w) +
+    brms::bf(x | mi() + index(g2) + subset(s) ~ 1) +
+    brms::set_rescor(FALSE)
+  fm <- frm(bf(y ~ mi(x, idx = g1) + w) +
+              bf(x | mi() + index(g2) + subset(s) ~ 1), data = dm,
+            family = gaussian())
+  chk <- brms_lp_check(bm, gaussian(), dm, fm, joint = TRUE)
+  # the same rows are read, and the latent values are brms's Ymi_x
+  expect_identical(as.integer(chk$sdat$idxl_y_x_1),
+                   fm$frame$linpreds[["y.mu"]]$mi[[1]]$idxl)
+  expect_identical(as.integer(chk$sdat$Jmi_x),
+                   as.integer(fm$frame$mi_map$x$rows))
+  expect_true("mixidxEQg1" %in% brms::default_prior(bm, dm)$coef)
+  expect_true("y_mixidxEQg1" %in% rownames(fixef(fm)))
+})

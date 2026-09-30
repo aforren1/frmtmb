@@ -158,6 +158,7 @@ dpar_frame_rhs <- function(dp) {
   }
   for (ent in dp[["miterms"]] %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
+    if (!is.null(ent$idx)) parts <- c(parts, list(ent$idx))
   }
   for (v in me_frame_vars(dp)) parts <- c(parts, list(as.name(v)))
   for (cexpr in dp[["csterms"]] %||% list()) {
@@ -1621,10 +1622,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # aligned. Responses go on the RHS of the frame formula (a multivariate
   # LHS is not a valid model.frame response) and are extracted by name.
   rhs_comb <- NULL
+  # what each response adds, for subset()'s NA rule (R/subset.R)
+  rhs_resp <- list()
   add_part <- function(part) {
     rhs_comb <<- if (is.null(rhs_comb)) part else call("+", rhs_comb, part)
+    rhs_resp[[cur_resp]] <<- if (is.null(rhs_resp[[cur_resp]])) {
+      part
+    } else call("+", rhs_resp[[cur_resp]], part)
   }
+  subset_check_spec(spec, na.action)
   for (resp in spec$responses) {
+    cur_resp <- resp$resp_name
     add_part(resp$resp_expr)
     for (dp in resp$dpars) add_part(dpar_frame_rhs(dp))
     # the time and grouping variables of a residual correlation term
@@ -1671,14 +1679,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }, spec$responses),
     function(r) deparse1(r$resp_expr), ""
   )
-  if (length(mi_cols)) {
+  has_sub <- spec_has_subset(spec)
+  if (length(mi_cols) || has_sub) {
     mf <- stats::model.frame(fr_formula, data = data,
                              drop.unused.levels = TRUE,
                              na.action = stats::na.pass)
-    bad <- Reduce(`|`, lapply(setdiff(names(mf), mi_cols), function(cn) {
-      v <- mf[[cn]]
-      if (is.matrix(v)) rowSums(is.na(v)) > 0 else is.na(v)
-    }), rep(FALSE, nrow(mf)))
+    bad <- if (has_sub) {
+      # brms's na_omit(): an NA is harmless on a row that every
+      # response using the variable leaves out
+      subset_na_rows(spec, mf, lapply(rhs_resp, frame_rhs_columns), mi_cols)
+    } else {
+      Reduce(`|`, lapply(setdiff(names(mf), mi_cols), function(cn) {
+        v <- mf[[cn]]
+        if (is.matrix(v)) rowSums(is.na(v)) > 0 else is.na(v)
+      }), rep(FALSE, nrow(mf)))
+    }
     if (any(bad)) {
       dropped <- which(bad)
       mf <- mf[!bad, , drop = FALSE]
@@ -1712,7 +1727,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                "`data` has no rows; nothing to fit"
              }, call. = FALSE)
   }
-  if (anyNA(mf[setdiff(names(mf), mi_cols)])) {
+  # subset(): the rows each response uses. A univariate model has one
+  # set of rows, so the frame itself is cut to them and every later
+  # stage sees an ordinary frame.
+  sub_rows <- if (has_sub) subset_rows_of(spec, mf) else list()
+  # brms's nobs(): the rows of the data, before any subset() cut
+  n_data <- nrow(mf)
+  uni_rows <- NULL
+  if (has_sub && length(spec$responses) == 1L) {
+    uni_rows <- sub_rows[[1L]]
+    mf <- frame_rows(mf, uni_rows)
+    n <- nrow(mf)
+    sub_rows <- list()
+  }
+  if (!has_sub && anyNA(mf[setdiff(names(mf), mi_cols)])) {
     frm_stop("NA values remain in the model variables after applying ",
              "na.action; use na.omit (default) or na.exclude", call. = FALSE)
   }
@@ -1737,7 +1765,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   blocks <- list()   # per response: the structured family's data block
   autocor <- list()  # per response: R-side residual correlation block
   n_thetaac <- 0L
+  index_vals <- list()   # per index() response: its rows' index values
+  mf_all <- mf
+  n_all <- n
   for (resp in spec$responses) {
+    # a subset() response sees only its own rows from here on
+    mf <- frame_rows(mf_all, sub_rows[[resp$resp_name]])
+    n <- nrow(mf)
+    if (!is.null(resp$aterms[["index"]])) {
+      index_vals[[resp$resp_name]] <- index_eval(resp, mf)
+    }
     # A name that is both a nonlinear parameter and a data column is
     # ambiguous, and the nonlinear body resolves it to the PARAMETER,
     # silently ignoring the column - the fit runs and reports numbers
@@ -1764,7 +1801,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     y_levels[[resp$resp_name]] <- rc$levels
     y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
-                        c("cens_y2", "se_sigma", "mi"))
+                        c("cens_y2", "se_sigma", "mi", row_aterms))
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
@@ -1906,6 +1943,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (!is.null(attr(mf, "na.action"))) {
         v <- v[-attr(mf, "na.action")]
       }
+      # the rows this response reads, under subset()
+      rows_ <- sub_rows[[resp$resp_name]] %||% uni_rows
+      if (!is.null(rows_)) v <- v[rows_]
       av[["cens_y2"]] <- v
     }
     for (vn in grep("^vint", names(av), value = TRUE)) {
@@ -1913,6 +1953,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         frm_stop(vn, " values must be integers (use vreal() for reals)",
                  call. = FALSE)
       }
+    }
+    if (!is.null(av[["rate"]]) && (anyNA(av[["rate"]]) ||
+                                     any(av[["rate"]] <= 0))) {
+      # brms's own check, "Rate denomiators should be positive": the
+      # exposure enters as log(denom)
+      frm_stop("rate(", deparse1(resp$aterms[["rate"]]), "): rate ",
+               "denominators should be positive", call. = FALSE)
     }
     if (!is.null(av[["weights"]])) {
       if (any(av[["weights"]] < 0)) {
@@ -2218,6 +2265,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     aterm_values[[resp$resp_name]] <- av
   }
+  mf <- mf_all
+  n <- n_all
 
   # me() latent values: after every mi() response, so the mi() slots
   # of `miss` keep the positions they have always had
@@ -2235,6 +2284,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   betad_fixed_idx <- integer(0)
 
   for (resp in spec$responses) {
+    # a subset() response's designs are built on its own rows
+    mf <- frame_rows(mf_all, sub_rows[[resp$resp_name]])
+    n <- nrow(mf)
     for (dp in resp$dpars) {
       lp_key <- linpred_key(resp$resp_name, dp[["name"]])
       is_primary <- dp[["name"]] %in% resp$primary_dpars
@@ -2875,14 +2927,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           mult <- check_special_mult(eval(ent$mult, mf, resp$formula_env),
                                      ent$mult, "mi")
         }
+        # brms's name for mi(x, idx = g) is its rename(), "mixidxEQg"
         lab <- paste0("mi", vn,
+                      if (!is.null(ent$idx)) {
+                        paste0("idxEQ", deparse1(ent$idx))
+                      },
                       if (!is.null(ent$mult)) {
                         paste0(":", deparse1(ent$mult))
                       } else "")
         X <- cbind(X, matrix(0, nrow(X), 1, dimnames = list(NULL, lab)))
         mi_info[[length(mi_info) + 1L]] <- list(
           var = vn, col = ncol(X), label = lab,
-          mult = mult, mult_expr = ent$mult
+          mult = mult, mult_expr = ent$mult,
+          # brms's idxl: the row of `vn` each row here reads, when the
+          # two responses do not share their rows (R/subset.R)
+          idx_expr = ent$idx,
+          idxl = mi_idx_rows(ent, vn, resp, tgt, mf, index_vals, sub_rows)
         )
       }
 
@@ -3002,6 +3062,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       )
     }
   }
+  mf <- mf_all
+  n <- n_all
 
   ## Phase 2: components -> blocks. Components sharing an |ID| key merge
   ## into one block - unstructured by default, or one gr_cov/gr_prec
@@ -3044,7 +3106,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (!identical(cp$levels, lv)) {
           frm_stop("|ID|-linked terms must share identical grouping-factor ",
                    "levels (", cps[[1]]$label, " vs ", cp$label, ")",
-                   call. = FALSE)
+                   if (length(sub_rows)) {
+                     paste0(". A response with subset() has the levels ",
+                            "its own rows carry, and brms's levels of the ",
+                            "whole data are not followed here")
+                   }, call. = FALSE)
         }
       }
       D <- sum(vapply(cps, `[[`, 0L, "dim"))
@@ -3202,8 +3268,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         jj <- c(jj, glob)
         xx <- c(xx, Tk@x)
       }
-      lp[["Z"]] <- Matrix::sparseMatrix(i = ii, j = jj, x = xx,
-                                   dims = c(n, n_c))
+      # a subset() response has its own number of rows
+      lp[["Z"]] <- Matrix::sparseMatrix(
+        i = ii, j = jj, x = xx,
+        dims = c(nrow(components[[lp[["comp_ids"]][1L]]]$Zlocal), n_c))
     }
     if (length(lp[["smooths"]])) {
       lp[["smooths"]] <- lapply(lp[["smooths"]], function(si) {
@@ -3341,7 +3409,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          predvar_map = predvar_map,
          sparse_x = isTRUE(sparse_x),
          data_frame = mf,
-         na_action = attr(mf, "na.action")),
+         na_action = attr(mf, "na.action"),
+         # subset(): the rows of `data_frame` each such response uses,
+         # and the rows before a univariate model's cut, for nobs()
+         subset_rows = if (length(sub_rows)) sub_rows,
+         nobs_data = if (!is.null(uni_rows)) n_data),
     class = "frmtmb_frame"
   )
   # brms refuses a group-level effect given twice (frame_re()), and the

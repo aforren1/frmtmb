@@ -90,6 +90,8 @@
 \alias{rescor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
+\alias{subset_resp_check}
+\alias{subset_newdata}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -168,6 +170,15 @@ group. Call \code{arma_cond_dpars()} before \code{row_lpdf()} (and before
 and which makes the row density read the objective's own \code{mu} instead
 of a second one. It is safe to call unconditionally: with no such
 block it returns \code{dpv} unchanged.
+
+\code{subset_resp_check(fit, resp, what)} and
+\code{subset_newdata(fit, resp, newdata)} carry brms's rule for a
+multivariate model whose responses use \code{subset()}: each response has
+its own rows, so a method is asked for one response at a time, and
+on \code{newdata} it answers for the rows where that response's subset is
+TRUE. The first refuses anything but a single \code{resp} on such a model
+and is silent on every other; the second returns \code{newdata} unchanged
+when the response has no \code{subset()}.
 }
 
 \section{The prior seam}{

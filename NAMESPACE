@@ -207,7 +207,7 @@ export(build_objective, row_lpdf, with_cs_offsets,
   fam_is_category_valued, predict_category_props, vcov_estimated,
   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
-  arma_cond_resp, arma_cond_dpars)
+  arma_cond_resp, arma_cond_dpars, subset_resp_check, subset_newdata)
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)

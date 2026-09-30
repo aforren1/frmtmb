@@ -262,6 +262,30 @@ has not written.
   threshold vector per level of `g`, named `Intercept[g,k]` as in
   brms. The section "Ordinal thresholds, thres()" of `?frm` says
   where the count and the unobserved categories differ from brms.
+  brms's deprecated `cat(K)` is read as `thres(K - 1)`, with brms's
+  warning.
+- `rate()` works as in brms on `poisson()`, `negbinomial()` and
+  `geometric()`: the expected count is `mu * d`, and on the negative
+  binomial the shape is multiplied by `d` too. On `poisson()` with the
+  log link it is the `offset(log(d))` model. The log-likelihood equals
+  brms's compiled program at the same parameters. `fitted()` reports
+  `mu * d`, `frm_linpred()` the predictor without `log(d)`.
+- `subset()`, `index()` and `mi(x, idx = )` work as in brms: each
+  response of a multivariate model is fitted on its own rows, with
+  brms's rule for missing values, and a predictor reads another
+  response's rows by index. The methods that return one row per
+  observation need `resp =`, and on `newdata` they keep the rows where
+  the subset is `TRUE`, both as in brms, and `nobs()` counts the
+  data's rows, or one response's with `resp =`. Three differences,
+  all because brms keeps every level of the whole data in a subsetted
+  response and frmtmb keeps the levels the response's own rows carry:
+  a grouping factor has fewer levels (the marginal likelihood is the
+  same, `ranef()` lists fewer, and `|ID|`-linked terms whose rows
+  carry different levels are refused), a factor predictor level that
+  occurs only outside the subset has no column where brms has an
+  all-zero one, and an ordinal category that occurs only outside the
+  subset has no threshold where brms has one. The section "Response
+  subsets" of `?frm` has the rest.
 - `binomial()`, `beta_binomial()` and `zero_inflated_binomial()`
   without `trials()` are refused, as in brms, with brms's message. A 0/1
   response takes `bernoulli()` or `y | trials(1)`; the `stats::glm()`

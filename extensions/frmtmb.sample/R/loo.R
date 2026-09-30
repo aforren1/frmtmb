@@ -173,6 +173,9 @@ draws_row_loglik <- function(fit, resp) {
     return(rescor_row_loglik(fit, dpv))
   }
   use <- resp %||% names(rspecs)
+  # a response fitted on its own rows under subset() has one column per
+  # row of ITS OWN; log_lik() lets such a model through only with resp
+  if (length(use) == 1L) n <- NROW(frame[["y"]][[use]])
   out <- numeric(n)
   for (r in use) {
     av <- frame[["aterm_values"]][[r]]
@@ -391,6 +394,9 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
              "returns their sum. Ask for one response with resp =",
              call. = FALSE)
   }
+  # subset(): the responses are fitted on different rows, so their
+  # columns do not line up to be summed; brms asks for one response
+  subset_resp_check(fit, resp, "log_lik()")
   if (!is.null(resp) && !resp %in% names(fit$spec$responses)) {
     frm_stop("log_lik(resp = \"", resp, "\") names no response of this ",
              "model; it has ",

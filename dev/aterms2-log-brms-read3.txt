@@ -1,0 +1,166 @@
+index frame: data_sp 
+cross: subset_data 
+
+########  check_cross_formula_indexing 
+function (bterms) 
+{
+    sp_terms <- ulapply(get_effect(bterms, "sp"), all_terms)
+    me_terms <- get_matches_expr(regex_sp("me"), sp_terms)
+    if (length(me_terms)) {
+        stop2("Cannot use me() terms in subsetted formulas.")
+    }
+    mi_terms <- get_matches_expr(regex_sp("mi"), sp_terms)
+    idx_vars <- lapply(mi_terms, function(x) eval2(x)$idx)
+    if (any(idx_vars == "NA")) {
+        stop2("mi() terms in subsetted formulas require ", "the 'idx' argument to be specified.")
+    }
+    invisible(TRUE)
+}
+<bytecode: 0x0000029e43d9b5b0>
+<environment: namespace:brms>
+
+########  frame_index 
+function (x, data) 
+{
+    out <- .frame_index(x, data)
+    if (is.brmsterms(x)) {
+        out <- list(out)
+        names(out)[1] <- terms_resp(x$respform)
+    }
+    out
+}
+<bytecode: 0x0000029e42f2f7e0>
+<environment: namespace:brms>
+
+########  vars_keep_na 
+function (x, ...) 
+{
+    UseMethod("vars_keep_na")
+}
+<bytecode: 0x0000029e4258e388>
+<environment: namespace:brms>
+
+########  subset_data 
+function (data, bterms) 
+{
+    if (has_subset(bterms)) {
+        subset <- as.logical(get_ad_values(bterms, "subset", 
+            "subset", data))
+        if (length(subset) != nrow(data)) {
+            stop2("Length of 'subset' does not match the rows of 'data'.")
+        }
+        if (anyNA(subset)) {
+            stop2("Subset variables may not contain NAs.")
+        }
+        check_cross_formula_indexing(bterms)
+        data <- data[subset, , drop = FALSE]
+        attr(data, "subset") <- subset
+    }
+    if (!NROW(data)) {
+        stop2("All rows of 'data' were removed via 'subset'. ", 
+            "Please make sure that variables do not contain NAs ", 
+            "for observations in which they are supposed to be used. ", 
+            "Please also make sure that each subset variable is ", 
+            "TRUE for at least one observation.")
+    }
+    data
+}
+<bytecode: 0x0000029e43888e40>
+<environment: namespace:brms>
+
+########  frame_sp 
+function (x, data) 
+{
+    if (is.formula(x)) {
+        x <- brmsterms(x, check_response = FALSE)$dpars$mu
+    }
+    form <- x[["sp"]]
+    if (!is.formula(form)) {
+        return(empty_data_frame())
+    }
+    mm <- sp_model_matrix(form, data, rename = FALSE)
+    out <- data.frame(term = colnames(mm), stringsAsFactors = FALSE)
+    try_parse <- try(parse(text = out$term))
+    if (is_try_error(try_parse)) {
+        stop2("Cannot parse special effects terms (see above error message). ", 
+            "Likely this is because of factor levels with special symbols ", 
+            "such as '$' or '@'.")
+    }
+    out$coef <- rename(out$term)
+    calls_cols <- c(paste0("calls_", all_sp_types()), "joint_call")
+    list_cols <- c("vars_mi", "idx_mi", "idx2_mi", "ids_mo", 
+        "Imo")
+    for (col in c(calls_cols, list_cols)) {
+        out[[col]] <- vector("list", nrow(out))
+    }
+    kmo <- 0
+    terms_split <- strsplit(out$term, ":")
+    for (i in seq_rows(out)) {
+        take_mo <- grepl_expr(regex_sp("mo"), terms_split[[i]])
+        if (sum(take_mo)) {
+            out$calls_mo[[i]] <- terms_split[[i]][take_mo]
+            nmo <- length(out$calls_mo[[i]])
+            out$Imo[[i]] <- (kmo + 1):(kmo + nmo)
+            out$ids_mo[[i]] <- rep(NA, nmo)
+            kmo <- kmo + nmo
+            for (j in seq_along(out$calls_mo[[i]])) {
+                mo_term <- out$calls_mo[[i]][[j]]
+                mo_match <- get_matches_expr(regex_sp("mo"), 
+                  mo_term)
+                if (length(mo_match) > 1L || nchar(mo_match) < 
+                  nchar(mo_term)) {
+                  stop2("The monotonic term '", mo_term, "' is invalid.")
+                }
+                out$ids_mo[[i]][j] <- eval2(mo_term)$id
+            }
+        }
+        take_me <- grepl_expr(regex_sp("me"), terms_split[[i]])
+        if (sum(take_me)) {
+            out$calls_me[[i]] <- terms_split[[i]][take_me]
+            out$calls_me[[i]] <- gsub("^I\\(", "(", out$calls_me[[i]])
+        }
+        take_mi <- grepl_expr(regex_sp("mi"), terms_split[[i]])
+        if (sum(take_mi)) {
+            mi_parts <- terms_split[[i]][take_mi]
+            out$calls_mi[[i]] <- get_matches_expr(regex_sp("mi"), 
+                mi_parts)
+            out$vars_mi[[i]] <- out$idx_mi[[i]] <- rep(NA, length(out$calls_mi[[i]]))
+            for (j in seq_along(out$calls_mi[[i]])) {
+                mi_term <- eval2(out$calls_mi[[i]][[j]])
+                out$vars_mi[[i]][j] <- mi_term$term
+                if (mi_term$idx != "NA") {
+                  out$idx_mi[[i]][j] <- mi_term$idx
+                }
+            }
+            out$vars_mi[[i]] <- gsub("\\.|_", "", make.names(out$vars_mi[[i]]))
+        }
+        has_sp_calls <- grepl_expr(regex_sp(all_sp_types()), 
+            terms_split[[i]])
+        sp_calls <- sub("^I\\(", "(", terms_split[[i]][has_sp_calls])
+        out$joint_call[[i]] <- paste0(sp_calls, collapse = " * ")
+    }
+    uni_mi <- unique(data.frame(var = unlist(out$vars_mi), idx = unlist(out$idx_mi), 
+        stringsAsFactors = FALSE))
+    uni_mi$idx2 <- rep(NA, nrow(uni_mi))
+    for (i in seq_rows(uni_mi)) {
+        uni_mi_sub <- subset2(uni_mi, var = uni_mi$var[i])
+        uni_mi$idx2[i] <- match(uni_mi$idx[i], na.omit(uni_mi_sub$idx))
+    }
+    attr(out, "uni_mi") <- uni_mi
+    for (i in seq_rows(out)) {
+        for (j in seq_along(out$idx_mi[[i]])) {
+            sub <- subset2(uni_mi, var = out$vars_mi[[i]][j], 
+                idx = out$idx_mi[[i]][j])
+            out$idx2_mi[[i]][j] <- sub$idx2
+        }
+    }
+    has_covars <- attr(mm, "covars")
+    cumsum_covars <- cumsum(has_covars)
+    out$Ic <- ifelse(has_covars, cumsum_covars, 0)
+    class(out) <- spframe_class()
+    out
+}
+<bytecode: 0x0000029e42e86318>
+<environment: namespace:brms>
+
+######## families accepting rate / subset / index / cat / thres

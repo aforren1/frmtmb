@@ -1,0 +1,18 @@
+bcm-binomial: ..S..S.S...S..S.......S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. Rate_1 matches its Stan program ('test-bcm-binomial.R:70:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. Rate_2 matches its Stan program ('test-bcm-binomial.R:99:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+3. Rate_3 matches its Stan program ('test-bcm-binomial.R:125:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+4. Rate_4 matches its Stan program ('test-bcm-binomial.R:163:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+5. Rate_5 matches its Stan program ('test-bcm-binomial.R:193:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+6. Survey matches its Stan program ('test-bcm-binomial.R:265:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-bcm-binomial.R pass=17 fail=0 error=0 skip=6 warn=0

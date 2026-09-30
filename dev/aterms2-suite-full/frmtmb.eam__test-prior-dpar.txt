@@ -1,0 +1,6 @@
+prior-dpar: .......
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🌈 Your tests are over the rainbow 🌈
+
+RESULT test-prior-dpar.R pass=7 fail=0 error=0 skip=0 warn=0

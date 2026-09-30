@@ -1,0 +1,10 @@
+bcm-gcm: .....S....S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. GCM_1 matches its Stan program ('test-bcm-gcm.R:121:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. GCM_2 matches its Stan program ('test-bcm-gcm.R:179:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-bcm-gcm.R pass=9 fail=0 error=0 skip=2 warn=0

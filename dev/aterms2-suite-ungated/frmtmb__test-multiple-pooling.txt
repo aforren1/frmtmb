@@ -1,0 +1,5 @@
+multiple-pooling: .................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-multiple-pooling.R pass=33 fail=0 error=0 skip=0 warn=0

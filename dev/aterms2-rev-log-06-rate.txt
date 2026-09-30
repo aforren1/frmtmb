@@ -1,0 +1,38 @@
+== rate() against offset(log(time)) on poisson
+  fixef identical: FALSE 
+  fitted identical: FALSE  max rel 3.367043e-08 
+  fitted(newdata) max rel: 1.883016e-08 
+  predict(newdata) Estimate rate/offset: 1 1 1 1 1 1 1 1 
+  simulate identical: TRUE  rows differing 0 of 400 
+  pearson residuals max rel: 3.453964e-08 
+  conditional_effects rate: estimate / (mu * held time), range: 1 1 
+  conditional_effects rate: time held at 2.221857  mean(time) 2.221857 
+
+== negbinomial and geometric: draws follow newdata's denom
+  negbinomial  epred/(mu*time) 1 1 1  draw mean/epred 0.9895 0.9989 1.0014
+               draw var / (mu d (1 + mu/shape)) 1.001 1.040 1.273
+               simulate mean / fitted over rows: 1.0024
+  geometric    epred/(mu*time) 1 1 1  draw mean/epred 0.9900 0.9979 1.0005
+               draw var / (mu d (1 + mu/shape)) 0.9953 1.0284 1.2522
+               simulate mean / fitted over rows: 1.0031
+
+== refusals
+denom 0                                  ERROR: rate(time): rate denominators should be positive 
+denom negative                           ERROR: rate(time): rate denominators should be positive 
+denom NA (row dropped?)                  ok frmtmb_fit 
+    n_obs 199 
+  brms denom 0: Rate denomiators should be positive. 
+fitted(newdata denom 0)                  ok matrix 
+    value at denom 0: 0 
+fitted(newdata denom -2)                 ok matrix 
+    value at denom -2: -1.855209 
+predict(newdata denom -2)                ok matrix 
+  brms newdata denom -2 (standata newdata): Rate denomiators should be positive. 
+zero_inflated_poisson + rate             ERROR: zero_inflated_poisson: the addition term `rate()` is not one this family reads, so writing it would change nothing about the fit. This family takes `weights()`. 
+hurdle_poisson + rate                    ERROR: hurdle_poisson: the addition term `rate()` is not one this family reads, so writing it would change nothing about the fit. This family takes `weights()`. 
+gaussian + rate                          ERROR: gaussian: the addition term `rate()` is not one this family reads, so writing it would change nothing about the fit. This family takes `cens()`, `mi()`, `se()`, `trunc()`, `weights()`. 
+binomial + rate                          ERROR: binomial: the addition term `rate()` is not one this family reads, so writing it would change nothing about the fit. This family takes `trials()`, `weights()`. 
+rate(time * 2) expression                ERROR: invalid model formula in ExtractVars 
+  brms rate(time * 2): ok 
+rate(2) constant                         ok frmtmb_fit 
+  brms rate(2): 1 

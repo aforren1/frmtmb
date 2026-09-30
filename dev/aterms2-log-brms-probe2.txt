@@ -1,0 +1,431 @@
+
+=== rate poisson
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    target += poisson_log_lpmf(Y | mu + log_denom);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+}
+NULL
+
+=== rate poisson identity
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 1, 2.5);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    target += poisson_lpmf(Y | mu .* denom);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+}
+NULL
+
+=== rate negbinomial
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+  real<lower=0> shape;  // shape parameter
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += inv_gamma_lpdf(shape | 0.4, 0.3);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    target += neg_binomial_2_log_lpmf(Y | mu + log_denom, shape .* denom);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+}
+NULL
+
+=== rate negbinomial shape ~ x
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int<lower=1> K_shape;  // number of population-level effects
+  matrix[N, K_shape] X_shape;  // population-level design matrix
+  int<lower=1> Kc_shape;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  matrix[N, Kc_shape] Xc_shape;  // centered version of X_shape without an intercept
+  vector[Kc_shape] means_X_shape;  // column means of X_shape before centering
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+  for (i in 2:K_shape) {
+    means_X_shape[i - 1] = mean(X_shape[, i]);
+    Xc_shape[, i - 1] = X_shape[, i] - means_X_shape[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+  vector[Kc_shape] b_shape;  // regression coefficients
+  real Intercept_shape;  // temporary intercept for centered predictors
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += student_t_lpdf(Intercept_shape | 3, 0, 2.5);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    // initialize linear predictor term
+    vector[N] shape = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    shape += Intercept_shape + Xc_shape * b_shape;
+    shape = exp(shape);
+    target += neg_binomial_2_log_lpmf(Y | mu + log_denom, shape .* denom);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+  // actual population-level intercept
+  real b_shape_Intercept = Intercept_shape - dot_product(means_X_shape, b_shape);
+}
+NULL
+
+=== rate negbinomial2
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+  real<lower=0> sigma;  // dispersion parameter
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += gamma_lpdf(sigma | 0.4, 0.3);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    target += neg_binomial_2_log_lpmf(Y | mu + log_denom, inv(sigma) .* denom);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+}
+NULL
+
+=== rate geometric
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    target += neg_binomial_2_log_lpmf(Y | mu + log_denom, 1 .* denom);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+}
+NULL
+
+=== rate poisson cens
+
+========== sc 
+// generated with brms 2.23.0
+functions {
+}
+data {
+  int<lower=1> N;  // total number of observations
+  array[N] int Y;  // response variable
+  vector<lower=0>[N] denom;  // response denominator
+  // censoring indicator: 0 = event, 1 = right, -1 = left, 2 = interval censored
+  array[N] int<lower=-1,upper=2> cens;
+  int<lower=1> K;  // number of population-level effects
+  matrix[N, K] X;  // population-level design matrix
+  int<lower=1> Kc;  // number of population-level effects after centering
+  int prior_only;  // should the likelihood be ignored?
+}
+transformed data {
+  // log response denominator
+  vector[N] log_denom = log(denom);
+  // indices of censored data
+  int Nevent = 0;
+  int Nrcens = 0;
+  int Nlcens = 0;
+  array[N] int Jevent;
+  array[N] int Jrcens;
+  array[N] int Jlcens;
+  matrix[N, Kc] Xc;  // centered version of X without an intercept
+  vector[Kc] means_X;  // column means of X before centering
+  // collect indices of censored data
+  for (n in 1:N) {
+    if (cens[n] == 0) {
+      Nevent += 1;
+      Jevent[Nevent] = n;
+    } else if (cens[n] == 1) {
+      Nrcens += 1;
+      Jrcens[Nrcens] = n;
+    } else if (cens[n] == -1) {
+      Nlcens += 1;
+      Jlcens[Nlcens] = n;
+    }
+  }
+  for (i in 2:K) {
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  }
+}
+parameters {
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+}
+transformed parameters {
+  // prior contributions to the log posterior
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+}
+model {
+  // likelihood including constants
+  if (!prior_only) {
+    // initialize linear predictor term
+    vector[N] mu = rep_vector(0.0, N);
+    mu += Intercept + Xc * b;
+    mu = exp(mu);
+    // vectorized log-likelihood contributions of censored data
+    target += poisson_lpmf(Y[Jevent[1:Nevent]] | mu[Jevent[1:Nevent]] .* denom[Jevent[1:Nevent]]);
+    target += poisson_lccdf(Y[Jrcens[1:Nrcens]] | mu[Jrcens[1:Nrcens]] .* denom[Jrcens[1:Nrcens]]);
+    target += poisson_lcdf(Y[Jlcens[1:Nlcens]] | mu[Jlcens[1:Nlcens]] .* denom[Jlcens[1:Nlcens]]);
+  }
+  // priors including constants
+  target += lprior;
+}
+generated quantities {
+  // actual population-level intercept
+  real b_Intercept = Intercept - dot_product(means_X, b);
+}
+NULL
+
+========== rate gaussian 
+[1] "ERROR: Argument 'rate' is not supported for family 'gaussian(identity)'."
+
+========== rate zip 
+[1] "ERROR: Argument 'rate' is not supported for family 'zero_inflated_poisson(log)'."
+
+========== rate 0 
+[1] "ERROR: Rate denomiators should be positive."
+
+========== rate const 
+[1] 2
+
+========== cat standata 
+$nthres
+[1] 5
+
+$warnings
+[1] "Addition argument 'cat' is deprecated. Use 'thres' instead. See ?brmsformula for more details."
+
+
+========== cat on gaussian 
+[1] "ERROR: Argument 'cat' is not supported for family 'gaussian(identity)'."
+
+========== cat + thres 
+[1] "WARNING: Addition argument 'cat' is deprecated. Use 'thres' instead. See ?brmsformula for more details."

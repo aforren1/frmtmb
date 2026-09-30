@@ -1,0 +1,226 @@
+ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
+subset-rate: 123456789abcdefg
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-subset-rate.R:57:3'): rate() on poisson is the offset(log(den
+<frmtmb_error/error/condition>
+Error: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(y | rate(time) ~ x, data = d, family = poisson()) at test-subset-rate.R:57:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 5.       └─frmtmb:::parse_response(f)
+ 6.         └─frmtmb::frm_stop(...)
+
+── 2. Error ('test-subset-rate.R:85:3'): rate() scales the negative binomial's m
+<frmtmb_error/error/condition>
+Error: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(yn | rate(time) ~ x, data = d, family = negbinomial()) at test-subset-rate.R:85:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 5.       └─frmtmb:::parse_response(f)
+ 6.         └─frmtmb::frm_stop(...)
+
+── 3. Error ('test-subset-rate.R:103:3'): rate() on geometric is the negative bi
+<frmtmb_error/error/condition>
+Error: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(y | rate(time) ~ x, data = d, family = geometric()) at test-subset-rate.R:103:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 5.       └─frmtmb:::parse_response(f)
+ 6.         └─frmtmb::frm_stop(...)
+
+── 4. Error ('test-subset-rate.R:113:3'): rate() is refused where brms refuses i
+<frmtmb_error/error/condition>
+Error: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-subset-rate.R:113:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(...)
+  8.   └─frmtmb:::parse_spec(bform)
+  9.     └─frmtmb:::parse_one_response(bform)
+ 10.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 11.       └─frmtmb:::parse_response(f)
+ 12.         └─frmtmb::frm_stop(...)
+
+── 5. Error ('test-subset-rate.R:133:3'): predict() and simulate() draw around m
+<frmtmb_error/error/condition>
+Error: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(y | rate(time) ~ x, data = d, family = poisson()) at test-subset-rate.R:133:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 5.       └─frmtmb:::parse_response(f)
+ 6.         └─frmtmb::frm_stop(...)
+
+── 6. Error ('test-subset-rate.R:150:3'): cat(x) is brms's deprecated thres(x - 
+<frmtmb_error/error/condition>
+Error: Addition term `cat()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-subset-rate.R:150:3
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(...)
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 7.       └─frmtmb:::parse_response(f)
+ 8.         └─frmtmb::frm_stop(...)
+
+── 7. Error ('test-subset-rate.R:185:3'): subset() fits each response on its own
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:185:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 6.         └─frmtmb:::parse_response(f)
+ 7.           └─frmtmb::frm_stop(...)
+
+── 8. Error ('test-subset-rate.R:200:3'): a subset() model is the sum of the sep
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:200:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 6.         └─frmtmb:::parse_response(f)
+ 7.           └─frmtmb::frm_stop(...)
+
+── 9. Error ('test-subset-rate.R:215:3'): an NA drops its row only where a respo
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:215:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 6.         └─frmtmb:::parse_response(f)
+ 7.           └─frmtmb::frm_stop(...)
+
+── 10. Error ('test-subset-rate.R:243:3'): subset() in a univariate model is a r
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(y1 | subset(s1) ~ x, data = d, family = gaussian()) at test-subset-rate.R:243:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 5.       └─frmtmb:::parse_response(f)
+ 6.         └─frmtmb::frm_stop(...)
+
+── 11. Error ('test-subset-rate.R:253:3'): post-fit methods take one response at
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:253:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 6.         └─frmtmb:::parse_response(f)
+ 7.           └─frmtmb::frm_stop(...)
+
+── 12. Error ('test-subset-rate.R:283:9'): subset() is refused where it cannot b
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-subset-rate.R:285:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb (local) fr(bf(y1 | subset(s1) ~ x) + bf(y2 | subset(s2) ~ z) + set_rescor(TRUE))
+  8.   └─frmtmb::frm(...) at test-subset-rate.R:283:9
+  9.     └─frmtmb:::parse_spec(bform)
+ 10.       └─base::lapply(bform$forms, parse_one_response)
+ 11.         └─frmtmb (local) FUN(X[[i]], ...)
+ 12.           ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 13.           └─frmtmb:::parse_response(f)
+ 14.             └─frmtmb::frm_stop(...)
+
+── 13. Error ('test-subset-rate.R:329:3'): mi(x, idx = ) reads the rows of x tha
+<frmtmb_error/error/condition>
+Error: mi() in a predictor takes one variable name: mi(x)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:329:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         └─frmtmb:::parse_linpred(...)
+ 6.           └─frmtmb::frm_stop(...)
+
+── 14. Error ('test-subset-rate.R:343:3'): with x observed, mi(x, idx = ) is the
+<frmtmb_error/error/condition>
+Error: mi() in a predictor takes one variable name: mi(x)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:343:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         └─frmtmb:::parse_linpred(...)
+ 6.           └─frmtmb::frm_stop(...)
+
+── 15. Error ('test-subset-rate.R:379:3'): mi(x, idx = ) without a subset is mi(
+<frmtmb_error/error/condition>
+Error: mi() in a predictor takes one variable name: mi(x)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-subset-rate.R:379:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         └─frmtmb:::parse_linpred(...)
+ 6.           └─frmtmb::frm_stop(...)
+
+── 16. Error ('test-subset-rate.R:388:9'): mi() across responses with different 
+<frmtmb_error/error/condition>
+Error: mi() in a predictor takes one variable name: mi(x)
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-subset-rate.R:390:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb (local) fr(bf(y ~ mi(x, idx = g1)) + bf(x | mi() + subset(s) ~ 1))
+  8.   └─frmtmb::frm(f, data = dm, family = gaussian(), dry_run = "frame") at test-subset-rate.R:388:9
+  9.     └─frmtmb:::parse_spec(bform)
+ 10.       └─base::lapply(bform$forms, parse_one_response)
+ 11.         └─frmtmb (local) FUN(X[[i]], ...)
+ 12.           └─frmtmb:::parse_linpred(...)
+ 13.             └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT base test-subset-rate.R pass=0 fail=0 error=16 skip=0 warn=0

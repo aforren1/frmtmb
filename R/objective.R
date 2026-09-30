@@ -186,7 +186,9 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
   eta <- if (ncol(lp[["X"]])) {
     as.vector(lp[["X"]] %*% pars[[lp[["par"]]]][lp[["idx"]]])
   } else {
-    rep(0, n)   # threshold-only ordinal model
+    # threshold-only ordinal model; the design's rows, because a
+    # subset() response has fewer than the frame
+    rep(0, nrow(lp[["X"]]))
   }
   if (!is.null(zterm)) {
     eta <- eta + zterm
@@ -207,6 +209,8 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
   # mi(x) terms: coefficient times the observed-or-latent values
   for (mt in lp[["mi"]] %||% list()) {
     xv <- mivals[[mt$var]] %||% yfall[[mt$var]]
+    # mi(x, idx = ): the rows of x that this predictor's rows read
+    if (!is.null(mt$idxl)) xv <- xv[mt$idxl]
     if (!is.null(mt$mult)) xv <- xv * mt$mult
     eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] * xv
   }
@@ -377,7 +381,7 @@ build_objective <- function(frame) {
         CS <- 0
         for (ct in lp[["cs"]]) {
           bcs <- pars[[ct$par]]
-          CS <- CS + RTMB::matrix(ct$vals, n, 1) %*%
+          CS <- CS + RTMB::matrix(ct$vals, length(ct$vals), 1) %*%
             RTMB::matrix(bcs, 1, length(bcs))
         }
         dparv[[lp[["resp"]]]][[".cs"]] <- CS

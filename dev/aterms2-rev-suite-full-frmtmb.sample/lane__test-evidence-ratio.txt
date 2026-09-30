@@ -1,0 +1,6 @@
+ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb.sample 
+evidence-ratio: ....................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-evidence-ratio.R pass=36 fail=0 error=0 skip=0 warn=0

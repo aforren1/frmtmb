@@ -1,0 +1,4 @@
+lane, time = -2                              ERROR: rate(time) on newdata: rate denominators should be positive
+lane, time = 0                               ERROR: rate(time) on newdata: rate denominators should be positive
+mutant without the check, time = -2          -3.130614
+mutant without the check, time = 0           0

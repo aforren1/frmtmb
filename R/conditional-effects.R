@@ -11,7 +11,8 @@
 #'
 #' @noRd
 ce_aterms <- function(rspec, nd, cset, n) {
-  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
+  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
+            row_aterms)
   strict <- c("trials", "se", "trunc_lb", "trunc_ub")
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
@@ -594,7 +595,7 @@ ce_cats_display <- function(rspec, dpar) {
 ce_pred_dpar <- function(rspec, dpar, dpar_given = FALSE,
                          categorical = FALSE, cats_mean = FALSE) {
   mean_display <- !categorical && !cats_mean && !dpar_given &&
-    (!mean_is_mu(rspec$family) || has_trunc(rspec))
+    (!mean_is_mu(rspec$family) || has_trunc(rspec) || has_rate(rspec))
   if (mean_display) NULL else dpar
 }
 
@@ -1000,7 +1001,8 @@ ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
              "predictor: a grid value is not a linear combination of the ",
              "nonlinear parameters. Use band = \"boot\"", call. = FALSE)
   }
-  if (!dpar_given && (!mean_is_mu(rspec$family) || has_trunc(rspec))) {
+  if (!dpar_given && (!mean_is_mu(rspec$family) || has_trunc(rspec) ||
+                      has_rate(rspec))) {
     frm_stop("band = \"profile\" cannot cover the expected response of ",
              "family '", rspec$family[["family"]], "': it runs through more ",
              "than one distributional parameter (zero inflation, a hurdle, ",
@@ -1540,6 +1542,15 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                   paste(unpinned, collapse = ", "), " at 1, so the display ",
                   "is a probability per trial (brms's default too). Pin ",
                   "them in conditions = list(...) for a count.")
+    }
+  }
+  # subset(): brms holds a subset variable at TRUE, so the grid is on
+  # the rows the response is fitted on (its prepare_conditions())
+  for (v in intersect(all.vars(rspec$aterms[["subset"]]), names(base))) {
+    for (i in seq_along(cond_sets)) {
+      if (is.null(cond_sets[[i]][[v]])) {
+        cond_sets[[i]][[v]] <- if (is.numeric(base[[v]])) 1 else TRUE
+      }
     }
   }
   grids <- list()

@@ -1,0 +1,14 @@
+
+========== control negbin identity, no rate 
+measured_const 6.82121e-13 max_grad 2.91e-05 ours -667.5209737
+
+========== rate negbin identity 
+measured_const 2.27374e-13 max_grad 6.73e-06 ours -588.152864
+
+========== rate geometric identity 
+measured_const 1.36424e-12 max_grad 3.12e-07 ours -610.5021342
+
+========== rate poisson identity 
+measured_const 2.27374e-12 max_grad 3.84e-06 ours -610.4777201
+
+I(x^2) column names: frmtmb (Intercept) x2 

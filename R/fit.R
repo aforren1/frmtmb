@@ -417,6 +417,82 @@
 #' because it re-evaluates the stored call, and what [simulate()]
 #' followed by `frm()` does. Write `thres(K)` to pin a count there.
 #'
+#' brms's older `cat(x)` gives the number of CATEGORIES and is read as
+#' `thres(x - 1)`, with brms's deprecation warning. `cat()` and
+#' `thres()` together are refused, because they set one count.
+#'
+#' @section Exposures, rate():
+#' `y | rate(d) ~ x` fits a count with exposure `d`, as in brms, for
+#' `poisson()`, `negbinomial()` and `geometric()`. The expected count
+#' is `mu * d`. Under the log link that is `eta + log(d)` on the
+#' linear-predictor scale, so on `poisson()` the model is the same as
+#' `y ~ x + offset(log(d))`. On the negative binomial brms multiplies
+#' the shape by `d` too, so the variance is `mu d (1 + mu / shape)`,
+#' and on `geometric()` the density is the negative binomial of size
+#' `d`. `d` must be positive.
+#'
+#' [fitted()] and [predict()] report the expected count, `mu * d`.
+#' `fitted(dpar = "mu")` and [frm_linpred()] report `mu` and its linear
+#' predictor without the exposure, as brms's `posterior_linpred()`
+#' does. `newdata` must hold `d`. Other families refuse the term, as
+#' brms does.
+#'
+#' @section Response subsets, subset() and index():
+#' In a multivariate model, `y1 | subset(s) ~ x` fits `y1` on the rows
+#' where the logical variable `s` is `TRUE`, so each response can have
+#' its own rows. The design matrices and the smooth bases of a response
+#' come from its own rows, as brms builds them from the subsetted data.
+#' A missing value does not drop a row when every response that uses
+#' the variable leaves that row out through its own `subset()`; this is
+#' brms's rule. In a univariate model `subset()` is a filter on the
+#' rows. [nobs()] counts the rows of the data, as brms's does, in a
+#' univariate model too, and `nobs(fit, resp = "y1")` counts the rows
+#' of that response in a multivariate one. The log-likelihood's own
+#' count, which `BIC()` reads, is the rows of the fitted frame: the
+#' subset's rows in a univariate model, and in a multivariate one every
+#' row kept, including a row that no response's subset uses.
+#'
+#' A predictor that reads another response, `mi(x)`, cannot line the
+#' rows up when either response uses `subset()`. As in brms, name each
+#' row of `x` with `x | mi() + index(id)` and read it with
+#' `mi(x, idx = ref)`: each row of the using response takes the value
+#' of `x` on the row whose `id` equals its `ref`. A value of `ref` with
+#' no match, a duplicated `id`, and `mi(x)` without `idx` across
+#' subsetted responses are refused with brms's messages. The
+#' coefficient has brms's name, `mixidxEQref`.
+#'
+#' [fitted()], [predict()], [frm_linpred()] and, in `frmtmb.sample`,
+#' `log_lik()` and the posterior methods need a single `resp =` on such
+#' a model, as brms asks: the responses have different rows. On
+#' `newdata` they answer for the rows where that response's subset is
+#' `TRUE`, and `newdata` must hold the subset variable. On `newdata`,
+#' `mi(x, idx = )` matches `idx` among the rows of `newdata` itself.
+#' [conditional_effects()] holds a subset variable at `TRUE`, as brms
+#' does.
+#'
+#' Refused: `subset()` with `set_rescor(TRUE)`, with `me()` terms (as
+#' in brms), with `na.action = na.exclude`, and, in a multivariate
+#' model, with a residual correlation term or a structured family, and
+#' `vcov_cluster()` on such a model.
+#'
+#' Three differences from brms remain, all for the same reason. brms
+#' keeps every level of the whole data in a subsetted response, and
+#' frmtmb keeps the levels that the response's own rows carry, so that
+#' it creates no parameter that the data cannot place:
+#' \itemize{
+#'   \item A grouping factor. A level with no rows adds nothing to the
+#'     marginal likelihood, so the fits agree, but [ranef()] lists
+#'     fewer levels, and `|ID|`-linked terms whose rows carry different
+#'     levels are refused.
+#'   \item A factor predictor. brms keeps an all-zero column for a
+#'     level that occurs only outside the subset; frmtmb drops the
+#'     column with its rank-deficiency message, and the fit is the fit
+#'     on the subset's rows.
+#'   \item An ordinal response. A category that occurs only outside the
+#'     subset gives brms one more threshold than frmtmb, because frmtmb
+#'     counts the categories the response's own rows take.
+#' }
+#'
 #' @section The Laplace approximation, and how to check it:
 #' Random effects are integrated out by the Laplace approximation,
 #' which assumes the integrand is close to Gaussian around the

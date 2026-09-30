@@ -1,0 +1,2 @@
+MUTANT idx_by_position      core   pass=63 fail=7 error=0 skip=0
+   failing blocks: mi(x, idx = ) reads the rows of x that index() names | with x observed, mi(x, idx = ) is the regression on x[idx] | mi() across responses with different rows is refused as brms 

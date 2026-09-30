@@ -1,0 +1,5 @@
+simulate-ergonomics: ..................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-simulate-ergonomics.R pass=50 fail=0 error=0 skip=0 warn=0

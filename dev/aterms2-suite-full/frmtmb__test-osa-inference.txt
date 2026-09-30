@@ -1,0 +1,6 @@
+osa-inference: ..................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🌈 Your tests are over the rainbow 🌈
+
+RESULT test-osa-inference.R pass=34 fail=0 error=0 skip=0 warn=0

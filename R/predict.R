@@ -193,6 +193,8 @@ patch_mo_cols <- function(fit, lp, X) {
   }
   for (mt in lp[["mi"]] %||% list()) {
     v <- mi_values(fit, mt$var)
+    # mi(x, idx = ): the rows of x this predictor's rows read
+    if (!is.null(mt$idxl)) v <- v[mt$idxl]
     if (!is.null(mt$mult)) v <- v * mt$mult
     X[, mt$col] <- v
   }
@@ -562,6 +564,12 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
   for (mt in lp[["mi"]] %||% list()) {
     v <- newdata[[mt$var]]
+    # mi(x, idx = ): each row reads x on the row of newdata whose
+    # index() matches its idx, among x's own rows there, as brms's
+    # standata() builds idxl for new data
+    if (!is.null(mt$idx_expr) && !is.null(v)) {
+      v <- mi_idx_newdata(fit, mt, newdata, env)
+    }
     if (is.null(v) || anyNA(v)) {
       frm_stop("mi(", mt$var, "): newdata must supply complete values",
                call. = FALSE)
@@ -774,7 +782,8 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
       drop(as.matrix(patch_mo_cols(fit, lp, lp[["X"]]) %*%
                        est[[lp[["par"]]]][lp[["idx"]]]))
     } else {
-      numeric(fit$frame[["n_obs"]])
+      # the design's rows: a subset() response has fewer than the frame
+      numeric(nrow(lp[["X"]]))
     }
     # `b = NULL` is documented to drop the random-effect contribution,
     # and dropping it means not forming the product at all: a sparse
@@ -917,8 +926,12 @@ single_response <- function(fit, what) {
 mean_is_mu <- function(fam) {
   # a family that declares no mean has no mean: reading its absence as
   # "the mean is mu" reported a race model's drift as its fitted value
+  # rate_mean() is mu itself when there is no rate(); a response that
+  # carries one is sent through the mean by has_rate()
   !is.null(fam[["post"]]$mean_fn) &&
-    identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]]))
+    (identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]])) ||
+       identical(body(fam[["post"]]$mean_fn),
+                 quote(rate_mean(dpars, aterms))))
 }
 
 #' Whether a response carries `trunc()` bounds, from the spec (the stored
@@ -927,6 +940,14 @@ mean_is_mu <- function(fam) {
 #' @noRd
 has_trunc <- function(rspec) {
   any(c("trunc_lb", "trunc_ub") %in% names(rspec$aterms))
+}
+
+#' Whether a response carries brms's `rate()`, under which the expected
+#' count is `mu` times the exposure rather than `mu`.
+#'
+#' @noRd
+has_rate <- function(rspec) {
+  "rate" %in% names(rspec$aterms)
 }
 
 # Addition-term values (trials, se, trunc bounds, ...) re-evaluated on
@@ -967,9 +988,12 @@ is_custom_data_aterm <- function(nm) {
 aterms_for_newdata <- function(rspec, newdata) {
   # a thres() count lives on the family once the fit is made, so newdata
   # need not repeat it
+  # subset() and index() choose rows and reach no density
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
-            "thres")
-  need <- c("trials", "se", "trunc_lb", "trunc_ub")
+            "thres", row_aterms)
+  # rate() scales the mean, so a row without its exposure has none, as
+  # brms says ("can neither be found in 'data' nor in 'data2'")
+  need <- c("trials", "se", "trunc_lb", "trunc_ub", "rate")
   nd_n <- nrow(newdata)
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
@@ -1029,6 +1053,13 @@ aterms_for_newdata <- function(rspec, newdata) {
                            paste(missed, collapse = ", "), ")")
                   } else "",
                   call. = FALSE)
+    }
+    # the frame's own check, repeated for newdata's exposure: a zero or
+    # negative one gives a non-positive expected count, and brms
+    # refuses it ("Rate denomiators should be positive.")
+    if (nm == "rate" && any(v <= 0, na.rm = TRUE)) {
+      frm_stop("rate(", deparse1(ex), ") on newdata: rate denominators ",
+               "should be positive", call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v
   }
@@ -1529,11 +1560,16 @@ frm_linpred <- function(object, newdata = NULL,
   re_formula <- rr$re_formula
   use_re <- re_form_keeps(re_formula)
 
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks (R/subset.R)
+  subset_resp_check(object, resp %||% names(object$spec$responses),
+                    "frm_linpred()")
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {
     stop_unknown_response(object, resp)
   }
+  newdata <- subset_newdata(object, resp, newdata)
   # An ordinal response has no mean on the response scale: what
   # "response" means there is the category distribution, one row of K
   # probabilities per observation (the brms fitted()/epred convention).
@@ -1629,7 +1665,8 @@ frm_linpred <- function(object, newdata = NULL,
   } else if (type == "conditional") {
     type <- "response"   # the conditional mean is the mu dpar
   } else if (type == "response" && is.null(dpar) &&
-             (!mean_is_mu(rspec$family) || has_trunc(rspec))) {
+             (!mean_is_mu(rspec$family) || has_trunc(rspec) ||
+                has_rate(rspec))) {
     # the response mean is not the mu dpar (zi, hurdle, lognormal,
     # trials-binomial, ...), or the response is truncated so the
     # expected response is E[Y | lb <= Y <= ub]: "response" means the
@@ -1827,7 +1864,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   if (is.null(newdata)) {
     X <- patch_mo_cols(object, lp, lp[["X"]])
     off <- lp[["offset"]]
-    n <- object$frame[["n_obs"]]
+    n <- nrow(X)   # a subset() response has fewer rows than the frame
     eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
     if (!is.null(lp[["Z"]])) {
       cvec <- coef_b(object)
@@ -2349,6 +2386,8 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     dpar <- nlpar
   }
   check_re_form(re_formula)
+  subset_resp_check(object, resp %||% names(object$spec$responses),
+                    "fitted()")
   # frm_linpred() defaults an unnamed multivariate response to the
   # first; the caller who did not name one is asking for all of them,
   # which brms answers in an n x 4 x nresp array, and so does this
@@ -3989,7 +4028,9 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     nls <- predict_new_level_spec(object, rspec, newdata, NULL, nl_ok)
     n_lost <- 0L
   } else {
-    n <- stats::nobs(object)
+    # the rows the model is fitted on; nobs() counts the data's rows,
+    # which a univariate subset() cuts
+    n <- object$frame[["n_obs"]]
   }
   out <- vector("list", nsim)
   for (s in seq_len(nsim)) {

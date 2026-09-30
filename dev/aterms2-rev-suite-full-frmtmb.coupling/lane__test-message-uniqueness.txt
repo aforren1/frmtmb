@@ -1,0 +1,6 @@
+ARM lane PKG C:/Users/adf44/source/r/rellib-r3/frmtmb.coupling 
+message-uniqueness: ....
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-message-uniqueness.R pass=4 fail=0 error=0 skip=0 warn=0
