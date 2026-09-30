@@ -1,0 +1,165 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-api-formrobust                                            
+⠹ | 3        0 | brms-api-formrobust                                            
+⠦ | 6        1 | brms-api-formrobust                                            
+✖ | 6        1 | brms-api-formrobust [2.0s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-brms-api-formrobust.R:18:3'): 0 + intercept is a column of ones, with brms's warning
+<frmtmb_error/error/condition>
+Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-brms-api-formrobust.R:18:3
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = ba_data)
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       └─frmtmb:::parse_linpred(...)
+ 7.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 8.           └─frmtmb::frm_stop(...)
+
+Error ('test-brms-api-formrobust.R:42:3'): a data column intercept that is not all ones is refused
+<frmtmb_error/error/condition>
+Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+Backtrace:
+     ▆
+  1. ├─frmtmb:::allow_warnings(...) at test-brms-api-formrobust.R:42:3
+  2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+  3. ├─testthat::expect_error(...) at ./helper-warnings.R:17:3
+  4. │ └─testthat:::expect_condition_matching_(...)
+  5. │   └─testthat:::quasi_capture(...)
+  6. │     ├─testthat (local) .capture(...)
+  7. │     │ └─base::withCallingHandlers(...)
+  8. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  9. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = d)
+ 10.   └─frmtmb:::parse_spec(bform)
+ 11.     └─frmtmb:::parse_one_response(bform)
+ 12.       └─frmtmb:::parse_linpred(...)
+ 13.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 14.           └─frmtmb::frm_stop(...)
+
+Error ('test-brms-api-formrobust.R:53:3'): brms's standata has the same design
+<frmtmb_error/error/condition>
+Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-brms-api-formrobust.R:53:3
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = ba_data, dry_run = "frame") at ./helper-warnings.R:17:3
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       └─frmtmb:::parse_linpred(...)
+ 7.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 8.           └─frmtmb::frm_stop(...)
+
+Error ('test-brms-api-formrobust.R:68:3'): frm(drop_unused_levels = ) is brms's argument
+Error in `frm(bf(y ~ x), data = dd, drop_unused_levels = FALSE, dry_run = "frame")`: unused argument (drop_unused_levels = FALSE)
+Backtrace:
+    ▆
+ 1. └─testthat::expect_message(...) at test-brms-api-formrobust.R:68:3
+ 2.   └─testthat:::expect_condition_matching_(...)
+ 3.     └─testthat:::quasi_capture(...)
+ 4.       ├─testthat (local) .capture(...)
+ 5.       │ └─base::withCallingHandlers(...)
+ 6.       └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+
+Error ('test-brms-api-formrobust.R:78:3'): autocorrelation terms exist as objects, and join by acformula
+Error in `eval(code, test_env)`: object 'week' not found
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_s3_class(ar(week, subj), "frmtmb_ac_term") at test-brms-api-formrobust.R:78:3
+ 2. │ └─testthat::quasi_label(enquo(object))
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─stats::ar(week, subj)
+ 5.   └─stats::ar.yw(...)
+
+Error ('test-brms-api-formrobust.R:109:3'): autocor() is brms's deprecated accessor
+Error in `autocor(fit)`: could not find function "autocor"
+Backtrace:
+    ▆
+ 1. └─frmtmb:::allow_warnings(out <- autocor(fit), msg, require = msg) at test-brms-api-formrobust.R:109:3
+ 2.   └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.1 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-brms-api-formrobust.R:18:3'): 0 + intercept is a column of ones, with brms's warning
+<frmtmb_error/error/condition>
+Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-brms-api-formrobust.R:18:3
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = ba_data)
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       └─frmtmb:::parse_linpred(...)
+ 7.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 8.           └─frmtmb::frm_stop(...)
+
+Error ('test-brms-api-formrobust.R:42:3'): a data column intercept that is not all ones is refused
+<frmtmb_error/error/condition>
+Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+Backtrace:
+     ▆
+  1. ├─frmtmb:::allow_warnings(...) at test-brms-api-formrobust.R:42:3
+  2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+  3. ├─testthat::expect_error(...) at ./helper-warnings.R:17:3
+  4. │ └─testthat:::expect_condition_matching_(...)
+  5. │   └─testthat:::quasi_capture(...)
+  6. │     ├─testthat (local) .capture(...)
+  7. │     │ └─base::withCallingHandlers(...)
+  8. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  9. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = d)
+ 10.   └─frmtmb:::parse_spec(bform)
+ 11.     └─frmtmb:::parse_one_response(bform)
+ 12.       └─frmtmb:::parse_linpred(...)
+ 13.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 14.           └─frmtmb::frm_stop(...)
+
+Error ('test-brms-api-formrobust.R:53:3'): brms's standata has the same design
+<frmtmb_error/error/condition>
+Error: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-brms-api-formrobust.R:53:3
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = ba_data, dry_run = "frame") at ./helper-warnings.R:17:3
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       └─frmtmb:::parse_linpred(...)
+ 7.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 8.           └─frmtmb::frm_stop(...)
+
+Error ('test-brms-api-formrobust.R:68:3'): frm(drop_unused_levels = ) is brms's argument
+Error in `frm(bf(y ~ x), data = dd, drop_unused_levels = FALSE, dry_run = "frame")`: unused argument (drop_unused_levels = FALSE)
+Backtrace:
+    ▆
+ 1. └─testthat::expect_message(...) at test-brms-api-formrobust.R:68:3
+ 2.   └─testthat:::expect_condition_matching_(...)
+ 3.     └─testthat:::quasi_capture(...)
+ 4.       ├─testthat (local) .capture(...)
+ 5.       │ └─base::withCallingHandlers(...)
+ 6.       └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+
+Error ('test-brms-api-formrobust.R:78:3'): autocorrelation terms exist as objects, and join by acformula
+Error in `eval(code, test_env)`: object 'week' not found
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_s3_class(ar(week, subj), "frmtmb_ac_term") at test-brms-api-formrobust.R:78:3
+ 2. │ └─testthat::quasi_label(enquo(object))
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─stats::ar(week, subj)
+ 5.   └─stats::ar.yw(...)
+
+Error ('test-brms-api-formrobust.R:109:3'): autocor() is brms's deprecated accessor
+Error in `autocor(fit)`: could not find function "autocor"
+Backtrace:
+    ▆
+ 1. └─frmtmb:::allow_warnings(out <- autocor(fit), msg, require = msg) at test-brms-api-formrobust.R:109:3
+ 2.   └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+
+[ FAIL 6 | WARN 0 | SKIP 0 | PASS 1 ]

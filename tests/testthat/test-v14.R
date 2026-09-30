@@ -93,7 +93,9 @@ test_that("bernoulli and geometric reduce to their parents", {
   g <- stats::glm(yb ~ x, binomial, dd)
   expect_lt(abs(as.numeric(logLik(fb)) - as.numeric(logLik(g))), 1e-6)
   expect_vector_equal(fixef_by_dpar(fb)$mu, coef(g), tol = 1e-5)
-  expect_error(frm(bf(yc ~ x) + bernoulli(), data = dd), "0/1")
+  # brms's words: two values of any kind are coded 0 and 1
+  expect_error(frm(bf(yc ~ x) + bernoulli(), data = dd),
+               "only two different values")
 
   fg <- frm(bf(yc ~ x) + geometric(), data = dd)
   fn <- frm(bf(yc ~ x, shape = 1) + negbinomial(), data = dd)

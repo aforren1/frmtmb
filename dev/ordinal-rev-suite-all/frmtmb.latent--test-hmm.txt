@@ -1,0 +1,59 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.latent  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | hmm                                                            
+⠋ |          1 | hmm                                                            
+⠼ |          5 | hmm                                                            
+⠧ |          8 | hmm                                                            converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+
+⠇ |          9 | hmm                                                            
+⠸ |         14 | hmm                                                            converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+
+⠇ |         19 | hmm                                                            
+⠙ |         22 | hmm                                                            
+⠹ |         23 | hmm                                                            converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+
+⠋ |         31 | hmm                                                            converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+
+⠙ |         32 | hmm                                                            
+⠴ |         36 | hmm                                                            
+⠏ |         40 | hmm                                                            
+⠸ |         44 | hmm                                                            
+⠧ |         48 | hmm                                                            converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+
+⠇ |         49 | hmm                                                            
+⠼ |         55 | hmm                                                            
+⠦ |         57 | hmm                                                            
+⠇ |         59 | hmm                                                            
+⠴ |         66 | hmm                                                            
+⠸ |         74 | hmm                                                            
+⠇ |         79 | hmm                                                            
+⠼ |         85 | hmm                                                            
+⠹ |         93 | hmm                                                            
+⠼ |        105 | hmm                                                            
+⠇ |        109 | hmm                                                            
+⠴ |        116 | hmm                                                            
+✔ |        118 | hmm [49.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 49.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 118 ]
+RESULT lane frmtmb.latent test-hmm.R pass=118 fail=0 err=0 skip=0 warn=0

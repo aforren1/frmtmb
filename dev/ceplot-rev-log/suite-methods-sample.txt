@@ -1,0 +1,11 @@
+ARM lane | frmtmb.sample from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb.sample 
+brms-suite-methods: .....................................1.......2...............
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-brms-suite-methods.R:257:3'): nsamples has reasonable ouput
+brms brmsfit-methods:595 now HOLDS but is recorded as 'defect' (nsamples() answers now, as brms's does, but incl_warmup = TRUE is refused: frm_sample() discards the warmup rather than storing it, so there is nothing to count. The gap is dev/brms-api-diff.md (c), 'Blocked, not small'). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+── 2. Failure ('test-brms-suite-methods.R:325:3'): posterior_samples has reasona
+brms brmsfit-methods:635 now HOLDS but is recorded as 'defect' (posterior_samples(pars = '^b_') answers now and returns the right SET of columns; their ORDER is frmtmb's variables() order, which lists each predictor's coefficients together, where brms lists every intercept first. fixef(), vcov() and summary()$fixed take brms's order at item 2.6f; variables() keeps its own, and reordering it is a separate decision (dev/shapes-findings.md section 8)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+══ DONE ════════════════════════════════════════════════════════════════════════

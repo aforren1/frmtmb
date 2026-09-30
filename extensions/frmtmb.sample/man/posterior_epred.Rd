@@ -123,9 +123,9 @@ inverse link (the value of the \code{mu} dpar on its natural scale,
 brms's convention; unlike \code{posterior_epred()} this is not the
 response mean for zero-inflated and similar families).}
 
-\item{incl_thres}{For \code{posterior_linpred()}: refused. brms subtracts
-a cumulative family's thresholds from the predictor; frmtmb
-returns the latent predictor itself.}
+\item{incl_thres}{For \code{posterior_linpred()}: refused. brms returns,
+for any ordinal family, one layer per threshold, \code{disc * (thres - mu)} (\code{disc * (mu - thres)} for cratio and acat); frmtmb returns
+the latent predictor itself.}
 
 \item{negative_rt}{For \code{posterior_predict()}: refused. It is brms's
 sign convention for its own wiener family.}

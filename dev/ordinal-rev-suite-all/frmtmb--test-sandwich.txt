@@ -1,0 +1,27 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sandwich                                                       
+⠋ |          1 | sandwich                                                       
+⠧ |          8 | sandwich                                                       Registered S3 method overwritten by 'clubSandwich':
+  method    from    
+  bread.mlm sandwich
+
+⠏ |         10 | sandwich                                                       
+⠋ |         11 | sandwich                                                       
+⠦ |         17 | sandwich                                                       
+⠸ |         24 | sandwich                                                       
+⠏ |         30 | sandwich                                                       
+⠴ |         36 | sandwich                                                       
+⠏ |         40 | sandwich                                                       
+⠸ |         44 | sandwich                                                       
+⠏ |         50 | sandwich                                                       
+⠼ |         55 | sandwich                                                       
+⠴ |         56 | sandwich                                                       
+✔ |         58 | sandwich [8.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 8.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 58 ]
+RESULT lane frmtmb test-sandwich.R pass=58 fail=0 err=0 skip=0 warn=0

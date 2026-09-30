@@ -52,6 +52,10 @@
 #' - `"rescor"`: the residual correlation BETWEEN responses of a
 #'   multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)`
 #'   only, as brms spells it, and no `resp`.
+#' - `"delta"`: the distance between neighboring thresholds of an
+#'   ordinal family with `threshold = "equidistant"`, brms's class of
+#'   the same name, on its own scale; `group` selects the vector of one
+#'   level of `thres(gr = )`. See Ordinal thresholds.
 #' - `"theta"`: raw internal covariance parameters (escape hatch).
 #'   `coef` names one by its internal name and spans all three
 #'   covariance components: `"theta_2"` for a random-effect block,
@@ -149,6 +153,18 @@
 #' parameters on the INTERNAL scale, one entry per threshold, which is
 #' the escape hatch to use when the increments rather than the
 #' thresholds are what a prior is about.
+#'
+#' The threshold structure changes what class `"Intercept"` addresses,
+#' as it does in brms. Under `threshold = "equidistant"` it is the
+#' first threshold alone, at the mean of the predictors, and class
+#' `"delta"` is the distance between thresholds: on `delta` itself,
+#' with the log-Jacobian of the log that `cumulative()` and
+#' `hurdle_cumulative()` hold it on, since brms bounds it below by 0
+#' there. Under `threshold = "sum_to_zero"` class `"Intercept"` is
+#' refused: brms's prior there is on thresholds it declares before
+#' centering them, whose common location only that prior places, and
+#' frmtmb estimates the centered thresholds directly, so the parameter
+#' does not exist.
 #'
 #' @section Hard bounds:
 #' `lb`/`ub` are how a box constraint is written. A specification may
@@ -587,7 +603,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #'
 #' @noRd
 frmtmb_prior_classes <- c("b", "Intercept", "sd", "cor", "theta",
-                          "ar", "ma", "cosy", "cortime", "rescor")
+                          "ar", "ma", "cosy", "cortime", "rescor",
+                          "delta")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
 #' distributional parameter's name.
@@ -903,7 +920,8 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #'
 #' @noRd
 brms_direct_prior_classes <- c("b", "Intercept", "sd", "cor", "ar",
-                               "ma", "cosy", "cortime", "rescor")
+                               "ma", "cosy", "cortime", "rescor",
+                               "delta")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -1773,7 +1791,7 @@ prior_table <- function(spec, frame, route) {
     list()
   }
   add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
-                  resp = "") {
+                  resp = "", lb = NA_real_) {
     # a default speaks for a CLASS, not for one coefficient of it: brms
     # reports the class row and leaves the per-coefficient rows flat, and
     # a per-coefficient row here would claim a default nothing applies.
@@ -1787,7 +1805,7 @@ prior_table <- function(spec, frame, route) {
     # the one brms returns
     rows[[length(rows) + 1L]] <<- data.frame(
       prior = d %||% "(flat)", class = class, coef = coef, group = group,
-      resp = resp, dpar = dpar, nlpar = nlpar, lb = NA_real_,
+      resp = resp, dpar = dpar, nlpar = nlpar, lb = lb,
       ub = NA_real_, source = "default"
     )
   }
@@ -1847,8 +1865,36 @@ prior_table <- function(spec, frame, route) {
                           numeric(0))) {
       # an ordinal family has no intercept column: the thresholds
       # replace it, and class "Intercept" is what addresses them here as
-      # it does in brms
-      add("Intercept", resp = resp_lab)
+      # it does in brms. Under sum_to_zero brms's Intercept is a vector
+      # frmtmb does not have (ordinal_threshold_entry()), and under
+      # equidistant the distance between thresholds is class "delta",
+      # listed once for the model and once per level of thres(gr = )
+      th <- rspec$family[["thres"]]
+      type <- th[["type"]] %||% "flexible"
+      grouped <- isTRUE(th[["grouped"]])
+      if (identical(type, "equidistant")) {
+        # brms bounds delta below by 0 where the thresholds are ordered,
+        # and says so in its table
+        lb_d <- if (rspec$family[["family"]] %in% ord_ordered_families) {
+          0
+        } else NA_real_
+        add("delta", resp = resp_lab, lb = lb_d)
+        if (grouped) {
+          for (g in th[["groups"]]) {
+            add("delta", group = g, resp = resp_lab, lb = lb_d)
+          }
+        }
+      }
+      if (!identical(type, "sum_to_zero")) {
+        add("Intercept", resp = resp_lab)
+        # one row per level of thres(gr = ), each a threshold vector of
+        # its own that group = addresses, as brms lists them
+        if (grouped) {
+          for (g in th[["groups"]]) {
+            add("Intercept", group = g, resp = resp_lab)
+          }
+        }
+      }
     }
     # cs() terms are class "b" rows under their own coef, as brms lists
     # them; the resolver reaches them through the same class
@@ -2377,7 +2423,7 @@ theta_components <- c("theta", "thetaac", "thetar")
 #'
 #' @noRd
 resp_keyed_prior_classes <- c("b", "Intercept", "ar", "ma", "cosy",
-                              "cortime")
+                              "cortime", "delta")
 
 #' Why a specification with no `resp` cannot apply to this model, or
 #' `NULL`.
@@ -2846,16 +2892,33 @@ resolve_priorlist <- function(fit, pl) {
     ordered <- rspec$family[["family"]] %in% ord_ordered_families
     th <- rspec$family[["thres"]]
     grouped <- isTRUE(th[["grouped"]])
+    type <- th[["type"]] %||% "flexible"
+    if (identical(type, "sum_to_zero")) {
+      frm_stop("Prior target not found (", spec_target(s), "): with ",
+               "threshold = 'sum_to_zero' there is no threshold vector ",
+               "for class \"Intercept\" to address. brms puts that prior ",
+               "on thresholds it declares before centering them, whose ",
+               "common location the likelihood cannot see and only the ",
+               "prior places; frmtmb estimates the centered thresholds ",
+               "directly, so that parameter does not exist here. ",
+               "prior = list(", comp, " = ) reaches the free directions ",
+               "on the internal scale", call. = FALSE)
+    }
     if (nzchar(s$group) && !grouped) {
       frm_stop("Prior target not found (", spec_target(s), "): group = ",
                "on class \"Intercept\" names one threshold vector of a ",
                "model with grouped thresholds, thres(gr = ), and this ",
                "model has one threshold vector. Drop group", call. = FALSE)
     }
+    # equidistant: brms's class "Intercept" is about the first threshold
+    # alone, `first_Intercept`, centered as the whole vector would be;
+    # the distance is class "delta"
+    equi <- identical(type, "equidistant")
     if (!grouped) {
-      return(list(list(comp = comp, idx = seq_along(raw),
+      return(list(list(comp = comp, idx = if (equi) 1L else seq_along(raw),
                        dist = s$dist,
-                       scale = if (ordered) "ordthres" else "internal",
+                       scale = if (ordered && !equi) "ordthres" else
+                         "internal",
                        link = NULL,
                        offset = ordinal_center_offset(frame, rspec),
                        lb = s$lb, ub = s$ub)))
@@ -2863,7 +2926,7 @@ resolve_priorlist <- function(fit, pl) {
     # one entry per group: each slice is a vector of its own, so an
     # ordered map and its Jacobian are per slice. brms does not center
     # the design of a model with grouped thresholds, so no offset
-    lay <- thres_layout(th[["nthres"]])
+    lay <- thres_layout(th[["nthres"]], type)
     gs <- seq_len(lay$G)
     if (nzchar(s$group)) {
       gs <- which(th[["groups"]] == s$group)
@@ -2875,8 +2938,60 @@ resolve_priorlist <- function(fit, pl) {
       }
     }
     lapply(gs, function(g) {
-      list(comp = comp, idx = lay$start[g]:lay$end[g], dist = s$dist,
-           scale = if (ordered) "ordthres" else "internal", link = NULL,
+      list(comp = comp,
+           idx = if (equi) lay$rstart[g] else lay$rstart[g]:lay$rend[g],
+           dist = s$dist,
+           scale = if (ordered && !equi) "ordthres" else "internal",
+           link = NULL, offset = NULL, lb = s$lb, ub = s$ub)
+    })
+  }
+
+  # brms's class "delta": the distance between neighboring thresholds
+  # of an equidistant threshold vector, one per vector. brms bounds it
+  # below by 0 for the ordered families, where frmtmb holds log(delta),
+  # so the density there is on exp() of the internal value with the log
+  # Jacobian, the "sd" placement; the other families hold delta itself
+  ordinal_delta_entry <- function(s) {
+    rs <- fit$spec$responses
+    rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
+    th <- rspec$family[["thres"]]
+    if (is.null(rspec) || !identical(th[["type"]], "equidistant")) {
+      frm_stop("Prior target not found (", spec_target(s), "): class ",
+               "\"delta\" is the distance between the thresholds of an ",
+               "ordinal family with threshold = 'equidistant', and this ",
+               "model has none", call. = FALSE)
+    }
+    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
+      frm_stop("Prior target not found (", spec_target(s), "): class ",
+               "\"delta\" is one parameter per threshold vector, so it ",
+               "takes no coef, dpar or nlpar. group = selects the vector ",
+               "of one level of thres(gr = )", call. = FALSE)
+    }
+    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    lay <- thres_layout(th[["nthres"]], "equidistant")
+    gs <- seq_len(lay$G)
+    if (nzchar(s$group)) {
+      gs <- if (isTRUE(th[["grouped"]])) {
+        which(th[["groups"]] == s$group)
+      } else integer(0)
+      if (!length(gs)) {
+        frm_stop("Prior target not found (", spec_target(s), "): ",
+                 if (isTRUE(th[["grouped"]])) {
+                   paste0("the thresholds are grouped by thres(gr = ), ",
+                          "whose levels are ",
+                          paste0("\"", th[["groups"]], "\"",
+                                 collapse = ", "))
+                 } else {
+                   paste0("group = names one threshold vector of a model ",
+                          "with grouped thresholds, thres(gr = ), and this ",
+                          "model has one threshold vector. Drop group")
+                 }, call. = FALSE)
+      }
+    }
+    ordered <- rspec$family[["family"]] %in% ord_ordered_families
+    lapply(gs, function(g) {
+      list(comp = comp, idx = lay$rstart[g] + 1L, dist = s$dist,
+           scale = if (ordered) "sd" else "internal", link = NULL,
            offset = NULL, lb = s$lb, ub = s$ub)
     })
   }
@@ -3049,6 +3164,23 @@ resolve_priorlist <- function(fit, pl) {
       resolve_ac_class(s)
     } else if (s$class == "rescor") {
       resolve_rescor(s)
+    } else if (s$class == "delta") {
+      for (e in ordinal_delta_entry(s)) {
+        key <- nm_of(e$comp, e$idx)
+        if (!is.null(s$dist)) {
+          claim(e$comp, e$idx)
+          assigned[[key]] <- e
+        } else if (!is.null(assigned[[key]])) {
+          assigned[[key]] <- entry_bounds(assigned[[key]], s)
+        }
+        # a bound is on delta itself, carried through the log that an
+        # ordered family holds it on
+        nm_b <- par_template_names(frame[["par_template"]][[e$comp]],
+                                   e$comp)[e$idx]
+        pm <- list(scale = e$scale)
+        if (!is.na(s$lb)) lower[nm_b] <- internal_bound(s$lb, pm, "lb")
+        if (!is.na(s$ub)) upper[nm_b] <- internal_bound(s$ub, pm, "ub")
+      }
     }
   }
   list(entries = unname(assigned), lower = lower, upper = upper)
@@ -3858,7 +3990,9 @@ resolve_priors <- function(fit, prior) {
   comp_names <- list()
   for (cp in setdiff(names(tpl), c("b", "miss"))) {
     v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (is.null(v)) {
+      v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
+    }
     if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
       v[fit$frame[["betad_fixed_idx"]]] <- NA   # mapped: no prior
     }

@@ -1,0 +1,2 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.spline  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+RESULT test-rp-floored.R pass=81 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,20 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-suite-methods                                             
+⠋ |          1 | brms-suite-methods                                             
+⠹ |          3 | brms-suite-methods                                             
+⠦ |         17 | brms-suite-methods                                             
+⠸ |         34 | brms-suite-methods                                             
+⠇ |         39 | brms-suite-methods                                             
+⠙ |         42 | brms-suite-methods                                             
+⠦ |         47 | brms-suite-methods                                             
+⠋ |         51 | brms-suite-methods                                             
+⠼ |         55 | brms-suite-methods                                             
+✔ |         61 | brms-suite-methods [8.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 8.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 61 ]
+RESULT lane frmtmb.sample test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 warn=0

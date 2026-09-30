@@ -1,0 +1,15 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | parity-integration                                             
+⠋ |          1 | parity-integration                                             
+⠹ |          3 | parity-integration                                             
+⠦ |          7 | parity-integration                                             No priors were set (plain maximum likelihood).
+
+✔ |          8 | parity-integration [1.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 8 ]
+RESULT lane frmtmb test-parity-integration.R pass=8 fail=0 err=0 skip=0 warn=0

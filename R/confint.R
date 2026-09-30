@@ -45,7 +45,9 @@ outer_par_map <- function(fit) {
   for (cp in names(tpl)) {
     if (cp %in% random) next
     v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (is.null(v)) {
+      v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
+    }
     if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
       v <- v[-fit$frame[["betad_fixed_idx"]]]
     }
@@ -2023,6 +2025,112 @@ update_delta_bform <- function(object, new) {
   } else {
     update_delta_formula(object, f)
   }
+  out <- update_pool_pars(out, old, new)
+  if (!is.null(new$family)) out$family <- new$family
+  if (!is.null(new$nl)) out$nl <- isTRUE(out$nl) || isTRUE(new$nl)
+  for (nm in c("center", "cmc")) {
+    if (!is.null(new[[nm]])) out[[nm]] <- new[[nm]]
+  }
+  out
+}
+
+#' A complete formula or [bf()] on a univariate model, read as
+#' `brms:::update.brmsfit()` reads it: it replaces the location formula,
+#' and the stored parameter formulas, constants and equations are
+#' pooled with its own, a later one replacing an earlier one of the same
+#' name. A plain formula takes the stored model's `nl`. `NULL` when the
+#' stored model has nothing to pool, so that the call keeps the formula
+#' as the user wrote it.
+#'
+#' @noRd
+update_complete_bform <- function(object, new) {
+  old <- object$bform
+  if (!inherits(old, "frmtmb_formula") ||
+        inherits(old, "frmtmb_mvformula") ||
+        inherits(new, "frmtmb_mvformula")) {
+    return(NULL)
+  }
+  if (!length(c(old$pforms, old$pfix, old$nlforms))) return(NULL)
+  if (!inherits(new, "frmtmb_formula")) new <- bf(new, nl = isTRUE(old$nl))
+  if (isTRUE(old$nl)) {
+    frm_message("Argument 'formula.' will completely replace the original ",
+                "formula in non-linear models.")
+  }
+  nlf <- c(old$nlforms, new$nlforms)
+  new$nlforms <- nlf[!duplicated(names(nlf), fromLast = TRUE)]
+  update_pool_pars(new, old, new)
+}
+
+#' A pooled `bf()` object written back as the `frmtmb::bf()` call that
+#' builds it, for the stored call of an updated fit. `NULL` where the
+#' object holds something a plain `bf()` call cannot say (an `nlf()`
+#' formula), and the caller then stores the object.
+#'
+#' @noRd
+bform_call <- function(b) {
+  if (length(b$nlforms)) return(NULL)
+  cl <- as.call(c(list(quote(frmtmb::bf), b$formula), unname(b$pforms),
+                  b$pfix))
+  if (isTRUE(b$nl)) cl$nl <- TRUE
+  for (nm in c("center", "cmc")) {
+    if (!is.null(b[[nm]])) cl[[nm]] <- b[[nm]]
+  }
+  if (!is.null(b$family)) cl$family <- family_call_of(b$family)
+  cl
+}
+
+#' The constructor call of a family, as `frmtmb::student(link_sigma =
+#' "identity")`, when the call can say everything the family holds;
+#' otherwise the family object itself. It can only when every formal of
+#' the constructor is a link, since an option such as `huber(k = 3)`,
+#' `whittle(tapers = 4)` or `cox(df = 6)` lives in the family's closures
+#' and not in any field a comparison could read, and when the evaluated
+#' call is `identical()` to the family on everything but environments.
+#'
+#' @noRd
+family_call_of <- function(fam) {
+  lk <- function(f) {
+    vapply(f[["links"]], function(l) {
+      if (is.list(l)) l[["name"]] %||% NA_character_ else as.character(l)
+    }, "")
+  }
+  nm <- fam[["family"]]
+  pkg <- if (exists(nm, envir = asNamespace("frmtmb"), inherits = FALSE)) {
+    "frmtmb"
+  } else if (exists(nm, envir = asNamespace("stats"), inherits = FALSE)) {
+    "stats"
+  }
+  if (is.null(pkg) || !is.character(nm) || length(nm) != 1L) return(fam)
+  ctor <- get(nm, envir = asNamespace(pkg))
+  if (!is.function(ctor)) return(fam)
+  fmls <- names(formals(ctor))
+  # a pooled update() wrote huber(k = 3) as huber() and refitted at the
+  # default k without a word; only a constructor of links alone is safe
+  if (!all(fmls == "link" | startsWith(fmls, "link_"))) return(fam)
+  links <- lk(fam)
+  cl <- as.call(list(call("::", as.name(pkg), as.name(nm))))
+  for (dp in names(links)) {
+    a <- if (dp == "mu") "link" else paste0("link_", dp)
+    if (a %in% names(formals(ctor))) cl[[a]] <- links[[dp]]
+  }
+  back <- tryCatch(as_frmtmb_family(eval(cl, baseenv())),
+                   error = function(e) NULL)
+  if (is.null(back) || !identical(back[["family"]], nm) ||
+        !identical(lk(back), links) ||
+        !identical(unclass(back), unclass(fam), ignore.environment = TRUE,
+                   ignore.bytecode = TRUE, ignore.srcref = TRUE)) {
+    return(fam)
+  }
+  cl
+}
+
+#' The parameter formulas, constants and equations of a stored model and
+#' of an update pooled into `out`, a later one replacing an earlier one
+#' of the same name with brms's message, as `update.brmsformula()` pools
+#' them.
+#'
+#' @noRd
+update_pool_pars <- function(out, old, new) {
   pars <- c(old$pforms, old$pfix, new$pforms, new$pfix)
   dup <- duplicated(names(pars), fromLast = TRUE)
   if (any(dup)) {
@@ -2035,11 +2143,6 @@ update_delta_bform <- function(object, new) {
   out$pfix <- pars[!is_form]
   check_dpar_equations(out$pfix,
                        c(names(out$pforms), names(out$nlforms)))
-  if (!is.null(new$family)) out$family <- new$family
-  if (!is.null(new$nl)) out$nl <- isTRUE(out$nl) || isTRUE(new$nl)
-  for (nm in c("center", "cmc")) {
-    if (!is.null(new[[nm]])) out[[nm]] <- new[[nm]]
-  }
   out
 }
 
@@ -2053,9 +2156,13 @@ update_delta_bform <- function(object, new) {
 #' carrying a `.` is a delta applied to the stored `mu` formula with
 #' [stats::update.formula] semantics - one-sided `~ . + z`, dotted
 #' `. ~ . + z`, or a changed response `z ~ . + x` - and keeps the dpar
-#' formulas, the fixed dpar values and the family. A formula with no
-#' `.` replaces the stored one. brms's `newdata` is accepted as a
-#' synonym for `data`.
+#' formulas, the fixed dpar values and the family. A formula or [bf()]
+#' with no `.` replaces the stored location formula and, as in brms,
+#' keeps the stored parameter formulas, constants and equations, pooled
+#' with its own. On a nonlinear model that keeps the nonlinear
+#' parameters' formulas, so `update(fit, bf(y ~ a + b, nl = TRUE))`
+#' gives the new body the old `a` and `b`, and a plain formula stays
+#' nonlinear. brms's `newdata` is accepted as a synonym for `data`.
 #'
 #' A [bf()] whose location formula is such a delta is read as brms
 #' reads it: `update(fit, bf(~ ., family = acat()))` keeps the formula
@@ -2116,7 +2223,33 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
       if (!is.null(formula.$family)) cl$family <- NULL
       update_delta_bform(object, formula.)
     } else {
-      substitute(formula.)
+      if (inherits(object$bform, "frmtmb_mvformula") ||
+            inherits(formula., "frmtmb_mvformula")) {
+        # brms's refusal: a complete formula would drop the stored
+        # parameter formulas of every response without a word
+        frm_stop("Updating formulas of multivariate models is not yet ",
+                 "possible. Refit with frm() and the complete mvbf()",
+                 call. = FALSE)
+      }
+      pooled <- if (inherits(formula., c("formula", "frmtmb_formula"))) {
+        update_complete_bform(object, formula.)
+      }
+      if (!is.null(pooled)) {
+        # brms's order: the family of formula., then the family
+        # argument, then the stored one
+        fam <- NULL
+        if (!is.null(pooled$family)) {
+          cl$family <- NULL
+          fam <- pooled$family
+        } else if (is.null(cl$family)) {
+          fam <- object$bform$family
+        }
+        pooled$family <- fam
+        # the call holds the formula as a bf() call a reader can read,
+        # not the evaluated object and the family's closures
+        pooled <- bform_call(pooled) %||% pooled
+      }
+      pooled %||% substitute(formula.)
     }
   }
   if (!evaluate) return(cl)
@@ -2410,8 +2543,11 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
       identical(lp[["dpar"]], "mu")
   }, fit$frame[["linpreds"]])
   for (lp in ord_lps) {
-    raw <- vals[comp == extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")]
-    if (!length(raw)) next
+    tnm <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    # an EMPTY block (sum-to-zero, one threshold per vector) still has
+    # thresholds, all at 0, as brms reports them
+    if (is.null(fit$frame[["par_template"]][[tnm]])) next
+    raw <- vals[comp == tnm]
     fam <- brms_lp_family(fit, lp)
     th <- ord_threshold_values(fam, raw)
     pre <- brms_lp_prefix(fit, lp)
@@ -2420,6 +2556,10 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
       put(paste0("b_", brms_usc(pre, "Intercept"), "[", lab[k], "]"),
           th[k])
     }
+  }
+  for (d in ord_delta_info(fit)) {
+    raw <- vals[comp == d$comp]
+    if (length(raw) >= d$idx) put(d$name, d$value(raw[d$idx]))
   }
   for (lp in fit$frame[["linpreds"]]) {
     for (ct in lp[["cs"]] %||% list()) {
@@ -2433,6 +2573,40 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
     }
   }
   invisible(NULL)
+}
+
+#' The `delta` parameters of an ordinal fit with equidistant thresholds,
+#' one per threshold vector, under brms's names: `delta`, `delta_<resp>`
+#' in a multivariate model, and `delta_<k>` for the k-th level of
+#' `thres(gr = )` (brms numbers the levels there rather than naming
+#' them, `brms:::stan_thres()`). Each carries the template component
+#' and index that hold it and the map from that internal value to
+#' delta, which is `exp()` for the ordered families, whose delta brms
+#' bounds below by 0.
+#'
+#' @noRd
+ord_delta_info <- function(fit) {
+  out <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    fam <- brms_lp_family(fit, lp)
+    if (!identical(fam[["type"]], "ordinal") ||
+          !identical(lp[["dpar"]], "mu")) next
+    th <- fam[["thres"]]
+    if (!identical(th[["type"]], "equidistant")) next
+    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    lay <- thres_layout(th[["nthres"]], "equidistant")
+    pre <- brms_lp_prefix(fit, lp)
+    ordered <- fam[["family"]] %in% ord_ordered_families
+    for (g in seq_len(lay$G)) {
+      out[[length(out) + 1L]] <- list(
+        name = paste0("delta", if (nzchar(pre)) paste0("_", pre),
+                      if (isTRUE(th[["grouped"]])) paste0("_", g)),
+        comp = comp, idx = lay$rstart[g] + 1L,
+        value = if (ordered) exp else identity,
+        link = if (ordered) log else identity)
+    }
+  }
+  out
 }
 
 #' Split one hypothesis string the way `brms:::eval_hypothesis()` does:
@@ -2981,6 +3155,53 @@ variables.frmtmb_fit <- function(x, ...) {
   names(hyp_env_vals(x, vo$vals, vo$comp))
 }
 
+#' Deprecated name of variables()
+#'
+#' `parnames()` is brms's deprecated spelling of [variables()]. brms
+#' still answers it, with a deprecation warning, so a ported script
+#' runs; this does the same. The generic is defined here and not in
+#' frmtmb.sample, which answers it on draws, so that one generic serves
+#' both classes.
+#'
+#' @param x A `frmtmb_fit`, or a `frmtmb_draws` when frmtmb.sample is
+#'   loaded.
+#' @param ... Refused: an argument the method does not have is an error
+#'   naming it.
+#' @return `variables(x)`, with brms's deprecation warning.
+#' @examples
+#' dd <- data.frame(x = rnorm(60))
+#' dd$y <- rnorm(60, 1 + 0.5 * dd$x)
+#' fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+#' suppressWarnings(parnames(fit))
+#' @export
+parnames <- function(x, ...) UseMethod("parnames")
+
+#' @rdname parnames
+#' @exportS3Method brms::parnames
+#' @export
+parnames.frmtmb_fit <- function(x, ...) {
+  frm_check_dots(...)
+  if (!parnames_owner_warned()) {
+    frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
+                call. = FALSE)
+  }
+  variables(x)
+}
+
+#' Whether the `parnames()` generic a call reached has warned already.
+#' brms's generic gives the deprecation warning itself before it
+#' dispatches, and while brms is loaded the `parnames` binding resolves
+#' to it (`frm_install_generics()`), so the method warns only when the
+#' generic is frmtmb's own. frmtmb.sample's method for draws asks the
+#' same question.
+#'
+#' @noRd
+parnames_owner_warned <- function() {
+  g <- tryCatch(get("parnames", envir = asNamespace("frmtmb")),
+                error = function(e) NULL)
+  is.function(g) && !identical(environment(g), asNamespace("frmtmb"))
+}
+
 #' The `Hypothesis` label brms writes for one hypothesis string:
 #' whitespace removed, the two sides written `(lhs)-(rhs)`, the right
 #' side dropped when it is `0`, then the sign and `0`
@@ -3278,32 +3499,183 @@ print.frmtmb_hypothesis <- function(x, digits = 2, ...) {
   invisible(x)
 }
 
+#' Plot hypothesis tests
+#'
+#' Draws one panel per hypothesis of a [hypothesis()] result, stacked
+#' in one column, `nvariables` panels to a page, as brms's
+#' `plot.brmshypothesis()` lays them out. Each panel shows what the
+#' method has: the distribution of the draws (a histogram with a
+#' density line) for `method = "boot"` and for posterior draws, the
+#' profile of the log-likelihood for `method = "profile"`, and the
+#' normal density of the Wald estimate otherwise. Vertical lines mark
+#' the estimate, the interval and zero.
+#'
+#' @section What `plot = FALSE` returns:
+#' brms returns a list of ggplot objects, one per page, and draws them
+#' unless `plot = FALSE`. frmtmb draws with base graphics and does not
+#' depend on ggplot2, so it returns a list of `frmtmb_hyp_plot`
+#' objects, one per page. Each holds the hypotheses of its page and the
+#' settings of the call, and printing or plotting one draws that page.
+#' The list is returned invisibly whether or not the call draws, as
+#' brms returns its list.
+#'
+#' @section Prior draws:
+#' brms overlays the density of the prior draws of each hypothesis
+#' unless `ignore_prior = TRUE`. A maximum-likelihood fit has no prior,
+#' and `frmtmb.sample` does not draw from the prior, so
+#' `prior_samples` is all `NA` and there is nothing to overlay. brms
+#' draws the posterior alone in that case too, so `ignore_prior` is
+#' accepted and changes nothing.
+#'
+#' @param x A `frmtmb_hypothesis` object, or one `frmtmb_hyp_plot` for
+#'   the print and plot methods of a plot object.
+#' @param nvariables The number of hypotheses per page.
+#' @param N brms's older name for `nvariables`. When set, it replaces
+#'   `nvariables` with brms's deprecation warning.
+#' @param ignore_prior Accepted for brms compatibility; see the section
+#'   on prior draws.
+#' @param chars The number of characters of a hypothesis kept in its
+#'   panel title. A longer one is cut and ends in `"..."` before its
+#'   last four characters, as in brms. `NULL` keeps all of it.
+#' @param colors Two colors, as in brms. The first fills the histogram
+#'   of the draws. The second is brms's color for the prior density,
+#'   which has nothing to draw here (see the section on prior draws).
+#'   The default fills with light gray.
+#' @param theme brms's ggplot2 theme. `NULL` (the default) changes
+#'   nothing. A ggplot2 theme object is not applied, and a warning says
+#'   so. Anything else is an error, as in brms.
+#' @param ask If `TRUE` (the default), prompt before each new page
+#'   after the first on an interactive device. `NULL`, the default
+#'   before this version, is taken as `TRUE`.
+#' @param plot If `FALSE`, return the plot objects without drawing
+#'   them.
+#' @param ... `do_plot`, brms's deprecated name for `plot`, is accepted
+#'   with brms's warning. Base graphical parameters (`main`, `lwd`,
+#'   ...) are accepted, as every `plot()` method must accept them, and
+#'   ignored with a warning that names them. A name that abbreviates an
+#'   argument of this method is that argument, by R's partial matching,
+#'   as in brms: `col = "red"` is `colors = "red"`, and stops because
+#'   `colors` needs two colors. Any other argument is an error that
+#'   names it.
+#' @return A list of `frmtmb_hyp_plot` objects, one per page,
+#'   invisibly.
+#' @seealso [hypothesis()]
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x1 = rnorm(80), x2 = rnorm(80))
+#' dd$y <- rnorm(80, 1 + 0.5 * dd$x1 - 0.2 * dd$x2)
+#' fit <- frm(bf(y ~ x1 + x2), family = gaussian(), data = dd)
+#' h <- hypothesis(fit, c("x1 > 0", "x1 + x2 = 0"))
+#' plot(h, ask = FALSE)
+#' # the page objects, drawn one at a time
+#' p <- plot(h, plot = FALSE)
+#' length(p)
+#' p[[1]]
 #' @export
-plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
+plot.frmtmb_hypothesis <- function(x, nvariables = 5, N = NULL,
+                                   ignore_prior = FALSE, chars = 40,
+                                   colors = NULL, theme = NULL, ask = TRUE,
+                                   plot = TRUE, ...) {
+  plot <- ce_do_plot(plot, ...)
+  frm_check_dots(..., .hidden = "do_plot")
+  ce_plot_ignored(...)
+  if (!is.null(N)) {
+    frm_warning("Argument 'N' is deprecated. Please use argument ",
+                "'nvariables' instead.", call. = FALSE)
+    nvariables <- N
+  }
+  check_count(nvariables, "nvariables", min = 1L)
+  check_flag(ignore_prior, "ignore_prior")
+  if (!is.null(chars)) check_count(chars, "chars", min = 1L)
+  # NULL, the default of 0.66.0, asks as brms's TRUE does
+  if (is.null(ask)) ask <- TRUE
+  check_flag(ask, "ask")
+  check_flag(plot, "plot")
+  colors <- colors %||% c("gray90", "gray60")
+  if (length(colors) != 2L) {
+    frm_stop("Argument 'colors' must be of length 2.", call. = FALSE)
+  }
+  ce_theme_check(theme)
+  n <- nrow(x$hypothesis)
+  pages <- split(seq_len(n), ceiling(seq_len(n) / nvariables))
+  plots <- lapply(unname(pages), function(i) {
+    structure(list(hyp = x, rows = i, chars = chars, colors = colors),
+              class = "frmtmb_hyp_plot")
+  })
+  if (plot) {
+    # brms's page rule: the first page never prompts, and `ask`
+    # governs the pages after it
+    oask <- grDevices::devAskNewPage(FALSE)
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
+    for (k in seq_along(plots)) {
+      hyp_draw_page(plots[[k]])
+      if (k == 1L) grDevices::devAskNewPage(ask)
+    }
+  }
+  invisible(plots)
+}
+
+#' @rdname plot.frmtmb_hypothesis
+#' @export
+print.frmtmb_hyp_plot <- function(x, ...) {
+  # printing a plot object draws it, so it takes the graphical
+  # parameters plot() takes, and names them as ignored the same way
+  frm_check_dots(..., .hidden = s3_contract_args[["plot"]])
+  ce_plot_ignored(...)
+  hyp_draw_page(x)
+  invisible(x)
+}
+
+#' @rdname plot.frmtmb_hypothesis
+#' @export
+plot.frmtmb_hyp_plot <- function(x, ...) {
   frm_check_dots(...)
+  ce_plot_ignored(...)
+  hyp_draw_page(x)
+  invisible(x)
+}
+
+#' brms's `limit_chars()`: a label longer than `chars` is cut to
+#' `chars - 3` characters and `"..."`, and its last four characters
+#' (the `> 0` or `= 0` of a hypothesis) are kept after the cut.
+#'
+#' @noRd
+hyp_limit_chars <- function(x, chars = NULL, lsuffix = 4L) {
+  if (is.null(chars)) return(x)
+  n <- nchar(x) - lsuffix
+  suffix <- substr(x, n + 1L, n + lsuffix)
+  x <- substr(x, 1L, n)
+  x <- ifelse(n <= chars, x, paste0(substr(x, 1L, chars - 3L), "..."))
+  paste0(x, suffix)
+}
+
+#' One page of a hypothesis plot: its hypotheses in one column, as
+#' brms's `facet_wrap(ncol = 1)` stacks them.
+#'
+#' @noRd
+hyp_draw_page <- function(p) {
+  rows <- p[["rows"]]
+  op <- graphics::par(mfrow = c(length(rows), 1L))
+  on.exit(graphics::par(op), add = TRUE)
+  x <- p[["hyp"]]
   method <- attr(x, "method") %||% "posterior"
   alpha <- x$alpha %||% 0.05
   hs <- x$hypothesis
-  n <- nrow(hs)
-  ask <- ask %||% (n > 1L && grDevices::dev.interactive())
-  if (ask) {
-    oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
-  }
+  labels <- hyp_limit_chars(hs$Hypothesis, p[["chars"]])
   mark <- function(i) {
     graphics::abline(v = hs$Estimate[i], lwd = 2)
     graphics::abline(v = c(hs$CI.Lower[i], hs$CI.Upper[i]), lty = 2)
     graphics::abline(v = 0, col = 2)
   }
-  for (i in seq_len(n)) {
-    h <- hs$Hypothesis[i]
+  for (i in rows) {
+    h <- labels[i]
     if (method %in% c("boot", "posterior")) {
       d <- x$samples[[i]]
       d <- d[is.finite(d)]
       graphics::hist(d, freq = FALSE, breaks = "FD", main = h,
                      xlab = if (method == "boot") "bootstrap value" else
                        "posterior value",
-                     col = "gray90", border = "gray60")
+                     col = p[["colors"]][1L], border = "gray60")
       if (length(unique(d)) > 1L) {
         graphics::lines(stats::density(d), lwd = 2)
       }
@@ -3326,5 +3698,5 @@ plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
       mark(i)
     }
   }
-  invisible(x)
+  invisible(NULL)
 }

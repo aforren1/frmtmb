@@ -95,6 +95,10 @@ one response with \code{resp}. See Residual correlation below.
 \item \code{"rescor"}: the residual correlation BETWEEN responses of a
 multivariate model (\code{set_rescor(TRUE)}), as a whole. \code{lkj(eta)}
 only, as brms spells it, and no \code{resp}.
+\item \code{"delta"}: the distance between neighboring thresholds of an
+ordinal family with \code{threshold = "equidistant"}, brms's class of
+the same name, on its own scale; \code{group} selects the vector of one
+level of \code{thres(gr = )}. See Ordinal thresholds.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
 \code{coef} names one by its internal name and spans all three
 covariance components: \code{"theta_2"} for a random-effect block,
@@ -196,6 +200,18 @@ there, because one number cannot box a whole vector of thresholds.
 parameters on the INTERNAL scale, one entry per threshold, which is
 the escape hatch to use when the increments rather than the
 thresholds are what a prior is about.
+
+The threshold structure changes what class \code{"Intercept"} addresses,
+as it does in brms. Under \code{threshold = "equidistant"} it is the
+first threshold alone, at the mean of the predictors, and class
+\code{"delta"} is the distance between thresholds: on \code{delta} itself,
+with the log-Jacobian of the log that \code{cumulative()} and
+\code{hurdle_cumulative()} hold it on, since brms bounds it below by 0
+there. Under \code{threshold = "sum_to_zero"} class \code{"Intercept"} is
+refused: brms's prior there is on thresholds it declares before
+centering them, whose common location only that prior places, and
+frmtmb estimates the centered thresholds directly, so the parameter
+does not exist.
 }
 
 \section{Hard bounds}{

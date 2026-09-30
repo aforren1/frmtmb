@@ -1,0 +1,89 @@
+frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
+
+== 1. names that are functions: t and c ==
+[weights(t*2) logLik] identical: TRUE
+[trials(c+1) logLik] identical: TRUE
+[se(c/2) logLik] identical: TRUE
+[rate(t*2) vs brms denom] identical: TRUE
+[weights(t * 2), no column t] ERROR: non-numeric argument to binary operator
+
+== 2. formula environment ==
+[wt*k logLik] identical: TRUE
+[env-vector weights logLik] identical: TRUE
+[env-vector weights values] identical: TRUE
+[brms env vector] ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'wv'
+[influence wt*k] ERROR: Grouping variable 'f' not found in the data
+[residuals wt*k vs wk] identical: FALSE
+[bootstrap wt*k] ERROR: unused argument (nboot = 3)
+[loo wt*k] ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compare maximum-likelihood fits with AIC() or BIC()
+
+== 3. factors and NA-yielding expressions ==
+[factor expr logLik] identical: TRUE
+[brms weights(f == 'a')] ERROR: Weights must be numeric.
+[weights(ifelse(x > 1, NA, wt))] ERROR: missing value where TRUE/FALSE needed
+[brms weights NA] ERROR: missing value where TRUE/FALSE needed
+[se(ifelse(x > 1, NA, s))] ERROR: missing value where TRUE/FALSE needed
+[brms se NA] ERROR: missing value where TRUE/FALSE needed
+[trunc(lb = ifelse(x > 1, NA, -5))] ERROR: The optimizer failed on this model (gaussian, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm()
+[trunc(lb = ifelse(x > 1, NA, -5))] WARN: NA/NaN function evaluation
+[brms trunc NA] ERROR: missing value where TRUE/FALSE needed
+[rate(ifelse(x > 1, NA, t))] ERROR: rate(ifelse(x > 1, NA, t)): rate denominators should be positive
+[trials(ifelse(x > 1, NA, c))] ERROR: binomial: response must be integer counts in [0, trials]
+  nobs 59 
+  brms N 59 
+
+== 4. multivariate with subset() on one response ==
+[mv lb_y vs brms] identical: TRUE
+[mv weights_y2 vs brms] identical: TRUE
+[mv2 weights_y vs brms] identical: TRUE
+[mv2 se_y2 vs brms] identical: TRUE
+[mv3 weights_y vs brms] identical: TRUE
+  frmtmb N_y 30  N_y2  60 ; brms N_y 30  N_y2 60 
+
+== 5. newdata without an expression variable ==
+[fitted rate(t*2), newdata lacks t] ERROR: Addition term rate(t * 2) could not be evaluated on newdata: newdata has no column t; supply the variable or use type = "conditional"
+[predict rate(t*2), newdata lacks t] ERROR: Addition term rate(t * 2) could not be evaluated on newdata: newdata has no column t; supply the variable or use type = "conditional"
+[log_lik rate(t*2), newdata lacks t] ERROR: log_lik() is the pointwise likelihood at every posterior draw, and this is a maximum-likelihood fit with one parameter vector. Sample first, with frmtmb.sample::log_lik(frmtmb.sample::frm_sample(fit)) once that package is installed; logLik() is the maximum-likelihood total already on the fit
+[1] -0.2154251  0.3429647 -0.4371970  0.1280605  0.1893404
+[log_lik weights(wt*2), newdata lacks wt] ERROR: log_lik() is the pointwise likelihood at every posterior draw, and this is a maximum-likelihood fit with one parameter vector. Sample first, with frmtmb.sample::log_lik(frmtmb.sample::frm_sample(fit)) once that package is installed; logLik() is the maximum-likelihood total already on the fit
+[fitted rate(tt2), newdata lacks tt2] ERROR: Addition term rate(tt2) could not be evaluated on newdata: newdata has no column tt2; supply the variable or use type = "conditional"
+
+== 6. cens() with an interval expression ==
+[cens interval expr logLik] identical: TRUE
+  brms rcens/Jint names: Y cens rcens 
+[cens(cc, max(y) + 10)] ERROR: cens() upper bounds must not be NA on interval-censored rows
+[cens event expr logLik] identical: TRUE
+[cens interval expr, x NA logLik] identical: TRUE
+
+== 7. brms standata on each shape ==
+[standata weights(wt*2)] identical: TRUE
+[standata weights(wt,scale)] identical: TRUE
+[standata se(s/2)] identical: TRUE
+[standata rate(t*2)] identical: TRUE
+[standata trials(c+1)] identical: TRUE
+[standata trials(max(c)+1)] identical: TRUE
+[standata trunc(lb=min(y)-1)] identical: TRUE
+[standata trunc(ub=max(y)*2)] identical: TRUE
+[standata weights(log(wt)+1)] identical: TRUE
+[standata weights(wt^2)] identical: TRUE
+[standata se(sqrt(s))] identical: TRUE
+[standata weights(1 + 0 * wt)] identical: TRUE
+  weights(2) values head 2 
+  brms weights(2) head 2 
+  weights(1+1) values head 2 
+
+== 8. readers of the frame on an expression model ==
+[readers logLik] identical: TRUE
+[residuals] identical: TRUE
+[influence] ERROR: Grouping variable 'f' not found in the data
+[refit logLik] identical: TRUE
+[bootstrap] ERROR: unused argument (nboot = 3)
+[log_lik] ERROR: log_lik() is the pointwise likelihood at every posterior draw, and this is a maximum-likelihood fit with one parameter vector. Sample first, with frmtmb.sample::log_lik(frmtmb.sample::frm_sample(fit)) once that package is installed; logLik() is the maximum-likelihood total already on the fit
+[loo] ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compare maximum-likelihood fits with AIC() or BIC()
+[simulate] identical: TRUE
+  pp_check ok
+[update newdata logLik] identical: TRUE
+  names(fa$data): y x wt 
+  names(fb$data): y x w2 lbm 
+[kfold] ERROR: could not find function "kfold"

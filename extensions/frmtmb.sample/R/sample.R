@@ -1175,6 +1175,16 @@ default_priors_for <- function(fit) {
         add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma",
                       resp = rs))
       }
+    } else if (identical(lp[["dpar"]], "disc") &&
+                 !identical(lp[["link"]]$name, "identity")) {
+      # an ordinal discrimination: brms's def_dpar_prior() puts
+      # normal(0, 1) on the link-scale intercept, which is also what
+      # places that intercept at all, since the likelihood cannot tell
+      # it from the scale of the thresholds. Under the identity link
+      # brms writes lognormal(0, 1), which set_prior() does not carry;
+      # default_prior_notes() names that gap
+      add(set_prior("normal(0, 1)", class = "Intercept", dpar = "disc",
+                    resp = rs))
     }
   }
 
@@ -1220,6 +1230,17 @@ default_prior_notes <- function(fit) {
       notes <- c(notes, paste0("no defaults for this family's thresholds",
                                of, " (brms priors them as its Intercept ",
                                "class)"))
+      lpd <- Filter(function(lp) {
+        identical(lp[["resp"]], rspec$resp_name) &&
+          identical(lp[["dpar"]], "disc") && is.null(lp[["constant"]]) &&
+          "(Intercept)" %in% colnames(lp[["X"]]) &&
+          identical(lp[["link"]]$name, "identity")
+      }, fit$frame[["linpreds"]])
+      if (length(lpd)) {
+        notes <- c(notes, paste0("no default for the intercept of disc",
+                                 of, " under the identity link (brms ",
+                                 "uses lognormal(0, 1))"))
+      }
     }
     # dispersion dpars brms gives a gamma or inverse-gamma default, which
     # set_prior() cannot express; kappa is xbeta()'s and von_mises()'s
@@ -1720,6 +1741,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `rescor` | `lkj(1)` | correlation matrix, Jacobian applied |
 #' | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 #' | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
+#' | `Intercept` of an ordinal family's `disc` | `normal(0, 1)` | link |
+#'
+#' The `disc` default is brms's for every `link_disc` but the identity,
+#' where brms uses `lognormal(0, 1)`, which [frmtmb::set_prior()] does
+#' not carry; the message names that gap. It matters more than most
+#' defaults: the likelihood cannot tell an intercept in `disc` apart
+#' from the scale of the thresholds, so this prior is what places it.
 #'
 #' `m` is the mean of the predictor's `offset()`, 0 without one. brms
 #' takes it off because an offset moves the intercept by that much, and

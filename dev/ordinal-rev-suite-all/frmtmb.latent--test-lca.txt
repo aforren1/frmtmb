@@ -1,0 +1,27 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.latent  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | lca                                                            
+⠋ |          1 | lca                                                            
+⠋ |         21 | lca                                                            
+⠼ |         25 | lca                                                            
+⠋ |         31 | lca                                                            
+⠹ |         33 | lca                                                            
+⠦ |         37 | lca                                                            
+⠋ |         41 | lca                                                            
+⠙ |         52 | lca                                                            
+⠙ |         62 | lca                                                            
+⠇ |         69 | lca                                                            
+⠼ |         75 | lca                                                            
+⠦ |         77 | lca                                                            
+⠼ |         85 | lca                                                            
+⠋ |         91 | lca                                                            
+⠙ |        102 | lca                                                            
+⠸ |        104 | lca                                                            
+✔ |        105 | lca [9.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 105 ]
+RESULT lane frmtmb.latent test-lca.R pass=105 fail=0 err=0 skip=0 warn=0

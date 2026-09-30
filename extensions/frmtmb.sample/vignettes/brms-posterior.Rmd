@@ -151,9 +151,11 @@ than at "could not find function".
 | `plot(ds)` | brms's default panel is trace and density | `mcmc_plot(ds)`, `mcmc_plot(ds, type = "trace")` |
 | `update(ds)` | draws carry no formula to revise | `update()` the fit, then `frm_sample()` it |
 | `restructure(ds)` | no older-object upgrade path exists | re-run `frm_sample()` |
-| `posterior_samples(ds)` | deprecated brms spelling | `as_draws(ds)`, `as.matrix(ds)` |
-| `nsamples(ds)` | deprecated brms spelling | `ndraws(ds)`, `niterations(ds)` |
-| `parnames(ds)` | deprecated brms spelling | `variables(ds)` |
+
+brms's deprecated spellings `posterior_samples()`, `nsamples()` and
+`parnames()` do not stop: each answers with brms's deprecation warning,
+as brms does. In new code write `as_draws(ds)`, `ndraws(ds)` and
+`variables(ds)`.
 
 Two groups refuse for reasons that are not spelling.
 

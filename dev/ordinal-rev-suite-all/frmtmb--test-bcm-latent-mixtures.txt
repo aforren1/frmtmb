@@ -1,0 +1,21 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | bcm-latent-mixtures                                            
+⠋ |          1 | bcm-latent-mixtures                                            
+⠦ |          7 | bcm-latent-mixtures                                            
+⠏ |         10 | bcm-latent-mixtures                                            
+⠙ |         12 | bcm-latent-mixtures                                            
+⠏ |         20 | bcm-latent-mixtures                                            
+⠹ |         23 | bcm-latent-mixtures                                            
+⠇ |         29 | bcm-latent-mixtures                                            
+⠙ |         42 | bcm-latent-mixtures                                            
+⠼ |         45 | bcm-latent-mixtures                                            
+⠇ |         49 | bcm-latent-mixtures                                            
+✔ |         52 | bcm-latent-mixtures [4.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 52 ]
+RESULT lane frmtmb test-bcm-latent-mixtures.R pass=52 fail=0 err=0 skip=0 warn=0

@@ -113,14 +113,13 @@ test_that("every (family, link) pair brms accepts constructs", {
   for (fam in setdiff(names(sets), "multinomial")) {
     ctor <- famlink_ctor(fam)
     for (lk in sets[[fam]]) {
-      if (fam == "acat" && lk != "logit") next  # deliberate, below
       f <- ctor(link = lk)
       expect_identical(f$link, lk, label = paste(fam, lk))
       built <- built + 1L
     }
   }
   expect_identical(built, sum(lengths(sets[setdiff(names(sets),
-                                                   "multinomial")])) - 5L)
+                                                   "multinomial")])))
 })
 
 test_that("every roster link brms refuses for a family is refused by name", {
@@ -137,10 +136,6 @@ test_that("every roster link brms refuses for a family is refused by name", {
     }
   }
   expect_gt(refused, 300L)
-  # acat's other five brms links are refused for the density, not the link
-  for (lk in c("probit", "probit_approx", "cloglog", "cauchit", "softit")) {
-    expect_error(acat(lk), "has not written", fixed = TRUE)
-  }
 })
 
 test_that("the refusal fires on the silent wrong answer it was built for", {

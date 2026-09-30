@@ -1567,6 +1567,103 @@ section and are listed here only where a user could hit them.
   derivatives at ordinary points, and `dbeta()` a `NaN` gradient past a
   shape sum of about 1e3 (lane fams2).
 
+## Filed at the 0.67.0 release (2026-09-30)
+
+What the three lanes of the round of 2026-09-30 (`ordinal`, `ceplot`,
+`formrobust`) found and did not fix, and what the consolidation found.
+Each item names its lane and the findings section with the
+measurement; `dev/round-20260930.md` is the round's record. Deliberate
+divergences from brms are not listed here; each lane's findings list
+them, and the ledger records the ones the ported suite reaches.
+
+### Closed by this round (were open at 0.66.0)
+
+- `predict(newdata = )` with NA responses under `cov = FALSE` ARMA
+  (formrobust, `brmsfit-methods:747`); bernoulli on two values that are
+  not 0 and 1 (formrobust, `standata:75`).
+- `conditional_effects()` on crossed `(1 | g) + (1 | h) + (1 | g:h)` at
+  an unseen combination and on a new `mm(by = )` member (ceplot); with
+  `mi(x, idx = )` it now stops with the reason, as brms stops.
+- `conditional_effects()` and `emmeans()` on an `offset()` model, and
+  an addition term given an expression (formrobust).
+- `disc`, `threshold = "equidistant"` and `"sum_to_zero"` on the four
+  older ordinal families (ordinal, `priors:14`).
+- `plot()` of conditional effects and of a hypothesis takes brms's
+  arguments and returns plot objects; the six ledger rows are a
+  divergence, since the objects are not ggplot objects (ceplot).
+- `parnames()` on a fit and `nsamples(incl_warmup = TRUE)` (ceplot).
+- `update(fit, bf(y ~ x2))` pools the stored parameter formulas, as
+  brms does (formrobust).
+
+### Open - medium
+
+- **`emmeans()` on a fit with a transformed predictor stops** with
+  "undefined columns selected": `poly(z, 2)`, `log(abs(z) + 1)` and
+  `scale(z)`, with or without an offset. The reference grid is built
+  from the model frame, which holds the transformed columns; lane
+  ceplot's raw-variable frame (`ce_base_frame()`) solved the same
+  problem for `conditional_effects()`. Pre-existing on 0.66.0 and on
+  both lane builds. Found at consolidation (`dev/rel067-emmoffset.R`,
+  `dev/rel067-log/emmoffset.txt`).
+- **`update(fit2, formula. = bf(count ~ a + b, nl = TRUE))` stops in
+  the refit** from the default starting values ("NA/NaN gradient
+  evaluation"), on the lane build and the release build alike. The
+  update itself is brms's now. Ledger row `brmsfit-methods:955`, a
+  defect; the lane had recorded it as a class-name divergence. Found at
+  consolidation (`dev/rel067-update955.R`,
+  `dev/rel067-log/update955.txt`).
+- **Ordinal mixtures stay refused.** brms fits them with `disc1`,
+  `disc2` and thresholds fixed across components (its equidistant
+  mixture does not compile, brms-17). Lane ordinal, "Not done".
+- **`thres(gr = )` and `cs()` on `hurdle_cumulative()`** stay refused;
+  brms fits both. Lane ordinal, "Not done".
+- **`posterior_linpred(incl_thres = TRUE)`** in frmtmb.sample stays
+  refused; brms returns `disc * (thres - mu)` per threshold for every
+  ordinal family. Lane ordinal, "Not done".
+- **`conditional_effects()` refuses `trunc()` and `se()` terms whose
+  variables are not pinned in `conditions`** (`ce_aterms()`); brms
+  holds such a variable at its mean, and a `min(y) - 1` bound at
+  `mean(y) - 1`. Pre-existing. Lane formrobust, section 9.
+
+### Open - low
+
+- **A fixed `disc` in `variables()`**: brms lists `disc` (a transformed
+  parameter, 1) on every ordinal fit; frmtmb lists no fixed dpar for any
+  family. Lane ordinal, "Not done".
+- **Class `"Intercept"` with `coef`** does not address one ordinal
+  threshold; brms lists per-threshold rows under flexible and
+  sum-to-zero thresholds. Pre-existing. Lane ordinal, "Not done".
+- **`confint()` names the ordinal internal parameters `tau_raw_k`**;
+  under equidistant thresholds `tau_raw_2` is `log(delta)`.
+  Pre-existing. Lane ordinal, "Not done".
+- **The compatibility table (`R/compat.R`)** has no rows for the
+  threshold structures or `disc`. frmtmb.eam's tests read that table.
+  Lane ordinal, "Not done".
+- **frmtmb.sample's default prior on the `disc` intercept under
+  `link_disc = "identity"`**: brms uses `lognormal(0, 1)`, which
+  `set_prior()` does not carry, and the default-prior message names the
+  gap. Lane ordinal (frmtmb.sample NEWS).
+- **`fitted(ndraws = )` on a fit** is refused, so ledger row
+  `brmsfit-methods:314` does not hold although `fitted()` takes
+  `sample_new_levels = "old_levels"` now. Lane ceplot, section 7.
+- **`frm_sample()` takes no `drop_unused_levels`**; fit with
+  `frm(drop_unused_levels = FALSE)` and sample the fit. Lane
+  formrobust, section 9.
+- **`refit(newresp = )` of a recoded bernoulli fit** takes the 0/1
+  codes that `simulate()` returns and refuses the original values by
+  name. Lane formrobust, section 9.
+
+### Upstream, listed in `dev/upstream-bugs.md` for the user to file
+
+- brms 2.23.0: brms-15 (`cratio("cloglog")` with `disc`, NaN gradient
+  on some data), brms-16 (`sum_to_zero` with the logit link does not
+  compile), brms-17 (equidistant `delta` declared twice in a
+  multivariate or mixture model), all lane ordinal; brms-18 (a new
+  `mm(by = )` member cannot be drawn), lane ceplot; brms-19 (an
+  all-`TRUE` bernoulli response coded as all failures), lane
+  formrobust. Lane ordinal met brms-2 (softit) and brms-8
+  (`probit_approx`) again.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

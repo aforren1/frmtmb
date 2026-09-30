@@ -1,0 +1,12 @@
+internal: y_tau_raw_1 y_tau_raw_2 y_tau_raw_3 
+ names: b_y_Intercept[1] b_y_Intercept[2] b_y_Intercept[3] 
+ map(r): 0.1 1.321403 2.671262 
+internal: y2_tau_raw_1 y2_tau_raw_2 
+ names: b_y2_Intercept[1] b_y2_Intercept[2] 
+ map(r): 0.1 0.2 
+extra:  
+colnames(draws): b_y_x b_y2_x b_y_Intercept[1] b_y_Intercept[2] b_y_Intercept[3] b_y2_Intercept[1] b_y2_Intercept[2] lp__ 
+extra row comp y_tau_raw  cls b  names y_Intercept[1] y_Intercept[2] y_Intercept[3]  raw len 3 
+extra row comp y2_tau_raw  cls b  names y2_Intercept[1] y2_Intercept[2]  raw len 2 
+ord_delta_info:
+ list()

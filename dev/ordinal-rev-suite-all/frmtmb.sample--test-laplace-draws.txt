@@ -1,0 +1,38 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | laplace-draws                                                  
+⠋ |          1 | laplace-draws                                                  
+⠹ |          3 | laplace-draws                                                  
+⠦ |          7 | laplace-draws                                                  
+⠹ |         13 | laplace-draws                                                  
+⠼ |         15 | laplace-draws                                                  
+⠇ |         19 | laplace-draws                                                  
+⠋ |         21 | laplace-draws                                                  
+⠸ |         24 | laplace-draws                                                  
+⠦ |         27 | laplace-draws                                                  
+⠏ |         30 | laplace-draws                                                  
+⠸ |         34 | laplace-draws                                                  
+⠦ |         37 | laplace-draws                                                  
+⠸ |         44 | laplace-draws                                                  
+⠙ |         62 | laplace-draws                                                  
+⠙ |         72 | laplace-draws                                                  
+⠴ |         76 | laplace-draws                                                  
+⠧ |         78 | laplace-draws                                                  frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+
+⠙ |         82 | laplace-draws                                                  
+⠹ |         83 | laplace-draws                                                  
+⠼ |         85 | laplace-draws                                                  
+⠧ |         88 | laplace-draws                                                  
+⠇ |         89 | laplace-draws                                                  
+⠋ |         91 | laplace-draws                                                  
+✔ |         92 | laplace-draws [9.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 92 ]
+RESULT lane frmtmb.sample test-laplace-draws.R pass=92 fail=0 err=0 skip=0 warn=0

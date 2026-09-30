@@ -44,7 +44,11 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   program; no softit model compiles.
 - Workaround: none needed. Row 22c asserts the defect in text and fails
   when brms fixes it (`tests/testthat/test-brms-likelihood.R:1377`).
-- Record: `dev/brms-likelihood-tests.md`, row 22c.
+- Record: `dev/brms-likelihood-tests.md`, row 22c. Met again on
+  2026-09-30 by lane ordinal: `acat("softit")` does not compile for the
+  same reason, so acat softit is checked against brms's R side
+  (`brms:::dacat()`) instead (`dev/ordinal-findings.md`, "brms 2.23.0
+  defects met", item 3).
 - Status: not reported.
 
 ### brms-3. `posterior_predict()` for `hurdle_negbinomial` does not draw the zero-truncated NB
@@ -123,7 +127,13 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Expected: one function per link name.
 - Workaround: frmtmb uses the Stan form; the test asserts it
   (`tests/testthat/test-brms-likelihood.R:1326`).
-- Record: `dev/links-findings.md`, near line 79.
+- Record: `dev/links-findings.md`, near line 79. Met again on
+  2026-09-30 by lane ordinal on `acat("probit_approx")`:
+  `brms:::inv_link()` reads it as `pnorm()`, the Stan program as
+  `Phi_approx()`. frmtmb follows the likelihood, and
+  `test-ordinal-disc-thres.R` checks its acat against brms's formula
+  with `Phi_approx` (`dev/ordinal-findings.md`, "brms 2.23.0 defects
+  met", item 5).
 - Status: not reported.
 
 ### brms-9. The comment on `cholesky_cor_ar1()` misdescribes what it returns
@@ -196,6 +206,101 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Record: `frmtmb-wt-postfit2/dev/reviews/2026-09-29-postfit2.md`,
   final check, item 2.
 - Status: not reported. Likely low impact.
+
+### brms-15. `cratio("cloglog")` with a modeled `disc` has a NaN gradient on some data
+
+- Seen: 2.23.0. Found 2026-09-30 (lane ordinal).
+- Repro: `dev/ordinal-brms-defects.R`, item 1. Fit a `cratio("cloglog")`
+  model with `disc ~ x` and evaluate brms's `log_prob` and its gradient
+  at frmtmb's optimum. The value equals frmtmb's logLik
+  (-441.1943809182 in both), and 4 of 6 gradient entries are NaN.
+- Expected: a finite gradient, as frmtmb's (1.9e-4 there). The NaN
+  depends on the data: it comes when a row has `disc * (mu - thres_k)`
+  above about 6.6 below its category. brms's line is `q[k] =
+  log1m_exp(-exp(disc * (mu - thres[k])))`, which loses the value in
+  that range. At other points (disc slope 0, or the x slope halved) the
+  gradient is finite.
+- Workaround: none needed. The gated Stan identity row for cratio
+  cloglog with disc uses seed 20260931, whose largest such value is
+  4.70 (`dev/ordinal-p1-cloglog.R`, `dev/ordinal-p1-log-cloglog.txt`;
+  seed 20260930 has 8.75).
+- Record: `dev/ordinal-findings.md`, "brms 2.23.0 defects met", item 1,
+  and punch round 1, m3; output `dev/ordinal-log-brms-defects.txt`.
+- Status: not reported.
+
+### brms-16. `cumulative(threshold = "sum_to_zero")` with the logit link does not compile
+
+- Seen: 2.23.0. Found 2026-09-30 (lane ordinal).
+- Repro: `stancode()` of a `cumulative("logit", threshold =
+  "sum_to_zero")` model with `disc` held at 1 emits
+  `ordered_logistic_glm_lpmf(Y | X, b, 0)`, with the literal 0 as the
+  thresholds.
+- Expected: the sum-to-zero threshold vector. Actual: stanc refuses the
+  program. The probit link and a modeled disc take other code paths and
+  compile.
+- Workaround: none needed. The likelihood rows use probit and a
+  modeled disc for this structure.
+- Record: `dev/ordinal-findings.md`, "brms 2.23.0 defects met", item 2;
+  `dev/ordinal-brms-defects.R`.
+- Status: not reported.
+
+### brms-17. Equidistant thresholds in a multivariate or mixture model declare `delta` twice
+
+- Seen: 2.23.0. Found 2026-09-30 (lane ordinal); widened by its review.
+- Repro: `stancode()` of a multivariate model with two ordinal
+  responses and `threshold = "equidistant"` (`dev/ordinal-mv.R`).
+  `stan_thres()` suffixes the prior with the group only, so `delta` is
+  declared twice, while the transformed parameters use `delta_y` and
+  `delta_y2`. A multivariate model with ONE equidistant response also
+  fails ("delta_y not in scope"), and so does an equidistant ordinal
+  mixture (`dev/ordinal-rev-log-defects.txt`).
+- Expected: one `delta_<suffix>` per response or component. Actual:
+  stanc refuses the program.
+- Workaround: none needed. frmtmb names the parameters as brms's
+  transformed-parameter code does, `delta_y` and `delta_y2`; frmtmb
+  refuses ordinal mixtures for other reasons.
+- Record: `dev/ordinal-findings.md`, "brms 2.23.0 defects met", item 4,
+  and punch round 1, m4; `dev/ordinal-log-brms-code.txt`.
+- Status: not reported.
+
+### brms-18. A new level of an `mm(by = )` term cannot be drawn
+
+- Seen: 2.23.0. Found 2026-09-30 (lane ceplot, punch round 1).
+- Repro: fit `y ~ x + (1 | mm(g1, g2, by = cbind(f1, f2)))`, then ask
+  `conditional_effects()` for a row with a new member. brms stops with
+  one of three errors, by condition
+  (`dev/ceplot-rev-log/mmby-brms.txt`, seeds 1 to 3 each). Both members
+  unset: "The following variables are missing in the draws object:
+  {'sd_mmg1g2__Intercept:cbind(f1, f2)'}". One member seen and one
+  unset: "all(bylevels %in% reframe$bylevels[[1]]) is not TRUE". Both
+  unset at different by-levels: "Some levels of 'g1', 'g2' correspond
+  to multiple levels of 'cbind(f1, f2)'". With both members observed,
+  brms answers and equals frmtmb to 0.
+- Expected: a new member drawn with the SD of its own by-level block,
+  as for `(1 | gr(g, by = f))`.
+- Workaround: frmtmb draws each new member in its own by-level block;
+  the check is against the Wald band (`dev/ceplot-mmby.R`).
+- Record: `dev/ceplot-findings.md` sections 1.7 and 10 (m9).
+- Status: not reported.
+
+### brms-19. An all-`TRUE` bernoulli response is coded as all failures
+
+- Seen: 2.23.0. Found 2026-09-30 (lane formrobust; its review agreed).
+- Repro: `standata(y ~ 1, data.frame(y = rep(TRUE, 5)), bernoulli())`.
+  `data_response.brmsframe()` takes the levels from
+  `levels(as.factor(Y))`, which has one level, `"TRUE"`, and a
+  one-valued response becomes `c(0, value)`, so `TRUE` is coded 0
+  (`dev/formrobust-brms-binary.R`,
+  `dev/formrobust-log/brms-binary.txt`).
+- Expected: `TRUE` coded 1, as in a response that holds both values.
+  Actual: every row is a failure.
+- Workaround: frmtmb reads a logical as its number, so all-`TRUE`
+  codes 1. Recorded as a deliberate divergence in NEWS and
+  `dev/formrobust-findings.md` section 5.
+- Record: `dev/formrobust-findings.md` section 5, "Deliberate
+  divergences" (a); `dev/reviews/2026-09-30-formrobust.md`, minor 2.
+- Status: not reported. Low impact: a response that holds one value
+  is rare.
 
 ## RTMB
 

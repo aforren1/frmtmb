@@ -44,6 +44,18 @@ What changed, and `dev/shapes-findings.md` has the whole of it:
   rewritten one by one; the ported suite's ledger,
   `dev/brmsport-ledger.tsv`, is the current record for each call it
   ports.
+- **At 0.67.0** (round of 2026-09-30, `dev/round-20260930.md`) these
+  rows were rewritten from the formals of the release build
+  (`dev/rel067-formals.R`): `acat()`, `cratio()`,
+  `cumulative()` and `sratio()` take `link_disc` and `threshold` (lane
+  ordinal); `conditional_effects()`, `nsamples()`, `parnames()`, which
+  now has a method for a fit, and `posterior_samples()` (lane ceplot,
+  and rows stale since 2.6f); `bf()` takes `autocor` (lane formrobust).
+  New shared names without a row: `ar()`, `ma()`, `arma()`, `cosy()`,
+  `unstr()` and `acformula()` take brms's formals exactly, and
+  `autocor()` has a method for a fit; `frm()` takes brms's
+  `drop_unused_levels` (lane formrobust). In "(c)" below, the
+  `threshold =` item and `link_disc` in the `link_*` item are done.
 
 ## The rule
 
@@ -92,7 +104,7 @@ Counts: 137 frmtmb exports, 306 brms exports, 95 shared names.
 
 | function | frmtmb signature read | shared | brms-only (gap) | frmtmb-only (extra) |
 | --- | --- | --- | --- | --- |
-| `acat()` | `acat` | `link` | `link_disc`, `threshold` | - |
+| `acat()` | `acat` | `link`, `link_disc`, `threshold` | - | - |
 | `as.mcmc()` | `as.mcmc.frmtmb_draws` | `x`, `combine_chains` | `pars`, `fixed`, `inc_warmup` | - |
 | `as_draws()` | `as_draws.frmtmb_draws` | `x` | `variable`, `regex`, `inc_warmup` | - |
 | `as_draws_array()` | `as_draws_array.frmtmb_draws` | `x` | `variable`, `regex`, `inc_warmup` | - |
@@ -106,13 +118,13 @@ Counts: 137 frmtmb exports, 306 brms exports, 95 shared names.
 | `bernoulli()` | `bernoulli` | `link` | - | - |
 | `Beta()` | `Beta` | `link` | `link_phi` | - |
 | `beta_binomial()` | `beta_binomial` | `link` | `link_phi` | - |
-| `bf()` | `bf` | `formula`, `family`, `nl` | `flist`, `autocor`, `loop`, `center`, `cmc`, `sparse`, `decomp` | - |
+| `bf()` | `bf` | `formula`, `family`, `nl`, `center`, `cmc`, `autocor` | `flist`, `loop`, `sparse`, `decomp` | - |
 | `bridge_sampler()` | `bridge_sampler.frmtmb_draws` | - | `samples`, `recompile` | `x` |
 | `categorical()` | `categorical` | `link` | `refcat` | `levels`, `K` |
-| `conditional_effects()` | `conditional_effects.frmtmb_fit` | `x`, `effects`, `resolution`, `prob`, `method`, `re_formula`, `conditions`, `surface` | `int_conditions`, `robust`, `spaghetti`, `categorical`, `ordinal`, `transform`, `select_points`, `too_far`, `probs` | `resp`, `dpar`, `band`, `ndraws`, `boot`, `profile_points`, `seed`, `data` |
+| `conditional_effects()` | `conditional_effects.frmtmb_fit` | `x`, `effects`, `resolution`, `prob`, `method`, `re_formula`, `conditions`, `surface`, `spaghetti`, `select_points`, `too_far`, `int_conditions`, `categorical` | `robust`, `ordinal`, `transform`, `probs` | `resp`, `dpar`, `band`, `ndraws`, `boot`, `profile_points`, `seed`, `data` |
 | `cox()` | `cox` | `link` | - | `df`, `degree`, `intercept` |
-| `cratio()` | `cratio` | `link` | `link_disc`, `threshold` | - |
-| `cumulative()` | `cumulative` | `link` | `link_disc`, `threshold` | - |
+| `cratio()` | `cratio` | `link`, `link_disc`, `threshold` | - | - |
+| `cumulative()` | `cumulative` | `link`, `link_disc`, `threshold` | - | - |
 | `custom_family()` | `custom_family` | `dpars`, `links`, `type` | `name`, `lb`, `ub`, `vars`, `loop`, `specials`, `threshold`, `log_lik`, `posterior_predict`, `posterior_epred`, `predict`, `fitted`, `env` | `family`, `lpdf`, `valid_y`, `init_dpars`, `post`, `sim`, `sim_ctx`, `sim_refusal`, `primary_dpars`, `lcdf`, `extra_pars`, `drop_intercept` |
 | `exgaussian()` | `exgaussian` | `link` | `link_sigma`, `link_beta` | - |
 | `exponential()` | `exponential` | `link` | - | - |
@@ -145,16 +157,16 @@ Counts: 137 frmtmb exports, 306 brms exports, 95 shared names.
 | `ngrps()` | `ngrps.frmtmb_fit` | `object` | - | - |
 | `niterations()` | `niterations.frmtmb_draws` | `x` | - | - |
 | `nlf()` | `nlf` | `formula`, `loop` | `flist`, `dpar`, `resp` | - |
-| `nsamples()` | `nsamples.frmtmb_draws` | `object` | `subset`, `incl_warmup` | - |
+| `nsamples()` | `nsamples.frmtmb_draws` | `object`, `subset`, `incl_warmup` | - | - |
 | `nuts_params()` | `nuts_params.frmtmb_draws` | `object` | `pars` | - |
 | `nvariables()` | `nvariables.frmtmb_draws` | `x` | - | - |
-| `parnames()` | `parnames.frmtmb_draws` | `x` | - | - |
+| `parnames()` | `parnames.frmtmb_fit`, `parnames.frmtmb_draws` | `x` | - | - |
 | `post_prob()` | `post_prob.frmtmb_draws` | `x` | `prior_prob`, `model_names` | - |
 | `posterior_epred()` | `posterior_epred.frmtmb_draws` | `object`, `newdata`, `resp`, `re_formula`, `re.form`, `ndraws` | `dpar`, `nlpar`, `draw_ids`, `sort` | - |
 | `posterior_interval()` | `posterior_interval.frmtmb_draws` | `object`, `prob`, `variable` | `pars` | - |
 | `posterior_linpred()` | `posterior_linpred.frmtmb_draws` | `object`, `transform`, `newdata`, `resp`, `re_formula`, `re.form`, `dpar`, `ndraws` | `nlpar`, `incl_thres`, `draw_ids`, `sort` | - |
 | `posterior_predict()` | `posterior_predict.frmtmb_draws` | `object`, `newdata`, `resp`, `re_formula`, `re.form`, `ndraws` | `transform`, `negative_rt`, `draw_ids`, `sort`, `ntrys`, `cores` | - |
-| `posterior_samples()` | `posterior_samples.frmtmb_draws` | `x` | `pars`, `fixed`, `add_chain`, `subset`, `as.matrix`, `as.array` | - |
+| `posterior_samples()` | `posterior_samples.frmtmb_draws` | `x`, `pars`, `fixed`, `add_chain`, `subset`, `as.matrix`, `as.array` | - | - |
 | `posterior_summary()` | `posterior_summary.frmtmb_draws` | `probs`, `robust`, `variable` | `x`, `pars` | `object` |
 | `pp_check()` | `pp_check.frmtmb_fit` | `object`, `type`, `ndraws` | `prefix`, `group`, `x`, `newdata`, `resp`, `draw_ids`, `nsamples`, `subset` | `re_formula`, `re.form` |
 | `pp_mixture()` | `pp_mixture.frmtmb_draws` | `x`, `summary`, `ndraws` | `newdata`, `re_formula`, `resp`, `draw_ids`, `log`, `robust`, `probs` | - |
@@ -173,7 +185,7 @@ Counts: 137 frmtmb exports, 306 brms exports, 95 shared names.
 | `set_rescor()` | `set_rescor` | `rescor` | - | `rescor_value` |
 | `shifted_lognormal()` | `shifted_lognormal` | `link` | `link_sigma`, `link_ndt` | - |
 | `skew_normal()` | `skew_normal` | `link` | `link_sigma`, `link_alpha` | - |
-| `sratio()` | `sratio` | `link` | `link_disc`, `threshold` | - |
+| `sratio()` | `sratio` | `link`, `link_disc`, `threshold` | - | - |
 | `stancode()` | `stancode.frmtmb_draws` | `object` | `version`, `regenerate`, `threads`, `backend` | - |
 | `standata()` | `standata.frmtmb_draws` | `object` | `newdata`, `re_formula`, `newdata2`, `new_objects`, `incl_autocor` | - |
 | `student()` | `student` | `link` | `link_sigma`, `link_nu` | - |

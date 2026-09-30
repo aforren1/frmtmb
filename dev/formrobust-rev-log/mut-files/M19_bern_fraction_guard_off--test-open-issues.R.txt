@@ -1,0 +1,5 @@
+MUTATED frmtmb::extract_y
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M19_bern_fraction_guard_off.R
+DETAIL [expectation_failure] non-integer responses are rejected, not silently fit (lme4#682, #180): Expected `frm(bf(Y ~ 1 + (1 | g)) + bernoulli(), data = bd)` to throw a error.
+RESULT test-open-issues.R pass=42 fail=1 err=0 skip=0 warn=0 tests=13
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -8,7 +8,11 @@ test_that("bf() builds a formula object and + attaches a family", {
 })
 
 test_that("bf() rejects unsupported features with clear errors", {
-  expect_error(bf(y ~ a * exp(b * x), nl = TRUE), "parameter formula")
+  # nl = TRUE without a parameter formula waits for frm(), as brms
+  # waits for brm()
+  expect_error(frm(bf(y ~ a * exp(b * x), nl = TRUE), data = NULL,
+                   dry_run = "spec"),
+               "nonlinear-parameter formula")
   # A missing family is no longer an error: it defaults to gaussian,
   # the brms / lme4 / glmmTMB convention. The internal guard remains
   # for a spec built without going through as_bform().

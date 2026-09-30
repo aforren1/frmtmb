@@ -1,0 +1,107 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres-draws                                       
+⠋ | 1        0 | ordinal-disc-thres-draws                                       
+⠙ | 2        0 | ordinal-disc-thres-draws                                       
+⠸ | 4        0 | ordinal-disc-thres-draws                                       
+⠴ | 6        0 | ordinal-disc-thres-draws                                       
+✖ | 6        0 | ordinal-disc-thres-draws [9.0s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres-draws.R:92:3'): sum-to-zero draws sum to zero under brms's names
+Error in `sratio(threshold = "sum_to_zero")`: unused argument (threshold = "sum_to_zero")
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("stz") at test-ordinal-disc-thres-draws.R:92:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Failure ('test-ordinal-disc-thres-draws.R:104:3'): a hurdle ordinal's thresholds are stored under brms's names
+Expected `all(paste0("b_Intercept[", 1:4, "]") %in% v)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-ordinal-disc-thres-draws.R:105:3'): a hurdle ordinal's thresholds are stored under brms's names
+Expected `any(grepl("^tau_raw", v))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres-draws.R:111:3'): an intercept in disc gets brms's normal(0, 1) by default
+Expected `any(grepl("Intercept_disc ~ normal(0, 1)", ps, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.1 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres-draws.R:92:3'): sum-to-zero draws sum to zero under brms's names
+Error in `sratio(threshold = "sum_to_zero")`: unused argument (threshold = "sum_to_zero")
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("stz") at test-ordinal-disc-thres-draws.R:92:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Failure ('test-ordinal-disc-thres-draws.R:104:3'): a hurdle ordinal's thresholds are stored under brms's names
+Expected `all(paste0("b_Intercept[", 1:4, "]") %in% v)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-ordinal-disc-thres-draws.R:105:3'): a hurdle ordinal's thresholds are stored under brms's names
+Expected `any(grepl("^tau_raw", v))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres-draws.R:111:3'): an intercept in disc gets brms's normal(0, 1) by default
+Expected `any(grepl("Intercept_disc ~ normal(0, 1)", ps, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+[ FAIL 6 | WARN 0 | SKIP 0 | PASS 0 ]
+RESULT base frmtmb.sample test-ordinal-disc-thres-draws.R pass=0 fail=3 err=3 skip=0 warn=0

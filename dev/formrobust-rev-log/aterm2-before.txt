@@ -1,0 +1,7 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+
+== A. readers of the frame (weights(wt*k), env k) ==
+Error in model.frame.default(fr_formula, data = data, drop.unused.levels = TRUE,  : 
+  variable lengths differ (found for 'k')
+Calls: frm ... assemble_frame -> <Anonymous> -> model.frame.default
+Execution halted

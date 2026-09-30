@@ -10,7 +10,7 @@
 #
 # Usage: Rscript run-tests.R <package> <path-to-test-file>
 
-LIB <- "C:/Users/adf44/source/r/rellib-r4"
+LIB <- "C:/Users/adf44/source/r/rellib-r5"
 .libPaths(c(LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 
 # The StanHeaders 2.32.10 pin is gone (2026-09-17). Its two reasons were a

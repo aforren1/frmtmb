@@ -1,0 +1,13 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | glmm-binomial                                                  
+⠋ |          1 | glmm-binomial                                                  
+⠸ |          4 | glmm-binomial                                                  
+✔ |         10 | glmm-binomial [1.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 10 ]
+RESULT lane frmtmb test-glmm-binomial.R pass=10 fail=0 err=0 skip=0 warn=0

@@ -18,7 +18,7 @@ $OUT  = "$ROOT/dev/release/checkout"
 
 if (-not (Test-Path $R)) { throw "R missing: $R" }
 
-$env:R_LIBS = "C:/Users/adf44/source/r/rellib-r4;C:/Users/adf44/AppData/Local/R/win-library/4.6"
+$env:R_LIBS = "C:/Users/adf44/source/r/rellib-r5;C:/Users/adf44/AppData/Local/R/win-library/4.6"
 $env:NOT_CRAN = "true"
 # StanHeaders 2.39.1 compiles only with the user Makevars C++17 flag, and
 # HOME depends on the launcher, so name the file (dev/tmbstan121-findings.md)

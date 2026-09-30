@@ -308,8 +308,10 @@ has not written.
   brms, with brms's message. A 0/1 response takes `bernoulli()` or
   `y | trials(1)`; the `stats::glm()` convention of one implicit trial
   does not carry over.
-- `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are supported in
-  their covariance form only; see the next section.
+- `ar()`, `ma()` and `arma()` fit in both forms: brms's default
+  `cov = FALSE` and `cov = TRUE`. `cosy()` and `unstr()` have the
+  covariance form only, as in brms. See the section "Within-group
+  residual correlation" below.
 - glmer's proportion-response idiom (`weights = size`) becomes
   `y | trials(size)` with either proportions or counts; `weights()`
   in the formula stays a frequency weight, as in brms.
@@ -524,9 +526,14 @@ series it is the conditional sum of squares of
 unconstrained, the lag is counted in rows, and `weights()`, `cens()`,
 `trunc()`, `mi()` and `rescor = TRUE` combine with it. `fitted()` and
 `predict()` give brms's one-step mean, which reads the observed
-earlier residuals, so `newdata` must carry the response; `simulate()`
-runs the recursion over its own draws. `cosy()` and `unstr()` have no
-`cov` argument in brms either and port unchanged.
+earlier residuals of `newdata`'s response. Where that response is
+`NA`, or absent, `predict()` fills it as brms does, with a draw at
+the row's one-step mean, and `fitted()` fills it with its expected
+value, because a maximum likelihood fit has no draws to carry the
+fill through (brms's `fitted()` fills with draws, and so does
+frmtmb.sample's `posterior_epred()`). `simulate()` runs the recursion
+over its own draws. `cosy()` and `unstr()` have no `cov` argument in
+brms either and port unchanged.
 
 ```{r, eval = FALSE}
 # brms
@@ -748,13 +755,21 @@ the SHAPE of what a standard generic returns:
   hold every smooth at its fit and redraw only group-level terms. A row
   reads only its own `f` level's block of `gr(g, by = f)`, and each
   member of `mm(g1, g2)` is a grouping variable; the "New group
-  levels" section of `?conditional_effects` has the refusals.
+  levels" section of `?conditional_effects` has the refusals. One
+  invalid effect among valid ones is dropped with brms's warning.
+- `plot()` of a conditional-effects object and of a `hypothesis()`
+  result takes all of brms's arguments (`rug`, `stype`, `mean`, the
+  `*_args` lists, `nvariables`, `ignore_prior`, `chars` and others).
+  frmtmb draws with base graphics, so `plot = FALSE` returns a list of
+  plot objects that draw when printed, not ggplot objects, and a
+  ggplot2 `theme` is not applied.
 - `conditional_effects()` on an ordinal fit draws one probability
   curve per response category, which is what brms draws under
   `categorical = TRUE`, and keys the effect `"x:cats__"` as brms does
   there. It is the default here because brms's own default warns that
   it is treating an ordered factor as continuous; `categorical = FALSE`
-  asks for that summary, the expected category number.
+  asks for that summary, the expected category number, with brms's
+  warning.
 - `coef()` is the per-group convention shared by all three packages:
   fixed effects plus conditional modes per grouping level.
 - `predict(allow_new_levels = TRUE)` draws an unseen level's effect
@@ -766,8 +781,9 @@ the SHAPE of what a standard generic returns:
   chosen once per call as brms chooses it, from every replicate's draw
   of the group effects. brms's `"uncertainty"` mixes the two per
   posterior draw, and a maximum-likelihood fit has none, so it is
-  refused by name; so is `"old_levels"` on `fitted()`, a Wald summary
-  with no draws to borrow from.
+  refused by name. `fitted()` takes `"old_levels"` too: the unseen
+  level reads the chosen seen level's fitted effect, and its standard
+  error that level's conditional variance.
 - `update()` takes brms's `newdata` and records its name in
   `attr(fit$data, "data_name")`, which `summary()` prints. It also
   takes the `data =` of `stats::update()`, which brms refuses.

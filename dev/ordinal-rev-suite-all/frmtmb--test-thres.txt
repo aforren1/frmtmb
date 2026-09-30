@@ -1,0 +1,29 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | thres                                                          
+⠋ |          1 | thres                                                          
+⠦ |          7 | thres                                                          
+⠙ |         12 | thres                                                          
+⠸ |         14 | thres                                                          
+⠼ |         15 | thres                                                          
+⠧ |         18 | thres                                                          
+⠋ |         21 | thres                                                          
+⠸ |         24 | thres                                                          
+⠇ |         29 | thres                                                          
+⠼ |         35 | thres                                                          
+⠇ |         39 | thres                                                          
+⠼ |         45 | thres                                                          
+⠇ |         49 | thres                                                          
+⠹ |         53 | thres                                                          
+⠸ |         54 | thres                                                          
+⠴ |         56 | thres                                                          
+⠧ |         58 | thres                                                          
+⠦ |         67 | thres                                                          
+✔ |         67 | thres [3.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 67 ]
+RESULT lane frmtmb test-thres.R pass=67 fail=0 err=0 skip=0 warn=0

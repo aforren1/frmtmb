@@ -1,0 +1,16 @@
+allvars: y ~ y + x + f + time 
+Compiling Stan program...
+Start sampling
+emmean a, b: 1.022449 1.200291 
+median of draws b0 + bx*mean(x) (+ bfb): 0.3196746 0.4975167 
+difference a (0 means offset left out): 0.7027742  log(mean(time)) = 0.7027742 
+epred emmean a, b: 2.779994 3.321083 
+median exp(lp + log(mean(time))): 2.779994 3.321083 
+CE at x = 0.01628311  estimate 2.811395  time in grid 2.019347  mean(time) 2.019347 
+CE / median exp(b0 + bx x + log(mean time)) (f at ref a): 1 
+Compiling Stan program...
+Start sampling
+nl emmean: 1.021405  median(a + b*mean(x)): 1.021405  + mean(z) would add 0.5412829 
+Compiling Stan program...
+Start sampling
+sigma emmean: 0.9003182  median(b_sigma_Intercept): 0.1975439  log(mean(time)) 0.7027742 

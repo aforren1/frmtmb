@@ -1,0 +1,22 @@
+arm lane frmtmb from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+logLik character -117.6565 factor -117.6565 
+1 character g=1,h=1 wald : est 0.8020 1.9986 3.1951 | width 3.4602 3.4398 3.4848 
+1 factor    g=1,h=1 wald : est 0.8020 1.9986 3.1951 | width 3.4602 3.4398 3.4848 
+1 character g=1,h=1 boot40 : est 0.8020 1.9986 3.1951 | width 3.1484 2.9263 2.7339 
+1 factor    g=1,h=1 boot40 : est 0.8020 1.9986 3.1951 | width 3.1484 2.9263 2.7339 
+1 character g=1,h=1 draws : est 0.9028 2.1112 3.2958 | width 2.6306 2.5736 2.5744 
+1 factor    g=1,h=1 draws : est 0.9028 2.1112 3.2958 | width 2.6306 2.5736 2.5744 
+1 character g=1,h=2 wald : est -0.3669 0.8297 2.0263 | width 0.9148 0.8463 1.0237 
+1 factor    g=1,h=2 wald : est -0.3669 0.8297 2.0263 | width 0.9148 0.8463 1.0237 
+1 character g=1,h=2 boot40 : est -0.3669 0.8297 2.0263 | width 0.5923 0.8140 0.9645 
+1 factor    g=1,h=2 boot40 : est -0.3669 0.8297 2.0263 | width 0.5923 0.8140 0.9645 
+1 character g=1,h=2 draws : est -0.3532 0.8476 2.0149 | width 0.6544 0.3616 0.5591 
+1 factor    g=1,h=2 draws : est -0.3532 0.8476 2.0149 | width 0.6544 0.3616 0.5591 
+2 trt:subj nothing set, wald : est NA NA NA | width NA NA NA 
+2 trt:subj nothing set, boot : ERROR conditional_effects() cannot draw a new level of the group-level term (1 | trt:subj) at the grid rows with trt = NA, subj = NA: to place one it would move a column that another term or an observed group reads, to a 
+2 trt:subj nothing set, draws : ERROR conditional_effects() cannot draw a new level of the group-level term (1 | trt:subj) at the grid rows with trt = NA, subj = NA: to place one it would move a column that another term or an observed group reads, to a 
+2 trt:subj trt = b, subj = 99, boot : est 0.5780 1.7714 2.9649 | width 2.7806 2.6187 2.5204 
+3 warning: Some specified effects are invalid for this model: 'extra'
+Valid effects are (combinations of): 'z', 'x' 
+4 effects = 'extra' with data =: ERROR All specified effects are invalid for this model.
+Valid effects are (combinations of): 'x' 

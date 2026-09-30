@@ -78,6 +78,29 @@
 #' of a second one. It is safe to call unconditionally: with no such
 #' block it returns `dpv` unchanged.
 #'
+#' `arma_cond_fill_dpars(fit, rspec, newdata, dpars_fn)` gives one
+#' response's distributional parameters on `newdata` for a predictive
+#' draw, where `dpars_fn(fit)` computes them for a fit. Under
+#' `cov = FALSE` it takes brms's treatment of a missing response: a row
+#' of `newdata` whose response is `NA` (every row, when the column is
+#' absent) is filled with a draw from the family at its one-step mean,
+#' in each group's time order, before the rows after it read its
+#' residual. It uses the random-number stream, and with no missing
+#' response it is `dpars_fn(fit)`.
+#'
+#' `arma_cond_fill_epred(fit, rspec, newdata, re_formula, dpar)` is the
+#' expected response of one draw on `newdata` with brms's fill: each
+#' missing `cov = FALSE` response is a draw at its shifted mean, so
+#' `posterior_epred()` carries the spread of the unobserved past, as
+#' brms's does. It returns `NULL` when nothing needs filling, and the
+#' caller keeps its own route.
+#'
+#' `response_codes_newdata(rspec, y, what)` codes a response read from
+#' newdata as the fit coded its own: a bernoulli response takes the 0
+#' and 1 of the fit's two values (brms's level order), and is refused,
+#' naming `what`, when it holds a third value. Any other response is
+#' returned unchanged.
+#'
 #' `subset_resp_check(fit, resp, what)` and
 #' `subset_newdata(fit, resp, newdata)` carry brms's rule for a
 #' multivariate model whose responses use `subset()`: each response has
@@ -125,6 +148,9 @@
 #' they are, and the ordinal thresholds and `cs()` coefficients that are
 #' not, each with the map from the internal vector to the reported value,
 #' so a draws object can report the same rows `fixef()` does.
+#' `ord_delta_info(fit)` lists brms's `delta` parameters of an ordinal
+#' fit with equidistant thresholds: the name, where the internal value
+#' sits, and the map from it to `delta`.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -440,9 +466,13 @@
 #' @aliases brms_summarize_draws
 #' @aliases brms_prob_cols
 #' @aliases brms_fixef_rows
+#' @aliases ord_delta_info
 #' @aliases rescor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
+#' @aliases arma_cond_fill_dpars
+#' @aliases arma_cond_fill_epred
+#' @aliases response_codes_newdata
 #' @aliases subset_resp_check
 #' @aliases subset_newdata
 #' @aliases cs_build
@@ -482,8 +512,10 @@
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
-#'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
-#'   arma_cond_resp, arma_cond_dpars, subset_resp_check, subset_newdata)
+#'   brms_prob_cols, brms_fixef_rows, ord_delta_info, rescor_row_loglik,
+#'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
+#'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
+#'   subset_newdata)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

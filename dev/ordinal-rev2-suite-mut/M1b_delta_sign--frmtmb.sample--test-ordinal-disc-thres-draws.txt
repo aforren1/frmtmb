@@ -1,0 +1,295 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M1b_delta_sign/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres-draws                                       
+⠋ |   1      0 | ordinal-disc-thres-draws                                       [1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+
+⠸ | 1 3      0 | ordinal-disc-thres-draws                                       
+⠼ | 1 4      0 | ordinal-disc-thres-draws                                       [1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+
+⠧ | 2 6      0 | ordinal-disc-thres-draws                                       
+⠇ | 2 6      1 | ordinal-disc-thres-draws                                       
+⠙ | 2 6      4 | ordinal-disc-thres-draws                                       
+⠸ | 2 6      6 | ordinal-disc-thres-draws                                       
+⠼ | 2 6      7 | ordinal-disc-thres-draws                                       
+⠴ | 2 6      8 | ordinal-disc-thres-draws                                       
+⠏ | 2 6     12 | ordinal-disc-thres-draws                                       [1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+
+⠴ | 3 9     14 | ordinal-disc-thres-draws                                       
+⠦ | 3 9     15 | ordinal-disc-thres-draws                                       
+✖ | 3 9     16 | ordinal-disc-thres-draws [9.0s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+  2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(start_par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+  2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+Large maximum absolute gradient at the optimum (99.1 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 239 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Error ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known case here: a tape that calls an external solver can fail inside tmbstan even at the fitted optimum, where the same tape optimizes without complaint; the package supplying such a tape documents that. A solver failure mid-run also corrupts rstan's sampler state, so retry in a fresh R session
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:36:7
+ 3.   ├─base::suppressWarnings(...)
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...)
+ 6.     └─frmtmb.sample:::check_stan_draws(sf, "frm_sample()")
+ 7.       └─frmtmb::frm_stop(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+  2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(start_par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+  2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+Large maximum absolute gradient at the optimum (99.1 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 239 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+ 2.   └─frmtmb::frm(...) at test-ordinal-disc-thres-draws.R:23:7
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Error ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known case here: a tape that calls an external solver can fail inside tmbstan even at the fitted optimum, where the same tape optimizes without complaint; the package supplying such a tape documents that. A solver failure mid-run also corrupts rstan's sampler state, so retry in a fresh R session
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:36:7
+ 3.   ├─base::suppressWarnings(...) at test-ordinal-disc-thres-draws.R:36:7
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...) at test-ordinal-disc-thres-draws.R:36:7
+ 6.     └─frmtmb.sample:::check_stan_draws(sf, "frm_sample()")
+ 7.       └─frmtmb::frm_stop(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+  2.   └─frmtmb::frm(bf(y ~ x) + bf(y2 ~ x), data = d, family = fam) at test-ordinal-disc-thres-draws.R:149:7
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(start_par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+  2.   └─frmtmb::frm(bf(y ~ x) + bf(y2 ~ x), data = d, family = fam) at test-ordinal-disc-thres-draws.R:149:7
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+Large maximum absolute gradient at the optimum (93.3 at y_tau_raw_1): one Newton step over the parameters no bound holds would still gain 272 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+ 2.   └─frmtmb::frm(bf(y ~ x) + bf(y2 ~ x), data = d, family = fam) at test-ordinal-disc-thres-draws.R:149:7
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Error ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known case here: a tape that calls an external solver can fail inside tmbstan even at the fitted optimum, where the same tape optimizes without complaint; the package supplying such a tape documents that. A solver failure mid-run also corrupts rstan's sampler state, so retry in a fresh R session
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:150:7
+ 3.   ├─base::suppressWarnings(...) at test-ordinal-disc-thres-draws.R:150:7
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...) at test-ordinal-disc-thres-draws.R:150:7
+ 6.     └─frmtmb.sample:::check_stan_draws(sf, "frm_sample()")
+ 7.       └─frmtmb::frm_stop(...)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.2 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres-draws.R:50:3'): equidistant draws carry every threshold and delta
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known case here: a tape that calls an external solver can fail inside tmbstan even at the fitted optimum, where the same tape optimizes without complaint; the package supplying such a tape documents that. A solver failure mid-run also corrupts rstan's sampler state, so retry in a fresh R session
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:50:3
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:36:7
+ 3.   ├─base::suppressWarnings(...)
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...)
+ 6.     └─frmtmb.sample:::check_stan_draws(sf, "frm_sample()")
+ 7.       └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-disc-thres-draws.R:74:3'): a draw's density is brms's, disc included
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known case here: a tape that calls an external solver can fail inside tmbstan even at the fitted optimum, where the same tape optimizes without complaint; the package supplying such a tape documents that. A solver failure mid-run also corrupts rstan's sampler state, so retry in a fresh R session
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_draws("equi") at test-ordinal-disc-thres-draws.R:74:3
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:36:7
+ 3.   ├─base::suppressWarnings(...) at test-ordinal-disc-thres-draws.R:36:7
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...) at test-ordinal-disc-thres-draws.R:36:7
+ 6.     └─frmtmb.sample:::check_stan_draws(sf, "frm_sample()")
+ 7.       └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known case here: a tape that calls an external solver can fail inside tmbstan even at the fitted optimum, where the same tape optimizes without complaint; the package supplying such a tape documents that. A solver failure mid-run also corrupts rstan's sampler state, so retry in a fresh R session
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:150:7
+ 3.   ├─base::suppressWarnings(...) at test-ordinal-disc-thres-draws.R:150:7
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...) at test-ordinal-disc-thres-draws.R:150:7
+ 6.     └─frmtmb.sample:::check_stan_draws(sf, "frm_sample()")
+ 7.       └─frmtmb::frm_stop(...)
+
+[ FAIL 3 | WARN 9 | SKIP 0 | PASS 16 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M1b_delta_sign frmtmb.sample test-ordinal-disc-thres-draws.R pass=16 fail=0 err=3 skip=0 warn=9

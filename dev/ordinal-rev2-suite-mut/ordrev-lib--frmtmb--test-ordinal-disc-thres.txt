@@ -1,0 +1,247 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-lib/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠸ |          4 | ordinal-disc-thres                                             
+⠙ |         12 | ordinal-disc-thres                                             
+⠇ |         19 | ordinal-disc-thres                                             
+⠹ |         23 | ordinal-disc-thres                                             
+⠴ |         26 | ordinal-disc-thres                                             
+⠏ |         30 | ordinal-disc-thres                                             
+⠸ |         34 | ordinal-disc-thres                                             
+⠧ |         38 | ordinal-disc-thres                                             
+⠹ |         43 | ordinal-disc-thres                                             
+⠼ |         45 | ordinal-disc-thres                                             
+⠇ |         49 | ordinal-disc-thres                                             
+⠹ |         53 | ordinal-disc-thres                                             
+⠇ |         59 | ordinal-disc-thres                                             
+⠋ |         61 | ordinal-disc-thres                                             
+⠼ |         65 | ordinal-disc-thres                                             
+⠦ |         67 | ordinal-disc-thres                                             
+⠇ |         69 | ordinal-disc-thres                                             
+⠦ | 2       75 | ordinal-disc-thres                                             
+⠏ | 2       78 | ordinal-disc-thres                                             
+⠹ | 2       81 | ordinal-disc-thres                                             
+⠦ | 2       85 | ordinal-disc-thres                                             
+⠏ | 2       88 | ordinal-disc-thres                                             
+⠙ | 2       90 | ordinal-disc-thres                                             
+⠹ | 2       91 | ordinal-disc-thres                                             
+⠹ | 2      101 | ordinal-disc-thres                                             
+⠴ | 3      103 | ordinal-disc-thres                                             
+⠧ | 4      104 | ordinal-disc-thres                                             
+⠼ | 9      106 | ordinal-disc-thres                                             
+⠧ | 10      108 | ordinal-disc-thres                                            
+⠹ | 12      111 | ordinal-disc-thres                                            
+⠏ | 12      118 | ordinal-disc-thres                                            
+⠸ | 12      122 | ordinal-disc-thres                                            
+⠏ | 12      128 | ordinal-disc-thres                                            
+⠋ | 12      129 | ordinal-disc-thres                                            
+⠹ | 12      131 | ordinal-disc-thres                                            
+⠦ | 12      135 | ordinal-disc-thres                                            
+⠙ | 12      140 | ordinal-disc-thres                                            
+✖ | 12      143 | ordinal-disc-thres [7.5s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres.R:188:3'): a structure on too few thresholds is refused, and only then
+<frmtmb_error/error/condition>
+Error: cumulative(threshold = 'sum_to_zero') on a response with one threshold holds that threshold at zero and leaves nothing to estimate; brms's program declares at least two thresholds and does not run either. Use the default threshold = 'flexible'
+Backtrace:
+    ▆
+ 1. ├─base::suppressMessages(...) at test-ordinal-disc-thres.R:188:3
+ 2. │ └─base::withCallingHandlers(...)
+ 3. └─frmtmb::frm(...)
+ 4.   └─frmtmb:::assemble_frame(...)
+ 5.     └─resp$family[["family_finalize"]](...)
+ 6.       └─frmtmb:::thres_structure_check(...)
+ 7.         └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-disc-thres.R:221:5'): sum-to-zero with one threshold in every thres(gr = ) level
+<frmtmb_error/error/condition>
+Error: cumulative(threshold = 'sum_to_zero') on a response with one threshold holds that threshold at zero and leaves nothing to estimate; brms's program declares at least two thresholds and does not run either. Use the default threshold = 'flexible'
+Backtrace:
+    ▆
+ 1. ├─base::suppressMessages(...) at test-ordinal-disc-thres.R:221:5
+ 2. │ └─base::withCallingHandlers(...)
+ 3. └─frmtmb::frm(...)
+ 4.   └─frmtmb:::assemble_frame(...)
+ 5.     └─resp$family[["family_finalize"]](...)
+ 6.       └─frmtmb:::thres_structure_check(...)
+ 7.         └─frmtmb::frm_stop(...)
+
+Failure ('test-ordinal-disc-thres.R:325:3'): an intercept in disc warns on every ordinal family
+Expected `any(grepl(r, seen, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+expected a warning containing 'sratio: disc has an intercept (its columns, hp, hq'
+Backtrace:
+    ▆
+ 1. └─frmtmb:::allow_warnings(...) at test-ordinal-disc-thres.R:325:3
+ 2.   └─testthat::expect_true(...) at ./helper-warnings.R:25:5
+
+Failure ('test-ordinal-disc-thres.R:340:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `s$links` to be identical to "cdf = logit".
+Differences:
+`actual`:   "cdf = logit; disc = log"
+`expected`: "cdf = logit"            
+
+
+Failure ('test-ordinal-disc-thres.R:341:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `s$fixed_dpars` to have length 0.
+Actual length: 1.
+
+Failure ('test-ordinal-disc-thres.R:342:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `"disc" %in% names(s$coefficients)` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres.R:343:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `names(fixef(fit, flatten = TRUE))` to be identical to "x".
+Differences:
+`actual`:   "x" "disc_(Intercept)"
+`expected`: "x"                   
+
+
+Failure ('test-ordinal-disc-thres.R:345:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `any(grepl("disc", out, fixed = TRUE))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres.R:347:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `all(names(fixef(fit, flatten = TRUE)) %in% rownames(confint(fit)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-ordinal-disc-thres.R:361:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `any(grepl("disc", names(coef(mv)), fixed = TRUE))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres.R:370:3'): default_prior() shows brms's delta bound and per-level rows
+Expected `all(dl$lb == 0)` to be TRUE.
+Differences:
+`actual`:   <NA>
+`expected`: TRUE
+
+
+Failure ('test-ordinal-disc-thres.R:371:3'): default_prior() shows brms's delta bound and per-level rows
+Expected `sort(dp$group[dp$class == "Intercept"])` to be identical to `c("", "a", "b")`.
+Differences:
+`actual`:   ""        
+`expected`: "" "a" "b"
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 7.6 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres.R:188:3'): a structure on too few thresholds is refused, and only then
+<frmtmb_error/error/condition>
+Error: cumulative(threshold = 'sum_to_zero') on a response with one threshold holds that threshold at zero and leaves nothing to estimate; brms's program declares at least two thresholds and does not run either. Use the default threshold = 'flexible'
+Backtrace:
+    ▆
+ 1. ├─base::suppressMessages(...) at test-ordinal-disc-thres.R:188:3
+ 2. │ └─base::withCallingHandlers(...)
+ 3. └─frmtmb::frm(...)
+ 4.   └─frmtmb:::assemble_frame(...)
+ 5.     └─resp$family[["family_finalize"]](...)
+ 6.       └─frmtmb:::thres_structure_check(...)
+ 7.         └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-disc-thres.R:221:5'): sum-to-zero with one threshold in every thres(gr = ) level
+<frmtmb_error/error/condition>
+Error: cumulative(threshold = 'sum_to_zero') on a response with one threshold holds that threshold at zero and leaves nothing to estimate; brms's program declares at least two thresholds and does not run either. Use the default threshold = 'flexible'
+Backtrace:
+    ▆
+ 1. ├─base::suppressMessages(...) at test-ordinal-disc-thres.R:221:5
+ 2. │ └─base::withCallingHandlers(...)
+ 3. └─frmtmb::frm(...)
+ 4.   └─frmtmb:::assemble_frame(...)
+ 5.     └─resp$family[["family_finalize"]](...)
+ 6.       └─frmtmb:::thres_structure_check(...)
+ 7.         └─frmtmb::frm_stop(...)
+
+Failure ('test-ordinal-disc-thres.R:325:3'): an intercept in disc warns on every ordinal family
+Expected `any(grepl(r, seen, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+expected a warning containing 'sratio: disc has an intercept (its columns, hp, hq'
+Backtrace:
+    ▆
+ 1. └─frmtmb:::allow_warnings(...) at test-ordinal-disc-thres.R:325:3
+ 2.   └─testthat::expect_true(...) at ./helper-warnings.R:25:5
+
+Failure ('test-ordinal-disc-thres.R:340:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `s$links` to be identical to "cdf = logit".
+Differences:
+`actual`:   "cdf = logit; disc = log"
+`expected`: "cdf = logit"            
+
+
+Failure ('test-ordinal-disc-thres.R:341:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `s$fixed_dpars` to have length 0.
+Actual length: 1.
+
+Failure ('test-ordinal-disc-thres.R:342:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `"disc" %in% names(s$coefficients)` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres.R:343:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `names(fixef(fit, flatten = TRUE))` to be identical to "x".
+Differences:
+`actual`:   "x" "disc_(Intercept)"
+`expected`: "x"                   
+
+
+Failure ('test-ordinal-disc-thres.R:345:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `any(grepl("disc", out, fixed = TRUE))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres.R:347:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `all(names(fixef(fit, flatten = TRUE)) %in% rownames(confint(fit)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-ordinal-disc-thres.R:361:3'): disc held at 1 is shown nowhere, as brms shows it nowhere
+Expected `any(grepl("disc", names(coef(mv)), fixed = TRUE))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-ordinal-disc-thres.R:370:3'): default_prior() shows brms's delta bound and per-level rows
+Expected `all(dl$lb == 0)` to be TRUE.
+Differences:
+`actual`:   <NA>
+`expected`: TRUE
+
+
+Failure ('test-ordinal-disc-thres.R:371:3'): default_prior() shows brms's delta bound and per-level rows
+Expected `sort(dp$group[dp$class == "Intercept"])` to be identical to `c("", "a", "b")`.
+Differences:
+`actual`:   ""        
+`expected`: "" "a" "b"
+
+
+[ FAIL 12 | WARN 0 | SKIP 0 | PASS 143 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-lib frmtmb test-ordinal-disc-thres.R pass=143 fail=10 err=2 skip=0 warn=0

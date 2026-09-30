@@ -1,0 +1,27 @@
+brms get_all_effects: x z f 
+== default display 
+  ok, class frmtmb_conditional_effects effects x z f 
+== effects = 'time' (offset only) 
+  ERROR: All specified effects are invalid for this model.
+Valid effects are (combinations of): 'x', 'z', 'f' 
+== effects = c('x', 'time') 
+  ok, class frmtmb_conditional_effects effects x 
+  warning: Some specified effects are invalid for this model: 'time' Valid effects are (combinations of): 'x', 'z', 'f' 
+== effects = 'z' (inside poly) 
+  ok, class frmtmb_conditional_effects effects z 
+  grid time held at 3.085191 ; mean(time) = 3.085191 
+== plot(plot = FALSE) 
+  ok, class list effects x 
+  plot object classes: frmtmb_ce_plot 
+null device 
+          1 
+unseen combination: 6 1 
+== crossed unseen, Wald, re_formula = NULL 
+  ok, class frmtmb_conditional_effects effects x 
+== crossed unseen, boot 
+  ok, class frmtmb_conditional_effects effects x 
+== fitted old_levels on new data 
+  ok, class matrix effects  
+== emmeans offset 
+  ERROR: undefined columns selected 
+done

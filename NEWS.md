@@ -1,3 +1,354 @@
+# frmtmb 0.67.0
+
+Three lanes of brms parity, each with an adversarial review and punch
+rounds: `ordinal` (brms's `disc`, threshold structures and `acat()`
+links on every ordinal family), `ceplot` (`plot()` of conditional
+effects and hypotheses, new levels in `conditional_effects()` and
+`fitted()`, small post-fit methods) and `formrobust` (addition-term
+expressions, `update()` that keeps the parameter formulas, bernoulli
+coding, the autocorrelation functions, offsets in the grids). Each
+lane's `dev/<lane>-findings.md` has the validation, the numbers and the
+scripts, and `dev/reviews/2026-09-30-<lane>.md` has the review;
+`dev/round-20260930.md` is the round's record. In brms's own ported
+suite, bin 1 now passes 387 of 494 assertions, up from 368 at
+0.66.0.
+
+## Breaking changes
+
+* **Every ordinal family has brms's discrimination `disc`.**
+  `cumulative()`, `sratio()`, `cratio()` and `acat()` take
+  `link_disc = "log"` and `threshold = "flexible"`, in the order of
+  brms's constructors, and `disc` is held at 1 unless the formula
+  models it: `bf(y ~ x, disc ~ 0 + z)`. `lf(disc ~ ...)` is no longer
+  refused, and `family()` lists `disc` among the dpars. Held at 1,
+  `disc` shows nowhere, as in brms: not on the `Links:` line, not as a
+  `Fixed dpar:`, not in `fixef(flatten = TRUE)` or `coef()`. Every
+  other output of a flexible fit is unchanged: on 26 models of every
+  kind, 570 of 581 outputs are `identical()` to frmtmb 0.66.0, and the
+  11 that are not are the changes listed here
+  (`dev/ordinal-p1-bitwise.R`). The likelihood cannot tell an
+  intercept in `disc` apart from the scale of the thresholds, so the
+  fit warns unless a prior holds it, also when cell-means columns
+  (`disc ~ 0 + h`) add up to one; brms holds it with its default
+  `normal(0, 1)`.
+
+* **`hurdle_cumulative()` hides its `disc` held at 1 too**, as brms
+  does: its `summary()` and `print()` no longer read `disc = log` and
+  `Fixed dpar: disc = 1`, and `fixef(flatten = TRUE)`, and with it the
+  default statistic of `frm_bootstrap()`, drops the constant
+  `disc_(Intercept)` entry. `fixef(flatten = TRUE)` names are again all
+  row names of `confint()`, the invariant `?fixef` shows.
+
+* **`default_prior()` lists one `Intercept` row per level of
+  `thres(gr = )`**, as brms does, beside the class-wide one; each is a
+  row `set_prior(group = )` takes.
+
+* **`acat()` takes every link brms takes for it**: `probit`,
+  `probit_approx`, `cloglog`, `cauchit` and `softit` beside `logit`.
+  Off the logit, a category probability is brms's second form, a
+  product of distribution functions times a reversed product of
+  survivals, normalized (`brms:::inv_link_acat()`). They were refused.
+
+* **`plot()` of a `conditional_effects()` result and of a
+  `hypothesis()` result returns plot objects, invisibly**, as brms's
+  methods return their list of ggplot objects: a named list of
+  `frmtmb_ce_plot` objects (one per effect) or a list of
+  `frmtmb_hyp_plot` objects (one per page). Each draws when printed or
+  plotted. Both methods returned their input before. A hypothesis plot
+  stacks up to `nvariables = 5` hypotheses on a page, as brms's does,
+  where it drew one page per hypothesis, and a surface is drawn as
+  colored contour lines (brms's `stype = "contour"`) where it was an
+  image with contours. Graphical parameters (`col`, `main`, ...) are
+  ignored as before, and now with a warning that names them.
+
+* **`predict(sample_new_levels = "old_levels")` chooses one seen level
+  per grouping factor**, as brms's `get_new_rdraws()` does, not one per
+  term. On `bf(y ~ x + (1 | g), sigma ~ (1 | g))` or `(1 + x || g)` a
+  new group took each term's effects from a different seen group, a
+  group the data does not have. Under `gr(g, by = f)` the choice is made
+  among the row's own by-level only, with no draw for the by-level the
+  row does not read. A multivariate call makes one choice for all its
+  responses, so a grouping factor two responses share reads one seen
+  group in both, as in brms.
+
+* **`conditional_effects(effects = )` checks each effect against the
+  model, as brms does.** An effect naming a variable the model does
+  not read is dropped with brms's warning "Some specified effects are
+  invalid for this model"; with no valid effect the call stops with
+  brms's "All specified effects are invalid for this model", which
+  lists the valid variables. One invalid effect among valid ones was
+  an error, and a variable in the data but not in the model drew a flat
+  curve.
+
+* **`update()` with a complete formula keeps the stored parameter
+  formulas**, as brms's `update.brmsfit()` keeps them through
+  `update.brmsformula()`. `update(fit, y ~ x2)` on `bf(y ~ x, sigma ~ z)`
+  fitted `y ~ x2` with a constant `sigma`; it now fits
+  `bf(y ~ x2, sigma ~ z)`. A formula of the update replaces a stored one
+  of the same name, with brms's message. On a nonlinear fit the update
+  replaces the body and keeps the nonlinear parameters' formulas, with
+  brms's message "Argument 'formula.' will completely replace the
+  original formula in non-linear models", so
+  `update(fit, bf(count ~ a + b, nl = TRUE))` now refits where it was
+  refused (ledger row `brmsfit-methods:955`). The updated fit's call
+  holds the pooled formula as a `frmtmb::bf()` call; the family goes in
+  as its constructor call only when that call says everything the
+  family holds, and as the family object otherwise, so an option such
+  as `huber(k = 3)` survives the update. A complete formula
+  on a multivariate fit is refused, as brms refuses it ("Updating
+  formulas of multivariate models is not yet possible"); it replaced
+  every response's formulas before.
+
+* **`bf(nl = TRUE)` without a parameter formula is no longer refused at
+  `bf()`**; `frm()` refuses it, as brms refuses it at `brm()`. The
+  formulas may arrive afterwards, `bf(y ~ a * x, nl = TRUE) + lf(a ~ 1)`,
+  or from the fit `update()` keeps.
+
+* **A `bernoulli()` response can hold any two values.** They are coded
+  0 and 1 by level order, as brms codes them (`-2`, `-1` become 0, 1;
+  so do `1`, `2`, `0.1`, `0.9`, `"no"`, `"yes"` and `FALSE`, `TRUE`).
+  The coding is kept with the fit and applied to the response of
+  newdata in `residuals()`, `pp_check()` and frmtmb.sample's
+  `predictive_error()`. Before, anything but 0/1 was refused (ledger
+  row `standata:75`). Two values that both lie strictly between 0 and 1
+  are coded too, with a warning that they look like a proportion, which
+  `binomial()` with `trials()` or `Beta()` fits (lme4#682); effect
+  coding such as -0.5 and 0.5 does not warn. `refit()` takes the 0/1
+  codes that `simulate()` returns, and refuses any other value by name.
+  `refit()` of any family refuses a response holding `NA`.
+  One divergence: brms codes an all-`TRUE` logical response 0, and
+  frmtmb codes it 1.
+
+* **An addition term's expression that gives `NA` is refused by name**,
+  as brms refuses it at `standata()`: `trunc(lb = ifelse(x > 1, NA,
+  -5))` and `trials(ifelse(x > 1, NA, n))`. At 0.66.0 the expression
+  was a column of the model frame, and `na.omit` dropped those rows.
+
+* **An addition term reads data columns only** (user decision,
+  2026-09-30), as brms requires. A bare name such as `weights(w)`, with
+  `w` a full-length vector outside the data, worked at 0.66.0 and is
+  now refused with a message that names `w`. Predictor formulas and
+  offsets keep R's rule of looking in the formula environment. See
+  "An addition term takes an expression" under Formula grammar.
+
+## New features
+
+* **`threshold = "equidistant"` and `threshold = "sum_to_zero"`** on
+  `cumulative()`, `sratio()`, `cratio()`, `acat()` and
+  `hurdle_cumulative()`, which refused both before. Equidistant
+  thresholds are the first threshold plus `k - 1` times `delta`, as in
+  brms; `variables()`, `summary()` and `hypothesis()` name it `delta`
+  (`delta_<k>` per level of `thres(gr = )`, `delta_<resp>` in a
+  multivariate model), and `set_prior(class = "delta")` gives it a
+  prior. `delta` is positive for the two families whose thresholds are
+  ordered, as brms bounds it. Class `"Intercept"` then addresses the
+  first threshold alone, as in brms. Sum-to-zero thresholds sum to zero
+  and the design is not centered, as in brms. brms declares one
+  parameter per threshold there and relies on its prior for the common
+  location, which the likelihood does not see; frmtmb estimates the
+  free directions instead, so class `"Intercept"` has no parameter to
+  address and is refused with the reason. Both structures work with
+  `thres(x = )`, `thres(gr = )`, `cs()`, `disc`, the post-fit methods
+  and the one-step residuals. `equidistant` needs two thresholds per
+  vector, since `delta` has nothing to measure on one. `sum_to_zero`
+  holds a single threshold at zero and is fitted there, with no
+  threshold parameter at all: under `thres(gr = )` brms runs the same
+  model, and on an ungrouped two-category response it is the logistic
+  regression without an intercept. `default_prior()` lists `delta` with
+  brms's lower bound of 0 for the ordered families.
+
+* The log density with `disc`, with both structures and of `acat()`
+  off the logit is brms's: against brms 2.23.0's compiled Stan program
+  at 29 shapes, the value agrees to at most 2.6e-16 relative and brms's
+  gradient at frmtmb's optimum is at most 2.3e-4 (rows 12e to 12h of
+  `test-brms-likelihood.R`; `dev/ordinal-findings.md` lists the shapes
+  brms's own program fails on).
+
+* `plot()` of a conditional-effects object takes every argument of
+  brms's `plot.brms_conditional_effects()`: `rug`, `mean`, `stype`,
+  `jitter_width` (with brms's deprecation warning), the layer lists
+  `line_args`, `cat_args`, `errorbar_args`, `surface_args`,
+  `spaghetti_args`, `point_args`, `rug_args` and `facet_args`, `theme`,
+  `ask` and `plot`. frmtmb draws with base graphics and has no ggplot
+  objects to return, so `plot = FALSE` returns the plot objects
+  undrawn. The layer lists are translated to base graphics (`colour`,
+  `fill`, `alpha`, `linewidth`, `linetype`, `shape`, `size`, an error
+  bar's `width`, a rug's `sides`, a surface's `bins`, a facet's
+  `ncol`, `nrow` and `scales`), and an element with no counterpart is
+  named in one warning. A ggplot2 `theme` is accepted with a warning
+  that it is not applied. `points = TRUE` on a `conditional_smooths()`
+  result is brms's error.
+
+* `plot()` of a hypothesis takes every argument of brms's
+  `plot.brmshypothesis()`: `nvariables` (and its alias `N`, with
+  brms's warning), `ignore_prior`, `chars`, `colors`, `theme`, `ask`
+  and `plot`. A fit has no prior draws, so `ignore_prior` changes
+  nothing, as it changes nothing in brms without them.
+
+* `fitted()` takes `sample_new_levels = "old_levels"`. Each unseen
+  level reads one seen level of its grouping factor, chosen at random
+  once per call as brms chooses it and as `predict()` chooses it, and
+  every term of the factor reads that level: the row takes its fitted
+  effects, and `Est.Error` their conditional variance. One choice
+  serves every response of a multivariate call. At seeds 1 to 12
+  brms 2.23.0 and frmtmb choose the same level on `(1 | g)` with one or
+  two unseen levels, on `(1 | g) + (1 | h)`, on `(1 | g)` in `mu` and
+  `sigma`, and within the row's by-level of `gr(g, by = f)`
+  (`dev/ceplot-oldlevels.R`, `dev/ceplot-rev-oldlevels.R`).
+
+* `parnames()`, brms's deprecated spelling of `variables()`, answers
+  on a fit with brms's deprecation warning, once, whether or not brms
+  is loaded. The generic moves from frmtmb.sample to frmtmb, so one
+  generic serves fits and draws.
+
+* `conditional_effects()` draws a new level where it refused to:
+  crossed `(1 | g) + (1 | h) + (1 | g:h)` with `g` and `h` at observed
+  levels the data never has together, under `band = "boot"` and on
+  draws. The bootstrap band has the Wald band's width (0.89 to 1.08 at
+  200 refits, seeds 5 to 7, `dev/ceplot-rev-bootratio.R`). With one
+  new level in the call, the band on draws equals brms's at the same
+  draws and seed to 4.4e-16 (`dev/ceplot-crossed-brms.R`); with two,
+  brms draws level by level and frmtmb draw by draw, so the bands agree
+  in law and not number. A new member of an `mm()` term with a `by`
+  variable is drawn in its own by-level's block: the bootstrap band is
+  0.83 to 1.11 of the Wald band's width at 200 refits (the same
+  script). brms 2.23.0 cannot draw such a level at all; it stops with
+  one of three errors.
+
+* `conditional_effects(categorical = FALSE)` on an ordinal fit gives
+  brms's warning "Predictions are treated as continuous variables". The
+  default per-category display gives none. This is a deliberate
+  divergence from brms, decided by the user: brms's default display is
+  the expected category number and warns on every default call, and
+  its own warning calls that display likely invalid for ordinal
+  families and asks for `categorical = TRUE`, which is frmtmb's
+  default.
+
+## Formula grammar
+
+* **An addition term takes an expression**, as brms evaluates it on
+  the data rows: `weights(wt * 2)`, `rate(time * 2)`, `se(s / 2)`,
+  `trunc(lb = lb - 1)`, `subset(x > 0)`, `index(id * 3)`. Before, the
+  expression went into the model frame as a formula term, where
+  `wt * 2` is an interaction, and the fit stopped with "invalid model
+  formula in ExtractVars". A single value is used for every row, so
+  `trunc(lb = min(y) - 1)` works too, and a value of any other length is
+  refused by name. Fit, `predict()`, `fitted()`, `simulate()` and
+  `conditional_effects()` read the expression the same way, in a
+  multivariate model too. Every variable an addition term reads must be
+  a column of the data, as brms requires: `trials(k)`, `trials(k + 0)`,
+  `weights(wt * k)` and `rate(time * k)` with `k` defined only outside
+  the data are refused with a message that names `k` and asks for it in
+  the data (0.66.0 refused them too, as a scalar that is not a column,
+  or stopped with "invalid model formula in ExtractVars" where the
+  expression was not a valid formula term). Predictions on
+  newdata and refits read the term again, and an outside value can be
+  missing or changed by then, for example after `saveRDS()` and
+  `readRDS()` in another session; in `trials()` that change would be
+  silent. **Breaking** for one case 0.66.0 read: a bare name such as
+  `weights(w)` with `w` a full-length vector outside the data is now
+  refused too. Function calls such as `log()` are allowed, and predictor
+  formulas and offsets keep R's rule of looking in the formula
+  environment. A name that R finds only as a function, as `t` in
+  `weights(t * 2)` without a column `t`, is refused by the same rule. A
+  prediction reads an addition term from newdata alone. The interval
+  bound of `cens(x, y2)` takes one value per row, as brms requires.
+
+* **`weights(w, scale = TRUE)`** scales the weights to a mean of one on
+  the rows the response reads, as brms does.
+
+* **brms's deprecated `0 + intercept`** is accepted with brms's warning
+  ("Reserved variable name 'intercept' is deprecated") and read as brms
+  reads it, a data column of ones whose coefficient is `intercept`.
+  Newdata needs no such column (ledger rows `standata:970`, `:974`).
+
+* **`ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` exist as functions**
+  that return the term, as in brms. Added to a formula,
+  `bf(y ~ 1) + arma(x)`, the object is refused with brms's message
+  (ledger row `brm:112`). brms's two ways to write the terms apart from
+  the formula work: `bf(y ~ x, autocor = ~ ar(t, g))` and
+  `bf(y ~ x) + acformula(~ ar(t, g))`.
+
+## New arguments and answers
+
+* **`frm(drop_unused_levels = )`**, brms's argument. With `FALSE` an
+  unused level of a factor predictor gives a column of zeros, which
+  frmtmb drops with its rank-deficiency message (ledger row
+  `standata:1133`: brms keeps the column).
+
+* **`autocor()` on a fit**, brms's deprecated accessor, returns `NULL`
+  with brms's deprecation warning, as brms does for every fit since
+  2.11 (ledger rows `brmsfit-methods:112`, `:113`).
+
+* **`predict(newdata = )` under `ar()`/`arma()` with `cov = FALSE`
+  answers when the response is `NA`** in some rows, or absent. As in
+  brms's `.predictor_arma()`, the recursion runs in each group's time
+  order and a missing response is filled with a draw from the family
+  at its shifted mean, so the rows after it read that draw's residual.
+  Before, the call was refused by name (ledger row
+  `brmsfit-methods:747`). **`fitted()` diverges from brms here, on
+  purpose:** brms fills with a draw per posterior draw, so its
+  `fitted()` carries the fill's spread, and a maximum likelihood fit has
+  no draws to carry the fill through. `fitted()` fills with the
+  expected value, which is the mean of brms's fill at fixed parameters,
+  and its `Est.Error` is the parameter uncertainty alone (see
+  `?fitted.frmtmb_fit`). frmtmb.sample's `posterior_epred()` fills with
+  draws, as brms does.
+
+## Bug fixes
+
+* A `hurdle_cumulative()` fit's draws are named `b_Intercept[k]` in
+  frmtmb.sample, as the other ordinal families' are: the family now
+  declares its inverse threshold map. They were `tau_raw_k`.
+
+* `conditional_effects()` of a response whose predictor reads
+  `mi(x, idx = )` stops with the reason: the grid holds `idx` and
+  `index()` at one reference value, so every grid row names the same
+  row of `x`. It stopped with "Could not match all indices" from inside
+  the prediction. brms 2.23.0 stops on the same grid.
+
+* A grouping term `(1 | g:h)` on integer or character columns predicts
+  on new data. `g:h` was evaluated as R's sequence operator, so every
+  `predict()`, `fitted()` and `conditional_effects()` on new data
+  stopped with "non-conformable arrays" (and a "numerical expression
+  has 3 elements" warning escaped), or reported observed combinations as
+  new levels. It is now the interaction the fit reads.
+
+* `conditional_effects()` varies a variable the model reads through a
+  transform, `x` in `poly(x, 2)` or `z` in `log(abs(z) + 1)`, as brms
+  does. The model frame keeps only the transformed columns, so naming
+  such a variable stopped with "not stored in the model frame" and the
+  default display found nothing to draw. The fit keeps the raw
+  variables beside the model frame for it.
+
+* **`conditional_effects()` and `emmeans()` on a model with an
+  `offset()`** stopped with "non-numeric argument to mathematical
+  function" and "undefined columns selected": the model frame held the
+  column `offset(log(time))` and not `time`, so the grids had no
+  `time`. The frame now holds the offset's variables, and both grids
+  hold them at their means, as brms's do. `emmeans()` includes a
+  predictor's offset at the grid's value, `log(mean(time))` or the
+  value `at =` sets, which is emmeans's own `.offset.` column and what
+  brms's `emmeans()` gives. An offset inside a nonlinear parameter's
+  formula is left out of the body's emmean, as brms leaves it out, and
+  `epred = TRUE` includes every offset once. One divergence, on
+  purpose: over the responses of a multivariate fit with no `resp =`,
+  each response gets its own offset, where brms's single `.offset.`
+  column adds one response's offset to every response. An offset's
+  variable is
+  not a default display of `conditional_effects()`, as in brms, and a
+  factor read inside an offset, as in `offset(log(as.numeric(f)))`, no
+  longer lets model.frame()'s "is not a factor" warning escape.
+
+## Extension API
+
+* `arma_cond_fill_dpars()` gives a response's parameters on newdata
+  for a predictive draw, filling a missing `cov = FALSE` response as
+  brms does, `arma_cond_fill_epred()` gives one draw's expected
+  response with that fill, and `response_codes_newdata()` codes a
+  response read from newdata as the fit coded its own. All three are on
+  `?frmtmb-sampling-api`, for frmtmb.sample.
+
 # frmtmb 0.66.0
 
 Six lanes of brms parity, each with an adversarial review and one to
@@ -2010,7 +2361,6 @@ before-and-after figure for every item.
   `set_prior()`'s defaults and dropping other columns, as brms's does;
   here the result is the `frmtmb_priorlist` that `set_prior()` returns.
 
-
 * **BREAKING: `variables()` and `hypothesis()` use brms's names.** Every
   coefficient carries brms's `b_` prefix, and a coefficient of a
   distributional, nonlinear or multivariate predictor is spelled the way
@@ -2691,7 +3041,6 @@ second scale from a shape, and a dpar formula walked past it.
   of them, and the two agree again above about 100 ordinates. The
   refusal message no longer suggests a taper the user may already have
   applied.
-
 
 # frmtmb 0.54.0
 

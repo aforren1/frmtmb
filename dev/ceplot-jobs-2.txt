@@ -1,0 +1,10 @@
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-cs-factor.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-message-uniqueness.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-brms-methods.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-xbeta-zibb-hurdle-cum.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-parity.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-plot.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-message-uniqueness.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-xbeta-zibb-hurdle-draws.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-brms-shapes-draws.R

@@ -1,0 +1,5 @@
+rows run: 31 
+identities held (LPCHECK lines): 28 
+rows that stopped with an error: 3 
+largest |const| / max(1, |logLik|): 2.6e-16 
+largest brms gradient at frmtmb's optimum: 0.000229 

@@ -16,7 +16,7 @@ brm:102	frmtmb	pass
 brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name | brms: Cannot coerce 'x + y' to a single variable name. The same refusal of the same call in frmtmb's words (dev/adefects-log/evidence.txt)
 brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The same refusal of the same call in frmtmb's words
 brm:110	frmtmb	pass	
-brm:112	frmtmb	cannot transfer	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
+brm:112	frmtmb	pass	
 brm:116	frmtmb	pass	frmtmb's own words: cs[(][)] needs an sratio, cratio, or acat family; the group-level term | brms: Category specific effects are not supported for this family. The same refusal of cs() on categorical(); frmtmb read the integer response as having fewer than two categories before, and then died on R's could not find function cs
 brm:121	frmtmb	pass	
 brm:123	frmtmb	pass	
@@ -57,15 +57,15 @@ brmsfit-methods:102	frmtmb.sample	cannot transfer	reads fit1$fit@sim$chains, the
 brmsfit-methods:103	frmtmb.sample	cannot transfer	reads fit1$fit@sim$chains, the stanfit slot (D10)
 brmsfit-methods:105	frmtmb.sample	pass	
 brmsfit-methods:107	frmtmb.sample	cannot transfer	as.mcmc(inc_warmup = TRUE): frm_sample() stores no warmup, a recorded gap (dev/brms-api-diff.md (c), 'Blocked, not small'), not a decision
-brmsfit-methods:112	frmtmb	cannot transfer	frmtmb has no autocor(), brms's deprecated accessor for autocorrelation structures
-brmsfit-methods:113	frmtmb	cannot transfer	frmtmb has no autocor()
+brmsfit-methods:112	frmtmb	pass	
+brmsfit-methods:113	frmtmb	pass	
 brmsfit-methods:151	frmtmb	pass	
-brmsfit-methods:154	frmtmb	defect	plot() of conditional effects refuses brms's rug and plot arguments by name
+brmsfit-methods:154	frmtmb	divergence	plot(ce, rug = TRUE, plot = FALSE) returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:157	frmtmb	pass	
-brmsfit-methods:162	frmtmb	defect	conditional_effects() takes too_far and surface now (lane postfit2); plot() of the result refuses brms's plot = FALSE by name, since frmtmb draws with base graphics where brms returns ggplot objects (as brmsfit-methods:154 and :391)
-brmsfit-methods:164	frmtmb	defect	conditional_effects() takes too_far now (lane postfit2); plot() refuses brms's stype and plot arguments by name (as brmsfit-methods:162)
+brmsfit-methods:162	frmtmb	divergence	plot() of a surface display with plot = FALSE returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
+brmsfit-methods:164	frmtmb	divergence	plot(stype = , plot = FALSE) returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:167	frmtmb	cannot transfer	conditional_effects() takes spaghetti now (lane postfit2); on a maximum-likelihood fit it needs band = 'boot', one curve per refit, and this call's default Wald band is refused by name: the fit has only its estimate
-brmsfit-methods:169	frmtmb	cannot transfer	reads the spaghetti object of brmsfit-methods:167, refused on an ML fit under the Wald band; plot() also refuses brms's plot = FALSE by name
+brmsfit-methods:169	frmtmb	divergence	plot() of the spaghetti display of brmsfit-methods:167 with plot = FALSE returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:170	frmtmb	pass	
 brmsfit-methods:177	frmtmb	pass	
 brmsfit-methods:179	frmtmb	pass	
@@ -73,12 +73,12 @@ brmsfit-methods:188	frmtmb	pass
 brmsfit-methods:192	frmtmb	pass	
 brmsfit-methods:197	frmtmb	pass	
 brmsfit-methods:201	frmtmb	pass	
-brmsfit-methods:203	frmtmb	pass	frmtmb's own words: Variable 'Trtc' is not stored in the model frame | brms: All specified effects are invalid for this model. CAVEAT: frmtmb gives this message for brmsfit-methods:205, where brms warns and keeps the valid effects
-brmsfit-methods:205	frmtmb	defect	one invalid effect among valid ones is an error; brms warns 'Some specified effects are invalid' and returns the valid ones (dev/brmsport-probe4.R)
+brmsfit-methods:203	frmtmb	pass	
+brmsfit-methods:205	frmtmb	pass	
 brmsfit-methods:207	frmtmb	pass	frmtmb's own words: Effects support at most two variables: 'Trtc:a:b' | brms: please use the 'conditions' argument
 brmsfit-methods:213	frmtmb	pass	
 brmsfit-methods:215	frmtmb	pass	
-brmsfit-methods:217	frmtmb	defect	no 'Predictions are treated as continuous variables' warning on the ordinal fit4; the brmsnames note cited before is about draws, and the fit method was never audited (brmsnames 'Found and NOT fixed' 11)
+brmsfit-methods:217	frmtmb	divergence	the ordinal default of conditional_effects() stays the per-category display, and brms's 'Predictions are treated as continuous variables' warning comes with categorical = FALSE (user decision, 2026-09-30; lane ceplot 1.5): brms's own warning calls its default display likely invalid for ordinal families and asks for categorical = TRUE, frmtmb's default
 brmsfit-methods:221	frmtmb	divergence	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:223	frmtmb	divergence	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:226	frmtmb	divergence	the object is not a brms_conditional_effects brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
@@ -96,7 +96,7 @@ brmsfit-methods:292	frmtmb	pass
 brmsfit-methods:293	frmtmb	pass	
 brmsfit-methods:301	frmtmb	pass	
 brmsfit-methods:305	frmtmb	pass	
-brmsfit-methods:314	frmtmb	defect	fitted() takes sample_new_levels = 'gaussian' now; this call asks 'old_levels', which resamples the posterior draws of the seen levels and is refused by name, and ndraws, which a maximum-likelihood fit has no draws to thin (D3's reason). The setup dies on ndraws, so the assertion reads a stale object
+brmsfit-methods:314	frmtmb	defect	fitted() takes sample_new_levels = 'old_levels' now (lane ceplot); the call also asks ndraws, which a maximum-likelihood fit has no draws to thin, and the setup dies on it (D3's reason), so the assertion reads a stale object
 brmsfit-methods:317	frmtmb	divergence	fitted() takes sample_new_levels = 'gaussian' now, as brms's does; ndraws = 1 is refused by name, since fitted() on a maximum-likelihood fit is a Wald summary with no draws to thin (D3's reason). The setup dies on it, so the assertion reads a stale object
 brmsfit-methods:325	frmtmb	pass	
 brmsfit-methods:326	frmtmb	cannot transfer	fitted(fit1, dpar = 'sigma') is brms's four-column summary now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN standard errors), so the Est.Error and the two Q columns are NA and all(fi > 0) is NA rather than TRUE. The Estimate column is positive, which is what the assertion is about; brms's fixture converged. A converged stand-in would transfer it (dev/brmsport-findings.md section 3)
@@ -120,10 +120,10 @@ brmsfit-methods:369	frmtmb	pass
 brmsfit-methods:373	frmtmb	divergence	is.brmsformula(formula(fit1)): brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:389	frmtmb	pass	
 brmsfit-methods:390	frmtmb	pass	
-brmsfit-methods:391	frmtmb	defect	plot() of a hypothesis refuses brms's plot = FALSE by name: frmtmb draws the densities with base graphics and returns the object, where brms returns a list of ggplot objects that plot = FALSE hands back undrawn. frmtmb does not depend on ggplot2 (dev/brms-vignette-audit.md, break 2)
+brmsfit-methods:391	frmtmb	divergence	plot() of a hypothesis with plot = FALSE returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:394	frmtmb	hollow	holds only as is.numeric(NA_real_): Evid.Ratio is NA on a fit (D4, dev/brmsnames-findings.md 'The hypothesis() object'), where brms reports a number. Marked by hand, because a rule cannot tell this NA from an NA that is the right answer
 brmsfit-methods:395	frmtmb	pass	
-brmsfit-methods:396	frmtmb	defect	plot() of a hypothesis refuses brms's ignore_prior and plot by name, as brmsfit-methods:391; a fit has no prior draws, so ignore_prior would change nothing
+brmsfit-methods:396	frmtmb	divergence	plot() of a hypothesis with ignore_prior and plot = FALSE (ignore_prior changes nothing: a fit has no prior draws) returns frmtmb's base-graphics plot objects now (lane ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; the row asserts is(object, 'ggplot'), and frmtmb does not depend on ggplot2, so it cannot return one
 brmsfit-methods:399	frmtmb	divergence	r_visit[4,Intercept] is not a parameter of an ML fit: a group-level coefficient needs draws, the reason scope = 'ranef' is refused on a fit (D4)
 brmsfit-methods:400	frmtmb	divergence	as brmsfit-methods:399 (D4)
 brmsfit-methods:401	frmtmb	divergence	as brmsfit-methods:399 (D4)
@@ -144,7 +144,7 @@ brmsfit-methods:585	frmtmb	pass
 brmsfit-methods:589	frmtmb	pass	
 brmsfit-methods:593	frmtmb.sample	pass	
 brmsfit-methods:594	frmtmb.sample	pass	
-brmsfit-methods:595	frmtmb.sample	defect	nsamples() answers now, as brms's does, but incl_warmup = TRUE is refused: frm_sample() discards the warmup rather than storing it, so there is nothing to count. The gap is dev/brms-api-diff.md (c), 'Blocked, not small'
+brmsfit-methods:595	frmtmb.sample	pass	
 brmsfit-methods:599	frmtmb.sample	pass	
 brmsfit-methods:604	frmtmb	cannot transfer	brms's plot() of a fit draws posterior trace and density plots; an ML fit's plot() is a diagnostics plot and takes neither plot nor variable
 brmsfit-methods:605	frmtmb	cannot transfer	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
@@ -156,7 +156,7 @@ brmsfit-methods:627	frmtmb.sample	cannot transfer	posterior_average() exists now
 brmsfit-methods:628	frmtmb.sample	cannot transfer	posterior_average() exists now (lane postfit2); reads the object of brmsfit-methods:627, whose setup is not run
 brmsfit-methods:633	frmtmb.sample	pass	
 brmsfit-methods:634	frmtmb.sample	pass	
-brmsfit-methods:635	frmtmb.sample	defect	posterior_samples(pars = '^b_') answers now and returns the right SET of columns; their ORDER is frmtmb's variables() order, which lists each predictor's coefficients together, where brms lists every intercept first. fixef(), vcov() and summary()$fixed take brms's order at item 2.6f; variables() keeps its own, and reordering it is a separate decision (dev/shapes-findings.md section 8)
+brmsfit-methods:635	frmtmb.sample	pass	
 brmsfit-methods:641	frmtmb.sample	cannot transfer	posterior_samples() on fit1$fit, the stanfit (D10)
 brmsfit-methods:646	frmtmb.sample	pass	
 brmsfit-methods:650	frmtmb.sample	pass	
@@ -189,7 +189,7 @@ brmsfit-methods:727	frmtmb	pass
 brmsfit-methods:729	frmtmb	pass	
 brmsfit-methods:737	frmtmb	pass	
 brmsfit-methods:741	frmtmb	pass	
-brmsfit-methods:747	frmtmb	defect	fixture 1 is brms's own model now, arma() with cov = FALSE (lane wt-defects). predict(newdata = ) with the response NA in rows 8 to 10 is refused by name: under cov = FALSE a row's mean reads the residuals of the rows before it. brms fills a missing response with its predicted draws and runs the recursion over them; simulate(newdata = ) does that here and predict() does not yet
+brmsfit-methods:747	frmtmb	pass	
 brmsfit-methods:750	frmtmb	pass	
 brmsfit-methods:753	frmtmb	pass	
 brmsfit-methods:758	frmtmb	pass	
@@ -238,13 +238,13 @@ brmsfit-methods:942	frmtmb	divergence	update() returns a frmtmb_fit brms's class
 brmsfit-methods:945	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:949	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:953	frmtmb	divergence	update(fit2, bf(. ~ ., a + b ~ 1, nl = TRUE)) refits now, keeping the nonlinear body (lane formula2); the row asserts is(up, 'brmsfit'), and frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2), as brmsfit-methods:957
-brmsfit-methods:955	frmtmb	defect	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is refused for having no parameter formulas; brms keeps fit2's
+brmsfit-methods:955	frmtmb	defect	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is no longer refused and keeps fit2's parameter formulas with brms's message (lane formrobust), but the refit stops from the default starting values ('NA/NaN gradient evaluation'); brms's testmode does not fit, so brms never meets the start
 brmsfit-methods:957	frmtmb	divergence	update(family = acat()) returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:959	frmtmb	divergence	update(fit3, bf(~ ., family = acat())) refits now with family acat and the old formula (lane formula2); the row asserts is(up, 'brmsfit'), which rule 2 of 2026-09-17 forbids, as brmsfit-methods:957
 brmsfit-methods:978	frmtmb	divergence	variables(fit) lists an ML fit's parameters; simo_, r_ and s_ draws and prior_ and lp__ are posterior or Stan quantities (D5, D10; dev/brmsnames-findings.md A10)
 brmsfit-methods:984	frmtmb	divergence	variables(fit2) has brms's b_, sd_ and cor_ names; the r_ and prior_ names are posterior or Stan quantities (D5, D10)
 brmsfit-methods:991	frmtmb	cannot transfer	lscale_volume_gpAgeTrt0 needs gp(Age, by = Trt), which frmtmb's gp() does not take (D8)
-brmsfit-methods:995	frmtmb	defect	parnames() is brms's deprecated spelling of variables(). frmtmb.sample answers it on draws, with brms's warning; core has none for a fit, and adding one moves the generic from frmtmb.sample's owner table to core's (R/generic-owners.R)
+brmsfit-methods:995	frmtmb	pass	
 brmsfit-methods:999	frmtmb	pass	
 brmsfit-methods:1000	frmtmb	pass	
 brmsfit-methods:1035	frmtmb	pass	
@@ -368,8 +368,8 @@ families:35	frmtmb	pass
 families:35	frmtmb.sample	pass	
 families:36	frmtmb	pass	
 families:36	frmtmb.sample	pass	
-families:37	frmtmb	divergence	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
-families:37	frmtmb.sample	divergence	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
+families:37	frmtmb	pass	
+families:37	frmtmb.sample	pass	
 families:38	frmtmb	pass	
 families:38	frmtmb.sample	pass	
 families:39	frmtmb	pass	
@@ -475,7 +475,7 @@ families:118	frmtmb.sample	cannot transfer	xbeta() exists now (lane fams2); the 
 families:122	frmtmb	cannot transfer	xbeta() exists now (lane fams2); the row reads $include, the Stan file brms's family includes
 families:122	frmtmb.sample	cannot transfer	xbeta() exists now (lane fams2); the row reads $include, the Stan file brms's family includes
 priors:5	frmtmb	divergence	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
-priors:14	frmtmb	cannot transfer	sratio() takes no threshold = 'equidistant' (cse() exists now, lane fams2); equidistant thresholds are not built (dev/fams2-findings.md, 'Decided not to do')
+priors:14	frmtmb	pass	
 priors:27	frmtmb	divergence	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 priors:28	frmtmb	pass	
 priors:29	frmtmb	pass	
@@ -513,7 +513,7 @@ priors:160	frmtmb	cannot transfer	set_prior() takes no tag (priorform ledger P37
 standata:69	frmtmb	pass	
 standata:71	frmtmb	pass	
 standata:73	frmtmb	pass	
-standata:75	frmtmb	defect	bernoulli refuses a response with the two values -1 and -2 ('response must be 0/1'); brms codes them 1 and 0 by level order. Filed by lane wt-defects: the recoding has to be stored with the fit and applied on every refit (influence(), frm_bootstrap()) and every response read from newdata (pp_check(), residuals(newdata = ), predictive_error()), or a subset holding one of the two values is coded wrong in silence
+standata:75	frmtmb	pass	
 standata:77	frmtmb	pass	
 standata:79	frmtmb	pass	
 standata:81	frmtmb	pass	
@@ -527,7 +527,7 @@ standata:100	frmtmb	pass
 standata:101	frmtmb	pass	
 standata:106	frmtmb	pass	frmtmb's own words: Factor responses are only supported for binomial families | brms: Family 'student' requires numeric responses
 standata:109	frmtmb	pass	frmtmb's own words: geometric: response must be non-negative integers | brms: Family 'geometric' requires response greater than or equal to 0
-standata:112	frmtmb	pass	frmtmb's own words: bernoulli: response must be 0/1 | brms: contain only two different values. CAVEAT: frmtmb gives this message for standata:75's two-valued -1/-2 response, which brms accepts
+standata:112	frmtmb	pass	
 standata:115	frmtmb	pass	
 standata:118	frmtmb	pass	
 standata:121	frmtmb	pass	frmtmb's own words: Gamma: response must be strictly positive | brms: Family 'gamma' requires response greater than 0
@@ -568,17 +568,17 @@ standata:709	frmtmb	cannot transfer	Nby_1 is Stan data, which frmtmb does not bu
 standata:710	frmtmb	cannot transfer	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same pooled-level-to-by-level map on the fitted blocks (dev/grby-findings.md)
 standata:712	frmtmb	pass	
 standata:718	frmtmb	cannot transfer	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
-standata:724	frmtmb	cannot transfer	reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot
-standata:725	frmtmb	cannot transfer	reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data
+standata:724	frmtmb	pass	
+standata:725	frmtmb	pass	
 standata:726	frmtmb	pass	frmtmb's own words: not available for family 'gaussian': bias | brms: Invalid fixed parameters: 'bias'
-standata:738	frmtmb	cannot transfer	lf(cmc = ) works now (lane formula2), but frmtmb's cumulative() has no disc, so lf(disc ~ ...) is refused as a parameter the family lacks; X_disc and Z_1_disc_1 are Stan data
-standata:739	frmtmb	cannot transfer	lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738); Z_1_disc_1 is Stan data
-standata:740	frmtmb	cannot transfer	lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738)
+standata:738	frmtmb	pass	
+standata:739	frmtmb	pass	
+standata:740	frmtmb	pass	
 standata:744	frmtmb	pass	
-standata:745	frmtmb	cannot transfer	bf(cmc = ) works now and frmtmb's Z equals brms's (dev/formula2-findings.md 2.4); the row reads Z_1_1, which the harness's standata view does not carry
+standata:745	frmtmb	pass	
 standata:928	frmtmb	divergence	y ~ . expands against the data as brms's does (lane formula2); brms's data has x1 == x2, and frmtmb drops the aliased x2 as lm() does ('rank deficient; dropping column(s): x2'), where brms keeps a column that only its prior places
-standata:970	frmtmb	cannot transfer	frmtmb reserves Intercept but refuses brms's deprecated lower-case intercept by name and asks for Intercept, where brms accepts it with a deprecation warning
-standata:974	frmtmb	cannot transfer	0 + intercept is refused (standata:970), so there is no intercept column to read
+standata:970	frmtmb	pass	
+standata:974	frmtmb	pass	
 standata:976	frmtmb	pass	
 standata:1047	frmtmb	pass	
 standata:1060	frmtmb	pass	
@@ -596,4 +596,4 @@ standata:1114	frmtmb	pass
 standata:1115	frmtmb	pass	
 standata:1118	frmtmb	pass	frmtmb's own words: cens[(][)] upper bounds must not be NA on interval-censored rows | brms: 'y2' should not be NA for interval censored observations
 standata:1129	frmtmb	pass	
-standata:1133	frmtmb	cannot transfer	frm() takes no drop_unused_levels argument; the unused level is always dropped
+standata:1133	frmtmb	divergence	frm(drop_unused_levels = FALSE) is accepted now (lane formrobust); the unused level's all-zero column xc is dropped with frmtmb's rank-deficiency message, as lm() drops it, where brms keeps a column that only its prior places (as standata:928)

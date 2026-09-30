@@ -1,0 +1,41 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ce-bands                                                       
+⠋ |          1 | ce-bands                                                       
+⠹ |          3 | ce-bands                                                       
+⠧ |          8 | ce-bands                                                       
+⠸ |         14 | ce-bands                                                       
+⠇ |         19 | ce-bands                                                       
+⠸ |         24 | ce-bands                                                       
+⠏ |         30 | ce-bands                                                       
+⠼ |         35 | ce-bands                                                       
+⠦ |         37 | ce-bands                                                       
+⠹ |         43 | ce-bands                                                       
+⠇ |         49 | ce-bands                                                       
+⠧ |         58 | ce-bands                                                       
+⠦ |         67 | ce-bands                                                       
+⠏ |         70 | ce-bands                                                       
+⠋ |         71 | ce-bands                                                       
+⠏ |         80 | ce-bands                                                       
+⠹ |         83 | ce-bands                                                       
+⠏ |         90 | ce-bands                                                       
+⠸ |         94 | ce-bands                                                       
+⠋ |        101 | ce-bands                                                       
+⠼ |        105 | ce-bands                                                       
+⠹ |        113 | ce-bands                                                       
+⠧ |        118 | ce-bands                                                       
+⠸ |        124 | ce-bands                                                       
+⠼ |        135 | ce-bands                                                       
+⠙ |        142 | ce-bands                                                       
+⠇ |        149 | ce-bands                                                       
+⠏ |        150 | ce-bands                                                       
+⠙ |        162 | ce-bands                                                       
+⠦ |        167 | ce-bands                                                       
+✔ |        169 | ce-bands [25.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 25.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 169 ]
+RESULT lane frmtmb test-ce-bands.R pass=169 fail=0 err=0 skip=0 warn=0

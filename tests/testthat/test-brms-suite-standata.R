@@ -23,16 +23,8 @@ test_that("standata accepts correct response variables depending on the family",
     expect_equal(standata(y ~ 1, data = data.frame(y = 10:20),
                                family = "poisson")$Y, as.array(10:20))
   )
-  brms_port("standata:75", "defect",
-    paste0(
-      "bernoulli refuses a response with the two values -1 and -2 ",
-      "('response must be 0/1'); brms codes them 1 and 0 by level ",
-      "order. Filed by lane wt-defects: the recoding has to be ",
-      "stored with the fit and applied on every refit ",
-      "(influence(), frm_bootstrap()) and every response read from ",
-      "newdata (pp_check(), residuals(newdata = ), ",
-      "predictive_error()), or a subset holding one of the two ",
-      "values is coded wrong in silence"),
+  brms_port("standata:75", "pass",
+    "",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(-c(1:2),5)),
                                family = "bernoulli")$Y, as.array(rep(1:0,5)))
   )
@@ -119,12 +111,8 @@ test_that("standata rejects incorrect response variables depending on the family
     expect_error(standata(y ~ 1, data = data.frame(y = -5:5), family = "geometric"), 
         "Family 'geometric' requires response greater than or equal to 0")
   )
-  brms_port_own("standata:112",
-    "bernoulli: response must be 0/1",
-    paste0(
-      "brms: contain only two different values. CAVEAT: frmtmb ",
-      "gives this message for standata:75's two-valued -1/-2 ",
-      "response, which brms accepts"),
+  brms_port("standata:112", "pass",
+    "",
     expect_error(standata(y ~ 1, data = data.frame(y = -1:1),
                                family = "bernoulli"),
                  "contain only two different values")
@@ -531,17 +519,12 @@ test_that("standata allows fixed distributional parameters", {
   brms_setup("standata:723",
     dat <- list(y = 1:10)
   )
-  brms_port("standata:724", "cannot transfer",
-    paste0(
-      "reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = ",
-      "3) and keeps the constant in its parameter map, not in a ",
-      "data slot"),
+  brms_port("standata:724", "pass",
+    "",
     expect_equal(standata(bf(y ~ 1, nu = 3), dat, student())$nu, 3)
   )
-  brms_port("standata:725", "cannot transfer",
-    paste0(
-      "reads the Stan data slot disc, which brms passes as the ",
-      "constant 1; frmtmb's acat() has no disc data"),
+  brms_port("standata:725", "pass",
+    "",
     expect_equal(standata(y ~ 1, dat, acat())$disc, 1)
   )
   brms_port_own("standata:726",
@@ -567,24 +550,16 @@ test_that("Cell-mean coding can be disabled", {
   brms_setup("standata:737",
     target <- matrix(rep(0:1, 5), dimnames = list(1:10, "gb"))
   )
-  brms_port("standata:738", "cannot transfer",
-    paste0(
-      "lf(cmc = ) works now (lane formula2), but frmtmb's ",
-      "cumulative() has no disc, so lf(disc ~ ...) is refused as a ",
-      "parameter the family lacks; X_disc and Z_1_disc_1 are Stan ",
-      "data"),
+  brms_port("standata:738", "pass",
+    "",
     expect_equal(sdata$X_disc, target)
   )
-  brms_port("standata:739", "cannot transfer",
-    paste0(
-      "lf(cmc = ) works now, but frmtmb's cumulative() has no disc ",
-      "(standata:738); Z_1_disc_1 is Stan data"),
+  brms_port("standata:739", "pass",
+    "",
     expect_equal(unname(sdata$Z_1_disc_1), as.array(rep(0:1, 5)))
   )
-  brms_port("standata:740", "cannot transfer",
-    paste0(
-      "lf(cmc = ) works now, but frmtmb's cumulative() has no disc ",
-      "(standata:738)"),
+  brms_port("standata:740", "pass",
+    "",
     expect_true(!"Z_1_disc_2" %in% names(sdata))
   )
   brms_setup("standata:742",
@@ -597,11 +572,8 @@ test_that("Cell-mean coding can be disabled", {
     "",
     expect_equal(sdata$X, target)
   )
-  brms_port("standata:745", "cannot transfer",
-    paste0(
-      "bf(cmc = ) works now and frmtmb's Z equals brms's ",
-      "(dev/formula2-findings.md 2.4); the row reads Z_1_1, which ",
-      "the harness's standata view does not carry"),
+  brms_port("standata:745", "pass",
+    "",
     expect_equal(unname(sdata$Z_1_1), as.array(rep(1, 10)))
   )
 })
@@ -628,20 +600,15 @@ test_that("reserved variables 'Intercept' is handled correctly", {
   brms_setup("standata:969",
     dat <- data.frame(y = 1:10)
   )
-  brms_port("standata:970", "cannot transfer",
-    paste0(
-      "frmtmb reserves Intercept but refuses brms's deprecated ",
-      "lower-case intercept by name and asks for Intercept, where ",
-      "brms accepts it with a deprecation warning"),
+  brms_port("standata:970", "pass",
+    "",
     expect_warning(
       sdata <- standata(y ~ 0 + intercept, dat),
       "Reserved variable name 'intercept' is deprecated."
     )
   )
-  brms_port("standata:974", "cannot transfer",
-    paste0(
-      "0 + intercept is refused (standata:970), so there is no ",
-      "intercept column to read"),
+  brms_port("standata:974", "pass",
+    "",
     expect_true(all(sdata$X[, "intercept"] == 1))
   )
   brms_setup("standata:975",
@@ -792,10 +759,13 @@ test_that("drop_unused_factor levels works correctly", {
   brms_setup("standata:1132",
     sdata <- standata(y ~ x, data = dat, drop_unused_levels = FALSE)
   )
-  brms_port("standata:1133", "cannot transfer",
+  brms_port("standata:1133", "divergence",
     paste0(
-      "frm() takes no drop_unused_levels argument; the unused ",
-      "level is always dropped"),
+      "frm(drop_unused_levels = FALSE) is accepted now (lane ",
+      "formrobust); the unused level's all-zero column xc is ",
+      "dropped with frmtmb's rank-deficiency message, as lm() ",
+      "drops it, where brms keeps a column that only its prior ",
+      "places (as standata:928)"),
     expect_equal(colnames(sdata$X), c("Intercept", "xb", "xc"))
   )
 })

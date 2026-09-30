@@ -7,7 +7,7 @@
 # writes one line per escaped warning.
 #
 # Usage: Rscript dev/warnleak-scan.R <package> <test file> <out file>
-.libPaths(c("C:/Users/adf44/source/r/rellib-r4",
+.libPaths(c("C:/Users/adf44/source/r/rellib-r5",
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 a <- commandArgs(trailingOnly = TRUE)
 p <- a[1]; f <- a[2]; out <- a[3]

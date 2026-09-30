@@ -1,0 +1,39 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.latent  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | hmm-starts                                                     
+⠋ |          1 | hmm-starts                                                     
+⠇ |          9 | hmm-starts                                                     
+⠦ |         17 | hmm-starts                                                     
+⠼ |         25 | hmm-starts                                                     
+⠴ |         26 | hmm-starts                                                     
+⠦ |         27 | hmm-starts                                                     
+⠧ |         28 | hmm-starts                                                     
+⠇ |         29 | hmm-starts                                                     
+⠏ |         30 | hmm-starts                                                     
+⠹ |         33 | hmm-starts                                                     
+⠦ |         37 | hmm-starts                                                     
+⠧ |         38 | hmm-starts                                                     
+⠇ |         39 | hmm-starts                                                     
+⠏ |         40 | hmm-starts                                                     
+⠋ |         41 | hmm-starts                                                     
+⠙ |         42 | hmm-starts                                                     
+⠹ |         43 | hmm-starts                                                     
+⠸ |         44 | hmm-starts                                                     
+⠦ |         47 | hmm-starts                                                     
+⠋ |         51 | hmm-starts                                                     
+⠸ |         54 | hmm-starts                                                     
+⠼ |         55 | hmm-starts                                                     
+⠴ |         56 | hmm-starts                                                     
+⠏ |         60 | hmm-starts                                                     
+⠸ |         64 | hmm-starts                                                     
+⠏ |         70 | hmm-starts                                                     
+⠋ |         71 | hmm-starts                                                     
+⠸ |         84 | hmm-starts                                                     
+✔ |         84 | hmm-starts [31.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 31.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 84 ]
+RESULT lane frmtmb.latent test-hmm-starts.R pass=84 fail=0 err=0 skip=0 warn=0

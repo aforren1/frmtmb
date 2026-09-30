@@ -123,10 +123,8 @@ test_that("brm produces expected errors", {
     expect_error(brm(y ~ ma(x), dat, poisson()),
                  "Please set cov = TRUE")
   )
-  brms_port("brm:112", "cannot transfer",
-    paste0(
-      "frmtmb has no arma() function object to add to a formula; ",
-      "the term exists only inside a formula"),
+  brms_port("brm:112", "pass",
+    "",
     expect_error(brm(bf(y ~ 1) + arma(x), dat),
                  "Autocorrelation terms can only be specified")
   )

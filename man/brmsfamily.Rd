@@ -49,7 +49,8 @@ as brms does.
 
 An argument the family does not have is refused by name. brms
 ignores it, so \code{brmsfamily("poisson", link_sigma = "log")} builds a
-poisson family there. \code{threshold} and \code{refcat} are not arguments.
+poisson family there. \code{threshold} is an argument of the ordinal
+families alone, and \code{refcat} of none.
 }
 
 \examples{

@@ -1,0 +1,41 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | loo                                                            
+⠋ |          1 | loo                                                            
+⠴ |          6 | loo                                                            
+⠦ |          7 | loo                                                            
+⠧ |          8 | loo                                                            
+⠇ |          9 | loo                                                            
+⠏ |         10 | loo                                                            
+⠹ |         13 | loo                                                            
+⠴ |         16 | loo                                                            
+⠋ |         21 | loo                                                            
+⠼ |         25 | loo                                                            
+⠧ |         28 | loo                                                            
+⠏ |         30 | loo                                                            
+⠴ |         36 | loo                                                            
+⠧ |         38 | loo                                                            
+⠇ |         39 | loo                                                            
+⠏ |         40 | loo                                                            
+⠹ |         43 | loo                                                            
+⠼ |         45 | loo                                                            
+⠴ |         46 | loo                                                            
+⠇ |         49 | loo                                                            
+⠹ |         53 | loo                                                            
+⠹ |         63 | loo                                                            
+⠴ |         76 | loo                                                            
+⠴ |         86 | loo                                                            
+⠙ |         92 | loo                                                            
+⠏ |        100 | loo                                                            
+⠋ |        101 | loo                                                            
+⠹ |        103 | loo                                                            
+⠼ |        105 | loo                                                            
+⠦ |        107 | loo                                                            
+✔ |        111 | loo [132.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 132.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 111 ]
+RESULT lane frmtmb.sample test-loo.R pass=111 fail=0 err=0 skip=0 warn=0

@@ -98,6 +98,10 @@ frmtmb::prior_summary
 #' @export
 frmtmb::variables
 
+#' @importFrom frmtmb parnames
+#' @export
+frmtmb::parnames
+
 #' @importFrom frmtmb pp_check
 #' @export
 frmtmb::pp_check

@@ -195,8 +195,14 @@ test_that("the spellings brms refuses or does not reserve are refused", {
                "Intercept:x is x")
   expect_error(frm(bf(y ~ 0 + Intercept + I(2 * Intercept)), data = ri_data),
                "only as a term of its own")
-  expect_error(frm(bf(y ~ 0 + intercept + x), data = ri_data),
-               "deprecated spelling of the reserved variable `Intercept`")
+  # brms's deprecated lower-case spelling is read as brms reads it,
+  # a column of ones with a warning (test-brms-api-formrobust.R)
+  lw <- "Reserved variable name 'intercept' is deprecated"
+  allow_warnings(
+    expect_identical(rownames(fixef(frm(bf(y ~ 0 + intercept + x),
+                                        data = ri_data))),
+                     c("intercept", "x")),
+    lw, require = lw)
   d <- ri_data
   d$yo <- factor(cut(d$y, 4, labels = FALSE), ordered = TRUE)
   expect_error(frm(bf(yo ~ 0 + Intercept + x) + cumulative(), data = d),

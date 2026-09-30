@@ -1,0 +1,27 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.spline  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | span                                                           
+⠋ |          1 | span                                                           
+⠇ |          9 | span                                                           
+⠙ |         12 | span                                                           
+⠸ |         14 | span                                                           
+⠋ |         21 | span                                                           
+⠏ |         30 | span                                                           
+⠦ |         37 | span                                                           
+⠹ |         43 | span                                                           
+⠸ |         44 | span                                                           
+⠇ |         49 | span                                                           
+⠙ |         52 | span                                                           
+⠸ |         54 | span                                                           
+⠇ |         59 | span                                                           
+⠋ |         61 | span                                                           
+⠦ |         67 | span                                                           
+⠙ |         72 | span                                                           
+✔ |         73 | span [4.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 73 ]
+RESULT lane frmtmb.spline test-span.R pass=73 fail=0 err=0 skip=0 warn=0

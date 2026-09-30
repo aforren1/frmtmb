@@ -1,0 +1,30 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-names                                                     
+⠋ |          1 | brms-names                                                     
+⠹ |          3 | brms-names                                                     
+⠧ |          8 | brms-names                                                     
+⠹ |         13 | brms-names                                                     
+⠦ |         17 | brms-names                                                     
+⠼ |         35 | brms-names                                                     
+⠹ |         43 | brms-names                                                     
+⠇ |         49 | brms-names                                                     
+⠦ |         67 | brms-names                                                     
+⠙ |         72 | brms-names                                                     
+⠹ |         83 | brms-names                                                     
+⠏ |         90 | brms-names                                                     
+⠧ |         98 | brms-names                                                     
+⠼ |        105 | brms-names                                                     
+⠹ |        113 | brms-names                                                     
+⠦ |        117 | brms-names                                                     
+⠴ |        126 | brms-names                                                     
+⠸ |        134 | brms-names                                                     
+⠦ |        137 | brms-names                                                     
+✔ |        138 | brms-names [4.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 138 ]
+RESULT lane frmtmb test-brms-names.R pass=138 fail=0 err=0 skip=0 warn=0

@@ -360,3 +360,69 @@ test_that("on draws, a new level is drawn once and shared by every panel", {
   expect_identical(ce$x$lower__, ce$z$lower__)
   expect_identical(ce$x$upper__, ce$z$upper__)
 })
+
+test_that("on draws, crossed terms at an unseen combination answer", {
+  # (1 | g) + (1 | h) + (1 | g:h) with g and h at observed levels the
+  # data never has together. frmtmb.sample on 0.66.0 refused it ("cannot
+  # draw a new level of the group-level term (1 | g:h)"); against brms
+  # 2.23.0 at the same draws and seed the band agrees to 4.4e-16
+  # (dev/ceplot-log/crossed-brms.txt)
+  set.seed(49)
+  dc <- expand.grid(g = factor(1:6), h = factor(1:5), r = 1:4)
+  dc <- dc[!(dc$g == "1" & dc$h == "1"), ]
+  dc$x <- stats::rnorm(nrow(dc))
+  dc$y <- stats::rnorm(nrow(dc), 1 + 0.5 * dc$x + stats::rnorm(6)[dc$g] +
+                         stats::rnorm(5)[dc$h] +
+                         stats::rnorm(30, 0, 0.7)[
+                           as.integer(interaction(dc$g, dc$h))], 0.5)
+  fc <- frm(bf(y ~ x + (1 | g) + (1 | h) + (1 | g:h)), family = gaussian(),
+            data = dc)
+  ds <- hand_draws(fc, n = 200)
+  at <- function(o, cond, ...) {
+    conditional_effects(o, "x", resolution = 3, re_formula = NULL,
+                        conditions = cond, ...)$x
+  }
+  new <- list(g = "1", h = "1")
+  a <- at(ds, new, seed = 1)
+  w <- at(fc, new)
+  expect_identical(as.character(a$g), rep("1", 3))
+  r <- (a$upper__ - a$lower__) / (w$upper__ - w$lower__)
+  expect_gt(min(r), 0.7)
+  expect_lt(max(r), 1.4)
+  # the g:h level is drawn: an observed combination is much narrower
+  o <- at(ds, list(g = "1", h = "2"), seed = 1)
+  expect_lt(max((o$upper__ - o$lower__) / (a$upper__ - a$lower__)), 0.5)
+  # moving the observed g's effect moves the curve by that much: g is
+  # read at its own level, not moved to a placeholder
+  moved <- ds
+  moved$draws[, "r_g[1,Intercept]"] <- moved$draws[, "r_g[1,Intercept]"] + 10
+  expect_equal(at(moved, new, seed = 1)$estimate__ - a$estimate__,
+               rep(10, 3))
+})
+
+test_that("on draws, an mm() term with a by variable draws new members", {
+  # frmtmb.sample on 0.66.0 refused every new member of a by-split
+  # mm() term; each is now drawn in its own by-level's block
+  set.seed(45)
+  d <- data.frame(x = stats::rnorm(300),
+                  g1 = factor(sample(1:10, 300, TRUE)),
+                  g2 = factor(sample(1:10, 300, TRUE)))
+  fl <- rep(c("a", "b"), each = 5)
+  d$f1 <- factor(fl[d$g1])
+  d$f2 <- factor(fl[d$g2])
+  u <- stats::rnorm(10, 0, 1)
+  d$y <- stats::rnorm(300, 1 + 0.5 * d$x + 0.5 * (u[d$g1] + u[d$g2]), 0.5)
+  fit <- frm(bf(y ~ x + (1 | mm(g1, g2, by = cbind(f1, f2)))),
+             family = gaussian(), data = d)
+  ds <- hand_draws(fit, n = 200)
+  for (cond in list(list(f1 = "a", f2 = "b"), list(f1 = "a", f2 = "a"),
+                    list(g1 = "2", f1 = "a", f2 = "b"))) {
+    a <- conditional_effects(ds, "x", resolution = 3, re_formula = NULL,
+                             conditions = cond, seed = 1)$x
+    w <- conditional_effects(fit, "x", resolution = 3, re_formula = NULL,
+                             conditions = cond)$x
+    r <- (a$upper__ - a$lower__) / (w$upper__ - w$lower__)
+    expect_gt(min(r), 0.7)
+    expect_lt(max(r), 1.4)
+  }
+})

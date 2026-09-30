@@ -1,0 +1,26 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | family                                                         
+⠋ |          1 | family                                                         
+⠹ |          3 | family                                                         
+⠦ |          7 | family                                                         
+⠼ |         15 | family                                                         
+⠇ |         19 | family                                                         
+⠼ |         25 | family                                                         
+⠇ |         29 | family                                                         
+⠋ |         31 | family                                                         
+⠴ |         36 | family                                                         
+⠏ |         40 | family                                                         
+⠸ |         44 | family                                                         
+⠧ |         48 | family                                                         
+⠙ |         52 | family                                                         
+⠴ |         56 | family                                                         
+⠇ |         59 | family                                                         
+✔ |         61 | family [5.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 61 ]
+RESULT lane frmtmb.eam test-family.R pass=61 fail=0 err=0 skip=0 warn=0

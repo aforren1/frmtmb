@@ -1,0 +1,9 @@
+cumulative :  mu = logit 
+cumulative with disc ~ x:  mu = logit; disc = log 
+acat :  mu = logit 
+acat with disc ~ x:  mu = logit; disc = log 
+cumulative :  mu = logit 
+cumulative with disc ~ x:  mu = logit; disc = softplus 
+{
+    UseMethod("summarise_links")
+}

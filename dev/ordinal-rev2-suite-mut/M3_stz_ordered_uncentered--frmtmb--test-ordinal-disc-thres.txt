@@ -1,0 +1,69 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M3_stz_ordered_uncentered/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M3_stz_ordered_uncentered/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠸ |          4 | ordinal-disc-thres                                             
+⠙ | 1       11 | ordinal-disc-thres                                             
+⠼ | 1       14 | ordinal-disc-thres                                             
+⠇ | 1       18 | ordinal-disc-thres                                             
+⠹ | 1       22 | ordinal-disc-thres                                             
+⠴ | 1       25 | ordinal-disc-thres                                             
+⠏ | 1       29 | ordinal-disc-thres                                             
+⠸ | 1       33 | ordinal-disc-thres                                             
+⠦ | 1       36 | ordinal-disc-thres                                             
+⠼ | 1       44 | ordinal-disc-thres                                             
+⠇ | 1       48 | ordinal-disc-thres                                             
+⠹ | 1       52 | ordinal-disc-thres                                             
+⠇ | 1       58 | ordinal-disc-thres                                             
+⠋ | 1       60 | ordinal-disc-thres                                             
+⠼ | 1       64 | ordinal-disc-thres                                             
+⠦ | 1       66 | ordinal-disc-thres                                             
+⠋ | 2       69 | ordinal-disc-thres                                             
+⠙ | 2       80 | ordinal-disc-thres                                             
+⠏ | 2       88 | ordinal-disc-thres                                             
+⠙ | 2      100 | ordinal-disc-thres                                             
+⠼ | 2      103 | ordinal-disc-thres                                             
+⠏ | 2      108 | ordinal-disc-thres                                             
+⠹ | 2      111 | ordinal-disc-thres                                             
+⠴ | 2      114 | ordinal-disc-thres                                             
+⠸ | 2      122 | ordinal-disc-thres                                             
+⠧ | 2      126 | ordinal-disc-thres                                             
+⠙ | 2      130 | ordinal-disc-thres                                             
+⠙ | 2      140 | ordinal-disc-thres                                             
+⠹ | 2      151 | ordinal-disc-thres                                             
+⠦ | 2      155 | ordinal-disc-thres                                             
+⠸ | 2      162 | ordinal-disc-thres                                             
+⠼ | 2      163 | ordinal-disc-thres                                             
+⠦ | 2      165 | ordinal-disc-thres                                             
+⠙ | 2      170 | ordinal-disc-thres                                             
+⠦ | 2      175 | ordinal-disc-thres                                             
+✖ | 2      177 | ordinal-disc-thres [7.8s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:72:9'): disc and every threshold structure are brms's density
+Expected cumulative sum_to_zero < 1e-12.
+Actual comparison: 1.873683364503 >= 0.000000000001
+Difference: 1.873683364502 >= 0
+
+Failure ('test-ordinal-disc-thres.R:158:3'): disc reaches the grouped thresholds and the hurdle
+Expected `abs(sum(p$tau))/max(abs(p$tau))` < 1e-12.
+Actual comparison: 1.849218713101 >= 0.000000000001
+Difference: 1.849218713100 >= 0
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 7.8 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:72:9'): disc and every threshold structure are brms's density
+Expected cumulative sum_to_zero < 1e-12.
+Actual comparison: 1.873683364503 >= 0.000000000001
+Difference: 1.873683364502 >= 0
+
+Failure ('test-ordinal-disc-thres.R:158:3'): disc reaches the grouped thresholds and the hurdle
+Expected `abs(sum(p$tau))/max(abs(p$tau))` < 1e-12.
+Actual comparison: 1.849218713101 >= 0.000000000001
+Difference: 1.849218713100 >= 0
+
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 177 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M3_stz_ordered_uncentered frmtmb test-ordinal-disc-thres.R pass=177 fail=2 err=0 skip=0 warn=0

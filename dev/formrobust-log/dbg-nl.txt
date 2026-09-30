@@ -1,0 +1,24 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | nl                                                             
+⠋ |          1 | nl                                                             
+⠸ |          4 | nl                                                             
+⠏ |         10 | nl                                                             
+⠏ | 1       19 | nl                                                             
+⠼ | 1       24 | nl                                                             
+⠏ | 1       29 | nl                                                             
+⠏ | 1       39 | nl                                                             
+✖ | 1       43 | nl [1.7s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-nl.R:75:3'): nl validation errors are clear
+Expected `bf(y ~ a * exp(-b * x), nl = TRUE)` to throw a error.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.7 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-nl.R:75:3'): nl validation errors are clear
+Expected `bf(y ~ a * exp(-b * x), nl = TRUE)` to throw a error.
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 43 ]

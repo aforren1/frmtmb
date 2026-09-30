@@ -1,0 +1,35 @@
+== 1. cratio cloglog with disc ~ 0 + z: brms gradient ==
+frmtmb logLik -421.7230221552, brms log_prob -421.7230221552, rel 0
+brms gradient: -1.89e-04 -4.03e-05 -2.45e-05  9.68e-05  2.22e-05 -5.19e-05 
+frmtmb max|grad|: 0.0001919533 
+rows with th > 6.6 on a threshold the row reads: 0 (max th 2.97)
+
+== 2. cumulative logit sum_to_zero, disc at 1: stanc ==
+    target += ordered_logistic_glm_lpmf(Y | X, b, 0);
+  target += lprior;
+stanc ERROR: 0 Semantic error in 'string', line 74, column 14 to column 52: ------------------------------------------------- 72: // likelihood including constants 73: if (!prior_only) { 74: target += ordered_logistic_glm_lpmf(Y | X, b, 0); ^ 75: } 76: // priors including constants ------------------------------------------------- Ill-typed arguments supplied to function "ordered_logistic_glm_lpmf": (array[] i 
+intercept-only: compiles 
+
+== 3. acat softit: stanc ==
+  /* acat-softit log-PDF for a single response
+   real acat_softit_lpmf(int y, real mu, real disc, vector thres) {
+       q[k] = inv_softit(disc * (mu - thres[k]));
+  /* acat-softit log-PDF for a single response and merged thresholds
+   real acat_softit_merged_lpmf(int y, real mu, real disc, vector thres, array[] int j) {
+     return acat_softit_lpmf(y | mu, disc, thres[j[1]:j[2]]);
+stanc ERROR: 0 Semantic error in 'string', line 54, column 22 to column 34: ------------------------------------------------- 52: */ 53: vector softit(vector p) { 54: return log(expm1(-p / (p - 1))); ^ 55: } 56: /* compute the inverse of the sofit link ------------------------------------------------- Ill-typed arguments supplied to infix operator /. Available signatures: (row_vector, matrix) => row_vector (ma 
+cumulative softit: stanc ERROR: 0 Semantic error in 'string', line 54, column 22 to column 34: ------------------------------------------------- 52: */ 53: vector softit(vector p) { 54: return log(expm1(-p / (p - 1))); ^ 55: } 56: /* compute the inverse of the sofit link ------------------------------------------------- Ill-typed arguments supplied to infix operator /. Available signatures: (row_vector, matrix) => row_vector (ma 
+
+== 4. equidistant thresholds in a multivariate model and a mixture ==
+  real<lower=0> delta;  // distance between thresholds
+  real<lower=0> delta;  // distance between thresholds
+    Intercept_y[k] = first_Intercept_y + (k - 1.0) * delta_y;
+    Intercept_y2[k] = first_Intercept_y2 + (k - 1.0) * delta_y2;
+stanc ERROR: 0 Semantic error in 'string', line 84, column 16 to column 21: ------------------------------------------------- 82: vector[Kc_y2] b_y2; // regression coefficients 83: real first_Intercept_y2; // first threshold 84: real<lower=0> delta; // distance between thresholds ^ 85: } 86: transformed parameters { ------------------------------------------------- Identifier "delta" is already in use.  
+one equidistant response only: stanc ERROR: 0 Semantic error in 'string', line 132, column 53 to column 60: ------------------------------------------------- 130: // compute equidistant thresholds 131: for (k in 1:(nthres_y)) { 132: Intercept_y[k] = first_Intercept_y + (k - 1.0) * delta_y; ^ 133: } 134: lprior += student_t_lpdf(first_Intercept_y | 3, 0, 2.5); ------------------------------------------------- Identifier "delta_y" not in scop 
+Setting order = 'none' for mixtures of ordinal families.
+mixture: stanc ERROR: 0 Semantic error in 'string', line 81, column 16 to column 21: ------------------------------------------------- 79: vector[Kc_mu2] b_mu2; // regression coefficients 80: real first_Intercept_mu2; // first threshold 81: real<lower=0> delta; // distance between thresholds ^ 82: simplex[2] theta; // mixing proportions 83: } ------------------------------------------------- Identifier "delta" is alrea 
+
+== 5. probit_approx on brms's R side ==
+brms:::inv_link(0.7, 'probit_approx') = 0.7580363  pnorm(0.7) = 0.7580363  Phi_approx(0.7) = 0.7581424 
+       q[k] = Phi_approx(disc * (mu - thres[k])); 

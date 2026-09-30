@@ -1,0 +1,3 @@
+﻿arm lane : frmtmb from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb ; frmtmb.sample from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb.sample 
+frmtmb: 1429 source functions; 0 not installed; 0 differ
+frmtmb.sample: 234 source functions; 0 not installed; 0 differ

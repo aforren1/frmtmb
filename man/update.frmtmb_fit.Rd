@@ -32,9 +32,13 @@ brms; \verb{formula = } reaches it by partial matching. A formula
 carrying a \code{.} is a delta applied to the stored \code{mu} formula with
 \link[stats:update.formula]{stats::update.formula} semantics - one-sided \code{~ . + z}, dotted
 \code{. ~ . + z}, or a changed response \code{z ~ . + x} - and keeps the dpar
-formulas, the fixed dpar values and the family. A formula with no
-\code{.} replaces the stored one. brms's \code{newdata} is accepted as a
-synonym for \code{data}.
+formulas, the fixed dpar values and the family. A formula or \code{\link[=bf]{bf()}}
+with no \code{.} replaces the stored location formula and, as in brms,
+keeps the stored parameter formulas, constants and equations, pooled
+with its own. On a nonlinear model that keeps the nonlinear
+parameters' formulas, so \code{update(fit, bf(y ~ a + b, nl = TRUE))}
+gives the new body the old \code{a} and \code{b}, and a plain formula stays
+nonlinear. brms's \code{newdata} is accepted as a synonym for \code{data}.
 
 A \code{\link[=bf]{bf()}} whose location formula is such a delta is read as brms
 reads it: \code{update(fit, bf(~ ., family = acat()))} keeps the formula

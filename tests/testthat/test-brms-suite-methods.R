@@ -29,14 +29,12 @@ nsubjects <- 8
 nvisits <- 4
 
 test_that("autocor has reasonable ouputs", {
-  brms_port("brmsfit-methods:112", "cannot transfer",
-    paste0(
-      "frmtmb has no autocor(), brms's deprecated accessor for ",
-      "autocorrelation structures"),
+  brms_port("brmsfit-methods:112", "pass",
+    "",
     expect_true(is.null(SW(autocor(fit1))))
   )
-  brms_port("brmsfit-methods:113", "cannot transfer",
-    "frmtmb has no autocor()",
+  brms_port("brmsfit-methods:113", "pass",
+    "",
     expect_true(is.null(SW(autocor(fit6, resp = "count"))))
   )
 })
@@ -53,10 +51,13 @@ test_that("conditional_effects has reasonable ouputs", {
     meplot <- plot(me, points = TRUE, rug = TRUE,
                    ask = FALSE, plot = FALSE)
   )
-  brms_port("brmsfit-methods:154", "defect",
+  brms_port("brmsfit-methods:154", "divergence",
     paste0(
-      "plot() of conditional effects refuses brms's rug and plot ",
-      "arguments by name"),
+      "plot(ce, rug = TRUE, plot = FALSE) returns frmtmb's ",
+      "base-graphics plot objects now (lane ceplot, classes ",
+      "frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; ",
+      "the row asserts is(object, 'ggplot'), and frmtmb does not ",
+      "depend on ggplot2, so it cannot return one"),
     expect_ggplot(meplot[[1]])
   )
   brms_setup("brmsfit-methods:156",
@@ -73,22 +74,25 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:161",
     meplot <- plot(me, plot = FALSE)
   )
-  brms_port("brmsfit-methods:162", "defect",
+  brms_port("brmsfit-methods:162", "divergence",
     paste0(
-      "conditional_effects() takes too_far and surface now (lane ",
-      "postfit2); plot() of the result refuses brms's plot = FALSE ",
-      "by name, since frmtmb draws with base graphics where brms ",
-      "returns ggplot objects (as brmsfit-methods:154 and :391)"),
+      "plot() of a surface display with plot = FALSE returns ",
+      "frmtmb's base-graphics plot objects now (lane ceplot, ",
+      "classes frmtmb_ce_plot and frmtmb_hyp_plot), with brms's ",
+      "arguments; the row asserts is(object, 'ggplot'), and frmtmb ",
+      "does not depend on ggplot2, so it cannot return one"),
     expect_ggplot(meplot[[1]])
   )
   brms_setup("brmsfit-methods:163",
     meplot <- plot(me, stype = "raster", plot = FALSE)
   )
-  brms_port("brmsfit-methods:164", "defect",
+  brms_port("brmsfit-methods:164", "divergence",
     paste0(
-      "conditional_effects() takes too_far now (lane postfit2); ",
-      "plot() refuses brms's stype and plot arguments by name (as ",
-      "brmsfit-methods:162)"),
+      "plot(stype = , plot = FALSE) returns frmtmb's base-graphics ",
+      "plot objects now (lane ceplot, classes frmtmb_ce_plot and ",
+      "frmtmb_hyp_plot), with brms's arguments; the row asserts ",
+      "is(object, 'ggplot'), and frmtmb does not depend on ",
+      "ggplot2, so it cannot return one"),
     expect_ggplot(meplot[[1]])
   )
   brms_setup("brmsfit-methods:166",
@@ -105,11 +109,14 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:168",
     meplot <- plot(me, plot = FALSE)
   )
-  brms_port("brmsfit-methods:169", "cannot transfer",
+  brms_port("brmsfit-methods:169", "divergence",
     paste0(
-      "reads the spaghetti object of brmsfit-methods:167, refused ",
-      "on an ML fit under the Wald band; plot() also refuses ",
-      "brms's plot = FALSE by name"),
+      "plot() of the spaghetti display of brmsfit-methods:167 with ",
+      "plot = FALSE returns frmtmb's base-graphics plot objects ",
+      "now (lane ceplot, classes frmtmb_ce_plot and ",
+      "frmtmb_hyp_plot), with brms's arguments; the row asserts ",
+      "is(object, 'ggplot'), and frmtmb does not depend on ",
+      "ggplot2, so it cannot return one"),
     expect_ggplot(meplot[[1]])
   )
   brms_port("brmsfit-methods:170", "pass",
@@ -179,20 +186,13 @@ test_that("conditional_effects has reasonable ouputs", {
     "",
     expect_equal(nrow(me[[1]]), 10)
   )
-  brms_port_own("brmsfit-methods:203",
-    "Variable 'Trtc' is not stored in the model frame",
-    paste0(
-      "brms: All specified effects are invalid for this model. ",
-      "CAVEAT: frmtmb gives this message for brmsfit-methods:205, ",
-      "where brms warns and keeps the valid effects"),
+  brms_port("brmsfit-methods:203", "pass",
+    "",
     expect_error(conditional_effects(fit1, effects = "Trtc"),
                  "All specified effects are invalid for this model")
   )
-  brms_port("brmsfit-methods:205", "defect",
-    paste0(
-      "one invalid effect among valid ones is an error; brms warns ",
-      "'Some specified effects are invalid' and returns the valid ",
-      "ones (dev/brmsport-probe4.R)"),
+  brms_port("brmsfit-methods:205", "pass",
+    "",
     expect_warning(conditional_effects(fit1, effects = c("Trtc", "Trt")),
                    "Some specified effects are invalid for this model")
   )
@@ -222,12 +222,15 @@ test_that("conditional_effects has reasonable ouputs", {
     "",
     expect_equal(nrow(me$Age), exp_nrow)
   )
-  brms_port("brmsfit-methods:217", "defect",
+  brms_port("brmsfit-methods:217", "divergence",
     paste0(
-      "no 'Predictions are treated as continuous variables' ",
-      "warning on the ordinal fit4; the brmsnames note cited ",
-      "before is about draws, and the fit method was never audited ",
-      "(brmsnames 'Found and NOT fixed' 11)"),
+      "the ordinal default of conditional_effects() stays the ",
+      "per-category display, and brms's 'Predictions are treated ",
+      "as continuous variables' warning comes with categorical = ",
+      "FALSE (user decision, 2026-09-30; lane ceplot 1.5): brms's ",
+      "own warning calls its default display likely invalid for ",
+      "ordinal families and asks for categorical = TRUE, frmtmb's ",
+      "default"),
     expect_warning(
       me4 <- conditional_effects(fit4),
       "Predictions are treated as continuous variables"
@@ -385,12 +388,11 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:314", "defect",
     paste0(
-      "fitted() takes sample_new_levels = 'gaussian' now; this ",
-      "call asks 'old_levels', which resamples the posterior draws ",
-      "of the seen levels and is refused by name, and ndraws, ",
-      "which a maximum-likelihood fit has no draws to thin (D3's ",
-      "reason). The setup dies on ndraws, so the assertion reads a ",
-      "stale object"),
+      "fitted() takes sample_new_levels = 'old_levels' now (lane ",
+      "ceplot); the call also asks ndraws, which a ",
+      "maximum-likelihood fit has no draws to thin, and the setup ",
+      "dies on it (D3's reason), so the assertion reads a stale ",
+      "object"),
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:315",
@@ -577,13 +579,13 @@ test_that("hypothesis has reasonable ouputs", {
     "",
     expect_output(print(hyp), "(Age)-(Trt1) > 0", fixed = TRUE)
   )
-  brms_port("brmsfit-methods:391", "defect",
+  brms_port("brmsfit-methods:391", "divergence",
     paste0(
-      "plot() of a hypothesis refuses brms's plot = FALSE by name: ",
-      "frmtmb draws the densities with base graphics and returns ",
-      "the object, where brms returns a list of ggplot objects ",
-      "that plot = FALSE hands back undrawn. frmtmb does not ",
-      "depend on ggplot2 (dev/brms-vignette-audit.md, break 2)"),
+      "plot() of a hypothesis with plot = FALSE returns frmtmb's ",
+      "base-graphics plot objects now (lane ceplot, classes ",
+      "frmtmb_ce_plot and frmtmb_hyp_plot), with brms's arguments; ",
+      "the row asserts is(object, 'ggplot'), and frmtmb does not ",
+      "depend on ggplot2, so it cannot return one"),
     expect_ggplot(plot(hyp, plot = FALSE)[[1]])
   )
   brms_setup("brmsfit-methods:393",
@@ -602,11 +604,14 @@ test_that("hypothesis has reasonable ouputs", {
     "",
     expect_output(print(hyp), "class sd_visit:", fixed = TRUE)
   )
-  brms_port("brmsfit-methods:396", "defect",
+  brms_port("brmsfit-methods:396", "divergence",
     paste0(
-      "plot() of a hypothesis refuses brms's ignore_prior and plot ",
-      "by name, as brmsfit-methods:391; a fit has no prior draws, ",
-      "so ignore_prior would change nothing"),
+      "plot() of a hypothesis with ignore_prior and plot = FALSE ",
+      "(ignore_prior changes nothing: a fit has no prior draws) ",
+      "returns frmtmb's base-graphics plot objects now (lane ",
+      "ceplot, classes frmtmb_ce_plot and frmtmb_hyp_plot), with ",
+      "brms's arguments; the row asserts is(object, 'ggplot'), and ",
+      "frmtmb does not depend on ggplot2, so it cannot return one"),
     expect_ggplot(plot(hyp, ignore_prior = TRUE, plot = FALSE)[[1]])
   )
   brms_setup("brmsfit-methods:398",
@@ -881,15 +886,8 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:746",
     pred <- predict(fit1, newdata = df, ndraws = 1)
   )
-  brms_port("brmsfit-methods:747", "defect",
-    paste0(
-      "fixture 1 is brms's own model now, arma() with cov = FALSE ",
-      "(lane wt-defects). predict(newdata = ) with the response NA ",
-      "in rows 8 to 10 is refused by name: under cov = FALSE a ",
-      "row's mean reads the residuals of the rows before it. brms ",
-      "fills a missing response with its predicted draws and runs ",
-      "the recursion over them; simulate(newdata = ) does that ",
-      "here and predict() does not yet"),
+  brms_port("brmsfit-methods:747", "pass",
+    "",
     expect_true(!anyNA(pred[, "Estimate"]))
   )
   brms_setup("brmsfit-methods:749",
@@ -1275,8 +1273,11 @@ test_that("update has reasonable outputs", {
   )
   brms_port("brmsfit-methods:955", "defect",
     paste0(
-      "update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is ",
-      "refused for having no parameter formulas; brms keeps fit2's"),
+      "update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is no ",
+      "longer refused and keeps fit2's parameter formulas with ",
+      "brms's message (lane formrobust), but the refit stops from ",
+      "the default starting values ('NA/NaN gradient evaluation'); ",
+      "brms's testmode does not fit, so brms never meets the start"),
     expect_true(is(up, "brmsfit"))
   )
   brms_setup("brmsfit-methods:956",
@@ -1336,13 +1337,8 @@ test_that("variables has reasonable ouputs", {
         variables(fit6)
     ))
   )
-  brms_port("brmsfit-methods:995", "defect",
-    paste0(
-      "parnames() is brms's deprecated spelling of variables(). ",
-      "frmtmb.sample answers it on draws, with brms's warning; ",
-      "core has none for a fit, and adding one moves the generic ",
-      "from frmtmb.sample's owner table to core's ",
-      "(R/generic-owners.R)"),
+  brms_port("brmsfit-methods:995", "pass",
+    "",
     expect_equal(variables(fit3), SW(parnames(fit3)))
   )
 })

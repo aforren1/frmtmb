@@ -1,0 +1,4 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | cache:  
+mutant: rawvars_off 
+RESULT lane frmtmb test-ce-parity.R rawvars_off: tests=27 failed=0 error=1 skipped=0 warning=0 passed=27
+  fails: a variable read through poly() or a transform is an effect 

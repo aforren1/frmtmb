@@ -1,0 +1,18 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | par-template                                                   
+⠸ |          4 | par-template                                                   
+⠸ |         14 | par-template                                                   
+⠹ |         23 | par-template                                                   
+⠧ |         28 | par-template                                                   
+⠦ |         37 | par-template                                                   
+⠸ |         44 | par-template                                                   
+⠏ |         50 | par-template                                                   
+✔ |         51 | par-template [1.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 51 ]
+RESULT lane frmtmb test-par-template.R pass=51 fail=0 err=0 skip=0 warn=0

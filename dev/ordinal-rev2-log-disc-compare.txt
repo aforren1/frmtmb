@@ -1,0 +1,9 @@
+fixef_flat   identical: TRUE
+boot         identical: TRUE
+allfit       identical: FALSE
+influence    identical: TRUE
+cooks_fit    identical: TRUE
+drop1        identical: TRUE
+anova        identical: TRUE
+vcov_names   identical: TRUE
+confint      identical: TRUE

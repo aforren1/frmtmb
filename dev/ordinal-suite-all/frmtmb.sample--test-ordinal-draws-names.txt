@@ -1,0 +1,7 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+RESULT test-ordinal-draws-names.R pass=4 fail=0 err=3 skip=0 warn=0
+FAILING TESTS:
+                                                        test failed error
+         ordinal and cs() draws carry variables(fit)'s names      0  TRUE
+ a stored threshold is the threshold, not its internal value      0  TRUE
+   the old storage and the new one answer every reader alike      0  TRUE

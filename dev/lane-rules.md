@@ -226,11 +226,13 @@ Your `.libPaths()` therefore has two entries, your own library first:
   from the checkout in its workflow and listed in `paths:`.
   `tests/testthat/test-ci-siblings.R` asserts both.
 - **You cannot `local_mocked_bindings()` a generic frmtmb or
-  frmtmb.sample binds to its owner.** 53 exported names, 25 in frmtmb
-  and 28 in frmtmb.sample, are ACTIVE bindings installed by
-  `frm_install_generics()`. Assigning to an active binding CALLS its
-  function with the value, and that function takes no argument, so the
-  mock dies with "unused argument" naming a quoted function. Mock the
+  frmtmb.sample binds to its owner.** 56 exported names at 0.67.0,
+  29 in frmtmb and 27 in frmtmb.sample (55 at 0.66.0, counted with
+  `bindingIsActive()` over each namespace's exports), are ACTIVE
+  bindings installed by `frm_install_generics()`. Assigning to an
+  active binding CALLS its function with the value, and that function
+  takes no argument, so the mock dies with "unused argument" naming a
+  quoted function. Mock the
   METHOD instead, `log_lik.frmtmb_draws` rather than `log_lik`, and
   know what that covers: the mock reaches the namespace binding and the
   package's own method table, never the owner's, so with the owner

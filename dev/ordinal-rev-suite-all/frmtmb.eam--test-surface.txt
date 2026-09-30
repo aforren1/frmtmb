@@ -1,0 +1,26 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | surface                                                        
+⠋ |          1 | surface                                                        
+⠹ |          3 | surface                                                        
+⠴ |          6 | surface                                                        
+⠙ |         12 | surface                                                        
+⠼ |         15 | surface                                                        
+⠧ |         18 | surface                                                        
+⠙ |         22 | surface                                                        
+⠴ |         26 | surface                                                        
+⠏ |         30 | surface                                                        
+⠇ |         39 | surface                                                        
+⠹ |         43 | surface                                                        
+⠸ |         44 | surface                                                        
+⠴ |         46 | surface                                                        
+⠦ |         47 | surface                                                        
+⠇ |         49 | surface                                                        
+✔ |         50 | surface [6.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 50 ]
+RESULT lane frmtmb.eam test-surface.R pass=50 fail=0 err=0 skip=0 warn=0

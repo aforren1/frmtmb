@@ -1,0 +1,2 @@
+RESULT test-rsv-intercept.R pass=54 fail=1 err=0 skip=0 warn=1
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

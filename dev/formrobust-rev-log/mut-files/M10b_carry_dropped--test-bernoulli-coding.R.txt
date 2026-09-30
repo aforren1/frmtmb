@@ -1,0 +1,31 @@
+MUTATED frmtmb::carry_finalized_responses
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M10b_carry_dropped.R
+DETAIL [expectation_failure] newdata is coded as the fit coded its response: Expected `residuals(fm, newdata = nd)` to be identical to `residuals(ref, newdata = nd)`.
+Differences:
+actual vs expected
+                       [,1]       [,2]       [,3]        [,4]
+- actual[1, ]   -2.09659755 0.04069987 -2.1763678 -2.01682727
++ expected[1, ] -0.09659755 0.04069987 -0.1763678 -0.01682727
+- actual[2, ]   -2.23303068 0.05408424 -2.3390338 -2.12702752
++ expected[2, ] -0.23303068 0.
+DETAIL [expectation_failure] newdata is coded as the fit coded its response: Expected `residuals(fm, newdata = nd1)` to be identical to `residuals(ref, newdata = nd1)`.
+Differences:
+actual vs expected
+                       [,1]       [,2]         [,3]       [,4]
+- actual[1, ]   -1.17192192 0.05090600 -1.271695847 -1.0721480
++ expected[1, ]  0.82807808 0.05090600  0.728304153  0.9278520
+- actual[2, ]   -1.87963435 0.04969704 -1.977038746 -1.7822299
++ expected[2, ]  0.12036
+DETAIL [expectation_failure] newdata is coded as the fit coded its response: Expected `pp_check_newdata_y(fm, fm$spec$responses[[1L]], nd)` to be identical to `rep(0, 6)`.
+Differences:
+  `actual`: -2.0 -2.0 -2.0 -2.0 -2.0 -2.0
+`expected`:  0.0  0.0  0.0  0.0  0.0  0.0
+
+DETAIL [expectation_failure] newdata is coded as the fit coded its response: Expected `residuals(fm, newdata = bad)` to throw a error.
+DETAIL [expectation_failure] post-fit methods agree with the 0/1 fit: Expected `fm$spec$responses[[1L]]$family[["bin_levels"]]` to be identical to `c("-2", "-1")`.
+Differences:
+`actual` is NULL
+`expected` is a character vector ('-2', '-1')
+
+RESULT test-bernoulli-coding.R pass=32 fail=5 err=0 skip=0 warn=0 tests=5
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

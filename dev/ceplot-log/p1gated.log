@@ -1,0 +1,44 @@
+  fails: nsamples has reasonable ouputs 
+  fails: posterior_samples has reasonable outputs 
+ 
+SULT lane frmtmb test-bcm-binomial.R: tests=37 failed=0 error=0 skipped=0 warning=0 passed=37
+RESULT lane frmtmb test-bcm-data-analysis.R: tests=46 failed=0 error=0 skipped=0 warning=0 passed=46
+RESULT lane frmtmb test-bcm-esp.R: tests=17 failed=0 error=0 skipped=0 warning=0 passed=17
+RESULT lane frmtmb test-bcm-gaussian.R: tests=23 failed=0 error=0 skipped=0 warning=0 passed=23
+RESULT lane frmtmb test-bcm-gcm.R: tests=17 failed=0 error=0 skipped=0 warning=0 passed=17
+RESULT lane frmtmb test-bcm-latent-mixtures.R: tests=52 failed=0 error=0 skipped=0 warning=0 passed=52
+RESULT lane frmtmb test-bcm-model-selection.R: tests=29 failed=0 error=0 skipped=0 warning=0 passed=29
+RESULT lane frmtmb test-bcm-mpt.R: tests=27 failed=0 error=0 skipped=0 warning=0 passed=27
+RESULT lane frmtmb test-bcm-psychophysics.R: tests=28 failed=0 error=0 skipped=0 warning=0 passed=28
+RESULT lane frmtmb test-bcm-retention.R: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+RESULT lane frmtmb test-bcm-signal-detection.R: tests=30 failed=0 error=0 skipped=0 warning=0 passed=30
+RESULT lane frmtmb test-bcm-simple.R: tests=13 failed=0 error=0 skipped=0 warning=0 passed=13
+RESULT lane frmtmb test-brms-agreement.R: tests=187 failed=0 error=0 skipped=0 warning=0 passed=187
+RESULT lane frmtmb test-brms-likelihood.R: tests=485 failed=0 error=0 skipped=0 warning=0 passed=485
+RESULT lane frmtmb test-brms-methods.R: tests=984 failed=0 error=0 skipped=0 warning=0 passed=984
+RESULT lane frmtmb test-brms-priors.R: tests=103 failed=0 error=0 skipped=0 warning=0 passed=103
+RESULT lane frmtmb test-brms-port.R: tests=21 failed=0 error=0 skipped=0 warning=0 passed=21
+RESULT lane frmtmb test-rl-example.R: tests=102 failed=0 error=0 skipped=0 warning=0 passed=102
+RESULT lane frmtmb test-drmtmb-agreement.R: tests=131 failed=0 error=0 skipped=0 warning=0 passed=131
+RESULT lane frmtmb test-fuzz.R: tests=2 failed=0 error=0 skipped=0 warning=0 passed=2
+RESULT lane frmtmb test-brms-suite-brm.R: tests=23 failed=0 error=0 skipped=0 warning=0 passed=23
+RESULT lane frmtmb test-brms-suite-brmsfit-helpers.R: tests=3 failed=0 error=0 skipped=0 warning=0 passed=3
+RESULT lane frmtmb test-brms-suite-brmsformula.R: tests=16 failed=0 error=0 skipped=0 warning=0 passed=16
+RESULT lane frmtmb test-brms-suite-brmsterms.R: tests=5 failed=0 error=0 skipped=0 warning=0 passed=5
+RESULT lane frmtmb test-brms-suite-data-helpers.R: tests=6 failed=0 error=0 skipped=0 warning=0 passed=6
+RESULT lane frmtmb test-brms-suite-emmeans.R: tests=11 failed=0 error=0 skipped=0 warning=0 passed=11
+RESULT lane frmtmb test-brms-suite-families.R: tests=84 failed=0 error=0 skipped=0 warning=0 passed=84
+RESULT lane frmtmb test-brms-suite-methods.R: tests=162 failed=3 error=0 skipped=0 warning=0 passed=159
+RESULT lane frmtmb test-brms-suite-priors.R: tests=36 failed=0 error=0 skipped=0 warning=0 passed=36
+RESULT lane frmtmb test-brms-suite-standata.R: tests=87 failed=0 error=0 skipped=0 warning=0 passed=87
+RESULT lane frmtmb.sample test-brms-suite-brmsformula.R: tests=16 failed=0 error=0 skipped=0 warning=0 passed=16
+RESULT lane frmtmb.sample test-brms-suite-brmsterms.R: tests=4 failed=0 error=0 skipped=0 warning=0 passed=4
+RESULT lane frmtmb.sample test-brms-suite-families.R: tests=84 failed=0 error=0 skipped=0 warning=0 passed=84
+RESULT lane frmtmb.sample test-brms-suite-helper-copy.R: tests=36 failed=0 error=0 skipped=0 warning=0 passed=36
+RESULT lane frmtmb.sample test-brms-suite-methods.R: tests=61 failed=2 error=0 skipped=0 warning=0 passed=59
+RESULT lane frmtmb.learn test-stan-identity.R: tests=71 failed=0 error=0 skipped=0 warning=0 passed=71
+RESULT lane frmtmb.sample test-loo.R: tests=111 failed=0 error=0 skipped=0 warning=0 passed=111
+RESULT lane frmtmb.sample test-sampling-ported.R: tests=213 failed=0 error=0 skipped=0 warning=0 passed=213
+RESULT base frmtmb test-brms-suite-methods.R: tests=162 failed=0 error=0 skipped=0 warning=0 passed=162
+RESULT base frmtmb.sample test-brms-suite-methods.R: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+p1gated ran 41 of 41

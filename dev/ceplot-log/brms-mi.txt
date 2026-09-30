@@ -1,0 +1,25 @@
+mi idx, default: ERROR Index of response 'x' contains duplicated values.
+mi idx, w, resp y: ERROR Index of response 'x' contains duplicated values.
+mi idx, x, resp y: ERROR Index of response 'x' contains duplicated values.
+mi idx, w, resp y, conditions g1 = g2 = 1: ERROR Index of response 'x' contains duplicated values.
+effects = c(xx, x): OK x
+   warning: Some specified effects are invalid for this model: 'xx'
+Valid effects are (combinations of): 'x', 'f'
+effects = c(z, x) (z in data only): OK x
+   warning: Some specified effects are invalid for this model: 'z'
+Valid effects are (combinations of): 'x', 'f'
+effects = xx: ERROR All specified effects are invalid for this model.
+Valid effects are (combinations of): 'x', 'f'
+effects = c(x:xx, f): OK f
+   warning: Some specified effects are invalid for this model: 'x:xx'
+Valid effects are (combinations of): 'x', 'f'
+ordinal default: OK x, z
+   warning: Predictions are treated as continuous variables in 'conditional_effects' by default which is likely invalid for ordinal families. Please set 'categorical' to TRUE.
+   warning: Predictions are treated as continuous variables in 'conditional_effects' by default which is likely invalid for ordinal families. Please set 'categorical' to TRUE.
+ordinal categorical = TRUE: OK x:cats__, z:cats__
+ordinal dpar = mu: OK x, z
+ordinal method = posterior_linpred: OK x, z
+ordinal method = posterior_predict: OK x, z
+   warning: Predictions are treated as continuous variables in 'conditional_effects' by default which is likely invalid for ordinal families. Please set 'categorical' to TRUE.
+   warning: Predictions are treated as continuous variables in 'conditional_effects' by default which is likely invalid for ordinal families. Please set 'categorical' to TRUE.
+done

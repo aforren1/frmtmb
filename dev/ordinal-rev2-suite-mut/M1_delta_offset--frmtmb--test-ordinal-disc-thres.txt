@@ -1,0 +1,83 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M1_delta_offset/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M1_delta_offset/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠸ |          4 | ordinal-disc-thres                                             
+⠙ |         12 | ordinal-disc-thres                                             
+⠼ |         15 | ordinal-disc-thres                                             
+⠇ |         19 | ordinal-disc-thres                                             
+⠹ |         23 | ordinal-disc-thres                                             
+⠴ |         26 | ordinal-disc-thres                                             
+⠏ |         30 | ordinal-disc-thres                                             
+⠸ |         34 | ordinal-disc-thres                                             
+⠦ |         37 | ordinal-disc-thres                                             
+⠋ |         41 | ordinal-disc-thres                                             
+⠼ |         45 | ordinal-disc-thres                                             
+⠇ |         49 | ordinal-disc-thres                                             
+⠹ |         53 | ordinal-disc-thres                                             
+⠦ |         57 | ordinal-disc-thres                                             
+⠋ |         61 | ordinal-disc-thres                                             
+⠼ |         65 | ordinal-disc-thres                                             
+⠦ |         67 | ordinal-disc-thres                                             
+⠇ |         69 | ordinal-disc-thres                                             
+⠴ |         76 | ordinal-disc-thres                                             
+⠼ |         85 | ordinal-disc-thres                                             
+⠴ |         96 | ordinal-disc-thres                                             
+⠸ |        104 | ordinal-disc-thres                                             
+⠦ |        107 | ordinal-disc-thres                                             
+⠋ |        111 | ordinal-disc-thres                                             
+⠸ |        114 | ordinal-disc-thres                                             
+⠴ |        116 | ordinal-disc-thres                                             
+⠦ |        117 | ordinal-disc-thres                                             
+⠴ | 2      124 | ordinal-disc-thres                                             
+⠏ | 2      128 | ordinal-disc-thres                                             
+⠇ | 2      137 | ordinal-disc-thres                                             
+⠙ | 2      140 | ordinal-disc-thres                                             
+⠋ | 2      149 | ordinal-disc-thres                                             
+⠴ | 3      153 | ordinal-disc-thres                                             
+⠙ | 3      159 | ordinal-disc-thres                                             
+⠼ | 3      162 | ordinal-disc-thres                                             
+⠦ | 3      164 | ordinal-disc-thres                                             
+⠋ | 3      168 | ordinal-disc-thres                                             
+⠼ | 3      172 | ordinal-disc-thres                                             
+⠇ | 3      176 | ordinal-disc-thres                                             
+✖ | 3      176 | ordinal-disc-thres [7.3s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:303:7'): every threshold map inverts to the internal vector
+Expected equidistant ordered < `1000 * .Machine$double.eps`.
+Actual comparison: 4.2170168378430 >= 0.0000000000002
+Difference: 4.2170168378428 >= 0
+
+Failure ('test-ordinal-disc-thres.R:303:7'): every threshold map inverts to the internal vector
+Expected equidistant unordered < `1000 * .Machine$double.eps`.
+Actual comparison: 0.8422038593352 >= 0.0000000000002
+Difference: 0.8422038593350 >= 0
+
+Failure ('test-ordinal-disc-thres.R:418:3'): class delta and class Intercept follow brms's parameters
+Expected `abs(lprior - ref)/abs(ref)` < 1e-10.
+Actual comparison: 2.2750856544 >= 0.0000000001
+Difference: 2.2750856543 >= 0
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 7.4 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:303:7'): every threshold map inverts to the internal vector
+Expected equidistant ordered < `1000 * .Machine$double.eps`.
+Actual comparison: 4.2170168378430 >= 0.0000000000002
+Difference: 4.2170168378428 >= 0
+
+Failure ('test-ordinal-disc-thres.R:303:7'): every threshold map inverts to the internal vector
+Expected equidistant unordered < `1000 * .Machine$double.eps`.
+Actual comparison: 0.8422038593352 >= 0.0000000000002
+Difference: 0.8422038593350 >= 0
+
+Failure ('test-ordinal-disc-thres.R:418:3'): class delta and class Intercept follow brms's parameters
+Expected `abs(lprior - ref)/abs(ref)` < 1e-10.
+Actual comparison: 2.2750856544 >= 0.0000000001
+Difference: 2.2750856543 >= 0
+
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 176 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M1_delta_offset frmtmb test-ordinal-disc-thres.R pass=176 fail=3 err=0 skip=0 warn=0

@@ -1,0 +1,15 @@
+﻿plot(ce, ask = NULL)               ok | warnings 0
+plot(h, ask = NULL)                ok | warnings 0
+plot(ce, ask = FALSE)              ok | warnings 0
+plot(h, ask = FALSE)               ok | warnings 0
+print(ce, ask = FALSE)             ok | warnings 0
+print(p$x)                         ok | warnings 0
+plot(p$x)                          ok | warnings 0
+print(ph[[1]])                     ok | warnings 0
+plot(h, col = 'red')               ERROR Argument 'colors' must be of length 2. | warnings 0
+print(p$x, main = 't')             ERROR print() has no argument `main`. It takes: x | warnings 0
+plot(p$x, col = 'red')             ok | warnings 1: plot() ignores the graphical parameter(s) `col`: the display sets its 
+plot(ph[[1]], lwd = 2)             ok | warnings 1: plot() ignores the graphical parameter(s) `lwd`: the display sets its 
+plot(p$x, foo = 1)                 ERROR plot() has no argument `foo`. It takes: x | warnings 0
+plot(ce, ask = 'yes')              ERROR `ask` must be TRUE or FALSE, not character "yes" | warnings 0
+plot(ce, do_plot = FALSE)          ok | warnings 1: Argument 'do_plot' is deprecated. Please use argument 'plot' instead.

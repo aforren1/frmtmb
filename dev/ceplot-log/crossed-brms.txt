@@ -1,0 +1,20 @@
+frmtmb from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+fit sd: g 0.8431 h 1.3912 g:h 0.7179
+theta order check (block sd at the estimate): 0.8431 1.3912 0.7179
+brms draws 200; r_g:h max diff 1.11e-16; sd_g:h max rel diff 0
+observed g = 1, h = 2 (no draw): max diff estimate 1.11e-16 lower 2.22e-16 upper 0
+unseen g:h, seed 1: estimate brms 0.7882 1.9584 3.1750 | frmtmb 0.7882 1.9584 3.1750
+unseen g:h, seed 1: lower brms -0.5651 0.6918 1.8801 | frmtmb -0.5651 0.6918 1.8801; upper brms 2.3347 3.5997 4.7778 | frmtmb 2.3347 3.5997 4.7778
+unseen g:h, seed 1: max diff estimate 0 lower 2.22e-16 upper 4.44e-16
+unseen g:h, seed 2: estimate brms 0.7511 2.0092 3.1840 | frmtmb 0.7511 2.0092 3.1840
+unseen g:h, seed 2: lower brms -0.7615 0.4867 1.7645 | frmtmb -0.7615 0.4867 1.7645; upper brms 2.3044 3.4632 4.6758 | frmtmb 2.3044 3.4632 4.6758
+unseen g:h, seed 2: max diff estimate 4.44e-16 lower 2.22e-16 upper 0
+unseen g:h, seed 3: estimate brms 0.7989 2.0225 3.2216 | frmtmb 0.7989 2.0225 3.2216
+unseen g:h, seed 3: lower brms -0.5162 0.7059 1.9167 | frmtmb -0.5162 0.7059 1.9167; upper brms 2.1800 3.4764 4.5554 | frmtmb 2.1800 3.4764 4.5554
+unseen g:h, seed 3: max diff estimate 0 lower 2.22e-16 upper 0
+fit unseen g:h | wald: est 0.8020 1.9986 3.1951 | width 3.4602 3.4398 3.4848
+fit observed g:h | wald: est -0.3669 0.8297 2.0263 | width 0.9148 0.8463 1.0237
+fit unseen g:h | boot60: est 0.8020 1.9986 3.1951 | width 3.5397 3.5828 3.6507
+fit unseen g:h: boot width / wald width 1.0230 1.0416 1.0476
+draws unseen g:h: width 2.8997 2.9079 2.8977 (0.8380 0.8454 0.8315 of the Wald width); draws observed g:h: width 0.6587 0.4249 0.6559
+done

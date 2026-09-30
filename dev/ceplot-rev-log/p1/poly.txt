@@ -1,0 +1,10 @@
+ Intercept    polyx21    polyx22  logabszP1 
+ 0.7115581  5.8075578 -2.8187983  0.7317515 
+brms X columns: Intercept polyx21 polyx22 logabszP1 
+brms b at the draw vs frmtmb: 0 
+x    grid max diff 0; estimate max diff 0 (scale 1.25)
+z    grid max diff 0; estimate max diff 0 (scale 1.91)
+x:z  grid max diff 0; estimate max diff 0 (scale 1.78)
+w : brms All specified effects are invalid for this model.
+Valid effects are (combinations of): 'x' | frmtmb All specified effects are invalid for this model.
+Valid effects are (combinations of): 'x' 

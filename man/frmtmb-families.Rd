@@ -66,7 +66,7 @@ hurdle_negbinomial(link = "log", link_shape = "log", link_hu = "logit")
 
 multinomial(K)
 
-cumulative(link = "logit")
+cumulative(link = "logit", link_disc = "log", threshold = "flexible")
 
 hurdle_cumulative(
   link = "logit",
@@ -125,11 +125,11 @@ zero_inflated_asym_laplace(
 
 huber(link = "identity", k = 1.345, link_sigma = "log")
 
-sratio(link = "logit")
+sratio(link = "logit", link_disc = "log", threshold = "flexible")
 
-cratio(link = "logit")
+cratio(link = "logit", link_disc = "log", threshold = "flexible")
 
-acat(link = "logit")
+acat(link = "logit", link_disc = "log", threshold = "flexible")
 
 von_mises(link = "tan_half", link_kappa = "log")
 
@@ -157,9 +157,12 @@ such a value is 1.}
 \item{K}{For \code{multinomial()}: number of response categories (columns
 of the count-matrix response); category 1 is the reference.}
 
-\item{threshold}{For \code{hurdle_cumulative()}: the threshold structure.
-brms also offers \code{"equidistant"} and \code{"sum_to_zero"}; frmtmb fits
-\code{"flexible"} thresholds only and refuses the other two by name.}
+\item{threshold}{For the ordinal families: the threshold structure,
+as in brms. \code{"flexible"} (the default) estimates every threshold.
+\code{"equidistant"} estimates the first threshold and \code{delta}, the
+distance between neighboring thresholds. \code{"sum_to_zero"} holds
+the thresholds to a sum of zero. See Ordinal thresholds and
+discrimination.}
 
 \item{link_alpha}{Link for \code{skew_normal()}'s skewness, which is
 signed: \code{"identity"} (the default), \code{"log"}, \code{"softplus"} or
@@ -198,6 +201,18 @@ takes the response's level order as the category order. Supply an
 ordered factor, or integer codes \verb{1..K}. An unordered factor is
 refused, as brms refuses it, because its level order is alphabetical
 unless someone set it, and that order is the model.
+
+A \code{bernoulli()} response can hold any two values, which are coded 0
+and 1 by level order as brms codes them: the levels of a factor, the
+sorted values of a number or a character vector (so \code{-2} and \code{-1}
+become 0 and 1, and so do \code{1} and \code{2}), and \code{FALSE} and \code{TRUE} of a
+logical. A number with one value is the 1 of 0 and 1 unless the value
+is 0. The fit keeps the coding, and codes newdata's response with it.
+A third value is refused with brms's message. Two values that both
+lie strictly between 0 and 1, such as 0.1 and 0.9, are coded too, as
+brms codes them, with a warning: they are usually proportions, which
+\code{binomial()} with \code{trials()} or \code{Beta()} fits. \code{\link[=simulate]{simulate()}} and the
+draws return the codes 0 and 1, as brms's \code{posterior_predict()} does.
 
 A response with only two outcomes gets brms's message suggesting
 \code{bernoulli()}: an ordinal or categorical response with two
@@ -241,15 +256,47 @@ categories \verb{1..K} follow \code{cumulative()} with probabilities scaled by
 \code{fitted()} returns the \code{K + 1} category probabilities, 0 first. The
 expected category that \code{conditional_effects()} shows by default is
 scored by these codes, so the hurdle scores 0; brms scores each
-column by its position and reads one higher. \code{disc}, the
-discrimination, is held at 1 unless the formula models it, as in
-brms. The likelihood cannot tell an intercept in \code{disc} apart from
-the scale of the thresholds, so write \code{disc ~ 0 + x}. brms accepts
-\code{disc ~ 1 + x} and holds the intercept with its default
+column by its position and reads one higher. \code{disc} and \code{threshold}
+work as for the other ordinal families (see Ordinal thresholds and
+discrimination). \code{thres(x = )} works; \code{thres(gr = )} and \code{cs()} are
+refused.
+}
+
+\section{Ordinal thresholds and discrimination}{
+
+Every ordinal family (\code{cumulative()}, \code{sratio()}, \code{cratio()},
+\code{acat()} and \code{hurdle_cumulative()}) has brms's discrimination
+parameter \code{disc}. The distribution function is read at
+\code{disc * (tau_k - eta)} (at \code{disc * (eta - tau_k)} for \code{cratio()} and
+\code{acat()}), with \code{disc} held at 1 unless the formula models it, as in
+brms: \code{bf(y ~ x, disc ~ z)}. Its link is \code{link_disc}, \code{"log"} by
+default. The likelihood cannot tell an intercept in \code{disc} apart from
+the scale of the thresholds, so write \code{disc ~ 0 + z}. brms accepts
+\code{disc ~ 1 + z} and holds the intercept with its default
 \code{normal(0, 1)} prior; frmtmb fits it too, and warns unless a prior
-holds the intercept. \code{thres(x = )}
-works; \code{thres(gr = )}, \code{cs()} and a \code{threshold} other than
-\code{"flexible"} are refused.
+holds the intercept, as it does for cell-means columns that add up to
+one (\code{disc ~ 0 + h}). Held at 1, \code{disc} shows nowhere in the output,
+as in brms: not on the \verb{Links:} line, not as a fixed parameter, and
+not in \code{fixef(flatten = TRUE)} or \code{coef()}.
+
+\code{threshold} selects brms's threshold structure. \code{"flexible"}
+estimates each threshold. \code{"equidistant"} estimates the first
+threshold and the distance \code{delta} between neighbors, so that
+\code{tau_k = tau_1 + (k - 1) * delta}; \code{variables()} and \code{summary()} name
+it \code{delta} as brms does, and \code{set_prior(class = "delta")} gives it a
+prior, while class \code{"Intercept"} addresses the first threshold only.
+\code{delta} is positive for \code{cumulative()} and \code{hurdle_cumulative()},
+whose thresholds are ordered. \code{"sum_to_zero"} holds the thresholds
+to a sum of zero and does not center the design, as in brms. brms
+declares one parameter per threshold and relies on its prior for the
+common location, which the likelihood does not see; frmtmb estimates
+the \code{K - 2} free directions instead, so class \code{"Intercept"} has
+nothing to address there and is refused. \code{thres(gr = )} gives each
+level its own first threshold and \code{delta}, or its own zero sum.
+\code{"equidistant"} needs two thresholds per vector, since \code{delta} has
+nothing to measure on one. \code{"sum_to_zero"} holds a single threshold
+at zero, a vector with no parameter, which brms runs under
+\code{thres(gr = )} and frmtmb also fits without it.
 }
 
 \section{Extended-support beta}{
@@ -474,12 +521,12 @@ refused by name when brms does not allow it for the family:
 
 An ordinal family's \code{link} is not a link on a mean. It names the
 distribution function the thresholds are read through, so
-\code{cumulative()}, \code{sratio()} and \code{cratio()} take \code{logit}, \code{probit},
-\code{probit_approx}, \code{cloglog} and \code{cauchit} (and \code{cumulative()} and
-\code{hurdle_cumulative()} also take \code{softit}), and refuse anything else.
-\code{acat()} takes \code{logit} alone, because brms defines its other links by
-a different density rather than by substituting a distribution
-function.
+all five ordinal families take \code{logit}, \code{probit}, \code{probit_approx},
+\code{cloglog} and \code{cauchit} (and \code{cumulative()}, \code{hurdle_cumulative()}
+and \code{acat()} also take \code{softit}), and refuse anything else. Off the
+logit, \code{acat()} reads its categories in brms's second form, a product
+of distribution functions times a reversed product of survivals (see
+\link{frmtmb-links}).
 
 \code{cumulative()} and \code{hurdle_cumulative()} keep their thresholds
 increasing, because their category probabilities are differences of

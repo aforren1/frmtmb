@@ -1,0 +1,7 @@
+MUTATED frmtmb::arma_cond_fill_dpars
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M06_fill_expected_in_predict.R
+DETAIL [expectation_failure] predict() fills a missing response with a draw, as brms: Expected `abs(r6 - 1)` < `4/sqrt(8000)`.
+Actual comparison: 0.118 >= 0.045
+Difference: 0.073 >= 0
+RESULT test-arma-na-newdata.R pass=13 fail=1 err=0 skip=0 warn=0 tests=5
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

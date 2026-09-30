@@ -1,0 +1,11 @@
+M05_emm_keep_offsets frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-offset-grid.R
+P01_emm_terms_drop_offset frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-offset-grid.R
+P05_grid_drop_all_offsets frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-offset-grid.R
+M07_err_omits_ma frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-arma-na-newdata.R
+M07b_fill_at_unshifted_mean frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-arma-na-newdata.R
+M06_fill_expected_in_predict frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-arma-na-newdata.R
+S01_draws_fill_expected frmtmb.sample C:/Users/adf44/source/r/frmtmb-wt-formrobust/extensions/frmtmb.sample/tests/testthat/test-formrobust-draws.R
+P02_bern_fraction_nowarn frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-bernoulli-coding.R
+P03_refit_no_guard frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-bernoulli-coding.R
+P04_na_expr_allowed frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-aterm-expr.R
+P06_emm_keep_all_offsets frmtmb C:/Users/adf44/source/r/frmtmb-wt-formrobust/tests/testthat/test-offset-grid.R

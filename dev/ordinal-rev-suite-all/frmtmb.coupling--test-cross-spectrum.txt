@@ -1,0 +1,22 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.coupling  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | cross-spectrum                                                 
+⠧ |          8 | cross-spectrum                                                 
+⠏ |         30 | cross-spectrum                                                 
+⠧ |         48 | cross-spectrum                                                 
+⠇ |         49 | cross-spectrum                                                 
+⠏ |         50 | cross-spectrum                                                 
+⠋ |         51 | cross-spectrum                                                 
+⠙ |         52 | cross-spectrum                                                 
+⠦ |         67 | cross-spectrum                                                 
+⠏ |         80 | cross-spectrum                                                 
+⠙ |         92 | cross-spectrum                                                 
+⠸ |         94 | cross-spectrum                                                 
+✔ |         96 | cross-spectrum [9.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 96 ]
+RESULT lane frmtmb.coupling test-cross-spectrum.R pass=96 fail=0 err=0 skip=0 warn=0

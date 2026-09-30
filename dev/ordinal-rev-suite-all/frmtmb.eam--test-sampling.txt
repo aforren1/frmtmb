@@ -1,0 +1,22 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sampling                                                       frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠋ |          1 | sampling                                                       
+⠙ |          2 | sampling                                                       
+⠋ |         11 | sampling                                                       
+⠦ |         27 | sampling                                                       
+⠏ |         40 | sampling                                                       
+⠸ |         54 | sampling                                                       
+⠇ |         69 | sampling                                                       
+⠸ |         84 | sampling                                                       
+✔ |         97 | sampling [9.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 97 ]
+RESULT lane frmtmb.eam test-sampling.R pass=97 fail=0 err=0 skip=0 warn=0

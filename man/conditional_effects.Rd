@@ -45,7 +45,14 @@ second is held at its levels (factors) or at mean and mean plus or
 minus one SD (numeric). Default: every fixed-effect and smooth
 variable of the selected linear predictor, plus one \code{"a:b"} pair
 per fitted interaction (brms's default); a term of order three or
-more contributes its leading pair.}
+more contributes its leading pair. A named effect is valid when
+each of its variables is one the model reads (a predictor of any
+parameter, or a grouping variable), as in brms. An invalid effect
+among valid ones is dropped with brms's warning "Some specified
+effects are invalid for this model", and when none is valid the
+call stops with brms's "All specified effects are invalid for this
+model". A variable that is in the data but not in the model is
+invalid.}
 
 \item{resp, dpar}{Response and distributional parameter, as in
 \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
@@ -259,7 +266,10 @@ and warns that it is treating an ordered factor as continuous.
 with its own delta-method band (the category weights go on the
 gradient, so the covariances between the category probabilities are
 kept), keyed \code{"x"} and directly comparable with brms's default
-curve.
+curve. It gives brms's warning, "Predictions are treated as
+continuous variables", because the display is the one brms warns
+about; the default display gives none, because it treats nothing as
+continuous.
 
 \code{se__} is then on the probability scale, and the band is a Wald
 interval on the logit of the probability so it cannot leave \verb{[0, 1]}.
@@ -398,11 +408,16 @@ add, as in brms. Members with different unseen values (\code{"99"} and
 \code{"98"}) read different new levels, each drawn on its own, as two
 unseen levels of \code{(1 | g)} are. brms 2.23.0 gives them one shared
 draw, because it numbers unseen values per member, not by value.
-With \code{band = "boot"}, a row with one member at an
-observed level and one at a new level is refused by name, as are
-rows that mix the two. An \code{mm()} term with a \code{by} variable draws no
-new level with \code{band = "boot"} or on draws, and such a call is
-refused by name; the Wald band answers it.
+With \code{band = "boot"}, a row with one member at an observed level
+and one at a new level of the same block is refused by name, as
+are rows that mix the two.
+\item \code{mm(g1, g2, by = cbind(f1, f2))} is one block per by-level. A
+member at an observed group reads the block that holds the group,
+and a new member reads the block of its own by-value, where its
+new level is drawn with that by-level's covariance. Two new
+members with the same value and the same by-value read one new
+level, and their weights add. brms 2.23.0 cannot draw a new level
+of such a term; it stops.
 \item A factor-smooth (\code{s(x, g, bs = "fs")}) or a smooth with a \code{by}
 factor has no curve for a level that the fit did not see. When
 \code{conditions} sets such a factor to an unseen level, or the grid
@@ -419,17 +434,23 @@ body, and not a column of a term that the same rows read at an
 observed level. Two terms that both read a new level in the same rows
 can share a placeholder column (for example \code{mm(g1, g2)} beside
 \code{(1 | g1)}), because their effects are separate coefficients. If no
-placeholder exists, the call is refused by
-name ("cannot draw a new level of the group-level term"). Then set
-the grouping variables in \code{conditions} to levels that the fit saw
-together, or use \code{re_formula = NA}.
-
-Known limitation: crossed terms such as
-\code{(1 | g) + (1 | h) + (1 | g:h)}, with \code{g} and \code{h} set to observed
-levels that the data never has together. The \code{g:h} term then reads a
-new level, but its placeholder would change \code{g} or \code{h}, which the
-observed terms read. \code{band = "boot"} and draws refuse this call;
-brms answers it. \code{band = "wald"} answers it too.
+placeholder moves the rows without moving such a column, the rows
+keep their columns and the term's level is renamed instead: in a
+copy of the fit used for those rows alone, one level of the term
+takes the label the rows carry, and the draw replaces its effects.
+That is how crossed terms such as \code{(1 | g) + (1 | h) + (1 | g:h)}
+are drawn when \code{g} and \code{h} are set to observed levels that the data
+never has together: \code{g} and \code{h} keep their levels, and \code{g:h} reads a
+new level. With one new level in the call, the band on draws equals
+brms's at the same draws and the same seed, with
+\code{sample_new_levels = "gaussian"} (\code{dev/ceplot-crossed-brms.R}); with
+several, brms draws level by level and this draw by draw, so the
+bands agree in law but not number. A row whose grouping variable is
+unset there has no label to rename to, and is refused by name. A
+multi-membership member that no
+placeholder serves is still refused by name ("cannot draw a new
+level of the group-level term"); then set the members in
+\code{conditions} to levels the fit saw, or use \code{re_formula = NA}.
 }
 
 \section{Draws objects}{
@@ -468,6 +489,13 @@ the main-effect curves as the whole story. The display takes two
 variables, so a three-way or deeper term contributes its leading
 pair, with the remaining variables at their reference values until
 \verb{conditions =} pins them. Naming \verb{effects =} overrides the search.
+
+A response whose predictor reads \code{mi(x, idx = )} is refused by name.
+Such a term reads \code{x} on the row whose \code{index()} value equals the
+row's \code{idx} value, and a display grid holds both at one reference
+value, so every grid row names the same row. brms 2.23.0 stops on
+the same grid. Predict over rows you build, with
+\code{fitted(newdata = )}.
 }
 
 \examples{

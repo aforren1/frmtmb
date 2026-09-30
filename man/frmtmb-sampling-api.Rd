@@ -84,9 +84,13 @@
 \alias{brms_summarize_draws}
 \alias{brms_prob_cols}
 \alias{brms_fixef_rows}
+\alias{ord_delta_info}
 \alias{rescor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
+\alias{arma_cond_fill_dpars}
+\alias{arma_cond_fill_epred}
+\alias{response_codes_newdata}
 \alias{subset_resp_check}
 \alias{subset_newdata}
 \alias{cs_build}
@@ -179,6 +183,29 @@ and which makes the row density read the objective's own \code{mu} instead
 of a second one. It is safe to call unconditionally: with no such
 block it returns \code{dpv} unchanged.
 
+\code{arma_cond_fill_dpars(fit, rspec, newdata, dpars_fn)} gives one
+response's distributional parameters on \code{newdata} for a predictive
+draw, where \code{dpars_fn(fit)} computes them for a fit. Under
+\code{cov = FALSE} it takes brms's treatment of a missing response: a row
+of \code{newdata} whose response is \code{NA} (every row, when the column is
+absent) is filled with a draw from the family at its one-step mean,
+in each group's time order, before the rows after it read its
+residual. It uses the random-number stream, and with no missing
+response it is \code{dpars_fn(fit)}.
+
+\code{arma_cond_fill_epred(fit, rspec, newdata, re_formula, dpar)} is the
+expected response of one draw on \code{newdata} with brms's fill: each
+missing \code{cov = FALSE} response is a draw at its shifted mean, so
+\code{posterior_epred()} carries the spread of the unobserved past, as
+brms's does. It returns \code{NULL} when nothing needs filling, and the
+caller keeps its own route.
+
+\code{response_codes_newdata(rspec, y, what)} codes a response read from
+newdata as the fit coded its own: a bernoulli response takes the 0
+and 1 of the fit's two values (brms's level order), and is refused,
+naming \code{what}, when it holds a third value. Any other response is
+returned unchanged.
+
 \code{subset_resp_check(fit, resp, what)} and
 \code{subset_newdata(fit, resp, newdata)} carry brms's rule for a
 multivariate model whose responses use \code{subset()}: each response has
@@ -228,6 +255,9 @@ population-level rows in brms's order: which coefficient-table rows
 they are, and the ordinal thresholds and \code{cs()} coefficients that are
 not, each with the map from the internal vector to the reported value,
 so a draws object can report the same rows \code{fixef()} does.
+\code{ord_delta_info(fit)} lists brms's \code{delta} parameters of an ordinal
+fit with equidistant thresholds: the name, where the internal value
+sits, and the map from it to \code{delta}.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

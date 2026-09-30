@@ -1,0 +1,9 @@
+MUTATED frmtmb::rsv_lower_fill
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M13_no_ones_column.R
+DETAIL [expectation_error] 0 + intercept is a column of ones, with brms's warning: <frmtmb_error/error/condition>
+Error: The model uses `intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name. `Intercept` is the reserved name of the intercept only in a population-level formula without one, as in y ~ 0 + Intercept + x; elsewhere it is an ordinary variable. A group-level intercept is (1 | g)
+DETAIL [expectation_failure] a data column intercept that is not all ones is refused: Expected `frm(bf(y ~ 0 + intercept + x), data = d)` to throw a error.
+DETAIL [expectation_error] brms's standata has the same design: <frmtmb_error/error/condition>
+Error: The model uses `intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name. `Intercept` is the reserved name of the intercept only in a population-level formula without one, as in y ~ 0 + Intercept + x; elsewhere it is an ordinary variable. A group-level intercept is (1 | g)
+RESULT test-brms-api-formrobust.R pass=17 fail=1 err=2 skip=0 warn=0 tests=6
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

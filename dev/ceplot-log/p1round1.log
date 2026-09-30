@@ -1,0 +1,16 @@
+  fails: graphical parameters are named when they are ignored 
+ipped=0 warning=0 passed=63
+RESULT lane frmtmb test-ce-parity.R: tests=30 failed=0 error=0 skipped=0 warning=0 passed=30
+RESULT lane frmtmb test-ce-levels.R: tests=101 failed=0 error=0 skipped=0 warning=0 passed=101
+RESULT lane frmtmb test-brms-parity-defects.R: tests=140 failed=0 error=0 skipped=0 warning=0 passed=140
+RESULT lane frmtmb test-generic-collision.R: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+RESULT lane frmtmb test-message-uniqueness.R: tests=6 failed=0 error=0 skipped=0 warning=0 passed=6
+RESULT lane frmtmb test-cs-factor.R: tests=84 failed=0 error=0 skipped=0 warning=0 passed=84
+RESULT lane frmtmb test-effects.R: tests=54 failed=0 error=0 skipped=0 warning=0 passed=54
+RESULT lane frmtmb test-bracket-access.R: tests=33 failed=0 error=0 skipped=0 warning=0 passed=33
+RESULT lane frmtmb.sample test-brms-shapes-draws.R: tests=76 failed=0 error=0 skipped=0 warning=0 passed=76
+RESULT lane frmtmb.sample test-postfit-draws.R: tests=68 failed=0 error=0 skipped=0 warning=0 passed=68
+RESULT lane frmtmb.sample test-generic-collision.R: tests=61 failed=0 error=0 skipped=0 warning=0 passed=61
+RESULT lane frmtmb.sample test-message-uniqueness.R: tests=6 failed=0 error=0 skipped=0 warning=0 passed=6
+RESULT lane frmtmb.sample test-conditional-effects-draws.R: tests=63 failed=0 error=0 skipped=0 warning=0 passed=63
+p1round1 ran 14 of 14

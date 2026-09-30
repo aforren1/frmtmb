@@ -80,9 +80,23 @@ test_that("nsamples() is brms's, with brms's deprecation warning", {
   expect_warning(n <- nsamples(ds), "deprecated")
   expect_equal(n, ndraws(ds))
   expect_equal(suppressWarnings(nsamples(ds, subset = 10:1)), 10L)
-  # frm_sample() stores no warmup, so there is nothing to count there
-  expect_error(suppressWarnings(nsamples(ds, incl_warmup = TRUE)),
-               "warmup")
+  # brmsfit-methods:595: the saved iterations, warmup included, from the
+  # stanfit's record, as brms counts them. 0.66.0's frmtmb.sample refused
+  # this ("has nothing to count"). shapes_draws() runs one chain of
+  # iter = 150 with warmup = 100, and rstan saves the warmup
+  expect_equal(suppressWarnings(nsamples(ds, incl_warmup = TRUE)), 150L)
+  expect_identical(ndraws(ds), 50L)
+  # brms's subset check reads the count asked for
+  expect_error(suppressWarnings(nsamples(ds, subset = 1:60)),
+               "Argument 'subset' is invalid.", fixed = TRUE)
+  expect_equal(suppressWarnings(nsamples(ds, subset = 1:60,
+                                         incl_warmup = TRUE)), 60L)
+  # draws with no stanfit behind them have no record to read
+  bare <- ds
+  bare$stanfit <- NULL
+  expect_error(suppressWarnings(nsamples(bare, incl_warmup = TRUE)),
+               "carry no stanfit")
+  expect_equal(suppressWarnings(nsamples(bare)), ndraws(ds))
 })
 
 test_that("posterior_samples() is brms's, with brms's warning", {
@@ -98,6 +112,44 @@ test_that("posterior_samples() is brms's, with brms's warning", {
   expect_equal(names(b), grep("^b_", variables(ds), value = TRUE))
   expect_true(is.matrix(suppressWarnings(
     posterior_samples(ds, as.matrix = TRUE))))
+})
+
+test_that("posterior_samples(pars = ) orders the coefficients as brms", {
+  # brmsfit-methods:635: brms lists every intercept first. 0.66.0 gave
+  # variables() order, each predictor's coefficients together:
+  # b_Intercept, b_x, b_sigma_Intercept, b_sigma_x
+  set.seed(20260930)
+  n <- 80
+  dd <- data.frame(x = rnorm(n))
+  dd$y <- rnorm(n, 1 + 0.5 * dd$x, exp(0.2 + 0.3 * dd$x))
+  fit <- frm(bf(y ~ x, sigma ~ x), family = gaussian(), data = dd)
+  tpl <- fit$frame$par_template
+  est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))
+  M <- matrix(rep(est, each = 6) + stats::rnorm(6 * length(est), 0, 0.05),
+              6, dimnames = list(NULL, frmtmb::brms_par_labels(fit)))
+  ds <- structure(list(stanfit = NULL,
+                       draws = cbind(frmtmb.sample:::draws_to_natural(M, fit),
+                                     lp__ = 0),
+                       fit = fit), class = "frmtmb_draws")
+  ps <- function(...) {
+    allow_warnings(posterior_samples(ds, ...), "is deprecated")
+  }
+  brms_b <- c("b_Intercept", "b_sigma_Intercept", "b_x", "b_sigma_x")
+  expect_identical(names(ps(pars = "^b_")), brms_b)
+  expect_identical(paste0("b_", rownames(fixef(fit))), brms_b)
+  # the values move with their names
+  expect_identical(ps(pars = "^b_")$b_sigma_Intercept,
+                   unname(ds$draws[, "b_sigma_Intercept"]))
+  # several patterns: each keeps brms's order within its matches
+  expect_identical(names(ps(pars = c("sigma", "^b_x$"))),
+                   c("b_sigma_Intercept", "b_sigma_x", "b_x"))
+  # fixed = TRUE keeps the order given, as brms's intersect() does
+  expect_identical(names(ps(pars = c("b_x", "b_Intercept"), fixed = TRUE)),
+                   c("b_x", "b_Intercept"))
+  # the guard absent: no pars is every variable, in variables() order
+  expect_identical(names(ps()), variables(ds))
+  # and a pattern that matches nothing is brms's NULL
+  expect_null(ps(pars = "^nothing_"))
 })
 
 test_that("parnames() is variables(), with brms's warning", {
@@ -165,4 +217,41 @@ test_that("allow_new_levels on draws refuses only an unseen level", {
     expect_match(err, paste0("^", fn, "[(][)] on draws"), info = fn)
     expect_match(err, "neither is implemented for frmtmb_draws", info = fn)
   }
+})
+
+test_that("posterior_samples(pars = ) orders a nonlinear model as brms", {
+  # review m5: fixef()'s order put every intercept first, a nonlinear
+  # parameter's too. brms 2.23.0 keeps a nonlinear parameter's intercept
+  # with its coefficients and puts a distributional parameter's first
+  # (dev/ceplot-log/p1-psorder-brms.txt)
+  set.seed(11)
+  n <- 200
+  d <- data.frame(x = rnorm(n), z = rnorm(n), w = rnorm(n))
+  d$yp <- 2 * exp(0.3 * d$x) + 0.2 * d$z + rnorm(n, 0, exp(0.1 * d$w))
+  hand <- function(fit) {
+    tpl <- fit$frame$par_template
+    est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))
+    M <- matrix(rep(est, each = 4) + stats::rnorm(4 * length(est), 0, 0.01),
+                4, dimnames = list(NULL, frmtmb::brms_par_labels(fit)))
+    structure(list(stanfit = NULL,
+                   draws = cbind(frmtmb.sample:::draws_to_natural(M, fit),
+                                 lp__ = 0),
+                   fit = fit), class = "frmtmb_draws")
+  }
+  ps <- function(ds, ...) {
+    allow_warnings(names(posterior_samples(ds, ...)), "is deprecated")
+  }
+  f1 <- frm(bf(yp ~ a * exp(b * x), a ~ 1 + z, b ~ 1, nl = TRUE),
+            family = gaussian(), data = d)
+  expect_identical(ps(hand(f1), pars = "^b_"),
+                   c("b_a_Intercept", "b_a_z", "b_b_Intercept"))
+  f2 <- frm(bf(yp ~ a * exp(b * x), a ~ 1 + z, b ~ 1 + w, sigma ~ w,
+               nl = TRUE), family = gaussian(), data = d)
+  expect_identical(ps(hand(f2), pars = "^b_"),
+                   c("b_sigma_Intercept", "b_a_Intercept", "b_a_z",
+                     "b_b_Intercept", "b_b_w", "b_sigma_w"))
+  f3 <- frm(bf(yp ~ x + z, sigma ~ w), family = gaussian(), data = d)
+  expect_identical(ps(hand(f3), pars = "^b_"),
+                   c("b_Intercept", "b_sigma_Intercept", "b_x", "b_z",
+                     "b_sigma_w"))
 })

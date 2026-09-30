@@ -1,0 +1,17 @@
+frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
+Argument 'formula.' will completely replace the original formula in non-linear models.
+update nl, new body keeps a,b      TRUE
+Argument 'formula.' will completely replace the original formula in non-linear models.
+update nl, exp body                a_Intercept b_Intercept a_z        
+bf(y ~ a + b, nl = TRUE) alone     frmtmb_formula
+frm(bf(y ~ a + b, nl = TRUE))      ERROR: A nonlinear formula needs at least one nonlinear-parameter formula whose name appears in the model formula. No name in the body of 'mu' has one, so every name there is read as a data column and nothing is left to estimate; declare the parameters with bf(..., a ~ 1, nl = TRUE), lf(a ~ 1) or nlf()
+update linear keeps sigma ~ z      Intercept       sigma_Intercept x               z               sigma_z        
+bernoulli ym logLik identical      TRUE
+bernoulli yf logLik identical      TRUE
+bernoulli yl logLik identical      TRUE
+bernoulli y12 logLik identical     TRUE
+bernoulli yc logLik identical      TRUE
+residuals(newdata) on -1 rows      TRUE
+influence() on -1/-2               TRUE
+simulate codes                     0 1
+three values refused               ERROR: Family 'bernoulli' requires responses to contain only two different values

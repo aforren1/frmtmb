@@ -178,11 +178,14 @@ test_that("fit$data is the model frame, not a partial match of data2", {
   expect_lt(delta, 3 * cols)
 
   # a model with a transformed term: the frame carries the TERM, where
-  # brms's `data` carries the raw column and every unused one
+  # brms's `data` carries the raw column and every unused one. An
+  # offset's variable is a column too since lane formrobust, because
+  # the conditional_effects() and emmeans() grids hold it at its mean
   dd$z <- rnorm(30)
-  fo <- frm(y ~ x + offset(z), dd)
-  expect_true("offset(z)" %in% names(fo$data))
-  expect_false("z" %in% names(fo$data))
+  dd$unused <- rnorm(30)
+  fo <- frm(y ~ log(x^2) + offset(z), dd)
+  expect_true(all(c("log(x^2)", "offset(z)", "z") %in% names(fo$data)))
+  expect_false(any(c("x", "unused") %in% names(fo$data)))
 
   # the other brmsfit field names read NULL rather than a neighbour:
   # `data` was the one that collided. `exact = FALSE` is `$`'s own

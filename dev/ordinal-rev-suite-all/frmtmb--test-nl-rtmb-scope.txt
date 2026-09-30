@@ -1,0 +1,33 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | nl-rtmb-scope                                                  
+⠋ |          1 | nl-rtmb-scope                                                  
+⠸ |         14 | nl-rtmb-scope                                                  
+⠇ |         19 | nl-rtmb-scope                                                  
+⠏ |         20 | nl-rtmb-scope                                                  
+⠼ |         25 | nl-rtmb-scope                                                  
+⠼ |         35 | nl-rtmb-scope                                                  
+⠧ |         38 | nl-rtmb-scope                                                  
+⠋ |         41 | nl-rtmb-scope                                                  
+⠙ |         42 | nl-rtmb-scope                                                  
+⠹ |         43 | nl-rtmb-scope                                                  
+⠸ |         44 | nl-rtmb-scope                                                  
+⠦ |         47 | nl-rtmb-scope                                                  
+⠧ |         48 | nl-rtmb-scope                                                  
+⠏ |         50 | nl-rtmb-scope                                                  
+⠙ |         52 | nl-rtmb-scope                                                  
+⠹ |         63 | nl-rtmb-scope                                                  
+⠼ |         75 | nl-rtmb-scope                                                  
+⠋ |         81 | nl-rtmb-scope                                                  
+⠼ |         85 | nl-rtmb-scope                                                  
+⠋ |         91 | nl-rtmb-scope                                                  
+⠸ |         94 | nl-rtmb-scope                                                  
+⠧ |         98 | nl-rtmb-scope                                                  
+✔ |        105 | nl-rtmb-scope [7.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 7.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 105 ]
+RESULT lane frmtmb test-nl-rtmb-scope.R pass=105 fail=0 err=0 skip=0 warn=0

@@ -568,6 +568,14 @@ brms_standata_view <- function(fr) {
       }
     }
     for (lp in fr$linpreds) {
+      # a distributional parameter held at a constant, bf(nu = 3) or an
+      # ordinal family's disc at 1, is a Stan data slot in brms under
+      # the parameter's own name; frmtmb holds the same number on the
+      # linear predictor
+      if (identical(lp$resp, r) && !is.null(lp$constant)) {
+        out[[sfx(lp$dpar, r)]] <- lp$constant
+        next
+      }
       if (!identical(lp$resp, r) || is.null(lp$X)) next
       nm <- if (identical(lp$dpar, "mu")) "X" else paste0("X_", lp$dpar)
       out[[sfx(nm, r)]] <- brms_x_names(lp$X)
@@ -587,11 +595,40 @@ brms_standata_view <- function(fr) {
       }
     }
   }
+  # the group-level design of a univariate model: brms's Z_<id>_<k>
+  # (Z_<id>_<dpar>_<k> outside mu) is, per row, the covariate of the
+  # k-th coefficient of group term id. frmtmb keeps one column per level
+  # and coefficient, level-major, so a row's value is the sum over that
+  # coefficient's level columns, where only its own level is nonzero.
+  # brms numbers its terms in the order it lists them, which is the
+  # frame's block order for plain terms that each serve one predictor;
+  # anything else is left out rather than numbered by a guess
+  if (length(resps) == 1L) {
+    for (i in seq_along(fr$re_blocks)) {
+      bk <- fr$re_blocks[[i]]
+      if (length(bk$components) != 1L || !is.null(bk$by) ||
+            !bk$covstruct %in% c("us", "diag")) next
+      lp <- fr$linpreds[[bk$components[[1L]]$lp_key]]
+      if (is.null(lp$Z)) next
+      d <- bk$dim
+      for (k in seq_len(d)) {
+        cols <- bk$c_idx[seq(k, by = d, length.out = bk$n_levels)]
+        nm <- paste0("Z_", i, if (!identical(lp$dpar, "mu"))
+          paste0("_", lp$dpar), "_", k)
+        # a product rather than the Matrix package's rowSums(): frmtmb.sample
+        # runs a copy of this file and does not declare that package
+        out[[nm]] <- as.array(as.numeric(
+          lp$Z[, cols, drop = FALSE] %*% rep(1, length(cols))))
+      }
+    }
+  }
   tau <- fr$par_template$tau_raw
-  if (!is.null(tau)) out$nthres <- length(tau)
   # grouped thresholds, thres(gr = ): brms's per-group counts and the
-  # [start, end] slice of the merged vector each row reads
+  # [start, end] slice of the merged vector each row reads. A threshold
+  # structure other than flexible holds fewer parameters than
+  # thresholds, so the count is the family's where it has one
   th <- fr$spec$responses[[1L]]$family[["thres"]]
+  if (!is.null(tau)) out$nthres <- th[["nthres"]] %||% length(tau)
   if (isTRUE(th[["grouped"]])) {
     out$nthres <- as.array(th[["nthres"]])
     out$ngrthres <- length(th[["nthres"]])

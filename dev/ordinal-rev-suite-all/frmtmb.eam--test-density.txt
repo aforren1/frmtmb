@@ -1,0 +1,13 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | density                                                        
+⠼ |          5 | density                                                        
+⠧ |         68 | density                                                        
+⠏ |        120 | density                                                        
+⠋ |        131 | density                                                        
+✔ |        132 | density
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 132 ]
+RESULT lane frmtmb.eam test-density.R pass=132 fail=0 err=0 skip=0 warn=0

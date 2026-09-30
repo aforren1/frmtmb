@@ -1,0 +1,30 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-parity-defects                                            
+⠹ |          3 | brms-parity-defects                                            
+⠧ |          8 | brms-parity-defects                                            
+⠙ |         12 | brms-parity-defects                                            
+⠇ |         19 | brms-parity-defects                                            
+⠋ |         31 | brms-parity-defects                                            
+⠙ |         32 | brms-parity-defects                                            
+⠹ |         33 | brms-parity-defects                                            
+⠇ |         39 | brms-parity-defects                                            
+⠼ |         45 | brms-parity-defects                                            
+⠸ |         54 | brms-parity-defects                                            
+⠏ |         60 | brms-parity-defects                                            
+⠧ |         68 | brms-parity-defects                                            
+⠙ |         72 | brms-parity-defects                                            
+⠼ |         75 | brms-parity-defects                                            
+⠧ |         78 | brms-parity-defects                                            
+⠏ |         80 | brms-parity-defects                                            
+⠋ |         91 | brms-parity-defects                                            
+⠴ |         96 | brms-parity-defects                                            
+⠹ |        103 | brms-parity-defects                                            
+✔ |        106 | brms-parity-defects [13.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 13.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 106 ]
+RESULT lane frmtmb test-brms-parity-defects.R pass=106 fail=0 err=0 skip=0 warn=0

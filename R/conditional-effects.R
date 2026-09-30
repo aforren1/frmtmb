@@ -149,14 +149,22 @@ ce_int_cond <- function(int_cond, col) {
 #' its smooth terms, its monotonic terms and its `mi()` terms. An `mo()`
 #' or `mi()` column is a placeholder in the design matrix and its
 #' variable never reaches `terms`, so what is stored with the term is
-#' the only place the name survives.
+#' the only place the name survives. `rsv = FALSE` leaves out what
+#' brms's default displays leave out: a variable that only an `offset()`
+#' term reads, and the column of ones of brms's deprecated
+#' `0 + intercept` (`rsv_vars()` in brms).
 #'
 #' @noRd
-ce_lp_vars <- function(lp) {
+ce_lp_vars <- function(lp, rsv = TRUE) {
   v <- if (is.null(lp[["terms"]])) {
     character(0)
   } else {
-    all.vars(stats::delete.response(lp[["terms"]]))
+    tt <- stats::delete.response(lp[["terms"]])
+    tv <- as.list(attr(tt, "variables"))[-1L]
+    if (!rsv && length(attr(tt, "offset"))) tv <- tv[-attr(tt, "offset")]
+    v <- unique(unlist(lapply(tv, all.vars)))
+    if (!rsv && isTRUE(lp[["rsv_lower"]])) v <- setdiff(v, "intercept")
+    v
   }
   # a factor-smooth's own grouping factor is not a predictor to display:
   # the curve is drawn at the population level, which drops that term,
@@ -192,8 +200,9 @@ ce_lp_vars <- function(lp) {
 #' in the parameters of an unrelated nonlinear `mu`.
 #'
 #' @noRd
-ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
-  v <- ce_lp_vars(lp)
+ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0),
+                         rsv = TRUE) {
+  v <- ce_lp_vars(lp, rsv)
   if (!is.null(lp[["nl_body"]])) {
     v <- c(v, names(lp[["data_list"]]),
            setdiff(all.vars(lp[["nl_body"]]), rspec$nlpars))
@@ -201,7 +210,8 @@ ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
     for (np in setdiff(reach, seen)) {
       lpn <- x$frame[["linpreds"]][[linpred_key(resp, np)]]
       if (!is.null(lpn)) {
-        v <- c(v, ce_plot_vars(x, rspec, lpn, resp, c(seen, np)))
+        v <- c(v, ce_plot_vars(x, rspec, lpn, resp, c(seen, np),
+                               rsv))
       }
     }
   }
@@ -239,11 +249,13 @@ ce_step_vars <- function(x, rspec, lp, resp, seen = character(0)) {
 #' (which is the deliberate difference from brms recorded as finding 6).
 #'
 #' @noRd
-ce_plot_vars_any <- function(x, rspec, resp) {
+ce_plot_vars_any <- function(x, rspec, resp, rsv = TRUE) {
   v <- character(0)
   for (dp in names(rspec$dpars)) {
     lpn <- x$frame[["linpreds"]][[linpred_key(resp, dp)]]
-    if (!is.null(lpn)) v <- c(v, ce_plot_vars(x, rspec, lpn, resp))
+    if (!is.null(lpn)) {
+      v <- c(v, ce_plot_vars(x, rspec, lpn, resp, rsv = rsv))
+    }
   }
   unique(v)
 }
@@ -529,8 +541,11 @@ ce_group_vars <- function(x) {
 #' switch to. What was a defect is that `categorical =` was accepted and
 #' did nothing, so the other layout could not be asked for at all.
 #'
+#' `method = "predict"` is refused here, before brms's ordinal warning,
+#' so that a call that stops does not warn first.
+#'
 #' @noRd
-ce_display_kind <- function(rspec, dpar, categorical) {
+ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
   poly <- isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical"))
   if (!is.null(categorical)) check_flag(categorical, "categorical")
   if (!is.null(dpar) || !poly) {
@@ -548,6 +563,13 @@ ce_display_kind <- function(rspec, dpar, categorical) {
     }
     return("linpred")
   }
+  if (identical(method, "predict")) {
+    frm_stop("method = \"predict\" has no meaning on an ordinal family: the ",
+             "category probabilities conditional_effects() draws ARE the ",
+             "predictive distribution, so there is no further observation ",
+             "noise to add. Use method = \"epred\" (the default), or ask ",
+             "for the latent predictor with dpar = \"mu\"", call. = FALSE)
+  }
   if (is.null(categorical) || isTRUE(categorical)) return("cats")
   if (!identical(rspec$family[["type"]], "ordinal")) {
     frm_stop("conditional_effects(categorical = FALSE) has nothing to draw ",
@@ -558,6 +580,15 @@ ce_display_kind <- function(rspec, dpar, categorical) {
              call. = FALSE,
              package = frm_family_package(rspec$family))
   }
+  # brms's warning, given where brms's display is the same: the expected
+  # category number treats the ordered categories as equally spaced
+  # numbers. brms gives it on its default call; the default here is the
+  # per-category display, which treats nothing as continuous, so the
+  # warning comes with the explicit categorical = FALSE
+  frm_warning("Predictions are treated as continuous variables in ",
+              "'conditional_effects' with categorical = FALSE, which is ",
+              "likely invalid for ordinal families. Please set ",
+              "'categorical' to TRUE.", call. = FALSE)
   "cats_mean"
 }
 
@@ -1093,7 +1124,14 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   minus one SD (numeric). Default: every fixed-effect and smooth
 #'   variable of the selected linear predictor, plus one `"a:b"` pair
 #'   per fitted interaction (brms's default); a term of order three or
-#'   more contributes its leading pair.
+#'   more contributes its leading pair. A named effect is valid when
+#'   each of its variables is one the model reads (a predictor of any
+#'   parameter, or a grouping variable), as in brms. An invalid effect
+#'   among valid ones is dropped with brms's warning "Some specified
+#'   effects are invalid for this model", and when none is valid the
+#'   call stops with brms's "All specified effects are invalid for this
+#'   model". A variable that is in the data but not in the model is
+#'   invalid.
 #' @param resp,dpar Response and distributional parameter, as in
 #'   [predict.frmtmb_fit()].
 #' @param resolution Number of grid points for a varied numeric
@@ -1275,7 +1313,10 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' with its own delta-method band (the category weights go on the
 #' gradient, so the covariances between the category probabilities are
 #' kept), keyed `"x"` and directly comparable with brms's default
-#' curve.
+#' curve. It gives brms's warning, "Predictions are treated as
+#' continuous variables", because the display is the one brms warns
+#' about; the default display gives none, because it treats nothing as
+#' continuous.
 #'
 #' `se__` is then on the probability scale, and the band is a Wald
 #' interval on the logit of the probability so it cannot leave `[0, 1]`.
@@ -1409,11 +1450,16 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   `"98"`) read different new levels, each drawn on its own, as two
 #'   unseen levels of `(1 | g)` are. brms 2.23.0 gives them one shared
 #'   draw, because it numbers unseen values per member, not by value.
-#'   With `band = "boot"`, a row with one member at an
-#'   observed level and one at a new level is refused by name, as are
-#'   rows that mix the two. An `mm()` term with a `by` variable draws no
-#'   new level with `band = "boot"` or on draws, and such a call is
-#'   refused by name; the Wald band answers it.
+#'   With `band = "boot"`, a row with one member at an observed level
+#'   and one at a new level of the same block is refused by name, as
+#'   are rows that mix the two.
+#' - `mm(g1, g2, by = cbind(f1, f2))` is one block per by-level. A
+#'   member at an observed group reads the block that holds the group,
+#'   and a new member reads the block of its own by-value, where its
+#'   new level is drawn with that by-level's covariance. Two new
+#'   members with the same value and the same by-value read one new
+#'   level, and their weights add. brms 2.23.0 cannot draw a new level
+#'   of such a term; it stops.
 #' - A factor-smooth (`s(x, g, bs = "fs")`) or a smooth with a `by`
 #'   factor has no curve for a level that the fit did not see. When
 #'   `conditions` sets such a factor to an unseen level, or the grid
@@ -1429,17 +1475,23 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' observed level. Two terms that both read a new level in the same rows
 #' can share a placeholder column (for example `mm(g1, g2)` beside
 #' `(1 | g1)`), because their effects are separate coefficients. If no
-#' placeholder exists, the call is refused by
-#' name ("cannot draw a new level of the group-level term"). Then set
-#' the grouping variables in `conditions` to levels that the fit saw
-#' together, or use `re_formula = NA`.
-#'
-#' Known limitation: crossed terms such as
-#' `(1 | g) + (1 | h) + (1 | g:h)`, with `g` and `h` set to observed
-#' levels that the data never has together. The `g:h` term then reads a
-#' new level, but its placeholder would change `g` or `h`, which the
-#' observed terms read. `band = "boot"` and draws refuse this call;
-#' brms answers it. `band = "wald"` answers it too.
+#' placeholder moves the rows without moving such a column, the rows
+#' keep their columns and the term's level is renamed instead: in a
+#' copy of the fit used for those rows alone, one level of the term
+#' takes the label the rows carry, and the draw replaces its effects.
+#' That is how crossed terms such as `(1 | g) + (1 | h) + (1 | g:h)`
+#' are drawn when `g` and `h` are set to observed levels that the data
+#' never has together: `g` and `h` keep their levels, and `g:h` reads a
+#' new level. With one new level in the call, the band on draws equals
+#' brms's at the same draws and the same seed, with
+#' `sample_new_levels = "gaussian"` (`dev/ceplot-crossed-brms.R`); with
+#' several, brms draws level by level and this draw by draw, so the
+#' bands agree in law but not number. A row whose grouping variable is
+#' unset there has no label to rename to, and is refused by name. A
+#' multi-membership member that no
+#' placeholder serves is still refused by name ("cannot draw a new
+#' level of the group-level term"); then set the members in
+#' `conditions` to levels the fit saw, or use `re_formula = NA`.
 #' @section Draws objects:
 #' On a `frmtmb_draws` object from `frmtmb.sample::frm_sample()` the
 #' same grids are evaluated once per posterior draw, and `estimate__`,
@@ -1472,6 +1524,13 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' variables, so a three-way or deeper term contributes its leading
 #' pair, with the remaining variables at their reference values until
 #' `conditions =` pins them. Naming `effects =` overrides the search.
+#'
+#' A response whose predictor reads `mi(x, idx = )` is refused by name.
+#' Such a term reads `x` on the row whose `index()` value equals the
+#' row's `idx` value, and a display grid holds both at one reference
+#' value, so every grid row names the same row. brms 2.23.0 stops on
+#' the same grid. Predict over rows you build, with
+#' `fitted(newdata = )`.
 #' @examples
 #' set.seed(5)
 #' dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
@@ -1521,15 +1580,19 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                            conditions, data, int_conditions = list(),
                            na_vars = character(0), surface = FALSE,
                            too_far = 0) {
-  base <- data %||% x$frame[["data_frame"]]
+  base <- data %||% ce_base_frame(x)
+  ce_mi_idx_check(x, resp)
 
-  vars <- ce_plot_vars(x, rspec, lp, resp)
+  # an offset's variable is held at its mean like any other, but it is
+  # not a default display: brms draws the terms, and an offset is not
+  # one, nor is its deprecated reserved `intercept`
+  vars <- ce_plot_vars(x, rspec, lp, resp, rsv = !is.null(effects))
   # a model whose SELECTED predictor has no terms still has covariates
   # somewhere (bf(y ~ 1, theta1 ~ x)): naming the one predictor the
   # search looked at was a refusal to draw a model that has something
   # to draw
   if (is.null(effects) && !length(intersect(vars, names(base)))) {
-    vars <- ce_plot_vars_any(x, rspec, resp)
+    vars <- ce_plot_vars_any(x, rspec, resp, rsv = FALSE)
   }
   vars <- vars[vars %in% names(base)]
   step_vars <- ce_step_vars(x, rspec, lp, resp)
@@ -1539,6 +1602,7 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   # candidates there were, and the refusal has to say so.
   mat_vars <- vars[vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
   vars <- setdiff(vars, mat_vars)
+  named_effects <- !is.null(effects)
   if (is.null(effects)) {
     # brms's default: the main effects AND the fitted two-way
     # interactions, each side of a pair having survived the same
@@ -1575,6 +1639,7 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   # one grid per effect: a repeated name would otherwise stack the same
   # grid twice inside its own data frame
   effects <- unique(effects)
+  if (named_effects) effects <- ce_valid_effects(x, effects)
   # a misspelled int_conditions name silently conditioned on nothing
   unknown <- setdiff(names(int_conditions), names(base))
   if (length(unknown)) {
@@ -1618,11 +1683,9 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   }
   grids <- list()
   for (eff in effects) {
+    # a named effect of more than two variables stopped in
+    # ce_valid_effects(), and a default one has two at most
     ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
-    if (length(ev) > 2L) {
-      frm_stop("Effects support at most two variables: '", eff, "'",
-               call. = FALSE)
-    }
     missing_ev <- setdiff(ev, names(base))
     if (length(missing_ev)) {
       frm_stop("Variable '", missing_ev[1L], "' is not stored in the model ",
@@ -1674,6 +1737,139 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   list(base = base, effects = effects, cond_sets = cond_sets,
        grids = grids, groups = groups[nzchar(groups)],
        pred_vars = intersect(ce_plot_vars_any(x, rspec, resp), names(base)))
+}
+
+#' The frame a display's grid and points are built from: the model
+#' frame, with the raw variables it reads through a transform
+#' (`x` in `poly(x, 2)`) added beside it, as brms's model frame has
+#' them. Without them such a variable could not be named as an effect,
+#' and the default display found nothing to vary.
+#'
+#' @noRd
+ce_base_frame <- function(x) {
+  mf <- x$frame[["data_frame"]]
+  raw <- x$frame[["raw_vars"]]
+  if (is.null(raw) || !nrow(mf) || nrow(raw) != nrow(mf)) return(mf)
+  add <- setdiff(names(raw), names(mf))
+  if (!length(add)) return(mf)
+  out <- mf
+  for (v in add) out[[v]] <- raw[[v]]
+  out
+}
+
+#' The refusal of a display whose response reads `mi(x, idx = )`.
+#'
+#' Such a term reads `x` on the row whose `index()` value equals the
+#' row's `idx` value, matched within the rows predicted. A display grid
+#' holds both variables at one reference value, so every grid row names
+#' the same row of `x`, and the match is not a lookup of anything. brms
+#' 2.23.0 stops on the same grid with "Index of response 'x' contains
+#' duplicated values." (`dev/ceplot-brms-mi.R`); this says why. A
+#' response that does not read the term, such as `x` itself, is not
+#' refused.
+#'
+#' @noRd
+ce_mi_idx_check <- function(x, resp) {
+  for (lp in x$frame[["linpreds"]] %||% list()) {
+    if (!identical(lp[["resp"]], resp)) next
+    for (m in lp[["mi"]] %||% list()) {
+      if (is.null(m$idx_expr)) next
+      ix <- x$spec$responses[[m$var]]$aterms[["index"]]
+      frm_stop("conditional_effects() cannot display response '", resp,
+               "': its predictor reads mi(", m$var, ", idx = ",
+               deparse1(m$idx_expr), "), so each row reads ", m$var,
+               " on the row whose index(", deparse1(ix), ") equals its ",
+               deparse1(m$idx_expr), ". The display grid holds both at ",
+               "one reference value, so every grid row names the same ",
+               "row and the index cannot be matched. brms 2.23.0 stops ",
+               "on the same grid (\"Index of response '", m$var,
+               "' contains duplicated values.\"). Predict over rows you ",
+               "build, with fitted(newdata = ), where the index names ",
+               "real rows", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
+#' Every variable the model reads as a predictor, brms's
+#' `get_all_effects(comb_all = TRUE)` set: the variables of every
+#' distributional and nonlinear parameter's terms (fixed effects,
+#' smooths, `gp()`, `mo()`, `mi()`, `me()`, `cs()`), the covariates of a
+#' nonlinear body, the `by` variables of `gr()`, and the grouping
+#' variables. A nonlinear or distributional parameter's own name is not
+#' a variable, as it is not in brms.
+#'
+#' Kept apart from `ce_locked_vars()` on purpose, though the two walk
+#' the same terms: that set decides which columns a new level's
+#' placeholder may move, this one which effects a caller may name, and a
+#' change to one must not silently change the other.
+#'
+#' @noRd
+ce_model_vars <- function(x) {
+  pars <- unlist(lapply(x$spec$responses, function(r) {
+    c(r$nlpars, names(r$dpars))
+  }))
+  v <- unlist(lapply(x$frame[["linpreds"]] %||% list(), function(lp) {
+    # brms's set leaves out a variable that only an offset() reads but
+    # keeps its reserved `intercept`; the frame holds offset variables
+    # for the grids, so without this `effects = "time"` drew a curve
+    # that brms refuses
+    c(ce_lp_vars(lp, rsv = FALSE),
+      if (isTRUE(lp[["rsv_lower"]])) "intercept",
+      unlist(lapply(lp[["smooths"]] %||% list(), function(si) {
+        smooth_pred_vars(si$sm)
+      })),
+      unlist(lapply(lp[["gps"]] %||% list(), function(gi) {
+        unlist(lapply(gi$exprs, all.vars))
+      })),
+      # a cs() term's variable lives with the term, not in `terms`
+      unlist(lapply(lp[["cs"]] %||% list(), function(ct) {
+        all.vars(ct[["expr"]] %||% str2lang(sub("^cs", "", ct[["label"]])))
+      })),
+      setdiff(c(names(lp[["data_list"]]),
+                if (!is.null(lp[["nl_body"]])) all.vars(lp[["nl_body"]])),
+              pars))
+  }))
+  by <- unlist(lapply(x$frame[["re_blocks"]] %||% list(), function(bk) {
+    all.vars(bk[["by"]][["expr"]])
+  }))
+  unique(c(v, by, ce_group_vars(x)))
+}
+
+#' brms's rule for requested effects: an effect is valid when each of
+#' its variables is one the model reads (a predictor of any
+#' distributional or nonlinear parameter, or a grouping variable), and a
+#' pair must name two different variables. One invalid effect among
+#' valid ones is dropped with brms's warning; when none is valid, brms's
+#' error. A variable that is in the data but not in the model is
+#' invalid, as in brms: its curve would be flat by construction.
+#'
+#' The check on effects of more than two variables comes first, as in
+#' brms, so that such an effect gets that message rather than this one.
+#'
+#' @noRd
+ce_valid_effects <- function(x, effects) {
+  evs <- strsplit(effects, ":", fixed = TRUE)
+  long <- effects[lengths(evs) > 2L]
+  if (length(long)) {
+    frm_stop("Effects support at most two variables: '", long[1L], "'",
+             call. = FALSE)
+  }
+  valid <- ce_model_vars(x)
+  ok <- vapply(evs, function(v) {
+    all(v %in% valid) && !anyDuplicated(v)
+  }, NA)
+  if (all(ok)) return(effects)
+  quote <- function(v) paste0("'", v, "'", collapse = ", ")
+  if (!any(ok)) {
+    frm_stop("All specified effects are invalid for this model.\n",
+             "Valid effects are (combinations of): ", quote(valid),
+             call. = FALSE)
+  }
+  frm_warning("Some specified effects are invalid for this model: ",
+              quote(effects[!ok]), "\nValid effects are (combinations ",
+              "of): ", quote(valid), call. = FALSE)
+  effects[ok]
 }
 
 #' A smooth's factor (a factor-smooth's, or a `by` factor's) set to a
@@ -1999,16 +2195,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   x <- autocor_cond_strip(x)
   # a per-category effect display is on the CATEGORIES, not the latent
   # scale; naming a dpar explicitly is the way back to the predictor
-  kind <- ce_display_kind(rspec, dpar, categorical)
+  kind <- ce_display_kind(rspec, dpar, categorical, method)
   categorical <- identical(kind, "cats")
   cats_mean <- identical(kind, "cats_mean")
-  if ((categorical || cats_mean) && method == "predict") {
-    frm_stop("method = \"predict\" has no meaning on an ordinal family: the ",
-             "category probabilities conditional_effects() draws ARE the ",
-             "predictive distribution, so there is no further observation ",
-             "noise to add. Use method = \"epred\" (the default), or ask ",
-             "for the latent predictor with dpar = \"mu\"", call. = FALSE)
-  }
   # the delta method for a category probability runs through the ordinal
   # THRESHOLDS (ord_prob_se); a nominal family has none, so its bands
   # come from refits until someone writes that Jacobian
@@ -2377,49 +2566,399 @@ print.frmtmb_conditional_effects <- function(x, ...) {
   invisible(x)
 }
 
+#' Plot conditional effects
+#'
+#' Draws the displays of a [conditional_effects()] or
+#' [conditional_smooths()] result, one page per effect, with base
+#' graphics. The method takes the arguments of brms's
+#' `plot.brms_conditional_effects()`, in brms's order.
+#'
+#' @section What `plot = FALSE` returns:
+#' brms returns a list of ggplot objects, one per effect, and draws them
+#' unless `plot = FALSE`. frmtmb draws with base graphics and does not
+#' depend on ggplot2, so it cannot return ggplot objects. It returns the
+#' closest thing base graphics has: a list of `frmtmb_ce_plot` objects,
+#' one per effect and named as the effects are. Each object holds the
+#' effect's data frame and the settings of the call. Printing or
+#' plotting one draws it, as printing a ggplot object draws it. The
+#' objects cannot be extended with `+` the way a ggplot object can. The
+#' list is returned invisibly whether or not the call draws, as brms
+#' returns its list.
+#'
+#' @section The layer arguments:
+#' brms passes `line_args`, `cat_args`, `errorbar_args`,
+#' `surface_args`, `spaghetti_args`, `point_args`, `rug_args` and
+#' `facet_args` to the ggplot2 layer that draws each part. This method
+#' translates each element that has a base-graphics counterpart and
+#' ignores the rest with one warning that names them:
+#'
+#' * `colour` (or `color`, `col`), `fill`, `alpha`, `linewidth` (or
+#'   `lwd`), `linetype` (or `lty`), `shape` (or `pch`) and `size` are
+#'   translated. `size` is the point size (`cex`) for points and the
+#'   line width for lines. In `line_args`, `fill` and `alpha` color the
+#'   band, as they color the ribbon of brms's `geom_smooth()`.
+#' * `width` in `errorbar_args` is the width of the error-bar caps in
+#'   units of the axis, as in ggplot2. `width` in `point_args` spreads
+#'   the observations horizontally by up to that much on either side.
+#' * `sides` in `rug_args` picks the axis the rug is on: `"b"` (the
+#'   default) or `"t"`. The rug marks values of the horizontal axis, so
+#'   `"l"` and `"r"` draw nothing, as in brms.
+#' * `bins` in `surface_args` is the number of contour levels.
+#' * `ncol`, `nrow` and `scales` in `facet_args` lay out the panels of a
+#'   display with several conditions. `scales = "free"` or `"free_y"`
+#'   gives each panel its own vertical range.
+#'
+#' As in brms, `mapping`, `data` and `inherit.aes` cannot be set, and
+#' each list must be named.
+#'
+#' @param x A `frmtmb_conditional_effects` object, or one `frmtmb_ce_plot`
+#'   for the print and plot methods of a plot object.
+#' @param ncol Number of panel columns for a display with several
+#'   conditions. The default lays the panels out roughly square.
+#' @param points If `TRUE`, draw the observations over the curves. Not
+#'   allowed for a [conditional_smooths()] result, whose curves are not
+#'   on the response scale.
+#' @param rug If `TRUE`, draw a rug of the observed values of the
+#'   varied predictor along the horizontal axis, for a numeric
+#'   predictor.
+#' @param mean If `FALSE`, omit the estimate line where the effect
+#'   carries spaghetti curves. Without spaghetti the line is always
+#'   drawn, as in brms.
+#' @param jitter_width Deprecated in brms in favor of
+#'   `point_args = list(width = )`, and it warns here as it warns there.
+#'   A non-zero value spreads the observations horizontally.
+#' @param stype How a surface (`conditional_effects(surface = TRUE)`) is
+#'   drawn: `"contour"` (default) draws colored contour lines,
+#'   `"raster"` draws a colored image.
+#' @param line_args,cat_args,errorbar_args,surface_args Named lists of
+#'   settings for each part of the display; see the section on the
+#'   layer arguments.
+#' @param spaghetti_args,point_args,rug_args,facet_args Named lists of
+#'   settings for each part of the display, as the four above.
+#' @param theme brms's ggplot2 theme. `NULL` (the default) changes
+#'   nothing. A ggplot2 theme object has no meaning for base graphics:
+#'   it is not applied, and a warning says so. Use [graphics::par()]
+#'   instead. Anything else is an error, as in brms.
+#' @param ask If `TRUE` (the default), prompt before each new page after
+#'   the first on an interactive device. `NULL`, the default before
+#'   this version, is taken as `TRUE`.
+#' @param plot If `FALSE`, return the plot objects without drawing
+#'   them.
+#' @param ... `do_plot`, brms's deprecated name for `plot`, is accepted
+#'   with brms's warning. Base graphical parameters (`col`, `main`,
+#'   ...) are accepted, as every `plot()` method must accept them, and
+#'   ignored with a warning that names them. Any other argument is an
+#'   error that names it.
+#' @return A named list of `frmtmb_ce_plot` objects, invisibly.
+#' @seealso [conditional_effects()], [conditional_smooths()]
+#' @examples
+#' set.seed(5)
+#' dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
+#' dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
+#' fit <- frm(bf(y ~ x * f), family = gaussian(), data = dd)
+#' ce <- conditional_effects(fit, effects = c("x", "f"))
+#' plot(ce, points = TRUE, rug = TRUE, ask = FALSE)
+#' # the plot objects, drawn one at a time
+#' p <- plot(ce, plot = FALSE)
+#' names(p)
+#' p$x
 #' @export
-plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
-                                            ncol = NULL, ...) {
-  frm_check_dots(...)
+plot.frmtmb_conditional_effects <- function(x, ncol = NULL,
+                                            points = FALSE, rug = FALSE,
+                                            mean = TRUE, jitter_width = 0,
+                                            stype = c("contour", "raster"),
+                                            line_args = list(),
+                                            cat_args = list(),
+                                            errorbar_args = list(),
+                                            surface_args = list(),
+                                            spaghetti_args = list(),
+                                            point_args = list(),
+                                            rug_args = list(),
+                                            facet_args = list(),
+                                            theme = NULL, ask = TRUE,
+                                            plot = TRUE, ...) {
+  plot <- ce_do_plot(plot, ...)
+  frm_check_dots(..., .hidden = "do_plot")
+  ce_plot_ignored(...)
+  stype <- frm_match_arg(stype)
   if (!is.null(ncol)) check_count(ncol, "ncol", min = 1L)
-  # a condition set is a FACET, not a page: several conditions used to
-  # draw several full pages that overwrote each other on a normal
-  # device, so the page prompt counts effects, not conditions
-  ask <- ask %||% (length(x) > 1L && grDevices::dev.interactive())
-  if (ask) {
-    oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
+  check_flag(points, "points")
+  check_flag(rug, "rug")
+  check_flag(mean, "mean")
+  # NULL, the default of 0.66.0, asks as brms's TRUE does
+  if (is.null(ask)) ask <- TRUE
+  check_flag(ask, "ask")
+  check_flag(plot, "plot")
+  if (points && isTRUE(attr(x, "smooths_only"))) {
+    frm_stop("Argument 'points' is invalid for objects returned by ",
+             "'conditional_smooths'.", call. = FALSE)
   }
+  if (!is.numeric(jitter_width) || length(jitter_width) != 1L ||
+      !is.finite(jitter_width) || jitter_width < 0) {
+    frm_stop("`jitter_width` must be one number of at least 0, not ",
+             arg_desc(jitter_width), call. = FALSE)
+  }
+  if (jitter_width != 0) {
+    frm_warning("'jitter_width' is deprecated. Please use ",
+                "'point_args = list(width = <width>)' instead.",
+                call. = FALSE)
+  }
+  ce_theme_check(theme)
+  layers <- list(
+    line_args = ce_gg_par(line_args, "line_args", "line"),
+    cat_args = ce_gg_par(cat_args, "cat_args", "point"),
+    errorbar_args = ce_gg_par(errorbar_args, "errorbar_args", "errorbar"),
+    surface_args = ce_gg_par(surface_args, "surface_args", "surface"),
+    spaghetti_args = ce_gg_par(spaghetti_args, "spaghetti_args", "line"),
+    point_args = ce_gg_par(point_args, "point_args", "point"),
+    rug_args = ce_gg_par(rug_args, "rug_args", "rug"),
+    facet_args = ce_gg_par(facet_args, "facet_args", "facet")
+  )
+  ce_gg_ignored(layers)
+  if (jitter_width != 0 && is.null(layers$point_args$width)) {
+    layers$point_args$width <- jitter_width
+  }
+  # facet_args replaces ncol as brms's replace_args() replaces it
+  if (is.null(layers$facet_args$ncol)) layers$facet_args$ncol <- ncol
+  drawn <- setdiff(names(layers), "facet_args")
+  o <- c(list(points = points, rug = rug, mean = mean, stype = stype,
+              custom = any(lengths(layers[drawn]) > 0L) || rug || !mean ||
+                !is.null(layers$facet_args$scales)),
+         layers)
+  plots <- stats::setNames(vector("list", length(x)), names(x))
   for (nm in names(x)) {
     df <- x[[nm]]
     if (points && is.null(attr(df, "points_df"))) {
       frm_message("points = TRUE: no observations to draw for effect '", nm,
                   "' (the display is per-category, on a non-mean ",
-                  "distributional parameter, the response is not a ",
-                  "plain numeric column, or the display is a smooth ",
-                  "term, which is not on the response scale)")
+                  "distributional parameter, or the response is not a ",
+                  "plain numeric column)")
     }
-    if (isTRUE(attr(df, "surface"))) {
-      ce_plot_surface(df)
-    } else if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
-      ce_plot_facets(df, points = points, ncol = ncol)
-    } else {
-      ce_plot_one(df, points = points)
+    plots[[nm]] <- structure(list(data = df, opts = o),
+                             class = "frmtmb_ce_plot")
+  }
+  if (plot) {
+    # brms's page rule: the first page never prompts, and `ask` governs
+    # the pages after it. A condition set is a FACET, not a page, so
+    # the prompt counts effects, not conditions
+    oask <- grDevices::devAskNewPage(FALSE)
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
+    for (i in seq_along(plots)) {
+      ce_draw(plots[[i]])
+      if (i == 1L) grDevices::devAskNewPage(ask)
     }
   }
+  invisible(plots)
+}
+
+#' @rdname plot.frmtmb_conditional_effects
+#' @export
+print.frmtmb_ce_plot <- function(x, ...) {
+  # printing a plot object draws it, so it takes the graphical
+  # parameters plot() takes, and names them as ignored the same way
+  frm_check_dots(..., .hidden = s3_contract_args[["plot"]])
+  ce_plot_ignored(...)
+  ce_draw(x)
   invisible(x)
+}
+
+#' @rdname plot.frmtmb_conditional_effects
+#' @export
+plot.frmtmb_ce_plot <- function(x, ...) {
+  frm_check_dots(...)
+  ce_plot_ignored(...)
+  ce_draw(x)
+  invisible(x)
+}
+
+#' Draw one plot object: a surface, a faceted page of condition sets, or
+#' one panel.
+#'
+#' @noRd
+ce_draw <- function(p) {
+  df <- p[["data"]]
+  o <- p[["opts"]]
+  if (isTRUE(attr(df, "surface"))) {
+    ce_plot_surface(df, o)
+  } else if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
+    ce_plot_facets(df, o)
+  } else {
+    ce_plot_one(df, o = o)
+  }
+  invisible(NULL)
+}
+
+#' brms's `plot` argument and its deprecated alias `do_plot`, which
+#' brms's `use_alias()` accepts with a warning.
+#'
+#' @noRd
+ce_do_plot <- function(plot, ...) {
+  dots <- list(...)
+  if (!"do_plot" %in% names(dots)) return(plot)
+  frm_warning("Argument 'do_plot' is deprecated. Please use argument ",
+              "'plot' instead.", call. = FALSE)
+  dots[["do_plot"]]
+}
+
+#' The graphical parameters (`col`, `main`, `xlab`, `lwd`, ...) that
+#' `frm_check_dots()` lets through, because every `plot()` method must
+#' tolerate them, but that the drawing does not read. A setting the
+#' caller asked for must not pass in silence, so they are named in a
+#' warning, with where the setting does act.
+#'
+#' @noRd
+ce_plot_ignored <- function(...) {
+  nms <- ...names()
+  nms <- setdiff(nms[!is.na(nms) & nzchar(nms)], "do_plot")
+  if (length(nms)) {
+    frm_warning("plot() ignores the graphical parameter(s) ",
+                paste0("`", nms, "`", collapse = ", "), ": the display ",
+                "sets its own. Use the *_args lists (line_args, ",
+                "point_args, ...) or par() instead", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' brms's `theme` is a ggplot2 theme. Base graphics has no use for one,
+#' so a theme is accepted with a warning rather than applied in silence;
+#' anything else is brms's own error.
+#'
+#' @noRd
+ce_theme_check <- function(theme) {
+  if (is.null(theme)) return(invisible(NULL))
+  if (inherits(theme, "theme")) {
+    frm_warning("`theme` is a ggplot2 theme, and frmtmb draws with base ",
+                "graphics, so it is not applied. Set graphical parameters ",
+                "with par() instead", call. = FALSE)
+    return(invisible(NULL))
+  }
+  frm_stop("Argument 'theme' should be a 'theme' object.", call. = FALSE)
+}
+
+#' Translate one of brms's ggplot2 layer-argument lists into base
+#' graphical parameters.
+#'
+#' `kind` says which base call the list reaches, because ggplot2's
+#' `size` is a point size for a point layer and a line width for a line
+#' layer. Elements with no counterpart are kept in the `ignored`
+#' attribute so that one warning can name all of them.
+#'
+#' @noRd
+ce_gg_par <- function(args, arg, kind) {
+  if (!is.list(args)) {
+    frm_stop("`", arg, "` must be a named list, not ", arg_desc(args),
+             call. = FALSE)
+  }
+  if (!length(args)) return(list())
+  nms <- names(args)
+  if (is.null(nms) || !all(nzchar(nms))) {
+    frm_stop("Argument '", arg, "' must be named.", call. = FALSE)
+  }
+  fixed <- intersect(nms, c("mapping", "data", "inherit.aes"))
+  if (length(fixed)) {
+    frm_stop("Argument(s) ", paste(fixed, collapse = ", "),
+             " cannot be replaced.", call. = FALSE)
+  }
+  common <- c(colour = "col", color = "col", col = "col", fill = "fill",
+              alpha = "alpha", linewidth = "lwd", lwd = "lwd",
+              linetype = "lty", lty = "lty", shape = "pch", pch = "pch",
+              cex = "cex")
+  extra <- switch(kind,
+    point = c(size = "cex", width = "width"),
+    line = c(size = "lwd"),
+    errorbar = c(size = "lwd", width = "width"),
+    rug = c(size = "lwd", sides = "sides"),
+    surface = c(size = "lwd", bins = "bins"),
+    facet = c(ncol = "ncol", nrow = "nrow", scales = "scales"))
+  map <- if (identical(kind, "facet")) extra else c(common, extra)
+  out <- list()
+  ignored <- character(0)
+  for (nm in nms) {
+    to <- map[nm]
+    if (is.na(to)) {
+      ignored <- c(ignored, nm)
+    } else {
+      out[[to]] <- args[[nm]]
+    }
+  }
+  if (identical(kind, "facet")) {
+    if (!is.null(out$ncol)) check_count(out$ncol, "facet_args$ncol", 1L)
+    if (!is.null(out$nrow)) check_count(out$nrow, "facet_args$nrow", 1L)
+    sc <- c("fixed", "free", "free_x", "free_y")
+    if (!is.null(out$scales) &&
+        !(is.character(out$scales) && length(out$scales) == 1L &&
+          out$scales %in% sc)) {
+      frm_stop("facet_args$scales must be one of ",
+               paste0("\"", sc, "\"", collapse = ", "), ", not ",
+               arg_desc(out$scales), call. = FALSE)
+    }
+  }
+  if (identical(kind, "rug") && !is.null(out$sides)) {
+    s <- match(strsplit(as.character(out$sides), "")[[1L]],
+               c("b", "l", "t", "r"))
+    if (anyNA(s) || !length(s)) {
+      frm_stop("rug_args$sides must be letters among \"b\", \"l\", \"t\" ",
+               "and \"r\", not ", arg_desc(out$sides), call. = FALSE)
+    }
+    out$sides <- s
+  }
+  if (length(ignored)) attr(out, "ignored") <- paste0(arg, "$", ignored)
+  out
+}
+
+#' One warning for every layer element the base-graphics translation
+#' has no counterpart for: a setting the caller asked for and did not
+#' get would otherwise pass in silence.
+#'
+#' @noRd
+ce_gg_ignored <- function(layers) {
+  ign <- unlist(lapply(layers, attr, "ignored"), use.names = FALSE)
+  if (length(ign)) {
+    frm_warning("plot() ignores ", paste(ign, collapse = ", "), ": brms ",
+                "passes these to ggplot2, and frmtmb draws with base ",
+                "graphics, which has no counterpart for them",
+                call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' A base color with a ggplot2 `alpha` applied, or the fallback when the
+#' layer sets no color.
+#'
+#' @noRd
+ce_col <- function(par, fallback, alpha = NULL) {
+  col <- par$col %||% fallback
+  a <- par$alpha %||% alpha
+  if (is.null(a)) col else grDevices::adjustcolor(col, alpha.f = a)
 }
 
 #' Panel grid for a faceted display. brms hands `ncol` straight to
 #' facet_wrap(), whose NULL default lays the panels out roughly square;
 #' asking for more columns than there are panels only wastes the page,
-#' so the request is capped.
+#' so the request is capped. `nrow` alone sets the columns it implies.
 #'
 #' @noRd
-ce_facet_layout <- function(n, ncol = NULL) {
-  nc <- if (is.null(ncol)) ceiling(sqrt(n)) else min(as.integer(ncol), n)
+ce_facet_layout <- function(n, ncol = NULL, nrow = NULL) {
+  nc <- if (!is.null(ncol)) {
+    min(as.integer(ncol), n)
+  } else if (!is.null(nrow)) {
+    ceiling(n / min(as.integer(nrow), n))
+  } else {
+    ceiling(sqrt(n))
+  }
   nc <- max(1L, as.integer(nc))
   c(nrow = as.integer(ceiling(n / nc)), ncol = nc)
+}
+
+#' The drawing settings plot() passes down, at their defaults.
+#'
+#' @noRd
+ce_plot_defaults <- function() {
+  list(points = FALSE, rug = FALSE, mean = TRUE, stype = "contour",
+       custom = FALSE, line_args = list(), cat_args = list(),
+       errorbar_args = list(), surface_args = list(),
+       spaghetti_args = list(), point_args = list(), rug_args = list(),
+       facet_args = list())
 }
 
 #' The raw observations belonging to one condition. A points frame with
@@ -2442,33 +2981,40 @@ ce_points_at <- function(pts, cv) {
 #'
 #' The per-category ordinal display already spends its grouping slot on
 #' the category and its panel slot on a second predictor, so it takes
-#' the base grid rather than a second facet dimension.
+#' the base grid rather than a second facet dimension. So does a call
+#' that sets a layer argument, a rug or `mean = FALSE`: the tinyplot
+#' layer has no slot for them, and dropping them would draw something
+#' other than what was asked.
 #'
 #' @noRd
-ce_plot_facets <- function(df, points = FALSE, ncol = NULL) {
+ce_plot_facets <- function(df, o = ce_plot_defaults()) {
   lv <- unique(as.character(df$cond__))
-  lay <- ce_facet_layout(length(lv), ncol)
-  pts <- if (points) attr(df, "points_df")
+  lay <- ce_facet_layout(length(lv), o$facet_args$ncol, o$facet_args$nrow)
+  pts <- if (o$points) attr(df, "points_df")
   # the tinyplot layer has no slot for one curve per draw, and dropping
   # them silently would hide what the caller asked to see
-  if (is.null(df[["cats__"]]) && is.null(attr(df, "spaghetti")) &&
+  if (!isTRUE(o$custom) && is.null(df[["cats__"]]) &&
+      is.null(attr(df, "spaghetti")) &&
       requireNamespace("tinyplot", quietly = TRUE)) {
     ce_facet_tinyplot(df, lv, lay, pts)
   } else {
-    ce_facet_base(df, lv, lay, points)
+    ce_facet_base(df, lv, lay, o)
   }
   invisible(NULL)
 }
 
 #' @noRd
-ce_facet_base <- function(df, lv, lay, points) {
-  pts <- if (points) attr(df, "points_df")
-  # the panels share one scale: a per-panel range would make curves of
-  # different heights look alike, which is the opposite of what small
-  # multiples are for
-  ylim <- range(df$lower__, df$upper__, df$estimate__,
-                attr(df, "spaghetti")$estimate__,
-                if (!is.null(pts)) pts$y, na.rm = TRUE)
+ce_facet_base <- function(df, lv, lay, o = ce_plot_defaults()) {
+  pts <- if (o$points) attr(df, "points_df")
+  # the panels share one scale unless facet_args asks for free scales: a
+  # per-panel range would make curves of different heights look alike,
+  # which is the opposite of what small multiples are for
+  free <- isTRUE(o$facet_args$scales %in% c("free", "free_y"))
+  ylim <- if (!free) {
+    range(df$lower__, df$upper__, df$estimate__,
+          attr(df, "spaghetti")$estimate__,
+          if (!is.null(pts)) pts$y, na.rm = TRUE)
+  }
   op <- graphics::par(mfrow = c(lay[["nrow"]], lay[["ncol"]]),
                       mar = c(4, 4, 2.5, 1))
   on.exit(graphics::par(op), add = TRUE)
@@ -2478,7 +3024,7 @@ ce_facet_base <- function(df, lv, lay, points) {
       attr(sub, a) <- attr(df, a)
     }
     attr(sub, "points_df") <- ce_points_at(pts, cv)
-    ce_plot_one(sub, cond = cv, points = points, ylim = ylim)
+    ce_plot_one(sub, cond = cv, o = o, ylim = ylim)
   }
 }
 
@@ -2539,8 +3085,9 @@ ce_facet_tinyplot <- function(df, lv, lay, pts) {
 #' optional second predictor.
 #'
 #' @noRd
-ce_plot_one <- function(df, cond = NULL, points = FALSE, ylim = NULL) {
-  pts <- if (points) attr(df, "points_df")
+ce_plot_one <- function(df, cond = NULL, o = ce_plot_defaults(),
+                        ylim = NULL) {
+  pts <- if (o$points) attr(df, "points_df")
   ev <- attr(df, "effects")
   if (!is.null(df[["cats__"]])) {
     # an ordinal display carries one curve per response category, so the
@@ -2557,10 +3104,10 @@ ce_plot_one <- function(df, cond = NULL, points = FALSE, ylim = NULL) {
         ce_draw_panel(sub, ev[1L], factor(sub$cats__,
                                           levels = levels(df$cats__)),
                       "category",
-                      paste0(ylab, " | ", ev[2L], " = ", lv), ylim)
+                      paste0(ylab, " | ", ev[2L], " = ", lv), ylim, o = o)
       }
     } else {
-      ce_draw_panel(df, ev[1L], df$cats__, "category", ylab, ylim)
+      ce_draw_panel(df, ev[1L], df$cats__, "category", ylab, ylim, o = o)
     }
     return(invisible(NULL))
   }
@@ -2573,17 +3120,35 @@ ce_plot_one <- function(df, cond = NULL, points = FALSE, ylim = NULL) {
   }
   ylim <- ylim %||% range(df$lower__, df$upper__, spag$estimate__,
                           if (!is.null(pts)) pts$y, na.rm = TRUE)
-  ce_draw_panel(df, ev[1L], grp, ev[2L], ylab, ylim, pts = pts)
+  # brms's `mean`: with spaghetti, FALSE leaves the estimate line out;
+  # without spaghetti the line is the display and is always drawn
+  line <- o$mean || is.null(spag)
+  ce_draw_panel(df, ev[1L], grp, ev[2L], ylab, ylim, pts = pts, o = o,
+                line = line)
   # one thin line per draw over the band, as brms draws them
   if (!is.null(spag) && nrow(spag) && is.numeric(spag[[ev[1L]]])) {
+    sp <- o$spaghetti_args
     for (s in split(spag, spag$sample__, drop = TRUE)) {
       col <- if (length(ev) == 2L) {
         match(as.character(s[[ev[2L]]][1L]), levels(grp))
       } else {
         1L
       }
-      graphics::lines(s[[ev[1L]]], s$estimate__, lwd = 0.5,
-                      col = grDevices::adjustcolor(col, 0.2))
+      graphics::lines(s[[ev[1L]]], s$estimate__, lwd = sp$lwd %||% 0.5,
+                      lty = sp$lty %||% 1,
+                      col = ce_col(sp, col, alpha = 0.2))
+    }
+  }
+  # brms's rug: the observed values of a numeric first predictor, read
+  # from the same point frame `points = TRUE` draws. It maps x alone,
+  # so a left or right side has nothing to draw, as in ggplot2
+  if (o$rug && is.numeric(df[[ev[1L]]])) {
+    rp <- attr(df, "points_df")
+    if (!is.null(rp) && nrow(rp)) {
+      for (side in intersect(o$rug_args$sides %||% 1L, c(1L, 3L))) {
+        graphics::rug(rp$x, side = side, lwd = o$rug_args$lwd %||% 0.5,
+                      col = ce_col(o$rug_args, "black"))
+      }
     }
   }
 }
@@ -2598,13 +3163,14 @@ ce_ylab <- function(df) {
   paste0(attr(df, "response"), " (", dp, ")")
 }
 
-#' A surface over two numeric predictors: the estimate as an image with
-#' contours, one panel per condition. Grid points `too_far` removed stay
-#' blank.
+#' A surface over two numeric predictors, one panel per condition:
+#' colored contour lines (brms's `stype = "contour"`) or a colored image
+#' (`"raster"`). Grid points `too_far` removed stay blank.
 #'
 #' @noRd
-ce_plot_surface <- function(df) {
+ce_plot_surface <- function(df, o = ce_plot_defaults()) {
   ev <- attr(df, "effects")
+  sa <- o$surface_args
   for (cv in unique(as.character(df$cond__ %||% "1"))) {
     sub <- if (is.null(df$cond__)) df else
       df[as.character(df$cond__) == cv, , drop = FALSE]
@@ -2615,10 +3181,20 @@ ce_plot_surface <- function(df) {
       sub$estimate__
     main <- ce_ylab(df)
     if (length(unique(df$cond__)) > 1L) main <- paste0(main, " | ", cv)
-    graphics::image(xs, ys, z, xlab = ev[1L], ylab = ev[2L], main = main,
-                    col = grDevices::hcl.colors(50))
-    if (length(xs) > 1L && length(ys) > 1L) {
-      graphics::contour(xs, ys, z, add = TRUE)
+    if (identical(o$stype, "raster") || length(xs) < 2L ||
+        length(ys) < 2L) {
+      graphics::image(xs, ys, z, xlab = ev[1L], ylab = ev[2L], main = main,
+                      col = grDevices::hcl.colors(50))
+    } else {
+      nl <- sa$bins %||% 10L
+      graphics::contour(xs, ys, z, nlevels = nl, xlab = ev[1L],
+                        ylab = ev[2L], main = main,
+                        lwd = sa$lwd %||% 1.3, lty = sa$lty %||% 1,
+                        col = if (is.null(sa$col)) {
+                          grDevices::hcl.colors(nl)
+                        } else {
+                          ce_col(sa, 1L)
+                        })
     }
   }
 }
@@ -2626,38 +3202,54 @@ ce_plot_surface <- function(df) {
 #' Draw one panel: the estimate over the varied predictor `xv` with its
 #' band, lines and a shaded band for a numeric predictor, points and
 #' error bars for a discrete one, split by the optional grouping factor
-#' `grp`.
+#' `grp`. `o` carries the layer settings plot() translated.
 #'
 #' @noRd
 ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
-                          pts = NULL) {
+                          pts = NULL, o = ce_plot_defaults(),
+                          line = TRUE) {
   v1 <- df[[xv]]
   ev <- c(xv, grp_title)
-  pt_col <- grDevices::adjustcolor("black", 0.25)
+  la <- o$line_args
+  pp <- o$point_args
+  pt_col <- ce_col(pp, "black", alpha = 0.25)
+  band_col <- function(k, a) {
+    grDevices::adjustcolor(la$fill %||% k, alpha.f = la$alpha %||% a)
+  }
+  # the spread of the observations: ggplot2's jitter width, in axis
+  # units on either side. Deterministic, with no RNG, so replotting
+  # looks identical and the user's random seed is left alone
+  spread <- function(n, w) ((seq_len(n) * 7L) %% 17L - 8L) / 8 * w
 
   if (is.numeric(v1)) {
     graphics::plot(range(v1), ylim, type = "n", xlab = ev[1L],
                    ylab = ylab)
     if (!is.null(pts)) {
-      graphics::points(pts$x, pts$y, pch = 16, cex = 0.5, col = pt_col)
+      graphics::points(pts$x + spread(length(pts$x), pp$width %||% 0),
+                       pts$y, pch = pp$pch %||% 16, cex = pp$cex %||% 0.5,
+                       col = pt_col)
     }
     if (is.null(grp)) {
       graphics::polygon(c(v1, rev(v1)), c(df$lower__, rev(df$upper__)),
-                        col = grDevices::adjustcolor("black", 0.15),
-                        border = NA)
-      graphics::lines(v1, df$estimate__, lwd = 2)
+                        col = band_col("black", 0.15), border = NA)
+      if (line) {
+        graphics::lines(v1, df$estimate__, lwd = la$lwd %||% 2,
+                        lty = la$lty %||% 1, col = la$col %||% 1)
+      }
     } else {
       for (k in seq_along(levels(grp))) {
         i <- grp == levels(grp)[k]
         graphics::polygon(c(v1[i], rev(v1[i])),
                           c(df$lower__[i], rev(df$upper__[i])),
-                          col = grDevices::adjustcolor(k, 0.12),
-                          border = NA)
-        graphics::lines(v1[i], df$estimate__[i], col = k, lwd = 2)
+                          col = band_col(k, 0.12), border = NA)
+        if (line) {
+          graphics::lines(v1[i], df$estimate__[i], col = la$col %||% k,
+                          lwd = la$lwd %||% 2, lty = la$lty %||% 1)
+        }
       }
       graphics::legend("topleft", legend = levels(grp), col =
-                         seq_along(levels(grp)), lwd = 2, title = ev[2L],
-                       bty = "n")
+                         la$col %||% seq_along(levels(grp)),
+                       lwd = la$lwd %||% 2, title = ev[2L], bty = "n")
     }
   } else {
     xi <- as.integer(factor(v1))
@@ -2670,20 +3262,34 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
                    labels = levels(factor(v1)))
     if (!is.null(pts)) {
       xp <- as.integer(factor(pts$x, levels = levels(factor(v1))))
-      # deterministic spread, no RNG: replotting looks identical and the
-      # user's random seed is left alone
-      off <- ((seq_along(xp) * 7L) %% 17L - 8L) / 100
-      graphics::points(xp + off, pts$y, pch = 16, cex = 0.5,
+      graphics::points(xp + spread(length(xp), pp$width %||% 0.08),
+                       pts$y, pch = pp$pch %||% 16, cex = pp$cex %||% 0.5,
                        col = pt_col)
     }
     cols <- if (is.null(grp)) 1L else as.integer(grp)
-    graphics::arrows(xi, df$lower__, xi, df$upper__, angle = 90,
-                     code = 3, length = 0.05, col = cols)
-    graphics::points(xi, df$estimate__, pch = 16, col = cols)
+    eb <- o$errorbar_args
+    ecol <- ce_col(eb, cols)
+    if (is.null(eb$width)) {
+      graphics::arrows(xi, df$lower__, xi, df$upper__, angle = 90,
+                       code = 3, length = 0.05, col = ecol,
+                       lwd = eb$lwd %||% 1, lty = eb$lty %||% 1)
+    } else {
+      # ggplot2's width: the cap spans that much of the axis in total
+      hw <- eb$width / 2
+      graphics::segments(xi, df$lower__, xi, df$upper__, col = ecol,
+                         lwd = eb$lwd %||% 1, lty = eb$lty %||% 1)
+      graphics::segments(xi - hw, df$lower__, xi + hw, df$lower__,
+                         col = ecol, lwd = eb$lwd %||% 1)
+      graphics::segments(xi - hw, df$upper__, xi + hw, df$upper__,
+                         col = ecol, lwd = eb$lwd %||% 1)
+    }
+    cp <- o$cat_args
+    graphics::points(xi, df$estimate__, pch = cp$pch %||% 16,
+                     cex = cp$cex %||% 1, col = ce_col(cp, cols))
     if (!is.null(grp)) {
       graphics::legend("topleft", legend = levels(grp),
-                       col = seq_along(levels(grp)), pch = 16,
-                       title = ev[2L], bty = "n")
+                       col = cp$col %||% seq_along(levels(grp)),
+                       pch = cp$pch %||% 16, title = ev[2L], bty = "n")
     }
   }
 }
@@ -3071,6 +3677,8 @@ pp_check_newdata_y <- function(object, rspec, newdata) {
              " rows. Add the response column, or use prefix = \"ppd\" to ",
              "plot the draws alone", call. = FALSE)
   }
+  # a bernoulli response is plotted on the 0/1 codes the draws are on
+  y <- response_codes_newdata(rspec, y, "pp_check(newdata = )")
   lv <- object$frame[["y_levels"]][[rspec$resp_name]]
   if (!is.null(lv)) {
     code <- match(as.character(y), lv)

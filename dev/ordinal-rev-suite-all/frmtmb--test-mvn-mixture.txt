@@ -1,0 +1,39 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mvn-mixture                                                    
+⠋ |          1 | mvn-mixture                                                    
+⠧ |          8 | mvn-mixture                                                    
+⠸ |         14 | mvn-mixture                                                    
+⠋ |         21 | mvn-mixture                                                    
+⠼ |         35 | mvn-mixture                                                    
+⠦ |         37 | mvn-mixture                                                    
+⠴ |         56 | mvn-mixture                                                    
+⠏ |         70 | mvn-mixture                                                    
+⠦ |         87 | mvn-mixture                                                    
+⠙ |        102 | mvn-mixture                                                    
+⠇ |        109 | mvn-mixture                                                    
+⠋ |        131 | mvn-mixture                                                    
+⠼ |        145 | mvn-mixture                                                    
+⠹ |        153 | mvn-mixture                                                    
+⠙ |        162 | mvn-mixture                                                    
+⠋ |        171 | mvn-mixture                                                    
+⠏ |        180 | mvn-mixture                                                    
+⠙ |        192 | mvn-mixture                                                    
+⠴ |        206 | mvn-mixture                                                    
+⠼ |        215 | mvn-mixture                                                    
+⠙ |        222 | mvn-mixture                                                    
+⠇ |        229 | mvn-mixture                                                    
+⠴ |        236 | mvn-mixture                                                    
+⠹ |        243 | mvn-mixture                                                    
+⠏ |        250 | mvn-mixture                                                    
+⠦ |        257 | mvn-mixture                                                    
+⠸ |        264 | mvn-mixture                                                    
+⠋ |        271 | mvn-mixture                                                    
+✔ |        277 | mvn-mixture [4.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 277 ]
+RESULT lane frmtmb test-mvn-mixture.R pass=277 fail=0 err=0 skip=0 warn=0

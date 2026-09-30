@@ -1,0 +1,36 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | predfix                                                        
+⠋ |          1 | predfix                                                        
+⠹ |         13 | predfix                                                        
+⠇ |         19 | predfix                                                        
+⠸ |         24 | predfix                                                        
+⠦ |         27 | predfix                                                        
+⠏ |         30 | predfix                                                        
+⠼ |         35 | predfix                                                        
+⠸ |         44 | predfix                                                        
+⠙ |         52 | predfix                                                        
+⠸ |         54 | predfix                                                        
+⠧ |         58 | predfix                                                        
+⠸ |         64 | predfix                                                        
+⠼ |         65 | predfix                                                        
+⠴ |         66 | predfix                                                        
+⠦ |         67 | predfix                                                        
+⠧ |         68 | predfix                                                        
+⠇ |         69 | predfix                                                        
+⠏ |         70 | predfix                                                        
+⠹ |         73 | predfix                                                        
+⠴ |         76 | predfix                                                        
+⠇ |         79 | predfix                                                        
+⠙ |         82 | predfix                                                        
+⠼ |         85 | predfix                                                        
+⠴ |         86 | predfix                                                        
+⠏ |         90 | predfix                                                        
+✔ |         92 | predfix [37.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 37.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 92 ]
+RESULT lane frmtmb test-predfix.R pass=92 fail=0 err=0 skip=0 warn=0

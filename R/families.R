@@ -4077,86 +4077,85 @@ ord_cat_below <- function(sel, K) {
 
 #' Cumulative ordinal: response in `1..K` (or an ordered factor). The
 #' linear predictor has no intercept; K-1 ordered thresholds take its
-#' place, parameterized as (tau_1, log increments) in `extra_pars`.
+#' place, parameterized as (tau_1, log increments) in `extra_pars` under
+#' `threshold = "flexible"`. The distribution function is read at
+#' `disc * (tau_k - eta)`, with `disc` held at one unless the formula
+#' models it, as in brms.
 #'
 #' @noRd
-fam_cumulative <- function(link = "logit") {
+fam_cumulative <- function(link = "logit", link_disc = "log",
+                           threshold = "flexible") {
+  threshold <- ord_threshold_arg(threshold, "cumulative")
   # brms allows softit here and not for the sequential pair
   lk <- ord_link(link, "cumulative")
+  lk_disc <- dpar_link(link_disc, "disc", "cumulative", dpar_links_positive)
   Fcdf <- lk$linkinv
-  # Any link carrying `logit_eta` has an exact log-space difference
-  # (see below), because that field turns its CDF into a logistic one.
-  # cauchit is the ordinal link that does not, and does not need one:
-  # its tails are polynomial, so the plain difference never saturates.
-  q <- lk[["logit_eta"]]
-  fam <- frmtmb_family(
-    "cumulative",
-    accepts_aterms = c("weights", "thres"),
-    family_finalize = thres_finalizer("cumulative", ordered = TRUE,
-                                      link = lk),
-    dpars = "mu",
-    links = list(mu = "identity"),
-    lpdf = function(y, dpars, aterms, extra) {
-      "[<-" <- RTMB::ADoverload("[<-")
-      raw <- extra$tau_raw
-      K1 <- length(raw)
-      tau <- rep(raw[1], K1)
-      if (K1 > 1) {
-        for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
-      }
+  make_lpdf <- function(tmap) {
+    force(tmap)
+    function(y, dpars, aterms, extra) {
+      tau <- tmap(extra$tau_raw)
       eta <- dpars[["mu"]]
+      disc <- dpars[["disc"]] %||% 1
+      K1 <- length(tau)
       K <- K1 + 1L
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
         # OSA re-tape: pick the category probability arithmetically
         sel <- ord_cat_sel(ov$y, K)
-        Fk <- lapply(seq_len(K1), function(k) Fcdf(tau[k] - eta))
+        Fk <- lapply(seq_len(K1), function(k) Fcdf(disc * (tau[k] - eta)))
         dens <- sel[[1]] * Fk[[1]]
         if (K1 > 1) {
           for (k in 2:K1) dens <- dens + sel[[k]] * (Fk[[k]] - Fk[[k - 1]])
         }
         return(log(dens + sel[[K]] * (1 - Fk[[K1]])) * ov$keep)
       }
-      iK <- as.numeric(y == K)
-      i1 <- as.numeric(y == 1)
-      if (is.null(q)) {
-        up <- Fcdf(tau[pmin(y, K1)] - eta) * (1 - iK) + iK
-        lo <- Fcdf(tau[pmax(y - 1, 1)] - eta) * (1 - i1)
-        return(log(up - lo))
-      }
-      # log(F(a) - F(b)) entirely in log space. `q` is the log odds of
-      # F, so F is the logistic of it exactly, and for a logistic
-      # F(a) - F(b) = (e^-qb - e^-qa) / ((1 + e^-qa)(1 + e^-qb)).
-      # The difference of two saturated CDFs loses every digit from
-      # |eta| = 20 and is exactly 0 by 40; this form has no such point.
-      # For the logit q is the identity and the two arguments of
-      # logspace_sub differ by tau_k - tau_{k-1}, which does not move
-      # with eta; for the others the gap does move with eta, so the
-      # conditioning is merely good rather than fixed.
-      out <- i1 * log_inv_logit(q(tau[1] - eta)) +
-        iK * log1m_inv_logit(q(tau[K1] - eta))
-      if (K1 >= 2L) {
-        # data-only clamp into the interior categories, so the masked
-        # rows still evaluate a legal (strictly ordered) threshold pair
-        ym <- pmin(pmax(y, 2L), K1)
-        a <- q(tau[ym] - eta)
-        b <- q(tau[ym - 1L] - eta)
-        out <- out + (1 - i1 - iK) *
-          (RTMB::logspace_sub(-b, -a) + log_inv_logit(a) +
-             log_inv_logit(b))
-      }
-      out
-    },
+      ord_cumulative_logpmf(y, eta, tau, lk, disc)
+    }
+  }
+  fam <- frmtmb_family(
+    "cumulative",
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer("cumulative", ordered = TRUE,
+                                      link = lk),
+    dpars = c("mu", "disc"),
+    links = list(mu = "identity", disc = lk_disc),
+    lpdf = make_lpdf(ord_tau_from_raw_ad),
     valid_y = ord_valid_y("cumulative"),
     type = "ordinal",
     extra_pars = function(y, aterms) {
       ord_tau_init(y, ordered = TRUE, link = lk)
     },
-    sim = ord_sim("cumulative", ordered = TRUE, link = lk),
+    sim = ord_sim("cumulative", link = lk,
+                  tmap = function(raw) ord_tau_from_raw(raw, TRUE)),
     post = list(ord_thresholds = ord_threshold_map(TRUE),
-                ord_thresholds_raw = ord_threshold_raw_map(TRUE)),
+                ord_thresholds_raw = ord_threshold_raw_map(TRUE),
+                fit_check = ord_fit_check),
     drop_intercept = TRUE
   )
+  ord_family_tail(fam, lk, threshold, make_lpdf,
+                  function(tmap) ord_sim("cumulative", link = lk,
+                                         tmap = tmap))
+}
+
+#' The fields every ordinal constructor sets after `frmtmb_family()`:
+#' `disc` held at one unless the formula models it, the threshold
+#' structure, and the two factories that `thres_finalizer()` calls to
+#' rebuild the density and the simulator once the threshold count is
+#' known. A structure other than `"flexible"` needs that count, and the
+#' count is a fact of the response.
+#'
+#' `disc` held at one is also a HIDDEN default: brms shows it nowhere
+#' unless the formula models it (no Links entry, no coefficient), so
+#' the output a fit prints leaves it out (`lp_hidden_fixed()`) while
+#' the objective keeps the mapped coefficient.
+#'
+#' @noRd
+ord_family_tail <- function(fam, lk, threshold, make_lpdf, make_sim) {
+  fam[["fixed_dpars"]] <- list(disc = 1)
+  fam[["hidden_fixed_dpars"]] <- "disc"
+  fam[["threshold"]] <- threshold
+  fam[["ord_lpdf_make"]] <- make_lpdf
+  fam[["ord_sim_make"]] <- make_sim
   ord_tag_link(fam, lk)
 }
 
@@ -4179,12 +4178,15 @@ ord_ordered_families <- c("cumulative", "hurdle_cumulative")
 
 #' The cumulative log-probability of categories `y` in `1..K`, with the
 #' distribution function read at `disc * (tau - eta)`: the data path of
-#' `fam_cumulative()`'s density, which says why the logit-type links go
-#' through `logspace_sub()`.
+#' the densities of `fam_cumulative()` and `fam_hurdle_cumulative()`.
 #'
 #' @noRd
 ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
   Fcdf <- lk$linkinv
+  # Any link carrying `logit_eta` has an exact log-space difference
+  # (see below), because that field turns its CDF into a logistic one.
+  # cauchit is the ordinal link that does not, and does not need one:
+  # its tails are polynomial, so the plain difference never saturates.
   q <- lk[["logit_eta"]]
   K1 <- length(tau)
   K <- K1 + 1L
@@ -4195,9 +4197,20 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
     lo <- Fcdf(disc * (tau[pmax(y - 1, 1)] - eta)) * (1 - i1)
     return(log(up - lo))
   }
+  # log(F(a) - F(b)) entirely in log space. `q` is the log odds of F,
+  # so F is the logistic of it exactly, and for a logistic
+  # F(a) - F(b) = (e^-qb - e^-qa) / ((1 + e^-qa)(1 + e^-qb)). The
+  # difference of two saturated CDFs loses every digit from |eta| = 20
+  # and is exactly 0 by 40; this form has no such point. For the logit
+  # q is the identity and the two arguments of logspace_sub differ by
+  # disc (tau_k - tau_{k-1}), which does not move with eta; for the
+  # others the gap does move with eta, so the conditioning is merely
+  # good rather than fixed.
   out <- i1 * log_inv_logit(q(disc * (tau[1] - eta))) +
     iK * log1m_inv_logit(q(disc * (tau[K1] - eta)))
   if (K1 >= 2L) {
+    # data-only clamp into the interior categories, so the masked rows
+    # still evaluate a legal (strictly ordered) threshold pair
     ym <- pmin(pmax(y, 2L), K1)
     a <- q(disc * (tau[ym] - eta))
     b <- q(disc * (tau[ym - 1L] - eta))
@@ -4218,20 +4231,16 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
 #' @noRd
 fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
                                   link_disc = "log", threshold = "flexible") {
-  ord_threshold_arg(threshold, "hurdle_cumulative")
+  threshold <- ord_threshold_arg(threshold, "hurdle_cumulative")
   nm <- "hurdle_cumulative"
   lk <- ord_link(link, nm)
   lk_hu <- dpar_link(link_hu, "hu", nm, dpar_links_unit)
   lk_disc <- dpar_link(link_disc, "disc", nm, dpar_links_positive)
   Fcdf <- lk$linkinv
-  fam <- frmtmb_family(
-    nm,
-    accepts_aterms = c("weights", "thres"),
-    family_finalize = hurdle_thres_finalizer(lk),
-    dpars = c("mu", "hu", "disc"),
-    links = list(mu = "identity", hu = lk_hu, disc = lk_disc),
-    lpdf = function(y, dpars, aterms, extra) {
-      tau <- ord_tau_from_raw_ad(extra$tau_raw)
+  make_lpdf <- function(tmap) {
+    force(tmap)
+    function(y, dpars, aterms, extra) {
+      tau <- tmap(extra$tau_raw)
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "hu", lk_hu)
       # a zero row reads category 1 in the ordinal term, which carries
@@ -4239,7 +4248,30 @@ fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
       base <- ord_cumulative_logpmf(pmax(y, 1), dpars[["mu"]], tau, lk,
                                     dpars[["disc"]] %||% 1)
       i0 * g$l + (1 - i0) * (g$l1m + base)
-    },
+    }
+  }
+  make_sim <- function(tmap) {
+    force(tmap)
+    function(dpars, aterms, n, extra) {
+      tau <- tmap(extra$tau_raw)
+      P <- hurdle_cum_probs(rep(dpars[["mu"]], length.out = n),
+                            rep(dpars[["disc"]] %||% 1, length.out = n),
+                            tau, Fcdf)
+      K <- ncol(P)
+      cp <- t(apply(P, 1L, cumsum))
+      if (n == 1L) cp <- matrix(cp, 1L, K)
+      cat_ <- pmin(1L + rowSums(cp < stats::runif(n)), K)
+      hu <- rep(dpars[["hu"]], length.out = n)
+      ifelse(stats::runif(n) < hu, 0L, cat_)
+    }
+  }
+  fam <- frmtmb_family(
+    nm,
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = hurdle_thres_finalizer(lk),
+    dpars = c("mu", "hu", "disc"),
+    links = list(mu = "identity", hu = lk_hu, disc = lk_disc),
+    lpdf = make_lpdf(ord_tau_from_raw_ad),
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y != round(y))) {
         frm_stop("Family '", nm, "' requires either non-negative ",
@@ -4261,25 +4293,14 @@ fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
     extra_pars = function(y, aterms) {
       ord_tau_init(y[y > 0], ordered = TRUE, link = lk, K = max(y))
     },
-    sim = function(dpars, aterms, n, extra) {
-      tau <- ord_tau_from_raw(extra$tau_raw, TRUE)
-      P <- hurdle_cum_probs(rep(dpars[["mu"]], length.out = n),
-                            rep(dpars[["disc"]] %||% 1, length.out = n),
-                            tau, Fcdf)
-      K <- ncol(P)
-      cp <- t(apply(P, 1L, cumsum))
-      if (n == 1L) cp <- matrix(cp, 1L, K)
-      cat_ <- pmin(1L + rowSums(cp < stats::runif(n)), K)
-      hu <- rep(dpars[["hu"]], length.out = n)
-      ifelse(stats::runif(n) < hu, 0L, cat_)
-    },
+    sim = make_sim(function(raw) ord_tau_from_raw(raw, TRUE)),
     post = list(ord_thresholds = ord_threshold_map(TRUE),
-                fit_check = hurdle_cum_fit_check),
+                ord_thresholds_raw = ord_threshold_raw_map(TRUE),
+                fit_check = ord_fit_check),
     drop_intercept = TRUE
   )
-  fam[["fixed_dpars"]] <- list(disc = 1)
   fam[["extra_cat"]] <- TRUE
-  ord_tag_link(fam, lk)
+  ord_family_tail(fam, lk, threshold, make_lpdf, make_sim)
 }
 
 #' `ord_tau_from_raw()` for an ordered threshold vector, written so that
@@ -4305,9 +4326,10 @@ hurdle_cum_probs <- function(eta, disc, tau, Fcdf) {
   Fm[, -1L, drop = FALSE] - Fm[, -ncol(Fm), drop = FALSE]
 }
 
-#' `hurdle_cumulative()`'s `family_finalize()` slot: `thres(x = )` is
-#' resolved by the ordinal families' own finalizer on the rows above the
-#' hurdle, and `thres(gr = )` is refused.
+#' `hurdle_cumulative()`'s `family_finalize()` slot: `thres(x = )` and
+#' the threshold structure are resolved by the ordinal families' own
+#' finalizer on the rows above the hurdle, and `thres(gr = )` is
+#' refused.
 #'
 #' The grouped densities `thres_finalizer()` builds read `mu` alone and
 #' have no hurdle, so accepting `gr = ` would silently fit the model
@@ -4322,7 +4344,10 @@ hurdle_thres_finalizer <- function(lk) {
                "thres(gr = ): grouped thresholds are not implemented ",
                "for the hurdle family. brms fits them", call. = FALSE)
     }
-    if (is.null(aterms[["thres"]])) return(fam)
+    if (is.null(aterms[["thres"]]) &&
+          identical(fam[["threshold"]] %||% "flexible", "flexible")) {
+      return(fam)
+    }
     pos <- y > 0
     ax <- aterms
     if (length(ax[["thres"]]) == length(y)) ax[["thres"]] <- ax[["thres"]][pos]
@@ -4331,13 +4356,11 @@ hurdle_thres_finalizer <- function(lk) {
     # every row it is handed, and a hurdle zero is not one of them
     ep <- out[["extra_pars"]]
     out[["extra_pars"]] <- function(y, aterms) ep(y[y > 0], aterms)
-    # the ordinal finalizer installs its own check; the hurdle's runs it
-    out[["post"]][["fit_check"]] <- hurdle_cum_fit_check
     out
   }
 }
 
-#' `hurdle_cumulative()`'s fit-end check: the ordinal finalizer's
+#' An ordinal family's fit-end check: the ordinal finalizer's
 #' unplaced-threshold check when `thres(x = )` asked for one, and an
 #' intercept in `disc` that nothing identifies.
 #'
@@ -4351,22 +4374,40 @@ hurdle_thres_finalizer <- function(lk) {
 #' that prior is set, so this warns rather than refuses, and is silent
 #' when a prior holds the intercept. A prior on the thresholds or on
 #' `mu`'s coefficients pins the scale through that prior, and then it
-#' says so rather than that no standard error is usable.
+#' says so rather than that no standard error is usable. The same
+#' holds for every ordinal family, because each reads its distribution
+#' function at `disc` times a difference of thresholds and `mu`.
 #'
 #' @noRd
-hurdle_cum_fit_check <- function(fit, resp) {
+ord_fit_check <- function(fit, resp) {
   fam <- fit$spec$responses[[resp]]$family
   if (length(fam[["thres"]][["unident"]])) thres_fit_check(fit, resp)
   lp <- fit$frame[["linpreds"]][[linpred_key(resp, "disc")]]
   if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
   j <- which(colnames(lp[["X"]]) == "(Intercept)")
-  if (!length(j)) return(invisible(NULL))
+  # a design without an intercept column can still span one: the cell
+  # means of `disc ~ 0 + h` add up to it, and then a common shift of
+  # those coefficients is the same scale the likelihood cannot place
+  if (!length(j)) {
+    X <- as.matrix(lp[["X"]][, seq_len(lp[["n_param_cols"]] %||%
+                                          ncol(lp[["X"]])), drop = FALSE])
+    if (!ncol(X)) return(invisible(NULL))
+    one <- rep(1, nrow(X))
+    res <- qr.resid(qr(X), one)
+    if (sqrt(sum(res^2)) > sqrt(.Machine$double.eps) * sqrt(nrow(X))) {
+      return(invisible(NULL))
+    }
+    j <- seq_len(ncol(X))
+    spans <- TRUE
+  } else {
+    spans <- FALSE
+  }
   ent <- if (!is.null(fit$prior)) {
     resolve_prior_input(list(frame = fit$frame, spec = fit$spec),
                         fit$prior)$entries
   }
   held <- any(vapply(ent, function(e) {
-    identical(e$comp, lp[["par"]]) && lp[["idx"]][j] %in% e$idx
+    identical(e$comp, lp[["par"]]) && any(lp[["idx"]][j] %in% e$idx)
   }, NA))
   if (held) return(invisible(NULL))
   # a prior on the thresholds or on mu's coefficients pins the common
@@ -4374,12 +4415,19 @@ hurdle_cum_fit_check <- function(fit, resp) {
   # re-check's fit with a prior on class Intercept alone had standard
   # errors of at most 1.71 (dev/fams2-rev2-guards.txt, section 4)
   lpm <- fit$frame[["linpreds"]][[linpred_key(resp, "mu")]]
+  tau_nm <- extra_tpl_name(fit$frame, resp, "tau_raw")
   pinned <- any(vapply(ent, function(e) {
-    identical(e$comp, "tau_raw") ||
+    identical(e$comp, tau_nm) ||
       (!is.null(lpm) && identical(e$comp, lpm[["par"]]) &&
          any(lpm[["idx"]] %in% e$idx))
   }, NA))
-  frm_warning("hurdle_cumulative: disc has an intercept, which the ",
+  frm_warning(fam[["family"]], ": disc has an intercept",
+              if (spans) {
+                paste0(" (its columns, ",
+                       paste(colnames(lp[["X"]])[j], collapse = ", "),
+                       ", add up to one)")
+              },
+              ", which the ",
               "likelihood cannot tell apart from the scale of the ",
               "thresholds, so ",
               if (pinned) {
@@ -4389,9 +4437,15 @@ hurdle_cum_fit_check <- function(fit, resp) {
                 paste0("it, the thresholds and the coefficients of mu ",
                        "have no usable standard error. ")
               },
-              "Write disc ~ 0 + ..., or hold the intercept with a prior, ",
-              "as brms does with its default set_prior(\"normal(0, 1)\", ",
-              "class = \"Intercept\", dpar = \"disc\")", call. = FALSE)
+              if (spans) {
+                paste0("Leave out one of those columns, or hold them with ",
+                       "a prior on class = \"b\", dpar = \"disc\"")
+              } else {
+                paste0("Write disc ~ 0 + ..., or hold the intercept with a ",
+                       "prior, as brms does with its default ",
+                       "set_prior(\"normal(0, 1)\", class = \"Intercept\", ",
+                       "dpar = \"disc\")")
+              }, call. = FALSE)
   invisible(NULL)
 }
 
@@ -4427,13 +4481,15 @@ ord_eta_mat <- function(eta, tau, n, K1) {
 #' n x (K-1) matrices, which the data path builds for speed.
 #'
 #' @noRd
-ord_seq_lpdf_ad <- function(y, eta, tau, K1, cs, Fcdf, stopping) {
+ord_seq_lpdf_ad <- function(y, eta, tau, K1, cs, Fcdf, stopping,
+                            disc = 1) {
   sel <- ord_cat_sel(y, K1 + 1L)
   below <- ord_cat_below(sel, K1 + 1L)
   out <- 0
   for (j in seq_len(K1)) {
     Mj <- tau[j] - eta
     if (!is.null(cs)) Mj <- Mj - cs[, j]
+    Mj <- disc * Mj
     Pj <- if (stopping) Fcdf(Mj) else 1 - Fcdf(-Mj)
     out <- out + sel[[j]] * log(Pj) + below[[j]] * log(1 - Pj)
   }
@@ -4566,7 +4622,10 @@ ord_link <- function(link, family, choices = brms_mu_links[[family]]) {
 }
 
 #' Check an ordinal constructor's `threshold` argument, brms's
-#' `"flexible"`, `"equidistant"` or `"sum_to_zero"`, and return it.
+#' `"flexible"`, `"equidistant"` or `"sum_to_zero"`, and return it. The
+#' structure itself is built by `thres_finalizer()`, because every
+#' structure but `"flexible"` needs the threshold count, which is a fact
+#' of the response.
 #'
 #' @noRd
 ord_threshold_arg <- function(threshold, family) {
@@ -4576,10 +4635,6 @@ ord_threshold_arg <- function(threshold, family) {
     frm_stop(family, "(threshold =) takes one of ",
              paste0("'", choices, "'", collapse = ", "), ", not ",
              arg_desc(threshold), call. = FALSE)
-  }
-  if (!identical(threshold, "flexible")) {
-    frm_stop(family, "(threshold = '", threshold, "') is not implemented: ",
-             "frmtmb fits flexible thresholds only", call. = FALSE)
   }
   threshold
 }
@@ -4593,45 +4648,54 @@ ord_threshold_arg <- function(threshold, family) {
 #' @noRd
 ord_cdf <- function(link) get_link(link)$linkinv
 
-#' Resolve `acat()`'s link, refusing every link but the logit with the
-#' reason that is actually true.
-#'
-#' [ord_link()]'s message says the link has to map onto (0, 1). That is
-#' right for `cumulative()` and the sequential pair, and WRONG here:
-#' probit, probit_approx, cloglog, cauchit and softit all map onto
-#' (0, 1), brms accepts every one of them for acat, and telling the
-#' user otherwise sends them looking for a fault in the link. What
-#' frmtmb is missing is a density, not a link.
-#'
-#' `brms:::inv_link_acat()` branches. On the logit it forms
-#' `c(1, cumprod(exp(x)))` and normalizes, which is the log-linear
-#' expression this family implements. Off the logit it forms
-#' `c(1, cumprod(F(x))) * c(reverse cumprod(1 - F(x)), 1)` and
-#' normalizes. That second form REDUCES to the first when `F` is
-#' logistic, so it is a coherent generalization of the same model
-#' rather than an unrelated one, but reaching it needs that second
-#' expression written out and taped. Substituting a distribution
-#' function into the log-linear form does not reach it, which is why
-#' the registry cannot simply be routed through here.
+#' Resolve `acat()`'s link against brms's roster for the family: the
+#' logit, which reads the categories in brms's log-linear form, and
+#' every other unit-interval link, which reads them in brms's second
+#' form (`acat_general_E()`).
 #'
 #' @noRd
 acat_link <- function(link) {
-  # a link brms refuses too is refused for that reason first
-  lk <- ord_link(link, "acat")
-  if (identical(link, "logit")) return(lk)
-  frm_stop("acat() takes the 'logit' link only, and not because ",
-           arg_desc(link), " is a bad link: brms accepts \"probit\", ",
-           "\"probit_approx\", \"cloglog\", \"cauchit\" and \"softit\" ",
-           "here, and they all map onto (0, 1). frmtmb refuses them ",
-           "because off the logit brms computes a category probability ",
-           "from a SECOND expression, a product of distribution functions ",
-           "times a reversed product of survivals. It agrees with acat's ",
-           "log-linear form when the distribution function is logistic, ",
-           "so it is the same model generalized, but it is a density ",
-           "frmtmb has not written, and substituting a distribution ",
-           "function into the log-linear form does not reach it. ",
-           "cumulative(), sratio() and cratio() do take these links. ",
-           "See ?`frmtmb-links`", call. = FALSE)
+  ord_link(link, "acat")
+}
+
+#' The unnormalized log category probabilities of brms's `acat` off the
+#' logit, `brms:::inv_link_acat()`: category `k` of `K` is
+#' `prod_{j < k} F(x_j) * prod_{j >= k} (1 - F(x_j))`, with
+#' `x_j = disc * (eta + cs_j - tau_j)`. Written as the running sum
+#' `E_1 = sum_j log(1 - F(x_j))`, `E_k = E_{k-1} + log F(x_{k-1}) -
+#' log(1 - F(x_{k-1}))`, one threshold at a time, so it tapes and works
+#' on plain doubles alike. Under the logit `log F - log(1 - F)` is `x`
+#' itself, which is why the log-linear form is the same model there.
+#'
+#' `xs` is the list of the `K - 1` columns `x_j`, `live` (optional) the
+#' list of data masks that switch a threshold position off for a row
+#' whose own vector is shorter (grouped thresholds). Log space through
+#' the link's log-odds form where it has one, and the plain logarithms
+#' otherwise.
+#'
+#' @noRd
+acat_general_E <- function(xs, lk, live = NULL) {
+  lg <- ord_log_cdf_pair(lk)
+  if (is.null(lg)) {
+    Fcdf <- lk$linkinv
+    lg <- list(lF = function(v) log(Fcdf(v)),
+               l1mF = function(v) log(1 - Fcdf(v)))
+  }
+  K1 <- length(xs)
+  lF <- lapply(xs, lg$lF)
+  l1 <- lapply(xs, lg$l1mF)
+  if (!is.null(live)) {
+    lF <- Map(`*`, lF, live)
+    l1 <- Map(`*`, l1, live)
+  }
+  E <- vector("list", K1 + 1L)
+  E1 <- l1[[1L]]
+  if (K1 > 1L) for (j in 2:K1) E1 <- E1 + l1[[j]]
+  E[[1L]] <- E1
+  for (k in 2:(K1 + 1L)) {
+    E[[k]] <- E[[k - 1L]] + lF[[k - 1L]] - l1[[k - 1L]]
+  }
+  E
 }
 
 #' Record the distribution function an ordinal family reads its
@@ -4652,10 +4716,21 @@ ord_tag_link <- function(fam, lk) {
 #' family, in plain doubles.
 #'
 #' @noRd
-ord_cat_probs <- function(family, eta, tau, cs, link) {
+ord_cat_probs <- function(family, eta, tau, cs, link, disc = 1) {
   n <- length(eta)
   K1 <- length(tau)
   K <- K1 + 1L
+  if (identical(family, "acat") &&
+        !identical(if (is.list(link)) link$name else link, "logit")) {
+    xs <- lapply(seq_len(K1), function(j) {
+      v <- eta - tau[j]
+      if (!is.null(cs)) v <- v + cs[, j]
+      disc * v
+    })
+    E <- do.call(cbind, acat_general_E(xs, get_link(link)))
+    ex <- exp(E - apply(E, 1L, max))
+    return(ex / rowSums(ex))
+  }
   if (identical(family, "acat")) {
     # P(y=r) proportional to exp((r-1) eta - cumsum(tau)[r]); the row
     # maximum comes out before exp() so a wide eta cannot overflow
@@ -4668,12 +4743,16 @@ ord_cat_probs <- function(family, eta, tau, cs, link) {
         E[, r] <- E[, r] + acc
       }
     }
+    # brms reads acat at disc * (eta - tau_j), so disc scales the
+    # whole exponent of every category
+    E <- disc * E
     ex <- exp(E - apply(E, 1L, max))
     return(ex / rowSums(ex))
   }
   Fcdf <- ord_cdf(link)
   M <- matrix(tau, n, K1, byrow = TRUE) - eta   # tau_j - eta_i
   if (!is.null(cs)) M <- M - cs
+  M <- disc * M
   if (identical(family, "cumulative")) {
     # P(y=k) = F(tau_k - eta) - F(tau_{k-1} - eta), with the two
     # boundary values pinned at 0 and 1: a column-wise difference of the
@@ -4696,14 +4775,17 @@ ord_cat_probs <- function(family, eta, tau, cs, link) {
 
 #' Make the simulator for an ordinal family. It draws one category per
 #' row by inverse-CDF sampling of the full category distribution, which
-#' the taped log-density does not give.
+#' the taped log-density does not give. `tmap` maps the internal
+#' threshold vector to the thresholds, in plain doubles.
 #'
 #' @noRd
-ord_sim <- function(family, ordered, link) {
+ord_sim <- function(family, link, tmap) {
+  force(tmap)
   function(dpars, aterms, n, extra) {
-    tau <- ord_tau_from_raw(extra$tau_raw, ordered)
+    tau <- tmap(extra$tau_raw)
     P <- ord_cat_probs(family, rep(dpars[["mu"]], length.out = n), tau,
-                       dpars[[".cs"]], link)
+                       dpars[[".cs"]], link,
+                       rep(dpars[["disc"]] %||% 1, length.out = n))
     K <- ncol(P)
     # inverse-CDF sampling, one uniform per row
     cp <- t(apply(P, 1L, cumsum))
@@ -4749,6 +4831,7 @@ ord_log_hazard_sum <- function(M, ind, K1, lstop, lgo) {
 
 #' Stopping ratio (brms sratio): `P(y=k) = F(tau_k - eta) *
 #' prod_{j<k} (1 - F(tau_j - eta))`; unordered thresholds, like cratio.
+#' Every distribution function is read at `disc` times its argument.
 #'
 #' Each category probability is a product of hazards, so it is positive
 #' whatever order the thresholds take, and brms 2.23.0 declares sratio's
@@ -4758,130 +4841,118 @@ ord_log_hazard_sum <- function(M, ind, K1, lstop, lgo) {
 #' brms's mode (dev/sratio-findings.md).
 #'
 #' @noRd
-fam_sratio <- function(link = "logit") {
-  lk <- ord_link(link, "sratio")
+fam_sratio <- function(link = "logit", link_disc = "log",
+                       threshold = "flexible") {
+  fam_sequential("sratio", link, link_disc, threshold)
+}
+
+#' Continuation ratio (brms cratio): `P(y=k) = (1 - F(eta - tau_k)) *
+#' prod_{j<k} F(eta - tau_j)`; unordered thresholds. Every distribution
+#' function is read at `disc` times its argument.
+#'
+#' @noRd
+fam_cratio <- function(link = "logit", link_disc = "log",
+                       threshold = "flexible") {
+  fam_sequential("cratio", link, link_disc, threshold)
+}
+
+#' The sequential pair, which differ only in which way round the
+#' distribution function is read: sratio stops at `F(M)` and cratio at
+#' `1 - F(-M)`, with `M = disc * (tau_j - eta - cs_j)`.
+#'
+#' @noRd
+fam_sequential <- function(name, link, link_disc, threshold) {
+  stopping <- identical(name, "sratio")
+  threshold <- ord_threshold_arg(threshold, name)
+  lk <- ord_link(link, name)
+  lk_disc <- dpar_link(link_disc, "disc", name, dpar_links_positive)
   Fcdf <- lk$linkinv
-  # h_j = F(M_j), so the pair is read at M itself
-  lg <- ord_log_cdf_pair(lk)
-  fam <- frmtmb_family(
-    "sratio",
-    accepts_aterms = c("weights", "thres"),
-    family_finalize = thres_finalizer("sratio", ordered = FALSE, link = lk),
-    dpars = "mu",
-    links = list(mu = "identity"),
-    lpdf = function(y, dpars, aterms, extra) {
-      tau <- extra$tau_raw
+  lgm <- ord_log_cdf_pair(lk)
+  # sratio's h_j = F(M) is read at M itself. cratio reads its CDF at -M,
+  # and the pair has to be read there too. The logit-only version relied
+  # on 1 - F(-x) = F(x) to stay at M instead, which is true of the
+  # logistic, the normal, the Cauchy and the cubic of probit_approx, and
+  # false of the cloglog. Composing with the negation costs nothing and
+  # holds for an asymmetric CDF.
+  lg <- if (is.null(lgm) || stopping) lgm else {
+    list(lF = function(x) lgm$l1mF(-x), l1mF = function(x) lgm$lF(-x))
+  }
+  make_lpdf <- function(tmap) {
+    force(tmap)
+    function(y, dpars, aterms, extra) {
+      tau <- tmap(extra$tau_raw)
       K1 <- length(tau)
       n <- length(y)
+      disc <- dpars[["disc"]] %||% 1
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
-        return(ord_seq_lpdf_ad(ov$y, dpars[["mu"]], tau, K1, dpars[[".cs"]],
-                         Fcdf,
-                               stopping = TRUE) * ov$keep)
+        return(ord_seq_lpdf_ad(ov$y, dpars[["mu"]], tau, K1,
+                               dpars[[".cs"]], Fcdf, stopping = stopping,
+                               disc = disc) * ov$keep)
       }
-      M <- ord_eta_mat(dpars[["mu"]], tau, n, K1)
+      M <- ord_eta_mat(dpars[["mu"]], tau, n, K1)   # tau_j - eta
       if (!is.null(dpars[[".cs"]])) M <- M - dpars[[".cs"]]
+      # column-wise recycling: row i is scaled by disc_i
+      M <- M * disc
       ind <- ord_indicators(y, K1)
       if (!is.null(lg)) {
         # log F and log(1 - F) straight out of logspace_add: the naive
         # pair is -Inf on whichever side the CDF saturated, which for
-        # sratio is the negative eta tail
+        # sratio is the negative eta tail and for cratio its mirror
         return(ord_log_hazard_sum(M, ind, K1, lg$lF, lg$l1mF))
       }
-      P <- Fcdf(M)
       ones <- rep(1, K1)   # rowSums strips the advector class
-      as.vector((log(P) * ind$sel) %*% ones) +
-        as.vector((log(1 - P) * ind$below) %*% ones)
-    },
-    valid_y = ord_valid_y("sratio"),
-    type = "ordinal",
-    extra_pars = function(y, aterms) {
-      ord_tau_init(y, ordered = FALSE, link = lk)
-    },
-    sim = ord_sim("sratio", ordered = FALSE, link = lk),
-    post = list(ord_thresholds = ord_threshold_map(FALSE),
-                ord_thresholds_raw = ord_threshold_raw_map(FALSE)),
-    drop_intercept = TRUE
-  )
-  ord_tag_link(fam, lk)
-}
-
-#' Continuation ratio (brms cratio): `P(y=k) = (1 - F(eta - tau_k)) *
-#' prod_{j<k} F(eta - tau_j)`; unordered thresholds.
-#'
-#' @noRd
-fam_cratio <- function(link = "logit") {
-  lk <- ord_link(link, "cratio")
-  Fcdf <- lk$linkinv
-  # cratio reads its CDF at -M, and the pair has to be read there too.
-  # The logit-only version relied on 1 - F(-x) = F(x) to stay at M
-  # instead, which is true of the logistic, the normal, the Cauchy and
-  # the cubic of probit_approx, and false of the cloglog. Composing
-  # with the negation costs nothing and holds for an asymmetric CDF.
-  lgm <- ord_log_cdf_pair(lk)
-  lg <- if (is.null(lgm)) NULL else {
-    list(lF = function(x) lgm$l1mF(-x), l1mF = function(x) lgm$lF(-x))
-  }
-  fam <- frmtmb_family(
-    "cratio",
-    accepts_aterms = c("weights", "thres"),
-    family_finalize = thres_finalizer("cratio", ordered = FALSE, link = lk),
-    dpars = "mu",
-    links = list(mu = "identity"),
-    lpdf = function(y, dpars, aterms, extra) {
-      tau <- extra$tau_raw
-      K1 <- length(tau)
-      n <- length(y)
-      ov <- osa_unwrap(y)
-      if (!is.null(ov)) {
-        return(ord_seq_lpdf_ad(ov$y, dpars[["mu"]], tau, K1, dpars[[".cs"]],
-                         Fcdf,
-                               stopping = FALSE) * ov$keep)
+      if (stopping) {
+        P <- Fcdf(M)
+        return(as.vector((log(P) * ind$sel) %*% ones) +
+                 as.vector((log(1 - P) * ind$below) %*% ones))
       }
-      M <- ord_eta_mat(dpars[["mu"]], tau, n, K1)   # tau_j - eta
-      if (!is.null(dpars[[".cs"]])) M <- M - dpars[[".cs"]]
-      ind <- ord_indicators(y, K1)
-      if (!is.null(lg)) {
-        # P = F(-M), so the stopping term is log(1 - P) and the
-        # continuing term log P; cratio saturates on the positive eta
-        # tail, the mirror of sratio
-        return(ord_log_hazard_sum(M, ind, K1, lg$lF, lg$l1mF))
-      }
-      P <- Fcdf(-M)                            # F(eta + cs_j - tau_j)
-      ones <- rep(1, K1)   # rowSums strips the advector class
+      P <- Fcdf(-M)                            # F(disc (eta + cs - tau))
       as.vector((log(1 - P) * ind$sel) %*% ones) +
         as.vector((log(P) * ind$below) %*% ones)
-    },
-    valid_y = ord_valid_y("cratio"),
+    }
+  }
+  make_sim <- function(tmap) ord_sim(name, link = lk, tmap = tmap)
+  fam <- frmtmb_family(
+    name,
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer(name, ordered = FALSE, link = lk),
+    dpars = c("mu", "disc"),
+    links = list(mu = "identity", disc = lk_disc),
+    lpdf = make_lpdf(identity),
+    valid_y = ord_valid_y(name),
     type = "ordinal",
     extra_pars = function(y, aterms) {
       ord_tau_init(y, ordered = FALSE, link = lk)
     },
-    sim = ord_sim("cratio", ordered = FALSE, link = lk),
+    sim = make_sim(identity),
     post = list(ord_thresholds = ord_threshold_map(FALSE),
-                ord_thresholds_raw = ord_threshold_raw_map(FALSE)),
+                ord_thresholds_raw = ord_threshold_raw_map(FALSE),
+                fit_check = ord_fit_check),
     drop_intercept = TRUE
   )
-  ord_tag_link(fam, lk)
+  ord_family_tail(fam, lk, threshold, make_lpdf, make_sim)
 }
 
-#' Adjacent category (brms acat, logit link): `P(y=k)` proportional to
-#' `exp(sum_{j<k} (eta - tau_j))`; unordered thresholds.
+#' Adjacent category (brms acat): under the logit link `P(y=k)`
+#' proportional to `exp(disc * sum_{j<k} (eta - tau_j))`; under any other
+#' link brms's second form (`acat_general_E()`). Unordered thresholds.
 #'
 #' @noRd
-fam_acat <- function(link = "logit") {
+fam_acat <- function(link = "logit", link_disc = "log",
+                     threshold = "flexible") {
+  threshold <- ord_threshold_arg(threshold, "acat")
   lk <- acat_link(link)
-  fam <- frmtmb_family(
-    "acat",
-    accepts_aterms = c("weights", "thres"),
-    family_finalize = thres_finalizer("acat", ordered = FALSE, link = lk),
-    dpars = "mu",
-    links = list(mu = "identity"),
-    lpdf = function(y, dpars, aterms, extra) {
-      tau <- extra$tau_raw
+  lk_disc <- dpar_link(link_disc, "disc", "acat", dpar_links_positive)
+  make_lpdf <- function(tmap) {
+    force(tmap)
+    if (!identical(lk$name, "logit")) return(acat_general_lpdf(tmap, lk))
+    function(y, dpars, aterms, extra) {
+      tau <- tmap(extra$tau_raw)
       K <- length(tau) + 1L
       n <- length(y)
       eta <- dpars[["mu"]]
+      disc <- dpars[["disc"]] %||% 1
       "c" <- RTMB::ADoverload("c")
       ct0 <- c(0, cumsum(tau))                 # length K
       ov <- osa_unwrap(y)
@@ -4896,6 +4967,7 @@ fam_acat <- function(link = "logit") {
             acc <- acc + dpars[[".cs"]][, r - 1L]
             Er <- Er + acc
           }
+          Er <- disc * Er
           num <- num + sel[[r]] * Er
           # logsumexp fold: the top category's exponent is (K-1) * eta,
           # so a plain sum of exp() overflows at eta = 709 / (K - 1)
@@ -4917,22 +4989,72 @@ fam_acat <- function(link = "logit") {
           E[, r] <- E[, r] + acc
         }
       }
+      # brms: cumulative_sum(disc * (mu - thres)), so disc scales every
+      # category's exponent; column-wise recycling scales row i by disc_i
+      E <- E * disc
       jj <- rep(seq_len(K), each = n)
       S <- matrix(as.numeric(rep(y, K) == jj), n, K)
       ones <- rep(1, K)   # rowSums strips the advector class
       den <- E[, 1L]
       for (r in seq_len(K)[-1L]) den <- RTMB::logspace_add(den, E[, r])
       as.vector((E * S) %*% ones) - den
-    },
+    }
+  }
+  make_sim <- function(tmap) ord_sim("acat", link = lk, tmap = tmap)
+  fam <- frmtmb_family(
+    "acat",
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer("acat", ordered = FALSE, link = lk),
+    dpars = c("mu", "disc"),
+    links = list(mu = "identity", disc = lk_disc),
+    lpdf = make_lpdf(identity),
     valid_y = ord_valid_y("acat"),
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
-    sim = ord_sim("acat", ordered = FALSE, link = lk),
+    sim = make_sim(identity),
     post = list(ord_thresholds = ord_threshold_map(FALSE),
-                ord_thresholds_raw = ord_threshold_raw_map(FALSE)),
+                ord_thresholds_raw = ord_threshold_raw_map(FALSE),
+                fit_check = ord_fit_check),
     drop_intercept = TRUE
   )
-  ord_tag_link(fam, lk)
+  ord_family_tail(fam, lk, threshold, make_lpdf, make_sim)
+}
+
+#' The log-density of `acat()` off the logit, from `acat_general_E()`,
+#' on the data path and on the one-step path alike: the category is
+#' picked by indicators rather than by indexing, and the normalizer is
+#' a log-space fold over the categories.
+#'
+#' @noRd
+acat_general_lpdf <- function(tmap, lk) {
+  force(tmap)
+  function(y, dpars, aterms, extra) {
+    tau <- tmap(extra$tau_raw)
+    K1 <- length(tau)
+    eta <- dpars[["mu"]]
+    disc <- dpars[["disc"]] %||% 1
+    cs <- dpars[[".cs"]]
+    xs <- lapply(seq_len(K1), function(j) {
+      v <- eta - tau[j]
+      if (!is.null(cs)) v <- v + cs[, j]
+      disc * v
+    })
+    E <- acat_general_E(xs, lk)
+    ov <- osa_unwrap(y)
+    sel <- if (is.null(ov)) {
+      lapply(seq_len(K1 + 1L), function(k) as.numeric(y == k))
+    } else {
+      ord_cat_sel(ov$y, K1 + 1L)
+    }
+    num <- 0
+    den <- NULL
+    for (k in seq_len(K1 + 1L)) {
+      num <- num + sel[[k]] * E[[k]]
+      den <- if (is.null(den)) E[[k]] else RTMB::logspace_add(den, E[[k]])
+    }
+    out <- num - den
+    if (is.null(ov)) out else out * ov$keep
+  }
 }
 
 #' Where a mixture component's mean starts. A component whose mean
@@ -6342,13 +6464,22 @@ resolve_deferred_families <- function(bform, data) {
 #' reads the family as written rather than the one the likelihood
 #' scores. Only responses whose family declares the slot are replaced;
 #' the rest of the spec stays as parsed, which is what every stage has
-#' always read.
+#' always read. A bernoulli response's coding of its two values
+#' (`bin_levels`) is carried the same way, because refits and newdata
+#' are coded against it.
 #'
 #' @noRd
 carry_finalized_responses <- function(spec, frame) {
   for (rn_ in names(spec$responses)) {
-    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) next
-    spec$responses[[rn_]] <- frame[["spec"]]$responses[[rn_]]
+    fr_ <- frame[["spec"]]$responses[[rn_]]
+    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) {
+      if (!is.null(fr_$family[["bin_levels"]])) {
+        spec$responses[[rn_]]$family[["bin_levels"]] <-
+          fr_$family[["bin_levels"]]
+      }
+      next
+    }
+    spec$responses[[rn_]] <- fr_
   }
   spec
 }
@@ -6849,7 +6980,8 @@ family_from_name <- function(family, link = NULL, args = list(),
 #' @section Differences from brms:
 #' An argument the family does not have is refused by name. brms
 #' ignores it, so `brmsfamily("poisson", link_sigma = "log")` builds a
-#' poisson family there. `threshold` and `refcat` are not arguments.
+#' poisson family there. `threshold` is an argument of the ordinal
+#' families alone, and `refcat` of none.
 #'
 #' @param family Family name, as a single string.
 #' @param link The link for the mean, quoted or not. `NULL` gives the
@@ -6947,6 +7079,18 @@ as_frmtmb_family <- function(x) {
 #' refused, as brms refuses it, because its level order is alphabetical
 #' unless someone set it, and that order is the model.
 #'
+#' A `bernoulli()` response can hold any two values, which are coded 0
+#' and 1 by level order as brms codes them: the levels of a factor, the
+#' sorted values of a number or a character vector (so `-2` and `-1`
+#' become 0 and 1, and so do `1` and `2`), and `FALSE` and `TRUE` of a
+#' logical. A number with one value is the 1 of 0 and 1 unless the value
+#' is 0. The fit keeps the coding, and codes newdata's response with it.
+#' A third value is refused with brms's message. Two values that both
+#' lie strictly between 0 and 1, such as 0.1 and 0.9, are coded too, as
+#' brms codes them, with a warning: they are usually proportions, which
+#' `binomial()` with `trials()` or `Beta()` fits. [simulate()] and the
+#' draws return the codes 0 and 1, as brms's `posterior_predict()` does.
+#'
 #' A response with only two outcomes gets brms's message suggesting
 #' `bernoulli()`: an ordinal or categorical response with two
 #' categories, and a `binomial()`, `beta_binomial()` or
@@ -6988,15 +7132,45 @@ as_frmtmb_family <- function(x) {
 #' `fitted()` returns the `K + 1` category probabilities, 0 first. The
 #' expected category that `conditional_effects()` shows by default is
 #' scored by these codes, so the hurdle scores 0; brms scores each
-#' column by its position and reads one higher. `disc`, the
-#' discrimination, is held at 1 unless the formula models it, as in
-#' brms. The likelihood cannot tell an intercept in `disc` apart from
-#' the scale of the thresholds, so write `disc ~ 0 + x`. brms accepts
-#' `disc ~ 1 + x` and holds the intercept with its default
+#' column by its position and reads one higher. `disc` and `threshold`
+#' work as for the other ordinal families (see Ordinal thresholds and
+#' discrimination). `thres(x = )` works; `thres(gr = )` and `cs()` are
+#' refused.
+#'
+#' @section Ordinal thresholds and discrimination:
+#' Every ordinal family (`cumulative()`, `sratio()`, `cratio()`,
+#' `acat()` and `hurdle_cumulative()`) has brms's discrimination
+#' parameter `disc`. The distribution function is read at
+#' `disc * (tau_k - eta)` (at `disc * (eta - tau_k)` for `cratio()` and
+#' `acat()`), with `disc` held at 1 unless the formula models it, as in
+#' brms: `bf(y ~ x, disc ~ z)`. Its link is `link_disc`, `"log"` by
+#' default. The likelihood cannot tell an intercept in `disc` apart from
+#' the scale of the thresholds, so write `disc ~ 0 + z`. brms accepts
+#' `disc ~ 1 + z` and holds the intercept with its default
 #' `normal(0, 1)` prior; frmtmb fits it too, and warns unless a prior
-#' holds the intercept. `thres(x = )`
-#' works; `thres(gr = )`, `cs()` and a `threshold` other than
-#' `"flexible"` are refused.
+#' holds the intercept, as it does for cell-means columns that add up to
+#' one (`disc ~ 0 + h`). Held at 1, `disc` shows nowhere in the output,
+#' as in brms: not on the `Links:` line, not as a fixed parameter, and
+#' not in `fixef(flatten = TRUE)` or `coef()`.
+#'
+#' `threshold` selects brms's threshold structure. `"flexible"`
+#' estimates each threshold. `"equidistant"` estimates the first
+#' threshold and the distance `delta` between neighbors, so that
+#' `tau_k = tau_1 + (k - 1) * delta`; `variables()` and `summary()` name
+#' it `delta` as brms does, and `set_prior(class = "delta")` gives it a
+#' prior, while class `"Intercept"` addresses the first threshold only.
+#' `delta` is positive for `cumulative()` and `hurdle_cumulative()`,
+#' whose thresholds are ordered. `"sum_to_zero"` holds the thresholds
+#' to a sum of zero and does not center the design, as in brms. brms
+#' declares one parameter per threshold and relies on its prior for the
+#' common location, which the likelihood does not see; frmtmb estimates
+#' the `K - 2` free directions instead, so class `"Intercept"` has
+#' nothing to address there and is refused. `thres(gr = )` gives each
+#' level its own first threshold and `delta`, or its own zero sum.
+#' `"equidistant"` needs two thresholds per vector, since `delta` has
+#' nothing to measure on one. `"sum_to_zero"` holds a single threshold
+#' at zero, a vector with no parameter, which brms runs under
+#' `thres(gr = )` and frmtmb also fits without it.
 #'
 #' @section Extended-support beta:
 #' `xbeta()` is the extended-support beta of Kosmidis and Zeileis
@@ -7207,12 +7381,12 @@ as_frmtmb_family <- function(x) {
 #'
 #' An ordinal family's `link` is not a link on a mean. It names the
 #' distribution function the thresholds are read through, so
-#' `cumulative()`, `sratio()` and `cratio()` take `logit`, `probit`,
-#' `probit_approx`, `cloglog` and `cauchit` (and `cumulative()` and
-#' `hurdle_cumulative()` also take `softit`), and refuse anything else.
-#' `acat()` takes `logit` alone, because brms defines its other links by
-#' a different density rather than by substituting a distribution
-#' function.
+#' all five ordinal families take `logit`, `probit`, `probit_approx`,
+#' `cloglog` and `cauchit` (and `cumulative()`, `hurdle_cumulative()`
+#' and `acat()` also take `softit`), and refuse anything else. Off the
+#' logit, `acat()` reads its categories in brms's second form, a product
+#' of distribution functions times a reversed product of survivals (see
+#' [frmtmb-links]).
 #'
 #' `cumulative()` and `hurdle_cumulative()` keep their thresholds
 #' increasing, because their category probabilities are differences of
@@ -7225,9 +7399,12 @@ as_frmtmb_family <- function(x) {
 #' @param link_sigma,link_shape,link_phi,link_kappa,link_ndt,link_beta,link_disc
 #'   Link for a strictly positive parameter: one of `"log"` (the
 #'   default), `"identity"`, `"softplus"` or `"squareplus"`.
-#' @param threshold For `hurdle_cumulative()`: the threshold structure.
-#'   brms also offers `"equidistant"` and `"sum_to_zero"`; frmtmb fits
-#'   `"flexible"` thresholds only and refuses the other two by name.
+#' @param threshold For the ordinal families: the threshold structure,
+#'   as in brms. `"flexible"` (the default) estimates every threshold.
+#'   `"equidistant"` estimates the first threshold and `delta`, the
+#'   distance between neighboring thresholds. `"sum_to_zero"` holds
+#'   the thresholds to a sum of zero. See Ordinal thresholds and
+#'   discrimination.
 #' @param link_nu Link for `nu`. `student()`'s degrees of freedom take
 #'   `"logm1"` (the default) or `"identity"`, which keeps them above
 #'   one; `compois()`'s dispersion is an ordinary positive parameter
@@ -7398,10 +7575,11 @@ multinomial <- function(K) fam_multinomial(K)
 
 #' @rdname frmtmb-families
 #' @export
-cumulative <- function(link = "logit") {
+cumulative <- function(link = "logit", link_disc = "log",
+                       threshold = "flexible") {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["cumulative"]], "logit")
-  fam_cumulative(link)
+  fam_cumulative(link, link_disc, threshold)
 }
 
 #' @rdname frmtmb-families
@@ -7575,26 +7753,29 @@ huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
 
 #' @rdname frmtmb-families
 #' @export
-sratio <- function(link = "logit") {
+sratio <- function(link = "logit", link_disc = "log",
+                   threshold = "flexible") {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["sratio"]], "logit")
-  fam_sratio(link)
+  fam_sratio(link, link_disc, threshold)
 }
 
 #' @rdname frmtmb-families
 #' @export
-cratio <- function(link = "logit") {
+cratio <- function(link = "logit", link_disc = "log",
+                   threshold = "flexible") {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["cratio"]], "logit")
-  fam_cratio(link)
+  fam_cratio(link, link_disc, threshold)
 }
 
 #' @rdname frmtmb-families
 #' @export
-acat <- function(link = "logit") {
+acat <- function(link = "logit", link_disc = "log",
+                 threshold = "flexible") {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["acat"]], "logit")
-  fam_acat(link)
+  fam_acat(link, link_disc, threshold)
 }
 
 #' @rdname frmtmb-families
@@ -7668,10 +7849,14 @@ cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
 #' ask.
 #'
 #' @noRd
-family_link_str <- function(fam) {
+family_link_str <- function(fam, shown = character(0)) {
   ol <- fam[["ord_link"]]
   lk <- fam[["links"]]
-  dp <- fam[["dpars"]]
+  # a dpar the family holds at a default the user did not write, and
+  # that brms does not name, unless a fit says it is modeled
+  dp <- setdiff(fam[["dpars"]],
+                setdiff(fam[["hidden_fixed_dpars"]] %||% character(0),
+                        shown))
   if (!is.null(ol)) {
     # an ordinal mu's link is the identity; the cdf takes its place, and
     # a dpar beside mu (a hurdle's hu and disc) keeps its own

@@ -1,0 +1,10 @@
+MUTATED frmtmb::extract_y
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/P02_bern_fraction_nowarn.R
+DETAIL [expectation_failure] the codes are brms's level order: Expected `any(grepl(r, seen, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+expected a warning containing 'lie strictly between 0 and 1'
+RESULT test-bernoulli-coding.R pass=45 fail=1 err=0 skip=0 warn=0 tests=5
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

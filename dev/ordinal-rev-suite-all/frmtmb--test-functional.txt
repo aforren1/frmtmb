@@ -1,0 +1,13 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | functional                                                     
+⠋ |          1 | functional                                                     
+⠙ |          2 | functional                                                     
+✔ |          3 | functional [1.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 3 ]
+RESULT lane frmtmb test-functional.R pass=3 fail=0 err=0 skip=0 warn=0

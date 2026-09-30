@@ -129,8 +129,10 @@ test_that("links, responses and options brms refuses are refused by name", {
                "not a supported link for parameter 'hu'", fixed = TRUE)
   expect_error(hurdle_cumulative(link_disc = "logit"),
                "not a supported link for parameter 'disc'", fixed = TRUE)
-  expect_error(hurdle_cumulative(threshold = "equidistant"),
-               "is not implemented", fixed = TRUE)
+  # brms's two other threshold structures are built now
+  # (test-ordinal-disc-thres.R); a name brms does not have is refused
+  expect_identical(hurdle_cumulative(threshold = "equidistant")$threshold,
+                   "equidistant")
   expect_error(hurdle_cumulative(threshold = "wobbly"),
                "takes one of", fixed = TRUE)
   expect_error(frm(bf(y ~ x), family = xbeta(),
@@ -604,9 +606,11 @@ test_that("a hurdle ordinal fit reads codes 0..K through every method", {
   # the expected category is scored by the codes, so the hurdle scores 0
   nd <- data.frame(x = 0.5, z = -0.2)
   P <- frm_linpred(fi, newdata = nd, type = "response")
-  ce <- conditional_effects(fi, effects = "x", categorical = FALSE,
-                            int_conditions = list(x = 0.5),
-                            conditions = data.frame(z = -0.2))
+  ce <- allow_warnings(
+    conditional_effects(fi, effects = "x", categorical = FALSE,
+                        int_conditions = list(x = 0.5),
+                        conditions = data.frame(z = -0.2)),
+    "Predictions are treated as continuous")
   expect_lt(abs(ce[[1]]$estimate__[1] - sum(P * 0:4)), ULPS * sum(P * 0:4))
   # P(Y = 0) is hu alone, so its band is hu's own delta-method band
   cc <- conditional_effects(fi, effects = "x", categorical = TRUE,
@@ -631,7 +635,11 @@ test_that("thres(x = ) counts the categories above the hurdle", {
 test_that("disc is held at one unless the formula models it", {
   d <- sim_hc(11, n = 300)
   f1 <- frm(bf(y ~ x), family = hurdle_cumulative(), data = d)
-  expect_identical(summary(f1)$fixed_dpars[["disc"]], 1)
+  # held through a mapped coefficient, and shown nowhere, as in brms
+  expect_identical(f1$frame$linpreds[["y.disc"]]$constant, 1)
+  expect_false("disc" %in% names(summary(f1)$fixed_dpars))
+  expect_identical(summary(f1)$links, "cdf = logit; hu = logit")
+  expect_false("disc_(Intercept)" %in% names(fixef(f1, flatten = TRUE)))
   f2 <- frm(bf(y ~ x, disc ~ 0 + z), family = hurdle_cumulative("probit"),
             data = d)
   dp <- frmtmb:::eval_dpars(f2)[[1]]
@@ -639,8 +647,7 @@ test_that("disc is held at one unless the formula models it", {
   ll <- as.numeric(stats::logLik(f2))
   expect_lt(abs(ll - sum(ref_hc(d$y, dp$mu, dp$hu, dp$disc, tau,
                                 "probit"))), ULPS * abs(ll))
-  expect_match(frmtmb:::family_link_str(family(f2)),
-               "cdf = probit; hu = logit; disc = log", fixed = TRUE)
+  expect_identical(summary(f2)$links, "cdf = probit; hu = logit; disc = log")
 })
 
 test_that("an intercept in disc warns unless a prior holds it", {

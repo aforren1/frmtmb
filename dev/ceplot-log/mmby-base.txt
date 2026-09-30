@@ -1,0 +1,17 @@
+ARM base frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+both unset, f1 = a, f2 = b | wald: est 0.2738 1.9968 3.7198 | width 1.7606 1.7335 1.7835
+both unset, f1 = a, f2 = b | boot60: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+both unset, f1 = a, f2 = b | draws: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+both unset, f1 = f2 = a | wald: est 0.2738 1.9968 3.7198 | width 1.5936 1.5636 1.6188
+both unset, f1 = f2 = a | boot60: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+both unset, f1 = f2 = a | draws: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+g1 = 99, g2 = 98, f1 = a, f2 = b | wald: est 0.2738 1.9968 3.7198 | width 1.7606 1.7335 1.7835
+g1 = 99, g2 = 98, f1 = a, f2 = b | boot60: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+g1 = 99, g2 = 98, f1 = a, f2 = b | draws: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+g1 = 2 (seen, by a), g2 unset, f2 = b | wald: est 0.5797 2.3027 4.0257 | width 1.5361 1.5065 1.5653
+g1 = 2 (seen, by a), g2 unset, f2 = b | boot60: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+g1 = 2 (seen, by a), g2 unset, f2 = b | draws: ERROR conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable
+both seen, g1 = 2, g2 = 7 | wald: est 0.4552 2.1782 3.9012 | width 0.4463 0.3292 0.5368
+both seen, g1 = 2, g2 = 7 | boot60: est 0.4552 2.1782 3.9012 | width 0.3990 0.3038 0.4667 | width / wald 0.8940 0.9229 0.8694
+both seen, g1 = 2, g2 = 7 | draws: est 0.4577 2.1808 3.9258 | width 0.5780 0.2589 0.8139 | width / wald 1.2951 0.7864 1.5162
+done

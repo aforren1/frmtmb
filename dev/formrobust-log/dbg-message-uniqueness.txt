@@ -1,0 +1,42 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | message-uniqueness                                             
+⠋ |          1 | message-uniqueness                                             
+⠸ | 2        2 | message-uniqueness                                             
+⠴ | 2        4 | message-uniqueness                                             
+✖ | 4        4 | message-uniqueness [6.3s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-message-uniqueness.R:95:5'): every condition message template in R/ is unique
+Expected `dup` to have length 0.
+Actual length: 1.
+
+Failure ('test-message-uniqueness.R:97:7'): every condition message template in R/ is unique
+duplicated error templates: Invalid argument 'resp'. Valid response variables are: '', 
+
+Failure ('test-message-uniqueness.R:95:5'): every condition message template in R/ is unique
+Expected `dup` to have length 0.
+Actual length: 1.
+
+Failure ('test-message-uniqueness.R:97:7'): every condition message template in R/ is unique
+duplicated message templates: Replacing initial definitions of parameters , 
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.4 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-message-uniqueness.R:95:5'): every condition message template in R/ is unique
+Expected `dup` to have length 0.
+Actual length: 1.
+
+Failure ('test-message-uniqueness.R:97:7'): every condition message template in R/ is unique
+duplicated error templates: Invalid argument 'resp'. Valid response variables are: '', 
+
+Failure ('test-message-uniqueness.R:95:5'): every condition message template in R/ is unique
+Expected `dup` to have length 0.
+Actual length: 1.
+
+Failure ('test-message-uniqueness.R:97:7'): every condition message template in R/ is unique
+duplicated message templates: Replacing initial definitions of parameters , 
+
+[ FAIL 4 | WARN 0 | SKIP 0 | PASS 4 ]

@@ -146,10 +146,17 @@ test_that("an ordinal draws display is keyed and laid out like core's", {
 test_that("categorical = FALSE draws the expected category number", {
   cs <- ce_ord_case()
   # robust = FALSE: the identity below is about posterior means
-  cd <- conditional_effects(cs$ds, effects = "x", resolution = 5,
-                            categorical = FALSE, robust = FALSE)
-  cf <- conditional_effects(cs$fit, effects = "x", resolution = 5,
-                            categorical = FALSE)
+  # brms's warning for this display, on draws and on the fit alike
+  cont <- "Predictions are treated as continuous"
+  cd <- allow_warnings(conditional_effects(cs$ds, effects = "x",
+                                           resolution = 5,
+                                           categorical = FALSE,
+                                           robust = FALSE),
+                       cont, require = cont)
+  cf <- allow_warnings(conditional_effects(cs$fit, effects = "x",
+                                           resolution = 5,
+                                           categorical = FALSE),
+                       cont, require = cont)
   expect_identical(names(cd), "x")
   expect_identical(names(cd$x), names(cf$x))
   expect_equal(grid_of(cd$x), grid_of(cf$x), ignore_attr = TRUE)

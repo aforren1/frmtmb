@@ -1,0 +1,29 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | families                                                       
+⠋ |          1 | families                                                       
+⠦ |          7 | families                                                       
+⠴ |         26 | families                                                       
+⠹ |         33 | families                                                       
+⠴ |         36 | families                                                       
+⠏ |         40 | families                                                       
+⠇ |         49 | families                                                       
+⠹ |         73 | families                                                       
+⠦ |         97 | families                                                       
+⠧ |        118 | families                                                       
+⠏ |        140 | families                                                       
+⠸ |        164 | families                                                       
+⠧ |        188 | families                                                       
+⠇ |        209 | families                                                       
+⠸ |        234 | families                                                       
+⠴ |        246 | families                                                       
+⠏ |        250 | families                                                       
+⠙ |        252 | families                                                       
+✔ |        252 | families [3.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 252 ]
+RESULT lane frmtmb test-families.R pass=252 fail=0 err=0 skip=0 warn=0

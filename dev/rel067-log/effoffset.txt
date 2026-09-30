@@ -1,0 +1,34 @@
+LIB C:/Users/adf44/source/r/rellib-r5 0.67.0  (merged tree, before the fix)
+brms get_all_effects, offset: x 
+brms get_all_effects, 0 + intercept: intercept x 
+offset, 'time'             answers: time
+offset, c('x', 'time')     answers: x time
+intercept, 'intercept'     answers: intercept
+   warning: Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead. 
+LIB C:/Users/adf44/source/r/rellib-r4 0.66.0 
+brms get_all_effects, offset: x 
+brms get_all_effects, 0 + intercept: intercept x 
+offset, 'time'             ERROR: Variable 'time' is not stored in the model frame; pass the original data via data =
+offset, c('x', 'time')     ERROR: Variable 'time' is not stored in the model frame; pass the original data via data =
+intercept, 'intercept'     ERROR: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+LIB C:/Users/adf44/source/r/wt-ceplot-lib 0.66.0 
+brms get_all_effects, offset: x 
+brms get_all_effects, 0 + intercept: intercept x 
+offset, 'time'             ERROR: Variable 'time' is not stored in the model frame; pass the original data via data =
+offset, c('x', 'time')     ERROR: Variable 'time' is not stored in the model frame; pass the original data via data =
+intercept, 'intercept'     ERROR: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+LIB C:/Users/adf44/source/r/wt-formrobust-lib 0.66.0 
+brms get_all_effects, offset: x 
+brms get_all_effects, 0 + intercept: intercept x 
+offset, 'time'             answers: time
+offset, c('x', 'time')     answers: x time
+intercept, 'intercept'     answers: intercept
+   warning: Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead. 
+LIB C:/Users/adf44/source/r/rellib-r5 0.67.0  (after the fix)
+brms get_all_effects, offset: x 
+brms get_all_effects, 0 + intercept: intercept x 
+offset, 'time'             ERROR: All specified effects are invalid for this model. Valid effects are (combinations of): 'x'
+offset, c('x', 'time')     answers: x
+   warning: Some specified effects are invalid for this model: 'time' Valid effects are (combinations of): 'x' 
+intercept, 'intercept'     answers: intercept
+   warning: Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead. 

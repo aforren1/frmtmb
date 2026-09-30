@@ -18,7 +18,8 @@ frm(
   importance = 0L,
   data2 = list(),
   dry_run = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  drop_unused_levels = TRUE
 )
 }
 \arguments{
@@ -236,6 +237,16 @@ maximum-likelihood quantity refuse on that object.}
 \item{verbose}{Report fit progress; a shortcut for
 \code{control = frmtmb_control(verbose =)}, whose value wins when both
 are given. See \code{\link[=frmtmb_control]{frmtmb_control()}} for the levels and the output.}
+
+\item{drop_unused_levels}{Drop the factor levels that no row of the
+data takes, as brms's argument of the same name does. \code{TRUE}, the
+default, is brms's default too. With \code{FALSE} an unused level of a
+predictor gives a design column of zeros, which frmtmb drops with
+its rank-deficiency message because no data can estimate it (brms
+keeps the column, and only its prior places the coefficient). A
+grouping factor loses its unused levels either way, because a level
+without rows adds nothing to the Laplace likelihood, so \code{\link[=ranef]{ranef()}}
+lists the levels the data hold.}
 }
 \value{
 An object of class \code{frmtmb_fit}. It is a list, and two of its
@@ -243,8 +254,11 @@ elements are read directly often enough to name here. \code{fit$data2}
 is the \code{data2} list of known matrices. \code{fit$data} is the MODEL
 FRAME, the object \code{\link[=model.frame]{model.frame()}} returns: one column per term the
 formula names, under the term's own spelling, so a model with
-\code{offset(Age)} carries a literal \code{offset(Age)} column and a data
-column no term uses is absent. brms keeps its VALIDATED RAW DATA
+\code{offset(log(Age))} carries a literal \code{offset(log(Age))} column, and
+a data column no term uses is absent. The variables of an
+\code{offset()} and of an addition term's expression, as \code{Age} there,
+are columns too, because the grids of \code{\link[=conditional_effects]{conditional_effects()}} and
+\code{emmeans()} hold them. brms keeps its VALIDATED RAW DATA
 under the same name, so \code{names(fit$data)} and \code{ncol(fit$data)}
 differ from brms on any model with a transformed term, and
 \code{newdata = fit$data} is not the brms idiom it looks like. The

@@ -132,11 +132,8 @@ test_that("family functions returns expected results", {
     "",
     expect_equal(cratio("cloglog")$family, "cratio")
   )
-  brms_port("families:37", "divergence",
-    paste0(
-      "acat() takes the logit link only: off the logit acat is a ",
-      "second density frmtmb has not written (?frmtmb-links; ",
-      "famlink ledger row 32)"),
+  brms_port("families:37", "pass",
+    "",
     expect_equal(acat(cloglog)$link, "cloglog")
   )
   brms_port("families:38", "pass",

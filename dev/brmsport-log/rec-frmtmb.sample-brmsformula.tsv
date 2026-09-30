@@ -7,13 +7,13 @@ setup	frmtmb.sample	brmsformula:23		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsformula:24	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsformula:25		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsformula:26	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsformula:30	cannot transfer	TRUE	FALSE		Can only equate parameters of the same class. 'sigma1' is of class 'sigma' and 'sigmaa2' of class 'sigmaa'	TRUE
-assert	frmtmb.sample	brmsformula:32	cannot transfer	TRUE	FALSE		Equating parameters of class 'mu' is not allowed.	TRUE
-assert	frmtmb.sample	brmsformula:34	cannot transfer	TRUE	FALSE		Equating 'sigma1' with itself is not meaningful.	TRUE
-assert	frmtmb.sample	brmsformula:36	cannot transfer	TRUE	FALSE		Cannot use predicted parameters on the right-hand side of an equation. 'shape1' has a formula of its own, so equate the other way round	TRUE
-assert	frmtmb.sample	brmsformula:38	cannot transfer	TRUE	FALSE		Cannot use fixed parameters on the right-hand side of an equation. 'shape1' is itself fixed or equated	TRUE
+assert	frmtmb.sample	brmsformula:30	pass	TRUE	FALSE		Can only equate parameters of the same class. 'sigma1' is of class 'sigma' and 'sigmaa2' of class 'sigmaa'	TRUE
+assert	frmtmb.sample	brmsformula:32	pass	TRUE	FALSE		Equating parameters of class 'mu' is not allowed.	TRUE
+assert	frmtmb.sample	brmsformula:34	pass	TRUE	FALSE		Equating 'sigma1' with itself is not meaningful.	TRUE
+assert	frmtmb.sample	brmsformula:36	pass	TRUE	FALSE		Cannot use predicted parameters on the right-hand side of an equation. 'shape1' has a formula of its own, so equate the other way round	TRUE
+assert	frmtmb.sample	brmsformula:38	pass	TRUE	FALSE		Cannot use fixed parameters on the right-hand side of an equation. 'shape1' is itself fixed or equated	TRUE
 setup	frmtmb.sample	brmsformula:43		TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsformula:44	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsformula:48	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsformula:52	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsformula:56	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsformula:44	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsformula:48	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsformula:52	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsformula:56	pass	TRUE	FALSE			TRUE

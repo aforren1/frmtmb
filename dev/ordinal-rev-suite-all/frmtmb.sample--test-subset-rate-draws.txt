@@ -1,0 +1,14 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | subset-rate-draws                                              
+⠋ |          1 | subset-rate-draws                                              
+⠼ |          5 | subset-rate-draws                                              
+⠦ |         17 | subset-rate-draws                                              
+✔ |         19 | subset-rate-draws [2.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 19 ]
+RESULT lane frmtmb.sample test-subset-rate-draws.R pass=19 fail=0 err=0 skip=0 warn=0

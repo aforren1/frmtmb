@@ -61,9 +61,20 @@ default route that is the average of linear predictors, as for any
 generalized linear model. With \code{epred = TRUE} it is the average of
 the predicted means, which is how brms marginalizes the expected
 response. \code{type = "response"} applies the inverse link of the
-selected predictor once, after the average. With \code{epred = TRUE}
-there is no link to apply, because the estimates are already on
-the response scale, so \code{type = "response"} changes nothing. A
+selected predictor once, after the average. As in brms, a
+predictor's \code{offset()} terms are included at the grid's values of
+their variables, which are held at their means like other covariates
+unless \verb{at =} sets them; on the design route this is emmeans's own
+\code{.offset.} column. An offset inside a nonlinear parameter's formula
+is left out of the body's emmean, as brms leaves it out, and the
+expected response (\code{epred = TRUE}) includes every offset once. One
+divergence, on purpose: over the responses of a multivariate fit,
+with no \verb{resp =}, each response gets its own offset. brms has one
+\code{.offset.} column for the whole grid, so it adds one response's
+offset to every response.
+With \code{epred = TRUE} there is no link to apply, because the estimates
+are already on the response scale, so \code{type = "response"} changes
+nothing. A
 nonlinear \code{mu} is reported on its link scale, where the body's value
 lives; \code{type = "response"} applies the family's inverse link to it.
 A response transformation such as \code{log(y)} is detected for \code{mu} and

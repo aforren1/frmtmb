@@ -1,0 +1,19 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | v16                                                            
+⠋ |          1 | v16                                                            
+⠹ |          3 | v16                                                            
+⠸ |          4 | v16                                                            
+⠋ |         11 | v16                                                            
+⠼ |         15 | v16                                                            5 rows removed because of missing values (na.action)
+
+⠏ |         20 | v16                                                            5 rows removed because of missing values (na.action)
+
+✔ |         24 | v16 [2.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 24 ]
+RESULT lane frmtmb test-v16.R pass=24 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,17 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-suite-brm                                                 
+⠋ |          1 | brms-suite-brm                                                 
+⠏ |         10 | brms-suite-brm                                                 
+✖ | 1       22 | brms-suite-brm
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-brms-suite-brm.R:126:3'): brm produces expected errors
+brms brm:112 now HOLDS but is recorded as 'cannot transfer' (frmtmb has no arma() function object to add to a formula; the term exists only inside a formula). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-brms-suite-brm.R:126:3'): brm produces expected errors
+brms brm:112 now HOLDS but is recorded as 'cannot transfer' (frmtmb has no arma() function object to add to a formula; the term exists only inside a formula). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 22 ]

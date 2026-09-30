@@ -1,0 +1,24 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.coupling  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | coherence                                                      
+⠋ |          1 | coherence                                                      
+⠦ |          7 | coherence                                                      
+⠇ |         19 | coherence                                                      
+⠋ |         21 | coherence                                                      
+⠙ |         22 | coherence                                                      
+⠦ |         27 | coherence                                                      
+⠸ |         34 | coherence                                                      
+⠴ |         36 | coherence                                                      
+⠏ |         40 | coherence                                                      
+⠸ |         44 | coherence                                                      
+⠇ |         49 | coherence                                                      
+⠋ |         51 | coherence                                                      
+⠹ |         63 | coherence                                                      
+✔ |         63 | coherence [22.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 22.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 63 ]
+RESULT lane frmtmb.coupling test-coherence.R pass=63 fail=0 err=0 skip=0 warn=0

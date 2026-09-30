@@ -1,0 +1,8 @@
+MUTATED frmtmb::assemble_frame
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M02_no_recycle.R
+DETAIL [expectation_error] a single value is recycled, as brms recycles it: <frmtmb_error/error/condition>
+Error: Addition term trunc(lb = min(y) - 1) of response 'y' has 1 values where the data have 60 rows; it takes one value per row, or a single value
+DETAIL [expectation_error] the values are brms's own: <frmtmb_error/error/condition>
+Error: Addition term trunc(lb = min(y) - 1) of response 'y' has 1 values where the data have 60 rows; it takes one value per row, or a single value
+RESULT test-aterm-expr.R pass=44 fail=0 err=2 skip=0 warn=0 tests=8
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

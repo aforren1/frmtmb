@@ -1,0 +1,40 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | simulate-density                                               
+⠋ |          1 | simulate-density                                               
+⠴ |         16 | simulate-density                                               
+⠋ |         31 | simulate-density                                               
+⠋ |         51 | simulate-density                                               
+⠋ |         71 | simulate-density                                               
+⠋ |         91 | simulate-density                                               
+⠋ |        111 | simulate-density                                               
+⠋ |        131 | simulate-density                                               
+⠋ |        151 | simulate-density                                               
+⠋ |        171 | simulate-density                                               
+⠋ |        191 | simulate-density                                               
+⠇ |        219 | simulate-density                                               
+⠋ |        241 | simulate-density                                               
+⠋ |        261 | simulate-density                                               
+⠋ |        281 | simulate-density                                               
+⠏ |        300 | simulate-density                                               
+⠦ |        307 | simulate-density                                               
+⠋ |        321 | simulate-density                                               
+⠼ |        345 | simulate-density                                               
+⠹ |        363 | simulate-density                                               
+⠇ |        379 | simulate-density                                               
+⠇ |        399 | simulate-density                                               
+⠇ |        419 | simulate-density                                               
+⠹ |        433 | simulate-density                                               
+⠇ |        449 | simulate-density                                               
+⠇ |        469 | simulate-density                                               
+⠦ |        477 | simulate-density                                               
+⠋ |        481 | simulate-density                                               
+⠋ |        491 | simulate-density                                               
+✔ |        493 | simulate-density [5.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 493 ]
+RESULT lane frmtmb test-simulate-density.R pass=493 fail=0 err=0 skip=0 warn=0

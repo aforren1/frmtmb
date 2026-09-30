@@ -1,0 +1,60 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M2_acat_logit_nodisc/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M2_acat_logit_nodisc/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠸ |          4 | ordinal-disc-thres                                             
+⠙ |         12 | ordinal-disc-thres                                             
+⠼ |         15 | ordinal-disc-thres                                             
+⠇ |         19 | ordinal-disc-thres                                             
+⠹ |         23 | ordinal-disc-thres                                             
+⠴ |         26 | ordinal-disc-thres                                             
+⠏ |         30 | ordinal-disc-thres                                             
+⠦ |         37 | ordinal-disc-thres                                             
+⠼ |         45 | ordinal-disc-thres                                             
+⠇ |         49 | ordinal-disc-thres                                             
+⠹ |         53 | ordinal-disc-thres                                             
+⠦ |         57 | ordinal-disc-thres                                             
+⠋ |         61 | ordinal-disc-thres                                             
+⠼ |         65 | ordinal-disc-thres                                             
+⠦ |         67 | ordinal-disc-thres                                             
+⠇ |         69 | ordinal-disc-thres                                             
+⠸ |         74 | ordinal-disc-thres                                             
+⠏ |         80 | ordinal-disc-thres                                             
+⠇ |         89 | ordinal-disc-thres                                             
+⠙ |        102 | ordinal-disc-thres                                             
+⠼ |        105 | ordinal-disc-thres                                             
+⠇ |        109 | ordinal-disc-thres                                             
+⠙ |        112 | ordinal-disc-thres                                             
+⠴ | 1      115 | ordinal-disc-thres                                             
+⠦ | 1      116 | ordinal-disc-thres                                             
+⠸ | 1      123 | ordinal-disc-thres                                             
+⠧ | 1      127 | ordinal-disc-thres                                             
+⠋ | 1      130 | ordinal-disc-thres                                             
+⠇ | 1      138 | ordinal-disc-thres                                             
+⠴ | 1      145 | ordinal-disc-thres                                             
+⠸ | 1      153 | ordinal-disc-thres                                             
+⠸ | 1      163 | ordinal-disc-thres                                             
+⠼ | 1      164 | ordinal-disc-thres                                             
+⠦ | 1      166 | ordinal-disc-thres                                             
+⠙ | 1      171 | ordinal-disc-thres                                             
+⠦ | 1      176 | ordinal-disc-thres                                             
+✖ | 1      178 | ordinal-disc-thres [7.7s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:288:7'): each density reads disc at a fixed point, not only at the optimum
+Expected acat logit  < 1e-12.
+Actual comparison: 0.026984682179 >= 0.000000000001
+Difference: 0.026984682178 >= 0
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 7.7 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:288:7'): each density reads disc at a fixed point, not only at the optimum
+Expected acat logit  < 1e-12.
+Actual comparison: 0.026984682179 >= 0.000000000001
+Difference: 0.026984682178 >= 0
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 178 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib2/M2_acat_logit_nodisc frmtmb test-ordinal-disc-thres.R pass=178 fail=1 err=0 skip=0 warn=0

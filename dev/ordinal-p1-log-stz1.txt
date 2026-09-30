@@ -1,0 +1,34 @@
+
+== cumulative thres(gr = g), every level one threshold, disc ~ 0 + z
+length(tau_raw): 0
+variables: b_x              b_disc_z         b_Intercept[a,1] b_Intercept[b,1]
+fixef rows: Intercept[a,1] Intercept[b,1] x              disc_z        
+logLik rel diff to brms's density at thresholds 0: 6.159595e-16
+max |fitted - brms|: 1.665335e-16
+summary: Regression Coefficients:                                                            Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|) Intercept[a,1]     0.00      0.00     0.00     0.00     NaN       NA Intercept[b,1]     0.00      0.00     0.00     0.00     NaN       NA x                  0.90      0.15     0.61     1.19    6.00    2e-09 disc_z             0.05      0.21    -0.36     0.46    0.24     0.81 NA                                                                  
+simulate: 150 150
+predict newdata: 3 2
+
+== sratio thres(gr = g), every level one threshold, disc ~ 0 + z
+length(tau_raw): 0
+variables: b_x              b_disc_z         b_Intercept[a,1] b_Intercept[b,1]
+fixef rows: Intercept[a,1] Intercept[b,1] x              disc_z        
+logLik rel diff to brms's density at thresholds 0: 6.159595e-16
+max |fitted - brms|: 1.665335e-16
+summary: Regression Coefficients:                                                            Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|) Intercept[a,1]     0.00      0.00     0.00     0.00     NaN       NA Intercept[b,1]     0.00      0.00     0.00     0.00     NaN       NA x                  0.90      0.15     0.61     1.19    6.00    2e-09 disc_z             0.05      0.21    -0.36     0.46    0.24     0.81 NA                                                                  
+simulate: 150 150
+predict newdata: 3 2
+
+== acat thres(gr = g), every level one threshold, disc ~ 0 + z
+length(tau_raw): 0
+variables: b_x              b_disc_z         b_Intercept[a,1] b_Intercept[b,1]
+fixef rows: Intercept[a,1] Intercept[b,1] x              disc_z        
+logLik rel diff to brms's density at thresholds 0: 7.699493e-16
+max |fitted - brms|: 1.110223e-16
+summary: Regression Coefficients:                                                            Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|) Intercept[a,1]     0.00      0.00     0.00     0.00     NaN       NA Intercept[b,1]     0.00      0.00     0.00     0.00     NaN       NA x                  0.90      0.15     0.61     1.19    6.00    2e-09 disc_z             0.05      0.21    -0.36     0.46    0.24     0.81 NA                                                                  
+simulate: 150 150
+predict newdata: 3 2
+
+== ungrouped two categories, cumulative sum_to_zero
+variables: b_x            b_Intercept[1]
+logLik rel diff to glm(y == 1 ~ 0 + -x): 4.618948e-16

@@ -1,4 +1,4 @@
 assert	frmtmb	brmsfit-helpers:17	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
 setup	frmtmb	brmsfit-helpers:93		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-helpers:94	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-helpers:95	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-helpers:94	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-helpers:95	pass	TRUE	FALSE			TRUE

@@ -1,8 +1,10 @@
-== frmtmb 193 files ==
+== frmtmb 202 files ==
 RESULT test-adefects.R pass=85 fail=0 err=0 skip=0 warn=0
 RESULT test-aliased-grouping.R pass=33 fail=0 err=0 skip=0 warn=0
 RESULT test-api-spellings.R pass=36 fail=0 err=0 skip=0 warn=0
 RESULT test-arg-refusal.R pass=114 fail=0 err=0 skip=0 warn=0
+RESULT test-arma-na-newdata.R pass=14 fail=0 err=0 skip=0 warn=0
+RESULT test-aterm-expr.R pass=69 fail=0 err=0 skip=0 warn=0
 RESULT test-autocor-cond.R pass=56 fail=0 err=0 skip=0 warn=0
 RESULT test-autocor.R pass=192 fail=0 err=0 skip=0 warn=0
 RESULT test-autoscale.R pass=46 fail=0 err=0 skip=0 warn=0
@@ -20,15 +22,17 @@ RESULT test-bcm-psychophysics.R pass=7 fail=0 err=0 skip=2 warn=0
 RESULT test-bcm-retention.R pass=15 fail=0 err=0 skip=3 warn=0
 RESULT test-bcm-signal-detection.R pass=6 fail=0 err=0 skip=3 warn=0
 RESULT test-bcm-simple.R pass=8 fail=0 err=0 skip=1 warn=0
+RESULT test-bernoulli-coding.R pass=47 fail=0 err=0 skip=0 warn=0
 RESULT test-boot.R pass=49 fail=0 err=0 skip=0 warn=0
 RESULT test-bracket-access.R pass=33 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-agreement.R pass=168 fail=0 err=0 skip=2 warn=0
-RESULT test-brms-families.R pass=1102 fail=0 err=0 skip=0 warn=0
+RESULT test-brms-api-formrobust.R pass=26 fail=0 err=0 skip=0 warn=0
+RESULT test-brms-families.R pass=1106 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-formula-priors.R pass=208 fail=0 err=0 skip=0 warn=0
-RESULT test-brms-likelihood.R pass=17 fail=0 err=0 skip=48 warn=0
-RESULT test-brms-methods.R pass=16 fail=0 err=0 skip=46 warn=0
+RESULT test-brms-likelihood.R pass=17 fail=0 err=0 skip=52 warn=0
+RESULT test-brms-methods.R pass=17 fail=0 err=0 skip=47 warn=0
 RESULT test-brms-names.R pass=138 fail=0 err=0 skip=0 warn=0
-RESULT test-brms-parity-defects.R pass=106 fail=0 err=0 skip=0 warn=0
+RESULT test-brms-parity-defects.R pass=170 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-port.R pass=21 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-priors.R pass=0 fail=0 err=0 skip=12 warn=0
 RESULT test-brms-shapes-punch.R pass=55 fail=0 err=0 skip=0 warn=0
@@ -49,8 +53,10 @@ RESULT test-car-spde.R pass=136 fail=0 err=0 skip=0 warn=0
 RESULT test-case-studies.R pass=30 fail=0 err=0 skip=0 warn=0
 RESULT test-ce-bands.R pass=169 fail=0 err=0 skip=0 warn=0
 RESULT test-ce-facets.R pass=92 fail=0 err=0 skip=0 warn=0
-RESULT test-ce-levels.R pass=69 fail=0 err=0 skip=0 warn=0
+RESULT test-ce-levels.R pass=101 fail=0 err=0 skip=0 warn=0
 RESULT test-ce-options.R pass=32 fail=0 err=0 skip=0 warn=0
+RESULT test-ce-parity.R pass=30 fail=0 err=0 skip=0 warn=0
+RESULT test-ce-plot.R pass=73 fail=0 err=0 skip=0 warn=0
 RESULT test-cens-lccdf.R pass=27 fail=0 err=0 skip=0 warn=0
 RESULT test-cens-trunc.R pass=69 fail=0 err=0 skip=0 warn=0
 RESULT test-ci-siblings.R pass=14 fail=0 err=0 skip=0 warn=0
@@ -84,7 +90,7 @@ RESULT test-formula-dot.R pass=26 fail=0 err=0 skip=0 warn=0
 RESULT test-frame.R pass=22 fail=0 err=0 skip=0 warn=0
 RESULT test-functional.R pass=3 fail=0 err=0 skip=0 warn=0
 RESULT test-fuzz.R pass=0 fail=0 err=0 skip=1 warn=0
-RESULT test-generic-collision.R pass=56 fail=0 err=0 skip=0 warn=0
+RESULT test-generic-collision.R pass=61 fail=0 err=0 skip=0 warn=0
 RESULT test-get-prior-route.R pass=79 fail=0 err=0 skip=0 warn=0
 RESULT test-glmm-binomial.R pass=10 fail=0 err=0 skip=0 warn=0
 RESULT test-glmm-gaussian.R pass=17 fail=0 err=0 skip=0 warn=0
@@ -124,9 +130,11 @@ RESULT test-nl-rtmb-scope.R pass=105 fail=0 err=0 skip=0 warn=0
 RESULT test-nl.R pass=44 fail=0 err=0 skip=0 warn=0
 RESULT test-nlf.R pass=77 fail=0 err=0 skip=0 warn=0
 RESULT test-numerical-robustness.R pass=709 fail=0 err=0 skip=0 warn=0
+RESULT test-offset-grid.R pass=27 fail=0 err=0 skip=1 warn=0
 RESULT test-open-issues.R pass=43 fail=0 err=0 skip=0 warn=0
+RESULT test-ordinal-disc-thres.R pass=179 fail=0 err=0 skip=0 warn=0
 RESULT test-ordinal-fitted.R pass=129 fail=0 err=0 skip=0 warn=0
-RESULT test-ordinal.R pass=109 fail=0 err=0 skip=0 warn=0
+RESULT test-ordinal.R pass=99 fail=0 err=0 skip=0 warn=0
 RESULT test-osa-inference.R pass=34 fail=0 err=0 skip=0 warn=0
 RESULT test-par-template.R pass=51 fail=0 err=0 skip=0 warn=0
 RESULT test-parity-integration.R pass=8 fail=0 err=0 skip=0 warn=0
@@ -155,7 +163,7 @@ RESULT test-review-v25.R pass=60 fail=0 err=0 skip=0 warn=0
 RESULT test-review-v28.R pass=74 fail=0 err=0 skip=0 warn=0
 RESULT test-review-v29.R pass=138 fail=0 err=0 skip=0 warn=0
 RESULT test-rl-example.R pass=96 fail=0 err=0 skip=2 warn=0
-RESULT test-rsv-intercept.R pass=55 fail=0 err=0 skip=0 warn=0
+RESULT test-rsv-intercept.R pass=56 fail=0 err=0 skip=0 warn=0
 RESULT test-sandwich.R pass=58 fail=0 err=0 skip=0 warn=0
 RESULT test-scale-contract.R pass=37 fail=0 err=0 skip=0 warn=0
 RESULT test-setprior.R pass=27 fail=0 err=0 skip=0 warn=0
@@ -179,6 +187,7 @@ RESULT test-tmb-examples.R pass=28 fail=0 err=0 skip=0 warn=0
 RESULT test-tre.R pass=102 fail=0 err=0 skip=0 warn=0
 RESULT test-trunc-postfit.R pass=35 fail=0 err=0 skip=0 warn=0
 RESULT test-unpinned-seams.R pass=30 fail=0 err=0 skip=0 warn=0
+RESULT test-update-pool.R pass=22 fail=0 err=0 skip=0 warn=0
 RESULT test-v07.R pass=25 fail=0 err=0 skip=0 warn=0
 RESULT test-v11.R pass=22 fail=0 err=0 skip=0 warn=0
 RESULT test-v12.R pass=26 fail=0 err=0 skip=0 warn=0
@@ -190,7 +199,7 @@ RESULT test-v18.R pass=27 fail=0 err=0 skip=0 warn=0
 RESULT test-v19.R pass=23 fail=0 err=0 skip=0 warn=0
 RESULT test-verbose.R pass=40 fail=0 err=0 skip=0 warn=0
 RESULT test-vignette-wiener.R pass=21 fail=0 err=0 skip=0 warn=0
-RESULT test-xbeta-zibb-hurdle-cum.R pass=604 fail=0 err=0 skip=0 warn=0
+RESULT test-xbeta-zibb-hurdle-cum.R pass=607 fail=0 err=0 skip=0 warn=0
 RESULT test-zi.R pass=11 fail=0 err=0 skip=0 warn=0
 == frmtmb END ==
 == frmtmb.eam 29 files ==
@@ -224,19 +233,19 @@ RESULT test-units.R pass=32 fail=0 err=0 skip=0 warn=0
 RESULT test-variability.R pass=140 fail=0 err=0 skip=0 warn=0
 RESULT test-wiener-cdf.R pass=42 fail=0 err=0 skip=0 warn=0
 == frmtmb.eam END ==
-== frmtmb.sample 43 files ==
+== frmtmb.sample 45 files ==
 RESULT test-adefects.R pass=20 fail=0 err=0 skip=0 warn=0
 RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-output.R pass=21 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-pins.R pass=334 fail=0 err=0 skip=0 warn=0
-RESULT test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0 warn=0
+RESULT test-brms-shapes-draws.R pass=76 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-suite-brmsformula.R pass=0 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-suite-brmsterms.R pass=0 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-suite-families.R pass=0 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-suite-helper-copy.R pass=0 fail=0 err=0 skip=0 warn=0
 RESULT test-brms-suite-methods.R pass=0 fail=0 err=0 skip=0 warn=0
 RESULT test-compat-preflight.R pass=81 fail=0 err=0 skip=0 warn=0
-RESULT test-conditional-effects-draws.R pass=61 fail=0 err=0 skip=0 warn=0
+RESULT test-conditional-effects-draws.R pass=63 fail=0 err=0 skip=0 warn=0
 RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0 warn=0
 RESULT test-conditions.R pass=6 fail=0 err=0 skip=0 warn=0
 RESULT test-default-priors-brms.R pass=25 fail=0 err=0 skip=0 warn=0
@@ -244,14 +253,16 @@ RESULT test-draws-methods.R pass=160 fail=0 err=0 skip=0 warn=0
 RESULT test-draws-no-stanfit.R pass=21 fail=0 err=0 skip=0 warn=0
 RESULT test-draws-spellings.R pass=97 fail=0 err=0 skip=0 warn=0
 RESULT test-evidence-ratio.R pass=36 fail=0 err=0 skip=0 warn=0
-RESULT test-generic-collision.R pass=58 fail=0 err=0 skip=0 warn=0
+RESULT test-formrobust-draws.R pass=11 fail=0 err=0 skip=0 warn=0
+RESULT test-generic-collision.R pass=61 fail=0 err=0 skip=0 warn=0
 RESULT test-gr-by-draws.R pass=7 fail=0 err=0 skip=0 warn=0
 RESULT test-laplace-draws.R pass=92 fail=0 err=0 skip=0 warn=0
 RESULT test-loo.R pass=103 fail=0 err=0 skip=2 warn=0
 RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0 warn=0
+RESULT test-ordinal-disc-thres-draws.R pass=44 fail=0 err=0 skip=0 warn=0
 RESULT test-ordinal-draws-names.R pass=27 fail=0 err=0 skip=0 warn=0
 RESULT test-parallel-chains.R pass=4 fail=0 err=0 skip=0 warn=0
-RESULT test-postfit-draws.R pass=57 fail=0 err=0 skip=0 warn=0
+RESULT test-postfit-draws.R pass=68 fail=0 err=0 skip=0 warn=0
 RESULT test-ppcheck-loo.R pass=27 fail=0 err=0 skip=0 warn=0
 RESULT test-predfix-new-levels.R pass=62 fail=0 err=0 skip=0 warn=0
 RESULT test-prior-route.R pass=9 fail=0 err=0 skip=0 warn=0
@@ -341,4 +352,4 @@ RESULT test-scale.R pass=0 fail=0 err=0 skip=1 warn=0
 RESULT test-span.R pass=73 fail=0 err=0 skip=0 warn=0
 RESULT test-surface.R pass=47 fail=0 err=0 skip=0 warn=0
 == frmtmb.spline END ==
-SUITE ran 327 of 327
+SUITE ran 338 of 338

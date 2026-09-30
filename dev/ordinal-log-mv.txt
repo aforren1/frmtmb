@@ -1,0 +1,24 @@
+ [1] "b_y_x"             "b_y2_x"            "b_disc_y2_z"      
+ [4] "b_y_Intercept[1]"  "b_y_Intercept[2]"  "b_y_Intercept[3]" 
+ [7] "b_y_Intercept[4]"  "b_y2_Intercept[1]" "b_y2_Intercept[2]"
+[10] "delta_y"           "delta_y2"         
+mv logLik -779.303642055  sum of univariate -779.30364205  relative difference 7.54e-12 
+          Estimate  Est.Error  l-95% CI  u-95% CI
+delta_y  1.0537434 0.06615204 0.9317470 1.1917131
+delta_y2 0.5292297 0.19282634 0.1512971 0.9071624
+
+== brms 2.23.0 stancode, parameters block ==
+  real<lower=0> delta;  // distance between thresholds
+  real delta;  // distance between thresholds
+    Intercept_y[k] = first_Intercept_y + (k - 1.0) * delta_y;
+    Intercept_y2[k] = first_Intercept_y2 + (k - 1.0) * delta_y2;
+stanc ERROR: 0
+Semantic error in 'string', line 124, column 7 to column 12:
+   -------------------------------------------------
+   122:    vector[Kc_y2] b_y2;  // regression coefficients
+   123:    real first_Intercept_y2;  // first threshold
+   124:    real delta;  // distance between thresholds
+                ^
+   125:    vector[K_disc_y2] b_disc_y2;  // regression coefficients
+   126:  }
+   - 

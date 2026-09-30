@@ -1,0 +1,25 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.coupling  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | cross-wishart                                                  
+⠋ |          1 | cross-wishart                                                  
+⠼ |          5 | cross-wishart                                                  
+⠹ |         23 | cross-wishart                                                  
+⠼ |         45 | cross-wishart                                                  
+⠦ |         67 | cross-wishart                                                  
+⠇ |         89 | cross-wishart                                                  
+⠋ |        111 | cross-wishart                                                  
+⠙ |        132 | cross-wishart                                                  
+⠏ |        150 | cross-wishart                                                  
+⠼ |        165 | cross-wishart                                                  
+⠇ |        189 | cross-wishart                                                  
+⠧ |        198 | cross-wishart                                                  
+⠼ |        205 | cross-wishart                                                  
+⠇ |        209 | cross-wishart                                                  
+✔ |        211 | cross-wishart [3.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 211 ]
+RESULT lane frmtmb.coupling test-cross-wishart.R pass=211 fail=0 err=0 skip=0 warn=0

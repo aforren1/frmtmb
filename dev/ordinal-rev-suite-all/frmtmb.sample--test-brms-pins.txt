@@ -1,0 +1,33 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-pins                                                      
+⠋ |          1 | brms-pins                                                      
+⠋ |         21 | brms-pins                                                      
+⠹ |         43 | brms-pins                                                      
+⠸ |         64 | brms-pins                                                      
+⠋ |         91 | brms-pins                                                      
+⠏ |        120 | brms-pins                                                      
+⠹ |        143 | brms-pins                                                      
+⠦ |        167 | brms-pins                                                      
+⠙ |        192 | brms-pins                                                      
+⠸ |        214 | brms-pins                                                      
+⠧ |        238 | brms-pins                                                      
+⠹ |        253 | brms-pins                                                      
+⠧ |        258 | brms-pins                                                      
+⠇ |        279 | brms-pins                                                      
+⠏ |        300 | brms-pins                                                      
+⠴ |        306 | brms-pins                                                      
+⠋ |        311 | brms-pins                                                      
+⠙ |        312 | brms-pins                                                      
+⠦ |        317 | brms-pins                                                      
+⠇ |        319 | brms-pins                                                      
+⠸ |        324 | brms-pins                                                      
+⠇ |        329 | brms-pins                                                      
+✔ |        334 | brms-pins [8.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 8.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 334 ]
+RESULT lane frmtmb.sample test-brms-pins.R pass=334 fail=0 err=0 skip=0 warn=0

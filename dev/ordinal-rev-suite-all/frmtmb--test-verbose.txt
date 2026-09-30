@@ -1,0 +1,20 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | verbose                                                        
+⠋ |          1 | verbose                                                        
+⠏ |         10 | verbose                                                        
+⠋ |         11 | verbose                                                        
+⠼ |         15 | verbose                                                        
+⠦ |         17 | verbose                                                        
+⠋ |         21 | verbose                                                        
+⠇ |         29 | verbose                                                        
+⠋ |         31 | verbose                                                        
+⠙ |         32 | verbose                                                        
+✔ |         40 | verbose [2.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 40 ]
+RESULT lane frmtmb test-verbose.R pass=40 fail=0 err=0 skip=0 warn=0

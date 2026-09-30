@@ -92,9 +92,10 @@ test_that("se() on a family that cannot read it is refused before data", {
   expect_error(frm(y | se(sei) ~ x, data = dd, family = weibull()),
                "'weibull' does not declare that it does", fixed = TRUE)
   dd$sei <- NULL
-  # the absent case: a family that reads se() gets the missing column
+  # the absent case: a family that reads se() gets the missing column,
+  # named by the addition-term rule (a variable must be in the data)
   expect_error(frm(y | se(sei) ~ x, data = dd, family = gaussian()),
-               "The model uses `sei`", fixed = TRUE)
+               "reads `sei`, which is not a column of `data`", fixed = TRUE)
 })
 
 test_that("cs() inside a group-level term is refused by name", {
@@ -179,8 +180,177 @@ test_that("fitted() takes sample_new_levels = \"gaussian\"", {
                           sample_new_levels = "gaussian"),
                    fitted(fit, newdata = nd, allow_new_levels = TRUE))
   expect_error(fitted(fit, newdata = nd, allow_new_levels = TRUE,
-                      sample_new_levels = "old_levels"),
-               "honors sample_new_levels = \"gaussian\" only", fixed = TRUE)
+                      sample_new_levels = "uncertainty"),
+               "\"uncertainty\" mixes the two", fixed = TRUE)
+})
+
+test_that("fitted() takes sample_new_levels = \"old_levels\"", {
+  # brmsfit-methods:314. 0.66.0 refused it ("honors sample_new_levels =
+  # \"gaussian\" only"). An unseen level reads one seen level, chosen at
+  # random once per call as brms chooses it: at seeds 1 to 12 brms
+  # 2.23.0 and this pick the same level (dev/ceplot-log/oldlevels.txt)
+  set.seed(3)
+  ng <- 12L
+  dg <- data.frame(x = stats::rnorm(120), g = factor(rep(seq_len(ng), 10)))
+  dg$y <- stats::rnorm(120, 1 + 0.5 * dg$x + stats::rnorm(ng, 0, 2)[dg$g])
+  fg <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dg)
+  nd <- data.frame(x = c(0, 1), g = factor(c("new", "new")))
+  at <- function(k) {
+    fitted(fg, newdata = data.frame(x = c(0, 1),
+                                    g = factor(k, levels = seq_len(ng))))
+  }
+  picked <- vapply(1:6, function(s) {
+    set.seed(s)
+    f <- fitted(fg, newdata = nd, allow_new_levels = TRUE,
+                sample_new_levels = "old_levels")
+    set.seed(s)
+    k <- sample.int(ng, 1L)
+    # the row IS the seen level's: its fitted effect and its conditional
+    # standard error, not the block's marginal variance
+    expect_identical(f, at(k))
+    k
+  }, 1L)
+  expect_gt(length(unique(picked)), 1L)
+  gauss <- fitted(fg, newdata = nd, allow_new_levels = TRUE)
+  expect_true(all(at(picked[1L])[, "Est.Error"] < gauss[, "Est.Error"]))
+  # the guard absent: without allow_new_levels there is no unseen level
+  # to lend one to, and a seen level is untouched
+  expect_error(fitted(fg, newdata = nd, sample_new_levels = "old_levels"),
+               "New levels")
+  seen <- data.frame(x = 0, g = factor("4", levels = seq_len(ng)))
+  expect_identical(fitted(fg, newdata = seen, allow_new_levels = TRUE,
+                          sample_new_levels = "old_levels"),
+                   fitted(fg, newdata = seen))
+})
+
+test_that("\"old_levels\" reads ONE seen group for every term of a factor", {
+  # review B1: the choice was made per BLOCK, so bf(y ~ x + (1 | g),
+  # sigma ~ (1 | g)) and (1 + x || g) took each block's effects from a
+  # different seen group, a group the data does not have. brms's
+  # get_new_rdraws() runs once per grouping factor; at seeds 1 to 12 it
+  # reads one group for mu and sigma, and so does this now
+  # (dev/ceplot-log/p1-rev-oldlevels.txt)
+  set.seed(3)
+  ng <- 12L
+  dg <- data.frame(x = stats::rnorm(240), g = factor(rep(seq_len(ng), 20)))
+  dg$y <- stats::rnorm(240, 1 + 0.5 * dg$x + stats::rnorm(ng, 0, 2)[dg$g],
+                       exp(0.2 + stats::rnorm(ng, 0, 0.5)[dg$g]))
+  dg$yl <- exp(dg$y / 4)
+  dg$ys <- stats::rnorm(240, 1 + (0.5 + stats::rnorm(ng, 0, 0.5)[dg$g]) *
+                          dg$x + stats::rnorm(ng, 0, 2)[dg$g])
+  at <- function(fit, k, x = 0) {
+    fitted(fit, newdata = data.frame(x = x, g = factor(k, levels = 1:ng)))
+  }
+  nd <- function(x = 0) data.frame(x = x, g = factor("n1"))
+  # the response mean of a lognormal reads mu AND sigma
+  fl <- frm(bf(yl ~ x + (1 | g), sigma ~ (1 | g)), family = lognormal(),
+            data = dg)
+  # the intercept and the slope are two blocks of g
+  fs <- frm(bf(ys ~ x + (1 + x || g)), family = gaussian(), data = dg)
+  expect_length(fs$frame[["re_blocks"]], 2L)
+  for (s in 1:6) {
+    set.seed(s)
+    k <- sample.int(ng, 1L)
+    set.seed(s)
+    f <- fitted(fl, newdata = nd(), allow_new_levels = TRUE,
+                sample_new_levels = "old_levels")
+    expect_identical(f, at(fl, k))
+    set.seed(s)
+    f <- fitted(fs, newdata = nd(c(0, 1)), allow_new_levels = TRUE,
+                sample_new_levels = "old_levels")
+    expect_identical(f, at(fs, k, c(0, 1)))
+  }
+  # predict() makes the same one choice for both blocks: one key
+  set.seed(1)
+  sp <- predict_new_level_spec(fl, fl$spec$responses[[1L]], nd(), NULL,
+                               TRUE, "old_levels")
+  expect_length(attr(sp, "old_pick"), 1L)
+  set.seed(1)
+  expect_identical(attr(sp, "old_pick")[[1L]],
+                   as.character(sample.int(ng, 1L)))
+})
+
+test_that("\"old_levels\" on gr(by = ) chooses within the row's by-level", {
+  # review m4: one wasted choice was made for the by-level's block the
+  # row does not read, so the level agreed with brms at 3 of 12 seeds.
+  # brms samples among the seen groups of the row's by-level, once
+  set.seed(4)
+  ng <- 12L
+  dc <- data.frame(x = stats::rnorm(240), g = factor(rep(seq_len(ng), 20)))
+  dc$f <- factor(ifelse(as.integer(dc$g) <= 6, "a", "b"))
+  dc$y <- stats::rnorm(240, 1 + 0.5 * dc$x + stats::rnorm(ng, 0, 2)[dc$g])
+  fc <- frm(bf(y ~ x + (1 | gr(g, by = f))), family = gaussian(), data = dc)
+  ndc <- data.frame(x = 0, g = factor("n1"),
+                    f = factor("b", levels = c("a", "b")))
+  for (s in 1:6) {
+    set.seed(s)
+    k <- 6L + sample.int(6L, 1L)
+    set.seed(s)
+    f <- fitted(fc, newdata = ndc, allow_new_levels = TRUE,
+                sample_new_levels = "old_levels")
+    ref <- fitted(fc, newdata = data.frame(
+      x = 0, g = factor(k, levels = 1:ng),
+      f = factor("b", levels = c("a", "b"))))
+    expect_identical(f, ref)
+  }
+})
+
+test_that("\"old_levels\" chooses once for a factor two responses share", {
+  # review P1-B1: fitted_mv() asked each response on its own and
+  # predict() drew per response, so bf(y ~ x + (1 | g)) + bf(y2 ~ x +
+  # (1 | g)) read two seen groups at 12 of 12 seeds where brms reads one
+  # (dev/ceplot-rev-log/p1/oldlevels4.txt). brms draws the choice once
+  # per call, sample(levels, 1), the first draw of the call
+  set.seed(3)
+  ng <- 12L
+  d <- data.frame(x = stats::rnorm(360), g = factor(rep(seq_len(ng), 30)))
+  u <- stats::rnorm(ng, 0, 2)
+  d$y <- stats::rnorm(360, 1 + 0.5 * d$x + u[d$g])
+  d$y2 <- stats::rnorm(360, -1 + 0.3 * d$x + u[d$g] + stats::rnorm(ng)[d$g])
+  fv <- frm(bf(y ~ x + (1 | g)) + bf(y2 ~ x + (1 | g)),
+            family = gaussian(), data = d)
+  nd <- data.frame(x = 0, g = factor("n1"))
+  one <- function(k) data.frame(x = 0, g = factor(k, levels = 1:ng))
+  for (s in 1:6) {
+    set.seed(s)
+    k <- sample.int(ng, 1L)
+    set.seed(s)
+    f <- fitted(fv, newdata = nd, allow_new_levels = TRUE,
+                sample_new_levels = "old_levels")
+    expect_identical(f, fitted(fv, newdata = one(k)))
+  }
+  # predict(): one choice in one call, for both responses
+  picks <- list()
+  orig <- predict_new_level_spec
+  local_mocked_bindings(predict_new_level_spec = function(...) {
+    out <- orig(...)
+    picks[[length(picks) + 1L]] <<- attr(out, "old_pick")
+    out
+  })
+  for (s in 1:6) {
+    picks <- list()
+    set.seed(s)
+    k <- sample.int(ng, 1L)
+    set.seed(s)
+    p <- predict(fv, newdata = nd, allow_new_levels = TRUE,
+                 sample_new_levels = "old_levels", ndraws = 5)
+    expect_identical(dim(p), c(1L, 4L, 2L))
+    expect_length(picks, 2L)
+    expect_identical(picks[[1L]], picks[[2L]])
+    expect_identical(unname(unlist(picks[[2L]])), as.character(k))
+  }
+})
+
+test_that("parnames() on a fit is variables(), with brms's warning", {
+  # brmsfit-methods:995; 0.66.0 had no parnames() for a fit
+  set.seed(9)
+  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+  dd$y <- rnorm(60, dd$x + rnorm(6)[dd$g])
+  fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+  p <- allow_warnings(parnames(fit), "'parnames' is deprecated",
+                      require = "'parnames' is deprecated")
+  expect_identical(p, variables(fit))
+  expect_error(suppressWarnings(parnames(fit, foo = 1)), "foo")
 })
 
 test_that("residuals() takes newdata and answers a multivariate fit", {

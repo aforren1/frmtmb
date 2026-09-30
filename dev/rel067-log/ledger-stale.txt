@@ -1,0 +1,24 @@
+HOLDS but has manual verdict 'cannot transfer': brm:112 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': brmsfit-methods:112 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': brmsfit-methods:113 in frmtmb
+OWN-WORDS row does not hold: brmsfit-methods:203 in frmtmb: STALE OWN-WORDS: brms's assertion holds as written
+HOLDS but has manual verdict 'defect': brmsfit-methods:205 in frmtmb
+HOLDS but has manual verdict 'defect': brmsfit-methods:595 in frmtmb.sample
+HOLDS but has manual verdict 'defect': brmsfit-methods:635 in frmtmb.sample
+HOLDS but has manual verdict 'defect': brmsfit-methods:747 in frmtmb
+HOLDS but has manual verdict 'defect': brmsfit-methods:995 in frmtmb
+HOLDS but has manual verdict 'divergence': families:37 in frmtmb
+HOLDS but has manual verdict 'divergence': families:37 in frmtmb.sample
+HOLDS but has manual verdict 'cannot transfer': priors:14 in frmtmb
+HOLDS but has manual verdict 'defect': standata:75 in frmtmb
+OWN-WORDS row does not hold: standata:112 in frmtmb: STALE OWN-WORDS: brms's assertion holds as written
+HOLDS but has manual verdict 'cannot transfer': standata:724 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:725 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:738 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:739 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:740 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:745 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:970 in frmtmb
+HOLDS but has manual verdict 'cannot transfer': standata:974 in frmtmb
+Error: 22 problem(s); the ledger was not written
+Execution halted

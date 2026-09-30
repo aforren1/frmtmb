@@ -1,14 +1,14 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the 0.66.0
-release, at frmtmb 0.66.0 and every extension's version of that release:
+`dev/suite-baseline.tsv` records one row per test file as of the 0.67.0
+release, at frmtmb 0.67.0 and every extension's version of that release:
 package, file, passing assertions, skips. It is a floor, not a target.
 
-Every row is from the release run of 2026-09-29 on the 0.66.0 tree
-(`dev/release/suite.log`, 327 files, 19,880 assertions, 0 fail, 0
-error, 0 escaped warnings). Eighteen files are new, and one file's
-passing count fell against 0.65.0, with the answer below. See "What the
-0.66.0 release changed".
+Every row is from the release run of 2026-09-30 on the 0.67.0 tree
+(`dev/release/suite.log`, 338 files, 20,553 assertions, 0 fail, 0
+error, 0 warnings). Eleven files are new, and one file's passing count
+fell against 0.66.0, with the answer below. See "What the 0.67.0
+release changed".
 
 Read a tier log only when it POSTDATES every file it covers. Three lanes
 of this round quoted a suite log written before their last edit, and in
@@ -284,3 +284,22 @@ cases left it because the calls now answer as brms's do:
 `dev/release/run-tests.R` now prints `warn=` after `skip=` on each
 `RESULT` line, so the regeneration command above still reads the same
 fields.
+
+## What the 0.67.0 release changed
+
+Regenerated at 338 rows and 20,553 assertions, from 327 and 19,880,
+all eight packages in one run (`dev/release/run-par.sh`, one R process
+per file). Eleven files are new: in core `test-arma-na-newdata.R`
+(14), `test-aterm-expr.R` (69), `test-bernoulli-coding.R` (47),
+`test-brms-api-formrobust.R` (26), `test-ce-parity.R` (30),
+`test-ce-plot.R` (73), `test-offset-grid.R` (27),
+`test-ordinal-disc-thres.R` (179) and `test-update-pool.R` (22); in
+frmtmb.sample `test-formrobust-draws.R` (11) and
+`test-ordinal-disc-thres-draws.R` (44). No file was removed.
+
+One count fell, and it closes exactly: `frmtmb/test-ordinal.R`, 109 to
+99, the count lane ordinal's own runs recorded. `acat()` now takes
+every link brms takes, so one refusal assertion and a loop of three
+assertions over five links left the file, and the loop now asserts one
+thing per link: 109 - 1 - 5 x 3 + 5 + 1 = 99, where the last 1 is the
+new `family_link_str(shown = "disc")` assertion.

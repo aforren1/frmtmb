@@ -1,0 +1,17 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | predfix-new-levels                                             
+⠋ |          1 | predfix-new-levels                                             
+⠦ |         37 | predfix-new-levels                                             
+⠹ |         53 | predfix-new-levels                                             
+⠧ |         58 | predfix-new-levels                                             
+⠋ |         61 | predfix-new-levels                                             
+⠙ |         62 | predfix-new-levels                                             
+✔ |         62 | predfix-new-levels [5.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 62 ]
+RESULT lane frmtmb.sample test-predfix-new-levels.R pass=62 fail=0 err=0 skip=0 warn=0

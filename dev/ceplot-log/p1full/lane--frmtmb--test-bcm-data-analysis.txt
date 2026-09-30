@@ -1,0 +1,2 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+RESULT lane frmtmb test-bcm-data-analysis.R: tests=26 failed=0 error=0 skipped=6 warning=0 passed=20

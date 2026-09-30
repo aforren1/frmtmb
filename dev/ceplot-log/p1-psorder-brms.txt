@@ -1,0 +1,5 @@
+nl : b_a_Intercept b_a_z b_b_Intercept 
+nl_sigma : b_sigma_Intercept b_a_Intercept b_a_z b_b_Intercept b_b_w b_sigma_w 
+nl_three : b_a_Intercept b_a_z b_b_Intercept b_c_w 
+lin_sigma : b_Intercept b_sigma_Intercept b_x b_z b_sigma_w 
+done

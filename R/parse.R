@@ -309,6 +309,31 @@ parse_response <- function(formula) {
         for (i in seq_along(args)) {
           aterms[[paste0(nm, i)]] <- args[[i]]
         }
+      } else if (nm == "weights") {
+        # brms's resp_weights(x, scale = FALSE)
+        mc <- tryCatch(match.call(function(x, scale) NULL, tm),
+                       error = function(e) NULL)
+        args <- if (is.null(mc)) list() else as.list(mc)[-1L]
+        if (is.null(args$x)) {
+          frm_stop("weights() takes the weights and optionally ",
+                   "scale = TRUE: weights(w) or weights(w, scale = TRUE)",
+                   call. = FALSE)
+        }
+        aterms[["weights"]] <- args$x
+        if (!is.null(args$scale) &&
+              eval_spec_arg(args$scale, "scale", environment(formula),
+                            fn = "weights")) {
+          # brms's scaling, weights / sum(weights) * length(weights), is
+          # written into the expression, so the frame, a refit on a
+          # subset and every reader of the value take it on the rows the
+          # response reads, as brms takes it after subset()
+          w <- args$x
+          sum_ <- call("::", as.name("base"), as.name("sum"))
+          len_ <- call("::", as.name("base"), as.name("length"))
+          aterms[["weights"]] <- call(
+            "*", call("/", w, as.call(list(sum_, w))),
+            as.call(list(len_, w)))
+        }
       } else if (nm == "se") {
         args <- as.list(tm)[-1]
         nms <- names(args) %||% rep("", length(args))
@@ -1142,7 +1167,9 @@ strip_rsv_intercept <- function(e) {
 #' Only `Intercept` as a term of its own is read. Inside another term
 #' (`Intercept:x`, `I(2 * Intercept)`) brms multiplies by its column of
 #' ones, which spells a different term; that is refused by name rather
-#' than guessed. So is brms's deprecated lower-case `intercept`.
+#' than guessed. brms's deprecated lower-case `intercept` is read as
+#' brms reads it, a data column of ones with a warning; `lower` says so,
+#' and is all the result holds when `Intercept` itself is absent.
 #'
 #' @noRd
 rsv_intercept_fixed <- function(fixed) {
@@ -1150,12 +1177,14 @@ rsv_intercept_fixed <- function(fixed) {
   if (!any(c("Intercept", "intercept") %in% vars)) return(NULL)
   tt <- tryCatch(stats::terms(fixed), error = function(e) NULL)
   if (is.null(tt) || attr(tt, "intercept") != 0L) return(NULL)
-  if ("intercept" %in% vars) {
-    frm_stop("`intercept` in a formula without an intercept is brms's ",
-             "deprecated spelling of the reserved variable `Intercept`, and ",
-             "frmtmb does not read it: write 0 + Intercept for an intercept ",
-             "that is an ordinary coefficient, or rename the data column ",
-             "if `intercept` is a covariate", call. = FALSE)
+  # brms's data_rsv_intercept(): the lower-case name is a data column of
+  # ones, with a deprecation warning, so its coefficient keeps its own
+  # name, `intercept`
+  lower <- "intercept" %in% vars
+  if (lower) {
+    frm_warning("Reserved variable name 'intercept' is deprecated. ",
+                "Please use 'Intercept' instead.", call. = FALSE)
+    if (!"Intercept" %in% vars) return(list(lower = TRUE))
   }
   labs <- attr(tt, "term.labels")
   k <- match("Intercept", labs)
@@ -1175,7 +1204,7 @@ rsv_intercept_fixed <- function(fixed) {
              "rename the data column if `Intercept` is a covariate",
              call. = FALSE)
   }
-  list(fixed = new, pos = k - 1L)
+  list(fixed = new, pos = k - 1L, lower = lower)
 }
 
 #' Split one linear-predictor RHS (a one-sided formula) into a parametric
@@ -1636,7 +1665,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp
   rsv <- rsv_intercept_fixed(fixed)
-  if (!is.null(rsv)) {
+  rsv_lower <- isTRUE(rsv[["lower"]])
+  if (!is.null(rsv[["fixed"]])) {
     fixed <- rsv$fixed
     # `rhs` is where a variable scan looks, and `Intercept` is not data
     reformulas::RHSForm(rhs_form) <- call(
@@ -1646,10 +1676,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
               miterms = miterms, meterms = meterms, csterms = csterms,
               gpterms = gpterms, carterms = carterms,
               spdeterms = spdeterms, acterms = acterms, rhs = rhs_form)
-  if (!is.null(rsv)) {
+  if (!is.null(rsv[["fixed"]])) {
     out$center <- FALSE
     out$rsv_intercept <- rsv$pos
   }
+  if (rsv_lower) out$rsv_lower <- TRUE
   out
 }
 

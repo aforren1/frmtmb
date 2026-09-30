@@ -1,0 +1,64 @@
+seen-failing-ce-levels.txt:
+  ── 1. Error ('test-ce-levels.R:347:5'): an mm() term with a by variable draws ea
+  Error: conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable on band = "boot" or 
+  ── 2. Error ('test-ce-levels.R:385:3'): crossed terms at an unseen combination d
+  Error: conditional_effects() cannot draw a new level of the group-level term (1 | g:h) at the grid rows with g = 1, h = 1: to place one it would move a column that another term o
+seen-failing-ce-parity.txt:
+  ── 1. Error ('test-ce-parity.R:25:3'): one invalid effect among valid ones is dr
+  Error: Variable 'xx' is not stored in the model frame; pass the original data via data =
+  ── 2. Failure ('test-ce-parity.R:74:3'): the expected category number of an ordi
+  Expected `any(grepl(r, seen, fixed = TRUE))` to be TRUE.
+  Differences:
+  ── 3. Error ('test-ce-parity.R:98:3'): a display of mi(x, idx = ) is refused by 
+  Error: Could not match all indices in response 'x' on newdata: 100 value(s) of g1 are not among the values of index(g2) on the rows of newdata that 'x' uses
+seen-failing-ce-plot.txt:
+  ── 1. Failure ('test-ce-plot.R:69:3'): plot() takes every argument brms's two pl
+  Expected `ce_f` to be identical to `brms_ce`.
+  Differences:
+  ── 2. Failure ('test-ce-plot.R:70:3'): plot() takes every argument brms's two pl
+  Expected `hyp_f` to be identical to `brms_hyp`.
+  Differences:
+  ── 3. Error ('test-ce-plot.R:82:3'): plot = FALSE returns one plot object per ef
+  Error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol
+  ── 4. Error ('test-ce-plot.R:102:3'): rug draws the observed values of a numeric
+  Error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol
+  ── 5. Error ('test-ce-plot.R:121:5'): mean = FALSE leaves the estimate out only 
+  Error: plot() has no argument `plot` (and 1 more: mean). Did you mean `plt`?. It takes: x, ask, points, ncol
+  ── 6. Error ('test-ce-plot.R:133:3'): stype picks contour lines or a raster for 
+  Error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol
+  ── 7. Error ('test-ce-plot.R:145:3'): layer arguments translate, and the rest ar
+  Error: plot() has no argument `rug` (and 8 more: line_args, cat_args, errorbar_args, point_args, rug_args, spaghetti_args, surface_args, facet_args). It takes: x, ask, points, nc
+  ── 8. Error ('test-ce-plot.R:175:3'): theme, jitter_width and points follow brms
+  Error: plot() has no argument `theme`. It takes: x, ask, points, ncol
+  ── 9. Error ('test-ce-plot.R:200:3'): facet_args lays out the panels of several 
+  Error in `ce_facet_layout(4L, nrow = 1L)`: unused argument (nrow = 1)
+  Backtrace:
+  ── 10. Failure ('test-ce-plot.R:215:3'): plot() of a hypothesis takes brms's arg
+  Expected `pages(plot(h, ask = FALSE))` to be identical to 1L.
+  Differences:
+  ── 11. Error ('test-ce-plot.R:216:3'): plot() of a hypothesis takes brms's argum
+  Error: plot() has no argument `nvariables` (and 1 more: plot). It takes: x, ask
+  ── 12. Error ('test-ce-plot.R:240:3'): a long hypothesis is cut in its title as 
+  Error in `hyp_limit_chars(x, 20)`: could not find function "hyp_limit_chars"
+  Backtrace:
+seen-failing-parity-defects.txt:
+  ── 1. Error ('test-brms-parity-defects.R:203:5'): fitted() takes sample_new_leve
+  Error: fitted() honors sample_new_levels = "gaussian" only. An unseen level's effect is taken from its block's own estimated covariance, which is what brms's "gaussian" does. "ol
+  ── 2. Error ('test-brms-parity-defects.R:231:3'): parnames() on a fit is variabl
+  Error in `parnames(fit)`: could not find function "parnames"
+  Backtrace:
+seen-failing-postfit-draws.txt:
+  ── 1. Error ('test-postfit-draws.R:382:5'): on draws, crossed terms at an unseen
+  Error: conditional_effects() cannot draw a new level of the group-level term (1 | g:h) at the grid rows with g = 1, h = 1: to place one it would move a column that another term o
+  ── 2. Error ('test-postfit-draws.R:420:5'): on draws, an mm() term with a by var
+  Error: conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable on band = "boot" or 
+seen-failing-shapes-draws.txt:
+  ── 1. Error ('test-brms-shapes-draws.R:87:3'): nsamples() is brms's, with brms's
+  Error: nsamples(incl_warmup = TRUE) has nothing to count: frm_sample() discards the warmup rather than storing it, so the object carries post-warmup draws only. ndraws(x) is that
+  ── 2. Failure ('test-brms-shapes-draws.R:138:3'): posterior_samples(pars = ) ord
+  Expected `names(ps(pars = "^b_"))` to be identical to `brms_b`.
+  Differences:
+  ── 3. Failure ('test-brms-shapes-draws.R:152:3'): posterior_samples(pars = ) ord
+  Expected `ps(pars = "^nothing_")` to be NULL.
+  Differences:
+seen-failing-summary.txt:

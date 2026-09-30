@@ -1,0 +1,37 @@
+﻿frmtmb from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+
+== shape A : 1 | g 1 | h 1 | g:h 
+  cond 1 (g/h as in grid: 1,1): constant in x to 8.88e-16; z mean 0.0458 var 1.0143 (N = 400, var SE 0.071); KS p 0.516
+  fit frame and estimates unchanged after the call: FALSE
+
+== shape B : 1 | g 1 | h 1 | g:h 
+  cond 1 (g/h as in grid: 1,1): constant in x to 6.66e-16; z mean 0.0055 var 0.8887 (N = 400, var SE 0.071); KS p 0.859
+  cond 2 (g/h as in grid: 2,3): constant in x to 5.55e-16; z mean 0.0370 var 1.0592 (N = 400, var SE 0.071); KS p 0.637
+  cond 3 (observed): max |residual| 4.44e-16
+  cor of the two new combinations' z: -0.0308
+  fit frame and estimates unchanged after the call: FALSE
+
+== shape D : 1 | h:g 1 | g 1 | h 
+  cond 1 (g/h as in grid: 1,1): constant in x to 8.88e-16; z mean 0.0458 var 1.0143 (N = 400, var SE 0.071); KS p 0.516
+  fit frame and estimates unchanged after the call: FALSE
+
+== shape E : 1 | g [f = a] 1 | g [f = b] 1 | h 1 | g:h 
+labels: r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_h[1,Intercept] r_h[2,Intercept] 
+  cond 1 (g/h as in grid: a,1,1): constant in x to 8.88e-16; z mean 0.0458 var 1.0143 (N = 400, var SE 0.071); KS p 0.516
+  fit frame and estimates unchanged after the call: FALSE
+
+== shape F : 1 | mm(g1, g2) 1 | h 1 | g1:h 
+labels: r_mmg1g2[1,Intercept] r_mmg1g2[2,Intercept] r_mmg1g2[3,Intercept] r_mmg1g2[4,Intercept] r_mmg1g2[5,Intercept] r_mmg1g2[6,Intercept] r_h[1,Intercept] r_h[2,Intercept] 
+mm labels used (members 1 and 2): r_mmg1g2[1,Intercept] r_mmg1g2[2,Intercept] 
+  cond 1 (g/h as in grid: 1,2,1): constant in x to 6.66e-16; z mean 0.0458 var 1.0143 (N = 400, var SE 0.071); KS p 0.516
+  fit frame and estimates unchanged after the call: FALSE
+
+== shape G : 1 | g 1 | h 1 | k 1 | g:h 1 | g:k 
+  cond 1 (g/h as in grid: 1,1,1): constant in x to 8.88e-16; z mean 0.0325 var 0.9641 (N = 400, var SE 0.071); KS p 0.830
+  fit frame and estimates unchanged after the call: FALSE
+
+== shape H : 1 | g 1 | h 1 + x | g:h 
+  cond 1: linear-in-x residual, max dev 1.05e-15
+  cond 1: whitened (u0, u1): means 0.0055 0.0370, var 0.8887 1.0592, cor -0.031
+  fit frame and estimates unchanged after the call: FALSE
+done

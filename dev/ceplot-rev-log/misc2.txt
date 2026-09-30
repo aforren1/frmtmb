@@ -1,0 +1,6 @@
+﻿1 effects = c('a', 'x') : ERROR Variable 'a' is not stored in the model frame; pass the original data via data = 
+1 effects = 'b' : ERROR Variable 'b' is not stored in the model frame; pass the original data via data = 
+2 categorical = FALSE, method = 'predict' : ERROR method = "predict" has no meaning on an ordinal family: the category probabilities conditional_effects() draws ARE the predictive distribution, so there is no further observation noise to add. U 
+   warning: Predictions are treated as continuous variables in 'conditional_effects' with categorical = FALSE, which is likely invalid for ordinal families. Please set 'categorical' to TRUE. 
+2 categorical = FALSE, method = 'posterior_predict' : ERROR method = "predict" has no meaning on an ordinal family: the category probabilities conditional_effects() draws ARE the predictive distribution, so there is no further observation noise to add. U 
+   warning: Predictions are treated as continuous variables in 'conditional_effects' with categorical = FALSE, which is likely invalid for ordinal families. Please set 'categorical' to TRUE. 

@@ -181,8 +181,12 @@ nearest_formal <- function(bad, known) {
 #'   `TRUE` for a method that forwards ALL of them to a function with
 #'   dots of its own. `.unsupported` is checked first either way, so a
 #'   retired spelling is still refused by a method that forwards.
+#' @param .hidden Character vector of names accepted like `.allow` but
+#'   not listed back in the refusal's "It takes:", for a deprecated
+#'   alias that the caller should not be pointed to.
 #' @noRd
-frm_check_dots <- function(..., .unsupported = NULL, .allow = NULL) {
+frm_check_dots <- function(..., .unsupported = NULL, .allow = NULL,
+                           .hidden = NULL) {
   n <- ...length()
   if (n == 0L) return(invisible(NULL))
   w <- sys.parent()
@@ -213,7 +217,7 @@ frm_check_dots <- function(..., .unsupported = NULL, .allow = NULL) {
              "nowhere to put. It takes: ",
              paste(setdiff(known, "..."), collapse = ", "), call. = FALSE)
   }
-  bad <- setdiff(bad, .allow)
+  bad <- setdiff(bad, c(.allow, .hidden))
   if (!length(bad)) return(invisible(NULL))
   # the nearest name is looked for among everything the call really
   # accepts, but only the method's OWN arguments are listed back: for

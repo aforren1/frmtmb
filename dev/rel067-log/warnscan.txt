@@ -1,0 +1,2 @@
+scanned 377 files, escaped 0
+WARNSCAN DONE

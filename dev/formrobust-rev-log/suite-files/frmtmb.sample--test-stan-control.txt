@@ -1,0 +1,4 @@
+Error : 'control' list contains unknown members of names: nonsense_option.
+error in specifying arguments; sampling not done
+RESULT test-stan-control.R pass=47 fail=0 err=0 skip=0 warn=0 tests=11
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb.sample frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

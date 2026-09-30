@@ -254,12 +254,8 @@ test_that("nsamples has reasonable ouputs", {
     "",
     expect_equal(SW(nsamples(fit1, subset = 10:1)), 10)
   )
-  brms_port("brmsfit-methods:595", "defect",
-    paste0(
-      "nsamples() answers now, as brms's does, but incl_warmup = ",
-      "TRUE is refused: frm_sample() discards the warmup rather ",
-      "than storing it, so there is nothing to count. The gap is ",
-      "dev/brms-api-diff.md (c), 'Blocked, not small'"),
+  brms_port("brmsfit-methods:595", "pass",
+    "",
     expect_equal(SW(nsamples(fit1, incl_warmup = TRUE)), 75)
   )
 })
@@ -322,15 +318,8 @@ test_that("posterior_samples has reasonable outputs", {
     "",
     expect_equal(names(draws), variables(fit1))
   )
-  brms_port("brmsfit-methods:635", "defect",
-    paste0(
-      "posterior_samples(pars = '^b_') answers now and returns the ",
-      "right SET of columns; their ORDER is frmtmb's variables() ",
-      "order, which lists each predictor's coefficients together, ",
-      "where brms lists every intercept first. fixef(), vcov() and ",
-      "summary()$fixed take brms's order at item 2.6f; variables() ",
-      "keeps its own, and reordering it is a separate decision ",
-      "(dev/shapes-findings.md section 8)"),
+  brms_port("brmsfit-methods:635", "pass",
+    "",
     expect_equal(names(SW(posterior_samples(fit1, pars = "^b_"))),
                  c("b_Intercept", "b_sigma_Intercept", "b_Trt1",
                    "b_Age", "b_volume", "b_Trt1:Age", "b_sigma_Trt1"))

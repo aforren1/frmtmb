@@ -1,3 +1,77 @@
+# frmtmb.sample 0.15.0
+
+Needs frmtmb 0.67.0: for `ord_delta_info()`, the ordinal families'
+`disc` and threshold structures and `hurdle_cumulative()`'s inverse
+threshold map; for the `parnames()` generic, which it imports, and the
+conditional-effects engine that draws crossed and multi-membership new
+levels; and for `arma_cond_fill_dpars()`, `arma_cond_fill_epred()` and
+`response_codes_newdata()`.
+
+## New features
+
+* **Draws of an ordinal fit with equidistant or sum-to-zero
+  thresholds** carry brms's names: every threshold `b_Intercept[k]`
+  and, for equidistant thresholds, `delta`. The sampler holds fewer
+  parameters than that (two per vector, or one fewer than the
+  thresholds); the columns past them are added after the sampled ones,
+  before `lp__`, as a mixture's last weight is, and dropped again
+  whenever a draw is handed back to the model.
+
+* **brms's default `normal(0, 1)` on the intercept of an ordinal
+  family's `disc`**, which is what places that intercept, since the
+  likelihood cannot tell it from the scale of the thresholds. Under
+  `link_disc = "identity"` brms uses `lognormal(0, 1)`, which
+  `set_prior()` does not carry, and the default-prior message names the
+  gap.
+
+* `nsamples(incl_warmup = TRUE)` counts the iterations the sampler
+  saved, warmup included, from the stanfit that `frm_sample()` keeps,
+  as brms counts them. It was refused. Draws with no stanfit behind
+  them refuse it by name. `nsamples(subset = )` takes brms's check
+  that the subset fits the count.
+
+* `posterior_samples(pars = )` returns the coefficients in brms's
+  order, as brms's `variables()` lists them: the intercept of every
+  distributional parameter first (`b_Intercept`, `b_sigma_Intercept`,
+  `b_x`, `b_sigma_x`), a nonlinear parameter's intercept staying with
+  its own coefficients (`b_a_Intercept`, `b_a_z`, `b_b_Intercept`). Without
+  `pars` the columns are those of `variables()`, as before. A `pars`
+  that matches nothing returns `NULL`, as in brms.
+
+* `parnames()` is frmtmb's generic, re-exported here. With brms loaded
+  it warns once, as brms's does; brms's generic and the method each
+  warned before.
+
+* `conditional_effects()` on draws answers crossed
+  `(1 | g) + (1 | h) + (1 | g:h)` at an unseen combination of observed
+  levels, and a new member of an `mm()` term with a `by` variable.
+
+## Bug fixes
+
+* A `hurdle_cumulative()` fit's draws are named `b_Intercept[k]`, as
+  the other ordinal families' are. They were `tau_raw_k`.
+
+* **`posterior_predict(newdata = )` of a model with `ar()`, `ma()` or
+  `arma()` and `cov = FALSE`** was refused as a structured draw, the
+  same refusal as a `cov = TRUE` block, though core's `predict()`
+  answers it. It answers now, and with brms's treatment of a missing
+  response: a row of newdata whose response is `NA`, or every row when
+  the column is absent, is filled with a draw at that draw's
+  parameters before the rows after it read its residual.
+  `re_formula = ` is no longer refused on such a model either.
+
+* **`posterior_epred(newdata = )` under `cov = FALSE` fills a missing
+  response with a draw**, as brms's `posterior_epred()` does, so the
+  expected-response draws on the rows after it carry the spread of the
+  unobserved past. Core's `fitted()` on a maximum likelihood fit fills
+  with the expected value instead, because it has no draws to carry
+  the fill through.
+
+* **`predictive_error(newdata = )` of a `bernoulli()` model** codes
+  newdata's response as the fit coded its own, so a response held as
+  two values other than 0 and 1 (brms's level-order coding, new in
+  frmtmb) is compared with the draws on the same scale.
+
 # frmtmb.sample 0.14.0
 
 Needs frmtmb 0.66.0: for `subset_resp_check()` and `subset_newdata()`,
@@ -404,7 +478,6 @@ Needs frmtmb 0.64.0, for `rescor_row_loglik()` and `fit_extras(resp =)`.
   draws do not carry as a `frmtmb_sample_error`. The posterior
   package used to raise it as a plain error. The text keeps
   posterior's words, `missing in the draws object`.
-
 
 # frmtmb.sample 0.7.0
 

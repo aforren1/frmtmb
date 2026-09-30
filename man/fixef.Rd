@@ -40,7 +40,9 @@ error naming it, rather than silently changing nothing.}
 come in linear-predictor order, which need not be the matrix's row
 order; index by name. Distributional parameters held at a constant
 are included here and are absent from \code{vcov()} and from the matrix,
-which cover the ESTIMATED population-level coefficients only.}
+which cover the ESTIMATED population-level coefficients only. The
+exception is a constant the family itself supplies and brms does
+not show, an ordinal family's \code{disc} at 1, which is left out.}
 }
 \value{
 A coefficients-by-four matrix, or with \code{flatten = TRUE} a

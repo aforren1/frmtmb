@@ -141,11 +141,19 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
       miss <- Reduce(`|`, lapply(vals, is.na))
       if (b$mm) {
         seen <- lapply(vals, function(v) !is.na(v) & v %in% b$known)
-        obs <- Reduce(`&`, seen)
-        some <- Reduce(`|`, seen)
-        # an mm() by-variable is one column per member, so every by
-        # block of the term is read by the row
-        read <- rep(TRUE, n)
+        # the members this block serves: all of them, or for one
+        # by-level's block of mm(by = ) the members routed to it
+        inb <- ce_mm_in_block(b, nd, vals, seen)
+        obs <- Reduce(`&`, Map(function(s, i) s | !i, seen, inb))
+        some <- Reduce(`|`, Map(`&`, seen, inb))
+        read <- Reduce(`|`, inb)
+        if (!is.null(b$bk[["by"]])) {
+          # the key names only this block's members, so that a member
+          # routed elsewhere does not split this block's rows
+          key <- do.call(paste, c(Map(function(v, i) {
+            ifelse(i, v, "-")
+          }, vals, inb), sep = ":"))
+        }
       } else {
         obs <- !miss & key %in% b$bk[["levels"]]
         some <- obs
@@ -161,6 +169,55 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
     list(n = n, parts = unname(parts))
   })
   list(grids = plans, blocks = blocks, status = status)
+}
+
+#' Which members of an `mm()` term each row routes to one block, as a
+#' list of logical vectors, one per member.
+#'
+#' Without a `by` variable a block serves every member. With one, the
+#' term is one block per by-level, and the design routes a member the
+#' way `by_route_rows()` does: a member at an observed group reads the
+#' block that holds that group, and a member at a new level reads the
+#' block of its own by-value in the row. A by-value the grid cannot
+#' evaluate leaves every member in every block, as before.
+#'
+#' @noRd
+ce_mm_in_block <- function(b, nd, vals, seen) {
+  by <- b$bk[["by"]]
+  all_in <- lapply(vals, function(v) rep(TRUE, length(v)))
+  if (is.null(by)) return(all_in)
+  byv <- tryCatch(
+    as.matrix(eval(by[["expr"]], nd, globalenv())),
+    error = function(e) NULL)
+  if (is.null(byv) || nrow(byv) != nrow(nd) || ncol(byv) != length(vals)) {
+    return(all_in)
+  }
+  lv <- as.character(b$bk[["levels"]])
+  lapply(seq_along(vals), function(k) {
+    bk_by <- as.character(byv[, k])
+    ifelse(seen[[k]], vals[[k]] %in% lv,
+           !is.na(bk_by) & bk_by == by[["level"]])
+  })
+}
+
+#' The label the design gives a row for a block: the grouping
+#' expression evaluated on the row, as the newdata design evaluates it
+#' (`g:h` is the interaction of two factors, `"1:1"`). A row whose
+#' expression cannot be evaluated here falls back to the joined values.
+#'
+#' @noRd
+ce_design_label <- function(b, ndp) {
+  bar <- b$bk[["components"]][[1L]][["bar"]]
+  lab <- if (!is.null(bar)) {
+    tryCatch(as.character(group_values(bar[[3L]], ndp[1L, , drop = FALSE],
+                               globalenv())),
+             error = function(e) NULL)
+  }
+  if (length(lab) != 1L) {
+    vals <- vapply(b$gv, function(v) as.character(ndp[[v]][1L]), "")
+    lab <- if (anyNA(vals)) NA_character_ else paste(vals, collapse = ":")
+  }
+  lab
 }
 
 #' Which rows read a block: all of them, except that the block of one
@@ -210,7 +267,14 @@ ce_plan_part <- function(rows, nd, st, blocks, locked, base) {
   # term's shorter parent is placed after it, so it takes the level the
   # longer term chose
   obsk <- which(st[r1, ] == "")
-  held <- union(locked, unlist(lapply(blocks[obsk], `[[`, "gv")))
+  # an observed multi-membership block holds only its observed members:
+  # with a by variable, a member routed to another by-level's block is
+  # not read here and may still need a placeholder there
+  held <- union(locked, unlist(lapply(blocks[obsk], function(b) {
+    if (!b$mm) return(b$gv)
+    vals <- vapply(b$gv, function(v) as.character(nd[[v]][r1]), "")
+    b$gv[!is.na(vals) & vals %in% b$known]
+  })))
   mmk <- newk[vapply(blocks[newk], `[[`, NA, "mm")]
   for (k in mmk) {
     b <- blocks[[k]]
@@ -234,7 +298,28 @@ ce_plan_part <- function(rows, nd, st, blocks, locked, base) {
       }
       if (!is.null(want)) ok <- ok & !is.na(want) & b$parts[, j] == want
     }
-    if (!any(ok)) ce_plan_refuse(b, nd, r1)
+    if (!any(ok)) {
+      # no level of this block agrees with the columns the rows must
+      # keep: crossed (1 | g) + (1 | h) + (1 | g:h) with g and h at
+      # observed levels never seen together. The columns stay, and in
+      # this part's copy of the fit the block's first level is renamed
+      # to the label the rows carry (ce_plan_eval()), so the design
+      # reads the drawn effects there and nothing else moves. A row with
+      # a grouping variable unset has no label to rename to, and a
+      # label of NA would read NA wherever the variable is also a
+      # predictor (y ~ trt + (1 | trt:subj) with nothing set), so it
+      # keeps 0.66.0's refusal
+      if (anyNA(vapply(b$gv, function(v) as.character(nd[[v]][r1]), ""))) {
+        ce_plan_refuse(b, nd, r1)
+      }
+      for (v in b$gv) {
+        if (is.null(given[[v]])) given[[v]] <- as.character(nd[[v]][r1])
+      }
+      new[[length(new) + 1L]] <- list(
+        block = k, key = st[r1, k], idx = b$bk[["b_idx"]][seq_len(b$d)],
+        relabel = 1L)
+      next
+    }
     lv <- which(ok)[1L]
     for (j in seq_along(b$gv)) {
       v <- b$gv[j]
@@ -249,25 +334,22 @@ ce_plan_part <- function(rows, nd, st, blocks, locked, base) {
   }
   # a multi-membership term: each distinct new member value gets its
   # own placeholder, one the row's observed members do not name, so the
-  # members sharing a value share its draw and their weights add up
+  # members sharing a value share its draw and their weights add up.
+  # With a by variable the term is one block per by-level, and a new
+  # member is placed in the block of its own by-value, at one of that
+  # block's levels: the other by-levels' blocks then read that level as
+  # an observed group of another by-level, which they skip
   for (k in mmk) {
     b <- blocks[[k]]
     vals <- vapply(b$gv, function(v) as.character(nd[[v]][r1]), "")
-    isnew <- is.na(vals) | !vals %in% b$known
-    if (!is.null(b$bk[["by"]])) {
-      # each member would need a new level of its OWN by-level's block,
-      # which one placeholder per block does not give
-      frm_stop("conditional_effects() cannot draw a new level of the ",
-               "multi-membership term (", b$bk[["term_label"]], ") with ",
-               "a by variable on band = \"boot\" or on draws: ",
-               paste0(b$gv[isnew], collapse = ", "), " is unset or at a ",
-               "level the fit never saw. Set every member to a level the ",
-               "fit saw, use band = \"wald\" on a fit, or use re_formula ",
-               "= NA", call. = FALSE)
-    }
+    seen <- !is.na(vals) & vals %in% b$known
+    inb <- vapply(ce_mm_in_block(b, nd[r1, , drop = FALSE], as.list(vals),
+                                 as.list(seen)), `[`, NA, 1L)
+    isnew <- !seen & inb
+    if (!any(isnew)) next
     u <- unique(vals[isnew])
     mt <- match(vals, u)
-    free <- setdiff(b$parts[, 1L], vals[!isnew])
+    free <- setdiff(b$parts[, 1L], vals[seen])
     for (v in b$gv[isnew]) {
       if (is.factor(base[[v]])) free <- intersect(free, levels(base[[v]]))
     }
@@ -314,6 +396,13 @@ ce_plan_part <- function(rows, nd, st, blocks, locked, base) {
       val
     }, length.out = length(rows))
   }
+  # a renamed level takes the label the design gives these rows, read
+  # after every move so that it is the label the prediction will see
+  for (i in seq_along(new)) {
+    if (!is.null(new[[i]]$relabel)) {
+      new[[i]]$label <- ce_design_label(blocks[[new[[i]]$block]], ndp)
+    }
+  }
   list(rows = rows, nd = ndp, new = new)
 }
 
@@ -340,6 +429,14 @@ ce_plan_eval <- function(f, plan, gi, cache, categorical, resp, dpar,
           cache[[ck]] <- ce_plan_draw(fp, plan$blocks[[e$block]])
         }
         b[e$idx] <- cache[[ck]]
+        if (!is.null(e$relabel)) {
+          # the copy's level is renamed to the rows' label; the copy
+          # lives for this part only, so the fit itself is untouched
+          id <- plan$blocks[[e$block]]$id
+          lv <- as.character(fp$frame[["re_blocks"]][[id]][["levels"]])
+          lv[e$relabel] <- e$label
+          fp$frame[["re_blocks"]][[id]][["levels"]] <- lv
+        }
       }
       fp$estimates[["b"]] <- b
     }

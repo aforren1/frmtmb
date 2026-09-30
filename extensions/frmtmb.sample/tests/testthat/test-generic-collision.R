@@ -24,10 +24,12 @@
 # from the package cannot silently drop it from the test.
 # log_lik is NOT here: frmtmb defines that generic and the fit refusal,
 # and this package re-exports it (R/reexports.R), the way it does loo().
+# Nor is parnames: frmtmb defines it for a fit, and this package
+# re-exports it.
 own_generics <- c(
   "as.mcmc", "bayes_factor", "bridge_sampler", "kfold",
   "log_posterior", "loo_moment_match", "loo_subsample", "mcmc_plot",
-  "neff_ratio", "nsamples", "nuts_params", "parnames", "post_prob",
+  "neff_ratio", "nsamples", "nuts_params", "post_prob",
   "posterior_average",
   "posterior_epred", "posterior_interval", "posterior_linpred",
   "posterior_predict", "posterior_samples", "pp_mixture",
@@ -47,7 +49,7 @@ owner_table <- list(
   predictive_error = "rstantools", predictive_interval = "rstantools",
   log_posterior = "bayesplot", neff_ratio = "bayesplot",
   nuts_params = "bayesplot", rhat = c("posterior", "bayesplot"),
-  mcmc_plot = "brms", parnames = "brms", posterior_average = "brms",
+  mcmc_plot = "brms", posterior_average = "brms",
   posterior_samples = c("brms", "gratia"), pp_mixture = "brms",
   reloo = "brms", restructure = "brms", stancode = "brms",
   standata = "brms")
@@ -498,4 +500,33 @@ test_that("every method on an owned name is in each owner's table", {
   expect_length(drop, 1L)
   expect_equal(missing_twins(m[-drop, , drop = FALSE]),
                "posterior::rhat.frmtmb_draws")
+})
+
+test_that("parnames() on draws warns once with brms loaded", {
+  # brms's generic warns before it dispatches, and the method warned
+  # again (review m6, the draws half)
+  skip_on_cran()
+  skip_if_not_installed("brms")
+  code <- c(
+    "suppressMessages(library(brms))",
+    "suppressMessages(library(frmtmb.sample))",
+    "set.seed(1); d <- data.frame(x = rnorm(40)); d$y <- rnorm(40, d$x)",
+    "fit <- frmtmb::frm(frmtmb::bf(y ~ x), family = gaussian(), data = d)",
+    "tpl <- fit$frame$par_template",
+    "est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))",
+    "M <- matrix(rep(est, each = 3), 3,",
+    "  dimnames = list(NULL, frmtmb::brms_par_labels(fit)))",
+    "ds <- structure(list(stanfit = NULL, draws = cbind(",
+    "  frmtmb.sample:::draws_to_natural(M, fit), lp__ = 0), fit = fit),",
+    "  class = 'frmtmb_draws')",
+    "n <- 0L",
+    "p <- withCallingHandlers(parnames(ds), warning = function(w) {",
+    "  n <<- n + 1L; invokeRestart('muffleWarning') })",
+    "cat('NWARN:', n, '\\n')",
+    "cat('SAME:', identical(p, variables(ds)), '\\n')",
+    "cat('CHILDOK\\n')")
+  out <- run_child(code)
+  expect_match(out, "CHILDOK", fixed = TRUE)
+  expect_equal(parse_field(out, "NWARN"), "1")
+  expect_equal(parse_field(out, "SAME"), "TRUE")
 })

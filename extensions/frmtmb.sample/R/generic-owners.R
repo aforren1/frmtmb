@@ -1,6 +1,6 @@
 # Why this file exists.
 #
-# This package defines 28 S3 generics of its own, and every one of
+# This package defines 27 S3 generics of its own, and every one of
 # those names is owned by another package: rstantools, loo,
 # bridgesampling, bayesplot, posterior, coda, gratia or brms. A generic
 # defined here and exported is a rival, not an alias. `UseMethod()`
@@ -46,17 +46,18 @@
 #' Audited with `parseNamespaceFile()` over every installed package and
 #' then by loading each candidate and reading the environment of its
 #' exported function, because a package that exports a name may only
-#' have imported it: brms exports 20 of these 28 and defines 8
-#' (dev/samplegen-audit.R). The owner is the package that DEFINES the
-#' generic, because that is the table brms's own methods are in.
+#' have imported it: brms exported 20 of the 28 audited and defined 8
+#' (dev/samplegen-audit.R). `parnames` has since moved to frmtmb,
+#' which defines it for a fit, and this package re-exports it. The
+#' owner is the package that DEFINES the generic, because that is the
+#' table brms's own methods are in.
 #'
 #' Two names have rival definers whose generics are different closures.
 #' `rhat` is defined by posterior and by bayesplot, and brms imports
 #' posterior's; `posterior_samples` is defined by brms and by gratia.
 #' The binding takes whichever the user would have reached without this
 #' package: the search path first, then this order, which puts brms's
-#' choice first. bbmle exports a `parnames` that is not a generic, so it
-#' is not an owner and the binding would refuse it anyway.
+#' choice first.
 #'
 #' @noRd
 sample_generic_owners <- list(
@@ -80,7 +81,6 @@ sample_generic_owners <- list(
   nuts_params = "bayesplot",
   rhat = c("posterior", "bayesplot"),
   mcmc_plot = "brms",
-  parnames = "brms",
   posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
   pp_mixture = "brms",

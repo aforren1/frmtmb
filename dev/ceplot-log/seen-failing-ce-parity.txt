@@ -1,0 +1,48 @@
+ARM base | frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+ce-parity: 12...3
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-ce-parity.R:25:3'): one invalid effect among valid ones is dr
+<frmtmb_error/error/condition>
+Error: Variable 'xx' is not stored in the model frame; pass the original data via data =
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-ce-parity.R:25:3
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. ├─frmtmb::conditional_effects(fit, effects = c("xx", "x"))
+ 4. └─frmtmb:::conditional_effects.frmtmb_fit(...)
+ 5.   └─frmtmb::ce_grids_build(...)
+ 6.     └─frmtmb::frm_stop(...)
+
+── 2. Failure ('test-ce-parity.R:74:3'): the expected category number of an ordi
+Expected `any(grepl(r, seen, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+expected a warning containing 'Predictions are treated as continuous variables'
+Backtrace:
+    ▆
+ 1. └─frmtmb:::allow_warnings(...) at test-ce-parity.R:74:3
+ 2.   └─testthat::expect_true(...) at ./helper-warnings.R:25:5
+
+── 3. Error ('test-ce-parity.R:98:3'): a display of mi(x, idx = ) is refused by 
+<frmtmb_error/error/condition>
+Error: Could not match all indices in response 'x' on newdata: 100 value(s) of g1 are not among the values of index(g2) on the rows of newdata that 'x' uses
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-ce-parity.R:98:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─frmtmb::conditional_effects(mv, "w", resp = "y")
+  8. └─frmtmb:::conditional_effects.frmtmb_fit(mv, "w", resp = "y")
+  9.   └─frmtmb::frm_linpred(...)
+ 10.     └─frmtmb:::lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+ 11.       └─frmtmb:::pred_design(object, lp, newdata, allow_new_levels, use_re = use_re)
+ 12.         └─frmtmb:::mi_idx_newdata(fit, mt, newdata, env)
+ 13.           └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════

@@ -4,7 +4,15 @@
 \alias{bf}
 \title{Set up a model formula}
 \usage{
-bf(formula, ..., family = NULL, nl = NULL, center = NULL, cmc = NULL)
+bf(
+  formula,
+  ...,
+  family = NULL,
+  nl = NULL,
+  center = NULL,
+  cmc = NULL,
+  autocor = NULL
+)
 }
 \arguments{
 \item{formula}{The model formula for \code{mu}, or a formula \code{bf()}
@@ -55,6 +63,11 @@ brms; give a parameter formula its own with \code{\link[=lf]{lf()}}. \code{cmc =
 refused on \code{ar1()}, \code{hetar1()}, \code{cs()}, \code{homcs()}, \code{toep()},
 \code{homtoep()} and the distance structures \code{ou()}, \code{exp()}, \code{gau()},
 \code{mat()}, which read one coefficient per level of their factor.}
+
+\item{autocor}{A one-sided formula of autocorrelation terms, as in
+brms, e.g. \code{~ ar(week, subj)}. The terms are added to the location
+formula, so \code{bf(y ~ x, autocor = ~ ar(week, subj))} is
+\code{bf(y ~ x + ar(week, subj))}. See \link{autocor-terms}.}
 }
 \value{
 An object of class \code{frmtmb_formula}.
@@ -69,7 +82,21 @@ Nonlinear formulas (\code{nl = TRUE}) and multivariate models (see
 }
 \details{
 The left-hand side accepts addition terms after \code{|}:
-\code{y | weights(w) ~ ...} and \code{y | trials(n) ~ ...}.
+\code{y | weights(w) ~ ...} and \code{y | trials(n) ~ ...}. As in brms, an
+addition term's argument is evaluated on the data rows, so it can be
+an expression, as in \code{weights(w * 2)}, \code{trials(n + 1)} or
+\code{trunc(lb = min(y) - 1)}, and a single value is used for every row.
+Every variable an addition term reads must be a column of the data,
+as brms requires: \code{trials(k)} or \code{weights(wt * k)} with \code{k} defined
+only outside the data is refused by name. Predictions on newdata and
+refits read the term again, and a value from outside the data may be
+missing or different by then, most harmfully in \code{trials()}, where
+the change would go unseen. Function calls such as \code{log()} are
+allowed, and predictor formulas and \code{offset()} keep R's usual rule of
+looking in the formula environment too. An expression that gives
+\code{NA} on a row is refused, as brms refuses it.
+\code{weights(w, scale = TRUE)} scales the weights to a mean of one, as
+brms does.
 Every linear predictor accepts lme4-style random effects \code{(1 | g)},
 \code{(1 + x | g)}, \code{(x || g)}, and explicit covariance-structure wrappers
 \code{us(x | g)} and \code{diag(x | g)}.

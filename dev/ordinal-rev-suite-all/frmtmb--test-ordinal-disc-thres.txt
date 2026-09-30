@@ -1,0 +1,43 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠸ |          4 | ordinal-disc-thres                                             
+⠧ |          8 | ordinal-disc-thres                                             
+⠙ |         12 | ordinal-disc-thres                                             
+⠼ |         15 | ordinal-disc-thres                                             
+⠇ |         19 | ordinal-disc-thres                                             
+⠹ |         23 | ordinal-disc-thres                                             
+⠴ |         26 | ordinal-disc-thres                                             
+⠏ |         30 | ordinal-disc-thres                                             
+⠸ |         34 | ordinal-disc-thres                                             
+⠦ |         37 | ordinal-disc-thres                                             
+⠋ |         41 | ordinal-disc-thres                                             
+⠼ |         45 | ordinal-disc-thres                                             
+⠇ |         49 | ordinal-disc-thres                                             
+⠹ |         53 | ordinal-disc-thres                                             
+⠧ |         58 | ordinal-disc-thres                                             
+⠋ |         61 | ordinal-disc-thres                                             
+⠼ |         65 | ordinal-disc-thres                                             
+⠦ |         67 | ordinal-disc-thres                                             
+⠇ |         69 | ordinal-disc-thres                                             
+⠸ |         74 | ordinal-disc-thres                                             
+⠹ |         83 | ordinal-disc-thres                                             
+⠴ |         86 | ordinal-disc-thres                                             
+⠇ |         89 | ordinal-disc-thres                                             
+⠴ |         96 | ordinal-disc-thres                                             
+⠙ |        102 | ordinal-disc-thres                                             
+⠼ |        105 | ordinal-disc-thres                                             
+⠴ |        106 | ordinal-disc-thres                                             
+⠧ |        108 | ordinal-disc-thres                                             
+⠙ |        112 | ordinal-disc-thres                                             
+⠴ |        116 | ordinal-disc-thres                                             
+⠇ |        119 | ordinal-disc-thres                                             
+✔ |        120 | ordinal-disc-thres [7.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 7.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 120 ]
+RESULT lane frmtmb test-ordinal-disc-thres.R pass=120 fail=0 err=0 skip=0 warn=0

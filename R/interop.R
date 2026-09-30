@@ -135,7 +135,9 @@ interop_coef_names <- function(model) {
   tpl <- model$frame[["par_template"]]
   for (cp in ord_extra_comps(model)) {
     v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (is.null(v)) {
+      v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
+    }
     nm <- c(nm, v)
   }
   nm
@@ -302,9 +304,20 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
 #' generalized linear model. With `epred = TRUE` it is the average of
 #' the predicted means, which is how brms marginalizes the expected
 #' response. `type = "response"` applies the inverse link of the
-#' selected predictor once, after the average. With `epred = TRUE`
-#' there is no link to apply, because the estimates are already on
-#' the response scale, so `type = "response"` changes nothing. A
+#' selected predictor once, after the average. As in brms, a
+#' predictor's `offset()` terms are included at the grid's values of
+#' their variables, which are held at their means like other covariates
+#' unless `at =` sets them; on the design route this is emmeans's own
+#' `.offset.` column. An offset inside a nonlinear parameter's formula
+#' is left out of the body's emmean, as brms leaves it out, and the
+#' expected response (`epred = TRUE`) includes every offset once. One
+#' divergence, on purpose: over the responses of a multivariate fit,
+#' with no `resp =`, each response gets its own offset. brms has one
+#' `.offset.` column for the whole grid, so it adds one response's
+#' offset to every response.
+#' With `epred = TRUE` there is no link to apply, because the estimates
+#' are already on the response scale, so `type = "response"` changes
+#' nothing. A
 #' nonlinear `mu` is reported on its link scale, where the body's value
 #' lives; `type = "response"` applies the family's inverse link to it.
 #' A response transformation such as `log(y)` is detected for `mu` and
@@ -372,6 +385,21 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
 #' }
 NULL
 
+#' brms's `validate_resp()`: `resp` names responses of the fit, and
+#' `NULL` means all of them. Refused in brms's words.
+#'
+#' @noRd
+brms_validate_resp <- function(object, resp) {
+  all_resp <- names(object$spec$responses)
+  if (is.null(resp)) return(all_resp)
+  if (!is.character(resp) || !length(resp) || anyNA(resp) ||
+        !all(resp %in% all_resp)) {
+    frm_stop("Invalid argument 'resp'. Valid response variables are: ",
+             paste0("'", all_resp, "'", collapse = ", "), call. = FALSE)
+  }
+  unique(resp)
+}
+
 #' Resolve brms's emmeans arguments against a fit.
 #'
 #' Called twice per grid, by `recover_data()` and by `emm_basis()`, so
@@ -401,15 +429,7 @@ emm_target <- function(object, resp = NULL, dpar = NULL, nlpar = NULL,
     frm_stop("'dpar' and 'nlpar' cannot be specified at the same time.",
              call. = FALSE)
   }
-  all_resp <- names(object$spec$responses)
-  if (is.null(resp)) {
-    resp <- all_resp
-  } else if (!is.character(resp) || !length(resp) || anyNA(resp) ||
-             !all(resp %in% all_resp)) {
-    frm_stop("Invalid argument 'resp'. Valid response variables are: ",
-             paste0("'", all_resp, "'", collapse = ", "), call. = FALSE)
-  }
-  resp <- unique(resp)
+  resp <- brms_validate_resp(object, resp)
   # re_resolve() refuses a term that matches no group-level term of the
   # fit, rather than reading a misspelled factor as "drop them all"
   use_re <- re_form_keeps(
@@ -419,6 +439,15 @@ emm_target <- function(object, resp = NULL, dpar = NULL, nlpar = NULL,
   names(targets) <- resp
   design <- !epred && !use_re &&
     all(vapply(targets, function(t) emm_is_design(t$lp), NA))
+  # emmeans has one .offset. column for the whole grid, which would add
+  # one response's offset to every response; the grid route adds each
+  # response its own
+  if (design && length(targets) > 1L &&
+        any(vapply(targets, function(t) {
+          length(attr(t$lp[["terms"]], "offset")) > 0L
+        }, NA))) {
+    design <- FALSE
+  }
   misc <- list()
   if (!epred) {
     links <- vapply(targets, `[[`, "", "link")
@@ -663,6 +692,9 @@ emm_group_vars <- function(rspec, dpar) {
 #' @noRd
 emm_terms <- function(object, tg) {
   if (tg$route == "design" && length(tg$targets) == 1L) {
+    # the offset stays in the terms: emmeans then puts it in the grid's
+    # .offset. column and adds it at the grid's value, which is how
+    # brms's emmeans() includes it (its basis is offset = FALSE)
     return(stats::delete.response(tg$targets[[1L]]$lp[["terms"]]))
   }
   vars <- if (tg$route == "design") {
@@ -729,6 +761,9 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
                                  epred = FALSE) {
   tg <- emm_target(object, resp = resp, dpar = dpar, nlpar = nlpar,
                    re_formula = re_formula, epred = epred, warn = TRUE)
+  # a nonlinear body's parameters keep their offsets out, as brms's
+  # grid cannot see them; the selected predictor keeps its own
+  if (!tg$epred) object <- emm_drop_offsets(object, tg)
   b <- if (tg$route == "design") {
     emm_basis_design(object, tg, xlev, grid)
   } else {
@@ -736,6 +771,28 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
   }
   list(X = b$X, bhat = b$bhat, nbasis = matrix(NA), V = b$V,
        dffun = function(k, dfargs) Inf, dfargs = list(), misc = tg$misc)
+}
+
+#' The fit with the `offset()` terms of every linear predictor except
+#' the selected ones taken out of the prediction. brms adds a selected
+#' predictor's offset back through emmeans's `.offset.` column, which on
+#' the grid route is the offset `frm_lp_basis()` already includes; an
+#' offset inside a nonlinear parameter's formula never reaches brms's
+#' reference grid, so a nonlinear body's emmean leaves it out.
+#'
+#' @noRd
+emm_drop_offsets <- function(object, tg) {
+  lps <- object$frame[["linpreds"]]
+  keep <- vapply(tg$targets, function(t) linpred_key(t$resp, t$name), "")
+  for (k in setdiff(names(lps), keep)) {
+    tt <- lps[[k]][["terms"]]
+    if (length(attr(tt, "offset"))) {
+      attr(tt, "offset") <- NULL
+      lps[[k]][["terms"]] <- tt
+    }
+  }
+  object$frame[["linpreds"]] <- lps
+  object
 }
 
 #' The design basis: each selected predictor's fixed-effect design at the
@@ -751,7 +808,7 @@ emm_basis_design <- function(object, tg, xlev, grid) {
   for (t in tg$targets) {
     lp <- t$lp
     trm <- stats::delete.response(lp[["terms"]])
-    xl <- xlev[intersect(names(xlev), all.vars(trm))]
+    xl <- xlev_for(xlev, trm)
     m <- stats::model.frame(trm, grid, na.action = stats::na.pass,
                             xlev = xl)
     X <- stats::model.matrix(trm, m, contrasts.arg = lp[["contrasts"]])
@@ -974,7 +1031,8 @@ getME_flist <- function(object) {
     lp <- object$frame[["linpreds"]][[comp$lp_key]]
     env <- object$spec$responses[[lp[["resp"]]]]$formula_env
     gv <- tryCatch(
-      as.character(eval(comp$bar[[3L]], object$frame[["data_frame"]], env)),
+      as.character(group_values(comp$bar[[3L]], object$frame[["data_frame"]],
+                                env)),
       error = function(e) NULL
     )
     if (length(gv) != object$frame[["n_obs"]]) {

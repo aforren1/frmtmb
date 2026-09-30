@@ -1,0 +1,14 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mi-bsp-names                                                   
+⠋ |          1 | mi-bsp-names                                                   
+⠴ |          6 | mi-bsp-names                                                   
+⠦ |          7 | mi-bsp-names                                                   
+✔ |         11 | mi-bsp-names [1.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 11 ]
+RESULT lane frmtmb test-mi-bsp-names.R pass=11 fail=0 err=0 skip=0 warn=0

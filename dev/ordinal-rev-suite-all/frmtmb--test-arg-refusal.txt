@@ -1,0 +1,18 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | arg-refusal                                                    
+⠋ |          1 | arg-refusal                                                    
+⠹ |         13 | arg-refusal                                                    
+⠸ |         34 | arg-refusal                                                    
+⠦ |         77 | arg-refusal                                                    
+⠹ |         83 | arg-refusal                                                    
+⠸ |         84 | arg-refusal                                                    
+⠋ |        101 | arg-refusal                                                    
+✔ |        114 | arg-refusal [5.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 114 ]
+RESULT lane frmtmb test-arg-refusal.R pass=114 fail=0 err=0 skip=0 warn=0

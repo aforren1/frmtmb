@@ -1,12 +1,103 @@
 # Handing a round to a new session
 
 Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
-0.64.0 brms-parity release and 2026-09-29 at the 0.65.0 and 0.66.0
-releases. Read this, then `dev/extension-gaps-plan.md`, then
-`dev/organizer-rules.md` and `dev/lane-rules.md`. Read
-`dev/machine-library.md` BEFORE you run anything: the library has been
-lost EIGHT times, and the last three losses each followed processes
-being killed, not low disk.
+0.64.0 brms-parity release, 2026-09-29 at the 0.65.0 and 0.66.0
+releases and 2026-09-30 at the 0.67.0 release. Read this, then
+`dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
+`dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
+anything: the library has been lost EIGHT times, and the last three
+losses each followed processes being killed, not low disk.
+
+## The 0.67.0 round, 2026-09-30
+
+`dev/round-20260930.md` is this round's record, with the verification
+of the release tree. Each lane has `dev/<lane>-findings.md` and
+`dev/reviews/2026-09-30-<lane>.md`. Three lanes of brms parity merged:
+
+- `ordinal`: brms's `disc` on every ordinal family,
+  `threshold = "equidistant"` and `"sum_to_zero"`, and every brms link
+  on `acat()`, with brms's draw names in frmtmb.sample.
+- `ceplot`: `plot()` of conditional effects and of a hypothesis
+  returns plot objects and takes brms's arguments; brms's effect check;
+  new levels on crossed and `mm(by = )` terms in
+  `conditional_effects()`; `fitted(sample_new_levels = "old_levels")`
+  with one choice per grouping factor and per call; `parnames()` on a
+  fit; `nsamples(incl_warmup = TRUE)`; brms's order in
+  `posterior_samples(pars = )`.
+- `formrobust`: addition-term expressions, `update()` that keeps the
+  parameter formulas, bernoulli on any two values, `ar()` and the other
+  autocorrelation functions, `autocor()`, `drop_unused_levels`, offsets
+  in the grids of `conditional_effects()` and `emmeans()`, and the
+  ARMA fill of a missing response on newdata.
+
+Versions: frmtmb **0.67.0**; frmtmb.sample **0.15.0**, floor frmtmb
+0.67.0 (it imports `parnames()` and calls `ord_delta_info()`,
+`arma_cond_fill_dpars()`, `arma_cond_fill_epred()` and
+`response_codes_newdata()`). The other six extensions are unchanged.
+The release library is `C:/Users/adf44/source/r/rellib-r5`; `rellib-r4`
+keeps the 0.66.0 build. In brms's own ported suite, bin 1 passes
+387 of 494 (368 at 0.66.0).
+
+### Decisions the user made on 2026-09-30, for this round
+
+- **The ordinal default of `conditional_effects()` stays the
+  per-category display**, a deliberate divergence from brms. brms's
+  default is the expected category number, and its own warning calls
+  that display likely invalid for ordinal families and asks for
+  `categorical = TRUE`, which is frmtmb's default. brms's warning comes
+  with `categorical = FALSE`. Ledger row `brmsfit-methods:217` is a
+  divergence.
+- **A family-default fixed `disc` is hidden, as brms hides it.** A
+  `disc` held at 1 shows nowhere: not on the `Links:` line, not as a
+  `Fixed dpar:`, not in `fixef(flatten = TRUE)` or `coef()`. A `disc`
+  the user fixes at another value still shows.
+- **Addition terms read data variables only**, as brms requires. A
+  variable found only in the formula environment is refused by name,
+  because predictions on newdata and refits read the term again, where
+  an outside value can be missing or changed. Predictor formulas and
+  offsets keep R's rule of looking in the formula environment.
+- **Filed as an idea, not built: snapshot outside constants at fit
+  time**, so that a predictor or offset that reads a value outside the
+  data reads the same value in a later prediction or refit.
+- **bernoulli codes any two values by level order, as brms does**, and
+  warns when both values lie strictly between 0 and 1, since that looks
+  like a proportion (lme4#682). Effect coding such as -0.5 and 0.5 does
+  not warn.
+- **The ARMA fill of a missing response**: frmtmb.sample's draws sample
+  the fill, as brms does, and the maximum likelihood `fitted()` fills
+  with the expected value, a deliberate divergence, since a fit has no
+  draws to carry the fill through.
+
+### What the 0.67.0 round is evidence for
+
+**A worker's report can fail to arrive; read its findings file.** The
+findings file is the record the lane is judged on. When a report does
+not reach the coordinator, the lane's state is still in
+`dev/<lane>-findings.md`, and the consolidation read each lane's
+intent there: for every conflict, and for the ledger rows each lane
+said it flipped.
+
+**A small punch round can reverse the direction of a change.** Lane
+formrobust's first `emmeans()` offset change went one way, its review
+found brms does the other, and the punch round turned it around. Run
+brms on the case, rather than only reading its code: the reversal came
+from a run (`dev/formrobust-rev-log/brms-emm.txt`), not from the
+source.
+
+**A merge of two clean lanes can make a wrong answer that neither
+lane has.** formrobust put offset variables in the model frame for the
+grids; ceplot's effect check read every variable of the terms. Together
+they accepted `effects = "time"` for a variable only an offset reads,
+which brms refuses, while each lane alone stopped or answered for
+another reason. Run the interplay of two lanes that touch one function
+on the merged tree, with brms beside it (`dev/rel067-effoffset.R`).
+
+**A lane's record of a ledger row can be wrong in the direction it
+expects.** formrobust recorded `brmsfit-methods:955` as a class-name
+divergence because `update()` "refits". On the lane's own library the
+refit stops at its starting values. Read the message the merged build
+records for every row whose message moved
+(`dev/rel067-msgdiff.R`), not only the rows a builder stops on.
 
 ## The 0.66.0 round, 2026-09-29
 
@@ -517,12 +608,11 @@ it.
 
 ## Worktrees
 
-None should be live once 0.66.0 is committed. The 0.66.0 round used
-six lane worktrees off `1f40800d` (`wt-sampfix`, `wt-fams2`,
-`wt-aterms2`, `wt-formula2`, `wt-defects`, `wt-postfit2`) and one
-integration worktree, `wt-release` off `56af5022`, where the six were
-combined and verified. Their private libraries are
-`C:/Users/adf44/source/r/wt-<lane>-lib`; the release library is
-`C:/Users/adf44/source/r/rellib-r4`, and `rellib-r3` holds the 0.65.0
-reference build. Remove a worktree and prune its branch only after its
+None should be live once 0.67.0 is committed. The 0.67.0 round used
+three lane worktrees off `57c25589` (`wt-ordinal`, `wt-ceplot`,
+`wt-formrobust`) and one integration worktree, `wt-release` off
+`57c25589`, where the three were combined and verified. Their private
+libraries are `C:/Users/adf44/source/r/wt-<lane>-lib`; the release
+library is `C:/Users/adf44/source/r/rellib-r5`, and `rellib-r4` holds
+the 0.66.0 reference build. Remove a worktree and prune its branch only after its
 work is merged and its evidence is committed on main under `dev/`.

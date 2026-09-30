@@ -101,8 +101,10 @@ test_that("a hurdle ordinal's expected category is scored 0..K", {
   expect_true(all(pp %in% 0:4))
   ep <- posterior_epred(cs$ds, ndraws = 20)
   expect_identical(dim(ep)[3], 5L)
-  cd <- conditional_effects(cs$ds, effects = "x", resolution = 4,
-                            categorical = FALSE, robust = FALSE)
+  cd <- allow_warnings(
+    conditional_effects(cs$ds, effects = "x", resolution = 4,
+                        categorical = FALSE, robust = FALSE),
+    "Predictions are treated as continuous")
   pc <- conditional_effects(cs$ds, effects = "x", resolution = 4,
                             robust = FALSE)[["x:cats__"]]
   ncat <- nlevels(pc$cats__)

@@ -477,6 +477,124 @@ test_that("row 16g: hurdle cumulative, probit, with disc ~ 0 + x", {
                 brms::hurdle_cumulative("probit"), dc, fit)
 })
 
+# Rows 12e to 12g: brms's discrimination `disc` and its threshold
+# structures on the ordinal families (dev/ordinal-findings.md). The data
+# put a covariate z on the latent scale's spread, so disc ~ 0 + z has
+# something to find; disc is modeled without an intercept because the
+# likelihood cannot tell one apart from the scale of the thresholds.
+#
+# brms 2.23.0's own program fails on two shapes, not frmtmb.
+# cratio("cloglog") with a modeled disc has a NaN gradient on data with
+# a row whose disc * (mu - thres_k) exceeds about 6.6 on a threshold
+# below its category: exp(-exp(th)) underflows, q_k is 0 and
+# log1m_exp(0) is -Inf, and that term poisons the gradient although it
+# is not returned. Seed 20260930 has one such row (th = 8.75), so the
+# cloglog row below runs on seed 20260931, whose largest is 4.70
+# (dev/ordinal-p1-cloglog.R). cumulative(threshold = "sum_to_zero")
+# under the logit link with disc held at 1 does not compile (brms passes
+# the literal 0 as the thresholds of ordered_logistic_glm_lpmf), so that
+# structure is checked on cumulative through another link or a modeled
+# disc instead.
+ord_disc_data <- function(seed, n = 300) {
+  set.seed(seed)
+  d <- data.frame(x = rnorm(n), z = rnorm(n),
+                  g = factor(sample(c("a", "b"), n, TRUE)))
+  u <- stats::rlogis(n) / exp(0.4 * d$z) + 0.8 * d$x
+  d$y <- 1L + (u > -1.2) + (u > -0.2) + (u > 0.8) + (u > 1.8)
+  d$yh <- ifelse(runif(n) < stats::plogis(-1 + 0.3 * d$x), 0L, d$y)
+  d
+}
+
+# one row: the same formula through frmtmb's bf() and brms's, the same
+# family through frmtmb's constructor and brms's
+ord_lp_row <- function(forms, fam, d) {
+  fit <- frm(do.call(bf, forms), family = fam, data = d, control = lp_tight)
+  bfam <- do.call(getExportedValue("brms", fam$family),
+                  c(list(fam[["ord_link"]][["name"]]),
+                    threshold = fam[["threshold"]]))
+  brms_lp_check(do.call(brms::bf, forms), bfam, d, fit)
+}
+
+test_that("row 12e: disc on every ordinal family", {
+  skip_unless_brms_fit()
+  d <- ord_disc_data(20260930)
+  dz <- list(y ~ x, disc ~ 0 + z)
+  ord_lp_row(dz, cumulative(), d)
+  ord_lp_row(dz, cumulative("probit"), d)
+  ord_lp_row(dz, sratio(), d)
+  ord_lp_row(dz, cratio("probit"), d)
+  ord_lp_row(dz, cratio("cloglog"), ord_disc_data(20260931))
+  ord_lp_row(dz, acat(), d)
+  # disc beside cs(), which brms subtracts from the thresholds before
+  # disc scales them
+  dcs <- list(y ~ x + cs(z), disc ~ 0 + x)
+  ord_lp_row(dcs, sratio(), d)
+  ord_lp_row(dcs, acat(), d)
+  # a disc link other than the log
+  fit <- frm(bf(y ~ x, disc ~ 0 + z),
+             family = cumulative(link_disc = "softplus"), data = d,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, disc ~ 0 + z),
+                brms::cumulative(link_disc = "softplus"), d, fit)
+})
+
+test_that("row 12f: equidistant and sum-to-zero thresholds", {
+  skip_unless_brms_fit()
+  d <- ord_disc_data(20260930)
+  y1 <- list(y ~ x)
+  dz <- list(y ~ x, disc ~ 0 + z)
+  ord_lp_row(y1, cumulative(threshold = "equidistant"), d)
+  ord_lp_row(dz, cumulative("probit", threshold = "equidistant"), d)
+  ord_lp_row(list(y ~ x + cs(z)), sratio(threshold = "equidistant"), d)
+  ord_lp_row(y1, cratio(threshold = "equidistant"), d)
+  ord_lp_row(dz, acat(threshold = "equidistant"), d)
+  ord_lp_row(dz, cumulative(threshold = "sum_to_zero"), d)
+  ord_lp_row(y1, cumulative("probit", threshold = "sum_to_zero"), d)
+  ord_lp_row(dz, sratio(threshold = "sum_to_zero"), d)
+  ord_lp_row(y1, cratio("probit", threshold = "sum_to_zero"), d)
+  ord_lp_row(list(y ~ x + cs(z)), acat(threshold = "sum_to_zero"), d)
+})
+
+test_that("row 12g: structures under thres(gr = ), and the hurdle", {
+  skip_unless_brms_fit()
+  d <- ord_disc_data(20260930)
+  ord_lp_row(list(y | thres(gr = g) ~ x),
+             cumulative(threshold = "equidistant"), d)
+  ord_lp_row(list(y | thres(gr = g) ~ x, disc ~ 0 + z),
+             sratio(threshold = "sum_to_zero"), d)
+  ord_lp_row(list(y | thres(gr = g) ~ x, disc ~ 0 + z), acat(), d)
+  fit <- frm(yh ~ x, family = hurdle_cumulative("probit",
+                                                threshold = "equidistant"),
+             data = d, control = lp_tight)
+  brms_lp_check(brms::bf(yh ~ x),
+                brms::hurdle_cumulative("probit", threshold = "equidistant"),
+                d, fit)
+  fit <- frm(bf(yh ~ x, hu ~ x),
+             family = hurdle_cumulative(threshold = "sum_to_zero"),
+             data = d, control = lp_tight)
+  brms_lp_check(brms::bf(yh ~ x, hu ~ x),
+                brms::hurdle_cumulative(threshold = "sum_to_zero"), d, fit)
+})
+
+test_that("row 12h: acat off the logit", {
+  skip_unless_brms_fit()
+  # brms reads acat off the logit in a second form, a product of
+  # distribution functions times a reversed product of survivals
+  # (brms:::stan_ordinal_lpmf()); each link once, beside disc, cs(), a
+  # structure or grouped thresholds
+  d <- ord_disc_data(20260930)
+  ord_lp_row(list(y ~ x, disc ~ 0 + z), acat("probit"), d)
+  ord_lp_row(list(y ~ x + cs(z)), acat("cloglog"), d)
+  ord_lp_row(list(y ~ x), acat("cauchit", threshold = "equidistant"), d)
+  ord_lp_row(list(y ~ x), acat("probit_approx", threshold = "sum_to_zero"),
+             d)
+  # softit is checked on the R side only (test-ordinal-disc-thres.R):
+  # brms 2.23.0's softit helper divides a vector by a vector with `/`,
+  # which the installed stanc refuses, so brms's program does not
+  # compile
+  ord_lp_row(list(y | thres(gr = g) ~ x, disc ~ 0 + z), acat("probit"), d)
+})
+
 test_that("row 20: weights(w)", {
   skip_unless_brms_fit()
 

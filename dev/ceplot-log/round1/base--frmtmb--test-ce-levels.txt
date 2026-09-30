@@ -1,0 +1,4 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb | frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
+RESULT base frmtmb test-ce-levels.R: tests=68 failed=0 error=2 skipped=0 warning=0 passed=68
+  fails: an mm() term with a by variable draws each new member's level 
+  fails: crossed terms at an unseen combination draw its new level 

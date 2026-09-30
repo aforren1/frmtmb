@@ -1,0 +1,7 @@
+MUTATED frmtmb::emm_target
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R02_mv_grid_switch_off.R
+DETAIL [expectation_failure] the grid route and a multivariate fit add each offset once: Expected `og_rel(...)` < `64 * .Machine$double.eps`.
+Actual comparison: 0.81818289248173 >= 0.00000000000001
+Difference: 0.81818289248172 >= 0
+RESULT test-offset-grid.R pass=30 fail=1 err=0 skip=0 warn=0 tests=7
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

@@ -1,0 +1,28 @@
+[weights draws] identical: TRUE
+[weights log_lik] identical: TRUE
+[weights posterior_predict(newdata)] identical: TRUE
+[weights posterior_epred(newdata)] identical: TRUE
+[weights loo] identical: TRUE
+[rate draws] identical: TRUE
+[rate log_lik] identical: TRUE
+[rate posterior_predict(newdata)] identical: TRUE
+[rate posterior_epred(newdata)] identical: TRUE
+[rate loo] identical: TRUE
+[trunc draws] identical: TRUE
+[trunc log_lik] identical: TRUE
+[trunc posterior_predict(newdata)] identical: FALSE
+[trunc posterior_epred(newdata)] identical: FALSE
+[trunc loo] identical: TRUE
+Warning messages:
+1: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 
+2: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 
+3: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 
+4: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 
+5: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 
+6: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+ 

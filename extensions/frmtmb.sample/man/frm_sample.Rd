@@ -364,8 +364,15 @@ priors, read off \code{brms::default_prior()} on matched models. Write
    \code{rescor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
+   \code{Intercept} of an ordinal family's \code{disc} \tab \code{normal(0, 1)} \tab link \cr
 }
 
+
+The \code{disc} default is brms's for every \code{link_disc} but the identity,
+where brms uses \code{lognormal(0, 1)}, which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} does
+not carry; the message names that gap. It matters more than most
+defaults: the likelihood cannot tell an intercept in \code{disc} apart
+from the scale of the thresholds, so this prior is what places it.
 
 \code{m} is the mean of the predictor's \code{offset()}, 0 without one. brms
 takes it off because an offset moves the intercept by that much, and

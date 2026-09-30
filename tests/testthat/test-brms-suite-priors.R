@@ -23,11 +23,8 @@ test_that("default_prior finds all classes for which priors can be specified", {
       sort(c(rep("b", 4), c("cor", "cor"), "Intercept", rep("sd", 6)))
     )
   )
-  brms_port("priors:14", "cannot transfer",
-    paste0(
-      "sratio() takes no threshold = 'equidistant' (cse() exists ",
-      "now, lane fams2); equidistant thresholds are not built ",
-      "(dev/fams2-findings.md, 'Decided not to do')"),
+  brms_port("priors:14", "pass",
+    "",
     expect_equal(
       sort(
         default_prior(

@@ -1,0 +1,14 @@
+MUTATED frmtmb::parse_response
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M03_scale_no_length.R
+DETAIL [expectation_failure] weights(scale = TRUE) is brms's scaling: Expected `logLik(frm(bf(y | weights(wt, scale = TRUE) ~ x), data = ae_data))` to be identical to `logLik(frm(bf(y | weights(wsc) ~ x), data = d))`.
+Differences:
+  `actual`:  -1.4
+`expected`: -82.9
+
+DETAIL [expectation_failure] the values are brms's own: Expected `as.numeric(sd$weights)` to be identical to `fr$aterm_values[[1L]][["weights"]]`.
+Differences:
+  `actual`: 0.64 0.76 1.61 0.61 0.95 0.49 0.44 1.44 1.26 1.17 and 50 more...
+`expected`: 0.01 0.01 0.03 0.01 0.02 0.01 0.01 0.02 0.02 0.02            ...
+
+RESULT test-aterm-expr.R pass=60 fail=2 err=0 skip=0 warn=0 tests=11
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

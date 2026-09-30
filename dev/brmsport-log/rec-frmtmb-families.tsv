@@ -29,7 +29,7 @@ assert	frmtmb	families:33	pass	TRUE	FALSE		'probit' is not a supported link for 
 assert	frmtmb	families:34	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:35	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:36	pass	TRUE	FALSE			TRUE
-assert	frmtmb	families:37	divergence	FALSE	FALSE	ERROR: acat() takes the 'logit' link only, and not because character "cloglog" is a bad link: brms accepts "probit", "probit_approx", "cloglog", "cauchit" and "softit" here, and they all map onto (0, 1). frmtmb refuses them because off the logit brms computes a category probability from a SECOND expression, a product of distribution functions times a reversed product of survivals. It agrees with a		FALSE
+assert	frmtmb	families:37	divergence	TRUE	FALSE			TRUE
 assert	frmtmb	families:38	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:39	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:40	pass	TRUE	FALSE			TRUE
@@ -40,33 +40,33 @@ assert	frmtmb	families:48	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:49	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:50	pass	TRUE	FALSE		'log' is not a supported link for family 'beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity'. See ?`frmtmb-links`	TRUE
 assert	frmtmb	families:51	pass	TRUE	FALSE		beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:52	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:53	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:54	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:55	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:56	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:57	cannot transfer	TRUE	FALSE		'sqrt' is not a supported link for family 'zero_inflated_beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:58	cannot transfer	TRUE	FALSE		zero_inflated_beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:59	cannot transfer	TRUE	FALSE		zero_inflated_beta_binomial(link_zi =): 'log' is not a supported link for parameter 'zi'. Supported links are: 'logit', 'identity', the set brms allows, fixed by the range `zi` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:60	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:61	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:62	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:63	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:64	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:65	cannot transfer	TRUE	FALSE		'log' is not a supported link for family 'hurdle_cumulative'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit'. An ordinal link names the distribution function the thresholds are read through, so it has to map onto (0, 1). See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:66	cannot transfer	TRUE	FALSE		hurdle_cumulative(link_hu =): 'probit' is not a supported link for parameter 'hu'. Supported links are: 'logit', 'identity', the set brms allows, fixed by the range `hu` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:67	cannot transfer	TRUE	FALSE		hurdle_cumulative(link_disc =): 'logit' is not a supported link for parameter 'disc'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `disc` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:68	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:69	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:70	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:71	cannot transfer	TRUE	FALSE		'1/mu' is not a supported link for family 'xbeta'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:72	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:73	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:74	cannot transfer	TRUE	FALSE		xbeta(link_phi =): 'sqrt' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb	families:75	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	families:76	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	families:52	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:53	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:54	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:55	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:56	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:57	pass	TRUE	FALSE		'sqrt' is not a supported link for family 'zero_inflated_beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:58	pass	TRUE	FALSE		zero_inflated_beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:59	pass	TRUE	FALSE		zero_inflated_beta_binomial(link_zi =): 'log' is not a supported link for parameter 'zi'. Supported links are: 'logit', 'identity', the set brms allows, fixed by the range `zi` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:60	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:61	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:62	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:63	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:64	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:65	pass	TRUE	FALSE		'log' is not a supported link for family 'hurdle_cumulative'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit'. An ordinal link names the distribution function the thresholds are read through, so it has to map onto (0, 1). See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:66	pass	TRUE	FALSE		hurdle_cumulative(link_hu =): 'probit' is not a supported link for parameter 'hu'. Supported links are: 'logit', 'identity', the set brms allows, fixed by the range `hu` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:67	pass	TRUE	FALSE		hurdle_cumulative(link_disc =): 'logit' is not a supported link for parameter 'disc'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `disc` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:68	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:69	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:70	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:71	pass	TRUE	FALSE		'1/mu' is not a supported link for family 'xbeta'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:72	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:73	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:74	pass	TRUE	FALSE		xbeta(link_phi =): 'sqrt' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb	families:75	pass	TRUE	FALSE			TRUE
+assert	frmtmb	families:76	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:80	pass	TRUE	FALSE			TRUE
-assert	frmtmb	families:81	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	families:81	pass	TRUE	FALSE			TRUE
 setup	frmtmb	families:85		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, `groups` and `order`. brms's `nmix` is not supported: repeat a component to use it twice		FALSE
 assert	frmtmb	families:86	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
 setup	frmtmb	families:87		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, `groups` and `order`. brms's `nmix` is not supported: repeat a component to use it twice		FALSE
@@ -80,7 +80,7 @@ assert	frmtmb	families:102	pass	TRUE	FALSE		Argument 'order' is invalid. Valid o
 assert	frmtmb	families:107	cannot transfer	FALSE	FALSE	Expected `xbeta()$closed` to equal `rep(TRUE, 2)`. Differences: `actual` is NULL `expected` is a logical vector (TRUE, TRUE) 		FALSE
 assert	frmtmb	families:108	cannot transfer	FALSE	FALSE	Expected `xbeta()$ybounds` to equal `c(0, 1)`. Differences: `actual` is NULL `expected` is a double vector (0, 1) 		FALSE
 assert	frmtmb	families:109	cannot transfer	FALSE	FALSE	Expected `xbeta()$type` to equal "real". Differences: `actual`:   "continuous" `expected`: "real"       		FALSE
-assert	frmtmb	families:113	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	families:113	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:117	cannot transfer	FALSE	FALSE	Expected output from `print(xbeta()$prior)` to match regexp "gamma\\(0.01, 0.01\\)". Actual output: x | NULL		FALSE
 assert	frmtmb	families:118	cannot transfer	FALSE	FALSE	Expected output from `print(xbeta()$prior)` to match regexp "student\\_t\\(3, 0, 2.5\\)". Actual output: x | NULL		FALSE
 assert	frmtmb	families:122	cannot transfer	FALSE	FALSE	Expected `xbeta()$include` to equal "fun_xbeta.stan". Differences: `actual` is NULL `expected` is a character vector ('fun_xbeta.stan') 		FALSE

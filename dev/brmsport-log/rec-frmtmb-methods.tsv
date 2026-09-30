@@ -1,21 +1,21 @@
-assert	frmtmb	brmsfit-methods:112	cannot transfer	FALSE	TRUE	ERROR: could not find function "autocor"		FALSE
-assert	frmtmb	brmsfit-methods:113	cannot transfer	FALSE	TRUE	ERROR: could not find function "autocor"		FALSE
+assert	frmtmb	brmsfit-methods:112	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:113	cannot transfer	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:150		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:151	pass	TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:152		FALSE	FALSE	plot() has no argument `rug` (and 1 more: plot). It takes: x, ask, points, ncol		FALSE
-assert	frmtmb	brmsfit-methods:154	defect	FALSE	TRUE	STALE: reads 'meplot', whose last assignment failed: plot() has no argument `rug` (and 1 more: plot). It takes: x, ask, points, ncol		FALSE
+setup	frmtmb	brmsfit-methods:152		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:154	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:156		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:157	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:157	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:159		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:161		FALSE	FALSE	plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol		FALSE
-assert	frmtmb	brmsfit-methods:162	cannot transfer	FALSE	TRUE	STALE: reads 'meplot', whose last assignment failed: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol		FALSE
-setup	frmtmb	brmsfit-methods:163		FALSE	FALSE	plot() has no argument `stype` (and 1 more: plot). Did you mean `type`?. It takes: x, ask, points, ncol		FALSE
-assert	frmtmb	brmsfit-methods:164	cannot transfer	FALSE	TRUE	STALE: reads 'meplot', whose last assignment failed: plot() has no argument `stype` (and 1 more: plot). Did you mean `type`?. It takes: x, ask, points, ncol		FALSE
+setup	frmtmb	brmsfit-methods:161		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:162	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+setup	frmtmb	brmsfit-methods:163		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:164	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:166		FALSE	FALSE	spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
 assert	frmtmb	brmsfit-methods:167	cannot transfer	FALSE	TRUE	STALE: reads 'me', whose last assignment failed: spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
-setup	frmtmb	brmsfit-methods:168		FALSE	FALSE	plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol		FALSE
-assert	frmtmb	brmsfit-methods:169	cannot transfer	FALSE	TRUE	STALE: reads 'meplot', whose last assignment failed: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol		FALSE
-assert	frmtmb	brmsfit-methods:170	cannot transfer	TRUE	FALSE		Cannot use 'spaghetti' and 'surface' at the same time.	TRUE
+setup	frmtmb	brmsfit-methods:168		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:169	cannot transfer	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:170	pass	TRUE	FALSE		Cannot use 'spaghetti' and 'surface' at the same time.	TRUE
 setup	frmtmb	brmsfit-methods:175		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:177	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:178		TRUE	FALSE			TRUE
@@ -31,15 +31,15 @@ setup	frmtmb	brmsfit-methods:194		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:197	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:198		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:201	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:203	own	TRUE	FALSE		Variable 'Trtc' is not stored in the model frame; pass the original data via data =	FALSE
-assert	frmtmb	brmsfit-methods:205	defect	FALSE	FALSE	ERROR: Variable 'Trtc' is not stored in the model frame; pass the original data via data =		FALSE
+assert	frmtmb	brmsfit-methods:203	pass	TRUE	FALSE		All specified effects are invalid for this model. Valid effects are (combinations of): 'Trt', 'Age', 'volume', 'Exp', 'visit'	TRUE
+assert	frmtmb	brmsfit-methods:205	defect	TRUE	FALSE		Some specified effects are invalid for this model: 'Trtc' Valid effects are (combinations of): 'Trt', 'Age', 'volume', 'Exp', 'visit'	TRUE
 assert	frmtmb	brmsfit-methods:207	own	TRUE	FALSE		Effects support at most two variables: 'Trtc:a:b'	FALSE
 setup	frmtmb	brmsfit-methods:210		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:211		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:212		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:213	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:213	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:214		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:215	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:215	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:217	defect	FALSE	FALSE	Expected `me4 <- conditional_effects(fit4)` to throw a warning.		FALSE
 assert	frmtmb	brmsfit-methods:221	divergence	FALSE	TRUE	STALE: reads 'me4', whose last assignment failed: Expected `me4 <- conditional_effects(fit4)` to throw a warning.		FALSE
 setup	frmtmb	brmsfit-methods:222		TRUE	FALSE			TRUE
@@ -49,12 +49,12 @@ assert	frmtmb	brmsfit-methods:226	divergence	FALSE	FALSE	Expected `is(me5, "brms
 setup	frmtmb	brmsfit-methods:228		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:229	divergence	FALSE	FALSE	Expected `is(me6, "brms_conditional_effects")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:268		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:269	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:269	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:270	divergence	FALSE	FALSE	Expected `is(ms, "brms_conditional_effects")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:272		FALSE	FALSE	conditional_smooths() on a maximum-likelihood fit has no draws, so `ndraws` has nothing to act on. Draw from the posterior with frmtmb.sample::frm_sample() and call conditional_smooths() on the draws		FALSE
 assert	frmtmb	brmsfit-methods:273	cannot transfer	FALSE	TRUE	STALE: reads 'ms', whose last assignment failed: conditional_smooths() on a maximum-likelihood fit has no draws, so `ndraws` has nothing to act on. Draw from the posterior with frmtmb.sample::frm_sample() and call conditional_smooths() on the draws		FALSE
-assert	frmtmb	brmsfit-methods:275	defect	TRUE	FALSE		No valid smooth terms found in the model.	TRUE
-assert	frmtmb	brmsfit-methods:277	defect	TRUE	FALSE		No valid smooth terms found in the model.	TRUE
+assert	frmtmb	brmsfit-methods:275	pass	TRUE	FALSE		No valid smooth terms found in the model.	TRUE
+assert	frmtmb	brmsfit-methods:277	pass	TRUE	FALSE		No valid smooth terms found in the model.	TRUE
 assert	frmtmb	brmsfit-methods:282	divergence	FALSE	FALSE	Expected `family(fit1)` to inherit from "character". Actual inheritance: "frmtmb_family"		FALSE
 assert	frmtmb	brmsfit-methods:283	divergence	FALSE	FALSE	Expected `family(fit6, resp = "count")` to inherit from "character". Actual inheritance: "frmtmb_family"		FALSE
 assert	frmtmb	brmsfit-methods:284	pass	TRUE	FALSE			TRUE
@@ -111,11 +111,11 @@ assert	frmtmb	brmsfit-methods:373	divergence	FALSE	TRUE	ERROR: could not find fu
 setup	frmtmb	brmsfit-methods:388		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:389	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:390	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:391	defect	FALSE	FALSE	ERROR: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask		FALSE
+assert	frmtmb	brmsfit-methods:391	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:393		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:394	hollow	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:395	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:396	defect	FALSE	FALSE	ERROR: plot() has no argument `ignore_prior` (and 1 more: plot). It takes: x, ask		FALSE
+assert	frmtmb	brmsfit-methods:396	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:398		FALSE	FALSE	Some parameters cannot be found in the model:  'r_visit[4,Intercept]' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		FALSE
 assert	frmtmb	brmsfit-methods:399	divergence	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: Some parameters cannot be found in the model:  'r_visit[4,Intercept]' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		TRUE
 assert	frmtmb	brmsfit-methods:400	divergence	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: Some parameters cannot be found in the model:  'r_visit[4,Intercept]' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		FALSE
@@ -148,7 +148,7 @@ assert	frmtmb	brmsfit-methods:679	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:680		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:682	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:684		FALSE	FALSE	pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		FALSE
-assert	frmtmb	brmsfit-methods:685	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		TRUE
+assert	frmtmb	brmsfit-methods:685	divergence	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		TRUE
 assert	frmtmb	brmsfit-methods:688	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:693	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:694	pass	TRUE	FALSE			TRUE
@@ -172,8 +172,8 @@ setup	frmtmb	brmsfit-methods:740		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:741	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:744		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:745		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:746		FALSE	FALSE	A prediction on newdata with arma(visit, patient) needs the observed response 'count' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws		FALSE
-assert	frmtmb	brmsfit-methods:747	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: A prediction on newdata with arma(visit, patient) needs the observed response 'count' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which r		TRUE
+setup	frmtmb	brmsfit-methods:746		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:747	defect	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:749		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:750	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:752		TRUE	FALSE			TRUE
@@ -251,17 +251,17 @@ assert	frmtmb	brmsfit-methods:945	divergence	FALSE	FALSE	Expected `is(up, "brmsf
 setup	frmtmb	brmsfit-methods:948		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:949	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:951		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:953	defect	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-setup	frmtmb	brmsfit-methods:954		FALSE	FALSE	nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them		FALSE
-assert	frmtmb	brmsfit-methods:955	defect	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them		FALSE
+assert	frmtmb	brmsfit-methods:953	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+setup	frmtmb	brmsfit-methods:954		FALSE	FALSE	The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). Nonlinear models need starting values in the right region: par_template(formula, data) names the parameters, and the names go straight back, e.g. start = list(beta = c(ult = 5000)). A normal() or student_t() prior on a nonlinear parameter places its start from the prior location instead		FALSE
+assert	frmtmb	brmsfit-methods:955	defect	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). Nonlinear models need starting values in the right region: par_template(formula, data) names the parameters, and the names go straight back, e.g. start = list(beta = c(ult = 5000)). A normal() or student_t() prior on a nonlinear parameter places its start from th		FALSE
 setup	frmtmb	brmsfit-methods:956		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:957	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:958		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:959	defect	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:959	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:978	divergence	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:984	divergence	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:991	cannot transfer	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-assert	frmtmb	brmsfit-methods:995	defect	FALSE	TRUE	ERROR: could not find function "parnames"		FALSE
+assert	frmtmb	brmsfit-methods:995	defect	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:999	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:1000	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:1035	pass	TRUE	FALSE			TRUE

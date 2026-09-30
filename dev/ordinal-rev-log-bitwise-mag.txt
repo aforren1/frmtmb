@@ -1,0 +1,39 @@
+== cum_cloglog_gr fixef  class matrix array 
+ dims equal: TRUE  dimnames equal: TRUE  names equal: TRUE  max rel diff: 2.753193e-09 
+== cum_cloglog_gr vcov  class matrix array 
+ dims equal: TRUE  dimnames equal: TRUE  names equal: TRUE  max rel diff: 1.228764e-09 
+== cum_cloglog_gr coef  class numeric 
+ dims equal: TRUE  dimnames equal: TRUE  names equal: TRUE  max rel diff: 7.137665e-15 
+== mv_ord_gauss coef  class list 
+  y_mu TRUE 0 
+  yg_mu TRUE 0 
+  yg_sigma TRUE 0 
+== hurdle draws  class matrix array 
+ dims equal: TRUE  dimnames equal: FALSE  names equal: TRUE  max rel diff: 4341.665 
+[1] "tau_raw_1" "tau_raw_2" "tau_raw_3" "tau_raw_4"
+[1] "b_Intercept[1]" "b_Intercept[2]" "b_Intercept[3]" "b_Intercept[4]"
+== hurdle draws_epred  class array 
+ dims equal: TRUE  dimnames equal: TRUE  names equal: TRUE  max rel diff: 1.003003e-15 
+== hurdle draws_vars  class character 
+[1] "tau_raw_1" "tau_raw_2" "tau_raw_3" "tau_raw_4"
+[1] "b_Intercept[1]" "b_Intercept[2]" "b_Intercept[3]" "b_Intercept[4]"
+List of 1
+ $ names: chr [1:3] "y_mu" "yg_mu" "yg_sigma"
+List of 1
+ $ names: chr [1:4] "y_mu" "y_disc" "yg_mu" "yg_sigma"
+[1] "Names: 2 string mismatches"                       
+[2] "Length mismatch: comparison on first 3 components"
+[3] "Component 2: Names: 1 string mismatch"            
+[4] "Component 2: Numeric: lengths (2, 1) differ"      
+[5] "Component 3: Names: 1 string mismatch"            
+[6] "Component 3: Numeric: lengths (1, 2) differ"      
+                   Estimate    Est.Error         Q2.5        Q97.5
+Intercept[p,1] 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00
+Intercept[p,2] 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00
+Intercept[p,3] 2.606158e-16 2.706502e-11 2.753193e-09 1.346641e-11
+Intercept[p,4] 2.449509e-16 2.347683e-11 7.505387e-12 4.578567e-12
+Intercept[q,1] 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00
+Intercept[q,2] 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00
+Intercept[q,3] 7.137665e-15 2.262415e-11 2.108582e-11 2.440431e-11
+Intercept[q,4] 2.242607e-16 5.139589e-11 3.543601e-11 1.489586e-11
+x              0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00

@@ -1,5 +1,4 @@
 id	pkg	verdict	class	reason
-families:37	*	divergence	policy	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
 families:86	*	cannot transfer	brms-internal	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 70)
 families:88	*	cannot transfer	brms-internal	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 71)
 families:107	*	cannot transfer	brms-internal	xbeta() exists now (lane fams2); the row reads brms's family field $closed, which no frmtmb family carries
@@ -8,8 +7,6 @@ families:109	*	cannot transfer	brms-internal	xbeta() exists now (lane fams2); th
 families:117	*	cannot transfer	stan	xbeta() exists now (lane fams2); the row prints $prior, brms's Stan prior string, which no frmtmb family carries
 families:118	*	cannot transfer	stan	xbeta() exists now (lane fams2); the row prints $prior, brms's Stan prior string (families:117)
 families:122	*	cannot transfer	stan	xbeta() exists now (lane fams2); the row reads $include, the Stan file brms's family includes
-brm:112	frmtmb	cannot transfer	absent	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
-standata:75	frmtmb	defect	refuses-accepted	bernoulli refuses a response with the two values -1 and -2 ('response must be 0/1'); brms codes them 1 and 0 by level order. Filed by lane wt-defects: the recoding has to be stored with the fit and applied on every refit (influence(), frm_bootstrap()) and every response read from newdata (pp_check(), residuals(newdata = ), predictive_error()), or a subset holding one of the two values is coded wrong in silence
 standata:310	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; frmtmb keeps the data order and has no such attribute. The setup ar(time, id) runs (brms's cov = FALSE form, ?frmtmb-autocor)
 standata:315	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
 standata:316	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
@@ -18,18 +15,9 @@ standata:706	frmtmb	cannot transfer	stan	Jby_1 is Stan data, which frmtmb does n
 standata:709	frmtmb	cannot transfer	stan	Nby_1 is Stan data, which frmtmb does not build: it fits mm(g, g2, by = cbind(z, z2)) as one block per by-level, five here (dev/grby-findings.md)
 standata:710	frmtmb	cannot transfer	stan	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same pooled-level-to-by-level map on the fitted blocks (dev/grby-findings.md)
 standata:718	frmtmb	cannot transfer	stan	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
-standata:724	frmtmb	cannot transfer	stan	reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot
-standata:725	frmtmb	cannot transfer	stan	reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data
-standata:738	frmtmb	cannot transfer	absent	lf(cmc = ) works now (lane formula2), but frmtmb's cumulative() has no disc, so lf(disc ~ ...) is refused as a parameter the family lacks; X_disc and Z_1_disc_1 are Stan data
-standata:739	frmtmb	cannot transfer	absent	lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738); Z_1_disc_1 is Stan data
-standata:740	frmtmb	cannot transfer	absent	lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738)
-standata:745	frmtmb	cannot transfer	stan	bf(cmc = ) works now and frmtmb's Z equals brms's (dev/formula2-findings.md 2.4); the row reads Z_1_1, which the harness's standata view does not carry
 standata:928	frmtmb	divergence	policy	y ~ . expands against the data as brms's does (lane formula2); brms's data has x1 == x2, and frmtmb drops the aliased x2 as lm() does ('rank deficient; dropping column(s): x2'), where brms keeps a column that only its prior places
-standata:970	frmtmb	cannot transfer	absent	frmtmb reserves Intercept but refuses brms's deprecated lower-case intercept by name and asks for Intercept, where brms accepts it with a deprecation warning
-standata:974	frmtmb	cannot transfer	absent	0 + intercept is refused (standata:970), so there is no intercept column to read
-standata:1133	frmtmb	cannot transfer	absent	frm() takes no drop_unused_levels argument; the unused level is always dropped
+standata:1133	frmtmb	divergence	policy	frm(drop_unused_levels = FALSE) is accepted now (lane formrobust); the unused level's all-zero column xc is dropped with frmtmb's rank-deficiency message, as lm() drops it, where brms keeps a column that only its prior places (as standata:928)
 priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
-priors:14	frmtmb	cannot transfer	absent	sratio() takes no threshold = 'equidistant' (cse() exists now, lane fams2); equidistant thresholds are not built (dev/fams2-findings.md, 'Decided not to do')
 priors:27	frmtmb	divergence	class	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 priors:39	frmtmb	cannot transfer	stan	set_prior(check = FALSE) passes Stan code through, and frmtmb builds no Stan program (priorform ledger P9)
 priors:74	frmtmb	divergence	policy	default_prior() answers brms's Beta() model on an rnorm() response now, as brms does (lane wt-defects); its 5 phi rows against brms's 6 lack the per-coefficient sd row (sd, g, Intercept), which frmtmb does not list because its class sd addresses a block and refuses coef (priorform ledger P1, P26)

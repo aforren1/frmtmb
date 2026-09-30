@@ -24,7 +24,15 @@ ord_data <- function() {
 # and the new way (through the storage map)
 ord_pair <- function(fit, n = 5L) {
   tpl <- fit$frame[["par_template"]]
-  est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))
+  # a coefficient held at a constant (every ordinal family's disc) is
+  # mapped, so the sampler has no column for it, as brms_par_labels()
+  # has no name for it
+  est <- unlist(lapply(names(tpl), function(cp) {
+    v <- fit$estimates[[cp]]
+    fx <- fit$frame[["betad_fixed_idx"]]
+    if (identical(cp, "betad") && length(fx)) v <- v[-fx]
+    v
+  }))
   lab <- frmtmb::brms_par_labels(fit)
   set.seed(2)
   M <- matrix(rep(est, each = n) + stats::rnorm(n * length(est), 0, 0.05),

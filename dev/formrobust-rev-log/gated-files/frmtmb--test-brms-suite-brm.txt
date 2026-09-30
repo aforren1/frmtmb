@@ -1,0 +1,3 @@
+DETAIL [expectation_failure] brm produces expected errors: brms brm:112 now HOLDS but is recorded as 'cannot transfer' (frmtmb has no arma() function object to add to a formula; the term exists only inside a formula). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+RESULT test-brms-suite-brm.R pass=22 fail=1 err=0 skip=0 warn=0 tests=1
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

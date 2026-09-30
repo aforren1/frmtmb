@@ -1,0 +1,69 @@
+ARM base | frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+ce-levels: ...........................................................12.........3..W4
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. integer and character grouping columns of g:h predict ('test-ce-levels.R:566:5') - numerical expression has 3 elements: only the first used
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-ce-levels.R:347:5'): an mm() term with a by variable draws ea
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot draw a new level of the multi-membership term (1 | mm(g1, g2, by = cbind(f1, f2)) [cbind(f1, f2) = 1]) with a by variable on band = "boot" or on draws: g1, g2 is unset or at a level the fit never saw. Set every member to a level the fit saw, use band = "wald" on a fit, or use re_formula = NA
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ratio(list(f1 = "a", f2 = "b")) at test-ce-levels.R:352:3
+  2.   └─frmtmb (local) at_g(fit, cond, band = "boot", boot = 40, seed = 5) at test-ce-levels.R:347:5
+  3.     ├─frmtmb::conditional_effects(...) at test-ce-levels.R:21:3
+  4.     └─frmtmb:::conditional_effects.frmtmb_fit(...)
+  5.       └─frmtmb::ce_level_plan(x, grids, base, re_formula)
+  6.         └─base::lapply(...)
+  7.           └─frmtmb (local) FUN(X[[i]], ...)
+  8.             └─base::lapply(...)
+  9.               └─frmtmb (local) FUN(X[[i]], ...)
+ 10.                 └─frmtmb::frm_stop(...)
+
+── 2. Error ('test-ce-levels.R:385:3'): crossed terms at an unseen combination d
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot draw a new level of the group-level term (1 | g:h) at the grid rows with g = 1, h = 1: to place one it would move a column that another term or an observed group reads, to a level the fit saw with the values the grid holds. Set the variables in conditions to levels the fit saw together, or use re_formula = NA
+Backtrace:
+    ▆
+ 1. ├─frmtmb::conditional_effects(...) at test-ce-levels.R:385:3
+ 2. └─frmtmb:::conditional_effects.frmtmb_fit(...)
+ 3.   └─frmtmb::ce_level_plan(x, grids, base, re_formula)
+ 4.     └─base::lapply(...)
+ 5.       └─frmtmb (local) FUN(X[[i]], ...)
+ 6.         └─base::lapply(...)
+ 7.           └─frmtmb (local) FUN(X[[i]], ...)
+ 8.             └─frmtmb:::ce_plan_refuse(b, nd, r1)
+ 9.               └─frmtmb::frm_stop(...)
+
+── 3. Error ('test-ce-levels.R:510:3'): a renamed level reads the draw, not a fi
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot draw a new level of the group-level term (1 | g:h) at the grid rows with g = 1, h = 1: to place one it would move a column that another term or an observed group reads, to a level the fit saw with the values the grid holds. Set the variables in conditions to levels the fit saw together, or use re_formula = NA
+Backtrace:
+    ▆
+ 1. └─frmtmb::ce_level_plan(fc, gb$grids, gb$base, NULL) at test-ce-levels.R:510:3
+ 2.   └─base::lapply(...)
+ 3.     └─frmtmb (local) FUN(X[[i]], ...)
+ 4.       └─base::lapply(...)
+ 5.         └─frmtmb (local) FUN(X[[i]], ...)
+ 6.           └─frmtmb:::ce_plan_refuse(b, nd, r1)
+ 7.             └─frmtmb::frm_stop(...)
+
+── 4. Error ('test-ce-levels.R:566:5'): integer and character grouping columns o
+<frmtmb_error/frmtmb_new_levels/error/condition>
+Error: New levels in grouping factor `g:h`: 2, 3, 4, 5. Use allow_new_levels = TRUE to predict them at the population level
+Backtrace:
+     ▆
+  1. ├─testthat::expect_equal(...) at test-ce-levels.R:566:5
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. ├─stats::fitted(fi, newdata = ndi)
+  5. └─frmtmb:::fitted.frmtmb_fit(fi, newdata = ndi)
+  6.   └─frmtmb:::fitted_point(...)
+  7.     └─frmtmb::frm_linpred(...)
+  8.       └─frmtmb:::lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  9.         └─frmtmb:::pred_design(object, lp, newdata, allow_new_levels, use_re = use_re)
+ 10.           └─frmtmb:::stop_new_levels(...)
+ 11.             └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════

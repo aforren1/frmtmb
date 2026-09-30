@@ -1,0 +1,104 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | compat                                                         
+⠋ |          1 | compat                                                         
+⠙ |          2 | compat                                                         
+⠇ |          9 | compat                                                         
+⠏ |         10 | compat                                                         
+⠋ |         11 | compat                                                         
+⠙ |         12 | compat                                                         
+⠇ |         39 | compat                                                         
+⠹ |         63 | compat                                                         
+⠋ |         91 | compat                                                         
+⠦ |        117 | compat                                                         
+⠙ |        142 | compat                                                         
+⠹ |        163 | compat                                                         
+⠇ |        189 | compat                                                         
+⠏ |        210 | compat                                                         
+⠸ |        234 | compat                                                         
+⠼ |        255 | compat                                                         
+⠧ |        278 | compat                                                         
+⠏ |        300 | compat                                                         
+⠹ |        323 | compat                                                         
+⠧ |        348 | compat                                                         
+⠹ |        373 | compat                                                         
+⠹ |        393 | compat                                                         
+⠋ |        401 | compat                                                         
+⠏ |        420 | compat                                                         
+⠸ |        444 | compat                                                         
+⠦ |        467 | compat                                                         
+⠙ |        492 | compat                                                         
+⠼ |        515 | compat                                                         
+⠇ |        539 | compat                                                         
+⠹ |        553 | compat                                                         
+⠙ |        572 | compat                                                         
+⠦ |        577 | compat                                                         
+⠧ |        578 | compat                                                         
+⠴ |        596 | compat                                                         
+⠏ |        610 | compat                                                         
+⠼ |        625 | compat                                                         
+⠦ |        627 | compat                                                         
+⠇ |        629 | compat                                                         
+⠋ |        631 | compat                                                         
+⠙ |        632 | compat                                                         
+⠴ |        636 | compat                                                         
+⠦ |        637 | compat                                                         
+⠋ |        641 | compat                                                         
+⠙ |        642 | compat                                                         
+⠴ |        646 | compat                                                         
+⠦ |        647 | compat                                                         
+⠧ |        648 | compat                                                         
+⠇ |        649 | compat                                                         
+⠏ |        650 | compat                                                         
+⠋ |        651 | compat                                                         
+⠙ |        652 | compat                                                         
+⠹ |        653 | compat                                                         
+⠸ |        654 | compat                                                         
+⠼ |        655 | compat                                                         
+⠴ |        656 | compat                                                         
+⠦ |        657 | compat                                                         
+⠧ |        658 | compat                                                         
+⠇ |        659 | compat                                                         
+⠏ |        660 | compat                                                         
+⠋ |        661 | compat                                                         
+⠙ |        662 | compat                                                         
+⠹ |        663 | compat                                                         
+⠸ |        664 | compat                                                         
+⠼ |        665 | compat                                                         
+⠴ |        666 | compat                                                         
+⠦ |        667 | compat                                                         
+⠧ |        668 | compat                                                         
+⠇ |        669 | compat                                                         
+⠏ |        670 | compat                                                         
+⠋ |        671 | compat                                                         
+⠙ |        672 | compat                                                         
+⠹ |        673 | compat                                                         
+⠸ |        674 | compat                                                         
+⠼ |        675 | compat                                                         
+⠴ |        676 | compat                                                         
+⠦ |        677 | compat                                                         
+⠇ |        679 | compat                                                         
+⠏ |        680 | compat                                                         
+⠋ |        681 | compat                                                         
+⠹ |        683 | compat                                                         
+⠼ |        685 | compat                                                         
+⠦ |        687 | compat                                                         
+⠇ |        689 | compat                                                         
+⠋ |        691 | compat                                                         
+⠹ |        693 | compat                                                         
+⠼ |        695 | compat                                                         
+⠦ |        697 | compat                                                         
+⠇ |        699 | compat                                                         
+⠋ |        701 | compat                                                         
+⠹ |        703 | compat                                                         
+⠸ |        704 | compat                                                         
+⠏ |        710 | compat                                                         
+⠙ |        712 | compat                                                         
+✔ |        712 | compat [13.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 13.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 712 ]
+RESULT lane frmtmb test-compat.R pass=712 fail=0 err=0 skip=0 warn=0

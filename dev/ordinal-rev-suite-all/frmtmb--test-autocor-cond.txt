@@ -1,0 +1,21 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | autocor-cond                                                   
+⠋ |          1 | autocor-cond                                                   
+⠼ |          5 | autocor-cond                                                   
+⠇ |          9 | autocor-cond                                                   
+⠋ |         11 | autocor-cond                                                   
+⠦ |         17 | autocor-cond                                                   
+⠸ |         24 | autocor-cond                                                   
+⠋ |         31 | autocor-cond                                                   
+⠦ |         37 | autocor-cond                                                   
+⠸ |         44 | autocor-cond                                                   
+⠧ |         48 | autocor-cond                                                   
+✔ |         56 | autocor-cond [3.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 56 ]
+RESULT lane frmtmb test-autocor-cond.R pass=56 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,15 @@
+ARM lane | frmtmb from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+brms-suite-methods: ................12.....................................................................................................No priors were set (plain maximum likelihood).
+.......................................3...
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-brms-suite-methods.R:182:3'): conditional_effects has reaso
+brms brmsfit-methods:203 is recorded as a pass in frmtmb's own words (Variable 'Trtc' is not stored in the model frame): STALE OWN-WORDS: brms's assertion holds as written
+
+── 2. Failure ('test-brms-suite-methods.R:191:3'): conditional_effects has reaso
+brms brmsfit-methods:205 now HOLDS but is recorded as 'defect' (one invalid effect among valid ones is an error; brms warns 'Some specified effects are invalid' and returns the valid ones (dev/brmsport-probe4.R)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+── 3. Failure ('test-brms-suite-methods.R:1339:3'): variables has reasonable oup
+brms brmsfit-methods:995 now HOLDS but is recorded as 'defect' (parnames() is brms's deprecated spelling of variables(). frmtmb.sample answers it on draws, with brms's warning; core has none for a fit, and adding one moves the generic from frmtmb.sample's owner table to core's (R/generic-owners.R)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+══ DONE ════════════════════════════════════════════════════════════════════════

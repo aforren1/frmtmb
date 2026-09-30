@@ -1,0 +1,8 @@
+allFit print without the seconds column identical: TRUE 
+  z emmean     SE  df asymp.LCL asymp.UCL
+ -1 -0.279 0.0638 Inf    -0.404    -0.154
+  1  0.279 0.0638 Inf     0.154     0.404
+
+Results are given on the log (not the response) scale. 
+Confidence level used: 0.95 
+student nu = 4: coef names: Intercept x | flatten: (Intercept) x sigma_(Intercept) nu_(Intercept) | variables: b_Intercept b_x sigma 

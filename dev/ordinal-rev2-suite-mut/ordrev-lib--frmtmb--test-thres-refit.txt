@@ -1,0 +1,109 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-lib/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | thres-refit                                                    
+⠙ |          2 | thres-refit                                                    
+⠹ |          3 | thres-refit                                                    
+⠋ |         11 | thres-refit                                                    
+⠏ |         20 | thres-refit                                                    
+⠙ |         32 | thres-refit                                                    
+⠋ |         41 | thres-refit                                                    
+⠸ |         44 | thres-refit                                                    
+⠴ | 1       45 | thres-refit                                                    
+⠙ | 3       49 | thres-refit                                                    
+⠧ | 5       53 | thres-refit                                                    
+⠹ | 5       58 | thres-refit                                                    
+⠏ | 5       65 | thres-refit                                                    
+⠏ | 5       75 | thres-refit                                                    
+⠹ | 5       78 | thres-refit                                                    
+⠴ | 5       81 | thres-refit                                                    
+⠼ | 5       90 | thres-refit                                                    
+⠴ | 5       91 | thres-refit                                                    
+⠦ | 5       92 | thres-refit                                                    
+⠸ | 5       99 | thres-refit                                                    
+⠼ | 5      100 | thres-refit                                                    
+⠴ | 5      101 | thres-refit                                                    
+⠋ | 5      106 | thres-refit                                                    
+⠸ | 5      109 | thres-refit                                                    
+⠼ | 5      110 | thres-refit                                                    
+⠴ | 5      111 | thres-refit                                                    
+⠦ | 5      112 | thres-refit                                                    
+✖ | 5      113 | thres-refit [14.1s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-thres-refit.R:228:5'): a bootstrap replicate without the top category keeps the layout
+Expected `dim(bs$t)` to be identical to `c(60L, 4L)`.
+Differences:
+  `actual`: 60 5
+`expected`: 60 4
+
+
+Failure ('test-thres-refit.R:229:5'): a bootstrap replicate without the top category keeps the layout
+Expected `colnames(bs$t)` to be identical to `c("x", "tau1", "tau2", "tau3")`.
+Differences:
+`actual`:   "x" "disc_(Intercept)" "tau1" "tau2" "tau3"
+`expected`: "x"                    "tau1" "tau2" "tau3"
+
+
+Failure ('test-thres-refit.R:228:5'): a bootstrap replicate without the top category keeps the layout
+Expected `dim(bs$t)` to be identical to `c(60L, 4L)`.
+Differences:
+  `actual`: 60 5
+`expected`: 60 4
+
+
+Failure ('test-thres-refit.R:229:5'): a bootstrap replicate without the top category keeps the layout
+Expected `colnames(bs$t)` to be identical to `c("x", "tau1", "tau2", "tau3")`.
+Differences:
+`actual`:   "x" "disc_(Intercept)" "tau1" "tau2" "tau3"
+`expected`: "x"                    "tau1" "tau2" "tau3"
+
+
+Failure ('test-thres-refit.R:261:3'): a grouped bootstrap replicate keeps the per-level counts
+Expected `dim(bs$t)` to be identical to `c(40L, 1L + nraw)`.
+Differences:
+  `actual`: 40 9
+`expected`: 40 8
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 14.2 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-thres-refit.R:228:5'): a bootstrap replicate without the top category keeps the layout
+Expected `dim(bs$t)` to be identical to `c(60L, 4L)`.
+Differences:
+  `actual`: 60 5
+`expected`: 60 4
+
+
+Failure ('test-thres-refit.R:229:5'): a bootstrap replicate without the top category keeps the layout
+Expected `colnames(bs$t)` to be identical to `c("x", "tau1", "tau2", "tau3")`.
+Differences:
+`actual`:   "x" "disc_(Intercept)" "tau1" "tau2" "tau3"
+`expected`: "x"                    "tau1" "tau2" "tau3"
+
+
+Failure ('test-thres-refit.R:228:5'): a bootstrap replicate without the top category keeps the layout
+Expected `dim(bs$t)` to be identical to `c(60L, 4L)`.
+Differences:
+  `actual`: 60 5
+`expected`: 60 4
+
+
+Failure ('test-thres-refit.R:229:5'): a bootstrap replicate without the top category keeps the layout
+Expected `colnames(bs$t)` to be identical to `c("x", "tau1", "tau2", "tau3")`.
+Differences:
+`actual`:   "x" "disc_(Intercept)" "tau1" "tau2" "tau3"
+`expected`: "x"                    "tau1" "tau2" "tau3"
+
+
+Failure ('test-thres-refit.R:261:3'): a grouped bootstrap replicate keeps the per-level counts
+Expected `dim(bs$t)` to be identical to `c(40L, 1L + nraw)`.
+Differences:
+  `actual`: 40 9
+`expected`: 40 8
+
+
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 113 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-lib frmtmb test-thres-refit.R pass=113 fail=5 err=0 skip=0 warn=0
