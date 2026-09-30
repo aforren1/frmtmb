@@ -1,0 +1,78 @@
+influence_unused  warnings identical: TRUE 
+  element fit differs; class frmtmb_fit 
+List of 19
+ $ spec      :List of 3
+  ..- attr(*, "class")= chr "frmtmb_spec"
+ $ frame     :List of 23
+  ..- attr(*, "class")= chr "frmtmb_frame"
+ $ obj       :List of 12
+ $ opt       :List of 7
+ $ sdr       : NULL
+ $ REML      : logi FALSE
+ $ estimates :List of 2
+  ..- attr(*, "check.passed")= logi TRUE
+ $ prior     : NULL
+ $ bform     :List of 6
+  ..- attr(*, "class")= chr [1:2] "frmtmb_formula" "frmtmb_bform"
+ $ call      : language frm(formula = yu2 ~ x, data = d50, family = cumulative())
+ $ data      :'data.frame':	60 obs. of  2 variables:
+  ..- attr(*, "terms")=Classes 'terms', 'formula'  language ~yu2 + x
+  .. .. ..- attr(*, "variables")= language list(yu2, x)
+  .. .. ..- attr(*, "factors")= int [1:2, 1:2] 1 0 0 1
+  .. .. .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..- attr(*, "term.labels")= chr [1:2] "yu2" "x"
+  .. .. ..- attr(*, "order")= int [1:2] 1 1
+  .. .. ..- attr(*, "intercept")= int 1
+  .. .. ..- attr(*, "response")= int 0
+  .. .. ..- attr(*, ".Environment")=<environment: 0x000002c2b5dad888> 
+  .. .. ..- attr(*, "predvars")= language list(yu2, x)
+  .. .. ..- attr(*, "dataClasses")= Named chr [1:2] "ordered" "numeric"
+  .. .. .. ..- attr(*, "names")= chr [1:2] "yu2" "x"
+ $ data2     : list()
+ $ control   :List of 13
+ $ quadrature: logi FALSE
+ $ importance: NULL
+ $ lower     : NULL
+ $ upper     : NULL
+ $ par_units : NULL
+ $ cache     : chr "<fn/env>"
+ - attr(*, "class")= chr "frmtmb_fit"
+influence_ofactor  warnings identical: TRUE 
+  element fit differs; class frmtmb_fit 
+List of 19
+ $ spec      :List of 3
+  ..- attr(*, "class")= chr "frmtmb_spec"
+ $ frame     :List of 23
+  ..- attr(*, "class")= chr "frmtmb_frame"
+ $ obj       :List of 12
+ $ opt       :List of 7
+ $ sdr       : NULL
+ $ REML      : logi FALSE
+ $ estimates :List of 2
+  ..- attr(*, "check.passed")= logi TRUE
+ $ prior     : NULL
+ $ bform     :List of 6
+  ..- attr(*, "class")= chr [1:2] "frmtmb_formula" "frmtmb_bform"
+ $ call      : language frm(formula = yf ~ x, data = d50, family = sratio())
+ $ data      :'data.frame':	60 obs. of  2 variables:
+  ..- attr(*, "terms")=Classes 'terms', 'formula'  language ~yf + x
+  .. .. ..- attr(*, "variables")= language list(yf, x)
+  .. .. ..- attr(*, "factors")= int [1:2, 1:2] 1 0 0 1
+  .. .. .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..- attr(*, "term.labels")= chr [1:2] "yf" "x"
+  .. .. ..- attr(*, "order")= int [1:2] 1 1
+  .. .. ..- attr(*, "intercept")= int 1
+  .. .. ..- attr(*, "response")= int 0
+  .. .. ..- attr(*, ".Environment")=<environment: 0x000002c2b5d8daf0> 
+  .. .. ..- attr(*, "predvars")= language list(yf, x)
+  .. .. ..- attr(*, "dataClasses")= Named chr [1:2] "ordered" "numeric"
+  .. .. .. ..- attr(*, "names")= chr [1:2] "yf" "x"
+ $ data2     : list()
+ $ control   :List of 13
+ $ quadrature: logi FALSE
+ $ importance: NULL
+ $ lower     : NULL
+ $ upper     : NULL
+ $ par_units : NULL
+ $ cache     : chr "<fn/env>"
+ - attr(*, "class")= chr "frmtmb_fit"

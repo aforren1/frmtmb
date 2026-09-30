@@ -1,0 +1,58 @@
+frmtmb.sample from C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.sample 
+  [msg] frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+  no defaults for phi (brms uses gamma / inverse-gamma) - see ?frm_sample
+  [warn] There were 1 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+  [warn] Examine the pairs() plot to diagnose sampling problems
+ 
+  [warn] Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+  [warn] Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+xbeta              600 draws; log_lik vs reference at 20 draws: max rel diff 4.66e-15
+  posterior_epred dim 50 x 200
+  posterior_predict dim 50 x 200, range 0 .. 1
+  conditional_effects: ok
+  max rhat 1.033
+  loo: elpd_loo -37.0
+  [msg] frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+  no defaults for phi (brms uses gamma / inverse-gamma) - see ?frm_sample
+  [warn] There were 31 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+  [warn] There were 142 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
+  [warn] Examine the pairs() plot to diagnose sampling problems
+ 
+  [warn] The largest R-hat is 1.88, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+  [warn] Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+  [warn] Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+zibb               600 draws; log_lik vs reference at 20 draws: max rel diff 1.31e-14
+  posterior_epred dim 50 x 200
+  posterior_predict dim 50 x 200, range 0 .. 12
+conditional_effects(): holding the trials variable(s) tr at 1, so the display is a probability per trial (brms's default too). Pin them in conditions = list(...) for a count.
+  conditional_effects: ok
+  max rhat 1.022
+  loo: elpd_loo -371.5
+  [msg] frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+hurdle_cumulative  600 draws; log_lik vs reference at 20 draws: max rel diff 9.30e-16
+  posterior_epred dim 50 x 200 x 5
+  posterior_predict dim 50 x 200, range 0 .. 4
+  conditional_effects: ok
+  max rhat 1.013
+  loo: elpd_loo -297.9

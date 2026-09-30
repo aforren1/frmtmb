@@ -1131,7 +1131,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
 coef_shift_thresholds <- function(df, nms, bv, fam) {
   f <- fam[["family"]] %||% ""
   for (nm in nms) {
-    df[[nm]] <- if (f %in% c("cumulative", "sratio")) {
+    df[[nm]] <- if (f %in% c("cumulative", "sratio", "hurdle_cumulative")) {
       df[[nm]] - bv
     } else if (f %in% c("cratio", "acat")) {
       bv - df[[nm]]

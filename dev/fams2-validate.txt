@@ -1,0 +1,75 @@
+frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+
+== 1. xbeta log-likelihood vs dbeta/pbeta ==
+  data: 8 zeros, 90 ones, 702 interior
+  optimum      frmtmb -100.403584226212  reference -100.403584226211  rel diff 1.84e-15
+  perturbed 1  frmtmb -179.443941023662  reference -179.443941023662  rel diff 2.53e-15
+  perturbed 2  frmtmb -313.769837483608  reference -313.769837483608  rel diff 1.81e-16
+  link = probit   at its optimum: frmtmb -100.424996069445  reference -100.424996069444  rel 5.52e-15
+  link = cloglog  at its optimum: frmtmb -101.221818729235  reference -101.221818729235  rel 5.33e-15
+  link = cauchit  at its optimum: frmtmb -100.757938258225  reference -100.757938258224  rel 4.23e-15
+  grid of 45 (eta, log phi, log kappa) x 5 responses: off-tape max rel 7.57e-14, on-tape sum max rel 7.59e-14
+
+== 2. xbeta with (1 | g): the incomplete beta's third derivatives ==
+  seed 1001: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1002: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1003: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1004: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1005: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1006: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1007: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1008: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1009: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+  seed 1010: xbeta() ok; the same density on RTMB::pbeta() NA/NaN gradient
+
+== 3. zero_inflated_beta_binomial vs lbeta/lchoose ==
+  optimum      frmtmb -1661.893174601052  reference -1661.893174601052  rel diff 1.37e-16
+  perturbed 1  frmtmb -1696.035137947406  reference -1696.035137947405  rel diff 4.02e-16
+  perturbed 2  frmtmb -1700.077981271756  reference -1700.077981271760  rel diff 2.27e-15
+
+== 4. zero_inflated_beta_binomial vs glmmTMB(betabinomial, ziformula) ==
+  fixed:  logLik frmtmb -1661.8931746011  glmmTMB -1661.8931746043  diff 3.26e-09
+  fixed:  max |coef diff| mu 9.09e-07  zi 5.65e-06  log phi 1.56e-06
+  (1|g):  logLik frmtmb -1661.8931747878  glmmTMB -1661.8931747764  diff -1.14e-08
+  (1|g):  max |coef diff| mu 1.33e-09  zi 1.03e-08
+
+== 5. hurdle_cumulative vs hand-written density ==
+  logit    optimum      frmtmb -1144.508079347973  reference -1144.508079347974  rel diff 5.96e-16
+  logit    perturbed 1  frmtmb -1158.486113956958  reference -1158.486113956959  rel diff 5.89e-16
+  probit   optimum      frmtmb -1144.046521662523  reference -1144.046521662525  rel diff 9.94e-16
+  probit   perturbed 1  frmtmb -1182.767113437946  reference -1182.767113437946  rel diff 5.77e-16
+  cauchit  optimum      frmtmb -1153.261973596577  reference -1153.261973596576  rel diff 5.91e-16
+  cauchit  perturbed 1  frmtmb -1169.864033178178  reference -1169.864033178178  rel diff 1.94e-16
+  cloglog  optimum      frmtmb -1152.410374982201  reference -1152.410374982202  rel diff 1.97e-16
+  cloglog  perturbed 1  frmtmb -1183.532788854394  reference -1183.532788854393  rel diff 9.61e-16
+  disc ~ 0 + z at its optimum: frmtmb -1144.508052783164  reference -1144.508052783164  rel 1.99e-16
+
+== 6. hurdle_cumulative factorization identity (glm + MASS::polr) ==
+  logit    logLik joint -1144.5080793480  glm + polr -1144.5080793493  residual 1.32e-09  max |zeta diff| 4.61e-06  |b_x diff| 2.33e-06
+  probit   logLik joint -1144.0465216625  glm + polr -1144.0465216624  residual -1.04e-10  max |zeta diff| 1.28e-06  |b_x diff| 2.07e-07
+  cloglog  logLik joint -1152.4103749822  glm + polr -1152.4103749835  residual 1.31e-09  max |zeta diff| 2.60e-06  |b_x diff| 1.44e-06
+  cauchit  logLik joint -1153.2619735966  glm + polr -1156.1974217943  residual 2.94e+00  max |zeta diff| 2.22e-02  |b_x diff| 2.81e-03
+
+== 7. brms:::log_lik_hurdle_cumulative() at the frmtmb optimum ==
+  logit   sum frmtmb -1144.5080793480  brms -1144.5080793480  diff 6.82e-13
+  probit  sum frmtmb -1144.0465216625  brms -1144.0465216625  diff 1.14e-12
+
+== 8. fitted() against brms's posterior_epred formulas ==
+  xbeta                       max rel diff 9.50e-16
+  zero_inflated_beta_binomial max rel diff 2.60e-16
+  hurdle_cumulative           max abs diff 2.50e-16 (probabilities)
+
+== 9. simulate() against the fitted distribution (seed 109) ==
+  xbeta  P(Y = 0): drawn 2750 expected 2828.7 z -1.49
+  xbeta  P(Y = 1): drawn 36011 expected 36209.3 z -1.31
+  xbeta  sum of Y: drawn 186619.44 expected 186734.47 z -0.89
+  xbeta  mean (Y - m)^2: drawn 0.052104 expected 0.052173 z -0.57
+  zibb   counts 0..20 pooled over 400 draws: chi-square 14.2 on 20 df, p 0.822
+  hurdle categories 0..4 pooled over 400 draws: chi-square 0.41 on 4 df, p 0.982
+
+== 6b. cauchit: MASS::polr against ordinal::clm and frmtmb ==
+  ordinal part: polr logLik -656.8695040438  clm logLik -653.9369797890  frmtmb minus glm -653.9340558461
+  polr convergence code 0, clm max |gradient| 1.04e-13
+  max |threshold diff| frmtmb vs clm 2.28e-05, |b_x diff| 1.38e-06
+  reference ordinal log-likelihood at frmtmb's estimates -653.9340558458, at clm's -653.9340558557
+  hurdle part at frmtmb's estimates -499.3279177508, glm -499.3279177505

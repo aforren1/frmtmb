@@ -307,7 +307,7 @@ brms_block_group <- function(nm) {
 brms_ord_thresholds <- function(fit) {
   fam <- family(fit)[["family"]]
   ord_tau_from_raw(fit$estimates[["tau_raw"]],
-                   ordered = identical(fam, "cumulative"))
+                   ordered = fam %in% c("cumulative", "hurdle_cumulative"))
 }
 
 # frmtmb's column name for one brms group-level coefficient. An

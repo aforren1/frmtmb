@@ -1,3 +1,45 @@
+# frmtmb (development version)
+
+* New families `xbeta()`, `zero_inflated_beta_binomial()` and
+  `hurdle_cumulative()`, with brms 2.23.0's parameters, links and
+  defaults. Each reaches `fitted()` (brms's `posterior_epred()`),
+  `predict()`, `simulate()`, `conditional_effects()`, `emmeans()`,
+  `default_prior()`, `frm_compat()` and `frm_sample()`. The
+  log-likelihood of each agrees with brms's compiled Stan program at
+  the same parameters to 1e-13, and `zero_inflated_beta_binomial()`
+  agrees with glmmTMB's `betabinomial` with `ziformula` to 3e-9 in the
+  log-likelihood.
+  - `xbeta()` is the extended-support beta for a response in `[0, 1]`
+    with exact 0s and 1s. Its end masses are an incomplete beta
+    function, taken from a continued fraction because the third
+    derivatives of `RTMB::pbeta()` are `NaN` at some ordinary points.
+    With `RTMB::pbeta()`, each of ten fits with a random effect stopped
+    at "NA/NaN gradient evaluation". `RTMB::pbeta()` is used only near
+    the mean at large shapes, where its third derivatives are finite,
+    and never at the mean itself, where all its derivatives are `NaN`.
+    The result agrees with `stats::pbeta()` to 1e-12 (relative) for
+    shapes from 1e-3 to 1e7, at the mean included. The interior
+    density does not use `RTMB::dbeta()`, whose gradient is `NaN` past
+    a shape sum of about 1e3, so `xbeta()` fits precise data (tested
+    at `phi` 2e4, and at 2e5 with `kappa` held).
+  - When the response has no exact 0 or 1, only the interior shape
+    places `kappa`. The `xbeta()` fit warns when it does not: when
+    `kappa` runs to 0 at every row, or when the standard error of a
+    coefficient of `kappa` is above 10 on the log scale or not finite.
+  - `hurdle_cumulative()` codes its response `0..K`, with 0 the hurdle
+    and the first level of an ordered factor. `disc` is held at 1
+    unless the formula models it. `thres(gr = )`, `cs()` and a
+    `threshold` other than `"flexible"` are refused. The likelihood
+    cannot tell an intercept in `disc` apart from the scale of the
+    thresholds. brms holds it with a `normal(0, 1)` prior; frmtmb
+    warns unless a prior holds it.
+* `cse()`, brms's second name for `cs()`, is accepted.
+* `beta_binomial()` has a variance function, so
+  `residuals(type = "pearson")` works on it. It used to be refused with
+  "has no variance function".
+* The summary line of an ordinal family names the links of its other
+  parameters, as in `cdf = logit; hu = logit; disc = log`.
+
 # frmtmb 0.65.0
 
 Seven lanes, each with an adversarial review. Each lane's

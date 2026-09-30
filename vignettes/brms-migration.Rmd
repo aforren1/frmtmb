@@ -34,6 +34,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
+| `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes flexible thresholds only, and neither `thres(gr = )` nor `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
@@ -219,7 +220,8 @@ has not written.
   responses.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
-  measurement error, `cs()` category-specific ordinal effects,
+  measurement error, `cs()` (or brms's other name for it, `cse()`)
+  category-specific ordinal effects,
   `gp(x)` / `gp(x, k =)` Gaussian processes, and `mixture()`
   families (including group-level latent classes via `groups = ~g`)
   all work. `mo()`/`mi()` support two-way `:`/`*` interactions with
@@ -262,10 +264,19 @@ has not written.
   threshold vector per level of `g`, named `Intercept[g,k]` as in
   brms. The section "Ordinal thresholds, thres()" of `?frm` says
   where the count and the unobserved categories differ from brms.
-- `binomial()`, `beta_binomial()` and `zero_inflated_binomial()`
-  without `trials()` are refused, as in brms, with brms's message. A 0/1
-  response takes `bernoulli()` or `y | trials(1)`; the `stats::glm()`
-  convention of one implicit trial does not carry over.
+- `hurdle_cumulative()` takes `thres(x = )` and refuses `thres(gr = )`
+  and `cs()`. Its `threshold` takes `"flexible"` only. The expected
+  category that `conditional_effects()` shows by default is scored by
+  the category codes `0..K`, so the hurdle scores 0; brms scores each
+  column by its position and reads one higher. With the logit link and
+  a modeled `disc`, brms 2.23.0 cannot evaluate its own model: its Stan
+  function reads a threshold past the last one for the top category,
+  and Stan stops at "index out of range". frmtmb fits that model.
+- `binomial()`, `beta_binomial()`, `zero_inflated_binomial()` and
+  `zero_inflated_beta_binomial()` without `trials()` are refused, as in
+  brms, with brms's message. A 0/1 response takes `bernoulli()` or
+  `y | trials(1)`; the `stats::glm()` convention of one implicit trial
+  does not carry over.
 - `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are supported in
   their covariance form only; see the next section.
 - glmer's proportion-response idiom (`weights = size`) becomes

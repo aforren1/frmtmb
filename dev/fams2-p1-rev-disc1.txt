@@ -1,0 +1,10 @@
+warnings: 1 
+hurdle_cumulative: disc has an intercept, which the likelihood cannot tell apart from the scale of the thresholds, so it, the thresholds and the coefficients of mu have no usable standard error. Write disc ~ 0 + ..., or hold the intercept with a prior, as brms does with its default set_prior("normal(0, 1)", class = "Intercept", dpar = "disc")
+                 Estimate   Est.Error         Q2.5      Q97.5
+Intercept[1]   -0.9391208 49.28952883  -97.5448221  95.666581
+Intercept[2]    0.2347461 12.32075755  -23.9134949  24.382987
+Intercept[3]    1.2887433 67.63951062 -131.2822614 133.859748
+disc_Intercept  0.1155010 52.48481663 -102.7528494 102.983851
+x               0.6876272 36.09000735  -70.0474874  71.422742
+disc_z          0.4007183  0.04345728    0.3155436   0.485893
+logLik disc ~ 1 + z -2156.157  disc ~ 0 + z -2156.157 

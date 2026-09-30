@@ -425,15 +425,19 @@ predict_category_props <- function(object, rspec, d) {
   } else {
     max(c(as.integer(d), object$frame[["y"]][[rspec$resp_name]]))
   }
+  # the drawn codes start at 0 for a hurdle family, whose category 0 is
+  # the first column
+  code0 <- ord_code0(rspec$family)
   out <- t(apply(d, 2L, function(col) {
     # over the replicates that are THERE: a replicate that drew a
     # non-finite dpar is NA, and dividing by the full count would
     # report proportions that do not sum to one
     ok <- col[!is.na(col)]
     if (!length(ok)) return(rep(NA_real_, K))
-    tabulate(as.integer(ok), K) / length(ok)
+    tabulate(as.integer(ok) + 1L - code0, K) / length(ok)
   }))
-  colnames(out) <- brms_category_labels(lv, K)
+  colnames(out) <- brms_category_labels(
+    lv %||% as.character(code0 + seq_len(K) - 1L), K)
   rownames(out) <- NULL
   out
 }

@@ -301,9 +301,11 @@ extract_y <- function(resp, mf) {
     # An unordered factor's level order is alphabetical unless someone
     # set it, and that order IS the model here. brms 2.23.0 refuses it
     # (dev/famlink-brms-behavior-log.txt); this used to warn and fit.
+    code0 <- ord_code0(resp$family)
     if (!is.ordered(y)) {
       frm_stop("Family '", resp$family[["family"]], "' requires either ",
-               "positive integers or ordered factors as responses. '",
+               if (code0 == 0L) "non-negative" else "positive",
+               " integers or ordered factors as responses. '",
                deparse1(resp$resp_expr), "' is an unordered factor, whose ",
                "level order (", paste(levels(y), collapse = " < "),
                ") is not a category order anyone stated. Use ",
@@ -313,7 +315,9 @@ extract_y <- function(resp, mf) {
     # the codes carry no meaning without the labels, and simulate() has
     # to hand draws back in the response's own type
     lv <- levels(y)
-    y <- as.numeric(y)   # category codes 1..K in level order
+    # category codes 1..K in level order; brms codes a hurdle family's
+    # first level as the category 0
+    y <- as.numeric(y) - 1 + code0
   } else if (is.factor(y)) {
     if (!identical(resp$family[["family"]], "binomial") || nlevels(y) != 2L) {
       frm_stop("Factor responses are only supported for binomial families ",
@@ -346,6 +350,7 @@ extract_y <- function(resp, mf) {
 #'
 #' @noRd
 trials_families <- c("binomial", "beta_binomial", "zero_inflated_binomial",
+                     "zero_inflated_beta_binomial",
                      "multinomial")
 
 #' Refuse a binomial-type response with no `trials()` term, as brms does.
@@ -2184,17 +2189,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # than it has levels; brms returns bare codes there instead
     th_ <- resp$family[["thres"]]
     lv_ <- y_levels[[resp$resp_name]]
-    if (!is.null(th_) && !is.null(lv_) &&
-          max(th_[["nthres"]]) + 1L > length(lv_)) {
+    # a hurdle family's category 0 is one level more
+    ncat_ <- if (!is.null(th_)) {
+      max(th_[["nthres"]]) + 2L - ord_code0(resp$family)
+    }
+    if (!is.null(th_) && !is.null(lv_) && ncat_ > length(lv_)) {
       frm_stop("thres(x = ", max(th_[["nthres"]]), ") asks for ",
-               max(th_[["nthres"]]) + 1L, " categories, and the response ",
+               ncat_, " categories, and the response ",
                "is an ordered factor with ", length(lv_), " levels in the ",
                "data: a level no row takes is dropped with the model ",
                "frame, as brms drops it. frmtmb returns simulated ",
                "responses as that factor, so it cannot hold more ",
                "categories than levels. Code the response as integers ",
-               "1..", max(th_[["nthres"]]) + 1L, " to fit the categories ",
-               "nobody chose, or lower the count", call. = FALSE)
+               ord_code0(resp$family), "..", max(th_[["nthres"]]) + 1L,
+               " to fit the categories nobody chose, or lower the count",
+               call. = FALSE)
     }
     # Family-level DATA a likelihood needs but no addition term supplies
     # (the Cox baseline's spline bases). It is a function of the
@@ -2901,7 +2910,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       cs_mm <- list()
       if (length(dp[["csterms"]] %||% list())) {
         if (!identical(resp$family[["type"]], "ordinal") ||
-            identical(resp$family[["family"]], "cumulative")) {
+            resp$family[["family"]] %in% ord_ordered_families) {
           frm_stop("cs() needs an sratio, cratio, or acat family",
                    call. = FALSE)
         }

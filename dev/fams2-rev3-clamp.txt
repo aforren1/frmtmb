@@ -1,0 +1,12 @@
+a 30000 b 70000 x = t1 -0.003 gap: ours vs mpfr 7.9e-15, pbeta vs mpfr 1.2e-14
+a 30000 b 70000 x = t1 -0.130 gap: ours vs mpfr 7.2e-15, pbeta vs mpfr 1.1e-14
+a 30000 b 70000 x = t1 -0.820 gap: ours vs mpfr 9.7e-15, pbeta vs mpfr 8.4e-15
+a 1e+06 b 3e+06 x = t1 +0.185 gap: ours vs mpfr 5.2e-14, pbeta vs mpfr 4.9e-14
+a 1e+06 b 3e+06 x = t1 -0.182 gap: ours vs mpfr 5.3e-14, pbeta vs mpfr 4.6e-14
+a 1e+06 b 3e+06 x = t1 -0.670 gap: ours vs mpfr 5.3e-14, pbeta vs mpfr 4.4e-14
+a 1e+07 b 1e+07 x = t1 -0.557 gap: ours vs mpfr 7.2e-13, pbeta vs mpfr 2.9e-13
+a 1e+07 b 1e+07 x = t1 -0.925 gap: ours vs mpfr 6.5e-13, pbeta vs mpfr 2.9e-13
+a 1e+07 b 1e+07 x = t1 -0.250 gap: ours vs mpfr 6.4e-13, pbeta vs mpfr 2.6e-13
+a 3e+06 b 1e+07 x = t1 -0.752 gap: ours vs mpfr 1.2e-13, pbeta vs mpfr 1.0e-13
+a 3e+06 b 1e+07 x = t1 -0.145 gap: ours vs mpfr 1.2e-13, pbeta vs mpfr 9.9e-14
+a 3e+06 b 1e+07 x = t1 -0.422 gap: ours vs mpfr 1.1e-13, pbeta vs mpfr 1.0e-13

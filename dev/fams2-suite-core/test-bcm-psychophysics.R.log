@@ -1,0 +1,10 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+bcm-psychophysics: ....S...S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. PsychophysicalFunction1 matches its Stan program ('test-bcm-psychophysics.R:100:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. PsychophysicalFunction2 matches its Stan program ('test-bcm-psychophysics.R:148:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-bcm-psychophysics.R pass=7 fail=0 err=0 skip=2 warn=0 blocks=4

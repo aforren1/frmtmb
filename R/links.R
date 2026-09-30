@@ -76,12 +76,12 @@
 #' | `Gamma`, `weibull`, `exponential`, `hurdle_gamma` | `log`, `identity`, `inverse`, `softplus`, `squareplus` |
 #' | `asym_laplace`, `exgaussian`, `zero_inflated_asym_laplace` | `identity`, `log`, `inverse`, `softplus`, `squareplus` |
 #' | `poisson`, `negbinomial`, `geometric`, `compois`, and the zero-inflated and hurdle counts | `log`, `identity`, `sqrt`, `softplus`, `squareplus` |
-#' | `binomial`, `bernoulli`, `Beta`, `zero_inflated_binomial`, `zero_inflated_beta`, `zero_one_inflated_beta` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity`, `log` |
+#' | `binomial`, `bernoulli`, `Beta`, `xbeta`, `zero_inflated_binomial`, `zero_inflated_beta`, `zero_inflated_beta_binomial`, `zero_one_inflated_beta` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity`, `log` |
 #' | `beta_binomial` | the same list WITHOUT `log`: brms's own table for this one family stops at `identity` |
 #' | `inverse.gaussian` | `1/mu^2`, `inverse`, `identity`, `log`, `softplus`, `squareplus` |
 #' | `cox` | `log`, `identity`, `softplus`, `squareplus` |
 #' | `von_mises` | `tan_half`, `identity` |
-#' | `cumulative` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
+#' | `cumulative`, `hurdle_cumulative` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
 #' | `sratio`, `cratio` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` |
 #' | `acat` | `logit` ONLY. brms takes the same six as `cumulative`; this is the one place frmtmb departs, and the reason is below |
 #' | `categorical`, `multinomial` | `logit` |
@@ -114,7 +114,7 @@
 #'
 #' | Parameter | Argument | Links |
 #' |---|---|---|
-#' | `sigma`, `shape`, `phi`, `kappa`, `beta`, `ndt`, and the `nu` of `compois` | `link_sigma` and so on | `log`, `identity`, `softplus`, `squareplus` |
+#' | `sigma`, `shape`, `phi`, `kappa`, `beta`, `ndt`, `disc`, and the `nu` of `compois` | `link_sigma` and so on | `log`, `identity`, `softplus`, `squareplus` |
 #' | `nu` of `student` | `link_nu` | `logm1`, `identity` |
 #' | `zi`, `hu`, `zoi`, `coi`, `quantile` | `link_zi`, `link_hu`, `link_zoi`, `link_coi`, `link_quantile` | `logit`, `identity` |
 #' | `alpha` of `skew_normal` | `link_alpha` | `identity`, `log`, `softplus`, `squareplus` |

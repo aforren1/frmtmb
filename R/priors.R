@@ -2787,7 +2787,7 @@ resolve_priorlist <- function(fit, pl) {
     # hold the thresholds themselves and brms declares them unordered
     # (brms:::has_ordered_thres() is FALSE for all three), so neither
     # side has a Jacobian there
-    ordered <- identical(rspec$family[["family"]], "cumulative")
+    ordered <- rspec$family[["family"]] %in% ord_ordered_families
     th <- rspec$family[["thres"]]
     grouped <- isTRUE(th[["grouped"]])
     if (nzchar(s$group) && !grouped) {

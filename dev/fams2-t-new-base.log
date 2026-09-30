@@ -1,0 +1,79 @@
+lib: C:/Users/adf44/source/r/rellib-r3/frmtmb 
+xbeta-zibb-hurdle-cum: 123456789.abcdefghijk
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-xbeta-zibb-hurdle-cum.R:95:3'): the constructors carry brms's
+Error in `xbeta()`: could not find function "xbeta"
+
+── 2. Error ('test-xbeta-zibb-hurdle-cum.R:117:3'): links, responses and options
+Error in `xbeta("1/mu")`: could not find function "xbeta"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_error(...) at test-xbeta-zibb-hurdle-cum.R:117:3
+ 2.   └─testthat:::expect_condition_matching_(...)
+ 3.     └─testthat:::quasi_capture(...)
+ 4.       ├─testthat (local) .capture(...)
+ 5.       │ └─base::withCallingHandlers(...)
+ 6.       └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+
+── 3. Error ('test-xbeta-zibb-hurdle-cum.R:156:3'): cens(), trunc(), cs(), thres
+Error in `zero_inflated_beta_binomial()`: could not find function "zero_inflated_beta_binomial"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-xbeta-zibb-hurdle-cum.R:156:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::frm(...)
+ 8.   └─frmtmb:::as_bform(formula, family)
+
+── 4. Error ('test-xbeta-zibb-hurdle-cum.R:177:3'): xbeta's density is brms's, a
+Error in `xbeta()`: could not find function "xbeta"
+
+── 5. Error ('test-xbeta-zibb-hurdle-cum.R:200:11'): the incomplete beta differe
+Error in `f(x)`: object 'log_ibeta_half' not found
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_true(all(is.finite(third(ours)))) at test-xbeta-zibb-hurdle-cum.R:207:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb (local) third(ours)
+ 5.   └─RTMB::MakeTape(f, c(0.2, 0, 0)) at test-xbeta-zibb-hurdle-cum.R:204:5
+ 6.     └─RTMB:::.MakeTape(f, x)
+ 7.       └─frmtmb (local) f(x)
+
+── 6. Error ('test-xbeta-zibb-hurdle-cum.R:224:3'): zero_inflated_beta_binomial'
+Error in `zero_inflated_beta_binomial()`: could not find function "zero_inflated_beta_binomial"
+
+── 7. Error ('test-xbeta-zibb-hurdle-cum.R:240:5'): hurdle_cumulative's density 
+Error in `hurdle_cumulative(lk)`: could not find function "hurdle_cumulative"
+
+── 8. Error ('test-xbeta-zibb-hurdle-cum.R:257:3'): zero_inflated_beta_binomial 
+Error in `zero_inflated_beta_binomial()`: could not find function "zero_inflated_beta_binomial"
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-xbeta-zibb-hurdle-cum.R:257:3
+ 2.   └─frmtmb:::as_bform(formula, family)
+
+── 9. Error ('test-xbeta-zibb-hurdle-cum.R:279:3'): hurdle_cumulative factorizes
+Error in `hurdle_cumulative()`: could not find function "hurdle_cumulative"
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-xbeta-zibb-hurdle-cum.R:279:3
+ 2.   └─frmtmb:::as_bform(formula, family)
+
+── 10. Error ('test-xbeta-zibb-hurdle-cum.R:304:3'): xbeta and the zi beta-binom
+Error in `xbeta()`: could not find function "xbeta"
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ x + (1 | g)), family = xbeta(), data = d) at test-xbeta-zibb-hurdle-cum.R:304:3
+ 2.   └─frmtmb:::as_bform(formula, family)
+  ... and 10 more
+
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-xbeta-zibb-hurdle-cum.R pass=1 fail=1 err=19 skip=0 warn=0 blocks=19

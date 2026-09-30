@@ -1139,6 +1139,15 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       if (is.character(l)) str2lang(l) else l
     })
   }), recursive = FALSE)
+  # brms's cse() is cs() under a second name (the two are one function
+  # there); the bar form stays whatever cs(x | g) is
+  terms_list <- lapply(terms_list, function(tm) {
+    if (is.call(tm) && identical(tm[[1L]], as.name("cse")) &&
+        !("|" %in% all.names(tm))) {
+      tm[[1L]] <- as.name("cs")
+    }
+    tm
+  })
   # a whole-term special written twice is one term, as brms's terms()
   # keeps one copy of a repeated label: s(z) + s(z) built two smooths
   # with one column name

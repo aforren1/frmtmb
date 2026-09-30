@@ -1,0 +1,8 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
+brms-suite-brmsterms: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. (code run outside of `test_that()`) ('test-brms-suite-brmsterms.R:6:1') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the brms suite
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT lane frmtmb test-brms-suite-brmsterms.R pass=0 fail=0 err=0 skip=0 warn=0 blocks=0

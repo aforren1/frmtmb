@@ -1200,9 +1200,9 @@ default_prior_notes <- function(fit) {
                                "class)"))
     }
     # dispersion dpars brms gives a gamma or inverse-gamma default, which
-    # set_prior() cannot express
+    # set_prior() cannot express; kappa is xbeta()'s and von_mises()'s
     disp <- setdiff(intersect(names(rspec$dpars %||% list()),
-                              c("shape", "phi", "nu")),
+                              c("shape", "phi", "nu", "kappa")),
                     rspec$primary_dpars)
     if (length(disp)) {
       notes <- c(notes, paste0("no defaults for ",

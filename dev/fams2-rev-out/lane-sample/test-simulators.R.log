@@ -1,0 +1,5 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.sample  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.sample/tests/testthat 
+simulators: ......................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT lane frmtmb.sample test-simulators.R pass=54 fail=0 err=0 skip=0 warn=0 blocks=10

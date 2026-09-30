@@ -307,7 +307,10 @@ thres_pin_recode <- function(pin, resp, y, levels) {
              ". A refit carries the fitted model's categories, so it ",
              "cannot add one", call. = FALSE)
   }
-  list(y = m[as.integer(y)], levels = lv_fit)
+  # a code is a level's position less one for a hurdle family, whose
+  # first level is the category 0
+  c0 <- ord_code0(resp$family)
+  list(y = m[as.integer(y) + 1L - c0] - 1L + c0, levels = lv_fit)
 }
 
 #' Write the pinned count into one response's addition-term values, as

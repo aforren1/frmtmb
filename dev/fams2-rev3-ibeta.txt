@@ -1,0 +1,206 @@
+frmtmb from C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+== A. value ==
+There were 50 or more warnings (use warnings() to see the first 50)
+points 4601  non-finite: 0 
+max error by larger shape:
+        (0,1]       (1,100]   (100,1e+04] (1e+04,1e+05] (1e+05,1e+06] 
+     1.40e-15      2.68e-14      2.50e-14      5.00e-14      1.29e-13 
+(1e+06,1e+07] 
+     2.93e-13 
+max error by location:
+ clamp.a    e05.a    e15.a    e5m.a    e5p.a   e65m.a    e6m.a    e6p.a 
+5.03e-15 5.63e-14 3.71e-15 7.11e-14 2.26e-16 7.31e-14 1.83e-13 1.49e-16 
+    hi.a     lo.a      m.a    mid.a     t1.a    t1m.a    t1p.a   tie2.a 
+5.31e-14 1.47e-13 4.88e-14 4.91e-14 9.93e-14 2.93e-13 9.48e-14 4.36e-14 
+ tie2m.a   u25m.a   u25p.a   u50m.a   u50p.a   v25m.a   v25p.a 
+6.19e-14 2.30e-14 5.16e-14 1.19e-14 1.10e-14 7.92e-15 1.18e-15 
+        a        b      x where      ref       err ours_vs_mpfr pbeta_vs_mpfr
+  3162278  3162278 0.5000 t1m.a  -0.6931 2.933e-13    2.320e-13     6.128e-14
+ 10000000 10000000 0.4993 e6m.a -20.7368 1.833e-13    1.305e-13     5.277e-14
+ 10000000 10000000 0.4993 e6m.a -20.7368 1.833e-13    1.305e-13     5.277e-14
+  3162278 10000000 0.2403  lo.a  -0.6930 1.473e-13    4.430e-14     1.030e-13
+  1000000  1000000 0.5000 t1m.a  -0.6931 1.290e-13    7.649e-14     5.251e-14
+  3162278 10000000 0.2395 e6m.a -20.7588 1.273e-13    1.164e-13     1.095e-14
+  3162278 10000000 0.2403 t1m.a  -0.6931 9.948e-14    5.940e-14     4.008e-14
+  3162278 10000000 0.2403  t1.a  -0.6931 9.925e-14    7.383e-14     2.542e-14
+
+== B. third partials in (x, a, b) finite on the grid ==
+points 4601  gradient 4601  hessian 4601  third 4601 
+
+== C. derivatives against Rmpfr ==
+       a       b where       x       v      dx     dxx    dxxx      da      db
+ 3.0e-01 7.0e+00     m 1.4e-01 2.7e-15 3.9e-15 2.8e-15 1.6e-15 2.5e-15 6.9e-16
+ 3.0e-01 7.0e+00    t1 4.1e-02 9.9e-16 4.4e-16 0.0e+00 4.2e-16 1.1e-15 1.9e-16
+ 3.0e-01 7.0e+00  tie2 1.6e-01 4.0e-15 5.4e-15 5.5e-15 2.8e-15 6.8e-15 3.1e-15
+ 3.0e-01 7.0e+00    lo 7.0e-02 2.6e-16 2.9e-16 2.4e-16 1.3e-16 3.4e-15 0.0e+00
+ 3.0e-01 7.0e+00    hi 1.3e-01 3.6e-15 7.3e-16 8.6e-16 6.0e-16 4.9e-15 2.1e-15
+ 3.0e-01 7.0e+00   t1p 4.1e-02 1.7e-16 0.0e+00 0.0e+00 2.1e-16 8.9e-16 1.9e-16
+ 3.0e-01 7.0e+00  u25m 3.1e-02 5.4e-16 2.1e-16 3.6e-16 3.6e-16 7.4e-16 3.6e-16
+ 3.0e-01 7.0e+00  u50m 2.1e-02 2.1e-16 1.3e-16 1.6e-16 4.2e-16 4.7e-16 1.7e-16
+ 3.0e-01 7.0e+00  v25p 2.8e-01 2.0e-16 2.7e-16 0.0e+00 1.4e-16 1.8e-16 2.4e-16
+ 3.0e-01 7.0e+00   e05 1.7e-01 3.9e-15 3.8e-15 5.9e-15 6.1e-15 4.9e-15 8.3e-15
+ 3.0e-01 7.0e+00   e15 2.4e-01 5.2e-16 9.1e-16 1.3e-16 1.8e-16 4.8e-16 0.0e+00
+ 4.0e+00 6.0e+01     m 7.6e-02 4.1e-15 1.3e-16 1.3e-15 1.9e-15 6.3e-15 2.1e-15
+ 4.0e+00 6.0e+01    t1 6.2e-02 1.3e-15 3.1e-16 0.0e+00 0.0e+00 4.7e-16 3.1e-16
+ 4.0e+00 6.0e+01  tie2 7.7e-02 1.5e-15 1.3e-15 1.1e-15 2.0e-15 7.0e-15 1.7e-15
+ 4.0e+00 6.0e+01    lo 6.6e-02 2.2e-16 0.0e+00 3.0e-16 2.5e-16 2.1e-15 3.3e-16
+ 4.0e+00 6.0e+01    hi 7.3e-02 6.7e-15 2.3e-16 9.8e-16 1.7e-16 2.2e-16 7.9e-16
+ 4.0e+00 6.0e+01   t1p 6.3e-02 9.6e-16 0.0e+00 3.9e-16 6.4e-16 7.8e-16 0.0e+00
+ 4.0e+00 6.0e+01  u25m 4.7e-02 2.7e-15 0.0e+00 4.0e-16 0.0e+00 2.0e-16 2.2e-16
+ 4.0e+00 6.0e+01  u50m 3.1e-02 6.6e-16 1.7e-16 2.3e-16 2.2e-16 0.0e+00 1.7e-16
+ 4.0e+00 6.0e+01  v25p 3.0e-01 2.2e-15 2.3e-15 2.0e-15 2.1e-15 2.5e-15 2.1e-15
+ 4.0e+00 6.0e+01   e05 9.1e-02 9.7e-15 2.3e-16 5.9e-15 3.8e-13 1.5e-14 2.2e-15
+ 4.0e+00 6.0e+01   e15 1.2e-01 1.4e-15 1.8e-15 1.6e-15 2.2e-15 3.2e-15 1.7e-15
+ 1.2e+01 1.2e+01  u25m 3.8e-01 1.2e-15 2.0e-16 1.4e-16 1.3e-16 9.6e-16 1.1e-15
+ 1.2e+01 1.2e+01  u50m 2.5e-01 3.3e-16 4.0e-16 1.4e-16 3.0e-16 1.4e-16 7.3e-16
+ 1.6e+01 2.4e+02     m 6.6e-02 3.3e-15 1.8e-16 5.1e-16 3.9e-15 6.8e-15 1.2e-15
+ 1.6e+01 2.4e+02    t1 6.2e-02 7.2e-15 1.4e-16 4.3e-16 1.5e-15 1.2e-14 2.9e-15
+ 1.6e+01 2.4e+02  tie2 6.6e-02 1.5e-14 7.3e-16 1.9e-15 5.2e-15 6.8e-15 2.2e-15
+ 1.6e+01 2.4e+02    lo 6.3e-02 7.7e-15 3.0e-16 1.5e-16 2.5e-15 2.7e-15 3.0e-16
+ 1.6e+01 2.4e+02    hi 6.5e-02 4.1e-15 1.7e-16 3.3e-16 2.0e-16 6.8e-15 4.9e-16
+ 1.6e+01 2.4e+02   t1p 6.3e-02 7.7e-15 2.9e-16 4.3e-16 7.3e-16 1.6e-14 1.7e-15
+ 1.6e+01 2.4e+02  u25m 4.7e-02 1.4e-15 4.6e-16 1.3e-16 0.0e+00 4.7e-15 1.5e-16
+ 1.6e+01 2.4e+02  u50m 3.1e-02 5.4e-16 2.0e-16 0.0e+00 0.0e+00 7.2e-16 0.0e+00
+ 1.6e+01 2.4e+02  v25p 3.0e-01 2.4e-15 2.3e-15 2.5e-15 2.7e-15 2.3e-15 2.2e-15
+ 1.6e+01 2.4e+02   e05 7.3e-02 2.4e-14 6.2e-15 1.0e-14 2.2e-14 1.2e-14 1.1e-15
+ 1.6e+01 2.4e+02   e15 8.9e-02 8.7e-15 8.8e-15 9.2e-15 1.0e-14 6.4e-15 9.5e-15
+ 3.0e+01 3.0e+01  u25m 3.8e-01 6.3e-15 3.8e-16 2.2e-16 0.0e+00 0.0e+00 4.2e-16
+ 3.0e+01 3.0e+01  u50m 2.5e-01 2.1e-15 1.7e-16 0.0e+00 2.4e-16 1.7e-15 5.2e-16
+ 3.0e+01 3.0e+01   e5m 1.8e-01 1.2e-15 2.1e-16 1.2e-16 0.0e+00 1.1e-15 2.2e-16
+ 3.0e+01 3.0e+01   e6m 1.2e-01 7.2e-16 2.5e-16 4.0e-16 1.9e-16 3.0e-16 5.7e-16
+ 1.5e+02 1.5e+02  u25m 3.8e-01 5.9e-16 3.4e-16 1.6e-16 1.8e-16 3.7e-16 0.0e+00
+ 1.5e+02 1.5e+02  u50m 2.5e-01 0.0e+00 0.0e+00 1.7e-16 0.0e+00 0.0e+00 0.0e+00
+ 1.5e+02 1.5e+02   e5m 3.6e-01 4.6e-16 2.9e-16 5.1e-15 2.3e-14 4.7e-16 2.1e-16
+ 1.5e+02 1.5e+02   e6m 3.3e-01 6.5e-16 8.2e-16 1.7e-15 2.3e-14 1.3e-16 1.8e-16
+ 3.0e+02 7.0e+02     m 3.0e-01 1.7e-16 1.6e-14 1.6e-12 9.4e-10 1.6e-14 1.5e-14
+ 3.0e+02 7.0e+02    t1 3.0e-01 1.6e-15 1.0e-15 9.4e-15 1.3e-13 1.8e-15 1.5e-15
+ 3.0e+02 7.0e+02  tie2 3.0e-01 2.6e-15 4.7e-15 2.7e-15 4.6e-14 5.1e-15 5.1e-15
+ 3.0e+02 7.0e+02    lo 3.0e-01 2.6e-15 7.5e-15 1.1e-14 1.4e-13 7.9e-15 7.5e-15
+ 3.0e+02 7.0e+02    hi 3.0e-01 6.8e-16 9.4e-16 1.5e-14 1.9e-09 1.5e-15 1.1e-15
+ 3.0e+02 7.0e+02   t1p 3.0e-01 1.6e-15 2.6e-16 4.0e-15 6.8e-15 7.3e-16 4.2e-16
+ 3.0e+02 7.0e+02  u25m 2.2e-01 2.0e-16 5.1e-16 9.8e-15 1.7e-13 3.7e-16 9.3e-16
+ 3.0e+02 7.0e+02  u50m 1.5e-01 5.7e-16 0.0e+00 2.6e-16 3.3e-16 1.6e-16 2.8e-16
+ 3.0e+02 7.0e+02  v25p 4.7e-01 1.2e-14 1.2e-14 1.2e-14 1.2e-14 1.2e-14 1.1e-14
+ 3.0e+02 7.0e+02   e05 3.1e-01 1.6e-14 2.2e-14 4.3e-14 1.4e-13 2.3e-14 2.3e-14
+ 3.0e+02 7.0e+02   e15 3.2e-01 2.3e-15 1.6e-15 2.8e-15 5.8e-14 1.6e-15 1.8e-15
+ 3.0e+02 7.0e+02   e5m 2.3e-01 4.3e-16 1.3e-16 1.3e-15 1.2e-13 2.0e-16 2.7e-16
+ 3.0e+02 7.0e+02   e6m 2.1e-01 3.1e-16 0.0e+00 1.7e-15 8.1e-13 1.6e-16 0.0e+00
+ 2.0e+03 8.0e+03     m 2.0e-01 1.6e-16 0.0e+00 3.2e-13 6.1e-07 2.2e-16 0.0e+00
+ 2.0e+03 8.0e+03    t1 2.0e-01 2.1e-15 2.1e-15 1.4e-14 3.4e-12 1.7e-15 1.7e-15
+ 2.0e+03 8.0e+03  tie2 2.0e-01 3.3e-15 2.0e-15 2.2e-14 1.3e-11 1.8e-15 2.0e-15
+ 2.0e+03 8.0e+03    lo 2.0e-01 1.9e-15 8.6e-16 1.9e-14 1.2e-11 6.6e-16 8.8e-16
+ 2.0e+03 8.0e+03    hi 2.0e-01 6.6e-16 8.7e-16 1.7e-14 8.0e-12 6.6e-16 4.4e-16
+ 2.0e+03 8.0e+03   t1p 2.0e-01 4.8e-16 8.6e-16 1.4e-15 3.4e-12 6.5e-16 6.5e-16
+ 2.0e+03 8.0e+03  u25m 1.5e-01 1.2e-15 9.2e-16 1.5e-16 2.0e-16 9.6e-16 6.8e-16
+ 2.0e+03 8.0e+03  u50m 1.0e-01 8.9e-16 1.6e-16 1.4e-16 3.5e-16 0.0e+00 5.9e-16
+ 2.0e+03 8.0e+03  v25p 4.0e-01 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00
+ 2.0e+03 8.0e+03   e05 2.0e-01 2.8e-15 2.5e-15 7.7e-15 8.0e-14 2.6e-15 2.4e-15
+ 2.0e+03 8.0e+03   e15 2.1e-01 2.0e-16 2.6e-14 2.6e-13 3.2e-12 2.6e-14 2.6e-14
+ 2.0e+03 8.0e+03   e5m 1.8e-01 1.1e-16 4.9e-16 8.3e-15 1.6e-12 6.4e-16 5.4e-16
+ 2.0e+03 8.0e+03   e6m 1.8e-01 9.8e-16 2.7e-16 5.8e-16 1.4e-16 4.3e-16 4.6e-16
+ 3.0e+04 7.0e+04     m 3.0e-01 5.0e-15 2.6e-12 3.3e-09 2.2e-05 2.6e-12 2.6e-12
+ 3.0e+04 7.0e+04    t1 3.0e-01 3.4e-15 1.9e-15 8.3e-14 1.3e-10 2.0e-15 2.1e-15
+ 3.0e+04 7.0e+04  tie2 3.0e-01 7.1e-15 5.6e-15 1.5e-14 4.5e-11 5.4e-15 5.1e-15
+ 3.0e+04 7.0e+04    lo 3.0e-01 1.3e-14 9.7e-15 2.3e-14 2.6e-10 9.4e-15 9.5e-15
+ 3.0e+04 7.0e+04    hi 3.0e-01 6.4e-15 4.8e-15 1.0e-13 7.7e-05 4.4e-15 4.6e-15
+ 3.0e+04 7.0e+04   t1p 3.0e-01 1.3e-15 1.4e-15 3.0e-14 6.8e-11 1.6e-15 1.4e-15
+ 3.0e+04 7.0e+04  v25p 4.7e-01 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00
+ 3.0e+04 7.0e+04   e05 3.0e-01 1.0e-14 8.0e-15 1.1e-14 5.5e-14 8.1e-15 8.0e-15
+ 3.0e+04 7.0e+04   e15 3.0e-01 2.0e-15 1.9e-15 0.0e+00 2.3e-14 1.8e-15 1.9e-15
+ 3.0e+04 7.0e+04   e5m 2.9e-01 1.4e-15 3.8e-16 1.7e-14 9.0e-12 5.5e-16 3.3e-16
+ 3.0e+04 7.0e+04   e6m 2.9e-01 3.4e-15 8.8e-15 2.4e-16 4.3e-16 8.4e-15 9.0e-15
+ 1.0e+06 3.0e+06     m 2.5e-01 1.3e-14 4.7e-11 1.3e-06 1.6e-02 4.7e-11 4.7e-11
+ 1.0e+06 3.0e+06    t1 2.5e-01 3.2e-16 1.2e-16 3.7e-13 2.1e-09 1.6e-16 4.7e-16
+ 1.0e+06 3.0e+06  tie2 2.5e-01 3.0e-14 2.2e-14 1.5e-13 4.5e-10 2.1e-14 2.1e-14
+ 1.0e+06 3.0e+06    lo 2.5e-01 8.2e-15 5.1e-15 2.6e-13 1.3e-09 4.9e-15 4.9e-15
+ 1.0e+06 3.0e+06    hi 2.5e-01 1.6e-14 1.1e-14 1.3e-12 1.2e-01 1.0e-14 1.0e-14
+ 1.0e+06 3.0e+06   t1p 2.5e-01 7.2e-14 5.0e-14 6.7e-13 6.3e-09 4.9e-14 4.9e-14
+ 1.0e+06 3.0e+06  v25p 4.4e-01 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00
+ 1.0e+06 3.0e+06   e05 2.5e-01 7.7e-14 5.7e-14 3.7e-14 8.2e-14 5.7e-14 5.7e-14
+ 1.0e+06 3.0e+06   e15 2.5e-01 1.1e-13 8.9e-14 6.4e-14 4.9e-14 8.8e-14 8.8e-14
+ 1.0e+06 3.0e+06   e5m 2.5e-01 3.5e-16 0.0e+00 4.3e-15 3.6e-12 1.9e-16 0.0e+00
+ 1.0e+06 3.0e+06   e6m 2.5e-01 1.7e-14 2.1e-14 1.8e-16 3.4e-09 2.1e-14 2.1e-14
+ 1.0e+07 1.0e+07   e5m 5.0e-01 9.9e-14 5.3e-14 1.1e-14 2.9e-12 5.3e-14 5.3e-14
+ 1.0e+07 1.0e+07   e6m 5.0e-01 1.3e-13 1.3e-14 3.8e-15 9.1e-09 1.2e-14 1.3e-14
+ 1.0e+00 1.0e+07     m 2.0e-07 4.0e-14 8.9e-16 2.2e-16 1.4e-16 3.8e-14 2.3e-15
+ 1.0e+00 1.0e+07    t1 1.0e-07 1.1e-14 1.6e-16 3.4e-16 1.3e-16 3.7e-15 4.5e-16
+ 1.0e+00 1.0e+07  tie2 2.0e-07 3.5e-14 1.5e-16 1.1e-15 4.1e-16 4.3e-15 3.8e-15
+ 1.0e+00 1.0e+07    lo 1.2e-07 1.2e-14 4.6e-16 1.4e-16 3.9e-16 2.4e-14 5.3e-16
+ 1.0e+00 1.0e+07    hi 1.7e-07 2.8e-14 8.9e-16 1.5e-16 1.8e-16 3.8e-15 3.6e-16
+ 1.0e+00 1.0e+07   t1p 1.0e-07 1.1e-14 0.0e+00 0.0e+00 3.9e-16 1.0e-14 4.5e-16
+ 1.0e+00 1.0e+07  u25m 7.5e-08 1.1e-14 4.2e-16 0.0e+00 2.2e-16 3.8e-15 3.9e-16
+ 1.0e+00 1.0e+07  u50m 5.0e-08 3.5e-15 0.0e+00 3.2e-16 0.0e+00 8.9e-16 1.7e-16
+ 1.0e+00 1.0e+07  v25p 2.5e-01 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00 0.0e+00
+ 1.0e+00 1.0e+07   e05 2.5e-07 4.7e-14 3.8e-15 1.4e-15 2.3e-12 1.0e-14 1.0e-15
+ 1.0e+00 1.0e+07   e15 3.5e-07 4.1e-15 4.1e-15 4.6e-15 4.7e-15 5.2e-15 3.9e-15
+max relative error: value 1.31e-13  d/dx 4.73e-11  d2/dx2 1.31e-06  d3/dx3 0.124  d/da 4.73e-11  d/db 4.73e-11 
+
+== D. continuity across the new edges ==
+  a 150 b 150 u25m : value jump 1.255e-10 pred 1.255e-10 (diff -1.2e-14) | gradient change vs H dx, worst 2.6e-16 of |g|
+  a 150 b 150 u50m : value jump 2.020e-10 pred 2.019e-10 (diff 2.2e-14) | gradient change vs H dx, worst 1.9e-16 of |g|
+  a 150 b 150 v25m : value jump 1.255e-10 pred 1.255e-10 (diff -1.2e-14) | gradient change vs H dx, worst 2.6e-16 of |g|
+  a 300 b 700 lo   : value jump 3.248e-11 pred 3.248e-11 (diff -3.8e-15) | gradient change vs H dx, worst 3.1e-15 of |g|
+  a 300 b 700 hi   : value jump 3.188e-11 pred 3.187e-11 (diff 2.4e-15) | gradient change vs H dx, worst 8.5e-16 of |g|
+  a 300 b 700 u25m : value jump 1.992e-10 pred 1.992e-10 (diff -1.2e-14) | gradient change vs H dx, worst 6.4e-16 of |g|
+  a 300 b 700 u50m : value jump 3.549e-10 pred 3.549e-10 (diff -8.3e-15) | gradient change vs H dx, worst 1.3e-16 of |g|
+  a 300 b 700 u25p : value jump 6.428e-17 pred 7.717e-17 (diff -1.3e-17) | gradient change vs H dx, worst 7.5e-12 of |g|
+  a 300 b 700 u50p : value jump 6.841e-32 pred 6.842e-32 (diff -5.5e-36) | gradient change vs H dx, worst 4.4e-14 of |g|
+  a 300 b 700 v25m : value jump 4.014e-10 pred 4.014e-10 (diff 1.4e-15) | gradient change vs H dx, worst 1.1e-16 of |g|
+  a 300 b 700 v25p : value jump 5.720e-39 pred 5.719e-39 (diff 2.9e-43) | gradient change vs H dx, worst 3.4e-14 of |g|
+  a 2000 b 8000 lo   : value jump 7.915e-11 pred 7.915e-11 (diff -3.5e-15) | gradient change vs H dx, worst 3.5e-15 of |g|
+  a 2000 b 8000 hi   : value jump 7.853e-11 pred 7.853e-11 (diff 2.6e-15) | gradient change vs H dx, worst 2.9e-15 of |g|
+  a 2000 b 8000 u25m : value jump 1.182e-09 pred 1.182e-09 (diff -2.2e-13) | gradient change vs H dx, worst 1.4e-15 of |g|
+  a 2000 b 8000 u50m : value jump 2.224e-09 pred 2.224e-09 (diff -5.6e-13) | gradient change vs H dx, worst 9.7e-16 of |g|
+  a 2000 b 8000 u25p : value jump 1.656e-41 pred 1.656e-41 (diff 5.0e-46) | gradient change vs H dx, worst 4.1e-14 of |g|
+  a 2000 b 8000 u50p : value jump 8.049e-123 pred 8.051e-123 (diff -1.8e-126) | gradient change vs H dx, worst 6.6e-13 of |g|
+  a 2000 b 8000 v25p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 30000 b 70000 lo   : value jump 3.298e-10 pred 3.298e-10 (diff -3.9e-14) | gradient change vs H dx, worst 3.9e-14 of |g|
+  a 30000 b 70000 hi   : value jump 3.291e-10 pred 3.292e-10 (diff -1.9e-14) | gradient change vs H dx, worst 2.0e-14 of |g|
+  a 30000 b 70000 u25m : value jump 1.936e-08 pred 1.936e-08 (diff -6.5e-13) | gradient change vs H dx, worst 4.1e-16 of |g|
+  a 30000 b 70000 u50m : value jump 3.529e-08 pred 3.530e-08 (diff -2.3e-12) | gradient change vs H dx, worst 3.9e-16 of |g|
+  a 30000 b 70000 u25p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 30000 b 70000 u50p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 30000 b 70000 v25m : value jump 4.001e-08 pred 4.000e-08 (diff 3.6e-12) | gradient change vs H dx, worst 4.1e-16 of |g|
+  a 30000 b 70000 v25p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 1e+06 b 3e+06 lo   : value jump 1.595e-09 pred 1.595e-09 (diff -2.2e-14) | gradient change vs H dx, worst 2.3e-14 of |g|
+  a 1e+06 b 3e+06 hi   : value jump 1.595e-09 pred 1.595e-09 (diff -2.1e-14) | gradient change vs H dx, worst 2.0e-14 of |g|
+  a 1e+06 b 3e+06 u25m : value jump 6.154e-07 pred 6.154e-07 (diff 1.7e-11) | gradient change vs H dx, worst 8.6e-16 of |g|
+  a 1e+06 b 3e+06 u50m : value jump 1.143e-06 pred 1.143e-06 (diff 1.6e-10) | gradient change vs H dx, worst 2.7e-16 of |g|
+  a 1e+06 b 3e+06 u25p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 1e+06 b 3e+06 u50p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 1e+06 b 3e+06 v25m : value jump 1.600e-06 pred 1.600e-06 (diff 1.2e-11) | gradient change vs H dx, worst 3.0e-16 of |g|
+  a 1e+06 b 3e+06 v25p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+  a 1e+07 b 1e+07 u25m : value jump 2.385e-06 pred 2.385e-06 (diff -4.9e-10) | gradient change vs H dx, worst 1.8e-16 of |g|
+  a 1e+07 b 1e+07 u50m : value jump 5.963e-06 pred 5.963e-06 (diff -5.6e-11) | gradient change vs H dx, worst 1.6e-16 of |g|
+  a 1e+07 b 1e+07 v25m : value jump 2.385e-06 pred 2.385e-06 (diff -4.9e-10) | gradient change vs H dx, worst 1.8e-16 of |g|
+  a 16 b 240 lo   : value jump 5.917e-12 pred 5.916e-12 (diff 9.5e-16) | gradient change vs H dx, worst 1.3e-15 of |g|
+  a 16 b 240 hi   : value jump 5.394e-12 pred 5.394e-12 (diff -3.9e-16) | gradient change vs H dx, worst 4.3e-15 of |g|
+  a 16 b 240 u25m : value jump 1.162e-11 pred 1.162e-11 (diff -2.2e-15) | gradient change vs H dx, worst 2.3e-15 of |g|
+  a 16 b 240 u50m : value jump 1.808e-11 pred 1.807e-11 (diff 3.9e-15) | gradient change vs H dx, worst 5.4e-16 of |g|
+  a 16 b 240 u25p : value jump 2.470e-12 pred 2.469e-12 (diff 1.5e-15) | gradient change vs H dx, worst 2.0e-14 of |g|
+  a 16 b 240 u50p : value jump 6.721e-13 pred 6.720e-13 (diff 4.8e-17) | gradient change vs H dx, worst 3.6e-15 of |g|
+  a 16 b 240 v25p : value jump 3.037e-31 pred 3.037e-31 (diff -2.5e-35) | gradient change vs H dx, worst 1.5e-14 of |g|
+  a 60 b 60 u25m : value jump 5.296e-11 pred 5.296e-11 (diff -3.5e-15) | gradient change vs H dx, worst 4.9e-16 of |g|
+  a 60 b 60 u50m : value jump 8.189e-11 pred 8.188e-11 (diff 7.7e-15) | gradient change vs H dx, worst 5.1e-16 of |g|
+  a 60 b 60 v25m : value jump 5.296e-11 pred 5.296e-11 (diff -3.5e-15) | gradient change vs H dx, worst 4.9e-16 of |g|
+  a 1 b 1e+07 lo   : value jump 1.007e-12 pred 1.004e-12 (diff 2.7e-15) | gradient change vs H dx, worst 7.1e-15 of |g|
+  a 1 b 1e+07 hi   : value jump 7.332e-13 pred 7.361e-13 (diff -2.9e-15) | gradient change vs H dx, worst 5.3e-15 of |g|
+  a 1 b 1e+07 u25m : value jump 1.344e-12 pred 1.343e-12 (diff 9.3e-16) | gradient change vs H dx, worst 8.8e-15 of |g|
+  a 1 b 1e+07 u50m : value jump 1.540e-12 pred 1.541e-12 (diff -1.8e-15) | gradient change vs H dx, worst 1.3e-15 of |g|
+  a 1 b 1e+07 u25p : value jump 1.003e-12 pred 1.004e-12 (diff -1.1e-15) | gradient change vs H dx, worst 6.4e-15 of |g|
+  a 1 b 1e+07 u50p : value jump 8.638e-13 pred 8.617e-13 (diff 2.1e-15) | gradient change vs H dx, worst 8.7e-15 of |g|
+  a 1 b 1e+07 v25p : value jump 0.000e+00 pred 0.000e+00 (diff 0.0e+00) | gradient change vs H dx, worst 0.0e+00 of |g|
+in the shapes, x at the mean of the pair: across a b / (a + b) = 15, 30 and a = 12
+  ab/s = 15 (a 15.2284, b 1000, x 0.015): value jump -5.828e-09 pred -5.828e-09 (diff 2.3e-15) | gradient change vs H da 1.9e-15 of |g|
+  ab/s = 30 (a 30.9278, b 1000, x 0.03): value jump -8.384e-09 pred -8.384e-09 (diff -5.6e-16) | gradient change vs H da 2.9e-16 of |g|
+  ab/s = 15 (a 15, b 1e+07, x 1.5e-06): value jump -5.815e-09 pred -5.815e-09 (diff 2.6e-14) | gradient change vs H da 1.1e-14 of |g|
+  ab/s = 30 (a 30.0001, b 1e+07, x 3e-06): value jump -8.359e-09 pred -8.359e-09 (diff -6.0e-16) | gradient change vs H da 2.1e-15 of |g|
+  a = 12 (a 12, b 1e+07, x 1.2e-06): value jump -5.169e-09 pred -5.169e-09 (diff 9.7e-15) | gradient change vs H da 2.3e-15 of |g|
+  a = 12 (a 12, b 13, x 0.48): value jump -4.038e-09 pred -4.038e-09 (diff 3.9e-15) | gradient change vs H da 2.9e-14 of |g|
+
+== E. the clamp: x across both ties, 401 points each ==
+  a 150 b 150: value max 5.6e-15 | d/dx max rel 8.2e-15 | d/da, d/db vs pbeta AD max rel 7.3e-15 (134 of 134 points where pbeta's AD is finite)
+  a 300 b 700: value max 6.6e-15 | d/dx max rel 4.0e-14 | d/da, d/db vs pbeta AD max rel 4.0e-14 (401 of 401 points where pbeta's AD is finite)
+  a 30000 b 70000: value max 2.0e-14 | d/dx max rel 1.2e-11 | d/da, d/db vs pbeta AD max rel 1.2e-11 (401 of 401 points where pbeta's AD is finite)
+  a 1e+06 b 3e+06: value max 1.0e-13 | d/dx max rel 4.6e-10 | d/da, d/db vs pbeta AD max rel 4.6e-10 (401 of 401 points where pbeta's AD is finite)
+  a 1e+07 b 1e+07: value max 1.0e-12 | d/dx max rel 1.0e-12 | d/da, d/db vs pbeta AD max rel 1.0e-12 (134 of 134 points where pbeta's AD is finite)

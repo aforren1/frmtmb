@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.coupling 
+Loading required package: frmtmb
+coherence: ...............................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.coupling test-coherence.R pass=63 fail=0 err=0 skip=0 warn=0 blocks=13

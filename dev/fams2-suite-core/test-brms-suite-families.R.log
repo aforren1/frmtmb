@@ -1,0 +1,8 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+brms-suite-families: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. (code run outside of `test_that()`) ('test-brms-suite-families.R:6:1') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the brms suite
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-brms-suite-families.R pass=0 fail=0 err=0 skip=0 warn=0 blocks=0

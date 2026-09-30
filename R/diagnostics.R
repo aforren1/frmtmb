@@ -77,9 +77,12 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
                                  re_formula = re_formula))
   sims <- if (ordinal) {
     # simulate() hands ordinal draws back as ordered factors; the rank
-    # transform needs the integer codes the response itself carries
-    matrix(unlist(lapply(sims, as.integer), use.names = FALSE),
-           nrow = nrow(sims))
+    # transform needs the integer codes the response itself carries,
+    # which start at 0 for a hurdle family
+    shift <- ord_code0(rspec$family) - 1L
+    matrix(unlist(lapply(sims, function(s) {
+      if (is.factor(s)) as.integer(s) + shift else as.integer(s)
+    }), use.names = FALSE), nrow = nrow(sims))
   } else {
     as.matrix(sims)
   }

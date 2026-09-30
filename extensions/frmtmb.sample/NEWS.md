@@ -1,3 +1,12 @@
+# frmtmb.sample (development version)
+
+* `conditional_effects(categorical = FALSE)` on a `hurdle_cumulative()`
+  fit scores the expected category by the category codes, so the hurdle
+  scores 0, as core's does. Every other ordinal family is unchanged.
+* The default-prior disclosure names `kappa`, which brms gives a gamma
+  prior, beside `shape`, `phi` and `nu`: `xbeta()` and `von_mises()`
+  carry it.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

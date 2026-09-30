@@ -1,0 +1,6 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
+osa-inference: ..................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🌈 Your tests are over the rainbow 🌈
+RESULT lane frmtmb test-osa-inference.R pass=34 fail=0 err=0 skip=0 warn=0 blocks=6

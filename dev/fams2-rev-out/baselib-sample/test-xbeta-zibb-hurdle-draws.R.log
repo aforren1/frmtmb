@@ -1,0 +1,30 @@
+arm: baselib  lib: C:/Users/adf44/source/r/rellib-r3/frmtmb.sample  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.sample/tests/testthat 
+xbeta-zibb-hurdle-draws: 123
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-xbeta-zibb-hurdle-draws.R:80:5'): log_lik() is the reference 
+Error in `xbeta()`: could not find function "xbeta"
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) f2_draws(which) at test-xbeta-zibb-hurdle-draws.R:80:5
+ 2.   └─frmtmb::frm(bf(yx ~ x), family = xbeta(), data = d) at test-xbeta-zibb-hurdle-draws.R:58:7
+ 3.     └─frmtmb:::as_bform(formula, family)
+
+── 2. Error ('test-xbeta-zibb-hurdle-draws.R:99:3'): a hurdle ordinal's expected
+Error in `hurdle_cumulative()`: could not find function "hurdle_cumulative"
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) f2_draws("hurdle") at test-xbeta-zibb-hurdle-draws.R:99:3
+ 2.   └─frmtmb::frm(...) at test-xbeta-zibb-hurdle-draws.R:58:7
+ 3.     └─frmtmb:::as_bform(formula, family)
+
+── 3. Error ('test-xbeta-zibb-hurdle-draws.R:119:3'): the default-prior disclosu
+Error in `xbeta()`: could not find function "xbeta"
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) f2_draws("xbeta") at test-xbeta-zibb-hurdle-draws.R:119:3
+ 2.   └─frmtmb::frm(bf(yx ~ x), family = xbeta(), data = d) at test-xbeta-zibb-hurdle-draws.R:58:7
+ 3.     └─frmtmb:::as_bform(formula, family)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT baselib frmtmb.sample test-xbeta-zibb-hurdle-draws.R pass=0 fail=0 err=3 skip=0 warn=0 blocks=3

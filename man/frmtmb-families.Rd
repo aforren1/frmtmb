@@ -15,7 +15,9 @@
 \alias{hurdle_negbinomial}
 \alias{multinomial}
 \alias{cumulative}
+\alias{hurdle_cumulative}
 \alias{beta_binomial}
+\alias{zero_inflated_beta_binomial}
 \alias{skew_normal}
 \alias{exgaussian}
 \alias{bernoulli}
@@ -28,6 +30,7 @@
 \alias{zero_inflated_binomial}
 \alias{zero_inflated_beta}
 \alias{zero_one_inflated_beta}
+\alias{xbeta}
 \alias{asym_laplace}
 \alias{zero_inflated_asym_laplace}
 \alias{huber}
@@ -65,7 +68,20 @@ multinomial(K)
 
 cumulative(link = "logit")
 
+hurdle_cumulative(
+  link = "logit",
+  link_hu = "logit",
+  link_disc = "log",
+  threshold = "flexible"
+)
+
 beta_binomial(link = "logit", link_phi = "log")
+
+zero_inflated_beta_binomial(
+  link = "logit",
+  link_phi = "log",
+  link_zi = "logit"
+)
 
 skew_normal(link = "identity", link_sigma = "log", link_alpha = "identity")
 
@@ -96,6 +112,8 @@ zero_one_inflated_beta(
   link_coi = "logit"
 )
 
+xbeta(link = "logit", link_phi = "log", link_kappa = "log")
+
 asym_laplace(link = "identity", link_sigma = "log", link_quantile = "logit")
 
 zero_inflated_asym_laplace(
@@ -122,7 +140,7 @@ cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 \arguments{
 \item{link}{Link for \code{mu}. See \link{frmtmb-links}.}
 
-\item{link_sigma, link_shape, link_phi, link_kappa, link_ndt, link_beta}{Link for a strictly positive parameter: one of \code{"log"} (the
+\item{link_sigma, link_shape, link_phi, link_kappa, link_ndt, link_beta, link_disc}{Link for a strictly positive parameter: one of \code{"log"} (the
 default), \code{"identity"}, \code{"softplus"} or \code{"squareplus"}.}
 
 \item{link_nu}{Link for \code{nu}. \code{student()}'s degrees of freedom take
@@ -138,6 +156,10 @@ such a value is 1.}
 
 \item{K}{For \code{multinomial()}: number of response categories (columns
 of the count-matrix response); category 1 is the reference.}
+
+\item{threshold}{For \code{hurdle_cumulative()}: the threshold structure.
+brms also offers \code{"equidistant"} and \code{"sum_to_zero"}; frmtmb fits
+\code{"flexible"} thresholds only and refuses the other two by name.}
 
 \item{link_alpha}{Link for \code{skew_normal()}'s skewness, which is
 signed: \code{"identity"} (the default), \code{"log"}, \code{"softplus"} or
@@ -206,6 +228,52 @@ with neither gives \code{coi} no data at all, so that no standard error of
 the fit is usable; the fit warns in both cases. brms fits such data
 through its prior on \code{coi}. Here, hold \code{coi} at a value with
 \code{bf(coi = 0.5)}.
+
+\code{zero_inflated_beta_binomial()} is \code{beta_binomial()} with a
+zero-inflation probability \code{zi}: \verb{P(Y = 0) = zi + (1 - zi) BB(0)},
+and a count \code{y > 0} has probability \verb{(1 - zi) BB(y)}, with the trials
+from \code{trials()}. \code{fitted()} returns \code{(1 - zi) * mu * trials}.
+
+\code{hurdle_cumulative()} is brms's hurdle over an ordinal response. The
+response is \verb{0..K}: 0 is the hurdle, with probability \code{hu}, and the
+categories \verb{1..K} follow \code{cumulative()} with probabilities scaled by
+\code{1 - hu}. An ordered factor takes its FIRST level as the category 0.
+\code{fitted()} returns the \code{K + 1} category probabilities, 0 first. The
+expected category that \code{conditional_effects()} shows by default is
+scored by these codes, so the hurdle scores 0; brms scores each
+column by its position and reads one higher. \code{disc}, the
+discrimination, is held at 1 unless the formula models it, as in
+brms. The likelihood cannot tell an intercept in \code{disc} apart from
+the scale of the thresholds, so write \code{disc ~ 0 + x}. brms accepts
+\code{disc ~ 1 + x} and holds the intercept with its default
+\code{normal(0, 1)} prior; frmtmb fits it too, and warns unless a prior
+holds the intercept. \code{thres(x = )}
+works; \code{thres(gr = )}, \code{cs()} and a \code{threshold} other than
+\code{"flexible"} are refused.
+}
+
+\section{Extended-support beta}{
+
+\code{xbeta()} is the extended-support beta of Kosmidis and Zeileis
+(2024), brms's \code{xbeta}, for a response in \verb{[0, 1]} with exact 0s and
+1s. A latent beta variable with mean \code{mu} and precision \code{phi} is
+stretched by the exceedance \code{kappa} to \verb{(1 + 2 kappa) Z - kappa} and
+censored at 0 and 1, so the ends carry the latent mass beyond them.
+\code{mu} is the mean of the latent variable, not of the response;
+\code{fitted()} returns the mean of the response, brms's
+\code{posterior_epred()}. The mass at each end is an incomplete beta
+function, which is taken mostly from a continued fraction rather
+than from \code{RTMB::pbeta()}, whose third derivatives are not finite
+everywhere and which therefore failed the Laplace approximation of a
+model with random effects.
+
+\code{kappa} is placed mostly by the rows at exactly 0 or 1. With none,
+only the shape of the interior places it, and it can run to 0,
+where the model is \code{Beta()}, or grow without bound. When it runs to
+0, or a coefficient of a log-link \code{kappa} has a standard
+error above 10 or none, the fit warns; brms fits such data through its
+\code{gamma(0.01, 0.01)} prior on \code{kappa}. Compare the fit with \code{Beta()},
+or hold \code{kappa} at a value with \code{bf(kappa = )}.
 }
 
 \section{Categorical (nominal) responses}{
@@ -407,13 +475,15 @@ refused by name when brms does not allow it for the family:
 An ordinal family's \code{link} is not a link on a mean. It names the
 distribution function the thresholds are read through, so
 \code{cumulative()}, \code{sratio()} and \code{cratio()} take \code{logit}, \code{probit},
-\code{probit_approx}, \code{cloglog} and \code{cauchit} (and \code{cumulative()} also
-takes \code{softit}), and refuse anything else. \code{acat()} takes \code{logit}
-alone, because brms defines its other links by a different density
-rather than by substituting a distribution function.
+\code{probit_approx}, \code{cloglog} and \code{cauchit} (and \code{cumulative()} and
+\code{hurdle_cumulative()} also take \code{softit}), and refuse anything else.
+\code{acat()} takes \code{logit} alone, because brms defines its other links by
+a different density rather than by substituting a distribution
+function.
 
-\code{cumulative()} keeps its thresholds increasing, because its category
-probabilities are differences of the distribution function. The
+\code{cumulative()} and \code{hurdle_cumulative()} keep their thresholds
+increasing, because their category probabilities are differences of
+the distribution function. The
 thresholds of \code{sratio()}, \code{cratio()} and \code{acat()} are unconstrained,
 as in brms: their category probabilities are positive for any
 thresholds, so a fit may have two of them cross.

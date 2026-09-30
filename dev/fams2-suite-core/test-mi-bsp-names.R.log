@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+mi-bsp-names: ...........
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-mi-bsp-names.R pass=11 fail=0 err=0 skip=0 warn=0 blocks=4

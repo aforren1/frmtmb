@@ -1,0 +1,13 @@
+RESULT base frmtmb.sample test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0 warn=0 blocks=8
+RESULT base frmtmb.sample test-brms-suite-brmsterms.R pass=0 fail=0 err=0 skip=0 warn=0 blocks=0
+RESULT base frmtmb.sample test-brms-suite-families.R pass=0 fail=0 err=0 skip=0 warn=0 blocks=0
+RESULT base frmtmb.sample test-conditional-effects-draws.R pass=61 fail=0 err=0 skip=0 warn=0 blocks=13
+RESULT base frmtmb.sample test-default-priors-brms.R pass=25 fail=0 err=0 skip=0 warn=0 blocks=9
+RESULT base frmtmb.sample test-draws-methods.R pass=148 fail=0 err=0 skip=0 warn=0 blocks=22
+RESULT base frmtmb.sample test-loo.R pass=103 fail=0 err=0 skip=2 warn=0 blocks=26
+RESULT base frmtmb.sample test-predfix-new-levels.R pass=62 fail=0 err=0 skip=0 warn=0 blocks=5
+RESULT base frmtmb.sample test-sample-direct.R pass=137 fail=0 err=0 skip=0 warn=0 blocks=17
+RESULT base frmtmb.sample test-sampling-ported.R pass=206 fail=0 err=0 skip=1 warn=0 blocks=34
+RESULT base frmtmb.sample test-simulators.R pass=54 fail=0 err=0 skip=0 warn=0 blocks=10
+RESULT base frmtmb.sample test-sratio-draws.R pass=2 fail=0 err=0 skip=0 warn=0 blocks=1
+RESULT base frmtmb.sample test-thres-draws.R pass=4 fail=0 err=0 skip=0 warn=0 blocks=1

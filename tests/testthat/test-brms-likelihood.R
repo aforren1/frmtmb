@@ -395,6 +395,88 @@ test_that("row 16c: zero-one-inflated beta with zoi ~ x", {
                 dz, fit)
 })
 
+# Rows 16d to 16g fit to a gradient of 1e-6 rather than frm()'s default
+# 1e-3, so that check B reads brms's gradient at an optimum and not at
+# wherever nlminb stopped: row 16e's seed stopped at 8.9e-4, inside
+# check B's 1e-3 by a margin a platform could eat (dev/fams2-findings.md).
+lp_tight <- frmtmb_control(grad_tol = 1e-6, restarts = 3)
+
+test_that("row 16d: extended-support beta with kappa ~ x", {
+  skip_unless_brms_fit()
+
+  # rows at 0 and at 1 both, so the two incomplete-beta ends are in the
+  # sum; phi has no predictor and takes the natural-scale rule
+  set.seed(15)
+  n <- 300
+  dx <- data.frame(x = rnorm(n))
+  mu <- plogis(0.2 + 0.6 * dx$x)
+  kap <- exp(-1.8 + 0.4 * dx$x)
+  z <- stats::rbeta(n, mu * 6, (1 - mu) * 6)
+  dx$y <- pmin(pmax((1 + 2 * kap) * z - kap, 0), 1)
+  expect_gt(sum(dx$y == 0), 0)
+  expect_gt(sum(dx$y == 1), 0)
+  fit <- frm(bf(y ~ x, kappa ~ x), family = xbeta(), data = dx,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, kappa ~ x), brms::xbeta(), dx, fit)
+})
+
+test_that("row 16e: zero-inflated beta-binomial with zi ~ x", {
+  skip_unless_brms_fit()
+
+  set.seed(16)
+  n <- 300
+  db <- data.frame(x = rnorm(n), tr = sample(5:15, n, TRUE))
+  mu <- plogis(-0.3 + 0.5 * db$x)
+  yb <- stats::rbinom(n, db$tr, stats::rbeta(n, mu * 4, (1 - mu) * 4))
+  db$y <- ifelse(runif(n) < plogis(-1 + 0.4 * db$x), 0L, yb)
+  fit <- frm(bf(y | trials(tr) ~ x, zi ~ x),
+             family = zero_inflated_beta_binomial(), data = db,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y | trials(tr) ~ x, zi ~ x),
+                brms::zero_inflated_beta_binomial(), db, fit)
+})
+
+# hurdle_cumulative data: 0 is the hurdle, 1..4 a logistic cumulative
+# model on x. brms takes its ordered_logistic path under the logit link
+# with disc held at 1, and its generic hurdle_cumulative_<link>_lpmf
+# otherwise.
+hurdle_cum_data <- function(seed) {
+  set.seed(seed)
+  n <- 300
+  d <- data.frame(x = rnorm(n))
+  u <- stats::rlogis(n) + 0.8 * d$x
+  yc <- 1L + (u > -1) + (u > 0.3) + (u > 1.5)
+  d$y <- ifelse(runif(n) < plogis(-0.6 + 0.5 * d$x), 0L, yc)
+  d
+}
+
+test_that("row 16f: hurdle cumulative with hu ~ x", {
+  skip_unless_brms_fit()
+
+  dc <- hurdle_cum_data(17)
+  fit <- frm(bf(y ~ x, hu ~ x), family = hurdle_cumulative(), data = dc,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, hu ~ x), brms::hurdle_cumulative(), dc,
+                fit)
+})
+
+test_that("row 16g: hurdle cumulative, probit, with disc ~ 0 + x", {
+  skip_unless_brms_fit()
+
+  # disc is modeled without an intercept, because the likelihood cannot
+  # tell an intercept there apart from the scale of the thresholds; hu
+  # takes the natural-scale rule. The logit link is not used here: with
+  # disc modeled, brms 2.23.0's generic logit density reads
+  # thres[nthres + 1] on the top category, and Stan stops with "index out
+  # of range" (dev/fams2-brms-hc-bug.R).
+  dc <- hurdle_cum_data(18)
+  fit <- frm(bf(y ~ x, disc ~ 0 + x),
+             family = hurdle_cumulative("probit"), data = dc,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, disc ~ 0 + x),
+                brms::hurdle_cumulative("probit"), dc, fit)
+})
+
 test_that("row 20: weights(w)", {
   skip_unless_brms_fit()
 

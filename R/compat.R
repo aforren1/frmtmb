@@ -824,12 +824,13 @@ compat_features_build <- function(extra = NULL) {
             "weibull", "exponential", "inverse.gaussian", "beta",
             "tweedie", "poisson", "negbinomial", "nbinom1", "geometric",
             "compois", "binomial", "bernoulli", "beta_binomial",
+            "zero_inflated_beta_binomial",
             "multinomial", "zero_inflated_poisson",
             "zero_inflated_negbinomial", "zero_inflated_binomial",
-            "zero_inflated_beta", "zero_one_inflated_beta",
+            "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
-            "hurdle_lognormal", "cumulative", "sratio", "cratio",
-            "acat", "categorical", "von_mises", "cox")
+            "hurdle_lognormal", "cumulative", "hurdle_cumulative",
+            "sratio", "cratio", "acat", "categorical", "von_mises", "cox")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -896,27 +897,32 @@ frmtmb_compat_groups_lst <- list(
                      "inverse.gaussian", "cox"),
   # families whose modelled response is a distribution over categories
   # rather than a number, so fitted() returns an n x K matrix
-  categorical_probs = c("cumulative", "sratio", "cratio", "acat",
-                        "categorical"),
+  categorical_probs = c("cumulative", "hurdle_cumulative", "sratio",
+                        "cratio", "acat", "categorical"),
   gaussian_like = c("gaussian", "student"),
-  ordinal = c("cumulative", "sratio", "cratio", "acat"),
+  ordinal = c("cumulative", "hurdle_cumulative", "sratio", "cratio",
+              "acat"),
   # cs() category-specific effects are undefined under the cumulative
   # parameterization; the sequential and adjacent-category ones take them
   ordinal_cs = c("sratio", "cratio", "acat"),
   discrete = c("poisson", "negbinomial", "nbinom1", "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
+               "zero_inflated_beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
                "zero_inflated_binomial", "hurdle_poisson",
                "hurdle_negbinomial"),
   # a point mass on an exact response value, which the density reads
   # off y == 0 (and y == 1); osa_point_mass_families in R/predict.R
   point_mass = c("zero_inflated_poisson", "zero_inflated_negbinomial",
-                 "zero_inflated_binomial", "zero_inflated_beta",
+                 "zero_inflated_binomial", "zero_inflated_beta_binomial",
+                 "zero_inflated_beta", "xbeta",
                  "zero_one_inflated_beta", "hurdle_poisson",
-                 "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal"),
+                 "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal",
+                 "hurdle_cumulative"),
   matrix_response = c("multinomial"),
   trials_families = c("binomial", "beta_binomial",
-                      "zero_inflated_binomial", "multinomial"),
+                      "zero_inflated_binomial",
+                      "zero_inflated_beta_binomial", "multinomial"),
   # quadrature marginalizes one scalar random effect at a time
   quadrature_blocks = c("us", "diag", "homdiag"),
   # the importance correction reweights any number of blocks over ONE
@@ -1332,6 +1338,8 @@ compat_hand_rules_tbl <- function() {
     "Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none.")
   r("thres()", "group:ordinal", "works",
     "thres(x = K) sets the number of thresholds; thres(gr = g) gives each level of g a threshold vector of its own, merged as brms merges them, with a count per level. The log-likelihood agrees with brms's own densities at a shared parameter point to about 5e-16, relative, for all four families under the logit, probit and cauchit links, and with MASS::polr fitted per group and ordinal::clm(nominal = ~ g) at the optimum to about 3e-12 (dev/thres-validate.R). Thresholds above a level's highest observed category are not identified without a prior on class Intercept, and the fit warns about them.")
+  r("thres()", "hurdle_cumulative", "conditional",
+    "thres(x = K) sets the number of thresholds, counted over the ordinal categories above the hurdle. thres(gr = ) is refused by name: the grouped densities have no hurdle. brms fits it.")
   r("thres()", "weights()", "works",
     "Verified: weights of 2 give the fit of the duplicated data, to the last printed digit.")
   r("thres()", "cs_pred()", "conditional",
@@ -1718,6 +1726,8 @@ compat_hand_rules_tbl <- function() {
     "Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line.")
   r("residuals_osa", "group:ordinal", "works",
     "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
+  r("residuals_osa", "hurdle_cumulative", "refused",
+    "Refused by name, as for the other point-mass families: the density branches on y == 0 for the hurdle. Use dharma_residuals().")
   r("residuals_osa", "cens()", "conditional",
     "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: its censoring bounds are inclusive, so an uncensored row's support is [lo + 1, hi - 1] rather than the [lo, hi] the one-step window is built on.")
   r("residuals_osa", "trunc()", "conditional",

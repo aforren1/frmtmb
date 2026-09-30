@@ -2613,7 +2613,9 @@ fitted_no_draws <- c(
 )
 
 #' Number of ordinal categories, from the threshold vector rather than
-#' from the data: the top category may be unobserved.
+#' from the data: the top category may be unobserved. A hurdle family's
+#' category 0 counts, so this is the number of probability columns, and
+#' their codes start at `ord_code0()`.
 #'
 #' @noRd
 ordinal_ncat <- function(fit, resp = NULL) {
@@ -2624,12 +2626,23 @@ ordinal_ncat <- function(fit, resp = NULL) {
     } else {
       fit$spec$responses[[resp]]
     }
-    return(max(fit$frame[["y"]][[rspec$resp_name]]))
+    return(max(fit$frame[["y"]][[rspec$resp_name]]) + 1L -
+             ord_code0(rspec$family))
   }
   # grouped thresholds, thres(gr = ): the largest group's categories
   rspec <- if (is.null(resp)) fit$spec$responses[[1L]] else
     fit$spec$responses[[resp]]
-  thres_ncat(rspec$family, raw)
+  thres_ncat(rspec$family, raw) + 1L - ord_code0(rspec$family)
+}
+
+#' The category codes of an ordinal fit's probability columns: `1..K`,
+#' or `0..K` for a hurdle family.
+#'
+#' @noRd
+ordinal_codes <- function(fit, resp = NULL) {
+  rspec <- if (is.null(resp)) fit$spec$responses[[1L]] else
+    fit$spec$responses[[resp]]
+  ord_code0(rspec$family) + seq_len(ordinal_ncat(fit, resp)) - 1L
 }
 
 #' The addition-term values an ordinal category probability reads: the
@@ -2751,20 +2764,26 @@ cs_offsets_add <- function(fit, resp, newdata, dpv) {
 #' `ord_cat_probs()` to machine precision, which the tests assert). A
 #' custom ordinal family gets the same treatment for free.
 #'
+#' A family with dpars beside `mu` (`hurdle_cumulative()`'s `hu` and
+#' `disc`) takes their row values in `more`, and its columns are the
+#' codes from `ord_code0()` on.
+#'
 #' @noRd
-ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list()) {
+ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list(),
+                               more = list()) {
   n <- length(eta)
-  dp <- list(mu = eta)
+  dp <- c(list(mu = eta), more)
   if (!is.null(cs)) dp[[".cs"]] <- cs
   P <- matrix(NA_real_, n, K)
   # ordinal lpdfs take the extras (thresholds) as a fourth argument;
   # categorical's takes three - dispatch on arity like fam_lcdf() does
   four <- length(formals(fam[["lpdf"]])) >= 4L
+  codes <- ord_code0(fam) + seq_len(K) - 1L
   for (k in seq_len(K)) {
     P[, k] <- exp(as.numeric(if (four) {
-      fam[["lpdf"]](rep.int(k, n), dp, aterms, extra)
+      fam[["lpdf"]](rep.int(codes[k], n), dp, aterms, extra)
     } else {
-      fam[["lpdf"]](rep.int(k, n), dp, aterms)
+      fam[["lpdf"]](rep.int(codes[k], n), dp, aterms)
     }))
   }
   # analytically the rows already sum to one; the division only removes
@@ -2789,14 +2808,17 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   eta <- unname(ed[["eta"]])
   n <- length(eta)
   K <- ordinal_ncat(object, rspec$resp_name)
-  cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
+  cs <- ord_cs_offsets(object, lp, newdata, n, K - 2L + ord_code0(fam))
+  more <- ord_dpars_more(object, rspec, newdata, use_re, allow_new_levels)
   # the ordinal lpdfs read `extra` (the thresholds and the cs
   # coefficients) and, under thres(gr = ), each row's group
   P <- ord_probs_from_eta(fam, eta, cs,
                           fit_extras(object, rspec$resp_name), K,
-                          ord_prob_aterms(object, rspec, newdata))
+                          ord_prob_aterms(object, rspec, newdata),
+                          lapply(more, `[[`, "value"))
   colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
-    as.character(seq_len(K))
+    as.character(ord_code0(fam) + seq_len(K) - 1L)
+  for (m in more) ed[["nonest"]] <- ed[["nonest"]] | m$ed[["nonest"]]
   rn <- names(ed[["eta"]])
   if (is.null(rn) && is.null(newdata)) {
     rn <- rownames(object$frame[["data_frame"]])
@@ -2806,6 +2828,30 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   # no category distribution either
   if (any(ed[["nonest"]])) P[ed[["nonest"]], ] <- NA_real_
   P
+}
+
+#' The dpars of an ordinal response other than `mu`, each on its natural
+#' scale at the rows being predicted, with the design pieces its
+#' standard error needs: `list(<dpar> = list(value, eta, ed, lp))`. Empty
+#' for the four families with `mu` alone. A dpar held at a constant
+#' comes out through its mapped coefficient like any other.
+#'
+#' @noRd
+ord_dpars_more <- function(object, rspec, newdata, use_re,
+                           allow_new_levels) {
+  out <- list()
+  for (dnm in setdiff(names(rspec$dpars), "mu")) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dnm)]]
+    if (!is.null(lp[["nl_body"]])) {
+      frm_stop("type = \"response\" is not supported for an ordinal family ",
+               "whose `", dnm, "` has a nonlinear predictor", call. = FALSE)
+    }
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    eta <- unname(ed[["eta"]])
+    out[[dnm]] <- list(value = as.vector(lp[["link"]]$linkinv(eta)),
+                       eta = eta, ed = ed, lp = lp)
+  }
+  out
 }
 
 #' Response-scale prediction for an ordinal family.
@@ -2898,9 +2944,13 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 #' the same differencing rule `mean_eta_grad()` uses and for the same
 #' reason (a custom ordinal family gets it for free).
 #'
+#' A family with estimated dpars beside `mu` (`hurdle_cumulative()`'s
+#' `hu`, and `disc` when it is modeled) adds each one's linear predictor
+#' to the gradient the same way `mu`'s enters.
+#'
 #' @noRd
 ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
-                        weights = NULL) {
+                        weights = NULL, allow_new_levels = FALSE) {
   fam <- rspec$family
   K <- ordinal_ncat(object, rspec$resp_name)
   eta <- unname(ed[["eta"]])
@@ -2914,14 +2964,17 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
                          other_resp_extras(object$frame, rspec$resp_name))]
   csv <- ord_cs_values(object, lp, newdata, n)
   CS <- if (length(csv)) {
-    M <- matrix(0, n, K - 1L)
+    M <- matrix(0, n, K - 2L + ord_code0(fam))
     for (ct in csv) M <- M + outer(ct$vals, object$estimates[[ct$par]])
     M
   }
   av <- ord_prob_aterms(object, rspec, newdata)
-  probs <- function(e, cs, ex) {
+  more <- ord_dpars_more(object, rspec, newdata, use_re, allow_new_levels)
+  more_v <- lapply(more, `[[`, "value")
+  probs <- function(e, cs, ex, mv = more_v) {
     ord_probs_from_eta(fam, e, cs,
-                       resp_extras(object$frame, ex, rspec$resp_name), K, av)
+                       resp_extras(object$frame, ex, rspec$resp_name), K, av,
+                       mv)
   }
   P0 <- probs(eta, CS, extra)
 
@@ -2935,6 +2988,23 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
   h <- 1e-5 * pmax(1, abs(eta))
   dPde <- (probs(eta + h, CS, extra) - probs(eta - h, CS, extra)) /
     (2 * h)
+  # each estimated dpar beside mu: its design and dP / d(its eta), the
+  # derivative taken on the link scale through the dpar's inverse link
+  for (dnm in names(more)) {
+    m <- more[[dnm]]
+    if (!is.null(m$lp[["constant"]])) next
+    dm <- lp_delta_A(object, m$lp, m$ed, newdata, use_re, jc, has_rr, rrj)
+    hm <- 1e-5 * pmax(1, abs(m$eta))
+    at <- function(e) {
+      mv <- more_v
+      mv[[dnm]] <- as.vector(m$lp[["link"]]$linkinv(e))
+      probs(eta, CS, extra, mv)
+    }
+    more[[dnm]]$A <- as.matrix(dm$A)
+    more[[dnm]]$pos <- dm$coef_pos
+    more[[dnm]]$dP <- (at(m$eta + hm) - at(m$eta - hm)) / (2 * hm)
+  }
+  more <- Filter(function(m) !is.null(m$dP), more)
 
   # one n x K derivative block per estimated extra parameter, paired
   # with its row in the joint covariance
@@ -2966,36 +3036,45 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
     }
   }
   n_beta <- ncol(A)
-  V <- jc$V[c(pos, extra_pos), c(pos, extra_pos), drop = FALSE]
+  n_more <- vapply(more, function(m) ncol(m$A), 0L)
+  all_pos <- c(pos, unlist(lapply(more, `[[`, "pos")), extra_pos)
+  V <- jc$V[all_pos, all_pos, drop = FALSE]
   # `weights` collapses the K columns into ONE displayed quantity,
-  # sum_k w_k p_k - the expected category number for w = 1..K. The
+  # sum_k w_k p_k - the expected category number for w = the codes. The
   # weights go on the GRADIENT before the quadratic form, so the
   # covariances between the category probabilities are kept, which
   # summing K separate standard errors would throw away.
   if (!is.null(weights)) {
     stopifnot(length(weights) == K)
-    P0 <- matrix(as.vector(P0 %*% weights), n, 1L)
-    dPde <- matrix(as.vector(dPde %*% weights), n, 1L)
-    extra_d <- lapply(extra_d, function(d) {
-      matrix(as.vector(d %*% weights), n, 1L)
-    })
+    collapse <- function(d) matrix(as.vector(d %*% weights), n, 1L)
+    P0 <- collapse(P0)
+    dPde <- collapse(dPde)
+    extra_d <- lapply(extra_d, collapse)
+    for (i in seq_along(more)) more[[i]]$dP <- collapse(more[[i]]$dP)
   }
   nq <- ncol(P0)
   SE <- matrix(NA_real_, n, nq)
-  G <- matrix(0, n, n_beta + length(extra_d))
+  G <- matrix(0, n, n_beta + sum(n_more) + length(extra_d))
   for (k in seq_len(nq)) {
     G[, seq_len(n_beta)] <- dPde[, k] * A
-    for (i in seq_along(extra_d)) G[, n_beta + i] <- extra_d[[i]][, k]
+    off <- n_beta
+    for (m in more) {
+      G[, off + seq_len(ncol(m$A))] <- m$dP[, k] * m$A
+      off <- off + ncol(m$A)
+    }
+    for (i in seq_along(extra_d)) G[, off + i] <- extra_d[[i]][, k]
     SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
   }
-  if (any(ed[["nonest"]])) {
-    P0[ed[["nonest"]], ] <- NA_real_
-    SE[ed[["nonest"]], ] <- NA_real_
+  nonest <- ed[["nonest"]]
+  for (m in more) nonest <- nonest | m$ed[["nonest"]]
+  if (any(nonest)) {
+    P0[nonest, ] <- NA_real_
+    SE[nonest, ] <- NA_real_
   }
   if (is.null(weights)) {
     colnames(P0) <- colnames(SE) <-
       object$frame[["y_levels"]][[rspec$resp_name]] %||%
-        as.character(seq_len(K))
+        as.character(ord_code0(fam) + seq_len(K) - 1L)
   }
   list(P = P0, se = SE)
 }
@@ -3014,7 +3093,7 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
 #' @noRd
 ord_cat_moments <- function(object, rspec) {
   P <- ord_probs(object, rspec)
-  k <- seq_len(ncol(P))
+  k <- ord_code0(rspec$family) + seq_len(ncol(P)) - 1L
   m <- as.numeric(P %*% k)
   v <- as.numeric(P %*% (k^2)) - m^2
   list(mean = m, var = v, P = P)
@@ -3388,10 +3467,11 @@ residual_point_se <- function(object, type, r) {
 # whose density unwraps the osa object is not refused with them.
 osa_point_mass_families <- c(
   "zero_inflated_poisson", "zero_inflated_negbinomial",
-  "zero_inflated_binomial", "zero_inflated_beta",
+  "zero_inflated_binomial", "zero_inflated_beta_binomial",
+  "zero_inflated_beta", "xbeta",
   "zero_inflated_asym_laplace", "zero_one_inflated_beta",
   "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
-  "hurdle_lognormal")
+  "hurdle_lognormal", "hurdle_cumulative")
 
 #' @noRd
 residual_values <- function(object, type = c("response", "pearson",
@@ -4144,7 +4224,8 @@ sim_restore_type <- function(fit, rspec, v, pad = TRUE) {
   if (!is.null(lv)) {
     # a categorical response's levels are nominal: ordering the draws
     # would claim an order the model never used
-    v <- factor(lv[v], levels = lv,
+    # a hurdle family's code 0 is its first level
+    v <- factor(lv[v + 1L - ord_code0(rspec$family)], levels = lv,
                 ordered = !identical(rspec$family[["type"]], "categorical"))
   } else if (is.matrix(v)) {
     yv <- fit$frame[["y"]][[rspec$resp_name]]

@@ -1,0 +1,18 @@
+== 1. RTMB::dbeta gradient finite? (x = mean and x = mean +- 2 sd) ==
+first shape sum with a NaN gradient: 1047 
+  s 1046: grad at (0.3, 0.3 s, 0.7 s) -1.9047619  0.0011161  0.0002049
+  s 1047: grad at (0.3, 0.3 s, 0.7 s) -1.9047619  0.0011151  0.0002047
+  s 2000: grad at (0.3, 0.3 s, 0.7 s) NaN NaN NaN
+  s 2500: grad at (0.3, 0.3 s, 0.7 s) NaN NaN NaN
+  s 3000: grad at (0.3, 0.3 s, 0.7 s) NaN NaN NaN
+
+== 2. log_ibeta_half() error at the switch, by shape sum ==
+  s 1e+03: worst error 5.79e-13
+  s 2e+03: worst error 3.37e-13
+  s 3e+03: worst error 5.80e-13
+  s 5e+03: worst error 1.42e-13
+  s 7e+03: worst error 2.77e-13
+  s 1e+04: worst error 2.01e-13
+  s 2e+04: worst error 5.66e-15
+  s 5e+04: worst error 2.44e-15
+  s 1e+05: worst error 2.33e-15

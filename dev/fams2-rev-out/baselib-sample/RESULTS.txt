@@ -1,0 +1,1 @@
+RESULT baselib frmtmb.sample test-xbeta-zibb-hurdle-draws.R pass=0 fail=0 err=3 skip=0 warn=0 blocks=3

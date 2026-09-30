@@ -1902,7 +1902,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     if (categorical) {
       if (identical(rspec$family[["type"]], "ordinal")) {
         ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
-        ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level)
+        ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
+                          allow_new_levels = anl)
       } else {
         # a nominal family has no thresholds, so the ordinal delta
         # method does not apply; under band = "boot" (the only band
@@ -1931,10 +1932,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       # brms's ordinal default: the expected CATEGORY NUMBER,
       # sum_k k p_k. One quantity per row, so its delta-method standard
       # error is the per-category one with the same category weights
-      # applied to the gradient before the quadratic form.
+      # applied to the gradient before the quadratic form. The weights
+      # are the category codes, so a hurdle family's 0 scores 0; brms
+      # weights by column position and reads one higher there.
       ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
       ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
-                        weights = seq_len(ordinal_ncat(x, rspec$resp_name)))
+                        weights = ordinal_codes(x, rspec$resp_name),
+                        allow_new_levels = anl)
       df <- ce_frame(nd, ev, g$v2, cond)
       df$estimate__ <- as.vector(ps$P)
       df$se__ <- as.vector(ps$se)
@@ -2652,8 +2656,12 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   # 1..K codes the likelihood uses
   yrep <- if (isTRUE(rspec$family[["type"]] %in% c("ordinal",
                                                      "categorical"))) {
-    matrix(unlist(lapply(sims, as.integer), use.names = FALSE),
-           nrow = nrow(sims))
+    # a factor's position is its code less one for a hurdle family,
+    # whose first level is the category 0
+    shift <- ord_code0(rspec$family) - 1L
+    matrix(unlist(lapply(sims, function(s) {
+      if (is.factor(s)) as.integer(s) + shift else as.integer(s)
+    }), use.names = FALSE), nrow = nrow(sims))
   } else {
     as.matrix(sims)
   }
@@ -2730,7 +2738,7 @@ pp_check_newdata_y <- function(object, rspec, newdata) {
                "the fitted response (", paste(lv, collapse = ", "), ")",
                call. = FALSE)
     }
-    y <- code
+    y <- code + ord_code0(rspec$family) - 1L
   }
   y
 }

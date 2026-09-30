@@ -11,15 +11,18 @@
 #'
 #' brms's ordinal default display, `sum_k k p_k`. Taken from the drawn
 #' probability matrices rather than from a delta method, so its band is
-#' a posterior quantile like every other band on this surface.
+#' a posterior quantile like every other band on this surface. `k` is
+#' the category CODE, which starts at `code0`: 0 for a hurdle family
+#' (the family field `extra_cat`), whose first category is the hurdle.
 #'
 #' @noRd
-ce_cat_mean <- function(seg, n, K) {
+ce_cat_mean <- function(seg, n, K, code0 = 1L) {
   # ce_boot_one() flattens the n x K matrix column-major, so category k
   # occupies columns (k - 1) n + 1:n of every draw's row
   out <- matrix(0, nrow(seg), n)
   for (k in seq_len(K)) {
-    out <- out + k * seg[, (k - 1L) * n + seq_len(n), drop = FALSE]
+    out <- out + (code0 + k - 1L) *
+      seg[, (k - 1L) * n + seq_len(n), drop = FALSE]
   }
   out
 }
@@ -201,7 +204,10 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   for (gi in seq_along(gb$grids)) {
     g <- gb$grids[[gi]]
     seg <- M[, offsets[gi] + seq_len(lens[gi]), drop = FALSE]
-    if (cats_mean) seg <- ce_cat_mean(seg, g$n, length(cats))
+    if (cats_mean) {
+      seg <- ce_cat_mean(seg, g$n, length(cats),
+                         if (isTRUE(rspec$family[["extra_cat"]])) 0L else 1L)
+    }
     # brms's estimate__ and se__: the median and MAD under its default
     # robust = TRUE, the mean and SD otherwise
     est <- if (robust) apply(seg, 2, stats::median) else colMeans(seg)

@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+methods-audit: ...............1 row removed because of missing values (na.action)
+...........................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-methods-audit.R pass=58 fail=0 err=0 skip=0 warn=0 blocks=10

@@ -1,0 +1,83 @@
+== 1. log_ibeta_half gradient in (x, log a, log b) over large shapes ==
+points 1800  non-finite value or gradient: 0 
+
+== 2. the pieces at one bad point ==
+
+== 3. RTMB::dbeta gradient at large shapes ==
+shape sum 1e+02: value 2.16084 grad -1.90476  0.35253  0.15061
+shape sum 1e+03: value 3.31495 grad -1.90476  0.35025  0.15006
+shape sum 1e+04: value 4.46652 grad NaN NaN NaN
+shape sum 1e+05: value 5.61784 grad NaN NaN NaN
+shape sum 1e+06: value 6.76914 grad NaN NaN NaN
+shape sum 1e+07: value 7.92043 grad NaN NaN NaN
+shape sum 1e+08: value 9.07173 grad NaN NaN NaN
+
+== 4. the fit's own objective along a phi path (section B, phi 2e4) ==
+phi 1e+03 kappa 0.03: nll 838.517350 grad  20788.4   3930.7 -15021.1
+phi 1e+03 kappa 0.05: nll -3218.382938 grad  242.00 -389.59  169.96
+phi 1e+03 kappa 0.10: nll 6462.823987 grad -24409.9   8870.1  29362.2
+phi 1e+04 kappa 0.03: nll 38607.219507 grad NaN NaN NaN
+phi 1e+04 kappa 0.05: nll -3969.767685 grad NaN NaN NaN
+phi 1e+04 kappa 0.10: nll 89135.307270 grad NaN NaN NaN
+phi 2e+04 kappa 0.03: nll 81226.911621 grad NaN NaN NaN
+phi 2e+04 kappa 0.05: nll -4048.959692 grad NaN NaN NaN
+phi 2e+04 kappa 0.10: nll 181783.130193 grad NaN NaN NaN
+phi 5e+04 kappa 0.03: nll 209488.893121 grad NaN NaN NaN
+phi 5e+04 kappa 0.05: nll -3830.240008 grad NaN NaN NaN
+phi 5e+04 kappa 0.10: nll 460218.210385 grad NaN NaN NaN
+phi 1e+05 kappa 0.03: nll 423547.143069 grad NaN NaN NaN
+phi 1e+05 kappa 0.05: nll -3146.698795 grad NaN NaN NaN
+phi 1e+05 kappa 0.10: nll 924629.104146 grad NaN NaN NaN
+phi 1e+06 kappa 0.03: nll 4280108.067232 grad NaN NaN NaN
+phi 1e+06 kappa 0.05: nll 12897.370756 grad NaN NaN NaN
+phi 1e+06 kappa 0.10: nll 9288323.990740 grad NaN NaN NaN
+  0:    -602.02465: -1.38629  1.60944 -2.30259
+  1:    -965.74053: -2.30148  1.80888 -2.65282
+  2:    -1346.1196: -2.19108  2.42238 -3.43476
+  3:    -2294.5359: -3.73991  3.03631 -4.54121
+  4:    -3721.0483: -5.47678  5.21093 -7.41424
+  5:    -3809.5950: -5.70808  5.53084 -7.47874
+  6:    -3903.2904: -5.81335  6.31172 -7.61711
+  7:    -3932.4359: -6.14153  6.37480 -7.45028
+  8:    -3974.2794: -6.04177  6.70108 -7.29827
+  9:    -3985.9200: -5.98286  6.94554 -7.02208
+ 10:    -3989.5306: -5.93683  6.93689 -7.01677
+ 11:    -3993.3340: -5.93028  6.88744 -6.92425
+ 12:    -4007.2413: -5.72244  7.20969 -6.34729
+ 13:    -4023.4625: -5.53053  7.25043 -6.14358
+ 14:    -4029.2663: -5.41703  7.37263 -5.91515
+ 15:    -4031.1058: -5.37303  7.42921 -5.83894
+ 16:    -4034.3917: -5.28224  7.54681 -5.69160
+ 17:    -4037.0474: -5.18771  7.66532 -5.54737
+ 18:    -4041.2959: -4.91852  7.99890 -5.16988
+ 19:    -4042.1357: -4.91267  7.99860 -5.17384
+ 20:    -4042.4534: -4.90003  7.98133 -5.15535
+ 21:    -4043.7713: -4.78078  8.09487 -5.00023
+ 22:    -4043.8218: -4.52356  8.34744 -4.67470
+ 23:    -4045.3481: -4.57785  8.28720 -4.75627
+ 24:    -4045.9770: -4.51883  8.35220 -4.68196
+ 25:    -4046.2838: -4.46892  8.40412 -4.62020
+ 26:    -4046.4755: -4.41881  8.45708 -4.55951
+ 27:    -4046.6636: -4.36843  8.51095 -4.49984
+ 28:    -4047.0921: -4.25688  8.62929 -4.37034
+ 29:    -4047.5855: -4.16313  8.72657 -4.26494
+ 30:    -4047.7941: -4.06735  8.81699 -4.15536
+ 31:    -4048.0581: -3.97000  8.90646 -4.04639
+Error in nlminb(c(qlogis(0.2), log(5), log(0.1)), obj$fn, obj$gr, control = list(trace = 1,  : 
+  NA/NaN gradient evaluation
+
+== 5. which piece: boundary rows alone, interior rows alone ==
+  boundary rows (155), phi 1e+03: nll 132.475109 grad  963.659   19.904 -899.977
+  boundary rows (155), phi 2e+03: nll 148.816472 grad  1472.232    27.972 -1377.503
+  boundary rows (155), phi 5e+03: nll 182.545592 grad  2665.132    47.989 -2496.434
+  boundary rows (155), phi 2e+04: nll 293.359377 grad  7239.57   126.76 -6785.10
+  interior rows (845), phi 1e+03: nll -3350.858047 grad -721.66 -409.49 1069.94
+  interior rows (845), phi 2e+03: nll -3629.955011 grad -1058.40  -394.23  1365.81
+  interior rows (845), phi 5e+03: nll -3974.012701 grad NaN NaN NaN
+  interior rows (845), phi 2e+04: nll -4342.319070 grad NaN NaN NaN
+
+== 6. Beta() interior density through MakeADFun at the same shapes ==
+  phi 1e+03: grad 128231  95681
+  phi 2e+03: grad 256847 191786
+  phi 5e+03: grad 642694 480101
+  phi 2e+04: grad 2571927 1921672

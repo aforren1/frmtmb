@@ -1,0 +1,7 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+parity-integration: .......No priors were set (plain maximum likelihood).
+.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🥇 Your tests deserve a gold medal 🥇
+RESULT frmtmb test-parity-integration.R pass=8 fail=0 err=0 skip=0 warn=0 blocks=3

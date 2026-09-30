@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+brms-suite-data-helpers: ......
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-brms-suite-data-helpers.R pass=6 fail=0 err=0 skip=0 warn=0 blocks=2

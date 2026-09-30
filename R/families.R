@@ -2938,6 +2938,509 @@ zoi_beta_fit_check <- function(fit, resp) {
   invisible(NULL)
 }
 
+#' Extended-support beta (Kosmidis and Zeileis 2024), brms's `xbeta`,
+#' dpars `mu`, `phi` and `kappa`, for a response in `[0, 1]`.
+#'
+#' A latent `Z ~ Beta(mu phi, (1 - mu) phi)` is stretched to
+#' `(1 + 2 kappa) Z - kappa` and censored at 0 and 1, so the ends carry
+#' the latent mass beyond them: `P(Y = 0) = I_q(a, b)` and
+#' `P(Y = 1) = I_q(b, a)` with `q = kappa / (1 + 2 kappa)`, the second
+#' because `1 - (1 + kappa) / (1 + 2 kappa)` is that same `q`. `mu` is
+#' the latent mean, not the mean of `Y`; `post$mean_fn` is the mean of
+#' `Y`, brms's `posterior_epred_xbeta()`.
+#'
+#' @noRd
+fam_xbeta <- function(link = "logit", link_phi = "log", link_kappa = "log") {
+  nm <- "xbeta"
+  lk_phi <- dpar_link(link_phi, "phi", nm, dpar_links_positive)
+  lk_kappa <- dpar_link(link_kappa, "kappa", nm, dpar_links_positive)
+  lk <- mu_link(link, nm)
+  frmtmb_family(
+    nm,
+    accepts_aterms = "weights",
+    dpars = c("mu", "phi", "kappa"),
+    links = list(mu = lk, phi = lk_phi, kappa = lk_kappa),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y <= 0)
+      i1 <- as.numeric(y >= 1)
+      ib <- i0 + i1
+      phi <- dpars[["phi"]]
+      kap <- dpars[["kappa"]]
+      mp <- dpar_complement(dpars, "mu", lk)
+      a <- mp$p * phi
+      b <- mp$q * phi
+      d <- 1 + 2 * kap
+      # a boundary row is moved to the middle for the interior term, which
+      # carries weight 0 there, so that the density is not read at an edge
+      z <- (y * (1 - ib) + 0.5 * ib + kap) / d
+      # The beta log density written out rather than RTMB::dbeta(): with
+      # its first argument on the tape (z moves with kappa) that returns
+      # a NaN gradient once the shapes pass about 1e3, and every xbeta fit
+      # that reached phi 1e4 stopped at "NA/NaN gradient evaluation"
+      # (dev/fams2-p1-dbeta.R, dev/reviews/2026-09-29-fams2.md, B1)
+      out <- (1 - ib) * ((a - 1) * log(z) + (b - 1) * log1p(-z) -
+                           lbeta_ad(a, b) - log(d))
+      # The incomplete beta is taken on the boundary rows alone, at about
+      # 15 us a row in a gradient sweep; log_ibeta_half() says why it is
+      # not RTMB::pbeta().
+      w0 <- which(i0 == 1)
+      w1 <- which(i1 == 1)
+      if (length(w0) || length(w1)) {
+        # scalars broadcast to one value per row before rows are picked
+        q <- kap / d + 0 * y
+        a <- a + 0 * y
+        b <- b + 0 * y
+        if (length(w0)) out[w0] <- log_ibeta_half(q[w0], a[w0], b[w0])
+        if (length(w1)) out[w1] <- log_ibeta_half(q[w1], b[w1], a[w1])
+      }
+      out
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 0) || any(y > 1)) {
+        frm_stop(nm, ": response must be in [0, 1], where 0 and 1 are ",
+                 "the latent mass beyond each end", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) min(max(mean(y), 0.05), 0.95),
+      phi = function(y, aterms) 5,
+      kappa = function(y, aterms) 0.1
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        xbeta_moments(dpars[["mu"]], dpars[["phi"]], dpars[["kappa"]])$m1
+      },
+      var_fn = function(dpars, aterms) {
+        m <- xbeta_moments(dpars[["mu"]], dpars[["phi"]], dpars[["kappa"]])
+        m$m2 - m$m1^2
+      },
+      fit_check = xbeta_fit_check
+    ),
+    sim = function(dpars, aterms, n) {
+      mu <- rep(dpars[["mu"]], length.out = n)
+      phi <- rep(dpars[["phi"]], length.out = n)
+      kap <- rep(dpars[["kappa"]], length.out = n)
+      z <- stats::rbeta(n, mu * phi, (1 - mu) * phi)
+      pmin(pmax((1 + 2 * kap) * z - kap, 0), 1)
+    }
+  )
+}
+
+#' The extended-support beta's fit-end check: is `kappa` placed?
+#'
+#' Without a row at exactly 0 or 1 only the interior shape places
+#' `kappa`, and it can go either way. It can run to zero, where the
+#' model is `Beta()` (dev/fams2-xbeta-noends.R: log kappa -22.9 with a
+#' standard error of 1.1e4, and `Beta()`'s log-likelihood to the digit),
+#' or it can grow with `phi` along a ridge and beat `Beta()`: the
+#' reviewer's A1 data, drawn with kappa 1 and phi 200, reach their
+#' optimum near kappa 47 and phi 2e5, 6.04 log-likelihood units above
+#' `Beta()` (dev/fams2-rev-a1.R). So the check reads where the fit
+#' landed, not only the data. With no row at 0 or 1 it warns when
+#' `kappa` is below 1e-6 at every row, where the ends carry no mass, or
+#' when a coefficient of a log-link `kappa` has a standard error above
+#' 10 (a 95% interval wider than a factor of e^39) or none at all.
+#'
+#' The fitted value alone missed two cases (the re-check's n3,
+#' dev/fams2-rev2-guards.txt): a `kappa` that stopped at 3.4e-5, still
+#' on its way to 0, with a standard error of 96, and `kappa ~ x`, whose
+#' largest row reached 0.024 while the smallest reached 1.3e-10, with
+#' standard errors of 22 and 9.4. The standard error catches both. The
+#' eight fits there whose `kappa` the interior shape really placed had
+#' standard errors of 1.3 to 6.9. A rule on the SMALLEST row kappa was
+#' tried and dropped: `kappa ~ x` with a real slope (log kappa = -1 + 3x,
+#' x in (-4.7, 0)) runs some rows to 2e-10 while its standard errors are
+#' 0.26 and 1.38, 28 log-likelihood units above `Beta()`
+#' (dev/fams2-rev3-kappa.txt, seeds 402 and 403).
+#' The standard errors cost a `sdreport()`, which the fit keeps for
+#' `summary()`, and are read only when no row is at 0 or 1. brms fits
+#' such data through its `gamma(0.01, 0.01)` prior on `kappa`. One end
+#' in the data is enough to place `kappa`, and a `kappa` held at a
+#' constant has nothing to place.
+#'
+#' @noRd
+xbeta_fit_check <- function(fit, resp) {
+  lp <- fit$frame[["linpreds"]][[linpred_key(resp, "kappa")]]
+  if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
+  y <- fit$frame[["y"]][[resp]]
+  if (any(y <= 0 | y >= 1)) return(invisible(NULL))
+  kap <- eval_dpars(fit)[[resp]][["kappa"]]
+  why <- if (max(kap) < 1e-6) {
+    paste0("kappa ran to 0 (at most ", signif(max(kap), 2), "), where ",
+           "the model is Beta()")
+  } else {
+    fam <- fit$spec$responses[[resp]]$family
+    se <- if (identical(fam[["links"]][["kappa"]][["name"]], "log")) {
+      xbeta_kappa_se(fit, lp)
+    }
+    bad <- which(!is.finite(se) | se > 10)
+    if (length(bad)) {
+      j <- bad[which.max(replace(se[bad], !is.finite(se[bad]), Inf))]
+      paste0("the standard error of ", names(se)[j], " is ",
+             if (is.finite(se[j])) signif(se[j], 2) else "not finite",
+             " on the log scale")
+    }
+  }
+  if (is.null(why)) return(invisible(NULL))
+  frm_warning("xbeta: the response ",
+              if (length(fit$spec$responses) > 1L) paste0(resp, " "),
+              "has no exact 0 or 1, so only the interior shape places ",
+              "kappa, and this fit does not place it: ", why, ". Its ",
+              "standard error is not usable. Compare with Beta(), or ",
+              "hold kappa at a value with bf(kappa = )", call. = FALSE)
+  invisible(NULL)
+}
+
+#' The standard errors of `kappa`'s coefficients, on the link scale,
+#' named as `confint()` names them; NULL when the fit has no
+#' `cov.fixed` block for them. A negative variance comes back `NaN`.
+#'
+#' @noRd
+xbeta_kappa_se <- function(fit, lp) {
+  cp <- lp[["par"]]
+  V <- tryCatch(sdr_of(fit)$cov.fixed, error = function(e) NULL)
+  if (is.null(V) || !cp %in% rownames(V)) return(NULL)
+  pos <- seq_along(fit$frame[["par_template"]][[cp]])
+  if (cp == "betad") pos <- setdiff(pos, fit$frame[["betad_fixed_idx"]])
+  rows <- which(rownames(V) == cp)[match(lp[["idx"]], pos)]
+  rows <- rows[!is.na(rows)]
+  if (!length(rows)) return(NULL)
+  v <- diag(V)[rows]
+  se <- sqrt(abs(v))
+  se[!is.finite(v) | v < 0] <- NaN
+  onm <- outer_par_names(fit)
+  names(se) <- if (length(onm) == nrow(V)) {
+    onm[rows]
+  } else {
+    paste0("kappa[", seq_along(rows), "]")
+  }
+  se
+}
+
+#' `log I_x(a, b)`, the log regularized incomplete beta, for `x` below
+#' one half, on the tape or off it.
+#'
+#' `RTMB::pbeta()` is exact in its value and first two derivatives, and
+#' its THIRD derivatives come back `NaN` at ordinary points: 60 of 3840
+#' random points an xbeta fit visits, most where one shape is small and
+#' `I` is near one (dev/fams2-pbeta-nan-rate.R). The Laplace
+#' approximation needs third derivatives, so an xbeta fit with a random
+#' effect and rows at 0 or 1 stopped at "NA/NaN gradient evaluation" on
+#' its first try.
+#'
+#' Two methods, blended so that the value and its first two derivatives
+#' join everywhere:
+#'
+#' - The continued fraction of Numerical Recipes' `betacf()`, to a fixed
+#'   101 terms and evaluated from the bottom up, which is arithmetic and
+#'   differentiates to any order. It converges for `x` below
+#'   `m = (a + 1) / (a + b + 2)`, and its complement `1 - I_{1-x}(b, a)`
+#'   above. The two are blended over `[m + sd / 2, m + 3 sd / 2]` (`sd`
+#'   the beta's standard deviation), where both hold, each read at `x`
+#'   clamped to that band, so the one weighted zero cannot put a `NaN`
+#'   through its weight. Top down (Lentz's order) the first partial
+#'   denominator vanishes at `x = (a + 1) / (a + b)`, inside the band:
+#'   evaluated that way it gave `NaN` at `x = 0.041`, `a = 40`,
+#'   `b = 960`. The fraction needs about `sqrt(max(a, b))` steps within
+#'   a few `sd` of `m` (the reviewer's Rmpfr run: over 1000 at shape
+#'   1e6), so on its own it was wrong there at large shapes: 2.5e-2 in
+#'   the log value at a shape sum of 1e5, and a jump in the gradient
+#'   across `x = m` (dev/reviews/2026-09-29-fams2.md, B2).
+#' - `RTMB::pbeta()` within 6 `sd` of `m` once `a b / (a + b)` passes 150,
+#'   the region where the fraction is short. There the probability is
+#'   moderate, so `log()` of it neither underflows nor loses digits,
+#'   and its third derivatives were finite at all of 20000 random points
+#'   (dev/fams2-p1-pthird.R). They are all `NaN` at the mean itself,
+#'   which `log_pbeta_ad()` steps around. Where it carries no weight it
+#'   is read at shapes raised to 150 and `x` held within 6.5 `sd` of that
+#'   mean, a point of the same region, for the same reason.
+#'
+#' The blends are quintic smoothsteps, in `|x - m| / sd` between 5 and 6
+#' and in `log(a b / (a + b))` between `log(150)` and `log(450)`, where
+#' both methods hold. Measured against `stats::pbeta(log.p = TRUE)`,
+#' relative and floored at one (the reviewer found it within 1e-13 of
+#' Rmpfr at the worst points): on the reviewer's grid of 4867 points,
+#' shapes 1e-3 to 1e7 in half decades with `x` at `m`, near it and at
+#' every blend edge (dev/fams2-rev2-ibeta.R, output
+#' dev/fams2-p2-rev2-ibeta.txt), the worst is 3.1e-14 while both shapes
+#' are below 1e4, and by the larger shape 4.9e-14 to 1e5, 1.7e-13 to 1e6
+#' and 3.0e-13 to 1e7. Against Rmpfr the bound at 1e7 is 7.2e-13, at
+#' (1e7, 1e7) just below the tie of `log_pbeta_ad()`, where
+#' `stats::pbeta()` itself is 2.9e-13 out (the final check's
+#' dev/fams2-rev3-clamp.txt). At 3167 random points (dev/fams2-p1-sweep.R,
+#' output dev/fams2-p2-sweep-pkg.txt) the worst is 5.5e-13 and 3.3e-13
+#' at `x == m` exactly; the gradient is within 6.7e-14 of
+#' `RTMB::pbeta()`'s exact one where the two are compared. First to
+#' third derivatives are finite at every point of both. The value moves
+#' across each blend edge as its gradient predicts, to 1.6e-13
+#' (dev/fams2-p1-joins.R, output dev/fams2-p2-joins.txt). A gradient
+#' sweep costs 14.5 us a row, 1.04 times round 1's fraction and 9.1 times
+#' `log(RTMB::pbeta())` (dev/fams2-rev2-mean.R, section 4, output
+#' dev/fams2-p2-rev2-mean.txt).
+#'
+#' @noRd
+log_ibeta_half <- function(x, a, b, N = 50L) {
+  s <- a + b
+  m <- (a + 1) / (s + 2)
+  sd <- sqrt(a * b / (s * s * (s + 1)))
+  # The fraction and its complement, blended over [m + sd / 2,
+  # m + 3 sd / 2]. The band sits above m because there the fraction still
+  # holds (it reads 1e-11 at worst at m + 1.5 sd) and below m + sd / 2 the
+  # complement does not: it lost 2.7e-4 of the log value at m - 2 sd with
+  # a = 0.3, b = 7, and 1.9e-10 at m - sd with a = 60, b = 8e5
+  # (dev/fams2-p1-sides.R). The complement's prefactor takes log(1 - y)
+  # and log(y) of y = 1 - xc from xc itself, which the rounded 1 - xc
+  # cost 1e-11 of at a = 0.3, b = 8e5, and its odd terms take xc too
+  # (log_ibeta_cf()).
+  sh <- ibeta_shape(a, b)
+  wd <- ad_smooth01((m + 1.5 * sd - x) / sd)
+  xd <- ad_min(x, m + 1.5 * sd)
+  ld <- log_ibeta_cf(xd, a, b, N, log_ibeta_pre(xd, sh))
+  xc <- ad_max(x, m + 0.5 * sd)
+  # the prefactor of I_{1 - xc}(b, a) is the one of I_xc(a, b)
+  lc <- log_ibeta_cf(1 - xc, b, a, N, log_ibeta_pre(xc, sh), xc = xc)
+  # I_{1-x}(b, a) is at most one half on its own side of the band; past
+  # it the weight is zero and the cap only keeps log1p() finite. The cap
+  # side has to come out exactly: cap - pos(cap - lc) is cap there, where
+  # the other spelling rounded to 0 and gave log(0)
+  cap <- log1p(-2^-53)
+  lc <- cap - ad_pos(cap - lc)
+  lcf <- wd * ld + (1 - wd) * log1p(-exp(lc))
+  # within 6 sd of the mean at large shapes, RTMB::pbeta()
+  k <- abs(x - m) / sd
+  # a b / (a + b) lies between min(a, b) / 2 and min(a, b) and, unlike
+  # min(), is smooth where a = b
+  ws <- ad_smooth01((log(a * b / s) - log(150)) / (log(450) - log(150)))
+  wp <- ws * ad_smooth01(6 - k)
+  a2 <- ad_max(a, 150)
+  b2 <- ad_max(b, 150)
+  s2 <- a2 + b2
+  m2 <- a2 / s2
+  sd2 <- sqrt(a2 * b2 / (s2 * s2 * (s2 + 1)))
+  x2 <- ad_max(ad_min(x, m2 + 6.5 * sd2), m2 - 6.5 * sd2)
+  (1 - wp) * lcf + wp * log_pbeta_ad(x2, a2, b2)
+}
+
+#' `log(RTMB::pbeta(x, a, b))` with finite derivatives at the mean.
+#'
+#' `RTMB::pbeta()`'s gradient, Hessian and third derivatives are all
+#' `NaN` at `x == a / (a + b)` to within an ulp, and finite from a
+#' relative distance of 1e-15 (dev/fams2-p2-tie.R; the re-check's n1).
+#' Below the mean this uses `I_x(a, b) = I_x(a + 1, b) +
+#' x^a (1 - x)^b / (a B(a, b))`, whose `pbeta()` has ITS tie at
+#' `(a + 1) / (a + b + 1)`, above the mean by `b / ((a + b) (a + b + 1))`.
+#' The two forms are blended over the middle half of the gap between the
+#' two ties, each read at `x` clamped out of its own tie, so the one
+#' weighted zero never reaches a `NaN`. Both are exact, so the blend
+#' costs nothing in the value.
+#'
+#' It does cost the higher derivatives inside the blend: the weight's
+#' k-th derivative scales as `gap^-k`, with the gap about `1 / (a + b)`,
+#' and multiplies the rounding difference of the two forms. The third
+#' derivatives there are off by up to 0.12 relative at (1e6, 3e6) and
+#' 7.7e-5 at (3e4, 7e4), the second by up to 1.3e-6, where plain
+#' `log(RTMB::pbeta())` is good to 3e-9 (the final check's
+#' dev/fams2-rev3-near.txt). The blend cannot leave the gap between the
+#' two ties, so widening it within the gap gains at most a factor of 4.
+#' The band is about `1 / sqrt(a)` sd wide, few rows land in it, and
+#' values and first derivatives are unaffected.
+#'
+#' @noRd
+log_pbeta_ad <- function(x, a, b) {
+  s <- a + b
+  t1 <- a / s
+  gap <- b / (s * (s + 1))
+  lo <- t1 + 0.25 * gap
+  w <- ad_smooth01((x - lo) / (0.5 * gap))
+  xa <- ad_max(x, lo)
+  xb <- ad_min(x, lo + 0.5 * gap)
+  la <- log(RTMB::pbeta(xa, a, b))
+  lb <- log(RTMB::pbeta(xb, a + 1, b) +
+              exp(log_ibeta_pre(xb, ibeta_shape(a, b, large = TRUE)) -
+                    log(a)))
+  w * la + (1 - w) * lb
+}
+
+#' Tape-safe `max(u, 0)`, `min(x, m)` and `max(x, m)`. The last two
+#' return `x` bit for bit on its own side, because `(x - m) + (m - x)` is
+#' exactly zero; the symmetric `0.5 (x + m - |m - x|)` rounds `x + m`
+#' and cost `x` eleven digits at `x = 6.5e-6` against `m = 0.69`.
+#'
+#' @noRd
+ad_pos <- function(u) 0.5 * (u + abs(u))
+
+#' Tape-safe `min(x, m)`, which is `x` bit for bit when `x <= m`.
+#'
+#' @noRd
+ad_min <- function(x, m) x - ad_pos(x - m)
+
+#' Tape-safe `max(x, m)`, which is `x` bit for bit when `x >= m`.
+#'
+#' @noRd
+ad_max <- function(x, m) x + ad_pos(m - x)
+
+#' 0 below 0, 1 above 1, and the quintic smoothstep `10 t^3 - 15 t^4 +
+#' 6 t^5` between, whose first and second derivatives vanish at both
+#' ends: a blend weight whose use keeps a value and its first two
+#' derivatives continuous.
+#'
+#' @noRd
+ad_smooth01 <- function(t) {
+  t <- ad_max(ad_min(t, 1), 0)
+  t * t * t * (10 - 15 * t + 6 * t * t)
+}
+
+#' `log B(a, b)` for the tape, formed as `lgamma(a) - (lgamma(a + b) -
+#' lgamma(b))` with the difference from `lgamma_shift_diff()` based at
+#' the LARGER shape, so a small shape beside a large one does not cancel
+#' two large `lgamma()` values. `RTMB::lbeta()` did, and cost the
+#' gradient of `log_ibeta_half()` seven digits at `a = 0.01`, `b = 5e6`
+#' (dev/fams2-p1-sweep.R).
+#'
+#' The two orderings are blended over `|b - a| < 0.1 (a + b)`, where both
+#' are as good, rather than switched through `min()` and `max()`: RTMB's
+#' `abs()` has derivative one at zero, so at `a == b` exactly both of
+#' those followed `b` alone and the derivative in `a` came out 0.
+#'
+#' @noRd
+lbeta_ad <- function(a, b) {
+  w <- ad_smooth01((b - a) / (0.2 * (a + b)) + 0.5)
+  w * (lgamma(a) - lgamma_shift_diff(b, a)) +
+    (1 - w) * (lgamma(b) - lgamma_shift_diff(a, b))
+}
+
+#' `log I_x(a, b)` from the continued fraction alone, valid for
+#' `x < (a + 1) / (a + b + 2)`. See `log_ibeta_half()`. `lpre` is
+#' `log_ibeta_pre(x, ibeta_shape(a, b))`. `xc`, when given, is `1 - x` held more
+#' exactly than `x` holds it, and the odd terms are then formed from it.
+#'
+#' Each odd level is `1 + e_odd(k) / t`, where `e_odd(k)` is near -1
+#' once `a` is large, so `1 + e_odd(k)` cancels. From `x` that loses
+#' about `a` ulps; from `xc` it is
+#' `((a + k) (2k + 1 - b + (a + b + k) xc) + k (k + 1)) /
+#' ((a + 2k) (a + 2k + 1))`, whose large terms are gone. It matters for
+#' the complement at `1 - xc` with a large first shape and a small
+#' `xc`: 1.1e-11 of the log value at `a = 1`, `b = 1e7` one `sd` above
+#' the mean, formed from `x` (dev/fams2-p2-rev2-ibeta.txt).
+#'
+#' @noRd
+log_ibeta_cf <- function(x, a, b, N, lpre, xc = NULL) {
+  qab <- a + b
+  qap <- a + 1
+  qam <- a - 1
+  # Numerical Recipes' betacf() fraction, 1 / (1 + e1 / (1 + e2 / ...)),
+  # to 2 N + 1 terms, evaluated from the bottom up. Lentz's top-down
+  # evaluation of the same approximant forms 1 / (1 + e1) on the way,
+  # which is infinite at x = (a + 1) / (a + b); bottom up only the
+  # approximant's own poles are left. Each odd level 1 + e_odd / t is
+  # formed as (p_odd + r) / t with p_odd = 1 + e_odd and r = t - 1,
+  # both small where they cancel
+  p_odd <- if (is.null(xc)) {
+    function(k) 1 - (a + k) * (qab + k) * x / ((a + 2 * k) * (qap + 2 * k))
+  } else {
+    function(k) {
+      ((a + k) * (2 * k + 1 - b + (qab + k) * xc) + k * (k + 1)) /
+        ((a + 2 * k) * (qap + 2 * k))
+    }
+  }
+  e_even <- function(k) k * (b - k) * x / ((qam + 2 * k) * (a + 2 * k))
+  t <- p_odd(N)
+  for (k in rev(seq_len(N))) {
+    r <- e_even(k) / t
+    t <- (p_odd(k - 1) + r) / (1 + r)
+  }
+  lpre - log(a) - log(abs(t))
+}
+
+#' `log(x^a (1 - x)^b / B(a, b))`, the prefactor of the continued
+#' fraction, which is symmetric in `(x, a)` and `(1 - x, b)`. `sh` is
+#' `ibeta_shape(a, b)`. `lx` and `l1mx` are `log(x)` and `log(1 - x)`,
+#' for a caller that holds `1 - x` more exactly than `x`.
+#'
+#' Written as `a log x + b log(1 - x) - log B(a, b)` its three terms are
+#' each about `a + b` in size and cancel down to a few units near the
+#' mean, so at shapes of 1e7 the rounding left 6.5e-10 of the log
+#' incomplete beta (dev/reviews/2026-09-29-fams2.md, re-check n2). Once
+#' both shapes pass 12, where `lgamma_binet()` is exact, it is formed
+#' around the mean `mu = a / (a + b)` instead:
+#' `a log(x / mu) + b log((1 - x) / (1 - mu)) + C(a, b)`, with
+#' `C = log(a b / (2 pi (a + b))) / 2 + mu(a + b) - mu(a) - mu(b)` from
+#' Stirling's formula (`mu()` Binet's remainder), exact, and the two
+#' logs from `log1p()` of the relative distance to the mean. An error in
+#' the rounded `mu` drops out to first order, because the sum is
+#' stationary in `mu` there. The two forms are blended in
+#' `a b / (a + b)` over 15 to 30, where both hold; the old one is
+#' accurate while a shape is small, because `b log(1 - x)` is then about
+#' `a`. `log1p()` of a relative distance near -1 loses what `x` held, so
+#' from a relative distance of 1/4 to 1/2 each log is blended into a
+#' difference of logs, which is by then far from cancelling.
+#'
+#' @noRd
+log_ibeta_pre <- function(x, sh, lx = log(x), l1mx = log1p(-x)) {
+  a <- sh$a
+  b <- sh$b
+  d <- x - sh$mua
+  u <- d / sh$mua
+  v <- -d / sh$mub
+  wu <- ad_smooth01(4 * abs(u) - 1)
+  wv <- ad_smooth01(4 * abs(v) - 1)
+  # the argument is held off -1 where its weight is zero, so log1p()
+  # stays finite there
+  lu <- (1 - wu) * log1p(ad_max(u, -0.75)) + wu * (lx - log(sh$mua))
+  lv <- (1 - wv) * log1p(ad_max(v, -0.75)) + wv * (l1mx - log(sh$mub))
+  near <- a * lu + b * lv + sh$cst
+  if (is.null(sh$lb)) return(near)
+  (1 - sh$w) * (a * lx + b * l1mx - sh$lb) + sh$w * near
+}
+
+#' The parts of `log_ibeta_pre()` that depend on the shapes alone,
+#' formed once for the several points one `log_ibeta_half()` reads.
+#' `large = TRUE` promises `a b / (a + b)` of 30 or more, where the
+#' form around the mean has all the weight, and skips the other.
+#'
+#' @noRd
+ibeta_shape <- function(a, b, large = FALSE) {
+  s <- a + b
+  a2 <- ad_max(a, 12)
+  b2 <- ad_max(b, 12)
+  s2 <- a2 + b2
+  list(a = a, b = b, mua = a / s, mub = b / s,
+       cst = 0.5 * log(a2 * b2 / (2 * pi * s2)) + lgamma_binet(s2) -
+         lgamma_binet(a2) - lgamma_binet(b2),
+       lb = if (!large) lbeta_ad(a, b),
+       w = if (!large) {
+         ad_smooth01((log(a * b / s) - log(15)) / (log(30) - log(15)))
+       })
+}
+
+#' The first two moments of an extended-support beta response, off the
+#' tape.
+#'
+#' `m1` is brms's `posterior_epred_xbeta()` term for term. With
+#' `Y = min(max(d Z - kappa, 0), 1)`, `d = 1 + 2 kappa`,
+#' `E[Y] = P(Z > q1) + d E[Z; q0 < Z < q1] - kappa P(q0 < Z < q1)`, and
+#' `E[Z^k; .]` is a beta moment times the incomplete beta with the first
+#' shape raised by `k`.
+#'
+#' @noRd
+xbeta_moments <- function(mu, phi, kappa) {
+  a <- mu * phi
+  b <- (1 - mu) * phi
+  d <- 1 + 2 * kappa
+  q0 <- kappa / d
+  q1 <- (1 + kappa) / d
+  # P(q0 < Z < q1) and the truncated first and second moments of Z
+  p <- stats::pbeta(q1, a, b) - stats::pbeta(q0, a, b)
+  e1 <- mu * (stats::pbeta(q1, a + 1, b) - stats::pbeta(q0, a + 1, b))
+  e2 <- mu * (a + 1) / (phi + 1) *
+    (stats::pbeta(q1, a + 2, b) - stats::pbeta(q0, a + 2, b))
+  # P(Z > q1) = I_q0(b, a), without the subtraction from one
+  top <- stats::pbeta(q0, b, a)
+  list(m1 = top + d * e1 - kappa * p,
+       m2 = top + d^2 * e2 - 2 * d * kappa * e1 + kappa^2 * p)
+}
+
 #' Asymmetric Laplace family, dpars `mu`, `sigma` and `quantile`. At a
 #' fixed `quantile` the maximum-likelihood fit gives the quantile
 #' regression point estimates.
@@ -3193,13 +3696,94 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars,
-                         aterms) dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+      mean_fn = function(dpars, aterms) {
+        dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+      },
+      # without it pearson residuals were refused for want of a variance
+      var_fn = function(dpars, aterms) {
+        beta_binomial_var(dpars[["mu"]], dpars[["phi"]],
+                          aterms[["trials"]] %||% 1)
+      }
     ),
     sim = function(dpars, aterms, n) {
       RTMBdist::rbetabinom(n, aterms[["trials"]] %||% 1,
                            dpars[["mu"]] * dpars[["phi"]],
                            (1 - dpars[["mu"]]) * dpars[["phi"]])
+    }
+  )
+}
+
+#' The variance of a beta-binomial count with mean `size * mu` and
+#' precision `phi`, off the tape.
+#'
+#' @noRd
+beta_binomial_var <- function(mu, phi, size) {
+  size * mu * (1 - mu) * (phi + size) / (phi + 1)
+}
+
+#' Zero-inflated beta-binomial, dpars `mu`, `phi` and `zi`, as brms
+#' 2.23.0 defines it: `P(Y = 0) = zi + (1 - zi) BB(0)` and
+#' `P(Y = y) = (1 - zi) BB(y)` above zero, where `BB` is
+#' `fam_beta_binomial()`'s density with trials from `trials()`.
+#'
+#' @noRd
+fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
+                                 link_zi = "logit") {
+  nm <- "zero_inflated_beta_binomial"
+  lk_phi <- dpar_link(link_phi, "phi", nm, dpar_links_positive)
+  lk_zi <- dpar_link(link_zi, "zi", nm, dpar_links_unit)
+  lk <- mu_link(link, nm)
+  frmtmb_family(
+    nm,
+    accepts_aterms = c("weights", "trials"),
+    dpars = c("mu", "phi", "zi"),
+    links = list(mu = lk, phi = lk_phi, zi = lk_zi),
+    lpdf = function(y, dpars, aterms) {
+      size <- aterms[["trials"]] %||% 1
+      i0 <- as.numeric(y == 0)
+      g <- dpar_log_complement(dpars, "zi", lk_zi)
+      # the shapes off the log-odds, for the reason fam_beta_binomial()
+      # gives; at y = 0 `base` is the beta-binomial's own P(0)
+      mp <- dpar_complement(dpars, "mu", lk)
+      base <- RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
+                                   mp$q * dpars[["phi"]], log = TRUE)
+      i0 * RTMB::logspace_add(g$l, g$l1m + base) + (1 - i0) * (g$l1m + base)
+    },
+    valid_y = function(y, aterms) {
+      size <- aterms[["trials"]] %||% 1
+      if (any(y < 0) || any(y > size) || any(y != round(y))) {
+        frm_stop(nm, ": response must be integer counts in [0, trials]",
+                 call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) {
+        p <- mean(y / (aterms[["trials"]] %||% 1))
+        min(max(p, 0.02), 0.98)
+      },
+      phi = function(y, aterms) 5,
+      zi = function(y, aterms) min(max(mean(y == 0) / 2, 0.05), 0.9)
+    ),
+    type = "discrete",
+    post = list(
+      # brms's posterior_epred_zero_inflated_beta_binomial()
+      mean_fn = function(dpars, aterms) {
+        (1 - dpars[["zi"]]) * dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+      },
+      var_fn = function(dpars, aterms) {
+        size <- aterms[["trials"]] %||% 1
+        mu <- dpars[["mu"]]
+        q <- 1 - dpars[["zi"]]
+        # E[Y^2] = (1 - zi) (Var BB + E[BB]^2)
+        q * (beta_binomial_var(mu, dpars[["phi"]], size) + (size * mu)^2) -
+          (q * size * mu)^2
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      size <- aterms[["trials"]] %||% 1
+      (1 - stats::rbinom(n, 1L, dpars[["zi"]])) *
+        RTMBdist::rbetabinom(n, size, dpars[["mu"]] * dpars[["phi"]],
+                             (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
   )
 }
@@ -3502,6 +4086,241 @@ fam_cumulative <- function(link = "logit") {
   ord_tag_link(fam, lk)
 }
 
+#' The code of an ordinal family's first category: 1, or 0 for a family
+#' with brms's `extra_cat` special, whose response has a category 0
+#' below the ordinal ones (`hurdle_cumulative()`). An ordinal fit's
+#' category probabilities, simulated codes and category means read their
+#' codes from here rather than from `seq_len(K)`.
+#'
+#' @noRd
+ord_code0 <- function(fam) if (isTRUE(fam[["extra_cat"]])) 0L else 1L
+
+#' The ordinal families whose thresholds are held ordered, as
+#' `(tau_1, log increments)`: brms declares them `ordered` for these two
+#' (`brms:::has_ordered_thres()`). `cs()` is refused for both, as its
+#' offsets could make a difference of their probabilities negative.
+#'
+#' @noRd
+ord_ordered_families <- c("cumulative", "hurdle_cumulative")
+
+#' The cumulative log-probability of categories `y` in `1..K`, with the
+#' distribution function read at `disc * (tau - eta)`: the data path of
+#' `fam_cumulative()`'s density, which says why the logit-type links go
+#' through `logspace_sub()`.
+#'
+#' @noRd
+ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
+  Fcdf <- lk$linkinv
+  q <- lk[["logit_eta"]]
+  K1 <- length(tau)
+  K <- K1 + 1L
+  iK <- as.numeric(y == K)
+  i1 <- as.numeric(y == 1)
+  if (is.null(q)) {
+    up <- Fcdf(disc * (tau[pmin(y, K1)] - eta)) * (1 - iK) + iK
+    lo <- Fcdf(disc * (tau[pmax(y - 1, 1)] - eta)) * (1 - i1)
+    return(log(up - lo))
+  }
+  out <- i1 * log_inv_logit(q(disc * (tau[1] - eta))) +
+    iK * log1m_inv_logit(q(disc * (tau[K1] - eta)))
+  if (K1 >= 2L) {
+    ym <- pmin(pmax(y, 2L), K1)
+    a <- q(disc * (tau[ym] - eta))
+    b <- q(disc * (tau[ym - 1L] - eta))
+    out <- out + (1 - i1 - iK) *
+      (RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b))
+  }
+  out
+}
+
+#' Hurdle cumulative (brms 2.23.0 `hurdle_cumulative`), dpars `mu`, `hu`
+#' and `disc`. The response is `0..K`: `P(Y = 0) = hu`, and
+#' `P(Y = k) = (1 - hu) P_cum(k)` for `k` in `1..K`, where `P_cum` is
+#' `fam_cumulative()`'s model with the distribution function read at
+#' `disc * (tau_k - eta)`. `disc` is held at one unless the formula
+#' models it, as in brms. An ordered-factor response takes its first
+#' level as the category 0.
+#'
+#' @noRd
+fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
+                                  link_disc = "log", threshold = "flexible") {
+  ord_threshold_arg(threshold, "hurdle_cumulative")
+  nm <- "hurdle_cumulative"
+  lk <- ord_link(link, nm)
+  lk_hu <- dpar_link(link_hu, "hu", nm, dpar_links_unit)
+  lk_disc <- dpar_link(link_disc, "disc", nm, dpar_links_positive)
+  Fcdf <- lk$linkinv
+  fam <- frmtmb_family(
+    nm,
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = hurdle_thres_finalizer(lk),
+    dpars = c("mu", "hu", "disc"),
+    links = list(mu = "identity", hu = lk_hu, disc = lk_disc),
+    lpdf = function(y, dpars, aterms, extra) {
+      tau <- ord_tau_from_raw_ad(extra$tau_raw)
+      i0 <- as.numeric(y == 0)
+      g <- dpar_log_complement(dpars, "hu", lk_hu)
+      # a zero row reads category 1 in the ordinal term, which carries
+      # weight 0 there
+      base <- ord_cumulative_logpmf(pmax(y, 1), dpars[["mu"]], tau, lk,
+                                    dpars[["disc"]] %||% 1)
+      i0 * g$l + (1 - i0) * (g$l1m + base)
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 0) || any(y != round(y))) {
+        frm_stop("Family '", nm, "' requires either non-negative ",
+                 "integers or ordered factors as responses: 0 for the ",
+                 "hurdle and 1..K for the ordinal categories",
+                 call. = FALSE)
+      }
+      if (max(y) < 2) {
+        frm_stop("Could not extract the number of thresholds. Family '",
+                 nm, "' needs at least 2 ordinal categories above the ",
+                 "hurdle, and the response reaches ", max(y),
+                 call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      hu = function(y, aterms) min(max(mean(y == 0), 0.05), 0.95)
+    ),
+    type = "ordinal",
+    extra_pars = function(y, aterms) {
+      ord_tau_init(y[y > 0], ordered = TRUE, link = lk, K = max(y))
+    },
+    sim = function(dpars, aterms, n, extra) {
+      tau <- ord_tau_from_raw(extra$tau_raw, TRUE)
+      P <- hurdle_cum_probs(rep(dpars[["mu"]], length.out = n),
+                            rep(dpars[["disc"]] %||% 1, length.out = n),
+                            tau, Fcdf)
+      K <- ncol(P)
+      cp <- t(apply(P, 1L, cumsum))
+      if (n == 1L) cp <- matrix(cp, 1L, K)
+      cat_ <- pmin(1L + rowSums(cp < stats::runif(n)), K)
+      hu <- rep(dpars[["hu"]], length.out = n)
+      ifelse(stats::runif(n) < hu, 0L, cat_)
+    },
+    post = list(ord_thresholds = ord_threshold_map(TRUE),
+                fit_check = hurdle_cum_fit_check),
+    drop_intercept = TRUE
+  )
+  fam[["fixed_dpars"]] <- list(disc = 1)
+  fam[["extra_cat"]] <- TRUE
+  ord_tag_link(fam, lk)
+}
+
+#' `ord_tau_from_raw()` for an ordered threshold vector, written so that
+#' it tapes: the same map `fam_cumulative()`'s density forms inline.
+#'
+#' @noRd
+ord_tau_from_raw_ad <- function(raw) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  K1 <- length(raw)
+  tau <- rep(raw[1], K1)
+  if (K1 > 1) for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
+  tau
+}
+
+#' The `n x K` probabilities of the ordinal categories `1..K` of a
+#' cumulative model with discrimination `disc`, in plain doubles.
+#'
+#' @noRd
+hurdle_cum_probs <- function(eta, disc, tau, Fcdf) {
+  n <- length(eta)
+  M <- disc * (matrix(tau, n, length(tau), byrow = TRUE) - eta)
+  Fm <- cbind(0, Fcdf(M), 1)
+  Fm[, -1L, drop = FALSE] - Fm[, -ncol(Fm), drop = FALSE]
+}
+
+#' `hurdle_cumulative()`'s `family_finalize()` slot: `thres(x = )` is
+#' resolved by the ordinal families' own finalizer on the rows above the
+#' hurdle, and `thres(gr = )` is refused.
+#'
+#' The grouped densities `thres_finalizer()` builds read `mu` alone and
+#' have no hurdle, so accepting `gr = ` would silently fit the model
+#' without it.
+#'
+#' @noRd
+hurdle_thres_finalizer <- function(lk) {
+  inner <- thres_finalizer("cumulative", ordered = TRUE, link = lk)
+  function(fam, y, aterms) {
+    if (!is.null(aterms[["thres_gr"]])) {
+      frm_stop("hurdle_cumulative() takes thres(x = ) but not ",
+               "thres(gr = ): grouped thresholds are not implemented ",
+               "for the hurdle family. brms fits them", call. = FALSE)
+    }
+    if (is.null(aterms[["thres"]])) return(fam)
+    pos <- y > 0
+    ax <- aterms
+    if (length(ax[["thres"]]) == length(y)) ax[["thres"]] <- ax[["thres"]][pos]
+    out <- inner(fam, y[pos], ax)
+    # the ordinal finalizer's start values count the categories over
+    # every row it is handed, and a hurdle zero is not one of them
+    ep <- out[["extra_pars"]]
+    out[["extra_pars"]] <- function(y, aterms) ep(y[y > 0], aterms)
+    # the ordinal finalizer installs its own check; the hurdle's runs it
+    out[["post"]][["fit_check"]] <- hurdle_cum_fit_check
+    out
+  }
+}
+
+#' `hurdle_cumulative()`'s fit-end check: the ordinal finalizer's
+#' unplaced-threshold check when `thres(x = )` asked for one, and an
+#' intercept in `disc` that nothing identifies.
+#'
+#' `disc * (tau - eta)` is unchanged when `disc` is divided by a
+#' constant and the thresholds and `mu`'s coefficients multiplied by it,
+#' so the likelihood cannot place an intercept in `disc`: a fit of
+#' `disc ~ 1 + z` finished silently with standard errors of 12 to 67
+#' (dev/fams2-rev-disc1.txt). brms accepts the same formula without a
+#' word and identifies it by its default `normal(0, 1)` prior on the
+#' intercept (dev/fams2-p1-brmsdisc.txt), which frmtmb fits too when
+#' that prior is set, so this warns rather than refuses, and is silent
+#' when a prior holds the intercept. A prior on the thresholds or on
+#' `mu`'s coefficients pins the scale through that prior, and then it
+#' says so rather than that no standard error is usable.
+#'
+#' @noRd
+hurdle_cum_fit_check <- function(fit, resp) {
+  fam <- fit$spec$responses[[resp]]$family
+  if (length(fam[["thres"]][["unident"]])) thres_fit_check(fit, resp)
+  lp <- fit$frame[["linpreds"]][[linpred_key(resp, "disc")]]
+  if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
+  j <- which(colnames(lp[["X"]]) == "(Intercept)")
+  if (!length(j)) return(invisible(NULL))
+  ent <- if (!is.null(fit$prior)) {
+    resolve_prior_input(list(frame = fit$frame, spec = fit$spec),
+                        fit$prior)$entries
+  }
+  held <- any(vapply(ent, function(e) {
+    identical(e$comp, lp[["par"]]) && lp[["idx"]][j] %in% e$idx
+  }, NA))
+  if (held) return(invisible(NULL))
+  # a prior on the thresholds or on mu's coefficients pins the common
+  # scale, and with it the intercept, if only through that prior: the
+  # re-check's fit with a prior on class Intercept alone had standard
+  # errors of at most 1.71 (dev/fams2-rev2-guards.txt, section 4)
+  lpm <- fit$frame[["linpreds"]][[linpred_key(resp, "mu")]]
+  pinned <- any(vapply(ent, function(e) {
+    identical(e$comp, "tau_raw") ||
+      (!is.null(lpm) && identical(e$comp, lpm[["par"]]) &&
+         any(lpm[["idx"]] %in% e$idx))
+  }, NA))
+  frm_warning("hurdle_cumulative: disc has an intercept, which the ",
+              "likelihood cannot tell apart from the scale of the ",
+              "thresholds, so ",
+              if (pinned) {
+                paste0("only the priors on the thresholds or on the ",
+                       "coefficients of mu place it. ")
+              } else {
+                paste0("it, the thresholds and the coefficients of mu ",
+                       "have no usable standard error. ")
+              },
+              "Write disc ~ 0 + ..., or hold the intercept with a prior, ",
+              "as brms does with its default set_prior(\"normal(0, 1)\", ",
+              "class = \"Intercept\", dpar = \"disc\")", call. = FALSE)
+  invisible(NULL)
+}
+
 #' Shared scaffolding for the sequential ordinal families: an
 #' n x (K-1) matrix of `(tau_j - eta_i)` or `(eta_i - tau_j)`, and
 #' data-only indicator matrices selecting the observed category
@@ -3648,6 +4467,25 @@ ord_link <- function(link, family, choices = brms_mu_links[[family]]) {
              "See ?`frmtmb-links`", call. = FALSE)
   }
   get_link(link)
+}
+
+#' Check an ordinal constructor's `threshold` argument, brms's
+#' `"flexible"`, `"equidistant"` or `"sum_to_zero"`, and return it.
+#'
+#' @noRd
+ord_threshold_arg <- function(threshold, family) {
+  choices <- c("flexible", "equidistant", "sum_to_zero")
+  if (!is.character(threshold) || length(threshold) != 1L ||
+      is.na(threshold) || !threshold %in% choices) {
+    frm_stop(family, "(threshold =) takes one of ",
+             paste0("'", choices, "'", collapse = ", "), ", not ",
+             arg_desc(threshold), call. = FALSE)
+  }
+  if (!identical(threshold, "flexible")) {
+    frm_stop(family, "(threshold = '", threshold, "') is not implemented: ",
+             "frmtmb fits flexible thresholds only", call. = FALSE)
+  }
+  threshold
 }
 
 #' The CDF an ordinal family reads its thresholds through: the inverse
@@ -5752,7 +6590,9 @@ family_registry <- list(
   hurdle_negbinomial        = fam_hurdle_negbinomial,
   multinomial               = fam_multinomial,
   cumulative                = fam_cumulative,
+  hurdle_cumulative         = fam_hurdle_cumulative,
   beta_binomial             = fam_beta_binomial,
+  zero_inflated_beta_binomial = fam_zi_beta_binomial,
   skew_normal               = fam_skew_normal,
   inverse.gaussian          = fam_inverse_gaussian,
   exgaussian                = fam_exgaussian,
@@ -5766,6 +6606,7 @@ family_registry <- list(
   zero_inflated_binomial    = fam_zi_binomial,
   zero_inflated_beta        = fam_zi_beta,
   zero_one_inflated_beta    = fam_zoi_beta,
+  xbeta                     = fam_xbeta,
   asym_laplace              = fam_asym_laplace,
   zero_inflated_asym_laplace = fam_zi_asym_laplace,
   huber                     = fam_huber,
@@ -5987,6 +6828,50 @@ as_frmtmb_family <- function(x) {
 #' through its prior on `coi`. Here, hold `coi` at a value with
 #' `bf(coi = 0.5)`.
 #'
+#' `zero_inflated_beta_binomial()` is `beta_binomial()` with a
+#' zero-inflation probability `zi`: `P(Y = 0) = zi + (1 - zi) BB(0)`,
+#' and a count `y > 0` has probability `(1 - zi) BB(y)`, with the trials
+#' from `trials()`. `fitted()` returns `(1 - zi) * mu * trials`.
+#'
+#' `hurdle_cumulative()` is brms's hurdle over an ordinal response. The
+#' response is `0..K`: 0 is the hurdle, with probability `hu`, and the
+#' categories `1..K` follow `cumulative()` with probabilities scaled by
+#' `1 - hu`. An ordered factor takes its FIRST level as the category 0.
+#' `fitted()` returns the `K + 1` category probabilities, 0 first. The
+#' expected category that `conditional_effects()` shows by default is
+#' scored by these codes, so the hurdle scores 0; brms scores each
+#' column by its position and reads one higher. `disc`, the
+#' discrimination, is held at 1 unless the formula models it, as in
+#' brms. The likelihood cannot tell an intercept in `disc` apart from
+#' the scale of the thresholds, so write `disc ~ 0 + x`. brms accepts
+#' `disc ~ 1 + x` and holds the intercept with its default
+#' `normal(0, 1)` prior; frmtmb fits it too, and warns unless a prior
+#' holds the intercept. `thres(x = )`
+#' works; `thres(gr = )`, `cs()` and a `threshold` other than
+#' `"flexible"` are refused.
+#'
+#' @section Extended-support beta:
+#' `xbeta()` is the extended-support beta of Kosmidis and Zeileis
+#' (2024), brms's `xbeta`, for a response in `[0, 1]` with exact 0s and
+#' 1s. A latent beta variable with mean `mu` and precision `phi` is
+#' stretched by the exceedance `kappa` to `(1 + 2 kappa) Z - kappa` and
+#' censored at 0 and 1, so the ends carry the latent mass beyond them.
+#' `mu` is the mean of the latent variable, not of the response;
+#' `fitted()` returns the mean of the response, brms's
+#' `posterior_epred()`. The mass at each end is an incomplete beta
+#' function, which is taken mostly from a continued fraction rather
+#' than from `RTMB::pbeta()`, whose third derivatives are not finite
+#' everywhere and which therefore failed the Laplace approximation of a
+#' model with random effects.
+#'
+#' `kappa` is placed mostly by the rows at exactly 0 or 1. With none,
+#' only the shape of the interior places it, and it can run to 0,
+#' where the model is `Beta()`, or grow without bound. When it runs to
+#' 0, or a coefficient of a log-link `kappa` has a standard
+#' error above 10 or none, the fit warns; brms fits such data through its
+#' `gamma(0.01, 0.01)` prior on `kappa`. Compare the fit with `Beta()`,
+#' or hold `kappa` at a value with `bf(kappa = )`.
+#'
 #' @section Categorical (nominal) responses:
 #' `categorical()` fits a multinomial logit to an unordered factor. The
 #' FIRST level is the reference category, its linear predictor is held
@@ -6175,21 +7060,26 @@ as_frmtmb_family <- function(x) {
 #' An ordinal family's `link` is not a link on a mean. It names the
 #' distribution function the thresholds are read through, so
 #' `cumulative()`, `sratio()` and `cratio()` take `logit`, `probit`,
-#' `probit_approx`, `cloglog` and `cauchit` (and `cumulative()` also
-#' takes `softit`), and refuse anything else. `acat()` takes `logit`
-#' alone, because brms defines its other links by a different density
-#' rather than by substituting a distribution function.
+#' `probit_approx`, `cloglog` and `cauchit` (and `cumulative()` and
+#' `hurdle_cumulative()` also take `softit`), and refuse anything else.
+#' `acat()` takes `logit` alone, because brms defines its other links by
+#' a different density rather than by substituting a distribution
+#' function.
 #'
-#' `cumulative()` keeps its thresholds increasing, because its category
-#' probabilities are differences of the distribution function. The
+#' `cumulative()` and `hurdle_cumulative()` keep their thresholds
+#' increasing, because their category probabilities are differences of
+#' the distribution function. The
 #' thresholds of `sratio()`, `cratio()` and `acat()` are unconstrained,
 #' as in brms: their category probabilities are positive for any
 #' thresholds, so a fit may have two of them cross.
 #'
 #' @param link Link for `mu`. See [frmtmb-links].
-#' @param link_sigma,link_shape,link_phi,link_kappa,link_ndt,link_beta
+#' @param link_sigma,link_shape,link_phi,link_kappa,link_ndt,link_beta,link_disc
 #'   Link for a strictly positive parameter: one of `"log"` (the
 #'   default), `"identity"`, `"softplus"` or `"squareplus"`.
+#' @param threshold For `hurdle_cumulative()`: the threshold structure.
+#'   brms also offers `"equidistant"` and `"sum_to_zero"`; frmtmb fits
+#'   `"flexible"` thresholds only and refuses the other two by name.
 #' @param link_nu Link for `nu`. `student()`'s degrees of freedom take
 #'   `"logm1"` (the default) or `"identity"`, which keeps them above
 #'   one; `compois()`'s dispersion is an ordinary positive parameter
@@ -6368,10 +7258,29 @@ cumulative <- function(link = "logit") {
 
 #' @rdname frmtmb-families
 #' @export
+hurdle_cumulative <- function(link = "logit", link_hu = "logit",
+                              link_disc = "log", threshold = "flexible") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["hurdle_cumulative"]], "logit")
+  fam_hurdle_cumulative(link, link_hu, link_disc, threshold)
+}
+
+#' @rdname frmtmb-families
+#' @export
 beta_binomial <- function(link = "logit", link_phi = "log") {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["beta_binomial"]], "logit")
   fam_beta_binomial(link, link_phi)
+}
+
+#' @rdname frmtmb-families
+#' @export
+zero_inflated_beta_binomial <- function(link = "logit", link_phi = "log",
+                                        link_zi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_inflated_beta_binomial"]],
+                         "logit")
+  fam_zi_beta_binomial(link, link_phi, link_zi)
 }
 
 #' @rdname frmtmb-families
@@ -6474,6 +7383,14 @@ zero_one_inflated_beta <- function(link = "logit", link_phi = "log",
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["zero_one_inflated_beta"]], "logit")
   fam_zoi_beta(link, link_phi, link_zoi, link_coi)
+}
+
+#' @rdname frmtmb-families
+#' @export
+xbeta <- function(link = "logit", link_phi = "log", link_kappa = "log") {
+  link <- link_arg_value(substitute(link), link, brms_mu_links[["xbeta"]],
+                         "logit")
+  fam_xbeta(link, link_phi, link_kappa)
 }
 
 #' @rdname frmtmb-families
@@ -6605,9 +7522,19 @@ cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
 #' @noRd
 family_link_str <- function(fam) {
   ol <- fam[["ord_link"]]
-  if (!is.null(ol)) return(paste0("cdf = ", ol[["name"]]))
   lk <- fam[["links"]]
   dp <- fam[["dpars"]]
+  if (!is.null(ol)) {
+    # an ordinal mu's link is the identity; the cdf takes its place, and
+    # a dpar beside mu (a hurdle's hu and disc) keeps its own
+    rest <- setdiff(dp, "mu")
+    more <- if (length(rest)) {
+      paste0(rest, " = ", vapply(rest, function(d) {
+        lk[[d]][["name"]] %||% "?"
+      }, ""))
+    }
+    return(paste(c(paste0("cdf = ", ol[["name"]]), more), collapse = "; "))
+  }
   if (!length(dp) || !length(lk)) return("")
   nm <- vapply(dp, function(d) {
     l <- lk[[d]]

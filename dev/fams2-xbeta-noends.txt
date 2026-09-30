@@ -1,0 +1,7 @@
+warnings: 0 
+                            lwr          upr         est
+(Intercept)        1.460060e-01 3.085173e-01   0.2272616
+x                  3.797894e-01 5.487769e-01   0.4642831
+phi_(Intercept)    1.467035e+00 1.722838e+00   1.5949367
+kappa_(Intercept) -2.172635e+04 2.168059e+04 -22.8803530
+logLik xbeta 101.3202  Beta 101.3202 

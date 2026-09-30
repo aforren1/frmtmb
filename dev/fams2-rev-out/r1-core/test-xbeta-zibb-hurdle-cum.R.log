@@ -1,0 +1,94 @@
+arm: r1  lib: C:/Users/adf44/source/r/wt-fams2-rev-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
+xbeta-zibb-hurdle-cum: ....................................................................W1..2.3...4.....................................................5...6...7.............8...........................9.................a......................................................................bcdefg..........hij.kl.........mnopqr.........s.t.u.......................................................v....................
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. kappa running to 0 warns, and nothing else does ('test-xbeta-zibb-hurdle-cum.R:206:3') - xbeta: the response has no exact 0 or 1, so kappa goes to 0, where the model is Beta(), and its standard error is not usable. Use Beta(), or hold kappa at a value with bf(kappa = )
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-xbeta-zibb-hurdle-cum.R:206:3'): kappa running to 0 warns, 
+Expected `any(grepl(r, seen, fixed = TRUE))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+expected a warning containing 'has no exact 0 or 1, and kappa ran to 0'
+Backtrace:
+    ▆
+ 1. └─frmtmb:::allow_warnings(...) at test-xbeta-zibb-hurdle-cum.R:206:3
+ 2.   └─testthat::expect_true(...) at ./helper-warnings.R:25:5
+
+── 2. Error ('test-xbeta-zibb-hurdle-cum.R:222:3'): kappa running to 0 warns, an
+<frmtmb_fit_error/frmtmb_error/error/condition>
+Error: The optimizer failed on this model (xbeta, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm()
+Backtrace:
+     ▆
+  1. ├─base::withCallingHandlers(...) at test-xbeta-zibb-hurdle-cum.R:222:3
+  2. └─frmtmb::frm(y ~ 1, family = xbeta(), data = da)
+  3.   └─frmtmb:::fit_assembled(...)
+  4.     └─frmtmb:::fit_error_context(...)
+  5.       ├─base::withCallingHandlers(...)
+  6.       └─base::tryCatch(...)
+  7.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.             └─value[[3L]](cond)
+ 10.               └─frmtmb::frm_stop(msg, call. = FALSE, class = "frmtmb_fit_error")
+
+── 3. Error ('test-xbeta-zibb-hurdle-cum.R:247:5'): xbeta fits a precise respons
+<frmtmb_fit_error/frmtmb_error/error/condition>
+Error: The optimizer failed on this model (xbeta, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm()
+Backtrace:
+     ▆
+  1. ├─frmtmb:::allow_warnings(...) at test-xbeta-zibb-hurdle-cum.R:247:5
+  2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+  3. └─frmtmb::frm(y ~ 1, family = xbeta(), data = d) at ./helper-warnings.R:17:3
+  4.   └─frmtmb:::fit_assembled(...)
+  5.     └─frmtmb:::fit_error_context(...)
+  6.       ├─base::withCallingHandlers(...)
+  7.       └─base::tryCatch(...)
+  8.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  9.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 10.             └─value[[3L]](cond)
+ 11.               └─frmtmb::frm_stop(msg, call. = FALSE, class = "frmtmb_fit_error")
+
+── 4. Failure ('test-xbeta-zibb-hurdle-cum.R:321:7'): the incomplete beta has th
+Expected d/dx at a 0.3 b 0.5 x 0.464286 < `1000 * ULPS * max(scale, 1) * gx`.
+Actual comparison: 6661338147750939329884668680662680804624860828044048424244260822204002284848480022648084244600648828486840024004042884802004866440082604204088644882820280820042664620488884822060282246480606460264644864442626402886000888804082448264462800864686448422000880248462842042060286662480662802.00000000000 >= 0.00000000002
+Difference: 6661338147750939329884668680662680804624860828044048424244260822204002284848480022648084244600648828486840024004042884802004866440082604204088644882820280820042664620488884822060282246480606460264644864442626402886000888804082448264462800864686448422000880248462842042060286662480662802.00000000000 >= 0
+
+── 5. Failure ('test-xbeta-zibb-hurdle-cum.R:316:7'): the incomplete beta has th
+Expected a 0.3 b 800000 x 1.625e-06 < `ULPS * max(scale, abs(r))`.
+Actual comparison: 0.0000000000008 >= 0.0000000000001
+Difference: 0.0000000000007 >= 0
+
+── 6. Failure ('test-xbeta-zibb-hurdle-cum.R:316:7'): the incomplete beta has th
+Expected a 0.3 b 800000 x 1.62662e-06 < `ULPS * max(scale, abs(r))`.
+Actual comparison: 0.0000000000012 >= 0.0000000000001
+Difference: 0.0000000000011 >= 0
+
+── 7. Failure ('test-xbeta-zibb-hurdle-cum.R:316:7'): the incomplete beta has th
+Expected a 0.3 b 800000 x 2.9943e-06 < `ULPS * max(scale, abs(r))`.
+Actual comparison: 0.0000000000007 >= 0.0000000000001
+Difference: 0.0000000000005 >= 0
+
+── 8. Failure ('test-xbeta-zibb-hurdle-cum.R:321:7'): the incomplete beta has th
+Expected d/dx at a 4 b 7 x 0.384615 < `1000 * ULPS * max(scale, 1) * gx`.
+Actual comparison: 7327471962526032628084686606082604060280422848022006082464262262240006806442808864664080828828622682420648666486882608800260248244646606080004862408448644824202822606082624486448886800284884206686484604000224860248626244466262042468000462246884462646040264048040462088460246860020400062.0000000000 >= 0.0000000009
+Difference: 7327471962526032628084686606082604060280422848022006082464262262240006806442808864664080828828622682420648666486882608800260248244646606080004862408448644824202822606082624486448886800284884206686484604000224860248626244466262042468000462246884462646040264048040462088460246860020400062.0000000000 >= 0
+
+── 9. Failure ('test-xbeta-zibb-hurdle-cum.R:321:7'): the incomplete beta has th
+Expected d/dx at a 4 b 7000 x 0.000713674 < `1000 * ULPS * max(scale, 1) * gx`.
+Actual comparison: 65614180755346750172664428248042022822868420046406226868844480660240406440048466648868660482866446882880688084206068428420226680808622482844882640288086042266684002204266402488822468048648026068028264026408404406064608448088028640288464820244864804080666608424848628680486646664864406624.000000 >= 0.000001
+Difference: 65614180755346750172664428248042022822868420046406226868844480660240406440048466648868660482866446882880688084206068428420226680808622482844882640288086042266684002204266402488822468048648026068028264026408404406064608448088028640288464820244864804080666608424848628680486646664864406624.000000 >= 0
+
+── 10. Failure ('test-xbeta-zibb-hurdle-cum.R:316:7'): the incomplete beta has t
+Expected a 4 b 800000 x 6.2562e-06 < `ULPS * max(scale, abs(r))`.
+Actual comparison: 0.000000000007 >= 0.000000000001
+Difference: 0.000000000005 >= 0
+  ... and 21 more
+
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+No one is perfect!
+RESULT r1 frmtmb test-xbeta-zibb-hurdle-cum.R pass=366 fail=29 err=2 skip=0 warn=1 blocks=22
