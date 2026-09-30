@@ -199,6 +199,18 @@ ordered factor, or integer codes \verb{1..K}. An unordered factor is
 refused, as brms refuses it, because its level order is alphabetical
 unless someone set it, and that order is the model.
 
+A \code{bernoulli()} response can hold any two values, which are coded 0
+and 1 by level order as brms codes them: the levels of a factor, the
+sorted values of a number or a character vector (so \code{-2} and \code{-1}
+become 0 and 1, and so do \code{1} and \code{2}), and \code{FALSE} and \code{TRUE} of a
+logical. A number with one value is the 1 of 0 and 1 unless the value
+is 0. The fit keeps the coding, and codes newdata's response with it.
+A third value is refused with brms's message. Two values that both
+lie strictly between 0 and 1, such as 0.1 and 0.9, are coded too, as
+brms codes them, with a warning: they are usually proportions, which
+\code{binomial()} with \code{trials()} or \code{Beta()} fits. \code{\link[=simulate]{simulate()}} and the
+draws return the codes 0 and 1, as brms's \code{posterior_predict()} does.
+
 A response with only two outcomes gets brms's message suggesting
 \code{bernoulli()}: an ordinal or categorical response with two
 categories, and a \code{binomial()}, \code{beta_binomial()} or

@@ -1,0 +1,6 @@
+MUTATED frmtmb::expr_frame_vars
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M01_expr_vars_unfiltered.R
+DETAIL [expectation_error] a term reads a constant from the formula environment: <frmtmb_error/error/condition>
+Error: `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+RESULT test-aterm-expr.R pass=45 fail=0 err=1 skip=0 warn=0 tests=8
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

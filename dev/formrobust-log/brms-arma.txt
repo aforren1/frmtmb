@@ -1,0 +1,9 @@
+Compiling Stan program...
+Start sampling
+brms   predict Est.Error rows 5..8 of g1: 1.0367 1.1896 1.1825 1.3003 
+frmtmb predict Est.Error rows 5..8 of g1: 1.0222 1.1751 1.2223 1.2206 
+brms   fitted Estimate rows 5..8 of g1: 1.99687 0.98368 1.43549 1.72239 
+frmtmb fitted Estimate rows 5..8 of g1: 1.99637 0.94744 1.40844 1.69977 
+brms   fitted Est.Error rows 5..8 of g1: 0.082312 0.589030 0.645964 0.705964 
+frmtmb fitted Est.Error rows 5..8 of g1: 0.081575 0.093792 0.101448 0.121045 
+brms ar: 1.20556 0.54435 0.54888 

@@ -92,9 +92,10 @@ test_that("se() on a family that cannot read it is refused before data", {
   expect_error(frm(y | se(sei) ~ x, data = dd, family = weibull()),
                "'weibull' does not declare that it does", fixed = TRUE)
   dd$sei <- NULL
-  # the absent case: a family that reads se() gets the missing column
+  # the absent case: a family that reads se() gets the missing column,
+  # named by the addition-term rule (a variable must be in the data)
   expect_error(frm(y | se(sei) ~ x, data = dd, family = gaussian()),
-               "The model uses `sei`", fixed = TRUE)
+               "reads `sei`, which is not a column of `data`", fixed = TRUE)
 })
 
 test_that("cs() inside a group-level term is refused by name", {

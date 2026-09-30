@@ -1,0 +1,5 @@
+offset(x * ck): influence refits unchanged after ck change: FALSE 
+ratio of slope refits after/before: -70.01658 266.6424 
+fitted(newdata) moves with ck: TRUE 
+-- I(x * ck) on the base build and the lane: influence works? --
+influence(I(x * ck)): influence(): all 10 deletion refits failed, so every row of the table would be NA. The first was 'g' level 1: The model uses `x`, which is not a colum 

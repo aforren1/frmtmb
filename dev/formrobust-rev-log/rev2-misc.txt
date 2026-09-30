@@ -1,0 +1,120 @@
+frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
+
+== 3a. NA refusal: guard-absent cases (NA in response, predictor, expression variable) ==
+[weights(w * 2), response NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   nobs 58 
+[weights(w2), response NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   [expr vs column logLik] identical: TRUE
+[weights(w * 2), predictor NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   nobs 58 
+[weights(w2), predictor NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   [expr vs column logLik] identical: TRUE
+[weights(w * 2), expr variable NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   nobs 58 
+[weights(w2), expr variable NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   [expr vs column logLik] identical: TRUE
+[weights(w * 2), expr NA] ERROR: Addition term weights(ifelse(x > 1.5, NA, w)) of response 'y' is NA on 6 of 60 rows, where its variables are not. Give every row a value
+[weights(w * 2), mi() + expr variable NA] ok
+   MSG: 2 rows removed because of missing values (na.action)
+   nobs 58 
+[subset(): expression NA only on rows outside the subset] ok
+[subset(): expression NA from complete vars only outside subset] ok
+[brms same] ok
+[cens interval bound NA on non-interval rows (expression)] ok
+[mi() response NA with weights(w * 2)] ok
+[vapply(w, round, 1): a function as an argument] ERROR: The model uses `round`, which is not a column of `data`; R finds only the function round() from the formula. Add the column to `data` or correct the name
+[brms vapply(w, round, 1)] ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'round'
+
+== 3b. refit() refusal ==
+[refit 0/1] ok
+[refit logical] ok
+[refit with NA] ERROR: The optimizer failed on this model (bernoulli, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimiz
+   WARN: NA/NaN function evaluation
+[refit value 2] ERROR: refit(): a bernoulli response is refitted on its 0/1 codes, which simulate() returns, and newresp holds '2'. The fit codes '0' as 0 and '1' as 1; recode newresp to 0 and 1
+[gaussian refit any values] ok
+[binomial refit counts] ok
+[character-response refit with 0/1] ok
+[character-response refit with 'yes'/'no'] ERROR: refit(): a bernoulli response is refitted on its 0/1 codes, which simulate() returns, and newresp holds 'no', 'yes'. The fit codes 'no' as 0 and 'yes' as 1; recode newresp to 0 and 1
+[0/1 fit, mixture(bernoulli)?] ok
+
+== 3c. single-bound cens(), weights(t * 2), mv update ==
+[cens(cc, ub) column] ok
+[cens(cc, 10) literal] ERROR: cens(cc, 10): the interval upper bound has 1 value(s) where the data have 60 rows. It takes one value per row, as brms requires
+[cens(cc, max(y) + 10)] ERROR: cens(cc, max(y) + 10): the interval upper bound has 1 value(s) where the data have 60 rows. It takes one value per row, as brms requires
+[cens(cc) no bound, no interval rows] ok
+[weights(t * 2) with column t] ok
+[weights(t * 2) without column t] ERROR: The model uses `t`, which is not a column of `data`; R finds only the function t() from the formula. Add the column to `data` or correct the name
+[weights(t * 2), t a vector of the formula env] ok
+[offset(log(t)) without column t] ERROR: The model uses `t`, which is not a column of `data`; R finds only the function t() from the formula. Add the column to `data` or correct the name
+[mv update complete formula] ERROR: Updating formulas of multivariate models is not yet possible. Refit with frm() and the complete mvbf()
+[mv update newdata only] ok
+[mv update delta] ERROR: An update formula written as a delta does not say which response it changes. Pass the complete mvbf() as `formula`
+[mv update, no formula, iter control] ok
+[univariate -> mv update] ERROR: Updating formulas of multivariate models is not yet possible. Refit with frm() and the complete mvbf()
+
+== 4. formula-environment constants ==
+   [trials(k) vs trials(12) logLik] identical: TRUE
+[plain predictor I(x * ck)] ok
+[offset(z * ck)] ok
+[dpar formula sigma ~ I(z * ck)] ok
+   after k/ck change, fitted(newdata) tk unchanged: FALSE
+   after k/ck change, fitted(newdata) pi unchanged: FALSE
+   after k/ck change, fitted(newdata) off unchanged: FALSE
+   after k/ck change, fitted(newdata) dp unchanged: FALSE
+   in-sample fitted of trials(k) still the fit's: TRUE 
+[update(f_tk) after k change] ok
+   update logLik unchanged: FALSE 
+[update(f_pi) after ck change] ok
+   update I(x*ck) coef ratio: 0.2499999 
+   predict max after k=20: 1 
+[predict(f_tk, newdata) after k change] ok
+   simulate max: 10 (k was 12 at fit)
+[simulate(f_tk) in sample after k change] ok
+   [residuals trials(k) vs trials(12)] identical: TRUE
+[residuals(f_tk) in sample after k change] ok
+   influence refits of trials(k) after k change equal trials(12): FALSE 
+[influence(f_tk) after k change] ok
+
+== 5. eval(fit$call) after a pooled update() ==
+[dpar fit] ok
+[dpar update] ok
+[dpar eval(u$call)] ok
+   [dpar eval(call) logLik] identical: TRUE
+   [dpar eval(call) coef names] identical: TRUE
+   n pars original 4, updated 5; call: frmtmb::bf(y ~ x + z, sigma ~ z, family = stats::gaussian(link = "identity"))
+[student_link fit] ok
+[student_link update] ok
+[student_link eval(u$call)] ok
+   [student_link eval(call) logLik] identical: TRUE
+   [student_link eval(call) coef names] identical: TRUE
+   n pars original 5, updated 6; call: frmtmb::bf(y ~ x + z, sigma ~ z, family = frmtmb::student(link = "identity", link_sigma = "softplus", link_nu = "logm1"))
+[cumul_equid fit] ERROR: unused argument (threshold = "equidistant")
+[cumul_equid_plus fit] ERROR: unused argument (threshold = "equidistant")
+[cumul_equid_arg fit] ERROR: unused argument (threshold = "equidistant")
+[categ_refcat fit] ERROR: unused argument (refcat = "r")
+[gamma_link fit] ok
+[gamma_link update] ok
+[gamma_link eval(u$call)] ok
+   [gamma_link eval(call) logLik] identical: TRUE
+   [gamma_link eval(call) coef names] identical: TRUE
+   n pars original 4, updated 5; call: frmtmb::bf(ypos ~ x + z, shape ~ z, family = stats::Gamma(link = "identity"))
+[sigma_const fit] ok
+[sigma_const update] ok
+[sigma_const eval(u$call)] ok
+   [sigma_const eval(call) logLik] identical: TRUE
+   [sigma_const eval(call) coef names] identical: TRUE
+   n pars original 2, updated 3; call: frmtmb::bf(y ~ x + z, sigma = 1.5, family = stats::gaussian(link = "identity"))
+[nl fit] ok
+[nl update] ok
+   MSG: Argument 'formula.' will completely replace the original formula in non-linear models.
+[nl eval(u$call)] ok
+   [nl eval(call) logLik] identical: TRUE
+   [nl eval(call) coef names] identical: TRUE
+   n pars original 4, updated 4; call: frmtmb::bf(y ~ a + b * x, a ~ 1 + z, b ~ 1, nl = TRUE, family = stats::gaussian(link = "identity"))

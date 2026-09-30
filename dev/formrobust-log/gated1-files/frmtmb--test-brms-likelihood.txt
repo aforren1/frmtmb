@@ -1,0 +1,6 @@
+Setting order = 'mu' for mixtures of the same family.
+Setting order = 'mu' for mixtures of the same family.
+Setting order = 'mu' for mixtures of the same family.
+Setting order = 'mu' for mixtures of the same family.
+RESULT test-brms-likelihood.R pass=485 fail=0 err=0 skip=0 warn=0
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

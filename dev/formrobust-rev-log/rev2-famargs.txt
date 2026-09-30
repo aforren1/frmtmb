@@ -1,0 +1,5 @@
+huber : k 
+whittle : tapers 
+categorical : levels K 
+hurdle_cumulative : threshold 
+cox : df degree intercept 

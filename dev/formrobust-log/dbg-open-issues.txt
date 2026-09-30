@@ -1,0 +1,32 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | open-issues                                                    
+⠸ |          4 | open-issues                                                    
+⠴ |          6 | open-issues                                                    
+⠋ |         11 | open-issues                                                    
+⠹ |         13 | open-issues                                                    
+⠴ |         16 | open-issues                                                    
+⠇ |         19 | open-issues                                                    
+⠹ | 1       22 | open-issues                                                    
+⠴ | 1       25 | open-issues                                                    
+⠧ | 1       27 | open-issues                                                    
+⠙ | 1       31 | open-issues                                                    
+⠹ | 1       32 | open-issues                                                    
+⠴ | 1       35 | open-issues                                                    
+⠧ | 1       37 | open-issues                                                    
+⠙ | 1       41 | open-issues                                                    
+⠹ | 1       42 | open-issues                                                    
+✖ | 1       42 | open-issues [3.4s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-open-issues.R:166:3'): non-integer responses are rejected, not silently fit (lme4#682, #180)
+Expected `frm(bf(Y ~ 1 + (1 | g)) + bernoulli(), data = bd)` to throw a error.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.4 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-open-issues.R:166:3'): non-integer responses are rejected, not silently fit (lme4#682, #180)
+Expected `frm(bf(Y ~ 1 + (1 | g)) + bernoulli(), data = bd)` to throw a error.
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 42 ]

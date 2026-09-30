@@ -1,0 +1,6 @@
+MUTATED frmtmb::pred_design
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M14_no_newdata_ones.R
+DETAIL [expectation_error] 0 + intercept is a column of ones, with brms's warning: <frmtmb_error/error/condition>
+Error: Variable 'intercept' missing from newdata
+RESULT test-brms-api-formrobust.R pass=24 fail=0 err=1 skip=0 warn=0 tests=6
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

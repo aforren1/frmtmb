@@ -1,0 +1,15 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+update nl, new body keeps a,b      ERROR: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+update nl, exp body                ERROR: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+bf(y ~ a + b, nl = TRUE) alone     ERROR: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+frm(bf(y ~ a + b, nl = TRUE))      ERROR: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+update linear keeps sigma ~ z      Intercept x         z        
+bernoulli ym logLik identical      ERROR: bernoulli: response must be 0/1
+bernoulli yf logLik identical      ERROR: Factor responses are only supported for binomial families with 2 levels (ordinal families accept ordered factors)
+bernoulli yl logLik identical      TRUE
+bernoulli y12 logLik identical     ERROR: bernoulli: response must be 0/1
+bernoulli yc logLik identical      ERROR: bernoulli: response must be 0/1
+Warning message:
+In extract_y(resp, mf) : NAs introduced by coercion
+Error: bernoulli: response must be 0/1
+Execution halted

@@ -1,0 +1,12 @@
+frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
+weights(wt * 2)        ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+rate(time * 2)         ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+trials(n + 1)          ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+se(s / 2)              ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+se(s / 2, sigma=TRUE)  ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+trunc(lb = lb - 1)     ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+mv weights(wt * 2)     ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+mv subset+rate         ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+vreal(wt * 2) gaussian? ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+weights(wt * k) env k  ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE
+index(id * 3) + mi(idx) ll identical: TRUE | fitted identical: TRUE | simulate identical: TRUE | predict identical: TRUE

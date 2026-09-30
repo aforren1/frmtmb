@@ -1,0 +1,9 @@
+frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
+ar = 0.5429945504  sigma = 1.023580509 
+row 5 Estimate / one-step mean: 0.983484 
+row 5 Est.Error / sigma: 1.0115 
+row 6 Est.Error / (sigma sqrt(1 + ar^2)): 1.00315 
+row 6 Est.Error / sigma: 1.1415 
+anyNA(Estimate): FALSE 
+fitted row 6 / expected-fill mean: 1 
+no response column: anyNA = FALSE  dim 16 4 

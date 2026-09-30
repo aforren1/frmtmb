@@ -1,0 +1,4 @@
+Error in mut("extract_y", "any(y != round(y), na.rm = TRUE)", "FALSE") : 
+  mutant extract_y: pattern matched 0 times, expected 1: any(y != round(y), na.rm = TRUE)
+Calls: source -> withVisible -> eval -> eval -> mut
+Execution halted

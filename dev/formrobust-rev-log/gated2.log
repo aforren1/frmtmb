@@ -1,0 +1,3 @@
+frmtmb RESULT test-drmtmb-agreement.R pass=131 fail=0 err=0 skip=0 warn=0 tests=13
+frmtmb RESULT test-fuzz.R pass=2 fail=0 err=0 skip=0 warn=0 tests=1
+RAN 2 of 2

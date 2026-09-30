@@ -1,0 +1,6 @@
+MUTATED frmtmb::assemble_frame
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R03_cens_y2_length_off.R
+DETAIL [expectation_error] the interval bound of cens() takes one value per row: <frmtmb_error/error/condition>
+Error: cens() upper bounds must not be NA on interval-censored rows
+RESULT test-aterm-expr.R pass=60 fail=0 err=1 skip=0 warn=0 tests=11
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

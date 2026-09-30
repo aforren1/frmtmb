@@ -951,28 +951,34 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
     dpv <- autocor_cond_dpars(fit, resp, eval_dpars(fit)[[resp]])
     return(cs_offsets_add(fit, resp, NULL, dpv))
   }
-  dpv <- list()
-  for (dnm in names(rspec$dpars)) {
-    off <- new_level_off[[dnm]]
-    # the NAMES are kept: they are the data's row names, which every
-    # other method carries into its output and which as.vector() drops
-    if (is.null(off)) {
-      dpv[[dnm]] <- drop(frm_linpred(fit, newdata = newdata, dpar = dnm,
-                                     resp = resp, re_formula = re_formula,
-                                     type = "response",
-                                     allow_new_levels = allow_new_levels))
-      next
+  dpars_fn <- function(fit) {
+    dpv <- list()
+    for (dnm in names(rspec$dpars)) {
+      off <- new_level_off[[dnm]]
+      # the NAMES are kept: they are the data's row names, which every
+      # other method carries into its output and which as.vector() drops
+      if (is.null(off)) {
+        dpv[[dnm]] <- drop(frm_linpred(fit, newdata = newdata, dpar = dnm,
+                                       resp = resp, re_formula = re_formula,
+                                       type = "response",
+                                       allow_new_levels = allow_new_levels))
+        next
+      }
+      # an unseen level's drawn effect is an offset on the LINK scale,
+      # where the model is additive, so the predictor is read there and
+      # the link inverse applied after the offset is in
+      lp <- fit$frame[["linpreds"]][[linpred_key(resp, dnm)]]
+      eta <- drop(frm_linpred(fit, newdata = newdata, dpar = dnm,
+                              resp = resp, re_formula = re_formula,
+                              type = "link",
+                              allow_new_levels = allow_new_levels))
+      dpv[[dnm]] <- lp[["link"]]$linkinv(eta + off)
     }
-    # an unseen level's drawn effect is an offset on the LINK scale,
-    # where the model is additive, so the predictor is read there and
-    # the link inverse applied after the offset is in
-    lp <- fit$frame[["linpreds"]][[linpred_key(resp, dnm)]]
-    eta <- drop(frm_linpred(fit, newdata = newdata, dpar = dnm,
-                            resp = resp, re_formula = re_formula,
-                            type = "link",
-                            allow_new_levels = allow_new_levels))
-    dpv[[dnm]] <- lp[["link"]]$linkinv(eta + off)
+    dpv
   }
+  # a cov = FALSE row whose response newdata leaves NA is filled with a
+  # draw of this replicate before the rows after it read its residual
+  dpv <- arma_cond_fill_dpars(fit, rspec, newdata, dpars_fn)
   # with_cs_offsets() takes the list of EVERY response and reads the
   # cs() values of the training rows; handed this one response's list
   # it wrote the offsets one level down, where no simulator reads them,

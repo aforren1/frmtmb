@@ -223,7 +223,9 @@ prior_summary.frmtmb_fit <- function(object, ...) {
 #'
 #' @param object A `frmtmb_fit` for a univariate model.
 #' @param newresp Replacement response: a vector of the original length,
-#'   or a matrix of the original dimensions for matrix responses.
+#'   or a matrix of the original dimensions for matrix responses. A
+#'   `bernoulli()` response is given as its 0/1 codes, which is what
+#'   [simulate()] returns, whatever two values the data held.
 #' @param start Optional named start list (as in [frm()]); when given it
 #'   replaces the warm start.
 #' @param ... Refused: an argument the method does not have is an
@@ -263,6 +265,28 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
     newresp <- as.vector(newresp)
     if (length(newresp) != length(y0)) {
       frm_stop("newresp must have length ", length(y0), call. = FALSE)
+    }
+    if (anyNA(newresp)) {
+      # the fitted rows are complete by construction (na.action ran at
+      # the fit, and an mi() response's gaps are parameters), so an NA
+      # here would reach the density as a missing observation
+      frm_stop("refit(): newresp has ", sum(is.na(newresp)), " NA ",
+               "value(s); it replaces the response of the fitted rows, ",
+               "which are complete. Give every row a value",
+               call. = FALSE)
+    }
+    lv <- object$spec$responses[[1L]]$family[["bin_levels"]]
+    bad <- !is.na(newresp) & !newresp %in% c(0, 1)
+    if (!is.null(lv) && any(bad)) {
+      # the fit stores the 0/1 codes, and a value on the response's own
+      # scale would reach the density as an outcome it cannot take
+      frm_stop("refit(): a bernoulli response is refitted on its 0/1 ",
+               "codes, which simulate() returns, and newresp holds ",
+               paste0("'", utils::head(unique(newresp[bad]), 3L), "'",
+                      collapse = ", "), ". The fit codes ",
+               paste0("'", lv, "' as ", seq_along(lv) - 1L,
+                      collapse = " and "), "; recode newresp to 0 and 1",
+               call. = FALSE)
     }
   }
   frame[["y"]][[1L]] <- newresp

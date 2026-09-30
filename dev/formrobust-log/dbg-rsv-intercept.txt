@@ -1,0 +1,48 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | rsv-intercept                                                  
+⠋ |          1 | rsv-intercept                                                  
+⠙ |          2 | rsv-intercept                                                  
+⠸ |          4 | rsv-intercept                                                  
+⠴ |          6 | rsv-intercept                                                  
+⠧ |          8 | rsv-intercept                                                  
+⠙ |         12 | rsv-intercept                                                  
+⠴ |         16 | rsv-intercept                                                  
+⠏ |         20 | rsv-intercept                                                  
+⠙ |         22 | rsv-intercept                                                  
+⠦ |         27 | rsv-intercept                                                  
+⠸ |         34 | rsv-intercept                                                  
+⠋ |         41 | rsv-intercept                                                  
+⠸ |         44 | rsv-intercept                                                  
+⠹ | 1 1     51 | rsv-intercept                                                  
+✖ | 1 1     54 | rsv-intercept [3.5s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-rsv-intercept.R:198:3'): the spellings brms refuses or does not reserve are refused
+Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead.
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-rsv-intercept.R:198:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(bf(y ~ 0 + intercept + x), data = ri_data)
+  8.   └─frmtmb:::parse_spec(bform)
+  9.     └─frmtmb:::parse_one_response(bform)
+ 10.       └─frmtmb:::parse_linpred(...)
+ 11.         └─frmtmb:::rsv_intercept_fixed(fixed)
+ 12.           └─frmtmb::frm_warning(...)
+
+Failure ('test-rsv-intercept.R:198:3'): the spellings brms refuses or does not reserve are refused
+Expected `frm(bf(y ~ 0 + intercept + x), data = ri_data)` to throw a error.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.6 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-rsv-intercept.R:198:3'): the spellings brms refuses or does not reserve are refused
+Expected `frm(bf(y ~ 0 + intercept + x), data = ri_data)` to throw a error.
+
+[ FAIL 1 | WARN 1 | SKIP 0 | PASS 54 ]

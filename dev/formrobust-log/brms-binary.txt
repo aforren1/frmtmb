@@ -1,0 +1,26 @@
+bernoulli TRUE 
+binomial FALSE 
+categorical FALSE 
+cumulative FALSE 
+gaussian FALSE 
+zero_inflated_binomial FALSE 
+beta_binomial FALSE 
+-1,-2                  1 0 1 0
+0,1                    0 1 1 0
+1,2                    0 1 1 0
+all 1                  1 1 1
+all 0                  0 0 0
+all 5                  1 1 1
+TRUE/FALSE             1 0 1
+factor b,a lv a,b      1 0 1
+factor lv z,a          1 0 1
+character yes/no       1 0 1
+three values           ERROR: Family 'bernoulli' requires responses to contain only two different values.
+factor one level       0 0
+factor 3 lv 2 used     0 1
+with NA                1 0
+Warning message:
+Rows containing NAs were excluded from the model. 
+Rows containing NAs were excluded from the model. 
+all TRUE               0 0 0
+all FALSE              0 0

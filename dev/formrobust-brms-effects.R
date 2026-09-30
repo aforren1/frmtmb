@@ -1,0 +1,10 @@
+# brms 2.23.0: default conditional_effects() displays of an offset model
+.libPaths("C:/Users/adf44/AppData/Local/R/win-library/4.6")
+suppressMessages(library(brms))
+bt <- brmsterms(bf(yc ~ x + f + offset(log(time))))
+print(brms:::get_all_effects(bt))
+bt2 <- brmsterms(bf(y ~ a + b * x, a ~ f + offset(z), b ~ 1, nl = TRUE))
+print(brms:::get_all_effects(bt2))
+bt3 <- brmsterms(bf(y ~ x, sigma ~ x + offset(log(time))))
+print(brms:::get_all_effects(bt3))
+print(brms:::get_all_effects)

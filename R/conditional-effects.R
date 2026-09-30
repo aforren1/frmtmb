@@ -149,14 +149,22 @@ ce_int_cond <- function(int_cond, col) {
 #' its smooth terms, its monotonic terms and its `mi()` terms. An `mo()`
 #' or `mi()` column is a placeholder in the design matrix and its
 #' variable never reaches `terms`, so what is stored with the term is
-#' the only place the name survives.
+#' the only place the name survives. `rsv = FALSE` leaves out what
+#' brms's default displays leave out: a variable that only an `offset()`
+#' term reads, and the column of ones of brms's deprecated
+#' `0 + intercept` (`rsv_vars()` in brms).
 #'
 #' @noRd
-ce_lp_vars <- function(lp) {
+ce_lp_vars <- function(lp, rsv = TRUE) {
   v <- if (is.null(lp[["terms"]])) {
     character(0)
   } else {
-    all.vars(stats::delete.response(lp[["terms"]]))
+    tt <- stats::delete.response(lp[["terms"]])
+    tv <- as.list(attr(tt, "variables"))[-1L]
+    if (!rsv && length(attr(tt, "offset"))) tv <- tv[-attr(tt, "offset")]
+    v <- unique(unlist(lapply(tv, all.vars)))
+    if (!rsv && isTRUE(lp[["rsv_lower"]])) v <- setdiff(v, "intercept")
+    v
   }
   # a factor-smooth's own grouping factor is not a predictor to display:
   # the curve is drawn at the population level, which drops that term,
@@ -192,8 +200,9 @@ ce_lp_vars <- function(lp) {
 #' in the parameters of an unrelated nonlinear `mu`.
 #'
 #' @noRd
-ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
-  v <- ce_lp_vars(lp)
+ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0),
+                         rsv = TRUE) {
+  v <- ce_lp_vars(lp, rsv)
   if (!is.null(lp[["nl_body"]])) {
     v <- c(v, names(lp[["data_list"]]),
            setdiff(all.vars(lp[["nl_body"]]), rspec$nlpars))
@@ -201,7 +210,8 @@ ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
     for (np in setdiff(reach, seen)) {
       lpn <- x$frame[["linpreds"]][[linpred_key(resp, np)]]
       if (!is.null(lpn)) {
-        v <- c(v, ce_plot_vars(x, rspec, lpn, resp, c(seen, np)))
+        v <- c(v, ce_plot_vars(x, rspec, lpn, resp, c(seen, np),
+                               rsv))
       }
     }
   }
@@ -239,11 +249,13 @@ ce_step_vars <- function(x, rspec, lp, resp, seen = character(0)) {
 #' (which is the deliberate difference from brms recorded as finding 6).
 #'
 #' @noRd
-ce_plot_vars_any <- function(x, rspec, resp) {
+ce_plot_vars_any <- function(x, rspec, resp, rsv = TRUE) {
   v <- character(0)
   for (dp in names(rspec$dpars)) {
     lpn <- x$frame[["linpreds"]][[linpred_key(resp, dp)]]
-    if (!is.null(lpn)) v <- c(v, ce_plot_vars(x, rspec, lpn, resp))
+    if (!is.null(lpn)) {
+      v <- c(v, ce_plot_vars(x, rspec, lpn, resp, rsv = rsv))
+    }
   }
   unique(v)
 }
@@ -1523,13 +1535,16 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                            too_far = 0) {
   base <- data %||% x$frame[["data_frame"]]
 
-  vars <- ce_plot_vars(x, rspec, lp, resp)
+  # an offset's variable is held at its mean like any other, but it is
+  # not a default display: brms draws the terms, and an offset is not
+  # one, nor is its deprecated reserved `intercept`
+  vars <- ce_plot_vars(x, rspec, lp, resp, rsv = !is.null(effects))
   # a model whose SELECTED predictor has no terms still has covariates
   # somewhere (bf(y ~ 1, theta1 ~ x)): naming the one predictor the
   # search looked at was a refusal to draw a model that has something
   # to draw
   if (is.null(effects) && !length(intersect(vars, names(base)))) {
-    vars <- ce_plot_vars_any(x, rspec, resp)
+    vars <- ce_plot_vars_any(x, rspec, resp, rsv = FALSE)
   }
   vars <- vars[vars %in% names(base)]
   step_vars <- ce_step_vars(x, rspec, lp, resp)
@@ -3071,6 +3086,8 @@ pp_check_newdata_y <- function(object, rspec, newdata) {
              " rows. Add the response column, or use prefix = \"ppd\" to ",
              "plot the draws alone", call. = FALSE)
   }
+  # a bernoulli response is plotted on the 0/1 codes the draws are on
+  y <- response_codes_newdata(rspec, y, "pp_check(newdata = )")
   lv <- object$frame[["y_levels"]][[rspec$resp_name]]
   if (!is.null(lv)) {
     code <- match(as.character(y), lv)

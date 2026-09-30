@@ -1,0 +1,3 @@
+huber : frmtmb::huber(link = "identity", link_sigma = "log") 
+whittle : object 
+cox : frmtmb::cox(link = "log") 

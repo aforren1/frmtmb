@@ -1,0 +1,2 @@
+Error: hurdle_cumulative(threshold = 'equidistant') is not implemented: frmtmb fits flexible thresholds only
+Execution halted

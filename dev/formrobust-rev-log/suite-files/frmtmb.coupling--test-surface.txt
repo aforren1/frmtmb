@@ -1,0 +1,2 @@
+RESULT test-surface.R pass=58 fail=0 err=0 skip=0 warn=0 tests=11
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.coupling frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

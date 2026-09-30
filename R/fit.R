@@ -205,13 +205,25 @@
 #' @param verbose Report fit progress; a shortcut for
 #'   `control = frmtmb_control(verbose =)`, whose value wins when both
 #'   are given. See [frmtmb_control()] for the levels and the output.
+#' @param drop_unused_levels Drop the factor levels that no row of the
+#'   data takes, as brms's argument of the same name does. `TRUE`, the
+#'   default, is brms's default too. With `FALSE` an unused level of a
+#'   predictor gives a design column of zeros, which frmtmb drops with
+#'   its rank-deficiency message because no data can estimate it (brms
+#'   keeps the column, and only its prior places the coefficient). A
+#'   grouping factor loses its unused levels either way, because a level
+#'   without rows adds nothing to the Laplace likelihood, so [ranef()]
+#'   lists the levels the data hold.
 #' @return An object of class `frmtmb_fit`. It is a list, and two of its
 #'   elements are read directly often enough to name here. `fit$data2`
 #'   is the `data2` list of known matrices. `fit$data` is the MODEL
 #'   FRAME, the object [model.frame()] returns: one column per term the
 #'   formula names, under the term's own spelling, so a model with
-#'   `offset(Age)` carries a literal `offset(Age)` column and a data
-#'   column no term uses is absent. brms keeps its VALIDATED RAW DATA
+#'   `offset(log(Age))` carries a literal `offset(log(Age))` column, and
+#'   a data column no term uses is absent. The variables of an
+#'   `offset()` and of an addition term's expression, as `Age` there,
+#'   are columns too, because the grids of [conditional_effects()] and
+#'   `emmeans()` hold them. brms keeps its VALIDATED RAW DATA
 #'   under the same name, so `names(fit$data)` and `ncol(fit$data)`
 #'   differ from brms on any model with a transformed term, and
 #'   `newdata = fit$data` is not the brms idiom it looks like. The
@@ -718,7 +730,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
                 na.action = stats::na.omit,
                 prior = NULL, quadrature = FALSE, importance = 0L,
-                data2 = list(), dry_run = NULL, verbose = FALSE) {
+                data2 = list(), dry_run = NULL, verbose = FALSE,
+                drop_unused_levels = TRUE) {
   cl <- match.call()
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
@@ -734,6 +747,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   check_flag(REML, "REML")
   check_flag(se, "se")
   check_flag(quadrature, "quadrature")
+  check_flag(drop_unused_levels, "drop_unused_levels")
   check_count(importance, "importance", min = 0L)
   if (!is.null(dry_run)) {
     check_string_choice(dry_run, "dry_run", c("spec", "frame", "objective"))
@@ -797,7 +811,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   if (vb) t0 <- vb_now()
   frame <- assemble_frame(spec, data, na.action = na.action,
                           sparse_x = isTRUE(control$sparse_x),
-                          data2 = data2)
+                          data2 = data2,
+                          drop_unused_levels = drop_unused_levels)
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
   # brms's `data_name` attribute: the data as the call spelled it, which
   # update(newdata = ) re-records. A value passed by do.call() has no

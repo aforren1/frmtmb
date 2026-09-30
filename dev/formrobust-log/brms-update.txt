@@ -1,0 +1,11 @@
+count ~ a + b 
+a ~ Age
+b ~ Age
+Replacing initial definitions of parameters 'a'
+count ~ a + b 
+b ~ Age
+a ~ 1
+y ~ x2 
+sigma ~ z
+y ~ x2 
+sigma ~ z

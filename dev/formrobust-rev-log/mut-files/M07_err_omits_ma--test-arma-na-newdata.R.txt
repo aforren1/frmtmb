@@ -1,0 +1,4 @@
+MUTATED frmtmb::autocor_cond_mu_fill
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M07_err_omits_ma.R
+RESULT test-arma-na-newdata.R pass=13 fail=0 err=0 skip=0 warn=0 tests=4
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

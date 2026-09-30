@@ -114,7 +114,10 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
       frame_i <- assemble_frame(model$spec,
                                 data[unit_rows[[i]], , drop = FALSE],
                                 sparse_x = isTRUE(ctl$sparse_x),
-                                data2 = data2, thres_pin = pin)
+                                data2 = data2, thres_pin = pin,
+                                drop_unused_levels =
+                                  model$frame[["drop_unused_levels"]] %||%
+                                  TRUE)
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {

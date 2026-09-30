@@ -1,0 +1,80 @@
+MUTATED frmtmb::bernoulli_levels
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M08_bern_levels_reversed.R
+DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(rep(-c(1, 2), 5))` to be identical to `rep(c(1, 0), 5)`.
+Differences:
+  `actual[1:4]`: 0.0 1.0 0.0 1.0
+`expected[1:3]`:     1.0 0.0 1.0
+
+  `actual[8:10]`: 1.0 0.0 1.0    
+`expected[7:10]`: 1.0 0.0 1.0 0.0
+
+DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(c(1, 2, 2, 1))` to be identical to `c(0, 1, 1, 0)`.
+Differences:
+  `actual`: 1.0 0.0 0.0 1.0
+`expected`: 0.0 1.0 1.0 0.0
+
+DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(c(5, 5, 5))` to be identical to `c(1, 1, 1)`.
+Differences:
+  `actual`: 0.0 0.0 0.0
+`expected`: 1.0 1.0 1.0
+
+DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(c(0, 0, 0))` to be identical to `c(0, 0, 0)`.
+Differences:
+  `actual`: 1.0 1.0 1.0
+`expected`: 0.0 0.0 0.0
+
+DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(factor(c("a", "z", "a"), levels = c("z", "a")))` to be identical to `c(1, 0, 1)`.
+Differences:
+  `actual`: 0.0 1.0 0.0
+`expected`: 1.0 0.0 1.0
+
+DETAIL [expectation_failure] the codes are brms's level order: Expected `cd(c(TRUE, TRUE))` to be identical to `c(1, 1)`.
+Differences:
+  `actual`: 0.0 0.0
+`expected`: 1.0 1.0
+
+DETAIL [expectation_failure] brms's standata agrees: Expected `as.numeric(sd$Y)` to be identical to `fr$y[[1L]]`.
+Differences:
+  `actual[1:4]`: 1.0 0.0 1.0 0.0
+`expected[1:3]`:     0.0 1.0 0.0
+
+  `actual[8:10]`: 0.0 1.0 0.0    
+`expected[7:10]`: 0.0 1.0 0.0 1.0
+
+DETAIL [expectation_failure] brms's standata agrees: Expected `as.numeric(sd$Y)` to be identical to `fr$y[[1L]]`.
+Differences:
+  `actual`: 0.0 1.0 1.0 0.0
+`expected`: 1.0 0.0 0.0 1.0
+
+DETAIL [expectation_failure] brms's standata agrees: Expected `as.numeric(sd$Y)` to be identical to `fr$y[[1L]]`.
+Differences:
+  `actual`: 1.0 1.0 1.0
+`expected`: 0.0 0.0 0.0
+
+DETAIL [expectation_failure] brms's standata agrees: Expected `as.numeric(sd$Y)` to be identical to `fr$y[[1L]]`.
+Differences:
+  `actual`: 1.0 0.0 1.0
+`expected`: 0.0 1.0 0.0
+
+DETAIL [expectation_failure] brms's standata agrees: Expected `as.numeric(sd$Y)` to be identical to `fr$y[[1L]]`.
+Differences:
+  `actual`: 1.0 0.0 1.0
+`expected`: 0.0 1.0 0.0
+
+DETAIL [expectation_failure] brms's standata agrees: Expected `as.numeric(sd$Y)` to be identical to `fr$y[[1L]]`.
+Differences:
+  `actual`: 1.0 0.0 1.0
+`expected`: 0.0 1.0 0.0
+
+DETAIL [expectation_failure] newdata is coded as the fit coded its response: Expected `pp_check_newdata_y(fm, fm$spec$responses[[1L]], nd)` to be identical to `rep(0, 6)`.
+Differences:
+  `actual`: 1.0 1.0 1.0 1.0 1.0 1.0
+`expected`: 0.0 0.0 0.0 0.0 0.0 0.0
+
+DETAIL [expectation_failure] post-fit methods agree with the 0/1 fit: Expected `fm$spec$responses[[1L]]$family[["bin_levels"]]` to be identical to `c("-2", "-1")`.
+Differences:
+`actual`:   "-1" "-2"
+`expected`: "-2" "-1"
+
+RESULT test-bernoulli-coding.R pass=23 fail=14 err=0 skip=0 warn=0 tests=5
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

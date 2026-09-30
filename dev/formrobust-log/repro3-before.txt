@@ -1,0 +1,3 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+ar = 0.5429945504  sigma = 1.023580509 
+predict: ERROR: A prediction on newdata with ar(t, g, p = 1) needs the observed response 'y' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws 

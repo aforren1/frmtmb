@@ -1,0 +1,9 @@
+[1] "a" "b" "c"
+[1] "a" "b" "c"
+logLik rel diff: 0 
+   Intercept
+a -1.1147847
+b  0.1438796
+c  0.9709067
+attr(,"term")
+[1] "1 | g"

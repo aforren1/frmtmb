@@ -1,0 +1,5 @@
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+RESULT test-v15.R pass=41 fail=0 err=0 skip=0 warn=0
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

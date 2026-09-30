@@ -137,6 +137,23 @@ unaffected. The latent linear predictor, which is where the
 coefficients live, is \code{frm_linpred(object, type = "link")}.
 }
 
+\section{Residual autocorrelation with \code{cov = FALSE}}{
+
+Under \code{ar()}, \code{ma()} or \code{arma()} with \code{cov = FALSE} the mean of a row
+reads the residuals of the earlier rows of its group, taken from
+newdata's response. Where that response is \code{NA}, or absent, brms
+fills it with a draw from the family at the row's one-step mean, per
+posterior draw, so its \code{fitted()} carries the spread of the fill. A
+maximum likelihood fit has no draws to carry that spread through, so
+\code{fitted()} here fills the response with its expected value, the
+one-step mean itself. That is the mean of brms's fill at fixed
+parameters, for gaussian and student, the families \code{cov = FALSE}
+takes. \code{Est.Error} is then the parameter uncertainty alone, and is
+smaller than brms's on the rows after a missing response: this is a
+deliberate divergence. \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} fills with draws, as
+brms does, and so does frmtmb.sample's \code{posterior_epred()}.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100))

@@ -1,0 +1,62 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | autocor-cond                                                   
+⠋ |          1 | autocor-cond                                                   
+⠼ |          5 | autocor-cond                                                   
+⠇ |          9 | autocor-cond                                                   
+⠋ |         11 | autocor-cond                                                   
+⠦ |         17 | autocor-cond                                                   
+⠸ |         24 | autocor-cond                                                   
+⠇ | 1       28 | autocor-cond                                                   
+⠋ | 2       29 | autocor-cond                                                   
+⠴ | 2       34 | autocor-cond                                                   
+⠹ | 2       41 | autocor-cond                                                   
+⠋ | 2       49 | autocor-cond                                                   
+✖ | 2       54 | autocor-cond [4.3s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-autocor-cond.R:213:3'): fitted() is brms's one-step mean, residuals follow it
+Expected `fn[, "Est.Error"]` to equal `fitted(f)[, "Est.Error"]`.
+Differences:
+     actual           | expected                        
+ [1] 0.12022733555504 | 0.12022733555504 [1]            
+ [2] 0.15252520366066 | 0.15252520366066 [2]            
+ [3] 0.12042012133829 - 0.12042012133805 [3]            
+ [4] 0.18578831021422 - 0.18578831021335 [4]            
+ [5] 0.15338445571824 - 0.15338445571854 [5]            
+ [6] 0.11703392777836 - 0.11703392777605 [6]            
+ [7] 0.34474247916416 | 0.34474247916416 [7]            
+ [8] 0.16655043760064 | 0.16655043760064 [8]            
+ [9] 0.15799418636239 | 0.15799418636239 [9]            
+[10] 0.22435721326152 - 0.22435721326083 [10]           
+ ... ...                ...              and 41 more ...
+
+
+Failure ('test-autocor-cond.R:215:3'): fitted() is brms's one-step mean, residuals follow it
+Expected `fitted(f, newdata = transform(d, y = NULL))` to throw a error.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.4 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-autocor-cond.R:213:3'): fitted() is brms's one-step mean, residuals follow it
+Expected `fn[, "Est.Error"]` to equal `fitted(f)[, "Est.Error"]`.
+Differences:
+     actual           | expected                        
+ [1] 0.12022733555504 | 0.12022733555504 [1]            
+ [2] 0.15252520366066 | 0.15252520366066 [2]            
+ [3] 0.12042012133829 - 0.12042012133805 [3]            
+ [4] 0.18578831021422 - 0.18578831021335 [4]            
+ [5] 0.15338445571824 - 0.15338445571854 [5]            
+ [6] 0.11703392777836 - 0.11703392777605 [6]            
+ [7] 0.34474247916416 | 0.34474247916416 [7]            
+ [8] 0.16655043760064 | 0.16655043760064 [8]            
+ [9] 0.15799418636239 | 0.15799418636239 [9]            
+[10] 0.22435721326152 - 0.22435721326083 [10]           
+ ... ...                ...              and 41 more ...
+
+
+Failure ('test-autocor-cond.R:215:3'): fitted() is brms's one-step mean, residuals follow it
+Expected `fitted(f, newdata = transform(d, y = NULL))` to throw a error.
+
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 54 ]

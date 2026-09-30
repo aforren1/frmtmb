@@ -1,0 +1,7 @@
+MUTATED frmtmb::expr_frame_vars
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M01_expr_vars_unfiltered.R
+DETAIL [expectation_error] a term reads a constant from the formula environment: <frmtmb_error/error/condition>
+Error: `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+DETAIL [expectation_error] a variable R finds only as a function is refused by name: Error in `model.frame.default(fr_formula, data = data, drop.unused.levels = drop_unused_levels, na.action = na.action)`: invalid type (closure) for variable 't'
+RESULT test-aterm-expr.R pass=51 fail=0 err=2 skip=0 warn=0 tests=11
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

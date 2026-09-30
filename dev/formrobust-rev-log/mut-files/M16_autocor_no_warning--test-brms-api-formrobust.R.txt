@@ -1,0 +1,5 @@
+MUTATED frmtmb::autocor.frmtmb_fit
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M16_autocor_no_warning.R
+DETAIL [expectation_error] autocor() is brms's deprecated accessor: Error in `invisible("Method 'autocor' is deprecated and will be removed in the ", "future.", call. = FALSE)`: 3 arguments passed to 'invisible' which requires 1
+RESULT test-brms-api-formrobust.R pass=23 fail=0 err=1 skip=0 warn=0 tests=6
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

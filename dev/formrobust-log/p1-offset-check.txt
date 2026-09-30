@@ -1,0 +1,5 @@
+pois emmean - (lin + log(mean(time))): 0 0 
+pois emmean at time = 1 - lin: 0 0 
+pois epred / exp(lin + lmt): 1 1 
+sigma emmean - (b_sigma + lmt): 0 
+nl emmean - (a + b mx): 0 

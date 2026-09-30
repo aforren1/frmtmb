@@ -1,0 +1,2 @@
+RESULT test-bcm-data-analysis.R pass=20 fail=0 err=0 skip=6 warn=0 tests=15
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

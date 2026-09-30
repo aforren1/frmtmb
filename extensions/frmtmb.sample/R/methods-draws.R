@@ -837,10 +837,17 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   # frm_linpred(), not predict(): predict() is brms's predictive
   # summary in frmtmb's development version, and what one draw
   # contributes here is the expected response at its parameters
+  rn <- resp %||% names(object$fit$spec$responses)[1L]
   at <- function(r, fill = NA_real_, rf = re_form) {
-    frm_linpred(draws_fit_at(object, r, idx, fill), newdata = newdata,
-                resp = resp, dpar = dpar, re_formula = rf,
-                type = "response")
+    sh <- draws_fit_at(object, r, idx, fill)
+    # brms fills a cov = FALSE response that newdata leaves NA with a
+    # draw at this draw's parameters, so the epred draws carry that
+    # spread; NULL when nothing needs filling
+    filled <- arma_cond_fill_epred(sh, sh$spec$responses[[rn]], newdata,
+                                   rf, dpar)
+    if (!is.null(filled)) return(filled)
+    frm_linpred(sh, newdata = newdata, resp = resp, dpar = dpar,
+                re_formula = rf, type = "response")
   }
   at_na <- function(fill) at(rows[1L], fill, NA)
   draws_laplace_probe(object, "posterior_epred()",
@@ -1037,8 +1044,21 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   } else {
     list()
   }
-  if (!is.null(newdata) &&
-      sim_is_structured(sim_context(fit, rspec, list(), aterms = av))) {
+  # brms's cov = FALSE ARMA: brms's posterior_predict() draws each row
+  # around its one-step mean, which reads the OBSERVED earlier residuals
+  # and which frm_linpred() gives; the rows are then drawn one by one,
+  # not by the recursion simulate() runs over its own draws.
+  # Core's own predicate, not a read of frame$autocor$cov: two files
+  # asking "is this brms's cov = FALSE form" must not answer it twice
+  arma_cond <- resp %in% arma_cond_resp(fit)
+  # so a cov = FALSE term is not a structured draw, on newdata or under
+  # re_formula, as core's predict() treats it
+  structured <- local({
+    ctx0 <- sim_context(fit, rspec, list(), aterms = av)
+    if (arma_cond) ctx0[["autocor"]] <- NULL
+    sim_is_structured(ctx0)
+  })
+  if (!is.null(newdata) && structured) {
     # the sequence, group and residual-correlation structures a
     # structured draw walks were built from the TRAINING rows and index
     # them; newdata rows appear in none of them
@@ -1048,8 +1068,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
              "structure indexes the rows the model was fitted on. Drop ",
              "newdata to predict those rows", call. = FALSE)
   }
-  if (!is.null(re_form) &&
-      sim_is_structured(sim_context(fit, rspec, list(), aterms = av))) {
+  if (!is.null(re_form) && structured) {
     # same reason from the other side: the structured draw IS a walk
     # over the fitted structure, so there is no "with the group effects
     # removed" version of it to hand back
@@ -1058,13 +1077,6 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
              "group-level content a re_formula would remove. Drop the ",
              "argument to draw from the fitted structure", call. = FALSE)
   }
-  # brms's cov = FALSE ARMA: brms's posterior_predict() draws each row
-  # around its one-step mean, which reads the OBSERVED earlier residuals
-  # and which frm_linpred() gives; the rows are then drawn one by one,
-  # not by the recursion simulate() runs over its own draws.
-  # Core's own predicate, not a read of frame$autocor$cov: two files
-  # asking "is this brms's cov = FALSE form" must not answer it twice
-  arma_cond <- resp %in% arma_cond_resp(fit)
   # one draw's distributional parameters; the refusal of laplace draws
   # probes these rather than the simulated response, which would turn
   # a read of the missing random effects into rnorm()'s own NaN warning
@@ -1087,14 +1099,20 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       }
       dpk
     } else {
-      dpv <- list()
-      for (dnm in names(rspec$dpars)) {
-        dpv[[dnm]] <- as.vector(frm_linpred(sh, newdata = newdata,
-                                            dpar = dnm, resp = resp,
-                                            re_formula = rf,
-                                            type = "response"))
+      dpars_fn <- function(f) {
+        dpv <- list()
+        for (dnm in names(rspec$dpars)) {
+          dpv[[dnm]] <- as.vector(frm_linpred(f, newdata = newdata,
+                                              dpar = dnm, resp = resp,
+                                              re_formula = rf,
+                                              type = "response"))
+        }
+        dpv
       }
-      dpv
+      # brms fills a cov = FALSE row whose response newdata leaves NA
+      # with a draw at this draw's parameters, and the rows after it
+      # read that draw's residual
+      arma_cond_fill_dpars(sh, rspec, newdata, dpars_fn)
     }
   }
   idx_at <- function(r, fill, rf = re_form) {
@@ -1924,7 +1942,9 @@ draws_response_values <- function(fit, resp, newdata, what) {
              "to newdata, or call posterior_predict(newdata =) and ",
              "subtract your own", call. = FALSE)
   }
-  y
+  # a bernoulli response is compared with the draws on its 0/1 codes,
+  # coded as the fit coded it
+  response_codes_newdata(rspec, y, what)
 }
 
 # ---- structural delegations to the originating fit -------------------

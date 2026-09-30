@@ -272,5 +272,8 @@ frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
 \code{\link[=autocor_matrix]{autocor_matrix()}} for the fitted correlation matrix,
 \code{\link[=confint_varcorr]{confint_varcorr()}} for natural-scale intervals, and
 \code{vignette("brms-migration")} for the porting notes.
+
+Other autocorrelation:
+\code{\link{autocor-terms}}
 }
 \concept{autocorrelation}

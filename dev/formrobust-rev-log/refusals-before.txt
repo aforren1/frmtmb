@@ -1,0 +1,43 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+
+-- a constant of the environment, bare and as an expression --
+[trials(k), k = 12 in env] ERROR: `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 50. Add the column to `data` or correct the name
+[trials(k + 0)] ERROR: `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 50. Add the column to `data` or correct the name
+[trials(12)] ok
+[brms trials(k)] ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'k'
+[weights(kw) bare scalar] ERROR: `kw` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 50. Add the column to `data` or correct the name
+[brms weights(kw)] ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'kw'
+
+-- wrong-length refusal and its absent case --
+[weights(w[1:3])] ERROR: variable lengths differ (found for 'w[1:3]')
+[weights(w[seq_along(w)])] ok
+[weights(rev(w))] ok
+
+-- 0 + intercept with an all-ones column (guard absent) --
+[intercept column of ones] ERROR: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+[intercept column TRUE] ERROR: `intercept` in a formula without an intercept is brms's deprecated spelling of the reserved variable `Intercept`, and frmtmb does not read it: write 0 + Intercept for an intercept that is an ordinary coefficient, or rename the data column if `intercept` is a covariate
+[brms intercept TRUE] ok
+[brms intercept TRUE] WARN: Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead.
+
+-- acformula resp matching (guard absent) --
+[bf(y ~ x) + acformula(resp = 'y')] ERROR: could not find function "acformula"
+[bf(y ~ x) + acformula(resp = 'z')] ERROR: could not find function "acformula"
+[mv acformula resp = 'q'] ERROR: could not find function "acformula"
+
+-- ARMA newdata response refusal and its absent cases --
+[character response] ERROR: A prediction on newdata with ar(t, g) needs the observed response 'ya' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws
+[all-NA logical response] ERROR: A prediction on newdata with ar(t, g) needs the observed response 'ya' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws
+[all-NA integer response] ERROR: A prediction on newdata with ar(t, g) needs the observed response 'ya' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws
+[NaN response] ERROR: A prediction on newdata with ar(t, g) needs the observed response 'ya' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws
+[1]        NaN       -Inf 0.09226132
+[Inf response] ok
+
+-- bernoulli refusals and absent cases --
+[bernoulli 0/1 integer] ok
+[bernoulli 0/1 double] ok
+[bernoulli 0/1e10] ERROR: bernoulli: response must be 0/1
+[bernoulli three values] ERROR: bernoulli: response must be 0/1
+[bernoulli with NA] ok
+[bernoulli mi()] ERROR: mi() responses need a gaussian or student model

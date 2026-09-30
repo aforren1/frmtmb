@@ -11,7 +11,9 @@
 \item{object}{A \code{frmtmb_fit} for a univariate model.}
 
 \item{newresp}{Replacement response: a vector of the original length,
-or a matrix of the original dimensions for matrix responses.}
+or a matrix of the original dimensions for matrix responses. A
+\code{bernoulli()} response is given as its 0/1 codes, which is what
+\code{\link[=simulate]{simulate()}} returns, whatever two values the data held.}
 
 \item{start}{Optional named start list (as in \code{\link[=frm]{frm()}}); when given it
 replaces the warm start.}

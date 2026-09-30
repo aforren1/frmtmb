@@ -1,0 +1,6 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+weights(w_out) env vector  fits
+trials(k) env scalar       `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 40. Add the column to `data` or correct the name
+trials(k + 0L)             `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 40. Add the column to `data` or correct the name
+weights(x^2 + k)           `k` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 40. Add the column to `data` or correct the name
+trials(n) data column      fits

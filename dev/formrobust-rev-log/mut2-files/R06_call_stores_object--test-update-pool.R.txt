@@ -1,0 +1,8 @@
+MUTATED frmtmb::bform_call
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/R06_call_stores_object.R
+DETAIL [expectation_failure] a plain formula keeps a linear model's dpar formulas: Expected `deparse1(getCall(up)$formula)` to be identical to `paste0("frmtmb::bf(y ~ x + z, sigma ~ z, ", "family = stats::gaussian(link = \"identity\"))")`.
+Differences:
+actual vs expected
+- "structure(list(formula = y ~ x + z, pforms = list(sigma = sigma ~ z), pfix = structure(list(), names = character(0)), nl = FALSE, nlforms = list(), family = structure(list(family = \"gaussian\", dpars = c(\"m
+RESULT test-update-pool.R pass=15 fail=1 err=0 skip=0 warn=0 tests=4
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

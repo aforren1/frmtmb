@@ -1,0 +1,11 @@
+MUTATED frmtmb::update_complete_bform
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-rev-mut/M11_no_pool.R
+DETAIL [expectation_error] a new nonlinear body keeps the fit's parameter formulas: <frmtmb_error/error/condition>
+Error: A nonlinear formula needs at least one nonlinear-parameter formula whose name appears in the model formula. No name in the body of 'mu' has one, so every name there is read as a data column and nothing is left to estimate; declare the parameters with bf(..., a ~ 1, nl = TRUE), lf(a ~ 1) or nlf()
+DETAIL [expectation_failure] a plain formula keeps a linear model's dpar formulas: Expected `all(c("sigma_Intercept", "sigma_z", "z") %in% rownames(fixef(up)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+RESULT test-update-pool.R pass=4 fail=1 err=1 skip=0 warn=0 tests=3
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

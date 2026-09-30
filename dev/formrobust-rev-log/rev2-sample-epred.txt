@@ -1,0 +1,13 @@
+draw columns: b_Intercept b_x sigma thetaac_1 lp__ .chain .iteration .draw 
+   ^b_Intercept$ -> b_Intercept 
+   ^b_x$ -> b_x 
+   ^sigma$ -> sigma 
+names(ds): stanfit draws fit reparam 
+   ^thetaac_1$ -> thetaac_1 
+ar posterior mean 0.5471117  sigma mean 1.035208 
+epred by value: identical TRUE  max ulp 0 
+predict by value: identical TRUE  max abs diff 0 
+epred sd brms (all draws): 0.06637 0.08231 0.57946 0.66829 0.70809 
+epred sd frmtmb.sample   : 0.06637 0.08231 0.56829 0.67757 0.68450 
+KS p rows 4..8: 1.0000 1.0000 0.4360 0.0752 0.4595 
+rows 1..4 identical to full-response epred: TRUE 

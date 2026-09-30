@@ -8,7 +8,21 @@
 #' [mvbf()]) use the same grammar.
 #'
 #' The left-hand side accepts addition terms after `|`:
-#' `y | weights(w) ~ ...` and `y | trials(n) ~ ...`.
+#' `y | weights(w) ~ ...` and `y | trials(n) ~ ...`. As in brms, an
+#' addition term's argument is evaluated on the data rows, so it can be
+#' an expression, as in `weights(w * 2)`, `trials(n + 1)` or
+#' `trunc(lb = min(y) - 1)`, and a single value is used for every row.
+#' Every variable an addition term reads must be a column of the data,
+#' as brms requires: `trials(k)` or `weights(wt * k)` with `k` defined
+#' only outside the data is refused by name. Predictions on newdata and
+#' refits read the term again, and a value from outside the data may be
+#' missing or different by then, most harmfully in `trials()`, where
+#' the change would go unseen. Function calls such as `log()` are
+#' allowed, and predictor formulas and `offset()` keep R's usual rule of
+#' looking in the formula environment too. An expression that gives
+#' `NA` on a row is refused, as brms refuses it.
+#' `weights(w, scale = TRUE)` scales the weights to a mean of one, as
+#' brms does.
 #' Every linear predictor accepts lme4-style random effects `(1 | g)`,
 #' `(1 + x | g)`, `(x || g)`, and explicit covariance-structure wrappers
 #' `us(x | g)` and `diag(x | g)`.
@@ -44,6 +58,10 @@
 #'   only: the likelihood and the maximum likelihood fit are the same.
 #'   It applies to the location formula alone, as in brms; give a
 #'   parameter formula its own with [lf()].
+#' @param autocor A one-sided formula of autocorrelation terms, as in
+#'   brms, e.g. `~ ar(week, subj)`. The terms are added to the location
+#'   formula, so `bf(y ~ x, autocor = ~ ar(week, subj))` is
+#'   `bf(y ~ x + ar(week, subj))`. See [autocor-terms].
 #' @param cmc Cell-mean coding, as in brms. `NULL`, the default, means
 #'   `TRUE` for a new formula and keeps the setting of a formula `bf()`
 #'   already built. With `TRUE`, R's rule applies: a formula without an
@@ -150,7 +168,7 @@
 #'
 #' @export
 bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
-               cmc = NULL) {
+               cmc = NULL, autocor = NULL) {
   if (inherits(formula, c("brmsformula", "bform"))) {
     frm_stop("this formula was built by brms::bf(): attaching brms after ",
              "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
@@ -172,7 +190,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
   if (!is.null(cmc)) check_flag(cmc, "cmc")
   if (existing) {
     return(bf_update(formula, ..., family = family, nl = nl,
-                     center = center, cmc = cmc))
+                     center = center, cmc = cmc, autocor = autocor))
   }
   refuse_nested_formula(formula)
   # mvbind(y1, y2) ~ rhs: shared predictors, one bf per response
@@ -182,24 +200,19 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
     forms <- lapply(resps, function(r) {
       f1 <- formula
       f1[[2]] <- r
-      bf(f1, ..., family = family, nl = nl, center = center, cmc = cmc)
+      bf(f1, ..., family = family, nl = nl, center = center, cmc = cmc,
+         autocor = autocor)
     })
     return(do.call(mvbf, forms))
   }
+  # brms's autocor argument: the terms join the formula of mu
+  if (!is.null(autocor)) formula <- add_ac_terms(formula, autocor)
   parsed <- bf_dots(list(...))
   pforms <- parsed[["pforms"]]
   pfix <- parsed[["pfix"]]
-  # A body that is one bare name (`bf(y ~ a, nl = TRUE)`) is the brms
-  # nlf() spelling, where the parameter formulas arrive afterwards with
-  # `+ nlf(a ~ ...)`; anything else with no formula here is the usual
-  # slip of forgetting them, and is worth catching at the call.
-  if (isTRUE(nl) && !length(pforms) &&
-      !is.name(reformulas::RHSForm(formula))) {
-    frm_stop("nl = TRUE needs at least one parameter formula, e.g. ",
-             "bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas ",
-             "added afterwards with lf() or nlf() are not visible here, so ",
-             "give bf() at least one of them", call. = FALSE)
-  }
+  # nl = TRUE with no parameter formula is refused when the model is
+  # assembled, not here, as brms refuses it: the formulas may still
+  # arrive with `+ lf()` or `+ nlf()`, or from the fit update() keeps
   out <- structure(
     list(formula = formula, pforms = pforms, pfix = pfix, nl = isTRUE(nl),
          nlforms = list(),
@@ -333,11 +346,14 @@ check_dpar_equations <- function(pfix, pforms, fn = "bf()",
 #'
 #' @noRd
 bf_update <- function(formula, ..., family = NULL, nl = NULL,
-                      center = NULL, cmc = NULL) {
+                      center = NULL, cmc = NULL, autocor = NULL) {
   dots <- list(...)
   if (!length(dots) && is.null(family) && is.null(nl) && is.null(center) &&
-        is.null(cmc)) {
+        is.null(cmc) && is.null(autocor)) {
     return(formula)
+  }
+  if (!is.null(autocor)) {
+    formula[["formula"]] <- add_ac_terms(formula[["formula"]], autocor)
   }
   if (length(dots)) {
     parsed <- bf_dots(dots, formula[["pforms"]], formula[["pfix"]],
@@ -716,6 +732,17 @@ bform_resp_matches <- function(f, resp) {
   resp %in% c(lab, brms_stan_name(lab))
 }
 
+#' brms's refusal of an autocorrelation term object added to a formula,
+#' in brms's words.
+#'
+#' @noRd
+stop_ac_term_added <- function(what = "brmsformula") {
+  frm_stop("Autocorrelation terms can only be specified on the right-hand ",
+           "side of a formula, not added to a '", what, "' object. Write ",
+           "the term in the formula, bf(y ~ x + ar(time, gr)), or add it ",
+           "with acformula(~ ar(time, gr))", call. = FALSE)
+}
+
 #' `bf() + e2`.
 #'
 #' @noRd
@@ -770,6 +797,16 @@ plus_bf <- function(e1, e2) {
   }
   if (inherits(e2, "frmtmb_mecor")) {
     e1$mecor <- e2$mecor
+    return(e1)
+  }
+  if (inherits(e2, "frmtmb_ac_term")) stop_ac_term_added()
+  if (inherits(e2, "frmtmb_acformula")) {
+    r <- attr(e2, "resp")
+    if (!is.null(r) && !bform_resp_matches(e1, r)) {
+      frm_stop("acformula() names resp = '", r, "', but the bf() it is ",
+               "added to models '", bform_resp_label(e1), "'", call. = FALSE)
+    }
+    e1$formula <- add_ac_terms(e1$formula, e2)
     return(e1)
   }
   if (inherits(e2, "frmtmb_rescor")) {
@@ -917,6 +954,24 @@ plus_mvbf <- function(e1, e2) {
   }
   if (inherits(e2, "frmtmb_mecor")) {
     e1$mecor <- e2$mecor
+    return(e1)
+  }
+  if (inherits(e2, "frmtmb_ac_term")) stop_ac_term_added("mvbrmsformula")
+  if (inherits(e2, "frmtmb_acformula")) {
+    # brms's plus_mvbrmsformula() refuses an acformula without resp
+    r <- attr(e2, "resp")
+    resps <- vapply(e1$forms, bform_resp_label, "")
+    if (is.null(r)) {
+      frm_stop("Don't know how to add a acformula object without the ",
+               "response variable name: write acformula(~ ..., resp = \"",
+               resps[length(resps)], "\")", call. = FALSE)
+    }
+    at <- which(vapply(e1$forms, bform_resp_matches, TRUE, resp = r))
+    if (length(at) != 1L) {
+      frm_stop("'resp' should be one of ", paste(resps, collapse = ", "),
+               ".", call. = FALSE)
+    }
+    e1$forms[[at]] <- plus_bf(e1$forms[[at]], e2)
     return(e1)
   }
   if (inherits(e2, "frmtmb_mvformula") || inherits(e2, "frmtmb_formula")) {

@@ -1,0 +1,13 @@
+frmtmb from C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb 
+offset(log(time))          CE: ok 1.192582
+                           EMM: ok 0.2743496
+offset(time)               CE: ok 1.020248
+                           EMM: ok -1.158369
+offset(log(time) + 0.1)    CE: ok 1.192588
+                           EMM: ok 0.1743528
+sigma ~ offset(log(time))  CE: ok -0.7370324
+                           EMM: ok -0.01326418
+nl a ~ offset(z)           CE: ok -0.6171613
+                           EMM: ok 0.09471868
+no offset                  CE: ok 1.194886
+                           EMM: ok 0.9398659

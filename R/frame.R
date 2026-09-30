@@ -117,6 +117,20 @@ extract_offset <- function(tt, mf, env) {
   off
 }
 
+#' The variables of the `offset()` terms of a formula's right-hand side.
+#'
+#' @noRd
+offset_vars <- function(f) {
+  walk <- function(e) {
+    if (!is.call(e)) return(character(0))
+    if (identical(e[[1L]], as.name("offset"))) return(all.vars(e))
+    unlist(lapply(as.list(e)[-1L], walk))
+  }
+  if (is.null(f)) return(character(0))
+  unique(as.character(walk(if (inherits(f, "formula")) f[[length(f)]]
+                           else f)))
+}
+
 #' The variables one dpar needs in the combined model frame: parametric
 #' terms, bar variables, and raw smooth variables (never the s() calls
 #' themselves, which model.frame cannot evaluate).
@@ -264,11 +278,64 @@ warn_ar1_level_gaps <- function(bar, mf, cs_name) {
   invisible(NULL)
 }
 
+#' The two values of a bernoulli response in the order that codes them
+#' 0 and 1: brms's `data_response()` takes the levels of
+#' `as.factor(y)`, and a numeric response with one value is read as the
+#' 1 of 0 and 1 unless that value is 0. A logical is read as the number
+#' it is, so an all-`TRUE` response is all successes, where brms's
+#' `as.factor(TRUE)` has one level and codes it 0.
+#'
+#' @noRd
+bernoulli_levels <- function(y) {
+  if (is.logical(y)) y <- as.numeric(y)
+  lv <- levels(as.factor(y))
+  if (is.numeric(y) && length(lv) == 1L) {
+    lv <- if (lv == "0") c("0", "1") else c("0", lv)
+  }
+  lv
+}
+
+#' A bernoulli response coded 0 and 1 against `levels`, brms's
+#' `as.integer(as_factor(y, levels)) - 1`, refused in brms's words when
+#' a value is not one of the two.
+#'
+#' @noRd
+bernoulli_code <- function(y, levels, what = "Family 'bernoulli'") {
+  if (is.logical(y)) y <- as.numeric(y)
+  code <- as.integer(factor(y, levels = levels)) - 1L
+  bad <- !is.na(y) & (is.na(code) | code > 1L)
+  if (any(bad)) {
+    frm_stop(what, " requires responses to contain only two different ",
+             "values", if (length(levels) <= 2L) {
+               paste0(", and the fitted model codes ",
+                      paste0("'", levels, "' as ", seq_along(levels) - 1L,
+                             collapse = " and "), ". The value(s) ",
+                      paste0("'", unique(as.character(y[bad])), "'",
+                             collapse = ", "), " are neither")
+             }, call. = FALSE)
+  }
+  as.numeric(code)
+}
+
+#' A bernoulli response read from newdata, on the 0 and 1 codes the fit
+#' stores, which is what every quantity that compares it with the draws
+#' or the fitted values needs. Any other response is returned as it is.
+#'
+#' @noRd
+response_codes_newdata <- function(rspec, y, what) {
+  lv <- rspec$family[["bin_levels"]]
+  if (is.null(lv) || is.null(y)) return(y)
+  bernoulli_code(y, lv, what = paste0(what, ": family 'bernoulli'"))
+}
+
 #' Pull one response out of the combined model frame and coerce it to the
 #' numeric form the objective needs. Ordinal factors become category
-#' codes and keep their labels in a `y_levels` attribute, binomial
-#' two-level factors become 0/1, and unsupported factor responses or
-#' non-finite values are rejected here.
+#' codes and keep their labels in a `y_levels` attribute, a bernoulli
+#' response is coded 0 and 1 by level order as brms codes it and keeps
+#' the two values in a `bin_levels` attribute, binomial two-level
+#' factors become 0/1, and unsupported factor responses or non-finite
+#' values are rejected here. A family that already carries `bin_levels`
+#' (a refit of a fitted model) is coded against those.
 #'
 #' @noRd
 extract_y <- function(resp, mf) {
@@ -277,7 +344,24 @@ extract_y <- function(resp, mf) {
     y <- eval(resp$resp_expr, mf, resp$formula_env)
   }
   lv <- NULL
-  if (identical(resp$family[["type"]], "categorical")) {
+  bin_lv <- NULL
+  if (identical(resp$family[["family"]], "bernoulli") && !is.matrix(y)) {
+    uy <- if (is.numeric(y)) unique(y[!is.na(y)])
+    if (is.null(resp$family[["bin_levels"]]) && length(uy) &&
+          all(uy > 0 & uy < 1)) {
+      # coded as brms codes them, but two values inside (0, 1) are
+      # usually a proportion, which the coding turns into successes and
+      # failures without a word (lme4#682); -0.5 and 0.5 are not
+      frm_warning("Family 'bernoulli': the response takes only the ",
+                  "values ", paste(sort(uy), collapse = " and "),
+                  ", which lie strictly between 0 and 1. They are coded ",
+                  "0 and 1 by their order, as brms codes them. If they ",
+                  "are proportions, fit them with binomial() and ",
+                  "trials(), or with Beta()", call. = FALSE)
+    }
+    bin_lv <- resp$family[["bin_levels"]] %||% bernoulli_levels(y)
+    y <- bernoulli_code(y, bin_lv)
+  } else if (identical(resp$family[["type"]], "categorical")) {
     # a nominal response: the level order fixes the reference category
     # and the dpar names, and the codes carry no meaning without the
     # labels, so simulate() and the probability columns can restore them
@@ -341,6 +425,7 @@ extract_y <- function(resp, mf) {
   }
   # attached last: the numeric coercions above drop attributes
   if (!is.null(lv)) attr(y, "y_levels") <- lv
+  if (!is.null(bin_lv)) attr(y, "bin_levels") <- bin_lv
   y
 }
 
@@ -1586,6 +1671,27 @@ rsv_intercept_order <- function(X, pos) {
   out
 }
 
+#' brms's deprecated lower-case `intercept` in a formula without an
+#' intercept is a data column of ones (`data_rsv_intercept()`), filled
+#' in here, and in newdata by `pred_design()`. A column the data already
+#' carry must be all ones, as brms requires.
+#'
+#' @noRd
+rsv_lower_fill <- function(spec, data) {
+  lower <- any(vapply(spec$responses, function(r) {
+    any(vapply(r$dpars, function(dp) isTRUE(dp[["rsv_lower"]]), NA))
+  }, NA))
+  if (!lower || is.environment(data) || !length(data)) return(data)
+  x <- data[["intercept"]]
+  if (!is.null(x) && (!(is.numeric(x) || is.logical(x)) || anyNA(x) ||
+                        any(x != 1))) {
+    frm_stop("Variable name 'intercept' is reserved in models without a ",
+             "population-level intercept.", call. = FALSE)
+  }
+  data[["intercept"]] <- rep(1, NROW(data[[1L]]))
+  data
+}
+
 #' Refuse a `0 + Intercept` model whose data carry an `Intercept` (or
 #' `intercept`) column that is not all ones.
 #'
@@ -1612,6 +1718,78 @@ check_rsv_intercept_data <- function(spec, data) {
     }
   }
   invisible(NULL)
+}
+
+#' Whether `v` is a variable of `data`: a column of a data frame or a
+#' named list, or an object of an environment passed as data.
+#'
+#' @noRd
+in_data_var <- function(v, data) {
+  if (is.environment(data)) exists(v, envir = data) else v %in% names(data)
+}
+
+#' Refuse, by name, an addition-term variable that is not in `data`, as
+#' brms's `validate_data()` refuses it ("can neither be found in 'data'
+#' nor in 'data2'"). A value from the formula environment would be read
+#' again by every prediction on newdata and every refit, and after
+#' saveRDS() and readRDS() in another session it is missing or changed;
+#' on the response side, as `trials(k)`, the change is silent. Function
+#' calls stay allowed: only the free variables are checked.
+#'
+#' @noRd
+check_aterm_data_vars <- function(resp, data) {
+  for (nm_at in names(resp$aterms)) {
+    a <- resp$aterms[[nm_at]]
+    if (is.numeric(a) || is.logical(a) || is.character(a)) next
+    miss <- Filter(function(v) !in_data_var(v, data), all.vars(a))
+    if (!length(miss)) next
+    v <- miss[[1L]]
+    env <- resp$formula_env %||% globalenv()
+    fn_hint <- if (is.function(tryCatch(get(v, envir = env),
+                                        error = function(e) NULL))) {
+      paste0(" (R finds only the function ", v, "() from the formula)")
+    } else ""
+    frm_stop("Addition term ", aterm_label(nm_at, a), " of response '",
+             resp$resp_name, "' reads `", v, "`, which is not a column of ",
+             "`data`", fn_hint, ". An addition term reads its variables ",
+             "from the data alone, as brms does: a value from the ",
+             "formula environment would be read again, possibly changed, ",
+             "by predictions and refits. Put `", v, "` in the data",
+             call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The variables of an expression that belong in the model frame when
+#' the expression itself cannot be a frame column: a column of `data`,
+#' or an object of the formula environment with one value per row. `a`
+#' is the expression or the names of its variables.
+#'
+#' @noRd
+expr_frame_vars <- function(a, data, env) {
+  vars <- if (is.character(a)) a else all.vars(a)
+  n <- if (is.data.frame(data)) nrow(data)
+  env <- env %||% globalenv()
+  Filter(function(v) {
+    if (if (is.environment(data)) exists(v, envir = data)
+        else v %in% names(data)) {
+      return(TRUE)
+    }
+    x <- tryCatch(get(v, envir = env), error = function(e) NULL)
+    if (is.function(x)) {
+      # weights(t * 2) without a column t found base::t(), and the
+      # arithmetic then failed without naming the variable
+      frm_stop("The model uses `", v, "`, which is not a column of ",
+               "`data`; R finds only the function ", v, "() from the ",
+               "formula. Add the column to `data` or correct the name",
+               call. = FALSE)
+    }
+    # an object that is not found goes to the frame so that the frame's
+    # own check names it; a constant such as `k` in weights(wt * k) is
+    # read when the term is evaluated, since it has no row to drop
+    is.null(x) || (!is.null(n) && (is.atomic(x) || is.factor(x)) &&
+                     NROW(x) == n)
+  }, vars)
 }
 
 #' Refuse, by name, the variables stats::model.frame() would refuse in
@@ -1740,7 +1918,8 @@ check_frame_variables <- function(rhs, data, env) {
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
-                           check_response = TRUE, thres_pin = NULL) {
+                           check_response = TRUE, thres_pin = NULL,
+                           drop_unused_levels = TRUE) {
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -1758,6 +1937,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
              "not ", arg_desc(data), call. = FALSE)
   }
   data2 <- validate_data2(data2)
+  data <- rsv_lower_fill(spec, data)
   check_nl_self_reference(spec, data)
   spec <- resolve_nl_dpar_refs(spec, data)
   spec <- drop_nl_lexical_datavars(spec, data)
@@ -1778,7 +1958,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   for (resp in spec$responses) {
     cur_resp <- resp$resp_name
     add_part(resp$resp_expr)
-    for (dp in resp$dpars) add_part(dpar_frame_rhs(dp))
+    for (dp in resp$dpars) {
+      add_part(dpar_frame_rhs(dp))
+      # an offset(log(time)) column alone leaves `time` out of the
+      # frame, and the conditional-effects and emmeans grids are built
+      # from the frame's columns, where brms's grid holds `time` itself
+      for (v in expr_frame_vars(offset_vars(dp[["fixed"]]), data,
+                                resp$formula_env)) {
+        add_part(as.name(v))
+      }
+    }
     # the time and grouping variables of a residual correlation term
     # live on the RESPONSE (the term is not part of any dpar's design),
     # so they are added here rather than in dpar_frame_rhs()
@@ -1793,15 +1982,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     for (nm_at in names(resp$aterms)) {
       # literal constants (e.g. trials(10)) are not frame variables, and
       # interval bounds (cens_y2) may be NA on non-interval rows, so they
-      # stay out of the na.omit frame (brms#1070); a signed literal
-      # (trunc(lb = -5)) parses as a unary call, not a numeric, and
-      # would break the frame formula
+      # stay out of the na.omit frame (brms#1070)
       a <- resp$aterms[[nm_at]]
-      signed_literal <- is.call(a) && length(a) == 2L &&
-        as.character(a[[1]])[1] %in% c("-", "+") && is.numeric(a[[2]])
-      if (nm_at != "cens_y2" && !is.numeric(a) && !is.logical(a) &&
-          !signed_literal) {
-        add_part(a)
+      if (nm_at == "cens_y2" || is.numeric(a) || is.logical(a)) next
+      # brms evaluates an addition term's expression on the data rows
+      # (get_ad_values()), so `weights(wt * 2)` is `wt` times 2. Only
+      # its variables enter the frame, never the expression: in a
+      # formula `wt * 2` is an interaction and `s / 2` a nesting, and a
+      # summary such as `min(y)` has one value where a frame column
+      # needs one per row. A variable that is not a column of `data` is
+      # refused below (check_aterm_data_vars())
+      for (v in all.vars(a)) {
+        if (in_data_var(v, data)) add_part(as.name(v))
       }
     }
   }
@@ -1821,6 +2013,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       check_se_declared(resp)
     }
     check_cs_in_bar(resp)
+    check_aterm_data_vars(resp, data)
   }
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
@@ -1843,7 +2036,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   has_sub <- spec_has_subset(spec)
   if (length(mi_cols) || has_sub) {
     mf <- stats::model.frame(fr_formula, data = data,
-                             drop.unused.levels = TRUE,
+                             drop.unused.levels = drop_unused_levels,
                              na.action = stats::na.pass)
     bad <- if (has_sub) {
       # brms's na_omit(): an NA is harmless on a row that every
@@ -1866,7 +2059,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
   } else {
     mf <- stats::model.frame(fr_formula, data = data,
-                             drop.unused.levels = TRUE,
+                             drop.unused.levels = drop_unused_levels,
                              na.action = na.action)
   }
   # Dropping rows changes the estimand and the n every later standard
@@ -1954,6 +2147,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     yv0 <- extract_y(resp, mf)
     lv0 <- attr(yv0, "y_levels")
     attr(yv0, "y_levels") <- NULL   # nothing on the tape carries labels
+    bin_lv <- attr(yv0, "bin_levels")
+    attr(yv0, "bin_levels") <- NULL
+    if (!is.null(bin_lv) && is.null(resp$family[["bin_levels"]])) {
+      # brms stores the coding with the fit (frame$basis$resp_levels), so
+      # a refit on a subset holding one of the two values, and a response
+      # read from newdata, are coded as the fit was; the family is what
+      # the fit's spec carries to both
+      resp$family[["bin_levels"]] <- bin_lv
+      spec$responses[[resp$resp_name]] <- resp
+    }
     # FIRST, before anything reads the codes: a refit inside the package
     # codes its response against the FITTED model's categories, because
     # `drop.unused.levels = TRUE` above renumbers them when a subset
@@ -1966,7 +2169,30 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
-      if (is.null(v)) v <- eval(a, mf, resp$formula_env)
+      if (is.null(v)) {
+        v <- eval(a, mf, resp$formula_env)
+        # brms recycles a single value, as in trunc(lb = min(y) - 1); a
+        # literal such as trunc(lb = -5) stays one value, as it always has
+        if (is.call(a) && length(all.vars(a))) {
+          if (length(v) == 1L) v <- rep(v, n)
+          if (anyNA(v)) {
+            # the variables are complete by here, so the expression made
+            # the NA; brms refuses it at standata(), and a row dropped
+            # for it would change the sample in silence
+            frm_stop("Addition term ", aterm_label(nm_at, a), " of ",
+                     "response '", resp$resp_name, "' is NA on ",
+                     sum(is.na(v)), " of ", n, " rows, where its ",
+                     "variables are not. Give every row a value",
+                     call. = FALSE)
+          }
+          if (!is.matrix(v) && length(v) != n) {
+            frm_stop("Addition term ", aterm_label(nm_at, a), " of ",
+                     "response '", resp$resp_name, "' has ", length(v),
+                     " values where the data have ", n, " rows; it takes ",
+                     "one value per row, or a single value", call. = FALSE)
+          }
+        }
+      }
       if (nm_at == "cens") return(decode_cens(v))
       if (nm_at == "thres_gr") return(thres_group_codes(v))
       # a registered term brings its own coercion, which is the point of
@@ -2101,6 +2327,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(resp$aterms[["cens_y2"]])) {
       v <- as.numeric(eval(resp$aterms[["cens_y2"]], data, resp$formula_env))
+      nd_ <- if (is.data.frame(data)) nrow(data) else if (is.list(data)) {
+        NROW(data[[1L]])
+      }
+      if (!is.null(nd_) && length(v) != nd_) {
+        # brms: "Argument 'y2' needs to have length equal to the number
+        # of data rows"; it is not recycled, unlike the censoring code
+        frm_stop("cens(", deparse1(resp$aterms[["cens"]]), ", ",
+                 deparse1(resp$aterms[["cens_y2"]]), "): the interval ",
+                 "upper bound has ", length(v), " value(s) where the data ",
+                 "have ", nd_, " rows. It takes one value per row, as ",
+                 "brms requires", call. = FALSE)
+      }
       if (!is.null(attr(mf, "na.action"))) {
         v <- v[-attr(mf, "na.action")]
       }
@@ -3274,7 +3512,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # FALSE: the intercept is class "b" and not centered (brms's
         # `0 + Intercept` and `center = FALSE`); see rsv_intercept_fixed()
         center = !isFALSE(dp[["center"]]),
-        shared = isTRUE(dp[["shared"]])
+        shared = isTRUE(dp[["shared"]]),
+        # newdata gets brms's column of ones too; see rsv_lower_fill()
+        rsv_lower = isTRUE(dp[["rsv_lower"]])
       )
     }
     # bf(sigma1 = "sigma2"): the equated dpar is its target's predictor
@@ -3641,6 +3881,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          extra_map = if (length(extra_map)) extra_map,
          predvar_map = predvar_map,
          sparse_x = isTRUE(sparse_x),
+         # a refit inside the package keeps the fit's choice
+         drop_unused_levels = drop_unused_levels,
          data_frame = mf,
          na_action = attr(mf, "na.action"),
          # subset(): the rows of `data_frame` each such response uses,

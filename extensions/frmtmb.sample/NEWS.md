@@ -1,3 +1,30 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb development version, which exports
+`arma_cond_fill_dpars()`, `arma_cond_fill_epred()` and
+`response_codes_newdata()`.
+
+## Bug fixes
+
+* **`posterior_predict(newdata = )` of a model with `ar()`, `ma()` or
+  `arma()` and `cov = FALSE`** was refused as a structured draw, the
+  same refusal as a `cov = TRUE` block, though core's `predict()`
+  answers it. It answers now, and with brms's treatment of a missing
+  response: a row of newdata whose response is `NA`, or every row when
+  the column is absent, is filled with a draw at that draw's
+  parameters before the rows after it read its residual.
+  `re_formula = ` is no longer refused on such a model either.
+* **`posterior_epred(newdata = )` under `cov = FALSE` fills a missing
+  response with a draw**, as brms's `posterior_epred()` does, so the
+  expected-response draws on the rows after it carry the spread of the
+  unobserved past. Core's `fitted()` on a maximum likelihood fit fills
+  with the expected value instead, because it has no draws to carry
+  the fill through.
+* **`predictive_error(newdata = )` of a `bernoulli()` model** codes
+  newdata's response as the fit coded its own, so a response held as
+  two values other than 0 and 1 (brms's level-order coding, new in
+  frmtmb) is compared with the draws on the same scale.
+
 # frmtmb.sample 0.14.0
 
 Needs frmtmb 0.66.0: for `subset_resp_check()` and `subset_newdata()`,

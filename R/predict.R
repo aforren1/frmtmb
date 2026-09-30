@@ -248,11 +248,15 @@ patch_mo_cols <- function(fit, lp, X) {
 }
 
 #' `xlevels` restricted to the variables a terms object actually uses;
-#' extra entries make `model.frame` warn.
+#' extra entries make `model.frame` warn. A variable is a whole term
+#' variable, so a factor that only an expression reads, as `ef` in
+#' `offset(log(as.numeric(ef)))`, is not one, and model.frame() would
+#' warn that it "is not a factor".
 #'
 #' @noRd
 xlev_for <- function(xlevels, tt) {
-  xlevels[intersect(names(xlevels), all.vars(tt))]
+  vars <- vapply(as.list(attr(tt, "variables"))[-1L], deparse1, "")
+  xlevels[intersect(names(xlevels), vars)]
 }
 
 #' The grouping factor a smooth basis is indexed by, or `NULL` when the
@@ -472,6 +476,11 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     newdata <- fill_new_group_vars(fit, lp, newdata, allow_new_levels, env)
   }
   tt <- patch_predvars(lp[["terms"]], fit$frame[["predvar_map"]])
+  if (isTRUE(lp[["rsv_lower"]]) && is.null(newdata[["intercept"]])) {
+    # brms's deprecated `0 + intercept` reads a column of ones, which
+    # brms's validate_newdata() fills in (data_rsv_intercept())
+    newdata[["intercept"]] <- rep(1, nrow(newdata))
+  }
   newdata <- check_newdata_frame(tt, newdata, xlev_for(lp[["xlevels"]], tt))
   mfp <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
                             xlev = xlev_for(lp[["xlevels"]], tt))
@@ -1021,6 +1030,7 @@ aterm_label <- function(nm, ex) {
   switch(nm,
     trunc_lb = paste0("trunc(lb = ", deparse1(ex), ")"),
     trunc_ub = paste0("trunc(ub = ", deparse1(ex), ")"),
+    cens_y2 = paste0("cens(<code>, ", deparse1(ex), ")"),
     # vint(a, b) is stored one argument per aterm as vint1, vint2, ...
     paste0(sub("[0-9]+$", "", nm), "(", deparse1(ex), ")")
   )
@@ -1090,6 +1100,10 @@ aterms_for_newdata <- function(rspec, newdata) {
     if (!is.null(v) && !is.null(nd_n) && !length(v) %in% c(1L, nd_n)) {
       v <- NULL
     }
+    # an addition term reads newdata alone, as it read the data alone at
+    # the fit: a variable newdata lacks must not resolve in the formula
+    # environment (check_aterm_data_vars())
+    if (length(setdiff(all.vars(ex), names(newdata)))) v <- NULL
     if (is.null(v)) {
       label <- aterm_label(nm, ex)
       missed <- setdiff(all.vars(ex), names(newdata))
@@ -2419,6 +2433,20 @@ napred <- function(fit, x) {
 #' their uncertainty as the scalar route does. The estimates are
 #' unaffected. The latent linear predictor, which is where the
 #' coefficients live, is `frm_linpred(object, type = "link")`.
+#' @section Residual autocorrelation with `cov = FALSE`:
+#' Under `ar()`, `ma()` or `arma()` with `cov = FALSE` the mean of a row
+#' reads the residuals of the earlier rows of its group, taken from
+#' newdata's response. Where that response is `NA`, or absent, brms
+#' fills it with a draw from the family at the row's one-step mean, per
+#' posterior draw, so its `fitted()` carries the spread of the fill. A
+#' maximum likelihood fit has no draws to carry that spread through, so
+#' `fitted()` here fills the response with its expected value, the
+#' one-step mean itself. That is the mean of brms's fill at fixed
+#' parameters, for gaussian and student, the families `cov = FALSE`
+#' takes. `Est.Error` is then the parameter uncertainty alone, and is
+#' smaller than brms's on the rows after a missing response: this is a
+#' deliberate divergence. [predict.frmtmb_fit()] fills with draws, as
+#' brms does, and so does frmtmb.sample's `posterior_epred()`.
 #' @seealso [predict.frmtmb_fit()] for the predictive interval,
 #'   [frm_linpred()] for the linear predictor,
 #'   [residuals.frmtmb_fit()], and [frmtmb-scales] for which scale each
@@ -3666,6 +3694,10 @@ residuals_newdata <- function(object, resp, newdata, allow_new_levels,
   }
   y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
                 error = function(e) NULL)
+  # a bernoulli response is compared with the fit on its 0/1 codes
+  if (length(y) == nrow(newdata)) {
+    y <- response_codes_newdata(rspec, y, "residuals(newdata = )")
+  }
   if (is.null(y) || !is.numeric(y) || is.matrix(y) ||
       length(y) != nrow(newdata)) {
     frm_stop("residuals(newdata = ) needs the observed response to ",

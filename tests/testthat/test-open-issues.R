@@ -158,13 +158,17 @@ test_that("REML predictions agree with fixef (glmmTMB#1143, #983)", {
   }
 })
 
-test_that("non-integer responses are rejected, not silently fit (lme4#682, #180)", {
+test_that("non-integer responses are not silently fit (lme4#682, #180)", {
   set.seed(3)
   bd <- data.frame(g = factor(rep(1:20, 5)))
   bd$Y <- ifelse(rbinom(100, 1, 0.4), 0.9, 0.1)
-  # lme4 warns but fits, and shrinks the random-effect SD toward zero
-  expect_error(frm(bf(Y ~ 1 + (1 | g)) + bernoulli(), data = bd),
-               "must be 0/1")
+  # lme4 warns but fits, and shrinks the random-effect SD toward zero.
+  # brms codes any two values 0 and 1, and frmtmb does too since lane
+  # formrobust; two values inside (0, 1) are then fitted, not silently:
+  # they warn that they look like a proportion
+  pw <- "lie strictly between 0 and 1"
+  allow_warnings(frm(bf(Y ~ 1 + (1 | g)) + bernoulli(), data = bd),
+                 pw, require = pw)
   pd <- data.frame(g = bd$g, y = rpois(100, 3) + 0.5)
   expect_error(frm(bf(y ~ 1 + (1 | g)) + poisson(), data = pd),
                "non-negative integers")

@@ -212,8 +212,10 @@ test_that("fitted() is brms's one-step mean, residuals follow it", {
   expect_true(all(is.finite(fn[, "Est.Error"]) & fn[, "Est.Error"] > 0))
   expect_equal(fn[, "Est.Error"], fitted(f)[, "Est.Error"],
                tolerance = cond_tol)
-  expect_error(fitted(f, newdata = transform(d, y = NULL)),
-               "needs the observed response 'y'")
+  # newdata without the response is brms's forecast, each missing
+  # response filled with its expected value (test-arma-na-newdata.R);
+  # it was refused until lane formrobust
+  expect_false(anyNA(fitted(f, newdata = transform(d, y = NULL))))
 })
 
 test_that("predict() draws around the one-step mean", {

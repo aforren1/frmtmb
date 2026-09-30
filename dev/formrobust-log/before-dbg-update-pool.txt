@@ -1,0 +1,75 @@
+✔ | F W  S  OK | Context
+
+⠏ |          0 | update-pool                                                    
+⠋ | 1        0 | update-pool                                                    
+⠙ | 2        0 | update-pool                                                    
+✖ | 3        1 | update-pool [1.2s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-update-pool.R:19:3'): a new nonlinear body keeps the fit's parameter formulas
+<frmtmb_error/error/condition>
+Error: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+Backtrace:
+     ▆
+  1. ├─testthat::expect_message(...) at test-update-pool.R:19:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─stats::update(f0, formula. = bf(y ~ b * x + a, nl = TRUE))
+  8. ├─frmtmb:::update.frmtmb_fit(f0, formula. = bf(y ~ b * x + a, nl = TRUE))
+  9. └─frmtmb::bf(y ~ b * x + a, nl = TRUE)
+ 10.   └─frmtmb::frm_stop(...)
+
+Failure ('test-update-pool.R:41:3'): a plain formula keeps a linear model's dpar formulas
+Expected `all(c("sigma_Intercept", "sigma_z", "z") %in% rownames(fixef(up)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Error ('test-update-pool.R:51:3'): bf(nl = TRUE) without parameter formulas waits for frm()
+<frmtmb_error/error/condition>
+Error: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+Backtrace:
+    ▆
+ 1. └─frmtmb::bf(y ~ a + b * x, nl = TRUE) at test-update-pool.R:51:3
+ 2.   └─frmtmb::frm_stop(...)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.3 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-update-pool.R:19:3'): a new nonlinear body keeps the fit's parameter formulas
+<frmtmb_error/error/condition>
+Error: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+Backtrace:
+     ▆
+  1. ├─testthat::expect_message(...) at test-update-pool.R:19:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─stats::update(f0, formula. = bf(y ~ b * x + a, nl = TRUE))
+  8. ├─frmtmb:::update.frmtmb_fit(f0, formula. = bf(y ~ b * x + a, nl = TRUE))
+  9. └─frmtmb::bf(y ~ b * x + a, nl = TRUE)
+ 10.   └─frmtmb::frm_stop(...)
+
+Failure ('test-update-pool.R:41:3'): a plain formula keeps a linear model's dpar formulas
+Expected `all(c("sigma_Intercept", "sigma_z", "z") %in% rownames(fixef(up)))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Error ('test-update-pool.R:51:3'): bf(nl = TRUE) without parameter formulas waits for frm()
+<frmtmb_error/error/condition>
+Error: nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf() at least one of them
+Backtrace:
+    ▆
+ 1. └─frmtmb::bf(y ~ a + b * x, nl = TRUE) at test-update-pool.R:51:3
+ 2.   └─frmtmb::frm_stop(...)
+
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 1 ]

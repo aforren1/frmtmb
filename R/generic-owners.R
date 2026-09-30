@@ -130,6 +130,7 @@ frm_generic_owners <- list(
   conditional_effects = "brms",
   conditional_smooths = "brms",
   expose_functions = "brms",
+  autocor = "brms",
   hypothesis = "brms",
   posterior_summary = "brms",
   LOO = "brms",

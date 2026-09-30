@@ -30,6 +30,7 @@ brms_shared <- c(
   "niterations", "nvariables", "variables", "log_lik", "loo",
   "loo_compare", "waic", "bayes_R2", "prior_summary", "pp_check",
   "conditional_effects", "conditional_smooths", "expose_functions",
+  "autocor",
   "hypothesis",
   "posterior_summary", "LOO", "WAIC", "ngrps", "fixef", "ranef",
   "VarCorr"

@@ -2023,6 +2023,112 @@ update_delta_bform <- function(object, new) {
   } else {
     update_delta_formula(object, f)
   }
+  out <- update_pool_pars(out, old, new)
+  if (!is.null(new$family)) out$family <- new$family
+  if (!is.null(new$nl)) out$nl <- isTRUE(out$nl) || isTRUE(new$nl)
+  for (nm in c("center", "cmc")) {
+    if (!is.null(new[[nm]])) out[[nm]] <- new[[nm]]
+  }
+  out
+}
+
+#' A complete formula or [bf()] on a univariate model, read as
+#' `brms:::update.brmsfit()` reads it: it replaces the location formula,
+#' and the stored parameter formulas, constants and equations are
+#' pooled with its own, a later one replacing an earlier one of the same
+#' name. A plain formula takes the stored model's `nl`. `NULL` when the
+#' stored model has nothing to pool, so that the call keeps the formula
+#' as the user wrote it.
+#'
+#' @noRd
+update_complete_bform <- function(object, new) {
+  old <- object$bform
+  if (!inherits(old, "frmtmb_formula") ||
+        inherits(old, "frmtmb_mvformula") ||
+        inherits(new, "frmtmb_mvformula")) {
+    return(NULL)
+  }
+  if (!length(c(old$pforms, old$pfix, old$nlforms))) return(NULL)
+  if (!inherits(new, "frmtmb_formula")) new <- bf(new, nl = isTRUE(old$nl))
+  if (isTRUE(old$nl)) {
+    frm_message("Argument 'formula.' will completely replace the original ",
+                "formula in non-linear models.")
+  }
+  nlf <- c(old$nlforms, new$nlforms)
+  new$nlforms <- nlf[!duplicated(names(nlf), fromLast = TRUE)]
+  update_pool_pars(new, old, new)
+}
+
+#' A pooled `bf()` object written back as the `frmtmb::bf()` call that
+#' builds it, for the stored call of an updated fit. `NULL` where the
+#' object holds something a plain `bf()` call cannot say (an `nlf()`
+#' formula), and the caller then stores the object.
+#'
+#' @noRd
+bform_call <- function(b) {
+  if (length(b$nlforms)) return(NULL)
+  cl <- as.call(c(list(quote(frmtmb::bf), b$formula), unname(b$pforms),
+                  b$pfix))
+  if (isTRUE(b$nl)) cl$nl <- TRUE
+  for (nm in c("center", "cmc")) {
+    if (!is.null(b[[nm]])) cl[[nm]] <- b[[nm]]
+  }
+  if (!is.null(b$family)) cl$family <- family_call_of(b$family)
+  cl
+}
+
+#' The constructor call of a family, as `frmtmb::student(link_sigma =
+#' "identity")`, when the call can say everything the family holds;
+#' otherwise the family object itself. It can only when every formal of
+#' the constructor is a link, since an option such as `huber(k = 3)`,
+#' `whittle(tapers = 4)` or `cox(df = 6)` lives in the family's closures
+#' and not in any field a comparison could read, and when the evaluated
+#' call is `identical()` to the family on everything but environments.
+#'
+#' @noRd
+family_call_of <- function(fam) {
+  lk <- function(f) {
+    vapply(f[["links"]], function(l) {
+      if (is.list(l)) l[["name"]] %||% NA_character_ else as.character(l)
+    }, "")
+  }
+  nm <- fam[["family"]]
+  pkg <- if (exists(nm, envir = asNamespace("frmtmb"), inherits = FALSE)) {
+    "frmtmb"
+  } else if (exists(nm, envir = asNamespace("stats"), inherits = FALSE)) {
+    "stats"
+  }
+  if (is.null(pkg) || !is.character(nm) || length(nm) != 1L) return(fam)
+  ctor <- get(nm, envir = asNamespace(pkg))
+  if (!is.function(ctor)) return(fam)
+  fmls <- names(formals(ctor))
+  # a pooled update() wrote huber(k = 3) as huber() and refitted at the
+  # default k without a word; only a constructor of links alone is safe
+  if (!all(fmls == "link" | startsWith(fmls, "link_"))) return(fam)
+  links <- lk(fam)
+  cl <- as.call(list(call("::", as.name(pkg), as.name(nm))))
+  for (dp in names(links)) {
+    a <- if (dp == "mu") "link" else paste0("link_", dp)
+    if (a %in% names(formals(ctor))) cl[[a]] <- links[[dp]]
+  }
+  back <- tryCatch(as_frmtmb_family(eval(cl, baseenv())),
+                   error = function(e) NULL)
+  if (is.null(back) || !identical(back[["family"]], nm) ||
+        !identical(lk(back), links) ||
+        !identical(unclass(back), unclass(fam), ignore.environment = TRUE,
+                   ignore.bytecode = TRUE, ignore.srcref = TRUE)) {
+    return(fam)
+  }
+  cl
+}
+
+#' The parameter formulas, constants and equations of a stored model and
+#' of an update pooled into `out`, a later one replacing an earlier one
+#' of the same name with brms's message, as `update.brmsformula()` pools
+#' them.
+#'
+#' @noRd
+update_pool_pars <- function(out, old, new) {
   pars <- c(old$pforms, old$pfix, new$pforms, new$pfix)
   dup <- duplicated(names(pars), fromLast = TRUE)
   if (any(dup)) {
@@ -2035,11 +2141,6 @@ update_delta_bform <- function(object, new) {
   out$pfix <- pars[!is_form]
   check_dpar_equations(out$pfix,
                        c(names(out$pforms), names(out$nlforms)))
-  if (!is.null(new$family)) out$family <- new$family
-  if (!is.null(new$nl)) out$nl <- isTRUE(out$nl) || isTRUE(new$nl)
-  for (nm in c("center", "cmc")) {
-    if (!is.null(new[[nm]])) out[[nm]] <- new[[nm]]
-  }
   out
 }
 
@@ -2053,9 +2154,13 @@ update_delta_bform <- function(object, new) {
 #' carrying a `.` is a delta applied to the stored `mu` formula with
 #' [stats::update.formula] semantics - one-sided `~ . + z`, dotted
 #' `. ~ . + z`, or a changed response `z ~ . + x` - and keeps the dpar
-#' formulas, the fixed dpar values and the family. A formula with no
-#' `.` replaces the stored one. brms's `newdata` is accepted as a
-#' synonym for `data`.
+#' formulas, the fixed dpar values and the family. A formula or [bf()]
+#' with no `.` replaces the stored location formula and, as in brms,
+#' keeps the stored parameter formulas, constants and equations, pooled
+#' with its own. On a nonlinear model that keeps the nonlinear
+#' parameters' formulas, so `update(fit, bf(y ~ a + b, nl = TRUE))`
+#' gives the new body the old `a` and `b`, and a plain formula stays
+#' nonlinear. brms's `newdata` is accepted as a synonym for `data`.
 #'
 #' A [bf()] whose location formula is such a delta is read as brms
 #' reads it: `update(fit, bf(~ ., family = acat()))` keeps the formula
@@ -2116,7 +2221,33 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
       if (!is.null(formula.$family)) cl$family <- NULL
       update_delta_bform(object, formula.)
     } else {
-      substitute(formula.)
+      if (inherits(object$bform, "frmtmb_mvformula") ||
+            inherits(formula., "frmtmb_mvformula")) {
+        # brms's refusal: a complete formula would drop the stored
+        # parameter formulas of every response without a word
+        frm_stop("Updating formulas of multivariate models is not yet ",
+                 "possible. Refit with frm() and the complete mvbf()",
+                 call. = FALSE)
+      }
+      pooled <- if (inherits(formula., c("formula", "frmtmb_formula"))) {
+        update_complete_bform(object, formula.)
+      }
+      if (!is.null(pooled)) {
+        # brms's order: the family of formula., then the family
+        # argument, then the stored one
+        fam <- NULL
+        if (!is.null(pooled$family)) {
+          cl$family <- NULL
+          fam <- pooled$family
+        } else if (is.null(cl$family)) {
+          fam <- object$bform$family
+        }
+        pooled$family <- fam
+        # the call holds the formula as a bf() call a reader can read,
+        # not the evaluated object and the family's closures
+        pooled <- bform_call(pooled) %||% pooled
+      }
+      pooled %||% substitute(formula.)
     }
   }
   if (!evaluate) return(cl)

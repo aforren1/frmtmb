@@ -1269,27 +1269,134 @@ autocor_trans_rows <- function(fit) {
 # no observed past, so it runs the recursion over its own draws
 # (sim_autocor_cond()).
 
-#' The observed response of `newdata`'s rows, which a `cov = FALSE`
-#' mean needs: brms's fitted() and predict() on newdata run the
-#' recursion over newdata's own response (brms fills a missing one with
-#' posterior-predictive draws, which a point estimate cannot do).
+#' The response of `newdata`'s rows, which a `cov = FALSE` mean reads:
+#' brms's fitted() and predict() on newdata run the recursion over
+#' newdata's own response. A missing value is `NA`, and so is every row
+#' when newdata has no response column, which brms fills with `NA` too
+#' (`validate_newdata(check_response = FALSE)`).
 #'
 #' @noRd
 autocor_cond_newdata_y <- function(ac, rspec, newdata, what) {
+  n <- nrow(newdata)
+  if (!all(all.vars(rspec$resp_expr) %in% names(newdata))) {
+    return(rep(NA_real_, n))
+  }
   y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
                 error = function(e) NULL)
-  if (is.null(y) || !is.numeric(y) || length(y) != nrow(newdata) ||
-      anyNA(y)) {
-    frm_stop(what, " with ", ac[["label"]], " needs the observed ",
-             "response '", deparse1(rspec$resp_expr), "' in every row of ",
-             "newdata: under cov = FALSE the mean of a row is a regression ",
-             "on the residuals of the rows before it in its group, so a ",
-             "row has no mean until the earlier responses are known. ",
-             "Supply the response, or draw forecasts with ",
-             "simulate(newdata = ), which runs the recursion over its own ",
-             "draws", call. = FALSE)
+  if (is.logical(y) && all(is.na(y))) y <- as.numeric(y)
+  if (is.null(y) || !is.numeric(y) || length(y) != n) {
+    frm_stop(what, " with ", ac[["label"]], " reads the response '",
+             deparse1(rspec$resp_expr), "' of newdata: under cov = FALSE ",
+             "the mean of a row is a regression on the residuals of the ",
+             "rows before it in its group. The response must be numeric, ",
+             "with NA where it is not known", call. = FALSE)
   }
   as.numeric(y)
+}
+
+#' brms's `.predictor_arma()` on plain numerics: `mu` shifted by the
+#' ARMA term of a `cov = FALSE` block, running the recursion in each
+#' group's time order. A row whose response is `NA` still leaves a
+#' residual for the rows after it: brms fills it with a draw from the
+#' family at the row's shifted mean, and `draw(rows, m)` does that here.
+#' Without `draw`, the fill is that mean itself, which is the
+#' expectation of brms's filled recursion at fixed parameters for the
+#' two families `cov = FALSE` takes, gaussian and student, since the
+#' shift is linear in the residuals.
+#'
+#' @noRd
+autocor_cond_mu_fill <- function(fit, ac, mu, y, draw = NULL) {
+  th <- fit$estimates[["thetaac"]][ac[["theta_idx"]]]
+  cf <- autocor_cond_coefs(th, ac)
+  n <- length(y)
+  mu <- rep_len(as.numeric(mu), n)
+  out <- mu
+  err <- vector("list", length(ac[["pos_rows"]]))
+  for (t in seq_along(ac[["pos_rows"]])) {
+    rows <- ac[["pos_rows"]][[t]]
+    k <- seq_along(rows)
+    sma <- 0
+    for (i in seq_len(min(length(cf$ma), t - 1L))) {
+      sma <- sma + cf$ma[i] * err[[t - i]][k]
+    }
+    sar <- 0
+    for (i in seq_len(min(length(cf$ar), t - 1L))) {
+      sar <- sar + cf$ar[i] * err[[t - i]][k]
+    }
+    m <- mu[rows] + sma + sar
+    yt <- y[rows]
+    na <- is.na(yt)
+    if (any(na)) {
+      yt[na] <- if (is.null(draw)) m[na] else draw(rows[na], m[na])
+    }
+    err[[t]] <- yt - mu[rows] - sma
+    out[rows] <- m
+  }
+  out
+}
+
+#' The distributional parameters of one response on `newdata` for a
+#' predictive draw, with brms's treatment of a missing response under
+#' `cov = FALSE`: the recursion runs in each group's time order, and a
+#' row whose response is `NA` is filled with a draw from the family at
+#' its shifted mean before the rows after it read its residual
+#' (`.predictor_arma()`). `dpars_fn(fit)` returns the parameters on
+#' `newdata` for a fit; it is called on the fit without its
+#' `cov = FALSE` terms for the unshifted mean. With no missing response,
+#' or no `cov = FALSE` term, it is `dpars_fn(fit)` unchanged, whose
+#' mean already reads the observed residuals.
+#'
+#' Exported for the sampling extension, whose `posterior_predict()` on
+#' draws runs the same recursion once per draw.
+#'
+#' @noRd
+arma_cond_fill_dpars <- function(fit, rspec, newdata, dpars_fn) {
+  ac <- fit$frame[["autocor"]][[rspec$resp_name]]
+  if (is.null(newdata) || !autocor_is_cond(ac)) return(dpars_fn(fit))
+  y <- autocor_cond_newdata_y(ac, rspec, newdata,
+                              "A prediction on newdata")
+  if (!anyNA(y)) return(dpars_fn(fit))
+  dpv <- dpars_fn(autocor_cond_strip(fit))
+  n <- length(y)
+  acn <- autocor_for_newdata(fit, ac, rspec, newdata)
+  av <- if (has_trunc(rspec)) aterms_for_newdata(rspec, newdata) else list()
+  extra <- fit_extras(fit, rspec$resp_name)
+  draw <- function(rows, m) {
+    dpt <- subset_obs(dpv, rows, n)
+    dpt[["mu"]] <- m
+    sim_response(rspec$family, dpt, subset_obs(av, rows, n),
+                 length(rows), extra = extra)
+  }
+  dpv[["mu"]] <- autocor_cond_mu_fill(fit, acn, dpv[["mu"]], y, draw)
+  dpv
+}
+
+#' The expected response of one response on `newdata` for ONE posterior
+#' draw, filled as brms's `posterior_epred()` fills it under
+#' `cov = FALSE`: each missing response is a draw from the family at its
+#' shifted mean, so the epred draws carry the spread of the unobserved
+#' past. `NULL` when nothing needs filling (no `cov = FALSE` term, or no
+#' missing response), and the caller keeps its own route. `dpar = "mu"`
+#' returns the filled `mu` itself. Exported for frmtmb.sample: a maximum
+#' likelihood fit has no draws to carry the fill through, so `fitted()`
+#' fills with the expected value instead.
+#'
+#' @noRd
+arma_cond_fill_epred <- function(fit, rspec, newdata, re_formula,
+                                 dpar = NULL) {
+  if (is.null(rspec) || is.null(newdata)) return(NULL)
+  ac <- fit$frame[["autocor"]][[rspec$resp_name]]
+  if (!autocor_is_cond(ac) ||
+        !(is.null(dpar) || identical(dpar, "mu"))) {
+    return(NULL)
+  }
+  y <- autocor_cond_newdata_y(ac, rspec, newdata, "A prediction on newdata")
+  if (!anyNA(y)) return(NULL)
+  dp <- arma_cond_fill_dpars(fit, rspec, newdata, function(f) {
+    dpars_natural(f, rspec, newdata, re_formula)
+  })
+  if (identical(dpar, "mu")) return(dp[["mu"]])
+  response_mean(rspec$family, dp, aterms_for_newdata(rspec, newdata))
 }
 
 #' A response's in-sample dpars with the `cov = FALSE` shift applied
@@ -1379,7 +1486,8 @@ autocor_cond_fd_se <- function(object, f, use_re) {
 }
 
 #' `frm_linpred()` for the `mu` of a `cov = FALSE` response: brms's
-#' one-step mean, in sample or on newdata that carries the response.
+#' one-step mean, in sample or on newdata, where a missing response is
+#' filled with its expected value (autocor_cond_mu_fill()).
 #'
 #' @noRd
 linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
@@ -1396,7 +1504,15 @@ linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
       autocor_cond_mu_values(fit, lp, rspec, ac, use_re)
     } else {
       ed <- lp_eta_design(fit, lp, newdata, use_re, allow_new_levels)
-      autocor_cond_mu(fit, acn, lp[["link"]]$linkinv(ed[["eta"]]), ynew)
+      mu_ <- lp[["link"]]$linkinv(ed[["eta"]])
+      # a missing response is filled with its expected value, where
+      # brms's fitted() averages over filling it with draws; with none
+      # missing, the objective's own shift, to the bit
+      if (anyNA(ynew)) {
+        autocor_cond_mu_fill(fit, acn, mu_, ynew)
+      } else {
+        autocor_cond_mu(fit, acn, mu_, ynew)
+      }
     }
     if (type == "response") m else lp[["link"]]$linkfun(m)
   }
@@ -1494,4 +1610,184 @@ autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL) {
     e[pt$rows] <- as.vector(Z)
   }
   e * sigma
+}
+
+# ------------------------------------ autocorrelation terms as objects
+
+#' Autocorrelation terms outside a formula
+#'
+#' `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are read inside a
+#' model formula, as in `bf(y ~ x + ar(week, subj))`, and the formula is
+#' where they belong. The functions also exist on their own, as they do
+#' in brms, so that a call outside a formula returns the term rather
+#' than an error that the function does not exist. [frmtmb-autocor]
+#' describes what each term fits.
+#'
+#' brms gives two ways to write the terms apart from the location
+#' formula, and frmtmb reads both: the `autocor` argument of [bf()],
+#' `bf(y ~ x, autocor = ~ ar(week, subj))`, and `acformula()` added to
+#' a formula, `bf(y ~ x) + acformula(~ ar(week, subj))`. Each adds the
+#' terms to the location formula, so both fit the model
+#' `bf(y ~ x + ar(week, subj))`. A term object added to a formula, as in
+#' `bf(y ~ x) + ar(week, subj)`, is refused with brms's own message,
+#' because brms refuses it.
+#'
+#' @param time The time variable. `NA` takes the row order within each
+#'   group.
+#' @param gr The grouping variable. `NA` puts all rows in one group.
+#' @param p,q The autoregressive and moving-average orders.
+#' @param cov `FALSE`, the brms default, for the regression on earlier
+#'   residuals; `TRUE` for the residual covariance matrix. See
+#'   [frmtmb-autocor].
+#' @param autocor A one-sided formula of autocorrelation terms.
+#' @param resp The response the terms belong to, for a multivariate
+#'   formula.
+#' @return `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` return an
+#'   object of class `frmtmb_ac_term` holding the term as a call.
+#'   `acformula()` returns the one-sided formula with class
+#'   `frmtmb_acformula`.
+#' @examples
+#' ar(week, subj, p = 2)
+#' f <- bf(y ~ x) + acformula(~ ar(week, subj))
+#' f$formula
+#' bf(y ~ x, autocor = ~ cosy(week, subj))$formula
+#' try(bf(y ~ x) + ar(week, subj))
+#' @family autocorrelation
+#' @name autocor-terms
+NULL
+
+#' An autocorrelation term object: the call as a formula would hold it.
+#'
+#' @noRd
+ac_term_object <- function(fn, cl) {
+  cl[[1L]] <- as.name(fn)
+  structure(list(term = cl, label = deparse1(cl)),
+            class = "frmtmb_ac_term")
+}
+
+#' @rdname autocor-terms
+#' @export
+ar <- function(time = NA, gr = NA, p = 1, cov = FALSE) {
+  ac_term_object("ar", sys.call())
+}
+
+#' @rdname autocor-terms
+#' @export
+ma <- function(time = NA, gr = NA, q = 1, cov = FALSE) {
+  ac_term_object("ma", sys.call())
+}
+
+#' @rdname autocor-terms
+#' @export
+arma <- function(time = NA, gr = NA, p = 1, q = 1, cov = FALSE) {
+  ac_term_object("arma", sys.call())
+}
+
+#' @rdname autocor-terms
+#' @export
+cosy <- function(time = NA, gr = NA) {
+  ac_term_object("cosy", sys.call())
+}
+
+#' @rdname autocor-terms
+#' @export
+unstr <- function(time, gr) {
+  ac_term_object("unstr", sys.call())
+}
+
+#' @export
+print.frmtmb_ac_term <- function(x, ...) {
+  frm_check_dots(...)
+  cat("Autocorrelation term ", x[["label"]], "\n", sep = "")
+  invisible(x)
+}
+
+#' @rdname autocor-terms
+#' @export
+acformula <- function(autocor, resp = NULL) {
+  terms_ <- ac_formula_terms(autocor)
+  if (!is.null(resp) &&
+        (!is.character(resp) || length(resp) != 1L || is.na(resp))) {
+    frm_stop("acformula(resp = ) takes one response name", call. = FALSE)
+  }
+  out <- stats::as.formula(call("~", Reduce(function(a, b) {
+    call("+", a, b)
+  }, terms_)), env = environment(autocor) %||% parent.frame())
+  structure(out, resp = resp, class = c("frmtmb_acformula", "formula"))
+}
+
+#' The autocorrelation terms of a one-sided formula, refused in brms's
+#' words when it holds none, and by name when it holds anything else,
+#' which brms would drop without a word.
+#'
+#' @noRd
+ac_formula_terms <- function(autocor) {
+  if (!inherits(autocor, "formula") || length(autocor) != 2L) {
+    frm_stop("'autocor' must be a one-sided formula of autocorrelation ",
+             "terms, e.g. ~ ar(week, subj)", call. = FALSE)
+  }
+  split_ <- function(e) {
+    if (is.call(e) && identical(e[[1L]], as.name("+")) && length(e) == 3L) {
+      c(split_(e[[2L]]), split_(e[[3L]]))
+    } else list(e)
+  }
+  tms <- split_(autocor[[2L]])
+  is_ac <- vapply(tms, function(t) {
+    is.call(t) && as.character(t[[1L]])[1L] %in% autocor_structs
+  }, NA)
+  if (!any(is_ac)) {
+    frm_stop("'autocor' must contain at least one autocorrelation term.",
+             call. = FALSE)
+  }
+  if (!all(is_ac)) {
+    frm_stop("'autocor' takes autocorrelation terms only (",
+             paste0(autocor_structs, "()", collapse = ", "), "); '",
+             paste(vapply(tms[!is_ac], deparse1, ""), collapse = "', '"),
+             "' belongs in the model formula", call. = FALSE)
+  }
+  tms
+}
+
+#' A formula with autocorrelation terms added to its right-hand side,
+#' which is what brms's `autocor` argument does to the formula of `mu`.
+#'
+#' @noRd
+add_ac_terms <- function(f, autocor) {
+  tms <- ac_formula_terms(autocor)
+  rhs <- f[[length(f)]]
+  for (t in tms) rhs <- call("+", rhs, t)
+  f[[length(f)]] <- rhs
+  f
+}
+
+#' Autocorrelation structures of a fit (deprecated)
+#'
+#' brms's deprecated accessor. brms has stored the autocorrelation
+#' terms in the formula since version 2.11, and `autocor()` on such a
+#' fit returns `NULL` with a deprecation warning. frmtmb returns the
+#' same. The terms are in [formula()]; [autocor_matrix()] gives the
+#' estimated residual correlation matrix.
+#'
+#' @param object A `frmtmb_fit`.
+#' @param resp Response names, checked against the fit's responses.
+#' @param ... Refused by name: the method takes no other argument.
+#' @return `NULL`, with a warning.
+#' @examples
+#' set.seed(1)
+#' d <- expand.grid(week = 1:4, subj = factor(1:10))
+#' d$y <- rnorm(40)
+#' fit <- frm(bf(y ~ 1 + ar(week, subj)), data = d)
+#' suppressWarnings(autocor(fit))
+#' @export
+autocor <- function(object, ...) UseMethod("autocor")
+
+#' @rdname autocor
+#' @exportS3Method brms::autocor
+#' @export
+autocor.frmtmb_fit <- function(object, resp = NULL, ...) {
+  frm_check_dots(...)
+  frm_warning("Method 'autocor' is deprecated and will be removed in the ",
+              "future.", call. = FALSE)
+  brms_validate_resp(object, resp)
+  NULL
 }

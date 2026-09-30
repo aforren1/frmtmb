@@ -1,0 +1,2 @@
+RESULT test-bcm-latent-mixtures.R pass=30 fail=0 err=0 skip=5 warn=0 tests=13
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

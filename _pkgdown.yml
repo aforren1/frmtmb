@@ -44,6 +44,7 @@ reference:
   - update_adterms
   - num_factor
   - frmtmb-autocor
+  - autocor-terms
   - frmtmb-me
   - frmtmb-multimembership
 - title: Fitting
@@ -83,6 +84,7 @@ reference:
   - vcov_cluster
   - cluster_scores
   - autocor_matrix
+  - autocor
   - profile.frmtmb_fit
   - hypothesis
   - variables

@@ -1,0 +1,53 @@
+
+== E. mv poisson, offset on yc only ==
+[mvE both] frmtmb: 1.193821573 1.271540273
+[mvE both] brms  : 1.545208698 1.622927397
+[mvE both] max rel diff in ulp: 1024137985011277.8
+  f   emmean         SE
+1 a 1.193822 0.04067364
+2 b 1.271540 0.03638462
+  f   emmean lower.HPD
+1 a 1.545209  1.545209
+2 b 1.622927  1.622927
+[mvE both at time c(1,2)] frmtmb: 1.015721244 1.093439943
+[mvE both at time c(1,2)] brms  : 1.189008039 1.266726739
+[mvE both at time c(1,2)] max rel diff in ulp: 656357501522324.8
+  f   emmean         SE
+1 a 1.015721 0.04067364
+2 b 1.093440 0.03638462
+  f   emmean lower.HPD
+1 a 1.189008  1.189008
+2 b 1.266727  1.266727
+[mvE both | time at c(1,2)] frmtmb: 0.8424344491 0.9201531483 1.1890080394 1.2667267386
+[mvE both | time at c(1,2)] brms  : 0.8424344491 0.9201531483 1.5355816297 1.6133003288
+[mvE both | time at c(1,2)] max rel diff in ulp: 1016441367810525.2
+  f time    emmean
+1 a    1 0.8424344
+2 b    1 0.9201531
+3 a    2 1.1890080
+4 b    2 1.2667267
+  f time    emmean
+1 a    1 0.8424344
+2 b    1 0.9201531
+3 a    2 1.5355816
+4 b    2 1.6133003
+[mvE both epred] frmtmb: 3.343702872 3.581913099
+[mvE both epred] brms  : 3.343702872 3.581913099
+[mvE both epred] max rel diff in ulp: 0.6
+  f   emmean        SE
+1 a 3.343703 0.1346212
+2 b 3.581913 0.1295189
+  f   emmean lower.HPD
+1 a 3.343703  3.343703
+2 b 3.581913  3.581913
+[mvE resp yc2] frmtmb: 1.357014418 1.364954417
+[mvE resp yc2] brms  : 1.357014418 1.364954417
+[mvE resp yc2] max rel diff in ulp: 0.7
+  f   emmean         SE
+1 a 1.357014 0.05324169
+2 b 1.364954 0.04846408
+  f   emmean lower.HPD
+1 a 1.357014  1.357014
+2 b 1.364954  1.364954
+hand yc: lin + lmt 1.030628729 1.178126128 ; yc2: lin 1.357014418 1.364954417 
+hand at time c(1,2): yc 0.6744280704 0.8219254694 

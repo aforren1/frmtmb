@@ -1,0 +1,6 @@
+No priors were set (plain maximum likelihood).
+DETAIL [expectation_failure] autocor has reasonable ouputs: brms brmsfit-methods:112 now HOLDS but is recorded as 'cannot transfer' (frmtmb has no autocor(), brms's deprecated accessor for autocorrelation structures). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+DETAIL [expectation_failure] autocor has reasonable ouputs: brms brmsfit-methods:113 now HOLDS but is recorded as 'cannot transfer' (frmtmb has no autocor()). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+DETAIL [expectation_failure] predict has reasonable outputs: brms brmsfit-methods:747 now HOLDS but is recorded as 'defect' (fixture 1 is brms's own model now, arma() with cov = FALSE (lane wt-defects). predict(newdata = ) with the response NA in rows 8 to 10 is refused by name: under cov = FALSE a row's mean reads the residuals of the rows before it. brms fills a missing response with its predicted draws and runs the recursion over them; simulate(newdata =
+RESULT test-brms-suite-methods.R pass=159 fail=3 err=0 skip=0 warn=0 tests=23
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

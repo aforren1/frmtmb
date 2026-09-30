@@ -6342,13 +6342,22 @@ resolve_deferred_families <- function(bform, data) {
 #' reads the family as written rather than the one the likelihood
 #' scores. Only responses whose family declares the slot are replaced;
 #' the rest of the spec stays as parsed, which is what every stage has
-#' always read.
+#' always read. A bernoulli response's coding of its two values
+#' (`bin_levels`) is carried the same way, because refits and newdata
+#' are coded against it.
 #'
 #' @noRd
 carry_finalized_responses <- function(spec, frame) {
   for (rn_ in names(spec$responses)) {
-    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) next
-    spec$responses[[rn_]] <- frame[["spec"]]$responses[[rn_]]
+    fr_ <- frame[["spec"]]$responses[[rn_]]
+    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) {
+      if (!is.null(fr_$family[["bin_levels"]])) {
+        spec$responses[[rn_]]$family[["bin_levels"]] <-
+          fr_$family[["bin_levels"]]
+      }
+      next
+    }
+    spec$responses[[rn_]] <- fr_
   }
   spec
 }
@@ -6946,6 +6955,18 @@ as_frmtmb_family <- function(x) {
 #' ordered factor, or integer codes `1..K`. An unordered factor is
 #' refused, as brms refuses it, because its level order is alphabetical
 #' unless someone set it, and that order is the model.
+#'
+#' A `bernoulli()` response can hold any two values, which are coded 0
+#' and 1 by level order as brms codes them: the levels of a factor, the
+#' sorted values of a number or a character vector (so `-2` and `-1`
+#' become 0 and 1, and so do `1` and `2`), and `FALSE` and `TRUE` of a
+#' logical. A number with one value is the 1 of 0 and 1 unless the value
+#' is 0. The fit keeps the coding, and codes newdata's response with it.
+#' A third value is refused with brms's message. Two values that both
+#' lie strictly between 0 and 1, such as 0.1 and 0.9, are coded too, as
+#' brms codes them, with a warning: they are usually proportions, which
+#' `binomial()` with `trials()` or `Beta()` fits. [simulate()] and the
+#' draws return the codes 0 and 1, as brms's `posterior_predict()` does.
 #'
 #' A response with only two outcomes gets brms's message suggesting
 #' `bernoulli()`: an ordinal or categorical response with two

@@ -1,0 +1,22 @@
+MUTATED frmtmb::emm_terms
+MUTANT C:/Users/adf44/source/r/frmtmb-wt-formrobust/dev/formrobust-p1-mut/P01_emm_terms_drop_offset.R
+DETAIL [expectation_failure] emmeans() includes the offset at the grid's value, as brms: Expected `og_rel(em$emmean, lin + lmt)` < `64 * .Machine$double.eps`.
+Actual comparison: 0.77312250879867 >= 0.00000000000001
+Difference: 0.77312250879866 >= 0
+DETAIL [expectation_failure] a dpar's offset is included, a nonlinear parameter's is not: Expected `og_rel(es$emmean, fixef(fs)["sigma_Intercept", 1] + lmt)` < `64 * .Machine$double.eps`.
+Actual comparison: 0.68078767847785 >= 0.00000000000001
+Difference: 0.68078767847783 >= 0
+DETAIL [expectation_failure] a dpar's offset is included, a nonlinear parameter's is not: Expected `og_rel(ea$emmean, bn[["a_Intercept"]] + mean(og_data$z))` < `64 * .Machine$double.eps`.
+Actual comparison: 0.88721893028742 >= 0.00000000000001
+Difference: 0.88721893028740 >= 0
+DETAIL [expectation_failure] an offset in other positions reaches both grids: Expected `max(abs(e1 - s0$emmean)/s0$SE)` < 1e-04.
+Actual comparison: 0.9925 >= 0.0001
+Difference: 0.9924 >= 0
+DETAIL [expectation_failure] emmeans() equals brms's emmeans() at fixed parameters: Expected yc ~ x + f + offset(log(time)) < `tol`.
+Actual comparison: 0.64590643 >= 0.00000001
+Difference: 0.64590642 >= 0
+DETAIL [expectation_failure] emmeans() equals brms's emmeans() at fixed parameters: Expected ys ~ x < `tol`.
+Actual comparison: 0.64590643 >= 0.00000001
+Difference: 0.64590642 >= 0
+RESULT test-offset-grid.R pass=25 fail=6 err=0 skip=0 warn=0 tests=7
+lib: C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb frmtmb=C:/Users/adf44/source/r/wt-formrobust-lib/frmtmb

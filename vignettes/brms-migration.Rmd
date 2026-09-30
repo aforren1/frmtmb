@@ -524,9 +524,14 @@ series it is the conditional sum of squares of
 unconstrained, the lag is counted in rows, and `weights()`, `cens()`,
 `trunc()`, `mi()` and `rescor = TRUE` combine with it. `fitted()` and
 `predict()` give brms's one-step mean, which reads the observed
-earlier residuals, so `newdata` must carry the response; `simulate()`
-runs the recursion over its own draws. `cosy()` and `unstr()` have no
-`cov` argument in brms either and port unchanged.
+earlier residuals of `newdata`'s response. Where that response is
+`NA`, or absent, `predict()` fills it as brms does, with a draw at
+the row's one-step mean, and `fitted()` fills it with its expected
+value, because a maximum likelihood fit has no draws to carry the
+fill through (brms's `fitted()` fills with draws, and so does
+frmtmb.sample's `posterior_epred()`). `simulate()` runs the recursion
+over its own draws. `cosy()` and `unstr()` have no `cov` argument in
+brms either and port unchanged.
 
 ```{r, eval = FALSE}
 # brms

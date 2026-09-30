@@ -72,7 +72,11 @@ test_that("nl prediction and post-processing", {
 })
 
 test_that("nl validation errors are clear", {
-  expect_error(bf(y ~ a * exp(-b * x), nl = TRUE), "parameter formula")
+  # refused when the model is assembled, as brms refuses it at brm():
+  # the formulas may still arrive with + lf() (lane formrobust)
+  expect_error(frm(bf(y ~ a * exp(-b * x), nl = TRUE), data = NULL,
+                   dry_run = "spec"),
+               "nonlinear-parameter formula")
   expect_error(frm(bf(y ~ a * exp(-b * x), a ~ 1, cc ~ 1, nl = TRUE) +
                      gaussian(),
                    data = NULL, dry_run = "spec"),
