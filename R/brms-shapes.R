@@ -122,7 +122,10 @@ brms_summarize_draws <- function(d, probs = c(0.025, 0.975),
 #' values, and the map from the internal vector to them, which is the
 #' identity for a `cs()` coefficient and the family's threshold map
 #' otherwise. The covariance needs that map's derivative, so it is
-#' carried rather than the values alone.
+#' carried rather than the values alone. `inv` is the inverse map, from
+#' the reported values back to the internal vector, or `NULL` when the
+#' family declares none (`post$ord_thresholds_raw`); frmtmb.sample reads
+#' it to store draws under the reported names.
 #'
 #' In a multivariate model each ordinal response has its own
 #' threshold block, stored under a name that carries the response
@@ -150,6 +153,11 @@ brms_extra_fixef <- function(fit) {
       fam_ <- fam
       function(r) ord_threshold_values(fam_, r)
     })
+    # a family with no forward map reports the internal vector itself,
+    # so its inverse is the identity; one that maps without declaring
+    # the way back gets none, and its draws keep the internal names
+    inv <- if (is.null(fam[["post"]][["ord_thresholds"]])) identity else
+      fam[["post"]][["ord_thresholds_raw"]]
     v <- map(as.numeric(raw))
     pre <- brms_lp_prefix(fit, lp)
     out[[length(out) + 1L]] <- list(
@@ -157,7 +165,7 @@ brms_extra_fixef <- function(fit) {
       key = coef_block_key(fit, lp),
       names = paste0(brms_usc(pre, "Intercept"), "[",
                      thres_labels(fam, length(v)), "]"),
-      values = v, raw = as.numeric(raw), map = map)
+      values = v, raw = as.numeric(raw), map = map, inv = inv)
   }
   for (lp in fit$frame[["linpreds"]]) {
     for (ct in lp[["cs"]] %||% list()) {
@@ -169,7 +177,7 @@ brms_extra_fixef <- function(fit) {
         comp = ct[["par"]], cls = "bcs", is_int = FALSE, dp = lp_dp(lp),
         key = coef_block_key(fit, lp),
         names = paste0(brms_usc(pre, lab), "[", seq_along(v), "]"),
-        values = v, raw = v, map = identity)
+        values = v, raw = v, map = identity, inv = identity)
     }
   }
   out

@@ -1,0 +1,23 @@
+ARM lane frmtmb.eam from C:/Users/adf44/source/r/rellib-r3
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sampling                                                       frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠋ |          1 | sampling                                                       
+⠙ |          2 | sampling                                                       
+⠋ |         11 | sampling                                                       
+⠴ |         26 | sampling                                                       
+⠧ |         38 | sampling                                                       
+⠏ |         50 | sampling                                                       
+⠏ |         60 | sampling                                                       
+⠹ |         73 | sampling                                                       
+⠧ |         88 | sampling                                                       
+✔ |         97 | sampling [9.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 97 ]
+RESULT lane test-sampling.R: tests 3 pass 97 fail 0 error 0 skip 0 warn 0

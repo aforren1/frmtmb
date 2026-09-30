@@ -1,0 +1,15 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | gr-by-draws                                                    
+⠋ |          1 | gr-by-draws                                                    
+⠹ |          3 | gr-by-draws                                                    
+⠴ |          6 | gr-by-draws                                                    
+⠦ |          7 | gr-by-draws                                                    
+✔ |          7 | gr-by-draws [3.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 7 ]
+RESULT lane test-gr-by-draws.R: tests 2 pass 7 fail 0 error 0 skip 0 warn 0

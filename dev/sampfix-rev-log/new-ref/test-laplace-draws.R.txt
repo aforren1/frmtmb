@@ -1,0 +1,205 @@
+ARM ref frmtmb.sample from C:/Users/adf44/source/r/rellib-r3
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+[1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+RESULT ref test-laplace-draws.R: tests 10 pass 13 fail 14 error 7 skip 0 warn 176
+FAILURE	test-laplace-draws.R:48	the predictive methods refuse laplace draws that need b	Expected `posterior_epred(p$lap)` to throw a error.
+FAILURE	test-laplace-draws.R:49	the predictive methods refuse laplace draws that need b	Expected `posterior_epred(p$lap)` to throw a error.
+FAILURE	test-laplace-draws.R:51	the predictive methods refuse laplace draws that need b	Expected `posterior_linpred(p$lap)` to throw a error.
+WARNING	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	NAs produced
+FAILURE	test-laplace-draws.R:52	the predictive methods refuse laplace draws that need b	Expected `posterior_predict(p$lap)` to throw a error.
+FAILURE	test-laplace-draws.R:54	the predictive methods refuse laplace draws that need b	Expected `posterior_epred(p$lap, newdata = nd)` to throw a error.
+FAILURE	test-laplace-draws.R:55	the predictive methods refuse laplace draws that need b	Expected `posterior_predict(p$lap, newdata = nd)` to throw a error.
+FAILURE	test-laplace-draws.R:56	the predictive methods refuse laplace draws that need b	Expected `fitted(p$lap)` to throw a error.
+WARNING	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	NAs produced
+FAILURE	test-laplace-draws.R:57	the predictive methods refuse laplace draws that need b	Expected `predict(p$lap)` to throw a error.
+WARNING	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	NAs produced
+FAILURE	test-laplace-draws.R:58	the predictive methods refuse laplace draws that need b	Expected `residuals(p$lap)` to throw a error.
+WARNING	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	NAs produced
+WARNING	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	NAs produced
+ERROR	test-laplace-draws.R:59	the predictive methods refuse laplace draws that need b	Error in `quantile.default(newX[, i], ...)`: missing values and NaN's not allowed if 'na.rm' is FALSE
+ERROR	test-laplace-draws.R:88	what laplace draws can compute equals the full draws' answer	Error in `quantile.default(draws[, k], lo_p[k])`: missing values and NaN's not allowed if 'na.rm' is FALSE
+FAILURE	test-laplace-draws.R:125	a smooth keeps the refusal at re_formula = NA	Expected `posterior_epred(p$lap, re_formula = NA)` to throw a error.
+ERROR	test-laplace-draws.R:127	a smooth keeps the refusal at re_formula = NA	<frmtmb_sample_error/frmtmb_error/error/condition> Error: conditional_effects() on draws from frm_sample(laplace = TRUE) cannot rebuild the per-draw parameter vectors: the inner parameters were integrated out, so the draws columns do not align with the model's parameter template. Resample without la
+FAILURE	test-laplace-draws.R:140	mi() values are integrated too, and only their reader refuses	Expected `posterior_epred(p$lap, resp = "y")` to throw a error.
+ERROR	test-laplace-draws.R:144	mi() values are integrated too, and only their reader refuses	<frmtmb_sample_error/frmtmb_error/error/condition> Error: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not be the observation's own lik
+ERROR	test-laplace-draws.R:157	pp_mixture() refuses laplace draws of a grouped mixture	Error in `quantile.default(newX[, i], ...)`: missing values and NaN's not allowed if 'na.rm' is FALSE
+ERROR	test-laplace-draws.R:169	laplace = TRUE with nothing to integrate samples the model	Error in `-obj$env$random`: invalid argument to unary operator
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+WARNING	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	NAs produced
+FAILURE	test-laplace-draws.R:190	real laplace draws refuse what needs b and compute the rest	Expected `posterior_predict(ds)` to throw a error.
+FAILURE	test-laplace-draws.R:192	real laplace draws refuse what needs b and compute the rest	Expected `all(is.finite(ep))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  
+WARNING	test-laplace-draws.R:203	laplace = TRUE refuses where a REML objective holds beta too	Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable. Running the chains for more iterations may help. See https://mc-stan.org/misc/warnings.html#bulk-ess
+WARNING	test-laplace-draws.R:203	laplace = TRUE refuses where a REML objective holds beta too	Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable. Running the chains for more iterations may help. See https://mc-stan.org/misc/warnings.html#tail-ess
+FAILURE	test-laplace-draws.R:203	laplace = TRUE refuses where a REML objective holds beta too	Expected `allow_warnings(...)` to throw a error.
+ERROR	test-laplace-draws.R:226	a one-parameter model samples from its mode	<frmtmb_sample_error/frmtmb_error/error/condition> Error: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a failure of THIS RUN, not a model that cannot be sampled at all: those are refused before any chain starts, and frm_compat("frm_sample") lists them. A known

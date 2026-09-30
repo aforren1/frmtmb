@@ -1,0 +1,17 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | bcm-model-selection                                            
+⠋ |          1 | bcm-model-selection                                            
+⠸ |          4 | bcm-model-selection                                            
+⠇ |          9 | bcm-model-selection                                            
+⠙ |         12 | bcm-model-selection                                            
+⠇ |         19 | bcm-model-selection                                            
+⠼ |         25 | bcm-model-selection                                            
+✔ |         29 | bcm-model-selection [2.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 29 ]
+RESULT lane test-bcm-model-selection.R: tests 9 pass 29 fail 0 error 0 skip 0 warn 0

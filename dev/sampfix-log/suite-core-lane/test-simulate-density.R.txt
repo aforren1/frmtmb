@@ -1,0 +1,36 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | simulate-density                                               
+⠋ |          1 | simulate-density                                               
+⠏ |         20 | simulate-density                                               
+⠋ |         31 | simulate-density                                               
+⠋ |         61 | simulate-density                                               
+⠴ |         76 | simulate-density                                               
+⠧ |        108 | simulate-density                                               
+⠋ |        131 | simulate-density                                               
+⠋ |        161 | simulate-density                                               
+⠧ |        188 | simulate-density                                               
+⠋ |        211 | simulate-density                                               
+⠋ |        231 | simulate-density                                               
+⠋ |        251 | simulate-density                                               
+⠋ |        271 | simulate-density                                               
+⠼ |        295 | simulate-density                                               
+⠼ |        315 | simulate-density                                               
+⠹ |        333 | simulate-density                                               
+⠸ |        354 | simulate-density                                               
+⠼ |        365 | simulate-density                                               
+⠼ |        385 | simulate-density                                               
+⠦ |        397 | simulate-density                                               
+⠸ |        404 | simulate-density                                               
+⠼ |        425 | simulate-density                                               
+⠹ |        443 | simulate-density                                               
+⠦ |        447 | simulate-density                                               
+⠴ |        456 | simulate-density                                               
+✔ |        459 | simulate-density [3.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 459 ]
+RESULT lane test-simulate-density.R: tests 52 pass 459 fail 0 error 0 skip 0 warn 0

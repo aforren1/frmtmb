@@ -1,0 +1,4 @@
+RESULT ref test-draws-no-stanfit.R: tests 2 pass 0 fail 0 error 2 skip 0 warn 0
+RESULT ref test-laplace-draws.R: tests 10 pass 13 fail 14 error 7 skip 0 warn 176
+RESULT ref test-ordinal-draws-names.R: tests 4 pass 0 fail 3 error 4 skip 0 warn 0
+RESULT ref test-ppcheck-loo.R: tests 4 pass 4 fail 4 error 3 skip 0 warn 1

@@ -1,0 +1,41 @@
+  Hypothesis  Estimate Est.Error  CI.Lower  CI.Upper Evid.Ratio Post.Prob Star
+1    (x) > 0 0.4259838 0.0981887 0.2560284 0.5912987        Inf         1    *
+draws of b_x above 0: 300 of 300
+$model
+[1] "ds" "ds"
+
+$elpd_diff
+[1] 0 0
+
+$se_diff
+[1] 0 0
+
+$p_worse
+[1] NA NA
+
+$diag_diff
+[1] "" ""
+
+$diag_elpd
+[1] "2 k_psis > 0.6" "2 k_psis > 0.6"
+
+$elpd_loo
+[1] -27.05165 -27.05165
+
+$se_elpd_loo
+[1] 2.691331 2.691331
+
+$p_loo
+[1] 6.535274 6.535274
+
+$se_p_loo
+[1] 0.9907789 0.9907789
+
+$looic
+[1] 54.1033 54.1033
+
+$se_looic
+[1] 5.382662 5.382662
+
+attr(,"row.names")
+[1] 1 2

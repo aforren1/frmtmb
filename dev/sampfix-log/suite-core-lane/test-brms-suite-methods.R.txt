@@ -1,0 +1,52 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-suite-methods                                             
+⠋ |          1 | brms-suite-methods                                             
+⠹ |          3 | brms-suite-methods                                             
+⠸ |         14 | brms-suite-methods                                             
+⠋ |         21 | brms-suite-methods                                             
+⠙ |         22 | brms-suite-methods                                             
+⠼ |         25 | brms-suite-methods                                             
+⠏ |         30 | brms-suite-methods                                             
+⠇ |         39 | brms-suite-methods                                             
+⠧ |         48 | brms-suite-methods                                             
+⠹ |         53 | brms-suite-methods                                             
+⠸ |         54 | brms-suite-methods                                             
+⠙ |         62 | brms-suite-methods                                             
+⠋ |         71 | brms-suite-methods                                             
+⠧ |         78 | brms-suite-methods                                             
+⠦ |         87 | brms-suite-methods                                             
+⠇ |         89 | brms-suite-methods                                             
+⠋ |         91 | brms-suite-methods                                             
+⠼ |         95 | brms-suite-methods                                             
+⠋ |        101 | brms-suite-methods                                             
+⠸ |        104 | brms-suite-methods                                             
+⠏ |        110 | brms-suite-methods                                             
+⠋ |        111 | brms-suite-methods                                             
+⠙ |        112 | brms-suite-methods                                             
+⠹ |        113 | brms-suite-methods                                             
+⠼ |        115 | brms-suite-methods                                             
+⠴ |        116 | brms-suite-methods                                             
+⠧ |        118 | brms-suite-methods                                             No priors were set (plain maximum likelihood).
+
+⠼ |        125 | brms-suite-methods                                             
+⠦ |        137 | brms-suite-methods                                             
+⠋ |        141 | brms-suite-methods                                             
+⠙ |        142 | brms-suite-methods                                             
+⠸ |        144 | brms-suite-methods                                             
+⠼ |        145 | brms-suite-methods                                             
+⠴ |        146 | brms-suite-methods                                             
+⠦ |        147 | brms-suite-methods                                             
+⠇ |        149 | brms-suite-methods                                             
+⠏ |        150 | brms-suite-methods                                             
+⠙ |        152 | brms-suite-methods                                             
+⠸ |        154 | brms-suite-methods                                             
+⠙ |        162 | brms-suite-methods                                             
+✔ |        162 | brms-suite-methods [49.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 49.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 162 ]
+RESULT lane test-brms-suite-methods.R: tests 23 pass 162 fail 0 error 0 skip 0 warn 0

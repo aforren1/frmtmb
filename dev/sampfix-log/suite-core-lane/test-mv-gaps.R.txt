@@ -1,0 +1,18 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mv-gaps                                                        
+⠦ |         17 | mv-gaps                                                        
+⠋ |         21 | mv-gaps                                                        
+⠴ |         26 | mv-gaps                                                        
+⠙ |         42 | mv-gaps                                                        
+⠏ |         50 | mv-gaps                                                        
+⠹ |         53 | mv-gaps                                                        
+⠴ |         56 | mv-gaps                                                        
+✔ |         57 | mv-gaps [1.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 57 ]
+RESULT lane test-mv-gaps.R: tests 9 pass 57 fail 0 error 0 skip 0 warn 0

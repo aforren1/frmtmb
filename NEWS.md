@@ -1,3 +1,17 @@
+# frmtmb (development version)
+
+* The four built-in ordinal families and `thres(gr = )` now declare the
+  inverse of their threshold map, `post$ord_thresholds_raw`, beside the
+  forward map `post$ord_thresholds`. `brms_fixef_rows()` carries it for
+  each threshold and `cs()` block. frmtmb.sample reads it to store an
+  ordinal fit's draws under the names `variables(fit)` gives them. An
+  ordinal family from another package that declares only the forward
+  map keeps its internal draw names there.
+* `?variables` no longer lists the ordinal and `cs()` exception for draw
+  columns, which frmtmb.sample removes. It now says which draw columns
+  are not brms's: the covariance parameters, stored as sampled
+  (`theta_1`).
+
 # frmtmb 0.65.0
 
 Seven lanes, each with an adversarial review. Each lane's

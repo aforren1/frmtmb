@@ -2856,14 +2856,17 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' coefficient part, `sd_g__sigma_Intercept`), and a distributional
 #' parameter nobody wrote a formula for, on its natural scale (`sigma`,
 #' `shape`, `sigma_ya`). Every name is spelled through brms's renaming:
-#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`. For sampled
-#' fits, `variables()` on the `frmtmb.sample::frm_sample()` result lists
-#' the draw columns, which follow the same convention EXCEPT for an
-#' ordinal fit, where they are the internal names: `tau_raw_1`,
-#' `tau_raw_2` for the thresholds this page calls `b_Intercept[1]`,
-#' `b_Intercept[2]`, and `bcs2_1` for a `cs()` coefficient this page calls
-#' `bcs_<column>[1]`. `fixef()` on the draws object does report brms's
-#' rows.
+#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`.
+#'
+#' For sampled fits, `variables()` on the `frmtmb.sample::frm_sample()`
+#' result lists the draw columns. The coefficients, the natural-scale
+#' distributional parameters, an ordinal fit's thresholds
+#' (`b_Intercept[1]`) and the `cs()` coefficients (`bcs_<column>[1]`)
+#' have the names and the values this page gives them. The covariance
+#' parameters do not: a draw stores them as the sampler sampled them, on
+#' the unconstrained scale and under their internal names (`theta_1`),
+#' and `VarCorr()` and `hypothesis()` on the draws compute the `sd_` and
+#' `cor_` quantities from them.
 #'
 #' brms's `variables()` also lists what a fit has no counterpart of:
 #' group-level coefficients `r_<group>[<level>,<coef>]`, the centered

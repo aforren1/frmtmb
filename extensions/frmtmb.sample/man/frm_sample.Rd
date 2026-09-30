@@ -33,9 +33,10 @@ carry one (\code{frm_sample(bf(y ~ x), data = dd, family = poisson())};
 the \code{+} spelling \code{bf(y ~ x) + poisson()} works too).}
 
 \item{...}{Passed to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} (\code{chains}, \code{iter},
-\code{laplace}, \code{cores}, ...). \code{cores} parallelizes over chains on
-every platform. On Windows the chains run on socket workers, each
-of which rebuilds the tape from the serialized objective closure
+\code{laplace} (see Laplace draws), \code{cores}, ...). \code{cores} parallelizes
+over chains on every platform. On Windows the chains run on socket
+workers, each of which rebuilds the tape from the serialized
+objective closure
 (tmbstan retapes on the worker; the closures are self-contained),
 giving draws identical to a sequential run at the same seed. The
 per-worker startup (a new R process, package load, retape) is a
@@ -287,6 +288,66 @@ The ML fit is untouched either way. The Laplace approximation
 integrates \code{b} out, and that integral is invariant under a linear
 change of the integrated variable, so \code{frm()} has nothing to change
 and no fitted object ever carries a non-centered tape.
+}
+
+\section{Laplace draws}{
+
+\code{laplace = TRUE} passes to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}}, which then samples
+the outer parameters alone (the coefficients, the distributional
+parameters and the covariance parameters) and integrates the rest
+out with the Laplace approximation at every step: the group-level
+coefficients, the coefficients of a smooth, and the values of an
+\code{mi()} term. The draws hold no columns for those. brms has no such
+route, because its sampler always visits the group-level
+coefficients.
+
+\emph{What the draws answer.} Every summary of the outer parameters:
+\code{summary()}, \code{fixef()}, \code{VarCorr()}, \code{posterior_summary()}, the
+\verb{as_draws_*()} converters, \code{hypothesis()} on the coefficients and on
+\code{sd_} and \code{cor_} quantities, and \code{mcmc_plot()}. Also every predictive
+quantity that reads no integrated value: \code{posterior_epred()},
+\code{posterior_linpred()} and \code{posterior_predict()} with
+\code{re_formula = NA} on a model whose only integrated values are
+group-level coefficients, a distributional parameter with no
+group-level term, and the default curves of \code{conditional_effects()}.
+These are computed from the draws as they are and are exact.
+
+\emph{What they refuse, by name.} A quantity that reads an integrated
+value: a prediction at the observed group levels (the default
+\code{re_formula}, with or without \code{newdata}), any prediction on a model
+with a smooth or an \code{mi()} term that reads them, \code{ranef()},
+\code{coef()}, \code{log_lik()} and everything built on it (\code{loo()}, \code{waic()},
+\code{psis()}, \code{pp_check()}'s \verb{loo_*} types), and \code{bayes_R2()}. The
+refusal names the function you called and says what to do instead;
+it suggests \code{re_formula = NA} only where that function takes it and
+it computes on the model. Whether a call reads an integrated value is
+found out by evaluating it at one draw with those values set to \code{NA}
+and to \code{0}: a result that changes read them. A draw whose result has
+non-finite values where the first draw's has none is refused the same
+way, so a value that vanishes at the first draw only cannot slip
+through as NaN.
+
+\emph{Why they refuse rather than fill the values in.} \code{laplace = TRUE}
+samples an approximate posterior, and its use is to check that
+approximation against draws that sample the group effects. For
+predictions, and for anything else that conditions on the group
+effects, sample without \code{laplace = TRUE}. Filling the values in would
+also be wrong or random: a prediction at each draw's conditional
+modes leaves out the uncertainty of the group effects given the
+outer parameters, and understated the spread of the in-sample
+\code{posterior_epred()} by up to a factor of four on a gaussian model
+with 12 groups of 10 rows; drawing them from their Laplace
+conditional matched the full draws there, but it would make
+\code{posterior_epred()} depend on the random seed and disagree with
+\code{log_lik()} and \code{ranef()} about what a draw contains.
+
+\emph{Two edge cases.} On a model with nothing to integrate out,
+\code{laplace = TRUE} is the model itself, so the call says so and samples
+it on the full route, with draws identical to a call without the
+argument. On a REML fit whose objective is sampled as it stands
+(\code{prior = "flat"}), the objective integrates the coefficients out
+too, and that combination is refused: the draws would hold no
+coefficient.
 }
 
 \section{Default priors}{

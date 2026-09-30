@@ -1,0 +1,20 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-shapes                                                    
+⠋ |          1 | brms-shapes                                                    
+⠙ |         12 | brms-shapes                                                    
+⠼ |         25 | brms-shapes                                                    
+⠋ |         41 | brms-shapes                                                    
+⠸ |         54 | brms-shapes                                                    
+⠧ |         58 | brms-shapes                                                    
+⠙ |         62 | brms-shapes                                                    
+⠸ |         64 | brms-shapes                                                    
+⠙ |         72 | brms-shapes                                                    
+✔ |         72 | brms-shapes [9.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 72 ]
+RESULT lane test-brms-shapes.R: tests 21 pass 72 fail 0 error 0 skip 0 warn 0

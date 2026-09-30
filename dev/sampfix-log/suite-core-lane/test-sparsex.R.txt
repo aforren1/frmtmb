@@ -1,0 +1,24 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sparsex                                                        
+⠋ |          1 | sparsex                                                        
+⠧ |          8 | sparsex                                                        
+⠋ |         11 | sparsex                                                        
+⠹ |         13 | sparsex                                                        
+⠼ |         25 | sparsex                                                        
+⠋ |         31 | sparsex                                                        
+⠼ |         35 | sparsex                                                        
+⠏ |         40 | sparsex                                                        
+⠦ |         47 | sparsex                                                        
+⠙ |         52 | sparsex                                                        
+⠼ |         55 | sparsex                                                        
+⠇ |         59 | sparsex                                                        
+⠹ |         63 | sparsex                                                        
+✔ |         64 | sparsex [6.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 64 ]
+RESULT lane test-sparsex.R: tests 5 pass 64 fail 0 error 0 skip 0 warn 0

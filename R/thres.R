@@ -206,6 +206,11 @@ thres_finalizer <- function(family, ordered, link) {
         ord_tau_from_raw(raw[lay$start[g]:lay$end[g]], ordered)
       }))
     }
+    fam[["post"]][["ord_thresholds_raw"]] <- function(tau) {
+      unlist(lapply(seq_len(lay$G), function(g) {
+        ord_raw_from_tau(tau[lay$start[g]:lay$end[g]], ordered)
+      }))
+    }
     fam
   }
 }

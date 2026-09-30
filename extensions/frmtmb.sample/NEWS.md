@@ -1,3 +1,59 @@
+# frmtmb.sample (development version)
+
+* **`posterior_predict()`, `posterior_epred()` and `posterior_linpred()`
+  on `frm_sample(laplace = TRUE)` draws returned silently wrong
+  numbers.** Such draws hold no random effects, and every draws method
+  read them in the layout of full draws: `sigma` and `theta` landed in
+  the random effects and `NA` past the last column. On
+  `y ~ x + ar(t, g) + (1 | g)` all 4500 cells of `posterior_epred()` were
+  NaN; at `newdata` the values were finite and wrong, each group effect
+  read off `theta_1` or `lp__`. `fitted()`, `predict()`, `residuals()`
+  and `bayes_R2()` returned the same kind of numbers; `pp_check()`,
+  `predictive_interval()`, `pp_mixture()` and `hypothesis()` on `sd_`
+  quantities stopped in an internal error from `quantile()` or
+  bayesplot. Laplace draws are now read in their own layout. A quantity that
+  reads what was integrated out (the group-level coefficients, a
+  smooth's coefficients, `mi()` values) is refused, naming the function
+  you called, as `log_lik()` already refused; one that does not, such as
+  `re_formula = NA` on a model with group-level terms alone, is computed
+  exactly and equals the full draws' answer bit for bit. The new
+  "Laplace draws" section of `?frm_sample` lists both, and says why the
+  missing values are not filled in.
+* `conditional_effects()` on laplace draws draws its default curves
+  instead of refusing every model with a group-level term.
+* `frm_sample(laplace = TRUE)` on a model with nothing to integrate out
+  died in tmbstan with "invalid argument to unary operator". It now says
+  so and samples the model itself; the draws equal those of the call
+  without `laplace`. On a REML fit sampled as it stands
+  (`prior = "flat"`) it is refused: that objective integrates the
+  coefficients out too, and the draws carried `b_Intercept` over other
+  parameters' values.
+* `frm_sample()` on a model with one outer parameter (`y ~ 0 + x`) died
+  in rstan with "no more scalars to read": a length-one init was read as
+  a scalar. Each init is now passed as a one-dimensional array.
+* **`pp_check()`'s `loo_pit_overlay`, `loo_pit_qq`, `loo_intervals` and
+  `loo_ribbon` types work.** They failed on every model, because nothing
+  built the PSIS weights bayesplot needs. They are built as brms builds
+  them, `loo::psis()` on `log_lik()` of the same draws as the
+  predictions, and match brms 2.23.0 bitwise on brms's own draws. Where
+  `log_lik()` refuses, these types refuse and say so. A type that
+  `bayesplot::available_ppc()` does not list, such as the deprecated
+  `loo_pit`, is refused with brms's message.
+* A draws object with `stanfit = NULL` works with every method that
+  reads the chain count (`nchains()`, `summary()`, `VarCorr()`,
+  `as_draws_*()`, `posterior_summary()`, `mcmc_plot()` and more), as one
+  chain. `nuts_params()` and `log_posterior()` refuse it by name.
+* **An ordinal fit's draws carry brms's names.** The thresholds are
+  `b_Intercept[1]`, `b_Intercept[2]` (per group under `thres(gr = )`,
+  per response in a multivariate model) and hold the thresholds, not
+  `cumulative()`'s first threshold and log increments; a `cs()` column
+  is `bcs_<column>[k]`. They were `tau_raw_k` and `bcs<j>_k`.
+  `variables(ds)` now lists what `variables(fit)` lists. A draws object
+  saved with the old names still works. Code that selected
+  `tau_raw_1` from the draws must select `b_Intercept[1]` now. The
+  names come from each ordinal family's inverse threshold map, which the
+  frmtmb this release requires declares.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

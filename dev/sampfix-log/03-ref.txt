@@ -1,0 +1,158 @@
+ARM ref
+
+==== lap: b_Intercept b_x sigma theta_1 lp__ ... (5 columns)
+  print                              OK character
+  summary                            OK matrix
+  fixef                              OK matrix
+  ranef                              ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(lapl
+  coef                               ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(lapl
+  VarCorr                            OK list
+  print(VarCorr)                     OK character
+  prior_summary                      OK character
+  hypothesis b                       OK frmtmb_hypothesis NONFINITE=1
+  hypothesis sd                      ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE
+  hypothesis ranef                   ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(lapl
+  posterior_epred                    OK matrix NONFINITE=400
+  posterior_epred NA                 OK matrix
+  posterior_epred newdata            OK matrix
+  posterior_epred newdata NA         OK matrix
+  posterior_linpred                  OK matrix NONFINITE=400
+  posterior_linpred NA               OK matrix
+  posterior_predict                  OK matrix NONFINITE=400  [20 warn: NAs produced]
+  posterior_predict NA               OK matrix
+  predictive_error                   OK matrix NONFINITE=400  [20 warn: NAs produced]
+  predictive_interval                ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE  [20 warn: NAs produced]
+  posterior_interval                 OK matrix
+  posterior_summary                  OK matrix
+  fitted                             OK matrix NONFINITE=80
+  fitted NA                          OK matrix
+  predict                            OK matrix NONFINITE=80  [20 warn: NAs produced]
+  residuals                          OK matrix NONFINITE=80  [20 warn: NAs produced]
+  log_lik                            ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(laplace = TRUE), which integ
+  loo                                ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(laplace = TRUE), which integ
+  waic                               ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(laplace = TRUE), which integ
+  psis                               ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(laplace = TRUE), which integ
+  bayes_R2                           OK matrix  [1 warn: STATS is longer than the extent of 'dim(x)[MARGIN]]
+  pp_check dens                      ERROR: NAs not allowed in predictions.  [5 warn: NAs produced]
+  pp_check loo_pit_overlay           ERROR: NAs not allowed in predictions.  [300 warn: NAs produced]
+  pp_check loo_intervals             ERROR: NAs not allowed in predictions.  [300 warn: NAs produced]
+  pp_mixture                         ERROR: mixture_probs() needs a mixture() family fit
+  conditional_effects                ERROR: conditional_effects() on draws from frm_sample(laplace = TRUE) cannot rebuild the per-draw parameter vectors: 
+  mcmc_plot                          OK ggplot2::ggplot
+  pairs                              OK bayesplot_grid
+  plot                               ERROR: plot() has no display for frmtmb draws: brms's default panel is the trace-and-density view, which mcmc_plot(x)
+  rhat                               OK numeric
+  neff_ratio                         OK numeric
+  nuts_params                        OK data.frame
+  log_posterior                      OK data.frame
+  as_draws                           OK draws_list
+  as_draws_matrix                    OK draws_matrix
+  as_draws_array                     OK draws_array
+  as_draws_df                        OK draws_df
+  as_draws_list                      OK draws_list
+  as_draws_rvars                     OK draws_rvars
+  as.matrix                          OK matrix
+  as.array                           OK array
+  as.data.frame                      OK data.frame
+  as.mcmc                            OK mcmc.list
+  ndraws                             OK integer
+  nchains                            OK integer
+  niterations                        OK integer
+  nvariables                         OK integer
+  variables                          OK character
+  nobs                               OK integer
+  formula                            OK formula
+  family                             OK frmtmb_family
+  getCall                            OK call
+  ngrps                              OK list
+  parnames                           OK character  [1 warn: 'parnames' is deprecated. Please use 'variables' i]
+  posterior_samples                  OK data.frame  [1 warn: Method 'posterior_samples' is deprecated. Please s]
+  nsamples                           OK integer  [1 warn: 'nsamples.frmtmb_draws' is deprecated. Please use ]
+  stancode                           ERROR: stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built by build_objec
+  standata                           ERROR: standata() has no meaning for frmtmb: nothing is exported to a Stan data list. The assembled frame `ds$fit$fra
+  restructure                        ERROR: restructure() is brms's upgrade path for objects saved by an older brms; frmtmb has no such conversion. A draw
+  update                             ERROR: update() has no method for draws: the sampled object carries no formula to revise. update() the underlying frm
+  loo_compare                        ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(laplace = TRUE), which integ
+  kfold                              ERROR: kfold() is not implemented for frmtmb draws: K refits of the sampler are exactly the refit machinery that is o
+  reloo                              ERROR: reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a high Pareto k,
+  bridge_sampler                     ERROR: bridge_sampler() is not available for frmtmb draws. A marginal likelihood is an integral of the likelihood aga
+
+==== nul: b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] ... (11 columns)
+  print                              OK character
+  summary                            ERROR: no applicable method for `@` applied to an object of class "NULL"
+  fixef                              ERROR: no applicable method for `@` applied to an object of class "NULL"
+  ranef                              ERROR: no applicable method for `@` applied to an object of class "NULL"
+  coef                               ERROR: no applicable method for `@` applied to an object of class "NULL"
+  VarCorr                            ERROR: no applicable method for `@` applied to an object of class "NULL"
+  print(VarCorr)                     ERROR: no applicable method for `@` applied to an object of class "NULL"
+  prior_summary                      OK character
+  hypothesis b                       OK frmtmb_hypothesis NONFINITE=1
+  hypothesis sd                      OK frmtmb_hypothesis NONFINITE=1
+  hypothesis ranef                   ERROR: no applicable method for `@` applied to an object of class "NULL"
+  posterior_epred                    OK matrix
+  posterior_epred NA                 OK matrix
+  posterior_epred newdata            OK matrix
+  posterior_epred newdata NA         OK matrix
+  posterior_linpred                  OK matrix
+  posterior_linpred NA               OK matrix
+  posterior_predict                  OK matrix
+  posterior_predict NA               OK matrix
+  predictive_error                   OK matrix
+  predictive_interval                OK matrix
+  posterior_interval                 ERROR: no applicable method for `@` applied to an object of class "NULL"
+  posterior_summary                  ERROR: no applicable method for `@` applied to an object of class "NULL"
+  fitted                             OK matrix
+  fitted NA                          OK matrix
+  predict                            OK matrix
+  residuals                          OK matrix
+  log_lik                            OK matrix
+  loo                                OK psis_loo  [1 warn: Some Pareto k diagnostic values are too high. See ]
+  waic                               OK waic  [1 warn: 
+6 (20.0%) p_waic estimates greater than 0.4. We r]
+  psis                               OK psis  [1 warn: Some Pareto k diagnostic values are too high. See ]
+  bayes_R2                           OK matrix
+  pp_check dens                      OK ggplot2::ggplot
+  pp_check loo_pit_overlay           ERROR: One of 'lw' and 'psis_object' must be specified.
+  pp_check loo_intervals             ERROR: argument "psis_object" is missing, with no default
+  pp_mixture                         ERROR: mixture_probs() needs a mixture() family fit
+  conditional_effects                OK frmtmb_conditional_effects
+  mcmc_plot                          ERROR: no applicable method for `@` applied to an object of class "NULL"
+  pairs                              ERROR: no applicable method for `@` applied to an object of class "NULL"
+  plot                               ERROR: plot() has no display for frmtmb draws: brms's default panel is the trace-and-density view, which mcmc_plot(x)
+  rhat                               ERROR: no applicable method for `@` applied to an object of class "NULL"
+  neff_ratio                         ERROR: no applicable method for `@` applied to an object of class "NULL"
+  nuts_params                        ERROR: no applicable method for 'nuts_params' applied to an object of class "NULL"
+  log_posterior                      ERROR: no applicable method for 'log_posterior' applied to an object of class "NULL"
+  as_draws                           ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as_draws_matrix                    ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as_draws_array                     ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as_draws_df                        ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as_draws_list                      ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as_draws_rvars                     ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as.matrix                          ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as.array                           ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as.data.frame                      ERROR: no applicable method for `@` applied to an object of class "NULL"
+  as.mcmc                            ERROR: no applicable method for `@` applied to an object of class "NULL"
+  ndraws                             OK integer
+  nchains                            ERROR: no applicable method for `@` applied to an object of class "NULL"
+  niterations                        ERROR: no applicable method for `@` applied to an object of class "NULL"
+  nvariables                         OK integer
+  variables                          OK character
+  nobs                               OK integer
+  formula                            OK formula
+  family                             OK frmtmb_family
+  getCall                            OK call
+  ngrps                              OK list
+  parnames                           OK character  [1 warn: 'parnames' is deprecated. Please use 'variables' i]
+  posterior_samples                  ERROR: no applicable method for `@` applied to an object of class "NULL"  [1 warn: Method 'posterior_samples' is deprecated. Please s]
+  nsamples                           OK integer  [1 warn: 'nsamples.frmtmb_draws' is deprecated. Please use ]
+  stancode                           ERROR: stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built by build_objec
+  standata                           ERROR: standata() has no meaning for frmtmb: nothing is exported to a Stan data list. The assembled frame `ds$fit$fra
+  restructure                        ERROR: restructure() is brms's upgrade path for objects saved by an older brms; frmtmb has no such conversion. A draw
+  update                             ERROR: update() has no method for draws: the sampled object carries no formula to revise. update() the underlying frm
+  loo_compare                        OK compare.loo NONFINITE=2  [2 warn: Some Pareto k diagnostic values are too high. See ]
+  kfold                              ERROR: kfold() is not implemented for frmtmb draws: K refits of the sampler are exactly the refit machinery that is o
+  reloo                              ERROR: reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a high Pareto k,
+  bridge_sampler                     ERROR: bridge_sampler() is not available for frmtmb draws. A marginal likelihood is an integral of the likelihood aga
+
+DONE

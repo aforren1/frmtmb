@@ -18,7 +18,7 @@
 #' @noRd
 draws_raw_array <- function(x) {
   m <- x$draws
-  nc <- x$stanfit@sim$chains %||% 1L
+  nc <- draws_nchains(x)
   if (nc <= 1L || nrow(m) %% nc != 0L) nc <- 1L
   array(as.vector(m), c(nrow(m) %/% nc, nc, ncol(m)),
         dimnames = list(NULL, paste0("chain:", seq_len(nc)), colnames(m)))
@@ -79,11 +79,14 @@ draws_subset_variable <- function(a, variable, regex, what) {
 #' first (`draws_internal_matrix()`). Memoized on the fit's cache
 #' environment, because `draws_fit_at()` asks once per draw.
 #'
+#' `ordinal` holds the population-level parameters outside the
+#' coefficient table (see `draws_ordinal_cols()`).
+#'
 #' @noRd
 draws_natural_cols <- function(fit) {
   cache <- fit$cache
-  if (is.environment(cache) && !is.null(cache$brms_natural_cols)) {
-    return(cache$brms_natural_cols)
+  if (is.environment(cache) && !is.null(cache$brms_natural_cols_v2)) {
+    return(cache$brms_natural_cols_v2)
   }
   tab <- brms_coef_table(fit)
   smp <- attr(tab, "simplex")
@@ -93,9 +96,48 @@ draws_natural_cols <- function(fit) {
               linkfun = attr(tab, "linkfun")[i], simplex = smp,
               extra = unlist(lapply(smp, function(s) {
                 s$names[length(s$names)]
-              })))
-  if (is.environment(cache)) cache$brms_natural_cols <- out
+              })),
+              ordinal = draws_ordinal_cols(fit))
+  if (is.environment(cache)) cache$brms_natural_cols_v2 <- out
   out
+}
+
+#' An ordinal fit's thresholds and its `cs()` coefficients, under the
+#' names `variables(fit)` gives them.
+#'
+#' The sampler holds them in their template components, `tau_raw` (for
+#' `cumulative()` the first threshold and log increments) and one
+#' `bcs<j>` per `cs()` design column, and `brms_par_labels()` names them
+#' so: `tau_raw_1`, `bcs2_1`. brms and `variables(fit)` call them
+#' `b_Intercept[1]` and `bcs_fcb[1]`, and brms's `b_Intercept[k]` draws
+#' are the thresholds themselves. Each block therefore carries the map
+#' to the reported values and its inverse, both declared by the family
+#' through core's `brms_fixef_rows()`. A block whose family declares no
+#' inverse keeps the internal names, because a column must not carry a
+#' name that its values do not have.
+#'
+#' @noRd
+draws_ordinal_cols <- function(fit) {
+  # the formula route's fit has no estimates of its own; the blocks are
+  # read off the layout, and any vector of the right length serves
+  if (!length(fit$estimates)) fit$estimates <- fit$frame[["par_template"]]
+  out <- list()
+  for (e in brms_fixef_rows(fit)$extra) {
+    if (!is.function(e$inv)) next
+    out[[length(out) + 1L]] <- list(
+      internal = paste0(e$comp, "_", seq_along(e$raw)),
+      names = paste0(e$cls, "_", e$names), map = e$map, inv = e$inv)
+  }
+  out
+}
+
+#' `f` applied to every row of `M`, one vector of the same length each.
+#'
+#' @noRd
+draws_rowmap <- function(M, f) {
+  v <- vapply(seq_len(nrow(M)), function(r) as.numeric(f(M[r, ])),
+              numeric(ncol(M)))
+  matrix(v, nrow(M), ncol(M), byrow = TRUE, dimnames = dimnames(M))
 }
 
 #' Map the natural-scale columns of a draws matrix from the link scale
@@ -108,9 +150,22 @@ draws_natural_cols <- function(fit) {
 #' `lp__`, so each sampled column keeps its position. The inverse reads
 #' all `K` shares and drops the added column again.
 #'
+#' An ordinal block is renamed as well as mapped, in place. The inverse
+#' maps the values back and leaves the names, because the model reads a
+#' draw by position. A draws object stored before the renaming carries
+#' the internal names on the internal scale, and the inverse leaves it
+#' as it is.
+#'
 #' @noRd
 draws_to_natural <- function(m, fit, inverse = FALSE) {
   nc <- draws_natural_cols(fit)
+  for (o in nc$ordinal) {
+    j <- match(if (inverse) o$names else o$internal, colnames(m))
+    if (anyNA(j)) next
+    m[, j] <- draws_rowmap(m[, j, drop = FALSE],
+                           if (inverse) o$inv else o$map)
+    if (!inverse) colnames(m)[j] <- o$names
+  }
   for (s in nc$simplex) {
     K <- length(s$names)
     j <- match(s$names[-K], colnames(m))
@@ -387,15 +442,15 @@ draws_ranef_fill <- function(x, L, sel, A, g) {
   miss <- sel[colSums(is.na(L$cols[, sel, drop = FALSE])) > 0L]
   if (!length(miss)) return(A)
   if (draws_is_laplace(x)) {
-    frm_stop("ranef() and coef() have no draws of the group-level ",
+    frm_stop(draws_caller("ranef()"), " has no draws of the group-level ",
              "coefficients of '", g, "': these draws come from ",
              "frm_sample(laplace = TRUE), which integrates the random ",
-             "effects out. Sample with laplace = FALSE for them",
+             "effects out. Sample without laplace = TRUE for them",
              call. = FALSE)
   }
   fit <- draws_base_fit(x)
   frame <- fit$frame
-  idx <- draws_par_index(fit)
+  idx <- draws_index(x)
   m <- draws_internal_matrix(x)
   blocks <- frame[["re_blocks"]]
   for (i in seq_len(nrow(m))) {

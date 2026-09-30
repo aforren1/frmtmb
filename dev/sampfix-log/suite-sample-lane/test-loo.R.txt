@@ -1,0 +1,39 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | loo                                                            
+⠋ |          1 | loo                                                            
+⠴ |          6 | loo                                                            
+⠦ |          7 | loo                                                            
+⠧ |          8 | loo                                                            
+⠇ |          9 | loo                                                            
+⠏ |         10 | loo                                                            
+⠹ |         13 | loo                                                            
+⠴ |         16 | loo                                                            
+⠋ |         21 | loo                                                            
+⠼ |         25 | loo                                                            
+⠇ |         29 | loo                                                            
+⠏ |         30 | loo                                                            
+⠴ |         36 | loo                                                            
+⠧ |         38 | loo                                                            
+⠇ |         39 | loo                                                            
+⠋ |         41 | loo                                                            
+⠸ |         44 | loo                                                            
+⠴ |         46 | loo                                                            
+⠇ |         49 | loo                                                            
+⠴ |         56 | loo                                                            
+⠸ |         74 | loo                                                            
+⠦ |         87 | loo                                                            
+⠴ |         96 | loo                                                            
+⠏ |        100 | loo                                                            
+⠋ |        101 | loo                                                            
+⠹ |        103 | loo                                                            
+⠼ |        105 | loo                                                            
+⠦ |        107 | loo                                                            
+✔ |        111 | loo [121.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 121.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 111 ]
+RESULT lane test-loo.R: tests 26 pass 111 fail 0 error 0 skip 0 warn 0

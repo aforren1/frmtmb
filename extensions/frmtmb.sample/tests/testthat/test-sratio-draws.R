@@ -14,7 +14,7 @@ test_that("sratio threshold draws are the thresholds and may cross", {
   ds <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 4)))
   fe <- fixef(ds, summary = FALSE)
-  raw <- as.matrix(ds, variable = paste0("tau_raw_", 1:3))
+  raw <- as.matrix(ds, variable = paste0("b_Intercept[", 1:3, "]"))
   # as.vector(): the draws matrix carries an nchains attribute
   expect_identical(as.vector(fe[, paste0("Intercept[", 1:3, "]")]),
                    as.vector(raw))

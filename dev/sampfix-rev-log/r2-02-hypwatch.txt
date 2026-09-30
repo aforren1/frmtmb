@@ -1,0 +1,6 @@
+exp(1000000000 * (sd_g__Intercept - 0.000014164931)) > 1 
+  laplace: ERROR: hypothesis() needs the random effects, and these draws come from frm_sample(laplace = TRUE), which i 
+  full:    OK, sample draws non-finite 5 of 6 
+log(0.000015164931 - sd_g__Intercept) > -20 
+  laplace: ERROR: hypothesis() needs the random effects, and these draws come from frm_sample(laplace = TRUE), which i 
+  full:    ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE 

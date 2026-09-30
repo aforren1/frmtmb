@@ -1,0 +1,7 @@
+identical predict: TRUE  identical epred: TRUE 
+     predict_full predict_lap epred_full epred_lap
+[1,]         2.68        3.97       0.50      0.48
+[2,]         3.41        3.64       0.41      0.39
+[3,]         3.44        3.36       0.40      0.42
+median seconds: predict full 3.41, laplace 3.64 (ratio 1.067); epred full 0.41, laplace 0.42 (ratio 1.024)
+watch alone, 1000 calls on 2 x 20000 cells: 0.130 s (0.13 ms per draw)

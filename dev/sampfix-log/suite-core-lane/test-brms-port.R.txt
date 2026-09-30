@@ -1,0 +1,16 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-port                                                      
+⠋ |          1 | brms-port                                                      
+⠴ |          6 | brms-port                                                      
+⠙ |         12 | brms-port                                                      
+⠏ |         20 | brms-port                                                      
+⠋ |         21 | brms-port                                                      
+✔ |         21 | brms-port [2.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 21 ]
+RESULT lane test-brms-port.R: tests 6 pass 21 fail 0 error 0 skip 0 warn 0

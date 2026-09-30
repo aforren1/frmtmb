@@ -1,0 +1,40 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ce-bands                                                       
+⠋ |          1 | ce-bands                                                       
+⠹ |          3 | ce-bands                                                       
+⠧ |          8 | ce-bands                                                       
+⠸ |         14 | ce-bands                                                       
+⠇ |         19 | ce-bands                                                       
+⠙ |         22 | ce-bands                                                       
+⠏ |         30 | ce-bands                                                       
+⠼ |         35 | ce-bands                                                       
+⠧ |         38 | ce-bands                                                       
+⠹ |         43 | ce-bands                                                       
+⠇ |         49 | ce-bands                                                       
+⠧ |         58 | ce-bands                                                       
+⠦ |         67 | ce-bands                                                       
+⠏ |         70 | ce-bands                                                       
+⠋ |         71 | ce-bands                                                       
+⠙ |         82 | ce-bands                                                       
+⠹ |         83 | ce-bands                                                       
+⠏ |         90 | ce-bands                                                       
+⠴ |         96 | ce-bands                                                       
+⠋ |        101 | ce-bands                                                       
+⠼ |        105 | ce-bands                                                       
+⠦ |        117 | ce-bands                                                       
+⠹ |        123 | ce-bands                                                       
+⠹ |        133 | ce-bands                                                       
+⠏ |        140 | ce-bands                                                       
+⠦ |        147 | ce-bands                                                       
+⠧ |        148 | ce-bands                                                       
+⠧ |        158 | ce-bands                                                       
+⠏ |        160 | ce-bands                                                       
+✔ |        167 | ce-bands [24.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 24.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 167 ]
+RESULT lane test-ce-bands.R: tests 22 pass 167 fail 0 error 0 skip 0 warn 0

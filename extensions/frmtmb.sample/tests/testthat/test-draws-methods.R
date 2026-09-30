@@ -537,11 +537,16 @@ test_that("conditional_effects() on draws refuses what it cannot mean", {
                "no method =")
   expect_error(conditional_effects(cs$ds, band = "boot"),
                "no band =")
-  # laplace-shaped draws: random effects in the model, no r_ columns
+  # laplace-shaped draws: random effects in the model, no r_ columns.
+  # The default curve drops the group effects and reads none of them,
+  # so it is the full draws' curve. A curve that reads integrated values
+  # is refused; test-laplace-draws.R has one, on a smooth
   ld <- cs$ds
   ld$draws <- ld$draws[, !startsWith(colnames(ld$draws), "r_"),
                        drop = FALSE]
-  expect_error(conditional_effects(ld), "laplace = TRUE")
+  expect_identical(conditional_effects(ld, effects = "x", resolution = 5),
+                   conditional_effects(cs$ds, effects = "x",
+                                       resolution = 5))
 })
 
 ## ---- hypothesis() naming notes --------------------------------------

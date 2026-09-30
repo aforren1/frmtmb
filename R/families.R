@@ -3496,7 +3496,8 @@ fam_cumulative <- function(link = "logit") {
       ord_tau_init(y, ordered = TRUE, link = lk)
     },
     sim = ord_sim("cumulative", ordered = TRUE, link = lk),
-    post = list(ord_thresholds = ord_threshold_map(TRUE)),
+    post = list(ord_thresholds = ord_threshold_map(TRUE),
+                ord_thresholds_raw = ord_threshold_raw_map(TRUE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3608,6 +3609,28 @@ ord_tau_init <- function(y, ordered = TRUE, link = "logit", K = max(y)) {
 #' @noRd
 ord_threshold_map <- function(ordered) {
   function(raw) ord_tau_from_raw(raw, ordered)
+}
+
+#' The inverse of `ord_threshold_map()`, from the thresholds back to the
+#' internal vector, as a family declares it in `post$ord_thresholds_raw`.
+#'
+#' frmtmb.sample stores a draw's thresholds under brms's names and on
+#' brms's scale, `b_Intercept[k]`, and hands the internal vector back to
+#' the model at every draw. A family that declares only the forward map
+#' keeps its internal names in the draws, because a draws column must
+#' not carry a name that its values do not have.
+#'
+#' @noRd
+ord_threshold_raw_map <- function(ordered) {
+  function(tau) ord_raw_from_tau(tau, ordered)
+}
+
+#' The inverse of `ord_tau_from_raw()`.
+#'
+#' @noRd
+ord_raw_from_tau <- function(tau, ordered) {
+  if (!ordered || length(tau) < 2L) return(tau)
+  c(tau[1L], log(diff(tau)))
 }
 
 #' cumulative stores ordered thresholds as (tau_1, log increments);
@@ -3865,7 +3888,8 @@ fam_sratio <- function(link = "logit") {
       ord_tau_init(y, ordered = FALSE, link = lk)
     },
     sim = ord_sim("sratio", ordered = FALSE, link = lk),
-    post = list(ord_thresholds = ord_threshold_map(FALSE)),
+    post = list(ord_thresholds = ord_threshold_map(FALSE),
+                ord_thresholds_raw = ord_threshold_raw_map(FALSE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3923,7 +3947,8 @@ fam_cratio <- function(link = "logit") {
       ord_tau_init(y, ordered = FALSE, link = lk)
     },
     sim = ord_sim("cratio", ordered = FALSE, link = lk),
-    post = list(ord_thresholds = ord_threshold_map(FALSE)),
+    post = list(ord_thresholds = ord_threshold_map(FALSE),
+                ord_thresholds_raw = ord_threshold_raw_map(FALSE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3992,7 +4017,8 @@ fam_acat <- function(link = "logit") {
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
     sim = ord_sim("acat", ordered = FALSE, link = lk),
-    post = list(ord_thresholds = ord_threshold_map(FALSE)),
+    post = list(ord_thresholds = ord_threshold_map(FALSE),
+                ord_thresholds_raw = ord_threshold_raw_map(FALSE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)

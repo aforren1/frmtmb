@@ -105,15 +105,6 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   ce_structure_check(rspec)
-  if (length(fit$frame[["re_blocks"]]) &&
-      draws_is_laplace(x)) {
-    frm_stop("conditional_effects() on draws from frm_sample(laplace = ",
-             "TRUE) cannot rebuild the per-draw parameter vectors: the ",
-             "inner parameters were integrated out, so the draws columns ",
-             "do not align with the model's parameter template. Resample ",
-             "without laplace = TRUE, or call conditional_effects() on the ",
-             "fit itself", call. = FALSE)
-  }
   # the three displays, resolved core's way: `categorical =` used to be
   # neither honored nor a formal here, so the expected category number
   # could not be asked for at all
@@ -172,8 +163,24 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # runs per refit, here run per posterior draw. The estimate and the
   # band both come from the draws, so a nonlinear predictor or a
   # nominal category display needs no delta method here
-  idx <- draws_par_index(x$fit)
+  idx <- draws_index(x)
   rows <- draws_subsample(x, ndraws)
+  # laplace draws hold no random effects; the curves are computed from
+  # them only when they read none (see draws_laplace_probe())
+  ce_at <- function(fill, rf) {
+    fi <- draws_fit_at(x, rows[1L], idx, fill)
+    if (length(nspec) && !is_na_re_form(rf)) {
+      fi <- ce_draw_new_levels(fi, nspec)
+    }
+    unlist(lapply(egrids, function(g) {
+      ce_boot_one(fi, g$nd, poly, resp, pred_dpar, rf, anl)
+    }), use.names = FALSE)
+  }
+  draws_laplace_probe(x, "conditional_effects()",
+                      function(fill) ce_at(fill, re_formula),
+                      function(fill) ce_at(fill, NA))
+  watch <- draws_laplace_watch(x, "conditional_effects()",
+                               function(fill) ce_at(fill, NA))
   f1 <- draws_fit_at(x, rows[1L], idx)
   cats <- if (poly) {
     colnames(frm_linpred(f1, newdata = egrids[[1L]]$nd, type = "response",
@@ -191,6 +198,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     M[i, ] <- unlist(lapply(egrids, function(g) {
       ce_boot_one(fi, g$nd, poly, resp, pred_dpar, re_formula, anl)
     }), use.names = FALSE)
+    watch(M[i, ])
   }
 
   # brms's frame always carries cond__, with one level when there is

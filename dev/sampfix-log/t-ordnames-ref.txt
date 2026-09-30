@@ -1,0 +1,182 @@
+ARM ref frmtmb.sample from C:/Users/adf44/source/r/rellib-r3
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-draws-names                                            
+⠋ | 1        0 | ordinal-draws-names                                            
+⠹ | 3        0 | ordinal-draws-names                                            
+⠴ | 6        0 | ordinal-draws-names                                            
+✖ | 7        0 | ordinal-draws-names [1.8s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-draws-names.R:47:5'): ordinal and cs() draws carry variables(fit)'s names
+Expected `setdiff(variables(p$new), "lp__")` to be identical to `variables(fit)`.
+Differences:
+`actual`:   "b_x" "tau_raw_1"      "tau_raw_2"     
+`expected`: "b_x" "b_Intercept[1]" "b_Intercept[2]"
+
+
+Failure ('test-ordinal-draws-names.R:48:5'): ordinal and cs() draws carry variables(fit)'s names
+Expected `any(grepl("tau_raw|^bcs[0-9]", variables(p$new)))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Error ('test-ordinal-draws-names.R:50:5'): ordinal and cs() draws carry variables(fit)'s names
+Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+Backtrace:
+     ▆
+  1. ├─testthat::expect_identical(rownames(summary(p$new)), variables(fit)) at test-ordinal-draws-names.R:50:5
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. ├─base::rownames(summary(p$new))
+  5. │ └─dimnames(x)[[1L]] %||% ...
+  6. ├─base::summary(p$new)
+  7. └─frmtmb.sample:::summary.frmtmb_draws(p$new)
+  8.   ├─posterior::subset_draws(draws_as_array(object), variable = keep)
+  9.   └─frmtmb.sample:::draws_as_array(object)
+ 10.     ├─posterior::as_draws_array(draws_raw_array(x))
+ 11.     └─frmtmb.sample:::draws_raw_array(x)
+ 12.       └─x$stanfit@sim$chains %||% 1L
+
+Error ('test-ordinal-draws-names.R:60:3'): a stored threshold is the threshold, not its internal value
+<subscriptOutOfBoundsError/error/condition>
+Error in `p$new$draws[, c("b_Intercept[1]", "b_Intercept[2]")]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_equal(...) at test-ordinal-draws-names.R:60:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─base::unname(p$new$draws[, c("b_Intercept[1]", "b_Intercept[2]")])
+
+Error ('test-ordinal-draws-names.R:71:5'): the old storage and the new one answer every reader alike
+Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+Backtrace:
+     ▆
+  1. ├─testthat::expect_equal(fixef(p$new), fixef(p$old)) at test-ordinal-draws-names.R:71:5
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. ├─nlme::fixef(p$new)
+  5. └─frmtmb.sample:::fixef.frmtmb_draws(p$new)
+  6.   └─frmtmb.sample:::draws_fixef_ordinal(object, all_pars)
+  7.     ├─base::as.matrix(object, variable = need)
+  8.     └─frmtmb.sample:::as.matrix.frmtmb_draws(object, variable = need)
+  9.       └─frmtmb.sample:::draws_accessor_args(...)
+ 10.         ├─posterior (local) format(...)
+ 11.         └─frmtmb.sample:::draws_as_array(...)
+ 12.           ├─posterior::as_draws_array(draws_raw_array(x))
+ 13.           └─frmtmb.sample:::draws_raw_array(x)
+ 14.             └─x$stanfit@sim$chains %||% 1L
+
+Failure ('test-ordinal-draws-names.R:94:3'): frm_sample() stores the thresholds under brms's names
+Expected `setdiff(variables(ds), "lp__")` to be identical to `variables(fit)`.
+Differences:
+    actual      | expected            
+[1] "b_x"       | "b_x"            [1]
+[2] "tau_raw_1" - "b_Intercept[1]" [2]
+[3] "tau_raw_2" - "b_Intercept[2]" [3]
+[4] "bcs2_1"    - "bcs_fcb[1]"     [4]
+[5] "bcs2_2"    - "bcs_fcb[2]"     [5]
+[6] "bcs3_1"    - "bcs_fcc[1]"     [6]
+[7] "bcs3_2"    - "bcs_fcc[2]"     [7]
+
+
+Error ('test-ordinal-draws-names.R:99:3'): frm_sample() stores the thresholds under brms's names
+<subscriptOutOfBoundsError/error/condition>
+Error in `ds$draws[, c("b_Intercept[1]", "b_Intercept[2]")]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-ordinal-draws-names.R:99:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─base::unname(ds$draws[, c("b_Intercept[1]", "b_Intercept[2]")])
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.9 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-draws-names.R:47:5'): ordinal and cs() draws carry variables(fit)'s names
+Expected `setdiff(variables(p$new), "lp__")` to be identical to `variables(fit)`.
+Differences:
+`actual`:   "b_x" "tau_raw_1"      "tau_raw_2"     
+`expected`: "b_x" "b_Intercept[1]" "b_Intercept[2]"
+
+
+Failure ('test-ordinal-draws-names.R:48:5'): ordinal and cs() draws carry variables(fit)'s names
+Expected `any(grepl("tau_raw|^bcs[0-9]", variables(p$new)))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Error ('test-ordinal-draws-names.R:50:5'): ordinal and cs() draws carry variables(fit)'s names
+Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+Backtrace:
+     ▆
+  1. ├─testthat::expect_identical(rownames(summary(p$new)), variables(fit)) at test-ordinal-draws-names.R:50:5
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. ├─base::rownames(summary(p$new))
+  5. │ └─dimnames(x)[[1L]] %||% ...
+  6. ├─base::summary(p$new)
+  7. └─frmtmb.sample:::summary.frmtmb_draws(p$new)
+  8.   ├─posterior::subset_draws(draws_as_array(object), variable = keep)
+  9.   └─frmtmb.sample:::draws_as_array(object)
+ 10.     ├─posterior::as_draws_array(draws_raw_array(x))
+ 11.     └─frmtmb.sample:::draws_raw_array(x)
+ 12.       └─x$stanfit@sim$chains %||% 1L
+
+Error ('test-ordinal-draws-names.R:60:3'): a stored threshold is the threshold, not its internal value
+<subscriptOutOfBoundsError/error/condition>
+Error in `p$new$draws[, c("b_Intercept[1]", "b_Intercept[2]")]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_equal(...) at test-ordinal-draws-names.R:60:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─base::unname(p$new$draws[, c("b_Intercept[1]", "b_Intercept[2]")])
+
+Error ('test-ordinal-draws-names.R:71:5'): the old storage and the new one answer every reader alike
+Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+Backtrace:
+     ▆
+  1. ├─testthat::expect_equal(fixef(p$new), fixef(p$old)) at test-ordinal-draws-names.R:71:5
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. ├─nlme::fixef(p$new)
+  5. └─frmtmb.sample:::fixef.frmtmb_draws(p$new)
+  6.   └─frmtmb.sample:::draws_fixef_ordinal(object, all_pars)
+  7.     ├─base::as.matrix(object, variable = need)
+  8.     └─frmtmb.sample:::as.matrix.frmtmb_draws(object, variable = need)
+  9.       └─frmtmb.sample:::draws_accessor_args(...)
+ 10.         ├─posterior (local) format(...)
+ 11.         └─frmtmb.sample:::draws_as_array(...)
+ 12.           ├─posterior::as_draws_array(draws_raw_array(x))
+ 13.           └─frmtmb.sample:::draws_raw_array(x)
+ 14.             └─x$stanfit@sim$chains %||% 1L
+
+Failure ('test-ordinal-draws-names.R:94:3'): frm_sample() stores the thresholds under brms's names
+Expected `setdiff(variables(ds), "lp__")` to be identical to `variables(fit)`.
+Differences:
+    actual      | expected            
+[1] "b_x"       | "b_x"            [1]
+[2] "tau_raw_1" - "b_Intercept[1]" [2]
+[3] "tau_raw_2" - "b_Intercept[2]" [3]
+[4] "bcs2_1"    - "bcs_fcb[1]"     [4]
+[5] "bcs2_2"    - "bcs_fcb[2]"     [5]
+[6] "bcs3_1"    - "bcs_fcc[1]"     [6]
+[7] "bcs3_2"    - "bcs_fcc[2]"     [7]
+
+
+Error ('test-ordinal-draws-names.R:99:3'): frm_sample() stores the thresholds under brms's names
+<subscriptOutOfBoundsError/error/condition>
+Error in `ds$draws[, c("b_Intercept[1]", "b_Intercept[2]")]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-ordinal-draws-names.R:99:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─base::unname(ds$draws[, c("b_Intercept[1]", "b_Intercept[2]")])
+
+[ FAIL 7 | WARN 0 | SKIP 0 | PASS 0 ]
+RESULT ref test-ordinal-draws-names.R: tests 4 pass 0 fail 3 error 4 skip 0 warn 0

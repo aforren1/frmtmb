@@ -1,0 +1,133 @@
+== 01 repro, reference build (rellib-r3)
+  [posterior_predict] numeric 150x30, non-finite 4500 of 4500
+  [posterior_epred] numeric 150x30, non-finite 4500 of 4500
+  [posterior_linpred] numeric 150x30, non-finite 4500 of 4500
+  [posterior_epred re_formula=NA] numeric 150x30, non-finite 4500 of 4500
+  [posterior_predict] numeric 150x30, non-finite 3000 of 4500
+  [posterior_epred] numeric 150x30, non-finite 3000 of 4500
+  [posterior_linpred] numeric 150x30, non-finite 3000 of 4500
+  [posterior_epred re_formula=NA] numeric 150x30, non-finite 0 of 4500
+  [frm_sample(y ~ x, laplace = TRUE)] ERROR: invalid argument to unary operator
+  [nchains] ERROR: no applicable method for `@` applied to an object of class "NULL"
+  [ndraws] numeric 1, non-finite 0 of 1
+  [VarCorr] ERROR: no applicable method for `@` applied to an object of class "NULL"
+  [summary] ERROR: no applicable method for `@` applied to an object of class "NULL"
+  variables(ds):  b_x tau_raw_1 tau_raw_2 lp__
+  variables(ds):  b_x tau_raw_1 tau_raw_2 bcs2_1 bcs2_2 bcs3_1 bcs3_2 lp__
+[1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+== 01 repro, lane build
+  [posterior_epred re_formula=NA] numeric 150x30, non-finite 0 of 4500
+  [posterior_epred re_formula=NA] numeric 150x30, non-finite 0 of 4500
+== 2. laplace = TRUE with no random effect
+  [frm_sample(y ~ x, laplace = TRUE)] OK frmtmb_draws
+  [nchains] numeric 1, non-finite 0 of 1
+  [ndraws] numeric 1, non-finite 0 of 1
+  [VarCorr] OK list
+  [as_draws_array] numeric 200x1x11, non-finite 0 of 2200
+  [summary] numeric 4x7, non-finite 0 of 28
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] lp__
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2] lp__
+  [frm_sample(y ~ 0 + x) poisson] OK frmtmb_draws
+== 02 one-parameter model
+ARM ref
+[1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+[default init (mode)] ERROR: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a fai
+[init = random] OK 300x2 mean b_x 0.304895
+[1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+[init_jitter = 0] ERROR: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a fai
+[tmbstan init numeric] NO DRAWS
+[tmbstan init array] OK
+ARM lane
+[default init (mode)] OK 300x2 mean b_x 0.312645
+[init = random] OK 300x2 mean b_x 0.304895
+[init_jitter = 0] OK 300x2 mean b_x 0.314585
+[tmbstan init numeric] NO DRAWS
+[tmbstan init array] OK
+== 03 sweep: calls whose result changed, ref -> lane
+calls: 150, changed: 52
+ref NONFINITE or bare-error lines on the laplace object:
+  hypothesis b                       OK frmtmb_hypothesis NONFINITE=1
+  hypothesis sd                      ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE
+  posterior_epred                    OK matrix NONFINITE=400
+  posterior_linpred                  OK matrix NONFINITE=400
+  posterior_predict                  OK matrix NONFINITE=400  [20 warn: NAs produced]
+  predictive_error                   OK matrix NONFINITE=400  [20 warn: NAs produced]
+  predictive_interval                ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE  [20 warn
+  fitted                             OK matrix NONFINITE=80
+  predict                            OK matrix NONFINITE=80  [20 warn: NAs produced]
+  residuals                          OK matrix NONFINITE=80  [20 warn: NAs produced]
+  bayes_R2                           OK matrix  [1 warn: STATS is longer than the extent of 'dim(x)[MARGIN]]
+  pp_check dens                      ERROR: NAs not allowed in predictions.  [5 warn: NAs produced]
+  pp_check loo_pit_overlay           ERROR: NAs not allowed in predictions.  [300 warn: NAs produced]
+  pp_check loo_intervals             ERROR: NAs not allowed in predictions.  [300 warn: NAs produced]
+ref calls on the stanfit = NULL object that died on `@`: 26
+lane calls on the stanfit = NULL object that died on `@`: 0
+== 04 laplace validation
+draws: full 4000 x 17, laplace 4000 x 5
+(a) what laplace draws compute, against the full draws
+posterior_epred(newdata, re_formula = NA) max |mean diff|/sd 0.0202   sd ratio [0.9515, 1.0001]
+posterior_epred(re_formula = NA), 120 rows max |mean diff|/sd 0.0203   sd ratio [0.9512, 1.0068]
+conditional_effects(), 100 grid points   max |estimate diff|/se 0.0465   se ratio [0.9392, 0.9965]
+(b) population-level spread the Monte Carlo error allows: the full draws' bulk ESS on b_Intercept is 1466, laplace 3358
+(b) the refused in-sample posterior_epred(), two constructions
+at the conditional modes b-hat(theta)    max |mean diff|/sd 0.0631   sd ratio [0.2305, 0.7368]
+b from its Laplace conditional           max |mean diff|/sd 0.0650   sd ratio [0.9476, 1.0518]
+DONE
+== 05 pp_check against brms
+nchains: brms 2, frmtmb 2
+VarCorr sd identity, max abs diff: 0
+log_lik max abs diff: 0 (scale 6.595986)
+-- draws: all 1000
+  loo_pit_overlay  arg lw          same arg TRUE  dim 1000x30  y identical TRUE  max |lw diff| 0
+  loo_pit_qq       arg lw          same arg TRUE  dim 1000x30  y identical TRUE  max |lw diff| 0
+  loo_pit          brms NOT CALLED, frmtmb NOT CALLED
+  loo_intervals    arg psis_object same arg TRUE  dim 1000x30  y identical TRUE  max |lw diff| 0  max |k diff| 0
+  loo_ribbon       arg psis_object same arg TRUE  dim 1000x30  y identical TRUE  max |lw diff| 0  max |k diff| 0
+-- draws: 143 (draw_ids = seq(1, 1000, by = 7))
+  loo_pit_overlay  arg lw          same arg TRUE  dim 143x30  y identical TRUE  max |lw diff| 0
+  loo_pit_qq       arg lw          same arg TRUE  dim 143x30  y identical TRUE  max |lw diff| 0
+  loo_pit          brms NOT CALLED, frmtmb NOT CALLED
+  loo_intervals    arg psis_object same arg TRUE  dim 143x30  y identical TRUE  max |lw diff| 0  max |k diff| 0
+  loo_ribbon       arg psis_object same arg TRUE  dim 143x30  y identical TRUE  max |lw diff| 0  max |k diff| 0
+== 06 probes
+ARM ref
+  [posterior_epred(newdata)] 150x2 non-finite 0
+  row 1 (g = 1): epred - population equals theta_1 to 2.220446e-16
+  row 2 (g = 2): epred - population equals lp__ to 7.105427e-15
+  [posterior_epred(newdata, re_formula = NA)] 150x2 non-finite 0
+  [posterior_epred resp y] 150x30 non-finite 300
+  [posterior_epred resp x] 150x30 non-finite 0
+  columns: b_Intercept b_x sigma
+ARM lane
+  [posterior_epred(newdata, re_formula = NA)] 150x2 non-finite 0
+  [posterior_epred resp x] 150x30 non-finite 0
+  frm_sample ERROR: frm_sample(laplace = TRUE) on this REML fit would integrate the population-level coefficients out al
+== 07 ordinal names, lane against reference
+  cumulative  names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+  sratio_cs   names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+  thres_gr    names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+  mv          names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+== 08 conditional_effects at an observed level (defect, not fixed)
+  full, NULL vs NA estimate: -0.06448  0.02777 -0.11366
+  laplace:  0.08534 -0.05294  0.04833
+  full, NULL vs NA estimate: 0.006153 0.076877 0.105902
+  laplace: 0.10578 0.02752 0.02752
+  full, NULL vs NA estimate: -0.2053 -0.1345 -0.1055
+  laplace: 0.12117 0.08423 0.02307
+  full:  -0.44711  0.97998  2.46315 
+  full, shifted:  -0.44711  0.97998  2.46315 
+  laplace:  -0.44711  0.97998  2.46315 
+-- the fit's own curve at g = 1 and at re_formula = NA
+  fit NULL:  -0.52619  0.85915  2.24449 
+  fit NA:    -0.56941  0.81593  2.20128 
+  ranef(fit) g = 1:  0.043219 
+  full:  -0.44711  0.97998  2.46315 
+  full, r_g[2] shifted:  -0.44711  0.97998  2.46315 
+  laplace:  -0.44711  0.97998  2.46315 
+== new test files, reference build (seen to fail)
+RESULT ref test-laplace-draws.R: tests 10 pass 13 fail 14 error 7 skip 0 warn 176
+RESULT ref test-ppcheck-loo.R: tests 4 pass 4 fail 4 error 3 skip 0 warn 1
+RESULT ref test-draws-no-stanfit.R: tests 2 pass 0 fail 0 error 2 skip 0 warn 0
+RESULT ref test-ordinal-draws-names.R: tests 4 pass 0 fail 3 error 4 skip 0 warn 0

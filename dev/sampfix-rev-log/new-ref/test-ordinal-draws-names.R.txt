@@ -1,0 +1,9 @@
+ARM ref frmtmb.sample from C:/Users/adf44/source/r/rellib-r3
+RESULT ref test-ordinal-draws-names.R: tests 4 pass 0 fail 3 error 4 skip 0 warn 0
+FAILURE	test-ordinal-draws-names.R:47	ordinal and cs() draws carry variables(fit)'s names	Expected `setdiff(variables(p$new), "lp__")` to be identical to `variables(fit)`. Differences: `actual`:   "b_x" "tau_raw_1"      "tau_raw_2"      `expected`: "b_x" "b_Intercept[1]" "b_Intercept[2]" 
+FAILURE	test-ordinal-draws-names.R:48	ordinal and cs() draws carry variables(fit)'s names	Expected `any(grepl("tau_raw|^bcs[0-9]", variables(p$new)))` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE 
+ERROR	test-ordinal-draws-names.R:50	ordinal and cs() draws carry variables(fit)'s names	Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+ERROR	test-ordinal-draws-names.R:60	a stored threshold is the threshold, not its internal value	<subscriptOutOfBoundsError/error/condition> Error in `p$new$draws[, c("b_Intercept[1]", "b_Intercept[2]")]`: subscript out of bounds
+ERROR	test-ordinal-draws-names.R:71	the old storage and the new one answer every reader alike	Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+FAILURE	test-ordinal-draws-names.R:94	frm_sample() stores the thresholds under brms's names	Expected `setdiff(variables(ds), "lp__")` to be identical to `variables(fit)`. Differences:     actual      | expected             [1] "b_x"       | "b_x"            [1] [2] "tau_raw_1" - "b_Intercept[1]" [2] [3] "tau_raw_2" - "b_Intercept[2]" [3] [4] "bcs2_1"    - "bcs_fcb[1]"     [4] [5] "bcs2_2" 
+ERROR	test-ordinal-draws-names.R:99	frm_sample() stores the thresholds under brms's names	<subscriptOutOfBoundsError/error/condition> Error in `ds$draws[, c("b_Intercept[1]", "b_Intercept[2]")]`: subscript out of bounds

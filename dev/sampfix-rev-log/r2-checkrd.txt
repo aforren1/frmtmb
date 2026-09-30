@@ -1,0 +1,3 @@
+extensions/frmtmb.sample/man/frm_sample.Rd checkRd problems: 0 
+extensions/frmtmb.sample/man/posterior_epred.Rd checkRd problems: 0 
+man/variables.Rd checkRd problems: 0 

@@ -1,0 +1,32 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | laplace-draws                                                  
+⠋ |          1 | laplace-draws                                                  
+⠹ |         13 | laplace-draws                                                  
+⠇ |         19 | laplace-draws                                                  
+⠹ |         23 | laplace-draws                                                  
+⠧ |         28 | laplace-draws                                                  
+⠙ |         32 | laplace-draws                                                  
+⠸ |         34 | laplace-draws                                                  
+⠦ |         37 | laplace-draws                                                  
+⠇ |         59 | laplace-draws                                                  
+⠴ |         76 | laplace-draws                                                  
+⠧ |         78 | laplace-draws                                                  frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+
+⠙ |         82 | laplace-draws                                                  
+⠹ |         83 | laplace-draws                                                  
+⠼ |         85 | laplace-draws                                                  
+⠧ |         88 | laplace-draws                                                  
+⠇ |         89 | laplace-draws                                                  
+⠋ |         91 | laplace-draws                                                  
+✔ |         92 | laplace-draws [6.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 92 ]
+RESULT lane test-laplace-draws.R: tests 15 pass 92 fail 0 error 0 skip 0 warn 0

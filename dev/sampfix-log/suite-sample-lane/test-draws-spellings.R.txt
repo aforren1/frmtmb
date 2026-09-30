@@ -1,0 +1,28 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | draws-spellings                                                
+⠋ |          1 | draws-spellings                                                
+⠹ |          3 | draws-spellings                                                
+⠦ |          7 | draws-spellings                                                
+⠏ |         10 | draws-spellings                                                
+⠼ |         15 | draws-spellings                                                
+⠼ |         35 | draws-spellings                                                
+⠹ |         43 | draws-spellings                                                
+⠧ |         58 | draws-spellings                                                
+⠴ |         66 | draws-spellings                                                
+⠦ |         67 | draws-spellings                                                
+⠧ |         68 | draws-spellings                                                
+⠇ |         69 | draws-spellings                                                
+⠼ |         75 | draws-spellings                                                
+⠧ |         78 | draws-spellings                                                
+⠼ |         85 | draws-spellings                                                
+⠋ |         91 | draws-spellings                                                
+⠼ |         95 | draws-spellings                                                
+✔ |         97 | draws-spellings [5.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 97 ]
+RESULT lane test-draws-spellings.R: tests 11 pass 97 fail 0 error 0 skip 0 warn 0
