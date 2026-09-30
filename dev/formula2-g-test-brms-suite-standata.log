@@ -1,0 +1,9 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+brms-suite-standata: ................................................................1......................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-brms-suite-standata.R:602:3'): Cell-mean coding can be disa
+brms standata:744 now HOLDS but is recorded as 'cannot transfer' (bf() takes no cmc argument). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-brms-suite-standata.R pass=86 fail=1 err=0 skip=0 warn=0

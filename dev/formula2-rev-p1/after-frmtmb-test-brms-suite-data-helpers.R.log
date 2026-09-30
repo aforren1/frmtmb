@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+brms-suite-data-helpers: ......
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🧿 Your tests look perfect 🧿
+RESULT after frmtmb test-brms-suite-data-helpers.R gated=TRUE pass=6 fail=0 err=0 skip=0 warn=0

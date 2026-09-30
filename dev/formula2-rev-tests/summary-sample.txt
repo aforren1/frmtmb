@@ -1,0 +1,85 @@
+files=36  before: pass=1946 fail=0 err=0 skip=4 warn=0
+files=36  after:  pass=1946 fail=0 err=0 skip=4 warn=0
+DIFFERING FILES:
+ [1] file   pass.b fail.b err.b  skip.b warn.b pass.a fail.a err.a  skip.a
+[11] warn.a
+<0 rows> (or 0-length row.names)
+AFTER NOT CLEAN:
+ [1] file   pass.b fail.b err.b  skip.b warn.b pass.a fail.a err.a  skip.a
+[11] warn.a
+<0 rows> (or 0-length row.names)
+ALL FILES:
+                             file pass.b fail.b err.b skip.b warn.b pass.a
+                  test-adefects.R     20      0     0      0      0     20
+            test-bracket-access.R      1      0     0      0      0      1
+               test-brms-output.R     21      0     0      0      0     21
+                 test-brms-pins.R    334      0     0      0      0    334
+         test-brms-shapes-draws.R     61      0     0      0      0     61
+    test-brms-suite-brmsformula.R      0      0     0      0      0      0
+      test-brms-suite-brmsterms.R      0      0     0      0      0      0
+       test-brms-suite-families.R      0      0     0      0      0      0
+    test-brms-suite-helper-copy.R      0      0     0      0      0      0
+        test-brms-suite-methods.R      0      0     0      0      0      0
+          test-compat-preflight.R     81      0     0      0      0     81
+ test-conditional-effects-draws.R     61      0     0      0      0     61
+         test-conditions-census.R     11      0     0      0      0     11
+                test-conditions.R      6      0     0      0      0      6
+       test-default-priors-brms.R     25      0     0      0      0     25
+             test-draws-methods.R    148      0     0      0      0    148
+           test-draws-spellings.R     97      0     0      0      0     97
+            test-evidence-ratio.R     36      0     0      0      0     36
+         test-generic-collision.R     58      0     0      0      0     58
+               test-gr-by-draws.R      7      0     0      0      0      7
+                       test-loo.R    103      0     0      2      0    103
+        test-message-uniqueness.R      6      0     0      0      0      6
+           test-parallel-chains.R      4      0     0      0      0      4
+        test-predfix-new-levels.R     62      0     0      0      0     62
+               test-prior-route.R      9      0     0      0      0      9
+              test-prior-update.R      7      0     0      0      0      7
+          test-re-formula-draws.R     22      0     0      0      0     22
+                   test-reparam.R    292      0     0      0      0    292
+             test-sample-direct.R    137      0     0      0      0    137
+           test-sampling-ported.R    206      0     0      1      0    206
+                     test-scale.R      0      0     0      1      0      0
+                test-simulators.R     54      0     0      0      0     54
+              test-sratio-draws.R      2      0     0      0      0      2
+              test-stan-control.R     47      0     0      0      0     47
+               test-thres-draws.R      4      0     0      0      0      4
+       test-tmbstan-build-guard.R     24      0     0      0      0     24
+ fail.a err.a skip.a warn.a
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      2      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      1      0
+      0     0      1      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0

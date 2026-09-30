@@ -24,7 +24,10 @@ frm(
 \arguments{
 \item{formula}{A \code{frmtmb_formula} from \code{\link[=bf]{bf()}} (with a family attached
 via \code{+}), or a plain formula combined with the \code{family} argument.
-With neither, the family is \code{gaussian()}.}
+With neither, the family is \code{gaussian()}. A \code{.} stands for every
+column of \code{data} that is not on the left of the formula, as in
+brms: \code{y ~ .} is expanded with \code{\link[stats:terms]{stats::terms()}} before the formula
+is read, and each parameter formula is expanded on its own.}
 
 \item{data}{A data frame. A \code{tibble}, a \code{data.table}, or a plain
 named list of equal-length columns is accepted as well, since each
@@ -40,6 +43,9 @@ a family constructor with or without its parentheses (for example
 \code{gaussian()}, \code{poisson}, \code{cumulative}), or a family name as a
 string. It overrides a family already attached to \code{formula}; in a
 multivariate model it fills only the responses that have none.
+A multivariate model also takes a list of families, as in brms,
+one per response in formula order: \code{family = list(gaussian(), poisson())}. Each entry fills its response when that response has
+no family.
 The default, \code{NULL}, means \code{gaussian()} - the brms, \code{lme4} and
 \code{glmmTMB} convention - so \code{frm(y ~ x, data = d)} is a linear
 model.}

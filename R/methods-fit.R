@@ -398,7 +398,11 @@ summary_spec_frame <- function(object, prob) {
   q <- stats::qnorm(1 - (1 - prob) / 2)
   est <- err <- lo <- hi <- numeric(0)
   nm <- character(0)
-  for (i in keep) {
+  # an equated dpar (sigma1 = "sigma2") gets its target's row, as brms
+  # lists both
+  nr <- brms_natural_rows(object, tab, keep)
+  for (j in seq_along(nr$row)) {
+    i <- nr$row[j]
     f <- inv[[i]]
     e0 <- f(cf[i])
     h <- 1e-5 * max(1, abs(cf[i]))
@@ -407,7 +411,7 @@ summary_spec_frame <- function(object, prob) {
     err <- c(err, abs(d) * se_in[i])
     lo <- c(lo, f(cf[i] - q * se_in[i]))
     hi <- c(hi, f(cf[i] + q * se_in[i]))
-    nm <- c(nm, tab$brms[i])
+    nm <- c(nm, nr$name[j])
   }
   for (s in smp %||% list()) {
     p <- s$to_simplex(cf[s$pos])
@@ -1017,6 +1021,9 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   fe <- list()
   cmap <- list()
   for (lp in object$frame[["linpreds"]]) {
+    # an equated dpar (sigma1 = "sigma2") owns no coefficient; its
+    # target's block is the one
+    if (!is.null(lp[["equate"]])) next
     key <- coef_block_key(object, lp)
     v <- object$estimates[[lp[["par"]]]][lp[["idx"]]]
     bn <- brms_lp_coef_names(lp, tab)

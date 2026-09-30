@@ -89,11 +89,18 @@ draws_natural_cols <- function(fit) {
   smp <- attr(tab, "simplex")
   i <- setdiff(which(tab$natural),
                unlist(lapply(smp, `[[`, "pos")))
+  # an equated dpar, bf(sigma1 = "sigma2"), has no parameter of its own
+  # and is a copy of its target's column, as brms's transformed
+  # parameter is
+  equated <- lapply(attr(tab, "equated"), function(e) {
+    list(name = e$name, from = tab$brms[e$row])
+  })
   out <- list(names = tab$brms[i], linkinv = attr(tab, "linkinv")[i],
               linkfun = attr(tab, "linkfun")[i], simplex = smp,
-              extra = unlist(lapply(smp, function(s) {
+              equated = equated,
+              extra = c(unlist(lapply(smp, function(s) {
                 s$names[length(s$names)]
-              })))
+              })), vapply(equated, `[[`, "", "name")))
   if (is.environment(cache)) cache$brms_natural_cols <- out
   out
 }
@@ -111,6 +118,10 @@ draws_natural_cols <- function(fit) {
 #' @noRd
 draws_to_natural <- function(m, fit, inverse = FALSE) {
   nc <- draws_natural_cols(fit)
+  if (inverse && length(nc$equated)) {
+    eq <- match(vapply(nc$equated, `[[`, "", "name"), colnames(m))
+    if (length(eq <- eq[!is.na(eq)])) m <- m[, -eq, drop = FALSE]
+  }
   for (s in nc$simplex) {
     K <- length(s$names)
     j <- match(s$names[-K], colnames(m))
@@ -145,6 +156,19 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
     }
     f <- if (inverse) nc$linkfun[[k]] else nc$linkinv[[k]]
     m[, j] <- f(m[, j])
+  }
+  if (!inverse) {
+    # an equated dpar is added the way thetaK is: after every sampled
+    # column, before lp__, so no sampled column moves
+    for (e in nc$equated) {
+      j <- match(e$from, colnames(m))
+      if (is.na(j) || e$name %in% colnames(m)) next
+      at <- match("lp__", colnames(m), nomatch = ncol(m) + 1L) - 1L
+      nm_all <- append(colnames(m), e$name, after = at)
+      m <- cbind(m[, seq_len(at), drop = FALSE], m[, j],
+                 m[, seq_len(ncol(m) - at) + at, drop = FALSE])
+      colnames(m) <- nm_all
+    }
   }
   m
 }

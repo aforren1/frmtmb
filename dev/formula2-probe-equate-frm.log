@@ -1,0 +1,117 @@
+frmtmb from C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+== spec 
+<frmtmb spec>
+Response: y  [mixture(gaussian, gaussian)]
+  mu1 (identity): ~x
+  sigma1 = sigma2 (equated)
+  mu2 (identity): ~x
+  sigma2 (log): ~1
+  theta1 (identity): ~1
+== logLik 
+'log Lik.' -610.5053 (df=6)
+== fixef 
+                Estimate  Est.Error       Q2.5        Q97.5
+mu1_Intercept -0.9996665 0.08411930 -1.1645373 -0.834795677
+mu2_Intercept  3.1375498 0.10270989  2.9362421  3.338857508
+mu1_x         -0.1684506 0.08289657 -0.3309249 -0.005976278
+mu2_x          0.4774948 0.10544887  0.2708188  0.684170796
+== variables 
+[1] "b_mu1_Intercept" "b_mu1_x"         "b_mu2_Intercept" "b_mu2_x"        
+[5] "sigma1"          "sigma2"          "theta1"          "theta2"         
+== summary 
+ Family: mixture(gaussian, gaussian) 
+ Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
+        theta1 = identity
+
+Formula: y ~ x 
+   Data: d (Number of observations: 300) 
+ Method: ML   logLik: -610.505   AIC: 1233.01   BIC: 1255.23 
+
+Regression Coefficients:
+              Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+mu1_Intercept    -1.00      0.08    -1.16    -0.83  -11.88  < 2e-16
+mu2_Intercept     3.14      0.10     2.94     3.34   30.55  < 2e-16
+mu1_x            -0.17      0.08    -0.33    -0.01   -2.03    0.042
+mu2_x             0.48      0.11     0.27     0.68    4.53  5.9e-06
+
+Further Distributional Parameters:
+       Estimate Est.Error l-95% CI u-95% CI
+sigma1     1.01      0.05     0.92      1.1
+sigma2     1.01      0.05     0.92      1.1
+theta1     0.59        NA       NA       NA
+theta2     0.41        NA       NA       NA
+== vcov dim 
+[1] 4 4
+== confint 
+                           lwr          upr          est
+mu1_(Intercept)    -1.16453729 -0.834795677 -0.999666485
+mu1_x              -0.33092486 -0.005976278 -0.168450570
+mu2_(Intercept)     2.93624215  3.338857508  3.137549829
+mu2_x               0.27081881  0.684170796  0.477494804
+sigma2_(Intercept) -0.08216955  0.094768058  0.006299256
+theta1_(Intercept)  0.12008732  0.610730658  0.365408988
+== get_prior 
+route = "fit": the prior defaults frm() applies
+   prior     class coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                  mu1       NA NA default
+2 (flat)         b                  mu1       NA NA default
+3 (flat)         b    x             mu1       NA NA default
+4 (flat) Intercept                  mu2       NA NA default
+5 (flat)         b                  mu2       NA NA default
+6 (flat)         b    x             mu2       NA NA default
+7 (flat)    sigma2                            NA NA default
+== prior on sigma1 
+ERROR: class = "sigma1": sigma1 is equated to sigma2 in this model, so it holds no parameter of its own. Address sigma2 instead 
+== prior on sigma2 
+'log Lik.' -611.4169 (df=6)
+== fitted head 
+      Estimate Est.Error      Q2.5     Q97.5
+[1,] 0.6383132 0.1271353 0.3891327 0.8874937
+[2,] 0.6977050 0.1317459 0.4394877 0.9559222
+[3,] 0.5493136 0.1480871 0.2590683 0.8395590
+[4,] 0.5641129 0.1426280 0.2845672 0.8436585
+[5,] 0.8084729 0.1742568 0.4669359 1.1500100
+[6,] 0.6053183 0.1313167 0.3479423 0.8626942
+== predict head 
+      Estimate Est.Error      Q2.5    Q97.5
+[1,] 0.7340817  2.153979 -2.652059 4.506754
+[2,] 0.6014585  2.268240 -2.748507 4.651882
+[3,] 0.6264964  1.858713 -2.382127 3.925460
+[4,] 0.5851089  1.839716 -2.326209 4.132741
+[5,] 1.0606399  2.674564 -2.887266 5.518202
+[6,] 0.5082840  2.052694 -2.601234 4.156792
+== predict newdata 
+      Estimate Est.Error      Q2.5    Q97.5
+[1,] 0.4708112  2.079529 -2.661945 4.231437
+[2,] 0.5581203  2.172221 -2.683772 4.564957
+[3,] 0.3238416  1.811074 -2.432934 3.857560
+== simulate 
+[1] 300   2
+== hypothesis 
+ERROR: Some parameters cannot be found in the model: 
+'b_sigma1', 'b_sigma2'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+== par_template 
+<frmtmb parameter template> estimates
+$beta  (4)
+mu1_(Intercept)           mu1_x mu2_(Intercept)           mu2_x 
+     -0.9996665      -0.1684506       3.1375498       0.4774948 
+$betad  (2)
+sigma2_(Intercept) theta1_(Intercept) 
+       0.006299256        0.365408988 
+Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
+== frm_linpred sigma1 vs sigma2 
+[1] TRUE
+== AIC df 
+[1] 6
+== update to lf spelling 
+'log Lik.' -610.5053 (df=6)
+== print bf 
+y ~ x
+sigma1 = sigma2 
+== equate to missing 
+ERROR: Parameter 'sigma3' cannot be found. Family 'mixture(gaussian, gaussian)' has: mu1, sigma1, mu2, sigma2, theta1 
+== equate in gaussian 
+ERROR: Equating 'sigma' with itself is not meaningful. 
+== theta 
+ERROR: Equating mixing proportions ('theta1' = "theta2") is not supported, and brms cannot fit it either. To fix the weights, give each theta a constant, as theta1 = 0.5, theta2 = 0.5 

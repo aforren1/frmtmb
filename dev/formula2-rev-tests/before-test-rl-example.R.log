@@ -1,0 +1,10 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+rl-example: ..............................................................................SS..................
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the taped joint density equals a Stan program's log_prob ('test-rl-example.R:221:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. the Stan identity holds away from the optimum too ('test-rl-example.R:234:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-rl-example.R gated=FALSE pass=96 fail=0 err=0 skip=2 warn=0

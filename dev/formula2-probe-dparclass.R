@@ -1,0 +1,7 @@
+.libPaths(c("C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+print(deparse(brms:::dpar_class))
+print(brms:::dpar_class(c("sigma1", "sigmaa2", "mu3", "theta12", "shape", "zi2")))
+db <- tools::Rd_db("brms")
+txt <- capture.output(tools::Rd2txt(db[["brmsformula.Rd"]], options = list(underline_titles = FALSE)))
+i <- grep("cmc", txt)
+print(txt[sort(unique(unlist(lapply(i, function(k) k + (-2:4)))))])

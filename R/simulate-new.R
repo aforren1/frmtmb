@@ -704,7 +704,8 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   # names neither this function nor the argument
   check_count(nsim, "nsim", min = 1L)
   if (!is.null(seed)) set.seed(seed)
-  bform <- resolve_deferred_families(as_bform(formula, family), data)
+  bform <- expand_dot_bform(as_bform(formula, family), data)
+  bform <- resolve_deferred_families(bform, data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, data2 = data2)
   # An extension that installs its SIMULATOR at finalize (frmtmb.eam's

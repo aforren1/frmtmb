@@ -1,0 +1,27 @@
+order y, cnt: gaussian, poisson | logLik identical to + family: TRUE 
+order cnt, y: poisson, gaussian 
+named list in the wrong order (positional, as brms): ERR: poisson: response must be non-negative integers 
+shorter list: ERR: If 'family' is a list, it has to be of the same length as the number of response variables: 1 families for 2 responses 
+longer list: ERR: If 'family' is a list, it has to be of the same length as the number of response variables: 3 families for 2 responses 
+univariate with a list: ERR: A list of families is for a multivariate model, one family per response. This formula has one response: pass its family alone, as family = gaussian() 
+strings: gaussian, poisson 
+functions: gaussian, poisson 
+with + family on cnt (list fills only y): ERR: poisson: response must be non-negative integers 
+mixture in a list: mixture(gaussian, gaussian), poisson 
+categorical (deferred) in a list: categorical, gaussian 
+bernoulli + hurdle_poisson: bernoulli, hurdle_poisson 
+mvbind with a list: gaussian, poisson 
+rescor with two gaussians: gaussian, gaussian 
+list with a NULL entry: ERR: Cannot interpret `family` of class NULL: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()` 
+list with a bad entry: ERR: nope is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compoi 
+brmsfamily in a list: gaussian, poisson 
+== other entry points
+get_prior identical: TRUE 
+par_template identical: TRUE 
+frm_simulate: ERR: frm_simulate() supports univariate models 
+update(a, family = list(student(), poisson())): student, poisson 
+update(b, newdata = d[-1, ]): gaussian, poisson 
+update(a, newdata = d[-1, ]): gaussian, poisson 
+DONE
+fixed construction: bf(y ~ x) + (bf(cnt ~ x) + poisson()), list(student(), gaussian()): student, poisson 
+brms on the same: student, poisson 

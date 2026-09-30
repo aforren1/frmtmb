@@ -22,9 +22,11 @@
 #' @param ... Two-sided formulas for other dpars (the left-hand side
 #'   names the dpar, e.g. `sigma ~ z`, or several sharing one
 #'   right-hand side, e.g. `b1 + b2 ~ 1`), one-sided formulas named by
-#'   their dpar (`sigma = ~ z`, the same formula), or named scalars
+#'   their dpar (`sigma = ~ z`, the same formula), named scalars
 #'   fixing a dpar to a constant on the response scale (e.g.
-#'   `sigma = 1`).
+#'   `sigma = 1`), or a dpar equated to another of the same class, as
+#'   `sigma1 = "sigma2"` in a mixture. See the section on equated
+#'   parameters.
 #' @param family Optional family; can also be attached with `+` or
 #'   passed to [frm()], which uses `gaussian()` when nothing names one.
 #' @param nl Nonlinear-formula flag: the main formula becomes a
@@ -42,7 +44,43 @@
 #'   only: the likelihood and the maximum likelihood fit are the same.
 #'   It applies to the location formula alone, as in brms; give a
 #'   parameter formula its own with [lf()].
+#' @param cmc Cell-mean coding, as in brms. `NULL`, the default, means
+#'   `TRUE` for a new formula and keeps the setting of a formula `bf()`
+#'   already built. With `TRUE`, R's rule applies: a formula without an
+#'   intercept, `y ~ 0 + g`, gives a factor one column per level. With
+#'   `FALSE`, the factor keeps its treatment contrasts and only the
+#'   intercept column goes, so `y ~ 0 + g` has the columns `gb`, `gc`,
+#'   and not `ga`. The group-level terms of the formula follow the same
+#'   rule: `(0 + g | h)` has the coefficients `gb`, `gc`, and so does
+#'   each member of `(0 + g | mm(h1, h2))`. A formula with an intercept
+#'   does not change. It applies to the location formula alone, as in
+#'   brms; give a parameter formula its own with [lf()]. `cmc = FALSE` is
+#'   refused on `ar1()`, `hetar1()`, `cs()`, `homcs()`, `toep()`,
+#'   `homtoep()` and the distance structures `ou()`, `exp()`, `gau()`,
+#'   `mat()`, which read one coefficient per level of their factor.
 #' @return An object of class `frmtmb_formula`.
+#' @section Equated parameters:
+#' A named character string equates a distributional parameter to
+#' another of the same class, as in brms: in
+#' `bf(y ~ x, sigma1 = "sigma2") + mixture(gaussian(), gaussian())`,
+#' the two components share one residual standard deviation. The model
+#' has one parameter, `sigma2`, and `sigma1` takes its value. `sigma2`
+#' is the name that [fixef()], `summary()` and [get_prior()] report and
+#' that [set_prior()] addresses; [variables()] lists `sigma1` as well,
+#' with the value of `sigma2`, as brms lists it as a transformed
+#' parameter. The fit is the same as that of a hand-written model with
+#' one shared parameter. A target that is reported as a coefficient on
+#' its link scale, such as a transition cell of `frmtmb.latent::hmm()`,
+#' has no natural value to repeat, and the equated name is then not
+#' listed. [coef()] has no block for the equated parameter.
+#'
+#' brms's rules apply, with brms's messages. The two names must be of
+#' the same class (`sigma1` and `sigma2`, not `sigma1` and `nu2`). A
+#' location parameter (`mu1`) cannot be equated. The parameter on the
+#' right cannot itself be fixed, equated or predicted by a formula. A
+#' mixture's weights (`theta1`) cannot be equated: brms stops with an
+#' internal error on this, and frmtmb refuses it. [lf()] takes the same
+#' spelling, `bf(y ~ x) + lf(sigma1 = "sigma2")`.
 #' @section brms's reserved `Intercept`:
 #' In a formula without an intercept, `Intercept` is a reserved name, as
 #' in brms: `y ~ 0 + Intercept + x` is the model `y ~ 1 + x`, with the
@@ -75,6 +113,10 @@
 #' # an intercept that a class "b" prior reaches; the two are one model
 #' bf(y ~ 0 + Intercept + x)
 #' bf(y ~ x, center = FALSE)
+#' # treatment contrasts without the intercept column
+#' bf(y ~ 0 + g, cmc = FALSE)
+#' # a mixture whose components share one standard deviation
+#' bf(y ~ x, sigma1 = "sigma2") + mixture(gaussian(), gaussian())
 #' @srrstats {G2.0} Inputs expected to be single-valued are asserted to be
 #'   so. A distributional parameter fixed to a constant must satisfy
 #'   `is.numeric(d) && length(d) == 1L`; the tuning arguments of the
@@ -106,7 +148,8 @@
 #'   and drops rows only on the non-`mi()` columns.
 #'
 #' @export
-bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL) {
+bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL,
+               cmc = NULL) {
   if (inherits(formula, c("brmsformula", "bform"))) {
     frm_stop("this formula was built by brms::bf(): attaching brms after ",
              "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
@@ -125,9 +168,10 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL) {
   # LINEAR model and say nothing. NULL keeps what an existing bf() says
   if (!is.null(nl)) check_flag(nl, "nl")
   if (!is.null(center)) check_flag(center, "center")
+  if (!is.null(cmc)) check_flag(cmc, "cmc")
   if (existing) {
     return(bf_update(formula, ..., family = family, nl = nl,
-                     center = center))
+                     center = center, cmc = cmc))
   }
   refuse_nested_formula(formula)
   # mvbind(y1, y2) ~ rhs: shared predictors, one bf per response
@@ -137,7 +181,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL) {
     forms <- lapply(resps, function(r) {
       f1 <- formula
       f1[[2]] <- r
-      bf(f1, ..., family = family, nl = nl, center = center)
+      bf(f1, ..., family = family, nl = nl, center = center, cmc = cmc)
     })
     return(do.call(mvbf, forms))
   }
@@ -162,6 +206,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL) {
     class = c("frmtmb_formula", "frmtmb_bform")
   )
   if (!is.null(center)) out$center <- center
+  if (!is.null(cmc)) out$cmc <- cmc
   out
 }
 
@@ -196,14 +241,87 @@ bf_dots <- function(dots, pforms = list(), pfix = list(),
         frm_stop("Duplicated dpar constant: '", nm, "'", call. = FALSE)
       }
       pfix[[nm]] <- d
+    } else if (is.character(d) && length(d) == 1L && !is.na(d) &&
+                 nzchar(nm)) {
+      # brms's spelling for equating one dpar to another; it shares
+      # the constants' slot, as it does in brms, so the duplicate rule
+      # is the same
+      if (nm %in% c(names(pforms), names(pfix), taken)) {
+        frm_stop("Duplicated dpar equation: '", nm, "'", call. = FALSE)
+      }
+      pfix[[nm]] <- d
     } else {
       frm_stop("Cannot interpret bf() argument ",
                if (nm != "") paste0("'", nm, "'") else i,
-               ": expected a dpar formula or a named numeric constant",
+               ": expected a dpar formula, a named numeric constant, or ",
+               "a dpar equated to another by name, as sigma1 = \"sigma2\"",
                call. = FALSE)
     }
   }
+  check_dpar_equations(pfix, c(names(pforms), taken))
   list(pforms = pforms, pfix = pfix)
+}
+
+#' brms's class of a parameter name: the name without its trailing
+#' digits, so `sigma1` and `sigma2` are both of class `sigma`.
+#'
+#' @noRd
+dpar_name_class <- function(dp) sub("[[:digit:]]*$", "", dp)
+
+#' The rules brms's `bf()` applies to an equation `sigma1 = "sigma2"`,
+#' with brms's messages, checked wherever an equation can arrive:
+#' `bf()`, `bf()` on a formula already built, and `+ lf()`. `pforms`
+#' names every parameter that has a formula, linear or nonlinear. `fn`
+#' and `args` name the function and its own arguments, so that a
+#' misspelled argument given a string, `bf(y ~ x, famly = "gaussian")`,
+#' is named as a misspelling before brms's rule refuses the equation.
+#'
+#' @noRd
+check_dpar_equations <- function(pfix, pforms, fn = "bf()",
+                                 args = c("family", "nl", "center", "cmc")) {
+  for (dp in names(pfix)) {
+    to <- pfix[[dp]]
+    if (!is.character(to)) next
+    if (identical(dp, to)) {
+      frm_stop("Equating '", dp, "' with itself is not meaningful.",
+               call. = FALSE)
+    }
+    cls <- dpar_name_class(dp)
+    if (identical(cls, "mu")) {
+      frm_stop("Equating parameters of class 'mu' is not allowed.",
+               call. = FALSE)
+    }
+    if (!identical(cls, dpar_name_class(to))) {
+      guess <- nearest_formal(dp, args)
+      frm_stop(if (!is.null(guess)) {
+                 paste0(fn, " has no argument `", dp, "`. Did you mean `",
+                        guess, "`? Read as an equation, it fails brms's ",
+                        "rule: ")
+               },
+               "Can only equate parameters of the same class. '", dp,
+               "' is of class '", cls, "' and '", to, "' of class '",
+               dpar_name_class(to), "'", call. = FALSE)
+    }
+    # brms stops with an internal error here, in the sum it takes to
+    # normalize fixed mixing proportions
+    if (identical(cls, "theta")) {
+      frm_stop("Equating mixing proportions ('", dp, "' = \"", to, "\") ",
+               "is not supported, and brms cannot fit it either. To fix ",
+               "the weights, give each theta a constant, as theta1 = 0.5, ",
+               "theta2 = 0.5", call. = FALSE)
+    }
+    if (to %in% names(pfix)) {
+      frm_stop("Cannot use fixed parameters on the right-hand side of an ",
+               "equation. '", to, "' is itself fixed or equated",
+               call. = FALSE)
+    }
+    if (to %in% pforms) {
+      frm_stop("Cannot use predicted parameters on the right-hand side of ",
+               "an equation. '", to, "' has a formula of its own, so ",
+               "equate the other way round", call. = FALSE)
+    }
+  }
+  invisible(NULL)
 }
 
 #' `bf()` on a formula `bf()` already built. With nothing else given the
@@ -214,9 +332,10 @@ bf_dots <- function(dots, pforms = list(), pfix = list(),
 #'
 #' @noRd
 bf_update <- function(formula, ..., family = NULL, nl = NULL,
-                      center = NULL) {
+                      center = NULL, cmc = NULL) {
   dots <- list(...)
-  if (!length(dots) && is.null(family) && is.null(nl) && is.null(center)) {
+  if (!length(dots) && is.null(family) && is.null(nl) && is.null(center) &&
+        is.null(cmc)) {
     return(formula)
   }
   if (length(dots)) {
@@ -227,6 +346,7 @@ bf_update <- function(formula, ..., family = NULL, nl = NULL,
   }
   if (!is.null(nl)) formula[["nl"]] <- isTRUE(nl)
   if (!is.null(center)) formula[["center"]] <- center
+  if (!is.null(cmc)) formula[["cmc"]] <- cmc
   if (!is.null(family)) formula[["family"]] <- as_frmtmb_family(family)
   formula
 }
@@ -312,7 +432,9 @@ lhs_dpar_names <- function(lhs) {
 #' @param ... Two-sided formulas naming the parameter on the left, e.g.
 #'   `sigma ~ x` or (with `nl = TRUE` on the `bf()`) a nonlinear
 #'   parameter's formula `a ~ 1 + (1 | g)`, or one-sided formulas named
-#'   by their parameter, `sigma = ~ x`.
+#'   by their parameter, `sigma = ~ x`. As in brms, `lf()` also takes
+#'   what [bf()] takes besides formulas: a parameter fixed to a
+#'   constant, `sigma = 2`, or equated to another, `sigma1 = "sigma2"`.
 #' @param resp The response the formulas belong to, when the `lf()` is
 #'   added to a multivariate formula. `NULL` (the default) adds them to
 #'   the `bf()` on the left of the `+`, which must then be a single
@@ -322,6 +444,10 @@ lhs_dpar_names <- function(lhs) {
 #'   of brms's class `"Intercept"`: the same as `0 + Intercept` in the
 #'   formula. See [bf()]. `NULL`, the default, leaves the intercept as
 #'   class `"Intercept"`.
+#' @param cmc `FALSE` turns off cell-mean coding in each of these
+#'   formulas: without an intercept, a factor keeps its treatment
+#'   contrasts, in the population-level and the group-level terms. See
+#'   [bf()]. `NULL`, the default, keeps R's cell-mean coding.
 #' @return An object of class `frmtmb_lf`, to be added to a [bf()].
 #' @examples
 #' # the two spellings are the same model
@@ -334,21 +460,37 @@ lhs_dpar_names <- function(lhs) {
 #' # in a multivariate formula, resp = says which response it modifies
 #' bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")
 #' @export
-lf <- function(..., resp = NULL, center = NULL) {
+lf <- function(..., resp = NULL, center = NULL, cmc = NULL) {
   check_lf_resp(resp, "lf()")
   if (!is.null(center)) check_flag(center, "center")
+  if (!is.null(cmc)) check_flag(cmc, "cmc")
   dots <- list(...)
   pforms <- list()
+  pfix <- list()
   for (i in seq_along(dots)) {
     d <- dots[[i]]
+    nm <- names(dots)[i] %||% ""
     if (!inherits(d, "formula")) {
-      frm_stop("lf() takes two-sided formulas naming the parameter on the ",
-               "left: e.g. lf(sigma ~ x)", call. = FALSE)
+      # brms's lf() hands its entries to bf(), so a named constant or an
+      # equation is as valid here as there
+      if (nzchar(nm) && length(d) == 1L &&
+            ((is.numeric(d) && !is.na(d)) || (is.character(d) && !is.na(d)))) {
+        if (nm %in% c(names(pforms), names(pfix))) {
+          frm_stop("Duplicated parameter in lf(): '", nm, "'", call. = FALSE)
+        }
+        pfix[[nm]] <- d
+        next
+      }
+      frm_stop("lf() takes parameter formulas, e.g. lf(sigma ~ x), or a ",
+               "named parameter fixed to a constant, lf(sigma = 2), or ",
+               "equated to another, lf(sigma1 = \"sigma2\"); not ",
+               arg_desc(d), if (nzchar(nm)) paste0(" as '", nm, "'"),
+               call. = FALSE)
     }
-    d <- named_par_formula(d, names(dots)[i] %||% "")
+    d <- named_par_formula(d, nm)
     refuse_nested_formula(d)
     for (dpar in lhs_dpar_names(d[[2]])) {
-      if (dpar %in% names(pforms)) {
+      if (dpar %in% c(names(pforms), names(pfix))) {
         frm_stop("Duplicated parameter formula in lf(): '", dpar, "'",
                  call. = FALSE)
       }
@@ -357,14 +499,18 @@ lf <- function(..., resp = NULL, center = NULL) {
       # carried on the formula itself, which is what reaches the parser
       # through bf() and mvbf() unchanged
       if (!is.null(center)) attr(di, "center") <- center
+      if (!is.null(cmc)) attr(di, "cmc") <- cmc
       pforms[[dpar]] <- di
     }
   }
-  if (!length(pforms)) {
+  if (!length(pforms) && !length(pfix)) {
     frm_stop("lf() needs at least one parameter formula, e.g. lf(sigma ~ x)",
              call. = FALSE)
   }
-  structure(list(pforms = pforms, resp = resp), class = "frmtmb_lf")
+  check_dpar_equations(pfix, names(pforms), fn = "lf()",
+                       args = c("resp", "center", "cmc"))
+  structure(list(pforms = pforms, pfix = pfix, resp = resp),
+            class = "frmtmb_lf")
 }
 
 #' `resp =` of lf() and nlf() is one response name.
@@ -383,8 +529,20 @@ check_lf_resp <- function(resp, fn) {
 #' @export
 print.frmtmb_lf <- function(x, ...) {
   frm_check_dots(...)
-  for (f in x$pforms) cat(deparse1(f), "\n")
+  for (f in x$pforms) print_pform(f)
+  for (nm in names(x[["pfix"]])) cat(nm, "=", x[["pfix"]][[nm]], "\n")
   invisible(x)
+}
+
+#' One parameter formula as `print()` shows it, with the settings it
+#' carries from `lf()`.
+#'
+#' @noRd
+print_pform <- function(f) {
+  cat(deparse1(f),
+      if (isFALSE(attr(f, "cmc", exact = TRUE))) " (cmc = FALSE)",
+      if (isFALSE(attr(f, "center", exact = TRUE))) " (center = FALSE)",
+      "\n", sep = "")
 }
 
 #' Add a nonlinear parameter formula to a model formula
@@ -470,7 +628,14 @@ nlf <- function(formula, ..., resp = NULL, loop = NULL) {
   dpar <- check_dpar_name(deparse1(lhs))
   nlforms <- list()
   nlforms[[dpar]] <- formula
-  pforms <- if (length(list(...))) lf(...)$pforms else list()
+  more <- if (length(list(...))) lf(...) else list()
+  pforms <- more[["pforms"]] %||% list()
+  if (length(more[["pfix"]])) {
+    frm_stop("nlf() passes its further arguments to lf() as linear ",
+             "parameter formulas; add the constant or equation ",
+             paste0("'", names(more[["pfix"]]), "'", collapse = ", "),
+             " with + lf() instead", call. = FALSE)
+  }
   if (dpar %in% names(pforms)) {
     frm_stop("nlf() gives '", dpar, "' both a nonlinear body and a linear ",
              "formula; it can have one or the other", call. = FALSE)
@@ -564,14 +729,20 @@ plus_bf <- function(e1, e2) {
              "added to models '", bform_resp_label(e1), "'", call. = FALSE)
   }
   if (inherits(e2, "frmtmb_lf")) {
-    for (nm in names(e2$pforms)) {
+    # formulas, then constants and equations, which lf() takes as well
+    for (nm in c(names(e2$pforms), names(e2[["pfix"]]))) {
       if (nm %in% c(names(e1$pforms), names(e1$pfix),
                     names(e1$nlforms))) {
         frm_stop("lf() sets '", nm, "', which the bf() it is added to ",
                  "already sets", call. = FALSE)
       }
-      e1$pforms[[nm]] <- e2$pforms[[nm]]
+      if (nm %in% names(e2$pforms)) {
+        e1$pforms[[nm]] <- e2$pforms[[nm]]
+      } else {
+        e1$pfix[[nm]] <- e2[["pfix"]][[nm]]
+      }
     }
+    check_dpar_equations(e1$pfix, c(names(e1$pforms), names(e1$nlforms)))
     return(e1)
   }
   if (inherits(e2, "frmtmb_nlf")) {
@@ -593,6 +764,7 @@ plus_bf <- function(e1, e2) {
       }
       e1$pforms[[nm]] <- e2$pforms[[nm]]
     }
+    check_dpar_equations(e1$pfix, c(names(e1$pforms), names(e1$nlforms)))
     return(e1)
   }
   if (inherits(e2, "frmtmb_mecor")) {
@@ -773,10 +945,10 @@ print.frmtmb_mvformula <- function(x, ...) {
 #' @export
 print.frmtmb_formula <- function(x, ...) {
   frm_check_dots(...)
-  cat(deparse1(x$formula), if (isTRUE(x$nl)) " (nonlinear)" else "", "\n",
-      sep = "")
+  cat(deparse1(x$formula), if (isTRUE(x$nl)) " (nonlinear)" else "",
+      if (isFALSE(x[["cmc"]])) " (cmc = FALSE)" else "", "\n", sep = "")
   for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")
-  for (f in x$pforms) cat(deparse1(f), "\n")
+  for (f in x$pforms) print_pform(f)
   for (nm in names(x$pfix)) cat(nm, "=", x$pfix[[nm]], "\n")
   if (!is.null(x$family)) {
     cat("Family:", x$family[["family"]], "\n")
@@ -800,7 +972,28 @@ as_bform <- function(formula, family = NULL) {
   } else {
     bf(formula)
   }
-  if (!is.null(family)) {
+  if (is.list(family) && !is.object(family)) {
+    # brms's list of families, one per response in formula order. Like
+    # a single family argument, an entry fills a response that has no
+    # family of its own (brms:::validate_formula.mvbrmsformula)
+    if (!inherits(bform, "frmtmb_mvformula")) {
+      frm_stop("A list of families is for a multivariate model, one ",
+               "family per response. This formula has one response: pass ",
+               "its family alone, as family = gaussian()", call. = FALSE)
+    }
+    if (length(family) != length(bform$forms)) {
+      frm_stop("If 'family' is a list, it has to be of the same length as ",
+               "the number of response variables: ", length(family),
+               " families for ", length(bform$forms), " responses",
+               call. = FALSE)
+    }
+    fams <- lapply(family, as_frmtmb_family)
+    for (i in seq_along(fams)) {
+      if (is.null(bform$forms[[i]]$family)) {
+        bform$forms[[i]]$family <- fams[[i]]
+      }
+    }
+  } else if (!is.null(family)) {
     fam <- as_frmtmb_family(family)
     if (inherits(bform, "frmtmb_mvformula")) {
       bform$forms <- lapply(bform$forms, function(f) {
@@ -822,6 +1015,38 @@ as_bform <- function(formula, family = NULL) {
     bform$family <- default_family()
   }
   bform
+}
+
+#' Expand `.` against the data, as brms does before it reads a formula
+#' (`brms:::expand_dot_formula()`): [stats::terms()] replaces it with
+#' every column of `data` that the formula does not use on its left, and
+#' a formula it cannot expand is kept as written, for the frame to
+#' refuse by name. Every linear formula of every response is expanded,
+#' each on its own, which is brms's rule: `sigma ~ .` takes all the
+#' columns, the response included.
+#'
+#' @noRd
+expand_dot_bform <- function(bform, data) {
+  if (is.null(data)) return(bform)
+  expand <- function(f) {
+    if (!inherits(f, "formula") || !"." %in% all.vars(f)) return(f)
+    tt <- tryCatch(stats::terms(f, data = data), error = function(e) NULL)
+    if (is.null(tt)) return(f)
+    out <- stats::formula(tt)
+    attributes(out) <- attributes(f)
+    out
+  }
+  one <- function(b) {
+    b$formula <- expand(b$formula)
+    b$pforms <- lapply(b$pforms, expand)
+    b
+  }
+  if (inherits(bform, "frmtmb_mvformula")) {
+    bform$forms <- lapply(bform$forms, one)
+    bform
+  } else {
+    one(bform)
+  }
 }
 
 #' The family a model gets when neither the `family` argument nor a `+`

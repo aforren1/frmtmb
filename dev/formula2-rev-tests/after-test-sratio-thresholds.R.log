@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+sratio-thresholds: .............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb test-sratio-thresholds.R gated=FALSE pass=29 fail=0 err=0 skip=0 warn=0

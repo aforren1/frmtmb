@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.spline C:/Users/adf44/source/r/rellib-r3/frmtmb 
+conditions: .....
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+Woot!
+RESULT before frmtmb.spline test-conditions.R gated=FALSE pass=5 fail=0 err=0 skip=0 warn=0

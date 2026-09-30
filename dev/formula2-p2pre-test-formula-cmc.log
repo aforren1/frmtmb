@@ -1,0 +1,20 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+formula-cmc: ...................1............
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-formula-cmc.R:136:5'): cmc = FALSE is accepted where it chang
+<frmtmb_error/error/condition>
+Error: cmc = FALSE does not apply to cs(0 + x1 + x2 | g): the structure reads one coefficient per level, and cmc = FALSE would leave one level out. Drop cmc = FALSE from this formula
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(cnms(f_false), cnms(f_true), label = cs) at test-formula-cmc.R:143:5
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb (local) cnms(f_false)
+ 5.   └─frmtmb::frm(f, data = d, dry_run = "frame") at test-formula-cmc.R:136:5
+ 6.     └─frmtmb:::assemble_frame(...)
+ 7.       └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+I believe in you!
+RESULT frmtmb test-formula-cmc.R pass=31 fail=0 err=1 skip=0 warn=0

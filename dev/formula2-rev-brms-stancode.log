@@ -1,0 +1,16 @@
+Setting order = 'mu' for mixtures of the same family.
+  real<lower=0> sigma2;  // dispersion parameter
+  real sigma1;  // dispersion parameter
+  sigma1 = sigma2;
+  lprior += student_t_lpdf(sigma2 | 3, 0, 2.5)
+      ps[1] = log(theta1) + normal_lpdf(Y[n] | mu1[n], sigma1);
+      ps[2] = log(theta2) + normal_lpdf(Y[n] | mu2[n], sigma2);
+Replacing initial definitions of parameters 'sigma1'
+bf(y ~ x, sigma1 = "sigma2", sigma1 ~ z) -> ok (no error at bf()) 
+Replacing initial definitions of parameters 'sigma1'
+bf(y ~ x, sigma1 ~ z, sigma1 = "sigma2") -> ok (no error at bf()) 
+bf(y ~ x, sigma1 = "sigma2", sigma2 = "sigma3") -> Cannot use fixed parameters on the right-hand side of an equation. 
+bf(y ~ x, sigma1 = "sigma2") + lf(sigma2 = "sigma3") -> Cannot use fixed parameters on the right-hand side of an equation. 
+Replacing initial definitions of parameters 'sigma1'
+bf(y ~ x, sigma1 = "sigma2") + lf(sigma1 ~ z) -> ok (no error at bf()) 
+bf(cat ~ x, mub = "muc") -> Can only equate parameters of the same class. 

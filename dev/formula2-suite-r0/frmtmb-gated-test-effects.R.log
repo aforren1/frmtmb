@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+effects: ............................Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+..........................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-effects.R pass=54 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,45 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+family-list: 123
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-family-list.R:16:3'): a list of families gives each response 
+<frmtmb_error/error/condition>
+Error: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-family-list.R:16:3
+ 2.   └─frmtmb:::as_bform(formula, family)
+ 3.     └─frmtmb::as_frmtmb_family(family)
+ 4.       └─frmtmb::frm_stop(...)
+
+── 2. Error ('test-family-list.R:37:3'): the prior table of a family list is brm
+<frmtmb_error/error/condition>
+Error: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+Backtrace:
+    ▆
+ 1. └─frmtmb::get_prior(bf(y1 ~ x) + bf(y2 ~ x), data = d, family = fl) at test-family-list.R:37:3
+ 2.   └─frmtmb::default_prior(formula, ...)
+ 3.     └─frmtmb:::prior_design(object, data, family, data2, check_trials = FALSE)
+ 4.       ├─frmtmb:::resolve_deferred_families(...)
+ 5.       └─frmtmb:::as_bform(object, family)
+ 6.         └─frmtmb::as_frmtmb_family(family)
+ 7.           └─frmtmb::frm_stop(...)
+
+── 3. Error ('test-family-list.R:46:3'): a family list that does not fit the for
+<frmtmb_error/error/condition>
+Error: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-family-list.R:46:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(bf(y1 ~ x) + bf(y2 ~ x), data = d, family = list(gaussian()))
+  8.   └─frmtmb:::as_bform(formula, family)
+  9.     └─frmtmb::as_frmtmb_family(family)
+ 10.       └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-family-list.R gated=TRUE pass=0 fail=0 err=3 skip=0 warn=0

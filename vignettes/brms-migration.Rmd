@@ -25,6 +25,11 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `bf(y ~ x + (x | g))` | same | plus `us()`, `diag()`, `homdiag()`, `cs()`, `ar1()` wrappers |
 | `bf(y ~ x, sigma ~ z + (1 | g))` | same | any dpar, full grammar |
 | `bf(y ~ x, sigma = 1)` | same | fixed via TMB `map` |
+| `bf(y ~ x, sigma1 = "sigma2")`, `lf(sigma1 = "sigma2")` | same | one parameter, `sigma2`; `variables()` and `summary()` list `sigma1` with its value, as brms does; brms's rules and messages; `theta1 = "theta2"` is refused, where brms stops with an internal error |
+| `bf(y ~ 0 + g, cmc = FALSE)`, `lf(..., cmc = FALSE)` | same | treatment contrasts without the intercept column, in the population-level and the group-level terms, `mm()` included; refused on the covariance structures that read one coefficient per level (`ar1()`, `cs()`, `toep()`, `ou()`, ...), which brms does not have |
+| `y ~ .` | same | expanded against `data` before the formula is read, as in brms; each parameter formula on its own, so `sigma ~ .` includes the response; `update(fit, newdata = )` keeps the expanded formula, as in brms |
+| `family = list(gaussian(), poisson())` | same | multivariate models, one family per response in formula order; an entry fills only a response that has no family |
+| `update(fit, bf(~ ., family = acat()))` | same | a `bf()` whose formula is a delta: the location formula is updated, parameter formulas and constants are pooled, and its family wins |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
 | `(1 | p | g)` | same | cross-formula RE correlation |
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families, ordinal ones included; `rescor` all gaussian or all student, with one shared `nu`; `mvbf() + family` fills only responses without a family (below) |

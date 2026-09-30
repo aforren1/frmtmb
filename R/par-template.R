@@ -148,7 +148,8 @@ par_template.default <- function(object, data, family = NULL,
   }
   prior <- as_priorlist(prior)
   check_prior_slots(prior)
-  bform <- resolve_deferred_families(as_bform(object, family), data)
+  bform <- expand_dot_bform(as_bform(object, family), data)
+  bform <- resolve_deferred_families(bform, data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, na.action = na.action,
                           data2 = validate_data2(data2))

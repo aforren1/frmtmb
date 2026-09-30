@@ -1,0 +1,45 @@
+files=16  before: pass=284 fail=0 err=0 skip=14 warn=0
+files=16  after:  pass=284 fail=0 err=0 skip=14 warn=0
+DIFFERING FILES:
+ [1] file   pass.b fail.b err.b  skip.b warn.b pass.a fail.a err.a  skip.a
+[11] warn.a
+<0 rows> (or 0-length row.names)
+AFTER NOT CLEAN:
+ [1] file   pass.b fail.b err.b  skip.b warn.b pass.a fail.a err.a  skip.a
+[11] warn.a
+<0 rows> (or 0-length row.names)
+ALL FILES:
+                              file pass.b fail.b err.b skip.b warn.b pass.a
+                   test-adefects.R     85      0     0      0      0     85
+                   test-bcm-bart.R      8      0     0      1      0      8
+               test-bcm-binomial.R     17      0     0      6      0     17
+        test-bcm-model-selection.R     13      0     0      3      0     13
+       test-bcm-signal-detection.R      6      0     0      3      0      6
+             test-bracket-access.R     33      0     0      0      0     33
+ test-brms-suite-brmsfit-helpers.R      0      0     0      0      0      0
+    test-brms-suite-data-helpers.R      0      0     0      0      0      0
+         test-brms-suite-emmeans.R      0      0     0      0      0      0
+                test-ci-siblings.R     14      0     0      0      0     14
+          test-conditions-census.R     11      0     0      0      0     11
+                       test-fuzz.R      0      0     0      1      0      0
+                 test-habit-prep.R     16      0     0      0      0     16
+         test-message-uniqueness.R      6      0     0      0      0      6
+                test-reml-shapes.R      8      0     0      0      0      8
+                      test-thres.R     67      0     0      0      0     67
+ fail.a err.a skip.a warn.a
+      0     0      0      0
+      0     0      1      0
+      0     0      6      0
+      0     0      3      0
+      0     0      3      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      1      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0

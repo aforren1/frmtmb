@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+ordinal-fitted: .......................................2 rows removed because of missing values (na.action)
+..........................................................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-ordinal-fitted.R gated=FALSE pass=129 fail=0 err=0 skip=0 warn=0

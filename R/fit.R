@@ -5,7 +5,10 @@
 #'
 #' @param formula A `frmtmb_formula` from [bf()] (with a family attached
 #'   via `+`), or a plain formula combined with the `family` argument.
-#'   With neither, the family is `gaussian()`.
+#'   With neither, the family is `gaussian()`. A `.` stands for every
+#'   column of `data` that is not on the left of the formula, as in
+#'   brms: `y ~ .` is expanded with [stats::terms()] before the formula
+#'   is read, and each parameter formula is expanded on its own.
 #' @param data A data frame. A `tibble`, a `data.table`, or a plain
 #'   named list of equal-length columns is accepted as well, since each
 #'   reaches [stats::model.frame()] unchanged. A matrix column is a
@@ -32,6 +35,10 @@
 #'   `gaussian()`, `poisson`, `cumulative`), or a family name as a
 #'   string. It overrides a family already attached to `formula`; in a
 #'   multivariate model it fills only the responses that have none.
+#'   A multivariate model also takes a list of families, as in brms,
+#'   one per response in formula order: `family = list(gaussian(),
+#'   poisson())`. Each entry fills its response when that response has
+#'   no family.
 #'   The default, `NULL`, means `gaussian()` - the brms, `lme4` and
 #'   `glmmTMB` convention - so `frm(y ~ x, data = d)` is a linear
 #'   model.
@@ -684,7 +691,23 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # value always wins over the frm() shortcut
   control$verbose <- control$verbose %||% verbose
   vb <- verbose_level(control)
-  bform <- as_bform(formula, family)
+  # `.` is expanded once, against this data. The stored call carries
+  # the expanded formula, so update(newdata =) refits the same model
+  # rather than expanding `.` again against the new data, as brms's
+  # update.brmsfit() reuses object$formula
+  raw <- if (inherits(formula, c("frmtmb_formula", "frmtmb_mvformula"))) {
+    formula
+  } else {
+    bf(formula)
+  }
+  expanded <- expand_dot_bform(raw, data)
+  if (!identical(expanded, raw)) {
+    # a plain formula stays one, so the call prints as `y ~ x1 + x2`
+    plain <- !inherits(formula, c("frmtmb_formula", "frmtmb_mvformula")) &&
+      inherits(expanded, "frmtmb_formula")
+    cl$formula <- if (plain) expanded$formula else expanded
+  }
+  bform <- as_bform(expanded, family)
   # a family whose parameter vocabulary is a property of the data
   # (categorical()'s one predictor per observed category) becomes
   # concrete here, before the grammar that names those dpars is parsed
@@ -2264,7 +2287,7 @@ stationary_escapes <- function(obj, opt, frame) {
   out <- list()
   par_names <- names(obj$par)
   for (lp in frame[["linpreds"]]) {
-    if (!is.null(lp[["constant"]])) next
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["equate"]])) next
     resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
     # `[[` on an ATOMIC declaration raises "subscript out of bounds",
     # so the shape of the whole field is checked before it is indexed:
@@ -2609,6 +2632,7 @@ make_start <- function(frame, start, prior_entries = NULL,
   resid_cache <- new.env(parent = emptyenv())
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]])) next   # mapped; keep link(constant)
+    if (!is.null(lp[["equate"]])) next     # its target sets the start
     resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
     init_fn <- resp$family[["init_dpars"]][[lp[["dpar"]]]]
     if (is.null(init_fn)) next

@@ -4,7 +4,7 @@
 \alias{bf}
 \title{Set up a model formula}
 \usage{
-bf(formula, ..., family = NULL, nl = NULL, center = NULL)
+bf(formula, ..., family = NULL, nl = NULL, center = NULL, cmc = NULL)
 }
 \arguments{
 \item{formula}{The model formula for \code{mu}, or a formula \code{bf()}
@@ -14,9 +14,11 @@ it unchanged, as brms's \code{bf()} does; further arguments add to it.}
 \item{...}{Two-sided formulas for other dpars (the left-hand side
 names the dpar, e.g. \code{sigma ~ z}, or several sharing one
 right-hand side, e.g. \code{b1 + b2 ~ 1}), one-sided formulas named by
-their dpar (\code{sigma = ~ z}, the same formula), or named scalars
+their dpar (\code{sigma = ~ z}, the same formula), named scalars
 fixing a dpar to a constant on the response scale (e.g.
-\code{sigma = 1}).}
+\code{sigma = 1}), or a dpar equated to another of the same class, as
+\code{sigma1 = "sigma2"} in a mixture. See the section on equated
+parameters.}
 
 \item{family}{Optional family; can also be attached with \code{+} or
 passed to \code{\link[=frm]{frm()}}, which uses \code{gaussian()} when nothing names one.}
@@ -37,6 +39,21 @@ section on brms's reserved \code{Intercept} below. It changes priors
 only: the likelihood and the maximum likelihood fit are the same.
 It applies to the location formula alone, as in brms; give a
 parameter formula its own with \code{\link[=lf]{lf()}}.}
+
+\item{cmc}{Cell-mean coding, as in brms. \code{NULL}, the default, means
+\code{TRUE} for a new formula and keeps the setting of a formula \code{bf()}
+already built. With \code{TRUE}, R's rule applies: a formula without an
+intercept, \code{y ~ 0 + g}, gives a factor one column per level. With
+\code{FALSE}, the factor keeps its treatment contrasts and only the
+intercept column goes, so \code{y ~ 0 + g} has the columns \code{gb}, \code{gc},
+and not \code{ga}. The group-level terms of the formula follow the same
+rule: \code{(0 + g | h)} has the coefficients \code{gb}, \code{gc}, and so does
+each member of \code{(0 + g | mm(h1, h2))}. A formula with an intercept
+does not change. It applies to the location formula alone, as in
+brms; give a parameter formula its own with \code{\link[=lf]{lf()}}. \code{cmc = FALSE} is
+refused on \code{ar1()}, \code{hetar1()}, \code{cs()}, \code{homcs()}, \code{toep()},
+\code{homtoep()} and the distance structures \code{ou()}, \code{exp()}, \code{gau()},
+\code{mat()}, which read one coefficient per level of their factor.}
 }
 \value{
 An object of class \code{frmtmb_formula}.
@@ -59,6 +76,31 @@ Every linear predictor accepts lme4-style random effects \code{(1 | g)},
 Attach a family with \code{+}, for example \code{bf(y ~ x) + gaussian()}, or
 pass one to \code{\link[=frm]{frm()}}. A model that names no family is gaussian.
 }
+\section{Equated parameters}{
+
+A named character string equates a distributional parameter to
+another of the same class, as in brms: in
+\code{bf(y ~ x, sigma1 = "sigma2") + mixture(gaussian(), gaussian())},
+the two components share one residual standard deviation. The model
+has one parameter, \code{sigma2}, and \code{sigma1} takes its value. \code{sigma2}
+is the name that \code{\link[=fixef]{fixef()}}, \code{summary()} and \code{\link[=get_prior]{get_prior()}} report and
+that \code{\link[=set_prior]{set_prior()}} addresses; \code{\link[=variables]{variables()}} lists \code{sigma1} as well,
+with the value of \code{sigma2}, as brms lists it as a transformed
+parameter. The fit is the same as that of a hand-written model with
+one shared parameter. A target that is reported as a coefficient on
+its link scale, such as a transition cell of \code{frmtmb.latent::hmm()},
+has no natural value to repeat, and the equated name is then not
+listed. \code{\link[=coef]{coef()}} has no block for the equated parameter.
+
+brms's rules apply, with brms's messages. The two names must be of
+the same class (\code{sigma1} and \code{sigma2}, not \code{sigma1} and \code{nu2}). A
+location parameter (\code{mu1}) cannot be equated. The parameter on the
+right cannot itself be fixed, equated or predicted by a formula. A
+mixture's weights (\code{theta1}) cannot be equated: brms stops with an
+internal error on this, and frmtmb refuses it. \code{\link[=lf]{lf()}} takes the same
+spelling, \code{bf(y ~ x) + lf(sigma1 = "sigma2")}.
+}
+
 \section{brms's reserved \code{Intercept}}{
 
 In a formula without an intercept, \code{Intercept} is a reserved name, as
@@ -94,4 +136,8 @@ bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
 # an intercept that a class "b" prior reaches; the two are one model
 bf(y ~ 0 + Intercept + x)
 bf(y ~ x, center = FALSE)
+# treatment contrasts without the intercept column
+bf(y ~ 0 + g, cmc = FALSE)
+# a mixture whose components share one standard deviation
+bf(y ~ x, sigma1 = "sigma2") + mixture(gaussian(), gaussian())
 }

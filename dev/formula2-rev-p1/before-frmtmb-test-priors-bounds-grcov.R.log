@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+priors-bounds-grcov: ..................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-priors-bounds-grcov.R gated=TRUE pass=50 fail=0 err=0 skip=0 warn=0

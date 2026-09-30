@@ -1,0 +1,7 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+parity-integration: .......No priors were set (plain maximum likelihood).
+.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🥇 Your tests deserve a gold medal 🥇
+RESULT before frmtmb test-parity-integration.R gated=TRUE pass=8 fail=0 err=0 skip=0 warn=0

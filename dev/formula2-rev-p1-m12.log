@@ -1,0 +1,55 @@
+== M1: three-state hmm, tr12 = "tr13" (seed 4002)
+fits: ok ok 
+df free 12 equated 11 logLik -1269.921 -1269.967 
+variables: b_mu1_Intercept b_mu2_Intercept b_mu3_Intercept b_tr13_Intercept b_tr22_Intercept b_tr23_Intercept b_tr32_Intercept b_tr33_Intercept sigma1 sigma2 sigma3 
+summary: ok 
+ Family: hmm(3, gaussian) 
+ Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
+        mu3 = identity; sigma3 = log; tr12 = identity; tr13 = identity;
+        tr22 = identity; tr23 = identity; tr32 = identity; tr33 = identity
+
+Formula: y ~ 1 
+   Data: dd (Number of observations: 750) 
+ Method: ML   logLik: -1269.97   AIC: 2561.93   BIC: 2612.75 
+
+Regression Coefficients:
+               Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+mu1_Intercept     -1.94      0.05    -2.03    -1.85  -41.42   <2e-16
+mu2_Intercept      0.97      0.05     0.87     1.07   19.39   <2e-16
+mu3_Intercept      4.00      0.04     3.92     4.09   91.48   <2e-16
+tr13_Intercept    -2.09      0.17    -2.41    -1.76  -12.50   <2e-16
+tr22_Intercept     2.04      0.22     1.60     2.48    9.06   <2e-16
+tr23_Intercept     0.27      0.28    -0.28     0.83    0.96     0.34
+tr32_Intercept     0.34      0.30    -0.25     0.93    1.14     0.25
+tr33_Intercept     2.44      0.23     1.99     2.89   10.56   <2e-16
+
+Further Distributional Parameters:
+       Estimate Est.Error l-95% CI u-95% CI
+sigma1     0.68      0.03     0.62     0.75
+sigma2     0.71      0.04     0.64     0.79
+sigma3     0.72      0.03     0.66     0.79
+hypothesis tr13_Intercept = 0: ok 
+hypothesis tr12_Intercept = 0: ERR: Some parameters cannot be found in the model: 
+'b_tr12_Intercept'
+variables() lists every name; brms's default class = "b" puts b_ before ea 
+hypothesis sigma1 = sigma2 (class NULL): ok 
+fixef: mu1_Intercept mu2_Intercept mu3_Intercept tr13_Intercept tr22_Intercept tr23_Intercept tr32_Intercept tr33_Intercept 
+coef: ok  frm_linpred tr12 == tr13: TRUE 
+== M1 regression: mixture sigma1 = sigma2 still lists sigma1
+variables: b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2 
+coef names: mu1 mu2 sigma2 theta1 
+== M2: re_formula on cmc = FALSE fits (seed 51)
+fit: ok 
+re_formula ~ (0 + f + x | h), max |diff| / sd(y) to hand: 0 
+re_formula ~ (0 + f | h) (a subset), max |diff| / sd(y): 0 
+re_formula ~ (0 + x | h), max |diff| / sd(y): 0 
+re_formula ~ (1 + f | h) (not in the fit): ERR: frm_linpred(): the re_formula term (1 + f | h) matches no group-level term of this fit. A term is kept when its grouping factor is one the f 
+-- mu with cmc = TRUE and sigma with cmc = FALSE, same term text
+fit2: ok 
+list()
+sigma re_formula = its term == full: TRUE 
+mu re_formula = its term == full: TRUE 
+== cmc = FALSE with a level-read structure over f:x1 (no dropped level)
+cs(0 + f:x1 | g) cmc TRUE: ok 
+cs(0 + f:x1 | g) cmc FALSE: ERR: cmc = FALSE does not apply to cs(0 + f:x1 | g): the structure reads one coefficient per level, and cmc = FALSE would leave one level out. Dr 
+DONE

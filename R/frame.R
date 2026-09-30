@@ -736,6 +736,38 @@ sparse_maybe_deficient <- function(X) {
     min(d) < 1e-5 * max(d)
 }
 
+#' A random-effect bar whose left-hand side has no intercept, with one
+#' added, or `NULL` when it has one already. `cmc = FALSE` builds the
+#' term's design this way and then drops the intercept column, which
+#' leaves a factor's treatment contrasts (brms:::validate_terms()).
+#'
+#' @noRd
+bar_with_intercept <- function(bar) {
+  tl <- stats::terms(stats::as.formula(call("~", bar[[2L]])))
+  if (attr(tl, "intercept") != 0L) return(NULL)
+  labs <- attr(tl, "term.labels")
+  bar[[2L]] <- str2lang(paste(c("1", labs), collapse = " + "))
+  bar
+}
+
+#' Whether `cmc = FALSE` changes the columns of a random-effect bar's
+#' left-hand side on this model frame: only a factor main effect
+#' without an intercept is coded differently, and numeric slopes or an
+#' `f:x` without `f` keep their columns. `TRUE` when the columns cannot
+#' be built here, so the caller keeps its rewrite and its checks.
+#'
+#' @noRd
+cmc_changes_columns <- function(bar, mf, env) {
+  cols <- function(icpt) {
+    tt <- stats::terms(stats::as.formula(call("~", bar[[2L]]), env = env))
+    if (icpt) attr(tt, "intercept") <- 1L
+    fr <- stats::model.frame(tt, mf, na.action = stats::na.pass)
+    setdiff(colnames(stats::model.matrix(tt, fr)),
+            if (icpt) "(Intercept)")
+  }
+  tryCatch(!identical(cols(FALSE), cols(TRUE)), error = function(e) TRUE)
+}
+
 # Operators that reformulas expands structurally inside a grouping
 # expression; everything else on the right of a bar is an ordinary call
 # whose value has to exist as a single model-frame column.
@@ -870,6 +902,10 @@ mm_member_designs <- function(mmspec, data, env, n_members,
                               use_model_frame = FALSE) {
   tt <- stats::terms(stats::as.formula(call("~", mmspec$lhs), env = env))
   tt <- patch_predvars(tt, predvar_map)
+  # cmc = FALSE: treatment contrasts without the intercept column, as
+  # for any other group-level term (brms:::validate_terms())
+  cmc_drop <- isFALSE(mmspec[["cmc"]]) && attr(tt, "intercept") == 0L
+  if (cmc_drop) attr(tt, "intercept") <- 1L
   Xp <- if (use_model_frame) {
     check_newdata_frame(tt, data, xlev)
     mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
@@ -878,6 +914,7 @@ mm_member_designs <- function(mmspec, data, env, n_members,
   } else {
     stats::model.matrix(tt, data)
   }
+  if (cmc_drop) Xp <- Xp[, colnames(Xp) != "(Intercept)", drop = FALSE]
   n <- nrow(Xp)
   mmc_vals <- lapply(mmspec$mmc, function(mc) {
     cols <- lapply(mc$exprs, function(ex) {
@@ -1495,9 +1532,14 @@ check_frame_variables <- function(rhs, data, env) {
     if (data_env) exists(v, envir = data) else v %in% names(data)
   }
   if ("." %in% all.vars(rhs)) {
-    frm_stop("A formula with `.` is not supported: frmtmb does not expand ",
-             "`.` into the columns of `data`. Write the predictors out, ",
-             "e.g. y ~ x1 + x2", call. = FALSE)
+    # frm() expands `.` against a data frame before the formula is
+    # parsed (expand_dot_bform()), so one that reaches here had no
+    # columns to stand for
+    frm_stop("The formula has a `.`, which stands for the columns of ",
+             "`data` that the formula does not otherwise use, and this ",
+             "`data` has no columns to expand it into. Pass a data frame ",
+             "as `data`, or write the predictors out, e.g. y ~ x1 + x2",
+             call. = FALSE)
   }
   for (v in all.vars(rhs)) {
     if (!in_data(v) && (data_env || !exists(v, envir = env))) {
@@ -2244,6 +2286,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (length(spec$responses) > 1) {
         dp_prefix <- paste0(resp$resp_name, " ", dp_prefix)
       }
+      if (!is.null(dp[["equate"]])) {
+        # filled in after this response's other dpars (below), keeping
+        # this dpar's place in the order of the predictors
+        linpreds[[lp_key]] <- list()
+        next
+      }
 
       if (!is.null(dp[["nl_body"]])) {
         # a nonlinear dpar has no design of its own: it is evaluated
@@ -2327,8 +2375,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
 
       tt <- stats::terms(dp[["fixed"]])
+      # bf(cmc = FALSE): R codes a factor by its cell means when the
+      # formula has no intercept, and brms's cmc = FALSE keeps the
+      # treatment contrasts and removes only the intercept column
+      # (brms:::validate_terms()). The terms keep the intercept, so a
+      # prediction builds the same columns and selects param_colnames.
+      cmc_drop <- isFALSE(dp[["cmc"]]) && attr(tt, "intercept") == 0L
+      if (cmc_drop) attr(tt, "intercept") <- 1L
       X <- if (sparse_x) sparse_mm(tt, mf) else stats::model.matrix(tt, mf)
       contr <- attr(X, "contrasts")   # subsetting X below drops the attr
+      if (cmc_drop) X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
       if (isTRUE(resp$family[["drop_intercept"]]) && is_primary) {
         # thresholds replace the intercept; a threshold-only model
         # (y ~ 1) leaves X with zero columns, which is fine
@@ -2386,10 +2442,44 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         rt_pos[plain_k] <- seq_along(plain_k)
         rt <- NULL
         fassign <- integer(0)
+        cmc_re <- logical(length(bars))
         if (length(plain_k)) {
           # bars keeps the user's expressions (labels, prediction); only
           # the copy handed to reformulas is name-resolved
-          grp <- resolve_group_calls(bars[plain_k], mf, resp$formula_env)
+          rt_bars <- bars[plain_k]
+          # cmc = FALSE reaches the group-level terms too, as in brms:
+          # the term gets an intercept here, which goes again below
+          if (isFALSE(dp[["cmc"]])) {
+            for (j in seq_along(rt_bars)) {
+              wi <- bar_with_intercept(rt_bars[[j]])
+              # a term whose columns cmc = FALSE leaves as they are
+              # (numeric slopes, f:x without f) needs no rewrite, and
+              # is no reason to refuse a structure
+              if (!is.null(wi) &&
+                    !cmc_changes_columns(rt_bars[[j]], mf,
+                                         resp$formula_env)) {
+                wi <- NULL
+              }
+              cs_j <- dp[["re"]][[plain_k[j]]]$covstruct
+              # these read one coefficient per level of the factor
+              # (a time, a position), which treatment contrasts are not;
+              # brms has none of them, so there is no brms reading
+              if (!is.null(wi) &&
+                    cs_j %in% c("ar1", "hetar1", "cs", "homcs", "toep",
+                                "homtoep", "ou", "exp", "gau", "mat")) {
+                frm_stop("cmc = FALSE does not apply to ", cs_j, "(",
+                         deparse1(bars[[plain_k[j]]]), "): the structure ",
+                         "reads one coefficient per level, and cmc = ",
+                         "FALSE would leave one level out. Drop cmc = ",
+                         "FALSE from this formula", call. = FALSE)
+              }
+              if (!is.null(wi)) {
+                rt_bars[[j]] <- wi
+                cmc_re[plain_k[j]] <- TRUE
+              }
+            }
+          }
+          grp <- resolve_group_calls(rt_bars, mf, resp$formula_env)
           rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
                                      reorder.terms = FALSE)
           fassign <- attr(rt$flist, "assign")
@@ -2399,6 +2489,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           cs_name <- dp[["re"]][[k]]$covstruct
           if (is_mm[k]) {
             mms <- dp[["re"]][[k]]$mm
+            # cmc = FALSE rides on the spec, which the component keeps,
+            # so a prediction builds the members' designs the same way
+            if (isFALSE(dp[["cmc"]])) mms[["cmc"]] <- FALSE
             gvals <- mm_member_values(mms, mf, resp$formula_env)
             levs <- mm_pooled_levels(gvals)
             iw <- mm_index_weights(mms, mf, resp$formula_env, levs)
@@ -2437,8 +2530,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             next
           }
           kk <- rt_pos[k]
+          zrows <- rt$Gp[kk] + seq_len(rt$Gp[kk + 1L] - rt$Gp[kk])
+          if (cmc_re[k]) {
+            # the intercept added for cmc = FALSE goes, and the treatment
+            # contrasts stay; Zt is level-major within a term
+            keep <- rt$cnms[[kk]] != "(Intercept)"
+            zrows <- zrows[rep(keep, length(zrows) %/% length(keep))]
+            rt$cnms[[kk]] <- rt$cnms[[kk]][keep]
+          }
           d_k <- length(rt$cnms[[kk]])
-          len_k <- rt$Gp[kk + 1L] - rt$Gp[kk]
+          len_k <- length(zrows)
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
                              "homtoep", "rr", dist_cs) && d_k < 2L) {
@@ -2512,8 +2613,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
             aux_A <- unname(V)
           }
-          Zk <- Matrix::t(rt$Zt[rt$Gp[kk] + seq_len(len_k), ,
-                                drop = FALSE])
+          Zk <- Matrix::t(rt$Zt[zrows, , drop = FALSE])
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
             covstruct = cs_name, id = dp[["re"]][[k]]$id,
@@ -2531,6 +2631,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             group_name = names(rt$flist)[fassign[kk]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
+          if (cmc_re[k]) {
+            # cmc = FALSE: a prediction rebuilds the term with the
+            # intercept and drops it, as the fit did
+            components[[length(components)]][["cmc_intercept"]] <- TRUE
+          }
           comp_ids <- c(comp_ids, length(components))
           # gr(g, by = f): the term as written is what the duplicate
           # check reads, and one block per by-level is what is fitted
@@ -3001,6 +3106,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         shared = isTRUE(dp[["shared"]])
       )
     }
+    # bf(sigma1 = "sigma2"): the equated dpar is its target's predictor
+    # under its own name, so it reads the target's coefficients and adds
+    # none. The target may come later in the family's order, hence the
+    # second pass.
+    for (dp in resp$dpars) {
+      if (is.null(dp[["equate"]])) next
+      lp <- linpreds[[linpred_key(resp$resp_name, dp[["equate"]])]]
+      lp[["dpar"]] <- dp[["name"]]
+      lp[["link"]] <- dp[["link"]]
+      lp[["equate"]] <- dp[["equate"]]
+      linpreds[[linpred_key(resp$resp_name, dp[["name"]])]] <- lp
+    }
   }
 
   ## Phase 2: components -> blocks. Components sharing an |ID| key merge
@@ -3173,10 +3290,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       term_label = label,
       dpar = cps[[1]]$dpar,
       components = lapply(seq_along(gd), function(k) {
-        list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
-             dim = cps[[k]]$dim, bar = cps[[k]]$bar,
-             mm = cps[[k]]$mm, by = cps[[k]]$by,
-             cnms = cps[[k]]$cnms, label = cps[[k]]$label)
+        out <- list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
+                    dim = cps[[k]]$dim, bar = cps[[k]]$bar,
+                    mm = cps[[k]]$mm, by = cps[[k]]$by,
+                    cnms = cps[[k]]$cnms, label = cps[[k]]$label)
+        # cmc = FALSE on this term, which a prediction has to repeat
+        if (isTRUE(cps[[k]][["cmc_intercept"]])) {
+          out[["cmc_intercept"]] <- TRUE
+        }
+        out
       })
     )
     n_b <- n_b + nb_k

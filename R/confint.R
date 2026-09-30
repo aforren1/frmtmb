@@ -1996,6 +1996,53 @@ update_delta_formula <- function(object, f) {
   bform
 }
 
+#' Apply a [bf()] whose location formula is a delta (`bf(~ .)`,
+#' `bf(. ~ . + z, sigma ~ x)`) to the stored model formula, as
+#' `brms:::update.brmsformula()` does: the location formula is updated
+#' with [stats::update.formula()], or kept as it is when the delta is
+#' only `.` and the model is nonlinear; the parameter formulas,
+#' constants and equations of both are pooled, a later one replacing an
+#' earlier one of the same name; and the family of the delta wins over
+#' the stored one.
+#'
+#' @noRd
+update_delta_bform <- function(object, new) {
+  old <- object$bform
+  if (inherits(old, "frmtmb_mvformula")) {
+    # brms refuses this too: "Updating formulas of multivariate models
+    # is not yet possible"
+    frm_stop("A bf() written as a delta cannot update a multivariate ",
+             "model, because it names no response. Pass the complete ",
+             "mvbf() as `formula`", call. = FALSE)
+  }
+  f <- new$formula
+  only_dot <- !length(setdiff(all.vars(reformulas::RHSForm(f)), ".")) &&
+    (length(f) == 2L || identical(all.vars(f[[2L]]), "."))
+  out <- if (only_dot) {
+    old
+  } else {
+    update_delta_formula(object, f)
+  }
+  pars <- c(old$pforms, old$pfix, new$pforms, new$pfix)
+  dup <- duplicated(names(pars), fromLast = TRUE)
+  if (any(dup)) {
+    frm_message("Replacing initial definitions of parameters ",
+                paste(unique(names(pars)[dup]), collapse = ", "))
+    pars <- pars[!dup]
+  }
+  is_form <- vapply(pars, inherits, NA, "formula")
+  out$pforms <- pars[is_form]
+  out$pfix <- pars[!is_form]
+  check_dpar_equations(out$pfix,
+                       c(names(out$pforms), names(out$nlforms)))
+  if (!is.null(new$family)) out$family <- new$family
+  if (!is.null(new$nl)) out$nl <- isTRUE(out$nl) || isTRUE(new$nl)
+  for (nm in c("center", "cmc")) {
+    if (!is.null(new[[nm]])) out[[nm]] <- new[[nm]]
+  }
+  out
+}
+
 #' Update and refit a model
 #'
 #' Re-evaluates the stored [frm()] call with the given arguments
@@ -2009,6 +2056,16 @@ update_delta_formula <- function(object, f) {
 #' formulas, the fixed dpar values and the family. A formula with no
 #' `.` replaces the stored one. brms's `newdata` is accepted as a
 #' synonym for `data`.
+#'
+#' A [bf()] whose location formula is such a delta is read as brms
+#' reads it: `update(fit, bf(~ ., family = acat()))` keeps the formula
+#' and changes the family, and `bf(. ~ . + z, sigma ~ z)` updates the
+#' location formula and adds the parameter formula. The parameter
+#' formulas, constants and equations of the stored model and of the
+#' delta are pooled, and one of the delta replaces one of the same
+#' name, with a message. The family of the delta wins over the `family`
+#' argument. On a nonlinear model the delta can only be `~ .`, which
+#' keeps the body.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param formula. A complete formula or [bf()], or a delta such as
@@ -2051,6 +2108,13 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
                       (length(formula.) == 2L ||
                          formula_has_dot(formula.))) {
       update_delta_formula(object, formula.)
+    } else if (inherits(formula., "frmtmb_formula") &&
+                 (length(formula.$formula) == 2L ||
+                    formula_has_dot(formula.$formula))) {
+      # brms's reading of a bf() delta: the family it carries wins
+      # over the family argument (brms:::update.brmsfit())
+      if (!is.null(formula.$family)) cl$family <- NULL
+      update_delta_bform(object, formula.)
     } else {
       substitute(formula.)
     }
@@ -2293,8 +2357,12 @@ hyp_env_vals <- function(fit, vals, comp) {
   # summaries, where brms lists them
   smp <- attr(tab, "simplex")
   in_smp <- unlist(lapply(smp, `[[`, "pos"))
-  for (i in setdiff(which(tab$natural), in_smp)) {
-    put(tab$brms[i], inv[[i]](cf[i]))
+  # with an equated dpar, bf(sigma1 = "sigma2"), listed as brms lists
+  # its transformed parameter, holding the target's value
+  nr <- brms_natural_rows(fit, tab, setdiff(which(tab$natural), in_smp))
+  for (j in seq_along(nr$name)) {
+    i <- nr$row[j]
+    put(nr$name[j], inv[[i]](cf[i]))
   }
   # a mixture's weights, brms's theta1 ... thetaK, from all K - 1 log
   # ratios at once

@@ -493,6 +493,67 @@ test_that("row 17b: theta2 ~ x makes component 1 the reference, as brms", {
                 brms::mixture(gaussian(), gaussian()), dx, fit)
 })
 
+test_that("row 17c: sigma1 = \"sigma2\" equates the components' sigma", {
+  skip_unless_brms_fit()
+
+  # brms declares sigma2 alone and sets sigma1 = sigma2 in transformed
+  # parameters; frmtmb's sigma1 reads sigma2's coefficient. theta1 ~ x
+  # keeps the weights off the simplex, as in row 17.
+  set.seed(11)
+  n <- 300
+  dx <- data.frame(x = rnorm(n))
+  k <- rbinom(n, 1, 0.4)
+  dx$y <- ifelse(k == 1, rnorm(n, 3 + 0.5 * dx$x, 1), rnorm(n, -1, 1))
+  fit <- frm(bf(y ~ x, sigma1 = "sigma2", theta1 ~ x) +
+               mixture(gaussian(), gaussian()), data = dx)
+  code <- brms::make_stancode(brms::bf(y ~ x, sigma1 = "sigma2",
+                                       theta1 ~ x),
+                              data = dx,
+                              family = brms::mixture(gaussian(), gaussian()))
+  expect_false("sigma1" %in% brms_stan_par_names(code))
+  expect_true("sigma2" %in% brms_stan_par_names(code))
+  brms_lp_check(brms::bf(y ~ x, sigma1 = "sigma2", theta1 ~ x),
+                brms::mixture(gaussian(), gaussian()), dx, fit)
+})
+
+test_that("row 24: cmc = FALSE on a population- and a group-level term", {
+  skip_unless_brms_fit()
+
+  set.seed(5)
+  d3 <- data.frame(g = factor(rep(c("a", "b", "c"), 80)),
+                   h = factor(rep(1:16, each = 15)))
+  u <- matrix(rnorm(32), 16, 2)
+  d3$y <- rnorm(240, as.numeric(d3$g), 0.5) +
+    (d3$g == "b") * u[d3$h, 1] + (d3$g == "c") * u[d3$h, 2]
+  fit <- frm(bf(y ~ 0 + g + (0 + g | h), cmc = FALSE), data = d3)
+  brms_lp_check(brms::bf(y ~ 0 + g + (0 + g | h), cmc = FALSE),
+                gaussian(), d3, fit, joint = TRUE)
+})
+
+test_that("row 25: y ~ . expands against the data as in brms", {
+  skip_unless_brms_fit()
+
+  set.seed(6)
+  dd <- data.frame(x1 = rnorm(80), x2 = rnorm(80), f = gl(4, 20))
+  dd$y <- 1 + 0.5 * dd$x1 - 0.3 * dd$x2 + as.numeric(dd$f) / 4 +
+    rnorm(80)
+  fit <- frm(bf(y ~ ., sigma ~ x1), data = dd)
+  brms_lp_check(brms::bf(y ~ ., sigma ~ x1), gaussian(), dd, fit)
+})
+
+test_that("row 26: a list of families, one per response", {
+  skip_unless_brms_fit()
+
+  set.seed(8)
+  dd <- data.frame(x = rnorm(60))
+  dd$y1 <- rnorm(60, 1 + 0.5 * dd$x)
+  dd$y2 <- rpois(60, exp(0.3 + 0.2 * dd$x))
+  fams <- list(gaussian(), poisson())
+  fit <- frm(bf(y1 ~ x) + bf(y2 ~ x), data = dd, family = fams)
+  brms_lp_check(brms::bf(y1 ~ x) + brms::bf(y2 ~ x) +
+                  brms::set_rescor(FALSE), fams, dd, fit)
+})
+
 test_that("check C: row 7, (1 | q | g) merged across mu and sigma", {
   skip_unless_brms_fit()
   skip_if_not_installed("MASS")

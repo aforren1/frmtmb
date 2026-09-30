@@ -1,0 +1,8 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.ode C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+scale: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the ode scale row fits and reports its cost ('test-scale.R:101:3') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb.ode test-scale.R gated=FALSE pass=0 fail=0 err=0 skip=1 warn=0

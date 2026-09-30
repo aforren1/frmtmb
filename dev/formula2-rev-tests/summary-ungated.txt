@@ -1,0 +1,364 @@
+files=170  before: pass=11950 fail=1 err=16 skip=142 warn=0
+files=170  after:  pass=12031 fail=0 err=0 skip=142 warn=0
+DIFFERING FILES:
+               file pass.b fail.b err.b skip.b warn.b pass.a fail.a err.a
+  test-conditions.R    149      0     1      0      0    150      0     0
+ test-dpar-equate.R      0      0     5      0      0     31      0     0
+ test-family-list.R      0      0     3      0      0      7      0     0
+ test-formula-cmc.R      0      0     4      0      0     21      0     0
+ test-formula-dot.R      0      0     3      0      0     20      0     0
+        test-perf.R      2      1     0      0      0      3      0     0
+ skip.a warn.a
+      0      0
+      0      0
+      0      0
+      0      0
+      0      0
+      0      0
+AFTER NOT CLEAN:
+ [1] file   pass.b fail.b err.b  skip.b warn.b pass.a fail.a err.a  skip.a
+[11] warn.a
+<0 rows> (or 0-length row.names)
+ALL FILES:
+                          file pass.b fail.b err.b skip.b warn.b pass.a fail.a
+       test-aliased-grouping.R     33      0     0      0      0     33      0
+          test-api-spellings.R     36      0     0      0      0     36      0
+            test-arg-refusal.R    123      0     0      0      0    123      0
+           test-autocor-cond.R     56      0     0      0      0     56      0
+                test-autocor.R    192      0     0      0      0    192      0
+              test-autoscale.R     46      0     0      0      0     46      0
+                test-backlog.R     35      0     0      0      0     35      0
+      test-bcm-data-analysis.R     20      0     0      6      0     20      0
+                test-bcm-esp.R      5      0     0      2      0      5      0
+           test-bcm-gaussian.R     11      0     0      3      0     11      0
+                test-bcm-gcm.R      9      0     0      2      0      9      0
+    test-bcm-latent-mixtures.R     30      0     0      5      0     30      0
+                test-bcm-mpt.R     15      0     0      2      0     15      0
+      test-bcm-psychophysics.R      7      0     0      2      0      7      0
+          test-bcm-retention.R     15      0     0      3      0     15      0
+             test-bcm-simple.R      8      0     0      1      0      8      0
+                   test-boot.R     49      0     0      0      0     49      0
+         test-brms-agreement.R    168      0     0      2      0    168      0
+          test-brms-families.R   1033      0     0      0      0   1033      0
+    test-brms-formula-priors.R    208      0     0      0      0    208      0
+        test-brms-likelihood.R     17      0     0     41      0     17      0
+           test-brms-methods.R     16      0     0     46      0     16      0
+             test-brms-names.R    138      0     0      0      0    138      0
+              test-brms-port.R     21      0     0      0      0     21      0
+            test-brms-priors.R      0      0     0     12      0      0      0
+      test-brms-shapes-punch.R     55      0     0      0      0     55      0
+     test-brms-shapes-punch2.R     22      0     0      0      0     22      0
+            test-brms-shapes.R     72      0     0      0      0     72      0
+         test-brms-suite-brm.R      0      0     0      0      0      0      0
+ test-brms-suite-brmsformula.R      0      0     0      0      0      0      0
+   test-brms-suite-brmsterms.R      0      0     0      0      0      0      0
+    test-brms-suite-families.R      0      0     0      0      0      0      0
+     test-brms-suite-methods.R      0      0     0      0      0      0      0
+      test-brms-suite-priors.R      0      0     0      0      0      0      0
+    test-brms-suite-standata.R      0      0     0      0      0      0      0
+               test-car-spde.R    136      0     0      0      0    136      0
+           test-case-studies.R     30      0     0      0      0     30      0
+               test-ce-bands.R    167      0     0      0      0    167      0
+              test-ce-facets.R     92      0     0      0      0     92      0
+             test-cens-lccdf.R     27      0     0      0      0     27      0
+             test-cens-trunc.R     69      0     0      0      0     69      0
+        test-compat-register.R    103      0     0      0      0    103      0
+                 test-compat.R    639      0     0      0      0    639      0
+             test-conditions.R    149      0     1      0      0    150      0
+          test-confint-anova.R     35      0     0      0      0     35      0
+          test-core-boundary.R      4      0     0      0      0      4      0
+              test-covstruct.R      7      0     0      0      0      7      0
+              test-cs-factor.R     84      0     0      0      0     84      0
+          test-custom-family.R    126      0     0      0      0    126      0
+                  test-data2.R     31      0     0      0      0     31      0
+                  test-dates.R     13      0     0      0      0     13      0
+         test-diagnostics-ux.R    127      0     0      0      0    127      0
+         test-distributional.R     28      0     0      0      0     28      0
+            test-dpar-equate.R      0      0     5      0      0     31      0
+           test-dpar-eta-api.R    123      0     0      0      0    123      0
+       test-drmtmb-agreement.R      0      0     0     13      0      0      0
+                test-dry-run.R     23      0     0      0      0     23      0
+              test-edgecases.R     64      0     0      0      0     64      0
+                test-effects.R     54      0     0      0      0     54      0
+                test-emmeans.R     53      0     0      0      0     53      0
+                test-famgaps.R    100      0     0      0      0    100      0
+               test-families.R    252      0     0      0      0    252      0
+            test-family-list.R      0      0     3      0      0      7      0
+           test-fit-end-hook.R     18      0     0      0      0     18      0
+            test-formula-cmc.R      0      0     4      0      0     21      0
+            test-formula-dot.R      0      0     3      0      0     20      0
+                  test-frame.R     22      0     0      0      0     22      0
+             test-functional.R      3      0     0      0      0      3      0
+      test-generic-collision.R     56      0     0      0      0     56      0
+        test-get-prior-route.R     79      0     0      0      0     79      0
+          test-glmm-binomial.R     10      0     0      0      0     10      0
+          test-glmm-gaussian.R     17      0     0      0      0     17      0
+           test-glmm-poisson.R     12      0     0      0      0     12      0
+            test-gp-multidim.R     42      0     0      0      0     42      0
+                  test-gr-by.R     71      0     0      0      0     71      0
+           test-grad-verdict.R     72      0     0      0      0     72      0
+         test-hurdle-nb-zoib.R     85      0     0      0      0     85      0
+                test-id-kron.R     60      0     0      0      0     60      0
+             test-importance.R    226      0     0      0      0    226      0
+         test-influence-plot.R     21      0     0      0      0     21      0
+       test-input-validation.R     43      0     0      0      0     43      0
+                test-interop.R     45      0     0      0      0     45      0
+                    test-lkj.R    212      0     0      0      0    212      0
+                    test-map.R      7      0     0      0      0      7      0
+                     test-me.R     70      0     0      0      0     70      0
+                test-mean-fn.R      4      0     0      0      0      4      0
+         test-method-residue.R     64      0     0      0      0     64      0
+          test-methods-audit.R     58      0     0      0      0     58      0
+                test-methods.R     64      0     0      0      0     64      0
+           test-mi-bsp-names.R     11      0     0      0      0     11      0
+      test-mixture-reference.R     12      0     0      0      0     12      0
+          test-mixture-start.R      5      0     0      0      0      5      0
+                     test-mm.R    116      0     0      0      0    116      0
+               test-mo-terms.R     74      0     0      0      0     74      0
+            test-multinomial.R     17      0     0      0      0     17      0
+       test-multiple-pooling.R     33      0     0      0      0     33      0
+           test-multivariate.R     23      0     0      0      0     23      0
+                test-mv-gaps.R     57      0     0      0      0     57      0
+            test-mvn-mixture.R    277      0     0      0      0    277      0
+      test-naming-collisions.R     29      0     0      0      0     29      0
+           test-nl-body-vars.R     23      0     0      0      0     23      0
+             test-nl-lexical.R     31      0     0      0      0     31      0
+          test-nl-rtmb-scope.R    105      0     0      0      0    105      0
+                     test-nl.R     44      0     0      0      0     44      0
+                    test-nlf.R     75      0     0      0      0     75      0
+   test-numerical-robustness.R    709      0     0      0      0    709      0
+            test-open-issues.R     43      0     0      0      0     43      0
+         test-ordinal-fitted.R    129      0     0      0      0    129      0
+                test-ordinal.R    109      0     0      0      0    109      0
+          test-osa-inference.R     34      0     0      0      0     34      0
+           test-par-template.R     51      0     0      0      0     51      0
+     test-parity-integration.R      8      0     0      0      0      8      0
+                  test-parse.R     43      0     0      0      0     43      0
+                   test-perf.R      2      1     0      0      0      3      0
+           test-pooled-anova.R     64      0     0      0      0     64      0
+            test-portability.R     95      0     0      0      0     95      0
+         test-pp-check-types.R    198      0     0      0      0    198      0
+                test-predfix.R     92      0     0      0      0     92      0
+       test-predict-lp-basis.R     30      0     0      0      0     30      0
+        test-predict-newdata.R     12      0     0      0      0     12      0
+ test-predict-re-uncertainty.R     78      0     0      0      0     78      0
+           test-prior-compat.R    194      0     0      0      0    194      0
+    test-prior-location-dpar.R     55      0     0      0      0     55      0
+          test-prior-mv-resp.R     36      0     0      0      0     36      0
+         test-prior-sd-scope.R     24      0     0      0      0     24      0
+ test-priors-autocor-classes.R     62      0     0      0      0     62      0
+    test-priors-bounds-grcov.R     50      0     0      0      0     50      0
+                     test-ps.R     71      0     0      0      0     71      0
+     test-quadrature-defects.R     59      0     0      0      0     59      0
+     test-re-formula-partial.R     44      0     0      0      0     44      0
+       test-reml-nongaussian.R      9      0     0      0      0      9      0
+           test-review-fixes.R     18      0     0      0      0     18      0
+             test-review-v25.R     60      0     0      0      0     60      0
+             test-review-v28.R     74      0     0      0      0     74      0
+             test-review-v29.R    138      0     0      0      0    138      0
+             test-rl-example.R     96      0     0      2      0     96      0
+          test-rsv-intercept.R     55      0     0      0      0     55      0
+               test-sandwich.R     58      0     0      0      0     58      0
+         test-scale-contract.R     37      0     0      0      0     37      0
+               test-setprior.R     27      0     0      0      0     27      0
+       test-simulate-density.R    459      0     0      0      0    459      0
+    test-simulate-ergonomics.R     50      0     0      0      0     50      0
+       test-simulate-newdata.R     56      0     0      0      0     56      0
+      test-skew-normal-start.R     70      0     0      0      0     70      0
+      test-smooth-population.R     40      0     0      0      0     40      0
+                test-smooths.R     33      0     0      0      0     33      0
+              test-sparsear1.R     24      0     0      0      0     24      0
+                test-sparsex.R     64      0     0      0      0     64      0
+               test-spectral.R    113      0     0      0      0    113      0
+      test-sratio-thresholds.R     29      0     0      0      0     29      0
+              test-structure.R    135      0     0      0      0    135      0
+                  test-sugar.R     45      0     0      0      0     45      0
+         test-tabular-inputs.R      9      0     0      0      0      9      0
+            test-thres-refit.R    118      0     0      0      0    118      0
+           test-tmb-examples.R     28      0     0      0      0     28      0
+                    test-tre.R    102      0     0      0      0    102      0
+          test-trunc-postfit.R     35      0     0      0      0     35      0
+         test-unpinned-seams.R     30      0     0      0      0     30      0
+                    test-v07.R     25      0     0      0      0     25      0
+                    test-v11.R     22      0     0      0      0     22      0
+                    test-v12.R     26      0     0      0      0     26      0
+                    test-v14.R     81      0     0      0      0     81      0
+                    test-v15.R     41      0     0      0      0     41      0
+                    test-v16.R     24      0     0      0      0     24      0
+                    test-v17.R     36      0     0      0      0     36      0
+                    test-v18.R     27      0     0      0      0     27      0
+                    test-v19.R     23      0     0      0      0     23      0
+                test-verbose.R     40      0     0      0      0     40      0
+        test-vignette-wiener.R     21      0     0      0      0     21      0
+                     test-zi.R     11      0     0      0      0     11      0
+ err.a skip.a warn.a
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      6      0
+     0      2      0
+     0      3      0
+     0      2      0
+     0      5      0
+     0      2      0
+     0      2      0
+     0      3      0
+     0      1      0
+     0      0      0
+     0      2      0
+     0      0      0
+     0      0      0
+     0     41      0
+     0     46      0
+     0      0      0
+     0      0      0
+     0     12      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0     13      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      2      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0
+     0      0      0

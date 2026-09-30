@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+ordinal-fitted: .......................................2 rows removed because of missing values (na.action)
+..........................................................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb test-ordinal-fitted.R gated=TRUE pass=129 fail=0 err=0 skip=0 warn=0

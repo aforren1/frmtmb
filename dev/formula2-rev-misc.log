@@ -1,0 +1,16 @@
+y ~ x
+sigma1 = sigma2 
+sigma ~ z 
+sigma1 = sigma2 
+y ~ 0 + g
+ Family: mixture(gaussian, gaussian) 
+ Links: mu1 = identity; sigma1 = softplus; mu2 = identity; sigma2 = log;
+        theta1 = identity
+
+<frmtmb spec>
+Response: y  [mixture(gaussian, gaussian)]
+  mu1 (identity): ~x
+  sigma1 = sigma2 (equated)
+  mu2 (identity): ~x
+  sigma2 (log): ~1
+  theta1 (identity): ~1

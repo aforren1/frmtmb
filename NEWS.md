@@ -1,3 +1,47 @@
+# frmtmb (development version)
+
+## New features
+
+* **A distributional parameter can be equated to another**, brms's
+  `bf(y ~ x, sigma1 = "sigma2")`, also spelled `lf(sigma1 = "sigma2")`.
+  In a mixture the components then share one parameter, `sigma2`;
+  `sigma1` reads its coefficient, so the model has one parameter fewer
+  and is the same function as the hand-written model with one shared
+  sigma. `fixef()`, `get_prior()` and `par_template()` hold `sigma2`
+  alone, and `variables()` and `summary()` list `sigma1` beside it with
+  its value, as brms lists its transformed parameter. brms's five rules
+  apply with brms's messages; `theta1 = "theta2"`, which stops brms with
+  an internal error, is refused by name. brms's log density at the
+  maximum likelihood estimate equals `logLik()`
+  (`test-brms-likelihood.R`, row 17c).
+* **`cmc`, brms's switch for cell-mean coding**, on `bf()` and `lf()`.
+  `bf(y ~ 0 + g, cmc = FALSE)` keeps the factor's treatment contrasts
+  and drops only the intercept column, in the population-level and the
+  group-level terms, a multi-membership term included, with brms's
+  design and brms's likelihood (row 24). `re_formula` names such a term
+  as it was fitted. It is refused on `ar1()`, `cs()`, `toep()` and the
+  distance structures, which read one coefficient per level and have
+  no brms counterpart. `lf(cmc = )` was refused with "lf() takes
+  two-sided formulas", which was not the reason.
+* **`y ~ .` is expanded against the data**, as brms does, in `frm()`,
+  `get_prior()`, `default_prior()`, `par_template()` and
+  `frm_simulate()`. It was refused. Each parameter formula is expanded
+  on its own, so `sigma ~ .` includes the response, as in brms (row 25).
+  The fit keeps the expanded formula, so `update(fit, newdata = )`
+  refits the same model, as brms's `update()` does.
+* **A list of families as `family =`**, one per response of a
+  multivariate model, as in brms: `family = list(gaussian(),
+  poisson())` (row 26). An entry fills only a response that has no
+  family of its own, which is also brms's rule for the `family`
+  argument.
+* **`update()` reads a `bf()` delta as brms does**:
+  `update(fit, bf(~ ., family = acat()))` keeps the formula and
+  changes the family, and `bf(. ~ . + z, sigma ~ z)` updates the
+  location formula and adds the parameter formula. It was refused as a
+  formula with no response.
+* `lf()` takes what `bf()` takes besides formulas, as brms's does: a
+  parameter fixed to a constant, `lf(sigma = 2)`, or equated to another.
+
 # frmtmb 0.65.0
 
 Seven lanes, each with an adversarial review. Each lane's

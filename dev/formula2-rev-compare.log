@@ -1,0 +1,19 @@
+COMPARE cases=28 elements identical=644 differ=0 (errors in both arms=18)
+ERRBOTH nl upd_f : An update formula written as a delta cannot be applied to a nonlinear formula, whose right-hand side is an exp 
+ERRBOTH mv_plusfam sim : simulate() is not supported yet for multivariate fits 
+ERRBOTH mv_plusfam upd_f : An update formula written as a delta does not say which response it changes. Pass the complete mvbf() as `form 
+ERRBOTH mv_plusfam frm_sim : frm_simulate() supports univariate models 
+ERRBOTH mv_famarg sim : simulate() is not supported yet for multivariate fits 
+ERRBOTH mv_famarg upd_f : An update formula written as a delta does not say which response it changes. Pass the complete mvbf() as `form 
+ERRBOTH mv_famarg frm_sim : frm_simulate() supports univariate models 
+ERRBOTH mv_lf sim : simulate() is not supported yet for multivariate fits 
+ERRBOTH mv_lf upd_f : An update formula written as a delta does not say which response it changes. Pass the complete mvbf() as `form 
+ERRBOTH mv_lf frm_sim : frm_simulate() supports univariate models 
+ERRBOTH mi pred : mi(xm): newdata must supply complete values 
+ERRBOTH mi fitted : mi(xm): newdata must supply complete values 
+ERRBOTH mi pred_new : mi(xm): newdata must supply complete values 
+ERRBOTH mi sim : simulate() is not supported yet for multivariate fits 
+ERRBOTH mi upd_f : An update formula written as a delta does not say which response it changes. Pass the complete mvbf() as `form 
+ERRBOTH mi frm_sim : frm_simulate() supports univariate models 
+ERRBOTH gr_by pred_new : Some levels of 'g' correspond to multiple levels of 'gby'. A by-split term gives each level of the grouping fa 
+ERRBOTH ar_nocov pred_new : simulate(newdata = ): the term ar(t, g) needs each group's rows at distinct times, and newdata repeats a time  

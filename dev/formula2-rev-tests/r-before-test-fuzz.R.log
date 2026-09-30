@@ -1,0 +1,9 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+fuzz: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. pairwise grammar fuzz finds no new invariant violations ('test-fuzz.R:43:3') - Reason: set FRMTMB_FUZZ=true to run the grammar fuzz tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+Nice code.
+RESULT before frmtmb test-fuzz.R gated=FALSE pass=0 fail=0 err=0 skip=1 warn=0

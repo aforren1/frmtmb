@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.latent C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+structure-latent: ....................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🎯 Your tests hit the mark 🎯
+RESULT after frmtmb.latent test-structure-latent.R gated=FALSE pass=20 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,10 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+brms-agreement: .........................................................................................................................................................SS...............
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. distributional gaussian ML matches the brms posterior mode ('test-brms-agreement.R:505:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+2. mo() ML matches brms's monotonic likelihood (vignette model) ('test-brms-agreement.R:542:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-brms-agreement.R gated=FALSE pass=168 fail=0 err=0 skip=2 warn=0

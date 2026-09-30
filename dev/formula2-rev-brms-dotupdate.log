@@ -1,0 +1,2 @@
+stored: y ~ x1 + x2 
+update error: no applicable method for `@` applied to an object of class "NULL" 

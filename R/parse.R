@@ -2040,6 +2040,10 @@ parse_one_response <- function(bform) {
   if (!is.null(main_lp) && isFALSE(bform[["center"]])) {
     main_lp[["center"]] <- FALSE
   }
+  # and so is bf(cmc = FALSE); lf(cmc = FALSE) sets a parameter's own
+  if (!is.null(main_lp) && isFALSE(bform[["cmc"]])) {
+    main_lp[["cmc"]] <- FALSE
+  }
 
   # A family may ship a DEFAULT formula for some of its own dpars, which
   # stands in wherever the user wrote neither a formula nor a fixed
@@ -2069,7 +2073,31 @@ parse_one_response <- function(bform) {
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
                         environment(pf) %||% env, shared_env)
     if (isFALSE(attr(pf, "center", exact = TRUE))) lp[["center"]] <- FALSE
+    if (isFALSE(attr(pf, "cmc", exact = TRUE))) lp[["cmc"]] <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)
+  }
+
+  # bf(sigma1 = "sigma2"): what brms can refuse only once the family is
+  # known, with brms's messages (brms:::stan_predictor.brmsframe() and
+  # brms:::brmsformula())
+  for (dp in names(pfix)) {
+    to <- pfix[[dp]]
+    if (!is.character(to)) next
+    if (!dp %in% fam[["dpars"]]) {
+      frm_stop("Invalid fixed parameters: '", dp, "' is not a ",
+               "distributional parameter of family '", fam[["family"]],
+               "', so it cannot be equated to '", to, "'", call. = FALSE)
+    }
+    if (!to %in% fam[["dpars"]]) {
+      frm_stop("Parameter '", to, "' cannot be found. Family '",
+               fam[["family"]], "' has: ",
+               paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
+    }
+    if (to %in% c(names(pforms), nl_dpars)) {
+      frm_stop("Cannot use predicted parameters on the right-hand side of ",
+               "an equation. '", to, "' has a formula, the family's own ",
+               "default formula included", call. = FALSE)
+    }
   }
 
   dpars <- list()
@@ -2091,6 +2119,14 @@ parse_one_response <- function(bform) {
       lin_dpar(dp, fam[["links"]][[dp]])
     } else if (dp %in% primaries) {
       c(list(name = dp, link = fam[["links"]][[dp]], constant = NULL), main_lp)
+    } else if (is.character(pfix[[dp]])) {
+      # an equated dpar reads its target's coefficients (the frame gives
+      # it the target's index) through the target's link, so its value
+      # is the target's exactly and it owns no parameter
+      eq <- plain_dpar(dp, fam)
+      eq[["link"]] <- fam[["links"]][[pfix[[dp]]]]
+      eq[["equate"]] <- pfix[[dp]]
+      eq
     } else {
       plain_dpar(dp, fam, pfix[[dp]])
     }
@@ -2340,6 +2376,10 @@ print.frmtmb_spec <- function(x, ...) {
     for (dp in r$dpars) {
       if (!is.null(dp[["constant"]])) {
         cat("  ", dp[["name"]], " = ", dp[["constant"]], " (fixed)\n", sep = "")
+        next
+      }
+      if (!is.null(dp[["equate"]])) {
+        cat("  ", dp[["name"]], " = ", dp[["equate"]], " (equated)\n", sep = "")
         next
       }
       cat("  ", dp[["name"]], " (", dp[["link"]]$name, "): ",

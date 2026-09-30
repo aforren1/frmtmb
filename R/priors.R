@@ -1537,7 +1537,8 @@ prior_design <- function(object, data, family, data2,
   if (inherits(object, "frmtmb_fit")) {
     return(list(spec = object$spec, frame = object$frame))
   }
-  bform <- resolve_deferred_families(as_bform(object, family), data)
+  bform <- expand_dot_bform(as_bform(object, family), data)
+  bform <- resolve_deferred_families(bform, data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, data2 = data2,
                          check_trials = check_trials)
@@ -1742,7 +1743,10 @@ prior_table <- function(spec, frame, route) {
   }
 
   for (lp in frame[["linpreds"]]) {
-    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+    # an equated dpar has no parameter of its own; its target's row is
+    # the one brms lists
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+          !is.null(lp[["equate"]])) next
     rspec <- spec$responses[[lp[["resp"]]]]
     # location dpars are the default target (dpar = ""), matching
     # set_prior()'s resolution
@@ -2496,7 +2500,8 @@ resolve_priorlist <- function(fit, pl) {
     multi_loc <- character(0)
     loc_brms <- TRUE
     for (lp in frame[["linpreds"]]) {
-      if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+      if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+            !is.null(lp[["equate"]])) next
       rspec <- fit$spec$responses[[lp[["resp"]]]]
       if (nzchar(s$resp %||% "") && !identical(lp[["resp"]], s$resp)) next
       # primary_dpars carries the nonlinear parameters a nonlinear
@@ -3181,6 +3186,11 @@ dpar_shape_refusal <- function(fit, s) {
                   paste(frmtmb_prior_classes, collapse = ", ")))
   }
   for (lp in lps) {
+    if (!is.null(lp[["equate"]])) {
+      return(paste0(spelling, ": ", dp, " is equated to ", lp[["equate"]],
+                    " in this model, so it holds no parameter of its own. ",
+                    "Address ", lp[["equate"]], " instead"))
+    }
     if (!is.null(lp[["constant"]])) {
       return(paste0(spelling, ": ", dp, " is fixed at ",
                     format(lp[["constant"]]), " in this model, so it ",

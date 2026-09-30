@@ -1,0 +1,53 @@
+files=10  before: pass=757 fail=0 err=19 skip=0 warn=0
+files=10  after:  pass=836 fail=11 err=0 skip=0 warn=0
+DIFFERING FILES:
+                                 file pass.b fail.b err.b skip.b warn.b pass.a
+ sample-test-brms-suite-brmsformula.R     16      0     0      0      0     11
+               test-brms-likelihood.R    440      0     4      0      0    451
+        test-brms-suite-brmsformula.R     16      0     0      0      0     11
+           test-brms-suite-standata.R     87      0     0      0      0     86
+                   test-dpar-equate.R      0      0     5      0      0     31
+                   test-family-list.R      0      0     3      0      0      7
+                   test-formula-cmc.R      0      0     4      0      0     21
+                   test-formula-dot.R      0      0     3      0      0     20
+ fail.a err.a skip.a warn.a
+      5     0      0      0
+      0     0      0      0
+      5     0      0      0
+      1     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+AFTER NOT CLEAN:
+                                 file pass.b fail.b err.b skip.b warn.b pass.a
+ sample-test-brms-suite-brmsformula.R     16      0     0      0      0     11
+        test-brms-suite-brmsformula.R     16      0     0      0      0     11
+           test-brms-suite-standata.R     87      0     0      0      0     86
+ fail.a err.a skip.a warn.a
+      5     0      0      0
+      5     0      0      0
+      1     0      0      0
+ALL FILES:
+                                 file pass.b fail.b err.b skip.b warn.b pass.a
+ sample-test-brms-suite-brmsformula.R     16      0     0      0      0     11
+               test-brms-likelihood.R    440      0     4      0      0    451
+        test-brms-suite-brmsformula.R     16      0     0      0      0     11
+            test-brms-suite-methods.R    162      0     0      0      0    162
+             test-brms-suite-priors.R     36      0     0      0      0     36
+           test-brms-suite-standata.R     87      0     0      0      0     86
+                   test-dpar-equate.R      0      0     5      0      0     31
+                   test-family-list.R      0      0     3      0      0      7
+                   test-formula-cmc.R      0      0     4      0      0     21
+                   test-formula-dot.R      0      0     3      0      0     20
+ fail.a err.a skip.a warn.a
+      5     0      0      0
+      0     0      0      0
+      5     0      0      0
+      0     0      0      0
+      0     0      0      0
+      1     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0
+      0     0      0      0

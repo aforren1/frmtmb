@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+bcm-simple: .............
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-bcm-simple.R gated=TRUE pass=13 fail=0 err=0 skip=0 warn=0

@@ -1125,7 +1125,10 @@ default_priors_for <- function(fit) {
   })
 
   for (lp in fit$frame[["linpreds"]]) {
-    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+    # an equated dpar (sigma1 = "sigma2") owns no parameter: brms puts
+    # the prior on its target only
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+          !is.null(lp[["equate"]])) next
     if (!"(Intercept)" %in% colnames(lp[["X"]])) next
     # `0 + Intercept` or center = FALSE: brms's intercept is then class
     # "b", which brms leaves flat

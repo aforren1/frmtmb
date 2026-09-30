@@ -1,3 +1,11 @@
+# frmtmb.sample (development version)
+
+* The draws of a model with an equated parameter,
+  `bf(y ~ x, sigma1 = "sigma2")`, carry a `sigma1` column that is a copy
+  of `sigma2`, as brms's draws do, and the default priors skip the
+  equated parameter, which owns no coefficient. Needs the frmtmb that
+  equates parameters; with an older frmtmb nothing changes.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

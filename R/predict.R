@@ -607,7 +607,13 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       check_newdata_frame(tt2, newdata, xlev_for(lp[["xlevels"]], tt2))
       mf2 <- stats::model.frame(tt2, newdata, na.action = stats::na.pass,
                                 xlev = xlev_for(lp[["xlevels"]], tt2))
+      # cmc = FALSE: the term was fitted with an intercept added and
+      # then removed (assemble_frame()), so it is rebuilt the same way
+      if (isTRUE(comp[["cmc_intercept"]])) attr(tt2, "intercept") <- 1L
       mm <- stats::model.matrix(tt2, mf2)
+      if (isTRUE(comp[["cmc_intercept"]])) {
+        mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
+      }
       if (!identical(colnames(mm), comp$cnms)) {
         frm_stop("Random-effect design for `", comp$label, "` does not match ",
                  "the fitted model (columns: ",
