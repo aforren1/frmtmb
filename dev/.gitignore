@@ -8,3 +8,6 @@ pkgcheck-docker-*.md
 tmb-examples/
 tmb-examples-adcomp/
 upstream-rtmb/
+
+/.quarto/
+**/*.quarto_ipynb
