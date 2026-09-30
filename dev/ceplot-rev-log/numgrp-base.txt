@@ -1,0 +1,40 @@
+﻿arm base frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+logLik factor -117.6565 integer -117.6565 
+   WARNING: numerical expression has 3 elements: only the first used 
+g=2 h=5 wald
+  factor : est 0.4596 1.6562 2.8527 | width 1.0396 0.8533 0.9098
+  integer: ERROR non-conformable arrays
+   WARNING: numerical expression has 3 elements: only the first used 
+g=2 h=5 boot
+  factor : est 0.4596 1.6562 2.8527 | width 1.1165 0.7429 0.7620
+  integer: ERROR non-conformable arrays
+   WARNING: numerical expression has 3 elements: only the first used 
+g=1 h=1 wald
+  factor : est 0.8020 1.9986 3.1951 | width 3.4602 3.4398 3.4848
+  integer: ERROR non-conformable arrays
+g=1 h=1 boot
+  factor : ERROR conditional_effects() cannot draw a new level of the group-level term (1 | g:h) at the grid rows with g = 1, h = 1: to place one it would move a column that another term or an observed group reads, to a level the fit saw with the values the grid holds. Set the variables in conditions to levels the fit saw together, or use re_formula = NA
+  integer: ERROR conditional_effects() cannot draw a new level of the group-level term (1 | g:h) at the grid rows with g = 1, h = 1: to place one it would move a column that another term or an observed group reads, to a level the fit saw with the values the grid holds. Set the variables in conditions to levels the fit saw together, or use re_formula = NA
+   WARNING: numerical expression has 3 elements: only the first used 
+g=3 h=2 wald
+  factor : est 0.5561 1.7527 2.9492 | width 0.9524 0.8392 0.9766
+  integer: ERROR non-conformable arrays
+   WARNING: numerical expression has 3 elements: only the first used 
+g=3 h=2 boot
+  factor : est 0.5561 1.7527 2.9492 | width 0.8066 0.8675 0.9937
+  integer: ERROR non-conformable arrays
+fitted newdata (2,5),(3,2),(4,1), factor:
+     Estimate Est.Error
+[1,] 1.668539 0.2174988
+[2,] 2.218655 0.2205939
+[3,] 3.843444 0.2644983
+integer:
+[1] "New levels in grouping factor `g:h`: 2, 3, 4, 5. Use allow_new_levels = TRUE to predict them at the population level"
+Rscript.exe : Warning message:
+At line:1 char:462
++ ... p-lane.txt; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/ceplot ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+In g:h : numerical expression has 3 elements: only the first used

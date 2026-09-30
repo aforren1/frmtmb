@@ -30,7 +30,7 @@ brms_shared <- c(
   "niterations", "nvariables", "variables", "log_lik", "loo",
   "loo_compare", "waic", "bayes_R2", "prior_summary", "pp_check",
   "conditional_effects", "conditional_smooths", "expose_functions",
-  "hypothesis",
+  "hypothesis", "parnames",
   "posterior_summary", "LOO", "WAIC", "ngrps", "fixef", "ranef",
   "VarCorr"
 )
@@ -462,4 +462,30 @@ test_that("frm_install_generics() takes a table and refuses a bad one", {
   expect_identical(frm_install_generics("frmtmb", owners = list(loo = "loo")),
                    "loo")
   expect_true(bindingIsActive("loo", ns))
+})
+
+test_that("parnames() on a fit warns once with brms loaded", {
+  # review m6: brms's generic warns before it dispatches, and the method
+  # warned again, so a call gave two deprecation warnings where brms
+  # gives one
+  skip_on_cran()
+  skip_if_not_installed("brms")
+  count <- c(
+    "set.seed(1); d <- data.frame(x = rnorm(40)); d$y <- rnorm(40, d$x)",
+    "fit <- frmtmb::frm(frmtmb::bf(y ~ x), family = gaussian(), data = d)",
+    "n <- 0L",
+    "p <- withCallingHandlers(parnames(fit), warning = function(w) {",
+    "  n <<- n + 1L; invokeRestart('muffleWarning') })",
+    "cat('NWARN:', n, '\\n')",
+    "cat('SAME:', identical(p, variables(fit)), '\\n')",
+    "cat('CHILDOK\\n')")
+  out <- run_child(c("suppressMessages(library(brms))",
+                     "suppressMessages(library(frmtmb))", count))
+  expect_match(out, "CHILDOK", fixed = TRUE)
+  expect_equal(parse_field(out, "NWARN"), "1")
+  expect_equal(parse_field(out, "SAME"), "TRUE")
+  # the guard absent: without brms the method's own warning is the one
+  out <- run_child(c("suppressMessages(library(frmtmb))", count))
+  expect_match(out, "CHILDOK", fixed = TRUE)
+  expect_equal(parse_field(out, "NWARN"), "1")
 })

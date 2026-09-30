@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+Welcome to emmeans.
+Caution: You lose important information if you filter this package's results.
+See '? untidy'
+RESULT lane frmtmb test-brms-suite-emmeans.R: tests=11 failed=0 error=0 skipped=0 warning=0 passed=11

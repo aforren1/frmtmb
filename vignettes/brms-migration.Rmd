@@ -748,13 +748,21 @@ the SHAPE of what a standard generic returns:
   hold every smooth at its fit and redraw only group-level terms. A row
   reads only its own `f` level's block of `gr(g, by = f)`, and each
   member of `mm(g1, g2)` is a grouping variable; the "New group
-  levels" section of `?conditional_effects` has the refusals.
+  levels" section of `?conditional_effects` has the refusals. One
+  invalid effect among valid ones is dropped with brms's warning.
+- `plot()` of a conditional-effects object and of a `hypothesis()`
+  result takes all of brms's arguments (`rug`, `stype`, `mean`, the
+  `*_args` lists, `nvariables`, `ignore_prior`, `chars` and others).
+  frmtmb draws with base graphics, so `plot = FALSE` returns a list of
+  plot objects that draw when printed, not ggplot objects, and a
+  ggplot2 `theme` is not applied.
 - `conditional_effects()` on an ordinal fit draws one probability
   curve per response category, which is what brms draws under
   `categorical = TRUE`, and keys the effect `"x:cats__"` as brms does
   there. It is the default here because brms's own default warns that
   it is treating an ordered factor as continuous; `categorical = FALSE`
-  asks for that summary, the expected category number.
+  asks for that summary, the expected category number, with brms's
+  warning.
 - `coef()` is the per-group convention shared by all three packages:
   fixed effects plus conditional modes per grouping level.
 - `predict(allow_new_levels = TRUE)` draws an unseen level's effect
@@ -766,8 +774,9 @@ the SHAPE of what a standard generic returns:
   chosen once per call as brms chooses it, from every replicate's draw
   of the group effects. brms's `"uncertainty"` mixes the two per
   posterior draw, and a maximum-likelihood fit has none, so it is
-  refused by name; so is `"old_levels"` on `fitted()`, a Wald summary
-  with no draws to borrow from.
+  refused by name. `fitted()` takes `"old_levels"` too: the unseen
+  level reads the chosen seen level's fitted effect, and its standard
+  error that level's conditional variance.
 - `update()` takes brms's `newdata` and records its name in
   `attr(fit$data, "data_name")`, which `summary()` prints. It also
   takes the `data =` of `stats::update()`, which brms refuses.

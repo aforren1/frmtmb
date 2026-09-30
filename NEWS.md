@@ -1,3 +1,113 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`plot()` of a `conditional_effects()` result and of a
+  `hypothesis()` result returns plot objects, invisibly**, as brms's
+  methods return their list of ggplot objects: a named list of
+  `frmtmb_ce_plot` objects (one per effect) or a list of
+  `frmtmb_hyp_plot` objects (one per page). Each draws when printed or
+  plotted. Both methods returned their input before. A hypothesis plot
+  stacks up to `nvariables = 5` hypotheses on a page, as brms's does,
+  where it drew one page per hypothesis, and a surface is drawn as
+  colored contour lines (brms's `stype = "contour"`) where it was an
+  image with contours. Graphical parameters (`col`, `main`, ...) are
+  ignored as before, and now with a warning that names them.
+* **`predict(sample_new_levels = "old_levels")` chooses one seen level
+  per grouping factor**, as brms's `get_new_rdraws()` does, not one per
+  term. On `bf(y ~ x + (1 | g), sigma ~ (1 | g))` or `(1 + x || g)` a
+  new group took each term's effects from a different seen group, a
+  group the data does not have. Under `gr(g, by = f)` the choice is made
+  among the row's own by-level only, with no draw for the by-level the
+  row does not read. A multivariate call makes one choice for all its
+  responses, so a grouping factor two responses share reads one seen
+  group in both, as in brms.
+* **`conditional_effects(effects = )` checks each effect against the
+  model, as brms does.** An effect naming a variable the model does
+  not read is dropped with brms's warning "Some specified effects are
+  invalid for this model"; with no valid effect the call stops with
+  brms's "All specified effects are invalid for this model", which
+  lists the valid variables. One invalid effect among valid ones was
+  an error, and a variable in the data but not in the model drew a flat
+  curve.
+
+## New features
+
+* `plot()` of a conditional-effects object takes every argument of
+  brms's `plot.brms_conditional_effects()`: `rug`, `mean`, `stype`,
+  `jitter_width` (with brms's deprecation warning), the layer lists
+  `line_args`, `cat_args`, `errorbar_args`, `surface_args`,
+  `spaghetti_args`, `point_args`, `rug_args` and `facet_args`, `theme`,
+  `ask` and `plot`. frmtmb draws with base graphics and has no ggplot
+  objects to return, so `plot = FALSE` returns the plot objects
+  undrawn. The layer lists are translated to base graphics (`colour`,
+  `fill`, `alpha`, `linewidth`, `linetype`, `shape`, `size`, an error
+  bar's `width`, a rug's `sides`, a surface's `bins`, a facet's
+  `ncol`, `nrow` and `scales`), and an element with no counterpart is
+  named in one warning. A ggplot2 `theme` is accepted with a warning
+  that it is not applied. `points = TRUE` on a `conditional_smooths()`
+  result is brms's error.
+* `plot()` of a hypothesis takes every argument of brms's
+  `plot.brmshypothesis()`: `nvariables` (and its alias `N`, with
+  brms's warning), `ignore_prior`, `chars`, `colors`, `theme`, `ask`
+  and `plot`. A fit has no prior draws, so `ignore_prior` changes
+  nothing, as it changes nothing in brms without them.
+* `fitted()` takes `sample_new_levels = "old_levels"`. Each unseen
+  level reads one seen level of its grouping factor, chosen at random
+  once per call as brms chooses it and as `predict()` chooses it, and
+  every term of the factor reads that level: the row takes its fitted
+  effects, and `Est.Error` their conditional variance. One choice
+  serves every response of a multivariate call. At seeds 1 to 12
+  brms 2.23.0 and frmtmb choose the same level on `(1 | g)` with one or
+  two unseen levels, on `(1 | g) + (1 | h)`, on `(1 | g)` in `mu` and
+  `sigma`, and within the row's by-level of `gr(g, by = f)`
+  (`dev/ceplot-oldlevels.R`, `dev/ceplot-rev-oldlevels.R`).
+* `parnames()`, brms's deprecated spelling of `variables()`, answers
+  on a fit with brms's deprecation warning, once, whether or not brms
+  is loaded. The generic moves from frmtmb.sample to frmtmb, so one
+  generic serves fits and draws.
+* `conditional_effects()` draws a new level where it refused to:
+  crossed `(1 | g) + (1 | h) + (1 | g:h)` with `g` and `h` at observed
+  levels the data never has together, under `band = "boot"` and on
+  draws. The bootstrap band has the Wald band's width (0.89 to 1.08 at
+  200 refits, seeds 5 to 7, `dev/ceplot-rev-bootratio.R`). With one
+  new level in the call, the band on draws equals brms's at the same
+  draws and seed to 4.4e-16 (`dev/ceplot-crossed-brms.R`); with two,
+  brms draws level by level and frmtmb draw by draw, so the bands agree
+  in law and not number. A new member of an `mm()` term with a `by`
+  variable is drawn in its own by-level's block: the bootstrap band is
+  0.83 to 1.11 of the Wald band's width at 200 refits (the same
+  script). brms 2.23.0 cannot draw such a level at all; it stops with
+  one of three errors.
+* `conditional_effects(categorical = FALSE)` on an ordinal fit gives
+  brms's warning "Predictions are treated as continuous variables". The
+  default per-category display gives none. This is a deliberate
+  divergence from brms, decided by the user: brms's default display is
+  the expected category number and warns on every default call, and
+  its own warning calls that display likely invalid for ordinal
+  families and asks for `categorical = TRUE`, which is frmtmb's
+  default.
+
+## Bug fixes
+
+* `conditional_effects()` of a response whose predictor reads
+  `mi(x, idx = )` stops with the reason: the grid holds `idx` and
+  `index()` at one reference value, so every grid row names the same
+  row of `x`. It stopped with "Could not match all indices" from inside
+  the prediction. brms 2.23.0 stops on the same grid.
+* A grouping term `(1 | g:h)` on integer or character columns predicts
+  on new data. `g:h` was evaluated as R's sequence operator, so every
+  `predict()`, `fitted()` and `conditional_effects()` on new data
+  stopped with "non-conformable arrays" (and a "numerical expression
+  has 3 elements" warning escaped), or reported observed combinations as
+  new levels. It is now the interaction the fit reads.
+* `conditional_effects()` varies a variable the model reads through a
+  transform, `x` in `poly(x, 2)` or `z` in `log(abs(z) + 1)`, as brms
+  does. The model frame keeps only the transformed columns, so naming
+  such a variable stopped with "not stored in the model frame" and the
+  default display found nothing to draw. The fit keeps the raw
+  variables beside the model frame for it.
+
 # frmtmb 0.66.0
 
 Six lanes of brms parity, each with an adversarial review and one to

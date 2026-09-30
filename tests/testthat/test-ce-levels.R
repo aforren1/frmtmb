@@ -322,9 +322,86 @@ test_that("an mm() term with a by variable holds its observed members", {
   b <- at_g(fit, cond, band = "boot", boot = 40, seed = 5)
   expect_true(all(b$lower__ <= w$estimate__ & w$estimate__ <= b$upper__))
   expect_lt(max(width(b) / width(w)), 2)
-  expect_error(at_g(fit, list(f1 = "a", f2 = "b"), band = "boot", boot = 5,
-                    seed = 1),
-               "multi-membership term .* with a by variable")
+})
+
+test_that("an mm() term with a by variable draws each new member's level", {
+  # 0.66.0 refused every new member on band = "boot" ("multi-membership
+  # term ... with a by variable"). A new member is drawn in the block of
+  # its own by-value; the Wald band carries the same variance, so the
+  # bootstrap band has about its width (0.81 to 0.95 at 60 refits,
+  # dev/ceplot-log/mmby-lane.txt), where a band drawing nothing is the
+  # observed-level band, 0.25 of the Wald width or less
+  set.seed(45)
+  d <- data.frame(x = stats::rnorm(300),
+                  g1 = factor(sample(1:10, 300, TRUE)),
+                  g2 = factor(sample(1:10, 300, TRUE)))
+  fl <- rep(c("a", "b"), each = 5)
+  d$f1 <- factor(fl[d$g1])
+  d$f2 <- factor(fl[d$g2])
+  u <- stats::rnorm(10, 0, 1)
+  d$y <- stats::rnorm(300, 1 + 0.5 * d$x + 0.5 * (u[d$g1] + u[d$g2]), 0.5)
+  fit <- frm(bf(y ~ x + (1 | mm(g1, g2, by = cbind(f1, f2)))),
+             family = gaussian(), data = d)
+  ratio <- function(cond) {
+    w <- at_g(fit, cond)
+    b <- at_g(fit, cond, band = "boot", boot = 40, seed = 5)
+    expect_true(all(b$lower__ <= w$estimate__ & w$estimate__ <= b$upper__))
+    width(b) / width(w)
+  }
+  # both new, in different by-levels' blocks
+  r <- ratio(list(f1 = "a", f2 = "b"))
+  expect_gt(min(r), 0.7)
+  expect_lt(max(r), 1.4)
+  # both new in one block, one new level with their weights added
+  r <- ratio(list(f1 = "a", f2 = "a"))
+  expect_gt(min(r), 0.7)
+  expect_lt(max(r), 1.4)
+  # one member at an observed group of by-level a, the other new in b:
+  # each block is read one way only, so one bootstrap covers it
+  r <- ratio(list(g1 = "2", f1 = "a", f2 = "b"))
+  expect_gt(min(r), 0.7)
+  expect_lt(max(r), 1.4)
+})
+
+test_that("crossed terms at an unseen combination draw its new level", {
+  # (1 | g) + (1 | h) + (1 | g:h) with g and h at observed levels the
+  # data never has together. 0.66.0 refused the bootstrap ("cannot draw
+  # a new level of the group-level term (1 | g:h)"); the Wald band
+  # answered, and the bootstrap band now has its width (1.02 to 1.05 at
+  # 60 refits, dev/ceplot-log/crossed-brms.txt), where the observed
+  # g:h band is 0.26 of it
+  set.seed(49)
+  dc <- expand.grid(g = factor(1:6), h = factor(1:5), r = 1:4)
+  dc <- dc[!(dc$g == "1" & dc$h == "1"), ]
+  dc$x <- stats::rnorm(nrow(dc))
+  dc$y <- stats::rnorm(nrow(dc), 1 + 0.5 * dc$x + stats::rnorm(6)[dc$g] +
+                         stats::rnorm(5)[dc$h] +
+                         stats::rnorm(30, 0, 0.7)[
+                           as.integer(interaction(dc$g, dc$h))], 0.5)
+  fc <- frm(bf(y ~ x + (1 | g) + (1 | h) + (1 | g:h)), family = gaussian(),
+            data = dc)
+  cond <- list(g = "1", h = "1")
+  w <- at_g(fc, cond)
+  bo <- conditional_effects(fc, "x", resolution = 3, re_formula = NULL,
+                            conditions = cond, band = "boot", boot = 40,
+                            seed = 5)
+  b <- bo$x
+  # the frame keeps the levels asked for: nothing was moved
+  expect_identical(as.character(b$g), rep("1", 3))
+  expect_identical(as.character(b$h), rep("1", 3))
+  expect_true(all(b$lower__ <= w$estimate__ & w$estimate__ <= b$upper__))
+  r <- width(b) / width(w)
+  expect_gt(min(r), 0.7)
+  expect_lt(max(r), 1.4)
+  # the curve is g = 1's and h = 1's: the bootstrap mean sits on the
+  # Wald estimate, not on the population curve
+  m <- colMeans(attr(bo, "boot")$t)
+  pop <- conditional_effects(fc, "x", resolution = 3)$x$estimate__
+  expect_true(all(abs(m - w$estimate__) < abs(m - pop)))
+  # the fit's own levels are untouched after the renamed copy was used
+  expect_false(any(vapply(fc$frame[["re_blocks"]], function(bk) {
+    "1:1" %in% bk[["levels"]]
+  }, NA)))
 })
 
 test_that("a bootstrap is not reused under another re_formula", {
@@ -388,4 +465,120 @@ test_that("a new level is drawn once and shared by every panel", {
   expect_identical(ncol(t), 2L)
   expect_identical(t[, 1], t[, 2])
   expect_identical(ce$x$upper__, ce$z$upper__)
+})
+
+# Punch round 1.
+
+crossed_fit <- local({
+  cache <- NULL
+  function(type = "factor") {
+    if (is.null(cache[[type]])) {
+      set.seed(49)
+      dc <- expand.grid(g = factor(1:6), h = factor(1:5), r = 1:4)
+      dc <- dc[!(dc$g == "1" & dc$h == "1"), ]
+      dc$x <- stats::rnorm(nrow(dc))
+      dc$y <- stats::rnorm(nrow(dc), 1 + 0.5 * dc$x +
+                             stats::rnorm(6)[dc$g] + stats::rnorm(5)[dc$h] +
+                             stats::rnorm(30, 0, 0.7)[
+                               as.integer(interaction(dc$g, dc$h))], 0.5)
+      if (type == "integer") {
+        dc$g <- as.integer(as.character(dc$g))
+        dc$h <- as.integer(as.character(dc$h))
+      } else if (type == "character") {
+        dc$g <- as.character(dc$g)
+        dc$h <- as.character(dc$h)
+      }
+      cache[[type]] <<- list(d = dc, fit = frm(
+        bf(y ~ x + (1 | g) + (1 | h) + (1 | g:h)), family = gaussian(),
+        data = dc))
+    }
+    cache[[type]]
+  }
+})
+
+test_that("a renamed level reads the draw, not a fitted level's effect", {
+  # review m1: with the draw written to another level's slot the rows
+  # read a real g:h level's fitted effect, and the bootstrap band still
+  # has about the right width; only frmtmb.sample's test caught it. The
+  # identity: the display minus the same rows predicted with g:h at no
+  # level (a new level reads 0 there) IS the drawn effect
+  fc <- crossed_fit()$fit
+  lp <- find_linpred(fc, "y", "mu")
+  gb <- ce_grids_build(fc, fc$spec$responses[[1L]], lp, "x", "y", "mu", 3,
+                       list(g = "1", h = "1"), NULL,
+                       na_vars = ce_group_vars(fc))
+  plan <- ce_level_plan(fc, gb$grids, gb$base, NULL)
+  cache <- new.env(parent = emptyenv())
+  set.seed(1)
+  v <- ce_plan_eval(fc, plan, 1L, cache, FALSE, "y", "mu", NULL, TRUE)
+  draws <- unlist(as.list(cache))
+  expect_length(draws, 1L)
+  ref <- as.vector(frm_linpred(fc, newdata = gb$grids[[1L]]$nd,
+                               type = "response", dpar = "mu",
+                               re_formula = NULL, allow_new_levels = TRUE))
+  eps <- .Machine$double.eps
+  expect_lt(max(abs(v - ref - draws[[1L]])), 64 * eps * max(abs(v)))
+  # and the rows keep the levels asked for
+  expect_identical(as.character(plan$grids[[1L]]$parts[[1L]]$nd$g),
+                   rep("1", 3))
+})
+
+test_that("the rename refuses a row whose grouping variable is unset", {
+  # review B2: y ~ x + trt + (1 | trt:subj) with nothing set holds trt
+  # at NA, a grouping variable that is also a predictor. 0.66.0 refused
+  # the bootstrap by name; the first build of the rename returned an
+  # all-NA frame without a message
+  set.seed(41)
+  d <- expand.grid(rep = 1:4, trt = factor(c("a", "b")), subj = factor(1:12))
+  d$x <- stats::rnorm(nrow(d))
+  d$y <- stats::rnorm(nrow(d), 1 + 0.5 * d$x + (d$trt == "b") +
+                        stats::rnorm(24, 0, 1)[interaction(d$trt, d$subj)],
+                      0.5)
+  fit <- frm(bf(y ~ x + trt + (1 | trt:subj)), family = gaussian(), data = d)
+  expect_error(conditional_effects(fit, "x", resolution = 3,
+                                   re_formula = NULL, band = "boot",
+                                   boot = 5, seed = 1),
+               "cannot draw a new level of the group-level term")
+  # the guard absent: trt set, subj unseen, is renamed and answers
+  b <- conditional_effects(fit, "x", resolution = 3, re_formula = NULL,
+                           conditions = list(trt = "b", subj = "99"),
+                           band = "boot", boot = 20, seed = 1)$x
+  expect_true(all(is.finite(b$estimate__) & is.finite(b$lower__)))
+})
+
+test_that("integer and character grouping columns of g:h predict", {
+  # pre-existing: g:h evaluated as R code is the sequence operator on
+  # integer columns, so every newdata prediction stopped with
+  # "non-conformable arrays" and a warning escaped. The fits are the
+  # same model as with factor columns, so every answer must agree
+  ff <- crossed_fit("factor")$fit
+  nd <- data.frame(x = c(0, 1, 2), g = c(2L, 3L, 4L), h = c(5L, 2L, 1L))
+  ndf <- nd
+  ndf$g <- factor(ndf$g, levels = 1:6)
+  ndf$h <- factor(ndf$h, levels = 1:5)
+  for (type in c("integer", "character")) {
+    fi <- crossed_fit(type)$fit
+    ndi <- nd
+    if (type == "character") {
+      ndi$g <- as.character(ndi$g)
+      ndi$h <- as.character(ndi$h)
+    }
+    expect_equal(fitted(fi, newdata = ndi), fitted(ff, newdata = ndf))
+    set.seed(3)
+    pi <- predict(fi, newdata = ndi, ndraws = 50)
+    set.seed(3)
+    pf <- predict(ff, newdata = ndf, ndraws = 50)
+    expect_equal(pi, pf)
+    for (cc in list(c(2, 5), c(1, 1))) {
+      ci <- if (type == "integer") list(g = cc[1], h = cc[2]) else
+        list(g = as.character(cc[1]), h = as.character(cc[2]))
+      a <- conditional_effects(fi, "x", resolution = 3, re_formula = NULL,
+                               conditions = ci)$x
+      b <- conditional_effects(ff, "x", resolution = 3, re_formula = NULL,
+                               conditions = list(g = as.character(cc[1]),
+                                                 h = as.character(cc[2])))$x
+      expect_equal(a$estimate__, b$estimate__)
+      expect_equal(a$upper__, b$upper__)
+    }
+  }
 })

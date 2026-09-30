@@ -1,0 +1,4 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | cache:  
+mutant: valid_nocs 
+RESULT lane frmtmb test-ce-parity.R valid_nocs: tests=30 failed=2 error=0 skipped=0 warning=0 passed=28
+  fails: a cs() variable is a valid effect 

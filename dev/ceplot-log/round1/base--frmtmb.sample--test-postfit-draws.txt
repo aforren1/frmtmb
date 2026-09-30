@@ -1,0 +1,4 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.sample | frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
+RESULT base frmtmb.sample test-postfit-draws.R: tests=57 failed=0 error=2 skipped=0 warning=0 passed=57
+  fails: on draws, crossed terms at an unseen combination answer 
+  fails: on draws, an mm() term with a by variable draws new members 

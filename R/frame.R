@@ -1691,6 +1691,40 @@ check_frame_variables <- function(rhs, data, env) {
   invisible(NULL)
 }
 
+#' The raw variables the model reads through a transform, such as `x` in
+#' `poly(x, 2)` or `z` in `log(abs(z) + 1)`, on the rows of the model
+#' frame. The model frame keeps the transformed columns only; brms's
+#' keeps the variables, and `conditional_effects()` varies a variable,
+#' not a basis matrix. A variable read only inside `offset()` is left
+#' out: the offset has its own handling in the display. `NULL` when the
+#' model frame already holds every variable, or when its rows cannot be
+#' matched to the data's by name.
+#'
+#' @noRd
+frame_raw_vars <- function(mf, data, rhs) {
+  if (is.null(rhs) || !is.data.frame(data)) return(NULL)
+  off_only <- character(0)
+  other <- character(0)
+  walk <- function(e, in_off) {
+    if (is.name(e)) {
+      nm <- as.character(e)
+      if (in_off) off_only <<- c(off_only, nm) else other <<- c(other, nm)
+    } else if (is.call(e)) {
+      off <- in_off || identical(e[[1L]], as.name("offset"))
+      for (a in as.list(e)[-1L]) walk(a, off)
+    }
+  }
+  walk(rhs, FALSE)
+  v <- setdiff(unique(other), names(mf))
+  v <- intersect(v, names(data))
+  if (!length(v)) return(NULL)
+  rows <- match(rownames(mf), rownames(data))
+  if (anyNA(rows)) return(NULL)
+  out <- data[rows, v, drop = FALSE]
+  rownames(out) <- rownames(mf)
+  out
+}
+
 #' Turn a parsed spec plus data into the numeric `frmtmb_frame` the
 #' objective is built from. This is the second and last stage of the
 #' formula-to-design-matrix pipeline: `parse_spec()` reads the formulas,
@@ -3642,6 +3676,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          predvar_map = predvar_map,
          sparse_x = isTRUE(sparse_x),
          data_frame = mf,
+         raw_vars = frame_raw_vars(mf, data, rhs_comb),
          na_action = attr(mf, "na.action"),
          # subset(): the rows of `data_frame` each such response uses,
          # and the rows before a univariate model's cut, for nobs()

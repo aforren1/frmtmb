@@ -974,7 +974,8 @@ getME_flist <- function(object) {
     lp <- object$frame[["linpreds"]][[comp$lp_key]]
     env <- object$spec$responses[[lp[["resp"]]]]$formula_env
     gv <- tryCatch(
-      as.character(eval(comp$bar[[3L]], object$frame[["data_frame"]], env)),
+      as.character(group_values(comp$bar[[3L]], object$frame[["data_frame"]],
+                                env)),
       error = function(e) NULL
     )
     if (length(gv) != object$frame[["n_obs"]]) {

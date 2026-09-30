@@ -1,0 +1,171 @@
+ARM base | frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+ce-plot: 12..3456789abc
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-ce-plot.R:69:3'): plot() takes every argument brms's two pl
+Expected `ce_f` to be identical to `brms_ce`.
+Differences:
+    actual   | expected                      
+[1] "x"      | "x"            [1]            
+[2] "ask"    -                               
+[3] "points" -                               
+[4] "ncol"   | "ncol"         [2]            
+             - "points"       [3]            
+             - "rug"          [4]            
+             - "mean"         [5]            
+             - "jitter_width" [6]            
+             - "stype"        [7]            
+             - "line_args"    [8]            
+... ...        ...            and 11 more ...
+
+
+── 2. Failure ('test-ce-plot.R:70:3'): plot() takes every argument brms's two pl
+Expected `hyp_f` to be identical to `brms_hyp`.
+Differences:
+    actual | expected           
+[1] "x"    | "x"            [1] 
+[2] "ask"  - "nvariables"   [2] 
+[3] "..."  - "N"            [3] 
+           - "ignore_prior" [4] 
+           - "chars"        [5] 
+           - "colors"       [6] 
+           - "theme"        [7] 
+           - "ask"          [8] 
+           - "plot"         [9] 
+           - "..."          [10]
+
+
+── 3. Error ('test-ce-plot.R:82:3'): plot = FALSE returns one plot object per ef
+<frmtmb_error/error/condition>
+Error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-ce-plot.R:82:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─frmtmb (local) pages(p <- plot(s$ce, plot = FALSE))
+ 5. │ └─base::force(expr) at test-ce-plot.R:38:3
+ 6. ├─base::plot(s$ce, plot = FALSE)
+ 7. └─frmtmb:::plot.frmtmb_conditional_effects(s$ce, plot = FALSE)
+ 8.   └─frmtmb::frm_check_dots(...)
+ 9.     └─frmtmb::frm_stop(...)
+
+── 4. Error ('test-ce-plot.R:102:3'): rug draws the observed values of a numeric
+<frmtmb_error/error/condition>
+Error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol
+Backtrace:
+    ▆
+ 1. ├─frmtmb (local) display_ops(print(plot(s$ce, plot = FALSE)$x)) at test-ce-plot.R:102:3
+ 2. │ └─base::force(expr) at test-ce-plot.R:49:3
+ 3. ├─base::print(plot(s$ce, plot = FALSE)$x)
+ 4. ├─base::plot(s$ce, plot = FALSE)
+ 5. └─frmtmb:::plot.frmtmb_conditional_effects(s$ce, plot = FALSE)
+ 6.   └─frmtmb::frm_check_dots(...)
+ 7.     └─frmtmb::frm_stop(...)
+
+── 5. Error ('test-ce-plot.R:121:5'): mean = FALSE leaves the estimate out only 
+<frmtmb_error/error/condition>
+Error: plot() has no argument `plot` (and 1 more: mean). Did you mean `plt`?. It takes: x, ask, points, ncol
+Backtrace:
+     ▆
+  1. ├─testthat::expect_identical(lines_of(s$ce, mean = FALSE), lines_of(s$ce)) at test-ce-plot.R:124:3
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. └─frmtmb (local) lines_of(s$ce, mean = FALSE)
+  5.   ├─frmtmb (local) display_ops(print(plot(ce, plot = FALSE, ...)$x)) at test-ce-plot.R:121:5
+  6.   │ └─base::force(expr) at test-ce-plot.R:49:3
+  7.   ├─base::print(plot(ce, plot = FALSE, ...)$x)
+  8.   ├─base::plot(ce, plot = FALSE, ...)
+  9.   └─frmtmb:::plot.frmtmb_conditional_effects(ce, plot = FALSE, ...)
+ 10.     └─frmtmb::frm_check_dots(...)
+ 11.       └─frmtmb::frm_stop(...)
+
+── 6. Error ('test-ce-plot.R:133:3'): stype picks contour lines or a raster for 
+<frmtmb_error/error/condition>
+Error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask, points, ncol
+Backtrace:
+    ▆
+ 1. ├─frmtmb (local) display_ops(print(plot(su, plot = FALSE)[[1L]])) at test-ce-plot.R:133:3
+ 2. │ └─base::force(expr) at test-ce-plot.R:49:3
+ 3. ├─base::print(plot(su, plot = FALSE)[[1L]])
+ 4. ├─base::plot(su, plot = FALSE)
+ 5. └─frmtmb:::plot.frmtmb_conditional_effects(su, plot = FALSE)
+ 6.   └─frmtmb::frm_check_dots(...)
+ 7.     └─frmtmb::frm_stop(...)
+
+── 7. Error ('test-ce-plot.R:145:3'): layer arguments translate, and the rest ar
+<frmtmb_error/error/condition>
+Error: plot() has no argument `rug` (and 8 more: line_args, cat_args, errorbar_args, point_args, rug_args, spaghetti_args, surface_args, facet_args). It takes: x, ask, points, ncol
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_warning(...) at test-ce-plot.R:145:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ ├─base::withRestarts(...)
+  6. │     │ │ └─base (local) withOneRestart(expr, restarts[[1L]])
+  7. │     │ │   └─base (local) doWithOneRestart(return(expr), restart)
+  8. │     │ └─base::withCallingHandlers(...)
+  9. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 10. ├─frmtmb (local) pages(...)
+ 11. │ └─base::force(expr) at test-ce-plot.R:38:3
+ 12. ├─base::plot(...)
+ 13. └─frmtmb:::plot.frmtmb_conditional_effects(...)
+ 14.   └─frmtmb::frm_check_dots(...)
+ 15.     └─frmtmb::frm_stop(...)
+
+── 8. Error ('test-ce-plot.R:175:3'): theme, jitter_width and points follow brms
+<frmtmb_error/error/condition>
+Error: plot() has no argument `theme`. It takes: x, ask, points, ncol
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-ce-plot.R:175:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─base::plot(s$ce, theme = "bw")
+  8. └─frmtmb:::plot.frmtmb_conditional_effects(s$ce, theme = "bw")
+  9.   └─frmtmb::frm_check_dots(...)
+ 10.     └─frmtmb::frm_stop(...)
+
+── 9. Error ('test-ce-plot.R:200:3'): facet_args lays out the panels of several 
+Error in `ce_facet_layout(4L, nrow = 1L)`: unused argument (nrow = 1)
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(...) at test-ce-plot.R:200:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+── 10. Failure ('test-ce-plot.R:215:3'): plot() of a hypothesis takes brms's arg
+Expected `pages(plot(h, ask = FALSE))` to be identical to 1L.
+Differences:
+  `actual`: 3
+`expected`: 1
+
+
+── 11. Error ('test-ce-plot.R:216:3'): plot() of a hypothesis takes brms's argum
+<frmtmb_error/error/condition>
+Error: plot() has no argument `nvariables` (and 1 more: plot). It takes: x, ask
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-ce-plot.R:216:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─frmtmb (local) pages(p <- plot(h, nvariables = 2, plot = FALSE))
+ 5. │ └─base::force(expr) at test-ce-plot.R:38:3
+ 6. ├─base::plot(h, nvariables = 2, plot = FALSE)
+ 7. └─frmtmb:::plot.frmtmb_hypothesis(h, nvariables = 2, plot = FALSE)
+ 8.   └─frmtmb::frm_check_dots(...)
+ 9.     └─frmtmb::frm_stop(...)
+
+── 12. Error ('test-ce-plot.R:240:3'): a long hypothesis is cut in its title as 
+Error in `hyp_limit_chars(x, 20)`: could not find function "hyp_limit_chars"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(...) at test-ce-plot.R:240:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+══ DONE ════════════════════════════════════════════════════════════════════════

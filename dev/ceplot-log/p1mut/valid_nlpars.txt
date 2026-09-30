@@ -1,0 +1,4 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | cache:  
+mutant: valid_nlpars 
+RESULT lane frmtmb test-ce-parity.R valid_nlpars: tests=26 failed=0 error=1 skipped=0 warning=0 passed=26
+  fails: a nonlinear parameter's name is not a valid effect 

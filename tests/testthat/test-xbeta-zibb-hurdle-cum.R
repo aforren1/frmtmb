@@ -604,9 +604,11 @@ test_that("a hurdle ordinal fit reads codes 0..K through every method", {
   # the expected category is scored by the codes, so the hurdle scores 0
   nd <- data.frame(x = 0.5, z = -0.2)
   P <- frm_linpred(fi, newdata = nd, type = "response")
-  ce <- conditional_effects(fi, effects = "x", categorical = FALSE,
-                            int_conditions = list(x = 0.5),
-                            conditions = data.frame(z = -0.2))
+  ce <- allow_warnings(
+    conditional_effects(fi, effects = "x", categorical = FALSE,
+                        int_conditions = list(x = 0.5),
+                        conditions = data.frame(z = -0.2)),
+    "Predictions are treated as continuous")
   expect_lt(abs(ce[[1]]$estimate__[1] - sum(P * 0:4)), ULPS * sum(P * 0:4))
   # P(Y = 0) is hu alone, so its band is hu's own delta-method band
   cc <- conditional_effects(fi, effects = "x", categorical = TRUE,

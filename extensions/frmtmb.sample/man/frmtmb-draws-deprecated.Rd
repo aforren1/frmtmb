@@ -6,7 +6,6 @@
 \alias{posterior_samples.frmtmb_draws}
 \alias{nsamples}
 \alias{nsamples.frmtmb_draws}
-\alias{parnames}
 \alias{parnames.frmtmb_draws}
 \title{Deprecated brms draws accessors}
 \usage{
@@ -26,8 +25,6 @@ posterior_samples(x, pars = NA, ...)
 nsamples(object, ...)
 
 \method{nsamples}{frmtmb_draws}(object, subset = NULL, incl_warmup = FALSE, ...)
-
-parnames(x, ...)
 
 \method{parnames}{frmtmb_draws}(x, ...)
 }
@@ -50,8 +47,10 @@ adds.}
 \item{as.matrix, as.array}{Return a matrix or a
 draws-by-chains-by-variables array instead of a data frame.}
 
-\item{incl_warmup}{Refused: \code{frm_sample()} discards the warmup, so
-there is no warmup draw to count.}
+\item{incl_warmup}{If \code{TRUE}, count the iterations the sampler saved,
+warmup included, as brms does. The draws themselves hold the
+post-warmup iterations only; the count is read from the stanfit's
+record, and draws with no stanfit behind them refuse it.}
 }
 \value{
 A data frame (or matrix, or array) of draws for
@@ -64,9 +63,16 @@ spellings that brms itself deprecated and still answers. Each warns
 and then does what brms's does, so a ported script runs.
 \itemize{
 \item \code{posterior_samples(x)} is \code{as.data.frame(x)}; \code{pars} is a regular
-expression unless \code{fixed = TRUE}, as in brms.
-\item \code{nsamples(x)} is \code{\link[=ndraws]{ndraws()}}.
-\item \code{parnames(x)} is \code{\link[=variables]{variables()}}.
+expression unless \code{fixed = TRUE}, as in brms. The columns \code{pars}
+selects come in brms's order, which lists every population-level
+intercept first (\code{b_Intercept}, \code{b_sigma_Intercept}, then \code{b_x});
+with no \code{pars} the columns are those of \code{\link[=variables]{variables()}}, in its
+order. A \code{pars} that matches nothing returns \code{NULL}, as in brms.
+\item \code{nsamples(x)} is \code{\link[=ndraws]{ndraws()}}. \code{nsamples(x, incl_warmup = TRUE)}
+counts the iterations the sampler saved, warmup included, from the
+stanfit that \code{frm_sample()} keeps, as brms counts them.
+\item \code{parnames(x)} is \code{\link[=variables]{variables()}}; the generic is frmtmb's
+(\code{\link[frmtmb:parnames]{frmtmb::parnames()}}), which answers it on a fit too.
 }
 
 Use \code{as_draws(x)} for a posterior draws object, \code{as.data.frame(x)},

@@ -1,0 +1,4 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb | frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
+RESULT base frmtmb test-brms-parity-defects.R: tests=106 failed=0 error=2 skipped=0 warning=0 passed=106
+  fails: fitted() takes sample_new_levels = "old_levels" 
+  fails: parnames() on a fit is variables(), with brms's warning 

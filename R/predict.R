@@ -633,7 +633,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                       mm_newdata_parts(comp, bk, newdata, env,
                                        lp[["xlevels"]],
                       fit$frame[["predvar_map"]],
-                                       allow_new_levels))
+                                       allow_new_levels,
+                                       fit[["new_level_pick"]]))
         next
       }
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
@@ -658,7 +659,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       }
       # a partial re_formula keeps some columns of this term (re_view())
       if (!is.null(comp$keep_cols)) mm[, !comp$keep_cols] <- 0
-      gvr <- eval(comp$bar[[3]], newdata, env)
+      gvr <- group_values(comp$bar[[3]], newdata, env)
       # an spde block's levels are mesh ROW NUMBERS, so the node has to
       # be read as a number here too: as.character() on a double would
       # spell node 100000 as "1e+05" and lose the column
@@ -681,15 +682,20 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                  paste(unique(gv[is_new]), collapse = ", ")),
           "Use allow_new_levels = TRUE to predict them at the population level")
       }
+      j <- new_level_pick_apply(fit[["new_level_pick"]], bk, gv, j, is_new)
       # new_key is the level label: two rows at the SAME unseen level
       # load one draw of its effect and two DIFFERENT unseen levels load
       # independent ones. Without it every unseen level of a block
       # shared one key, which a per-row variance cannot see and a joint
       # draw can: predict(summary = FALSE) gave three distinct new
       # groups the same effect in every replicate
+      # is_new: the rows that read an unseen level of this block, which
+      # a by-level's block does not share with the rows it skips
       re_parts[[length(re_parts) + 1L]] <- list(bk = bk, comp = comp,
                                                 mm = mm, j = j,
-                                                new_key = gv)
+                                                new_key = gv,
+                                                is_new = is_new &
+                                                  is.na(j))
     }
   }
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
@@ -713,7 +719,7 @@ stop_new_levels <- function(what, hint) {
 #'
 #' @noRd
 mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
-                             predvar_map, allow_new_levels) {
+                             predvar_map, allow_new_levels, pick = NULL) {
   mms <- comp$mm
   iw <- mm_index_weights(mms, newdata, env, bk[["levels"]])
   tt2 <- stats::terms(stats::as.formula(call("~", mms$lhs), env = env))
@@ -756,10 +762,72 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
     # new_key names WHICH unseen level this member landed on, because a
     # row whose members carry the SAME unseen label loads one draw of
     # the block, not two independent ones (see extra_var_blocks())
-    list(bk = bk, comp = comp,
-         mm = mmk, j = iw$J[, k],
-         new_key = as.character(gv[[k]]))
+    jk <- new_level_pick_apply(pick, bk, as.character(gv[[k]]),
+                               iw$J[, k], is_new[, k])
+    list(bk = bk, comp = comp, mm = mmk, j = jk,
+         new_key = as.character(gv[[k]]),
+         is_new = is_new[, k] & is.na(jk))
   })
+}
+
+#' brms's `sample_new_levels = "old_levels"` on a design: each unseen
+#' level reads the seen level chosen for it, so the row takes that
+#' level's fitted effect and, in a standard error, that level's
+#' conditional variance instead of the block's marginal one.
+#'
+#' `pick` is the `old_pick` list `old_level_pick_add()` draws: the
+#' chosen seen level's LABEL, keyed by grouping factor and unseen label
+#' (`new_level_key()`). Keying by the grouping factor rather than by the
+#' block is brms's rule: every term of `g` (`(1 | g)` in `mu` and in
+#' `sigma`, both halves of `(1 + x || g)`) reads the same seen group, so
+#' the new group is a group the data has. `NULL`, the usual case,
+#' changes nothing.
+#'
+#' @noRd
+new_level_pick_apply <- function(pick, bk, gv, j, is_new) {
+  if (is.null(pick) || !any(is_new)) return(j)
+  lab <- unlist(pick)[new_level_key(bk, gv)]
+  # a label another by-level's block holds is not in this block's
+  # levels, and that block does not read the row
+  jj <- match(lab, as.character(bk[["levels"]]))
+  hit <- is_new & !is.na(jj)
+  j[hit] <- jj[hit]
+  j
+}
+
+#' A grouping expression's values on some rows, as the fit's grouping
+#' factor labels them. `g:h` is the INTERACTION of `g` and `h`, labeled
+#' `"<g>:<h>"`, which is how the fit's `mkReTrms()` reads it; evaluated
+#' as R code it is the SEQUENCE operator, and on integer or character
+#' columns that gave a number sequence (with a "numerical expression has
+#' 3 elements" warning) or an error, so every newdata prediction of such
+#' a model failed. A row with either side missing is `NA`.
+#'
+#' @noRd
+group_values <- function(expr, data, env) {
+  if (is.call(expr) && identical(expr[[1L]], as.name(":")) &&
+      length(expr) == 3L) {
+    a <- as.character(group_values(expr[[2L]], data, env))
+    b <- as.character(group_values(expr[[3L]], data, env))
+    out <- paste(a, b, sep = ":")
+    out[is.na(a) | is.na(b)] <- NA_character_
+    return(out)
+  }
+  eval(expr, data, env)
+}
+
+#' The key of one unseen level for brms's `"old_levels"` choice: the
+#' block's grouping factor and the level's label. An `NA` label (a
+#' conditional-effects grid row with the group unset) is its own level
+#' per row, as `extra_var_blocks()` counts it.
+#'
+#' @noRd
+new_level_key <- function(bk, gv) {
+  kv <- as.character(gv)
+  na <- is.na(kv)
+  kv[na] <- paste0(".na.", which(na))
+  paste0(bk[["group_name"]] %||% as.character(bk[["c_idx"]][1L]), "\r",
+         kv)
 }
 
 #' RE contribution to eta for one linear predictor, given the full
@@ -2384,10 +2452,18 @@ napred <- function(fit, x) {
 #' @param sample_new_levels brms's argument. `"gaussian"`, or `NULL`
 #'   for it: an unseen level's effect is taken from its block's
 #'   estimated covariance, so its variance widens `Est.Error` and the
-#'   interval. `"old_levels"` reads a seen level's effect from a draw
-#'   of the group effects, and this Wald summary takes none, so it is
-#'   refused by name; [predict.frmtmb_fit()] takes it. `"uncertainty"`
-#'   is refused on both.
+#'   interval. `"old_levels"` gives each unseen level one seen level of
+#'   its grouping factor, chosen at random once per call as brms
+#'   chooses it (and as [predict.frmtmb_fit()] chooses it), and every
+#'   term of that factor reads the same seen level: the row takes that
+#'   level's fitted effects, and its `Est.Error` carries their
+#'   conditional variance rather than the marginal one. One choice
+#'   serves every response of a multivariate call. Two different unseen
+#'   values of one `mm()` term read two seen levels; brms 2.23.0 gives
+#'   them one, because it numbers unseen values per member rather than
+#'   by value. It acts only with `allow_new_levels = TRUE`, as in brms. `"uncertainty"` chooses a
+#'   level per posterior draw, and a maximum-likelihood fit has none, so
+#'   it is refused by name.
 #' @param ... Refused. An argument this method does not have is an
 #'   error naming it, because a swallowed `re_formula` returned the
 #'   conditional fit and said nothing.
@@ -2445,7 +2521,8 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
                            robust)
   check_flag(allow_new_levels, "allow_new_levels")
-  check_sample_new_levels(sample_new_levels, "fitted()")
+  sample_new_levels <- check_sample_new_levels(
+    sample_new_levels, "fitted()", allow = c("gaussian", "old_levels"))
   # brms reaches a non-linear parameter with `nlpar`; in this package an
   # nlf() parameter IS a dpar, so the two names address one thing
   if (!is.null(nlpar)) {
@@ -2466,10 +2543,17 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     resp <- names(object$spec$responses)
   }
   if (length(resp) > 1L) {
+    if (identical(sample_new_levels, "old_levels") && allow_new_levels) {
+      # one choice for the whole call, over every response: brms chooses
+      # once per grouping factor, so a factor two responses share reads
+      # one seen group in both; each response's own call reuses it
+      object <- fitted_old_levels(object, resp, newdata, re_formula)
+    }
     return(fitted_mv(object, newdata, re_formula, scale, resp, dpar, probs,
-                     allow_new_levels))
+                     allow_new_levels, sample_new_levels))
   }
-  rs <- object$spec$responses[[resp %||% names(object$spec$responses)[1L]]]
+  rnm <- resp %||% names(object$spec$responses)[1L]
+  rs <- object$spec$responses[[rnm]]
   if (is.null(rs) || is.null(fam_structure(rs$family))) {
     # once, so the finite-difference route below perturbs the reduced
     # design rather than resolving the formula again at every step; a
@@ -2477,6 +2561,13 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     rr <- re_resolve(object, re_formula, "fitted()")
     object <- rr$fit
     re_formula <- rr$re_formula
+  }
+  if (identical(sample_new_levels, "old_levels") && allow_new_levels &&
+      is.null(object[["new_level_pick"]])) {
+    # the choice is drawn once here, so the estimate and every
+    # finite-difference step of its standard error read the same level;
+    # a multivariate call has drawn it already, for every response
+    object <- fitted_old_levels(object, rnm, newdata, re_formula)
   }
   est <- fitted_point(object, newdata, re_formula, scale, resp, dpar,
                       allow_new_levels)
@@ -2523,7 +2614,8 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
 #'
 #' @noRd
 fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
-                      probs, allow_new_levels) {
+                      probs, allow_new_levels,
+                      sample_new_levels = "gaussian") {
   if (!is.character(resp) || anyNA(resp)) {
     frm_stop("fitted(): `resp` must name one or more responses, or NULL ",
              "for all of them, not ", arg_desc(resp), call. = FALSE)
@@ -2541,7 +2633,8 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
     p <- fitted.frmtmb_fit(object, newdata = newdata,
                            re_formula = re_formula, scale = scale, resp = r,
                            dpar = dpar, probs = probs,
-                           allow_new_levels = allow_new_levels)
+                           allow_new_levels = allow_new_levels,
+                           sample_new_levels = sample_new_levels)
     if (length(dim(p)) == 2L) {
       layers[[length(layers) + 1L]] <- p
       labs <- c(labs, r)

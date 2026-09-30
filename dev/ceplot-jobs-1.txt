@@ -1,0 +1,16 @@
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-plot.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-parity.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-levels.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-brms-parity-defects.R
+lane frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-generic-collision.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-brms-shapes-draws.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-postfit-draws.R
+lane frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-generic-collision.R
+base frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-plot.R
+base frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-parity.R
+base frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-ce-levels.R
+base frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-brms-parity-defects.R
+base frmtmb /c/Users/adf44/source/r/frmtmb-wt-ceplot/tests/testthat/test-generic-collision.R
+base frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-brms-shapes-draws.R
+base frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-postfit-draws.R
+base frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-ceplot/extensions/frmtmb.sample/tests/testthat/test-generic-collision.R

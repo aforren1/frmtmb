@@ -1,0 +1,3 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+RESULT lane frmtmb test-ce-plot.R: tests=63 failed=0 error=1 skipped=0 warning=0 passed=63
+  fails: graphical parameters are named when they are ignored 

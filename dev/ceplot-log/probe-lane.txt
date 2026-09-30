@@ -1,0 +1,27 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb 
+1 plot(rug, plot = FALSE): OK class list
+1 plot(stype, plot = FALSE): OK class list
+1 plot(theme = NULL): OK class list
+1 plot(mean = FALSE): OK class list
+2 plot(hyp, plot = FALSE): OK class list
+2 plot(hyp, ignore_prior, plot = FALSE): OK class list
+2 plot(hyp, N = 5, ask = FALSE): OK class list
+   warning: Argument 'N' is deprecated. Please use argument 'nvariables' instead.
+3a effects = c(xx, x): OK class frmtmb_conditional_effects
+   warning: Some specified effects are invalid for this model: 'xx'
+Valid effects are (combinations of): 'x', 'f'
+3a effects = xx: ERROR All specified effects are invalid for this model.
+Valid effects are (combinations of): 'x', 'f'
+3b ordinal default: OK class frmtmb_conditional_effects
+3b ordinal categorical = FALSE: OK class frmtmb_conditional_effects
+   warning: Predictions are treated as continuous variables in 'conditional_effects' with categorical = FALSE, which is likely invalid for ordinal families. Please set 'categorical' to TRUE.
+3b ordinal dpar = mu: OK class frmtmb_conditional_effects
+3c mi idx, default: ERROR conditional_effects() cannot display response 'y': its predictor reads mi(x, idx = g1), so each row reads x on the row whose index(g2) equals its g1. The display grid holds both at one reference value, so every grid row names the same row and the index cannot be matched. brms 2.23.0 stops on the same grid ("Index of response 'x' contains duplicated values."). Predict over rows you build, with fitted(newdata = ), where the index names real rows
+3c mi idx, w: ERROR conditional_effects() cannot display response 'y': its predictor reads mi(x, idx = g1), so each row reads x on the row whose index(g2) equals its g1. The display grid holds both at one reference value, so every grid row names the same row and the index cannot be matched. brms 2.23.0 stops on the same grid ("Index of response 'x' contains duplicated values."). Predict over rows you build, with fitted(newdata = ), where the index names real rows
+3d crossed wald: OK class frmtmb_conditional_effects
+3d crossed boot: OK class frmtmb_conditional_effects
+4a fitted old_levels: OK class matrix/array
+4a predict old_levels: OK class matrix/array
+4c parnames(fit): OK class character
+   warning: 'parnames' is deprecated. Please use 'variables' instead.
+done

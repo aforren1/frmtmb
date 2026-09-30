@@ -1,0 +1,36 @@
+arm base frmtmb from C:/Users/adf44/source/r/rellib-r4/frmtmb 
+gauss done
+inter done
+smooth done
+gp done
+mo done
+me done
+mi done
+nl done
+sigma done
+ri done
+rs done
+crossed done
+nested done
+grby done
+mm done
+pois done
+conditional_effects(): holding the trials variable(s) tr at 1, so the display is a probability per trial (brms's default too). Pin them in conditions = list(...) for a count.
+conditional_effects(): holding the trials variable(s) tr at 1, so the display is a probability per trial (brms's default too). Pin them in conditions = list(...) for a count.
+conditional_effects(): holding the trials variable(s) tr at 1, so the display is a probability per trial (brms's default too). Pin them in conditions = list(...) for a count.
+conditional_effects(): holding the trials variable(s) tr at 1, so the display is a probability per trial (brms's default too). Pin them in conditions = list(...) for a count.
+binom done
+cum done
+categ done
+zip done
+hurdle done
+student done
+beta done
+lognormal done
+mv done
+offset done
+fs done
+sigma_re done
+t2 done
+mmby ERROR: Some levels of 'g1', 'g2' correspond to multiple levels of 'cbind(fg, fg)'. A by-split term gives each level of the grouping factor the covariance of ONE by-level, so the by-variable must be constant within each grouping level 
+saved

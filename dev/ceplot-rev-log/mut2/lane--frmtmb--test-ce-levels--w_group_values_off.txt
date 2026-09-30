@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | frmtmb: C:/Users/adf44/source/r/wt-ceplot-lib/frmtmb | cache: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ceplot-rev-stan-cache 
+mutant: w_group_values_off 
+RESULT lane frmtmb test-ce-levels.R w_group_values_off: tests=90 failed=0 error=1 skipped=0 warning=1 passed=89
+  fails: integer and character grouping columns of g:h predict 
+  warns: integer and character grouping columns of g:h predict 

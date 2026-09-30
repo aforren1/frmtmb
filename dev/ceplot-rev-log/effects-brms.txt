@@ -1,0 +1,35 @@
+﻿Rscript.exe : Setting order = 'mu' for mixtures of the same family.
+At line:1 char:347
++ ... -wt-ceplot; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/ceplot ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Setting order =...he same family.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+plain      x z
+inter      f x
+smooth     x z
+smooth_by  f x
+t2         x z
+gp         x z
+gp_by      f x
+mo         o x
+me         xm z
+Setting 'rescor' to FALSE by default for this model
+mi         w xmi
+nl         x z
+dpar       x z
+reslope    g x
+offset     x
+weights    x
+cs         x z
+poly       x z
+grby       g x
+mm         g1 g2 x
+gh         g g:h h x
+mix        x z
+zi         x z
+ar         g x
+fs         g x z
+Setting 'rescor' to FALSE by default for this model
+mv         x z
+lf         w x

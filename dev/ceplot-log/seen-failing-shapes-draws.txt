@@ -1,0 +1,45 @@
+ARM base | frmtmb.sample from C:/Users/adf44/source/r/rellib-r4/frmtmb.sample 
+brms-shapes-draws: frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+..................1......2.....3..frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+....frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+..............................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-shapes-draws.R:87:3'): nsamples() is brms's, with brms's
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: nsamples(incl_warmup = TRUE) has nothing to count: frm_sample() discards the warmup rather than storing it, so the object carries post-warmup draws only. ndraws(x) is that count
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_equal(...) at test-brms-shapes-draws.R:87:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─base::suppressWarnings(nsamples(ds, incl_warmup = TRUE))
+ 5. │ └─base::withCallingHandlers(...)
+ 6. ├─frmtmb.sample::nsamples(ds, incl_warmup = TRUE)
+ 7. └─frmtmb.sample:::nsamples.frmtmb_draws(ds, incl_warmup = TRUE)
+ 8.   └─frmtmb::frm_stop(...)
+
+── 2. Failure ('test-brms-shapes-draws.R:138:3'): posterior_samples(pars = ) ord
+Expected `names(ps(pars = "^b_"))` to be identical to `brms_b`.
+Differences:
+`actual`:   "b_Intercept" "b_x"               "b_sigma_Intercept" "b_sigma_x"
+`expected`: "b_Intercept" "b_sigma_Intercept" "b_x"               "b_sigma_x"
+
+
+── 3. Failure ('test-brms-shapes-draws.R:152:3'): posterior_samples(pars = ) ord
+Expected `ps(pars = "^nothing_")` to be NULL.
+Differences:
+`actual` is an S3 object of class <data.frame>, a list
+`expected` is NULL
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════

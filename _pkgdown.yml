@@ -85,7 +85,9 @@ reference:
   - autocor_matrix
   - profile.frmtmb_fit
   - hypothesis
+  - plot.frmtmb_hypothesis
   - variables
+  - parnames
   - frm_bootstrap
   - diagnose
   - dharma_residuals
@@ -122,6 +124,7 @@ reference:
   - frm_linpred
   - fitted.frmtmb_fit
   - conditional_effects
+  - plot.frmtmb_conditional_effects
   - conditional_smooths
   - make_conditions
   - simulate.frmtmb_fit
@@ -241,8 +244,7 @@ redirects:
   - ["reference/nuts_params.html", "frmtmb.sample/reference/draws-diagnostics.html"]
   - ["reference/nvariables.frmtmb_draws.html", "reference/draws-dimensions.html"]
   - ["reference/pairs.frmtmb_draws.html", "frmtmb.sample/reference/draws-diagnostics.html"]
-  - ["reference/parnames.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
-  - ["reference/parnames.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
+  - ["reference/parnames.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-deprecated.html"]
   - ["reference/plot.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
   - ["reference/post_prob.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
   - ["reference/post_prob.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]

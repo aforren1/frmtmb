@@ -1,0 +1,13 @@
+one predict() call per seed, the choice recorded per response:
+  seed 1 : 9 / 9 
+  seed 2 : 5 / 5 
+  seed 3 : 5 / 5 
+  seed 4 : 8 / 8 
+  seed 5 : 2 / 2 
+  seed 6 : 5 / 5 
+  seed 7 : 10 / 10 
+  seed 8 : 4 / 4 
+  seed 9 : 11 / 11 
+  seed 10 : 11 / 11 
+  seed 11 : 10 / 10 
+  seed 12 : 2 / 2 

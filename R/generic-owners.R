@@ -131,6 +131,7 @@ frm_generic_owners <- list(
   conditional_smooths = "brms",
   expose_functions = "brms",
   hypothesis = "brms",
+  parnames = "brms",
   posterior_summary = "brms",
   LOO = "brms",
   WAIC = "brms",

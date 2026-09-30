@@ -1,0 +1,56 @@
+== sigma_re 
+  pars ^b_                    same order on  4 common names: TRUE
+  pars Intercept              same order on 10 common names: TRUE
+     in one package only: sd_g__Intercept Intercept Intercept_sigma 
+  pars sigma|zi               same order on  2 common names: TRUE
+     in one package only: Intercept_sigma 
+  pars ^sd_,^b_               same order on  4 common names: TRUE
+     in one package only: sd_g__Intercept 
+  pars x                      same order on  1 common names: TRUE
+  pars ^b_x$,^b_Intercept$    same order on  2 common names: TRUE
+== mv 
+  pars ^b_                    same order on  4 common names: TRUE
+  pars Intercept              same order on  2 common names: TRUE
+     in one package only: Intercept_y Intercept_y2 
+  pars sigma|zi               same order on  2 common names: TRUE
+  pars ^sd_,^b_               same order on  4 common names: TRUE
+  pars x                      same order on  1 common names: TRUE
+  pars ^b_x$,^b_Intercept$    same order on  0 common names: TRUE
+== cum 
+  pars ^b_                    same order on  5 common names: TRUE
+  pars Intercept              same order on  3 common names: TRUE
+     in one package only: Intercept[1] Intercept[2] Intercept[3] 
+  pars sigma|zi               same order on  0 common names: TRUE
+  pars ^sd_,^b_               same order on  5 common names: TRUE
+  pars x                      same order on  1 common names: TRUE
+  pars ^b_x$,^b_Intercept$    same order on  1 common names: TRUE
+== nl 
+  pars ^b_                    same order on  3 common names: FALSE
+     brms:   b_a_Intercept b_a_z b_b_Intercept
+     frmtmb: b_a_Intercept b_b_Intercept b_a_z
+  pars Intercept              same order on  2 common names: TRUE
+  pars sigma|zi               same order on  1 common names: TRUE
+  pars ^sd_,^b_               same order on  3 common names: FALSE
+     brms:   b_a_Intercept b_a_z b_b_Intercept
+     frmtmb: b_a_Intercept b_b_Intercept b_a_z
+  pars x                      same order on  0 common names: TRUE
+  pars ^b_x$,^b_Intercept$    same order on  0 common names: TRUE
+== zi 
+  pars ^b_                    same order on  4 common names: TRUE
+  pars Intercept              same order on  2 common names: TRUE
+     in one package only: Intercept Intercept_zi 
+  pars sigma|zi               same order on  2 common names: TRUE
+     in one package only: Intercept_zi 
+  pars ^sd_,^b_               same order on  4 common names: TRUE
+  pars x                      same order on  1 common names: TRUE
+  pars ^b_x$,^b_Intercept$    same order on  2 common names: TRUE
+== mo 
+  pars ^b_                    same order on  2 common names: TRUE
+  pars Intercept              same order on  1 common names: TRUE
+     in one package only: Intercept 
+  pars sigma|zi               same order on  1 common names: TRUE
+  pars ^sd_,^b_               same order on  2 common names: TRUE
+  pars x                      same order on  1 common names: TRUE
+  pars ^b_x$,^b_Intercept$    same order on  2 common names: TRUE
+parnames() warnings with brms attached: frmtmb fit 2 | brmsfit 1 
+done

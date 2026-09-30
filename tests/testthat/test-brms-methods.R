@@ -920,10 +920,12 @@ test_that("an unknown argument is named against conditional_effects()", {
   # layout, one curve of expected category numbers
   expect_identical(names(conditional_effects(fo, categorical = TRUE)),
                    "x:cats__")
-  expect_identical(names(conditional_effects(fo, categorical = FALSE)),
-                   "x")
-  expect_identical(nrow(conditional_effects(fo, categorical = FALSE)$x),
-                   100L)
+  # with brms's warning, which brms gives for this display
+  cmean <- allow_warnings(conditional_effects(fo, categorical = FALSE),
+                          "Predictions are treated as continuous",
+                          require = "Predictions are treated as continuous")
+  expect_identical(names(cmean), "x")
+  expect_identical(nrow(cmean$x), 100L)
 
   # allow_new_levels is a real argument of the frm_linpred() underneath and
   # is passed through rather than reported
@@ -1526,4 +1528,46 @@ test_that("newdata: dropping a factor level, and adding one", {
   expect_error(frm_linpred(s$fit, newdata = ndn, type = "response"),
                "a level of `f` that the fit did not see: 'zz'",
                class = "frmtmb_error")
+})
+
+test_that("old_levels on a shared factor chooses brms's one seen group", {
+  # review P1-B1 (lane ceplot): brms chooses one seen group per call and
+  # grouping factor, for every response that reads it; frmtmb's fitted()
+  # chose per response. brms at fixed_param, 40 chains of one iteration
+  # at random inits, so its seen groups differ and its choice can be
+  # read by matching its fitted() at each seen group
+  skip_unless_brms_fit()
+  set.seed(3)
+  ng <- 12L
+  d <- data.frame(x = stats::rnorm(360), g = factor(rep(seq_len(ng), 30)))
+  u <- stats::rnorm(ng, 0, 2)
+  d$y <- stats::rnorm(360, 1 + 0.5 * d$x + u[d$g])
+  d$y2 <- stats::rnorm(360, -1 + 0.3 * d$x + u[d$g] + stats::rnorm(ng)[d$g])
+  fv <- frm(bf(y ~ x + (1 | g)) + bf(y2 ~ x + (1 | g)),
+            family = gaussian(), data = d)
+  bv <- suppressMessages(suppressWarnings(brms::brm(
+    brms::bf(y ~ x + (1 | g)) + brms::bf(y2 ~ x + (1 | g)) +
+      brms::set_rescor(FALSE), data = d, family = stats::gaussian(),
+    algorithm = "fixed_param", chains = 40, iter = 1, warmup = 0,
+    refresh = 0, seed = 1, silent = 2)))
+  nd <- data.frame(x = 0, g = factor("n1"))
+  one <- function(k) data.frame(x = 0, g = factor(k, levels = 1:ng))
+  seen_b <- lapply(seq_len(ng), function(k) {
+    stats::fitted(bv, newdata = one(k), summary = FALSE)
+  })
+  lev_b <- function(b, r) {
+    which(vapply(seen_b, function(a) identical(a[, 1, r], b[, 1, r]), NA))
+  }
+  for (s in 1:4) {
+    set.seed(s)
+    b <- stats::fitted(bv, newdata = nd, allow_new_levels = TRUE,
+                       sample_new_levels = "old_levels", summary = FALSE)
+    kb <- c(lev_b(b, 1), lev_b(b, 2))
+    expect_length(kb, 2L)
+    expect_identical(kb[1L], kb[2L])
+    set.seed(s)
+    f <- fitted(fv, newdata = nd, allow_new_levels = TRUE,
+                sample_new_levels = "old_levels")
+    expect_identical(f, fitted(fv, newdata = one(kb[1L])))
+  }
 })

@@ -2641,9 +2641,16 @@ restructure.frmtmb_draws <- function(x, ...) {
 #' and then does what brms's does, so a ported script runs.
 #'
 #' * `posterior_samples(x)` is `as.data.frame(x)`; `pars` is a regular
-#'   expression unless `fixed = TRUE`, as in brms.
-#' * `nsamples(x)` is [ndraws()].
-#' * `parnames(x)` is [variables()].
+#'   expression unless `fixed = TRUE`, as in brms. The columns `pars`
+#'   selects come in brms's order, which lists every population-level
+#'   intercept first (`b_Intercept`, `b_sigma_Intercept`, then `b_x`);
+#'   with no `pars` the columns are those of [variables()], in its
+#'   order. A `pars` that matches nothing returns `NULL`, as in brms.
+#' * `nsamples(x)` is [ndraws()]. `nsamples(x, incl_warmup = TRUE)`
+#'   counts the iterations the sampler saved, warmup included, from the
+#'   stanfit that `frm_sample()` keeps, as brms counts them.
+#' * `parnames(x)` is [variables()]; the generic is frmtmb's
+#'   ([frmtmb::parnames()]), which answers it on a fit too.
 #'
 #' Use `as_draws(x)` for a posterior draws object, `as.data.frame(x)`,
 #' [ndraws()] and [variables()] in new code.
@@ -2657,8 +2664,10 @@ restructure.frmtmb_draws <- function(x, ...) {
 #' @param subset Draw indices to keep.
 #' @param as.matrix,as.array Return a matrix or a
 #'   draws-by-chains-by-variables array instead of a data frame.
-#' @param incl_warmup Refused: `frm_sample()` discards the warmup, so
-#'   there is no warmup draw to count.
+#' @param incl_warmup If `TRUE`, count the iterations the sampler saved,
+#'   warmup included, as brms does. The draws themselves hold the
+#'   post-warmup iterations only; the count is read from the stanfit's
+#'   record, and draws with no stanfit behind them refuse it.
 #' @param ... Refused: an argument the method does not have is an error
 #'   naming it.
 #' @return A data frame (or matrix, or array) of draws for
@@ -2695,13 +2704,17 @@ posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   # `pars` here is a regular expression by default, which is brms's rule
   # and NOT the `variable` argument's: as.data.frame(pars = ) would warn
   # about a deprecated alias of its own and match exactly
-  variable <- if (anyNA(pars)) NULL else pars
+  variable <- if (anyNA(pars)) NULL else ps_select(x, pars, fixed)
+  if (!is.null(variable) && !length(variable)) {
+    # brms returns NULL when `pars` matches nothing
+    return(NULL)
+  }
   out <- if (as.matrix) {
-    as.matrix(x, variable = variable, regex = !fixed, draw = subset)
+    as.matrix(x, variable = variable, draw = subset)
   } else if (as.array) {
-    as.array(x, variable = variable, regex = !fixed, draw = subset)
+    as.array(x, variable = variable, draw = subset)
   } else {
-    as.data.frame(x, variable = variable, regex = !fixed, draw = subset)
+    as.data.frame(x, variable = variable, draw = subset)
   }
   if (add_chain && !as.array) {
     nc <- nchains(x)
@@ -2711,6 +2724,42 @@ posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
     out$iter <- rep(seq_len(ni), nc)
   }
   out
+}
+
+#' The variables `posterior_samples(pars = )` selects, in brms's order.
+#'
+#' brms's `extract_pars()`: each pattern keeps the variables it matches
+#' in `variables()` order, and `fixed = TRUE` keeps the named ones in
+#' the order given. brms's `variables()` lists the intercept of every
+#' distributional parameter first (`b_Intercept`, `b_sigma_Intercept`,
+#' an ordinal fit's `b_Intercept[k]`), then every other population
+#' coefficient in the order of its predictor, a nonlinear parameter's
+#' intercept staying with its own coefficients (`b_a_Intercept`,
+#' `b_a_z`, `b_b_Intercept`), as measured on brms 2.23.0
+#' (`dev/ceplot-p1-psorder-brms.R`). frmtmb's `variables()` lists each
+#' predictor's coefficients together, so the `b_` columns are put in
+#' brms's order before the patterns are matched. `variables()` itself
+#' keeps its own order, so that `posterior_samples(x)` with no `pars`
+#' still has the columns of `variables(x)`, as brms's does.
+#'
+#' @noRd
+ps_select <- function(x, pars, fixed) {
+  v <- variables(x)
+  bi <- grep("^b_", v)
+  if (length(bi) > 1L) {
+    fit <- draws_base_fit(x)
+    nlp <- unique(unlist(lapply(fit$spec$responses, `[[`, "nlpars")))
+    resp <- names(fit$spec$responses)
+    is_nl <- if (length(nlp)) {
+      grepl(paste0("^b_((", paste(resp, collapse = "|"), ")_)?(",
+                   paste(nlp, collapse = "|"), ")_"), v[bi])
+    } else {
+      rep(FALSE, length(bi))
+    }
+    front <- grepl("Intercept([[][0-9]+[]])?$", v[bi]) & !is_nl
+    v[bi] <- c(v[bi][front], v[bi][!front])
+  }
+  draws_extract_pars(pars, v, fixed)
 }
 
 #' @rdname frmtmb-draws-deprecated
@@ -2726,27 +2775,56 @@ nsamples.frmtmb_draws <- function(object, subset = NULL,
   check_flag(incl_warmup, "incl_warmup")
   frm_warning("'nsamples.frmtmb_draws' is deprecated. Please use 'ndraws' ",
               "instead.", call. = FALSE)
-  if (incl_warmup) {
-    frm_stop("nsamples(incl_warmup = TRUE) has nothing to count: ",
-             "frm_sample() discards the warmup rather than storing it, so ",
-             "the object carries post-warmup draws only. ndraws(x) is that ",
-             "count", call. = FALSE)
+  nt <- if (incl_warmup) nsamples_saved(object) else ndraws(object)
+  if (length(subset)) {
+    # brms's check, which reads the count the call asked for
+    out <- length(subset)
+    if (out > nt || max(subset) > nt) {
+      frm_stop("Argument 'subset' is invalid.", call. = FALSE)
+    }
+    return(out)
   }
-  if (!is.null(subset)) return(length(subset))
-  ndraws(object)
+  nt
 }
 
-#' @rdname frmtmb-draws-deprecated
-#' @export
-parnames <- function(x, ...) UseMethod("parnames")
+#' The iterations the sampler saved, warmup included, as brms counts
+#' them for `nsamples(incl_warmup = TRUE)`: `n_save` per chain times the
+#' chains, from the stanfit's own record. The draws matrix holds the
+#' post-warmup iterations only, but `frm_sample()` keeps the stanfit,
+#' whose record says how many iterations it saved. rstan saves the
+#' warmup unless `save_warmup = FALSE`, and then `n_save` is the
+#' post-warmup count, as it is in brms. Draws with no stanfit behind
+#' them have no such record, and the call is refused rather than
+#' answered with the post-warmup count under the other name.
+#'
+#' @noRd
+nsamples_saved <- function(object) {
+  sf <- object$stanfit
+  sim <- if (inherits(sf, "stanfit")) sf@sim
+  if (!length(sim) || is.null(sim$n_save) || is.null(sim$chains)) {
+    frm_stop("nsamples(incl_warmup = TRUE) needs the sampler's record of ",
+             "the iterations it saved, and these draws carry no stanfit ",
+             "(they were not made by frm_sample(), or the stanfit was ",
+             "removed). ndraws(x) counts the post-warmup draws they hold",
+             call. = FALSE)
+  }
+  as.integer(sim$n_save[1L] * sim$chains)
+}
 
 #' @rdname frmtmb-draws-deprecated
 #' @exportS3Method brms::parnames
 #' @export
 parnames.frmtmb_draws <- function(x, ...) {
   frm_check_dots(...)
-  frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
-              call. = FALSE)
+  # brms's generic warns before it dispatches, and while brms is loaded
+  # frmtmb's `parnames` binding IS brms's generic: warn only when it is
+  # frmtmb's own, so a call warns once
+  g <- tryCatch(get("parnames", envir = asNamespace("frmtmb")),
+                error = function(e) NULL)
+  if (!is.function(g) || identical(environment(g), asNamespace("frmtmb"))) {
+    frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
+                call. = FALSE)
+  }
   variables(x)
 }
 

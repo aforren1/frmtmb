@@ -71,10 +71,18 @@ population level instead of erroring, as in
 \item{sample_new_levels}{brms's argument. \code{"gaussian"}, or \code{NULL}
 for it: an unseen level's effect is taken from its block's
 estimated covariance, so its variance widens \code{Est.Error} and the
-interval. \code{"old_levels"} reads a seen level's effect from a draw
-of the group effects, and this Wald summary takes none, so it is
-refused by name; \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} takes it. \code{"uncertainty"}
-is refused on both.}
+interval. \code{"old_levels"} gives each unseen level one seen level of
+its grouping factor, chosen at random once per call as brms
+chooses it (and as \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} chooses it), and every
+term of that factor reads the same seen level: the row takes that
+level's fitted effects, and its \code{Est.Error} carries their
+conditional variance rather than the marginal one. One choice
+serves every response of a multivariate call. Two different unseen
+values of one \code{mm()} term read two seen levels; brms 2.23.0 gives
+them one, because it numbers unseen values per member rather than
+by value. It acts only with \code{allow_new_levels = TRUE}, as in brms. \code{"uncertainty"} chooses a
+level per posterior draw, and a maximum-likelihood fit has none, so
+it is refused by name.}
 }
 \value{
 An \verb{n x 4} matrix with the columns \code{Estimate}, \code{Est.Error}

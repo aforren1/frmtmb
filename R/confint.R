@@ -2981,6 +2981,53 @@ variables.frmtmb_fit <- function(x, ...) {
   names(hyp_env_vals(x, vo$vals, vo$comp))
 }
 
+#' Deprecated name of variables()
+#'
+#' `parnames()` is brms's deprecated spelling of [variables()]. brms
+#' still answers it, with a deprecation warning, so a ported script
+#' runs; this does the same. The generic is defined here and not in
+#' frmtmb.sample, which answers it on draws, so that one generic serves
+#' both classes.
+#'
+#' @param x A `frmtmb_fit`, or a `frmtmb_draws` when frmtmb.sample is
+#'   loaded.
+#' @param ... Refused: an argument the method does not have is an error
+#'   naming it.
+#' @return `variables(x)`, with brms's deprecation warning.
+#' @examples
+#' dd <- data.frame(x = rnorm(60))
+#' dd$y <- rnorm(60, 1 + 0.5 * dd$x)
+#' fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+#' suppressWarnings(parnames(fit))
+#' @export
+parnames <- function(x, ...) UseMethod("parnames")
+
+#' @rdname parnames
+#' @exportS3Method brms::parnames
+#' @export
+parnames.frmtmb_fit <- function(x, ...) {
+  frm_check_dots(...)
+  if (!parnames_owner_warned()) {
+    frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
+                call. = FALSE)
+  }
+  variables(x)
+}
+
+#' Whether the `parnames()` generic a call reached has warned already.
+#' brms's generic gives the deprecation warning itself before it
+#' dispatches, and while brms is loaded the `parnames` binding resolves
+#' to it (`frm_install_generics()`), so the method warns only when the
+#' generic is frmtmb's own. frmtmb.sample's method for draws asks the
+#' same question.
+#'
+#' @noRd
+parnames_owner_warned <- function() {
+  g <- tryCatch(get("parnames", envir = asNamespace("frmtmb")),
+                error = function(e) NULL)
+  is.function(g) && !identical(environment(g), asNamespace("frmtmb"))
+}
+
 #' The `Hypothesis` label brms writes for one hypothesis string:
 #' whitespace removed, the two sides written `(lhs)-(rhs)`, the right
 #' side dropped when it is `0`, then the sign and `0`
@@ -3278,32 +3325,183 @@ print.frmtmb_hypothesis <- function(x, digits = 2, ...) {
   invisible(x)
 }
 
+#' Plot hypothesis tests
+#'
+#' Draws one panel per hypothesis of a [hypothesis()] result, stacked
+#' in one column, `nvariables` panels to a page, as brms's
+#' `plot.brmshypothesis()` lays them out. Each panel shows what the
+#' method has: the distribution of the draws (a histogram with a
+#' density line) for `method = "boot"` and for posterior draws, the
+#' profile of the log-likelihood for `method = "profile"`, and the
+#' normal density of the Wald estimate otherwise. Vertical lines mark
+#' the estimate, the interval and zero.
+#'
+#' @section What `plot = FALSE` returns:
+#' brms returns a list of ggplot objects, one per page, and draws them
+#' unless `plot = FALSE`. frmtmb draws with base graphics and does not
+#' depend on ggplot2, so it returns a list of `frmtmb_hyp_plot`
+#' objects, one per page. Each holds the hypotheses of its page and the
+#' settings of the call, and printing or plotting one draws that page.
+#' The list is returned invisibly whether or not the call draws, as
+#' brms returns its list.
+#'
+#' @section Prior draws:
+#' brms overlays the density of the prior draws of each hypothesis
+#' unless `ignore_prior = TRUE`. A maximum-likelihood fit has no prior,
+#' and `frmtmb.sample` does not draw from the prior, so
+#' `prior_samples` is all `NA` and there is nothing to overlay. brms
+#' draws the posterior alone in that case too, so `ignore_prior` is
+#' accepted and changes nothing.
+#'
+#' @param x A `frmtmb_hypothesis` object, or one `frmtmb_hyp_plot` for
+#'   the print and plot methods of a plot object.
+#' @param nvariables The number of hypotheses per page.
+#' @param N brms's older name for `nvariables`. When set, it replaces
+#'   `nvariables` with brms's deprecation warning.
+#' @param ignore_prior Accepted for brms compatibility; see the section
+#'   on prior draws.
+#' @param chars The number of characters of a hypothesis kept in its
+#'   panel title. A longer one is cut and ends in `"..."` before its
+#'   last four characters, as in brms. `NULL` keeps all of it.
+#' @param colors Two colors, as in brms. The first fills the histogram
+#'   of the draws. The second is brms's color for the prior density,
+#'   which has nothing to draw here (see the section on prior draws).
+#'   The default fills with light gray.
+#' @param theme brms's ggplot2 theme. `NULL` (the default) changes
+#'   nothing. A ggplot2 theme object is not applied, and a warning says
+#'   so. Anything else is an error, as in brms.
+#' @param ask If `TRUE` (the default), prompt before each new page
+#'   after the first on an interactive device. `NULL`, the default
+#'   before this version, is taken as `TRUE`.
+#' @param plot If `FALSE`, return the plot objects without drawing
+#'   them.
+#' @param ... `do_plot`, brms's deprecated name for `plot`, is accepted
+#'   with brms's warning. Base graphical parameters (`main`, `lwd`,
+#'   ...) are accepted, as every `plot()` method must accept them, and
+#'   ignored with a warning that names them. A name that abbreviates an
+#'   argument of this method is that argument, by R's partial matching,
+#'   as in brms: `col = "red"` is `colors = "red"`, and stops because
+#'   `colors` needs two colors. Any other argument is an error that
+#'   names it.
+#' @return A list of `frmtmb_hyp_plot` objects, one per page,
+#'   invisibly.
+#' @seealso [hypothesis()]
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x1 = rnorm(80), x2 = rnorm(80))
+#' dd$y <- rnorm(80, 1 + 0.5 * dd$x1 - 0.2 * dd$x2)
+#' fit <- frm(bf(y ~ x1 + x2), family = gaussian(), data = dd)
+#' h <- hypothesis(fit, c("x1 > 0", "x1 + x2 = 0"))
+#' plot(h, ask = FALSE)
+#' # the page objects, drawn one at a time
+#' p <- plot(h, plot = FALSE)
+#' length(p)
+#' p[[1]]
 #' @export
-plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
+plot.frmtmb_hypothesis <- function(x, nvariables = 5, N = NULL,
+                                   ignore_prior = FALSE, chars = 40,
+                                   colors = NULL, theme = NULL, ask = TRUE,
+                                   plot = TRUE, ...) {
+  plot <- ce_do_plot(plot, ...)
+  frm_check_dots(..., .hidden = "do_plot")
+  ce_plot_ignored(...)
+  if (!is.null(N)) {
+    frm_warning("Argument 'N' is deprecated. Please use argument ",
+                "'nvariables' instead.", call. = FALSE)
+    nvariables <- N
+  }
+  check_count(nvariables, "nvariables", min = 1L)
+  check_flag(ignore_prior, "ignore_prior")
+  if (!is.null(chars)) check_count(chars, "chars", min = 1L)
+  # NULL, the default of 0.66.0, asks as brms's TRUE does
+  if (is.null(ask)) ask <- TRUE
+  check_flag(ask, "ask")
+  check_flag(plot, "plot")
+  colors <- colors %||% c("gray90", "gray60")
+  if (length(colors) != 2L) {
+    frm_stop("Argument 'colors' must be of length 2.", call. = FALSE)
+  }
+  ce_theme_check(theme)
+  n <- nrow(x$hypothesis)
+  pages <- split(seq_len(n), ceiling(seq_len(n) / nvariables))
+  plots <- lapply(unname(pages), function(i) {
+    structure(list(hyp = x, rows = i, chars = chars, colors = colors),
+              class = "frmtmb_hyp_plot")
+  })
+  if (plot) {
+    # brms's page rule: the first page never prompts, and `ask`
+    # governs the pages after it
+    oask <- grDevices::devAskNewPage(FALSE)
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
+    for (k in seq_along(plots)) {
+      hyp_draw_page(plots[[k]])
+      if (k == 1L) grDevices::devAskNewPage(ask)
+    }
+  }
+  invisible(plots)
+}
+
+#' @rdname plot.frmtmb_hypothesis
+#' @export
+print.frmtmb_hyp_plot <- function(x, ...) {
+  # printing a plot object draws it, so it takes the graphical
+  # parameters plot() takes, and names them as ignored the same way
+  frm_check_dots(..., .hidden = s3_contract_args[["plot"]])
+  ce_plot_ignored(...)
+  hyp_draw_page(x)
+  invisible(x)
+}
+
+#' @rdname plot.frmtmb_hypothesis
+#' @export
+plot.frmtmb_hyp_plot <- function(x, ...) {
   frm_check_dots(...)
+  ce_plot_ignored(...)
+  hyp_draw_page(x)
+  invisible(x)
+}
+
+#' brms's `limit_chars()`: a label longer than `chars` is cut to
+#' `chars - 3` characters and `"..."`, and its last four characters
+#' (the `> 0` or `= 0` of a hypothesis) are kept after the cut.
+#'
+#' @noRd
+hyp_limit_chars <- function(x, chars = NULL, lsuffix = 4L) {
+  if (is.null(chars)) return(x)
+  n <- nchar(x) - lsuffix
+  suffix <- substr(x, n + 1L, n + lsuffix)
+  x <- substr(x, 1L, n)
+  x <- ifelse(n <= chars, x, paste0(substr(x, 1L, chars - 3L), "..."))
+  paste0(x, suffix)
+}
+
+#' One page of a hypothesis plot: its hypotheses in one column, as
+#' brms's `facet_wrap(ncol = 1)` stacks them.
+#'
+#' @noRd
+hyp_draw_page <- function(p) {
+  rows <- p[["rows"]]
+  op <- graphics::par(mfrow = c(length(rows), 1L))
+  on.exit(graphics::par(op), add = TRUE)
+  x <- p[["hyp"]]
   method <- attr(x, "method") %||% "posterior"
   alpha <- x$alpha %||% 0.05
   hs <- x$hypothesis
-  n <- nrow(hs)
-  ask <- ask %||% (n > 1L && grDevices::dev.interactive())
-  if (ask) {
-    oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
-  }
+  labels <- hyp_limit_chars(hs$Hypothesis, p[["chars"]])
   mark <- function(i) {
     graphics::abline(v = hs$Estimate[i], lwd = 2)
     graphics::abline(v = c(hs$CI.Lower[i], hs$CI.Upper[i]), lty = 2)
     graphics::abline(v = 0, col = 2)
   }
-  for (i in seq_len(n)) {
-    h <- hs$Hypothesis[i]
+  for (i in rows) {
+    h <- labels[i]
     if (method %in% c("boot", "posterior")) {
       d <- x$samples[[i]]
       d <- d[is.finite(d)]
       graphics::hist(d, freq = FALSE, breaks = "FD", main = h,
                      xlab = if (method == "boot") "bootstrap value" else
                        "posterior value",
-                     col = "gray90", border = "gray60")
+                     col = p[["colors"]][1L], border = "gray60")
       if (length(unique(d)) > 1L) {
         graphics::lines(stats::density(d), lwd = 2)
       }
@@ -3326,5 +3524,5 @@ plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
       mark(i)
     }
   }
-  invisible(x)
+  invisible(NULL)
 }

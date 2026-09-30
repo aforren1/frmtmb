@@ -1,3 +1,30 @@
+# frmtmb.sample (development version)
+
+Needs the development version of frmtmb, for the `parnames()` generic
+and for the conditional-effects engine that draws crossed and
+multi-membership new levels.
+
+## New features
+
+* `nsamples(incl_warmup = TRUE)` counts the iterations the sampler
+  saved, warmup included, from the stanfit that `frm_sample()` keeps,
+  as brms counts them. It was refused. Draws with no stanfit behind
+  them refuse it by name. `nsamples(subset = )` takes brms's check
+  that the subset fits the count.
+* `posterior_samples(pars = )` returns the coefficients in brms's
+  order, as brms's `variables()` lists them: the intercept of every
+  distributional parameter first (`b_Intercept`, `b_sigma_Intercept`,
+  `b_x`, `b_sigma_x`), a nonlinear parameter's intercept staying with
+  its own coefficients (`b_a_Intercept`, `b_a_z`, `b_b_Intercept`). Without
+  `pars` the columns are those of `variables()`, as before. A `pars`
+  that matches nothing returns `NULL`, as in brms.
+* `parnames()` is frmtmb's generic, re-exported here. With brms loaded
+  it warns once, as brms's does; brms's generic and the method each
+  warned before.
+* `conditional_effects()` on draws answers crossed
+  `(1 | g) + (1 | h) + (1 | g:h)` at an unseen combination of observed
+  levels, and a new member of an `mm()` term with a `by` variable.
+
 # frmtmb.sample 0.14.0
 
 Needs frmtmb 0.66.0: for `subset_resp_check()` and `subset_newdata()`,

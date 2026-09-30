@@ -83,11 +83,17 @@ level's effect from the block's estimated covariance.}
 
 \item{sample_new_levels}{brms's argument. \code{"gaussian"} (or \code{NULL})
 draws an unseen level's effect from its block's estimated
-covariance. \code{"old_levels"} gives each unseen level the effect of
-one seen level of its block, chosen at random once per call as
-brms chooses it, read from each replicate's draw of the group
-effects. \code{"uncertainty"} mixes the two per posterior draw, and a
-maximum-likelihood fit has none, so it is refused by name.}
+covariance. \code{"old_levels"} gives each unseen level the effects of
+one seen level of its grouping factor, chosen at random once per
+call as brms chooses it, and every term of that factor reads the
+same seen level (within the row's by-level for \code{gr(by = )}),
+from each replicate's draw of the group effects. One choice serves
+every response of a multivariate call. Two different unseen values
+of one \code{mm()} term read two seen levels; brms 2.23.0 gives them
+one, because it numbers unseen values per member rather than by
+value. \code{"uncertainty"}
+mixes the two per posterior draw, and a maximum-likelihood fit has
+none, so it is refused by name.}
 
 \item{propagate_error}{Whether the error in the estimates is
 propagated into the interval. \code{TRUE}, the default, draws the
