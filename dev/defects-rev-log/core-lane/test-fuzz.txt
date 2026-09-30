@@ -1,0 +1,3 @@
+RESULT lane frmtmb 0.65.0 C:/Users/adf44/source/r/wt-defects-lib test-fuzz.R pass= 0 fail= 0 err= 0 skip= 1 warn= 0 
+-- expectation_skip line 43 in: pairwise grammar fuzz finds no new invariant violations 
+   Reason: set FRMTMB_FUZZ=true to run the grammar fuzz tier 

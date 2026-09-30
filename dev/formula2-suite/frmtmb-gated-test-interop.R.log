@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+interop: .............................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-interop.R pass=45 fail=0 err=0 skip=0 warn=0

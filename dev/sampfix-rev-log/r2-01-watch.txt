@@ -1,0 +1,56 @@
+== 1a. watch hole: draw 1 non-finite everywhere for its own reason
+nl fit converged: TRUE  c1 = 1.718732 
+posterior_epred default                          laplace: OK nonfinite=480/480
+                                                 full:    OK nonfinite=80/480
+  draws 2..6: laplace non-finite 400, full non-finite 0 (of 400)
+== 1b. watch false alarm: a draw that is non-finite for its own reason
+  sd draws: 1.4165e-05 1.6681e-05 1.5622e-05 1.7282e-05 1.5876e-05 1.4962e-05
+hypothesis exp overflow on later draws           laplace: ERROR[Some parameters cannot be found in the model: 'e5' variables() lists every name; brms's de]
+                                                 full:    ERROR[Some parameters cannot be found in the model: 'e5' variables() lists every name; brms's de]
+hypothesis log of a negative on later draws      laplace: OK nonfinite=22/22
+                                                 full:    OK nonfinite=22/22
+lognormal epred re NA, draw 3 overflows          laplace: ERROR[posterior_epred() needs the random effects, and these draws come from frm_sample(laplace =]
+                                                 full:    OK nonfinite=80/480
+== 2. probe re-raise: calls that work on full draws
+posterior_epred(D, re_formula = NA)              laplace: OK nonfinite=0/480
+                                                 full:    OK nonfinite=0/480
+  identical: TRUE 
+posterior_predict(D, re_formula = NA)            laplace: OK nonfinite=0/480
+                                                 full:    OK nonfinite=0/480
+  identical: FALSE 
+conditional_effects(D, effects = "x", resolution = 5) laplace: OK nonfinite=0/45
+                                                 full:    OK nonfinite=0/45
+  identical: TRUE 
+conditional_effects(D, effects = "x", resolution = 5, re_formula = NULL, seed = 2) laplace: OK nonfinite=5/45
+                                                 full:    OK nonfinite=5/45
+  identical: TRUE 
+hypothesis(D, "sd_g__Intercept > 0.1", class = NULL) laplace: OK nonfinite=22/22
+                                                 full:    OK nonfinite=22/22
+  identical: TRUE 
+posterior_epred(D, newdata = data.frame(x = c(1, NA), g = factor(1, levels = 1:8)), re_formula = NA) laplace: OK nonfinite=6/12
+                                                 full:    OK nonfinite=6/12
+  identical: TRUE 
+posterior_epred(D, newdata = data.frame(x = 1, g = NA), re_formula = NA) laplace: OK nonfinite=0/6
+                                                 full:    OK nonfinite=0/6
+  identical: TRUE 
+fitted(D, re_formula = NA, summary = FALSE)      laplace: OK nonfinite=0/480
+                                                 full:    OK nonfinite=0/480
+  identical: TRUE 
+== 3. caller names, nesting, reset
+loo_compare:            loo_compare() needs draws of the random effects, and these draws come  | hint=FALSE | state after=NULL 
+loo:                    loo() needs draws of the random effects, and these draws come from frm | hint=FALSE | state after=NULL 
+pp_check loo weights:   pp_check(type = 'loo_pit_overlay') weights the draws by leave-one-out  | hint=FALSE | state after=NULL 
+pp_check dens:          pp_check() needs the random effects, and these draws come from frm_sam | hint=TRUE | state after=NULL 
+hypothesis scope coef:  hypothesis() has no draws of the group-level coefficients of 'g': thes | hint=FALSE | state after=NULL 
+residuals pearson:      residuals() needs the random effects, and these draws come from frm_sa | hint=TRUE | state after=NULL 
+predictive_error epred: predictive_error() needs the random effects, and these draws come from | hint=TRUE | state after=NULL 
+fitted linear:          fitted() needs the random effects, and these draws come from frm_sampl | hint=TRUE | state after=NULL 
+bayes_R2:               bayes_R2() needs the random effects, and these draws come from frm_sam | hint=FALSE | state after=NULL 
+-- reset after an error raised by something other than the refusal
+fitted(bad arg):        'probs' outside [0,1] | hint=FALSE | state after=NULL 
+then posterior_epred:   posterior_epred() needs the random effects, and these draws come from  | hint=TRUE | state after=NULL 
+-- a user function nesting two calls
+user fn:                posterior_predict() needs the random effects, and these draws come fro | hint=TRUE | state after=NULL 
+-- interrupt-like: an error thrown from inside the wrapped expression
+state after inner stop: NULL 
+DONE

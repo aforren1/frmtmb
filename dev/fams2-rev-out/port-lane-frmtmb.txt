@@ -1,0 +1,41 @@
+lane frmtmb : rows recorded 86 
+verdict not pass but HELD: 28 
+families:44 families:52 families:53 families:54 families:55 families:56 families:57 families:58 families:59 families:60 families:61 families:62 families:63 families:64 families:65 families:66 families:67 families:68 families:69 families:70 families:71 families:72 families:73 families:74 families:75 families:76 families:81 families:113 
+   id           verdict         held  vacuous
+80 families:107 cannot transfer FALSE FALSE  
+81 families:108 cannot transfer FALSE FALSE  
+82 families:109 cannot transfer FALSE FALSE  
+84 families:117 cannot transfer FALSE FALSE  
+85 families:118 cannot transfer FALSE FALSE  
+86 families:122 cannot transfer FALSE FALSE  
+   msg                                                                                                                                     
+80 Expected `xbeta()$closed` to equal `rep(TRUE, 2)`. Differences: `actual` is NULL `expected` is a logical vector (TRUE, TRUE)            
+81 Expected `xbeta()$ybounds` to equal `c(0, 1)`. Differences: `actual` is NULL `expected` is a double vector (0, 1)                       
+82 Expected `xbeta()$type` to equal "real". Differences: `actual`:   "continuous" `expected`: "real"                                       
+84 Expected output from `print(xbeta()$prior)` to match regexp "gamma\\\\(0.01, 0.01\\\\)". Actual output: x | NULL                        
+85 Expected output from `print(xbeta()$prior)` to match regexp "student\\\\_t\\\\(3, 0, 2.5\\\\)". Actual output: x | NULL                 
+86 Expected `xbeta()$include` to equal "fun_xbeta.stan". Differences: `actual` is NULL `expected` is a character vector ('fun_xbeta.stan') 
+
+The refusals rows 57-59, 65-67, 71, 74 now hold on:
+  57: [frmtmb_error] 'sqrt' is not a supported link for family 'zero_inflated_beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'clog
+  58: [frmtmb_error] zero_inflated_beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', '
+  59: [frmtmb_error] zero_inflated_beta_binomial(link_zi =): 'log' is not a supported link for parameter 'zi'. Supported links are: 'logit', 'identity', the
+  65: [frmtmb_error] 'log' is not a supported link for family 'hurdle_cumulative'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauc
+  66: [frmtmb_error] hurdle_cumulative(link_hu =): 'probit' is not a supported link for parameter 'hu'. Supported links are: 'logit', 'identity', the set br
+  67: [frmtmb_error] hurdle_cumulative(link_disc =): 'logit' is not a supported link for parameter 'disc'. Supported links are: 'log', 'identity', 'softplus
+  71: [frmtmb_error] '1/mu' is not a supported link for family 'xbeta'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'soft
+  74: [frmtmb_error] xbeta(link_phi =): 'sqrt' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus'
+
+Absent-condition twins (brms accepts these):
+  zero_inflated_beta_binomial("probit")$link -> probit
+  zero_inflated_beta_binomial(link_zi = "identity")$link_zi -> identity
+  hurdle_cumulative(link_hu = "identity")$link_hu -> identity
+  hurdle_cumulative(link_disc = "identity")$link_disc -> identity
+  hurdle_cumulative("cloglog")$link -> cloglog
+  xbeta(link_phi = "identity")$link_phi -> identity
+
+brms 2.23.0 on the same calls:
+  brms::hurdle_cumulative(link_hu = "identity")$link_hu -> identity
+  brms::hurdle_cumulative(link_disc = "identity")$link_disc -> identity
+  brms::zero_inflated_beta_binomial(link_zi = "identity")$link_zi -> identity
+  brms::xbeta(link_phi = "identity")$link_phi -> identity

@@ -184,6 +184,9 @@ brms_coef_table <- function(fit) {
   # mixing weights that qualify, per response: betad index and prefix
   thetas <- list()
   for (lp in fit$frame[["linpreds"]]) {
+    # an equated dpar reads its target's coefficient, which the target
+    # names; hyp_env_vals() lists the equated one as brms does
+    if (!is.null(lp[["equate"]])) next
     cn <- colnames(lp[["X"]])
     par <- lp[["par"]]
     if (!length(cn) || !par %in% c("beta", "betad")) next
@@ -278,6 +281,22 @@ brms_coef_table <- function(fit) {
   # would drift.
   attr(tab, "n_beta") <- n_beta
   attr(tab, "keep_d") <- keep_d
+  # an equated dpar, bf(sigma1 = "sigma2"), owns no row: brms lists it
+  # as a transformed parameter with its target's value, so it is carried
+  # as its name, its target's row and its place among the predictors
+  eq <- list()
+  lps <- fit$frame[["linpreds"]]
+  for (k in seq_along(lps)) {
+    if (is.null(lps[[k]][["equate"]])) next
+    row <- brms_lp_rows(lps[[k]], tab)[1L]
+    # only a target reported as the parameter itself has a value to
+    # repeat; a link-scale one (an hmm() transition cell) is a
+    # coefficient, and the cell equated to it is no parameter at all
+    if (is.na(row) || !tab$natural[row]) next
+    eq[[length(eq) + 1L]] <- list(name = brms_lp_prefix(fit, lps[[k]]),
+                                  row = row, pos = k)
+  }
+  if (length(eq)) attr(tab, "equated") <- eq
   tab
 }
 
@@ -292,6 +311,27 @@ brms_lp_rows <- function(lp, tab) {
     return(attr(tab, "n_beta") + match(idx, attr(tab, "keep_d")))
   }
   rep(NA_integer_, length(idx))
+}
+
+#' The natural-scale distributional parameters `rows` of the table, with
+#' each equated one (`bf(sigma1 = "sigma2")`) added under its own name
+#' and its target's row, all in the order of the predictors: brms lists
+#' `sigma1` beside `sigma2` in `variables()` and `summary()`, and its
+#' value is `sigma2`'s.
+#'
+#' @noRd
+brms_natural_rows <- function(fit, tab, rows) {
+  name <- tab$brms[rows]
+  row <- rows
+  eq <- attr(tab, "equated")
+  if (!length(eq)) return(list(name = name, row = row))
+  pos <- match(linpred_key(tab$resp[rows], tab$dpar[rows]),
+               names(fit$frame[["linpreds"]]))
+  name <- c(name, vapply(eq, `[[`, "", "name"))
+  row <- c(row, vapply(eq, `[[`, 1L, "row"))
+  pos <- c(pos, vapply(eq, `[[`, 1L, "pos"))
+  o <- order(pos)
+  list(name = name[o], row = row[o])
 }
 
 #' brms's names for one linear predictor's design columns, the class

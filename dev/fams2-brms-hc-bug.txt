@@ -1,0 +1,9 @@
+rows in the top category: 43 
+
+== link logit ==
+lpmf used: target += hurdle_cumulative_logit_lpmf 
+log_prob at a legal point: ERROR: Exception: Exception: vector[uni] indexing: accessing element out of range. index 4 out of range; expecting index to be between 1 and 3 (in 'string', line 24, column 7 to line 25, column 40) (in 'string', line 105, column 6 to column 83) 
+
+== link probit ==
+lpmf used: target += hurdle_cumulative_probit_lpmf 
+log_prob at a legal point: -466.1419 

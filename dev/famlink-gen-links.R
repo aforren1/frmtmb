@@ -26,6 +26,8 @@ src <- c(
   zero_inflated_negbinomial = "zero_inflated_negbinomial",
   hurdle_poisson = "hurdle_poisson",
   hurdle_negbinomial = "hurdle_negbinomial", multinomial = "multinomial",
+  hurdle_cumulative = "hurdle_cumulative", xbeta = "xbeta",
+  zero_inflated_beta_binomial = "zero_inflated_beta_binomial",
   cumulative = "cumulative", beta_binomial = "beta_binomial",
   skew_normal = "skew_normal", inverse.gaussian = "inverse.gaussian",
   exgaussian = "exgaussian", bernoulli = "bernoulli",

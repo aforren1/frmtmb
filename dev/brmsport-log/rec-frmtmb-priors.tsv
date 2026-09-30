@@ -14,16 +14,16 @@ setup	frmtmb	priors:47		TRUE	FALSE			TRUE
 assert	frmtmb	priors:48	pass	TRUE	FALSE			TRUE
 setup	frmtmb	priors:52		TRUE	FALSE			TRUE
 setup	frmtmb	priors:54		TRUE	FALSE			TRUE
-assert	frmtmb	priors:55	defect	FALSE	FALSE	Expected `prior[prior$class == "b", ]$coef` to equal `c("", "sx_1", "z")`. Differences: `actual`:   "" "z"    "s(x).fx1" `expected`: "" "sx_1" "z"        		FALSE
+assert	frmtmb	priors:55	pass	TRUE	FALSE			TRUE
 setup	frmtmb	priors:57		TRUE	FALSE			TRUE
-assert	frmtmb	priors:59	defect	FALSE	FALSE	Expected `prior[prior$class == "b", ]$coef` to equal `c("", "Intercept", "sx_1", "z")`. Differences: `actual`:   "" "(Intercept)" "z"    "s(x).fx1" `expected`: "" "Intercept"   "sx_1" "z"        		FALSE
+assert	frmtmb	priors:59	pass	TRUE	FALSE			TRUE
 setup	frmtmb	priors:64		TRUE	FALSE			TRUE
 setup	frmtmb	priors:66		TRUE	FALSE			TRUE
-setup	frmtmb	priors:67		FALSE	FALSE	beta: response must lie strictly in (0, 1)		FALSE
-setup	frmtmb	priors:68		FALSE	FALSE	object of type 'closure' is not subsettable		FALSE
+setup	frmtmb	priors:67		TRUE	FALSE			TRUE
+setup	frmtmb	priors:68		TRUE	FALSE			TRUE
 setup	frmtmb	priors:69		TRUE	FALSE			TRUE
 setup	frmtmb	priors:73		TRUE	FALSE			TRUE
-assert	frmtmb	priors:74	defect	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: object of type 'closure' is not subsettable		FALSE
+assert	frmtmb	priors:74	divergence	FALSE	FALSE	Expected `prior[, c("class", "coef", "group")]` to be equivalent to `pdata`. Component "class": Lengths (5, 6) differ (string compare on first 5) Component "coef": Lengths (5, 6) differ (string compare on first 5) Component "group": Lengths (5, 6) differ (string compare on first 5)		FALSE
 setup	frmtmb	priors:78		TRUE	FALSE			TRUE
 setup	frmtmb	priors:80		TRUE	FALSE			TRUE
 setup	frmtmb	priors:83		TRUE	FALSE			TRUE
@@ -31,14 +31,14 @@ assert	frmtmb	priors:84	pass	TRUE	FALSE			TRUE
 assert	frmtmb	priors:85	divergence	FALSE	FALSE	Expected `prior[prior$class == "rescor", "prior"]` to equal "lkj(1)". Differences: `actual`:   "(flat)" `expected`: "lkj(1)" 		FALSE
 setup	frmtmb	priors:88		TRUE	FALSE			TRUE
 setup	frmtmb	priors:89		TRUE	FALSE			TRUE
-setup	frmtmb	priors:90		FALSE	FALSE	Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		FALSE
-assert	frmtmb	priors:91	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		TRUE
-assert	frmtmb	priors:92	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		FALSE
-assert	frmtmb	priors:93	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		FALSE
-assert	frmtmb	priors:94	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		TRUE
+setup	frmtmb	priors:90		TRUE	FALSE			TRUE
+assert	frmtmb	priors:91	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	priors:92	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	priors:93	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	priors:94	cannot transfer	TRUE	FALSE			TRUE
 setup	frmtmb	priors:99		TRUE	FALSE			TRUE
-setup	frmtmb	priors:100		FALSE	FALSE	categorical(): the response 'y2' has fewer than two categories		FALSE
-assert	frmtmb	priors:101	defect	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: categorical(): the response 'y2' has fewer than two categories		FALSE
+setup	frmtmb	priors:100		TRUE	FALSE			TRUE
+assert	frmtmb	priors:101	pass	TRUE	FALSE			TRUE
 assert	frmtmb	priors:105	pass	TRUE	FALSE			TRUE
 assert	frmtmb	priors:107	pass	TRUE	FALSE			TRUE
 assert	frmtmb	priors:109	pass	TRUE	FALSE			TRUE

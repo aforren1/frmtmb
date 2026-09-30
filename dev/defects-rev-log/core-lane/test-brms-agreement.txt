@@ -1,0 +1,2 @@
+the number of chains is less than 1; sampling not done
+RESULT lane frmtmb 0.65.0 C:/Users/adf44/source/r/wt-defects-lib test-brms-agreement.R pass= 187 fail= 0 err= 0 skip= 0 warn= 0 

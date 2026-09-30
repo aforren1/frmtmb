@@ -1,0 +1,56 @@
+dist | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+pois | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+binom | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+bern | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+negbin | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+beta | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+cumul | lane: resid resid_p vc | base: resid resid_p vc 
+    lane resid : ERROR: residuals(type = "response") is not defined for the 'cumulative' family, as in brms: the response is a category or a set of counts over categor 
+    lane resid_p : ERROR: residuals(type = "pearson") is not defined for the 'cumulative' family, as in brms: the response is a category or a set of counts over categori 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+sratio_cs | lane: resid resid_p vc | base: resid resid_p vc 
+    lane resid : ERROR: residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, 
+    lane resid_p : ERROR: residuals(type = "pearson") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories,  
+    lane vc : ERROR: The model does not contain covariance matrices. 
+acat_cs | lane: resid resid_p vc | base: resid resid_p vc 
+    lane resid : ERROR: residuals(type = "response") is not defined for the 'acat' family, as in brms: the response is a category or a set of counts over categories, s 
+    lane resid_p : ERROR: residuals(type = "pearson") is not defined for the 'acat' family, as in brms: the response is a category or a set of counts over categories, so 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+cratio | lane: resid resid_p | base: resid resid_p 
+    lane resid : ERROR: residuals(type = "response") is not defined for the 'cratio' family, as in brms: the response is a category or a set of counts over categories, 
+    lane resid_p : ERROR: residuals(type = "pearson") is not defined for the 'cratio' family, as in brms: the response is a category or a set of counts over categories,  
+categ | lane: resid resid_p vc | base: resid resid_p vc 
+    lane resid : ERROR: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit)  
+    lane resid_p : ERROR: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit)  
+    lane vc : ERROR: The model does not contain covariance matrices. 
+mixture | lane: fitted_slice resid_p vc | base: fitted_slice resid_p vc 
+    lane fitted_slice : ERROR: `newdata` must be a data frame, or NULL to predict on the training data, not a numeric of length 20 
+    lane resid_p : ERROR: Family 'mixture(gaussian, gaussian)' has no variance function; pearson residuals are unavailable 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+mv_rescor | lane:  | base: resid resid_p 
+mv_norescor | lane:  | base: resid resid_p 
+mi | lane: fitted_nd fitted_slice predict_nd | base: fitted_nd fitted_slice predict_nd resid resid_p 
+    lane fitted_nd : ERROR: mi(xmi): newdata must supply complete values 
+    lane fitted_slice : ERROR: mi(xmi): newdata must supply complete values 
+    lane predict_nd : ERROR: mi(xmi): newdata must supply complete values 
+zip | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+hurdle_p | lane: resid_p vc | base: resid_p vc 
+    lane resid_p : ERROR: Family 'hurdle_poisson' has no variance function; pearson residuals are unavailable 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+hurdle_ln | lane: resid_p | base: resid_p 
+    lane resid_p : ERROR: Family 'hurdle_lognormal' has no variance function; pearson residuals are unavailable 
+se | lane: vc | base: vc 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+offset | lane: fitted_slice vc | base: fitted_slice vc 
+    lane fitted_slice : ERROR: Variable 'off' missing from newdata 
+    lane vc : ERROR: The model does not contain covariance matrices. 
+cs_re | lane: resid resid_p | base: resid resid_p 
+    lane resid : ERROR: residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, 
+    lane resid_p : ERROR: residuals(type = "pearson") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories,  

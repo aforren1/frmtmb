@@ -77,9 +77,12 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
                                  re_formula = re_formula))
   sims <- if (ordinal) {
     # simulate() hands ordinal draws back as ordered factors; the rank
-    # transform needs the integer codes the response itself carries
-    matrix(unlist(lapply(sims, as.integer), use.names = FALSE),
-           nrow = nrow(sims))
+    # transform needs the integer codes the response itself carries,
+    # which start at 0 for a hurdle family
+    shift <- ord_code0(rspec$family) - 1L
+    matrix(unlist(lapply(sims, function(s) {
+      if (is.factor(s)) as.integer(s) + shift else as.integer(s)
+    }), use.names = FALSE), nrow = nrow(sims))
   } else {
     as.matrix(sims)
   }
@@ -97,10 +100,14 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
   } else {
     as.vector(stats::na.omit(fitted_point(fit)))
   }
+  # a missing mi() response is no observation: the frame's placeholder
+  # would be scored against the draws as if it had been seen
+  yobs <- frame_observed_y(fit, rspec$resp_name)
+  keep <- !is.na(yobs)
   DHARMa::createDHARMa(
-    simulatedResponse = sims,
-    observedResponse = fit$frame[["y"]][[rspec$resp_name]],
-    fittedPredictedResponse = fpr,
+    simulatedResponse = sims[keep, , drop = FALSE],
+    observedResponse = yobs[keep],
+    fittedPredictedResponse = fpr[keep],
     integerResponse = identical(rspec$family[["type"]], "discrete") || ordinal,
     ...
   )

@@ -1,0 +1,8 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-postfit2-lib", "C:/Users/adf44/source/r/rellib-r3", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressMessages(library(frmtmb))
+set.seed(43)
+d3 <- data.frame(x = rnorm(300), g1 = factor(sample(1:10, 300, TRUE)), g2 = factor(sample(1:10, 300, TRUE)))
+fl <- c(rep("a", 5), rep("b", 5)); d3$f1 <- factor(fl[d3$g1]); d3$f2 <- factor(fl[d3$g2])
+u <- rnorm(10); d3$y <- rnorm(300, 1 + 0.5 * d3$x + 0.5 * (u[d3$g1] + u[d3$g2]), 0.5)
+f3 <- frm(bf(y ~ x + (1 | mm(g1, g2, by = cbind(f1, f2)))), family = gaussian(), data = d3)
+for (bk in f3$frame$re_blocks) str(bk$by)

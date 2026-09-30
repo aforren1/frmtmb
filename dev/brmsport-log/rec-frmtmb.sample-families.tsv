@@ -40,47 +40,47 @@ assert	frmtmb.sample	families:48	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	families:49	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	families:50	pass	TRUE	FALSE		'log' is not a supported link for family 'beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity'. See ?`frmtmb-links`	TRUE
 assert	frmtmb.sample	families:51	pass	TRUE	FALSE		beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
-assert	frmtmb.sample	families:52	cannot transfer	FALSE	TRUE	ERROR: could not find function "zero_inflated_beta_binomial"		FALSE
-assert	frmtmb.sample	families:53	cannot transfer	FALSE	TRUE	ERROR: could not find function "zero_inflated_beta_binomial"		FALSE
-assert	frmtmb.sample	families:54	cannot transfer	FALSE	TRUE	ERROR: could not find function "zero_inflated_beta_binomial"		FALSE
-assert	frmtmb.sample	families:55	cannot transfer	FALSE	TRUE	ERROR: could not find function "zero_inflated_beta_binomial"		FALSE
-assert	frmtmb.sample	families:56	cannot transfer	FALSE	TRUE	ERROR: could not find function "zero_inflated_beta_binomial"		FALSE
-assert	frmtmb.sample	families:57	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "zero_inflated_beta_binomial"	could not find function "zero_inflated_beta_binomial"	TRUE
-assert	frmtmb.sample	families:58	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "zero_inflated_beta_binomial"	could not find function "zero_inflated_beta_binomial"	TRUE
-assert	frmtmb.sample	families:59	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "zero_inflated_beta_binomial"	could not find function "zero_inflated_beta_binomial"	TRUE
-assert	frmtmb.sample	families:60	cannot transfer	FALSE	TRUE	ERROR: could not find function "hurdle_cumulative"		FALSE
-assert	frmtmb.sample	families:61	cannot transfer	FALSE	TRUE	ERROR: could not find function "hurdle_cumulative"		FALSE
-assert	frmtmb.sample	families:62	cannot transfer	FALSE	TRUE	ERROR: could not find function "hurdle_cumulative"		FALSE
-assert	frmtmb.sample	families:63	cannot transfer	FALSE	TRUE	ERROR: could not find function "hurdle_cumulative"		FALSE
-assert	frmtmb.sample	families:64	cannot transfer	FALSE	TRUE	ERROR: could not find function "hurdle_cumulative"		FALSE
-assert	frmtmb.sample	families:65	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "hurdle_cumulative"	could not find function "hurdle_cumulative"	TRUE
-assert	frmtmb.sample	families:66	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "hurdle_cumulative"	could not find function "hurdle_cumulative"	TRUE
-assert	frmtmb.sample	families:67	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "hurdle_cumulative"	could not find function "hurdle_cumulative"	TRUE
-assert	frmtmb.sample	families:68	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:69	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:70	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:71	cannot transfer	FALSE	TRUE	VACUOUS: could not find function "xbeta"	could not find function "xbeta"	TRUE
-assert	frmtmb.sample	families:72	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:73	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:74	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:75	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:76	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
+assert	frmtmb.sample	families:52	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:53	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:54	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:55	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:56	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:57	cannot transfer	TRUE	FALSE		'sqrt' is not a supported link for family 'zero_inflated_beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:58	cannot transfer	TRUE	FALSE		zero_inflated_beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:59	cannot transfer	TRUE	FALSE		zero_inflated_beta_binomial(link_zi =): 'log' is not a supported link for parameter 'zi'. Supported links are: 'logit', 'identity', the set brms allows, fixed by the range `zi` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:60	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:61	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:62	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:63	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:64	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:65	cannot transfer	TRUE	FALSE		'log' is not a supported link for family 'hurdle_cumulative'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit'. An ordinal link names the distribution function the thresholds are read through, so it has to map onto (0, 1). See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:66	cannot transfer	TRUE	FALSE		hurdle_cumulative(link_hu =): 'probit' is not a supported link for parameter 'hu'. Supported links are: 'logit', 'identity', the set brms allows, fixed by the range `hu` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:67	cannot transfer	TRUE	FALSE		hurdle_cumulative(link_disc =): 'logit' is not a supported link for parameter 'disc'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `disc` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:68	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:69	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:70	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:71	cannot transfer	TRUE	FALSE		'1/mu' is not a supported link for family 'xbeta'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 'log'. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:72	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:73	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:74	cannot transfer	TRUE	FALSE		xbeta(link_phi =): 'sqrt' is not a supported link for parameter 'phi'. Supported links are: 'log', 'identity', 'softplus', 'squareplus', the set brms allows, fixed by the range `phi` has to stay inside. See ?`frmtmb-links`	TRUE
+assert	frmtmb.sample	families:75	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:76	cannot transfer	TRUE	FALSE			TRUE
 assert	frmtmb.sample	families:80	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	families:81	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-setup	frmtmb.sample	families:85		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, and `groups`. brms's `nmix` and `order` are not supported: repeat a component to use it twice		FALSE
+assert	frmtmb.sample	families:81	cannot transfer	TRUE	FALSE			TRUE
+setup	frmtmb.sample	families:85		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, `groups` and `order`. brms's `nmix` is not supported: repeat a component to use it twice		FALSE
 assert	frmtmb.sample	families:86	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
-setup	frmtmb.sample	families:87		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, and `groups`. brms's `nmix` and `order` are not supported: repeat a component to use it twice		FALSE
+setup	frmtmb.sample	families:87		FALSE	FALSE	mixture() has no argument `nmix`. It takes the component families, unnamed, `groups` and `order`. brms's `nmix` is not supported: repeat a component to use it twice		FALSE
 assert	frmtmb.sample	families:88	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
-assert	frmtmb.sample	families:92	pass	TRUE	FALSE		x is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, hurdle_negbinomial, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal	TRUE
+assert	frmtmb.sample	families:92	pass	TRUE	FALSE		x is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, hurdle_negbinomial, multinomial, cumulative, hurdle_cumulative, beta_binomial, zero_inflated_beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, ge	TRUE
 assert	frmtmb.sample	families:94	pass	TRUE	FALSE		Some of the families are not allowed in mixture models: categorical. A categorical or multinomial response is not a value the other components can share, and a continuous hurdle or a zero-inflated or zero-one-inflated beta puts a probability mass at zero (or one) beside a density	TRUE
 assert	frmtmb.sample	families:96	pass	TRUE	FALSE		Cannot mix ordinal and non-ordinal families. The components are poisson (discrete), cumulative (ordinal)	TRUE
 assert	frmtmb.sample	families:98	pass	TRUE	FALSE		Cannot mix families with real and integer support. The components are lognormal (continuous), exgaussian (continuous), poisson (discrete), and a weighted sum of a density and a probability mass is not a likelihood	TRUE
 assert	frmtmb.sample	families:100	pass	TRUE	FALSE		Expecting at least 2 mixture components. mixture() needs two or more component families	TRUE
-assert	frmtmb.sample	families:102	defect	FALSE	FALSE	ERROR: mixture() has no argument `order`. It takes the component families, unnamed, and `groups`. brms's `nmix` and `order` are not supported: repeat a component to use it twice		FALSE
-assert	frmtmb.sample	families:107	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:108	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:109	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:113	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:117	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:118	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
-assert	frmtmb.sample	families:122	cannot transfer	FALSE	TRUE	ERROR: could not find function "xbeta"		FALSE
+assert	frmtmb.sample	families:102	pass	TRUE	FALSE		Argument 'order' is invalid. Valid options are: none, mu	TRUE
+assert	frmtmb.sample	families:107	cannot transfer	FALSE	FALSE	Expected `xbeta()$closed` to equal `rep(TRUE, 2)`. Differences: `actual` is NULL `expected` is a logical vector (TRUE, TRUE) 		FALSE
+assert	frmtmb.sample	families:108	cannot transfer	FALSE	FALSE	Expected `xbeta()$ybounds` to equal `c(0, 1)`. Differences: `actual` is NULL `expected` is a double vector (0, 1) 		FALSE
+assert	frmtmb.sample	families:109	cannot transfer	FALSE	FALSE	Expected `xbeta()$type` to equal "real". Differences: `actual`:   "continuous" `expected`: "real"       		FALSE
+assert	frmtmb.sample	families:113	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	families:117	cannot transfer	FALSE	FALSE	Expected output from `print(xbeta()$prior)` to match regexp "gamma\\(0.01, 0.01\\)". Actual output: x | NULL		FALSE
+assert	frmtmb.sample	families:118	cannot transfer	FALSE	FALSE	Expected output from `print(xbeta()$prior)` to match regexp "student\\_t\\(3, 0, 2.5\\)". Actual output: x | NULL		FALSE
+assert	frmtmb.sample	families:122	cannot transfer	FALSE	FALSE	Expected `xbeta()$include` to equal "fun_xbeta.stan". Differences: `actual` is NULL `expected` is a character vector ('fun_xbeta.stan') 		FALSE

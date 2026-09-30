@@ -1,0 +1,1 @@
+RESULT after frmtmb 0.65.0 test-brms-agreement.R pass= 168 fail= 0 err= 0 skip= 2 warn= 0 

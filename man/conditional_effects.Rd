@@ -23,6 +23,9 @@ conditional_effects(x, ...)
   seed = NULL,
   conditions = list(),
   surface = FALSE,
+  spaghetti = FALSE,
+  select_points = 0,
+  too_far = 0,
   data = NULL,
   int_conditions = list(),
   categorical = NULL,
@@ -89,7 +92,17 @@ coefficient uncertainty, and the grouping column of the returned
 frame is \code{NA} to say which group it is. \code{band = "boot"} carries it
 too, by drawing that group's effects once per bootstrap replicate
 rather than by adding a variance. To condition on an OBSERVED
-group, name it in \code{conditions} (\code{conditions = list(g = "3")}).
+group, name it in \code{conditions} (\code{conditions = list(g = "3")}) or
+vary it as an effect (\code{effects = "x:g"}). The rule is brms's, whose
+display predicts with \code{allow_new_levels = TRUE}: per grid row and
+per group-level term, the term reads its fitted effects where every
+one of its grouping variables is set to a level the fit saw, and a
+NEW level everywhere else, which covers a variable left unset or
+\code{NA}, a level the fit never saw (\code{"99"}, which the frame keeps), and
+a nested \code{(1 | g / h)} with \code{g} set and \code{h} unset, where \code{g}'s
+effect is read and a new \code{g:h} level is drawn within it. Each
+distinct new level is drawn once per replicate (per posterior draw
+on draws) and shared by the rows and panels that name it.
 brms draws a new group's random effects afresh from the fitted
 covariance in every posterior draw, so its curve is stochastic
 around this one; a maximum-likelihood fit has the mode and the
@@ -117,10 +130,31 @@ on the link scale.}
 multiple condition sets (brms style), labeled by a \code{cond__}
 column from its row names.}
 
-\item{surface}{Accepted for brms compatibility. \code{TRUE} (a fitted
-surface over two predictors) is refused: ask for the two-variable
-effect \code{"x1:x2"} instead, which varies the first predictor at three
-values of the second.}
+\item{surface}{\code{TRUE} draws a two-variable effect \code{"x1:x2"} of two
+numeric predictors as a surface: both vary over their range at
+\code{resolution} values each, \code{effect2__} stays numeric, and \code{plot()}
+draws an image with contours. brms's argument, with brms's meaning.
+\code{FALSE} (the default) varies the first predictor at three values of
+the second.}
+
+\item{spaghetti}{\code{TRUE} adds one curve per draw as the attribute
+\code{"spaghetti"} of an effect whose first predictor is numeric: the
+grid once per draw, stacked, with that draw's curve in \code{estimate__}
+and its id in \code{sample__}, as brms lays it out. A
+maximum-likelihood fit has draws only under \code{band = "boot"}, where a
+draw is one refit; with any other band it is refused. It cannot be
+combined with \code{surface = TRUE}.}
+
+\item{select_points}{For \code{plot(points = TRUE)}: \code{0} (the default)
+draws the observations the faceting section describes. A positive
+number also drops each observation whose value of a numeric
+predictor is farther than this from the value the curve holds that
+predictor at, both scaled to the unit interval over the observed
+range. brms's argument; the points are in the attribute \code{"points"}.}
+
+\item{too_far}{For \code{surface = TRUE}: remove the grid points farther
+than this from every observation, on the unit square, with
+\code{\link[mgcv:exclude.too.far]{mgcv::exclude.too.far()}}. \code{0} (the default) keeps all.}
 
 \item{data}{The original model data. Only needed when the model frame
 does not store a raw variable (e.g. a variable used only inside
@@ -167,8 +201,8 @@ with every other predictor held at a reference value (numeric: mean;
 factor: first level; matrix covariate: column means) and random
 effects excluded (\code{re_formula = NA}). Confidence bands are Wald
 intervals computed on the link scale and back-transformed. Smooth
-terms are included, so this also covers what brms calls
-\code{conditional_smooths()}.
+terms are part of the predicted curve; \code{\link[=conditional_smooths]{conditional_smooths()}} draws
+each smooth term on its own, as brms's function of that name does.
 }
 \section{Several conditions become one faceted page}{
 
@@ -263,14 +297,27 @@ that combination; the link is monotone, so the two endpoints map
 through it. The band is not symmetric and does not assume a
 quadratic log-likelihood, which is what makes it worth its cost
 near a boundary or at a small sample size.
-\item \code{"boot"}: percentiles of the grid predictions across the refits of
-ONE \code{\link[=frm_bootstrap]{frm_bootstrap()}}. One bootstrap serves every effect, condition
-set and ordinal category of the call; \code{attr(ce, "boot")} returns
-it, and passing it back as \verb{boot =} costs no refits at all. Draws
-taken under \code{re_formula = NULL} carry a new group's effects and
-draws taken without it do not, so the two are not
-interchangeable and \verb{boot =} refuses the swap by name rather than
-returning the wrong band.
+\item \code{"boot"}: percentiles of the grid predictions across ONE
+parametric bootstrap of refits, run as \code{\link[=frm_bootstrap]{frm_bootstrap()}} runs it.
+One bootstrap serves every effect, condition set and ordinal
+category of the call; \code{attr(ce, "boot")} returns it, and passing
+it back as \verb{boot =} costs no refits at all. The responses are
+simulated with every smooth, \code{gp()} and \code{hsgp()} curve held at its
+fit, a smooth indexed by a grouping factor included, as
+\code{frm_bootstrap()} holds them: brms's band is the posterior of the
+smooth coefficients, not their prior. A group-level term is redrawn
+fresh, unless the grid reads it at an OBSERVED level (see
+\code{re_formula}): then it is held at its fitted effects too, so that
+every refit estimates the same group again; responses simulated
+with fresh effects for it would make the refit's level a different
+group each time and center the band on the population curve. A
+term the grid reads at an observed level in some rows and at a new
+level in others needs both simulations at once, and that call is
+refused by name; \code{band = "wald"} answers it. Draws taken under
+\code{re_formula = NULL} carry a new group's effects and draws taken
+without it do not, and draws simulated with a group held are not
+draws simulated with it redrawn, so \verb{boot =} refuses either swap
+by name rather than returning the wrong band.
 }
 
 A Student-t random-effect block enters either band as a GAUSSIAN
@@ -316,11 +363,73 @@ nonlinear predictor, for a predictor carrying \code{s()}, \code{gp()} or
 fit or \code{frmtmb_control(profile = TRUE)} (the coefficients are not
 outer parameters there).
 
-A nonlinear predictor (\code{nl = TRUE}) has no delta-method standard
-error at all, so \code{band = "boot"} is its only band and the other two
-are refused. The same holds for the per-category display of a nominal
-family, whose probabilities have no threshold Jacobian to
-differentiate.
+A nonlinear predictor (\code{nl = TRUE}) gets its \code{"wald"} band from the
+Jacobian of the nonlinear body, which \code{\link[=frm_lp_basis]{frm_lp_basis()}} tapes: the
+delta method on the link scale, back-transformed, as for a linear
+predictor. On \code{y ~ a * exp(b * z)} fitted to 150 rows the standard
+error agreed with the standard deviation of 20000 curves drawn from
+the fit's covariance to within that Monte Carlo error. It is a
+first-order
+approximation, which is a stronger assumption for a curved body than
+for a linear one; \code{band = "boot"} makes none. The Wald band is refused
+for a nonlinear display that runs through several predictors (the
+expected response of a zero-inflated or hurdle family, a reported
+mixing weight, the ordinal categories) and at a new level of a term
+the displayed predictor itself reads, where the Jacobian of one
+predictor is not enough; \code{band = "boot"} covers both. \code{band = "profile"} stays refused.
+The per-category display of a nominal family has no Wald band either,
+since its probabilities have no threshold Jacobian to differentiate.
+}
+
+\section{New group levels}{
+
+Under \code{re_formula = NULL}, or a formula that keeps a term, each grid
+row reads each group-level term at an observed level or at a new
+level (see \code{re_formula}). Some terms read a row in their own way:
+\itemize{
+\item \code{gr(g, by = f)} is one term per level of \code{f}. A row reads only the
+term of its own \code{f} level. With \code{g} unset, the row reads a new
+level of that term, drawn with the covariance of that \code{f} level,
+as brms draws it.
+\item \code{mm(g1, g2)} has one grouping variable per member. An unset member
+is \code{NA} and reads a new level. Members with the same new value (for
+example, two unset members) read one new level, and their weights
+add, as in brms. Members with different unseen values (\code{"99"} and
+\code{"98"}) read different new levels, each drawn on its own, as two
+unseen levels of \code{(1 | g)} are. brms 2.23.0 gives them one shared
+draw, because it numbers unseen values per member, not by value.
+With \code{band = "boot"}, a row with one member at an
+observed level and one at a new level is refused by name, as are
+rows that mix the two. An \code{mm()} term with a \code{by} variable draws no
+new level with \code{band = "boot"} or on draws, and such a call is
+refused by name; the Wald band answers it.
+\item A factor-smooth (\code{s(x, g, bs = "fs")}) or a smooth with a \code{by}
+factor has no curve for a level that the fit did not see. When
+\code{conditions} sets such a factor to an unseen level, or the grid
+leaves it unset, the call is refused by name. brms also refuses the
+unseen level.
+}
+
+With \code{band = "boot"} and on draws, a new level is drawn as follows.
+The rows are predicted at a placeholder level of the term, and the
+draw replaces the effects of that level. The placeholder can change
+only a grouping column that no other part of the model reads: not a
+column of a fixed effect, a smooth, a \code{by} variable or a nonlinear
+body, and not a column of a term that the same rows read at an
+observed level. Two terms that both read a new level in the same rows
+can share a placeholder column (for example \code{mm(g1, g2)} beside
+\code{(1 | g1)}), because their effects are separate coefficients. If no
+placeholder exists, the call is refused by
+name ("cannot draw a new level of the group-level term"). Then set
+the grouping variables in \code{conditions} to levels that the fit saw
+together, or use \code{re_formula = NA}.
+
+Known limitation: crossed terms such as
+\code{(1 | g) + (1 | h) + (1 | g:h)}, with \code{g} and \code{h} set to observed
+levels that the data never has together. The \code{g:h} term then reads a
+new level, but its placeholder would change \code{g} or \code{h}, which the
+observed terms read. \code{band = "boot"} and draws refuse this call;
+brms answers it. \code{band = "wald"} answers it too.
 }
 
 \section{Draws objects}{
@@ -328,8 +437,11 @@ differentiate.
 On a \code{frmtmb_draws} object from \code{frmtmb.sample::frm_sample()} the
 same grids are evaluated once per posterior draw, and \code{estimate__},
 \code{lower__},
-\code{upper__} and \code{se__} are the pointwise mean, quantiles and standard
-deviation of the drawn curves. There is no \verb{band =} or \verb{method =} to
+\code{upper__} and \code{se__} are the pointwise median, quantiles and median
+absolute deviation of the drawn curves under brms's default
+\code{robust = TRUE} (the mean and standard deviation under
+\code{robust = FALSE}). \code{spaghetti = TRUE} keeps the curves themselves.
+There is no \verb{band =} or \verb{method =} to
 choose (the band IS the posterior quantile band), a nonlinear
 predictor and a nominal per-category display work without a delta
 method, and the method runs on formula-route draws that have no

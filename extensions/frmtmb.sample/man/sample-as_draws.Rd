@@ -64,7 +64,9 @@ as.mcmc(x, ...)
 supported: a \code{frmtmb_draws} keeps the post-warmup draws alone.}
 
 \item{...}{For \code{as.matrix()}, \code{as.array()} and \code{as.data.frame()}, the
-\code{regex}, \code{fixed} and \code{inc_warmup} brms passes on; anything else is
+\code{regex}, \code{fixed} and \code{inc_warmup} brms passes on, and the
+\code{iteration} and \code{chain} it hands to \code{\link[posterior:subset_draws]{posterior::subset_draws()}}
+(\code{as.array(x, chain = 1)} is the first chain); anything else is
 refused by name, rather than silently changing nothing.}
 
 \item{row.names, optional}{Accepted for the generic and unused, as in

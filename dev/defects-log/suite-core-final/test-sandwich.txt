@@ -1,0 +1,4 @@
+Registered S3 method overwritten by 'clubSandwich':
+  method    from    
+  bread.mlm sandwich
+RESULT after frmtmb 0.65.0 test-sandwich.R pass= 58 fail= 0 err= 0 skip= 0 warn= 0 

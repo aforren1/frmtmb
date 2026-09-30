@@ -1,0 +1,6 @@
+== frmtmb.ode 1 files ==
+RESULT test-scale.R pass=2 fail=0 err=0 skip=0 warn=0
+== frmtmb.ode END ==
+SCALE-ODE-RERUN ran 1 of 1
+== SCALE rows ==
+SCALE row=ode	small=FALSE	rows=    800	subjects=    100	n_par=      6	n_dose=     14	n_ss=     20	build_s=14.9634	frame_s=0.0160599	grad_start_s=30.3364	grad_start_calls=      1	grad_opt_s=5.98289	control_ratio=1.04191	fit_s=1694.12	mem_mb=  647.4	logLik=-434.72	ka=0.98416	ka_true=      1	ke=0.148279	ke_true=   0.15	ke_lo=0.139755	ke_hi=0.157324	V=19.6251	V_true=     20	sd_lka=0.269244	sd_lka_true=    0.3	sd_lke=0.261209	sd_lke_true=   0.25	n_failed=      0	diag=conv=1,maxgrad=0.00235,pdHess=TRUE,nbadse=0,nflat=0,unbounded=none

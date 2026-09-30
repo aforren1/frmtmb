@@ -167,8 +167,11 @@ test_that("post-processing follows the nonlinear parameter a body names", {
   # the effect display finds the body's covariate, not mu's
   ce <- conditional_effects(fit, dpar = "sigma", band = "boot", boot = 5)
   expect_named(ce, "z")
-  expect_error(conditional_effects(fit, dpar = "sigma", band = "wald"),
-               "cannot put a wald band on a nonlinear predictor")
+  # its Wald band is the delta method through the body, on sigma's link
+  cw <- conditional_effects(fit, dpar = "sigma", band = "wald")
+  expect_named(cw, "z")
+  expect_equal(cw$z$estimate__, ce$z$estimate__)
+  expect_true(all(is.finite(cw$z$se__)))
   # ... while mu keeps its own analytic band
   expect_named(conditional_effects(fit), "x")
   expect_true(all(c("b_a_Intercept", "b_b_Intercept") %in% variables(fit)))

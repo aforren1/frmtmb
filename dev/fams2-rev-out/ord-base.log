@@ -1,0 +1,35 @@
+arm base frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+fitting cum_logit_re 
+No priors were set (plain maximum likelihood).
+fitting cum_probit_re 
+No priors were set (plain maximum likelihood).
+fitting cum_cloglog 
+No priors were set (plain maximum likelihood).
+fitting cum_thresK 
+fitting sratio_thresK 
+fitting cum_thres_gr 
+No priors were set (plain maximum likelihood).
+fitting acat_thres_gr 
+No priors were set (plain maximum likelihood).
+fitting sratio_cs 
+No priors were set (plain maximum likelihood).
+fitting cratio_cs 
+No priors were set (plain maximum likelihood).
+fitting acat_cs 
+No priors were set (plain maximum likelihood).
+fitting sratio_cs_num 
+No priors were set (plain maximum likelihood).
+fitting cum_ofactor 
+No priors were set (plain maximum likelihood).
+fitting acat_ofactor 
+No priors were set (plain maximum likelihood).
+fitting cum_unused 
+No priors were set (plain maximum likelihood).
+fitting cratio_unused 
+No priors were set (plain maximum likelihood).
+fitting cum_zero 
+fitting sratio_zero 
+fitting cum_yplus1 
+No priors were set (plain maximum likelihood).
+fitting mv
+saved 20 entries

@@ -1,0 +1,1 @@
+RESULT after frmtmb.latent 0.6.0 test-hmm-starts.R pass= 84 fail= 0 err= 0 skip= 0 warn= 0 

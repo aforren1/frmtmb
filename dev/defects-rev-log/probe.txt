@@ -1,0 +1,143 @@
+
+===== 1. fitted(scale = 'linear') on cs() fits 
+  dim :
+[1] 200   4   3
+  dimnames :
+[[1]]
+NULL
+
+[[2]]
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+[[3]]
+NULL
+
+  estimate names :
+[1] "beta"    "tau_raw" "bcs2"   
+  fixef rows :
+[1] "Intercept[1]" "Intercept[2]" "Intercept[3]" "x"            "z[1]"        
+[6] "z[2]"         "z[3]"        
+  thresholds :
+NULL
+  max |P(Y=1) - F(tau1 - eta1)| / max P :
+[1] -Inf
+Warning message:
+In max(abs(P[, "Estimate", 1] - p1)) :
+  no non-missing arguments to max; returning -Inf
+  cs coefficient vector :
+[1] 0.13687865 0.15227597 0.01783561
+  range of (eta_2 - eta_1)/z :
+[1] 0.01539732 0.01539732
+  cs_2 - cs_1 :
+[1] 0.01539732
+  Est.Error rows 1:3 :
+          [,1]      [,2]      [,3]
+[1,] 0.1370450 0.1364103 0.1721867
+[2,] 0.2840708 0.2895894 0.3894719
+[3,] 0.2929179 0.3013954 0.3588208
+  Est.Error without cs (shared eta only) :
+[1] 0.1036367 0.1798479 0.2440115
+  newdata layers equal in-sample rows :
+[1] TRUE
+  one-row newdata dim :
+[1] 1 4 3
+  fitted(dpar = 'mu', scale = 'linear') dim :
+[1] 200   4   3
+  frm_linpred link dim (unchanged API) :
+NULL
+1 row removed because of missing values (na.action)
+  na.exclude dim :
+[1] 200   4   3
+  row 5 NA in every layer :
+[1] TRUE
+  acat cs + re dim :
+[1] 200   4   3
+  re_formula = NA dim :
+[1] 200   4   3
+
+===== 2. residuals(newdata =), multivariate residuals 
+  gaussian     in-sample vs newdata=data: max|dEst| = 0, max|dSE| = 0
+  gauss re     in-sample vs newdata=data: max|dEst| = 0, max|dSE| = 0
+  lognormal    in-sample vs newdata=data: max|dEst| = 0, max|dSE| = 0
+  log(y) : ERROR: residuals(newdata = ) needs the observed response to subtract from, and newdata does not supply 'log(pos)' as a numeric column for its 100 rows. Add it, or use fitted(newdata = ) for the expected value alone 
+NULL
+  poisson      in-sample vs newdata=data: max|dEst| = 0, max|dSE| = 0
+  binomial     in-sample vs newdata=data: max|dEst| = 0, max|dSE| = 0
+  dist         in-sample vs newdata=data: max|dEst| = 0, max|dSE| = 0
+  newdata new level, allow_new_levels = FALSE : ERROR: New levels in grouping factor `g`: new1. Use allow_new_levels = TRUE to predict them at the population level 
+  newdata new level, allow = TRUE :
+        Estimate Est.Error      Q2.5     Q97.5
+[1,] -0.02740961 0.7603471 -1.517662 1.4628433
+[2,] -0.42151929 0.3218350 -1.052304 0.2092657
+  equals y - fitted :
+[1] TRUE
+  pearson + newdata : ERROR: residuals(newdata = ) is defined for type = "pearson" only as far as brms defines it: the response minus the expected value, type = "ordinary". A pearson residual reads the fitted rows' own likelihood 
+  newdata without response : ERROR: residuals(newdata = ) needs the observed response to subtract from, and newdata does not supply 'y' as a numeric column for its 2 rows. Add it, or use fitted(newdata = ) for the expected value alone 
+  positional newdata (2nd arg is type) : ERROR: `type` must be one of "response", "ordinary", "pearson", "deviance", "osa", not a data.frame of length 3 
+  mv dim :
+[1] 100   4   2
+  mv dimnames[[3]] :
+[1] "y"  "y2"
+  resp = 'y2' dim :
+[1] 100   4
+  layer y2 equals resp = 'y2' :
+[1] TRUE
+  layer y2 equals y2 - fitted :
+[1] TRUE
+  resp = c('y2','y') order :
+[1] "y2" "y" 
+  resp unknown : ERROR: Unknown response: 'nope'. Available: y, y2 
+  mv osa : ERROR: residuals(type = "osa") is not supported yet for multivariate fits: the one-step tape steps through the observations of a single response. Use type = "pearson" 
+  mv newdata :
+[1] 5 4 2
+  mi dim :
+[1] 100   4   2
+  xmi layer NA where missing :
+       
+        FALSE TRUE
+  FALSE    82   18
+2 rows removed because of missing values (na.action)
+  NA-row mv dim :
+[1] 98  4  2
+  nobs :
+[1] 98
+2 rows removed because of missing values (na.action)
+  na.exclude mv dim :
+[1] 100   4   2
+  per resp dims :
+  y  y3 
+100 100 
+
+===== 3. predict(sample_new_levels = 'old_levels') 
+  draws dim :
+[1] 2000    3
+  column means :
+[1]  5.06668294  5.06027205 -0.01011761
+  nearest seen level per column :
+9 9 4 
+9 9 4 
+  rows of same new level share a level (A,A) :
+[1] TRUE
+  sd per column (sigma ~ 0.3) :
+[1] 0.3168499 0.3216053 0.3242881
+  reproducible under set.seed :
+[1] TRUE
+  distinct picks for A over 40 calls :
+[1] 10
+  A != B in calls :
+[1] 0.975
+  gaussian sd per column :
+[1] 4.092601 4.103143 4.087609
+  uncertainty refused : ERROR: predict() honors sample_new_levels = "gaussian" and "old_levels" only. An unseen level's effect is taken from its block's own estimated covariance, which is what brms's "gaussian" does, or from one seen level's draw, which is "old_levels". "uncertainty" mixes the two per POSTERIOR draw, and a 
+  fitted old_levels refused : ERROR: fitted() honors sample_new_levels = "gaussian" only. An unseen level's effect is taken from its block's own estimated covariance, which is what brms's "gaussian" does. "old_levels" resamples the draws of the levels that were seen, and this summary has none. "uncertainty" mixes the two per POS 
+  fitted gaussian == default :
+[1] TRUE
+  sample_new_levels bad value : ERROR: predict() honors sample_new_levels = "gaussian" and "old_levels" only. An unseen level's effect is taken from its block's own estimated covariance, which is what brms's "gaussian" does, or from one seen level's draw, which is "old_levels". "uncertainty" mixes the two per POSTERIOR draw, and a 
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (0.342 at theta_2): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+Warning message:
+predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+Error in drop && !has.j : invalid 'x' type in 'x && y'
+Calls: which.min -> [ -> [.data.frame
+Execution halted

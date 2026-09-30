@@ -1,0 +1,8 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+sandwich: .........Registered S3 method overwritten by 'clubSandwich':
+  method    from    
+  bread.mlm sandwich
+.................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-sandwich.R pass=58 fail=0 err=0 skip=0 warn=0 blocks=9

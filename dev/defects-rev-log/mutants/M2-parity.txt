@@ -1,0 +1,2 @@
+MUTANT M2 prior_coef_rows test-brms-parity-defects.R pass= 76 fail= 2 err= 0 
+  caught by: the prior table spells a smooth's column as brms does 

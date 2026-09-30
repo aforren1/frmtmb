@@ -1,0 +1,5 @@
+predict-lp-basis: ..............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-predict-lp-basis.R pass=30 fail=0 error=0 skip=0 warn=0

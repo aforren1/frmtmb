@@ -1,3 +1,13 @@
+# frmtmb.ode 0.7.1
+
+No change to the package's code.
+
+* `test-scale.R`, the scale tier, lets no warning escape. Its
+  100-subject fit ends with a nonzero optimizer code, as it did at
+  0.7.0, and frmtmb reports that as a warning; the test allows that one
+  message by name (`allow_warnings()`, now in `helper-warnings.R` here
+  as in frmtmb's own tests) and no other.
+
 # frmtmb.ode 0.7.0
 
 * New `frm_ode_records()` splits one NONMEM-shaped table (`evid`, `amt`,

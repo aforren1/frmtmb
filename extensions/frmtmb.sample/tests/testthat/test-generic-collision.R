@@ -28,6 +28,7 @@ own_generics <- c(
   "as.mcmc", "bayes_factor", "bridge_sampler", "kfold",
   "log_posterior", "loo_moment_match", "loo_subsample", "mcmc_plot",
   "neff_ratio", "nsamples", "nuts_params", "parnames", "post_prob",
+  "posterior_average",
   "posterior_epred", "posterior_interval", "posterior_linpred",
   "posterior_predict", "posterior_samples", "pp_mixture",
   "predictive_error", "predictive_interval", "psis", "reloo",
@@ -46,7 +47,7 @@ owner_table <- list(
   predictive_error = "rstantools", predictive_interval = "rstantools",
   log_posterior = "bayesplot", neff_ratio = "bayesplot",
   nuts_params = "bayesplot", rhat = c("posterior", "bayesplot"),
-  mcmc_plot = "brms", parnames = "brms",
+  mcmc_plot = "brms", parnames = "brms", posterior_average = "brms",
   posterior_samples = c("brms", "gratia"), pp_mixture = "brms",
   reloo = "brms", restructure = "brms", stancode = "brms",
   standata = "brms")

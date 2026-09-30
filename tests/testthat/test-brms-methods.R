@@ -816,28 +816,29 @@ test_that("a mo() predictor gets its levels, not a continuous grid", {
   expect_identical(nrow(cf$z), 100L)
 })
 
-test_that("a nonlinear predictor is refused a wald band", {
+test_that("a nonlinear predictor gets a wald band", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE. brms plots the nonlinear model with no special
-  # argument. frmtmb refuses, because its band is a delta-method
-  # interval and frm_linpred() has no standard error for a nonlinear
-  # predictor, and it names the three ways out. The refusal is
-  # deliberate and its message is good; what it costs is that the
-  # brms call does not port.
+  # brms plots the nonlinear model with no special argument, and so does
+  # frmtmb now: its Wald band is the delta method through the Jacobian
+  # frm_lp_basis() tapes. It refused this call before, and the brms
+  # call did not port.
   s <- brms_shape("r5")
   cb <- suppressWarnings(brms::conditional_effects(s$brmsfit))
   expect_identical(names(cb), "x")
   expect_identical(nrow(cb$x), 100L)
-  expect_error(conditional_effects(s$fit),
-               "cannot put a wald band on a nonlinear predictor")
+  cw <- conditional_effects(s$fit)
+  expect_identical(names(cw), "x")
+  expect_identical(nrow(cw$x), 100L)
+  expect_true(all(is.finite(cw$x$se__)))
 
-  # one of the routes the message names does produce the curve, and it
-  # is brms's curve
+  # the curve is brms's, and the one method = "predict" draws
   cf <- suppressWarnings(conditional_effects(s$fit, method = "predict"))
   expect_identical(names(cf), "x")
   expect_exact_num(cb$x$estimate__, cf$x$estimate__,
                    label = "nonlinear ce under method = predict")
+  expect_exact_num(cb$x$estimate__, cw$x$estimate__,
+                   label = "nonlinear ce under the wald band")
 })
 
 test_that("the hurdle families get the expected response too", {

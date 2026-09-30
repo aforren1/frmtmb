@@ -1,0 +1,13 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+bcm-gaussian: ..S.......S..S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. Gaussian matches its Stan program ('test-bcm-gaussian.R:90:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. Seven Scientists matches its Stan program ('test-bcm-gaussian.R:159:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+3. IQ matches its Stan program ('test-bcm-gaussian.R:200:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🐝 Your tests are the bee's knees 🐝
+RESULT after frmtmb test-bcm-gaussian.R gated=FALSE pass=11 fail=0 err=0 skip=3 warn=0

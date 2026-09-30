@@ -1,0 +1,2 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+RESULT lane test-ce-bands.R: tests 22 pass 167 fail 0 error 0 skip 0 warn 0

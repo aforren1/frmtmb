@@ -1,0 +1,3 @@
+RESULT frmtmb test-brms-suite-brm.R pass=23 fail=0 err=0 skip=0 blocks=1
+RESULT frmtmb test-brms-suite-methods.R pass=162 fail=0 err=0 skip=0 blocks=23
+RESULT frmtmb.sample test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 blocks=18

@@ -1,0 +1,1 @@
+points 20000  non-finite third derivatives 0 

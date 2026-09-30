@@ -22,12 +22,12 @@ test_that("make_conditions works correctly", {
   brms_setup("brmsfit-helpers:93",
     conds <- make_conditions(epilepsy, c("zBase", "zAge"))
   )
-  brms_port("brmsfit-helpers:94", "cannot transfer",
-    "frmtmb exports no make_conditions()",
+  brms_port("brmsfit-helpers:94", "pass",
+    "",
     expect_equal(dim(conds), c(9, 3))
   )
-  brms_port("brmsfit-helpers:95", "cannot transfer",
-    "frmtmb exports no make_conditions()",
+  brms_port("brmsfit-helpers:95", "pass",
+    "",
     expect_equal(conds$cond__[3], "zBase = -1 & zAge = 1")
   )
 })

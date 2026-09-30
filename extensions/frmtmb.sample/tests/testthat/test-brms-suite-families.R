@@ -182,132 +182,105 @@ test_that("family functions returns expected results", {
     "",
     expect_error(beta_binomial(link_phi = 'logit'))
   )
-  brms_port("families:52", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial() (famlink ledger ",
-      "row 43)"),
+  brms_port("families:52", "pass",
+    "",
     expect_equal(zero_inflated_beta_binomial()$link, "logit")
   )
-  brms_port("families:53", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial() (famlink ledger ",
-      "row 44)"),
+  brms_port("families:53", "pass",
+    "",
     expect_equal(zero_inflated_beta_binomial('probit')$link, "probit")
   )
-  brms_port("families:54", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial() (famlink ledger ",
-      "row 45)"),
+  brms_port("families:54", "pass",
+    "",
     expect_equal(zero_inflated_beta_binomial()$link_phi, "log")
   )
-  brms_port("families:55", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial() (famlink ledger ",
-      "row 46)"),
+  brms_port("families:55", "pass",
+    "",
     expect_equal(zero_inflated_beta_binomial()$link_zi, "logit")
   )
-  brms_port("families:56", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial() (famlink ledger ",
-      "row 47)"),
+  brms_port("families:56", "pass",
+    "",
     expect_equal(zero_inflated_beta_binomial(link_zi = "identity")$link_zi, 
         "identity")
   )
-  brms_port("families:57", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial(); the ",
-      "expect_error passes only on could not find function ",
-      "(famlink ledger row 48)"),
+  brms_port("families:57", "pass",
+    "",
     expect_error(zero_inflated_beta_binomial('sqrt'))
   )
-  brms_port("families:58", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial(); the ",
-      "expect_error passes only on could not find function ",
-      "(famlink ledger row 49)"),
+  brms_port("families:58", "pass",
+    "",
     expect_error(zero_inflated_beta_binomial(link_phi = 'logit'))
   )
-  brms_port("families:59", "cannot transfer",
-    paste0(
-      "frmtmb has no zero_inflated_beta_binomial(); the ",
-      "expect_error passes only on could not find function ",
-      "(famlink ledger row 50)"),
+  brms_port("families:59", "pass",
+    "",
     expect_error(zero_inflated_beta_binomial(link_zi = 'log'))
   )
-  brms_port("families:60", "cannot transfer",
-    "frmtmb has no hurdle_cumulative() (famlink ledger row 51)",
+  brms_port("families:60", "pass",
+    "",
     expect_equal(hurdle_cumulative()$link, "logit")
   )
-  brms_port("families:61", "cannot transfer",
-    "frmtmb has no hurdle_cumulative() (famlink ledger row 52)",
+  brms_port("families:61", "pass",
+    "",
     expect_equal(hurdle_cumulative('probit')$link, "probit")
   )
-  brms_port("families:62", "cannot transfer",
-    "frmtmb has no hurdle_cumulative() (famlink ledger row 53)",
+  brms_port("families:62", "pass",
+    "",
     expect_equal(hurdle_cumulative('cauchit')$link, "cauchit")
   )
-  brms_port("families:63", "cannot transfer",
-    "frmtmb has no hurdle_cumulative() (famlink ledger row 54)",
+  brms_port("families:63", "pass",
+    "",
     expect_equal(hurdle_cumulative()$link_hu, "logit")
   )
-  brms_port("families:64", "cannot transfer",
-    "frmtmb has no hurdle_cumulative() (famlink ledger row 55)",
+  brms_port("families:64", "pass",
+    "",
     expect_equal(hurdle_cumulative()$link_disc, "log")
   )
-  brms_port("families:65", "cannot transfer",
-    paste0(
-      "frmtmb has no hurdle_cumulative(); the expect_error passes ",
-      "only on could not find function (famlink ledger row 56)"),
+  brms_port("families:65", "pass",
+    "",
     expect_error(hurdle_cumulative(link = "log")$link)
   )
-  brms_port("families:66", "cannot transfer",
-    paste0(
-      "frmtmb has no hurdle_cumulative(); the expect_error passes ",
-      "only on could not find function (famlink ledger row 57)"),
+  brms_port("families:66", "pass",
+    "",
     expect_error(hurdle_cumulative(link_hu = "probit")$link_hu)
   )
-  brms_port("families:67", "cannot transfer",
-    paste0(
-      "frmtmb has no hurdle_cumulative(); the expect_error passes ",
-      "only on could not find function (famlink ledger row 58)"),
+  brms_port("families:67", "pass",
+    "",
     expect_error(hurdle_cumulative(link_disc = "logit")$link_disc)
   )
-  brms_port("families:68", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 59)",
+  brms_port("families:68", "pass",
+    "",
     expect_equal(xbeta()$link, "logit")
   )
-  brms_port("families:69", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 60)",
+  brms_port("families:69", "pass",
+    "",
     expect_equal(xbeta("probit")$link, "probit")
   )
-  brms_port("families:70", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 61)",
+  brms_port("families:70", "pass",
+    "",
     expect_equal(xbeta("cloglog")$link, "cloglog")
   )
-  brms_port("families:71", "cannot transfer",
-    paste0(
-      "frmtmb has no xbeta(); the expect_error passes only on ",
-      "could not find function (famlink ledger row 62)"),
+  brms_port("families:71", "pass",
+    "",
     expect_error(xbeta("1/mu"), "xbeta")
   )
-  brms_port("families:72", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 63)",
+  brms_port("families:72", "pass",
+    "",
     expect_equal(xbeta(link_phi = "log")$link_phi, "log")
   )
-  brms_port("families:73", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 64)",
+  brms_port("families:73", "pass",
+    "",
     expect_equal(xbeta(link_phi = "softplus")$link_phi, "softplus")
   )
-  brms_port("families:74", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 65)",
+  brms_port("families:74", "pass",
+    "",
     expect_error(xbeta(link_phi = "sqrt")$link_phi, "sqrt")
   )
-  brms_port("families:75", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 66)",
+  brms_port("families:75", "pass",
+    "",
     expect_equal(xbeta(link_kappa = "identity")$link_kappa, "identity")
   )
-  brms_port("families:76", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 67)",
+  brms_port("families:76", "pass",
+    "",
     expect_equal(xbeta(link_kappa = "log")$link_kappa, "log")
   )
 })
@@ -317,8 +290,8 @@ test_that("print brmsfamily works correctly", {
     "",
     expect_output(print(weibull()), "Family: weibull \nLink function: log")
   )
-  brms_port("families:81", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 69)",
+  brms_port("families:81", "pass",
+    "",
     expect_output(print(xbeta()), "Family: xbeta \nLink function: logit")
   )
 })
@@ -374,10 +347,8 @@ test_that("mixture returns expected results and errors", {
     expect_error(mixture(lognormal),
                  "Expecting at least 2 mixture components")
   )
-  brms_port("families:102", "defect",
-    paste0(
-      "mixture() refuses the argument NAME order, where brms ",
-      "refuses its value 'x' (famlink ledger row 77, not fixed)"),
+  brms_port("families:102", "pass",
+    "",
     expect_error(mixture(poisson, binomial, order = "x"),
                  "Argument 'order' is invalid")
   )
@@ -385,22 +356,29 @@ test_that("mixture returns expected results and errors", {
 
 test_that("response interval is defined correctly", {
   brms_port("families:107", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 78)",
+    paste0(
+      "xbeta() exists now (lane fams2); the row reads brms's ",
+      "family field $closed, which no frmtmb family carries"),
     expect_equal(xbeta()$closed, rep(TRUE, 2))
   )
   brms_port("families:108", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 79)",
+    paste0(
+      "xbeta() exists now (lane fams2); the row reads brms's ",
+      "family field $ybounds, which no frmtmb family carries"),
     expect_equal(xbeta()$ybounds, c(0, 1))
   )
   brms_port("families:109", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 80)",
+    paste0(
+      "xbeta() exists now (lane fams2); the row reads brms's ",
+      "family field $type as 'real', where frmtmb's type is ",
+      "'continuous'"),
     expect_equal(xbeta()$type, "real")
   )
 })
 
 test_that("distributional parameters are as expected", {
-  brms_port("families:113", "cannot transfer",
-    "frmtmb has no xbeta() (famlink ledger row 81)",
+  brms_port("families:113", "pass",
+    "",
     expect_identical(xbeta()$dpars, c("mu", "phi", "kappa"))
   )
 })
@@ -408,14 +386,14 @@ test_that("distributional parameters are as expected", {
 test_that("default priors are as expected", {
   brms_port("families:117", "cannot transfer",
     paste0(
-      "frmtmb has no xbeta(); it also reads a Stan prior string ",
-      "(famlink ledger row 82)"),
+      "xbeta() exists now (lane fams2); the row prints $prior, ",
+      "brms's Stan prior string, which no frmtmb family carries"),
     expect_output(print(xbeta()$prior), "gamma\\(0.01, 0.01\\)")
   )
   brms_port("families:118", "cannot transfer",
     paste0(
-      "frmtmb has no xbeta(); it also reads a Stan prior string ",
-      "(famlink ledger row 83)"),
+      "xbeta() exists now (lane fams2); the row prints $prior, ",
+      "brms's Stan prior string (families:117)"),
     expect_output(print(xbeta()$prior), "student\\_t\\(3, 0, 2.5\\)")
   )
 })
@@ -423,8 +401,8 @@ test_that("default priors are as expected", {
 test_that("correct STAN code is used", {
   brms_port("families:122", "cannot transfer",
     paste0(
-      "frmtmb has no xbeta(), and the assertion reads the Stan ",
-      "include file (famlink ledger row 84)"),
+      "xbeta() exists now (lane fams2); the row reads $include, ",
+      "the Stan file brms's family includes"),
     expect_equal(xbeta()$include, "fun_xbeta.stan")
   )
 })

@@ -1,0 +1,6 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.eam  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.eam/tests/testthat 
+Loading required package: frmtmb
+family: ...................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT lane frmtmb.eam test-family.R pass=51 fail=0 err=0 skip=0 warn=0 blocks=13

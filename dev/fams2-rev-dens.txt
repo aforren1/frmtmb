@@ -1,0 +1,62 @@
+== A. kappa warning, false-alarm side ==
+A1 data: min 0.0926 max 0.8375, zeros 0, ones 0
+A1 warnings from frm(xbeta): 0
+A1 frm(xbeta) ERROR: The optimizer failed on this model (xbeta, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbo
+A1 refit with optimizer = optim: warnings 1 -> xbeta: the response has no exact 0 or 1, so kappa goes to 0, where the model is Beta(), an
+                  lwr upr         est
+(Intercept)       NaN NaN 0.001728053
+phi_(Intercept)   NaN NaN 6.941378623
+kappa_(Intercept) NaN NaN 1.059921728
+A1 kappa estimate 2.8861 (truth 1); logLik xbeta 1666.6148, Beta 1660.5796, diff 6.04
+A2 data: zeros 473, ones 0
+A2 warnings: 0; kappa 0.1290 (truth 0.2)
+A3 data (kappa ~ x): zeros 0 ones 0
+A3 warnings: 0
+A3 ERROR: The optimizer failed on this model (xbeta, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbo
+
+== B. xbeta at high precision, near the switch point ==
+phi 2000: zeros 376; est mu 0.03060 phi 1312.1 kappa 0.03067; logLik frmtmb 2073.55049419 ref-at-est 2073.55049419 diff -5.78e-11; ref optimum 2073.55049419 at mu 0.03060 phi 1312.1 kappa 0.03067; warnings 0
+phi 20000: ERROR The optimizer failed on this model (xbeta, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm()
+phi 200000: ERROR The optimizer failed on this model (xbeta, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm()
+
+== C. zero_inflated_beta_binomial vs glmmTMB, (1 | g) ==
+C logLik frmtmb -2448.7251723354 glmmTMB -2448.7251723484 diff 1.29e-08
+               Estimate  Est.Error       Q2.5      Q97.5
+Intercept    -0.3687130 0.07137289 -0.5086013 -0.2288247
+zi_Intercept -1.0690929 0.09357891 -1.2525042 -0.8856816
+x             0.5344039 0.04250284  0.4510998  0.6177079
+zi_x          0.3431224 0.09193255  0.1629379  0.5233068
+
+Conditional model:
+(Intercept)            x  
+    -0.3687       0.5344  
+
+Zero-inflation model:
+(Intercept)            x  
+    -1.0691       0.3431  
+C sd(g) frmtmb 0.451397 glmmTMB 0.451397C sd(g) frmtmb 0.061125 glmmTMB 0.451397C sd(g) frmtmb 0.331595 glmmTMB 0.451397C sd(g) frmtmb 0.571199 glmmTMB 0.451397
+C phi frmtmb 6.046324 glmmTMB 6.046418
+
+== D. hurdle_cumulative ==
+D data: table 570 296 267 198 169
+D logit, disc ~ 0 + z: logLik -2100.5299124936 reference -2100.5299124936 rel diff 4.33e-16
+D disc slope 0.4007 (truth 0.4); hu slope 0.5882 (truth 0.5)
+D fitted dims 1500 x 4 x 5; dimnames[[3]] P(Y = 0),P(Y = 1),P(Y = 2),P(Y = 3),P(Y = 4)
+D fitted vs reference: max abs diff 2.36e-16
+D ce(categorical = FALSE) vs sum_k k P_k with codes 0..4: max diff 0.00e+00; vs codes 1..5 1.00e+00
+  thres(gr = grp)                            REFUSED: hurdle_cumulative() takes thres(x = ) but not thres(gr = ): grouped thresholds are not implemented for the hur
+  thres(4) (absent twin)                     fits, logLik -2211.192938
+  cs(fc)                                     REFUSED: cs() needs an sratio, cratio, or acat family
+  cse(fc)                                    REFUSED: cs() needs an sratio, cratio, or acat family
+  fc (absent twin)                           fits, logLik -2200.291802
+  threshold = 'equidistant'                  REFUSED: hurdle_cumulative(threshold = 'equidistant') is not implemented: frmtmb fits flexible thresholds only
+  threshold = 'flexible' (absent twin)       fits, logLik -2201.491216
+  disc ~ 1 + z (intercept, unidentified)     fits, logLik -2156.156547
+  disc ~ 0 + z, (1 | g) on mu                fits, logLik -2155.853336
+  hu ~ x + (1 | g)                           fits, logLik -2145.864581
+  mixture(hurdle_cumulative, hurdle_cumulative) REFUSED: mixture() does not support component family 'hurdle_cumulative'
+  response 0..1 only                         REFUSED: Could not extract the number of thresholds. Family 'hurdle_cumulative' needs at least 2 ordinal categories abo
+  response 1..4 (no zeros)                   fits, logLik -1706.172451
+D ordered factor response: logLik -2100.5299124936 vs integer -2100.5299124936
+D simulate() on the factor fit: class ordered/factor, levels none,low,mid,high,top, table 588 274 269 194 175
+D predict() column names: P(Y = none), P(Y = low), P(Y = mid), P(Y = high), P(Y = top)

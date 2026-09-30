@@ -1,0 +1,8 @@
+rate predict ratio, lane (test wants > 900)                1000.075
+rate predict ratio, has_rate() -> FALSE                    1.009387
+rate fitted/mu at time 1000, has_rate() -> FALSE           1
+subset n_obs, lane (test wants 120)                        120
+subset n_obs, NA rule -> every NA drops its row            90
+subset logLik with frame_rows() a no-op                    ERROR: missing value where TRUE/FALSE needed
+mi idx logLik minus separate fits, lane                    2.862635e-10
+mi idx logLik minus separate fits, idxl -> NULL            -49.03075

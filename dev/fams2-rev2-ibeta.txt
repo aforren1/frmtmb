@@ -1,0 +1,128 @@
+== A. accuracy grid ==
+There were 50 or more warnings (use warnings() to see the first 50)
+points 4867 ; non-finite ours: 0 
+all:                        max 6.46e-10 q99 5.01e-12 
+both shapes < 1e4:          max 3.20e-13 q99 1.59e-13  (worker: < 5e-13)
+x == m:                     max 4.89e-13 q99 3.00e-13  (worker: 4.97e-13)
+x == m, both shapes < 1e4:  max 3.17e-13 q99 2.21e-13 
+by location (max):
+  edge-5sd+   edge-6sd+ edge+0.5sd+ edge+1.5sd+   edge+5sd+   edge+6sd+ 
+   2.42e-14    6.44e-10    3.39e-13    5.13e-12    5.86e-13    4.05e-13 
+          m     m-0.5sd      m-1e-3       m-1sd       m-2sd     m-5.5sd 
+   4.89e-13    4.08e-13    4.69e-13    1.77e-13    1.46e-13    4.42e-10 
+      m-5sd     m-6.5sd       m-6sd     m+0.5sd       m+0sd     m+1.5sd 
+   2.30e-14    6.25e-10    6.46e-10    5.10e-13    4.89e-13    5.17e-12 
+     m+1e-3       m+1sd       m+2sd     m+5.5sd       m+5sd     m+6.5sd 
+   3.89e-13    1.12e-11    5.04e-12    2.87e-13    5.87e-13    4.31e-13 
+      m+6sd 
+   4.05e-13 
+by larger shape (max):
+        (0,1]       (1,100]   (100,1e+04] (1e+04,1e+05] (1e+05,1e+06] 
+     1.33e-15      3.12e-14      3.20e-13      5.51e-12      4.21e-11 
+(1e+06,1e+07] 
+     6.46e-10 
+worst 8:
+        a     b      x     where    ref   ours       err   mpfr err_vs_mpfr
+ 10000000 1e+07 0.4993     m-6sd -20.74 -20.74 6.457e-10 -20.74   6.458e-10
+ 10000000 1e+07 0.4993 edge-6sd+ -20.74 -20.74 6.440e-10 -20.74   6.440e-10
+ 10000000 1e+07 0.4993   m-6.5sd -23.94 -23.94 6.245e-10 -23.94   6.244e-10
+ 10000000 1e+07 0.4994   m-5.5sd -17.78 -17.78 4.424e-10 -17.78   4.424e-10
+  3162278 1e+07 0.2395     m-6sd -20.76 -20.76 3.116e-10 -20.76   3.116e-10
+  3162278 1e+07 0.2395 edge-6sd+ -20.76 -20.76 3.099e-10 -20.76   3.099e-10
+  3162278 1e+07 0.2395   m-6.5sd -23.97 -23.97 2.498e-10 -23.97   2.498e-10
+  3162278 1e+07 0.2396   m-5.5sd -17.80 -17.80 1.666e-10 -17.80   1.666e-10
+ pbeta_vs_mpfr
+     5.277e-14
+     1.491e-14
+     6.589e-14
+     2.997e-14
+     1.095e-14
+     2.362e-14
+     3.113e-14
+     3.733e-14
+
+== B1. derivatives of log_ibeta_half in (x, log a, log b), finite on grid A ==
+points 4867  finite gradient 4867  hessian 4867  third 4867 
+
+== B2. RTMB::pbeta third derivatives over the region the package reads ==
+random: points 20000  non-finite gradient or third: 0 
+exact and edge values:
+  NON-FINITE at x 0.268941421 a 268.941 b 731.059 (k 0)
+  NON-FINITE at x 0.268941421 a 2689.41 b 7310.59 (k 0)
+  NON-FINITE at x 0.268941421 a 26894.1 b 73105.9 (k 0)
+  NON-FINITE at x 0.5 a 150 b 150 (k 0)
+  NON-FINITE at x 0.5 a 1e+07 b 1e+07 (k 0)
+  NON-FINITE at x 1.4999775e-05 a 150 b 1e+07 (k 0)
+  NON-FINITE at x 0.3 a 300 b 700 (k 0)
+  NON-FINITE at x 0.25 a 250 b 750 (k 0)
+  NON-FINITE at x 0.1 a 150 b 1350 (k 0)
+  (no line above means all finite)
+RTMB::pbeta third derivatives at SMALL shapes (outside the region), for contrast:
+  non-finite 54 of 2000
+where the non-finite small-shape points sit, by min shape:
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+ 0.01901  0.03303  0.09160  0.84581  0.44169 11.08705 
+
+== C. continuity across the edges (x) ==
+  a 0.3 b 7 edge 0.174237: value jump 9.294e-11 pred 9.294e-11 (diff 6.1e-16) | grad rel jump 1.6e-09
+  a 0.3 b 7 edge 0.243142: value jump 4.226e-11 pred 4.226e-11 (diff -3.5e-18) | grad rel jump 1.5e-09
+  a 0.3 b 7 edge 0.139785: value jump 1.426e-10 pred 1.426e-10 (diff 2.1e-16) | grad rel jump 1.8e-09
+  a 0.3 b 7 edge 0.385619: value jump 8.566e-12 pred 8.566e-12 (diff -9.8e-19) | grad rel jump 1.7e-09
+  a 0.3 b 7 edge 0.454523: value jump 3.729e-12 pred 3.729e-12 (diff 3.1e-18) | grad rel jump 1.9e-09
+  a 4 b 60 edge 0.0907696: value jump 4.672e-10 pred 4.672e-10 (diff 1.2e-16) | grad rel jump 2.4e-09
+  a 4 b 60 edge 0.120794: value jump 1.327e-10 pred 1.327e-10 (diff 5.4e-17) | grad rel jump 2.7e-09
+  a 4 b 60 edge 0.0757576: value jump 8.366e-10 pred 8.366e-10 (diff -5.3e-16) | grad rel jump 2.3e-09
+  a 4 b 60 edge 0.21262: value jump 1.031e-12 pred 1.031e-12 (diff 2.1e-19) | grad rel jump 3.7e-09
+  a 4 b 60 edge 0.242644: value jump 1.546e-13 pred 1.546e-13 (diff 8.9e-20) | grad rel jump 3.9e-09
+  a 40 b 960 edge 0.044015: value jump 7.940e-10 pred 7.940e-10 (diff 1.1e-14) | grad rel jump 2.2e-09
+  a 40 b 960 edge 0.0502087: value jump 2.108e-10 pred 2.107e-10 (diff 9.4e-16) | grad rel jump 3.1e-09
+  a 40 b 960 edge 0.0409182: value jump 1.333e-09 pred 1.333e-09 (diff 4.4e-15) | grad rel jump 1.9e-09
+  a 40 b 960 edge 0.00283794: value jump 1.630e-07 pred 1.630e-07 (diff -3.9e-14) | grad rel jump 4.7e-09
+  a 40 b 960 edge 0.00903161: value jump 4.324e-08 pred 4.324e-08 (diff -3.2e-14) | grad rel jump 1.7e-09
+  a 40 b 960 edge 0.0709684: value jump 9.019e-14 pred 9.019e-14 (diff 4.9e-20) | grad rel jump 6.0e-09
+  a 40 b 960 edge 0.0771621: value jump 3.858e-15 pred 3.858e-15 (diff 4.2e-21) | grad rel jump 6.6e-09
+  a 300 b 700 edge 0.307641: value jump 9.739e-10 pred 9.739e-10 (diff 1.0e-14) | grad rel jump 2.1e-09
+  a 300 b 700 edge 0.322125: value jump 2.635e-10 pred 2.635e-10 (diff -2.6e-15) | grad rel jump 3.2e-09
+  a 300 b 700 edge 0.300399: value jump 1.547e-09 pred 1.547e-09 (diff 2.2e-16) | grad rel jump 1.7e-09
+  a 300 b 700 edge 0.213095: value jump 1.533e-08 pred 1.533e-08 (diff 3.3e-14) | grad rel jump 4.2e-10
+  a 300 b 700 edge 0.227579: value jump 1.231e-08 pred 1.231e-08 (diff 3.7e-14) | grad rel jump 4.6e-10
+  a 300 b 700 edge 0.372421: value jump 6.741e-15 pred 6.734e-15 (diff 6.6e-18) | grad rel jump 9.0e-09
+  a 300 b 700 edge 0.386905: value jump 4.948e-17 pred 4.948e-17 (diff -1.8e-21) | grad rel jump 1.1e-08
+  a 30000 b 70000 edge 0.300729: value jump 1.014e-09 pred 1.014e-09 (diff 2.7e-15) | grad rel jump 2.0e-09
+  a 30000 b 70000 edge 0.302178: value jump 2.761e-10 pred 2.761e-10 (diff -2.8e-15) | grad rel jump 3.3e-09
+  a 30000 b 70000 edge 0.300004: value jump 1.591e-09 pred 1.591e-09 (diff -1.6e-14) | grad rel jump 1.6e-09
+  a 30000 b 70000 edge 0.291305: value jump 1.253e-08 pred 1.252e-08 (diff 2.6e-12) | grad rel jump 3.2e-10
+  a 30000 b 70000 edge 0.292754: value jump 1.052e-08 pred 1.052e-08 (diff -1.1e-13) | grad rel jump 3.8e-10
+  a 30000 b 70000 edge 0.307246: value jump 3.220e-15 pred 3.283e-15 (diff -6.3e-17) | grad rel jump 9.9e-09
+  a 30000 b 70000 edge 0.308695: value jump 1.450e-17 pred 1.451e-17 (diff -8.3e-21) | grad rel jump 1.2e-08
+  a 160 b 2400 edge 0.0652331: value jump 9.058e-10 pred 9.058e-10 (diff -6.2e-14) | grad rel jump 2.1e-09
+  a 160 b 2400 edge 0.0700164: value jump 2.423e-10 pred 2.423e-10 (diff 5.0e-15) | grad rel jump 3.2e-09
+  a 160 b 2400 edge 0.0628415: value jump 1.471e-09 pred 1.471e-09 (diff -8.5e-14) | grad rel jump 1.8e-09
+  a 160 b 2400 edge 0.0338006: value jump 2.184e-08 pred 2.184e-08 (diff 5.3e-14) | grad rel jump 5.9e-10
+  a 160 b 2400 edge 0.0385839: value jump 1.617e-08 pred 1.617e-08 (diff -7.7e-14) | grad rel jump 6.1e-10
+  a 160 b 2400 edge 0.0864161: value jump 2.247e-14 pred 2.247e-14 (diff -4.0e-19) | grad rel jump 7.5e-09
+  a 160 b 2400 edge 0.0911994: value jump 4.004e-16 pred 4.004e-16 (diff 9.9e-23) | grad rel jump 8.6e-09
+  a 200000 b 800000 edge 0.200201: value jump 1.016e-09 pred 1.016e-09 (diff 4.5e-14) | grad rel jump 2.0e-09
+  a 200000 b 800000 edge 0.200601: value jump 2.768e-10 pred 2.768e-10 (diff 1.2e-14) | grad rel jump 3.3e-09
+  a 200000 b 800000 edge 0.200001: value jump 1.593e-09 pred 1.593e-09 (diff 1.3e-14) | grad rel jump 1.6e-09
+  a 200000 b 800000 edge 0.1976: value jump 1.242e-08 pred 1.243e-08 (diff -2.2e-12) | grad rel jump 3.2e-10
+  a 200000 b 800000 edge 0.198: value jump 1.045e-08 pred 1.045e-08 (diff 8.2e-14) | grad rel jump 3.8e-10
+  a 200000 b 800000 edge 0.202: value jump 3.220e-15 pred 3.140e-15 (diff 7.9e-17) | grad rel jump 9.9e-09
+  a 200000 b 800000 edge 0.2024: value jump 1.338e-17 pred 1.340e-17 (diff -2.1e-20) | grad rel jump 1.2e-08
+  a 1e+06 b 3e+06 edge 0.250108: value jump 1.017e-09 pred 1.017e-09 (diff -8.2e-14) | grad rel jump 2.0e-09
+  a 1e+06 b 3e+06 edge 0.250325: value jump 2.772e-10 pred 2.773e-10 (diff -2.2e-14) | grad rel jump 3.3e-09
+  a 1e+06 b 3e+06 edge 0.25: value jump 1.595e-09 pred 1.595e-09 (diff -2.2e-14) | grad rel jump 1.6e-09
+  a 1e+06 b 3e+06 edge 0.248701: value jump 1.196e-08 pred 1.236e-08 (diff -4.0e-10) | grad rel jump 3.2e-10
+  a 1e+06 b 3e+06 edge 0.248917: value jump 1.040e-08 pred 1.040e-08 (diff -1.4e-13) | grad rel jump 3.7e-10
+  a 1e+06 b 3e+06 edge 0.251083: value jump 2.998e-15 pred 3.037e-15 (diff -3.9e-17) | grad rel jump 1.0e-08
+  a 1e+06 b 3e+06 edge 0.251299: value jump 1.277e-17 pred 1.262e-17 (diff 1.5e-19) | grad rel jump 1.2e-08
+continuity in a across a b / (a + b) = 150 and 450, x at the mean:
+  b 1000, ab/s = 150 (a 176.471): value jump -1.93e-08 pred -1.93e-08 | grad rel jump 2.0e-08
+  b 1000, ab/s = 450 (a 818.182): value jump -3.38e-08 pred -3.38e-08 | grad rel jump 3.4e-08
+  b 100000, ab/s = 150 (a 150.225): value jump -1.91e-08 pred -1.91e-08 | grad rel jump 2.0e-08
+  b 100000, ab/s = 450 (a 452.034): value jump -3.34e-08 pred -3.34e-08 | grad rel jump 3.4e-08
+
+== D. cost per row of a gradient sweep ==
+      new    round1     pbeta new_again 
+        0         0         0         0 
+per row: new 0.0 us, round 1 0.0 us, pbeta 0.0 us; new / round 1 NaN, new / pbeta NaN

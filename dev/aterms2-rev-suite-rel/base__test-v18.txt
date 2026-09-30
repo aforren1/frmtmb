@@ -1,0 +1,6 @@
+ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
+v18: ...........................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT base test-v18.R pass=27 fail=0 error=0 skip=0 warn=0

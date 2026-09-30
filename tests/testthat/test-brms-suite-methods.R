@@ -62,11 +62,8 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:156",
     me <- conditional_effects(fit1, "Trt", select_points = 0.1)
   )
-  brms_port("brmsfit-methods:157", "cannot transfer",
-    paste0(
-      "conditional_effects() has no select_points ",
-      "(dev/brms-api-diff.md (c); on draws it is refused by name, ",
-      "dev/brmsnames-findings.md not fixed 9)"),
+  brms_port("brmsfit-methods:157", "pass",
+    "",
     expect_lt(nrow(attr(me[[1]], "points")), nobs(fit1))
   )
   brms_setup("brmsfit-methods:159",
@@ -76,20 +73,22 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:161",
     meplot <- plot(me, plot = FALSE)
   )
-  brms_port("brmsfit-methods:162", "cannot transfer",
+  brms_port("brmsfit-methods:162", "defect",
     paste0(
-      "conditional_effects() has no too_far, so the surface object ",
-      "is never built; plot() also refuses brms's plot = FALSE by ",
-      "name (dev/brms-api-diff.md (c))"),
+      "conditional_effects() takes too_far and surface now (lane ",
+      "postfit2); plot() of the result refuses brms's plot = FALSE ",
+      "by name, since frmtmb draws with base graphics where brms ",
+      "returns ggplot objects (as brmsfit-methods:154 and :391)"),
     expect_ggplot(meplot[[1]])
   )
   brms_setup("brmsfit-methods:163",
     meplot <- plot(me, stype = "raster", plot = FALSE)
   )
-  brms_port("brmsfit-methods:164", "cannot transfer",
+  brms_port("brmsfit-methods:164", "defect",
     paste0(
-      "conditional_effects() has no too_far; plot() also refuses ",
-      "brms's stype and plot arguments by name"),
+      "conditional_effects() takes too_far now (lane postfit2); ",
+      "plot() refuses brms's stype and plot arguments by name (as ",
+      "brmsfit-methods:162)"),
     expect_ggplot(meplot[[1]])
   )
   brms_setup("brmsfit-methods:166",
@@ -97,22 +96,24 @@ test_that("conditional_effects has reasonable ouputs", {
   )
   brms_port("brmsfit-methods:167", "cannot transfer",
     paste0(
-      "conditional_effects() has no spaghetti ",
-      "(dev/brms-api-diff.md (c))"),
+      "conditional_effects() takes spaghetti now (lane postfit2); ",
+      "on a maximum-likelihood fit it needs band = 'boot', one ",
+      "curve per refit, and this call's default Wald band is ",
+      "refused by name: the fit has only its estimate"),
     expect_equal(nrow(attr(me$Age, "spaghetti")), 1000)
   )
   brms_setup("brmsfit-methods:168",
     meplot <- plot(me, plot = FALSE)
   )
   brms_port("brmsfit-methods:169", "cannot transfer",
-    "conditional_effects() has no spaghetti",
+    paste0(
+      "reads the spaghetti object of brmsfit-methods:167, refused ",
+      "on an ML fit under the Wald band; plot() also refuses ",
+      "brms's plot = FALSE by name"),
     expect_ggplot(meplot[[1]])
   )
-  brms_port("brmsfit-methods:170", "cannot transfer",
-    paste0(
-      "conditional_effects() has no spaghetti, so the ",
-      "spaghetti-with-surface refusal brms asserts is never ",
-      "reached"),
+  brms_port("brmsfit-methods:170", "pass",
+    "",
     expect_error(
       conditional_effects(fit1, "Age", spaghetti = TRUE, surface = TRUE),
       "Cannot use 'spaghetti' and 'surface' at the same time"
@@ -210,21 +211,15 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:212",
     mdata$patient <- 1
   )
-  brms_port("brmsfit-methods:213", "defect",
-    paste0(
-      "conditional_effects() refuses its default Wald band on the ",
-      "nonlinear fit2 and names band = 'boot'; brms answers. No ",
-      "document records refusing the default band as a decision"),
+  brms_port("brmsfit-methods:213", "pass",
+    "",
     expect_equal(nrow(conditional_effects(fit2)[[2]]), 100)
   )
   brms_setup("brmsfit-methods:214",
     me <- conditional_effects(fit2, re_formula = NULL, conditions = mdata)
   )
-  brms_port("brmsfit-methods:215", "defect",
-    paste0(
-      "conditional_effects() refuses its default Wald band on the ",
-      "nonlinear fit2 and names band = 'boot'; brms answers. No ",
-      "document records refusing the default band as a decision"),
+  brms_port("brmsfit-methods:215", "pass",
+    "",
     expect_equal(nrow(me$Age), exp_nrow)
   )
   brms_port("brmsfit-methods:217", "defect",
@@ -281,11 +276,8 @@ test_that("conditional_smooths has reasonable ouputs", {
   brms_setup("brmsfit-methods:268",
     ms <- conditional_smooths(fit1)
   )
-  brms_port("brmsfit-methods:269", "defect",
-    paste0(
-      "conditional_smooths() is absent, though ",
-      "R/conditional-effects.R says conditional_effects() 'also ",
-      "covers what brms calls conditional_smooths()'"),
+  brms_port("brmsfit-methods:269", "pass",
+    "",
     expect_equal(nrow(ms[[1]]), 100)
   )
   brms_port("brmsfit-methods:270", "divergence",
@@ -299,22 +291,19 @@ test_that("conditional_smooths has reasonable ouputs", {
     ms <- conditional_smooths(fit1, spaghetti = TRUE, ndraws = 10)
   )
   brms_port("brmsfit-methods:273", "cannot transfer",
-    "frmtmb has no conditional_smooths()",
+    paste0(
+      "conditional_smooths() exists now (lane postfit2); on a ",
+      "maximum-likelihood fit it refuses ndraws and spaghetti by ",
+      "name, since the fit has no draws"),
     expect_equal(nrow(attr(ms[[1]], "spaghetti")), 1000)
   )
-  brms_port("brmsfit-methods:275", "defect",
-    paste0(
-      "conditional_smooths() is absent, though ",
-      "R/conditional-effects.R says conditional_effects() 'also ",
-      "covers what brms calls conditional_smooths()'"),
+  brms_port("brmsfit-methods:275", "pass",
+    "",
     expect_error(conditional_smooths(fit1, smooths = "s3"),
                  "No valid smooth terms found in the model")
   )
-  brms_port("brmsfit-methods:277", "defect",
-    paste0(
-      "conditional_smooths() is absent, though ",
-      "R/conditional-effects.R says conditional_effects() 'also ",
-      "covers what brms calls conditional_smooths()'"),
+  brms_port("brmsfit-methods:277", "pass",
+    "",
     expect_error(conditional_smooths(fit2),
                  "No valid smooth terms found in the model")
   )
@@ -328,21 +317,20 @@ test_that("family has reasonable ouputs", {
       "names (user decision, 2026-09-17, rule 2)"),
     expect_is(family(fit1), "brmsfamily")
   )
-  brms_port("brmsfit-methods:283", "defect",
+  brms_port("brmsfit-methods:283", "divergence",
     paste0(
-      "family() refuses brms's resp argument by name and says to ",
-      "index the returned list instead"),
+      "family(fit6, resp = 'count') answers now, with that ",
+      "response's family, as brms's does; the object's class is ",
+      "frmtmb_family, not brmsfamily (user decision, 2026-09-17, ",
+      "rule 2)"),
     expect_is(family(fit6, resp = "count"), "brmsfamily")
   )
-  brms_port("brmsfit-methods:284", "defect",
-    "print() of a family refuses brms's links argument by name",
+  brms_port("brmsfit-methods:284", "pass",
+    "",
     expect_output(print(family(fit1), links = TRUE), "student.*log.*logm1")
   )
-  brms_port("brmsfit-methods:285", "defect",
-    paste0(
-      "print(family(fit5)) reads 'Family: mixture(gaussian, ",
-      "exponential)', not brms's 'Mixture' then one family per ",
-      "component (user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:285", "pass",
+    "",
     expect_output(print(family(fit5)), "Mixture.*gaussian.*exponential")
   )
 })
@@ -370,11 +358,8 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:300",
     fi <- fitted(fit1, newdata = newdata)
   )
-  brms_port("brmsfit-methods:301", "defect",
-    paste0(
-      "newdata carrying the numeric codes 0 and 1 of the factor ",
-      "Trt dies with R's 'contrasts apply only to factors'; brms ",
-      "matches them to the levels (dev/brmsport-probe4.R)"),
+  brms_port("brmsfit-methods:301", "pass",
+    "",
     expect_equal(dim(fi), c(2, 4))
   )
   brms_setup("brmsfit-methods:302",
@@ -384,10 +369,8 @@ test_that("fitted has reasonable outputs", {
     fi <- fitted(fit1, newdata = newdata,
                  allow_new_levels = TRUE)
   )
-  brms_port("brmsfit-methods:305", "defect",
-    paste0(
-      "fitted() refuses brms's allow_new_levels by name, though ",
-      "predict() takes it"),
+  brms_port("brmsfit-methods:305", "pass",
+    "",
     expect_equal(dim(fi), c(2, 4))
   )
   brms_setup("brmsfit-methods:308",
@@ -402,22 +385,25 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:314", "defect",
     paste0(
-      "fitted() is brms's four-column summary now (item 2.6f) and ",
-      "still refuses ndraws BY NAME: a maximum-likelihood fit has ",
-      "no draws to thin. The setup line dies on that refusal, so ",
-      "the assertion reads a stale object"),
+      "fitted() takes sample_new_levels = 'gaussian' now; this ",
+      "call asks 'old_levels', which resamples the posterior draws ",
+      "of the seen levels and is refused by name, and ndraws, ",
+      "which a maximum-likelihood fit has no draws to thin (D3's ",
+      "reason). The setup dies on ndraws, so the assertion reads a ",
+      "stale object"),
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:315",
     fi <- fitted(fit1, newdata = newdata, allow_new_levels = TRUE,
                  sample_new_levels = "gaussian", ndraws = 1)
   )
-  brms_port("brmsfit-methods:317", "defect",
+  brms_port("brmsfit-methods:317", "divergence",
     paste0(
-      "fitted() is brms's four-column summary now (item 2.6f) and ",
-      "still refuses ndraws BY NAME: a maximum-likelihood fit has ",
-      "no draws to thin. The setup line dies on that refusal, so ",
-      "the assertion reads a stale object"),
+      "fitted() takes sample_new_levels = 'gaussian' now, as ",
+      "brms's does; ndraws = 1 is refused by name, since fitted() ",
+      "on a maximum-likelihood fit is a Wald summary with no draws ",
+      "to thin (D3's reason). The setup dies on it, so the ",
+      "assertion reads a stale object"),
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:320",
@@ -525,11 +511,8 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:351",
     fi <- fitted(fit4, newdata = fit4$data[1, ], scale = "linear")
   )
-  brms_port("brmsfit-methods:352", "defect",
-    paste0(
-      "dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is ",
-      "NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was ",
-      "fit-data"),
+  brms_port("brmsfit-methods:352", "pass",
+    "",
     expect_equal(dim(fi), c(1, 4, 3))
   )
   brms_setup("brmsfit-methods:354",
@@ -595,7 +578,12 @@ test_that("hypothesis has reasonable ouputs", {
     expect_output(print(hyp), "(Age)-(Trt1) > 0", fixed = TRUE)
   )
   brms_port("brmsfit-methods:391", "defect",
-    "plot() of a hypothesis refuses brms's plot = FALSE by name",
+    paste0(
+      "plot() of a hypothesis refuses brms's plot = FALSE by name: ",
+      "frmtmb draws the densities with base graphics and returns ",
+      "the object, where brms returns a list of ggplot objects ",
+      "that plot = FALSE hands back undrawn. frmtmb does not ",
+      "depend on ggplot2 (dev/brms-vignette-audit.md, break 2)"),
     expect_ggplot(plot(hyp, plot = FALSE)[[1]])
   )
   brms_setup("brmsfit-methods:393",
@@ -617,7 +605,8 @@ test_that("hypothesis has reasonable ouputs", {
   brms_port("brmsfit-methods:396", "defect",
     paste0(
       "plot() of a hypothesis refuses brms's ignore_prior and plot ",
-      "by name"),
+      "by name, as brmsfit-methods:391; a fit has no prior draws, ",
+      "so ignore_prior would change nothing"),
     expect_ggplot(plot(hyp, ignore_prior = TRUE, plot = FALSE)[[1]])
   )
   brms_setup("brmsfit-methods:398",
@@ -786,10 +775,12 @@ test_that("pp_check has reasonable outputs", {
   brms_setup("brmsfit-methods:684",
     pp <- SW(pp_check(fit1, type = "loo_pit_qq", cores = 1))
   )
-  brms_port("brmsfit-methods:685", "defect",
+  brms_port("brmsfit-methods:685", "divergence",
     paste0(
-      "pp_check(type = 'loo_pit_qq') is given no lw or psis_object ",
-      "(dev/brmsnames-findings.md not fixed 8)"),
+      "pp_check(type = 'loo_pit_qq') on a maximum-likelihood fit ",
+      "is refused by name: a loo type weights posterior draws, and ",
+      "an ML fit has none. frmtmb.sample's draws method builds the ",
+      "PSIS weights as brms does (lane sampfix)"),
     expect_ggplot(pp)
   )
   brms_port("brmsfit-methods:688", "pass",
@@ -867,11 +858,8 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:736",
     pred <- predict(fit1, newdata = newdata)
   )
-  brms_port("brmsfit-methods:737", "defect",
-    paste0(
-      "newdata with the numeric codes of the factor Trt dies with ",
-      "'contrasts apply only to factors' (as brmsfit-methods:301); ",
-      "the shape after it is item 2.6d"),
+  brms_port("brmsfit-methods:737", "pass",
+    "",
     expect_equal(dim(pred), c(2, 4))
   )
   brms_setup("brmsfit-methods:739",
@@ -880,10 +868,8 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:740",
     pred <- predict(fit1, newdata = newdata, allow_new_levels = TRUE)
   )
-  brms_port("brmsfit-methods:741", "defect",
-    paste0(
-      "newdata with the numeric codes of the factor Trt dies with ",
-      "'contrasts apply only to factors' (as brmsfit-methods:301)"),
+  brms_port("brmsfit-methods:741", "pass",
+    "",
     expect_equal(dim(pred), c(2, 4))
   )
   brms_setup("brmsfit-methods:744",
@@ -897,10 +883,13 @@ test_that("predict has reasonable outputs", {
   )
   brms_port("brmsfit-methods:747", "defect",
     paste0(
-      "predict(ndraws =) is answered now - the draws are ",
-      "SIMULATED, so ndraws sets how many - and the setup still ",
-      "dies earlier, on fit1$data, which partial-matches ",
-      "fit1$data2 (the fit has no data element)"),
+      "fixture 1 is brms's own model now, arma() with cov = FALSE ",
+      "(lane wt-defects). predict(newdata = ) with the response NA ",
+      "in rows 8 to 10 is refused by name: under cov = FALSE a ",
+      "row's mean reads the residuals of the rows before it. brms ",
+      "fills a missing response with its predicted draws and runs ",
+      "the recursion over them; simulate(newdata = ) does that ",
+      "here and predict() does not yet"),
     expect_true(!anyNA(pred[, "Estimate"]))
   )
   brms_setup("brmsfit-methods:749",
@@ -962,13 +951,8 @@ test_that("predict has reasonable outputs", {
     pred <- predict(fit5, newdata, allow_new_levels = TRUE,
                     sample_new_levels = "old_levels")
   )
-  brms_port("brmsfit-methods:772", "defect",
-    paste0(
-      "predict() honors sample_new_levels = \"gaussian\", which is ",
-      "what it does, and refuses \"old_levels\" BY NAME: that value ",
-      "resamples the POSTERIOR draws of the levels the fit saw, ",
-      "and a maximum-likelihood fit has no such draws. The setup ",
-      "line dies, so this assertion reads a stale object"),
+  brms_port("brmsfit-methods:772", "pass",
+    "",
     expect_equal(dim(pred), c(5, 4))
   )
   brms_setup("brmsfit-methods:773",
@@ -1013,17 +997,19 @@ test_that("ranef has reasonable outputs", {
   brms_setup("brmsfit-methods:813",
     ranef1 <- SM(ranef(fit1, pars = "Trt1"))
   )
-  brms_port("brmsfit-methods:814", "defect",
-    "ranef() refuses brms's pars by name and says to subset",
+  brms_port("brmsfit-methods:814", "divergence",
+    paste0(
+      "ranef(pars = 'Trt1') answers now and keeps the Trt1 column ",
+      "of visit; the value is levels x coefficients, the policy of ",
+      "brmsfit-methods:811 (dev/brms-api-diff.md (b)), so ",
+      "dimnames() has no third element to read"),
     expect_equal(dimnames(ranef1$visit)[[3]], "Trt1")
   )
   brms_setup("brmsfit-methods:816",
     ranef1 <- SM(ranef(fit1, groups = "a"))
   )
-  brms_port("brmsfit-methods:817", "defect",
-    paste0(
-      "ranef() refuses brms's groups by name and says to index the ",
-      "list"),
+  brms_port("brmsfit-methods:817", "pass",
+    "",
     expect_equal(length(ranef1), 0L)
   )
   brms_setup("brmsfit-methods:819",
@@ -1049,10 +1035,8 @@ test_that("residuals has reasonable outputs", {
   brms_setup("brmsfit-methods:827",
     res2 <- residuals(fit1, newdata = newdata)
   )
-  brms_port("brmsfit-methods:828", "defect",
-    paste0(
-      "residuals(newdata =) is refused by name, though newdata ",
-      "carries the response brms reads"),
+  brms_port("brmsfit-methods:828", "pass",
+    "",
     expect_equal(dim(res2), c(10, 4))
   )
   brms_setup("brmsfit-methods:829",
@@ -1061,8 +1045,8 @@ test_that("residuals has reasonable outputs", {
   brms_setup("brmsfit-methods:831",
     res3 <- residuals(fit1, newdata = newdata, allow_new_levels = TRUE)
   )
-  brms_port("brmsfit-methods:832", "defect",
-    "residuals(newdata =) is refused by name",
+  brms_port("brmsfit-methods:832", "pass",
+    "",
     expect_equal(dim(res3), c(10, 4))
   )
   brms_setup("brmsfit-methods:834",
@@ -1085,18 +1069,12 @@ test_that("residuals has reasonable outputs", {
   brms_setup("brmsfit-methods:839",
     res6 <- residuals(fit6)
   )
-  brms_port("brmsfit-methods:840", "defect",
-    paste0(
-      "residuals() exists and refuses the multivariate fit6 as ",
-      "'not supported yet'; brms answers (user decision, ",
-      "2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:840", "pass",
+    "",
     expect_equal(dim(res6), c(nobs(fit6), 4, 2))
   )
-  brms_port("brmsfit-methods:841", "defect",
-    paste0(
-      "residuals() exists and refuses the multivariate fit6 as ",
-      "'not supported yet'; brms answers (user decision, ",
-      "2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:841", "pass",
+    "",
     expect_equal(dimnames(res6)[[3]], c("volume", "count"))
   )
 })
@@ -1158,11 +1136,8 @@ test_that("summary has reasonable outputs", {
   brms_setup("brmsfit-methods:903",
     summary6 <- SW(summary(fit6))
   )
-  brms_port("brmsfit-methods:904", "defect",
-    paste0(
-      "print(summary(fit6)) labels the GP standard deviation ",
-      "'sd(gp)', not sdgp (user decision, 2026-09-17, rule 3; item ",
-      "2.6f)"),
+  brms_port("brmsfit-methods:904", "pass",
+    "",
     expect_output(print(summary6), "sdgp")
   )
 })
@@ -1198,18 +1173,17 @@ test_that("update has reasonable outputs", {
       "2026-09-17, rule 2)"),
     expect_true(is(up, "brmsfit"))
   )
-  brms_port("brmsfit-methods:924", "defect",
-    paste0(
-      "attr(up$data, 'data_name') is NULL: brms records the name ",
-      "of the newdata argument on the frame it stores and frmtmb ",
-      "does not. The frame itself is there now. Was fit-data"),
+  brms_port("brmsfit-methods:924", "pass",
+    "",
     expect_equal(attr(up$data, "data_name"), "new_data")
   )
-  brms_port("brmsfit-methods:927", "defect",
+  brms_port("brmsfit-methods:927", "divergence",
     paste0(
-      "update(fit, data = new_data) refits on the new data where ",
-      "brms refuses and demands newdata (dev/brms-suite-audit.md ",
-      "section 7 contract 15; dev/brmsport-probe4.R)"),
+      "update(fit, data = new_data) refits on the new data, as ",
+      "stats::update(), lme4 and glmmTMB read it; brms refuses the ",
+      "spelling and asks for newdata, which frmtmb also takes. ",
+      "Refusing a spelling that means one thing would only break ",
+      "the lme4 idiom (lane wt-defects)"),
     expect_error(update(fit1, data = new_data), "use argument 'newdata'")
   )
   brms_setup("brmsfit-methods:929",
@@ -1244,10 +1218,12 @@ test_that("update has reasonable outputs", {
       "2026-09-17, rule 2)"),
     expect_true(is(up, "brmsfit"))
   )
-  brms_port("brmsfit-methods:938", "defect",
+  brms_port_own("brmsfit-methods:938",
+    "The model uses .wrong_var., which is not a column of .data.",
     paste0(
-      "a formula update naming a variable the data lacks dies with ",
-      "R's object 'wrong_var' not found, not 'New variables found'"),
+      "brms: New variables found: 'wrong_var'. The same refusal of ",
+      "the same update in frmtmb's words: the variable is in ",
+      "neither the data nor the formula environment"),
     expect_error(update(fit1, formula. = ~ . + wrong_var),
                  "New variables found: 'wrong_var'")
   )
@@ -1285,11 +1261,13 @@ test_that("update has reasonable outputs", {
     up <- update(fit2, formula. = bf(. ~ ., a + b ~ 1, nl = TRUE),
                  testmode = TRUE)
   )
-  brms_port("brmsfit-methods:953", "defect",
+  brms_port("brmsfit-methods:953", "divergence",
     paste0(
-      "update(fit2, formula. = bf(. ~ ., a + b ~ 1, nl = TRUE)) is ",
-      "refused: the dot does not carry the old nonlinear body, so ",
-      "a and b are 'not used'"),
+      "update(fit2, bf(. ~ ., a + b ~ 1, nl = TRUE)) refits now, ",
+      "keeping the nonlinear body (lane formula2); the row asserts ",
+      "is(up, 'brmsfit'), and frmtmb objects must NOT carry brms's ",
+      "class names (user decision, 2026-09-17, rule 2), as ",
+      "brmsfit-methods:957"),
     expect_true(is(up, "brmsfit"))
   )
   brms_setup("brmsfit-methods:954",
@@ -1314,11 +1292,12 @@ test_that("update has reasonable outputs", {
   brms_setup("brmsfit-methods:958",
     up <- update(fit3, bf(~., family = acat()), testmode = TRUE)
   )
-  brms_port("brmsfit-methods:959", "defect",
+  brms_port("brmsfit-methods:959", "divergence",
     paste0(
-      "update(fit3, bf(~ ., family = acat())) is refused as a ",
-      "formula with no response; brms reads the one-sided dot as ",
-      "the old formula"),
+      "update(fit3, bf(~ ., family = acat())) refits now with ",
+      "family acat and the old formula (lane formula2); the row ",
+      "asserts is(up, 'brmsfit'), which rule 2 of 2026-09-17 ",
+      "forbids, as brmsfit-methods:957"),
     expect_true(is(up, "brmsfit"))
   )
 })
@@ -1359,9 +1338,11 @@ test_that("variables has reasonable ouputs", {
   )
   brms_port("brmsfit-methods:995", "defect",
     paste0(
-      "parnames() is brms's live spelling of variables(); ",
-      "frmtmb.sample defines parnames() and refuses it, core has ",
-      "none (dev/brms-suite-audit.md section 7 contract 14)"),
+      "parnames() is brms's deprecated spelling of variables(). ",
+      "frmtmb.sample answers it on draws, with brms's warning; ",
+      "core has none for a fit, and adding one moves the generic ",
+      "from frmtmb.sample's owner table to core's ",
+      "(R/generic-owners.R)"),
     expect_equal(variables(fit3), SW(parnames(fit3)))
   )
 })

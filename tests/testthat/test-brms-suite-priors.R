@@ -25,8 +25,9 @@ test_that("default_prior finds all classes for which priors can be specified", {
   )
   brms_port("priors:14", "cannot transfer",
     paste0(
-      "sratio() takes no threshold = 'equidistant' and there is no ",
-      "cse() alias (priorform ledger P2)"),
+      "sratio() takes no threshold = 'equidistant' (cse() exists ",
+      "now, lane fams2); equidistant thresholds are not built ",
+      "(dev/fams2-findings.md, 'Decided not to do')"),
     expect_equal(
       sort(
         default_prior(
@@ -110,12 +111,8 @@ test_that("default_prior returns correct fixed effect names for GAMMs", {
   brms_setup("priors:54",
     prior <- default_prior(y ~ z + s(x) + (1|g), data = dat)
   )
-  brms_port("priors:55", "defect",
-    paste0(
-      "the prior table names a smooth's unpenalized column ",
-      "s(x).fx1 where brms writes sx_1, and variables() already ",
-      "writes bs_sx_1; priorform P11/P12 deferred to brmsnames and ",
-      "brmsnames deferred back, so no document decides it"),
+  brms_port("priors:55", "pass",
+    "",
     expect_equal(prior[prior$class == "b", ]$coef,
                  c("", "sx_1", "z"))
   )
@@ -123,12 +120,8 @@ test_that("default_prior returns correct fixed effect names for GAMMs", {
     prior <- default_prior(bf(y ~ lp, lp ~ z + s(x) + (1|g), nl = TRUE),
                        data = dat)
   )
-  brms_port("priors:59", "defect",
-    paste0(
-      "the prior table names a smooth's unpenalized column ",
-      "s(x).fx1 where brms writes sx_1, and variables() already ",
-      "writes bs_sx_1; priorform P11/P12 deferred to brmsnames and ",
-      "brmsnames deferred back, so no document decides it"),
+  brms_port("priors:59", "pass",
+    "",
     expect_equal(prior[prior$class == "b", ]$coef,
                  c("", "Intercept", "sx_1", "z"))
   )
@@ -157,14 +150,14 @@ test_that("default_prior returns correct prior names for auxiliary parameters", 
   brms_setup("priors:73",
     pdata <- pdata[with(pdata, order(class, group, coef)), ]
   )
-  brms_port("priors:74", "defect",
+  brms_port("priors:74", "divergence",
     paste0(
-      "default_prior() and get_prior() validate the response ",
-      "against the family and refuse brms's rnorm response under ",
-      "Beta(); brms returns 7 rows. PRE-EXISTING: refused at every ",
-      "commit back to base 0.58.0 (dev/brmsport-rev-regress.R). ",
-      "priorform's P13 showed a table only because ",
-      "dev/priorform-ledger.R replaced brms's y with runif(10)"),
+      "default_prior() answers brms's Beta() model on an rnorm() ",
+      "response now, as brms does (lane wt-defects); its 5 phi ",
+      "rows against brms's 6 lack the per-coefficient sd row (sd, ",
+      "g, Intercept), which frmtmb does not list because its class ",
+      "sd addresses a block and refuses coef (priorform ledger P1, ",
+      "P26)"),
     expect_equivalent(prior[, c("class", "coef", "group")], pdata)
   )
 })
@@ -202,28 +195,20 @@ test_that("default_prior returns correct priors for multivariate models", {
   brms_setup("priors:90",
     prior <- default_prior(bform, dat, family = family)
   )
-  brms_port("priors:91", "cannot transfer",
-    paste0(
-      "frmtmb takes no list of families as family (priorform ",
-      "ledger P16); the object read is the previous model's table"),
+  brms_port("priors:91", "pass",
+    "",
     expect_true(any(with(prior, class == "sigma" & resp == "y1")))
   )
-  brms_port("priors:92", "cannot transfer",
-    paste0(
-      "frmtmb takes no list of families as family (priorform ",
-      "ledger P17)"),
+  brms_port("priors:92", "pass",
+    "",
     expect_true(any(with(prior, class == "ar" & resp == "y1")))
   )
-  brms_port("priors:93", "cannot transfer",
-    paste0(
-      "frmtmb takes no list of families as family (priorform ",
-      "ledger P18)"),
+  brms_port("priors:93", "pass",
+    "",
     expect_true(any(with(prior, class == "phi" & resp == "y2")))
   )
-  brms_port("priors:94", "cannot transfer",
-    paste0(
-      "frmtmb takes no list of families as family (priorform ",
-      "ledger P19); the object read is the previous model's table"),
+  brms_port("priors:94", "pass",
+    "",
     expect_true(!any(with(prior, class == "ar" & resp == "y2")))
   )
 })
@@ -235,12 +220,8 @@ test_that("default_prior returns correct priors for categorical models", {
   brms_setup("priors:100",
     prior <- default_prior(y2 ~ x + (x | ID1 | g), data = dat, family = categorical())
   )
-  brms_port("priors:101", "defect",
-    paste0(
-      "categorical() refuses the integer response c(1, rep(1:3, ",
-      "3)) with the false claim 'fewer than two categories'; ",
-      "priorform ledger P20 deferred it to famlink as cannot ",
-      "transfer, and it is the defect of standata:83"),
+  brms_port("priors:101", "pass",
+    "",
     expect_equal(prior[prior$dpar == "mu2" & prior$class == "b", 
         "coef"], c("", "x"))
   )

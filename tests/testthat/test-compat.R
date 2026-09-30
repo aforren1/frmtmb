@@ -518,7 +518,10 @@ test_that("the multivariate declarations match a multivariate fit", {
   # fitted() answers, in brms's shape (lane wt-predfix)
   expect_identical(dim(fitted(fit)), c(as.integer(n), 4L, 2L))
   expect_error(simulate(fit), "multivariate")
-  expect_error(residuals(fit), "multivariate")
+  # residuals() answers too, in the same shape (lane wt-defects); the
+  # one-step residual is the univariate-only one
+  expect_identical(dim(residuals(fit)), c(as.integer(n), 4L, 2L))
+  expect_error(residuals(fit, type = "osa"), "multivariate")
   expect_length(frm_linpred(fit), n)
 
   # the inference surface is declared to work, so it has to

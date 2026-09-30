@@ -1,0 +1,20 @@
+points 4000 
+reference log P finite: 4000 
+of which log P > -700: 3840 
+d_val  ok 3839 of 3840
+d_g    ok 3839 of 3840
+d_h    ok 3839 of 3840
+d_t    ok 3780 of 3840
+c_val  ok 2539 of 3840
+c_g    ok 2810 of 3840
+c_h    ok 2810 of 3840
+c_t    ok 2735 of 3840
+third derivative finite in at least one form: 3811 
+direct-form NaN third derivative, by region:
+       q                  a                  b                  logP           
+ Min.   :0.005147   Min.   :  0.0550   Min.   :  0.05759   Min.   :-699.85251  
+ 1st Qu.:0.084328   1st Qu.:  0.1223   1st Qu.: 14.43734   1st Qu.:  -0.14941  
+ Median :0.156670   Median :  0.4735   Median : 41.36215   Median :  -0.00296  
+ Mean   :0.148689   Mean   : 15.2800   Mean   : 77.48218   Mean   : -34.71292  
+ 3rd Qu.:0.213743   3rd Qu.:  2.2614   3rd Qu.:109.03469   3rd Qu.:   0.00000  
+ Max.   :0.298241   Max.   :389.0606   Max.   :392.91515   Max.   :   0.00000  

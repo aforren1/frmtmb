@@ -4,58 +4,53 @@
 
 | file | assertions | pass | defect | divergence | cannot transfer |
 |---|---|---|---|---|---|
-| `tests.brm.R` | 23 | 19 | 3 | 0 | 1 |
-| `tests.brmsfit-helpers.R` | 3 | 0 | 0 | 0 | 3 |
-| `tests.brmsfit-methods.R` | 223 | 120 | 43 | 30 | 30 |
-| `tests.brmsformula.R` | 16 | 7 | 0 | 0 | 9 |
+| `tests.brm.R` | 23 | 22 | 0 | 0 | 1 |
+| `tests.brmsfit-helpers.R` | 3 | 2 | 0 | 0 | 1 |
+| `tests.brmsfit-methods.R` | 223 | 149 | 13 | 37 | 24 |
+| `tests.brmsformula.R` | 16 | 16 | 0 | 0 | 0 |
 | `tests.brmsterms.R` | 5 | 0 | 0 | 0 | 5 |
-| `tests.data-helpers.R` | 6 | 1 | 2 | 0 | 3 |
+| `tests.data-helpers.R` | 6 | 2 | 0 | 1 | 3 |
 | `tests.emmeans.R` | 11 | 10 | 0 | 0 | 1 |
-| `tests.families.R` | 84 | 47 | 1 | 1 | 35 |
-| `tests.priors.R` | 36 | 17 | 4 | 4 | 11 |
-| `tests.standata.R` | 87 | 54 | 5 | 0 | 28 |
-| **total** | **494** | **275** | **58** | **35** | **126** |
+| `tests.families.R` | 84 | 75 | 0 | 1 | 8 |
+| `tests.priors.R` | 36 | 24 | 0 | 5 | 7 |
+| `tests.standata.R` | 87 | 68 | 1 | 1 | 17 |
+| **total** | **494** | **368** | **14** | **45** | **67** |
 
 ### Outcome by class
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 244 |
-| pass | own-words | 30 |
+| pass | - | 334 |
+| pass | own-words | 33 |
 | pass | weak-pass | 1 |
-| defect | accepts-refused | 1 |
-| defect | argument | 20 |
-| defect | different-error | 2 |
-| defect | filed | 1 |
-| defect | internal-error | 3 |
-| defect | naming | 3 |
-| defect | output | 5 |
-| defect | refuses-accepted | 18 |
-| defect | shape | 1 |
-| defect | spelling | 4 |
-| divergence | class | 18 |
+| defect | argument | 7 |
+| defect | naming | 1 |
+| defect | output | 1 |
+| defect | refuses-accepted | 4 |
+| defect | spelling | 1 |
+| divergence | class | 21 |
 | divergence | hollow | 1 |
-| divergence | no-draws | 9 |
-| divergence | policy | 7 |
-| cannot transfer | absent | 83 |
-| cannot transfer | brms-internal | 10 |
+| divergence | no-draws | 11 |
+| divergence | policy | 12 |
+| cannot transfer | absent | 13 |
+| cannot transfer | brms-internal | 15 |
 | cannot transfer | fixture | 2 |
 | cannot transfer | mcmc | 4 |
-| cannot transfer | no-draws | 1 |
-| cannot transfer | stan | 26 |
+| cannot transfer | no-draws | 4 |
+| cannot transfer | stan | 29 |
 
-Bin 1 passes: 275 of 494 (55.7%).
-Against bins 1 and 2: 275 of 823 (33.4%); bin 2 was not ported.
-Runs testthat alone would count as a pass and the harness does not, over both packages: 25 (15 vacuous, 10 reading a stale object); hollow passes marked by hand: 1.
+Bin 1 passes: 368 of 494 (74.5%).
+Against bins 1 and 2: 368 of 823 (44.7%); bin 2 was not ported.
+Runs testthat alone would count as a pass and the harness does not, over both packages: 7 (1 vacuous, 6 reading a stale object); hollow passes marked by hand: 1.
 
 ### The frmtmb.sample half
 
 | file (tier) | assertions | cannot transfer | defect | divergence | pass |
 |---|---|---|---|---|---|
-| `tests.brmsfit-methods.R (sample)` | 61 | 13 | 6 | 0 | 42 |
-| `tests.brmsformula.R (both)` | 16 | 9 | 0 | 0 | 7 |
+| `tests.brmsfit-methods.R (sample)` | 61 | 11 | 2 | 0 | 48 |
+| `tests.brmsformula.R (both)` | 16 | 0 | 0 | 0 | 16 |
 | `tests.brmsterms.R (both)` | 4 | 4 | 0 | 0 | 0 |
-| `tests.families.R (both)` | 84 | 35 | 1 | 1 | 47 |
-| **total** | **165** | **61** | **7** | **1** | **96** |
+| `tests.families.R (both)` | 84 | 8 | 0 | 1 | 75 |
+| **total** | **165** | **23** | **2** | **1** | **139** |
 
-frmtmb.sample passes 96 of its 165 runs (58.2%): 42 of the 61 sample-tier and 54 of the 104 both-tier assertions.
+frmtmb.sample passes 139 of its 165 runs (84.2%): 48 of the 61 sample-tier and 91 of the 104 both-tier assertions.

@@ -1,0 +1,7 @@
+ARM lane PKG C:/Users/adf44/source/r/rellib-r3/frmtmb.coupling 
+cross-pairs: ....................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+😸
+
+RESULT lane test-cross-pairs.R pass=52 fail=0 error=0 skip=0 warn=0

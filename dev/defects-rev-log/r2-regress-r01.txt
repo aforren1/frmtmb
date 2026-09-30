@@ -1,0 +1,5 @@
+MOVED sratio_cs fitted_lin  NA before: 0  after: 0 
+MOVED acat_cs fitted_lin  NA before: 0  after: 0 
+MOVED mi resid  NA before: 0  after: 63 
+MOVED mi resid_p  NA before: 0  after: 84 
+MOVED cs_re fitted_lin  NA before: 0  after: 0 

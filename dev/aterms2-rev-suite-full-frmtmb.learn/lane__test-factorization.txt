@@ -1,0 +1,6 @@
+ARM lane PKG C:/Users/adf44/source/r/rellib-r3/frmtmb.learn 
+factorization: ...................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-factorization.R pass=35 fail=0 error=0 skip=0 warn=0

@@ -1,0 +1,5 @@
+glmm-binomial: ..........
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-glmm-binomial.R pass=10 fail=0 error=0 skip=0 warn=0

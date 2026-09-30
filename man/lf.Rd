@@ -4,13 +4,15 @@
 \alias{lf}
 \title{Add parameter formulas to a model formula}
 \usage{
-lf(..., resp = NULL, center = NULL)
+lf(..., resp = NULL, center = NULL, cmc = NULL)
 }
 \arguments{
 \item{...}{Two-sided formulas naming the parameter on the left, e.g.
 \code{sigma ~ x} or (with \code{nl = TRUE} on the \code{bf()}) a nonlinear
 parameter's formula \code{a ~ 1 + (1 | g)}, or one-sided formulas named
-by their parameter, \code{sigma = ~ x}.}
+by their parameter, \code{sigma = ~ x}. As in brms, \code{lf()} also takes
+what \code{\link[=bf]{bf()}} takes besides formulas: a parameter fixed to a
+constant, \code{sigma = 2}, or equated to another, \code{sigma1 = "sigma2"}.}
 
 \item{resp}{The response the formulas belong to, when the \code{lf()} is
 added to a multivariate formula. \code{NULL} (the default) adds them to
@@ -22,6 +24,11 @@ ordinary coefficient, class \code{"b"} with coef \code{"Intercept"}, instead
 of brms's class \code{"Intercept"}: the same as \code{0 + Intercept} in the
 formula. See \code{\link[=bf]{bf()}}. \code{NULL}, the default, leaves the intercept as
 class \code{"Intercept"}.}
+
+\item{cmc}{\code{FALSE} turns off cell-mean coding in each of these
+formulas: without an intercept, a factor keeps its treatment
+contrasts, in the population-level and the group-level terms. See
+\code{\link[=bf]{bf()}}. \code{NULL}, the default, keeps R's cell-mean coding.}
 }
 \value{
 An object of class \code{frmtmb_lf}, to be added to a \code{\link[=bf]{bf()}}.

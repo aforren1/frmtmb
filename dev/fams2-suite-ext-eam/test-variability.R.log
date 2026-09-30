@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.eam 
+Loading required package: frmtmb
+variability: ............................................................................................................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.eam test-variability.R pass=140 fail=0 err=0 skip=0 warn=0 blocks=15

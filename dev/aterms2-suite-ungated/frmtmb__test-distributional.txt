@@ -1,0 +1,5 @@
+distributional: ............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-distributional.R pass=28 fail=0 error=0 skip=0 warn=0

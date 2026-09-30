@@ -1,0 +1,17 @@
+arm lane mutant none ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+No priors were set (plain maximum likelihood).
+RESULT lane frmtmb test-brms-suite-methods.R: tests=162 failed=7 error=0 skipped=0 warning=0 passed=155
+---- expectation_failure at line 65 in conditional_effects has reasonable ouputs 
+brms brmsfit-methods:157 now HOLDS but is recorded as 'cannot transfer' (conditional_effects() has no select_points (dev/brms-api-diff.md (c); on draws it is refused by name, dev/brmsnames-findings.md not fixed 9)). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 111 in conditional_effects has reasonable ouputs 
+brms brmsfit-methods:170 now HOLDS but is recorded as 'cannot transfer' (conditional_effects() has no spaghetti, so the spaghetti-with-surface refusal brms asserts is never reached). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 213 in conditional_effects has reasonable ouputs 
+brms brmsfit-methods:213 now HOLDS but is recorded as 'defect' (conditional_effects() refuses its default Wald band on the nonlinear fit2 and names band = 'boot'; brms answers. No document records refusing the default band as a decision). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 223 in conditional_effects has reasonable ouputs 
+brms brmsfit-methods:215 now HOLDS but is recorded as 'defect' (conditional_effects() refuses its default Wald band on the nonlinear fit2 and names band = 'boot'; brms answers. No document records refusing the default band as a decision). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 284 in conditional_smooths has reasonable ouputs 
+brms brmsfit-methods:269 now HOLDS but is recorded as 'defect' (conditional_smooths() is absent, though R/conditional-effects.R says conditional_effects() 'also covers what brms calls conditional_smooths()'). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 305 in conditional_smooths has reasonable ouputs 
+brms brmsfit-methods:275 now HOLDS but is recorded as 'defect' (conditional_smooths() is absent, though R/conditional-effects.R says conditional_effects() 'also covers what brms calls conditional_smooths()'). Change its row in dev/brmsport-verdicts.tsv and regenerate. 
+---- expectation_failure at line 313 in conditional_smooths has reasonable ouputs 
+brms brmsfit-methods:277 now HOLDS but is recorded as 'defect' (conditional_smooths() is absent, though R/conditional-effects.R says conditional_effects() 'also covers what brms calls conditional_smooths()'). Change its row in dev/brmsport-verdicts.tsv and regenerate. 

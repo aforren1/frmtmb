@@ -1,0 +1,27 @@
+RESULT lane frmtmb 0.65.0 C:/Users/adf44/source/r/wt-defects-lib test-drmtmb-agreement.R pass= 0 fail= 0 err= 0 skip= 13 warn= 0 
+-- expectation_skip line 152 in: gaussian location-scale with a mu random intercept, ML and REML 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 167 in: random intercepts in mu and sigma, independent and correlated 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 185 in: beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 208 in: bivariate gaussian: rho12, correlated group effects, REML 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 235 in: animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 279 in: phylo(tree) rescales the tree to unit height 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 307 in: student and cumulative logit with a mu random intercept 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 327 in: more families: lognormal, Gamma, beta-binomial, ZI NB2 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 357 in: meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE) 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 370 in: sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 390 in: mi(): a gaussian missing predictor with its own model 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 408 in: skew_normal: same likelihood, from frmtmb's default start 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 
+-- expectation_skip line 438 in: REML with a sigma random effect: not the same criterion 
+   Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests 

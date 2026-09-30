@@ -3,11 +3,11 @@
 #' Parametric bootstrap
 #'
 #' Simulates `nsim` response vectors from the fitted model (by default
-#' with new group effects and new smooth coefficients each draw; see
-#' `re_formula`), refits the model to each through
-#' [refit()] (warm-started, no re-parsing), and collects `FUN` of every
-#' refit. Draws whose refit fails are kept as `NA` rows; draws whose
-#' optimizer does not report convergence are kept but flagged.
+#' with new group effects each draw; see `re_formula`), refits the model
+#' to each through [refit()] (warm-started, no re-parsing), and collects
+#' `FUN` of every refit. Draws whose refit fails are kept as `NA` rows;
+#' draws whose optimizer does not report convergence are kept but
+#' flagged.
 #'
 #' There is no standard `bootstrap` generic to implement
 #' (`boot::boot` and `lme4::bootMer` are plain functions), hence the
@@ -20,21 +20,22 @@
 #'   with the Wald one by name.
 #' @param nsim Number of bootstrap draws.
 #' @param seed Optional seed.
-#' @param re_formula Which random terms stay at their fitted values; the
-#'   rest are redrawn in every replicate. The default `NA` (or `~0`,
-#'   `~1`) redraws every group-level effect AND the penalized
-#'   coefficients of every smooth, `gp()` and `hsgp()` term from their
-#'   fitted laws, a whole-model parametric bootstrap in the manner of
-#'   lme4's `bootMer(use.u = FALSE)` with the smooths treated as random
-#'   effects. `NULL` conditions on the fitted random effects and smooths
-#'   and redraws the observation noise alone. A one-sided formula keeps
-#'   the group-level terms it names at their fitted values and the
-#'   smooths with them, and redraws the other group-level terms, as
-#'   [simulate.frmtmb_fit()] reads it.
+#' @param re_formula Which group-level terms stay at their fitted
+#'   values; the rest are redrawn in every replicate, from the fitted
+#'   covariance. It is read exactly as [predict()] and
+#'   [simulate.frmtmb_fit()] read it. The default `NA` (or `~0`, `~1`)
+#'   redraws every group-level effect, in the manner of lme4's
+#'   `bootMer(use.u = FALSE)`; `NULL` holds all of them and redraws the
+#'   observation noise alone; a one-sided formula holds the terms it
+#'   names and redraws the others.
 #'
-#'   This is not `simulate(re_formula = NA)`, which holds EVERY smooth at
-#'   its fitted curve, one indexed by a grouping factor included, because
-#'   a posterior-predictive check needs the curve the model estimated.
+#'   A smooth, `gp()` or `hsgp()` term is a term of the formula, not a
+#'   group effect, and it is never redrawn, under any `re_formula`: a
+#'   smooth indexed by a grouping factor (`s(g, bs = "re")`,
+#'   `s(x, g, bs = "fs")`, a `t2()` with an `re` margin) included. Every
+#'   replicate holds it at its fitted coefficients and the refit
+#'   estimates it again, so the spread is the uncertainty of the fitted
+#'   curve.
 #'
 #' @section Ordinal thresholds:
 #' Every refit reuses the assembled design, so the number of thresholds
@@ -66,6 +67,17 @@
 #' @export
 frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
                           nsim = 500, seed = NULL, re_formula = NA) {
+  boot_refits(fit, FUN, nsim, seed, re_formula)
+}
+
+#' The body of `frm_bootstrap()`, with one setting the public function
+#' does not offer: `re_plan`, a `sim_re_plan()` list saying which blocks
+#' each simulation redraws. `conditional_effects()` holds the group-level
+#' terms it reads at observed levels and redraws the others, a set it
+#' reads off its grid rather than off a formula.
+#'
+#' @noRd
+boot_refits <- function(fit, FUN, nsim, seed, re_formula, re_plan = NULL) {
   # nsim is passed straight to simulate() as a length, and a bad one
   # used to surface as "invalid 'length' argument" from inside the
   # bootstrap loop
@@ -77,11 +89,9 @@ frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
   }
   # refit() replaces the response of the FITTED rows, so the na.exclude
   # padding simulate() adds has to come back off
-  # the whole-model bootstrap redraws the smooths under NA too, which
-  # simulate()'s public NA no longer does (sim_re_plan())
   sims <- na_unpad(fit, sim_fit_draws(fit, nsim = nsim,
                                      re_formula = re_formula,
-                                     redraw_smooths = TRUE))
+                                     re_plan = re_plan))
   # An ordinal draw arrives as an ordered factor carrying the response's
   # own levels, but the fit stores the 1..K codes and refit() takes
   # newresp as given: handed a factor, as.vector() turns it into text and

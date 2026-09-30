@@ -1,0 +1,6 @@
+reference: ............
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+You are a coding rockstar!
+
+RESULT test-reference.R pass=12 fail=0 error=0 skip=0 warn=0

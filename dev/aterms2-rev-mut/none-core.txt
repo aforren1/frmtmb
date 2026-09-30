@@ -1,0 +1,2 @@
+NULL
+MUTANT none                 core   pass=70 fail=0 error=0 skip=0

@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.sample C:/Users/adf44/source/r/rellib-r3/frmtmb 
+predfix-new-levels: ..............................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb.sample test-predfix-new-levels.R gated=TRUE pass=62 fail=0 err=0 skip=0 warn=0

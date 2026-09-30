@@ -11,15 +11,18 @@
 #'
 #' brms's ordinal default display, `sum_k k p_k`. Taken from the drawn
 #' probability matrices rather than from a delta method, so its band is
-#' a posterior quantile like every other band on this surface.
+#' a posterior quantile like every other band on this surface. `k` is
+#' the category CODE, which starts at `code0`: 0 for a hurdle family
+#' (the family field `extra_cat`), whose first category is the hurdle.
 #'
 #' @noRd
-ce_cat_mean <- function(seg, n, K) {
+ce_cat_mean <- function(seg, n, K, code0 = 1L) {
   # ce_boot_one() flattens the n x K matrix column-major, so category k
   # occupies columns (k - 1) n + 1:n of every draw's row
   out <- matrix(0, nrow(seg), n)
   for (k in seq_len(K)) {
-    out <- out + k * seg[, (k - 1L) * n + seq_len(n), drop = FALSE]
+    out <- out + (code0 + k - 1L) *
+      seg[, (k - 1L) * n + seq_len(n), drop = FALSE]
   }
   out
 }
@@ -63,12 +66,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
              "predictive bands, quantile posterior_predict() over your own ",
              "grid", call. = FALSE)
   }
-  unsupported <- c(spaghetti = !isFALSE(spaghetti),
-                   surface = !isFALSE(surface),
-                   ordinal = !isFALSE(ordinal),
-                   transform = !is.null(transform),
-                   select_points = !identical(select_points, 0),
-                   too_far = !identical(too_far, 0))
+  check_flag(spaghetti, "spaghetti")
+  check_flag(surface, "surface")
+  ce_check_distance(select_points, "select_points")
+  ce_check_distance(too_far, "too_far")
+  unsupported <- c(ordinal = !isFALSE(ordinal),
+                   transform = !is.null(transform))
   if (any(unsupported)) {
     nm <- names(unsupported)[unsupported][1L]
     why <- switch(nm,
@@ -105,15 +108,6 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   ce_structure_check(rspec)
-  if (length(fit$frame[["re_blocks"]]) &&
-      draws_is_laplace(x)) {
-    frm_stop("conditional_effects() on draws from frm_sample(laplace = ",
-             "TRUE) cannot rebuild the per-draw parameter vectors: the ",
-             "inner parameters were integrated out, so the draws columns ",
-             "do not align with the model's parameter template. Resample ",
-             "without laplace = TRUE, or call conditional_effects() on the ",
-             "fit itself", call. = FALSE)
-  }
   # the three displays, resolved core's way: `categorical =` used to be
   # neither honored nor a formal here, so the expected category number
   # could not be asked for at all
@@ -142,25 +136,17 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # group is not the population curve under another name.
   pop_level <- !inherits(re_formula, "formula") &&
     length(re_formula) == 1L && is.na(re_formula)
+  # a grouping variable the grid sets keeps its value; core's
+  # ce_level_plan() decides per row and per block whether it is a level
+  # the fit saw, as brms does with allow_new_levels = TRUE
   na_vars <- if (!pop_level) ce_group_vars(fit) else character(0)
   gb <- ce_grids_build(fit, rspec, lp, effects, resp, dpar, resolution,
-                       conditions, data, int_conditions, na_vars)
-  anl <- allow_new_levels ||
-    length(setdiff(na_vars, names(conditions))) > 0L
-  nspec <- if (length(na_vars)) {
-    ce_new_level_spec(fit, na_vars, gb$base)
-  } else {
-    list()
-  }
-  # the returned frame reports the NA level; the PREDICTION runs on the
-  # placeholder level the design can map, whose coefficients each draw
-  # overwrites
-  egrids <- if (length(nspec)) {
-    ce_boot_grids(gb$grids, nspec, gb$base)
-  } else {
-    gb$grids
-  }
-  if (!is.null(seed) && length(nspec)) {
+                       conditions, data, int_conditions, na_vars,
+                       surface = surface, too_far = too_far)
+  ce_spaghetti_check(spaghetti, surface, gb$grids, gb$base)
+  anl <- allow_new_levels || !pop_level
+  plan <- if (!pop_level) ce_level_plan(fit, gb$grids, gb$base, re_formula)
+  if (!is.null(seed) && !is.null(plan) && ce_plan_has_new(plan)) {
     if (!exists(".Random.seed", envir = globalenv())) stats::runif(1)
     old_seed <- get(".Random.seed", envir = globalenv())
     on.exit(assign(".Random.seed", old_seed, envir = globalenv()),
@@ -172,25 +158,53 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # runs per refit, here run per posterior draw. The estimate and the
   # band both come from the draws, so a nonlinear predictor or a
   # nominal category display needs no delta method here
-  idx <- draws_par_index(x$fit)
+  idx <- draws_index(x)
   rows <- draws_subsample(x, ndraws)
+  # laplace draws hold no random effects; the curves are computed from
+  # them only when they read none (see draws_laplace_probe())
+  # (the level plan decides per row, as the loop below does; at
+  # re_formula = NA there is no level to place)
+  ce_at <- function(fill, rf) {
+    fi <- draws_fit_at(x, rows[1L], idx, fill)
+    cache <- new.env(parent = emptyenv())
+    unlist(lapply(seq_along(gb$grids), function(gi) {
+      if (is.null(plan) || is_na_re_form(rf)) {
+        ce_boot_one(fi, gb$grids[[gi]]$nd, poly, resp, pred_dpar, rf, anl)
+      } else {
+        ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar, rf, anl)
+      }
+    }), use.names = FALSE)
+  }
+  draws_laplace_probe(x, "conditional_effects()",
+                      function(fill) ce_at(fill, re_formula),
+                      function(fill) ce_at(fill, NA))
+  watch <- draws_laplace_watch(x, "conditional_effects()",
+                               function(fill) ce_at(fill, NA))
   f1 <- draws_fit_at(x, rows[1L], idx)
   cats <- if (poly) {
-    colnames(frm_linpred(f1, newdata = egrids[[1L]]$nd, type = "response",
-                         resp = resp, re_formula = re_formula,
-                         allow_new_levels = anl))
+    colnames(frm_linpred(f1, newdata = gb$grids[[1L]]$nd,
+                         type = "response", resp = resp,
+                         re_formula = re_formula, allow_new_levels = anl))
   }
-  lens <- vapply(egrids, function(g) {
+  lens <- vapply(gb$grids, function(g) {
     length(ce_boot_one(f1, g$nd, poly, resp, pred_dpar, re_formula, anl))
   }, 1L)
   offsets <- cumsum(c(0L, lens))
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
     fi <- if (i == 1L) f1 else draws_fit_at(x, rows[i], idx)
-    if (length(nspec)) fi <- ce_draw_new_levels(fi, nspec)
-    M[i, ] <- unlist(lapply(egrids, function(g) {
-      ce_boot_one(fi, g$nd, poly, resp, pred_dpar, re_formula, anl)
+    # one draw per new level per posterior draw, shared by the panels
+    cache <- new.env(parent = emptyenv())
+    M[i, ] <- unlist(lapply(seq_along(gb$grids), function(gi) {
+      if (is.null(plan)) {
+        ce_boot_one(fi, gb$grids[[gi]]$nd, poly, resp, pred_dpar,
+                    re_formula, anl)
+      } else {
+        ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
+                     re_formula, anl)
+      }
     }), use.names = FALSE)
+    watch(M[i, ])
   }
 
   # brms's frame always carries cond__, with one level when there is
@@ -198,10 +212,17 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   # faceting call has nothing to facet on without it
   clev <- names(gb$cond_sets) %||% as.character(seq_along(gb$cond_sets))
   dfs_by_eff <- list()
+  draws_by_eff <- list()
   for (gi in seq_along(gb$grids)) {
     g <- gb$grids[[gi]]
     seg <- M[, offsets[gi] + seq_len(lens[gi]), drop = FALSE]
-    if (cats_mean) seg <- ce_cat_mean(seg, g$n, length(cats))
+    if (cats_mean) {
+      seg <- ce_cat_mean(seg, g$n, length(cats),
+                         if (isTRUE(rspec$family[["extra_cat"]])) 0L else 1L)
+    }
+    if (spaghetti) {
+      draws_by_eff[[g$eff]] <- c(draws_by_eff[[g$eff]], list(seg))
+    }
     # brms's estimate__ and se__: the median and MAD under its default
     # robust = TRUE, the mean and SD otherwise
     est <- if (robust) apply(seg, 2, stats::median) else colMeans(seg)
@@ -221,7 +242,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
         d
       }))
     } else {
-      df <- ce_frame(g$nd, g$ev, g$v2, cond)
+      df <- ce_frame(g$nd, g$ev, g$v2, cond, surface = isTRUE(g$surface))
       df$estimate__ <- est
       df$se__ <- se
       df$lower__ <- lo
@@ -230,5 +251,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
   }
   ce_finalize(dfs_by_eff, gb$effects, rspec, resp, dpar, "posterior",
-              gb$base, categorical, gb$cond_sets, gb$groups, categorical)
+              gb$base, categorical, gb$cond_sets, gb$groups, categorical,
+              select_points = select_points, pred_vars = gb$pred_vars,
+              draws_by_eff = if (spaghetti) draws_by_eff)
 }

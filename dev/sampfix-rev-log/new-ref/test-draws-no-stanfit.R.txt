@@ -1,0 +1,4 @@
+ARM ref frmtmb.sample from C:/Users/adf44/source/r/rellib-r3
+RESULT ref test-draws-no-stanfit.R: tests 2 pass 0 fail 0 error 2 skip 0 warn 0
+ERROR	test-draws-no-stanfit.R:25	a draws object without a stanfit counts as one chain	Error in `x$stanfit@sim`: no applicable method for `@` applied to an object of class "NULL"
+ERROR	test-draws-no-stanfit.R:50	the sampler's own diagnostics refuse a missing stanfit by name	Error in `UseMethod("nuts_params")`: no applicable method for 'nuts_params' applied to an object of class "NULL"

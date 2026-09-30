@@ -106,6 +106,10 @@ frmtmb::pp_check
 #' @export
 frmtmb::conditional_effects
 
+#' @importFrom frmtmb conditional_smooths
+#' @export
+frmtmb::conditional_smooths
+
 #' @importFrom frmtmb fixef
 #' @export
 frmtmb::fixef

@@ -62,6 +62,26 @@ test_that("as.array() keeps the chains apart, in draws order", {
   expect_named(dimnames(a), c("iteration", "chain", "variable"))
 })
 
+test_that("as.array() and as.matrix() take brms's chain and iteration", {
+  # brms hands both to posterior::subset_draws(), and a ported
+  # as.array(fit, chain = 1) was refused by name (brmsfit-methods:94)
+  cs <- dm_case()
+  a <- as.array(cs$ds)
+  k <- niterations(cs$ds)
+  a2 <- as.array(cs$ds, chain = 2)
+  expect_equal(dim(a2), c(k, 1L, nvariables(cs$ds)))
+  expect_identical(unname(a2[, 1L, "b_x"]), unname(a[, 2L, "b_x"]))
+  m <- as.matrix(cs$ds, iteration = 1:10)
+  expect_equal(dim(m), c(20L, nvariables(cs$ds)))
+  expect_identical(unname(m[1:10, "b_x"]), unname(a[1:10, 1L, "b_x"]))
+  expect_identical(unname(m[11:20, "b_x"]), unname(a[1:10, 2L, "b_x"]))
+  m1 <- as.matrix(cs$ds, iteration = 1:10, chain = 1)
+  expect_identical(unname(m1[, "b_x"]), unname(a[1:10, 1L, "b_x"]))
+  expect_identical(nrow(as.data.frame(cs$ds, chain = 1)), k)
+  # the dots are still refused past the two names brms passes on
+  expect_error(as.array(cs$ds, chains = 1), "chains")
+})
+
 test_that("the posterior converters all round-trip the same draws", {
   cs <- dm_case()
   skip_if_not_installed("posterior")
@@ -537,11 +557,16 @@ test_that("conditional_effects() on draws refuses what it cannot mean", {
                "no method =")
   expect_error(conditional_effects(cs$ds, band = "boot"),
                "no band =")
-  # laplace-shaped draws: random effects in the model, no r_ columns
+  # laplace-shaped draws: random effects in the model, no r_ columns.
+  # The default curve drops the group effects and reads none of them,
+  # so it is the full draws' curve. A curve that reads integrated values
+  # is refused; test-laplace-draws.R has one, on a smooth
   ld <- cs$ds
   ld$draws <- ld$draws[, !startsWith(colnames(ld$draws), "r_"),
                        drop = FALSE]
-  expect_error(conditional_effects(ld), "laplace = TRUE")
+  expect_identical(conditional_effects(ld, effects = "x", resolution = 5),
+                   conditional_effects(cs$ds, effects = "x",
+                                       resolution = 5))
 })
 
 ## ---- hypothesis() naming notes --------------------------------------
@@ -571,4 +596,31 @@ test_that("hypothesis() on draws names a covariate sigma b_sigma", {
   expect_error(suppressWarnings(hypothesis(ds, "sigma = 0",
                                            class = "sd")),
                "cannot be found in the model: \n'sd_sigma'", fixed = TRUE)
+})
+
+test_that("a missing mi() response is no observation on draws", {
+  # lane wt-defects, punch round 1: the frame's placeholder 0 at a
+  # missing row was read as an observation, so predictive_error() gave
+  # 0 - yrep there. brms keeps Y NA (get_y(internal = TRUE)): its error
+  # is NA there, its bayes_R2() NA, and pp_check() drops the row
+  skip_sampler()
+  set.seed(21)
+  n <- 60
+  d <- data.frame(x = stats::rnorm(n))
+  d$y <- 1 + d$x + stats::rnorm(n)
+  d$ymi <- ifelse(stats::runif(n) < 0.2, NA, d$y)
+  miss <- is.na(d$ymi)
+  fit <- frm(ymi | mi() ~ x, data = d)
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 2)))
+  pe <- predictive_error(ds, ndraws = 20)
+  expect_true(all(is.na(pe[, miss])))
+  expect_false(anyNA(pe[, !miss]))
+  expect_true(all(is.na(bayes_R2(ds, summary = FALSE))))
+  # punch round 2, R2: a loo type died inside bayesplot on "One of 'lw'
+  # and 'psis_object' must be specified"; log_lik() refuses mi() fits
+  skip_if_not_installed("bayesplot")
+  expect_error(suppressMessages(pp_check(ds, type = "loo_pit_overlay")),
+               "log_lik() is not defined for a model with in-model",
+               fixed = TRUE)
 })

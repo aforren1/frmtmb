@@ -1,0 +1,20 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | skew-normal-start                                              
+⠙ |          2 | skew-normal-start                                              
+⠦ |          7 | skew-normal-start                                              
+⠹ |         13 | skew-normal-start                                              
+⠧ |         18 | skew-normal-start                                              
+⠹ |         33 | skew-normal-start                                              
+⠸ |         44 | skew-normal-start                                              
+⠋ |         51 | skew-normal-start                                              
+⠏ |         60 | skew-normal-start                                              
+⠧ |         68 | skew-normal-start                                              
+✔ |         70 | skew-normal-start [1.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 70 ]
+RESULT lane test-skew-normal-start.R: tests 17 pass 70 fail 0 error 0 skip 0 warn 0

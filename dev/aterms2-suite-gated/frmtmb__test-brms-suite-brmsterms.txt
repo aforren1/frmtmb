@@ -1,0 +1,5 @@
+brms-suite-brmsterms: .....
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-brms-suite-brmsterms.R pass=5 fail=0 error=0 skip=0 warn=0

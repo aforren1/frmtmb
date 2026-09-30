@@ -1,0 +1,11 @@
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+RESULT after frmtmb.sample 0.13.0 test-reparam.R pass= 292 fail= 0 err= 0 skip= 0 warn= 0 

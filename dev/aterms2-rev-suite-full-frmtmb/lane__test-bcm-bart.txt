@@ -1,0 +1,9 @@
+ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
+bcm-bart: ....S....
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. BART_1 matches its Stan program ('test-bcm-bart.R:131:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-bcm-bart.R pass=8 fail=0 error=0 skip=1 warn=0

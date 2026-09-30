@@ -1,0 +1,62 @@
+# Smoke test: hurdle_cumulative() reaches the post-fit methods.
+.libPaths(c("C:/Users/adf44/source/r/wt-fams2-lib",
+            "C:/Users/adf44/source/r/rellib-r3",
+            "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+try_ <- function(lab, expr) {
+  r <- tryCatch({
+    withCallingHandlers(expr, warning = function(w) {
+      cat("  [warn]", lab, ":", conditionMessage(w), "\n")
+      invokeRestart("muffleWarning")
+    })
+    "ok"
+  }, error = function(e) paste("ERROR:", conditionMessage(e)))
+  cat(sprintf("%-28s %s\n", lab, substr(r, 1, 300)))
+}
+set.seed(3)
+n <- 800
+d <- data.frame(x = rnorm(n), z = rnorm(n), g = gl(20, n / 20))
+tau <- c(-1, 0.3, 1.5)
+eta <- 0.8 * d$x
+u <- rlogis(n)
+yc <- 1L + (u + eta > tau[1]) + (u + eta > tau[2]) + (u + eta > tau[3])
+hu <- plogis(-0.7 + 0.5 * d$z)
+d$y <- ifelse(runif(n) < hu, 0L, yc)
+print(table(d$y))
+fit <- frm(bf(y ~ x, hu ~ z), family = hurdle_cumulative(), data = d)
+print(summary(fit))
+try_("fitted", { f <- frm_linpred(fit, type = "response"); print(head(f, 3)); stopifnot(all(abs(rowSums(f) - 1) < 1e-12)); print(dim(fitted(fit))) })
+try_("predict", print(head(predict(fit), 3)))
+try_("simulate", { s <- simulate(fit, nsim = 2); print(table(s[[1]])) })
+try_("resid response", print(head(residuals(fit))))
+try_("resid pearson", residuals(fit, type = "pearson"))
+try_("resid osa", residuals(fit, type = "osa"))
+try_("ce cats", { ce <- conditional_effects(fit, categorical = TRUE); print(head(ce[[1]], 3)) })
+try_("ce mean", { ce <- conditional_effects(fit, categorical = FALSE); print(head(ce[[1]], 3)) })
+try_("ce hu", conditional_effects(fit, dpar = "hu"))
+try_("emmeans", print(emmeans::emmeans(fit, ~ x)))
+try_("default_prior", print(default_prior(bf(y ~ x, hu ~ z), family = hurdle_cumulative(), data = d)))
+try_("fixef", print(fixef(fit)))
+try_("variables", print(variables(fit)))
+try_("newdata fitted", print(fitted(fit, newdata = data.frame(x = c(-1, 0, 1), z = 0))))
+try_("dharma", dharma_residuals(fit, nsim = 50))
+try_("(1|g)", print(summary(frm(bf(y ~ x + (1 | g), hu ~ z), family = hurdle_cumulative(), data = d))))
+try_("probit", frm(bf(y ~ x, hu ~ z), family = hurdle_cumulative("probit"), data = d))
+try_("cloglog", frm(bf(y ~ x, hu ~ z), family = hurdle_cumulative("cloglog"), data = d))
+try_("cauchit", frm(bf(y ~ x, hu ~ z), family = hurdle_cumulative("cauchit"), data = d))
+lvs <- c("none", "low", "mid", "high", "top"); d$yf <- factor(lvs[d$y + 1], levels = lvs, ordered = TRUE)
+try_("factor response", { ff <- frm(bf(yf ~ x, hu ~ z), family = hurdle_cumulative(), data = d)
+  stopifnot(isTRUE(all.equal(logLik(ff), logLik(fit)))); print(head(fitted(ff), 2)); print(table(simulate(ff)[[1]])) })
+try_("thres(x = 4)", frm(bf(y | thres(4) ~ x, hu ~ z), family = hurdle_cumulative(), data = d))
+try_("thres(gr = g)", frm(bf(y | thres(gr = g) ~ x), family = hurdle_cumulative(), data = d))
+try_("cs()", frm(bf(y ~ cs(x)), family = hurdle_cumulative(), data = d))
+try_("disc ~ 0 + z", print(summary(frm(bf(y ~ x, hu ~ z, disc ~ 0 + z), family = hurdle_cumulative(), data = d))))
+try_("mixture", frm(bf(y ~ 1), family = mixture(hurdle_cumulative, hurdle_cumulative), data = d))
+try_("compat", { cx <- frm_compat("hurdle_cumulative"); print(table(cx$status)) })
+try_("negative y", frm(bf(y - 1 ~ x), family = hurdle_cumulative(), data = d))
+try_("threshold equidistant", hurdle_cumulative(threshold = "equidistant"))
+try_("link_disc logit", hurdle_cumulative(link_disc = "logit"))
+try_("link_hu probit", hurdle_cumulative(link_hu = "probit"))
+try_("link log", hurdle_cumulative(link = "log"))
+cat("link_disc:", hurdle_cumulative()$link_disc, " link_hu:", hurdle_cumulative()$link_hu,
+    " link:", hurdle_cumulative("cauchit")$link, "\n")

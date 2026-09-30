@@ -1,0 +1,1 @@
+MUTANT M7 predict_new_level_spec test-brms-parity-defects.R pass= 78 fail= 0 err= 0 

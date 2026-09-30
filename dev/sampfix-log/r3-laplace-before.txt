@@ -1,0 +1,54 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | laplace-draws                                                  
+⠋ |          1 | laplace-draws                                                  
+⠹ |         13 | laplace-draws                                                  
+⠏ |         20 | laplace-draws                                                  
+⠸ |         24 | laplace-draws                                                  
+⠇ |         29 | laplace-draws                                                  
+⠸ |         34 | laplace-draws                                                  
+⠦ | 1       36 | laplace-draws                                                  
+⠹ | 1       62 | laplace-draws                                                  
+⠦ | 1       76 | laplace-draws                                                  frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+
+⠋ | 1       80 | laplace-draws                                                  
+⠙ | 1       81 | laplace-draws                                                  
+⠸ | 1       83 | laplace-draws                                                  
+⠦ | 1       86 | laplace-draws                                                  
+⠧ | 1       87 | laplace-draws                                                  
+⠏ | 1       89 | laplace-draws                                                  
+✖ | 1       90 | laplace-draws [5.4s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-laplace-draws.R:193:3'): a later draw that overflows on its own is not taken for a read
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: posterior_epred() needs the random effects, and these draws come from frm_sample(laplace = TRUE), which integrates them out instead of sampling them: a draw holds no group-level coefficients, smooth coefficients or mi() values to evaluate the model at. re_formula = NA leaves the group-level effects out and computes the population-level quantity from these draws. Otherwise, sample without laplace = TRUE
+Backtrace:
+    ▆
+ 1. ├─frmtmb.sample::posterior_epred(p$lap, re_formula = NA) at test-laplace-draws.R:193:3
+ 2. └─frmtmb.sample:::posterior_epred.frmtmb_draws(p$lap, re_formula = NA)
+ 3.   └─frmtmb.sample (local) watch(p)
+ 4.     └─frmtmb.sample:::draws_laplace_refuse(x, what, at_na)
+ 5.       └─frmtmb::frm_stop(...)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.4 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-laplace-draws.R:193:3'): a later draw that overflows on its own is not taken for a read
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: posterior_epred() needs the random effects, and these draws come from frm_sample(laplace = TRUE), which integrates them out instead of sampling them: a draw holds no group-level coefficients, smooth coefficients or mi() values to evaluate the model at. re_formula = NA leaves the group-level effects out and computes the population-level quantity from these draws. Otherwise, sample without laplace = TRUE
+Backtrace:
+    ▆
+ 1. ├─frmtmb.sample::posterior_epred(p$lap, re_formula = NA) at test-laplace-draws.R:193:3
+ 2. └─frmtmb.sample:::posterior_epred.frmtmb_draws(p$lap, re_formula = NA)
+ 3.   └─frmtmb.sample (local) watch(p)
+ 4.     └─frmtmb.sample:::draws_laplace_refuse(x, what, at_na)
+ 5.       └─frmtmb::frm_stop(...)
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 90 ]
+RESULT lane test-laplace-draws.R: tests 15 pass 90 fail 0 error 1 skip 0 warn 0

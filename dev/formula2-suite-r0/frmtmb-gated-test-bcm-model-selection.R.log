@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+bcm-model-selection: .............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-bcm-model-selection.R pass=29 fail=0 err=0 skip=0 warn=0

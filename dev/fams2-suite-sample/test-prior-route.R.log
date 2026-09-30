@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.sample 
+prior-route: .........
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+You are a coding rockstar!
+RESULT frmtmb.sample test-prior-route.R pass=9 fail=0 err=0 skip=0 warn=0 blocks=3

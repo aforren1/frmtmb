@@ -1,0 +1,42 @@
+a = 0.4, b = 2 (m = 0.318182, sd = 0.202)
+  x = m +0 sd                        value jump - predicted -2.76e-16  gradient jump (rel)  2.58e-09  finite H,T3 at edge TRUE
+  x = m -1 sd                        value jump - predicted -6.05e-17  gradient jump (rel)  2.19e-09  finite H,T3 at edge TRUE
+a = 5, b = 40 (m = 0.12766, sd = 0.0463)
+  x = m +0 sd                        value jump - predicted -2.18e-15  gradient jump (rel)  6.06e-09  finite H,T3 at edge TRUE
+  x = m -1 sd                        value jump - predicted  1.74e-15  gradient jump (rel)  3.85e-09  finite H,T3 at edge TRUE
+  x = m +1 sd                        value jump - predicted -1.08e-16  gradient jump (rel)  9.54e-09  finite H,T3 at edge TRUE
+  x = m +5 sd                        value jump - predicted -2.79e-19  gradient jump (rel)  9.30e-11  finite H,T3 at edge TRUE
+  x = m +6 sd                        value jump - predicted -1.33e-20  gradient jump (rel)  1.02e-11  finite H,T3 at edge TRUE
+a = 300, b = 700 (m = 0.300399, sd = 0.0145)
+  x = m +0 sd                        value jump - predicted -1.46e-16  gradient jump (rel)  3.44e-08  finite H,T3 at edge TRUE
+  x = m -1 sd                        value jump - predicted  5.17e-16  gradient jump (rel)  2.21e-08  finite H,T3 at edge TRUE
+  x = m +1 sd                        value jump - predicted -1.14e-14  gradient jump (rel)  5.64e-08  finite H,T3 at edge TRUE
+  x = m +5 sd                        value jump - predicted -1.05e-17  gradient jump (rel)  4.78e-11  finite H,T3 at edge TRUE
+  x = m -5 sd                        value jump - predicted  2.24e-14  gradient jump (rel)  7.33e-09  finite H,T3 at edge TRUE
+  x = m +6 sd                        value jump - predicted -3.83e-23  gradient jump (rel)  4.21e-13  finite H,T3 at edge TRUE
+  x = m -6 sd                        value jump - predicted  4.72e-15  gradient jump (rel)  6.17e-09  finite H,T3 at edge TRUE
+a = 30000, b = 70000 (m = 0.300004, sd = 0.00145)
+  x = m +0 sd                        value jump - predicted  5.37e-15  gradient jump (rel)  3.32e-07  finite H,T3 at edge TRUE
+  x = m -1 sd                        value jump - predicted -1.75e-14  gradient jump (rel)  2.18e-07  finite H,T3 at edge TRUE
+  x = m +1 sd                        value jump - predicted  2.55e-15  gradient jump (rel)  5.36e-07  finite H,T3 at edge TRUE
+  x = m +5 sd                        value jump - predicted -3.57e-17  gradient jump (rel)  2.34e-09  finite H,T3 at edge TRUE
+  x = m -5 sd                        value jump - predicted  3.87e-14  gradient jump (rel)  7.66e-08  finite H,T3 at edge TRUE
+  x = m +6 sd                        value jump - predicted -2.14e-22  gradient jump (rel)  1.24e-11  finite H,T3 at edge TRUE
+  x = m -6 sd                        value jump - predicted -5.07e-14  gradient jump (rel)  6.49e-08  finite H,T3 at edge TRUE
+a = 200000, b = 800000 (m = 0.200001, sd = 0.0004)
+  x = m +0 sd                        value jump - predicted  2.65e-14  gradient jump (rel)  8.00e-07  finite H,T3 at edge TRUE
+  x = m -1 sd                        value jump - predicted -5.03e-14  gradient jump (rel)  5.26e-07  finite H,T3 at edge TRUE
+  x = m +1 sd                        value jump - predicted -5.02e-15  gradient jump (rel)  1.29e-06  finite H,T3 at edge TRUE
+  x = m +5 sd                        value jump - predicted  4.51e-17  gradient jump (rel)  1.95e-08  finite H,T3 at edge TRUE
+  x = m -5 sd                        value jump - predicted -1.57e-13  gradient jump (rel)  1.86e-07  finite H,T3 at edge TRUE
+  x = m +6 sd                        value jump - predicted  1.75e-22  gradient jump (rel)  1.00e-10  finite H,T3 at edge TRUE
+  x = m -6 sd                        value jump - predicted -1.07e-13  gradient jump (rel)  1.58e-07  finite H,T3 at edge TRUE
+across min(a, b) = 150 and 450, x at m + 0.5 sd and m + 3.5 sd:
+  a = 150, k = 0.5                   value jump - predicted  2.34e-15  gradient jump (rel)  2.56e-08  finite H,T3 at edge TRUE
+  a = 150, k = 5.5                   value jump - predicted  2.94e-21  gradient jump (rel)  5.14e-12  finite H,T3 at edge TRUE
+  a = 450, k = 0.5                   value jump - predicted -3.49e-15  gradient jump (rel)  4.37e-08  finite H,T3 at edge TRUE
+  a = 450, k = 5.5                   value jump - predicted  1.87e-17  gradient jump (rel)  8.92e-12  finite H,T3 at edge TRUE
+the reviewer's point, a = 3e4, b = 7e4, either side of x = m:
+  x = m -1e-12: d/dx 548.972616  reference 548.972616  value -0.690215050847791  pbeta -0.690215050847795
+  x = m +0e+00: d/dx 548.972616  reference 548.972616  value -0.690215050298835  pbeta -0.690215050298838
+  x = m +1e-12: d/dx 548.972616  reference 548.972616  value -0.690215049749875  pbeta -0.690215049749882

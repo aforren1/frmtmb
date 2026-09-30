@@ -1,0 +1,5 @@
+.libPaths("C:/Users/adf44/AppData/Local/R/win-library/4.6")
+print(ls(asNamespace("tmbstan")))
+print(tmbstan::tmbstan)
+m <- methods::getMethod("sampling", "tmbstanmodel", where = asNamespace("tmbstan"))
+print(m)

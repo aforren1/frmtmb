@@ -1,0 +1,39 @@
+A frmtmb group label mmg1g2weightsEQcbindw1w2
+A brms group label mmg1g2 (frmtmb mmg1g2weightsEQcbindw1w2)
+A draws brms 100; r_mmg1g2[2,Intercept] max diff 5.55e-17
+A weights, g1 = g2 = 2 (no draw), seed 1: max diff estimate 0 lower 0 upper 0 | width brms 0.5101 0.3196 0.6085 frmtmb 0.5101 0.3196 0.6085
+A weights, nothing set, seed 1: max diff estimate 0 lower 0 upper 0 | width brms 2.4746 2.3617 2.3915 frmtmb 2.4746 2.3617 2.3915
+A weights, nothing set, seed 2: max diff estimate 0 lower 0 upper 0 | width brms 2.8018 2.7132 2.6944 frmtmb 2.8018 2.7132 2.6944
+A weights, g1 = 2, g2 unset, seed 1: max diff estimate 0 lower 0 upper 0 | width brms 1.4424 1.3337 1.3388 frmtmb 1.4424 1.3337 1.3388
+A weights, g1 = 2, g2 unset, seed 2: max diff estimate 0 lower 0 upper 0 | width brms 1.4104 1.3787 1.4499 frmtmb 1.4104 1.3787 1.4499
+A weights, g1 = g2 = 99, seed 1: max diff estimate 0 lower 0 upper 0 | width brms 2.4746 2.3617 2.3915 frmtmb 2.4746 2.3617 2.3915
+A weights, g1 = g2 = 99, seed 2: max diff estimate 0 lower 0 upper 0 | width brms 2.8018 2.7132 2.6944 frmtmb 2.8018 2.7132 2.6944
+A weights, g1 = 99, g2 = 98 (brms shares one draw), seed 1: max diff estimate 0.114 lower 0.436 upper 0.497 | width brms 2.4746 2.3617 2.3915 frmtmb 1.7179 1.6074 1.6771
+A weights, g1 = 99, g2 = 98 (brms shares one draw), seed 2: max diff estimate 0.0774 lower 0.56 upper 0.489 | width brms 2.8018 2.7132 2.6944 frmtmb 2.0380 1.7389 1.7572
+A Wald at g1 = 2, g2 unset: lp_extra_var numeric parts ; w2^2 sd^2 = 0.10770 (w1, w2 held at 0.4960 0.5040)
+A Wald, g1 = 2, g2 unset: se^2 difference 0.7621 0.7621 0.7621, expected 0.76209
+A Wald, nothing set: se^2 difference 3.0000 3.0000 3.0000, expected 3.00000
+A Wald, g1 = 99, g2 = 98: se^2 difference 1.5001 1.5001 1.5001, expected 1.50010
+A Wald, g1 = g2 = 99: se^2 difference 3.0000 3.0000 3.0000, expected 3.00000
+A Wald widths: mixed row 1.4111 1.3766 1.4365 | both observed 0.5724 0.4991 0.6598 | nothing set 2.7016 2.6805 2.7086
+B draws brms 100; r_mmg1g2g3[2] max diff 5.55e-17
+B three, nothing set, seed 1: max diff estimate 0 lower 0 upper 0 | width brms 2.5659 2.4536 2.4821 frmtmb 2.5659 2.4536 2.4821
+B three, nothing set, seed 2: max diff estimate 0 lower 2.22e-16 upper 0 | width brms 2.9158 2.8264 2.8045 frmtmb 2.9158 2.8264 2.8045
+B three, g1 = 2, others unset, seed 1: max diff estimate 1.39e-17 lower 0 upper 1.11e-16 | width brms 1.8537 1.7321 1.7381 frmtmb 1.8537 1.7321 1.7381
+B three, g1 = 2, others unset, seed 2: max diff estimate 0 lower 2.22e-16 upper 0 | width brms 1.9401 1.8875 1.8959 frmtmb 1.9401 1.8875 1.8959
+B three, g1 = 2, g2 = g3 = 99, seed 1: max diff estimate 1.39e-17 lower 0 upper 1.11e-16 | width brms 1.8537 1.7321 1.7381 frmtmb 1.8537 1.7321 1.7381
+B three, g1 = 2, g2 = g3 = 99, seed 2: max diff estimate 0 lower 2.22e-16 upper 0 | width brms 1.9401 1.8875 1.8959 frmtmb 1.9401 1.8875 1.8959
+B three, g1 = 2, g2 = 99, g3 = 98 (brms shares), seed 1: max diff estimate 0.0982 lower 0.301 upper 0.389 | width brms 1.8537 1.7321 1.7381 frmtmb 1.2689 1.1477 1.2707
+B three, g1 = 2, g2 = 99, g3 = 98 (brms shares), seed 2: max diff estimate 0.0435 lower 0.39 upper 0.391 | width brms 1.9401 1.8875 1.8959 frmtmb 1.4945 1.1723 1.2272
+C frmtmb labels: r_mmg1g2 r_g1 theta_1 theta_2
+C brms r_mmg1g2[2] / r_g1[2] max diff 5.55e-17 0
+C mm + (1|g1), g1 = g2 = 2 (no draw), seed 1: max diff estimate 0 lower 0 upper 0 | width brms 0.5122 0.3279 0.6083 frmtmb 0.5122 0.3279 0.6083
+C mm + (1|g1), g1 = 2, g2 unset, seed 1: max diff estimate 0 lower 0 upper 0 | width brms 1.5783 1.4746 1.4160 frmtmb 1.5783 1.4746 1.4160
+C mm + (1|g1), g1 = 2, g2 unset, seed 2: max diff estimate 0 lower 0 upper 0 | width brms 1.5606 1.5552 1.5763 frmtmb 1.5606 1.5552 1.5763
+C mm + (1|g1), nothing set, seed 1: max diff estimate 0.261 lower 0.103 upper 0.252 | width brms 3.8873 4.1338 4.3818 frmtmb 4.2154 4.1302 4.1368
+C mm + (1|g1), nothing set, seed 2: max diff estimate 0.0594 lower 0.0555 upper 0.139 | width brms 4.6504 4.6623 4.6320 frmtmb 4.6629 4.5427 4.5489
+C mm + (1|g1), g1 = 99, g2 = 2, seed 1: max diff estimate 0.165 lower 0.373 upper 0.378 | width brms 3.4885 3.6591 3.8003 frmtmb 3.6959 3.6066 3.6627
+C mm + (1|g1), g1 = 99, g2 = 2, seed 2: max diff estimate 0.26 lower 0.173 upper 0.202 | width brms 4.0370 3.9287 3.8854 frmtmb 3.8539 3.7807 3.6132
+C fit, nothing set, band wald: width 4.8142 4.8035 4.8179
+C fit, nothing set, band boot: width 3.7338 3.7250 3.7161
+done

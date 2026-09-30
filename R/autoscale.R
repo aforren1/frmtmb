@@ -21,6 +21,7 @@ autoscale_plan <- function(frame) {
     lp <- frame[["linpreds"]][[key]]
     if (!is.null(lp[["nl_body"]])) next     # no design matrix of its own
     if (!is.null(lp[["constant"]])) next    # mapped to a fixed value
+    if (!is.null(lp[["equate"]])) next      # its target is planned
     if (is.null(lp[["X"]]) || lp[["n_param_cols"]] == 0L) next
     icpt <- match("(Intercept)",
                   colnames(lp[["X"]])[seq_len(lp[["n_param_cols"]])])

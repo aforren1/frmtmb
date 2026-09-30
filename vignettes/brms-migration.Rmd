@@ -25,6 +25,11 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `bf(y ~ x + (x | g))` | same | plus `us()`, `diag()`, `homdiag()`, `cs()`, `ar1()` wrappers |
 | `bf(y ~ x, sigma ~ z + (1 | g))` | same | any dpar, full grammar |
 | `bf(y ~ x, sigma = 1)` | same | fixed via TMB `map` |
+| `bf(y ~ x, sigma1 = "sigma2")`, `lf(sigma1 = "sigma2")` | same | one parameter, `sigma2`; `variables()` and `summary()` list `sigma1` with its value, as brms does; brms's rules and messages; `theta1 = "theta2"` is refused, where brms stops with an internal error |
+| `bf(y ~ 0 + g, cmc = FALSE)`, `lf(..., cmc = FALSE)` | same | treatment contrasts without the intercept column, in the population-level and the group-level terms, `mm()` included; refused on the covariance structures that read one coefficient per level (`ar1()`, `cs()`, `toep()`, `ou()`, ...), which brms does not have |
+| `y ~ .` | same | expanded against `data` before the formula is read, as in brms; each parameter formula on its own, so `sigma ~ .` includes the response; `update(fit, newdata = )` keeps the expanded formula, as in brms |
+| `family = list(gaussian(), poisson())` | same | multivariate models, one family per response in formula order; an entry fills only a response that has no family |
+| `update(fit, bf(~ ., family = acat()))` | same | a `bf()` whose formula is a delta: the location formula is updated, parameter formulas and constants are pooled, and its family wins |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
 | `(1 | p | g)` | same | cross-formula RE correlation |
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families, ordinal ones included; `rescor` all gaussian or all student, with one shared `nu`; `mvbf() + family` fills only responses without a family (below) |
@@ -34,6 +39,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
+| `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes flexible thresholds only, and neither `thres(gr = )` nor `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
@@ -41,6 +47,8 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms's default) and `cov = TRUE` (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
+| `categorical()` on a numeric response | same | the distinct values are the categories, in numeric order: `11:13` is three categories with `11` the reference |
+| `mixture(..., order = "none")` | same | brms's `order = "mu"`, which orders the components' intercepts for a sampler, is refused |
 
 ### Links
 
@@ -219,7 +227,8 @@ has not written.
   responses.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
-  measurement error, `cs()` category-specific ordinal effects,
+  measurement error, `cs()` (or brms's other name for it, `cse()`)
+  category-specific ordinal effects,
   `gp(x)` / `gp(x, k =)` Gaussian processes, and `mixture()`
   families (including group-level latent classes via `groups = ~g`)
   all work. `mo()`/`mi()` support two-way `:`/`*` interactions with
@@ -262,10 +271,43 @@ has not written.
   threshold vector per level of `g`, named `Intercept[g,k]` as in
   brms. The section "Ordinal thresholds, thres()" of `?frm` says
   where the count and the unobserved categories differ from brms.
-- `binomial()`, `beta_binomial()` and `zero_inflated_binomial()`
-  without `trials()` are refused, as in brms, with brms's message. A 0/1
-  response takes `bernoulli()` or `y | trials(1)`; the `stats::glm()`
-  convention of one implicit trial does not carry over.
+  brms's deprecated `cat(K)` is read as `thres(K - 1)`, with brms's
+  warning.
+- `hurdle_cumulative()` takes `thres(x = )` and refuses `thres(gr = )`
+  and `cs()`. Its `threshold` takes `"flexible"` only. The expected
+  category that `conditional_effects()` shows by default is scored by
+  the category codes `0..K`, so the hurdle scores 0; brms scores each
+  column by its position and reads one higher. With the logit link and
+  a modeled `disc`, brms 2.23.0 cannot evaluate its own model: its Stan
+  function reads a threshold past the last one for the top category,
+  and Stan stops at "index out of range". frmtmb fits that model.
+- `rate()` works as in brms on `poisson()`, `negbinomial()` and
+  `geometric()`: the expected count is `mu * d`, and on the negative
+  binomial the shape is multiplied by `d` too. On `poisson()` with the
+  log link it is the `offset(log(d))` model. The log-likelihood equals
+  brms's compiled program at the same parameters. `fitted()` reports
+  `mu * d`, `frm_linpred()` the predictor without `log(d)`.
+- `subset()`, `index()` and `mi(x, idx = )` work as in brms: each
+  response of a multivariate model is fitted on its own rows, with
+  brms's rule for missing values, and a predictor reads another
+  response's rows by index. The methods that return one row per
+  observation need `resp =`, and on `newdata` they keep the rows where
+  the subset is `TRUE`, both as in brms, and `nobs()` counts the
+  data's rows, or one response's with `resp =`. Three differences,
+  all because brms keeps every level of the whole data in a subsetted
+  response and frmtmb keeps the levels the response's own rows carry:
+  a grouping factor has fewer levels (the marginal likelihood is the
+  same, `ranef()` lists fewer, and `|ID|`-linked terms whose rows
+  carry different levels are refused), a factor predictor level that
+  occurs only outside the subset has no column where brms has an
+  all-zero one, and an ordinal category that occurs only outside the
+  subset has no threshold where brms has one. The section "Response
+  subsets" of `?frm` has the rest.
+- `binomial()`, `beta_binomial()`, `zero_inflated_binomial()` and
+  `zero_inflated_beta_binomial()` without `trials()` are refused, as in
+  brms, with brms's message. A 0/1 response takes `bernoulli()` or
+  `y | trials(1)`; the `stats::glm()` convention of one implicit trial
+  does not carry over.
 - `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are supported in
   their covariance form only; see the next section.
 - glmer's proportion-response idiom (`weights = size`) becomes
@@ -604,8 +646,8 @@ dropped and refused, not kept as an alias. What still follows stats is
 the SHAPE of what a standard generic returns:
 
 - brms-origin, same names and argument spellings:
-  `conditional_effects()` (includes what `conditional_smooths()`
-  covers), `hypothesis()` (a delta-method Wald test here),
+  `conditional_effects()`, `conditional_smooths()`, `make_conditions()`,
+  `update_adterms()`, `hypothesis()` (a delta-method Wald test here),
   `pp_check()` (simulate-based, through bayesplot's `ppc_*`
   functions), `prior_summary()`, `fixef()`, `ranef()`, `VarCorr()`,
   `ngrps()`, `variables()` (brms's parameter names, e.g. `b_Days` and
@@ -614,6 +656,8 @@ the SHAPE of what a standard generic returns:
   brms fills from draws; `fixef()`, `ranef()` and `coef()` take brms's
   `summary`, `robust` and `probs` in brms's positions and refuse
   `summary = FALSE` by name, because a fit has no draws to return.
+  `ranef()` also takes brms's `pars` and `groups`, and `family()` its
+  `resp`.
   `hypothesis()` reads brms's grammar too: every hypothesis states a
   relation, so write `"x = 0"` and not `"x"`.
 - `predict()`, `fitted()` and `residuals()` return brms's summary
@@ -624,7 +668,17 @@ the SHAPE of what a standard generic returns:
   `Q` columns are the simulation's own quantiles. An ordinal or
   categorical response gives brms's `n` by 4 by `K` array from
   `fitted()` and brms's `P(Y = k)` proportions from `predict()`.
-  `confint()` still takes `level =` rather than `probs =`.
+  `fitted(scale = "linear")` on an ordinal fit with a `cs()` term gives
+  one layer per threshold, as brms does, because the category-specific
+  part moves the predictor differently at each threshold.
+  `residuals()` takes brms's `newdata` (by name: its second argument
+  is `type`), which is the response there minus `fitted(newdata = )`,
+  and answers every response of a multivariate fit in brms's `n` by 4
+  by `nresp` array. `confint()` still takes `level =` rather than
+  `probs =`.
+- A factor column of `newdata` may hold the levels as numbers, as brms
+  reads it: `Trt = 0` is the level `"0"`. A number that is not a level
+  is refused as a new level.
 - **A matrix is not a vector, and every scalar summary of it changes.**
   This is brms fidelity, not a defect, and it is the one change in
   this list that gives a WRONG NUMBER rather than an error. brms's
@@ -677,6 +731,24 @@ the SHAPE of what a standard generic returns:
   `Intercept` and not `(Intercept)`, so that anything pairing `coef()` with `vcov()`
   by name, `lmtest::coeftest()` among them, keeps every row. The
   design-column spelling is `fixef_by_dpar()`.
+- `conditional_effects()` takes brms's `surface`, `too_far`,
+  `select_points` and `spaghetti`. `spaghetti = TRUE` needs draws: on
+  a fit it takes `band = "boot"`, where each refit is one curve, and
+  it is refused with any other band. `select_points` measures the
+  predictors only, where brms also drops the observations whose
+  RESPONSE is far from its mean. A nonlinear predictor gets the Wald
+  band by the delta method through the Jacobian of the body, where it
+  needed `band = "boot"` before. `conditional_smooths()` draws each
+  smooth term alone, with brms's grid, keys and columns; on a fit the
+  band is the delta method, on draws brms's median and quantiles.
+  Under `re_formula = NULL` a grid row reads a group's fitted effects
+  where it sets the group to a level the fit saw, and a new level
+  where it sets none or an unseen one, as brms does with its own
+  `allow_new_levels = TRUE`. `band = "boot"` and `frm_bootstrap()`
+  hold every smooth at its fit and redraw only group-level terms. A row
+  reads only its own `f` level's block of `gr(g, by = f)`, and each
+  member of `mm(g1, g2)` is a grouping variable; the "New group
+  levels" section of `?conditional_effects` has the refusals.
 - `conditional_effects()` on an ordinal fit draws one probability
   curve per response category, which is what brms draws under
   `categorical = TRUE`, and keys the effect `"x:cats__"` as brms does
@@ -688,9 +760,17 @@ the SHAPE of what a standard generic returns:
 - `predict(allow_new_levels = TRUE)` draws an unseen level's effect
   from its block's estimated covariance, which is brms's
   `sample_new_levels = "gaussian"`, so the interval at an unseen level
-  is wider than at a known one. brms's `"uncertainty"` and
-  `"old_levels"` resample the draws of the levels that were seen, and
-  a maximum-likelihood fit has none, so both are refused by name.
+  is wider than at a known one. `fitted()` takes the same
+  `sample_new_levels = "gaussian"`. `predict()` also takes
+  `"old_levels"`: each unseen level borrows one seen level's effect,
+  chosen once per call as brms chooses it, from every replicate's draw
+  of the group effects. brms's `"uncertainty"` mixes the two per
+  posterior draw, and a maximum-likelihood fit has none, so it is
+  refused by name; so is `"old_levels"` on `fitted()`, a Wald summary
+  with no draws to borrow from.
+- `update()` takes brms's `newdata` and records its name in
+  `attr(fit$data, "data_name")`, which `summary()` prints. It also
+  takes the `data =` of `stats::update()`, which brms refuses.
 - `emmeans()` takes brms's `dpar`, `nlpar`, `resp`, `epred` and
   `re_formula`, with brms's defaults. A multivariate fit without
   `resp` stacks its responses as brms's `rep.meas` factor. Where brms

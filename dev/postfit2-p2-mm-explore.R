@@ -1,0 +1,13 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-postfit2-lib", "C:/Users/adf44/source/r/rellib-r3", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressMessages(library(frmtmb))
+set.seed(43)
+d3 <- data.frame(x = rnorm(200), g1 = factor(sample(1:10, 200, TRUE)), g2 = factor(sample(1:10, 200, TRUE)))
+u <- rnorm(10, 0, 1)
+d3$y <- rnorm(200, 1 + 0.5 * d3$x + 0.5 * (u[d3$g1] + u[d3$g2]), 0.5)
+f <- frm(bf(y ~ x + (1 | mm(g1, g2))), family = gaussian(), data = d3)
+bk <- f$frame$re_blocks[[1]]
+str(bk[c("group_name", "term_label", "levels", "n_levels")])
+str(bk$components[[1]]$mm, max.level = 2)
+nd <- data.frame(x = 0, g1 = factor(c("2", NA, NA), levels = 1:10), g2 = factor(c("2", NA, "3"), levels = 1:10))
+print(try(frm_linpred(f, newdata = nd, re_formula = NULL, allow_new_levels = TRUE, se.fit = TRUE)))
+print(frm_linpred(f, newdata = nd[1, ], re_formula = NA, se.fit = TRUE))

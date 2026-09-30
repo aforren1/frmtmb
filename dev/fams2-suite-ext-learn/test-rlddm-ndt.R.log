@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.learn 
+Loading required package: frmtmb
+rlddm-ndt: .....................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.learn test-rlddm-ndt.R pass=53 fail=0 err=0 skip=0 warn=0 blocks=12

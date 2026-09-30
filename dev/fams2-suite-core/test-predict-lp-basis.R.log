@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+predict-lp-basis: ..............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-predict-lp-basis.R pass=30 fail=0 err=0 skip=0 warn=0 blocks=5

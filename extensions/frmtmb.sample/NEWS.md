@@ -1,3 +1,147 @@
+# frmtmb.sample 0.14.0
+
+Needs frmtmb 0.66.0: for `subset_resp_check()` and `subset_newdata()`,
+for `cs_build()`, `ce_level_plan()` and the other engine functions of
+`conditional_smooths()` and `conditional_effects()`, for the ordinal
+families' inverse threshold maps that name the draws, and for equated
+parameters.
+
+## Breaking changes
+
+* **An ordinal fit's draws carry brms's names.** The thresholds are
+  `b_Intercept[1]`, `b_Intercept[2]` (per group under `thres(gr = )`,
+  per response in a multivariate model) and hold the thresholds, not
+  `cumulative()`'s first threshold and log increments; a `cs()` column
+  is `bcs_<column>[k]`. They were `tau_raw_k` and `bcs<j>_k`.
+  `variables(ds)` now lists what `variables(fit)` lists. A draws object
+  saved with the old names still works. Code that selected
+  `tau_raw_1` from the draws must select `b_Intercept[1]` now. The
+  names come from each ordinal family's inverse threshold map, which
+  frmtmb 0.66.0 declares.
+
+## Bug fixes
+
+* **`posterior_predict()`, `posterior_epred()` and `posterior_linpred()`
+  on `frm_sample(laplace = TRUE)` draws returned silently wrong
+  numbers.** Such draws hold no random effects, and every draws method
+  read them in the layout of full draws: `sigma` and `theta` landed in
+  the random effects and `NA` past the last column. On
+  `y ~ x + ar(t, g) + (1 | g)` all 4500 cells of `posterior_epred()` were
+  NaN; at `newdata` the values were finite and wrong, each group effect
+  read off `theta_1` or `lp__`. `fitted()`, `predict()`, `residuals()`
+  and `bayes_R2()` returned the same kind of numbers; `pp_check()`,
+  `predictive_interval()`, `pp_mixture()` and `hypothesis()` on `sd_`
+  quantities stopped in an internal error from `quantile()` or
+  bayesplot. Laplace draws are now read in their own layout. A quantity
+  that reads what was integrated out (the group-level coefficients, a
+  smooth's coefficients, `mi()` values) is refused, naming the function
+  you called, as `log_lik()` already refused; one that does not, such as
+  `re_formula = NA` on a model with group-level terms alone, is computed
+  exactly and equals the full draws' answer bit for bit. The new
+  "Laplace draws" section of `?frm_sample` lists both, and says why the
+  missing values are not filled in (user decision, 2026-09-29).
+* **`conditional_effects()` on draws under `re_formula = NULL` reads
+  each grid row's groups by brms's rule** (found by lane sampfix). With
+  `conditions = data.frame(g = <a level>)`, every draw's effects for a
+  NEW group were drawn into the first level and predicted there: moving
+  `r_g[1,]` or `r_g[2,]` by 10 left the curve where it was, and levels
+  1 and 2 drew the same curve. The rule is now core's, per row and per
+  group-level term: a term reads its draws where the row sets every one
+  of its grouping variables to an observed level, in `conditions` or as
+  an effect (`"x:g"`), and draws a new level otherwise, from each
+  draw's own covariance: an unset variable, an unseen level (`"99"`),
+  a row of a mixed `conditions` column, or a nested `(1 | g / h)` with
+  `g` set and `h` unset. At levels 1, 2 and 3 every column and the
+  spaghetti frame equal brms's at the same five draws, with a
+  difference of 0 (`dev/postfit2-celevel-brms.R` in the frmtmb
+  repository), and `"x:g"` equals brms's to 1.6e-8.
+
+  On a `gr(g, by = f)` term a row reads only the term of its own `f`
+  level; every `re_formula = NULL` display of such a model was refused
+  before, even at an observed `g`. An `mm(g1, g2)` term's unset members
+  are new levels instead of the first observed one. At the same draws
+  and seed, the `gr()` band at an unseen `g` and the `mm()` band with
+  members unset equal brms's `sample_new_levels = "gaussian"` bands to
+  8.9e-16 (`dev/postfit2-p2-brms.R` in the frmtmb repository). Two
+  different unseen members are two new levels here; brms 2.23.0 draws
+  them once, an artifact of how it numbers unseen values. `mm(g1, g2)`
+  beside `(1 | g1)` with `g1` unset or unseen now draws both new
+  levels, where it was refused. One new level is drawn once per draw
+  and shared by every panel that names it. The core NEWS has the
+  details.
+* `predictive_error()`, `pp_check()` and `bayes_R2()` of draws no
+  longer read a missing `mi()` response as an observation. The frame
+  holds the placeholder 0 there, and the predictive error was
+  `0 - yrep`; it is `NA` now, as brms's is, `bayes_R2()` is `NA`, as
+  brms's is, and `pp_check()` leaves the row out with brms's warning.
+  A `pp_check()` loo type on such a model is refused by name, since
+  `log_lik()` is not defined there; it died inside bayesplot.
+* `frm_sample(laplace = TRUE)` on a model with nothing to integrate out
+  died in tmbstan with "invalid argument to unary operator". It now says
+  so and samples the model itself; the draws equal those of the call
+  without `laplace`. On a REML fit sampled as it stands
+  (`prior = "flat"`) it is refused: that objective integrates the
+  coefficients out too, and the draws carried `b_Intercept` over other
+  parameters' values.
+* `frm_sample()` on a model with one outer parameter (`y ~ 0 + x`) died
+  in rstan with "no more scalars to read": a length-one init was read as
+  a scalar. Each init is now passed as a one-dimensional array.
+* A draws object with `stanfit = NULL` works with every method that
+  reads the chain count (`nchains()`, `summary()`, `VarCorr()`,
+  `as_draws_*()`, `posterior_summary()`, `mcmc_plot()` and more), as one
+  chain. `nuts_params()` and `log_posterior()` refuse it by name.
+
+## New features
+
+* **`pp_check()`'s `loo_pit_overlay`, `loo_pit_qq`, `loo_intervals` and
+  `loo_ribbon` types work.** They failed on every model, because nothing
+  built the PSIS weights bayesplot needs. They are built as brms builds
+  them, `loo::psis()` on `log_lik()` of the same draws as the
+  predictions, and match brms 2.23.0 bitwise on brms's own draws. Where
+  `log_lik()` refuses, these types refuse and say so. A type that
+  `bayesplot::available_ppc()` does not list, such as the deprecated
+  `loo_pit`, is refused with brms's message.
+* **`posterior_average()`**, brms's model-averaged draws: draws from
+  several `frm_sample()` objects in proportion to their weights, given
+  as numbers or computed by `"stacking"` (the default), `"pseudobma"`,
+  `"loo"` or `"waic"`. `"kfold"` and `"bma"` are refused, as `kfold()`
+  and `post_prob()` are. On the same draws, weights and seed its output
+  equals brms's to 1.4e-17, with the same rows, names and attributes
+  (`dev/postfit2-brms-compare.R` in the frmtmb repository).
+* **`conditional_smooths()` on draws**: brms's median, MAD and
+  quantiles of each smooth term's curves, and brms's `spaghetti`. On
+  ten draws that a `fixed_param` brms fit shares, every column and the
+  spaghetti frame equal brms's to 5.3e-15.
+* **`conditional_effects()` on draws takes `spaghetti`, `surface`,
+  `too_far` and `select_points`**, which it refused before. The
+  spaghetti frame equals brms's to 5.4e-15 on the same ten draws, for a
+  one- and a two-variable effect. On laplace draws it draws its default
+  curves instead of refusing every model with a group-level term.
+* `log_lik()`, `posterior_epred()`, `posterior_linpred()`,
+  `posterior_predict()` and `predictive_error()` on a multivariate
+  model whose responses use `subset()` need one `resp =`, as brms's
+  do, and on `newdata` keep the rows where the response's subset is
+  `TRUE`. `log_lik(resp = )` returns one column per row of that
+  response.
+* `posterior_predict(newdata = )` reads the exposure of a `rate()`
+  response from `newdata`.
+* `nobs()` passes brms's `resp =` to the fit's method, which counts
+  that response's rows.
+* The draws of a model with an equated parameter,
+  `bf(y ~ x, sigma1 = "sigma2")`, carry a `sigma1` column that is a copy
+  of `sigma2`, as brms's draws do, and the default priors skip the
+  equated parameter, which owns no coefficient.
+* `as.array()`, `as.matrix()` and `as.data.frame()` of draws take
+  brms's `chain` and `iteration`, which brms hands to
+  `posterior::subset_draws()`: `as.array(ds, chain = 1)` is the first
+  chain. They were refused by name. Any other name is still refused.
+* `conditional_effects(categorical = FALSE)` on a `hurdle_cumulative()`
+  fit scores the expected category by the category codes, so the hurdle
+  scores 0, as core's does. Every other ordinal family is unchanged.
+* The default-prior disclosure names `kappa`, which brms gives a gamma
+  prior, beside `shape`, `phi` and `nu`: `xbeta()` and `von_mises()`
+  carry it.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

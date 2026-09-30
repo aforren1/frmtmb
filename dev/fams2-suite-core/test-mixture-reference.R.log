@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+mixture-reference: ............
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-mixture-reference.R pass=12 fail=0 err=0 skip=0 warn=0 blocks=2

@@ -395,6 +395,88 @@ test_that("row 16c: zero-one-inflated beta with zoi ~ x", {
                 dz, fit)
 })
 
+# Rows 16d to 16g fit to a gradient of 1e-6 rather than frm()'s default
+# 1e-3, so that check B reads brms's gradient at an optimum and not at
+# wherever nlminb stopped: row 16e's seed stopped at 8.9e-4, inside
+# check B's 1e-3 by a margin a platform could eat (dev/fams2-findings.md).
+lp_tight <- frmtmb_control(grad_tol = 1e-6, restarts = 3)
+
+test_that("row 16d: extended-support beta with kappa ~ x", {
+  skip_unless_brms_fit()
+
+  # rows at 0 and at 1 both, so the two incomplete-beta ends are in the
+  # sum; phi has no predictor and takes the natural-scale rule
+  set.seed(15)
+  n <- 300
+  dx <- data.frame(x = rnorm(n))
+  mu <- plogis(0.2 + 0.6 * dx$x)
+  kap <- exp(-1.8 + 0.4 * dx$x)
+  z <- stats::rbeta(n, mu * 6, (1 - mu) * 6)
+  dx$y <- pmin(pmax((1 + 2 * kap) * z - kap, 0), 1)
+  expect_gt(sum(dx$y == 0), 0)
+  expect_gt(sum(dx$y == 1), 0)
+  fit <- frm(bf(y ~ x, kappa ~ x), family = xbeta(), data = dx,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, kappa ~ x), brms::xbeta(), dx, fit)
+})
+
+test_that("row 16e: zero-inflated beta-binomial with zi ~ x", {
+  skip_unless_brms_fit()
+
+  set.seed(16)
+  n <- 300
+  db <- data.frame(x = rnorm(n), tr = sample(5:15, n, TRUE))
+  mu <- plogis(-0.3 + 0.5 * db$x)
+  yb <- stats::rbinom(n, db$tr, stats::rbeta(n, mu * 4, (1 - mu) * 4))
+  db$y <- ifelse(runif(n) < plogis(-1 + 0.4 * db$x), 0L, yb)
+  fit <- frm(bf(y | trials(tr) ~ x, zi ~ x),
+             family = zero_inflated_beta_binomial(), data = db,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y | trials(tr) ~ x, zi ~ x),
+                brms::zero_inflated_beta_binomial(), db, fit)
+})
+
+# hurdle_cumulative data: 0 is the hurdle, 1..4 a logistic cumulative
+# model on x. brms takes its ordered_logistic path under the logit link
+# with disc held at 1, and its generic hurdle_cumulative_<link>_lpmf
+# otherwise.
+hurdle_cum_data <- function(seed) {
+  set.seed(seed)
+  n <- 300
+  d <- data.frame(x = rnorm(n))
+  u <- stats::rlogis(n) + 0.8 * d$x
+  yc <- 1L + (u > -1) + (u > 0.3) + (u > 1.5)
+  d$y <- ifelse(runif(n) < plogis(-0.6 + 0.5 * d$x), 0L, yc)
+  d
+}
+
+test_that("row 16f: hurdle cumulative with hu ~ x", {
+  skip_unless_brms_fit()
+
+  dc <- hurdle_cum_data(17)
+  fit <- frm(bf(y ~ x, hu ~ x), family = hurdle_cumulative(), data = dc,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, hu ~ x), brms::hurdle_cumulative(), dc,
+                fit)
+})
+
+test_that("row 16g: hurdle cumulative, probit, with disc ~ 0 + x", {
+  skip_unless_brms_fit()
+
+  # disc is modeled without an intercept, because the likelihood cannot
+  # tell an intercept there apart from the scale of the thresholds; hu
+  # takes the natural-scale rule. The logit link is not used here: with
+  # disc modeled, brms 2.23.0's generic logit density reads
+  # thres[nthres + 1] on the top category, and Stan stops with "index out
+  # of range" (dev/fams2-brms-hc-bug.R).
+  dc <- hurdle_cum_data(18)
+  fit <- frm(bf(y ~ x, disc ~ 0 + x),
+             family = hurdle_cumulative("probit"), data = dc,
+             control = lp_tight)
+  brms_lp_check(brms::bf(y ~ x, disc ~ 0 + x),
+                brms::hurdle_cumulative("probit"), dc, fit)
+})
+
 test_that("row 20: weights(w)", {
   skip_unless_brms_fit()
 
@@ -491,6 +573,67 @@ test_that("row 17b: theta2 ~ x makes component 1 the reference, as brms", {
              data = dx)
   brms_lp_check(brms::bf(y ~ 1, theta2 ~ x),
                 brms::mixture(gaussian(), gaussian()), dx, fit)
+})
+
+test_that("row 17c: sigma1 = \"sigma2\" equates the components' sigma", {
+  skip_unless_brms_fit()
+
+  # brms declares sigma2 alone and sets sigma1 = sigma2 in transformed
+  # parameters; frmtmb's sigma1 reads sigma2's coefficient. theta1 ~ x
+  # keeps the weights off the simplex, as in row 17.
+  set.seed(11)
+  n <- 300
+  dx <- data.frame(x = rnorm(n))
+  k <- rbinom(n, 1, 0.4)
+  dx$y <- ifelse(k == 1, rnorm(n, 3 + 0.5 * dx$x, 1), rnorm(n, -1, 1))
+  fit <- frm(bf(y ~ x, sigma1 = "sigma2", theta1 ~ x) +
+               mixture(gaussian(), gaussian()), data = dx)
+  code <- brms::make_stancode(brms::bf(y ~ x, sigma1 = "sigma2",
+                                       theta1 ~ x),
+                              data = dx,
+                              family = brms::mixture(gaussian(), gaussian()))
+  expect_false("sigma1" %in% brms_stan_par_names(code))
+  expect_true("sigma2" %in% brms_stan_par_names(code))
+  brms_lp_check(brms::bf(y ~ x, sigma1 = "sigma2", theta1 ~ x),
+                brms::mixture(gaussian(), gaussian()), dx, fit)
+})
+
+test_that("row 24: cmc = FALSE on a population- and a group-level term", {
+  skip_unless_brms_fit()
+
+  set.seed(5)
+  d3 <- data.frame(g = factor(rep(c("a", "b", "c"), 80)),
+                   h = factor(rep(1:16, each = 15)))
+  u <- matrix(rnorm(32), 16, 2)
+  d3$y <- rnorm(240, as.numeric(d3$g), 0.5) +
+    (d3$g == "b") * u[d3$h, 1] + (d3$g == "c") * u[d3$h, 2]
+  fit <- frm(bf(y ~ 0 + g + (0 + g | h), cmc = FALSE), data = d3)
+  brms_lp_check(brms::bf(y ~ 0 + g + (0 + g | h), cmc = FALSE),
+                gaussian(), d3, fit, joint = TRUE)
+})
+
+test_that("row 25: y ~ . expands against the data as in brms", {
+  skip_unless_brms_fit()
+
+  set.seed(6)
+  dd <- data.frame(x1 = rnorm(80), x2 = rnorm(80), f = gl(4, 20))
+  dd$y <- 1 + 0.5 * dd$x1 - 0.3 * dd$x2 + as.numeric(dd$f) / 4 +
+    rnorm(80)
+  fit <- frm(bf(y ~ ., sigma ~ x1), data = dd)
+  brms_lp_check(brms::bf(y ~ ., sigma ~ x1), gaussian(), dd, fit)
+})
+
+test_that("row 26: a list of families, one per response", {
+  skip_unless_brms_fit()
+
+  set.seed(8)
+  dd <- data.frame(x = rnorm(60))
+  dd$y1 <- rnorm(60, 1 + 0.5 * dd$x)
+  dd$y2 <- rpois(60, exp(0.3 + 0.2 * dd$x))
+  fams <- list(gaussian(), poisson())
+  fit <- frm(bf(y1 ~ x) + bf(y2 ~ x), data = dd, family = fams)
+  brms_lp_check(brms::bf(y1 ~ x) + brms::bf(y2 ~ x) +
+                  brms::set_rescor(FALSE), fams, dd, fit)
 })
 
 test_that("check C: row 7, (1 | q | g) merged across mu and sigma", {
@@ -1410,4 +1553,102 @@ test_that("row 22c: brms 2.23.0 cannot compile its own softit program", {
   expect_false(grepl("log(expm1(-p ./ (p - 1)))", code, fixed = TRUE))
   expect_false(grepl("log1p_exp(y) ./ (1 + log1p_exp(y))", code,
                      fixed = TRUE))
+})
+
+test_that("row 24: rate() on poisson, negbinomial and geometric", {
+  skip_unless_brms_fit()
+
+  # brms 2.23.0 writes rate(denom) as poisson_log_lpmf(Y | mu +
+  # log_denom) under the log link and poisson_lpmf(Y | mu .* denom)
+  # under any other, and multiplies the negative binomial's shape by
+  # denom as well: neg_binomial_2_log_lpmf(Y | mu + log_denom,
+  # shape .* denom), with shape 1 for geometric. Each shape below is
+  # check A against that program.
+  set.seed(24)
+  n <- 300
+  dr <- data.frame(x = rnorm(n), time = runif(n, 0.5, 4))
+  dr$y <- rpois(n, exp(0.2 + 0.5 * dr$x) * dr$time)
+  dr$yn <- rnbinom(n, mu = exp(0.2 + 0.5 * dr$x) * dr$time,
+                   size = 2 * dr$time)
+
+  fp <- frm(y | rate(time) ~ x, data = dr, family = poisson())
+  brms_lp_check(brms::bf(y | rate(time) ~ x), poisson(), dr, fp)
+  fps <- frm(y | rate(time) ~ x, data = dr, family = poisson("sqrt"))
+  brms_lp_check(brms::bf(y | rate(time) ~ x), poisson("sqrt"), dr, fps)
+  fn <- frm(yn | rate(time) ~ x, data = dr, family = negbinomial())
+  brms_lp_check(brms::bf(yn | rate(time) ~ x), brms::negbinomial(), dr, fn)
+  fns <- frm(bf(yn | rate(time) ~ x, shape ~ x), data = dr,
+             family = negbinomial())
+  brms_lp_check(brms::bf(yn | rate(time) ~ x, shape ~ x),
+                brms::negbinomial(), dr, fns)
+  fg <- frm(y | rate(time) ~ x, data = dr, family = geometric())
+  brms_lp_check(brms::bf(y | rate(time) ~ x), brms::geometric(), dr, fg)
+})
+
+test_that("row 25: subset() in a two-response model", {
+  skip_unless_brms_fit()
+
+  # Each response on its own rows: y2 and z are NA outside y2's subset,
+  # and brms keeps those rows because y1 does not use either variable.
+  # The family goes into each bf(), because brms's `+ family` on a
+  # multivariate formula replaces every response's family.
+  set.seed(25)
+  n <- 200
+  d <- data.frame(x = rnorm(n), z = rnorm(n),
+                  g = factor(rep(rep(letters[1:5], each = 2), n / 10)),
+                  s1 = rep(c(TRUE, FALSE), n / 2),
+                  s2 = c(rep(TRUE, 150), rep(FALSE, 50)))
+  d$y1 <- 1 + d$x + rnorm(5, 0, 0.6)[d$g] + rnorm(n)
+  d$y2 <- rpois(n, exp(0.5 - 0.3 * d$z))
+  d$y2[!d$s2] <- NA
+  d$z[!d$s2] <- NA
+
+  bfs <- brms::bf(y1 | subset(s1) ~ x, family = gaussian()) +
+    brms::bf(y2 | subset(s2) ~ z, family = poisson()) +
+    brms::set_rescor(FALSE)
+  fs <- frm(bf(y1 | subset(s1) ~ x) + gaussian() +
+              bf(y2 | subset(s2) ~ z) + poisson(), data = d)
+  chk <- brms_lp_check(bfs, NULL, d, fs)
+  expect_identical(as.integer(chk$sdat$N_y1), sum(d$s1))
+  expect_identical(as.integer(chk$sdat$N_y2), sum(d$s2))
+
+  # check C: a group-level term on a subsetted response, whose rows
+  # carry every level of g, so brms's levels and frmtmb's are one set
+  bfr <- brms::bf(y1 | subset(s1) ~ x + (1 | g), family = gaussian()) +
+    brms::bf(y2 | subset(s2) ~ z, family = poisson()) +
+    brms::set_rescor(FALSE)
+  fr <- frm(bf(y1 | subset(s1) ~ x + (1 | g)) + gaussian() +
+              bf(y2 | subset(s2) ~ z) + poisson(), data = d)
+  brms_lp_check(bfr, NULL, d, fr, joint = TRUE)
+})
+
+test_that("check C: row 25b, subset() with mi(x, idx = ) and index()", {
+  skip_unless_brms_fit()
+
+  # x is fitted on the odd rows only and imputed where it is missing
+  # there (rows 3, 7 and 21); row 8 is outside its subset and is left
+  # alone. y reads x through idx = g1, which names a row of x by its
+  # index g2, brms's Yl_x[idxl_y_x_1[n]].
+  set.seed(26)
+  n <- 240
+  dm <- data.frame(g1 = sample(seq(1, n - 1, 2), n, TRUE), g2 = seq_len(n),
+                   s = rep(c(TRUE, FALSE), n / 2), w = rnorm(n))
+  dm$x <- rnorm(n)
+  dm$y <- 1 + 0.5 * dm$x[match(dm$g1, dm$g2)] + 0.3 * dm$w +
+    rnorm(n, sd = 0.5)
+  dm$x[c(3, 7, 8, 21)] <- NA
+  bm <- brms::bf(y ~ mi(x, idx = g1) + w) +
+    brms::bf(x | mi() + index(g2) + subset(s) ~ 1) +
+    brms::set_rescor(FALSE)
+  fm <- frm(bf(y ~ mi(x, idx = g1) + w) +
+              bf(x | mi() + index(g2) + subset(s) ~ 1), data = dm,
+            family = gaussian())
+  chk <- brms_lp_check(bm, gaussian(), dm, fm, joint = TRUE)
+  # the same rows are read, and the latent values are brms's Ymi_x
+  expect_identical(as.integer(chk$sdat$idxl_y_x_1),
+                   fm$frame$linpreds[["y.mu"]]$mi[[1]]$idxl)
+  expect_identical(as.integer(chk$sdat$Jmi_x),
+                   as.integer(fm$frame$mi_map$x$rows))
+  expect_true("mixidxEQg1" %in% brms::default_prior(bm, dm)$coef)
+  expect_true("y_mixidxEQg1" %in% rownames(fixef(fm)))
 })

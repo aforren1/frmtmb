@@ -25,9 +25,14 @@ test_that("standata accepts correct response variables depending on the family",
   )
   brms_port("standata:75", "defect",
     paste0(
-      "bernoulli refuses a response with two distinct values -1 ",
-      "and -2 ('response must be 0/1'); brms codes them 1 and 0 ",
-      "(dev/brmsport-probe3.R)"),
+      "bernoulli refuses a response with the two values -1 and -2 ",
+      "('response must be 0/1'); brms codes them 1 and 0 by level ",
+      "order. Filed by lane wt-defects: the recoding has to be ",
+      "stored with the fit and applied on every refit ",
+      "(influence(), frm_bootstrap()) and every response read from ",
+      "newdata (pp_check(), residuals(newdata = ), ",
+      "predictive_error()), or a subset holding one of the two ",
+      "values is coded wrong in silence"),
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(-c(1:2),5)),
                                family = "bernoulli")$Y, as.array(rep(1:0,5)))
   )
@@ -46,19 +51,13 @@ test_that("standata accepts correct response variables depending on the family",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(0,5)),
                                family = "bernoulli")$Y, as.array(rep(0, 5)))
   )
-  brms_port("standata:83", "defect",
-    paste0(
-      "categorical() refuses integer codes 1..10 with the false ",
-      "claim 'fewer than two categories'; brms accepts positive ",
-      "integers (dev/brmsport-probe3.R)"),
+  brms_port("standata:83", "pass",
+    "",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(1:10,5)),
                                family = "categorical")$Y, as.array(rep(1:10,5)))
   )
-  brms_port("standata:85", "defect",
-    paste0(
-      "categorical() refuses integer codes 11..20 with the false ",
-      "claim 'fewer than two categories'; brms accepts them and ",
-      "recodes to 1..10"),
+  brms_port("standata:85", "pass",
+    "",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(11:20,5)),
                                family = "categorical")$Y, as.array(rep(1:10,5)))
   )
@@ -185,12 +184,8 @@ test_that("standata suggests using family bernoulli if appropriate", {
                                  family = "acat"),
                    "family 'bernoulli' might be a more efficient choice.")
   )
-  brms_port("standata:142", "defect",
-    paste0(
-      "categorical() refuses the two-category integer response ",
-      "rep(0:1, 5) with the false claim 'fewer than two ",
-      "categories', so brms's bernoulli suggestion is never ",
-      "reached"),
+  brms_port("standata:142", "pass",
+    "",
     expect_message(standata(y ~ 1, data = data.frame(y = rep(0:1,5)),
                                family = "categorical"),
                   "family 'bernoulli' might be a more efficient choice.")
@@ -247,10 +242,8 @@ test_that("standata returns correct values for addition terms", {
                                family = "binomial")$trials,
                  as.array(11:19))
   )
-  brms_port("standata:171", "cannot transfer",
-    paste0(
-      "frmtmb has no cat() addition term (brms's deprecated ",
-      "spelling of thres())"),
+  brms_port("standata:171", "pass",
+    "",
     expect_equal(SW(standata(s | cat(19) ~ 1, data = dat,
                         family = "cumulative"))$nthres,
                  18)
@@ -337,20 +330,20 @@ test_that("standata handles the 'subset' addition argument correctly", {
   brms_setup("standata:265",
     nsub2 <- sum(dat$sub2)
   )
-  brms_port("standata:266", "cannot transfer",
-    "frmtmb has no subset() addition term",
+  brms_port("standata:266", "pass",
+    "",
     expect_equal(sdata$N_y1, nsub1)
   )
-  brms_port("standata:267", "cannot transfer",
-    "frmtmb has no subset() addition term",
+  brms_port("standata:267", "pass",
+    "",
     expect_equal(sdata$N_y2, nsub2)
   )
-  brms_port("standata:268", "cannot transfer",
-    "frmtmb has no subset() addition term",
+  brms_port("standata:268", "pass",
+    "",
     expect_equal(length(sdata$Y_y1), nsub1)
   )
-  brms_port("standata:269", "cannot transfer",
-    "frmtmb has no subset() addition term",
+  brms_port("standata:269", "pass",
+    "",
     expect_equal(nrow(sdata$X_y2), nsub2)
   )
 })
@@ -411,10 +404,8 @@ test_that("standata handles 'mi' terms with 'subset'", {
   brms_setup("standata:619",
     sdata <- standata(bform, dat)
   )
-  brms_port("standata:620", "cannot transfer",
-    paste0(
-      "frmtmb has no mi(x, idx = ) and no subset() or index() ",
-      "addition terms"),
+  brms_port("standata:620", "pass",
+    "",
     expect_true(all(sdata$idxl_y_x_1 %in% 9:5))
   )
   brms_setup("standata:631",
@@ -422,10 +413,8 @@ test_that("standata handles 'mi' terms with 'subset'", {
       bf(x | mi() + subset(s) ~ 1) +
       set_rescor(FALSE)
   )
-  brms_port("standata:634", "cannot transfer",
-    paste0(
-      "frmtmb has no mi(x, idx = ); the call is refused on that, ",
-      "before the index() check brms asserts"),
+  brms_port("standata:634", "pass",
+    "",
     expect_error(standata(bform, dat),
       "Response 'x' needs to have an 'index' addition term"
     )
@@ -435,8 +424,8 @@ test_that("standata handles 'mi' terms with 'subset'", {
       bf(x | mi() + subset(s) + index(g2)  ~ 1) +
       set_rescor(FALSE)
   )
-  brms_port("standata:641", "cannot transfer",
-    "frmtmb has no subset() addition term",
+  brms_port("standata:641", "pass",
+    "",
     expect_error(standata(bform, dat),
       "mi() terms of subsetted variables require the 'idx' argument",
       fixed = TRUE
@@ -447,8 +436,8 @@ test_that("standata handles 'mi' terms with 'subset'", {
       bf(x | mi() + subset(s) + index(g2)  ~ mi(y)) +
       set_rescor(FALSE)
   )
-  brms_port("standata:649", "cannot transfer",
-    "frmtmb has no mi(x, idx = ) and no subset() addition term",
+  brms_port("standata:649", "pass",
+    "",
     expect_error(standata(bform, dat),
       "mi() terms in subsetted formulas require the 'idx' argument",
       fixed = TRUE
@@ -580,17 +569,22 @@ test_that("Cell-mean coding can be disabled", {
   )
   brms_port("standata:738", "cannot transfer",
     paste0(
-      "lf() takes no cmc argument; frmtmb refuses it with the ",
-      "misleading 'lf() takes two-sided formulas', and X_disc and ",
-      "Z_1_disc_1 are Stan data"),
+      "lf(cmc = ) works now (lane formula2), but frmtmb's ",
+      "cumulative() has no disc, so lf(disc ~ ...) is refused as a ",
+      "parameter the family lacks; X_disc and Z_1_disc_1 are Stan ",
+      "data"),
     expect_equal(sdata$X_disc, target)
   )
   brms_port("standata:739", "cannot transfer",
-    "lf() takes no cmc argument, and Z_1_disc_1 is Stan data",
+    paste0(
+      "lf(cmc = ) works now, but frmtmb's cumulative() has no disc ",
+      "(standata:738); Z_1_disc_1 is Stan data"),
     expect_equal(unname(sdata$Z_1_disc_1), as.array(rep(0:1, 5)))
   )
   brms_port("standata:740", "cannot transfer",
-    "lf() takes no cmc argument",
+    paste0(
+      "lf(cmc = ) works now, but frmtmb's cumulative() has no disc ",
+      "(standata:738)"),
     expect_true(!"Z_1_disc_2" %in% names(sdata))
   )
   brms_setup("standata:742",
@@ -599,12 +593,15 @@ test_that("Cell-mean coding can be disabled", {
   brms_setup("standata:743",
     sdata <- standata(bform, df)
   )
-  brms_port("standata:744", "cannot transfer",
-    "bf() takes no cmc argument",
+  brms_port("standata:744", "pass",
+    "",
     expect_equal(sdata$X, target)
   )
   brms_port("standata:745", "cannot transfer",
-    "bf() takes no cmc argument, and Z_1_1 is Stan data",
+    paste0(
+      "bf(cmc = ) works now and frmtmb's Z equals brms's ",
+      "(dev/formula2-findings.md 2.4); the row reads Z_1_1, which ",
+      "the harness's standata view does not carry"),
     expect_equal(unname(sdata$Z_1_1), as.array(rep(1, 10)))
   )
 })
@@ -616,12 +613,13 @@ test_that("dots in formula are correctly expanded", {
   brms_setup("standata:927",
     sdata <- standata(y ~ ., dat)
   )
-  brms_port("standata:928", "defect",
+  brms_port("standata:928", "divergence",
     paste0(
-      "y ~ . is not expanded: frm() dies with R's ''.' in formula ",
-      "and no data argument' on the fit route and the frame route ",
-      "alike, where brms expands the dot against the data ",
-      "(dev/brmsport-probe3.R)"),
+      "y ~ . expands against the data as brms's does (lane ",
+      "formula2); brms's data has x1 == x2, and frmtmb drops the ",
+      "aliased x2 as lm() does ('rank deficient; dropping ",
+      "column(s): x2'), where brms keeps a column that only its ",
+      "prior places"),
     expect_equal(colnames(sdata$X), c("Intercept", "x1", "x2"))
   )
 })
@@ -662,8 +660,8 @@ test_that("standata handles addition term 'rate' is correctly", {
   brms_setup("standata:1046",
     sdata <- standata(y | rate(time) ~ x, data, poisson())
   )
-  brms_port("standata:1047", "cannot transfer",
-    "frmtmb has no rate() addition term",
+  brms_port("standata:1047", "pass",
+    "",
     expect_equal(sdata$denom, as.array(data$time))
   )
 })

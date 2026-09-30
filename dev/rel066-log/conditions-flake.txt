@@ -1,0 +1,10 @@
+FLAKE base-r3-1 frmtmb 0.65.0 pass=150 fail=0 err=0
+FLAKE base-r3-2 frmtmb 0.65.0 pass=150 fail=0 err=0
+FLAKE base-r3-3 frmtmb 0.65.0 pass=150 fail=0 err=0
+FLAKE base-r3-4 frmtmb 0.65.0 pass=150 fail=0 err=0
+FLAKE base-r3-5 frmtmb 0.65.0 pass=150 fail=0 err=0
+FLAKE release-r4-1 frmtmb 0.66.0 pass=150 fail=0 err=0
+FLAKE release-r4-2 frmtmb 0.66.0 pass=150 fail=0 err=0
+FLAKE release-r4-3 frmtmb 0.66.0 pass=150 fail=0 err=0
+FLAKE release-r4-4 frmtmb 0.66.0 pass=150 fail=0 err=0
+FLAKE release-r4-5 frmtmb 0.66.0 pass=150 fail=0 err=0

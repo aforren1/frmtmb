@@ -1,0 +1,78 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+brms-likelihood: ...........................................LPCHECK const -1.98951966e-13 grad 0.000264 ours -239.5389775
+..LPCHECK const 0.6931471806 grad 2e-05 ours -419.9122402
+..LPCHECK const 0.6931471806 grad 5.82e-07 ours -490.3057939
+......LPCHECK const 1.386294361 grad 2.98e-06 ours -419.073982
+..LPCHECK const -1.421085472e-14 grad 1.55e-06 ours 70.10833978
+..LPCHECK const 0 grad 0.000163 ours -307.5964324
+..LPCHECK const 0 grad 0.000175 ours -308.6083981
+..LPCHECK const 0 grad 0.000175 ours -308.6083981
+..LPCHECK const 0 grad 2.78e-05 ours -307.792387
+..LPCHECK const 0 grad 0.000478 ours -307.6443944
+..LPCHECK const -5.684341886e-14 grad 2.61e-06 ours -309.6371766
+..LPCHECK const 0 grad 6.58e-07 ours -308.4619394
+..LPCHECK const 0 grad 8.03e-05 ours -309.6371766
+..LPCHECK const -5.684341886e-14 grad 3.24e-09 ours -307.7513524
+..LPCHECK const 0 grad 0.000952 ours -308.09022
+..LPCHECK const 0 grad 5.39e-05 ours -304.0985911
+..LPCHECK const 0 grad 5.39e-05 ours -304.0985911
+..LPCHECK const 0 grad 5.12e-06 ours -303.5913166
+..LPCHECK const 0 grad 5.39e-05 ours -304.0985911
+..LPCHECK const 0 grad 5.39e-05 ours -304.0985911
+..LPCHECK const 5.684341886e-14 grad 0.000287 ours -320.5678711
+..LPCHECK const -5.684341886e-14 grad 3.42e-05 ours -320.3584304
+..LPCHECK const -2.842170943e-14 grad 0.000145 ours -233.840815
+..LPCHECK const -5.684341886e-14 grad 4.05e-06 ours -336.4494199
+..LPCHECK const -2.842170943e-13 grad 2.85e-09 ours -314.08405
+..LPCHECK const 0 grad 2e-05 ours -418.0973158
+..LPCHECK const 0 grad 5.24e-05 ours -517.8777594
+..LPCHECK const -1.136868377e-13 grad 0.000763 ours -201.8105524
+....LPCHECK const 3.410605132e-13 grad 1.14e-05 ours -64.29285721
+..LPCHECK const 0 grad 0.000183 ours -607.3538692
+..LPCHECK const 0 grad 0.000133 ours -401.8064226
+..LPCHECK const 0 grad 0.000113 ours -426.6216138
+..LPCHECK const -1.136868377e-13 grad 0.000146 ours -330.0132697
+..LPCHECK const -1.705302566e-13 grad 7.96e-05 ours -399.3834532
+..LPCHECK const 5.684341886e-14 grad 7.17e-06 ours -361.333242
+..LPCHECK const -5.684341886e-13 grad 0.000276 ours -435.9644956
+..LPCHECK const 0 grad 6.23e-09 ours -149.6078844
+...LPCHECK const 2.273736754e-13 grad 1.42e-14 ours -863.1770387
+Setting order = 'mu' for mixtures of the same family.
+..LPCHECK const 0 grad 0.000318 ours -787.6242533
+Setting order = 'mu' for mixtures of the same family.
+..LPCHECK const 0 grad 0.000318 ours -787.6242533
+...LPCHECK const 0 grad 1.5e-10 ours -634.3994911
+...LPCHECK const 0.6931471806 grad 8.6e-16 ours -503.9783872
+...LPCHECK const -5.684341886e-14 grad 1.63e-19 ours -436.4760862
+.......................LPCHECK const -1.136868377e-13 grad 0.000318 ours -323.6488714
+............................LPCHECK const 5.684341886e-14 grad 1.78e-15 ours -307.0350863
+............................LPCHECK const -2.273736754e-13 grad 4.94e-15 ours -362.8167892
+...LPCHECK const -8.526512829e-14 grad 1.09e-11 ours -233.3309124
+...LPCHECK const -5.684341886e-14 grad 2.11e-15 ours -167.9400498
+...LPCHECK const -8.526512829e-14 grad 2.22e-15 ours -187.3006559
+..................LPCHECK const -7.105427358e-14 grad 6.44e-15 ours 65.49933219
+........................LPCHECK const 1.705302566e-13 grad 6.75e-14 ours -313.5655257
+.........................LPCHECK const 2.842170943e-14 grad 1.95e-14 ours -117.2414868
+..................LPCHECK const -1.065814104e-14 grad 2.46e-14 ours -26.94953551
+.......................LPCHECK const -2.557953849e-13 grad 0.000459 ours -197.1981869
+...LPCHECK const 2.557953849e-13 grad 3.26e-05 ours -208.9722958
+............LPCHECK const -1.98951966e-13 grad 0.000232 ours -186.1492159
+....LPCHECK const 8.526512829e-14 grad 0.000139 ours -193.015858
+....LPCHECK const 1.421085472e-13 grad 7.6e-05 ours -197.9193879
+....LPCHECK const -8.526512829e-14 grad 5.44e-05 ours -190.0956835
+....................LPCHECK const 6.149684293 grad 4.88e-15 ours -80.88528444
+................LPCHECK const 5.253269634 grad 2.67e-12 ours -69.69554735
+...........................LPCHECK const 2.03704161 grad 2.44e-14 ours -74.88561453
+......LPCHECK const 1.386294361 grad 2.53e-06 ours -264.0800563
+..LPCHECK const 0 grad 5.89e-06 ours -143.9758982
+..LPCHECK const 0 grad 0.000117 ours -143.9771556
+..LPCHECK const 1.307398634e-12 grad 6.83e-05 ours -390.6939132
+..LPCHECK const -9.70601377e-12 grad 0.000155 ours 120.0122645
+..LPCHECK const 6.821210263e-13 grad 1.32e-06 ours -515.9510083
+..LPCHECK const -2.842170943e-13 grad 0.000794 ours -441.4878086
+..LPCHECK const 5.115907697e-13 grad 0.000401 ours -441.886747
+..LPCHECK const 1.172395514e-13 grad 0.000206 ours -24.34931633
+.....
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-brms-likelihood.R pass=450 fail=0 err=0 skip=0 warn=0 blocks=44

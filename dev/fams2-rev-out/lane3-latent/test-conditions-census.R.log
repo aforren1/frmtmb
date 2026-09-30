@@ -1,0 +1,7 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.latent  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/extensions/frmtmb.latent/tests/testthat 
+Loading required package: frmtmb
+conditions-census: ...........
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🌈 Your tests are over the rainbow 🌈
+RESULT lane frmtmb.latent test-conditions-census.R pass=11 fail=0 err=0 skip=0 warn=0 blocks=2

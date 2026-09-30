@@ -11,7 +11,7 @@
 # both gone, and a hardcoded path makes the guards unrunnable rather
 # than red.
 .libPaths(c(Sys.getenv("FRMTMB_PORT_LIB",
-                       "C:/Users/adf44/source/r/rellib-r3"),
+                       "C:/Users/adf44/source/r/rellib-r4"),
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 suppressPackageStartupMessages({
   library(testthat)
@@ -124,6 +124,28 @@ res <- c(
       "brms_port('u:5', 'pass', '', expect_length(fit$data$y, 0))"),
   run("U5 control: expect_length on a real element", 0L,
       "brms_port('u:5c', 'pass', '', expect_length(d$y, 20))"),
+  # lane wt-defects, from the aterms2 review: all() over nothing is TRUE
+  run("E1 expect_true(all()) over NULL %in% y, a final absent name", 1L,
+      "brms_port('e:1', 'pass', '', expect_true(all(list(a = 1)$b %in% 9:5)))"),
+  run("E1 control: expect_true(all()) over a real element", 0L,
+      "brms_port('e:1c', 'pass', '', expect_true(all(list(b = 7)$b %in% 9:5)))"),
+  run("E2 expect_false(any()) over an empty vector", 1L,
+      "brms_port('e:2', 'pass', '', expect_false(any(logical(0))))"),
+  run("E2 control: expect_false(any()) over a real FALSE", 0L,
+      "brms_port('e:2c', 'pass', '', expect_false(any(c(FALSE, FALSE))))"),
+  # punch round 1 of lane wt-defects: the spellings the rule reads through
+  run("E3 isTRUE(all()) over NULL %in% y", 1L,
+      "brms_port('e:3', 'pass', '', expect_true(isTRUE(all(NULL %in% 1:3))))"),
+  run("E4 expect_true(!any()) over an empty vector", 1L,
+      "brms_port('e:4', 'pass', '', expect_true(!any(logical(0))))"),
+  run("E4 control: expect_true(!any()) over a real FALSE", 0L,
+      "brms_port('e:4c', 'pass', '', expect_true(!any(c(FALSE, FALSE))))"),
+  run("E5 testthat::expect_true(all()) over an empty vector", 1L,
+      "brms_port('e:5', 'pass', '', testthat::expect_true(all(integer(0) == 1)))"),
+  run("E6 all(x, na.rm = TRUE) over an empty vector", 1L,
+      "brms_port('e:6', 'pass', '', expect_true(all(logical(0), na.rm = TRUE)))"),
+  run("E6 control: all(x, na.rm = TRUE) over real values", 0L,
+      "brms_port('e:6c', 'pass', '', expect_true(all(c(TRUE, NA), na.rm = TRUE)))"),
   run("U6 argument refusal in other words", 1L,
       "brms_port('u:6', 'pass', '', expect_error(frmtmb::bf(y ~ x, sigma1 = 'sigma2'), 'sigma'))"),
   run("U7 stale through assign()", 1L,

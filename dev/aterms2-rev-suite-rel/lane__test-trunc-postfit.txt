@@ -1,0 +1,6 @@
+ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
+trunc-postfit: ...................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-trunc-postfit.R pass=35 fail=0 error=0 skip=0 warn=0

@@ -1,0 +1,116 @@
+models: 40 
+DIFF sratio_cs      fitted_lin         all.equal(no attr)=FALSE
+   base:  1.618349794 -0.543619794  0.391576355  0.676606786  0.306901677 -0.723396204 -1.449511116  0.604072292 -0.611467192 -0.142982860 -1.004914247 -0.752434473  0.358450436  0.890958434  0.469542889 -0.411783980  0.544113443 -1.335096372  1.134095846 -0.041882091  0.212568121 -0.717537342 -0.130042242 - 
+   lane:  2.4221799877 -1.5917539279 -0.2287946100 -0.1395770938 -0.3597866471 -0.8339770508 -1.0741510872  1.4030022371 -0.6937045097 -0.1282064050 -0.3976213284  0.2451832164  0.5002649192  1.3531324521  2.1858852815 -0.9691807734  1.1533561413 -1.4856655211  1.2029824449 -0.0905135192  0.0999050957 -0.716 
+DIFF acat_cs        fitted_lin         all.equal(no attr)=FALSE
+   base:  1.010441694 -0.339417416  0.244486746  0.422449898  0.191618803 -0.451663594 -0.905024656  0.377161867 -0.381778987 -0.089273557 -0.627433733 -0.469794086  0.223804067  0.556283661  0.293166356 -0.257103689  0.339725633 -0.833588044  0.708090260 -0.026149730  0.132720190 -0.448005524 -0.081193883 - 
+   lane:  1.737160854 -1.287004561 -0.316372339 -0.315437865 -0.411114440 -0.551636476 -0.565672730  1.099450858 -0.456127320 -0.075914600 -0.078398124  0.432122631  0.352014357  0.974121554  1.844860872 -0.761029683  0.890523981 -0.969713169  0.770368602 -0.070115970  0.030864873 -0.447222199 -0.960587783   
+DIFF mixture        family             all.equal(no attr)=FALSE
+   base only:
+     Family: mixture(gaussian, gaussian) 
+   lane only:
+     Mixture
+     Family: gaussian 
+
+DIFF mv_rescor      resid              all.equal(no attr)=FALSE
+   base only:
+     ERROR: residuals() is not supported yet for multivariate fits
+   lane only:
+     1.626243
+     0.09309888
+     -0.2935967
+     0.5428076
+     -0.7694677
+     -0.6914096
+
+DIFF mv_rescor      resid_p            all.equal(no attr)=FALSE
+   base only:
+     ERROR: residuals() is not supported yet for multivariate fits
+   lane only:
+     1.490014
+     0.08530007
+     -0.2690024
+     0.4973371
+     -0.7050101
+     -0.6334908
+
+DIFF mv_norescor    resid              all.equal(no attr)=FALSE
+   base only:
+     ERROR: residuals() is not supported yet for multivariate fits
+   lane only:
+     1.413651
+     0.1685694
+     -0.3427325
+     0.4556941
+     -0.8073214
+     -0.5919855
+
+DIFF mv_norescor    resid_p            all.equal(no attr)=FALSE
+   base only:
+     ERROR: residuals() is not supported yet for multivariate fits
+   lane only:
+     1.30144
+     0.1551889
+     -0.3155275
+     0.4195226
+     -0.7432389
+     -0.5449956
+
+DIFF gp             summary            all.equal(no attr)=FALSE
+   lane only:
+     Gaussian Process Hyperparameters:
+                 Estimate Est.Error l-95% CI u-95% CI
+     sdgp(gpx)       1.65       1.0     0.50     5.42
+     lscale(gpx)     0.28       0.1     0.15     0.55
+
+DIFF gp             print              all.equal(no attr)=FALSE
+   lane only:
+     Gaussian Process Hyperparameters:
+                 Estimate Est.Error l-95% CI u-95% CI
+     sdgp(gpx)       1.65       1.0     0.50     5.42
+     lscale(gpx)     0.28       0.1     0.15     0.55
+
+DIFF smooth         prior              all.equal(no attr)=FALSE
+   base: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma", "sd", "sd", "theta", "theta") c("", "", "z", "s(x).fx1", "", "", "", "", "theta_1") c("", "", "", "", "", "", "s(x)", "", "") c("", "", "", "", "", "", "", "", "") c("", 
+   lane: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma", "sd", "sd", "theta", "theta") c("", "", "sx_1", "z", "", "", "", "", "theta_1") c("", "", "", "", "", "", "s(x)", "", "") c("", "", "", "", "", "", "", "", "") c("", "", 
+DIFF smooth2        prior              all.equal(no attr)=FALSE
+   base: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma", "sd", "sd", "theta", "theta") c("", "", "s(x,z).fx1", "s(x,z).fx2", "", "", "", "", "theta_1") c("", "", "", "", "", "", "s(x,z)", "", "") c("", "", "", "", "", "", "",  
+   lane: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma", "sd", "sd", "theta", "theta") c("", "", "sxz_1", "sxz_2", "", "", "", "", "theta_1") c("", "", "", "", "", "", "s(x,z)", "", "") c("", "", "", "", "", "", "", "", "") c( 
+DIFF nonlin         prior              all.equal(no attr)=FALSE
+   base: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("b", "b", "b", "b", "b", "b", "sigma") c("", "(Intercept)", "", "(Intercept)", "", "(Intercept)", "") c("", "", "", "", "", "", "") c("", "", "", "", "", "", "") c("", "", "", "", "", "", "") c("b0", "b0", "b1", "b1", "b2", "b 
+   lane: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("b", "b", "b", "b", "b", "b", "sigma") c("", "Intercept", "", "Intercept", "", "Intercept", "") c("", "", "", "", "", "", "") c("", "", "", "", "", "", "") c("", "", "", "", "", "", "") c("b0", "b0", "b1", "b1", "b2", "b2", "" 
+DIFF me             prior              all.equal(no attr)=FALSE
+   base: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma") c("", "", "z", "mexmsdx", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("NA", "NA", "NA", "NA", "NA") c("NA", "NA", "NA", "NA", "NA") c("default", "default", "de 
+   lane: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma") c("", "", "mexmsdx", "z", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("NA", "NA", "NA", "NA", "NA") c("NA", "NA", "NA", "NA", "NA") c("default", "default", "de 
+DIFF mi             resid              all.equal(no attr)=FALSE
+   base only:
+     ERROR: residuals() is not supported yet for multivariate fits
+   lane only:
+     0.8957065
+     0.7995217
+     0.003302124
+     0.9001675
+     -0.4311804
+     -0.485506
+
+DIFF mi             resid_p            all.equal(no attr)=FALSE
+   base only:
+     ERROR: residuals() is not supported yet for multivariate fits
+   lane only:
+     0.8649626
+     0.7720792
+     0.003188784
+     0.8692705
+     -0.4163807
+     -0.4688417
+
+DIFF mi             prior              all.equal(no attr)=FALSE
+   base: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma", "Intercept", "b", "b", "sigma") c("", "", "z", "mixmi", "", "", "", "z", "") c("", "", "", "", "", "", "", "", "") c("y", "y", "y", "y", "y", "xmi", "xmi", "xmi", "xmi") 
+   lane: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma", "Intercept", "b", "b", "sigma") c("", "", "mixmi", "z", "", "", "", "z", "") c("", "", "", "", "", "", "", "", "") c("y", "y", "y", "y", "y", "xmi", "xmi", "xmi", "xmi") 
+DIFF mo             prior              all.equal(no attr)=FALSE
+   base: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma") c("", "", "x", "momof", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("NA", "NA", "NA", "NA", "NA") c("NA", "NA", "NA", "NA", "NA") c("default", "default", "defa 
+   lane: c("(flat)", "(flat)", "(flat)", "(flat)", "(flat)") c("Intercept", "b", "b", "b", "sigma") c("", "", "momof", "x", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("", "", "", "", "") c("NA", "NA", "NA", "NA", "NA") c("NA", "NA", "NA", "NA", "NA") c("default", "default", "defa 
+DIFF cs_re          fitted_lin         all.equal(no attr)=FALSE
+   base:  0.217658741  0.217658741  0.217658741  0.217658741  0.217658741  0.217658741  0.217658741  0.217658741  0.217658741  0.217658741 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -1.240404145 -0.025417530 -0.025417530 -0.025417530 - 
+   lane:  2.2378476210 -0.4609427996  0.7064641897  1.0622681753  0.6007646413 -0.6853580061 -1.5917685211  0.9717232396 -0.5456368244  0.0391729870 -2.4948403571 -2.1796694134 -0.7929498385 -0.1282191724 -0.6542729345 -1.7544348079 -0.5611863815 -2.9070072820  0.1752896843 -1.2926856315  0.2399316280 -0.921 
+items compared: 800  different: 18 

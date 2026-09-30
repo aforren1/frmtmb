@@ -1,0 +1,5 @@
+glmm-gaussian: .................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-glmm-gaussian.R pass=17 fail=0 error=0 skip=0 warn=0

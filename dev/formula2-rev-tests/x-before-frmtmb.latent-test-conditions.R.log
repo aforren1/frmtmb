@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.latent C:/Users/adf44/source/r/rellib-r3/frmtmb 
+conditions: ......
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb.latent test-conditions.R gated=FALSE pass=6 fail=0 err=0 skip=0 warn=0

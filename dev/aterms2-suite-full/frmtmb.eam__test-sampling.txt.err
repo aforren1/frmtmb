@@ -1,0 +1,3 @@
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes

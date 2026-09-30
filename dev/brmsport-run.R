@@ -13,7 +13,7 @@
 # round could not run the tier at all without editing the runner. Set
 # `FRMTMB_PORT_LIB` to the library holding the build under test; the
 # round's reference build is the default.
-lib <- Sys.getenv("FRMTMB_PORT_LIB", "C:/Users/adf44/source/r/rellib-r3")
+lib <- Sys.getenv("FRMTMB_PORT_LIB", "C:/Users/adf44/source/r/rellib-r4")
 .libPaths(c(lib, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 
 # The StanHeaders 2.32.10 pin is gone (2026-09-17); this file used to

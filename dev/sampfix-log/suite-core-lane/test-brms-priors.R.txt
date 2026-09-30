@@ -1,0 +1,34 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-priors                                                    
+⠋ |          1 | brms-priors                                                    
+⠙ |          2 | brms-priors                                                    
+⠴ |          6 | brms-priors                                                    
+⠏ |         10 | brms-priors                                                    
+⠋ |         11 | brms-priors                                                    
+⠹ |         13 | brms-priors                                                    Setting order = 'mu' for mixtures of the same family.
+
+⠼ |         15 | brms-priors                                                    
+⠏ |         20 | brms-priors                                                    
+⠹ |         23 | brms-priors                                                    
+⠴ |         26 | brms-priors                                                    
+⠇ |         29 | brms-priors                                                    
+⠙ |         32 | brms-priors                                                    
+⠼ |         35 | brms-priors                                                    
+⠇ |         39 | brms-priors                                                    
+⠋ |         51 | brms-priors                                                    
+⠸ |         54 | brms-priors                                                    
+⠼ |         65 | brms-priors                                                    
+⠏ |         70 | brms-priors                                                    
+⠦ |         77 | brms-priors                                                    
+⠴ |         86 | brms-priors                                                    Setting order = 'mu' for mixtures of the same family.
+
+⠧ |         98 | brms-priors                                                    
+✔ |        103 | brms-priors [11.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 11.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 103 ]
+RESULT lane test-brms-priors.R: tests 12 pass 103 fail 0 error 0 skip 0 warn 0

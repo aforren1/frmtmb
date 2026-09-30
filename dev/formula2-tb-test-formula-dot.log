@@ -1,0 +1,37 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb 
+formula-dot: 123
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-formula-dot.R:14:5'): `.` expands to brms's formula and brms'
+<frmtmb_error/error/condition>
+Error: A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(f, data = dat, dry_run = "frame") at test-formula-dot.R:14:5
+ 2.   └─frmtmb:::assemble_frame(...)
+ 3.     └─frmtmb:::check_frame_variables(rhs_comb, data, env)
+ 4.       └─frmtmb::frm_stop(...)
+
+── 2. Error ('test-formula-dot.R:41:3'): a model with `.` is the model with the 
+<frmtmb_error/error/condition>
+Error: A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(y ~ ., data = d) at test-formula-dot.R:41:3
+ 2.   └─frmtmb:::assemble_frame(...)
+ 3.     └─frmtmb:::check_frame_variables(rhs_comb, data, env)
+ 4.       └─frmtmb::frm_stop(...)
+
+── 3. Error ('test-formula-dot.R:62:3'): update() reads a bf() delta as brms doe
+<frmtmb_error/error/condition>
+Error: The model formula needs a response (left-hand side)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(formula = bf(~., family = acat()), data = d, family = cumulative())
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+I believe in you!
+RESULT frmtmb test-formula-dot.R pass=0 fail=0 err=3 skip=0 warn=0

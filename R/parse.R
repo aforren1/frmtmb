@@ -19,7 +19,15 @@ frmtmb_aterm_registry$reg <- list()
 #'
 #' @noRd
 core_aterms <- c("weights", "trials", "cens", "trunc", "se",
-                 "vint", "vreal", "mi", "thres")
+                 "vint", "vreal", "mi", "thres", "rate", "subset",
+                 "index", "cat")
+
+#' The addition terms that choose ROWS rather than carry data to a
+#' density. The core acts on them for every family, so no family
+#' declares them and no density reads them.
+#'
+#' @noRd
+row_aterms <- c("subset", "index")
 
 #' Add an addition term from another package
 #'
@@ -194,6 +202,7 @@ parse_response <- function(formula) {
   resp <- lhs
   if (is.call(lhs) && identical(lhs[[1]], as.name("|"))) {
     resp <- lhs[[2]]
+    cat_seen <- FALSE
     for (tm in split_plus(lhs[[3]])) {
       if (!is.call(tm)) {
         frm_stop("Malformed addition term: ", deparse1(tm), call. = FALSE)
@@ -212,6 +221,15 @@ parse_response <- function(formula) {
       }
       multi <- nm %in% c("vint", "vreal") ||
         isTRUE((frmtmb_aterm_registry$reg[[nm]] %||% list())$arity > 1L)
+      # cat(x) is brms's older spelling of thres(x - 1): the two set one
+      # datum, and brms lets cat() win silently
+      if ((nm == "cat" &&
+             any(c("thres", "thres_gr") %in% names(aterms))) ||
+          (nm == "thres" && cat_seen)) {
+        frm_stop("The number of thresholds is set twice. cat(x) is brms's ",
+                 "deprecated spelling of thres(x - 1); write one cat() or ",
+                 "one thres()", call. = FALSE)
+      }
       if (nm %in% names(aterms) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
@@ -261,6 +279,26 @@ parse_response <- function(formula) {
         args <- as.list(mc)[-1L]
         if (!is.null(args$x)) aterms[["thres"]] <- args$x
         if (!is.null(args$gr)) aterms[["thres_gr"]] <- args$gr
+      } else if (nm == "cat") {
+        # brms's resp_cat(): the number of CATEGORIES, kept as the
+        # threshold count one below it, with no threshold groups
+        if (length(tm) != 2L || !is.null(names(tm)) &&
+              !names(tm)[2L] %in% c("", "x")) {
+          frm_stop("cat() takes the number of categories: cat(x)",
+                   call. = FALSE)
+        }
+        frm_warning("Addition argument 'cat' is deprecated. Use 'thres' ",
+                    "instead: cat(", deparse1(tm[[2L]]), ") is thres(",
+                    deparse1(tm[[2L]]), " - 1)", call. = FALSE)
+        # a literal stays a literal: a call would enter the model frame
+        # as a length-one column
+        aterms[["thres"]] <- if (is.numeric(tm[[2L]])) {
+          tm[[2L]] - 1
+        } else {
+          call("-", tm[[2L]], 1)
+        }
+        # so that a thres() after it is refused as a second count
+        cat_seen <- TRUE
       } else if (nm %in% c("vint", "vreal")) {
         # custom-family data vectors (brms vint()/vreal()): each
         # argument becomes aterms$vint1, vint2, ... for the lpdf
@@ -311,6 +349,27 @@ parse_response <- function(formula) {
     }
   }
   list(resp = resp, aterms = aterms)
+}
+
+#' The arguments of a predictor `mi()` call, brms's `mi(x, idx = NA)`.
+#' `idx` names the variable whose values locate each row among the
+#' rows of the response `x`, through that response's `index()` term;
+#' it is `NULL` when absent. brms takes one plain variable for each.
+#'
+#' @noRd
+mi_pred_args <- function(tm, msg) {
+  mc <- tryCatch(match.call(function(x, idx) NULL, tm),
+                 error = function(e) frm_stop(msg, call. = FALSE))
+  args <- as.list(mc)[-1L]
+  if (!is.name(args$x)) frm_stop(msg, call. = FALSE)
+  idx <- args$idx
+  if (!is.null(idx) && !is.name(idx) &&
+        !(is.logical(idx) && length(idx) == 1L && is.na(idx))) {
+    frm_stop("mi(", deparse1(args$x), ", idx = ", deparse1(idx), "): ",
+             "idx takes one variable name, as brms's does", call. = FALSE)
+  }
+  if (is.logical(idx)) idx <- NULL
+  list(expr = args$x, idx = idx)
 }
 
 #' glm(), lme4 and glmmTMB all spell a two-column binomial response
@@ -668,6 +727,36 @@ special_term_refusal <- function(tm) {
            paste0(", or give a smooth its varying coefficient with ",
                   "by =, e.g. s(z, by = x)")
          })
+}
+
+#' The formula helpers that build a model rather than a term.
+#'
+#' Written inside a formula, `y ~ x + set_rescor(TRUE)`, one of these
+#' reached `model.frame()` as a variable and died there with R's
+#' "invalid type (list) for variable", which names neither the helper
+#' nor the fix. brms refuses the same terms by name
+#' (`check_accidental_helper_functions()`). As there, a function the
+#' user defined under the same name is left alone. A name that resolves
+#' to nothing is refused too, since `frmtmb::frm()` with the package not
+#' attached would otherwise die on "could not find function".
+#'
+#' @noRd
+formula_helper_funs <- c("nlf", "lf", "set_rescor", "set_mecor")
+
+#' @noRd
+check_helper_in_formula <- function(terms_list, env) {
+  ns <- asNamespace("frmtmb")
+  for (tm in terms_list) {
+    if (!is.call(tm) || !is.name(tm[[1L]])) next
+    fn <- as.character(tm[[1L]])
+    if (!fn %in% formula_helper_funs) next
+    found <- get0(fn, envir = env %||% globalenv(), mode = "function")
+    if (!is.null(found) && !identical(found, get(fn, envir = ns))) next
+    frm_stop("Function '", fn, "' should not be part of the right-hand ",
+             "side of a formula. It builds the model, so add it to the ",
+             "formula instead: bf(y ~ x) + ", fn, "(...)", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' A term's labels as `terms()` expands them, or `NULL` when it cannot.
@@ -1117,6 +1206,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # Evaluating the calls with mgcv's own constructors parses k=, by=,
   # bs=, and multi-variable smooths for free.
   terms_list <- split_plus(reformulas::RHSForm(rhs_form))
+  check_helper_in_formula(terms_list, env)
   # a whole-term special inside a larger term is refused here, and a term
   # that terms() collapses to bare specials (s(z) * s(z)) becomes them,
   # so every branch below sees a special only as a term of its own
@@ -1139,6 +1229,15 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       if (is.character(l)) str2lang(l) else l
     })
   }), recursive = FALSE)
+  # brms's cse() is cs() under a second name (the two are one function
+  # there); the bar form stays whatever cs(x | g) is
+  terms_list <- lapply(terms_list, function(tm) {
+    if (is.call(tm) && identical(tm[[1L]], as.name("cse")) &&
+        !("|" %in% all.names(tm))) {
+      tm[[1L]] <- as.name("cs")
+    }
+    tm
+  })
   # a whole-term special written twice is one term, as brms's terms()
   # keeps one copy of a repeated label: s(z) + s(z) built two smooths
   # with one column name
@@ -1207,22 +1306,23 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         frm_stop("te() and ti() smooths are not supported (no random-effect ",
                  "representation); use t2() instead", call. = FALSE)
       }
-      smooth[[length(smooth) + 1L]] <-
-        eval(tm, list(s = mgcv::s, t2 = mgcv::t2), enclos = env)
+      smsp <- eval(tm, list(s = mgcv::s, t2 = mgcv::t2), enclos = env)
+      # the term as written, whitespace removed: brms's name for it, and
+      # the key conditional_smooths() selects and labels a term by
+      attr(smsp, "frm_term") <- gsub("[ \t\r\n]+", "", deparse1(tm))
+      smooth[[length(smooth) + 1L]] <- smsp
     } else if (is.call(tm) && identical(tm[[1]], as.name("mo"))) {
       if (length(tm) != 2L) {
         frm_stop("mo() takes exactly one variable", call. = FALSE)
       }
       mo[[length(mo) + 1L]] <- list(expr = tm[[2]], mult = NULL)
     } else if (is.call(tm) && identical(tm[[1]], as.name("mi"))) {
-      if (length(tm) != 2L || !is.name(tm[[2]])) {
-        frm_stop("mi() in a predictor takes one variable name: mi(x)",
-                 call. = FALSE)
-      }
-      # the interaction branch below repeats this check with its own
+      # the interaction branch below reads the call with its own
       # message, because there the offending mi() sits inside a `:`
-      miterms[[length(miterms) + 1L]] <- list(expr = tm[[2]],
-                                              mult = NULL)
+      ma <- mi_pred_args(tm, paste0("mi() in a predictor takes one ",
+                                    "variable name: mi(x)"))
+      miterms[[length(miterms) + 1L]] <- list(expr = ma$expr,
+                                              mult = NULL, idx = ma$idx)
     } else if (is.call(tm) &&
                (identical(tm[[1]], as.name(":")) ||
                   identical(tm[[1]], as.name("*"))) &&
@@ -1248,19 +1348,18 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                  deparse1(tm), call. = FALSE)
       }
       spn <- as.character(sp[[1]])[1]
-      entry <- list(expr = sp[[2]], mult = other)
       if (spn == "mo") {
+        entry <- list(expr = sp[[2]], mult = other)
         mo[[length(mo) + 1L]] <- entry
         if (op_star) mo[[length(mo) + 1L]] <- list(expr = sp[[2]],
                                                    mult = NULL)
       } else {
-        if (!is.name(sp[[2]])) {
-          frm_stop("mi() in an interaction takes one variable name: ",
-                   "mi(x):z", call. = FALSE)
-        }
-        miterms[[length(miterms) + 1L]] <- entry
+        ma <- mi_pred_args(sp, paste0("mi() in an interaction takes one ",
+                                      "variable name: mi(x):z"))
+        miterms[[length(miterms) + 1L]] <- list(expr = ma$expr,
+                                                mult = other, idx = ma$idx)
         if (op_star) miterms[[length(miterms) + 1L]] <-
-          list(expr = sp[[2]], mult = NULL)
+          list(expr = ma$expr, mult = NULL, idx = ma$idx)
       }
       if (op_star) rest[[length(rest) + 1L]] <- other
     } else if (is.call(tm) && identical(tm[[1]], as.name("gp"))) {
@@ -2040,6 +2139,10 @@ parse_one_response <- function(bform) {
   if (!is.null(main_lp) && isFALSE(bform[["center"]])) {
     main_lp[["center"]] <- FALSE
   }
+  # and so is bf(cmc = FALSE); lf(cmc = FALSE) sets a parameter's own
+  if (!is.null(main_lp) && isFALSE(bform[["cmc"]])) {
+    main_lp[["cmc"]] <- FALSE
+  }
 
   # A family may ship a DEFAULT formula for some of its own dpars, which
   # stands in wherever the user wrote neither a formula nor a fixed
@@ -2069,7 +2172,31 @@ parse_one_response <- function(bform) {
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
                         environment(pf) %||% env, shared_env)
     if (isFALSE(attr(pf, "center", exact = TRUE))) lp[["center"]] <- FALSE
+    if (isFALSE(attr(pf, "cmc", exact = TRUE))) lp[["cmc"]] <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)
+  }
+
+  # bf(sigma1 = "sigma2"): what brms can refuse only once the family is
+  # known, with brms's messages (brms:::stan_predictor.brmsframe() and
+  # brms:::brmsformula())
+  for (dp in names(pfix)) {
+    to <- pfix[[dp]]
+    if (!is.character(to)) next
+    if (!dp %in% fam[["dpars"]]) {
+      frm_stop("Invalid fixed parameters: '", dp, "' is not a ",
+               "distributional parameter of family '", fam[["family"]],
+               "', so it cannot be equated to '", to, "'", call. = FALSE)
+    }
+    if (!to %in% fam[["dpars"]]) {
+      frm_stop("Parameter '", to, "' cannot be found. Family '",
+               fam[["family"]], "' has: ",
+               paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
+    }
+    if (to %in% c(names(pforms), nl_dpars)) {
+      frm_stop("Cannot use predicted parameters on the right-hand side of ",
+               "an equation. '", to, "' has a formula, the family's own ",
+               "default formula included", call. = FALSE)
+    }
   }
 
   dpars <- list()
@@ -2091,6 +2218,14 @@ parse_one_response <- function(bform) {
       lin_dpar(dp, fam[["links"]][[dp]])
     } else if (dp %in% primaries) {
       c(list(name = dp, link = fam[["links"]][[dp]], constant = NULL), main_lp)
+    } else if (is.character(pfix[[dp]])) {
+      # an equated dpar reads its target's coefficients (the frame gives
+      # it the target's index) through the target's link, so its value
+      # is the target's exactly and it owns no parameter
+      eq <- plain_dpar(dp, fam)
+      eq[["link"]] <- fam[["links"]][[pfix[[dp]]]]
+      eq[["equate"]] <- pfix[[dp]]
+      eq
     } else {
       plain_dpar(dp, fam, pfix[[dp]])
     }
@@ -2340,6 +2475,10 @@ print.frmtmb_spec <- function(x, ...) {
     for (dp in r$dpars) {
       if (!is.null(dp[["constant"]])) {
         cat("  ", dp[["name"]], " = ", dp[["constant"]], " (fixed)\n", sep = "")
+        next
+      }
+      if (!is.null(dp[["equate"]])) {
+        cat("  ", dp[["name"]], " = ", dp[["equate"]], " (equated)\n", sep = "")
         next
       }
       cat("  ", dp[["name"]], " (", dp[["link"]]$name, "): ",

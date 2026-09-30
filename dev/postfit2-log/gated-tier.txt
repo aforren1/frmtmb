@@ -1,0 +1,28 @@
+jobs: 23
+logs with RESULT: 23
+RESULT frmtmb.sample test-loo.R: tests=111 failed=0 error=0 skipped=0 warning=0 passed=111
+RESULT frmtmb.sample test-sampling-ported.R: tests=213 failed=0 error=0 skipped=0 warning=0 passed=213
+RESULT frmtmb test-bcm-bart.R: tests=12 failed=0 error=0 skipped=0 warning=0 passed=12
+RESULT frmtmb test-bcm-binomial.R: tests=37 failed=0 error=0 skipped=0 warning=0 passed=37
+RESULT frmtmb test-bcm-data-analysis.R: tests=46 failed=0 error=0 skipped=0 warning=0 passed=46
+RESULT frmtmb test-bcm-esp.R: tests=17 failed=0 error=0 skipped=0 warning=0 passed=17
+RESULT frmtmb test-bcm-gaussian.R: tests=23 failed=0 error=0 skipped=0 warning=0 passed=23
+RESULT frmtmb test-bcm-gcm.R: tests=17 failed=0 error=0 skipped=0 warning=0 passed=17
+RESULT frmtmb test-bcm-latent-mixtures.R: tests=52 failed=0 error=0 skipped=0 warning=0 passed=52
+RESULT frmtmb test-bcm-model-selection.R: tests=29 failed=0 error=0 skipped=0 warning=0 passed=29
+RESULT frmtmb test-bcm-mpt.R: tests=27 failed=0 error=0 skipped=0 warning=0 passed=27
+RESULT frmtmb test-bcm-psychophysics.R: tests=28 failed=0 error=0 skipped=0 warning=0 passed=28
+RESULT frmtmb test-bcm-retention.R: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32
+RESULT frmtmb test-bcm-signal-detection.R: tests=30 failed=0 error=0 skipped=0 warning=0 passed=30
+RESULT frmtmb test-bcm-simple.R: tests=13 failed=0 error=0 skipped=0 warning=0 passed=13
+RESULT frmtmb test-brms-agreement.R: tests=187 failed=0 error=0 skipped=0 warning=0 passed=187
+RESULT frmtmb test-brms-likelihood.R: tests=440 failed=0 error=0 skipped=0 warning=0 passed=440
+RESULT frmtmb test-brms-methods.R: tests=983 failed=0 error=0 skipped=0 warning=0 passed=983
+RESULT frmtmb test-brms-port.R: tests=21 failed=0 error=0 skipped=0 warning=0 passed=21
+RESULT frmtmb test-brms-priors.R: tests=103 failed=0 error=0 skipped=0 warning=0 passed=103
+RESULT frmtmb test-drmtmb-agreement.R: tests=131 failed=0 error=0 skipped=0 warning=0 passed=131
+RESULT frmtmb test-fuzz.R: tests=2 failed=0 error=0 skipped=0 warning=0 passed=2
+RESULT frmtmb test-rl-example.R: tests=102 failed=0 error=0 skipped=0 warning=0 passed=102
+files with a skip, a failure or an error:
+  none
+(test-loo.R, test-sampling-ported.R and test-brms-agreement.R are the rerun after the runner set TMP; their first logs errored on a Stan compile writing to C:\WINDOWS)

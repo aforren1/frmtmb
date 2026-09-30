@@ -1,0 +1,2 @@
+MUTANT has_rate_false       core   pass=65 fail=5 error=0 skip=0
+   failing blocks: rate() on poisson is the offset(log(denom)) model | predict() and simulate() draw around mu times the exposure 

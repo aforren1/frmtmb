@@ -1,0 +1,2 @@
+arm lane mutant none ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+RESULT lane frmtmb.sample test-sratio-draws.R: tests=2 failed=0 error=0 skipped=0 warning=0 passed=2

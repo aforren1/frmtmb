@@ -1,0 +1,25 @@
+
+===== A. residuals of an mi() response at its missing rows 
+  frame$y[['xmi']] at missing rows (first 5) :
+[1] 0 0 0 0 0
+  residual Estimate at missing rows (first 5) : ERROR: residuals() cannot honor `resp`: residuals() is not supported for multivariate fits at all yet, so there is no response to choose 
+  fitted at missing rows (first 5) :
+[1] -0.001761673 -0.097845358  0.033920810  0.057026780 -0.026276119
+  estimates names :
+[1] "beta"  "betad" "miss" 
+  univariate y | mi() fit : fitted 
+  nobs :
+[1] 100
+  univariate residuals dim / NA count :
+[1] 100   4   0
+
+===== B. cs() layers: identity with thresholds, and a delta-method SE 
+
+===== C. residuals(newdata =) on log(y) ~ x 
+
+===== D. old_levels with correlated slopes, dpar and by 
+  [warnings: Optimizer did not report convergence: false convergence (8) | Large maximum absolute gradient at the optimum (0.217 at theta_1): the curvature there is unusable, so how much log-like ]
+
+===== E. ranef, data_name, gp summary, categorical, spellings 
+Warning message:
+Optimizer did not report convergence: singular convergence (7) 

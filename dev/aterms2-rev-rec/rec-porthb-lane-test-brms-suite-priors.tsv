@@ -1,0 +1,67 @@
+assert	frmtmb	priors:5	divergence	FALSE	FALSE	Expected `sort(...)` to equal `sort(c(rep("b", 4), c("cor", "cor"), "Intercept", rep("sd", 6)))`. Differences: `actual[8:15]`:   "sd" "sd" "sd" "theta" "theta" "theta" "theta" "theta" `expected[8:13]`: "sd" "sd" "sd" "sd"    "sd"    "sd"                    		FALSE
+assert	frmtmb	priors:14	cannot transfer	FALSE	FALSE	ERROR: unused argument (threshold = "equidistant")		FALSE
+setup	frmtmb	priors:26		TRUE	FALSE			TRUE
+assert	frmtmb	priors:27	divergence	FALSE	FALSE	Expected `bprior` to inherit from "character". Actual inheritance: "frmtmb_priorlist"		FALSE
+assert	frmtmb	priors:28	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:29	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:33	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:35	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:37	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:39	cannot transfer	FALSE	FALSE	ERROR: unused argument (check = FALSE)		FALSE
+setup	frmtmb	priors:45		TRUE	FALSE			TRUE
+setup	frmtmb	priors:46		TRUE	FALSE			TRUE
+setup	frmtmb	priors:47		TRUE	FALSE			TRUE
+assert	frmtmb	priors:48	pass	TRUE	FALSE			TRUE
+setup	frmtmb	priors:52		TRUE	FALSE			TRUE
+setup	frmtmb	priors:54		TRUE	FALSE			TRUE
+assert	frmtmb	priors:55	defect	FALSE	FALSE	Expected `prior[prior$class == "b", ]$coef` to equal `c("", "sx_1", "z")`. Differences: `actual`:   "" "z"    "s(x).fx1" `expected`: "" "sx_1" "z"        		FALSE
+setup	frmtmb	priors:57		TRUE	FALSE			TRUE
+assert	frmtmb	priors:59	defect	FALSE	FALSE	Expected `prior[prior$class == "b", ]$coef` to equal `c("", "Intercept", "sx_1", "z")`. Differences: `actual`:   "" "(Intercept)" "z"    "s(x).fx1" `expected`: "" "Intercept"   "sx_1" "z"        		FALSE
+setup	frmtmb	priors:64		TRUE	FALSE			TRUE
+setup	frmtmb	priors:66		TRUE	FALSE			TRUE
+setup	frmtmb	priors:67		FALSE	FALSE	beta: response must lie strictly in (0, 1)		FALSE
+setup	frmtmb	priors:68		FALSE	FALSE	object of type 'closure' is not subsettable		FALSE
+setup	frmtmb	priors:69		TRUE	FALSE			TRUE
+setup	frmtmb	priors:73		TRUE	FALSE			TRUE
+assert	frmtmb	priors:74	defect	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: object of type 'closure' is not subsettable		FALSE
+setup	frmtmb	priors:78		TRUE	FALSE			TRUE
+setup	frmtmb	priors:80		TRUE	FALSE			TRUE
+setup	frmtmb	priors:83		TRUE	FALSE			TRUE
+assert	frmtmb	priors:84	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:85	divergence	FALSE	FALSE	Expected `prior[prior$class == "rescor", "prior"]` to equal "lkj(1)". Differences: `actual`:   "(flat)" `expected`: "lkj(1)" 		FALSE
+setup	frmtmb	priors:88		TRUE	FALSE			TRUE
+setup	frmtmb	priors:89		TRUE	FALSE			TRUE
+setup	frmtmb	priors:90		FALSE	FALSE	Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		FALSE
+assert	frmtmb	priors:91	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		TRUE
+assert	frmtmb	priors:92	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		FALSE
+assert	frmtmb	priors:93	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		FALSE
+assert	frmtmb	priors:94	cannot transfer	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`		TRUE
+setup	frmtmb	priors:99		TRUE	FALSE			TRUE
+setup	frmtmb	priors:100		FALSE	FALSE	categorical(): the response 'y2' has fewer than two categories		FALSE
+assert	frmtmb	priors:101	defect	FALSE	TRUE	STALE: reads 'prior', whose last assignment failed: categorical(): the response 'y2' has fewer than two categories		FALSE
+assert	frmtmb	priors:105	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:107	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:109	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:111	pass	TRUE	FALSE			TRUE
+setup	frmtmb	priors:116		TRUE	FALSE			TRUE
+setup	frmtmb	priors:118		TRUE	FALSE			TRUE
+assert	frmtmb	priors:122	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:123	divergence	FALSE	FALSE	Expected `nrow(prior1)` to equal 9. Differences:   `actual`: 10.0 `expected`:  9.0 		FALSE
+setup	frmtmb	priors:134		TRUE	FALSE			TRUE
+setup	frmtmb	priors:135		TRUE	FALSE			TRUE
+assert	frmtmb	priors:136	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:137	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:138	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:139	pass	TRUE	FALSE			TRUE
+assert	frmtmb	priors:140	pass	TRUE	FALSE			TRUE
+setup	frmtmb	priors:145		FALSE	FALSE	unused argument (tag = "prior_tag1")		FALSE
+setup	frmtmb	priors:146		FALSE	FALSE	unused argument (tag = "prior_tag2")		FALSE
+setup	frmtmb	priors:147		FALSE	FALSE	unused argument (tag = "prior_tag3")		FALSE
+setup	frmtmb	priors:148		FALSE	FALSE	unused argument (tag = "prior_tag4")		FALSE
+setup	frmtmb	priors:149		FALSE	FALSE	unused argument (tag = "prior_tag5")		FALSE
+setup	frmtmb	priors:151		FALSE	FALSE	object 'prior1' not found		FALSE
+assert	frmtmb	priors:156	cannot transfer	FALSE	TRUE	STALE: reads 'v', whose last assignment failed: object 'prior1' not found		FALSE
+assert	frmtmb	priors:157	cannot transfer	FALSE	TRUE	STALE: reads 'v', whose last assignment failed: object 'prior1' not found		FALSE
+assert	frmtmb	priors:158	cannot transfer	FALSE	TRUE	STALE: reads 'v', whose last assignment failed: object 'prior1' not found		FALSE
+assert	frmtmb	priors:159	cannot transfer	FALSE	TRUE	STALE: reads 'v', whose last assignment failed: object 'prior1' not found		FALSE
+assert	frmtmb	priors:160	cannot transfer	FALSE	TRUE	STALE: reads 'v', whose last assignment failed: object 'prior1' not found		FALSE

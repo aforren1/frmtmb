@@ -1,0 +1,88 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
+brms-likelihood: SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........SSSS....SSS.....
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the translator round-trips through Stan's constraints ('test-brms-likelihood.R:51:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+2. the simplex and group-level rules round-trip ('test-brms-likelihood.R:87:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+3. row 1: distributional gaussian, y ~ x + z with sigma ~ x ('test-brms-likelihood.R:149:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+4. row 2: monotonic effects, y ~ mo(inc) + z ('test-brms-likelihood.R:161:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+5. row 3: monotonic interaction, y ~ mo(inc):z ('test-brms-likelihood.R:174:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+6. row 3: mo(inc) * z is the same model in both packages ('test-brms-likelihood.R:185:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+7. row 5: nonlinear, y ~ a * exp(-b * x) with a + b ~ 1 ('test-brms-likelihood.R:213:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+8. row 12: ordinal families, cumulative sratio cratio acat ('test-brms-likelihood.R:228:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+9. row 13: categorical(y ~ x) ('test-brms-likelihood.R:305:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+10. row 14: censoring and known standard errors ('test-brms-likelihood.R:318:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+11. row 15: binomial with trials(n) ('test-brms-likelihood.R:336:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+12. row 16: zero-inflated poisson with zi ~ x ('test-brms-likelihood.R:347:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+13. row 16b: hurdle negative binomial with hu ~ x ('test-brms-likelihood.R:360:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+14. row 16c: zero-one-inflated beta with zoi ~ x ('test-brms-likelihood.R:379:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+15. row 16d: extended-support beta with kappa ~ x ('test-brms-likelihood.R:405:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+16. row 16e: zero-inflated beta-binomial with zi ~ x ('test-brms-likelihood.R:424:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+17. row 16f: hurdle cumulative with hu ~ x ('test-brms-likelihood.R:454:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+18. row 16g: hurdle cumulative, probit, with disc ~ 0 + x ('test-brms-likelihood.R:464:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+19. row 20: weights(w) ('test-brms-likelihood.R:481:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+20. row 21: one-predictor fits across the family roster ('test-brms-likelihood.R:497:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+21. check C: sleepstudy joint density with (Days | Subject) ('test-brms-likelihood.R:524:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+22. row 17: mixture(gaussian, gaussian) with theta1 ~ x ('test-brms-likelihood.R:539:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+23. row 17b: theta2 ~ x makes component 1 the reference, as brms ('test-brms-likelihood.R:560:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+24. check C: row 7, (1 | q | g) merged across mu and sigma ('test-brms-likelihood.R:579:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+25. check C: row 3's (1 | g) variant, monotonic interaction ('test-brms-likelihood.R:602:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+26. check C: row 16's (1 | g) variant, zero-inflated poisson ('test-brms-likelihood.R:617:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+27. row 8: mvbf(y1 ~ x, y2 ~ x) with set_rescor(TRUE) ('test-brms-likelihood.R:655:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+28. check C: row 9, multivariate with (1 | p | g) in both ('test-brms-likelihood.R:693:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+29. check C: row 4, mi() imputation and mi(sdx) measurement error ('test-brms-likelihood.R:733:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+30. check C: row 23, me() noise-free terms ('test-brms-likelihood.R:781:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+31. check C: row 6, nonlinear with a ~ 1 + (1 | g) ('test-brms-likelihood.R:816:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+32. check C: row 11, s(x) is a random effect with one basis ('test-brms-likelihood.R:876:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+33. check C: row 11, t2(x, z) is three bases under one term ('test-brms-likelihood.R:928:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+34. check C: row 10, gp(x, k = 10) Hilbert-space approximation ('test-brms-likelihood.R:972:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+35. row 18: ar(p = 1), cosy and unstr residual correlation ('test-brms-likelihood.R:1093:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+36. row 18d: brms's default cov = FALSE ARMA is an identity ('test-brms-likelihood.R:1163:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+37. check C: row 19, car(escar) and car(icar) ('test-brms-likelihood.R:1216:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+38. row 19c-esicar: car(esicar) is the same model in both packages ('test-brms-likelihood.R:1280:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+39. row 12b: an ordinal fit with mo() is the same model in both packages ('test-brms-likelihood.R:1379:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+40. row 22: the brms link roster on (0, 1) responses ('test-brms-likelihood.R:1394:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+41. row 22: the brms link roster on positive-mean responses ('test-brms-likelihood.R:1430:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT lane frmtmb test-brms-likelihood.R pass=17 fail=0 err=0 skip=41 warn=0 blocks=44

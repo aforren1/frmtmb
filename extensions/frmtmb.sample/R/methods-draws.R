@@ -5,12 +5,21 @@
 #' Column positions of each template component inside the draws matrix
 #' (which is in template order, mapped betad entries absent, `lp__` last).
 #'
+#' `laplace = TRUE` is the layout of draws from `frm_sample(laplace =
+#' TRUE)`, which has no `b` and no `miss` columns: every later
+#' component starts earlier. Reading those draws with the full layout
+#' put `sigma` and `theta` into the random effects and `NA` past the
+#' last column, which is how `posterior_epred()` returned 4500 NaN of
+#' 4500 and, at `newdata`, finite values that were silently wrong.
+#'
 #' @noRd
-draws_par_index <- function(fit) {
+draws_par_index <- function(fit, laplace = FALSE) {
   tpl <- fit$frame[["par_template"]]
+  skip <- if (laplace) c("b", "miss") else character(0)
   idx <- list()
   pos <- 0L
   for (cp in names(tpl)) {
+    if (cp %in% skip) next
     len <- length(tpl[[cp]])
     if (cp == "betad" && length(fx <- fit$frame[["betad_fixed_idx"]])) {
       len <- len - length(fx)
@@ -19,6 +28,176 @@ draws_par_index <- function(fit) {
     pos <- pos + len
   }
   idx
+}
+
+#' `draws_par_index()` in the layout these draws actually have.
+#'
+#' @noRd
+draws_index <- function(x) {
+  draws_par_index(x$fit, laplace = draws_is_laplace(x))
+}
+
+#' The function the user called, while a draws method runs on behalf of
+#' another: `fitted()` computes through `posterior_epred()` and `loo()`
+#' through `log_lik()`, and a refusal that named the inner function
+#' named one the user never called. The outermost caller wins, unless a
+#' step states `override = TRUE` because its refusal is about the inner
+#' function by design (`pp_check()`'s weights quote `log_lik()`).
+#' `re_formula` says whether the caller takes that argument, so that a
+#' refusal suggests it only where it can be passed.
+#'
+#' @noRd
+draws_call_state <- new.env(parent = emptyenv())
+
+#' @noRd
+draws_as_caller <- function(what, expr, re_formula = TRUE,
+                            override = FALSE) {
+  if (!override && !is.null(draws_call_state$what)) return(expr)
+  old_what <- draws_call_state$what
+  old_re <- draws_call_state$re_formula
+  draws_call_state$what <- what
+  draws_call_state$re_formula <- re_formula
+  on.exit({
+    draws_call_state$what <- old_what
+    draws_call_state$re_formula <- old_re
+  })
+  expr
+}
+
+#' The name a refusal gives: the outermost caller, or `what`.
+#'
+#' @noRd
+draws_caller <- function(what) draws_call_state$what %||% what
+
+#' Whether the function the user called takes `re_formula`; a method
+#' called directly answers for itself through `own`.
+#'
+#' @noRd
+draws_caller_takes_re <- function(own) {
+  if (is.null(draws_call_state$what)) own else
+    isTRUE(draws_call_state$re_formula)
+}
+
+#' Whether `at(fill)` reads what `frm_sample(laplace = TRUE)`
+#' integrated out.
+#'
+#' Such draws have no random effects, no smooth coefficients and no
+#' `mi()` values, and `draws_fit_at()` fills those with `NA`. Whether a
+#' quantity reads them depends on the model and on the call
+#' (`re_formula = NA` drops the group-level effects and keeps a
+#' smooth), so it is measured rather than predicted from the layout:
+#' `at(fill)` evaluates the quantity at one draw with the integrated
+#' components set to `fill`, and a result that changes between `NA` and
+#' `0` read them. `NA` if both fills fail, which is an error about
+#' something else; the error rides along as the `error` attribute.
+#'
+#' @noRd
+draws_probe_reads <- function(at) {
+  # both evaluations see the same random numbers (a new group level is
+  # drawn per draw), and the caller's stream is left where it was
+  if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    stats::runif(1L)
+  }
+  seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  on.exit(assign(".Random.seed", seed, envir = globalenv()), add = TRUE)
+  # a warning here belongs to the probe's fill, and the computation
+  # that follows raises any warning of its own again
+  a <- tryCatch(suppressWarnings(at(NA_real_)), error = function(e) e)
+  assign(".Random.seed", seed, envir = globalenv())
+  b <- tryCatch(suppressWarnings(at(0)), error = function(e) e)
+  if (inherits(a, "error") && inherits(b, "error")) {
+    return(structure(NA, error = a))
+  }
+  inherits(a, "error") || inherits(b, "error") || !identical(a, b)
+}
+
+#' Refuse a quantity that reads what `frm_sample(laplace = TRUE)`
+#' integrated out, when `draws_probe_reads(at)` says it does.
+#'
+#' `at_na` is the same quantity at `re_formula = NA`, or `NULL` where the
+#' call has no such form. The refusal suggests `re_formula = NA` only
+#' when the function the user called takes it and `at_na` would compute
+#' on this model; a smooth or `mi()` values are read at `re_formula = NA`
+#' too.
+#'
+#' brms has no counterpart: its sampler always visits the group-level
+#' coefficients. laplace = TRUE samples an approximate posterior whose
+#' use is checking the approximation, so the refusal points at sampling
+#' without it rather than filling the values in (the user's decision,
+#' 2026-09-29; dev/sampfix-findings.md).
+#'
+#' @noRd
+draws_laplace_probe <- function(x, what, at, at_na = NULL) {
+  if (!draws_is_laplace(x)) return(invisible(NULL))
+  r <- draws_probe_reads(at)
+  # an error at both fills is the call's own, and the first draw of the
+  # computation would raise it anyway; raising it here keeps a probe that
+  # fails on its own account from waving the call through
+  if (is.na(r)) frm_stop(attr(r, "error"))
+  if (!r) return(invisible(NULL))
+  draws_laplace_refuse(x, what, at_na)
+}
+
+#' The refusal itself, for `draws_laplace_probe()` and
+#' `draws_laplace_watch()`.
+#'
+#' @noRd
+draws_laplace_refuse <- function(x, what, at_na = NULL) {
+  caller <- draws_caller(what)
+  hint <- !is.null(at_na) && draws_caller_takes_re(TRUE) &&
+    length(x$fit$frame[["re_blocks"]]) > 0L &&
+    isFALSE(draws_probe_reads(at_na))
+  frm_stop(caller, " needs the random effects, and these draws come from ",
+           "frm_sample(laplace = TRUE), which integrates them out instead ",
+           "of sampling them: a draw holds no group-level coefficients, ",
+           "smooth coefficients or mi() values to evaluate the model at. ",
+           if (hint) {
+             paste0("re_formula = NA leaves the group-level effects out and ",
+                    "computes the population-level quantity from these ",
+                    "draws. Otherwise, sample")
+           } else "Sample",
+           " without laplace = TRUE", call. = FALSE)
+}
+
+#' Whether `re_formula` is the `NA` that drops every group-level term.
+#'
+#' @noRd
+is_na_re_form <- function(re_form) {
+  !is.null(re_form) && length(re_form) == 1L && !is.language(re_form) &&
+    is.na(re_form)
+}
+
+#' A check on every draw's result, after `draws_laplace_probe()` let the
+#' call through on the first draw.
+#'
+#' The probe can pass where the integrated value vanishes at that one
+#' draw only: in `c0 + exp(a)^k` with `k = 0` on draw 1, `NA^0` is 1 and
+#' draws 2 to 6 were NaN. So on laplace draws each draw's `NA` cells
+#' must be the first draw's; a draw with others read an integrated
+#' value, and the call is refused rather than returning NaN. The first
+#' draw's pattern is the reference, not "none", so a row that is `NA` at
+#' every draw (a missing covariate) is not taken for one.
+#'
+#' `is.na()`, not `!is.finite()`: a read of the `NA` fill came out `NA`
+#' or NaN on every watched path and never `Inf` (38 path and model
+#' combinations, dev/sampfix-12-fillpaths.R), while a later draw that
+#' overflows to `Inf` on its own was refused as a read. The names are
+#' dropped because `unlist()` building one per cell was nearly all of
+#' the watch's cost, about as much as the prediction itself.
+#'
+#' @noRd
+draws_laplace_watch <- function(x, what, at_na = NULL) {
+  if (!draws_is_laplace(x)) return(function(v) invisible(NULL))
+  first <- NULL
+  function(v) {
+    nf <- is.na(unlist(v, use.names = FALSE))
+    if (is.null(first)) {
+      first <<- nf
+    } else if (!identical(nf, first)) {
+      draws_laplace_refuse(x, what, at_na)
+    }
+    invisible(NULL)
+  }
 }
 
 #' The originating fit stripped of the "no maximum-likelihood estimate"
@@ -66,11 +245,17 @@ draws_at_point_estimate <- function(x, point_estimate,
 #' IS a parameter vector, so the object is a legitimate fit from here on
 #' even when the draws came from a formula with no ML mode behind it.
 #'
+#' A component the draws do not hold (the random effects of
+#' `frm_sample(laplace = TRUE)` draws) is set to `fill`. `NA` makes any
+#' read of it visible, and `draws_laplace_probe()` compares it with `0`
+#' to find out whether a quantity reads it at all.
+#'
 #' @noRd
-draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
+draws_fit_at <- function(x, i, idx = draws_index(x), fill = NA_real_) {
   fit <- draws_base_fit(x)
   est <- fit$frame[["par_template"]]   # mapped betad entries keep link(const)
   row <- draws_internal_matrix(x, i)[1L, ]
+  for (cp in setdiff(names(est), names(idx))) est[[cp]][] <- fill
   for (cp in names(idx)) {
     if (cp == "betad" && length(fx <- fit$frame[["betad_fixed_idx"]])) {
       pos <- setdiff(seq_along(est[[cp]]), fx)
@@ -198,10 +383,10 @@ fixef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
 #' An ordinal fit's population-level draws in brms's rows and order:
 #' `Intercept[1]`, `Intercept[2]`, the coefficients, then `cs()` terms.
 #'
-#' The sampler stores the thresholds on the internal scale (`tau_raw`,
-#' the first threshold and log increments for cumulative), so
-#' the `b_` regex found only the slopes and `fixef(ds)` reported `x`
-#' where the fit's `fixef()` and brms report three rows. Each draw is
+#' The regex alone orders the rows by the draws columns, not by brms's
+#' order, and it cannot read draws stored before the columns carried
+#' brms's names, whose thresholds are on the internal scale (`tau_raw`,
+#' the first threshold and log increments for cumulative). Those are
 #' mapped through the map the family declares, the same map the fit's
 #' rows use. `NULL` when the fit has nothing outside the coefficients,
 #' or when a column the rows need is not in the draws.
@@ -212,10 +397,19 @@ draws_fixef_ordinal <- function(object, all_pars) {
   rows <- brms_fixef_rows(fit)
   if (!length(rows$extra)) return(NULL)
   tab <- brms_coef_table(fit)
+  # a block is read under brms's name, where it is already on the
+  # reported scale, or else under the internal name and mapped: draws
+  # stored before the renaming, or a family that declares no inverse
+  cols <- lapply(rows$extra, function(e) {
+    brms <- paste0(e$cls, "_", e$names)
+    if (all(brms %in% all_pars)) {
+      list(names = brms, map = identity)
+    } else {
+      list(names = paste0(e$comp, "_", seq_along(e$raw)), map = e$map)
+    }
+  })
   need <- unique(c(tab$brms[rows$idx[!is.na(rows$idx)]],
-                   unlist(lapply(rows$extra, function(e) {
-                     paste0(e$comp, "_", seq_along(e$raw))
-                   }))))
+                   unlist(lapply(cols, `[[`, "names"))))
   if (!all(need %in% all_pars)) return(NULL)
   m <- as.matrix(object, variable = need)
   out <- matrix(NA_real_, nrow(m), length(rows$names),
@@ -223,10 +417,7 @@ draws_fixef_ordinal <- function(object, all_pars) {
   co <- !is.na(rows$idx)
   out[, co] <- m[, tab$brms[rows$idx[co]], drop = FALSE]
   for (b in seq_along(rows$extra)) {
-    e <- rows$extra[[b]]
-    raw <- m[, paste0(e$comp, "_", seq_along(e$raw)), drop = FALSE]
-    vals <- matrix(apply(raw, 1L, e$map), ncol = length(e$raw),
-                   byrow = TRUE)
+    vals <- draws_rowmap(m[, cols[[b]]$names, drop = FALSE], cols[[b]]$map)
     at <- which(rows$blk == b)
     out[, at] <- vals[, rows$pos[at], drop = FALSE]
   }
@@ -362,8 +553,9 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
     frm_stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
   }
   if (scope != "standard") {
-    return(draws_hypothesis_coef(x, hypothesis, group, scope, alpha,
-                                 robust))
+    return(draws_as_caller("hypothesis()", re_formula = FALSE,
+                           draws_hypothesis_coef(x, hypothesis, group, scope,
+                                                 alpha, robust)))
   }
   fit <- x$fit
   vo <- hyp_vals_only(fit)
@@ -390,20 +582,28 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
              call. = FALSE)
   }
   need_env <- length(intersect(used, env_names)) > 0L
-  idx <- draws_par_index(fit)
+  idx <- draws_index(x)
   n <- nrow(x$draws)
   draws <- matrix(NA_real_, n, length(exs),
                   dimnames = list(NULL, labels))
-  for (i in seq_len(n)) {
+  at <- function(i, fill = NA_real_) {
     vals <- as.list(x$draws[i, from_cols])
     names(vals) <- from_cols
     if (need_env) {
-      sh <- draws_fit_at(x, i, idx)
+      sh <- draws_fit_at(x, i, idx, fill)
       w <- hyp_vals_only(sh)
       vals <- c(hyp_env_vals(sh, w$vals, w$comp), vals)
     }
-    draws[i, ] <- vapply(exs, function(ex) hyp_eval_in(ex, vals),
-                         numeric(1))
+    vapply(exs, function(ex) hyp_eval_in(ex, vals), numeric(1))
+  }
+  watch <- function(v) invisible(NULL)
+  if (need_env) {
+    draws_laplace_probe(x, "hypothesis()", function(fill) at(1L, fill))
+    watch <- draws_laplace_watch(x, "hypothesis()")
+  }
+  for (i in seq_len(n)) {
+    draws[i, ] <- at(i)
+    watch(draws[i, ])
   }
   # A POINT null is the spelling that carries "=". The bare-quantity
   # spelling this package also accepts parses `two.sided` as well, and
@@ -567,6 +767,13 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
 #'   array (see the section below).
+#' @section Laplace draws:
+#'   Draws from `frm_sample(laplace = TRUE)` hold no group-level
+#'   coefficients, smooth coefficients or
+#'   `mi()` values. A call that reads them is refused by name, and a
+#'   call that does not, such as `re_formula = NA` on a model whose only
+#'   integrated values are group-level coefficients, is computed from
+#'   the draws exactly. See the Laplace draws section of [frm_sample()].
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
@@ -622,17 +829,28 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_epred()")
-  idx <- draws_par_index(object$fit)
+  # subset(): one response at a time, as brms asks
+  subset_resp_check(object$fit, resp %||% names(object$fit$spec$responses),
+                    "posterior_epred()")
+  idx <- draws_index(object)
   rows <- draws_subsample(object, ndraws, draw_ids)
+  # frm_linpred(), not predict(): predict() is brms's predictive
+  # summary in frmtmb's development version, and what one draw
+  # contributes here is the expected response at its parameters
+  at <- function(r, fill = NA_real_, rf = re_form) {
+    frm_linpred(draws_fit_at(object, r, idx, fill), newdata = newdata,
+                resp = resp, dpar = dpar, re_formula = rf,
+                type = "response")
+  }
+  at_na <- function(fill) at(rows[1L], fill, NA)
+  draws_laplace_probe(object, "posterior_epred()",
+                      function(fill) at(rows[1L], fill), at_na)
+  watch <- draws_laplace_watch(object, "posterior_epred()", at_na)
   out <- NULL
   cat_out <- FALSE
   for (k in seq_along(rows)) {
-    sh <- draws_fit_at(object, rows[k], idx)
-    # frm_linpred(), not predict(): predict() is brms's predictive
-    # summary in frmtmb's development version, and what one draw
-    # contributes here is the expected response at its parameters
-    p <- frm_linpred(sh, newdata = newdata, resp = resp, dpar = dpar,
-                     re_formula = re_form, type = "response")
+    p <- at(rows[k])
+    watch(p)
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
       # family's n x K category probabilities), so the draws stack into
@@ -696,7 +914,10 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
              "the thresholds are coefficients you can read off ",
              "posterior_summary()", call. = FALSE)
   }
-  idx <- draws_par_index(object$fit)
+  # subset(): one response at a time, as brms asks
+  subset_resp_check(object$fit, resp %||% names(object$fit$spec$responses),
+                    "posterior_linpred()")
+  idx <- draws_index(object)
   rows <- draws_subsample(object, ndraws, draw_ids)
   # This function is about ONE distributional parameter, so the dpar is
   # resolved here rather than left to predict()'s type dispatch: on an
@@ -704,12 +925,19 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   # distribution (posterior_epred()'s quantity), not the mu predictor
   # this promises.
   dpar <- dpar %||% draws_default_dpar(object$fit, resp)
+  at <- function(r, fill = NA_real_, rf = re_form) {
+    frm_linpred(draws_fit_at(object, r, idx, fill), newdata = newdata,
+                resp = resp, dpar = dpar, re_formula = rf,
+                type = if (transform) "response" else "link")
+  }
+  at_na <- function(fill) at(rows[1L], fill, NA)
+  draws_laplace_probe(object, "posterior_linpred()",
+                      function(fill) at(rows[1L], fill), at_na)
+  watch <- draws_laplace_watch(object, "posterior_linpred()", at_na)
   out <- NULL
   for (k in seq_along(rows)) {
-    sh <- draws_fit_at(object, rows[k], idx)
-    p <- frm_linpred(sh, newdata = newdata, resp = resp, dpar = dpar,
-                     re_formula = re_form,
-                     type = if (transform) "response" else "link")
+    p <- at(rows[k])
+    watch(p)
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
   }
@@ -784,20 +1012,27 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
              "documentation in frmtmb.eam", call. = FALSE)
   }
   fit <- object$fit
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks
+  subset_resp_check(fit, resp %||% names(fit$spec$responses),
+                    "posterior_predict()")
   resp <- resp %||% names(fit$spec$responses)[1L]
+  newdata <- subset_newdata(fit, resp, newdata)
   rspec <- fit$spec$responses[[resp]]
   if (!sim_can(rspec$family)) {
     frm_stop("posterior_predict(): family '", rspec$family[["family"]],
              "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
-  idx <- draws_par_index(object$fit)
+  idx <- draws_index(object)
   rows <- draws_subsample(object, ndraws, draw_ids)
   av <- if (is.null(newdata)) {
     fit$frame[["aterm_values"]][[resp]]
-  } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
+  } else if (has_trunc(rspec) ||
+             any(c("thres_gr", "rate") %in% names(rspec$aterms))) {
     # truncation bounds must follow the newdata rows, or the draws land
     # outside the support the likelihood was normalized on; so must a
-    # row's group under grouped thresholds, thres(gr = )
+    # row's group under grouped thresholds, thres(gr = ), and a row's
+    # exposure under rate(), which scales its mean
     aterms_for_newdata(rspec, newdata)
   } else {
     list()
@@ -830,11 +1065,11 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   # Core's own predicate, not a read of frame$autocor$cov: two files
   # asking "is this brms's cov = FALSE form" must not answer it twice
   arma_cond <- resp %in% arma_cond_resp(fit)
-  out <- NULL
-  arr <- FALSE
-  for (k in seq_along(rows)) {
-    sh <- draws_fit_at(object, rows[k], idx)
-    dp <- if (is.null(newdata) && is.null(re_form)) {
+  # one draw's distributional parameters; the refusal of laplace draws
+  # probes these rather than the simulated response, which would turn
+  # a read of the missing random effects into rnorm()'s own NaN warning
+  dpars_at <- function(sh, rf = re_form) {
+    if (is.null(newdata) && is.null(rf)) {
       # the fast path IS the default: NULL keeps every random effect,
       # which is what a per-draw eval of the full model gives. A set
       # re_formula routes through predict() on the training rows, the
@@ -856,15 +1091,30 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       for (dnm in names(rspec$dpars)) {
         dpv[[dnm]] <- as.vector(frm_linpred(sh, newdata = newdata,
                                             dpar = dnm, resp = resp,
-                                            re_formula = re_form,
+                                            re_formula = rf,
                                             type = "response"))
       }
       dpv
     }
+  }
+  idx_at <- function(r, fill, rf = re_form) {
+    sh <- draws_fit_at(object, r, idx, fill)
     # the ordinal simulators read a cs() term's offsets from `.cs`, and
     # neither list above carries them: without this every cs() model
     # was drawn as if the term were absent
-    dp <- cs_offsets_add(sh, resp, newdata, dp)
+    list(sh = sh, dp = cs_offsets_add(sh, resp, newdata, dpars_at(sh, rf)))
+  }
+  at_na <- function(fill) idx_at(rows[1L], fill, NA)$dp
+  draws_laplace_probe(object, "posterior_predict()",
+                      function(fill) idx_at(rows[1L], fill)$dp, at_na)
+  watch <- draws_laplace_watch(object, "posterior_predict()", at_na)
+  out <- NULL
+  arr <- FALSE
+  for (k in seq_along(rows)) {
+    one <- idx_at(rows[k], NA_real_)
+    sh <- one$sh
+    dp <- one$dp
+    watch(dp)
     ctx <- sim_context(sh, rspec, dp, aterms = av, n = length(dp[[1L]]),
                        extra = fit_extras(sh))
     if (arma_cond) ctx[["autocor"]] <- NULL
@@ -929,6 +1179,18 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
     frm_stop("pp_check(): `type` must be a single string", call. = FALSE)
   }
   prefix <- frm_match_arg(prefix)
+  if (identical(prefix, "ppc") &&
+        requireNamespace("bayesplot", quietly = TRUE)) {
+    # brms's own check and message. bayesplot still exports functions
+    # available_ppc() no longer lists, such as the deprecated
+    # ppc_loo_pit(), and brms refuses those types, as the fit method does
+    valid <- sub("^ppc_", "", as.character(bayesplot::available_ppc("")))
+    if (!type %in% valid) {
+      frm_stop("Type '", type, "' is not a valid ppc type. Valid types ",
+               "are:\n", paste0("'", valid, "'", collapse = ", "),
+               call. = FALSE)
+    }
+  }
   ndraws_given <- !missing(ndraws) || !missing(nsamples)
   if (!is.null(nsamples)) {
     frm_warning("Argument 'nsamples' is deprecated. Please use argument ",
@@ -960,6 +1222,19 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   resp <- rspec$resp_name
   data <- newdata %||% fit$frame[["data_frame"]]
   fargs <- names(formals(fun))
+  if (any(c("lw", "psis_object") %in% fargs) &&
+        length(fit$frame[["mi_map"]] %||% list())) {
+    # a loo type weights the draws by PSIS on log_lik(), which this
+    # package refuses for in-model imputation; said here in pp_check()'s
+    # terms, before any prediction is drawn
+    frm_stop("pp_check(type = \"", type, "\") weights the draws by ",
+             "Pareto-smoothed importance sampling on log_lik(), and ",
+             "log_lik() is not defined for a model with in-model ",
+             "imputation (mi() / me()): a row whose value is latent ",
+             "contributes the density of a parameter as well as of an ",
+             "observation. Use a type without 'loo', such as ",
+             "\"dens_overlay\"", call. = FALSE)
+  }
   if ("group" %in% fargs) {
     if (is.null(group)) {
       frm_stop("Argument 'group' is required for ppc type '", type, "'.",
@@ -1012,8 +1287,18 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   }
   pred <- if (identical(type, "error_binned")) posterior_epred else
     posterior_predict
-  yrep <- pred(object, newdata = newdata, resp = resp, ndraws = ndraws,
-               draw_ids = draw_ids, re_formula = re_formula)
+  # the draws are chosen once, because the loo_* types weight exactly
+  # the draws the predictions came from, as brms's do
+  rows <- draws_subsample(object, ndraws, draw_ids)
+  dots <- list(...)
+  loo_arg <- intersect(c("lw", "psis_object"),
+                       setdiff(names(formals(fun)), names(dots)))[1L]
+  psis_obj <- if (!is.na(loo_arg)) {
+    draws_ppc_psis(object, type, resp, rows, newdata, re_formula)
+  }
+  yrep <- draws_as_caller("pp_check()", pred(
+    object, newdata = newdata, resp = resp, draw_ids = rows,
+    re_formula = re_formula))
   if (length(dim(yrep)) > 2L) {
     frm_stop("pp_check() on draws supports vector responses", call. = FALSE)
   }
@@ -1037,7 +1322,68 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
     args$x <- if (is.factor(xv) || is.character(xv) || is.logical(xv)) xv else
       as.numeric(xv)
   }
-  do.call(fun, c(args, list(...)))
+  if (!is.null(psis_obj)) {
+    if (length(take) != ncol(psis_obj$ll)) {
+      frm_stop("Internal error: pp_check(type = '", type, "') has ",
+               ncol(psis_obj$ll), " log-likelihood columns for ",
+               length(take), " responses. Please report it with the model ",
+               "formula", call. = FALSE)
+    }
+    # each column is smoothed on its own, so leaving a column out before
+    # the smoothing is the same as leaving it out after
+    ps <- draws_ppc_psis_fit(psis_obj$ll[, take, drop = FALSE],
+                             psis_obj$chain_id)
+    args[[loo_arg]] <- if (identical(loo_arg, "lw")) {
+      stats::weights(ps, log = TRUE)
+    } else ps
+  }
+  do.call(fun, c(args, dots))
+}
+
+#' The pointwise log-likelihood behind `pp_check()`'s `loo_*` types.
+#'
+#' brms's `pp_check.brmsfit()` hands bayesplot `lw` or a `psis_object`
+#' from `loo(save_psis = TRUE)` on the same draws as the predictions;
+#' without them every `loo_*` type failed inside bayesplot on every
+#' model. Where `log_lik()` refuses (laplace draws, `newdata`, a
+#' likelihood that does not factor by row) the refusal is raised here,
+#' before any prediction runs, and names `pp_check()`.
+#'
+#' @noRd
+draws_ppc_psis <- function(object, type, resp, rows, newdata, re_formula) {
+  if (!requireNamespace("loo", quietly = TRUE)) {
+    frm_stop("pp_check(type = '", type, "') needs the 'loo' package for ",
+             "its leave-one-out weights", call. = FALSE)
+  }
+  lla <- list(object, resp = resp, draw_ids = rows)
+  if (!is.null(newdata)) lla$newdata <- newdata
+  if (!is.null(re_formula)) lla$re_formula <- re_formula
+  ll <- tryCatch(draws_as_caller("log_lik()", do.call(log_lik, lla),
+                                 re_formula = FALSE, override = TRUE),
+                 error = function(e) {
+    frm_stop("pp_check(type = '", type, "') weights the draws by ",
+             "leave-one-out importance ratios, which come from log_lik(), ",
+             "and log_lik() refused: ", conditionMessage(e), call. = FALSE)
+  })
+  list(ll = ll, chain_id = attr(ll, "chain_id"))
+}
+
+#' brms's `r_eff_log_lik()` and `loo(save_psis = TRUE)$psis_object`: the
+#' relative efficiency on the chain structure when every draw is used
+#' and on one chain otherwise, with an `NA` efficiency replaced by 1
+#' under brms's own warning.
+#'
+#' @noRd
+draws_ppc_psis_fit <- function(ll, chain_id) {
+  cid <- chain_id %||% rep(1L, nrow(ll))
+  r_eff <- loo::relative_eff(exp(ll), chain_id = cid)
+  if (anyNA(r_eff)) {
+    frm_warning("Ignoring relative efficiencies as some were NA. See ",
+                "argument 'r_eff' in ?loo::loo for more details.",
+                call. = FALSE)
+    r_eff <- rep(1, length(r_eff))
+  }
+  loo::psis(-ll, r_eff = r_eff)
 }
 
 #' Convert draws to a posterior draws object
@@ -1061,7 +1407,9 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
 #' @param row.names,optional Accepted for the generic and unused, as in
 #'   brms.
 #' @param ... For `as.matrix()`, `as.array()` and `as.data.frame()`, the
-#'   `regex`, `fixed` and `inc_warmup` brms passes on; anything else is
+#'   `regex`, `fixed` and `inc_warmup` brms passes on, and the
+#'   `iteration` and `chain` it hands to [posterior::subset_draws()]
+#'   (`as.array(x, chain = 1)` is the first chain); anything else is
 #'   refused by name, rather than silently changing nothing.
 #' @return A `posterior::draws_matrix`: one column per sampled variable
 #'   and one row per draw.
@@ -1269,7 +1617,7 @@ ndraws.frmtmb_draws <- function(x) nrow(x$draws)
 #' @exportS3Method posterior::nchains
 #' @export
 nchains.frmtmb_draws <- function(x) {
-  as.integer(x$stanfit@sim$chains %||% 1L)
+  draws_nchains(x)
 }
 
 #' @rdname draws-dimensions
@@ -1462,8 +1810,9 @@ predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
   # and honors `predictive_interval(x, re.form = NA)` one frame down.
   frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "predictive_interval()")
-  yrep <- posterior_predict(object, newdata = newdata, resp = resp,
-                            re_formula = re_form, ndraws = ndraws)
+  yrep <- draws_as_caller("predictive_interval()", posterior_predict(
+    object, newdata = newdata, resp = resp, re_formula = re_form,
+    ndraws = ndraws))
   if (length(dim(yrep)) > 2L) {
     frm_stop("predictive_interval() needs one predicted number per ",
              "observation, and this model's draws are a matrix per ",
@@ -1492,7 +1841,12 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   method <- frm_match_arg(method,
                           c("posterior_predict", "posterior_epred"))
   fit <- draws_base_fit(object)
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks
+  subset_resp_check(fit, resp %||% names(fit$spec$responses),
+                    "predictive_error()")
   resp <- resp %||% names(fit$spec$responses)[1L]
+  newdata <- subset_newdata(fit, resp, newdata)
   # brms refuses a predictive error, and so residuals(), for every
   # polytomous family whatever the method (its is_polytomous(); brms
   # 2.23.0, dev/correct-log/brms-resid.txt). The same families as
@@ -1515,16 +1869,39 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   }
   # brms's `method`: the predictive draws the error is taken against,
   # either the predictive distribution or the expectation
-  yrep <- if (identical(method, "posterior_epred")) {
+  yrep <- draws_as_caller("predictive_error()",
+                          if (identical(method, "posterior_epred")) {
     posterior_epred(object, newdata = newdata, re_formula = re_form,
                     resp = resp, ndraws = ndraws, draw_ids = draw_ids)
   } else {
     posterior_predict(object, newdata = newdata, re_formula = re_form,
                       resp = resp, ndraws = ndraws,
                       draw_ids = draw_ids)
-  }
+  })
   # brms's convention: the error is y - yrep, one row per draw
   sweep(-yrep, 2L, as.numeric(y), "+")
+}
+
+#' A fitted response as it was OBSERVED: `NA` where an `mi()` response
+#' is missing.
+#'
+#' The frame keeps the placeholder 0 at those rows, and the tape reads
+#' the latent value there instead; read as an observation, the
+#' placeholder made `predictive_error()` report `0 - yrep` at a row
+#' nobody observed. brms keeps its `Y` `NA` there (`get_y()` with
+#' `internal = TRUE`), so its predictive error and `bayes_R2()` are `NA`,
+#' and its `pp_check()` drops the row with a warning. Under `mi(sd = )`
+#' only the rows with no measurement are missing. The frame is read
+#' here rather than through core so this package needs no newer frmtmb.
+#'
+#' @noRd
+draws_observed_y <- function(fit, resp) {
+  y <- fit$frame[["y"]][[resp]]
+  mm <- fit$frame[["mi_map"]][[resp]]
+  if (is.null(mm) || is.matrix(y)) return(y)
+  miss <- if (is.null(mm$obs)) mm$rows else setdiff(mm$rows, mm$obs)
+  y[miss] <- NA
+  y
 }
 
 #' The observed response the predictive error is taken against: the
@@ -1536,7 +1913,7 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
 #'
 #' @noRd
 draws_response_values <- function(fit, resp, newdata, what) {
-  if (is.null(newdata)) return(fit$frame[["y"]][[resp]])
+  if (is.null(newdata)) return(draws_observed_y(fit, resp))
   rspec <- fit$spec$responses[[resp]]
   y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
                 error = function(e) NULL)
@@ -1615,8 +1992,8 @@ NULL
 #' @rdname draws-structure
 #' @export
 nobs.frmtmb_draws <- function(object, ...) {
-  frm_check_dots(...)
-  stats::nobs(draws_base_fit(object))
+  # the fit's own method checks the arguments and reads brms's `resp`
+  stats::nobs(draws_base_fit(object), ...)
 }
 
 #' @rdname draws-structure
@@ -1662,7 +2039,8 @@ coef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
              "access population-level effects.", call. = FALSE)
   }
   fe <- fixef(object, summary = FALSE)
-  co <- ranef(object, summary = FALSE)
+  co <- draws_as_caller("coef()", re_formula = FALSE,
+                        ranef(object, summary = FALSE))
   all_ranef_names <- unique(unlist(lapply(co, function(a) dimnames(a)[[3L]])))
   fixef_names <- colnames(fe)
   no_digits <- function(v) regmatches(v, regexpr("^[^\\[]+", v))
@@ -1884,7 +2262,23 @@ nuts_params <- function(object, ...) UseMethod("nuts_params")
 #' @exportS3Method bayesplot::nuts_params
 #' @export
 nuts_params.frmtmb_draws <- function(object, ...) {
+  draws_require_stanfit(object, "nuts_params()")
   draws_bayesplot_ns("nuts_params()")$nuts_params(object$stanfit, ...)
+}
+
+#' Refuse a sampler diagnostic on draws that carry no `stanfit`.
+#'
+#' bayesplot reads these off the sampler's own object, and on `NULL` it
+#' answers "no applicable method", which names neither the draws nor
+#' what is missing from them.
+#'
+#' @noRd
+draws_require_stanfit <- function(x, what) {
+  if (!is.null(x$stanfit)) return(invisible(NULL))
+  frm_stop(what, " reads the sampler's own diagnostics off `x$stanfit`, and ",
+           "these draws have none: the object was built from a draws matrix ",
+           "without a sampler run. frm_sample() returns draws that carry it",
+           call. = FALSE)
 }
 
 #' @rdname draws-diagnostics
@@ -1895,6 +2289,7 @@ log_posterior <- function(object, ...) UseMethod("log_posterior")
 #' @exportS3Method bayesplot::log_posterior
 #' @export
 log_posterior.frmtmb_draws <- function(object, ...) {
+  draws_require_stanfit(object, "log_posterior()")
   draws_bayesplot_ns("log_posterior()")$log_posterior(object$stanfit, ...)
 }
 
@@ -2047,11 +2442,16 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
   check_flag(log, "log")
   check_flag(summary, "summary")
   check_flag(robust, "robust")
-  idx <- draws_par_index(x$fit)
+  idx <- draws_index(x)
   rows <- draws_subsample(x, ndraws, draw_ids)
+  draws_laplace_probe(x, "pp_mixture()", function(fill) {
+    mixture_probs(draws_fit_at(x, rows[1L], idx, fill))
+  })
+  watch <- draws_laplace_watch(x, "pp_mixture()")
   out <- NULL
   for (k in seq_along(rows)) {
     P <- mixture_probs(draws_fit_at(x, rows[k], idx))
+    watch(P)
     if (is.null(out)) {
       out <- array(NA_real_, c(length(rows), nrow(P), ncol(P)),
                    dimnames = list(NULL, rownames(P), colnames(P)))
@@ -2414,7 +2814,7 @@ fitted.frmtmb_draws <- function(object, newdata = NULL,
   # function the caller called
   draws_refuse_new_levels(object, newdata, list(...), "fitted()",
                           re_formula)
-  out <- if (identical(scale, "response")) {
+  out <- draws_as_caller("fitted()", if (identical(scale, "response")) {
     posterior_epred(object, newdata = newdata, re_formula = re_formula,
                     resp = resp, dpar = dpar, nlpar = nlpar,
                     ndraws = ndraws, draw_ids = draw_ids, ...)
@@ -2422,7 +2822,7 @@ fitted.frmtmb_draws <- function(object, newdata = NULL,
     posterior_linpred(object, newdata = newdata, re_formula = re_formula,
                       resp = resp, dpar = dpar, nlpar = nlpar,
                       ndraws = ndraws, draw_ids = draw_ids, ...)
-  }
+  })
   draws_summarize_or_not(out, summary, probs, robust)
 }
 
@@ -2440,10 +2840,10 @@ predict.frmtmb_draws <- function(object, newdata = NULL,
   draws_refuse_ntrys_cores(ntrys, cores, "predict()")
   draws_refuse_new_levels(object, newdata, list(...), "predict()",
                           re_formula)
-  out <- posterior_predict(object, newdata = newdata,
-                           re_formula = re_formula, transform = transform,
-                           resp = resp, negative_rt = negative_rt,
-                           ndraws = ndraws, draw_ids = draw_ids, ...)
+  out <- draws_as_caller("predict()", posterior_predict(
+    object, newdata = newdata, re_formula = re_formula,
+    transform = transform, resp = resp, negative_rt = negative_rt,
+    ndraws = ndraws, draw_ids = draw_ids, ...))
   if (!summary) return(out)
   # a category-valued response has no mean to summarize, so brms reports
   # the simulated proportion of each category, the same shape the fit
@@ -2470,16 +2870,15 @@ residuals.frmtmb_draws <- function(object, newdata = NULL,
   draws_refuse_sort(sort, "residuals()")
   draws_refuse_new_levels(object, newdata, list(...), "residuals()",
                           re_formula)
-  out <- predictive_error(object, newdata = newdata,
-                          re_formula = re_formula, method = method,
-                          resp = resp, ndraws = ndraws,
-                          draw_ids = draw_ids, ...)
+  out <- draws_as_caller("residuals()", predictive_error(
+    object, newdata = newdata, re_formula = re_formula, method = method,
+    resp = resp, ndraws = ndraws, draw_ids = draw_ids, ...))
   if (identical(type, "pearson")) {
     # brms divides the error draws by the predictive standard deviation
     # of the same draws, which is what makes it a Pearson residual
-    pp <- posterior_predict(object, newdata = newdata,
-                            re_formula = re_formula, resp = resp,
-                            ndraws = ndraws, draw_ids = draw_ids, ...)
+    pp <- draws_as_caller("residuals()", posterior_predict(
+      object, newdata = newdata, re_formula = re_formula, resp = resp,
+      ndraws = ndraws, draw_ids = draw_ids, ...))
     sdv <- apply(pp, 2L, stats::sd)
     out <- sweep(out, 2L, sdv, "/")
   }

@@ -1,0 +1,9 @@
+<environment: namespace:frmtmb.sample>
+loaded frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-defects-lib 
+functions compared: 214  objects: 7 
+DIFFERENT functions: 0 
+   
+DIFFERENT objects: 0 
+   
+MISSING from namespace: 0 
+   

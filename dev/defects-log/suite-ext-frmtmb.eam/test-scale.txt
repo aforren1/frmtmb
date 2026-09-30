@@ -1,0 +1,1 @@
+RESULT after frmtmb.eam 0.11.1 test-scale.R pass= 0 fail= 0 err= 0 skip= 3 warn= 0 

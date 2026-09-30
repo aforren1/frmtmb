@@ -1,0 +1,1 @@
+RESULT lane frmtmb.learn 0.7.0 C:/Users/adf44/source/r/rellib-r3 test-factorization.R pass= 35 fail= 0 err= 0 skip= 0 warn= 0 

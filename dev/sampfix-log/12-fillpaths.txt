@@ -1,0 +1,52 @@
+== gaussian
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells    960  reads    480  as NA/NaN    480  as Inf 0
+posterior_epred newdata                        cells     18  reads     18  as NA/NaN     18  as Inf 0
+posterior_predict newdata (dpars)              cells     36  reads     18  as NA/NaN     18  as Inf 0
+== poisson
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_epred newdata                        cells     18  reads     18  as NA/NaN     18  as Inf 0
+posterior_predict newdata (dpars)              cells     18  reads     18  as NA/NaN     18  as Inf 0
+== bernoulli
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_epred newdata                        cells     18  reads     18  as NA/NaN     18  as Inf 0
+posterior_predict newdata (dpars)              cells     18  reads     18  as NA/NaN     18  as Inf 0
+== lognormal_mu_sigma
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells    960  reads    960  as NA/NaN    960  as Inf 0
+posterior_epred newdata                        cells     18  reads     18  as NA/NaN     18  as Inf 0
+posterior_predict newdata (dpars)              cells     36  reads     36  as NA/NaN     36  as Inf 0
+== cumulative
+posterior_epred                                cells   1440  reads   1440  as NA/NaN   1440  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_epred newdata                        cells     54  reads     54  as NA/NaN     54  as Inf 0
+posterior_predict newdata (dpars)              cells     18  reads     18  as NA/NaN     18  as Inf 0
+== smooth
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells    960  reads    480  as NA/NaN    480  as Inf 0
+== nl_exp
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_linpred                              cells    480  reads    480  as NA/NaN    480  as Inf 0
+posterior_predict (dpars)                      cells   2400  reads    960  as NA/NaN    960  as Inf 0
+posterior_epred newdata                        cells     18  reads     18  as NA/NaN     18  as Inf 0
+posterior_predict newdata (dpars)              cells     90  reads     36  as NA/NaN     36  as Inf 0
+== smooth + (1 | g): conditional_effects at re_formula = NULL
+conditional_effects re_formula = NULL          cells     30  reads     30  as NA/NaN     30  as Inf 0
+conditional_effects default                    cells     30  reads     30  as NA/NaN     30  as Inf 0
+== mi() predictor
+posterior_epred resp y                         cells    480  reads     18  as NA/NaN     18  as Inf 0
+posterior_predict resp y (dpars)               cells    960  reads     18  as NA/NaN     18  as Inf 0
+== grouped mixture
+pp_mixture                                     cells    960  reads    960  as NA/NaN    960  as Inf 0
+posterior_epred                                cells    480  reads    480  as NA/NaN    480  as Inf 0
+== hypothesis through the fit (sd_ of a smooth + (1 | g) model)
+hypothesis sd_g__Intercept                     cells      6  reads      0  as NA/NaN      0  as Inf 0
+DONE

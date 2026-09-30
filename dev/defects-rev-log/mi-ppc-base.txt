@@ -1,0 +1,7 @@
+dens_overlay       ok  [warn: ]
+error_hist         ok  [warn: ]
+error_scatter_avg  ok  [warn: ]
+scatter_avg        ok  [warn: ]
+stat               ok  [warn: ]
+intervals          ok  [warn: ]
+loo_pit_overlay    ERROR: One of 'lw' and 'psis_object' must be specified.  [warn: ]

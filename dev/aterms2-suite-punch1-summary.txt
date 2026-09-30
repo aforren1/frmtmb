@@ -1,0 +1,12 @@
+﻿RESULT test-draws-methods.R pass=148 fail=0 error=0 skip=0 warn=0
+RESULT test-subset-rate-draws.R pass=19 fail=0 error=0 skip=0 warn=0
+RESULT test-arg-refusal.R pass=119 fail=0 error=1 skip=0 warn=0
+RESULT test-compat.R pass=680 fail=0 error=0 skip=0 warn=0
+RESULT test-methods-audit.R pass=58 fail=0 error=0 skip=0 warn=0
+RESULT test-methods.R pass=64 fail=0 error=0 skip=0 warn=0
+RESULT test-multivariate.R pass=23 fail=0 error=0 skip=0 warn=0
+RESULT test-mv-gaps.R pass=57 fail=0 error=0 skip=0 warn=0
+RESULT test-predict-newdata.R pass=12 fail=0 error=0 skip=0 warn=0
+RESULT test-simulate-ergonomics.R pass=50 fail=0 error=0 skip=0 warn=0
+RESULT test-structure.R pass=135 fail=0 error=0 skip=0 warn=0
+RESULT test-subset-rate.R pass=85 fail=0 error=0 skip=0 warn=0

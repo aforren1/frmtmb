@@ -1,0 +1,1378 @@
+
+########  data_response.brmsframe 
+function (x, data, check_response = TRUE, internal = FALSE, ...) 
+{
+    data <- subset_data(data, x)
+    N <- nrow(data)
+    Y <- model.response(model.frame(x$respform, data, na.action = na.pass))
+    out <- list(N = N, Y = unname(Y))
+    if (is_binary(x$family)) {
+        bin_levels <- x$frame$basis$resp_levels
+        if (is.null(bin_levels)) {
+            bin_levels <- levels(as.factor(out$Y))
+        }
+        if (is.numeric(out$Y) && length(bin_levels) == 1L) {
+            if (0 %in% bin_levels) {
+                bin_levels <- c(0, 1)
+            }
+            else {
+                bin_levels <- c(0, bin_levels)
+            }
+        }
+        out$Y <- as.integer(as_factor(out$Y, levels = bin_levels)) - 
+            1
+    }
+    if (is_categorical(x$family)) {
+        out$Y <- as.integer(as_factor(out$Y, levels = x$frame$basis$resp_levels))
+    }
+    if (is_ordinal(x$family) && is.ordered(out$Y)) {
+        diff <- ifelse(has_extra_cat(x$family), 1L, 0L)
+        out$Y <- as.integer(out$Y) - diff
+    }
+    if (check_response) {
+        family4error <- family_names(x$family)
+        if (is.mixfamily(x$family)) {
+            family4error <- paste0(family4error, collapse = ", ")
+            family4error <- paste0("mixture(", family4error, 
+                ")")
+        }
+        if (!allow_factors(x$family) && !is.numeric(out$Y)) {
+            stop2("Family '", family4error, "' requires numeric responses.")
+        }
+        if (is_binary(x$family)) {
+            if (any(!out$Y %in% c(0, 1))) {
+                stop2("Family '", family4error, "' requires responses ", 
+                  "to contain only two different values.")
+            }
+        }
+        if (is_ordinal(x$family)) {
+            extra_cat <- has_extra_cat(x$family)
+            min_int <- ifelse(extra_cat, 0L, 1L)
+            msg <- ifelse(extra_cat, "non-negative", "positive")
+            if (any(!is_wholenumber(out$Y)) || any(out$Y < min_int)) {
+                stop2("Family '", family4error, "' requires either ", 
+                  msg, " integers or ordered factors as responses.")
+            }
+        }
+        if (use_int(x$family)) {
+            if (!all(is_wholenumber(out$Y))) {
+                stop2("Family '", family4error, "' requires integer responses.")
+            }
+        }
+        if (has_multicol(x$family)) {
+            if (!is.matrix(out$Y)) {
+                stop2("This model requires a response matrix.")
+            }
+        }
+        if (is_simplex(x$family)) {
+            if (!is_equal(rowSums(out$Y), rep(1, nrow(out$Y)))) {
+                stop2("Response values in simplex models must sum to 1.")
+            }
+        }
+        ybounds <- family_info(x$family, "ybounds")
+        closed <- family_info(x$family, "closed")
+        if (is.finite(ybounds[1])) {
+            y_min <- min(out$Y, na.rm = TRUE)
+            if (closed[1] && y_min < ybounds[1]) {
+                stop2("Family '", family4error, "' requires response greater ", 
+                  "than or equal to ", ybounds[1], ".")
+            }
+            else if (!closed[1] && y_min <= ybounds[1]) {
+                stop2("Family '", family4error, "' requires response greater ", 
+                  "than ", round(ybounds[1], 2), ".")
+            }
+        }
+        if (is.finite(ybounds[2])) {
+            y_max <- max(out$Y, na.rm = TRUE)
+            if (closed[2] && y_max > ybounds[2]) {
+                stop2("Family '", family4error, "' requires response smaller ", 
+                  "than or equal to ", ybounds[2], ".")
+            }
+            else if (!closed[2] && y_max >= ybounds[2]) {
+                stop2("Family '", family4error, "' requires response smaller ", 
+                  "than ", round(ybounds[2], 2), ".")
+            }
+        }
+        out$Y <- as.array(out$Y)
+    }
+    if (has_trials(x$family) || is.formula(x$adforms$trials)) {
+        if (!length(x$adforms$trials)) {
+            stop2("Specifying 'trials' is required for this model.")
+        }
+        if (!is.formula(x$adforms$trials)) {
+            stop2("Argument 'trials' is misspecified.")
+        }
+        trials <- get_ad_values(x, "trials", "trials", data)
+        if (!is.numeric(trials)) {
+            stop2("Number of trials must be numeric.")
+        }
+        if (any(!is_wholenumber(trials) | trials < 0)) {
+            stop2("Number of trials must be non-negative integers.")
+        }
+        if (length(trials) == 1L) {
+            trials <- rep(trials, nrow(data))
+        }
+        if (check_response) {
+            if (is_multinomial(x$family)) {
+                if (!is_equal(rowSums(out$Y), trials)) {
+                  stop2("Number of trials does not match the number of events.")
+                }
+            }
+            else if (has_trials(x$family)) {
+                if (max(trials) == 1L && !internal) {
+                  message("Only 2 levels detected so that family 'bernoulli' ", 
+                    "might be a more efficient choice.")
+                }
+                if (any(out$Y > trials)) {
+                  stop2("Number of trials is smaller than the number of events.")
+                }
+            }
+        }
+        out$trials <- as.array(trials)
+    }
+    if (has_cat(x$family)) {
+        ncat <- length(get_cats(x$family))
+        if (min(ncat) < 2L) {
+            stop2("At least two response categories are required.")
+        }
+        if (!has_multicol(x$family)) {
+            if (ncat == 2L && !internal) {
+                message("Only 2 levels detected so that family 'bernoulli' ", 
+                  "might be a more efficient choice.")
+            }
+            if (check_response && any(out$Y > ncat)) {
+                stop2("Number of categories is smaller than the response ", 
+                  "variable would suggest.")
+            }
+        }
+        out$ncat <- ncat
+    }
+    if (has_thres(x$family)) {
+        thres <- family_info(x, "thres")
+        if (has_thres_groups(x$family)) {
+            groups <- get_thres_groups(x)
+            out$ngrthres <- length(groups)
+            grthres <- get_ad_values(x, "thres", "gr", data)
+            grthres <- factor(rename(grthres), levels = groups)
+            Jgrthres <- match(grthres, groups)
+            nthres <- as.array(rep(NA, length(groups)))
+            for (i in seq_along(groups)) {
+                nthres[i] <- max(subset2(thres, group = groups[i])$thres)
+            }
+            if (check_response && any(out$Y > nthres[Jgrthres] + 
+                1)) {
+                stop2("Number of thresholds is smaller than required by the response.")
+            }
+            Kthres_cumsum <- cumsum(nthres)
+            Kthres_start <- c(1, Kthres_cumsum[-length(nthres)] + 
+                1)
+            Kthres_end <- Kthres_cumsum
+            Jthres <- cbind(Kthres_start, Kthres_end)[Jgrthres, 
+                , drop = FALSE]
+            out$Jthres <- Jthres
+        }
+        else {
+            nthres <- max(thres$thres)
+            if (check_response && any(out$Y > nthres + 1)) {
+                stop2("Number of thresholds is smaller than required by the response.")
+            }
+        }
+        if (max(nthres) == 1L && !internal) {
+            message("Only 2 levels detected so that family 'bernoulli' ", 
+                "might be a more efficient choice.")
+        }
+        out$nthres <- nthres
+    }
+    if (is.formula(x$adforms$cat)) {
+        warning2("Addition argument 'cat' is deprecated. Use 'thres' instead. ", 
+            "See ?brmsformula for more details.")
+    }
+    if (is.formula(x$adforms$se)) {
+        se <- get_ad_values(x, "se", "se", data)
+        if (!is.numeric(se)) {
+            stop2("Standard errors must be numeric.")
+        }
+        if (min(se) < 0) {
+            stop2("Standard errors must be non-negative.")
+        }
+        out$se <- as.array(se)
+    }
+    if (is.formula(x$adforms$weights)) {
+        weights <- get_ad_values(x, "weights", "weights", data)
+        if (!is.numeric(weights)) {
+            stop2("Weights must be numeric.")
+        }
+        if (min(weights) < 0) {
+            stop2("Weights must be non-negative.")
+        }
+        if (get_ad_flag(x, "weights", "scale")) {
+            weights <- weights/sum(weights) * length(weights)
+        }
+        out$weights <- as.array(weights)
+    }
+    if (is.formula(x$adforms$dec)) {
+        dec <- get_ad_values(x, "dec", "dec", data)
+        if (is.character(dec) || is.factor(dec)) {
+            if (!all(unique(dec) %in% c("lower", "upper"))) {
+                stop2("Decisions should be 'lower' or 'upper' ", 
+                  "when supplied as characters or factors.")
+            }
+            dec <- ifelse(dec == "lower", 0, 1)
+        }
+        else {
+            dec <- as.numeric(as.logical(dec))
+        }
+        out$dec <- as.array(dec)
+    }
+    if (is.formula(x$adforms$rate)) {
+        denom <- get_ad_values(x, "rate", "denom", data)
+        if (!is.numeric(denom)) {
+            stop2("Rate denomiators should be numeric.")
+        }
+        if (isTRUE(any(denom <= 0))) {
+            stop2("Rate denomiators should be positive.")
+        }
+        out$denom <- as.array(denom)
+    }
+    if (is.formula(x$adforms$cens) && check_response) {
+        cens <- get_ad_values(x, "cens", "cens", data)
+        cens <- prepare_cens(cens)
+        if (!all(is_wholenumber(cens) & cens %in% -1:2)) {
+            stop2("Invalid censoring data. Accepted values are ", 
+                "'left', 'none', 'right', and 'interval'\n", 
+                "(abbreviations are allowed) or -1, 0, 1, and 2.\n", 
+                "TRUE and FALSE are also accepted ", "and refer to 'right' and 'none' respectively.")
+        }
+        if (length(cens) == 1L) {
+            cens <- rep(cens, N)
+        }
+        if (length(cens) != N) {
+            stop2("Censoring information needs to have length ", 
+                "equal to the number of data rows.")
+        }
+        out$cens <- as.array(cens)
+        icens <- cens %in% 2
+        if (any(icens) || has_interval_cens(x)) {
+            y2 <- unname(get_ad_values(x, "cens", "y2", data))
+            if (is.null(y2)) {
+                stop2("Argument 'y2' is required for interval censored data.")
+            }
+            if (length(y2) != N) {
+                stop2("Argument 'y2' needs to have length equal to the number of data rows.")
+            }
+            if (anyNA(y2[icens])) {
+                stop2("'y2' should not be NA for interval censored observations.")
+            }
+            if (any(out$Y[icens] >= y2[icens])) {
+                stop2("Left censor points must be smaller than right ", 
+                  "censor points for interval censored data.")
+            }
+            y2[!icens] <- 0
+            out$rcens <- as.array(y2)
+        }
+    }
+    if (is.formula(x$adforms$trunc)) {
+        lb <- as.numeric(get_ad_values(x, "trunc", "lb", data))
+        ub <- as.numeric(get_ad_values(x, "trunc", "ub", data))
+        if (any(lb >= ub)) {
+            stop2("Truncation bounds are invalid: lb >= ub")
+        }
+        if (length(lb) == 1L) {
+            lb <- rep(lb, N)
+        }
+        if (length(ub) == 1L) {
+            ub <- rep(ub, N)
+        }
+        if (length(lb) != N || length(ub) != N) {
+            stop2("Invalid truncation bounds.")
+        }
+        inv_bounds <- out$Y < lb | out$Y > ub
+        if (check_response && isTRUE(any(inv_bounds))) {
+            stop2("Some responses are outside of the truncation bounds.")
+        }
+        out$lb <- lb
+        out$ub <- ub
+    }
+    if (is.formula(x$adforms$mi)) {
+        sdy <- get_sdy(x, data)
+        if (is.null(sdy)) {
+            which_mi <- which(is.na(out$Y))
+            out$Jmi <- as.array(which_mi)
+            out$Nmi <- length(out$Jmi)
+        }
+        else {
+            if (length(sdy) == 1L) {
+                sdy <- rep(sdy, length(out$Y))
+            }
+            if (length(sdy) != length(out$Y)) {
+                stop2("'sdy' must have the same length as the response.")
+            }
+            which_mi <- which(is.na(out$Y) | is.infinite(sdy))
+            out$Jme <- as.array(setdiff(seq_along(out$Y), which_mi))
+            out$Nme <- length(out$Jme)
+            out$noise <- as.array(sdy)
+            if (!internal) {
+                out$noise[which_mi] <- Inf
+            }
+        }
+        tbounds <- trunc_bounds(x, data, incl_family = TRUE)
+        out$lbmi <- tbounds$lb
+        out$ubmi <- tbounds$ub
+        if (!internal) {
+            out$Y[which_mi] <- Inf
+        }
+    }
+    if (is.formula(x$adforms$vreal)) {
+        vreal <- eval_rhs(x$adforms$vreal)
+        vreal <- lapply(vreal$vars, eval2, data)
+        names(vreal) <- paste0("vreal", seq_along(vreal))
+        for (i in seq_along(vreal)) {
+            if (length(vreal[[i]]) == 1L) {
+                vreal[[i]] <- rep(vreal[[i]], N)
+            }
+            vreal[[i]] <- as.array(as.numeric(vreal[[i]]))
+        }
+        c(out) <- vreal
+    }
+    if (is.formula(x$adforms$vint)) {
+        vint <- eval_rhs(x$adforms$vint)
+        vint <- lapply(vint$vars, eval2, data)
+        names(vint) <- paste0("vint", seq_along(vint))
+        for (i in seq_along(vint)) {
+            if (length(vint[[i]]) == 1L) {
+                vint[[i]] <- rep(vint[[i]], N)
+            }
+            if (!all(is_wholenumber(vint[[i]]))) {
+                stop2("'vint' requires whole numbers as input.")
+            }
+            vint[[i]] <- as.array(vint[[i]])
+        }
+        c(out) <- vint
+    }
+    if (length(out)) {
+        resp <- usc(combine_prefix(x))
+        out <- setNames(out, paste0(names(out), resp))
+    }
+    out
+}
+<bytecode: 0x000001dff6117930>
+<environment: namespace:brms>
+
+########  get_rate_denom 
+function (prep, i = NULL) 
+{
+    stopifnot(is.brmsprep(prep))
+    denom <- as.vector(prep$data[["denom"]])
+    if (!is.null(denom)) {
+        if (!is.null(i)) {
+            denom <- denom[i]
+        }
+        if (length(denom) > 1L) {
+            dim <- c(prep$ndraws, length(denom))
+            denom <- data2draws(denom, dim = dim)
+        }
+    }
+    else {
+        denom <- 1
+    }
+    denom
+}
+<bytecode: 0x000001dffc03f818>
+<environment: namespace:brms>
+
+########  multiply_dpar_rate_denom 
+function (dpar, prep, i = NULL) 
+{
+    if ("denom" %in% names(prep$data)) {
+        denom <- get_rate_denom(prep, i = i)
+        dpar <- dpar * denom
+    }
+    dpar
+}
+<bytecode: 0x000001dffc00d620>
+<environment: namespace:brms>
+
+########  log_lik_poisson 
+function (i, prep) 
+{
+    mu <- get_dpar(prep, "mu", i)
+    mu <- multiply_dpar_rate_denom(mu, prep, i = i)
+    args <- list(lambda = mu)
+    out <- log_lik_censor(dist = "pois", args = args, i = i, 
+        prep = prep)
+    out <- log_lik_truncate(out, cdf = ppois, args = args, i = i, 
+        prep = prep)
+    log_lik_weight(out, i = i, prep = prep)
+}
+<bytecode: 0x000001dffc004120>
+<environment: namespace:brms>
+
+########  log_lik_negbinomial 
+function (i, prep) 
+{
+    mu <- get_dpar(prep, "mu", i)
+    mu <- multiply_dpar_rate_denom(mu, prep, i = i)
+    shape <- get_dpar(prep, "shape", i)
+    shape <- multiply_dpar_rate_denom(shape, prep, i = i)
+    args <- list(mu = mu, size = shape)
+    out <- log_lik_censor(dist = "nbinom", args = args, i = i, 
+        prep = prep)
+    out <- log_lik_truncate(out, cdf = pnbinom, args = args, 
+        i = i, prep = prep)
+    log_lik_weight(out, i = i, prep = prep)
+}
+<bytecode: 0x000001dffc014190>
+<environment: namespace:brms>
+
+########  log_lik_geometric 
+function (i, prep) 
+{
+    mu <- get_dpar(prep, "mu", i)
+    mu <- multiply_dpar_rate_denom(mu, prep, i = i)
+    shape <- 1
+    shape <- multiply_dpar_rate_denom(shape, prep, i = i)
+    args <- list(mu = mu, size = shape)
+    out <- log_lik_censor(dist = "nbinom", args = args, i = i, 
+        prep = prep)
+    out <- log_lik_truncate(out, cdf = pnbinom, args = args, 
+        i = i, prep = prep)
+    log_lik_weight(out, i = i, prep = prep)
+}
+<bytecode: 0x000001dffc035b28>
+<environment: namespace:brms>
+
+########  posterior_epred_poisson 
+function (prep) 
+{
+    multiply_dpar_rate_denom(prep$dpars$mu, prep)
+}
+<bytecode: 0x000001dffc02b7a8>
+<environment: namespace:brms>
+
+########  posterior_epred_negbinomial 
+function (prep) 
+{
+    multiply_dpar_rate_denom(prep$dpars$mu, prep)
+}
+<bytecode: 0x000001dffc02c740>
+<environment: namespace:brms>
+
+########  posterior_epred_trunc_poisson 
+function (prep, lb, ub) 
+{
+    lb <- ifelse(lb < -1, -1, lb)
+    mu <- multiply_dpar_rate_denom(prep$dpars$mu, prep)
+    max_value <- 3 * max(mu)
+    ub <- ifelse(ub > max_value, max_value, ub)
+    args <- list(lambda = mu)
+    posterior_epred_trunc_discrete(dist = "pois", args = args, 
+        lb = lb, ub = ub)
+}
+<bytecode: 0x000001dffc074578>
+<environment: namespace:brms>
+
+########  posterior_predict_poisson 
+function (i, prep, ntrys = 5, ...) 
+{
+    mu <- get_dpar(prep, "mu", i)
+    mu <- multiply_dpar_rate_denom(mu, prep, i = i)
+    rdiscrete(n = prep$ndraws, dist = "pois", lambda = mu, lb = prep$data$lb[i], 
+        ub = prep$data$ub[i], ntrys = ntrys)
+}
+<bytecode: 0x000001dffc05c3b8>
+<environment: namespace:brms>
+
+########  posterior_predict_negbinomial 
+function (i, prep, ntrys = 5, ...) 
+{
+    mu <- get_dpar(prep, "mu", i)
+    mu <- multiply_dpar_rate_denom(mu, prep, i = i)
+    shape <- get_dpar(prep, "shape", i)
+    shape <- multiply_dpar_rate_denom(shape, prep, i = i)
+    rdiscrete(n = prep$ndraws, dist = "nbinom", mu = mu, size = shape, 
+        lb = prep$data$lb[i], ub = prep$data$ub[i], ntrys = ntrys)
+}
+<bytecode: 0x000001dffc062690>
+<environment: namespace:brms>
+
+########  stan_log_lik_poisson 
+function (bterms, ...) 
+{
+    if (use_glm_primitive(bterms)) {
+        p <- args_glm_primitive(bterms$dpars$mu, ...)
+        out <- sdist("poisson_log_glm", p$x, p$alpha, p$beta)
+    }
+    else {
+        p <- stan_log_lik_dpars(bterms)
+        p$mu <- stan_log_lik_multiply_rate_denom(p$mu, bterms, 
+            log = TRUE, ...)
+        lpdf <- stan_log_lik_simple_lpdf("poisson", bterms)
+        out <- sdist(lpdf, p$mu)
+    }
+    out
+}
+<bytecode: 0x000001dffc054380>
+<environment: namespace:brms>
+
+########  stan_log_lik_negbinomial 
+function (bterms, ...) 
+{
+    if (use_glm_primitive(bterms)) {
+        p <- args_glm_primitive(bterms$dpars$mu, ...)
+        p$shape <- paste0("shape", usc(bterms$resp))
+        out <- sdist("neg_binomial_2_log_glm", p$x, p$alpha, 
+            p$beta, p$shape)
+    }
+    else {
+        p <- stan_log_lik_dpars(bterms)
+        p$mu <- stan_log_lik_multiply_rate_denom(p$mu, bterms, 
+            log = TRUE, ...)
+        p$shape <- stan_log_lik_multiply_rate_denom(p$shape, 
+            bterms, ...)
+        lpdf <- stan_log_lik_simple_lpdf("neg_binomial_2", bterms)
+        out <- sdist(lpdf, p$mu, p$shape)
+    }
+    out
+}
+<bytecode: 0x000001dffc06d9e0>
+<environment: namespace:brms>
+
+########  stan_log_lik_multiply_rate_denom 
+function (dpar, bterms, reqn = stan_log_lik_adj(bterms), log = FALSE, 
+    transform = NULL, threads = NULL, ...) 
+{
+    dpar_transform <- dpar
+    if (!is.null(transform)) {
+        dpar_transform <- glue("{transform}({dpar})")
+    }
+    if (!is.formula(bterms$adforms$rate)) {
+        return(dpar_transform)
+    }
+    resp <- usc(bterms$resp)
+    ndenom <- str_if(reqn, stan_nn(threads), stan_slice(threads))
+    denom <- glue("denom{resp}{ndenom}")
+    has_cens_or_trunc <- has_ad_terms(bterms, c("cens", "trunc"))
+    if (log && bterms$family$link == "log" && !has_cens_or_trunc) {
+        denom <- glue("log_{denom}")
+        operator <- "+"
+    }
+    else {
+        dpar_clean <- sub("(_|\\[).*", "", dpar)
+        is_pred <- dpar_clean %in% c("mu", names(bterms$dpars))
+        operator <- ".*"
+    }
+    glue("{dpar_transform} {operator} {denom}")
+}
+<bytecode: 0x000001dffc0682d8>
+<environment: namespace:brms>
+
+########  use_glm_primitive 
+function (bterms) 
+{
+    stopifnot(is.brmsterms(bterms))
+    mu <- bterms$dpars[["mu"]]
+    non_glm_adterms <- c("se", "weights", "thres", "cens", "trunc", 
+        "rate")
+    if (!is.btl(mu) || length(bterms$dpars) > 1L || isTRUE(bterms$rescor) || 
+        is.formula(mu$ac) || has_ad_terms(bterms, non_glm_adterms)) {
+        return(FALSE)
+    }
+    allow_special_terms <- !mu$family$family %in% c("cumulative", 
+        "categorical")
+    if (!allow_special_terms && has_special_terms(mu)) {
+        return(FALSE)
+    }
+    glm_links <- list(gaussian = "identity", bernoulli = "logit", 
+        poisson = "log", negbinomial = "log", negbinomial2 = "log", 
+        cumulative = "logit", categorical = "logit")
+    if (!isTRUE(glm_links[[mu$family$family]] == mu$family$link)) {
+        return(FALSE)
+    }
+    length(all_terms(mu$fe)) > 0 && !is_sparse(mu$fe)
+}
+<bytecode: 0x000001dffc072d58>
+<environment: namespace:brms>
+
+########  prepare_predictions_data 
+function (bframe, sdata, stanvars = NULL, ...) 
+{
+    resp <- usc(combine_prefix(bframe))
+    vars <- c("Y", "trials", "ncat", "nthres", "se", "weights", 
+        "denom", "dec", "cens", "rcens", "lb", "ub")
+    vars <- paste0(vars, resp)
+    vars <- intersect(vars, names(sdata))
+    escaped_resp <- escape_all(resp)
+    vl_vars <- c("vreal", "vint")
+    vl_vars <- regex_or(vl_vars)
+    vl_vars <- paste0("^", vl_vars, "[[:digit:]]+", escaped_resp, 
+        "$")
+    vl_vars <- str_subset(names(sdata), vl_vars)
+    vars <- union(vars, vl_vars)
+    out <- sdata[vars]
+    names(out) <- sub(paste0(escaped_resp, "$"), "", names(out))
+    if (length(stanvars)) {
+        stopifnot(is.stanvars(stanvars))
+        out[names(stanvars)] <- sdata[names(stanvars)]
+    }
+    out
+}
+<bytecode: 0x000001dffc04f938>
+<environment: namespace:brms>
+
+########  terms_ad 
+function (formula, family = NULL, check_response = TRUE) 
+{
+    x <- list()
+    ad_funs <- lsp("brms", what = "exports", pattern = "^resp_")
+    ad_funs <- sub("^resp_", "", ad_funs)
+    families <- family_names(family)
+    if (is.family(family) && any(nzchar(families))) {
+        str_formula <- formula2str(formula)
+        ad <- get_matches("(?<=\\|)[^~]*(?=~)", str_formula, 
+            perl = TRUE)
+        valid_ads <- family_info(family, "ad")
+        if (length(ad)) {
+            ad_terms <- terms(str2formula(ad))
+            if (length(attr(ad_terms, "offset"))) {
+                stop2("Offsets are not allowed in addition terms.")
+            }
+            ad_terms <- attr(ad_terms, "term.labels")
+            for (a in ad_funs) {
+                matches <- grep(paste0("^(resp_)?", a, "\\(.*\\)$"), 
+                  ad_terms)
+                if (length(matches) == 1L) {
+                  x[[a]] <- ad_terms[matches]
+                  if (!grepl("^resp_", x[[a]])) {
+                    x[[a]] <- paste0("resp_", x[[a]])
+                  }
+                  ad_terms <- ad_terms[-matches]
+                  if (!is.na(x[[a]]) && a %in% valid_ads) {
+                    x[[a]] <- str2formula(x[[a]])
+                  }
+                  else {
+                    stop2("Argument '", a, "' is not supported for ", 
+                      "family '", summary(family), "'.")
+                  }
+                }
+                else if (length(matches) > 1L) {
+                  stop2("Each addition argument may only be defined once.")
+                }
+            }
+            if (length(ad_terms)) {
+                stop2("The following addition terms are invalid:\n", 
+                  collapse_comma(ad_terms))
+            }
+        }
+        if (check_response && "wiener" %in% families && !is.formula(x$dec)) {
+            stop2("Addition argument 'dec' is required for family 'wiener'.")
+        }
+        if (is.formula(x$cat)) {
+            x$thres <- x$cat
+        }
+    }
+    x
+}
+<bytecode: 0x000001dffc055fc8>
+<environment: namespace:brms>
+
+########  frame_resp 
+function (x, data, ....) 
+{
+    stopifnot(is.brmsterms(x))
+    y <- model.response(model.frame(x$respform, data, na.action = na.pass))
+    out <- list(values = y, bounds = trunc_bounds(x, data), Ybounds = trunc_bounds(x, 
+        data, incl_family = TRUE, stan = TRUE), Jmi = as.array(which(is.na(y))), 
+        subset = attr(data, "subset"))
+    out
+}
+<bytecode: 0x000001dffc047d98>
+<environment: namespace:brms>
+
+########  has_subset 
+function (bterms) 
+{
+    if (is.brmsterms(bterms)) {
+        out <- has_ad_terms(bterms, "subset")
+    }
+    else if (is.mvbrmsterms(bterms)) {
+        out <- any(ulapply(bterms$terms, has_ad_terms, "subset"))
+    }
+    else {
+        out <- FALSE
+    }
+    out
+}
+<bytecode: 0x000001dffc06fe78>
+<environment: namespace:brms>
+
+########  subset_data 
+function (data, bterms) 
+{
+    if (has_subset(bterms)) {
+        subset <- as.logical(get_ad_values(bterms, "subset", 
+            "subset", data))
+        if (length(subset) != nrow(data)) {
+            stop2("Length of 'subset' does not match the rows of 'data'.")
+        }
+        if (anyNA(subset)) {
+            stop2("Subset variables may not contain NAs.")
+        }
+        check_cross_formula_indexing(bterms)
+        data <- data[subset, , drop = FALSE]
+        attr(data, "subset") <- subset
+    }
+    if (!NROW(data)) {
+        stop2("All rows of 'data' were removed via 'subset'. ", 
+            "Please make sure that variables do not contain NAs ", 
+            "for observations in which they are supposed to be used. ", 
+            "Please also make sure that each subset variable is ", 
+            "TRUE for at least one observation.")
+    }
+    data
+}
+<bytecode: 0x000001dffc0a7498>
+<environment: namespace:brms>
+
+########  data_sp 
+function (bframe, data, data2, prior) 
+{
+    stopifnot(is.bframel(bframe))
+    if (!is.null(bframe$sdata$sp)) {
+        return(bframe$sdata$sp)
+    }
+    out <- list()
+    spframe <- bframe$frame$sp
+    if (!has_rows(spframe)) {
+        return(out)
+    }
+    basis <- bframe$basis$sp
+    px <- check_prefix(bframe)
+    p <- usc(combine_prefix(px))
+    out[[paste0("Ksp", p)]] <- nrow(spframe)
+    Csp <- sp_model_matrix(bframe$sp, data)
+    avoid_dpars(colnames(Csp), bframe)
+    Csp <- Csp[, spframe$Ic > 0, drop = FALSE]
+    Csp <- lapply(seq_cols(Csp), function(i) as.array(Csp[, i]))
+    if (length(Csp)) {
+        Csp_names <- paste0("Csp", p, "_", seq_along(Csp))
+        out <- c(out, setNames(Csp, Csp_names))
+    }
+    if (any(lengths(spframe$Imo) > 0)) {
+        out[[paste0("Imo", p)]] <- max(unlist(spframe$Imo))
+        Xmo <- lapply(unlist(spframe$calls_mo), get_mo_values, 
+            data = data)
+        Xmo_names <- paste0("Xmo", p, "_", seq_along(Xmo))
+        c(out) <- setNames(Xmo, Xmo_names)
+        if (!is.null(basis$Jmo)) {
+            Jmo <- basis$Jmo
+        }
+        else {
+            Jmo <- as.array(ulapply(Xmo, attr, "max"))
+        }
+        out[[paste0("Jmo", p)]] <- Jmo
+        simo_coef <- get_simo_labels(spframe, use_id = TRUE)
+        ids <- unlist(spframe$ids_mo)
+        for (j in seq_along(simo_coef)) {
+            j_id <- match(ids[j], ids)
+            if (is.na(ids[j]) || j_id == j) {
+                simo_prior <- subset2(prior, class = "simo", 
+                  coef = simo_coef[j], ls = px)
+                con_simo <- eval_dirichlet(simo_prior$prior, 
+                  Jmo[j], data2)
+                out[[paste0("con_simo", p, "_", j)]] <- as.array(con_simo)
+            }
+        }
+    }
+    uni_mi <- attr(spframe, "uni_mi")
+    index <- bframe$frame$index
+    for (j in seq_rows(uni_mi)) {
+        if (!is.na(uni_mi$idx[j])) {
+            idxl <- get(uni_mi$idx[j], data)
+            if (is.null(index[[uni_mi$var[j]]])) {
+                stop2("Response '", uni_mi$var[j], "' needs to have an 'index' addition ", 
+                  "term to compare with 'idx'. See ?mi for examples.")
+            }
+            idxl <- match(idxl, index[[uni_mi$var[j]]])
+            if (anyNA(idxl)) {
+                stop2("Could not match all indices in response '", 
+                  uni_mi$var[j], "'.")
+            }
+            idxl_name <- paste0("idxl", p, "_", uni_mi$var[j], 
+                "_", uni_mi$idx2[j])
+            out[[idxl_name]] <- as.array(idxl)
+        }
+        else if (isTRUE(attr(index[[uni_mi$var[j]]], "subset"))) {
+            stop2("mi() terms of subsetted variables require ", 
+                "the 'idx' argument to be specified.")
+        }
+    }
+    out
+}
+<bytecode: 0x000001dffc094f90>
+<environment: namespace:brms>
+
+########  predictor_sp 
+function (prep, i) 
+{
+    eta <- 0
+    sp <- prep[["sp"]]
+    if (!length(sp)) {
+        return(eta)
+    }
+    eval_list <- list()
+    for (j in seq_along(sp[["simo"]])) {
+        eval_list[[paste0("Xmo_", j)]] <- p(sp[["Xmo"]][[j]], 
+            i)
+        eval_list[[paste0("simo_", j)]] <- sp[["simo"]][[j]]
+    }
+    for (j in seq_along(sp[["Xme"]])) {
+        eval_list[[paste0("Xme_", j)]] <- p(sp[["Xme"]][[j]], 
+            i, row = FALSE)
+    }
+    for (j in seq_along(sp[["Yl"]])) {
+        eval_list[[names(sp[["Yl"]])[j]]] <- p(sp[["Yl"]][[j]], 
+            i, row = FALSE)
+    }
+    for (j in seq_along(sp[["idxl"]])) {
+        eval_list[[names(sp[["idxl"]])[j]]] <- p(sp[["idxl"]][[j]], 
+            i, row = FALSE)
+    }
+    for (j in seq_along(sp[["Csp"]])) {
+        eval_list[[paste0("Csp_", j)]] <- p(sp[["Csp"]][[j]], 
+            i, row = FALSE)
+    }
+    re <- prep[["re"]]
+    coef <- colnames(sp[["bsp"]])
+    for (j in seq_along(coef)) {
+        rsp <- named_list(names(re[["rsp"]][[coef[j]]]))
+        for (g in names(rsp)) {
+            rsp[[g]] <- .predictor_re(Z = p(re[["Zsp"]][[g]], 
+                i), r = re[["rsp"]][[coef[j]]][[g]])
+        }
+        eta <- eta + .predictor_sp(eval_list, call = sp[["calls"]][[j]], 
+            b = sp[["bsp"]][, j], r = Reduce("+", rsp))
+    }
+    eta
+}
+<bytecode: 0x000001dffc097770>
+<environment: namespace:brms>
+
+########  prepare_predictions_sp 
+function (bframe, draws, sdata, new = FALSE, ...) 
+{
+    stopifnot(is.bframel(bframe))
+    out <- list()
+    spframe <- bframe$frame$sp
+    meframe <- bframe$frame$me
+    if (!has_rows(spframe)) {
+        return(out)
+    }
+    p <- usc(combine_prefix(bframe))
+    resp <- usc(bframe$resp)
+    out$calls <- vector("list", nrow(spframe))
+    for (i in seq_along(out$calls)) {
+        call <- spframe$joint_call[[i]]
+        if (!is.null(spframe$calls_mo[[i]])) {
+            new_mo <- paste0(".mo(simo_", spframe$Imo[[i]], ", Xmo_", 
+                spframe$Imo[[i]], ")")
+            call <- rename(call, spframe$calls_mo[[i]], new_mo)
+        }
+        if (!is.null(spframe$calls_me[[i]])) {
+            new_me <- paste0("Xme_", seq_along(meframe$term))
+            call <- rename(call, meframe$term, new_me)
+        }
+        if (!is.null(spframe$calls_mi[[i]])) {
+            is_na_idx <- is.na(spframe$idx2_mi[[i]])
+            idx_mi <- paste0("idxl", p, "_", spframe$vars_mi[[i]], 
+                "_", spframe$idx2_mi[[i]])
+            idx_mi <- ifelse(is_na_idx, "", paste0("[, ", idx_mi, 
+                "]"))
+            new_mi <- paste0("Yl_", spframe$vars_mi[[i]], idx_mi)
+            call <- rename(call, spframe$calls_mi[[i]], new_mi)
+        }
+        if (spframe$Ic[i] > 0) {
+            str_add(call) <- paste0(" * Csp_", spframe$Ic[i])
+        }
+        out$calls[[i]] <- parse(text = paste0(call))
+    }
+    bsp_pars <- paste0("bsp", p, "_", spframe$coef)
+    out$bsp <- prepare_draws(draws, bsp_pars)
+    colnames(out$bsp) <- spframe$coef
+    simo_coef <- get_simo_labels(spframe)
+    Jmo <- sdata[[paste0("Jmo", p)]]
+    out$simo <- out$Xmo <- named_list(simo_coef)
+    for (i in seq_along(simo_coef)) {
+        J <- seq_len(Jmo[i])
+        simo_par <- paste0("simo", p, "_", simo_coef[i], "[", 
+            J, "]")
+        out$simo[[i]] <- prepare_draws(draws, simo_par)
+        out$Xmo[[i]] <- sdata[[paste0("Xmo", p, "_", i)]]
+    }
+    warn_me <- FALSE
+    if (has_rows(meframe)) {
+        save_mevars <- any(grepl("^Xme_", colnames(draws)))
+        warn_me <- warn_me || !new && !save_mevars
+        out$Xme <- named_list(meframe$coef)
+        Xme_regex <- paste0("^Xme_", escape_all(meframe$coef), 
+            "\\[")
+        Xn <- sdata[paste0("Xn_", seq_rows(meframe))]
+        noise <- sdata[paste0("noise_", seq_rows(meframe))]
+        groups <- unique(meframe$grname)
+        for (i in seq_along(groups)) {
+            g <- groups[i]
+            K <- which(meframe$grname %in% g)
+            if (nzchar(g)) {
+                Jme <- sdata[[paste0("Jme_", i)]]
+            }
+            if (!new && save_mevars) {
+                for (k in K) {
+                  out$Xme[[k]] <- prepare_draws(draws, Xme_regex[k], 
+                    regex = TRUE)
+                }
+            }
+            else {
+                if (nzchar(g)) {
+                  Jme <- as.numeric(factor(Jme))
+                  me_dim <- c(nrow(out$bsp), max(Jme))
+                }
+                else {
+                  me_dim <- c(nrow(out$bsp), sdata$N)
+                }
+                for (k in K) {
+                  dXn <- data2draws(Xn[[k]], me_dim)
+                  dnoise <- data2draws(noise[[k]], me_dim)
+                  out$Xme[[k]] <- array(rnorm(prod(me_dim), dXn, 
+                    dnoise), me_dim)
+                  remove(dXn, dnoise)
+                }
+            }
+            if (nzchar(g)) {
+                for (k in K) {
+                  out$Xme[[k]] <- out$Xme[[k]][, Jme, drop = FALSE]
+                }
+            }
+        }
+    }
+    dim <- c(nrow(out$bsp), sdata[[paste0("N", resp)]])
+    vars_mi <- unique(unlist(spframe$vars_mi))
+    if (length(vars_mi)) {
+        Yl_names <- paste0("Yl_", vars_mi)
+        out$Yl <- named_list(Yl_names)
+        for (i in seq_along(out$Yl)) {
+            vmi <- vars_mi[i]
+            dim_y <- c(nrow(out$bsp), sdata[[paste0("N_", vmi)]])
+            Y <- data2draws(sdata[[paste0("Y_", vmi)]], dim_y)
+            sdy <- sdata[[paste0("noise_", vmi)]]
+            if (is.null(sdy)) {
+                out$Yl[[i]] <- Y
+                if (!new) {
+                  Ymi_regex <- paste0("^Ymi_", escape_all(vmi), 
+                    "\\[")
+                  Ymi <- prepare_draws(draws, Ymi_regex, regex = TRUE)
+                  Jmi <- sdata[[paste0("Jmi_", vmi)]]
+                  out$Yl[[i]][, Jmi] <- Ymi
+                }
+            }
+            else {
+                save_mevars <- any(grepl("^Yl_", colnames(draws)))
+                if (save_mevars && !new) {
+                  Ymi_regex <- paste0("^Yl_", escape_all(vmi), 
+                    "\\[")
+                  out$Yl[[i]] <- prepare_draws(draws, Ymi_regex, 
+                    regex = TRUE)
+                }
+                else {
+                  warn_me <- warn_me || !new
+                  sdy <- data2draws(sdy, dim)
+                  out$Yl[[i]] <- rcontinuous(n = prod(dim), dist = "norm", 
+                    mean = Y, sd = sdy, lb = sdata[[paste0("lbmi_", 
+                      vmi)]], ub = sdata[[paste0("ubmi_", vmi)]])
+                  out$Yl[[i]] <- array(out$Yl[[i]], dim_y)
+                }
+            }
+        }
+        uni_mi <- na.omit(attr(spframe, "uni_mi"))
+        idxl_vars <- paste0("idxl", p, "_", uni_mi$var, "_", 
+            uni_mi$idx2)
+        out$idxl <- sdata[idxl_vars]
+    }
+    if (warn_me) {
+        warning2("Noise-free latent variables were not saved. ", 
+            "You can control saving those variables via 'save_pars()'. ", 
+            "Treating original data as if it was new data as a workaround.")
+    }
+    ncovars <- max(spframe$Ic)
+    out$Csp <- vector("list", ncovars)
+    for (i in seq_len(ncovars)) {
+        out$Csp[[i]] <- sdata[[paste0("Csp", p, "_", i)]]
+        out$Csp[[i]] <- data2draws(out$Csp[[i]], dim = dim)
+    }
+    out
+}
+<bytecode: 0x000001dffc0a0eb0>
+<environment: namespace:brms>
+
+########  rename_Ymi 
+function (bframe, pars, ...) 
+{
+    stopifnot(is.brmsframe(bframe))
+    out <- list()
+    if (is.formula(bframe$adforms$mi)) {
+        resp <- usc(combine_prefix(bframe))
+        Ymi <- paste0("Ymi", resp)
+        pos <- grepl(paste0("^", Ymi, "\\["), pars)
+        if (any(pos)) {
+            Jmi <- bframe$frame$resp$Jmi
+            fnames <- paste0(Ymi, "[", Jmi, "]")
+            lc(out) <- rlist(pos, fnames)
+        }
+    }
+    out
+}
+<bytecode: 0x000001dffc137850>
+<environment: namespace:brms>
+
+########  stan_sp 
+function (bframe, prior, stanvars, threads, normalize, ...) 
+{
+    stopifnot(is.bframel(bframe))
+    out <- list()
+    spframe <- bframe$frame$sp
+    reframe <- bframe$frame$re
+    meframe <- bframe$frame$me
+    if (!has_rows(spframe)) {
+        return(out)
+    }
+    px <- check_prefix(bframe)
+    p <- usc(combine_prefix(px))
+    resp <- usc(px$resp)
+    lpdf <- stan_lpdf_name(normalize)
+    n <- stan_nn(threads)
+    reframe <- subset2(reframe, type = "sp")
+    spframe_coef <- rename(spframe$term)
+    invalid_coef <- setdiff(reframe$coef, spframe_coef)
+    if (length(invalid_coef)) {
+        stop2("Special group-level terms require corresponding ", 
+            "population-level terms:\nOccured for ", collapse_comma(invalid_coef))
+    }
+    for (i in seq_rows(spframe)) {
+        eta <- spframe$joint_call[[i]]
+        if (!is.null(spframe$calls_mo[[i]])) {
+            new_mo <- glue("mo(simo{p}_{spframe$Imo[[i]]}, Xmo{p}_{spframe$Imo[[i]]}{n})")
+            eta <- rename(eta, spframe$calls_mo[[i]], new_mo)
+        }
+        if (!is.null(spframe$calls_me[[i]])) {
+            Kme <- seq_along(meframe$term)
+            Ime <- match(meframe$grname, unique(meframe$grname))
+            nme <- ifelse(nzchar(meframe$grname), glue("[Jme_{Ime}{n}]"), 
+                n)
+            new_me <- glue("Xme_{Kme}{nme}")
+            eta <- rename(eta, meframe$term, new_me)
+        }
+        if (!is.null(spframe$calls_mi[[i]])) {
+            is_na_idx <- is.na(spframe$idx2_mi[[i]])
+            idx_mi <- glue("[idxl{p}_{spframe$vars_mi[[i]]}_{spframe$idx2_mi[[i]]}{n}]")
+            idx_mi <- ifelse(is_na_idx, n, idx_mi)
+            new_mi <- glue("Yl_{spframe$vars_mi[[i]]}{idx_mi}")
+            eta <- rename(eta, spframe$calls_mi[[i]], new_mi)
+            str_add(out$pll_args) <- glue(", vector Yl_{spframe$vars_mi[[i]]}")
+        }
+        if (spframe$Ic[i] > 0) {
+            str_add(eta) <- glue(" * Csp{p}_{spframe$Ic[i]}{n}")
+        }
+        r <- subset2(reframe, coef = spframe_coef[i])
+        rpars <- str_if(nrow(r), cglue(" + {stan_eta_rsp(r, threads)}"))
+        str_add(out$loopeta) <- glue(" + (bsp{p}[{i}]{rpars}) * {eta}")
+    }
+    ncovars <- max(spframe$Ic)
+    str_add(out$data) <- glue("  int<lower=1> Ksp{p};  // number of special effects terms\n")
+    if (ncovars > 0L) {
+        str_add(out$data) <- "  // covariates of special effects terms\n"
+        str_add(out$data) <- cglue("  vector[N{resp}] Csp{p}_{seq_len(ncovars)};\n")
+        str_add(out$pll_args) <- cglue(", data vector Csp{p}_{seq_len(ncovars)}")
+    }
+    which_Imo <- which(lengths(spframe$Imo) > 0)
+    if (any(which_Imo)) {
+        str_add(out$fun) <- "  #include 'fun_monotonic.stan'\n"
+        str_add(out$data) <- glue("  int<lower=1> Imo{p};  // number of monotonic variables\n", 
+            "  array[Imo{p}] int<lower=1> Jmo{p};  // length of simplexes\n")
+        ids <- unlist(spframe$ids_mo)
+        lpdf <- stan_lpdf_name(normalize)
+        for (i in which_Imo) {
+            for (k in seq_along(spframe$Imo[[i]])) {
+                j <- spframe$Imo[[i]][[k]]
+                id <- spframe$ids_mo[[i]][[k]]
+                j_id <- match(id, ids)
+                str_add(out$data) <- glue("  array[N{resp}] int Xmo{p}_{j};  // monotonic variable\n")
+                str_add(out$pll_args) <- glue(", array[] int Xmo{p}_{j}, vector simo{p}_{j}")
+                if (is.na(id) || j_id == j) {
+                  str_add(out$data) <- glue("  vector[Jmo{p}[{j}]] con_simo{p}_{j};", 
+                    "  // prior concentration of monotonic simplex\n")
+                  str_add(out$par) <- glue("  simplex[Jmo{p}[{j}]] simo{p}_{j};  // monotonic simplex\n")
+                  str_add(out$tpar_prior) <- glue("  lprior += dirichlet_{lpdf}(simo{p}_{j} | con_simo{p}_{j});\n")
+                }
+                else {
+                  str_add(out$tpar_def) <- glue("  simplex[Jmo{p}[{j}]] simo{p}_{j} = simo{p}_{j_id};\n")
+                }
+            }
+        }
+    }
+    uni_mi <- na.omit(attr(spframe, "uni_mi"))
+    for (j in seq_rows(uni_mi)) {
+        idxl <- glue("idxl{p}_{uni_mi$var[j]}_{uni_mi$idx2[j]}")
+        str_add(out$data) <- glue("  array[N{resp}] int {idxl};  // matching indices\n")
+        str_add(out$pll_args) <- glue(", data array[] int {idxl}")
+    }
+    if (has_special_prior(prior, bframe, class = "b")) {
+        stopif_prior_bound(prior, class = "b", ls = px)
+        str_add_list(out) <- stan_prior_non_centered(suffix = glue("sp{p}"), 
+            normalize = normalize)
+    }
+    else {
+        str_add_list(out) <- stan_prior(prior, class = "b", coef = spframe$coef, 
+            type = glue("vector[Ksp{p}]"), px = px, suffix = glue("sp{p}"), 
+            header_type = "vector", comment = "special effects coefficients", 
+            normalize = normalize)
+    }
+    out
+}
+<bytecode: 0x000001dffc124c48>
+<environment: namespace:brms>
+
+########  prepare_predictions.brmsframe 
+function (x, draws, sdata, ...) 
+{
+    ndraws <- nrow(draws)
+    nobs <- sdata[[paste0("N", usc(x$resp))]]
+    resp <- usc(combine_prefix(x))
+    out <- nlist(ndraws, nobs, resp = x$resp)
+    out$family <- prepare_family(x)
+    out$old_order <- attr(sdata, "old_order")
+    if (has_subset(x) && !is.null(out$old_order)) {
+        out$old_order <- as.numeric(factor(out$old_order[x$frame$resp$subset]))
+    }
+    valid_dpars <- valid_dpars(x)
+    out$dpars <- named_list(valid_dpars)
+    for (dp in valid_dpars) {
+        dp_regex <- paste0("^", dp, resp, "$")
+        if (is.btl(x$dpars[[dp]]) || is.btnl(x$dpars[[dp]])) {
+            out$dpars[[dp]] <- prepare_predictions(x$dpars[[dp]], 
+                draws = draws, sdata = sdata, ...)
+        }
+        else if (any(grepl(dp_regex, colnames(draws)))) {
+            out$dpars[[dp]] <- as.vector(prepare_draws(draws, 
+                dp_regex, regex = TRUE))
+        }
+        else if (is.numeric(x$fdpars[[dp]]$value)) {
+            out$dpars[[dp]] <- x$fdpars[[dp]]$value
+        }
+    }
+    out$nlpars <- named_list(names(x$nlpars))
+    for (nlp in names(x$nlpars)) {
+        out$nlpars[[nlp]] <- prepare_predictions(x$nlpars[[nlp]], 
+            draws = draws, sdata = sdata, ...)
+    }
+    if (is.mixfamily(x$family)) {
+        families <- family_names(x$family)
+        thetas <- paste0("theta", seq_along(families))
+        if (any(ulapply(out$dpars[thetas], is.list))) {
+            missing_id <- which(ulapply(out$dpars[thetas], is.null))
+            out$dpars[[paste0("theta", missing_id)]] <- structure(data2draws(0, 
+                c(ndraws, nobs)), predicted = TRUE)
+        }
+        else {
+            out$dpars$theta <- do_call(cbind, out$dpars[thetas])
+            out$dpars[thetas] <- NULL
+            if (nrow(out$dpars$theta) == 1L) {
+                dim <- c(nrow(draws), ncol(out$dpars$theta))
+                out$dpars$theta <- data2draws(out$dpars$theta, 
+                  dim = dim)
+            }
+        }
+    }
+    if (is_ordinal(x$family)) {
+        if (is.mixfamily(x$family)) {
+            mu_pars <- str_subset(names(x$dpars), "^mu[[:digit:]]+")
+            for (mu in mu_pars) {
+                out$thres[[mu]] <- prepare_predictions_thres(x$dpars[[mu]], 
+                  draws, sdata, ...)
+            }
+        }
+        else {
+            out$thres <- prepare_predictions_thres(x$dpars$mu, 
+                draws, sdata, ...)
+        }
+    }
+    if (is_logistic_normal(x$family)) {
+        out$dpars$lncor <- prepare_draws(draws, "^lncor__", regex = TRUE)
+    }
+    if (is_cox(x$family)) {
+        if (is.mixfamily(x$family)) {
+            mu_pars <- str_subset(names(x$dpars), "^mu[[:digit:]]+")
+            for (mu in mu_pars) {
+                out$bhaz[[mu]] <- prepare_predictions_bhaz(x$dpars[[mu]], 
+                  draws, sdata, ...)
+            }
+        }
+        else {
+            out$bhaz <- prepare_predictions_bhaz(x$dpars$mu, 
+                draws, sdata, ...)
+        }
+    }
+    out$cats <- get_cats(x)
+    out$refcat <- get_refcat(x, int = TRUE)
+    out$ac <- prepare_predictions_ac(x$dpars$mu, draws, sdata, 
+        nat_cov = TRUE, ...)
+    out$data <- prepare_predictions_data(x, sdata = sdata, ...)
+    structure(out, class = "brmsprep")
+}
+<bytecode: 0x000001dffc149ee8>
+<environment: namespace:brms>
+
+########  prepare_conditions 
+function (fit, conditions = NULL, effects = NULL, re_formula = NA, 
+    rsv_vars = NULL) 
+{
+    mf <- model.frame(fit)
+    new_formula <- update_re_terms(fit$formula, re_formula = re_formula)
+    bterms <- brmsterms(new_formula)
+    if (any(grepl_expr("^(as\\.)?factor(.+)$", bterms$allvars))) {
+        warning2("Using 'factor' or 'as.factor' in the model formula ", 
+            "might lead to problems in 'conditional_effects'.", 
+            "Please convert your variables to factors beforehand.")
+    }
+    req_vars <- all_vars(rhs(bterms$allvars))
+    req_vars <- setdiff(req_vars, rsv_vars)
+    req_vars <- setdiff(req_vars, names(fit$data2))
+    if (is.null(conditions)) {
+        conditions <- as.data.frame(as.list(rep(NA, length(req_vars))))
+        names(conditions) <- req_vars
+    }
+    else {
+        conditions <- as.data.frame(conditions)
+        if (!nrow(conditions)) {
+            stop2("Argument 'conditions' must have a least one row.")
+        }
+        conditions <- unique(conditions)
+        if (any(duplicated(get_cond__(conditions)))) {
+            stop2("Condition labels should be unique.")
+        }
+        req_vars <- setdiff(req_vars, names(conditions))
+    }
+    trial_vars <- all_vars(bterms$adforms$trials)
+    trial_vars <- trial_vars[!vars_specified(trial_vars, conditions)]
+    if (length(trial_vars)) {
+        message("Setting all 'trials' variables to 1 by ", "default if not specified otherwise.")
+        req_vars <- setdiff(req_vars, trial_vars)
+        for (v in trial_vars) {
+            conditions[[v]] <- 1L
+        }
+    }
+    subset_vars <- get_ad_vars(bterms, "subset")
+    int_vars <- get_int_vars(bterms)
+    group_vars <- get_group_vars(bterms)
+    req_vars <- setdiff(req_vars, group_vars)
+    for (v in req_vars) {
+        if (is_like_factor(mf[[v]])) {
+            if (v %in% subset_vars) {
+                conditions[[v]] <- TRUE
+            }
+            else {
+                levels <- levels(as.factor(mf[[v]]))
+                ordered <- is.ordered(mf[[v]])
+                conditions[[v]] <- factor(levels[1], levels, 
+                  ordered = ordered)
+            }
+        }
+        else {
+            if (v %in% subset_vars) {
+                conditions[[v]] <- 1
+            }
+            else if (v %in% int_vars) {
+                conditions[[v]] <- round(median(mf[[v]], na.rm = TRUE))
+            }
+            else {
+                conditions[[v]] <- mean(mf[[v]], na.rm = TRUE)
+            }
+        }
+    }
+    all_vars <- c(all_vars(bterms$allvars), "cond__")
+    unused_vars <- setdiff(names(conditions), all_vars)
+    if (length(unused_vars)) {
+        warning2("The following variables in 'conditions' are not ", 
+            "part of the model:\n", collapse_comma(unused_vars))
+    }
+    cond__ <- conditions$cond__
+    conditions <- validate_newdata(conditions, fit, re_formula = re_formula, 
+        allow_new_levels = TRUE, check_response = FALSE, incl_autocor = FALSE)
+    conditions$cond__ <- cond__
+    conditions
+}
+<bytecode: 0x000001dffc15c230>
+<environment: namespace:brms>
+
+########  na_omit 
+function (object, bterms, ...) 
+{
+    stopifnot(is.data.frame(object))
+    nobs <- nrow(object)
+    if (is.mvbrmsterms(bterms)) {
+        responses <- names(bterms$terms)
+        subsets <- lapply(bterms$terms, get_ad_values, "subset", 
+            "subset", object)
+        vars_sub <- lapply(bterms$terms, function(x) all_vars(x$allvars))
+    }
+    vars_keep_na <- vars_keep_na(bterms)
+    omit <- logical(nobs)
+    for (v in names(object)) {
+        x <- object[[v]]
+        vars_v <- all_vars(v)
+        keep_all_na <- all(vars_v %in% vars_keep_na)
+        if (!is.atomic(x) || keep_all_na) {
+            next
+        }
+        if (!is.mvbrmsterms(bterms)) {
+            keep_na <- rep(FALSE, nobs)
+        }
+        else {
+            keep_na <- rep(TRUE, nobs)
+            for (r in responses) {
+                if (any(vars_v %in% vars_sub[[r]])) {
+                  if (!is.null(subsets[[r]])) {
+                    keep_na <- keep_na & !subsets[[r]]
+                  }
+                  else {
+                    keep_na <- keep_na & FALSE
+                  }
+                }
+            }
+        }
+        is_na <- is.na(x)
+        d <- dim(is_na)
+        if (is.null(d) || length(d) != 2L) {
+            omit <- omit | (is_na & !keep_na)
+        }
+        else {
+            for (ii in seq_len(d[2L])) {
+                omit <- omit | (is_na[, ii] & !keep_na)
+            }
+        }
+    }
+    if (any(omit > 0L)) {
+        out <- object[!omit, , drop = FALSE]
+        temp <- setNames(seq(omit)[omit], attr(object, "row.names")[omit])
+        attr(temp, "class") <- "omit"
+        attr(out, "na.action") <- temp
+        warning2("Rows containing NAs were excluded from the model.")
+    }
+    else {
+        out <- object
+    }
+    out
+}
+<bytecode: 0x000001dffc150bd0>
+<environment: namespace:brms>
+
+## missing: valid_ad_terms 
+
+## missing: ad_families 

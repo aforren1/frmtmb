@@ -1,0 +1,2 @@
+MUTANT rate_mu_plain        core   pass=68 fail=2 error=0 skip=0
+   failing blocks: rate() on poisson is the offset(log(denom)) model 

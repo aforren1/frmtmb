@@ -4,13 +4,18 @@
 \alias{mixture}
 \title{Finite mixture families}
 \usage{
-mixture(..., groups = NULL)
+mixture(..., groups = NULL, order = NULL)
 }
 \arguments{
 \item{...}{Two or more component families.}
 
 \item{groups}{Optional one-sided formula naming the latent-class
 grouping factor.}
+
+\item{order}{brms's argument. \code{NULL}, \code{"none"} or \code{FALSE} leaves the
+components unordered, which is what a fit here does. \code{"mu"} or
+\code{TRUE}, brms's ordering of the \code{mu} intercepts, is refused, and any
+other value is refused as invalid, in brms's words.}
 }
 \value{
 A \code{frmtmb_family}.

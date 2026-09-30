@@ -1,0 +1,40 @@
+== rate() on newdata
+fitted time = 1,-2,3                         ERROR: rate(time) on newdata: rate denominators should be positive 
+predict time = 1,-2,3                        ERROR: rate(time) on newdata: rate denominators should be positive 
+frm_linpred response time = 1,-2,3           ERROR: rate(time) on newdata: rate denominators should be positive 
+negbin fitted time = 1,-2,3                  ERROR: rate(time) on newdata: rate denominators should be positive 
+simulate(newdata) time = 1,-2,3              ERROR: rate(time) on newdata: rate denominators should be positive 
+fitted time = 1,0,3                          ERROR: rate(time) on newdata: rate denominators should be positive 
+predict time = 1,0,3                         ERROR: rate(time) on newdata: rate denominators should be positive 
+frm_linpred response time = 1,0,3            ERROR: rate(time) on newdata: rate denominators should be positive 
+negbin fitted time = 1,0,3                   ERROR: rate(time) on newdata: rate denominators should be positive 
+simulate(newdata) time = 1,0,3               ERROR: rate(time) on newdata: rate denominators should be positive 
+fitted time = 1,NA,3                         returns 1.4489     NA 2.4279 
+predict time = 1,NA,3                        returns 1.38  NaN 2.24 
+frm_linpred response time = 1,NA,3           returns 1.4489     NA 2.4279 
+negbin fitted time = 1,NA,3                  returns 1.4489     NA 2.4279 
+simulate(newdata) time = 1,NA,3              returns  1 NA  2 
+fitted time = 1,0.001,3                      returns 1.4489235 0.0009276 2.4278818 
+predict time = 1,0.001,3                     returns 1.38 0.00 2.28 
+frm_linpred response time = 1,0.001,3        returns 1.4489235 0.0009276 2.4278818 
+negbin fitted time = 1,0.001,3               returns 1.4489235 0.0009276 2.4278817 
+simulate(newdata) time = 1,0.001,3           returns 1 0 3 
+  at 1e-3: fitted / (mu * time) = 1 1 1 
+conditional_effects(conditions time = -1)    ERROR: rate(time) on newdata: rate denominators should be positive 
+sample posterior_epred time -2               ERROR: rate(time) on newdata: rate denominators should be positive 
+sample posterior_predict time -2             ERROR: rate(time) on newdata: rate denominators should be positive 
+sample posterior_linpred(transform) -2       returns 1.3795 1.3932 1.4511 1.4579 
+sample posterior_epred time NA               returns 1.3795 1.3932 1.4511 1.4579 
+
+== character subset
+mv character                                 ERROR: subset(sch) of response 'y1': a character subset variable is refused, as brms refuses it. Give a logical variable 
+univariate character                         ERROR: subset(sch) of response 'y1': a character subset variable is refused, as brms refuses it. Give a logical variable 
+mv sfac                                      fn identical to logical: TRUE
+mv s01                                       fn identical to logical: TRUE
+newdata with a character subset column       returns 1.87442 0.82162 1.74480 
+
+== cat()
+cat(x = 4)                                   returns frmtmb_fit 
+  fn identical cat(x = 4) vs cat(4): TRUE 
+cat(k = 4)                                   ERROR: cat() takes the number of categories: cat(x) 
+cat(4, 5)                                    ERROR: cat() takes the number of categories: cat(x) 

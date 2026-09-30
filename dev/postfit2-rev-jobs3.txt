@@ -1,0 +1,10 @@
+g-base-core-test-brms-suite-brmsfit-helpers.R frmtmb test-brms-suite-brmsfit-helpers.R base --gated
+g-base-core-test-brms-suite-brmsformula.R frmtmb test-brms-suite-brmsformula.R base --gated
+g-base-core-test-brms-suite-methods.R frmtmb test-brms-suite-methods.R base --gated
+g-base-sample-test-brms-suite-brmsformula.R frmtmb.sample test-brms-suite-brmsformula.R base --gated
+g-base-sample-test-brms-suite-methods.R frmtmb.sample test-brms-suite-methods.R base --gated
+g-lane-core-test-brms-suite-brmsfit-helpers.R frmtmb test-brms-suite-brmsfit-helpers.R lane --gated
+g-lane-core-test-brms-suite-brmsformula.R frmtmb test-brms-suite-brmsformula.R lane --gated
+g-lane-core-test-brms-suite-methods.R frmtmb test-brms-suite-methods.R lane --gated
+g-lane-sample-test-brms-suite-brmsformula.R frmtmb.sample test-brms-suite-brmsformula.R lane --gated
+g-lane-sample-test-brms-suite-methods.R frmtmb.sample test-brms-suite-methods.R lane --gated

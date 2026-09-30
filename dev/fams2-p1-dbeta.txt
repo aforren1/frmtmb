@@ -1,0 +1,28 @@
+points per form: 252 
+rtmb  gradient finite 96 of 168
+    phi    verr    gerr
+1 1e+00 1.6e-15 8.9e-16
+2 1e+01 1.6e-15 1.2e-15
+3 1e+02 7.9e-14      NA
+4 1e+03 4.6e-13      NA
+5 1e+04 5.6e-12      NA
+6 1e+05 1.7e-11      NA
+7 1e+06 3.9e-10      NA
+hand  gradient finite 168 of 168
+    phi    verr    gerr
+1 1e+00 2.9e-16 8.9e-16
+2 1e+01 7.7e-16 1.2e-15
+3 1e+02 7.5e-15 1.8e-15
+4 1e+03 8.7e-14 2.1e-14
+5 1e+04 3.9e-13 5.0e-14
+6 1e+05 2.9e-12 3.5e-12
+7 1e+06 1.8e-11 1.3e-11
+pkg   gradient finite 168 of 168
+    phi    verr    gerr
+1 1e+00 1.5e-15 4.8e-16
+2 1e+01 1.0e-15 1.2e-15
+3 1e+02 2.3e-14 1.8e-15
+4 1e+03 2.5e-13 2.1e-14
+5 1e+04 2.8e-12 5.0e-14
+6 1e+05 3.5e-11 3.5e-12
+7 1e+06 1.7e-10 1.3e-11

@@ -639,7 +639,9 @@ compat_aterm_rules <- function(accepts, existing = NULL) {
                ", and an entry is a family object, a character vector of ",
                "term names, or NULL", call. = FALSE)
     }
-    bad <- terms[!(base %in% ok)]
+    # subset() and index() choose rows for every family, so no
+    # allow-list names them and none refuses them
+    bad <- terms[!(base %in% c(ok, row_aterms))]
     if (length(bad)) {
       cand[[length(cand) + 1L]] <- data.frame(
         feature_a = fm, feature_b = bad, stringsAsFactors = FALSE)
@@ -765,7 +767,9 @@ compat_core_family_accepts <- function() {
     fam <- tryCatch(
       do.call(family_registry[[nm]], compat_family_ctor_args[[nm]] %||% list()),
       error = function(e) NULL)
-    if (is.null(fam)) NULL else accepted_aterm_names(fam)
+    ok <- if (!is.null(fam)) accepted_aterm_names(fam)
+    # the row-choosing terms every family takes (R/subset.R)
+    if (is.null(ok)) NULL else sort(c(ok, row_aterms))
   })
   names(acc) <- nms
   compat_accepts_cache$acc <- acc
@@ -824,12 +828,13 @@ compat_features_build <- function(extra = NULL) {
             "weibull", "exponential", "inverse.gaussian", "beta",
             "tweedie", "poisson", "negbinomial", "nbinom1", "geometric",
             "compois", "binomial", "bernoulli", "beta_binomial",
+            "zero_inflated_beta_binomial",
             "multinomial", "zero_inflated_poisson",
             "zero_inflated_negbinomial", "zero_inflated_binomial",
-            "zero_inflated_beta", "zero_one_inflated_beta",
+            "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
-            "hurdle_lognormal", "cumulative", "sratio", "cratio",
-            "acat", "categorical", "von_mises", "cox")
+            "hurdle_lognormal", "cumulative", "hurdle_cumulative",
+            "sratio", "cratio", "acat", "categorical", "von_mises", "cox")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -838,7 +843,8 @@ compat_features_build <- function(extra = NULL) {
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
-             "mi()", "vint()", "vreal()", "thres()"), f, kind = "aterm"),
+             "mi()", "vint()", "vreal()", "thres()", "rate()",
+             "subset()", "index()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
              "cs_pred()", "ps()", "me()"), f, kind = "special"),
     # R-side (within-group residual) correlation terms. They carry no
@@ -896,27 +902,32 @@ frmtmb_compat_groups_lst <- list(
                      "inverse.gaussian", "cox"),
   # families whose modelled response is a distribution over categories
   # rather than a number, so fitted() returns an n x K matrix
-  categorical_probs = c("cumulative", "sratio", "cratio", "acat",
-                        "categorical"),
+  categorical_probs = c("cumulative", "hurdle_cumulative", "sratio",
+                        "cratio", "acat", "categorical"),
   gaussian_like = c("gaussian", "student"),
-  ordinal = c("cumulative", "sratio", "cratio", "acat"),
+  ordinal = c("cumulative", "hurdle_cumulative", "sratio", "cratio",
+              "acat"),
   # cs() category-specific effects are undefined under the cumulative
   # parameterization; the sequential and adjacent-category ones take them
   ordinal_cs = c("sratio", "cratio", "acat"),
   discrete = c("poisson", "negbinomial", "nbinom1", "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
+               "zero_inflated_beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
                "zero_inflated_binomial", "hurdle_poisson",
                "hurdle_negbinomial"),
   # a point mass on an exact response value, which the density reads
   # off y == 0 (and y == 1); osa_point_mass_families in R/predict.R
   point_mass = c("zero_inflated_poisson", "zero_inflated_negbinomial",
-                 "zero_inflated_binomial", "zero_inflated_beta",
+                 "zero_inflated_binomial", "zero_inflated_beta_binomial",
+                 "zero_inflated_beta", "xbeta",
                  "zero_one_inflated_beta", "hurdle_poisson",
-                 "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal"),
+                 "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal",
+                 "hurdle_cumulative"),
   matrix_response = c("multinomial"),
   trials_families = c("binomial", "beta_binomial",
-                      "zero_inflated_binomial", "multinomial"),
+                      "zero_inflated_binomial",
+                      "zero_inflated_beta_binomial", "multinomial"),
   # quadrature marginalizes one scalar random effect at a time
   quadrature_blocks = c("us", "diag", "homdiag"),
   # the importance correction reweights any number of blocks over ONE
@@ -1332,6 +1343,8 @@ compat_hand_rules_tbl <- function() {
     "Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none.")
   r("thres()", "group:ordinal", "works",
     "thres(x = K) sets the number of thresholds; thres(gr = g) gives each level of g a threshold vector of its own, merged as brms merges them, with a count per level. The log-likelihood agrees with brms's own densities at a shared parameter point to about 5e-16, relative, for all four families under the logit, probit and cauchit links, and with MASS::polr fitted per group and ordinal::clm(nominal = ~ g) at the optimum to about 3e-12 (dev/thres-validate.R). Thresholds above a level's highest observed category are not identified without a prior on class Intercept, and the fit warns about them.")
+  r("thres()", "hurdle_cumulative", "conditional",
+    "thres(x = K) sets the number of thresholds, counted over the ordinal categories above the hurdle. thres(gr = ) is refused by name: the grouped densities have no hurdle. brms fits it.")
   r("thres()", "weights()", "works",
     "Verified: weights of 2 give the fit of the duplicated data, to the last printed digit.")
   r("thres()", "cs_pred()", "conditional",
@@ -1367,6 +1380,35 @@ compat_hand_rules_tbl <- function() {
   r("thres()", "emmeans", "works",
     "The latent-scale means of the ordinal families; the thresholds, grouped or not, do not enter them.")
 
+  ## rate() --------------------------------------------------------------
+  r("rate()", "kind:family", "refused",
+    "Refused by name: rate() is an exposure for a count, and brms 2.23.0 takes it for poisson, negbinomial, negbinomial2 and geometric only.")
+  r("rate()", "poisson", "works",
+    "rate(d) multiplies the mean by d: brms's poisson_log_lpmf(y | eta + log(d)) under the log link and poisson_lpmf(y | mu .* d) under any other. With the log link it is the offset(log(d)) model. fitted() and predict() report the mean times d, frm_linpred() and fitted(dpar = \"mu\") report mu without it, and newdata must hold d. Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "negbinomial", "works",
+    "As brms: the mean AND the shape are multiplied by d, so the variance is mu d (1 + mu / shape). Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "geometric", "works",
+    "As brms: the geometric is the negative binomial at shape 1, and rate(d) multiplies both the mean and that shape by d, so the fitted density is a negative binomial of size d. Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "cens()", "untested",
+    "Under cens() brms scores the censored rows at mu * d; frmtmb's poisson CDF reads the same product, but no comparison has been run.")
+  r("rate()", "trunc()", "untested", "")
+
+  ## subset() and index() ------------------------------------------------
+  r("subset()", "kind:family", "works",
+    "subset(s) fits a response on the rows where s is TRUE, for every family, as in brms. In a univariate model it is a row filter. In a multivariate model each response has its own rows, its own design, smooth bases and grouping levels, and an NA on a row that every response using the variable leaves out does not drop the row (brms's na_omit()). fitted(), predict() and frm_linpred() need a single resp =, as brms asks, and on newdata they return the rows where the subset is TRUE. nobs() counts the rows of the data, and nobs(resp =) one response's rows, as brms's do. A factor predictor level or an ordinal category that occurs only outside a response's rows is not a column or a threshold of that response; brms keeps both.")
+  r("subset()", "rescor", "refused",
+    "Refused: the residual correlation pairs the responses row by row.")
+  r("subset()", "me()", "refused",
+    "Refused, as brms refuses it: a noise-free value is shared by every response on the same row.")
+  r("subset()", "|ID|", "conditional",
+    "A grouping level takes a parameter only in the responses whose rows carry it; brms keeps every level of the whole data. |ID|-linked terms therefore need the same levels on every linked response's rows, and are refused by name otherwise. A level with no rows adds nothing to the marginal likelihood, so the fit is the same where both run.")
+  r("subset()", "mi()", "works",
+    "An imputed response fitted on its own rows: its NAs outside the subset are left alone, and those inside become latent values. A predictor mi(x) of another response then needs idx = and x needs index(), as brms asks.")
+  r("index()", "kind:family", "works",
+    "index(id) names each row of a response by value, for mi(x, idx = ) in another response's predictor; duplicated values are refused, as brms refuses them.")
+  r("index()", "mi_pred()", "conditional",
+    "mi(x, idx = ref) reads, for each row, the value of x on the row whose index equals ref; a value with no match is refused by name. Required when either response uses subset().")
+
   ## vint() and vreal() --------------------------------------------------
   # override: "nothing checks this" outranks the permissive blanket
   # defaults (verbose, call_group, double_bar) at the same signature.
@@ -1387,7 +1429,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: rescor = TRUE requires every response to be gaussian, or every response to be student. A mix of the two is refused as well, as brms refuses it.")
   r("rescor", "gaussian", "works", "")
   r("rescor", "student", "conditional",
-    "Every response must be student(). The responses share ONE nu, brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D, so the row density is a multivariate t and a distributional sigma still works; nu is named nu, with no response, in variables(), summary() and priors (set_prior(class = \"nu\") takes no resp). A formula or a constant for nu is refused, as brms refuses it. Verified against mvtnorm::dmvt at a shared parameter point (relative residual 5e-16) and against a hand-written RTMB objective at the ML optimum (dev/mv-validate-student.R). fitted(), predict() (a joint multivariate-t draw) and the refusals of simulate() and residuals() are those of the gaussian rescor model.")
+    "Every response must be student(). The responses share ONE nu, brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D, so the row density is a multivariate t and a distributional sigma still works; nu is named nu, with no response, in variables(), summary() and priors (set_prior(class = \"nu\") takes no resp). A formula or a constant for nu is refused, as brms refuses it. Verified against mvtnorm::dmvt at a shared parameter point (relative residual 5e-16) and against a hand-written RTMB objective at the ML optimum (dev/mv-validate-student.R). fitted(), predict() (a joint multivariate-t draw), residuals() and the refusal of simulate() are those of the gaussian rescor model.")
   r("rescor", "cens()", "refused",
     "Refused. This pair was once accepted with the censoring silently dropped.")
   r("rescor", "trunc()", "refused",
@@ -1404,10 +1446,10 @@ compat_hand_rules_tbl <- function() {
     "predict() answers every response in brms's n x 4 x nresp array, drawing the responses of a replicate jointly; resp = narrows it.")
   r("rescor", "simulate", "refused",
     "Refused: simulate() is not supported for multivariate fits yet.")
-  r("rescor", "residuals", "refused",
-    "Refused: residuals() is not supported for multivariate fits yet.")
+  r("rescor", "residuals", "works",
+    "residuals() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it. Each layer is that response's own residual, as fitted() is.")
   r("rescor", "residuals_osa", "refused",
-    "Refused: residuals() is not supported for multivariate fits yet.")
+    "Refused: residuals(type = \"osa\") is not supported for multivariate fits yet; the one-step tape steps through a single response's observations.")
   r("rescor", "emmeans", "works",
     "Verified: without resp = the responses stack as the rep.meas factor, and a contrast across responses carries the cross-response covariance of the coefficients. The residual correlation does not enter a marginal mean.")
   # confint() and hypothesis() work on the outer parameter vector,
@@ -1423,10 +1465,11 @@ compat_hand_rules_tbl <- function() {
     "Refused: the post-fit methods below are univariate-only for now.")
   # residuals_osa x kind:structure claims "untested" at the same
   # signature as the univariate-only refusal above, so the pair is
-  # named outright: residuals(type = "osa") goes through the same
-  # single_response() guard and stops.
+  # named outright: residuals(type = "osa") refuses a multivariate fit.
+  r("mvbf", "residuals", "works",
+    "residuals() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it, and one response is an n x 4 matrix. A matrix-valued response does not stack with the others and is refused there, naming resp =.")
   r("mvbf", "residuals_osa", "refused",
-    "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
+    "Refused: residuals(type = \"osa\") is not supported for multivariate fits yet; the one-step tape steps through a single response's observations.")
   r("mvbf", "emmeans", "works",
     "Verified against univariate fits (dev/emm-validate.R): resp = selects one response, and without it the responses stack as brms's rep.meas factor. Without resp = the responses must share a link, as in brms; epred = TRUE has no such need.")
   r("mvbf", "fitted", "works",
@@ -1718,6 +1761,8 @@ compat_hand_rules_tbl <- function() {
     "Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line.")
   r("residuals_osa", "group:ordinal", "works",
     "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
+  r("residuals_osa", "hurdle_cumulative", "refused",
+    "Refused by name, as for the other point-mass families: the density branches on y == 0 for the hurdle. Use dharma_residuals().")
   r("residuals_osa", "cens()", "conditional",
     "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: its censoring bounds are inclusive, so an uncensored row's support is [lo + 1, hi - 1] rather than the [lo, hi] the one-step window is built on.")
   r("residuals_osa", "trunc()", "conditional",

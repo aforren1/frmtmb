@@ -1,0 +1,5 @@
+unpinned-seams: ..............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-unpinned-seams.R pass=30 fail=0 error=0 skip=0 warn=0

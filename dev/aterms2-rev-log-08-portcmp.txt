@@ -1,0 +1,49 @@
+lane : rows 663  files 10  held 416  vacuous 114  duplicated keys 0 
+base : rows 663  files 10  held 403  vacuous 120  duplicated keys 0 
+hb : rows 663  files 10  held 415  vacuous 114  duplicated keys 0 
+
+ lane vs base : rows compared 663  changed 13 
+  assert  standata:1047    verdict=cannot transfer  held FALSE->TRUE vacuous TRUE->FALSE
+       base : STALE: reads 'sdata', whose last assignment failed: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vi 
+       lane :  
+  assert  standata:171     verdict=cannot transfer  held FALSE->TRUE vacuous FALSE->FALSE
+       base : ERROR: Addition term `cat()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A cus 
+       lane :  
+  assert  standata:266     verdict=cannot transfer  held FALSE->TRUE vacuous TRUE->FALSE
+       base : STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(),  
+       lane :  
+  assert  standata:267     verdict=cannot transfer  held FALSE->TRUE vacuous TRUE->FALSE
+       base : STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(),  
+       lane :  
+  assert  standata:268     verdict=cannot transfer  held FALSE->TRUE vacuous TRUE->FALSE
+       base : STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(),  
+       lane :  
+  assert  standata:269     verdict=cannot transfer  held FALSE->TRUE vacuous TRUE->FALSE
+       base : STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(),  
+       lane :  
+  assert  standata:620     verdict=cannot transfer  held FALSE->TRUE vacuous TRUE->FALSE
+       base : STALE: reads 'sdata', whose last assignment failed: mi() in a predictor takes one variable name: mi(x) 
+       lane :  
+  assert  standata:634     verdict=cannot transfer  held FALSE->TRUE vacuous FALSE->FALSE
+       base : ERROR: mi() in a predictor takes one variable name: mi(x) 
+       lane :  
+  assert  standata:641     verdict=cannot transfer  held FALSE->TRUE vacuous FALSE->FALSE
+       base : ERROR: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A  
+       lane :  
+  assert  standata:649     verdict=cannot transfer  held FALSE->TRUE vacuous FALSE->FALSE
+       base : ERROR: mi() in a predictor takes one variable name: mi(x) 
+       lane :  
+  setup   standata:1046    verdict=                 held FALSE->TRUE vacuous FALSE->FALSE
+       base : Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom fa 
+       lane :  
+  setup   standata:263     verdict=                 held FALSE->TRUE vacuous FALSE->FALSE
+       base : Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom  
+       lane :  
+  setup   standata:619     verdict=                 held FALSE->TRUE vacuous FALSE->FALSE
+       base : mi() in a predictor takes one variable name: mi(x) 
+       lane :  
+
+ lane-helper vs base-helper : rows compared 663  changed 1 
+  assert  standata:1047    verdict=cannot transfer  held FALSE->TRUE vacuous FALSE->FALSE
+       base-helper : Expected `sdata$denom` to equal `as.array(data$time)`. Differences: `actual` is NULL `expected` is an integer vector (1, 2, 3, 4, 5, ...)  
+       lane-helper :  

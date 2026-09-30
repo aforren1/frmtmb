@@ -1,0 +1,14 @@
+RESULT lane frmtmb test-api-spellings.R pass=36 fail=0 err=0 skip=0 warn=0 blocks=11
+RESULT lane frmtmb test-brms-families.R pass=1102 fail=0 err=0 skip=0 warn=0 blocks=23
+RESULT lane frmtmb test-brms-names.R pass=138 fail=0 err=0 skip=0 warn=0 blocks=14
+RESULT lane frmtmb test-compat-register.R pass=103 fail=0 err=0 skip=0 warn=0 blocks=27
+RESULT lane frmtmb test-compat.R pass=667 fail=0 err=0 skip=0 warn=0 blocks=34
+RESULT lane frmtmb test-conditions-census.R pass=11 fail=0 err=0 skip=0 warn=0 blocks=2
+RESULT lane frmtmb test-conditions.R pass=150 fail=0 err=0 skip=0 warn=0 blocks=16
+RESULT lane frmtmb test-families.R pass=252 fail=0 err=0 skip=0 warn=0 blocks=17
+RESULT lane frmtmb test-hurdle-nb-zoib.R pass=85 fail=0 err=0 skip=0 warn=0 blocks=16
+RESULT lane frmtmb test-message-uniqueness.R pass=6 fail=0 err=0 skip=0 warn=0 blocks=1
+RESULT lane frmtmb test-naming-collisions.R pass=29 fail=0 err=0 skip=0 warn=0 blocks=6
+RESULT lane frmtmb test-numerical-robustness.R pass=709 fail=0 err=0 skip=0 warn=0 blocks=37
+RESULT lane frmtmb test-simulate-density.R pass=493 fail=0 err=0 skip=0 warn=0 blocks=55
+RESULT lane frmtmb test-xbeta-zibb-hurdle-cum.R pass=602 fail=0 err=0 skip=0 warn=0 blocks=22

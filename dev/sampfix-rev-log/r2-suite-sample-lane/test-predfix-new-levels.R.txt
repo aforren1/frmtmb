@@ -1,0 +1,2 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+RESULT lane test-predfix-new-levels.R: tests 5 pass 62 fail 0 error 0 skip 0 warn 0

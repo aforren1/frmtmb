@@ -365,6 +365,11 @@ sim_specs <- list(
        eta = c(-0.4, 0.6), dp = list(phi = 4), kind = "disc", hi = 12,
        ydummy = 1L, aterm = "trials(k)", cols = list(k = 12L),
        at = list(trials = 12)),
+  list(nm = "zero_inflated_beta_binomial",
+       fam = quote(zero_inflated_beta_binomial()),
+       eta = c(-0.4, 0.6), dp = list(phi = 4, zi = 0.25), kind = "disc",
+       hi = 12, ydummy = 1L, aterm = "trials(k)", cols = list(k = 12L),
+       at = list(trials = 12)),
 
   list(nm = "zero_inflated_poisson", fam = quote(zero_inflated_poisson()),
        eta = c(0.6, 1.5), dp = list(zi = 0.3), kind = "disc", hi = 45,
@@ -400,6 +405,12 @@ sim_specs <- list(
   list(nm = "zero_one_inflated_beta",
        fam = quote(zero_one_inflated_beta()),
        eta = c(-0.4, 0.5), dp = list(phi = 6, zoi = 0.3, coi = 0.35),
+       kind = "cont", atom0 = TRUE, atom1 = TRUE, ydummy = c(0, 0.5, 1),
+       lo = function(mu, d) 0,
+       hi = function(mu, d) 1 - .Machine$double.eps),
+  # the two atoms are the latent beta's mass beyond each stretched end
+  list(nm = "xbeta", fam = quote(xbeta()),
+       eta = c(-0.4, 0.5), dp = list(phi = 6, kappa = 0.15),
        kind = "cont", atom0 = TRUE, atom1 = TRUE, ydummy = c(0, 0.5, 1),
        lo = function(mu, d) 0,
        hi = function(mu, d) 1 - .Machine$double.eps),
@@ -520,6 +531,36 @@ for (sp in ord_specs) {
     })
   })
 }
+
+test_that("hurdle_cumulative: 0..K draws agree with the family's own density", {
+  # the hurdle's category 0 sits below the ordinal ones, so the support
+  # is 0..K rather than dens_points()'s 1..K, and hu rides in betad
+  fam <- hurdle_cumulative()
+  K <- 4L
+  dd <- sim_data(0:K)
+  form <- sim_formula(NULL)
+  eta <- c(-0.4, 0.9)
+  raw <- c(-1, 0, 0)
+  hu <- 0.3
+  tpl <- frmtmb::par_template(form, dd, family = fam)
+  np <- set_pars(tpl, list(beta = c(ga = eta[1L], gb = eta[2L]),
+                           betad = c("hu_(Intercept)" = stats::qlogis(hu)),
+                           tau_raw = raw))
+  draws <- sim_cells(form, dd, fam,
+                     unclass(np)[c("beta", "betad", "tau_raw")])
+  for (cell in c("a", "b")) {
+    e <- eta[if (identical(cell, "a")) 1L else 2L]
+    lab <- paste0("hurdle_cumulative[", cell, "]")
+    y <- 0:K
+    dz <- list(y = y, p = exp(dens_lp(fam, y, list(mu = e, hu = hu,
+                                                   disc = 1),
+                                      list(), list(tau_raw = raw))))
+    expect_equal(sum(dz[["p"]]), 1, tolerance = 1e-8,
+                 label = paste0(lab, " category mass"))
+    expect_gof(draws[[cell]], dens_cells(dz, K + 1L, TRUE), lab)
+    expect_moments(draws[[cell]], dens_moments(dz), 2L, lab)
+  }
+})
 
 test_that("categorical: category draws agree with the family's own density", {
   lv <- c("a", "b", "c")
@@ -909,7 +950,7 @@ test_that("every registry family is either in the agreement tier or a declared g
   # simulator and without an entry here would otherwise slip through
   covered <- c(vapply(sim_specs, function(s) s[["nm"]], ""),
                vapply(ord_specs, function(s) s[["nm"]], ""),
-               "categorical", "multinomial")
+               "hurdle_cumulative", "categorical", "multinomial")
   # nbinom2 and beta are registry aliases of negbinomial and Beta: the
   # same constructor under a second spelling, so covering one covers both
   aliases <- c(nbinom2 = "negbinomial", beta = "Beta")

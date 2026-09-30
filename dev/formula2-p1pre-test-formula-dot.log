@@ -1,0 +1,37 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+formula-dot: .................12345...
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-formula-dot.R:64:3'): update(newdata =) keeps the formula `
+Expected `rownames(fixef(up))` to be identical to `rownames(fixef(fit))`.
+Differences:
+`actual`:   "Intercept" "x1" "x2" "extra"
+`expected`: "Intercept" "x1" "x2"        
+
+
+── 2. Failure ('test-formula-dot.R:65:3'): update(newdata =) keeps the formula `
+Expected `as.numeric(logLik(up))` to be identical to `as.numeric(logLik(fit))`.
+Differences:
+  `actual`: -85.68
+`expected`: -86.30
+
+
+── 3. Failure ('test-formula-dot.R:66:3'): update(newdata =) keeps the formula `
+Expected `as.numeric(logLik(update(fit, data = d2)))` to be identical to `as.numeric(logLik(fit))`.
+Differences:
+  `actual`: -85.68
+`expected`: -86.30
+
+
+── 4. Failure ('test-formula-dot.R:70:3'): update(newdata =) keeps the formula `
+Expected `update(fit, newdata = d[, c("y", "x1")])` to throw a error with class <frmtmb_error>.
+
+── 5. Failure ('test-formula-dot.R:75:3'): update(newdata =) keeps the formula `
+Expected `as.numeric(logLik(upb))` to be identical to `as.numeric(logLik(fb))`.
+Differences:
+  `actual`: -85.26
+`expected`: -85.80
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb test-formula-dot.R pass=20 fail=5 err=0 skip=0 warn=0

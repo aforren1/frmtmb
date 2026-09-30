@@ -19,12 +19,19 @@
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{summary, robust, probs, pars, groups}{brms's arguments, in brms's
-positions so that a positional brms call asks the same question.
-brms answers \code{summary = FALSE} with the posterior draws and
-\code{robust = TRUE} with their median and MAD, and a maximum-likelihood
-fit has no draws, so both are refused by name with the reason. The
-default of each is accepted and changes nothing.}
+\item{summary, robust, probs}{brms's arguments, in brms's positions so
+that a positional brms call asks the same question. brms answers
+\code{summary = FALSE} with the posterior draws and \code{robust = TRUE} with
+their median and MAD, and a maximum-likelihood fit has no draws, so
+both are refused by name with the reason. The default of each is
+accepted and changes nothing.}
+
+\item{pars}{Optional coefficient names to keep, as brms's: \code{"x"}
+keeps the \code{x} column of every group, a dpar's included
+(\code{sigma_x}). A group left with no coefficient is dropped.}
+
+\item{groups}{Optional grouping factor names to keep. A name the
+model does not have keeps nothing.}
 
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}

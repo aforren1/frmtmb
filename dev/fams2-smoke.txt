@@ -1,0 +1,75 @@
+frmtmb from C:/Users/adf44/source/r/wt-fams2-lib/frmtmb 
+xbeta data: zeros 13 ones 58 
+ Family: xbeta 
+ Links: mu = logit; phi = log; kappa = log
+
+Formula: y ~ x 
+   Data: d (Number of observations: 600) 
+ Method: ML   logLik: -92.2091   AIC: 192.418   BIC: 210.006 
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     0.34      0.04     0.26     0.43    7.94    2e-15
+x             0.67      0.06     0.55     0.78   10.98   <2e-16
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+phi       4.91      0.88     3.45     6.97
+kappa     0.12      0.04     0.06     0.23
+fitted                       ok
+predict                      ok
+simulate                     ok
+resid pearson                ok
+resid osa                    ERROR: residuals(type = "osa") is not available for family 'xbeta': its density puts a point mass on an exact response value and branches on y == 0, and the one-step tape hands the density no value to compare. Use type = "pearson", or dharma_residuals(), which uses simulate()
+conditional_effects          ok
+emmeans                      ok
+route = "fit": the prior defaults frm() applies
+   prior     class coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                            NA NA default
+2 (flat)         b                            NA NA default
+3 (flat)         b    x                       NA NA default
+4 (flat)       phi                            NA NA default
+5 (flat)     kappa                            NA NA default
+default_prior                ok
+kappa ~ x                    ok
+(1|g)                        ok
+mixture                      ok
+
+conditional     refused    untested       works 
+         24          18           3          32 
+compat                       ok
+ Family: zero_inflated_beta_binomial 
+ Links: mu = logit; phi = log; zi = logit
+
+Formula: yb | trials(tr) ~ x 
+   Data: d (Number of observations: 600) 
+ Method: ML   logLik: -1336.01   AIC: 2680.03   BIC: 2697.61 
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept    -0.48      0.07    -0.61    -0.34   -6.71  2.0e-11
+x             0.39      0.06     0.26     0.51    6.15  7.7e-10
+
+Further Distributional Parameters:
+    Estimate Est.Error l-95% CI u-95% CI
+phi     3.02      0.34     2.42     3.76
+zi      0.24      0.03     0.19     0.29
+fitted                       ok
+predict                      ok
+simulate                     ok
+resid pearson                ok
+resid osa                    ERROR: residuals(type = "osa") is not available for family 'zero_inflated_beta_binomial': its density puts a point mass on an exact response value and branches on y == 0, and the one-step tape hands the density no value to compare. Use type = "pearson", or dharma_residuals(), which uses simulate()
+conditional_effects(): holding the trials variable(s) tr at 1, so the display is a probability per trial (brms's default too). Pin them in conditions = list(...) for a count.
+conditional_effects          ok
+emmeans                      ok
+zi ~ x                       ok
+mixture                      ok
+route = "fit": the prior defaults frm() applies
+   prior     class coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                            NA NA default
+2 (flat)         b                            NA NA default
+3 (flat)         b    x                       NA NA default
+4 (flat)       phi                            NA NA default
+5 (flat)        zi                            NA NA default
+default_prior                ok
+bb resid pearson             ok

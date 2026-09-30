@@ -1,0 +1,9 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.ode 
+Loading required package: frmtmb
+scale: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the ode scale row fits and reports its cost ('test-scale.R:101:3') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.ode test-scale.R pass=0 fail=0 err=0 skip=1 warn=0 blocks=1

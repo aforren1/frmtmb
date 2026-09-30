@@ -81,10 +81,13 @@ refused with the name of the function that took over each one.}
 fit never saw, instead of erroring. Each replicate draws that
 level's effect from the block's estimated covariance.}
 
-\item{sample_new_levels}{brms's argument. \code{"gaussian"}, which is
-what happens, or \code{NULL}. \code{"uncertainty"} and \code{"old_levels"}
-resample the posterior draws of the levels that were seen, and a
-maximum-likelihood fit has none, so both are refused by name.}
+\item{sample_new_levels}{brms's argument. \code{"gaussian"} (or \code{NULL})
+draws an unseen level's effect from its block's estimated
+covariance. \code{"old_levels"} gives each unseen level the effect of
+one seen level of its block, chosen at random once per call as
+brms chooses it, read from each replicate's draw of the group
+effects. \code{"uncertainty"} mixes the two per posterior draw, and a
+maximum-likelihood fit has none, so it is refused by name.}
 
 \item{propagate_error}{Whether the error in the estimates is
 propagated into the interval. \code{TRUE}, the default, draws the

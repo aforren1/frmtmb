@@ -1,0 +1,4 @@
+assert	frmtmb	brmsfit-helpers:17	cannot transfer	FALSE	FALSE	NOT RUN: reaches brms's own namespace		FALSE
+setup	frmtmb	brmsfit-helpers:93		FALSE	FALSE	could not find function "make_conditions"		FALSE
+assert	frmtmb	brmsfit-helpers:94	cannot transfer	FALSE	TRUE	STALE: reads 'conds', whose last assignment failed: could not find function "make_conditions"		FALSE
+assert	frmtmb	brmsfit-helpers:95	cannot transfer	FALSE	TRUE	STALE: reads 'conds', whose last assignment failed: could not find function "make_conditions"		FALSE

@@ -381,6 +381,10 @@ test_that("an unsupported term and `.` are refused as what they are", {
   expect_error(frm(y ~ x + fcor(Vm), data = d, data2 = list(Vm = Wm)),
                "fcor[(][)] is a brms autocorrelation term",
                class = "frmtmb_error")
-  expect_error(frm(y ~ ., data = d), "A formula with `.` is not supported",
+  # `.` expands against a data frame, as in brms (test-formula-dot.R);
+  # an environment has no columns to expand it into
+  de <- list2env(d)
+  expect_error(frm(y ~ ., data = de),
+               "has a `.`, which stands for the columns of `data`",
                class = "frmtmb_error")
 })

@@ -1,0 +1,6 @@
+NOATTACH test-conditions.R attach=FALSE pass=142 fail=3 err=3
+NOATTACH test-conditions.R attach=TRUE pass=150 fail=0 err=0
+NOATTACH test-data2.R attach=FALSE pass=29 fail=0 err=1
+NOATTACH test-data2.R attach=TRUE pass=31 fail=0 err=0
+NOATTACH test-id-kron.R attach=FALSE pass=59 fail=0 err=1
+NOATTACH test-id-kron.R attach=TRUE pass=60 fail=0 err=0

@@ -1,0 +1,9 @@
+sample-direct: ......................................................................No priors were used (flat improper priors on the outer parameters).
+......No priors were used (flat improper priors on the outer parameters).
+...........No priors were used (flat improper priors on the outer parameters).
+..................No priors were used (flat improper priors on the outer parameters).
+................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-sample-direct.R pass=137 fail=0 error=0 skip=0 warn=0

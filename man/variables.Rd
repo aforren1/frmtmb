@@ -28,16 +28,19 @@ with a distributional or nonlinear parameter's name in the
 coefficient part, \code{sd_g__sigma_Intercept}), and a distributional
 parameter nobody wrote a formula for, on its natural scale (\code{sigma},
 \code{shape}, \code{sigma_ya}). Every name is spelled through brms's renaming:
-\code{b_IxE2} for \code{I(x^2)}, \code{sd_g:h__Intercept} for \code{(1 | g:h)}. For sampled
-fits, \code{variables()} on the \code{frmtmb.sample::frm_sample()} result lists
-the draw columns, which follow the same convention EXCEPT for an
-ordinal fit, where they are the internal names: \code{tau_raw_1},
-\code{tau_raw_2} for the thresholds this page calls \code{b_Intercept[1]},
-\code{b_Intercept[2]}, and \code{bcs2_1} for a \code{cs()} coefficient this page calls
-\verb{bcs_<column>[1]}. \code{fixef()} on the draws object does report brms's
-rows.
+\code{b_IxE2} for \code{I(x^2)}, \code{sd_g:h__Intercept} for \code{(1 | g:h)}.
 }
 \details{
+For sampled fits, \code{variables()} on the \code{frmtmb.sample::frm_sample()}
+result lists the draw columns. The coefficients, the natural-scale
+distributional parameters, an ordinal fit's thresholds
+(\code{b_Intercept[1]}) and the \code{cs()} coefficients (\verb{bcs_<column>[1]})
+have the names and the values this page gives them. The covariance
+parameters do not: a draw stores them as the sampler sampled them, on
+the unconstrained scale and under their internal names (\code{theta_1}),
+and \code{VarCorr()} and \code{hypothesis()} on the draws compute the \code{sd_} and
+\code{cor_} quantities from them.
+
 brms's \code{variables()} also lists what a fit has no counterpart of:
 group-level coefficients \verb{r_<group>[<level>,<coef>]}, the centered
 \code{Intercept}, \code{lprior} and \code{lp__}. A maximum-likelihood fit has no

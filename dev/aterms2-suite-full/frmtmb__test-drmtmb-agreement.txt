@@ -1,0 +1,32 @@
+drmtmb-agreement: SSSSSSSSSSSSS
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. gaussian location-scale with a mu random intercept, ML and REML ('test-drmtmb-agreement.R:152:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+2. random intercepts in mu and sigma, independent and correlated ('test-drmtmb-agreement.R:167:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+3. beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) ('test-drmtmb-agreement.R:185:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+4. bivariate gaussian: rho12, correlated group effects, REML ('test-drmtmb-agreement.R:208:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+5. animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) ('test-drmtmb-agreement.R:235:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+6. phylo(tree) rescales the tree to unit height ('test-drmtmb-agreement.R:279:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+7. student and cumulative logit with a mu random intercept ('test-drmtmb-agreement.R:307:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+8. more families: lognormal, Gamma, beta-binomial, ZI NB2 ('test-drmtmb-agreement.R:327:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+9. meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE) ('test-drmtmb-agreement.R:357:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+10. sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz ('test-drmtmb-agreement.R:370:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+11. mi(): a gaussian missing predictor with its own model ('test-drmtmb-agreement.R:390:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+12. skew_normal: same likelihood, from frmtmb's default start ('test-drmtmb-agreement.R:408:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+13. REML with a sigma random effect: not the same criterion ('test-drmtmb-agreement.R:438:3') - Reason: set FRMTMB_DRMTMB_FIT_TESTS=true to run drmTMB agreement tests
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-drmtmb-agreement.R pass=0 fail=0 error=0 skip=13 warn=0

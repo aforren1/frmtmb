@@ -1,0 +1,4 @@
+mutant: keydrop 
+RESULT keydrop-run keydrop: failed=2 error=0 passed=19
+                                                        test failed error
+7 a population bootstrap is not reused for an observed group      2 FALSE

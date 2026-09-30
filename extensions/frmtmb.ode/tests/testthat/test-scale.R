@@ -113,8 +113,12 @@ test_that("the ode scale row fits and reports its cost", {
   bd$dry <- NULL
 
   fit <- NULL
-  t_fit <- scale_elapsed(fit <- frm(form + gaussian(), data = d,
-                                    start = st, se = TRUE))
+  # nlminb stops this 100-subject fit with a nonzero code (conv = 1 in
+  # the row at 0.65.0 and 0.66.0, logLik -434.72 both times), which frm()
+  # reports as a warning; the row records it, and nothing else may warn
+  t_fit <- scale_elapsed(allow_warnings(
+    fit <- frm(form + gaussian(), data = d, start = st, se = TRUE),
+    "Optimizer did not report convergence"))
   g1 <- scale_grad(fit$obj, fit$opt$par)
   mem <- scale_mem_peak_mb()
 

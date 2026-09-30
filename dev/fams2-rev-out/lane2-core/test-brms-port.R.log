@@ -1,0 +1,5 @@
+arm: lane  lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb  tdir: C:/Users/adf44/source/r/frmtmb-wt-fams2/tests/testthat 
+brms-port: .....................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT lane frmtmb test-brms-port.R pass=21 fail=0 err=0 skip=0 warn=0 blocks=6

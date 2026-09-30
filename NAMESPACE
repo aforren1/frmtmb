@@ -29,6 +29,7 @@ S3method(brms::LOO,frmtmb_fit)
 S3method(brms::WAIC,frmtmb_fit)
 S3method(brms::conditional_effects,frmtmb_fit)
 S3method(brms::conditional_effects,frmtmb_multiple)
+S3method(brms::conditional_smooths,frmtmb_fit)
 S3method(brms::expose_functions,frmtmb_fit)
 S3method(brms::hypothesis,frmtmb_fit)
 S3method(brms::hypothesis,frmtmb_multiple)
@@ -39,6 +40,7 @@ S3method(c,frmtmb_priorlist)
 S3method(coef,frmtmb_fit)
 S3method(conditional_effects,frmtmb_fit)
 S3method(conditional_effects,frmtmb_multiple)
+S3method(conditional_smooths,frmtmb_fit)
 S3method(confint,frmtmb_boot)
 S3method(confint,frmtmb_fit)
 S3method(cooks.distance,frmtmb_fit)
@@ -199,15 +201,16 @@ export(build_objective, row_lpdf, with_cs_offsets,
   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
   brms_par_labels, varcorr_matrices, varcorr_layout, varcorr_values,
   ce_grids_build, ce_boot_one,
-  ce_frame, ce_finalize,
+  ce_frame, ce_finalize, ce_spaghetti, ce_check_distance,
+  ce_spaghetti_check, cs_build, cs_coef, cs_frame, cs_finalize,
+  cs_probs, ce_level_plan, ce_plan_eval, ce_plan_has_new,
   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
-  ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
   fam_is_category_valued, predict_category_props, vcov_estimated,
   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
-  arma_cond_resp, arma_cond_dpars)
+  arma_cond_resp, arma_cond_dpars, subset_resp_check, subset_newdata)
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)
@@ -215,6 +218,7 @@ export(compat_aterm_rules)
 export(compat_rule_builder)
 export(compois)
 export(conditional_effects)
+export(conditional_smooths)
 export(confint_varcorr)
 export(cox)
 export(cox_baseline)
@@ -266,6 +270,7 @@ export(frmtmb_structure)
 export(geometric)
 export(get_prior)
 export(huber)
+export(hurdle_cumulative)
 export(hurdle_gamma)
 export(hurdle_lognormal)
 export(hurdle_negbinomial)
@@ -277,6 +282,7 @@ export(log_lik)
 export(lognormal)
 export(loo)
 export(loo_compare)
+export(make_conditions)
 export(mixture)
 export(mixture_multimodal_refusals)
 export(mixture_mvn)
@@ -320,6 +326,7 @@ export(sratio)
 export(structure_supports_all)
 export(student)
 export(tweedie)
+export(update_adterms)
 export(validate_prior)
 export(variables)
 export(vcov_cluster)
@@ -327,8 +334,10 @@ export(von_mises)
 export(waic)
 export(weibull)
 export(whittle)
+export(xbeta)
 export(zero_inflated_asym_laplace)
 export(zero_inflated_beta)
+export(zero_inflated_beta_binomial)
 export(zero_inflated_binomial)
 export(zero_inflated_negbinomial)
 export(zero_inflated_poisson)

@@ -128,6 +128,7 @@ frm_generic_owners <- list(
   prior_summary = "rstantools",
   pp_check = "bayesplot",
   conditional_effects = "brms",
+  conditional_smooths = "brms",
   expose_functions = "brms",
   hypothesis = "brms",
   posterior_summary = "brms",

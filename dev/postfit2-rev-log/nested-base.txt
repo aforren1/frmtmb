@@ -1,0 +1,19 @@
+ARM base
+confounded design: g:h levels 8, g levels 8
+C-confounded VarCorr g:h sd 1.0470
+C-confounded VarCorr g sd 1.0470
+C-confounded VarCorr residual__ sd 1.0009
+C-confounded sdr of theta: 258.0950 258.0950
+C-confounded g=5 set, g:h new: wald est 0.4739 1.6052 2.7365 lo -1409.3827 -1408.2514 -1407.1201 hi 1410.3306 1411.4618 1412.5932
+C-confounded nothing set: wald lo -4.0295 -2.8705 -1.7587 hi 2.1903 3.2939 4.4447
+C-confounded g=5 set, g:h new: boot60 seed5 lo -4.7709 -3.5847 -2.3725 hi 0.7800 1.9584 3.1487; width/wald 0.0020 0.0020 0.0020
+C-confounded g and h both set (observed g:h): wald lo 1.2714 2.5592 3.5615 hi 2.4636 3.4383 4.6986
+crossed-within design: g:h levels 32
+C-nested VarCorr g:h sd 0.9308
+C-nested VarCorr g sd 0.9657
+C-nested VarCorr residual__ sd 0.9581
+C-nested sdr of theta: 0.1756 0.3229
+C-nested g=2 set, g:h new: wald est 1.4097 2.5634 3.7172 lo -0.7405 0.4449 1.5549 hi 3.5600 4.6820 5.8794
+C-nested nothing set: wald lo -3.1938 -2.0147 -0.8940 hi 2.3290 3.4573 4.6441
+C-nested g=2 set, g:h new: boot60 seed5 lo -3.4409 -2.4099 -1.3789 hi 1.3615 2.6759 4.0005; width/wald 1.1167 1.2003 1.2440
+C-nested g and h both set (observed g:h): wald lo 0.3416 1.6098 2.6858 hi 2.1472 3.1865 4.4179

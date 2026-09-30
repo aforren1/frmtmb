@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+dpar-equate: ...............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb test-dpar-equate.R gated=TRUE pass=31 fail=0 err=0 skip=0 warn=0

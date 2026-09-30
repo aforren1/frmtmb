@@ -1,0 +1,12 @@
+ARM ref
+outer parameters: 1
+[1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+[default init (mode)] ERROR: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a fai
+[init = random] OK 300x2 mean b_x 0.304895
+[1] "Error : Exception: no more scalars to read (in 'string', line 18, column 2 to line 19, column 53)"
+[1] "error occurred during calling the sampler; sampling not done"
+[init_jitter = 0] ERROR: frm_sample(): the sampler returned no draws (rstan printed the cause above). This is a fai
+[tmbstan init numeric] NO DRAWS
+[tmbstan init array] OK
+DONE

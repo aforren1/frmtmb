@@ -1305,7 +1305,9 @@ reference build, neither this lane's.
   object goes through `draws_fixef_ordinal()` and `variables()` does
   not. `?variables` now records the exception rather than claiming the
   draw columns follow the same convention
-  (`dev/csfactor-rev-docs2.R`, `dev/csfactor-log/sample.txt`).
+  (`dev/csfactor-rev-docs2.R`, `dev/csfactor-log/sample.txt`). Done at
+  0.66.0, lane wt-sampfix: the draws carry brms's names; the covariance
+  parameters (`theta_1`) are the one gap left, filed below.
 - **The covariance machinery is not bound-aware.** At a constrained
   optimum the UNCONSTRAINED Hessian can be indefinite, because the fit
   is only a minimum along the feasible directions. `sdreport()` reads
@@ -1354,7 +1356,9 @@ internal error. Not fixed: all four are outside that lane's gap.
   laplace = TRUE", `draws_require_b()`); the two predictive methods
   should reach the same refusal. Test: assert the refusal on a laplace
   draws object for `posterior_predict()` and `posterior_epred()`, and
-  assert no NaN is returned.
+  assert no NaN is returned. Done at 0.66.0, lane wt-sampfix: laplace
+  draws are read in their own layout, and a call that reads the
+  integrated values is refused by name (`test-laplace-draws.R`).
 
 ### Open - medium
 
@@ -1367,7 +1371,8 @@ internal error. Not fixed: all four are outside that lane's gap.
   Laplace route and the full route are the same model) or refuse it by
   name. Test: construct `frm_sample(bf(y ~ x), family = gaussian(),
   laplace = TRUE)` and assert whichever is chosen, not the unary-minus
-  error.
+  error. Done at 0.66.0, lane wt-sampfix: accepted, with a message, and
+  the draws equal those of the call without `laplace`.
 - **`pp_check()`'s four `loo_*` types fail on every model.**
   `pp_check.frmtmb_draws` resolves the bayesplot function and calls it
   with the response and the predictions, and nothing in it computes
@@ -1394,7 +1399,9 @@ internal error. Not fixed: all four are outside that lane's gap.
   The lane measured the same thing independently
   (`dev/arcovsample-ppcheck.R`, one model, both builds). Test: one
   block per `loo_*` type asserting a plot object, which will fail until
-  `pp_check()` passes the PSIS weights.
+  `pp_check()` passes the PSIS weights. Done at 0.66.0, lane
+  wt-sampfix: built as brms builds them, bitwise equal to brms 2.23.0
+  on brms's own draws (`test-ppcheck-loo.R`).
 
 ### Open - low
 
@@ -1411,7 +1418,8 @@ internal error. Not fixed: all four are outside that lane's gap.
   `stanfit = NULL`, which is how a test supplies a chosen parameter
   vector without a sampler. A sweep of every `@` read behind a `%||%`
   is its own change. Test: `nchains()`, `ndraws()` and `VarCorr()` on a
-  `stanfit = NULL` draws object.
+  `stanfit = NULL` draws object. Done at 0.66.0, lane wt-sampfix: every
+  read goes through `draws_nchains()` (`test-draws-no-stanfit.R`).
 
 ## Filed by lane splinecurve at the 0.65.0 consolidation, 2026-09-29
 
@@ -1430,6 +1438,134 @@ internal error. Not fixed: all four are outside that lane's gap.
   returns the between-row covariance block, not only its diagonal.
   Test: at grid points off the observed `x`, the simultaneous critical
   value from the full covariance against the one `frm_curve()` reports.
+
+## Filed at the 0.66.0 release (2026-09-29)
+
+What the six lanes of the parity round found and did not fix. Each
+item names its lane and the findings section with the measurement;
+`dev/round-20260929b.md` is the round's record. Items a lane chose not
+to build, with the reason, stay in that lane's "decided not to do"
+section and are listed here only where a user could hit them.
+
+### Open - high
+
+- **Laplace-draws probe: a NaN can pass.** On
+  `bf(yn ~ log(c1) * x + exp(a)^k, c1 ~ 1, a ~ 1 + (1 | g), k ~ 1,
+  nl = TRUE)` with `c1 = -1` and `k = 0` on draw 1 only, draw 1 is NaN
+  for its own reason at both fills, so the watch takes the all-`NA`
+  pattern as its reference and `posterior_epred()` returns 480 of 480
+  cells non-finite where full draws give 80. Needs two exact values at
+  one draw; the result is NaN, never a finite wrong number. Fix:
+  compare each draw with itself at fill 0, at one more evaluation per
+  draw. Lane sampfix, R2 (`dev/sampfix-rev-r2-01-watch.R`).
+- **`predict(newdata = )` with NA responses under `ar()`/`arma()` with
+  `cov = FALSE`** is refused by name. brms fills a missing response with
+  its predicted draws and runs the recursion over them;
+  `simulate(newdata = )` does that here. Ledger row
+  `brmsfit-methods:747`. Lane defects, section 6.
+- **bernoulli on a two-valued response that is not 0/1** (`-1`, `-2`)
+  is refused; brms codes it by level order. The coding has to be stored
+  with the fit and applied on every refit and every response read from
+  newdata, or a subset holding one of the two values is coded wrong in
+  silence. Ledger row `standata:75`. Lane defects, section 6.
+
+### Open - medium
+
+- **New levels in `conditional_effects(re_formula = NULL)` follow
+  brms's `sample_new_levels = "gaussian"`**, not brms's default
+  `"uncertainty"`, which lends an observed level's draw and gives
+  narrower bands (brms 0.60, 0.51, 0.75 against frmtmb 0.90, 0.95,
+  1.05 at 40 draws). On the fit and on draws. Lanes sampfix (M7) and
+  postfit2 (section 8).
+- **`conditional_effects()` refuses two displays brms answers:**
+  crossed `(1 | g) + (1 | h) + (1 | g:h)` with `g` and `h` at observed
+  levels never seen together, on `band = "boot"` and draws (the Wald
+  band answers), and an `mm()` term with a `by` variable at a new
+  level. Both refused by name. Lane postfit2, section 8.
+- **`conditional_effects()` of a model with `mi(x, idx = )`** stops
+  with "Could not match all indices" on its grid, whose `idx` and
+  `index` values are reference values. Lane aterms2, section 6.
+- **`conditional_effects()` and `emmeans()` on
+  `y ~ x + offset(log(time))`** fail with "non-numeric argument to
+  mathematical function" and "undefined columns selected". Pre-existing
+  on 0.65.0. Lane aterms2, section 7.
+- **An addition term given an expression**, `weights(wt * 2)` or
+  `rate(time * 2)`, fails with "invalid model formula in ExtractVars";
+  brms accepts it. Pre-existing for `weights()`. Lane aterms2,
+  section 7.
+- **`rate()` with `cens()` or `trunc()` on `poisson()`** runs brms's
+  CDF at `mu * d`, but was never compared with brms. The compat row
+  says "untested". Lane aterms2, section 6.
+- **frmtmb.sample puts no default prior on a mixture's `sigma1` and
+  `sigma2`**: `default_priors_for()` matches `dpar == "sigma"` only, so
+  a mixture samples them flat where brms uses `student_t(3, 0, 2.6)`.
+  Pre-existing. Lane formula2, section 4.
+- **`thres(gr = )`, `cens()`/`trunc()` and mixtures** are refused on
+  `hurdle_cumulative()`, `zero_inflated_beta_binomial()` and in a
+  mixture respectively; brms fits each. `disc` on the four older
+  ordinal families, and `threshold = "equidistant"` or `"sum_to_zero"`
+  on any of them, are not built (ledger row `priors:14`). Lane fams2,
+  "Decided not to do".
+- **The covariance parameters in draws keep internal names**
+  (`theta_1` where brms has `sd_g__Intercept`). `VarCorr()` and
+  `hypothesis()` compute the brms quantities; `variables(ds)` and
+  `variables(fit)` still differ there. Needs a per-structure map.
+  Lane sampfix, "Found and not fixed" 2.
+- **`plot()` of a conditional-effects object and of a hypothesis**
+  refuses brms's `plot`, `rug`, `stype` and `ignore_prior`. frmtmb
+  draws with base graphics where brms returns ggplot objects; whether
+  to return plot objects is a decision for the user. Ledger rows
+  `brmsfit-methods:154`, `:162`, `:164`, `:169`, `:391`, `:396`.
+- **`parnames()` on a fit** (ledger row `brmsfit-methods:995`) moves
+  the generic between the two packages' owner tables; and
+  `nsamples(incl_warmup = TRUE)` (`:595`) needs stored warmup. Lane
+  defects, section 6.
+
+### Open - low
+
+- **A harmless false alarm on laplace draws**: `(0 + x | g)` at
+  `newdata` with `x = 0` is refused, because the probe's `NA` times 0
+  is `NA`. Lane sampfix, M2 (`dev/sampfix-rev-01-probe.R`).
+- **REML with `laplace = TRUE`** samples an objective rebuilt without
+  the REML integral over `beta`, so the draws are the ML Laplace
+  posterior. Lane sampfix, item 3.
+- **`?frm_sample`'s `prior` says list names are "parameter names as in
+  the draws"**; named-list priors resolve against the internal outer
+  names (`tau_raw`, `beta`). Lane sampfix, item 4.
+- **`update(fit, bf(y ~ x2))` with a complete `bf()` replaces the
+  model**, where brms pools the old parameter formulas into it; and
+  brms replaces an equation with a later formula on the same parameter
+  where frmtmb refuses it. Both loud. Lane formula2, section 4.
+- **`summary()`'s Formula line** does not print `sigma1 = sigma2`, or
+  any parameter formula. Lane formula2, section 4.
+- **A `y ~ . - w` fit refit on data without `w`** is refused ("The
+  model uses `w`"), as `y ~ x1 + w - w` is. Lane formula2, 9.2.
+- **A refusal from frmtmb.sample's draws accessors names the internal
+  function**, "draws_accessor_args() has no argument `chains`", where
+  the caller typed `as.array()`. Lane defects, section 7.
+- **`summary()`'s `Data:` line is empty** for a fit whose data came by
+  value through `do.call()`; brms records a deparse cut at 50
+  characters. Lane defects, section 7.
+- **`xbeta()` third derivatives inside the tie blend of
+  `log_pbeta_ad()`** are off by up to 0.12 relative at shapes (1e6,
+  3e6), against 3e-9 for plain `log(RTMB::pbeta())`. Values and first
+  derivatives are unaffected; few rows land in the band. And `xbeta()`
+  at `phi` 2e4 can stop 2.4e-5 short of the reference optimum without
+  a warning, on a flat ridge. Lane fams2, m1 and n5.
+- **`posterior_average()`'s refusals** quote the variable without
+  brms's quotes, and `pp_average()` and `model_weights()` are not
+  exported. Lane postfit2, section 8.
+- **A multivariate model's `logLik()` `nobs` attribute** counts rows
+  that no response's `subset()` uses (80 where 72 rows carry data).
+  `BIC()` reads it. Lane aterms2, re-check.
+
+### Upstream, listed in `dev/upstream-bugs.md` for the user to file
+
+- brms 2.23.0 `hurdle_cumulative_logit_lpmf()` tests `y == nthres + 2`
+  where the top category is `nthres + 1` (lane fams2).
+- RTMB 2.0: `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third
+  derivatives at ordinary points, and `dbeta()` a `NaN` gradient past a
+  shape sum of about 1e3 (lane fams2).
 
 ## Reference
 

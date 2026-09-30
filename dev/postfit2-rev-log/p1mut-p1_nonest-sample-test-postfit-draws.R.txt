@@ -1,0 +1,74 @@
+arm lane mutant p1_nonest ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+mutant p1_nonest : 1 replacement(s) in frmtmb :: ce_plan_part 
+function (rows, nd, st, blocks, locked, base) 
+{
+    r1 <- rows[1L]
+    newk <- which(st[r1, ] != "")
+    ndp <- nd[rows, , drop = FALSE]
+    if (!length(newk)) 
+        return(list(rows = rows, nd = ndp, new = list()))
+    held <- locked
+    given <- list()
+    moved <- character(0)
+    new <- list()
+    ord <- newk[order(-vapply(blocks[newk], function(b) length(b$gv), 
+        1L))]
+    for (k in ord) {
+        b <- blocks[[k]]
+        ok <- rep(TRUE, nrow(b$parts))
+        for (j in seq_along(b$gv)) {
+            v <- b$gv[j]
+            want <- if (!is.null(given[[v]])) {
+                given[[v]]
+            }
+            else if (v %in% held) {
+                as.character(nd[[v]][r1])
+            }
+            if (!is.null(want)) 
+                ok <- ok & !is.na(want) & b$parts[, j] == want
+        }
+        if (!any(ok)) {
+            at <- paste0(b$gv, " = ", vapply(b$gv, function(v) {
+                as.character(nd[[v]][r1])
+            }, ""), collapse = ", ")
+            frm_stop("conditional_effects() cannot draw a new level of the ", 
+                "group-level term (", b$bk[["term_label"]], ") at the grid ", 
+                "rows with ", at, ": to place one it would move a column ", 
+                "that another term or an observed group reads, to a level ", 
+                "the fit saw with the values the grid holds. Set the ", 
+                "variables in conditions to levels the fit saw together, ", 
+                "or use re_formula = NA", call. = FALSE)
+        }
+        lv <- which(ok)[1L]
+        for (j in seq_along(b$gv)) {
+            v <- b$gv[j]
+            if (is.null(given[[v]])) {
+                given[[v]] <- b$parts[lv, j]
+                if (!v %in% held) 
+                  moved <- c(moved, v)
+            }
+        }
+        new[[length(new) + 1L]] <- list(block = k, key = st[r1, 
+            k], idx = b$bk[["b_idx"]][(lv - 1L) * b$d + seq_len(b$d)])
+    }
+    for (v in unique(moved)) {
+        col <- base[[v]]
+        val <- given[[v]]
+        ndp[[v]] <- rep(if (is.factor(col)) {
+            factor(val, levels = levels(col))
+        } else if (is.numeric(col)) {
+            as.numeric(val)
+        } else {
+            val
+        }, length.out = length(rows))
+    }
+    list(rows = rows, nd = ndp, new = new)
+}
+<environment: namespace:frmtmb>
+RESULT lane frmtmb.sample test-postfit-draws.R [p1_nonest]: tests=42 failed=1 error=0 skipped=0 warning=0 passed=41
+---- expectation_failure at line 227 in on draws, a nested term set at its parent reads the parent 
+Expected `at(moved, cond)$estimate__ - at(ds, cond)$estimate__` to equal `rep(10, 3)`.
+Differences:
+  `actual`:  0.0  0.0  0.0
+`expected`: 10.0 10.0 10.0
+ 

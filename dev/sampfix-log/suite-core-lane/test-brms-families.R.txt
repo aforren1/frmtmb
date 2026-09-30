@@ -1,0 +1,59 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-families                                                  
+⠙ |         12 | brms-families                                                  
+⠇ |         39 | brms-families                                                  
+⠇ |         49 | brms-families                                                  
+⠋ |         51 | brms-families                                                  
+⠇ |         59 | brms-families                                                  
+⠇ |         79 | brms-families                                                  
+⠦ |         97 | brms-families                                                  
+⠧ |        118 | brms-families                                                  
+⠏ |        140 | brms-families                                                  
+⠸ |        164 | brms-families                                                  
+⠹ |        183 | brms-families                                                  
+⠦ |        197 | brms-families                                                  
+⠇ |        219 | brms-families                                                  
+⠙ |        242 | brms-families                                                  
+⠼ |        265 | brms-families                                                  
+⠇ |        289 | brms-families                                                  
+⠏ |        320 | brms-families                                                  
+⠧ |        348 | brms-families                                                  
+⠧ |        378 | brms-families                                                  
+⠴ |        406 | brms-families                                                  
+⠸ |        434 | brms-families                                                  
+⠹ |        463 | brms-families                                                  
+⠹ |        493 | brms-families                                                  
+⠋ |        521 | brms-families                                                  
+⠇ |        549 | brms-families                                                  
+⠏ |        580 | brms-families                                                  
+⠏ |        610 | brms-families                                                  
+⠧ |        638 | brms-families                                                  
+⠧ |        668 | brms-families                                                  
+⠼ |        695 | brms-families                                                  
+⠙ |        722 | brms-families                                                  
+⠋ |        741 | brms-families                                                  
+⠇ |        769 | brms-families                                                  
+⠦ |        797 | brms-families                                                  
+⠹ |        823 | brms-families                                                  
+⠼ |        845 | brms-families                                                  
+⠼ |        865 | brms-families                                                  
+⠏ |        890 | brms-families                                                  
+⠏ |        920 | brms-families                                                  
+⠼ |        945 | brms-families                                                  
+⠏ |        960 | brms-families                                                  
+⠹ |        973 | brms-families                                                  
+⠼ |        985 | brms-families                                                  
+⠙ |        1002 | brms-families                                                 
+⠼ |        1005 | brms-families                                                 
+⠸ |        1014 | brms-families                                                 
+⠦ |        1017 | brms-families                                                 
+⠼ |        1025 | brms-families                                                 
+✔ |        1033 | brms-families [8.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 8.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 1033 ]
+RESULT lane test-brms-families.R: tests 23 pass 1033 fail 0 error 0 skip 0 warn 0

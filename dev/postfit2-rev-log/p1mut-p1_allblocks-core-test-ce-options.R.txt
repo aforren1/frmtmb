@@ -1,0 +1,24 @@
+arm lane mutant p1_allblocks ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+mutant p1_allblocks : 1 replacement(s) in frmtmb :: ce_kept_blocks 
+function (fit, re_formula) 
+{
+    blocks <- fit$frame[["re_blocks"]] %||% list()
+    grp <- which(vapply(blocks, function(bk) {
+        !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")
+    }, NA))
+    if (!inherits(re_formula, "formula")) {
+        return(if (is.null(re_formula)) grp else integer(0))
+    }
+    kp <- re_keep_plan(fit, re_formula, "conditional_effects()")
+    if (identical(kp$kind, "all")) 
+        return(grp)
+    if (!identical(kp$kind, "partial")) 
+        return(integer(0))
+    kept <- unlist(lapply(seq_along(kp$named), function(k) {
+        if (any(kp$keep[[k]])) 
+            kp$named[[k]]$block
+    }))
+    grp
+}
+<environment: namespace:frmtmb>
+RESULT lane frmtmb test-ce-options.R [p1_allblocks]: tests=32 failed=0 error=0 skipped=0 warning=0 passed=32

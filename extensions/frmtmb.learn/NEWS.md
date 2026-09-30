@@ -1,3 +1,14 @@
+# frmtmb.learn 0.7.1
+
+No change to the package's code.
+
+* `test-stan-identity.R` lets no warning escape. Two of its fits stop
+  short of the optimum and warn twice each, "false convergence (8)" and
+  a large gradient; the identity compares both sides at the point where
+  the fit stopped, so the test allows those two messages by name and no
+  other (`allow_warnings()`, now in `helper-warnings.R` here as in
+  frmtmb's own tests).
+
 # frmtmb.learn 0.7.0
 
 * The duplicated-payoff refusal and `?bandit2arm_delta` no longer say

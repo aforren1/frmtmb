@@ -1,0 +1,3 @@
+arm lane mutant p1_nolock ns FALSE : frmtmb.sample 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+mutant p1_nolock: ce_locked_vars returns character(0)
+RESULT lane frmtmb.sample test-postfit-draws.R [p1_nolock]: tests=42 failed=0 error=0 skipped=0 warning=0 passed=42

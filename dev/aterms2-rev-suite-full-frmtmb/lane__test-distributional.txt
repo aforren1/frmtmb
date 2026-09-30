@@ -1,0 +1,6 @@
+ARM lane PKG C:/Users/adf44/source/r/wt-aterms2-lib/frmtmb 
+distributional: ............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT lane test-distributional.R pass=28 fail=0 error=0 skip=0 warn=0

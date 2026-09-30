@@ -105,6 +105,18 @@ stop_newdata_missing <- function(v) {
 #' The lookup is model.frame()'s own, `newdata` first and then the
 #' environment of `tt`, so a variable it would find is never refused.
 #'
+#' Returns `newdata` with the fitted factors prepared for
+#' `model.frame(xlev = )`, which the caller must use. A number or a
+#' logical in a column that was a factor at fit time is read as that
+#' level's label, as brms's `validate_newdata()` reads it: `Trt = 0`
+#' is level "0". model.frame() otherwise warned "variable 'Trt' is not a
+#' factor" and model.matrix() then died with "contrasts apply only to
+#' factors". A factor's own "contrasts" attribute is dropped: the
+#' prediction applies the FITTED coding through `contrasts.arg`
+#' whatever the new column carries, and model.frame() warned
+#' "contrasts dropped from factor" on every call made with the fitted
+#' data itself, which keeps the attribute.
+#'
 #' @noRd
 check_newdata_frame <- function(tt, newdata, xlev) {
   env <- environment(tt) %||% globalenv()
@@ -114,6 +126,15 @@ check_newdata_frame <- function(tt, newdata, xlev) {
   }
   for (v in intersect(names(xlev), nms)) {
     x <- newdata[[v]]
+    if (is.list(newdata)) {
+      if (is.numeric(x) || is.logical(x)) {
+        x <- as.character(x)
+        newdata[[v]] <- x
+      } else if (is.factor(x) && !is.null(attr(x, "contrasts"))) {
+        attr(x, "contrasts") <- NULL
+        newdata[[v]] <- x
+      }
+    }
     if (!is.factor(x) && !is.character(x)) next
     lev <- unique(as.character(x[!is.na(x)]))
     new <- lev[!lev %in% xlev[[v]]]
@@ -126,7 +147,7 @@ check_newdata_frame <- function(tt, newdata, xlev) {
                call. = FALSE)
     }
   }
-  invisible(NULL)
+  newdata
 }
 
 #' Numeric coefficient-space vector for a fitted model (rr factors
@@ -171,6 +192,27 @@ mo_codes <- function(fit, lp, mi, newdata) {
   codes
 }
 
+#' A response as it was OBSERVED, in fitted-row space: `NA` where an
+#' `mi()` response is missing.
+#'
+#' The frame stores the placeholder 0 at those rows, because the tape
+#' reads the latent value there instead. Anything that compares the data
+#' with the model after the fit must not read the placeholder as an
+#' observation: `residuals()` reported `0 - mu` there, a number, where
+#' brms's predictive error is `NA` (its `Y` keeps the `NA` with
+#' `internal = TRUE`). Under `mi(sd = )` every row is latent and only
+#' the rows with no measurement are missing.
+#'
+#' @noRd
+frame_observed_y <- function(fit, resp) {
+  y <- fit$frame[["y"]][[resp]]
+  mm <- fit$frame[["mi_map"]][[resp]]
+  if (is.null(mm) || is.matrix(y)) return(y)
+  miss <- if (is.null(mm$obs)) mm$rows else setdiff(mm$rows, mm$obs)
+  y[miss] <- NA
+  y
+}
+
 #' Observed-or-latent values of a `mi()` response at the estimates.
 #'
 #' @noRd
@@ -193,6 +235,8 @@ patch_mo_cols <- function(fit, lp, X) {
   }
   for (mt in lp[["mi"]] %||% list()) {
     v <- mi_values(fit, mt$var)
+    # mi(x, idx = ): the rows of x this predictor's rows read
+    if (!is.null(mt$idxl)) v <- v[mt$idxl]
     if (!is.null(mt$mult)) v <- v * mt$mult
     X[, mt$col] <- v
   }
@@ -428,7 +472,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     newdata <- fill_new_group_vars(fit, lp, newdata, allow_new_levels, env)
   }
   tt <- patch_predvars(lp[["terms"]], fit$frame[["predvar_map"]])
-  check_newdata_frame(tt, newdata, xlev_for(lp[["xlevels"]], tt))
+  newdata <- check_newdata_frame(tt, newdata, xlev_for(lp[["xlevels"]], tt))
   mfp <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
                             xlev = xlev_for(lp[["xlevels"]], tt))
   # sparse_x fits keep newdata designs sparse too; NA rows must stay NA
@@ -468,22 +512,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     # grouping column in newdata, and still needs a level the basis
     # knows, at re_formula = NA as much as at NULL.
     smooth_newdata_check(si, newdata, allow_new_levels)
-    M <- mgcv::PredictMat(si$sm, newdata)
-    if (is.null(si$U)) {
-      # t2(): smooth2random() gives no rotation, only pen.ind, so the
-      # split is a trans.D scaling plus the frozen column permutation
-      # (see smooth_pen_order()). NULL `ord` means that identity did not
-      # hold at fit time; refusing beats returning wrong numbers.
-      if (is.null(si$ord)) {
-        frm_stop("predict(newdata = ) is not supported for the smooth ",
-                 si$label, ": mgcv reported a random-effect split this ",
-                 "version cannot invert. In-sample fitted()/predict() work; ",
-                 "predict at the observed rows instead", call. = FALSE)
-      }
-      M <- sweep(M, 2, si$D, `*`)[, si$ord, drop = FALSE]
-    } else {
-      M <- sweep(M %*% si$U, 2, si$D, `*`)
-    }
+    M <- smooth_basis_at(si, newdata)
     pos <- 0L
     for (r in seq_along(si$nr)) {
       Xr_new <- M[, pos + seq_len(si$nr[r]), drop = FALSE]
@@ -562,6 +591,12 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
   for (mt in lp[["mi"]] %||% list()) {
     v <- newdata[[mt$var]]
+    # mi(x, idx = ): each row reads x on the row of newdata whose
+    # index() matches its idx, among x's own rows there, as brms's
+    # standata() builds idxl for new data
+    if (!is.null(mt$idx_expr) && !is.null(v)) {
+      v <- mi_idx_newdata(fit, mt, newdata, env)
+    }
     if (is.null(v) || anyNA(v)) {
       frm_stop("mi(", mt$var, "): newdata must supply complete values",
                call. = FALSE)
@@ -604,10 +639,17 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
                                             env = env))
       tt2 <- patch_predvars(tt2, fit$frame[["predvar_map"]])
-      check_newdata_frame(tt2, newdata, xlev_for(lp[["xlevels"]], tt2))
+      newdata <- check_newdata_frame(tt2, newdata,
+                                     xlev_for(lp[["xlevels"]], tt2))
       mf2 <- stats::model.frame(tt2, newdata, na.action = stats::na.pass,
                                 xlev = xlev_for(lp[["xlevels"]], tt2))
+      # cmc = FALSE: the term was fitted with an intercept added and
+      # then removed (assemble_frame()), so it is rebuilt the same way
+      if (isTRUE(comp[["cmc_intercept"]])) attr(tt2, "intercept") <- 1L
       mm <- stats::model.matrix(tt2, mf2)
+      if (isTRUE(comp[["cmc_intercept"]])) {
+        mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
+      }
       if (!identical(colnames(mm), comp$cnms)) {
         frm_stop("Random-effect design for `", comp$label, "` does not match ",
                  "the fitted model (columns: ",
@@ -739,6 +781,31 @@ re_eta <- function(re_parts, cvec, n) {
   eta
 }
 
+#' One smooth's basis at new data, in the fitted parameterization: the
+#' wiggly columns first, in `rand` order, then the null-space columns.
+#' Shared by prediction and conditional_smooths(), so that the curve a
+#' display draws is the one the fit predicts.
+#'
+#' @noRd
+smooth_basis_at <- function(si, newdata) {
+  M <- mgcv::PredictMat(si$sm, newdata)
+  if (is.null(si$U)) {
+    # t2(): smooth2random() gives no rotation, only pen.ind, so the
+    # split is a trans.D scaling plus the frozen column permutation
+    # (see smooth_pen_order()). NULL `ord` means that identity did not
+    # hold at fit time; refusing beats returning wrong numbers.
+    if (is.null(si$ord)) {
+      frm_stop("predict(newdata = ) is not supported for the smooth ",
+               si$label, ": mgcv reported a random-effect split this ",
+               "version cannot invert. In-sample fitted()/predict() work; ",
+               "predict at the observed rows instead", call. = FALSE)
+    }
+    sweep(M, 2, si$D, `*`)[, si$ord, drop = FALSE]
+  } else {
+    sweep(M %*% si$U, 2, si$D, `*`)
+  }
+}
+
 #' Smooth wiggly contribution to eta for one linear predictor.
 #'
 #' @noRd
@@ -774,7 +841,8 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
       drop(as.matrix(patch_mo_cols(fit, lp, lp[["X"]]) %*%
                        est[[lp[["par"]]]][lp[["idx"]]]))
     } else {
-      numeric(fit$frame[["n_obs"]])
+      # the design's rows: a subset() response has fewer than the frame
+      numeric(nrow(lp[["X"]]))
     }
     # `b = NULL` is documented to drop the random-effect contribution,
     # and dropping it means not forming the product at all: a sparse
@@ -917,8 +985,12 @@ single_response <- function(fit, what) {
 mean_is_mu <- function(fam) {
   # a family that declares no mean has no mean: reading its absence as
   # "the mean is mu" reported a race model's drift as its fitted value
+  # rate_mean() is mu itself when there is no rate(); a response that
+  # carries one is sent through the mean by has_rate()
   !is.null(fam[["post"]]$mean_fn) &&
-    identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]]))
+    (identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]])) ||
+       identical(body(fam[["post"]]$mean_fn),
+                 quote(rate_mean(dpars, aterms))))
 }
 
 #' Whether a response carries `trunc()` bounds, from the spec (the stored
@@ -927,6 +999,14 @@ mean_is_mu <- function(fam) {
 #' @noRd
 has_trunc <- function(rspec) {
   any(c("trunc_lb", "trunc_ub") %in% names(rspec$aterms))
+}
+
+#' Whether a response carries brms's `rate()`, under which the expected
+#' count is `mu` times the exposure rather than `mu`.
+#'
+#' @noRd
+has_rate <- function(rspec) {
+  "rate" %in% names(rspec$aterms)
 }
 
 # Addition-term values (trials, se, trunc bounds, ...) re-evaluated on
@@ -967,9 +1047,12 @@ is_custom_data_aterm <- function(nm) {
 aterms_for_newdata <- function(rspec, newdata) {
   # a thres() count lives on the family once the fit is made, so newdata
   # need not repeat it
+  # subset() and index() choose rows and reach no density
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
-            "thres")
-  need <- c("trials", "se", "trunc_lb", "trunc_ub")
+            "thres", row_aterms)
+  # rate() scales the mean, so a row without its exposure has none, as
+  # brms says ("can neither be found in 'data' nor in 'data2'")
+  need <- c("trials", "se", "trunc_lb", "trunc_ub", "rate")
   nd_n <- nrow(newdata)
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
@@ -1029,6 +1112,13 @@ aterms_for_newdata <- function(rspec, newdata) {
                            paste(missed, collapse = ", "), ")")
                   } else "",
                   call. = FALSE)
+    }
+    # the frame's own check, repeated for newdata's exposure: a zero or
+    # negative one gives a non-positive expected count, and brms
+    # refuses it ("Rate denomiators should be positive.")
+    if (nm == "rate" && any(v <= 0, na.rm = TRUE)) {
+      frm_stop("rate(", deparse1(ex), ") on newdata: rate denominators ",
+               "should be positive", call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v
   }
@@ -1529,11 +1619,16 @@ frm_linpred <- function(object, newdata = NULL,
   re_formula <- rr$re_formula
   use_re <- re_form_keeps(re_formula)
 
+  # subset(): one response at a time, on newdata's rows where its subset
+  # is TRUE, as brms asks (R/subset.R)
+  subset_resp_check(object, resp %||% names(object$spec$responses),
+                    "frm_linpred()")
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {
     stop_unknown_response(object, resp)
   }
+  newdata <- subset_newdata(object, resp, newdata)
   # An ordinal response has no mean on the response scale: what
   # "response" means there is the category distribution, one row of K
   # probabilities per observation (the brms fitted()/epred convention).
@@ -1629,7 +1724,8 @@ frm_linpred <- function(object, newdata = NULL,
   } else if (type == "conditional") {
     type <- "response"   # the conditional mean is the mu dpar
   } else if (type == "response" && is.null(dpar) &&
-             (!mean_is_mu(rspec$family) || has_trunc(rspec))) {
+             (!mean_is_mu(rspec$family) || has_trunc(rspec) ||
+                has_rate(rspec))) {
     # the response mean is not the mu dpar (zi, hurdle, lognormal,
     # trials-binomial, ...), or the response is truncated so the
     # expected response is E[Y | lb <= Y <= ub]: "response" means the
@@ -1827,7 +1923,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   if (is.null(newdata)) {
     X <- patch_mo_cols(object, lp, lp[["X"]])
     off <- lp[["offset"]]
-    n <- object$frame[["n_obs"]]
+    n <- nrow(X)   # a subset() response has fewer rows than the frame
     eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
     if (!is.null(lp[["Z"]])) {
       cvec <- coef_b(object)
@@ -2071,7 +2167,7 @@ extra_var_blocks <- function(nl, n, weights = NULL) {
       if (!length(rows)) next
       key <- paste0(bkey, "\r", lev)
       B <- out[[key]] %||% list(S = e$S, M = matrix(0, n, e$bk[["dim"]]),
-                                rows = integer(0))
+                                rows = integer(0), bk = e$bk)
       B$M[rows, e$cols] <- B$M[rows, e$cols] +
         w[rows] * e$mm[rows, , drop = FALSE]
       B$rows <- union(B$rows, rows)
@@ -2285,13 +2381,23 @@ napred <- function(fit, x) {
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
 #'   population level instead of erroring, as in
 #'   [frm_linpred()].
+#' @param sample_new_levels brms's argument. `"gaussian"`, or `NULL`
+#'   for it: an unseen level's effect is taken from its block's
+#'   estimated covariance, so its variance widens `Est.Error` and the
+#'   interval. `"old_levels"` reads a seen level's effect from a draw
+#'   of the group effects, and this Wald summary takes none, so it is
+#'   refused by name; [predict.frmtmb_fit()] takes it. `"uncertainty"`
+#'   is refused on both.
 #' @param ... Refused. An argument this method does not have is an
 #'   error naming it, because a swallowed `re_formula` returned the
 #'   conditional fit and said nothing.
 #' @return An `n x 4` matrix with the columns `Estimate`, `Est.Error`
 #'   and one per entry of `probs`. For an ordinal or categorical family
 #'   an `n x 4 x K` array, the third dimension named `P(Y = k)`, which
-#'   is brms's shape. For a multivariate fit asked for more than one
+#'   is brms's shape; at `scale = "linear"`, an ordinal fit with a `cs()`
+#'   term gives `n x 4 x (K - 1)`, one linear predictor per threshold,
+#'   named `eta1`, `eta2`, ... as brms names them. For a multivariate
+#'   fit asked for more than one
 #'   response, an `n x 4 x nresp` array with the third dimension named
 #'   by response, which is brms's shape too; each cell's `Est.Error` is
 #'   the standard error of that response's own expected value. A
@@ -2332,12 +2438,14 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                               ndraws = NULL, draw_ids = NULL, sort = FALSE,
                               summary = TRUE, robust = FALSE,
                               probs = c(0.025, 0.975), ...,
-                              allow_new_levels = FALSE) {
+                              allow_new_levels = FALSE,
+                              sample_new_levels = NULL) {
   frm_check_dots(..., .unsupported = fitted_no_draws)
   scale <- frm_match_arg(scale)
   fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
                            robust)
   check_flag(allow_new_levels, "allow_new_levels")
+  check_sample_new_levels(sample_new_levels, "fitted()")
   # brms reaches a non-linear parameter with `nlpar`; in this package an
   # nlf() parameter IS a dpar, so the two names address one thing
   if (!is.null(nlpar)) {
@@ -2349,6 +2457,8 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     dpar <- nlpar
   }
   check_re_form(re_formula)
+  subset_resp_check(object, resp %||% names(object$spec$responses),
+                    "fitted()")
   # frm_linpred() defaults an unnamed multivariate response to the
   # first; the caller who did not name one is asking for all of them,
   # which brms answers in an n x 4 x nresp array, and so does this
@@ -2372,6 +2482,15 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                       allow_new_levels)
   se <- fitted_point_se(object, newdata, re_formula, scale, resp, dpar,
                         allow_new_levels, est)
+  if (is.matrix(est) && isTRUE(attr(est, "per_threshold"))) {
+    # the linear predictor of a cs() fit, one layer per threshold, which
+    # brms names eta1, eta2, ... and does not bound (measured on brms
+    # 2.23.0, dev/defects-brms-mvcs.R)
+    out <- brms_summary_array(est, se, probs)
+    dimnames(out) <- list(NULL, dimnames(out)[[2L]],
+                          paste0("eta", seq_len(dim(out)[3L])))
+    return(out)
+  }
   if (is.matrix(est)) {
     # a category distribution: one summary layer per category, brms's
     # n x 4 x K array, named by the response's own categories the way
@@ -2427,6 +2546,9 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
       layers[[length(layers) + 1L]] <- p
       labs <- c(labs, r)
     } else {
+      # a category layer is P(Y = k), and a cs() fit's per-threshold
+      # linear predictor eta1, eta2, ... as brms names both (measured,
+      # dev/defects-brms-mvcs.R: "yg", "eta1", "eta2")
       for (k in seq_len(dim(p)[3L])) {
         layers[[length(layers) + 1L]] <- p[, , k]
         labs <- c(labs, dimnames(p)[[3L]][k])
@@ -2477,10 +2599,46 @@ prob_clamp_quantiles <- function(out) {
 fitted_point <- function(object, newdata = NULL, re_formula = NULL,
                          scale = "response", resp = NULL, dpar = NULL,
                          allow_new_levels = FALSE) {
-  frm_linpred(object, newdata = newdata,
-              type = if (scale == "response") "response" else "link",
-              dpar = dpar, resp = resp, re_formula = re_formula,
-              allow_new_levels = allow_new_levels)
+  out <- frm_linpred(object, newdata = newdata,
+                     type = if (scale == "response") "response" else "link",
+                     dpar = dpar, resp = resp, re_formula = re_formula,
+                     allow_new_levels = allow_new_levels)
+  if (scale == "linear" && (is.null(dpar) || identical(dpar, "mu"))) {
+    out <- ord_linear_per_threshold(object, out, newdata, resp)
+  }
+  out
+}
+
+#' The linear predictor of an ordinal fit with `cs()` terms, one column
+#' per threshold, as brms's `fitted(scale = "linear")` gives it.
+#'
+#' A `cs()` term moves the predictor differently at each threshold, so
+#' there is no single linear predictor to report: brms adds each
+#' threshold's category-specific part to the shared one and returns an
+#' `n x (K - 1)` layer per draw (`.predictor_cs()`). The shared part
+#' alone, which is what this returned before, is the predictor at no
+#' threshold of the model. The densities here read the same sum,
+#' `tau_k - (eta + cs_k)`, so the columns are that `eta + cs_k`. A fit
+#' without a `cs()` term gets `eta` back unchanged.
+#'
+#' @noRd
+ord_linear_per_threshold <- function(object, eta, newdata, resp) {
+  rn <- resp %||% names(object$spec$responses)[1L]
+  rspec <- object$spec$responses[[rn]]
+  if (!identical(rspec$family[["type"]], "ordinal")) return(eta)
+  lp <- object$frame[["linpreds"]][[linpred_key(rn, "mu")]]
+  cst <- lp[["cs"]] %||% list()
+  if (!length(cst) || is.matrix(eta)) return(eta)
+  K1 <- length(object$estimates[[cst[[1L]]$par]])
+  n_fit <- if (is.null(newdata)) object$frame[["n_obs"]] else nrow(newdata)
+  CS <- ord_cs_offsets(object, lp, newdata, n_fit, K1)
+  if (is.null(CS)) return(eta)
+  # in sample, a na.exclude fit pads eta back to the data's rows
+  if (is.null(newdata)) CS <- napred(object, CS)
+  out <- as.numeric(eta) + CS
+  rownames(out) <- names(eta)
+  attr(out, "per_threshold") <- TRUE
+  out
 }
 
 #' The standard error of a fitted value, or `NULL` where none is
@@ -2613,7 +2771,9 @@ fitted_no_draws <- c(
 )
 
 #' Number of ordinal categories, from the threshold vector rather than
-#' from the data: the top category may be unobserved.
+#' from the data: the top category may be unobserved. A hurdle family's
+#' category 0 counts, so this is the number of probability columns, and
+#' their codes start at `ord_code0()`.
 #'
 #' @noRd
 ordinal_ncat <- function(fit, resp = NULL) {
@@ -2624,12 +2784,23 @@ ordinal_ncat <- function(fit, resp = NULL) {
     } else {
       fit$spec$responses[[resp]]
     }
-    return(max(fit$frame[["y"]][[rspec$resp_name]]))
+    return(max(fit$frame[["y"]][[rspec$resp_name]]) + 1L -
+             ord_code0(rspec$family))
   }
   # grouped thresholds, thres(gr = ): the largest group's categories
   rspec <- if (is.null(resp)) fit$spec$responses[[1L]] else
     fit$spec$responses[[resp]]
-  thres_ncat(rspec$family, raw)
+  thres_ncat(rspec$family, raw) + 1L - ord_code0(rspec$family)
+}
+
+#' The category codes of an ordinal fit's probability columns: `1..K`,
+#' or `0..K` for a hurdle family.
+#'
+#' @noRd
+ordinal_codes <- function(fit, resp = NULL) {
+  rspec <- if (is.null(resp)) fit$spec$responses[[1L]] else
+    fit$spec$responses[[resp]]
+  ord_code0(rspec$family) + seq_len(ordinal_ncat(fit, resp)) - 1L
 }
 
 #' The addition-term values an ordinal category probability reads: the
@@ -2751,20 +2922,26 @@ cs_offsets_add <- function(fit, resp, newdata, dpv) {
 #' `ord_cat_probs()` to machine precision, which the tests assert). A
 #' custom ordinal family gets the same treatment for free.
 #'
+#' A family with dpars beside `mu` (`hurdle_cumulative()`'s `hu` and
+#' `disc`) takes their row values in `more`, and its columns are the
+#' codes from `ord_code0()` on.
+#'
 #' @noRd
-ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list()) {
+ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list(),
+                               more = list()) {
   n <- length(eta)
-  dp <- list(mu = eta)
+  dp <- c(list(mu = eta), more)
   if (!is.null(cs)) dp[[".cs"]] <- cs
   P <- matrix(NA_real_, n, K)
   # ordinal lpdfs take the extras (thresholds) as a fourth argument;
   # categorical's takes three - dispatch on arity like fam_lcdf() does
   four <- length(formals(fam[["lpdf"]])) >= 4L
+  codes <- ord_code0(fam) + seq_len(K) - 1L
   for (k in seq_len(K)) {
     P[, k] <- exp(as.numeric(if (four) {
-      fam[["lpdf"]](rep.int(k, n), dp, aterms, extra)
+      fam[["lpdf"]](rep.int(codes[k], n), dp, aterms, extra)
     } else {
-      fam[["lpdf"]](rep.int(k, n), dp, aterms)
+      fam[["lpdf"]](rep.int(codes[k], n), dp, aterms)
     }))
   }
   # analytically the rows already sum to one; the division only removes
@@ -2789,14 +2966,17 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   eta <- unname(ed[["eta"]])
   n <- length(eta)
   K <- ordinal_ncat(object, rspec$resp_name)
-  cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
+  cs <- ord_cs_offsets(object, lp, newdata, n, K - 2L + ord_code0(fam))
+  more <- ord_dpars_more(object, rspec, newdata, use_re, allow_new_levels)
   # the ordinal lpdfs read `extra` (the thresholds and the cs
   # coefficients) and, under thres(gr = ), each row's group
   P <- ord_probs_from_eta(fam, eta, cs,
                           fit_extras(object, rspec$resp_name), K,
-                          ord_prob_aterms(object, rspec, newdata))
+                          ord_prob_aterms(object, rspec, newdata),
+                          lapply(more, `[[`, "value"))
   colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
-    as.character(seq_len(K))
+    as.character(ord_code0(fam) + seq_len(K) - 1L)
+  for (m in more) ed[["nonest"]] <- ed[["nonest"]] | m$ed[["nonest"]]
   rn <- names(ed[["eta"]])
   if (is.null(rn) && is.null(newdata)) {
     rn <- rownames(object$frame[["data_frame"]])
@@ -2806,6 +2986,30 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   # no category distribution either
   if (any(ed[["nonest"]])) P[ed[["nonest"]], ] <- NA_real_
   P
+}
+
+#' The dpars of an ordinal response other than `mu`, each on its natural
+#' scale at the rows being predicted, with the design pieces its
+#' standard error needs: `list(<dpar> = list(value, eta, ed, lp))`. Empty
+#' for the four families with `mu` alone. A dpar held at a constant
+#' comes out through its mapped coefficient like any other.
+#'
+#' @noRd
+ord_dpars_more <- function(object, rspec, newdata, use_re,
+                           allow_new_levels) {
+  out <- list()
+  for (dnm in setdiff(names(rspec$dpars), "mu")) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dnm)]]
+    if (!is.null(lp[["nl_body"]])) {
+      frm_stop("type = \"response\" is not supported for an ordinal family ",
+               "whose `", dnm, "` has a nonlinear predictor", call. = FALSE)
+    }
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    eta <- unname(ed[["eta"]])
+    out[[dnm]] <- list(value = as.vector(lp[["link"]]$linkinv(eta)),
+                       eta = eta, ed = ed, lp = lp)
+  }
+  out
 }
 
 #' Response-scale prediction for an ordinal family.
@@ -2898,9 +3102,13 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 #' the same differencing rule `mean_eta_grad()` uses and for the same
 #' reason (a custom ordinal family gets it for free).
 #'
+#' A family with estimated dpars beside `mu` (`hurdle_cumulative()`'s
+#' `hu`, and `disc` when it is modeled) adds each one's linear predictor
+#' to the gradient the same way `mu`'s enters.
+#'
 #' @noRd
 ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
-                        weights = NULL) {
+                        weights = NULL, allow_new_levels = FALSE) {
   fam <- rspec$family
   K <- ordinal_ncat(object, rspec$resp_name)
   eta <- unname(ed[["eta"]])
@@ -2914,14 +3122,17 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
                          other_resp_extras(object$frame, rspec$resp_name))]
   csv <- ord_cs_values(object, lp, newdata, n)
   CS <- if (length(csv)) {
-    M <- matrix(0, n, K - 1L)
+    M <- matrix(0, n, K - 2L + ord_code0(fam))
     for (ct in csv) M <- M + outer(ct$vals, object$estimates[[ct$par]])
     M
   }
   av <- ord_prob_aterms(object, rspec, newdata)
-  probs <- function(e, cs, ex) {
+  more <- ord_dpars_more(object, rspec, newdata, use_re, allow_new_levels)
+  more_v <- lapply(more, `[[`, "value")
+  probs <- function(e, cs, ex, mv = more_v) {
     ord_probs_from_eta(fam, e, cs,
-                       resp_extras(object$frame, ex, rspec$resp_name), K, av)
+                       resp_extras(object$frame, ex, rspec$resp_name), K, av,
+                       mv)
   }
   P0 <- probs(eta, CS, extra)
 
@@ -2935,6 +3146,23 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
   h <- 1e-5 * pmax(1, abs(eta))
   dPde <- (probs(eta + h, CS, extra) - probs(eta - h, CS, extra)) /
     (2 * h)
+  # each estimated dpar beside mu: its design and dP / d(its eta), the
+  # derivative taken on the link scale through the dpar's inverse link
+  for (dnm in names(more)) {
+    m <- more[[dnm]]
+    if (!is.null(m$lp[["constant"]])) next
+    dm <- lp_delta_A(object, m$lp, m$ed, newdata, use_re, jc, has_rr, rrj)
+    hm <- 1e-5 * pmax(1, abs(m$eta))
+    at <- function(e) {
+      mv <- more_v
+      mv[[dnm]] <- as.vector(m$lp[["link"]]$linkinv(e))
+      probs(eta, CS, extra, mv)
+    }
+    more[[dnm]]$A <- as.matrix(dm$A)
+    more[[dnm]]$pos <- dm$coef_pos
+    more[[dnm]]$dP <- (at(m$eta + hm) - at(m$eta - hm)) / (2 * hm)
+  }
+  more <- Filter(function(m) !is.null(m$dP), more)
 
   # one n x K derivative block per estimated extra parameter, paired
   # with its row in the joint covariance
@@ -2966,36 +3194,45 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
     }
   }
   n_beta <- ncol(A)
-  V <- jc$V[c(pos, extra_pos), c(pos, extra_pos), drop = FALSE]
+  n_more <- vapply(more, function(m) ncol(m$A), 0L)
+  all_pos <- c(pos, unlist(lapply(more, `[[`, "pos")), extra_pos)
+  V <- jc$V[all_pos, all_pos, drop = FALSE]
   # `weights` collapses the K columns into ONE displayed quantity,
-  # sum_k w_k p_k - the expected category number for w = 1..K. The
+  # sum_k w_k p_k - the expected category number for w = the codes. The
   # weights go on the GRADIENT before the quadratic form, so the
   # covariances between the category probabilities are kept, which
   # summing K separate standard errors would throw away.
   if (!is.null(weights)) {
     stopifnot(length(weights) == K)
-    P0 <- matrix(as.vector(P0 %*% weights), n, 1L)
-    dPde <- matrix(as.vector(dPde %*% weights), n, 1L)
-    extra_d <- lapply(extra_d, function(d) {
-      matrix(as.vector(d %*% weights), n, 1L)
-    })
+    collapse <- function(d) matrix(as.vector(d %*% weights), n, 1L)
+    P0 <- collapse(P0)
+    dPde <- collapse(dPde)
+    extra_d <- lapply(extra_d, collapse)
+    for (i in seq_along(more)) more[[i]]$dP <- collapse(more[[i]]$dP)
   }
   nq <- ncol(P0)
   SE <- matrix(NA_real_, n, nq)
-  G <- matrix(0, n, n_beta + length(extra_d))
+  G <- matrix(0, n, n_beta + sum(n_more) + length(extra_d))
   for (k in seq_len(nq)) {
     G[, seq_len(n_beta)] <- dPde[, k] * A
-    for (i in seq_along(extra_d)) G[, n_beta + i] <- extra_d[[i]][, k]
+    off <- n_beta
+    for (m in more) {
+      G[, off + seq_len(ncol(m$A))] <- m$dP[, k] * m$A
+      off <- off + ncol(m$A)
+    }
+    for (i in seq_along(extra_d)) G[, off + i] <- extra_d[[i]][, k]
     SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
   }
-  if (any(ed[["nonest"]])) {
-    P0[ed[["nonest"]], ] <- NA_real_
-    SE[ed[["nonest"]], ] <- NA_real_
+  nonest <- ed[["nonest"]]
+  for (m in more) nonest <- nonest | m$ed[["nonest"]]
+  if (any(nonest)) {
+    P0[nonest, ] <- NA_real_
+    SE[nonest, ] <- NA_real_
   }
   if (is.null(weights)) {
     colnames(P0) <- colnames(SE) <-
       object$frame[["y_levels"]][[rspec$resp_name]] %||%
-        as.character(seq_len(K))
+        as.character(ord_code0(fam) + seq_len(K) - 1L)
   }
   list(P = P0, se = SE)
 }
@@ -3014,7 +3251,7 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
 #' @noRd
 ord_cat_moments <- function(object, rspec) {
   P <- ord_probs(object, rspec)
-  k <- seq_len(ncol(P))
+  k <- ord_code0(rspec$family) + seq_len(ncol(P)) - 1L
   m <- as.numeric(P %*% k)
   v <- as.numeric(P %*% (k^2)) - m^2
   list(mean = m, var = v, P = P)
@@ -3100,25 +3337,19 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
 
 #' Arguments `residuals.brmsfit()` has that this one does not.
 #'
-#' `newdata` and `re_formula` are not refusals of principle: a residual
-#' needs an observed response, and evaluating one away from the fitted
-#' rows is a feature this package does not have yet. They are named so
-#' that a ported brms call is told which it is.
+#' `re_formula` is not a refusal of principle: a residual here is
+#' conditional on the random-effect modes, and a population residual is
+#' one `fitted(re_formula = NA)` away. It is named so that a ported brms
+#' call is told which it is.
 #'
 #' @noRd
 residuals_unsupported <- c(
-  newdata = paste("a residual needs the observed response, and",
-                  "residuals() here reads the fitted rows only.",
-                  "Compute it yourself from predict(newdata = )"),
   re_formula = paste("residuals() here is conditional on the",
                      "random-effect modes, always. For the population",
-                     "residual take y - predict(re_formula = NA,",
-                     "type = \"response\")"),
+                     "residual take y - fitted(re_formula = NA)"),
   method = paste("brms's `method` chooses the predictive distribution;",
                  "this package has one. The one-step-ahead algorithm is",
-                 "chosen with `osa_method`"),
-  resp = paste("residuals() is not supported for multivariate fits at",
-               "all yet, so there is no response to choose")
+                 "chosen with `osa_method`")
 )
 
 #' Residuals from a frmtmb fit
@@ -3221,7 +3452,7 @@ residuals_unsupported <- c(
 #' @param type `"response"` (brms spells the same thing `"ordinary"`,
 #'   and both are accepted), `"pearson"`, `"deviance"`, or `"osa"`.
 #'   brms's `residuals()` takes `newdata` in this position; this one
-#'   has always taken `type` there, and `newdata` is refused by name.
+#'   has always taken `type` there, so give `newdata` by name.
 #' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
 #'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
 #'   otherwise. A truncated, censored or ordinal response always uses
@@ -3232,10 +3463,18 @@ residuals_unsupported <- c(
 #' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()],
 #'   and checked against that function's own formals. For every other
 #'   type: refused, naming the argument. The `residuals.brmsfit()`
-#'   arguments this one does not have (`newdata`, `re_formula`,
-#'   `method`, `resp`, `ndraws`, `draw_ids`, `sort`, `summary`,
-#'   `robust`, `probs`) are refused with the reason rather than
-#'   reported as unknown names.
+#'   arguments this one does not have (`re_formula`, `method`) are
+#'   refused with the reason rather than reported as unknown names.
+#' @param newdata Optional data frame holding the response and the
+#'   predictors: the residual is its response minus `fitted(newdata = )`,
+#'   with that fitted value's standard error, as brms's is. Only the
+#'   `"response"` type is defined there.
+#' @param resp For a multivariate fit: the responses to report. `NULL`
+#'   (the default) reports all of them, as brms's `n x 4 x nresp` array
+#'   with the third dimension named by response.
+#' @param allow_new_levels With `newdata`: a grouping level the fit never
+#'   saw is predicted as [fitted.frmtmb_fit()] predicts it, instead of
+#'   an error.
 #' @param ndraws,draw_ids,sort,summary,robust brms's arguments. Each
 #'   needs posterior draws and a maximum-likelihood fit has none, so
 #'   each is refused by name with the reason. The default of each is
@@ -3247,13 +3486,16 @@ residuals_unsupported <- c(
 #'   entry of `probs`, `NA` on censored rows.
 #'   The observed response is fixed, so `Est.Error` is the standard
 #'   error of the fitted value; a `"deviance"` or `"osa"` residual has
-#'   none and reports `NA` there.
+#'   none and reports `NA` there. A multivariate fit asked for more than
+#'   one response gives an `n x 4 x nresp` array, as brms's does;
+#'   `"osa"` is univariate only.
 #'
 #' @srrstats {G2.2} Parameters that expect a univariate response refuse a
 #'   multivariate fit rather than silently using the first response. One
-#'   guard serves every such method (`residuals()`, `fitted()`,
-#'   `simulate()`, `dharma_residuals()`, `mixture_probs()`, `pp_check()`),
-#'   and errors naming the method that is not yet multivariate.
+#'   guard serves every such method (`simulate()`, `dharma_residuals()`,
+#'   `mixture_probs()`, `pp_check()`), and errors naming the method that
+#'   is not yet multivariate. `residuals()` and `fitted()` answer for
+#'   every response instead, as brms does.
 #' @srrstats {RE4.10} Model residuals are returned by `residuals()`, in
 #'   four types, with enough documentation to interpret them and to hand
 #'   them to a user's own test. `"response"` and `"pearson"` are the usual
@@ -3297,7 +3539,9 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                                  osa_method = NULL, ...,
                                  ndraws = NULL, draw_ids = NULL,
                                  sort = FALSE, summary = TRUE,
-                                 robust = FALSE, probs = c(0.025, 0.975)) {
+                                 robust = FALSE, probs = c(0.025, 0.975),
+                                 newdata = NULL, resp = NULL,
+                                 allow_new_levels = FALSE) {
   type <- frm_match_arg(type)
   # brms spells the raw residual "ordinary"; this package has always
   # spelled it "response", and both reach the same branch. The
@@ -3306,6 +3550,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
   if (identical(type, "ordinary")) type <- "response"
   fitted_refuse_draws_args("residuals()", ndraws, draw_ids, sort, summary,
                            robust)
+  check_flag(allow_new_levels, "allow_new_levels")
   # the dots are checked HERE, not in residual_values(): the message and
   # the S3 contract table (`na.rm` on residuals()) are both keyed by the
   # name the caller typed, and residual_values() is not it
@@ -3313,12 +3558,63 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                  .allow = if (identical(type, "osa")) {
                    names(formals(TMB::oneStepPredict))
                  })
+  if (!is.null(newdata) && !is.data.frame(newdata)) {
+    frm_stop("residuals(): `newdata` must be a data frame holding the ",
+             "response, not ", arg_desc(newdata), call. = FALSE)
+  }
+  if (!is.null(newdata) && !identical(type, "response")) {
+    frm_stop("residuals(newdata = ) is defined for type = \"", written,
+             "\" only as far as brms defines it: the response minus the ",
+             "expected value, type = \"ordinary\". A ", written, " residual ",
+             "reads the fitted rows' own likelihood", call. = FALSE)
+  }
+  rnames <- names(object$spec$responses)
+  if (is.null(resp)) {
+    resp <- rnames
+  } else {
+    if (!is.character(resp) || !length(resp) || anyNA(resp)) {
+      frm_stop("residuals(): `resp` must name one or more responses, or ",
+               "NULL for all of them, not ", arg_desc(resp), call. = FALSE)
+    }
+    for (r in setdiff(resp, rnames)) stop_unknown_response(object, r)
+  }
+  if (length(rnames) > 1L && identical(type, "osa")) {
+    # the one-step tape registers the observations of a univariate
+    # response only (RTMB::OBS(), rtmb-pitfalls item 8)
+    frm_stop("residuals(type = \"osa\") is not supported yet for ",
+             "multivariate fits: the one-step tape steps through the ",
+             "observations of a single response. Use type = \"pearson\"",
+             call. = FALSE)
+  }
+  per <- lapply(resp, function(r) {
+    residuals_one(object, type, written, osa_method, r, newdata,
+                  allow_new_levels, probs, ...)
+  })
+  if (length(per) == 1L) return(per[[1L]])
+  # brms's multivariate shape: the responses stacked on the third
+  # dimension, each an n x 4 summary
+  if (any(vapply(per, function(p) length(dim(p)) != 2L, TRUE))) {
+    frm_stop("residuals() stacks a multivariate fit into one ",
+             "nrow x 4 x nresp array, and a matrix-valued response has a ",
+             "layer per column, which does not stack with it. Ask for one ",
+             "response at a time with resp =", call. = FALSE)
+  }
+  array(unlist(per, use.names = FALSE),
+        c(nrow(per[[1L]]), ncol(per[[1L]]), length(per)),
+        dimnames = list(NULL, colnames(per[[1L]]), resp))
+}
+
+#' One response's residual summary.
+#'
+#' @noRd
+residuals_one <- function(object, type, written, osa_method, resp, newdata,
+                          allow_new_levels, probs, ...) {
+  fam <- object$spec$responses[[resp]]$family
   if (type %in% c("response", "pearson")) {
     # brms refuses its two residual types for every polytomous family
     # (brms 2.23.0 .predictive_error(), dev/correct-log/brms-resid.txt).
     # A categorical fit is left to residual_values(), which refuses
     # every type there, "osa" included, with its own reason.
-    fam <- single_response(object, "residuals()")$family
     if (fam_is_polytomous(fam) &&
           !identical(fam[["type"]], "categorical")) {
       frm_stop("residuals(type = \"", written, "\") is not defined for ",
@@ -3331,8 +3627,16 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                "simulation-based check", call. = FALSE)
     }
   }
-  r <- residual_values(object, type = type, osa_method = osa_method, ...)
-  se <- residual_point_se(object, type, r)
+  if (!is.null(newdata)) {
+    return(residuals_newdata(object, resp, newdata, allow_new_levels,
+                             probs))
+  }
+  r <- residual_values(object, type = type, osa_method = osa_method, ...,
+                       resp = resp)
+  se <- residual_point_se(object, type, r, resp)
+  # no residual, no standard error: at a missing mi() row the fitted
+  # value still has one, and brms reports all four columns NA there
+  if (!is.null(se) && length(se) == length(r)) se[is.na(r)] <- NA_real_
   if (is.matrix(r)) {
     # a matrix-valued response (multinomial counts, the mvn mixture's
     # columns, lca item codes) has one residual per CELL, so the summary
@@ -3343,6 +3647,42 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
   # dev/shapes-rev-brmsref.rds); carrying the data's row names made
   # rownames(residuals(fit)) differ from rownames(residuals(brmsfit))
   brms_summary_matrix(r, se, probs, rownames = NULL)
+}
+
+#' The residual at new rows: `newdata`'s response minus the expected
+#' value `fitted(newdata = )` reports, with that value's standard error,
+#' which is brms's `residuals(newdata = )` at `type = "ordinary"`. The
+#' response term is evaluated on `newdata` the way the model frame
+#' evaluated it, so `log(y) ~ x` is handled.
+#'
+#' @noRd
+residuals_newdata <- function(object, resp, newdata, allow_new_levels,
+                              probs) {
+  rspec <- object$spec$responses[[resp]]
+  if (identical(rspec$family[["type"]], "categorical")) {
+    frm_stop("residuals() is not defined for a categorical family: the ",
+             "categories carry no order, so a residual has no scale to ",
+             "live on", call. = FALSE)
+  }
+  y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
+                error = function(e) NULL)
+  if (is.null(y) || !is.numeric(y) || is.matrix(y) ||
+      length(y) != nrow(newdata)) {
+    frm_stop("residuals(newdata = ) needs the observed response to ",
+             "subtract from, and newdata does not supply '",
+             deparse1(rspec$resp_expr), "' as a numeric column for its ",
+             nrow(newdata), " rows. Add it, or use fitted(newdata = ) ",
+             "for the expected value alone", call. = FALSE)
+  }
+  f <- fitted(object, newdata = newdata, resp = resp,
+              allow_new_levels = allow_new_levels)
+  if (length(dim(f)) != 2L) {
+    frm_stop("residuals(newdata = ): the expected value of '", resp,
+             "' is not one number per row, so there is no response minus ",
+             "it to form", call. = FALSE)
+  }
+  brms_summary_matrix(as.numeric(y) - f[, "Estimate"], f[, "Est.Error"],
+                      probs, rownames = NULL)
 }
 
 #' The standard error of a residual, or `NULL` where none is defined.
@@ -3358,9 +3698,9 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
 #' whole row likelihood, and neither has a standard error here.
 #'
 #' @noRd
-residual_point_se <- function(object, type, r) {
+residual_point_se <- function(object, type, r, resp = NULL) {
   if (!type %in% c("response", "pearson")) return(NULL)
-  se_mu <- tryCatch(fitted_point_se(object, NULL, NULL, "response", NULL,
+  se_mu <- tryCatch(fitted_point_se(object, NULL, NULL, "response", resp,
                                     NULL, FALSE, r),
                     error = function(e) NULL)
   if (is.null(se_mu)) return(NULL)
@@ -3373,7 +3713,7 @@ residual_point_se <- function(object, type, r) {
   }
   if (is.matrix(se_mu)) return(NULL)
   if (identical(type, "response")) return(se_mu)
-  r0 <- residual_values(object, type = "response")
+  r0 <- residual_values(object, type = "response", resp = resp)
   sc <- r0 / r
   sc[!is.finite(sc)] <- NA_real_
   se_mu / sc
@@ -3388,20 +3728,23 @@ residual_point_se <- function(object, type, r) {
 # whose density unwraps the osa object is not refused with them.
 osa_point_mass_families <- c(
   "zero_inflated_poisson", "zero_inflated_negbinomial",
-  "zero_inflated_binomial", "zero_inflated_beta",
+  "zero_inflated_binomial", "zero_inflated_beta_binomial",
+  "zero_inflated_beta", "xbeta",
   "zero_inflated_asym_laplace", "zero_one_inflated_beta",
   "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
-  "hurdle_lognormal")
+  "hurdle_lognormal", "hurdle_cumulative")
 
 #' @noRd
 residual_values <- function(object, type = c("response", "pearson",
                                              "deviance", "osa"),
-                            osa_method = NULL, ...) {
+                            osa_method = NULL, ..., resp = NULL) {
   type <- frm_match_arg(type)
   # The dots reach TMB::oneStepPredict() and ONLY on the osa branch.
   # They are CHECKED by residuals(), the public method, whose name is
   # what the refusal has to print.
-  rspec <- single_response(object, "residuals()")
+  rspec <- if (is.null(resp)) single_response(object, "residuals()") else {
+    object$spec$responses[[resp]]
+  }
   fam <- rspec$family
   if (identical(fam[["type"]], "categorical")) {
     # nothing here is defined on a nominal scale: the categories carry
@@ -3480,6 +3823,16 @@ residual_values <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
+    if (!is.null(object$frame[["mi_map"]][[rspec$resp_name]])) {
+      # the missing rows are latent parameters, not data the one-step
+      # tape registers; it died inside TMB on "'observation.name' must
+      # be in data component"
+      frm_stop("residuals(type = \"osa\") is not available for a ",
+               "response with mi(): its missing values are estimated as ",
+               "parameters, so the tape has no observation vector to step ",
+               "through. Use type = \"pearson\", which is NA at the ",
+               "missing rows", call. = FALSE)
+    }
     if (autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]])) {
       frm_stop("residuals(type = \"osa\") is not available for a fit with ",
                object$frame[["autocor"]][[rspec$resp_name]]$label,
@@ -3595,7 +3948,7 @@ residual_values <- function(object, type = c("response", "pearson",
     # scored by the category codes the likelihood itself uses; see
     # ord_cat_moments()
     mom <- ord_cat_moments(object, rspec)
-    r <- object$frame[["y"]][[rspec$resp_name]] - mom$mean
+    r <- frame_observed_y(object, rspec$resp_name) - mom$mean
     if (type == "pearson") r <- r / sqrt(mom$var)
     return(napred(object, r))
   }
@@ -3603,7 +3956,8 @@ residual_values <- function(object, type = c("response", "pearson",
   dp <- autocor_cond_dpars(object, rspec$resp_name,
                            eval_dpars(object)[[rspec$resp_name]])
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
-  yv <- object$frame[["y"]][[rspec$resp_name]]
+  # NA at a missing mi() row, where the frame holds a placeholder
+  yv <- frame_observed_y(object, rspec$resp_name)
   if (type == "deviance") {
     return(napred(object, deviance_residuals(fam, yv, dp, av,
                                              object$frame[["n_obs"]])))
@@ -3793,9 +4147,8 @@ apply_censoring <- function(y, win) {
 #' are penalized coefficients of a term of the formula, not group
 #' effects, and `re_formula = NA` keeps every smooth as brms does, so
 #' the draws at `NA` are the conditional draws on a fit whose only
-#' group-indexed content is a smooth. `frm_bootstrap()` is the exception
-#' and asks for the other thing on purpose: a whole-model parametric
-#' bootstrap redraws every block, smooths included.
+#' group-indexed content is a smooth. [frm_bootstrap()] reads
+#' `re_formula` the same way.
 #'
 #' @section New data:
 #' With `newdata` the draws are for its rows. The response column is
@@ -3891,17 +4244,14 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
 }
 
 #' The body of `simulate.frmtmb_fit()`, with one setting the public
-#' method does not offer: `redraw_smooths = TRUE` makes `re_formula = NA`
-#' redraw the penalized coefficients of every smooth as well, which is
-#' `frm_bootstrap()`'s whole-model bootstrap, and was 0.62.0's
-#' `simulate(re_formula = NA)` for a population smooth and 0.64.0's for
-#' one indexed by a grouping factor (see `sim_re_plan()`).
+#' method does not offer: `re_plan`, a `sim_re_plan()` list that says
+#' which blocks each draw redraws, for a caller whose set of held terms
+#' no `re_formula` spells (`conditional_effects()`'s bootstrap).
 #'
 #' @noRd
 sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
                           censored = FALSE, newdata = NULL,
-                          allow_new_levels = FALSE,
-                          redraw_smooths = FALSE) {
+                          allow_new_levels = FALSE, re_plan = NULL) {
   # nsim reaches vapply()/replicate() as a length, where a length-2 or
   # character value reports "invalid 'length' argument" and names
   # neither simulate() nor nsim
@@ -3951,7 +4301,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
              sim_note(fam), call. = FALSE,
              package = frm_family_package(fam))
   }
-  plan <- sim_re_plan(object, re_formula, smooths = redraw_smooths)
+  plan <- re_plan %||% sim_re_plan(object, re_formula)
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   cwin <- NULL
   if (isTRUE(censored)) {
@@ -3989,7 +4339,9 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     nls <- predict_new_level_spec(object, rspec, newdata, NULL, nl_ok)
     n_lost <- 0L
   } else {
-    n <- stats::nobs(object)
+    # the rows the model is fitted on; nobs() counts the data's rows,
+    # which a univariate subset() cuts
+    n <- object$frame[["n_obs"]]
   }
   out <- vector("list", nsim)
   for (s in seq_len(nsim)) {
@@ -4144,7 +4496,8 @@ sim_restore_type <- function(fit, rspec, v, pad = TRUE) {
   if (!is.null(lv)) {
     # a categorical response's levels are nominal: ordering the draws
     # would claim an order the model never used
-    v <- factor(lv[v], levels = lv,
+    # a hurdle family's code 0 is its first level
+    v <- factor(lv[v + 1L - ord_code0(rspec$family)], levels = lv,
                 ordered = !identical(rspec$family[["type"]], "categorical"))
   } else if (is.matrix(v)) {
     yv <- fit$frame[["y"]][[rspec$resp_name]]

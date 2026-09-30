@@ -367,6 +367,30 @@ own work rather than in review.
   dots refusal broke frmtmb.learn, which no grep of core would have
   found.
 
+## Added after the parity round of 2026-09-29 (0.66.0)
+
+- **Run EVERY extension suite that can reach a changed path**, not only
+  core's and frmtmb.sample's. A core change reaches an extension through
+  its code, through its tests and through the tables its tests read.
+  In this round lane aterms2 added `subset()` and `index()` to core's
+  compatibility table. That broke 5 assertions of frmtmb.eam's
+  `test-family.R`, which reads the table. The lane ran core and
+  frmtmb.sample twice and saw nothing; the reviewer found it by running
+  all eight suites. For a change to core, "can reach" means all seven
+  extensions unless you can show otherwise by construction. Install
+  each extension from your worktree into your library, or put the base
+  library behind yours, so each loads YOUR core, and check the `lib:`
+  line of each log.
+- **A `test_file()` runner must attach the package**, as
+  `tests/testthat.R` does with `library(frmtmb)` and as
+  `dev/release/run-tests.R` does. `test_file(f, package = p, env =
+  test_env(p))` alone gives the test the namespace but not the search
+  path, so code that looks a name up from the global environment, or a
+  formula environment, does not find it. `test-conditions.R`,
+  `test-data2.R` and `test-id-kron.R` fail that way, and the failures
+  are the runner's, not the package's. Call
+  `library(p, character.only = TRUE)` before `test_file()`.
+
 
 ## Cost, which is a real constraint
 

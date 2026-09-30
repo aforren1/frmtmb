@@ -1,0 +1,8 @@
+libs: C:/Users/adf44/source/r/wt-postfit2-lib | C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/AppData/Local/R/win-library/4.6 | C:/Program Files/R/R-4.6.1/library 
+frmtmb.sample version 0.13.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb.sample 
+RESULT frmtmb.sample test-message-uniqueness.R: tests=7 failed=2 error=0 skipped=0 warning=0 passed=5
+---- expectation_failure in every condition message template in this R/ is unique 
+Expected `dup` to have length 0.
+Actual length: 1. 
+---- expectation_failure in every condition message template in this R/ is unique 
+duplicated stop() templates: `missing` must hold single numbers 

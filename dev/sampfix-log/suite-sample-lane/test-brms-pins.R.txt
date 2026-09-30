@@ -1,0 +1,27 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-pins                                                      
+⠋ |          1 | brms-pins                                                      
+⠇ |         39 | brms-pins                                                      
+⠴ |         66 | brms-pins                                                      
+⠴ |         96 | brms-pins                                                      
+⠸ |        124 | brms-pins                                                      
+⠙ |        152 | brms-pins                                                      
+⠇ |        179 | brms-pins                                                      
+⠏ |        210 | brms-pins                                                      
+⠧ |        248 | brms-pins                                                      
+⠼ |        255 | brms-pins                                                      
+⠦ |        287 | brms-pins                                                      
+⠴ |        306 | brms-pins                                                      
+⠙ |        312 | brms-pins                                                      
+⠇ |        319 | brms-pins                                                      
+⠸ |        324 | brms-pins                                                      
+⠇ |        329 | brms-pins                                                      
+✔ |        334 | brms-pins [6.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 334 ]
+RESULT lane test-brms-pins.R: tests 8 pass 334 fail 0 error 0 skip 0 warn 0

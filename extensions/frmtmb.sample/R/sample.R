@@ -558,6 +558,23 @@ mode_inits <- function(mode, chains, jitter, lower = NULL, upper = NULL) {
   })
 }
 
+#' Per-chain numeric inits carried as one-dimensional arrays.
+#'
+#' tmbstan's model has one parameter, `vector[N] y`, and hands a
+#' numeric init to rstan as `y`. rstan reads a length-one numeric as a
+#' SCALAR, so on a model with one outer parameter (`y ~ 0 + x`) every
+#' chain died with "no more scalars to read" before sampling. A
+#' `dim` attribute makes it the vector of length one Stan declares, and
+#' tmbstan's own init sanitizer keeps the attribute.
+#'
+#' @noRd
+stan_init_arrays <- function(init) {
+  if (!is.list(init)) return(init)
+  lapply(init, function(v) {
+    if (is.numeric(v) && is.null(dim(v))) array(v, dim = length(v)) else v
+  })
+}
+
 #' tmbstan widens outer-length bounds over the whole parameter vector
 #' when the objective has random effects (the inner block is unbounded);
 #' the inits are the full vector too, so they must be clamped against
@@ -840,10 +857,12 @@ ncp_backtransform <- function(m, fit, idx) {
 #'
 #' @noRd
 draws_outer_cols <- function(x) {
-  # a mixture's last weight is a derived column, and an outer parameter
+  # a mixture's last weight is a derived column, and an outer parameter;
+  # an ordinal block is stored under brms's names (draws_ordinal_cols())
+  nc <- draws_natural_cols(x$fit)
   intersect(colnames(x$draws),
-            c(brms_par_labels(x$fit, include_random = FALSE),
-              draws_natural_cols(x$fit)$extra))
+            c(brms_par_labels(x$fit, include_random = FALSE), nc$extra,
+              unlist(lapply(nc$ordinal, `[[`, "names"))))
 }
 
 #' Whether a draws object came from `frm_sample(laplace = TRUE)`, which
@@ -1125,7 +1144,10 @@ default_priors_for <- function(fit) {
   })
 
   for (lp in fit$frame[["linpreds"]]) {
-    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+    # an equated dpar (sigma1 = "sigma2") owns no parameter: brms puts
+    # the prior on its target only
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+          !is.null(lp[["equate"]])) next
     if (!"(Intercept)" %in% colnames(lp[["X"]])) next
     # `0 + Intercept` or center = FALSE: brms's intercept is then class
     # "b", which brms leaves flat
@@ -1200,9 +1222,9 @@ default_prior_notes <- function(fit) {
                                "class)"))
     }
     # dispersion dpars brms gives a gamma or inverse-gamma default, which
-    # set_prior() cannot express
+    # set_prior() cannot express; kappa is xbeta()'s and von_mises()'s
     disp <- setdiff(intersect(names(rspec$dpars %||% list()),
-                              c("shape", "phi", "nu")),
+                              c("shape", "phi", "nu", "kappa")),
                     rspec$primary_dpars)
     if (length(disp)) {
       notes <- c(notes, paste0("no defaults for ",
@@ -1625,6 +1647,64 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' change of the integrated variable, so `frm()` has nothing to change
 #' and no fitted object ever carries a non-centered tape.
 #'
+#' @section Laplace draws:
+#' `laplace = TRUE` passes to [tmbstan::tmbstan()], which then samples
+#' the outer parameters alone (the coefficients, the distributional
+#' parameters and the covariance parameters) and integrates the rest
+#' out with the Laplace approximation at every step: the group-level
+#' coefficients, the coefficients of a smooth, and the values of an
+#' `mi()` term. The draws hold no columns for those. brms has no such
+#' route, because its sampler always visits the group-level
+#' coefficients.
+#'
+#' *What the draws answer.* Every summary of the outer parameters:
+#' `summary()`, `fixef()`, `VarCorr()`, `posterior_summary()`, the
+#' `as_draws_*()` converters, `hypothesis()` on the coefficients and on
+#' `sd_` and `cor_` quantities, and `mcmc_plot()`. Also every predictive
+#' quantity that reads no integrated value: `posterior_epred()`,
+#' `posterior_linpred()` and `posterior_predict()` with
+#' `re_formula = NA` on a model whose only integrated values are
+#' group-level coefficients, a distributional parameter with no
+#' group-level term, and the default curves of `conditional_effects()`.
+#' These are computed from the draws as they are and are exact.
+#'
+#' *What they refuse, by name.* A quantity that reads an integrated
+#' value: a prediction at the observed group levels (the default
+#' `re_formula`, with or without `newdata`), any prediction on a model
+#' with a smooth or an `mi()` term that reads them, `ranef()`,
+#' `coef()`, `log_lik()` and everything built on it (`loo()`, `waic()`,
+#' `psis()`, `pp_check()`'s `loo_*` types), and `bayes_R2()`. The
+#' refusal names the function you called and says what to do instead;
+#' it suggests `re_formula = NA` only where that function takes it and
+#' it computes on the model. Whether a call reads an integrated value is
+#' found out by evaluating it at one draw with those values set to `NA`
+#' and to `0`: a result that changes read them. A draw whose result has
+#' non-finite values where the first draw's has none is refused the same
+#' way, so a value that vanishes at the first draw only cannot slip
+#' through as NaN.
+#'
+#' *Why they refuse rather than fill the values in.* `laplace = TRUE`
+#' samples an approximate posterior, and its use is to check that
+#' approximation against draws that sample the group effects. For
+#' predictions, and for anything else that conditions on the group
+#' effects, sample without `laplace = TRUE`. Filling the values in would
+#' also be wrong or random: a prediction at each draw's conditional
+#' modes leaves out the uncertainty of the group effects given the
+#' outer parameters, and understated the spread of the in-sample
+#' `posterior_epred()` by up to a factor of four on a gaussian model
+#' with 12 groups of 10 rows; drawing them from their Laplace
+#' conditional matched the full draws there, but it would make
+#' `posterior_epred()` depend on the random seed and disagree with
+#' `log_lik()` and `ranef()` about what a draw contains.
+#'
+#' *Two edge cases.* On a model with nothing to integrate out,
+#' `laplace = TRUE` is the model itself, so the call says so and samples
+#' it on the full route, with draws identical to a call without the
+#' argument. On a REML fit whose objective is sampled as it stands
+#' (`prior = "flat"`), the objective integrates the coefficients out
+#' too, and that combination is refused: the draws would hold no
+#' coefficient.
+#'
 #' @section Default priors:
 #' Both routes default to brms 2.23's own weakly-informative
 #' priors, read off `brms::default_prior()` on matched models. Write
@@ -1753,9 +1833,10 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   travel through `...` and partial-match rstan's own `control`,
 #'   reaching the sampler unchecked.
 #' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`,
-#'   `laplace`, `cores`, ...). `cores` parallelizes over chains on
-#'   every platform. On Windows the chains run on socket workers, each
-#'   of which rebuilds the tape from the serialized objective closure
+#'   `laplace` (see Laplace draws), `cores`, ...). `cores` parallelizes
+#'   over chains on every platform. On Windows the chains run on socket
+#'   workers, each of which rebuilds the tape from the serialized
+#'   objective closure
 #'   (tmbstan retapes on the worker; the closures are self-contained),
 #'   giving draws identical to a sequential run at the same seed. The
 #'   per-worker startup (a new R process, package load, retape) is a
@@ -2016,6 +2097,19 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   lower <- as.list(pr_lower)
   upper <- as.list(pr_upper)
   laplace <- isTRUE(list(...)$laplace)
+  drop_laplace <- laplace && !length(intersect(
+    c("b", "miss"), names(fit$frame[["par_template"]])))
+  if (drop_laplace) {
+    # tmbstan negates obj$env$random, which is NULL here, and died in
+    # R's own "invalid argument to unary operator". A Laplace
+    # approximation over nothing is the model itself, so the full route
+    # samples exactly the density that was asked for
+    frm_message("frm_sample(laplace = TRUE): the model has no random ",
+                "effects or mi() values to integrate out, so the Laplace ",
+                "route and the full route sample the same density. ",
+                "Sampling the model as it is")
+    laplace <- FALSE
+  }
   # the priors ride on the OUTER parameters, so they compose with the
   # reparameterization rather than interacting with it: theta is theta on
   # either route, and no prior addresses b (or z) at all
@@ -2035,6 +2129,18 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     # weaker thing - no prior ADDED to the density the fit maximized -
     # which is fit$obj as it stands
     obj <- prior_augmented_obj(fit, list())
+  }
+  if (laplace && "beta" %in% names(obj$env$par)[obj$env$random]) {
+    # a REML fit's own objective integrates the coefficients out too.
+    # The prior-carrying routes rebuild it without that, but sampled as
+    # it stands (prior = "flat", check_laplace()) tmbstan's Laplace route
+    # draws theta and sigma alone, and the labels below, which assume
+    # the coefficients are there, would name those draws b_Intercept
+    frm_stop("frm_sample(laplace = TRUE) on this REML fit would integrate ",
+             "the population-level coefficients out along with the random ",
+             "effects, and the draws would hold no coefficient at all. ",
+             "Sample a maximum-likelihood fit (REML = FALSE) with ",
+             "laplace = TRUE, or this fit without it", call. = FALSE)
   }
   bounds <- if (length(lower) || length(upper)) {
     resolve_bounds(fit, unlist(lower), unlist(upper))
@@ -2082,7 +2188,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     init <- mode_inits(mode, list(...)$chains %||% 4, init_jitter,
                        mb$lower, mb$upper)
   }
-  args <- list(obj = obj, init = init, ...)
+  args <- list(obj = obj, init = stan_init_arrays(init), ...)
+  if (drop_laplace) args$laplace <- NULL
   # tmbstan forwards `control` to rstan::sampling() untouched
   if (!is.null(control)) args$control <- control
   # A development namespace cannot travel to a worker, so this is caught

@@ -1,0 +1,8 @@
+RESULT frmtmb.sample test-brms-output.R pass=21 fail=0 err=0 skip=0 warn=0 blocks=2
+RESULT frmtmb.sample test-brms-pins.R pass=334 fail=0 err=0 skip=0 warn=0 blocks=8
+RESULT frmtmb.sample test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0 warn=0 blocks=8
+RESULT frmtmb.sample test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0 warn=0 blocks=6
+RESULT frmtmb.sample test-brms-suite-brmsterms.R pass=4 fail=0 err=0 skip=0 warn=0 blocks=1
+RESULT frmtmb.sample test-brms-suite-families.R pass=57 fail=27 err=0 skip=0 warn=0 blocks=7
+RESULT frmtmb.sample test-brms-suite-helper-copy.R pass=33 fail=0 err=0 skip=0 warn=0 blocks=1
+RESULT frmtmb.sample test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 warn=0 blocks=18

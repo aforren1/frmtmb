@@ -1,0 +1,17 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.sample 
+brms-shapes-draws: frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+...........................frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+....frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+..............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.sample test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0 warn=0 blocks=8

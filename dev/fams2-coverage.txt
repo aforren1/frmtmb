@@ -1,0 +1,22 @@
+
+hurdle_cumulative: 400 result files, seeds 1..400 (400 distinct), 0 errors, 0 with a warning
+  x                  cover 378/400 = 0.945  Wilson [0.918, 0.963]  mean est   0.8126  truth   0.8000  sd 0.1205  bias/mcse  2.09
+  hu_(Intercept)     cover 381/400 = 0.953  Wilson [0.927, 0.969]  mean est  -0.6048  truth  -0.6000  sd 0.0977  bias/mcse -0.98
+  hu_z               cover 378/400 = 0.945  Wilson [0.918, 0.963]  mean est   0.5027  truth   0.5000  sd 0.1036  bias/mcse  0.52
+  tau_raw_1          cover 378/400 = 0.945  Wilson [0.918, 0.963]  mean est  -1.0214  truth  -1.0000  sd 0.1352  bias/mcse -3.16
+  tau_raw_2          cover 380/400 = 0.950  Wilson [0.924, 0.967]  mean est   0.2764  truth   0.2624  sd 0.1022  bias/mcse  2.74
+  tau_raw_3          cover 387/400 = 0.968  Wilson [0.945, 0.981]  mean est   0.1827  truth   0.1823  sd 0.1052  bias/mcse  0.06
+
+xbeta: 400 result files, seeds 1..400 (400 distinct), 0 errors, 0 with a warning
+  (Intercept)        cover 383/400 = 0.958  Wilson [0.933, 0.973]  mean est   0.2996  truth   0.3000  sd 0.0492  bias/mcse -0.16
+  x                  cover 385/400 = 0.963  Wilson [0.939, 0.977]  mean est   0.5935  truth   0.6000  sd 0.0669  bias/mcse -1.93
+  phi_(Intercept)    cover 376/400 = 0.940  Wilson [0.912, 0.959]  mean est   1.8180  truth   1.7918  sd 0.2298  bias/mcse  2.29
+  kappa_(Intercept)  cover 385/400 = 0.963  Wilson [0.939, 0.977]  mean est  -2.0191  truth  -2.0000  sd 0.4210  bias/mcse -0.91
+  kappa_x            cover 379/400 = 0.948  Wilson [0.921, 0.965]  mean est   0.5260  truth   0.5000  sd 0.1587  bias/mcse  3.27
+
+zibb: 400 result files, seeds 1..400 (400 distinct), 0 errors, 0 with a warning
+  (Intercept)        cover 378/400 = 0.945  Wilson [0.918, 0.963]  mean est  -0.4029  truth  -0.4000  sd 0.0726  bias/mcse -0.80
+  x                  cover 377/400 = 0.942  Wilson [0.915, 0.961]  mean est   0.5007  truth   0.5000  sd 0.0721  bias/mcse  0.20
+  phi_(Intercept)    cover 382/400 = 0.955  Wilson [0.930, 0.971]  mean est   1.4022  truth   1.3863  sd 0.1301  bias/mcse  2.45
+  zi_(Intercept)     cover 387/400 = 0.968  Wilson [0.945, 0.981]  mean est  -1.0211  truth  -1.0000  sd 0.1616  bias/mcse -2.61
+  zi_x               cover 380/400 = 0.950  Wilson [0.924, 0.967]  mean est   0.4068  truth   0.4000  sd 0.1551  bias/mcse  0.87

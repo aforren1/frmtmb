@@ -1,0 +1,15 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb.sample C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+reparam: ..................................................................................................................................................................................................................................................................................frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+......frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+............
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb.sample test-reparam.R gated=FALSE pass=292 fail=0 err=0 skip=0 warn=0

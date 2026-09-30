@@ -68,9 +68,6 @@
 \alias{ce_display_kind}
 \alias{ce_pred_dpar}
 \alias{ce_group_vars}
-\alias{ce_new_level_spec}
-\alias{ce_boot_grids}
-\alias{ce_draw_new_levels}
 \alias{ce_structure_check}
 \alias{ce_re_formula}
 \alias{ce_dots}
@@ -90,6 +87,19 @@
 \alias{rescor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
+\alias{subset_resp_check}
+\alias{subset_newdata}
+\alias{cs_build}
+\alias{cs_coef}
+\alias{cs_frame}
+\alias{cs_finalize}
+\alias{cs_probs}
+\alias{ce_spaghetti}
+\alias{ce_check_distance}
+\alias{ce_spaghetti_check}
+\alias{ce_level_plan}
+\alias{ce_plan_eval}
+\alias{ce_plan_has_new}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -168,6 +178,15 @@ group. Call \code{arma_cond_dpars()} before \code{row_lpdf()} (and before
 and which makes the row density read the objective's own \code{mu} instead
 of a second one. It is safe to call unconditionally: with no such
 block it returns \code{dpv} unchanged.
+
+\code{subset_resp_check(fit, resp, what)} and
+\code{subset_newdata(fit, resp, newdata)} carry brms's rule for a
+multivariate model whose responses use \code{subset()}: each response has
+its own rows, so a method is asked for one response at a time, and
+on \code{newdata} it answers for the rows where that response's subset is
+TRUE. The first refuses anything but a single \code{resp} on such a model
+and is silent on every other; the second returns \code{newdata} unchanged
+when the response has no \code{subset()}.
 }
 
 \section{The prior seam}{
@@ -338,6 +357,24 @@ mean, and on a response truncated below at zero it can be negative.
 The predicate underneath stays private, because what an extension
 needs is the decision and not the test that makes it.
 
+Three serve brms's display options on both surfaces.
+\code{ce_spaghetti(grid, m, effects)} lays out brms's \code{"spaghetti"}
+attribute from a draws-by-rows matrix \code{m} over the rows of \code{grid};
+\code{ce_spaghetti_check()} raises brms's refusal of \code{spaghetti} together
+with \code{surface}; \code{ce_check_distance()} validates \code{select_points} and
+\code{too_far}. \code{ce_grids_build()} takes \code{surface} and \code{too_far}, and
+\code{ce_finalize()} takes \code{select_points}, \code{pred_vars} (the grid's own
+\code{pred_vars}) and \code{draws_by_eff}, a list by effect of the draws
+matrices whose columns are that effect's rows.
+
+\code{conditional_smooths()} has its engine here too. \code{cs_build()} returns
+one grid per smooth term, each with the design \code{A} of the term over
+its coefficients; \code{cs_coef(fit, tm)} is those coefficients at the
+parameters a fit object carries, so a sampler takes one product
+\code{A \%*\% cs_coef()} per draw; \code{cs_frame()} lays one term's summary out
+in brms's columns and \code{cs_finalize()} makes the returned list.
+\code{cs_probs()} resolves brms's \code{prob} and deprecated \code{probs}.
+
 \code{ce_dots()} is the argument surface itself: it pulls
 \code{allow_new_levels} out of a call's dots, returns whether it was set,
 and REFUSES whatever is left, naming it. An extension that
@@ -345,18 +382,23 @@ hand-rolls the same check accepts a different set of arguments from
 the fit method, which is how \code{allow_new_levels} came to work on a
 fit and warn on draws.
 
-Four more serve one purpose between them: making an unobserved
-group a DRAWN group rather than letting the first observed one
-stand in for it silently. \code{ce_group_vars()} names
-the grouping variables a \code{re_formula = NULL} call blanks in its
-grid; \code{ce_new_level_spec()} reads the blocks that blanking reaches;
-\code{ce_boot_grids()} puts a placeholder level back in the grid the
-design has to map; and \code{ce_draw_new_levels()} overwrites that
-level's coefficients with one draw from the covariance the passed
-object's own \code{theta} implies. A sampler calls the last one per
-POSTERIOR DRAW where the fit method calls it per bootstrap
-replicate; the construction is the same and the frames stay
-comparable.
+Three more serve one purpose between them: brms's rule for which
+group a grid row reads. \code{ce_group_vars()} names the grouping
+variables a \code{re_formula = NULL} call blanks where the grid does not
+set them. \code{ce_level_plan(fit, grids, base, re_formula)} then decides,
+per row and per group-level block, whether the row reads a level the
+fit saw or a NEW one (unset, unseen, or a combination a nested term
+never saw), and places each new one at a placeholder level of its
+block. A row reads only the block of its own level of a \code{gr(g, by = f)} term, and each new member value of an \code{mm()} term is its own new
+level. \code{ce_plan_eval(f, plan, gi, cache, ...)} evaluates grid \code{gi} at
+the parameters of \code{f}, drawing every new level from the covariance
+\code{f}'s own \code{theta} implies, once per distinct level: a sampler calls
+it per POSTERIOR DRAW, with a fresh \code{cache} environment per draw,
+where the fit method calls it per bootstrap replicate, so the
+construction is the same and the frames stay comparable.
+\code{ce_plan_has_new()} says whether a plan draws anything. They replace
+\code{ce_new_level_spec()}, \code{ce_boot_grids()} and \code{ce_draw_new_levels()},
+which placed one new group over every row and are removed.
 }
 
 \section{The two-dialect argument seam}{

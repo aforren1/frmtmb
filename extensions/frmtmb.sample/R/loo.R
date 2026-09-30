@@ -11,20 +11,32 @@
 #' a thinned subsample no longer has the autocorrelation structure the
 #' relative efficiency estimates.
 #'
-#' A draws object with no `stanfit` behind it counts as one chain.
-#' `%||%` cannot guard this on its own, because `@` on `NULL` is an
-#' error and not a `NULL`: the whole matrix then reached
-#' `loo::relative_eff()` through an expression that could not be
-#' evaluated. Such an object is what a test builds when it wants a
-#' parameter vector without a sampler.
+#' A draws object with no `stanfit` behind it counts as one chain; see
+#' `draws_nchains()`.
 #'
 #' @noRd
 draws_chain_id <- function(x) {
-  sf <- x$stanfit
-  nc <- if (is.null(sf)) 1L else sf@sim$chains %||% 1L
+  nc <- draws_nchains(x)
   n <- nrow(x$draws)
   if (nc <= 1L || n %% nc != 0L) return(rep(1L, n))
   rep(seq_len(nc), each = n %/% nc)
+}
+
+#' The number of chains behind a draws object, 1 when it has no
+#' `stanfit`.
+#'
+#' `x$stanfit@sim$chains %||% 1L` cannot guard a `NULL` `stanfit`,
+#' because `@` on `NULL` is an error and never reaches `%||%`. Such an
+#' object is what a test builds when it wants chosen parameter vectors
+#' without a sampler, and `nchains()`, `summary()`, `as_draws_*()`,
+#' `VarCorr()` and every other reader of the chain count died on it.
+#' Every such read goes through here.
+#'
+#' @noRd
+draws_nchains <- function(x) {
+  sf <- x$stanfit
+  if (is.null(sf)) return(1L)
+  as.integer(sf@sim$chains %||% 1L)
 }
 
 #' Refuse draws that do not carry the random effects.
@@ -35,17 +47,20 @@ draws_chain_id <- function(x) {
 #' available when the sampler visits `b` itself), so there is nothing to
 #' condition on.
 #'
+#' It asks whether anything was integrated out, not whether the model
+#' has group-level blocks: the `mi()` values are integrated too, and a
+#' model with no block but an `mi()` term passed the old check (it
+#' reached `log_lik()`'s own `mi()` refusal instead).
+#'
 #' @noRd
 draws_require_b <- function(x, what) {
-  fit <- x$fit
-  if (!length(fit$frame[["re_blocks"]])) return(invisible(NULL))
   if (!draws_is_laplace(x)) return(invisible(NULL))
-  frm_stop(what, " needs draws of the random effects, and these draws come ",
-           "from frm_sample(laplace = TRUE), which integrates them out ",
-           "instead of sampling them. The pointwise log-density is the one ",
-           "CONDITIONAL on each draw's own group-level values, so there is ",
-           "nothing left to condition on. Resample without laplace = TRUE",
-           call. = FALSE)
+  frm_stop(draws_caller(what), " needs draws of the random effects, and ",
+           "these draws come from frm_sample(laplace = TRUE), which ",
+           "integrates them out instead of sampling them. The pointwise ",
+           "log-density (log_lik()) is the one CONDITIONAL on each draw's ",
+           "own group-level values, so there is nothing left to condition ",
+           "on. Sample without laplace = TRUE", call. = FALSE)
 }
 
 #' Refuse the likelihoods that do not factor into one term per row.
@@ -173,6 +188,9 @@ draws_row_loglik <- function(fit, resp) {
     return(rescor_row_loglik(fit, dpv))
   }
   use <- resp %||% names(rspecs)
+  # a response fitted on its own rows under subset() has one column per
+  # row of ITS OWN; log_lik() lets such a model through only with resp
+  if (length(use) == 1L) n <- NROW(frame[["y"]][[use]])
   out <- numeric(n)
   for (r in use) {
     av <- frame[["aterm_values"]][[r]]
@@ -391,13 +409,16 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
              "returns their sum. Ask for one response with resp =",
              call. = FALSE)
   }
+  # subset(): the responses are fitted on different rows, so their
+  # columns do not line up to be summed; brms asks for one response
+  subset_resp_check(fit, resp, "log_lik()")
   if (!is.null(resp) && !resp %in% names(fit$spec$responses)) {
     frm_stop("log_lik(resp = \"", resp, "\") names no response of this ",
              "model; it has ",
              paste(names(fit$spec$responses), collapse = ", "),
              call. = FALSE)
   }
-  idx <- draws_par_index(fit)
+  idx <- draws_index(object)
   rows <- draws_subsample(object, ndraws, draw_ids)
   out <- NULL
   unit <- NULL
@@ -546,7 +567,8 @@ loo_matrix <- function(x, ndraws, resp, what) {
              "log_lik() and pass the matrix to your own estimator",
              call. = FALSE)
   }
-  ll <- log_lik(x, ndraws = ndraws, resp = resp)
+  ll <- draws_as_caller(what, re_formula = FALSE,
+                        log_lik(x, ndraws = ndraws, resp = resp))
   # loo::loo.matrix() prints "Computed from N by K log-likelihood
   # matrix" and nothing else, so a matrix whose columns are GROUPS
   # reads exactly like a per-observation one. The attribute log_lik()
@@ -593,9 +615,10 @@ loo_compare.frmtmb_draws <- function(x, ..., criterion = c("loo", "waic"),
              ". Compute loo() on each model first and compare those",
              call. = FALSE)
   }
-  crit <- lapply(models, function(m) {
+  crit <- draws_as_caller("loo_compare()", re_formula = FALSE,
+                          lapply(models, function(m) {
     if (identical(criterion, "loo")) loo(m) else waic(m)
-  })
+  }))
   names(crit) <- model_names %||%
     loo_call_names(match.call(), length(models))
   loo::loo_compare(crit)
@@ -747,7 +770,9 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
     s
   }
   R2 <- lapply(sel, function(r) {
-    y <- fit$frame[["y"]][[resps[r]]]
+    # NA at a missing mi() row, so R2 is NA, as brms's is, rather than
+    # scored against the frame's placeholder
+    y <- draws_observed_y(fit, resps[r])
     if (is.null(y) || is.matrix(y)) {
       frm_stop("bayes_R2() needs a single numeric response column, and '",
                resps[r], "' is not one. A categorical, multinomial or ",
@@ -755,7 +780,9 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
                "decompose; brms refuses it for the same reason",
                call. = FALSE)
     }
-    ep <- posterior_epred(object, resp = resps[r], ndraws = ndraws)
+    ep <- draws_as_caller("bayes_R2()", re_formula = FALSE,
+                          posterior_epred(object, resp = resps[r],
+                                          ndraws = ndraws))
     if (length(dim(ep)) > 2L) {
       frm_stop("bayes_R2() is not defined for an ordinal or categorical ",
                "family: posterior_epred() gives a category DISTRIBUTION per ",

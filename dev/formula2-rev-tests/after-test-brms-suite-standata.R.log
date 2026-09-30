@@ -1,0 +1,8 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+brms-suite-standata: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. (code run outside of `test_that()`) ('test-brms-suite-standata.R:6:1') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the brms suite
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb test-brms-suite-standata.R gated=FALSE pass=0 fail=0 err=0 skip=0 warn=0

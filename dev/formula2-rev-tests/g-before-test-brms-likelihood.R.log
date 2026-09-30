@@ -1,0 +1,51 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+brms-likelihood: ..................................................................................................................Setting order = 'mu' for mixtures of the same family.
+..Setting order = 'mu' for mixtures of the same family.
+..1234..................................................................................................................................................................................................................................................................................................................................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-likelihood.R:507:3'): row 17c: sigma1 = "sigma2" equates
+<frmtmb_error/error/condition>
+Error: Cannot interpret bf() argument 'sigma1': expected a dpar formula or a named numeric constant
+Backtrace:
+    ▆
+ 1. ├─frmtmb::frm(...) at test-brms-likelihood.R:507:3
+ 2. │ └─frmtmb:::as_bform(formula, family)
+ 3. └─frmtmb::bf(y ~ x, sigma1 = "sigma2", theta1 ~ x)
+ 4.   └─frmtmb:::bf_dots(list(...))
+ 5.     └─frmtmb::frm_stop(...)
+
+── 2. Error ('test-brms-likelihood.R:528:3'): row 24: cmc = FALSE on a populatio
+<frmtmb_error/error/condition>
+Error: Cannot interpret bf() argument 'cmc': expected a dpar formula or a named numeric constant
+Backtrace:
+    ▆
+ 1. ├─frmtmb::frm(bf(y ~ 0 + g + (0 + g | h), cmc = FALSE), data = d3) at test-brms-likelihood.R:528:3
+ 2. │ └─frmtmb:::as_bform(formula, family)
+ 3. └─frmtmb::bf(y ~ 0 + g + (0 + g | h), cmc = FALSE)
+ 4.   └─frmtmb:::bf_dots(list(...))
+ 5.     └─frmtmb::frm_stop(...)
+
+── 3. Error ('test-brms-likelihood.R:540:3'): row 25: y ~ . expands against the 
+<frmtmb_error/error/condition>
+Error: A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ ., sigma ~ x1), data = dd) at test-brms-likelihood.R:540:3
+ 2.   └─frmtmb:::assemble_frame(...)
+ 3.     └─frmtmb:::check_frame_variables(rhs_comb, data, env)
+ 4.       └─frmtmb::frm_stop(...)
+
+── 4. Error ('test-brms-likelihood.R:552:3'): row 26: a list of families, one pe
+<frmtmb_error/error/condition>
+Error: Cannot interpret `family` of class list: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y1 ~ x) + bf(y2 ~ x), data = dd, family = fams) at test-brms-likelihood.R:552:3
+ 2.   └─frmtmb:::as_bform(formula, family)
+ 3.     └─frmtmb::as_frmtmb_family(family)
+ 4.       └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+I believe in you!
+RESULT before frmtmb test-brms-likelihood.R gated=TRUE pass=440 fail=0 err=4 skip=0 warn=0

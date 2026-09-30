@@ -35,6 +35,16 @@ carrying a \code{.} is a delta applied to the stored \code{mu} formula with
 formulas, the fixed dpar values and the family. A formula with no
 \code{.} replaces the stored one. brms's \code{newdata} is accepted as a
 synonym for \code{data}.
+
+A \code{\link[=bf]{bf()}} whose location formula is such a delta is read as brms
+reads it: \code{update(fit, bf(~ ., family = acat()))} keeps the formula
+and changes the family, and \code{bf(. ~ . + z, sigma ~ z)} updates the
+location formula and adds the parameter formula. The parameter
+formulas, constants and equations of the stored model and of the
+delta are pooled, and one of the delta replaces one of the same
+name, with a message. The family of the delta wins over the \code{family}
+argument. On a nonlinear model the delta can only be \code{~ .}, which
+keeps the body.
 }
 \examples{
 set.seed(3)

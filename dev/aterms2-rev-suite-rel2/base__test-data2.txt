@@ -1,0 +1,6 @@
+ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
+data2: ...............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT base test-data2.R pass=31 fail=0 error=0 skip=0 warn=0

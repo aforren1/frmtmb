@@ -1,0 +1,9 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+brms-suite-standata: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. (code run outside of `test_that()`) ('test-brms-suite-standata.R:6:1') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the brms suite
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+🌈 Your tests are over the rainbow 🌈
+RESULT before frmtmb test-brms-suite-standata.R gated=FALSE pass=0 fail=0 err=0 skip=0 warn=0

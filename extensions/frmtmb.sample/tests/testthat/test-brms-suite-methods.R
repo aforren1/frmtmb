@@ -152,16 +152,12 @@ test_that("as.matrix has reasonable ouputs", {
   brms_setup("brmsfit-methods:81",
     draws <- as.matrix(fit1, iteration = 1:10)
   )
-  brms_port("brmsfit-methods:82", "defect",
-    paste0(
-      "as.matrix() of draws refuses brms's iteration argument by ",
-      "name"),
+  brms_port("brmsfit-methods:82", "pass",
+    "",
     expect_true(is(draws, "matrix"))
   )
-  brms_port("brmsfit-methods:83", "defect",
-    paste0(
-      "as.matrix() of draws refuses brms's iteration argument by ",
-      "name"),
+  brms_port("brmsfit-methods:83", "pass",
+    "",
     expect_equal(dim(draws), c(10, length(variables(fit1))))
   )
 })
@@ -189,15 +185,15 @@ test_that("as.array has reasonable ouputs", {
   brms_setup("brmsfit-methods:93",
     draws <- as.array(fit1, chain = 1)
   )
-  brms_port("brmsfit-methods:94", "defect",
-    "as.array() of draws refuses brms's chain argument by name",
+  brms_port("brmsfit-methods:94", "pass",
+    "",
     expect_true(is.array(draws))
   )
   brms_setup("brmsfit-methods:95",
     ps_dim <- c(niterations(fit1), 1, length(variables(fit1)))
   )
-  brms_port("brmsfit-methods:96", "defect",
-    "as.array() of draws refuses brms's chain argument by name",
+  brms_port("brmsfit-methods:96", "pass",
+    "",
     expect_equal(dim(draws), ps_dim)
   )
 })
@@ -284,12 +280,12 @@ test_that("posterior_average has reasonable outputs", {
     draws <- posterior_average(fit1, fit1, variable = pnames, weights = c(0.3, 
         0.7))
   )
-  brms_port("brmsfit-methods:619", "cannot transfer",
-    "frmtmb.sample has no posterior_average()",
+  brms_port("brmsfit-methods:619", "pass",
+    "",
     expect_equal(dim(draws), c(ndraws(fit1), 2))
   )
-  brms_port("brmsfit-methods:620", "cannot transfer",
-    "frmtmb.sample has no posterior_average()",
+  brms_port("brmsfit-methods:620", "pass",
+    "",
     expect_equal(names(draws), pnames)
   )
   brms_setup("brmsfit-methods:622",
@@ -302,12 +298,14 @@ test_that("posterior_average has reasonable outputs", {
   #   ))
   brms_port("brmsfit-methods:627", "cannot transfer",
     paste0(
-      "frmtmb.sample has no posterior_average(), and brms wraps ",
-      "the call in brms:::SW"),
+      "posterior_average() exists now (lane postfit2); the setup ",
+      "line reaches brms:::SW and is not run"),
     expect_equal(dim(draws), c(10, 1))
   )
   brms_port("brmsfit-methods:628", "cannot transfer",
-    "frmtmb.sample has no posterior_average()",
+    paste0(
+      "posterior_average() exists now (lane postfit2); reads the ",
+      "object of brmsfit-methods:627, whose setup is not run"),
     expect_equal(names(draws), "nu")
   )
 })

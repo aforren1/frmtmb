@@ -1,0 +1,25 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | v14                                                            
+⠋ |          1 | v14                                                            
+⠦ |          7 | v14                                                            
+⠹ |         13 | v14                                                            
+⠼ |         25 | v14                                                            
+⠹ |         33 | v14                                                            
+⠼ |         35 | v14                                                            
+⠏ |         40 | v14                                                            
+⠋ |         41 | v14                                                            
+⠦ |         47 | v14                                                            
+⠙ |         52 | v14                                                            
+⠇ |         59 | v14                                                            
+⠸ |         64 | v14                                                            
+⠴ |         66 | v14                                                            
+⠋ |         71 | v14                                                            
+✔ |         81 | v14 [3.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 81 ]
+RESULT lane test-v14.R: tests 14 pass 81 fail 0 error 0 skip 0 warn 0

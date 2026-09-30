@@ -1,0 +1,14 @@
+sd per draw, brms vs frmtmb: max rel diff 0
+population spaghetti, brms vs frmtmb: max diff 1.11e-16
+max |z_brms - z_frmtmb| at matched seeds: 8.88e-16
+R = 10 repeats x 100 draws = 1000 new-level effects per package
+var(z): brms 0.9557, frmtmb 0.9557 (SE of each about 0.0447)
+mean(z): brms 0.0062, frmtmb 0.0062 (SE about 0.0316)
+quantiles of z (1%, 10%, 50%, 90%, 99%): brms -2.184 -1.197 -0.053 1.276 2.282 | frmtmb -2.184 -1.197 -0.053 1.276 2.282
+ks.test brms z vs frmtmb z: p = 1.000
+Warning message:
+In ks.test.default(zb, zf) :
+  p-value will be approximate in the presence of ties
+middle-point band width over 10 repeats: brms 0.8569 (sd 0.1029), frmtmb 0.8569 (sd 0.1029); ratio 1.0000, SE of the ratio about 0.0537
+reported band width, 30 repeats: brms 0.9375 (sd 0.0672), frmtmb 0.9375 (sd 0.0672), ratio 1.0000
+done

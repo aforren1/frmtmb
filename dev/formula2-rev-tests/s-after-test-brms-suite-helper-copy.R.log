@@ -1,0 +1,8 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb.sample C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+brms-suite-helper-copy: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. (code run outside of `test_that()`) ('test-brms-suite-helper-copy.R:8:1') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the brms suite
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb.sample test-brms-suite-helper-copy.R gated=FALSE pass=0 fail=0 err=0 skip=0 warn=0

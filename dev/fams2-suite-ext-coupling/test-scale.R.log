@@ -1,0 +1,17 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.coupling 
+Loading required package: frmtmb
+scale: SSSSS
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the coupling scale row 'coh-intercept' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+2. the coupling scale row 'coh-cond' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+3. the coupling scale row 'coh-smooth' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+4. the coupling scale row 'coh-id' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+5. the coupling scale row 'coh-full' fits and reports its cost ('test-scale.R:176:7') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.coupling test-scale.R pass=0 fail=0 err=0 skip=5 warn=0 blocks=5

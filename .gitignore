@@ -38,3 +38,6 @@ dev/resmooth-rev-brms-fits.rds
 # the built pkgdown site: .github/workflows/pkgdown.yaml builds and
 # deploys it, so no built copy is tracked (cutover of 2026-09-29)
 docs/
+
+# R CMD build and check scratch of dev/release/run-check.ps1
+dev/release/checkout/

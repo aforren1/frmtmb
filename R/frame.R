@@ -158,6 +158,7 @@ dpar_frame_rhs <- function(dp) {
   }
   for (ent in dp[["miterms"]] %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
+    if (!is.null(ent$idx)) parts <- c(parts, list(ent$idx))
   }
   for (v in me_frame_vars(dp)) parts <- c(parts, list(as.name(v)))
   for (cexpr in dp[["csterms"]] %||% list()) {
@@ -301,9 +302,11 @@ extract_y <- function(resp, mf) {
     # An unordered factor's level order is alphabetical unless someone
     # set it, and that order IS the model here. brms 2.23.0 refuses it
     # (dev/famlink-brms-behavior-log.txt); this used to warn and fit.
+    code0 <- ord_code0(resp$family)
     if (!is.ordered(y)) {
       frm_stop("Family '", resp$family[["family"]], "' requires either ",
-               "positive integers or ordered factors as responses. '",
+               if (code0 == 0L) "non-negative" else "positive",
+               " integers or ordered factors as responses. '",
                deparse1(resp$resp_expr), "' is an unordered factor, whose ",
                "level order (", paste(levels(y), collapse = " < "),
                ") is not a category order anyone stated. Use ",
@@ -313,7 +316,9 @@ extract_y <- function(resp, mf) {
     # the codes carry no meaning without the labels, and simulate() has
     # to hand draws back in the response's own type
     lv <- levels(y)
-    y <- as.numeric(y)   # category codes 1..K in level order
+    # category codes 1..K in level order; brms codes a hurdle family's
+    # first level as the category 0
+    y <- as.numeric(y) - 1 + code0
   } else if (is.factor(y)) {
     if (!identical(resp$family[["family"]], "binomial") || nlevels(y) != 2L) {
       frm_stop("Factor responses are only supported for binomial families ",
@@ -346,7 +351,80 @@ extract_y <- function(resp, mf) {
 #'
 #' @noRd
 trials_families <- c("binomial", "beta_binomial", "zero_inflated_binomial",
+                     "zero_inflated_beta_binomial",
                      "multinomial")
+
+#' Refuse `se()` on a family whose density does not read it.
+#'
+#' A capability test, not a name test. `se()` is the one core addition
+#' term whose whole effect lives inside the density: the core neither
+#' multiplies it in nor reshapes anything with it, it only hands
+#' `aterms[["se"]]` to the family and maps out a now redundant `sigma`.
+#' So the question is whether the density READS it, and the family
+#' answers by declaring it, which is what `accepts_aterms` and
+#' `required_aterms` are for. An undeclared family (`accepts_aterms =
+#' NULL`, which otherwise means "every term") is refused, because "did
+#' not say" cannot mean yes for a term that changes nothing unless it is
+#' read: that is the same silent wrong answer the allow-list exists to
+#' close.
+#'
+#' It reads the formula and the family only, so `assemble_frame()` also
+#' runs it before the data check when the `se()` column is missing, as
+#' brms refuses the term from the formula alone.
+#'
+#' @noRd
+check_se_declared <- function(resp) {
+  if (family_declares_aterm(resp$family, "se")) return(invisible(NULL))
+  frm_stop(
+    "se() carries a known standard deviation into the density, ",
+    "so only a family that reads it can be given one, and '",
+    resp$family[["family"]], "' does not declare that it does. ",
+    "A family declares it with frmtmb_family(accepts_aterms = ",
+    "c(..., \"se\")) or with required_aterms = \"se\", which ",
+    "also refuses a model that leaves the term out. The density ",
+    "then reads aterms[[\"se\"]] as the standard deviation, and ",
+    "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
+    "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
+    "where it is TRUE. The built-in families that read it are ",
+    "gaussian and student", call. = FALSE,
+    package = frm_family_package(resp$family))
+}
+
+#' Refuse a category-specific `cs(x)` on the left of a group-level bar.
+#'
+#' `(cs(period) | subject)` reached `model.frame()` as a call to a
+#' function nobody defines and died there with R's "could not find
+#' function \"cs\"". brms refuses it on a family without category
+#' specific effects ("Category specific effects are not supported for
+#' this family"), and so does this, in the words the population-level
+#' `cs(x)` is refused with. On the ordinal families that do take `cs()`
+#' brms fits a group-level category-specific effect; this package has no
+#' such term, and says so. The bar form `cs(x | g)`, a compound-symmetry
+#' covariance, is a different thing and is not reached here.
+#'
+#' @noRd
+check_cs_in_bar <- function(resp) {
+  fam <- resp$family
+  cs_ok <- identical(fam[["type"]], "ordinal") &&
+    !identical(fam[["family"]], "cumulative")
+  for (dp in resp$dpars) {
+    for (re in dp[["re"]] %||% list()) {
+      lhs <- re$bar[[2L]]
+      if (!calls_function(lhs, "cs")) next
+      if (!cs_ok) {
+        frm_stop("cs() needs an sratio, cratio, or acat family; the ",
+                 "group-level term (", deparse1(re$bar), ") has one",
+                 call. = FALSE)
+      }
+      frm_stop("A category-specific effect inside a group-level term, (",
+               deparse1(re$bar), "), is not supported: cs() is a ",
+               "population-level term here. Keep cs() outside the bar ",
+               "and write the group-level part without it, e.g. ",
+               "(1 + x | g)", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
 
 #' Refuse a binomial-type response with no `trials()` term, as brms does.
 #'
@@ -478,7 +556,7 @@ cs_term_design <- function(cexpr, mf, env) {
 #' @noRd
 cs_term_newdata <- function(spec, newdata) {
   tt <- spec[["terms"]]
-  check_newdata_frame(tt, newdata, spec[["xlevels"]])
+  newdata <- check_newdata_frame(tt, newdata, spec[["xlevels"]])
   mfc <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
                             xlev = spec[["xlevels"]])
   X <- stats::model.matrix(tt, mfc, contrasts.arg = spec[["contrasts"]])
@@ -736,6 +814,60 @@ sparse_maybe_deficient <- function(X) {
     min(d) < 1e-5 * max(d)
 }
 
+#' A random-effect bar whose left-hand side has no intercept, with one
+#' added, or `NULL` when it has one already. `cmc = FALSE` builds the
+#' term's design this way and then drops the intercept column, which
+#' leaves a factor's treatment contrasts (brms:::validate_terms()).
+#'
+#' @noRd
+bar_with_intercept <- function(bar) {
+  tl <- stats::terms(stats::as.formula(call("~", bar[[2L]])))
+  if (attr(tl, "intercept") != 0L) return(NULL)
+  labs <- attr(tl, "term.labels")
+  bar[[2L]] <- str2lang(paste(c("1", labs), collapse = " + "))
+  bar
+}
+
+#' Whether `cmc = FALSE` changes the columns of a random-effect bar's
+#' left-hand side on this model frame: only a factor main effect
+#' without an intercept is coded differently, and numeric slopes or an
+#' `f:x` without `f` keep their columns. `TRUE` when the columns cannot
+#' be built here, so the caller keeps its rewrite and its checks.
+#'
+#' @noRd
+cmc_changes_columns <- function(bar, mf, env) {
+  cc <- cmc_bar_columns(bar, mf, env)
+  is.null(cc) || !identical(cc$cell, cc$contrast)
+}
+
+#' The columns of a random-effect bar's left-hand side under cell-mean
+#' coding (`cell`, the default) and under `cmc = FALSE` (`contrast`), or
+#' `NULL` when they cannot be built on this model frame. The refusal
+#' quotes both, because what `cmc = FALSE` does depends on the factor's
+#' contrasts: treatment contrasts leave a level out, and an ordered
+#' factor's polynomial contrasts leave no level out but are not levels.
+#'
+#' @noRd
+cmc_bar_columns <- function(bar, mf, env) {
+  cols <- function(icpt) {
+    tt <- stats::terms(stats::as.formula(call("~", bar[[2L]]), env = env))
+    if (icpt) attr(tt, "intercept") <- 1L
+    fr <- stats::model.frame(tt, mf, na.action = stats::na.pass)
+    setdiff(colnames(stats::model.matrix(tt, fr)),
+            if (icpt) "(Intercept)")
+  }
+  tryCatch(list(cell = cols(FALSE), contrast = cols(TRUE)),
+           error = function(e) NULL)
+}
+
+#' A column list for a message, cut after `max` names.
+#'
+#' @noRd
+cmc_col_list <- function(x, max = 6L) {
+  if (length(x) > max) x <- c(x[seq_len(max)], "...")
+  paste(x, collapse = ", ")
+}
+
 # Operators that reformulas expands structurally inside a grouping
 # expression; everything else on the right of a bar is an ordinary call
 # whose value has to exist as a single model-frame column.
@@ -870,14 +1002,19 @@ mm_member_designs <- function(mmspec, data, env, n_members,
                               use_model_frame = FALSE) {
   tt <- stats::terms(stats::as.formula(call("~", mmspec$lhs), env = env))
   tt <- patch_predvars(tt, predvar_map)
+  # cmc = FALSE: treatment contrasts without the intercept column, as
+  # for any other group-level term (brms:::validate_terms())
+  cmc_drop <- isFALSE(mmspec[["cmc"]]) && attr(tt, "intercept") == 0L
+  if (cmc_drop) attr(tt, "intercept") <- 1L
   Xp <- if (use_model_frame) {
-    check_newdata_frame(tt, data, xlev)
+    data <- check_newdata_frame(tt, data, xlev)
     mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
                               xlev = xlev)
     stats::model.matrix(tt, mf2)
   } else {
     stats::model.matrix(tt, data)
   }
+  if (cmc_drop) Xp <- Xp[, colnames(Xp) != "(Intercept)", drop = FALSE]
   n <- nrow(Xp)
   mmc_vals <- lapply(mmspec$mmc, function(mc) {
     cols <- lapply(mc$exprs, function(ex) {
@@ -1495,9 +1632,14 @@ check_frame_variables <- function(rhs, data, env) {
     if (data_env) exists(v, envir = data) else v %in% names(data)
   }
   if ("." %in% all.vars(rhs)) {
-    frm_stop("A formula with `.` is not supported: frmtmb does not expand ",
-             "`.` into the columns of `data`. Write the predictors out, ",
-             "e.g. y ~ x1 + x2", call. = FALSE)
+    # frm() expands `.` against a data frame before the formula is
+    # parsed (expand_dot_bform()), so one that reaches here had no
+    # columns to stand for
+    frm_stop("The formula has a `.`, which stands for the columns of ",
+             "`data` that the formula does not otherwise use, and this ",
+             "`data` has no columns to expand it into. Pass a data frame ",
+             "as `data`, or write the predictors out, e.g. y ~ x1 + x2",
+             call. = FALSE)
   }
   for (v in all.vars(rhs)) {
     if (!in_data(v) && (data_env || !exists(v, envir = env))) {
@@ -1574,11 +1716,14 @@ check_frame_variables <- function(rhs, data, env) {
 #' resolve through `lookup_structural()`: data2 first, then data, then
 #' the formula environment.
 #'
-#' `check_trials = FALSE` is for the prior table alone. brms's
-#' `get_prior()` answers for a binomial-type response whatever its
-#' trials say, because no prior slot depends on them, so the table skips
-#' the trials refusal and the response check of every family that reads
-#' trials. A fit never passes it.
+#' `check_response = FALSE` is for the prior table and its validator
+#' alone. brms's `get_prior()` and `validate_prior()` never read the
+#' response's values, because no prior slot depends on them: they answer
+#' for a binomial-type response whatever its trials say, and for a
+#' `Beta()` response outside (0, 1) (`tests.priors.R`, "auxiliary
+#' parameters", draws `rnorm()`). So the table skips the trials refusal
+#' and `valid_y()`, except on an ordinal family, whose threshold count
+#' is read off the response. A fit never passes it.
 #'
 #' `thres_pin` is for a refit INSIDE the package that reassembles the
 #' frame from a subset or a replacement of the fitted data
@@ -1595,7 +1740,7 @@ check_frame_variables <- function(rhs, data, env) {
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
-                           check_trials = TRUE, thres_pin = NULL) {
+                           check_response = TRUE, thres_pin = NULL) {
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -1621,10 +1766,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # aligned. Responses go on the RHS of the frame formula (a multivariate
   # LHS is not a valid model.frame response) and are extracted by name.
   rhs_comb <- NULL
+  # what each response adds, for subset()'s NA rule (R/subset.R)
+  rhs_resp <- list()
   add_part <- function(part) {
     rhs_comb <<- if (is.null(rhs_comb)) part else call("+", rhs_comb, part)
+    rhs_resp[[cur_resp]] <<- if (is.null(rhs_resp[[cur_resp]])) {
+      part
+    } else call("+", rhs_resp[[cur_resp]], part)
   }
+  subset_check_spec(spec, na.action)
   for (resp in spec$responses) {
+    cur_resp <- resp$resp_name
     add_part(resp$resp_expr)
     for (dp in resp$dpars) add_part(dpar_frame_rhs(dp))
     # the time and grouping variables of a residual correlation term
@@ -1653,6 +1805,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
   }
+  # Whether a family takes se() is a fact about the formula, and brms
+  # refuses it from the formula alone, so a missing se() column must not
+  # hide that refusal behind "not a column of data". Only then is it
+  # raised here: with the column present the order is the one below, in
+  # which a structured family's own refusal of se() speaks first
+  # (frmtmb.latent's hmm() says why it cannot take the term).
+  for (resp in spec$responses) {
+    se_expr <- resp$aterms[["se"]]
+    if (!is.null(se_expr) &&
+          !all(vapply(all.vars(se_expr), function(v) {
+            v %in% names(data) ||
+              exists(v, envir = resp$formula_env %||% globalenv())
+          }, NA))) {
+      check_se_declared(resp)
+    }
+    check_cs_in_bar(resp)
+  }
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
   check_frame_variables(rhs_comb, data, env)
@@ -1671,14 +1840,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }, spec$responses),
     function(r) deparse1(r$resp_expr), ""
   )
-  if (length(mi_cols)) {
+  has_sub <- spec_has_subset(spec)
+  if (length(mi_cols) || has_sub) {
     mf <- stats::model.frame(fr_formula, data = data,
                              drop.unused.levels = TRUE,
                              na.action = stats::na.pass)
-    bad <- Reduce(`|`, lapply(setdiff(names(mf), mi_cols), function(cn) {
-      v <- mf[[cn]]
-      if (is.matrix(v)) rowSums(is.na(v)) > 0 else is.na(v)
-    }), rep(FALSE, nrow(mf)))
+    bad <- if (has_sub) {
+      # brms's na_omit(): an NA is harmless on a row that every
+      # response using the variable leaves out
+      subset_na_rows(spec, mf, lapply(rhs_resp, frame_rhs_columns), mi_cols)
+    } else {
+      Reduce(`|`, lapply(setdiff(names(mf), mi_cols), function(cn) {
+        v <- mf[[cn]]
+        if (is.matrix(v)) rowSums(is.na(v)) > 0 else is.na(v)
+      }), rep(FALSE, nrow(mf)))
+    }
     if (any(bad)) {
       dropped <- which(bad)
       mf <- mf[!bad, , drop = FALSE]
@@ -1712,7 +1888,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                "`data` has no rows; nothing to fit"
              }, call. = FALSE)
   }
-  if (anyNA(mf[setdiff(names(mf), mi_cols)])) {
+  # subset(): the rows each response uses. A univariate model has one
+  # set of rows, so the frame itself is cut to them and every later
+  # stage sees an ordinary frame.
+  sub_rows <- if (has_sub) subset_rows_of(spec, mf) else list()
+  # brms's nobs(): the rows of the data, before any subset() cut
+  n_data <- nrow(mf)
+  uni_rows <- NULL
+  if (has_sub && length(spec$responses) == 1L) {
+    uni_rows <- sub_rows[[1L]]
+    mf <- frame_rows(mf, uni_rows)
+    n <- nrow(mf)
+    sub_rows <- list()
+  }
+  if (!has_sub && anyNA(mf[setdiff(names(mf), mi_cols)])) {
     frm_stop("NA values remain in the model variables after applying ",
              "na.action; use na.omit (default) or na.exclude", call. = FALSE)
   }
@@ -1737,7 +1926,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   blocks <- list()   # per response: the structured family's data block
   autocor <- list()  # per response: R-side residual correlation block
   n_thetaac <- 0L
+  index_vals <- list()   # per index() response: its rows' index values
+  mf_all <- mf
+  n_all <- n
   for (resp in spec$responses) {
+    # a subset() response sees only its own rows from here on
+    mf <- frame_rows(mf_all, sub_rows[[resp$resp_name]])
+    n <- nrow(mf)
+    if (!is.null(resp$aterms[["index"]])) {
+      index_vals[[resp$resp_name]] <- index_eval(resp, mf)
+    }
     # A name that is both a nonlinear parameter and a data column is
     # ambiguous, and the nonlinear body resolves it to the PARAMETER,
     # silently ignoring the column - the fit runs and reports numbers
@@ -1764,7 +1962,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     y_levels[[resp$resp_name]] <- rc$levels
     y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
-                        c("cens_y2", "se_sigma", "mi"))
+                        c("cens_y2", "se_sigma", "mi", row_aterms))
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
@@ -1792,7 +1990,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # reads the count: an in-package refit's threshold count comes from
     # the fitted model, never from the refit's own response
     av <- thres_pin_apply(thres_pin, resp, av)
-    if (check_trials) check_trials_given(resp, av)
+    if (check_response) check_trials_given(resp, av)
     # Before EVERY other guard, including the structured one, because
     # each of them is handed `av`: a declared term that is absent leaves
     # a hole in it, and a hole reads as NULL rather than as an error.
@@ -1906,6 +2104,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (!is.null(attr(mf, "na.action"))) {
         v <- v[-attr(mf, "na.action")]
       }
+      # the rows this response reads, under subset()
+      rows_ <- sub_rows[[resp$resp_name]] %||% uni_rows
+      if (!is.null(rows_)) v <- v[rows_]
       av[["cens_y2"]] <- v
     }
     for (vn in grep("^vint", names(av), value = TRUE)) {
@@ -1913,6 +2114,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         frm_stop(vn, " values must be integers (use vreal() for reals)",
                  call. = FALSE)
       }
+    }
+    if (!is.null(av[["rate"]]) && (anyNA(av[["rate"]]) ||
+                                     any(av[["rate"]] <= 0))) {
+      # brms's own check, "Rate denomiators should be positive": the
+      # exposure enters as log(denom)
+      frm_stop("rate(", deparse1(resp$aterms[["rate"]]), "): rate ",
+               "denominators should be positive", call. = FALSE)
     }
     if (!is.null(av[["weights"]])) {
       if (any(av[["weights"]] < 0)) {
@@ -2054,34 +2262,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
     if (!is.null(av[["se"]])) {
-      # A capability test, not a name test. `se()` is the one core
-      # addition term whose whole effect lives inside the density: the
-      # core neither multiplies it in nor reshapes anything with it, it
-      # only hands `aterms[["se"]]` to the family and maps out a now
-      # redundant `sigma`. So the question is whether the density READS
-      # it, and the family answers by declaring it - which is what
-      # `accepts_aterms` and `required_aterms` are for. An undeclared
-      # family (`accepts_aterms = NULL`, which otherwise means "every
-      # term") is refused, because "did not say" cannot mean yes for a
-      # term that changes nothing unless it is read: that is the same
-      # silent-wrong-answer the allow-list exists to close, and it is
-      # also the behavior every custom family had before this test
-      # replaced the name test.
-      if (!family_declares_aterm(resp$family, "se")) {
-        frm_stop(
-          "se() carries a known standard deviation into the density, ",
-          "so only a family that reads it can be given one, and '",
-          resp$family[["family"]], "' does not declare that it does. ",
-          "A family declares it with frmtmb_family(accepts_aterms = ",
-          "c(..., \"se\")) or with required_aterms = \"se\", which ",
-          "also refuses a model that leaves the term out. The density ",
-          "then reads aterms[[\"se\"]] as the standard deviation, and ",
-          "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
-          "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
-          "where it is TRUE. The built-in families that read it are ",
-          "gaussian and student", call. = FALSE,
-                 package = frm_family_package(resp$family))
-      }
+      check_se_declared(resp)
       if (any(av[["se"]] <= 0)) {
         frm_stop("se() values must be positive", call. = FALSE)
       }
@@ -2139,11 +2320,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       n_thetaac <- n_thetaac + ac[["npar"]]
       autocor[[resp$resp_name]] <- ac
     }
-    reads_trials <- any(c(resp$family[["family"]],
-                          resp$family[["component_families"]]) %in%
-                          trials_families)
+    # the prior table skips the response check (check_response = FALSE),
+    # except on an ordinal family, whose threshold rows are counted from
+    # the response: brms's extract_nthres() refuses there too, "Could
+    # not extract the number of thresholds"
     if (!is.null(resp$family[["valid_y"]]) &&
-        (check_trials || !reads_trials)) {
+          (check_response || identical(resp$family[["type"]], "ordinal"))) {
       resp$family[["valid_y"]](y[[resp$resp_name]], av)
     }
     # The allow-list, LAST of the addition-term guards and after
@@ -2184,17 +2366,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # than it has levels; brms returns bare codes there instead
     th_ <- resp$family[["thres"]]
     lv_ <- y_levels[[resp$resp_name]]
-    if (!is.null(th_) && !is.null(lv_) &&
-          max(th_[["nthres"]]) + 1L > length(lv_)) {
+    # a hurdle family's category 0 is one level more
+    ncat_ <- if (!is.null(th_)) {
+      max(th_[["nthres"]]) + 2L - ord_code0(resp$family)
+    }
+    if (!is.null(th_) && !is.null(lv_) && ncat_ > length(lv_)) {
       frm_stop("thres(x = ", max(th_[["nthres"]]), ") asks for ",
-               max(th_[["nthres"]]) + 1L, " categories, and the response ",
+               ncat_, " categories, and the response ",
                "is an ordered factor with ", length(lv_), " levels in the ",
                "data: a level no row takes is dropped with the model ",
                "frame, as brms drops it. frmtmb returns simulated ",
                "responses as that factor, so it cannot hold more ",
                "categories than levels. Code the response as integers ",
-               "1..", max(th_[["nthres"]]) + 1L, " to fit the categories ",
-               "nobody chose, or lower the count", call. = FALSE)
+               ord_code0(resp$family), "..", max(th_[["nthres"]]) + 1L,
+               " to fit the categories nobody chose, or lower the count",
+               call. = FALSE)
     }
     # Family-level DATA a likelihood needs but no addition term supplies
     # (the Cox baseline's spline bases). It is a function of the
@@ -2218,6 +2404,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     aterm_values[[resp$resp_name]] <- av
   }
+  mf <- mf_all
+  n <- n_all
 
   # me() latent values: after every mi() response, so the mi() slots
   # of `miss` keep the positions they have always had
@@ -2235,6 +2423,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   betad_fixed_idx <- integer(0)
 
   for (resp in spec$responses) {
+    # a subset() response's designs are built on its own rows
+    mf <- frame_rows(mf_all, sub_rows[[resp$resp_name]])
+    n <- nrow(mf)
     for (dp in resp$dpars) {
       lp_key <- linpred_key(resp$resp_name, dp[["name"]])
       is_primary <- dp[["name"]] %in% resp$primary_dpars
@@ -2243,6 +2434,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         paste0(dp[["name"]], ": ")
       if (length(spec$responses) > 1) {
         dp_prefix <- paste0(resp$resp_name, " ", dp_prefix)
+      }
+      if (!is.null(dp[["equate"]])) {
+        # filled in after this response's other dpars (below), keeping
+        # this dpar's place in the order of the predictors
+        linpreds[[lp_key]] <- list()
+        next
       }
 
       if (!is.null(dp[["nl_body"]])) {
@@ -2327,8 +2524,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
 
       tt <- stats::terms(dp[["fixed"]])
+      # bf(cmc = FALSE): R codes a factor by its cell means when the
+      # formula has no intercept, and brms's cmc = FALSE keeps the
+      # treatment contrasts and removes only the intercept column
+      # (brms:::validate_terms()). The terms keep the intercept, so a
+      # prediction builds the same columns and selects param_colnames.
+      cmc_drop <- isFALSE(dp[["cmc"]]) && attr(tt, "intercept") == 0L
+      if (cmc_drop) attr(tt, "intercept") <- 1L
       X <- if (sparse_x) sparse_mm(tt, mf) else stats::model.matrix(tt, mf)
       contr <- attr(X, "contrasts")   # subsetting X below drops the attr
+      if (cmc_drop) X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
       if (isTRUE(resp$family[["drop_intercept"]]) && is_primary) {
         # thresholds replace the intercept; a threshold-only model
         # (y ~ 1) leaves X with zero columns, which is fine
@@ -2386,10 +2591,54 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         rt_pos[plain_k] <- seq_along(plain_k)
         rt <- NULL
         fassign <- integer(0)
+        cmc_re <- logical(length(bars))
         if (length(plain_k)) {
           # bars keeps the user's expressions (labels, prediction); only
           # the copy handed to reformulas is name-resolved
-          grp <- resolve_group_calls(bars[plain_k], mf, resp$formula_env)
+          rt_bars <- bars[plain_k]
+          # cmc = FALSE reaches the group-level terms too, as in brms:
+          # the term gets an intercept here, which goes again below
+          if (isFALSE(dp[["cmc"]])) {
+            for (j in seq_along(rt_bars)) {
+              wi <- bar_with_intercept(rt_bars[[j]])
+              # a term whose columns cmc = FALSE leaves as they are
+              # (numeric slopes, f:x without f) needs no rewrite, and
+              # is no reason to refuse a structure
+              if (!is.null(wi) &&
+                    !cmc_changes_columns(rt_bars[[j]], mf,
+                                         resp$formula_env)) {
+                wi <- NULL
+              }
+              cs_j <- dp[["re"]][[plain_k[j]]]$covstruct
+              # these read one coefficient per level of the factor
+              # (a time, a position), which contrasts are not, treatment
+              # and polynomial alike; brms has none of them, so there is
+              # no brms reading
+              if (!is.null(wi) &&
+                    cs_j %in% c("ar1", "hetar1", "cs", "homcs", "toep",
+                                "homtoep", "ou", "exp", "gau", "mat")) {
+                cc <- cmc_bar_columns(rt_bars[[j]], mf, resp$formula_env)
+                frm_stop("cmc = FALSE does not apply to ", cs_j, "(",
+                         deparse1(bars[[plain_k[j]]]), "): the structure ",
+                         "reads one coefficient per level",
+                         if (!is.null(cc)) {
+                           paste0(" (", cmc_col_list(cc$cell), ")")
+                         },
+                         ", and cmc = FALSE would code the term by its ",
+                         "contrasts",
+                         if (!is.null(cc)) {
+                           paste0(" (", cmc_col_list(cc$contrast), ")")
+                         },
+                         ", which are not coefficients of single levels. ",
+                         "Drop cmc = FALSE from this formula", call. = FALSE)
+              }
+              if (!is.null(wi)) {
+                rt_bars[[j]] <- wi
+                cmc_re[plain_k[j]] <- TRUE
+              }
+            }
+          }
+          grp <- resolve_group_calls(rt_bars, mf, resp$formula_env)
           rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
                                      reorder.terms = FALSE)
           fassign <- attr(rt$flist, "assign")
@@ -2399,6 +2648,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           cs_name <- dp[["re"]][[k]]$covstruct
           if (is_mm[k]) {
             mms <- dp[["re"]][[k]]$mm
+            # cmc = FALSE rides on the spec, which the component keeps,
+            # so a prediction builds the members' designs the same way
+            if (isFALSE(dp[["cmc"]])) mms[["cmc"]] <- FALSE
             gvals <- mm_member_values(mms, mf, resp$formula_env)
             levs <- mm_pooled_levels(gvals)
             iw <- mm_index_weights(mms, mf, resp$formula_env, levs)
@@ -2437,8 +2689,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             next
           }
           kk <- rt_pos[k]
+          zrows <- rt$Gp[kk] + seq_len(rt$Gp[kk + 1L] - rt$Gp[kk])
+          if (cmc_re[k]) {
+            # the intercept added for cmc = FALSE goes, and the treatment
+            # contrasts stay; Zt is level-major within a term
+            keep <- rt$cnms[[kk]] != "(Intercept)"
+            zrows <- zrows[rep(keep, length(zrows) %/% length(keep))]
+            rt$cnms[[kk]] <- rt$cnms[[kk]][keep]
+          }
           d_k <- length(rt$cnms[[kk]])
-          len_k <- rt$Gp[kk + 1L] - rt$Gp[kk]
+          len_k <- length(zrows)
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
                              "homtoep", "rr", dist_cs) && d_k < 2L) {
@@ -2512,8 +2772,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
             aux_A <- unname(V)
           }
-          Zk <- Matrix::t(rt$Zt[rt$Gp[kk] + seq_len(len_k), ,
-                                drop = FALSE])
+          Zk <- Matrix::t(rt$Zt[zrows, , drop = FALSE])
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
             covstruct = cs_name, id = dp[["re"]][[k]]$id,
@@ -2531,6 +2790,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             group_name = names(rt$flist)[fassign[kk]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
+          if (cmc_re[k]) {
+            # cmc = FALSE: a prediction rebuilds the term with the
+            # intercept and drops it, as the fit did
+            components[[length(components)]][["cmc_intercept"]] <- TRUE
+          }
           comp_ids <- c(comp_ids, length(components))
           # gr(g, by = f): the term as written is what the duplicate
           # check reads, and one block per by-level is what is fitted
@@ -2626,7 +2890,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               if (is.null(gv) || is.null(mf[[gv]])) NULL else
                 levels(as.factor(mf[[gv]]))
             }),
-            label = sm$label
+            label = sm$label,
+            # the written term this basis came from: a factor `by`
+            # splits one term into a basis per level, and
+            # conditional_smooths() draws the term, not the level
+            term = attr(sspec, "frm_term") %||% sm$label
           )
         }
       }
@@ -2875,14 +3143,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           mult <- check_special_mult(eval(ent$mult, mf, resp$formula_env),
                                      ent$mult, "mi")
         }
+        # brms's name for mi(x, idx = g) is its rename(), "mixidxEQg"
         lab <- paste0("mi", vn,
+                      if (!is.null(ent$idx)) {
+                        paste0("idxEQ", deparse1(ent$idx))
+                      },
                       if (!is.null(ent$mult)) {
                         paste0(":", deparse1(ent$mult))
                       } else "")
         X <- cbind(X, matrix(0, nrow(X), 1, dimnames = list(NULL, lab)))
         mi_info[[length(mi_info) + 1L]] <- list(
           var = vn, col = ncol(X), label = lab,
-          mult = mult, mult_expr = ent$mult
+          mult = mult, mult_expr = ent$mult,
+          # brms's idxl: the row of `vn` each row here reads, when the
+          # two responses do not share their rows (R/subset.R)
+          idx_expr = ent$idx,
+          idxl = mi_idx_rows(ent, vn, resp, tgt, mf, index_vals, sub_rows)
         )
       }
 
@@ -2901,7 +3177,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       cs_mm <- list()
       if (length(dp[["csterms"]] %||% list())) {
         if (!identical(resp$family[["type"]], "ordinal") ||
-            identical(resp$family[["family"]], "cumulative")) {
+            resp$family[["family"]] %in% ord_ordered_families) {
           frm_stop("cs() needs an sratio, cratio, or acat family",
                    call. = FALSE)
         }
@@ -3001,7 +3277,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         shared = isTRUE(dp[["shared"]])
       )
     }
+    # bf(sigma1 = "sigma2"): the equated dpar is its target's predictor
+    # under its own name, so it reads the target's coefficients and adds
+    # none. The target may come later in the family's order, hence the
+    # second pass.
+    for (dp in resp$dpars) {
+      if (is.null(dp[["equate"]])) next
+      lp <- linpreds[[linpred_key(resp$resp_name, dp[["equate"]])]]
+      lp[["dpar"]] <- dp[["name"]]
+      lp[["link"]] <- dp[["link"]]
+      lp[["equate"]] <- dp[["equate"]]
+      linpreds[[linpred_key(resp$resp_name, dp[["name"]])]] <- lp
+    }
   }
+  mf <- mf_all
+  n <- n_all
 
   ## Phase 2: components -> blocks. Components sharing an |ID| key merge
   ## into one block - unstructured by default, or one gr_cov/gr_prec
@@ -3044,7 +3334,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (!identical(cp$levels, lv)) {
           frm_stop("|ID|-linked terms must share identical grouping-factor ",
                    "levels (", cps[[1]]$label, " vs ", cp$label, ")",
-                   call. = FALSE)
+                   if (length(sub_rows)) {
+                     paste0(". A response with subset() has the levels ",
+                            "its own rows carry, and brms's levels of the ",
+                            "whole data are not followed here")
+                   }, call. = FALSE)
         }
       }
       D <- sum(vapply(cps, `[[`, 0L, "dim"))
@@ -3173,10 +3467,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       term_label = label,
       dpar = cps[[1]]$dpar,
       components = lapply(seq_along(gd), function(k) {
-        list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
-             dim = cps[[k]]$dim, bar = cps[[k]]$bar,
-             mm = cps[[k]]$mm, by = cps[[k]]$by,
-             cnms = cps[[k]]$cnms, label = cps[[k]]$label)
+        out <- list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
+                    dim = cps[[k]]$dim, bar = cps[[k]]$bar,
+                    mm = cps[[k]]$mm, by = cps[[k]]$by,
+                    cnms = cps[[k]]$cnms, label = cps[[k]]$label)
+        # cmc = FALSE on this term, which a prediction has to repeat
+        if (isTRUE(cps[[k]][["cmc_intercept"]])) {
+          out[["cmc_intercept"]] <- TRUE
+        }
+        out
       })
     )
     n_b <- n_b + nb_k
@@ -3202,8 +3501,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         jj <- c(jj, glob)
         xx <- c(xx, Tk@x)
       }
-      lp[["Z"]] <- Matrix::sparseMatrix(i = ii, j = jj, x = xx,
-                                   dims = c(n, n_c))
+      # a subset() response has its own number of rows
+      lp[["Z"]] <- Matrix::sparseMatrix(
+        i = ii, j = jj, x = xx,
+        dims = c(nrow(components[[lp[["comp_ids"]][1L]]]$Zlocal), n_c))
     }
     if (length(lp[["smooths"]])) {
       lp[["smooths"]] <- lapply(lp[["smooths"]], function(si) {
@@ -3341,7 +3642,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          predvar_map = predvar_map,
          sparse_x = isTRUE(sparse_x),
          data_frame = mf,
-         na_action = attr(mf, "na.action")),
+         na_action = attr(mf, "na.action"),
+         # subset(): the rows of `data_frame` each such response uses,
+         # and the rows before a univariate model's cut, for nobs()
+         subset_rows = if (length(sub_rows)) sub_rows,
+         nobs_data = if (!is.null(uni_rows)) n_data),
     class = "frmtmb_frame"
   )
   # brms refuses a group-level effect given twice (frame_re()), and the

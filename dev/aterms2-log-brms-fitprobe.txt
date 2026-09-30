@@ -1,0 +1,104 @@
+Compiling Stan program...
+Start sampling
+Warning messages:
+1: The largest R-hat is 1.06, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+========== nobs 
+[1] 40
+
+========== fitted all 
+[1] "ERROR: Argument 'resp' must be a single variable name for models using addition argument 'subset'."
+
+========== fitted y1 
+dim: 20 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== fitted y2 
+dim: 30 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== predict all 
+[1] "ERROR: Argument 'resp' must be a single variable name for models using addition argument 'subset'."
+
+========== predict y2 
+dim: 30 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== posterior_epred y2 
+dim: 150 x 30 
+dimnames[[length]]:  
+
+========== log_lik all 
+[1] "ERROR: Argument 'resp' must be a single variable name for models using addition argument 'subset'."
+
+========== log_lik y1 
+dim: 150 x 20 
+dimnames[[length]]:  
+
+========== residuals y1 
+dim: 20 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== loo 
+[1] "ERROR: Argument 'resp' must be a single variable name for models using addition argument 'subset'."
+
+========== fitted newdata y1 
+dim: 3 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== fitted newdata y2 
+dim: 6 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== fitted newdata without s1 
+[1] "ERROR: The following variables can neither be found in 'data' nor in 'data2':\n's1'"
+
+========== fitted newdata without s1, y2 
+dim: 6 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== ranef 
+dim: 5 x 4 
+dimnames[[length]]: Estimate Est.Error Q2.5 Q97.5 
+
+========== conditional_effects 
+[1] "y1.y1_x" "y2.y2_x" "y1.y1_z" "y2.y2_z"
+
+========== pp_check 
+[1] "ggplot2::ggplot" "ggplot"          "ggplot2::gg"     "S7_object"      
+[5] "gg"             
+
+========== model.frame rows 
+[1] 40
+
+========== posterior_linpred y1 
+dim: 150 x 20 
+dimnames[[length]]:  
+Error in `data_sp()`:
+! Could not match all indices in response 'x'.
+Backtrace:
+     ▆
+  1. └─brms::brm(bm, dm, chains = 1, iter = 300, refresh = 0, seed = 12)
+  2.   └─brms:::.standata(...)
+  3.     ├─brms::data_predictor(...)
+  4.     └─brms:::data_predictor.mvbrmsterms(...)
+  5.       ├─brms::data_predictor(...)
+  6.       └─brms:::data_predictor.brmsterms(...)
+  7.         └─brms::do_call(data_predictor, c(args_eff_spec, args_eff))
+  8.           └─brms:::eval2(call, envir = args, enclos = envir)
+  9.             └─base::eval(expr, envir, ...)
+ 10.               └─base::eval(expr, envir, ...)
+ 11.                 ├─brms (local) .fun(x = .x1, data = .x2, data2 = .x3, prior = .x4, sdata = .x5)
+ 12.                 └─brms:::data_predictor.btl(...)
+ 13.                   └─brms:::data_sp(x, data, data2 = data2, prior = prior)
+ 14.                     └─brms:::stop2(...)
+ 15.                       └─rlang::abort(...)
+Execution halted

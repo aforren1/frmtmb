@@ -110,9 +110,8 @@ smooth indexed by a grouping factor included (\code{s(g, bs = "re")},
 are penalized coefficients of a term of the formula, not group
 effects, and \code{re_formula = NA} keeps every smooth as brms does, so
 the draws at \code{NA} are the conditional draws on a fit whose only
-group-indexed content is a smooth. \code{frm_bootstrap()} is the exception
-and asks for the other thing on purpose: a whole-model parametric
-bootstrap redraws every block, smooths included.
+group-indexed content is a smooth. \code{\link[=frm_bootstrap]{frm_bootstrap()}} reads
+\code{re_formula} the same way.
 }
 
 \section{New data}{

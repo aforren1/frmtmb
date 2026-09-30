@@ -1,0 +1,6 @@
+.libPaths("C:/Users/adf44/AppData/Local/R/win-library/4.6")
+print(brms:::loo.brmsfit)
+print(brms:::.loo)
+print(brms:::compute_loo)
+print(brms:::r_eff_log_lik)
+print(brms:::r_eff_log_lik.matrix)

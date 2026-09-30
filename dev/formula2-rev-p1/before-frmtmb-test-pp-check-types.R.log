@@ -1,0 +1,6 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+pp-check-types: .....................................................................................................................................................Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+.................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb test-pp-check-types.R gated=TRUE pass=198 fail=0 err=0 skip=0 warn=0

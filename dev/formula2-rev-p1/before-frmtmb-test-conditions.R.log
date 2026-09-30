@@ -1,0 +1,23 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb 
+conditions: .....................................................................................................................................................1
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-conditions.R:387:3'): an unsupported term and `.` are refused
+<frmtmb_error/error/condition>
+Error: A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-conditions.R:387:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ ., data = de)
+  8.   └─frmtmb:::assemble_frame(...)
+  9.     └─frmtmb:::check_frame_variables(rhs_comb, data, env)
+ 10.       └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+No one is perfect!
+RESULT before frmtmb test-conditions.R gated=TRUE pass=149 fail=0 err=1 skip=0 warn=0

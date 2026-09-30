@@ -1,0 +1,11 @@
+arm lane: frmtmb 0.65.0, frmtmb.sample 0.13.0
+draws, g = 1: curve moves by 10 10 10 when r_g[1,] moves by 10
+draws, g = 2: curve moves by 10 10 10 when r_g[2,] moves by 10
+draws: level 1 minus level 2: 0.311731 0.246607 0.266987 (the median of r_g[1] - r_g[2]: 0.24946)
+draws, g = 2: spaghetti moves by 10 to 10
+fit, g = 2 (mode -0.2075): wald estimate -0.77695  0.60839  1.99374
+fit, boot mean of the refit curves -0.60763  0.75019  2.10802; its offset from the estimate over the mode: 0.816
+fit, boot band width / wald band width: 0.682
+fit, boot band at g = 1 minus at g = 2: lower 0.16473 0.15903 0.09726 (estimates differ by 0.2508 0.2508 0.2508)
+fit (group SD 2, seed 21), g = 1, mode 1.983: boot mean minus estimate -0.17617 -0.13730 -0.09843; over the mode: 0.089
+  estimate inside the boot band at every point: TRUE; band width / wald width 0.998

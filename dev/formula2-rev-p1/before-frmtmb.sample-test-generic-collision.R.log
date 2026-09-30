@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.sample C:/Users/adf44/source/r/rellib-r3/frmtmb 
+generic-collision: ..........................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb.sample test-generic-collision.R gated=TRUE pass=58 fail=0 err=0 skip=0 warn=0

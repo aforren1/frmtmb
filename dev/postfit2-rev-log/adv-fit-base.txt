@@ -1,0 +1,51 @@
+ARM base: frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb
+A modes: 1.9827 1.0982 -0.2485 -0.1348 0.4886 -1.2492 -0.2569 -1.6800
+A pop wald: est -0.5572 0.5889 1.7351 | lo -1.5222 -0.2386 0.7974 | hi 0.4077 1.4165 2.6727
+A1: a level conditions sets that the fit never saw ('99')
+A1 list(g='99') anl=FALSE: frmtmb_error: New levels in grouping factor `g`: NA. Use allow_new_levels = TRUE to predict them at the population level
+A1 list(g='99') anl=FALSE: frmtmb_error: New levels in grouping factor `g`: NA. Use allow_new_levels = TRUE to predict them at the population level
+A1 list(g='99') anl=TRUE wald: est -0.5572 0.5889 1.7351 | lo -3.0134 -1.8166 -0.7105 | hi 1.8989 2.9944 4.1807
+A1 list(g='99') anl=TRUE boot40 seed5: est -0.5572 0.5889 1.7351 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+A1 df(g=factor('99')) anl=FALSE: frmtmb_error: New levels in grouping factor `g`: NA. Use allow_new_levels = TRUE to predict them at the population level
+A1 df(g=factor('99')) anl=FALSE: frmtmb_error: New levels in grouping factor `g`: NA. Use allow_new_levels = TRUE to predict them at the population level
+A1 df(g=factor('99')) anl=TRUE wald: est -0.5572 0.5889 1.7351 | lo -3.0134 -1.8166 -0.7105 | hi 1.8989 2.9944 4.1807
+A1 df(g=factor('99')) anl=TRUE boot40 seed5: est -0.5572 0.5889 1.7351 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+A0: no conditions (a new group), for the width a new level has
+A0 wald: est -0.5572 0.5889 1.7351 | lo -3.0134 -1.8166 -0.7105 | hi 1.8989 2.9944 4.1807
+A0 boot40 seed5: est -0.5572 0.5889 1.7351 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+A2: rows mixing a level and NA
+A2 wald: frmtmb_error: New levels in grouping factor `g`: NA. Use allow_new_levels = TRUE to predict them at the population level
+A2 boot: frmtmb_error: New levels in grouping factor `g`: NA. Use allow_new_levels = TRUE to predict them at the population level
+A2 ref: lev2 alone wald: est 0.5409 1.6871 2.8332 | lo -0.2093 1.0906 2.0655 | hi 1.2911 2.2835 3.6010
+A3: character grouping column
+A3 chr g='2' wald: est 0.5409 1.6871 2.8332 | lo -0.2093 1.0906 2.0655 | hi 1.2911 2.2835 3.6010
+A3 chr g='2' boot: est 0.5409 1.6871 2.8332 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+A3 fct g='2' boot: est 0.5409 1.6871 2.8332 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+B modes g: -1.2391 -0.7900 1.0980 -0.0818 -0.0565 -0.9680 1.9902 0.0472; level 7
+B g set, h unset: wald: est 0.8967 2.5728 4.2489 | lo -0.2555 1.4874 3.0310 | hi 2.0490 3.6582 5.4668
+B g set, h unset: boot60 seed5: est 0.8967 2.5728 4.2489 | lo -2.9852 -1.5029 -0.4015 | hi 1.2615 3.0917 5.0316
+B boot mean minus wald estimate: -2.0395 -2.0740 -2.1084; over |mode| 1.059
+B boot width / wald width: 1.8429 2.1166 2.2306
+B both set: wald: est 0.7701 2.4462 4.1223 | lo 0.0185 1.8277 3.3131 | hi 1.5218 3.0647 4.9315
+B both set: boot60 seed5: est 0.7701 2.4462 4.1223 | lo -2.9852 -1.5029 -0.4015 | hi 1.2615 3.0917 5.0316
+B both set: boot mean minus wald estimate: -1.9129 -1.9474 -1.9818; over |mode| 0.996
+B both set: boot width / wald width: 2.8250 3.7146 3.3571
+C modes g: -0.6827 0.1751 -0.8347 -0.0175 1.3935 0.2134 0.6096 -0.8567; level 5
+C g set: wald: est 0.4739 1.6052 2.7365 | lo -1409.3827 -1408.2514 -1407.1201 | hi 1410.3306 1411.4618 1412.5932
+C g set: boot60 seed5: est 0.4739 1.6052 2.7365 | lo -4.7709 -3.5847 -2.3725 | hi 0.7800 1.9584 3.1487
+C boot mean minus wald estimate: -1.6406 -1.6565 -1.6724; over |mode| 1.200
+D s(x) re_formula=NA boot60 seed5: est 0.0726 0.9459 -0.0702 -1.0271 -0.2963 | lo -5.2613 -2.3235 -0.9604 -0.7650 -0.7982 | hi 1.0855 0.5583 1.3901 2.8657 5.4665
+D s(x) re_formula=NULL boot60 seed5: est 0.0726 0.9459 -0.0702 -1.0271 -0.2963 | lo -5.2613 -2.3235 -0.9604 -0.7650 -0.7982 | hi 1.0855 0.5583 1.3901 2.8657 5.4665
+D width NULL / NA: 1.0000 1.0000 1.0000 1.0000 1.0000
+D s(x) wald: est 0.0726 0.9459 -0.0702 -1.0271 -0.2963 | lo -0.1843 0.8348 -0.1906 -1.1565 -0.5436 | hi 0.3294 1.0570 0.0502 -0.8978 -0.0490
+D width NULL-boot / wald: 12.3555 12.9718 9.7603 14.0342 12.6673; NA-boot / wald: 12.3555 12.9718 9.7603 14.0342 12.6673
+E: reuse
+E pop grid g column: 1,1,1; obs grid g column: 1,1,1
+E pop boot into observed-level call: frmtmb_error: boot = was not produced by a conditional_effects(band = "boot") call on this grid: its draws are predictions for a different group: this call conditions on a NEW group (re_formula = NULL), and those draws do not carry th
+E observed boot into pop call (with conditions g=1): frmtmb_error: boot = was not produced by a conditional_effects(band = "boot") call on this grid: its draws are predictions for a different group: those draws carry a NEW group's effects (they came from a re_formula = NULL call) and th
+E observed boot into pop call (no conditions): frmtmb_error: boot = was not produced by a conditional_effects(band = "boot") call on this grid: its draws are predictions for a different group: those draws carry a NEW group's effects (they came from a re_formula = NULL call) and th
+E same-call reuse: ACCEPTED, identical band TRUE
+E new-level boot into observed-level call: frmtmb_error: boot = was not produced by a conditional_effects(band = "boot") call on this grid: its draws are predictions over a different grid (the effects, the resolution, the conditions or the data are not the same), so its percen
+E2 re_formula=~(1|g) g=2 boot: est 0.5409 1.6871 2.8332 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+E2 re_formula=NULL g=2 boot: est 0.5409 1.6871 2.8332 | lo -2.6441 -1.4445 -0.3221 | hi 1.9172 2.7773 3.6961
+done

@@ -1,0 +1,27 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal                                                        
+⠋ |          1 | ordinal                                                        
+⠴ |          6 | ordinal                                                        
+⠙ |         12 | ordinal                                                        
+⠴ |         56 | ordinal                                                        
+⠧ |         78 | ordinal                                                        
+⠴ |         86 | ordinal                                                        
+⠇ |         89 | ordinal                                                        
+⠼ |         95 | ordinal                                                        
+⠦ |         97 | ordinal                                                        
+⠇ |         99 | ordinal                                                        
+⠏ |        100 | ordinal                                                        
+⠋ |        101 | ordinal                                                        
+⠙ |        102 | ordinal                                                        
+⠸ |        104 | ordinal                                                        
+⠼ |        105 | ordinal                                                        
+⠦ |        107 | ordinal                                                        
+✔ |        109 | ordinal [3.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 109 ]
+RESULT lane test-ordinal.R: tests 11 pass 109 fail 0 error 0 skip 0 warn 0

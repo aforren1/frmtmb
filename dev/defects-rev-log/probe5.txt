@@ -1,0 +1,8 @@
+mv resp=NULL: ERROR: length of 'dimnames' [3] not equal to array extent 
+mv resp='yo': 150x4x2 
+equal to univariate layers: TRUE 
+mv resp='yg': 150x4 
+residuals mv (ordinal inside): ERROR: residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, 
+residuals resp='yg': 150x4 
+mv (yo first) resp=NULL: ERROR: length of 'dimnames' [3] not equal to array extent 
+mv (yo first) resp='yg': 150x4 

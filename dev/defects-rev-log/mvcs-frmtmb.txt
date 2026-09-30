@@ -1,0 +1,58 @@
+===== one_cs 
+frmtmb dim: 150 4 3  layers: yg eta1 eta2 
+brms   dim: 150 4 3  layers: yg eta1 eta2 
+identical dimnames: TRUE 
+max |frmtmb - brms| Estimate per layer / layer max|brms|: 0.025 0.028 0.03 
+Est.Error ratio frmtmb/brms, median per layer: 0.989 0.971 0.976 
+frmtmb fixef:
+   yg_Intercept yo_Intercept[1] yo_Intercept[2]            yg_x            yo_x 
+          0.008          -0.722           0.055          -0.029           1.259 
+        yo_z[1]         yo_z[2] 
+         -0.238           0.299 
+brms posterior means:
+   b_yg_Intercept b_yo_Intercept[1] b_yo_Intercept[2]            b_yg_x 
+            0.009            -0.729             0.050            -0.029 
+           b_yo_x       bcs_yo_z[1]       bcs_yo_z[2]      Intercept_yg 
+            1.295            -0.243             0.315             0.009 
+  Intercept_yo[1]   Intercept_yo[2] 
+           -0.742             0.037 
+resp = 'yo' equals the stacked eta layers: TRUE 
+max |eta1 - (b x + cs1 z)|: 0  eta2: 0 
+===== two_cs 
+frmtmb dim: 150 4 5  layers: eta1 eta2 eta1 eta2 eta3 
+brms   dim: 150 4 5  layers: eta1 eta2 eta1 eta2 eta3 
+identical dimnames: TRUE 
+max |frmtmb - brms| Estimate per layer / layer max|brms|: 0.03 0.03 0.03 0.031 0.03 
+Est.Error ratio frmtmb/brms, median per layer: 0.969 0.964 0.985 0.987 1.006 
+frmtmb fixef:
+ yo_Intercept[1]  yo_Intercept[2] yo2_Intercept[1] yo2_Intercept[2] 
+          -0.722            0.055           -0.765           -0.178 
+yo2_Intercept[3]             yo_x            yo2_z          yo_z[1] 
+           0.464            1.259            0.949           -0.238 
+         yo_z[2]         yo2_x[1]         yo2_x[2]         yo2_x[3] 
+           0.299            0.887           -0.176            0.670 
+brms posterior means:
+ b_yo_Intercept[1]  b_yo_Intercept[2] b_yo2_Intercept[1] b_yo2_Intercept[2] 
+            -0.736              0.056             -0.778             -0.188 
+b_yo2_Intercept[3]             b_yo_x            b_yo2_z        bcs_yo_z[1] 
+             0.473              1.298              0.978             -0.244 
+       bcs_yo_z[2]       bcs_yo2_x[1]       bcs_yo2_x[2]       bcs_yo2_x[3] 
+             0.310              0.918             -0.172              0.692 
+   Intercept_yo[1]    Intercept_yo[2]   Intercept_yo2[1]   Intercept_yo2[2] 
+            -0.749              0.043             -0.799             -0.209 
+  Intercept_yo2[3] 
+             0.452 
+===== no_ord 
+frmtmb dim: 150 4 2  layers: yg yo 
+brms   dim: 150 4 2  layers: yg yo 
+identical dimnames: TRUE 
+max |frmtmb - brms| Estimate per layer / layer max|brms|: 0.095 0.013 
+Est.Error ratio frmtmb/brms, median per layer: 1.003 0.99 
+frmtmb fixef:
+   yg_Intercept yo_Intercept[1] yo_Intercept[2]            yg_x            yo_x 
+          0.008          -0.707           0.082          -0.029           1.246 
+brms posterior means:
+   b_yg_Intercept b_yo_Intercept[1] b_yo_Intercept[2]            b_yg_x 
+            0.005            -0.717             0.077            -0.031 
+           b_yo_x      Intercept_yg   Intercept_yo[1]   Intercept_yo[2] 
+            1.263             0.004            -0.729             0.064 

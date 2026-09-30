@@ -1,0 +1,9 @@
+<environment: namespace:frmtmb>
+loaded frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3 
+functions compared: 1310  objects: 75 
+DIFFERENT functions: 32 
+  assemble_frame categorical_y_levels check_newdata_frame compat_hand_rules_tbl cs_term_newdata default_prior extra_var_blocks family.frmtmb_fit fill_prior_table fit_refuse_draws_args fitted.frmtmb_fit fitted_point frm mixture mm_member_designs parse_linpred pred_design predict.frmtmb_fit predict_new_level_draw predict_new_level_spec predict_simulate print.frmtmb_family print.summary.frmtmb_fit prior_design prior_table ranef.frmtmb_fit residual_point_se residual_values residuals.frmtmb_fit resolve_priorlist summary.frmtmb_fit summary_data_name 
+DIFFERENT objects: 13 
+  compat_accepts_cache compat_hand_cache covstruct_registry family_registry frmtmb_aterm_registry frmtmb_compat_cache frmtmb_compat_contrib frmtmb_frame_checks frmtmb_links frmtmb_notice_state frmtmb_prior_defaults nl_shadow_cache residuals_unsupported 
+MISSING from namespace: 13 
+  check_cs_in_bar check_helper_in_formula check_sample_new_levels check_se_declared mixture_check_order ord_linear_per_threshold prior_coef_brms prior_coef_match prior_coef_rows residuals_newdata residuals_one summary_gp_frame formula_helper_funs 

@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.sample C:/Users/adf44/source/r/rellib-r3/frmtmb 
+simulators: ......................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb.sample test-simulators.R gated=TRUE pass=54 fail=0 err=0 skip=0 warn=0

@@ -24,7 +24,10 @@ frm(
 \arguments{
 \item{formula}{A \code{frmtmb_formula} from \code{\link[=bf]{bf()}} (with a family attached
 via \code{+}), or a plain formula combined with the \code{family} argument.
-With neither, the family is \code{gaussian()}.}
+With neither, the family is \code{gaussian()}. A \code{.} stands for every
+column of \code{data} that is not on the left of the formula, as in
+brms: \code{y ~ .} is expanded with \code{\link[stats:terms]{stats::terms()}} before the formula
+is read, and each parameter formula is expanded on its own.}
 
 \item{data}{A data frame. A \code{tibble}, a \code{data.table}, or a plain
 named list of equal-length columns is accepted as well, since each
@@ -40,6 +43,9 @@ a family constructor with or without its parentheses (for example
 \code{gaussian()}, \code{poisson}, \code{cumulative}), or a family name as a
 string. It overrides a family already attached to \code{formula}; in a
 multivariate model it fills only the responses that have none.
+A multivariate model also takes a list of families, as in brms,
+one per response in formula order: \code{family = list(gaussian(), poisson())}. Each entry fills its response when that response has
+no family.
 The default, \code{NULL}, means \code{gaussian()} - the brms, \code{lme4} and
 \code{glmmTMB} convention - so \code{frm(y ~ x, data = d)} is a linear
 model.}
@@ -460,6 +466,86 @@ Calling \code{frm()} again on new data is not a refit: it counts the
 thresholds of that data. That is what \code{update(newdata = )} does,
 because it re-evaluates the stored call, and what \code{\link[=simulate]{simulate()}}
 followed by \code{frm()} does. Write \code{thres(K)} to pin a count there.
+
+brms's older \code{cat(x)} gives the number of CATEGORIES and is read as
+\code{thres(x - 1)}, with brms's deprecation warning. \code{cat()} and
+\code{thres()} together are refused, because they set one count.
+}
+
+\section{Exposures, rate()}{
+
+\code{y | rate(d) ~ x} fits a count with exposure \code{d}, as in brms, for
+\code{poisson()}, \code{negbinomial()} and \code{geometric()}. The expected count
+is \code{mu * d}. Under the log link that is \code{eta + log(d)} on the
+linear-predictor scale, so on \code{poisson()} the model is the same as
+\code{y ~ x + offset(log(d))}. On the negative binomial brms multiplies
+the shape by \code{d} too, so the variance is \verb{mu d (1 + mu / shape)},
+and on \code{geometric()} the density is the negative binomial of size
+\code{d}. \code{d} must be positive.
+
+\code{\link[=fitted]{fitted()}} and \code{\link[=predict]{predict()}} report the expected count, \code{mu * d}.
+\code{fitted(dpar = "mu")} and \code{\link[=frm_linpred]{frm_linpred()}} report \code{mu} and its linear
+predictor without the exposure, as brms's \code{posterior_linpred()}
+does. \code{newdata} must hold \code{d}. Other families refuse the term, as
+brms does.
+}
+
+\section{Response subsets, subset() and index()}{
+
+In a multivariate model, \code{y1 | subset(s) ~ x} fits \code{y1} on the rows
+where the logical variable \code{s} is \code{TRUE}, so each response can have
+its own rows. The design matrices and the smooth bases of a response
+come from its own rows, as brms builds them from the subsetted data.
+A missing value does not drop a row when every response that uses
+the variable leaves that row out through its own \code{subset()}; this is
+brms's rule. In a univariate model \code{subset()} is a filter on the
+rows. \code{\link[=nobs]{nobs()}} counts the rows of the data, as brms's does, in a
+univariate model too, and \code{nobs(fit, resp = "y1")} counts the rows
+of that response in a multivariate one. The log-likelihood's own
+count, which \code{BIC()} reads, is the rows of the fitted frame: the
+subset's rows in a univariate model, and in a multivariate one every
+row kept, including a row that no response's subset uses.
+
+A predictor that reads another response, \code{mi(x)}, cannot line the
+rows up when either response uses \code{subset()}. As in brms, name each
+row of \code{x} with \code{x | mi() + index(id)} and read it with
+\code{mi(x, idx = ref)}: each row of the using response takes the value
+of \code{x} on the row whose \code{id} equals its \code{ref}. A value of \code{ref} with
+no match, a duplicated \code{id}, and \code{mi(x)} without \code{idx} across
+subsetted responses are refused with brms's messages. The
+coefficient has brms's name, \code{mixidxEQref}.
+
+\code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}}, \code{\link[=frm_linpred]{frm_linpred()}} and, in \code{frmtmb.sample},
+\code{log_lik()} and the posterior methods need a single \verb{resp =} on such
+a model, as brms asks: the responses have different rows. On
+\code{newdata} they answer for the rows where that response's subset is
+\code{TRUE}, and \code{newdata} must hold the subset variable. On \code{newdata},
+\code{mi(x, idx = )} matches \code{idx} among the rows of \code{newdata} itself.
+\code{\link[=conditional_effects]{conditional_effects()}} holds a subset variable at \code{TRUE}, as brms
+does.
+
+Refused: \code{subset()} with \code{set_rescor(TRUE)}, with \code{me()} terms (as
+in brms), with \code{na.action = na.exclude}, and, in a multivariate
+model, with a residual correlation term or a structured family, and
+\code{vcov_cluster()} on such a model.
+
+Three differences from brms remain, all for the same reason. brms
+keeps every level of the whole data in a subsetted response, and
+frmtmb keeps the levels that the response's own rows carry, so that
+it creates no parameter that the data cannot place:
+\itemize{
+\item A grouping factor. A level with no rows adds nothing to the
+marginal likelihood, so the fits agree, but \code{\link[=ranef]{ranef()}} lists
+fewer levels, and \verb{|ID|}-linked terms whose rows carry different
+levels are refused.
+\item A factor predictor. brms keeps an all-zero column for a
+level that occurs only outside the subset; frmtmb drops the
+column with its rank-deficiency message, and the fit is the fit
+on the subset's rows.
+\item An ordinal response. A category that occurs only outside the
+subset gives brms one more threshold than frmtmb, because frmtmb
+counts the categories the response's own rows take.
+}
 }
 
 \section{The Laplace approximation, and how to check it}{

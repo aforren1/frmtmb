@@ -1,0 +1,18 @@
+SUITE frmtmb files=186 pass=14462 fail=8 err=0 skip=14 warn=0
+SUITE frmtmb.sample files=36 pass=2154 fail=5 err=0 skip=1 warn=0
+NOT CLEAN:
+                                                   log           pkg
+        frmtmb-gated-test-brms-suite-brmsformula.R.log        frmtmb
+           frmtmb-gated-test-brms-suite-standata.R.log        frmtmb
+            frmtmb-gated-test-message-uniqueness.R.log        frmtmb
+ frmtmb.sample-gated-test-brms-suite-brmsformula.R.log frmtmb.sample
+                          file pass fail err skip warn
+ test-brms-suite-brmsformula.R   11    5   0    0    0
+    test-brms-suite-standata.R   86    1   0    0    0
+     test-message-uniqueness.R    5    2   0    0    0
+ test-brms-suite-brmsformula.R   11    5   0    0    0
+WITH SKIPS:
+           pkg                    file skip
+        frmtmb test-drmtmb-agreement.R   13
+        frmtmb             test-fuzz.R    1
+ frmtmb.sample            test-scale.R    1

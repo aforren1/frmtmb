@@ -1,0 +1,6 @@
+ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
+trunc-postfit: ...................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT base test-trunc-postfit.R pass=35 fail=0 error=0 skip=0 warn=0

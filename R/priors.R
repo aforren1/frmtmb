@@ -1517,9 +1517,11 @@ default_prior <- function(object, data = NULL, family = NULL,
   # refused before the frame is assembled: a route nothing can answer is
   # unanswerable for every model, so the work would be thrown away
   if (identical(route, "sample")) require_prior_defaults()
-  # check_trials = FALSE because brms's default_prior() answers for a
-  # binomial model written without trials(), which frm() refuses
-  design <- prior_design(object, data, family, data2, check_trials = FALSE)
+  # check_response = FALSE because brms's default_prior() never reads
+  # the response: it answers for a binomial model written without
+  # trials() and for a response the family refuses; frm() refuses both
+  design <- prior_design(object, data, family, data2,
+                         check_response = FALSE)
   prior_table(design$spec, design$frame, route)
 }
 
@@ -1533,14 +1535,15 @@ get_prior <- function(formula, ...) {
 #'
 #' @noRd
 prior_design <- function(object, data, family, data2,
-                         check_trials = TRUE) {
+                         check_response = TRUE) {
   if (inherits(object, "frmtmb_fit")) {
     return(list(spec = object$spec, frame = object$frame))
   }
-  bform <- resolve_deferred_families(as_bform(object, family), data)
+  bform <- expand_dot_bform(as_bform(object, family), data)
+  bform <- resolve_deferred_families(bform, data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, data2 = data2,
-                         check_trials = check_trials)
+                         check_response = check_response)
   # the table is built from the spec's primary_dpars and nlpars, so
   # it needs the finalized families: a family that derived its dpars
   # from the response would otherwise be tabled under the vocabulary
@@ -1601,7 +1604,10 @@ validate_prior <- function(prior, formula, data, family = NULL,
              call. = FALSE)
   }
   check_prior_slots(pl)
-  design <- prior_design(formula, data, family, data2)
+  # brms's validate_prior() never reads the response either, so it
+  # answers the models default_prior() answers
+  design <- prior_design(formula, data, family, data2,
+                         check_response = FALSE)
   # the fit's own resolution, so every refusal is the one frm() gives
   resolve_priorlist(design, pl)
   tab <- prior_table(design$spec, design$frame, route)
@@ -1617,7 +1623,9 @@ validate_prior <- function(prior, formula, data, family = NULL,
 #' @noRd
 fill_prior_table <- function(tab, pl) {
   cols <- c("class", "coef", "group", "resp", "dpar", "nlpar")
-  bare <- function(v) par_name_bare(v)
+  # both sides in brms's spelling: the table writes sx_1 where a prior
+  # written against it before may say s(x).fx1
+  bare <- function(v) par_name_bare(prior_coef_brms(v))
   # which rows a specification's resp, dpar and nlpar reach, read the
   # way the resolver reads them. No resp means every response; in a
   # multivariate model only a class with no response key gets that far,
@@ -1705,6 +1713,49 @@ fill_prior_table <- function(tab, pl) {
   tab
 }
 
+#' brms's spelling of a coefficient in the prior table.
+#'
+#' A design column is named by `model.matrix()`, and two of those names
+#' are not brms's: the intercept of an uncentered predictor is
+#' `(Intercept)` where brms writes `Intercept`, and the unpenalized
+#' column of a smooth is `s(x).fx1` where brms writes `sx_1`, which is
+#' also the name `variables()` gives it after `bs_`. The resolver takes
+#' either spelling of both (`prior_coef_match()`), so a prior written
+#' against the old table still lands.
+#'
+#' @noRd
+prior_coef_brms <- function(cn) {
+  out <- sub("^[(]Intercept[)]$", "Intercept", cn)
+  fx <- grepl("[.]fx[0-9]+$", cn)
+  if (any(fx)) {
+    lab <- brms_rename(sub("[.]fx[0-9]+$", "", cn[fx]))
+    out[fx] <- paste0(lab, "_", sub("^.*[.]fx([0-9]+)$", "\\1", cn[fx]))
+  }
+  out
+}
+
+#' A block's coefficient rows in brms's spelling and brms's order.
+#'
+#' brms sorts its prior table by coefficient within a class
+#' (`.default_prior()`, `order(..., class, group, coef)`), so a slope
+#' named `z` follows a smooth's `sx_1` whatever order the formula put
+#' them in. `order()` is brms's own call here, locale and all.
+#'
+#' @noRd
+prior_coef_rows <- function(cn) {
+  out <- prior_coef_brms(cn)
+  out[order(out)]
+}
+
+#' Which design columns a written `coef` names: the column name, the same
+#' with parentheses dropped (`Intercept`), or brms's spelling of it.
+#'
+#' @noRd
+prior_coef_match <- function(cn, coef) {
+  cn == coef | par_name_bare(cn) == par_name_bare(coef) |
+    prior_coef_brms(cn) == coef
+}
+
 #' The [default_prior()] table for an assembled model.
 #'
 #' @noRd
@@ -1742,7 +1793,10 @@ prior_table <- function(spec, frame, route) {
   }
 
   for (lp in frame[["linpreds"]]) {
-    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+    # an equated dpar has no parameter of its own; its target's row is
+    # the one brms lists
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+          !is.null(lp[["equate"]])) next
     rspec <- spec$responses[[lp[["resp"]]]]
     # location dpars are the default target (dpar = ""), matching
     # set_prior()'s resolution
@@ -1761,7 +1815,7 @@ prior_table <- function(spec, frame, route) {
     if (nzchar(nl_lab)) {
       if (length(cn)) {
         add("b", dpar = dpar_lab, nlpar = nl_lab, resp = resp_lab)
-        for (co in cn) {
+        for (co in prior_coef_rows(cn)) {
           add("b", coef = co, dpar = dpar_lab, nlpar = nl_lab,
               resp = resp_lab)
         }
@@ -1804,7 +1858,7 @@ prior_table <- function(spec, frame, route) {
                 vapply(lp[["cs"]] %||% list(), cs_term_coef, ""))
     if (length(others)) {
       add("b", dpar = dpar_lab, resp = resp_lab)
-      for (co in others) {
+      for (co in prior_coef_rows(others)) {
         add("b", coef = co, dpar = dpar_lab, resp = resp_lab)
       }
     }
@@ -2496,7 +2550,8 @@ resolve_priorlist <- function(fit, pl) {
     multi_loc <- character(0)
     loc_brms <- TRUE
     for (lp in frame[["linpreds"]]) {
-      if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+      if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+            !is.null(lp[["equate"]])) next
       rspec <- fit$spec$responses[[lp[["resp"]]]]
       if (nzchar(s$resp %||% "") && !identical(lp[["resp"]], s$resp)) next
       # primary_dpars carries the nonlinear parameters a nonlinear
@@ -2529,9 +2584,10 @@ resolve_priorlist <- function(fit, pl) {
       pick <- if (s$class == "Intercept") {
         if (!icpt_b) which(cn == "(Intercept)") else integer(0)
       } else if (nzchar(s$coef)) {
-        # brms writes an intercept as "Intercept"; the design matrix
-        # spells it "(Intercept)", and both name the same column
-        which(cn == s$coef | par_name_bare(cn) == par_name_bare(s$coef))
+        # brms writes an intercept as "Intercept" and a smooth's
+        # unpenalized column as sx_1; the design matrix spells them
+        # "(Intercept)" and s(x).fx1, and both name the same column
+        which(prior_coef_match(cn, s$coef))
       } else if (want_np) {
         # a nonlinear parameter's sub-formula is NOT centered, so its
         # intercept sits in the same coefficient vector as its slopes
@@ -2787,7 +2843,7 @@ resolve_priorlist <- function(fit, pl) {
     # hold the thresholds themselves and brms declares them unordered
     # (brms:::has_ordered_thres() is FALSE for all three), so neither
     # side has a Jacobian there
-    ordered <- identical(rspec$family[["family"]], "cumulative")
+    ordered <- rspec$family[["family"]] %in% ord_ordered_families
     th <- rspec$family[["thres"]]
     grouped <- isTRUE(th[["grouped"]])
     if (nzchar(s$group) && !grouped) {
@@ -3181,6 +3237,11 @@ dpar_shape_refusal <- function(fit, s) {
                   paste(frmtmb_prior_classes, collapse = ", ")))
   }
   for (lp in lps) {
+    if (!is.null(lp[["equate"]])) {
+      return(paste0(spelling, ": ", dp, " is equated to ", lp[["equate"]],
+                    " in this model, so it holds no parameter of its own. ",
+                    "Address ", lp[["equate"]], " instead"))
+    }
     if (!is.null(lp[["constant"]])) {
       return(paste0(spelling, ": ", dp, " is fixed at ",
                     format(lp[["constant"]]), " in this model, so it ",

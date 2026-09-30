@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+mixture-start: .....
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb test-mixture-start.R gated=FALSE pass=5 fail=0 err=0 skip=0 warn=0

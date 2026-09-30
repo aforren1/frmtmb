@@ -1,0 +1,116 @@
+<environment: namespace:brms>
+== glm_order: brms 6 rows, frmtmb 6 rows, common 6, order of common DIFFERENT
+   within-block order differs in: b|||| 
+  brms  : b|||||  ;  b|w||||  ;  b|x||||  ;  b|z||||  ;  Intercept|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|z||||  ;  b|x||||  ;  b|w||||  ;  sigma||||| 
+== factor: brms 6 rows, frmtmb 6 rows, common 6, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|fb||||  ;  b|fc||||  ;  b|x||||  ;  Intercept|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|fb||||  ;  b|fc||||  ;  b|x||||  ;  sigma||||| 
+== smooth: brms 7 rows, frmtmb 9 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|z||||  ;  Intercept|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|z||||  ;  sigma||||| 
+  only brms  : b|sx_1||||  ;  sds|||||  ;  sds|s(x)|||| 
+  only frmtmb: b|s(x).fx1||||  ;  sd|||||  ;  sd||s(x)|||  ;  theta|||||  ;  theta|theta_1|||| 
+== smooth2: brms 9 rows, frmtmb 12 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|z||||  ;  Intercept|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|z||||  ;  sigma||||| 
+  only brms  : b|sw_1||||  ;  b|sx_1||||  ;  sds|||||  ;  sds|s(w)||||  ;  sds|s(x)|||| 
+  only frmtmb: b|s(w).fx1||||  ;  b|s(x).fx1||||  ;  sd|||||  ;  sd||s(w)|||  ;  sd||s(x)|||  ;  theta|||||  ;  theta|theta_1||||  ;  theta|theta_2|||| 
+== smooth_by: brms 10 rows, frmtmb 16 rows, common 5, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|fb||||  ;  b|fc||||  ;  Intercept|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|fb||||  ;  b|fc||||  ;  sigma||||| 
+  only brms  : b|sx:fa_1||||  ;  b|sx:fb_1||||  ;  b|sx:fc_1||||  ;  sds|||||  ;  sds|s(x, by = f)|||| 
+  only frmtmb: b|s(x):fa.fx1||||  ;  b|s(x):fb.fx1||||  ;  b|s(x):fc.fx1||||  ;  sd|||||  ;  sd||s(x):fa|||  ;  sd||s(x):fb|||  ;  sd||s(x):fc|||  ;  theta|||||  ;  theta|theta_1||||  ;  theta|theta_2||||  ;  theta|theta_3|||| 
+== re: brms 10 rows, frmtmb 12 rows, common 8, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  cor|||||  ;  cor||g|||  ;  Intercept|||||  ;  sd|||||  ;  sd||g|||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  sigma|||||  ;  sd|||||  ;  sd||g|||  ;  cor|||||  ;  cor||g||| 
+  only brms  : sd|Intercept|g|||  ;  sd|x|g||| 
+  only frmtmb: theta|||||  ;  theta|theta_1||||  ;  theta|theta_2||||  ;  theta|theta_3|||| 
+== re2: brms 12 rows, frmtmb 14 rows, common 9, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  cor|||||  ;  cor||h|||  ;  Intercept|||||  ;  sd|||||  ;  sd||g|||  ;  sd||h|||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  sigma|||||  ;  sd|||||  ;  sd||g|||  ;  sd||h|||  ;  cor|||||  ;  cor||h||| 
+  only brms  : sd|Intercept|g|||  ;  sd|Intercept|h|||  ;  sd|z|h||| 
+  only frmtmb: theta|||||  ;  theta|theta_1||||  ;  theta|theta_2||||  ;  theta|theta_3||||  ;  theta|theta_4|||| 
+== dist: brms 7 rows, frmtmb 7 rows, common 7, order of common DIFFERENT
+   within-block order differs in: b|||sigma| 
+  brms  : b|||||  ;  b|x||||  ;  Intercept|||||  ;  b||||sigma|  ;  b|x|||sigma|  ;  b|z|||sigma|  ;  Intercept||||sigma| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  Intercept||||sigma|  ;  b||||sigma|  ;  b|z|||sigma|  ;  b|x|||sigma| 
+== noint: brms 4 rows, frmtmb 4 rows, common 4, order of common SAME
+   within-block order differs in: none 
+== noint_f: brms 6 rows, frmtmb 6 rows, common 6, order of common SAME
+   within-block order differs in: none 
+== pois: brms 4 rows, frmtmb 4 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  b|z||||  ;  Intercept||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  b|z|||| 
+== ord: brms 7 rows, frmtmb 4 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  b|z||||  ;  Intercept||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  b|z|||| 
+  only brms  : Intercept|1||||  ;  Intercept|2||||  ;  Intercept|3|||| 
+== ord_cs: brms 7 rows, frmtmb 4 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  b|z||||  ;  Intercept||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  b|z|||| 
+  only brms  : Intercept|1||||  ;  Intercept|2||||  ;  Intercept|3|||| 
+== student: brms 5 rows, frmtmb 5 rows, common 5, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  Intercept|||||  ;  nu|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  sigma|||||  ;  nu||||| 
+== nl: brms 6 rows, frmtmb 6 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : sigma|||||  ;  b|||||b1  ;  b|||||b2  ;  b|z||||b2 
+  frmtmb: b|||||b1  ;  b|||||b2  ;  b|z||||b2  ;  sigma||||| 
+  only brms  : b|Intercept||||b1  ;  b|Intercept||||b2 
+  only frmtmb: b|(Intercept)||||b1  ;  b|(Intercept)||||b2 
+== nl2: brms 7 rows, frmtmb 7 rows, common 5, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : sigma|||||  ;  b|||||b1  ;  b|z||||b1  ;  b|||||b2  ;  b|w||||b2 
+  frmtmb: b|||||b1  ;  b|z||||b1  ;  b|||||b2  ;  b|w||||b2  ;  sigma||||| 
+  only brms  : b|Intercept||||b1  ;  b|Intercept||||b2 
+  only frmtmb: b|(Intercept)||||b1  ;  b|(Intercept)||||b2 
+== nl_smooth: brms 10 rows, frmtmb 11 rows, common 5, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : sigma|||||  ;  b|||||lp  ;  b|z||||lp  ;  sd|||||lp  ;  sd||g|||lp 
+  frmtmb: b|||||lp  ;  b|z||||lp  ;  sigma|||||  ;  sd|||||lp  ;  sd||g|||lp 
+  only brms  : b|Intercept||||lp  ;  b|sx_1||||lp  ;  sd|Intercept|g|||lp  ;  sds|||||lp  ;  sds|s(x)||||lp 
+  only frmtmb: b|(Intercept)||||lp  ;  b|s(x).fx1||||lp  ;  sd||s(x)|||lp  ;  theta|||||  ;  theta|theta_1||||  ;  theta|theta_2|||| 
+== mv: brms 9 rows, frmtmb 9 rows, common 9, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||y||  ;  b|x||y||  ;  b|z||y||  ;  Intercept|||y||  ;  sigma|||y||  ;  b|||y2||  ;  b|w||y2||  ;  Intercept|||y2||  ;  sigma|||y2|| 
+  frmtmb: Intercept|||y||  ;  b|||y||  ;  b|x||y||  ;  b|z||y||  ;  sigma|||y||  ;  Intercept|||y2||  ;  b|||y2||  ;  b|w||y2||  ;  sigma|||y2|| 
+== zi: brms 6 rows, frmtmb 6 rows, common 6, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  Intercept|||||  ;  b||||zi|  ;  b|z|||zi|  ;  Intercept||||zi| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  Intercept||||zi|  ;  b||||zi|  ;  b|z|||zi| 
+== mo: brms 6 rows, frmtmb 5 rows, common 5, order of common DIFFERENT
+   within-block order differs in: b|||| 
+  brms  : b|||||  ;  b|moyo||||  ;  b|x||||  ;  Intercept|||||  ;  sigma||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  b|moyo||||  ;  sigma||||| 
+  only brms  : simo|moyo1|||| 
+== beta: brms 4 rows, frmtmb 4 rows, common 4, order of common DIFFERENT
+   within-block order differs in: none 
+  brms  : b|||||  ;  b|x||||  ;  Intercept|||||  ;  phi||||| 
+  frmtmb: Intercept|||||  ;  b|||||  ;  b|x||||  ;  phi||||| 
+== beta_bad: brms 4 rows, frmtmb 1 rows, common 0, order of common SAME
+   within-block order differs in: none 
+  only brms  : b|||||  ;  b|x||||  ;  Intercept|||||  ;  phi||||| 
+  only frmtmb: FRMTMB ERROR: beta: response must lie strictly in (0, 1) 
+== bern_bad: brms 3 rows, frmtmb 1 rows, common 0, order of common SAME
+   within-block order differs in: none 
+  only brms  : b|||||  ;  b|x||||  ;  Intercept||||| 
+  only frmtmb: FRMTMB ERROR: bernoulli: response must be 0/1 
+== pois_bad: brms 3 rows, frmtmb 1 rows, common 0, order of common SAME
+   within-block order differs in: none 
+  only brms  : b|||||  ;  b|x||||  ;  Intercept||||| 
+  only frmtmb: FRMTMB ERROR: poisson: response must be non-negative integers 
+== cat_num: brms 24 rows, frmtmb 1 rows, common 0, order of common SAME
+   within-block order differs in: none 
+  only brms  : b||||mu1|  ;  b|x|||mu1|  ;  Intercept||||mu1|  ;  b||||mu2|  ;  b|x|||mu2|  ;  Intercept||||mu2|  ;  b||||mu3|  ;  b|x|||mu3|  ;  Intercept||||mu3|  ;  b||||mu4|  ;  b|x|||mu4|  ;  Intercept||||mu4|  ;  b||||mu5|  ;  b|x|||mu5|  ;  Intercept||||mu5|  ;  b||||mu6|  ;  b|x|||mu6|  ;  Intercept||||mu6|  ;  b||||mu8|  ;  b|x|||mu8|  ;  Intercept||||mu8|  ;  b||||mu9|  ;  b|x|||mu9|  ;  Intercept||||mu9| 
+  only frmtmb: FRMTMB ERROR: categorical(): the response 'cnt' has fewer than two categories 

@@ -1,0 +1,6 @@
+m_s lane NA identical to NULL: TRUE 
+m_fs lane NA identical to NULL: TRUE 
+m_gp lane NA identical to NULL: TRUE 
+m_hs lane NA identical to NULL: TRUE 
+m_sre lane NA identical to NULL: FALSE 
+[1] "(Intercept)"       "z"                 "sigma_(Intercept)"

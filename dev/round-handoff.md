@@ -1,11 +1,107 @@
 # Handing a round to a new session
 
 Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
-0.64.0 brms-parity release and 2026-09-29 at the 0.65.0 release. Read
-this, then `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md`
-and `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
-anything: the library has been lost EIGHT times, and the last three
-losses each followed processes being killed, not low disk.
+0.64.0 brms-parity release and 2026-09-29 at the 0.65.0 and 0.66.0
+releases. Read this, then `dev/extension-gaps-plan.md`, then
+`dev/organizer-rules.md` and `dev/lane-rules.md`. Read
+`dev/machine-library.md` BEFORE you run anything: the library has been
+lost EIGHT times, and the last three losses each followed processes
+being killed, not low disk.
+
+## The 0.66.0 round, 2026-09-29
+
+`dev/round-20260929b.md` is this round's record, with the verification
+of the release tree. Each lane has `dev/<lane>-findings.md` and
+`dev/reviews/2026-09-29-<lane>.md`. Six lanes of brms parity merged:
+
+- `sampfix`: frmtmb.sample reads `frm_sample(laplace = TRUE)` draws in
+  their own layout (they returned NaN or finite wrong numbers) and
+  refuses by name what reads the integrated values; `pp_check()`'s
+  `loo_*` types; `stanfit = NULL` draws; brms's names for ordinal
+  draws; one-parameter models.
+- `fams2`: `xbeta()`, `zero_inflated_beta_binomial()`,
+  `hurdle_cumulative()` and `cse()`.
+- `aterms2`: `subset()`, `index()`, `mi(x, idx = )`, `rate()` and
+  `cat()`; `nobs()` is brms's.
+- `formula2`: dpar equations (`sigma1 = "sigma2"`), `cmc`, `y ~ .`, a
+  list of families, and `update()` with a `bf()` delta.
+- `defects`: 38 rows of the ported brms suite, among them two silent
+  wrong answers (`fitted(scale = "linear")` with `cs()`, residuals of a
+  missing `mi()` response).
+- `postfit2`: `conditional_smooths()`, `make_conditions()`,
+  `update_adterms()`, `posterior_average()`, `conditional_effects()`'s
+  `surface`, `too_far`, `select_points` and `spaghetti`, a Wald band
+  for a nonlinear predictor, and brms's per-row rule for which group a
+  display row reads under `re_formula = NULL` (a silent wrong answer
+  found by lane sampfix). `frm_bootstrap()` no longer redraws smooths.
+
+Versions: frmtmb **0.66.0**; frmtmb.sample **0.14.0**, floor frmtmb
+0.66.0 (new sampling-API exports, the ordinal inverse maps, equated
+parameters); frmtmb.eam **0.11.2**, floor 0.66.0 (its `test-family.R`
+reads `frmtmb:::row_aterms`; no code change); frmtmb.learn **0.7.1**
+and frmtmb.ode **0.7.1** (tests only: `test-stan-identity.R` and the
+scale tier's `test-scale.R` let no warning escape). frmtmb.coupling,
+frmtmb.latent and frmtmb.spline are unchanged. In brms's own ported
+suite, bin 1
+passes 368 of 494 (306 on lane defects alone, 275 at 0.65.0).
+
+### Decisions the user made on 2026-09-29, for this round
+
+- **`default_prior()` and `validate_prior()` skip the response check**,
+  as brms's do: a `Beta()` model on a response outside (0, 1) gets its
+  table, and `frm()` still refuses the fit. An ordinal response the
+  family cannot read is still refused, as brms's `extract_nthres()`
+  refuses it.
+- **`update(fit, data = )` is kept** and refits on the new data, as
+  `stats::update()`, lme4 and glmmTMB read it. brms refuses that
+  spelling. Recorded as a divergence (`brmsfit-methods:927`).
+- **Laplace conditional draws stay refused.** `frm_sample(laplace =
+  TRUE)` samples an approximate posterior whose use is checking the
+  approximation; a call that reads the integrated values (group-level
+  coefficients, a smooth's coefficients, `mi()` values) is refused by
+  name, and the values are not filled in from `N(b_hat, H^-1)`.
+- **`frm_bootstrap()` never redraws a smooth, `gp()` or `hsgp()`
+  term**, one indexed by a grouping factor included, and
+  `conditional_effects(band = "boot")` inherits the rule. This
+  withdraws the whole-model default of 2026-09-24 (below).
+- **Upstream bugs are listed in `dev/upstream-bugs.md`** for the user
+  to file. No session files them.
+- **Nobody uses the package, so break compatibility freely.** This
+  round did: `nobs()`, `frm_bootstrap()`, `fitted(scale = "linear")`
+  on `cs()` fits, the prior-table spellings and the ordinal draw names
+  all changed, and NEWS says so under "Breaking changes".
+
+### What the 0.66.0 round is evidence for
+
+**Run every extension suite that can reach a changed path.** Lane
+aterms2 added `subset()` and `index()` to core's compatibility table
+and ran core and frmtmb.sample twice. The change broke 5 assertions in
+frmtmb.eam's `test-family.R`, which the reviewer found only by running
+all eight suites. `dev/lane-rules.md` now says so.
+
+**A `test_file()` runner must attach the package.** Lane runners that
+called `test_file(package = p)` without `library(p)` reported failures
+in `test-conditions.R`, `test-data2.R` and `test-id-kron.R` that are
+the runner's. Measured on the release build
+(`dev/round-20260929b.md`): unattached, `test-conditions.R` has 3
+failures and 3 errors and the other two 1 error each; attached, all
+three pass. `dev/lane-rules.md` now says so.
+
+**A small punch round can add large code, so give it a final check.**
+fams2's second punch round added a "some rows" rule to the `kappa`
+warning, and the final check found it warned on well-identified fits
+(K1). postfit2's punch rounds replaced the whole new-level
+construction of `conditional_effects()` with a per-row, per-term plan
+(`R/ce-levels.R`, new), and each re-check found a new blocker in it.
+Neither would have been seen without a review after the last punch
+round.
+
+**A clean textual merge can call a function another lane removed.**
+sampfix's laplace probe in frmtmb.sample's `conditional_effects()`
+called `ce_draw_new_levels()`, which postfit2 removed, and the two
+lanes' hunks merged without a conflict. The probe is now written on
+postfit2's `ce_plan_eval()`. Grep for every removed export after a
+merge; the suite finds the rest.
 
 ## The 0.65.0 round, 2026-09-29
 
@@ -144,13 +240,19 @@ step 7). A released site beside a development site is recorded in
 `dev/docsci-findings.md` as later work, for when a tagged release
 exists that people install.
 
-**Filed at 0.65.0, in `dev/test-backlog.md`:** `pp_check()`'s four
-`loo_*` types fail on every model (no PSIS object is built);
-`posterior_predict()` and `posterior_epred()` on `laplace = TRUE` draws
-return NaN silently; `frm_sample(laplace = TRUE)` with no random effect
-dies with an internal error; `fitted(newdata = )` on a multivariate
-ordinal fit errors; `variables()` on a draws object gives internal names
-for ordinal fits; `mo(m) + m` is unidentified and nothing reports it;
+**Filed at 0.66.0, in `dev/test-backlog.md`** under "Filed at the
+0.66.0 release": what the six lanes left, led by a NaN the laplace
+probe can pass, `predict(newdata = )` with NA responses under
+`cov = FALSE` ARMA, and the bernoulli recoding of a two-valued
+response.
+
+**Filed at 0.65.0, in `dev/test-backlog.md`:** closed at 0.66.0 by
+lane sampfix: `pp_check()`'s four `loo_*` types,
+`posterior_predict()` and `posterior_epred()` on `laplace = TRUE`
+draws, `frm_sample(laplace = TRUE)` with no random effect, and
+`variables()` on the draws of an ordinal fit. Still open:
+`fitted(newdata = )` on a multivariate ordinal fit errors;
+`mo(m) + m` is unidentified and nothing reports it;
 the finite-difference `Est.Error` at `newdata` off a `gp()`'s fitted
 positions costs one evaluation pair per coefficient; standard errors
 are not bound-aware at a constrained optimum.
@@ -226,7 +328,8 @@ negbinomial CDF for `trunc()` has not.
   rule where brms has no such family (organizer's call, not objected to).
 - **`frm_bootstrap()` keeps its whole-model default**, redrawing group
   effects and smooths; `re_formula = NULL` conditions on them. No new
-  argument.
+  argument. WITHDRAWN 2026-09-29 for smooths: `frm_bootstrap()` never
+  redraws a smooth, `gp()` or `hsgp()` term (see the 0.66.0 round).
 - **Residual correlation at newdata counts fitted time levels**, a
   documented departure from brms, whose position-based reading is not
   consistent under marginalization.
@@ -414,10 +517,12 @@ it.
 
 ## Worktrees
 
-None should be live once 0.65.0 is committed. The round used seven
-lane worktrees off `9b4bb650` (`wt-gradcheck`, `wt-csfactor`,
-`wt-resmooth`, `wt-thresrefit`, `wt-arcovsample`, `wt-records`,
-`wt-docsci`) and one integration worktree, `wt-release`, where the
-seven were combined and verified. Remove a worktree and prune its
-branch only after its work is merged and its evidence is committed on
-main under `dev/`.
+None should be live once 0.66.0 is committed. The 0.66.0 round used
+six lane worktrees off `1f40800d` (`wt-sampfix`, `wt-fams2`,
+`wt-aterms2`, `wt-formula2`, `wt-defects`, `wt-postfit2`) and one
+integration worktree, `wt-release` off `56af5022`, where the six were
+combined and verified. Their private libraries are
+`C:/Users/adf44/source/r/wt-<lane>-lib`; the release library is
+`C:/Users/adf44/source/r/rellib-r4`, and `rellib-r3` holds the 0.65.0
+reference build. Remove a worktree and prune its branch only after its
+work is merged and its evidence is committed on main under `dev/`.

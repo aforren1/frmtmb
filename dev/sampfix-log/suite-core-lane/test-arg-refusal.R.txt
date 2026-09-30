@@ -1,0 +1,18 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | arg-refusal                                                    
+⠋ |          1 | arg-refusal                                                    
+⠏ |         10 | arg-refusal                                                    
+⠸ |         34 | arg-refusal                                                    
+⠦ |         77 | arg-refusal                                                    
+⠙ |         92 | arg-refusal                                                    
+⠹ |         93 | arg-refusal                                                    
+⠏ |        110 | arg-refusal                                                    
+✔ |        123 | arg-refusal [5.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 123 ]
+RESULT lane test-arg-refusal.R: tests 13 pass 123 fail 0 error 0 skip 0 warn 0

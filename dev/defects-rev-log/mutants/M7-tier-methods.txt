@@ -1,0 +1,2 @@
+No priors were set (plain maximum likelihood).
+MUTANT M7 predict_new_level_spec test-brms-suite-methods.R pass= 162 fail= 0 err= 0 

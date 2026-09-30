@@ -1,13 +1,14 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the 0.65.0
-release, at frmtmb 0.65.0 and every extension's version of that release:
+`dev/suite-baseline.tsv` records one row per test file as of the 0.66.0
+release, at frmtmb 0.66.0 and every extension's version of that release:
 package, file, passing assertions, skips. It is a floor, not a target.
 
-Every row is from the release run of 2026-09-29 on the 0.65.0 tree
-(`dev/release/suite.log`, 309 files, 18,345 assertions, 0 fail, 0
-error). Four files are new and no file's passing count fell against
-0.64.0. See "What the 0.65.0 release changed" below.
+Every row is from the release run of 2026-09-29 on the 0.66.0 tree
+(`dev/release/suite.log`, 327 files, 19,880 assertions, 0 fail, 0
+error, 0 escaped warnings). Eighteen files are new, and one file's
+passing count fell against 0.65.0, with the answer below. See "What the
+0.66.0 release changed".
 
 Read a tier log only when it POSTDATES every file it covers. Three lanes
 of this round quoted a suite log written before their last edit, and in
@@ -256,3 +257,30 @@ watcher, a `tail -F` that kept the logs locked after the watcher was
 stopped (`dev/lane-rules.md`, shell traps). Both were rerun from empty
 logs, and every count above comes from a log whose `RESULT` lines equal
 the files it declares.
+
+## What the 0.66.0 release changed
+
+Regenerated at 327 rows and 19,880 assertions, from 309 and 18,345, all
+eight packages in one run (`dev/release/run-par.sh`, one R process per
+file, twenty at a time). Eighteen files are new: in core
+`test-brms-parity-defects.R` (106), `test-brms-utilities.R` (28),
+`test-ce-levels.R` (69), `test-ce-options.R` (32),
+`test-conditional-smooths.R` (39), `test-dpar-equate.R` (36),
+`test-family-list.R` (7), `test-formula-cmc.R` (49),
+`test-formula-dot.R` (26), `test-subset-rate.R` (86) and
+`test-xbeta-zibb-hurdle-cum.R` (604); in frmtmb.sample
+`test-draws-no-stanfit.R` (21), `test-laplace-draws.R` (92),
+`test-ordinal-draws-names.R` (27), `test-postfit-draws.R` (57),
+`test-ppcheck-loo.R` (27), `test-subset-rate-draws.R` (19) and
+`test-xbeta-zibb-hurdle-draws.R` (12). No file was removed.
+
+One count fell, and it closes exactly: `frmtmb/test-arg-refusal.R`,
+123 to 114. Its refusal list asserts three things per case, and three
+cases left it because the calls now answer as brms's do:
+`nobs(resp = )` (lane aterms2, which ran the file at 120 alone), and
+`family(resp = )` and `ranef(groups = )` (lane defects). 123 - 3 x 3 =
+114.
+
+`dev/release/run-tests.R` now prints `warn=` after `skip=` on each
+`RESULT` line, so the regeneration command above still reads the same
+fields.

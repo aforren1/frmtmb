@@ -1,0 +1,41 @@
+0 + f:f2         plain cmc=FALSE: n=240 cnms [fa:f2p,fb:f2p,fc:f2p,fa:f2q,fb:f2q,fc:f2q] brms coefs 6, Z Z' equal TRUE
+0 + f:f2         plain cmc=TRUE : n=240 cnms [fa:f2p,fb:f2p,fc:f2p,fa:f2q,fb:f2q,fc:f2q] brms coefs 6, Z Z' equal TRUE
+0 + f:f2         cs default [fa:f2p,fb:f2p,fc:f2p,fa:f2q,fb:f2q,fc:f2q] | cs cmc=FALSE [fa:f2p,fb:f2p,fc:f2p,fa:f2q,fb:f2q,fc:f2q]
+0 + f + f2       plain cmc=FALSE: n=240 cnms [fb,fc,f2q] brms coefs 3, Z Z' equal TRUE
+0 + f + f2       plain cmc=TRUE : n=240 cnms [fa,fb,fc,f2q] brms coefs 4, Z Z' equal TRUE
+0 + f + f2       cs default [fa,fb,fc,f2q] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + f + f2 | g): the structure reads ]
+0 + f * x        plain cmc=FALSE: n=240 cnms [fb,fc,x,fb:x,fc:x] brms coefs 5, Z Z' equal TRUE
+0 + f * x        plain cmc=TRUE : n=240 cnms [fa,fb,fc,x,fb:x,fc:x] brms coefs 6, Z Z' equal TRUE
+0 + f * x        cs default [fa,fb,fc,x,fb:x,fc:x] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + f * x | g): the structure reads o]
+0 + fu           plain cmc=FALSE: n=240 cnms [fub,fuc] brms coefs 2, Z Z' equal TRUE
+0 + fu           plain cmc=TRUE : n=240 cnms [fua,fub,fuc] brms coefs 3, Z Z' equal TRUE
+0 + fu           cs default [fua,fub,fuc] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + fu | g): the structure reads one ]
+0 + fchr         plain cmc=FALSE: n=240 cnms [fchrb,fchrc] brms coefs 2, Z Z' equal TRUE
+0 + fchr         plain cmc=TRUE : n=240 cnms [fchra,fchrb,fchrc] brms coefs 3, Z Z' equal TRUE
+0 + fchr         cs default [fchra,fchrb,fchrc] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + fchr | g): the structure reads on]
+0 + o            plain cmc=FALSE: n=240 cnms [o.L,o.Q] brms coefs 2, Z Z' equal TRUE
+0 + o            plain cmc=TRUE : n=240 cnms [oa,ob,oc] brms coefs 3, Z Z' equal TRUE
+0 + o            cs default [oa,ob,oc] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + o | g): the structure reads one c]
+0 + factor(xi)   plain cmc=FALSE: n=240 cnms [factor(xi)2,factor(xi)3] brms coefs 2, Z Z' equal TRUE
+0 + factor(xi)   plain cmc=TRUE : n=240 cnms [factor(xi)1,factor(xi)2,factor(xi)3] brms coefs 3, Z Z' equal TRUE
+0 + factor(xi)   cs default [factor(xi)1,factor(xi)2,factor(xi)3] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + factor(xi) | g): the structure re]
+0 + fna          plain cmc=FALSE: n=225 cnms [fnab,fnac] brms coefs 2, Z Z' equal TRUE
+0 + fna          plain cmc=TRUE : n=225 cnms [fnaa,fnab,fnac] brms coefs 3, Z Z' equal TRUE
+0 + fna          cs default [fnaa,fnab,fnac] | cs cmc=FALSE [REFUSED: cmc = FALSE does not apply to cs(0 + fna | g): the structure reads one]
+0 + f:x          plain cmc=FALSE: n=240 cnms [fa:x,fb:x,fc:x] brms coefs 3, Z Z' equal TRUE
+0 + f:x          plain cmc=TRUE : n=240 cnms [fa:x,fb:x,fc:x] brms coefs 3, Z Z' equal TRUE
+0 + f:x          cs default [fa:x,fb:x,fc:x] | cs cmc=FALSE [fa:x,fb:x,fc:x]
+0 + x            plain cmc=FALSE: n=240 cnms [x] brms coefs 1, Z Z' equal TRUE
+0 + x            plain cmc=TRUE : n=240 cnms [x] brms coefs 1, Z Z' equal TRUE
+0 + x            cs default [REFUSED: cs() needs at least 2 terms per level] | cs cmc=FALSE [REFUSED: cs() needs at least 2 terms per level]
+0 + fu:x         plain cmc=FALSE: n=240 cnms [fua:x,fub:x,fuc:x] brms coefs 3, Z Z' equal TRUE
+0 + fu:x         plain cmc=TRUE : n=240 cnms [fua:x,fub:x,fuc:x] brms coefs 3, Z Z' equal TRUE
+0 + fu:x         cs default [fua:x,fub:x,fuc:x] | cs cmc=FALSE [fua:x,fub:x,fuc:x]
+0 + o:x          plain cmc=FALSE: n=240 cnms [oa:x,ob:x,oc:x] brms coefs 3, Z Z' equal TRUE
+0 + o:x          plain cmc=TRUE : n=240 cnms [oa:x,ob:x,oc:x] brms coefs 3, Z Z' equal TRUE
+0 + o:x          cs default [oa:x,ob:x,oc:x] | cs cmc=FALSE [oa:x,ob:x,oc:x]
+== direct calls of the helper on the model frame
+frame has data_frame: TRUE 
+ar1(0 + t | g) over a factor still refused:
+  cmc = FALSE does not apply to ar1(0 + t | g): the structure reads one coefficient per leve 
+DONE

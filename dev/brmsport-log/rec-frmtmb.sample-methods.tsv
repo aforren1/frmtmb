@@ -27,18 +27,18 @@ assert	frmtmb.sample	brmsfit-methods:69	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:72	pass	TRUE	FALSE		Argument 'subset' is deprecated. Please use argument 'draw' instead.	TRUE
 assert	frmtmb.sample	brmsfit-methods:76	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:77	pass	TRUE	FALSE			TRUE
-setup	frmtmb.sample	brmsfit-methods:81		FALSE	FALSE	draws_accessor_args() has no argument `iteration`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
-assert	frmtmb.sample	brmsfit-methods:82	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `iteration`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
-assert	frmtmb.sample	brmsfit-methods:83	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `iteration`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
+setup	frmtmb.sample	brmsfit-methods:81		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:82	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:83	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:87		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:88	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:89		FALSE	FALSE	no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
 setup	frmtmb.sample	brmsfit-methods:90		FALSE	FALSE	object 'chains' not found		FALSE
 assert	frmtmb.sample	brmsfit-methods:91	cannot transfer	FALSE	TRUE	STALE: reads 'ps_dim', whose last assignment failed: object 'chains' not found		FALSE
-setup	frmtmb.sample	brmsfit-methods:93		FALSE	FALSE	draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
-assert	frmtmb.sample	brmsfit-methods:94	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		TRUE
+setup	frmtmb.sample	brmsfit-methods:93		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:94	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:95		TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:96	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		TRUE
+assert	frmtmb.sample	brmsfit-methods:96	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:100		FALSE	FALSE	no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
 setup	frmtmb.sample	brmsfit-methods:101		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:102	cannot transfer	FALSE	TRUE	STALE: reads 'chains', whose last assignment failed: no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
@@ -54,9 +54,9 @@ assert	frmtmb.sample	brmsfit-methods:594	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:595	defect	FALSE	FALSE	ERROR: nsamples(incl_warmup = TRUE) has nothing to count: frm_sample() discards the warmup rather than storing it, so the object carries post-warmup draws only. ndraws(x) is that count		FALSE
 assert	frmtmb.sample	brmsfit-methods:599	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:617		TRUE	FALSE			TRUE
-setup	frmtmb.sample	brmsfit-methods:618		FALSE	FALSE	could not find function "posterior_average"		FALSE
-assert	frmtmb.sample	brmsfit-methods:619	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: could not find function "posterior_average"		FALSE
-assert	frmtmb.sample	brmsfit-methods:620	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: could not find function "posterior_average"		FALSE
+setup	frmtmb.sample	brmsfit-methods:618		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:619	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:620	cannot transfer	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:622		TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:623		FALSE	FALSE	NOT RUN: the setup line reaches brms's own namespace		FALSE
 assert	frmtmb.sample	brmsfit-methods:627	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: NOT RUN: the setup line reaches brms's own namespace		FALSE

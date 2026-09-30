@@ -1,0 +1,10 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-fams2-lib", "C:/Users/adf44/source/r/rellib-r3", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+inhaler <- brms::inhaler
+f1 <- frm(rating ~ treat + period + cs(carry), data = inhaler, family = sratio())
+f2 <- frm(rating ~ treat + period + cse(carry), data = inhaler, family = sratio())
+cat("logLik cs", format(logLik(f1), digits = 15), " cse", format(logLik(f2), digits = 15), "\n")
+cat("identical coef:", identical(fixef(f1), fixef(f2)), "\n")
+print(rownames(fixef(f2)))
+print(default_prior(rating ~ treat + period + cse(carry), data = inhaler, family = sratio())$class)
+print(tryCatch(frm(rating ~ treat * cse(carry), data = inhaler, family = sratio()), error = function(e) conditionMessage(e)))

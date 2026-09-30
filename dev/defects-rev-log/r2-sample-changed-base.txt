@@ -1,0 +1,2 @@
+RESULT base frmtmb.sample 0.13.0 C:/Users/adf44/source/r/rellib-r3 test-draws-methods.R pass= 149 fail= 2 err= 1 skip= 0 warn= 0 
+SUITE base frmtmb.sample ran 1 of 1 files

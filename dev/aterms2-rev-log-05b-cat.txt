@@ -1,0 +1,5 @@
+frm(yi ~ x, categorical): categorical(): the response 'yi' has fewer than two categories 
+frm(o ~ x, categorical): ok 
+frm(o | cat(4) ~ x, categorical): thres() is not a valid addition term for family 'categorical': it sets the number of thresholds of an ordinal family, and this family has none. The ordinal families are cumulative(), sratio(), cratio() and acat() 
+frm(o | thres(3) ~ x, categorical): thres() is not a valid addition term for family 'categorical': it sets the number of thresholds of an ordinal family, and this family has none. The ordinal families are cumulative(), sratio(), cratio() and acat() 
+brms cat(x = 4): ok 

@@ -1,0 +1,9 @@
+sampling-ported: ............................No priors were used (flat improper priors on the outer parameters).
+..................................................................................................................................S................................................
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. ordinal posterior_epred has brms's draws x obs x category shape ('test-sampling-ported.R:613:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-sampling-ported.R pass=206 fail=0 error=0 skip=1 warn=0

@@ -31,6 +31,19 @@ What changed, and `dev/shapes-findings.md` has the whole of it:
   for these methods: the fit surface speaks brms's names alone, which
   is what the 0.57.0 rename settled, and this page already records
   that under (b).
+- **At 0.66.0** (round of 2026-09-29, `dev/round-20260929b.md`) more
+  rows went stale. `conditional_effects()` takes `surface`, `too_far`,
+  `select_points` and `spaghetti` on the fit and on draws, and
+  `conditional_smooths()`, `make_conditions()`, `update_adterms()` and
+  frmtmb.sample's `posterior_average()` exist (lane postfit2); the rows
+  above and the "(c)" list below still name them as gaps. `bf()` and
+  `lf()` take `cmc` (lane formula2). `ranef()` takes `pars` and
+  `groups`, `family()` takes `resp`, `residuals()` takes `newdata`,
+  `resp` and `allow_new_levels`, and `predict()` takes
+  `sample_new_levels = "old_levels"` (lane defects). The rows are not
+  rewritten one by one; the ported suite's ledger,
+  `dev/brmsport-ledger.tsv`, is the current record for each call it
+  ports.
 
 ## The rule
 

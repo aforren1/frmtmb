@@ -1,0 +1,34 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/wt-sampfix-lib
+✔ | F W  S  OK | Context
+
+⠏ |          0 | prior-compat                                                   
+⠋ |         11 | prior-compat                                                   
+⠹ |         13 | prior-compat                                                   
+⠋ |         21 | prior-compat                                                   
+⠴ |         26 | prior-compat                                                   
+⠼ |         35 | prior-compat                                                   
+⠇ |         49 | prior-compat                                                   
+⠙ |         62 | prior-compat                                                   
+⠇ |         69 | prior-compat                                                   
+⠏ |         70 | prior-compat                                                   
+⠦ |         77 | prior-compat                                                   
+⠸ |         84 | prior-compat                                                   
+⠴ |         86 | prior-compat                                                   
+⠇ |         89 | prior-compat                                                   
+⠴ |         96 | prior-compat                                                   
+⠧ |        108 | prior-compat                                                   
+⠧ |        118 | prior-compat                                                   
+⠋ |        131 | prior-compat                                                   
+⠏ |        140 | prior-compat                                                   
+⠋ |        151 | prior-compat                                                   
+⠸ |        164 | prior-compat                                                   
+⠋ |        171 | prior-compat                                                   
+⠼ |        185 | prior-compat                                                   
+⠇ |        189 | prior-compat                                                   
+✔ |        194 | prior-compat [4.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 194 ]
+RESULT lane test-prior-compat.R: tests 28 pass 194 fail 0 error 0 skip 0 warn 0

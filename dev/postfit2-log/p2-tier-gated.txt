@@ -1,0 +1,8 @@
+tier gated, jobs: 31
+logs with RESULT: 31
+failed=13 error=0 skipped=0 warning=0 passed=2752
+files with a failure, an error, a warning or a skip:
+RESULT frmtmb test-brms-suite-brmsfit-helpers.R: tests=3 failed=2 error=0 skipped=0 warning=0 passed=1
+RESULT frmtmb test-brms-suite-brmsformula.R: tests=16 failed=4 error=0 skipped=0 warning=0 passed=12
+RESULT frmtmb test-brms-suite-methods.R: tests=162 failed=7 error=0 skipped=0 warning=0 passed=155
+files without a RESULT line:

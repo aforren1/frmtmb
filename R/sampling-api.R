@@ -78,6 +78,15 @@
 #' of a second one. It is safe to call unconditionally: with no such
 #' block it returns `dpv` unchanged.
 #'
+#' `subset_resp_check(fit, resp, what)` and
+#' `subset_newdata(fit, resp, newdata)` carry brms's rule for a
+#' multivariate model whose responses use `subset()`: each response has
+#' its own rows, so a method is asked for one response at a time, and
+#' on `newdata` it answers for the rows where that response's subset is
+#' TRUE. The first refuses anything but a single `resp` on such a model
+#' and is silent on every other; the second returns `newdata` unchanged
+#' when the response has no `subset()`.
+#'
 #' @section The prior seam:
 #' The prior VOCABULARY - [set_prior()], [prior_normal()] and its
 #' relatives, [get_prior()], [prior_summary()] - is ordinary exported
@@ -234,6 +243,24 @@
 #' The predicate underneath stays private, because what an extension
 #' needs is the decision and not the test that makes it.
 #'
+#' Three serve brms's display options on both surfaces.
+#' `ce_spaghetti(grid, m, effects)` lays out brms's `"spaghetti"`
+#' attribute from a draws-by-rows matrix `m` over the rows of `grid`;
+#' `ce_spaghetti_check()` raises brms's refusal of `spaghetti` together
+#' with `surface`; `ce_check_distance()` validates `select_points` and
+#' `too_far`. `ce_grids_build()` takes `surface` and `too_far`, and
+#' `ce_finalize()` takes `select_points`, `pred_vars` (the grid's own
+#' `pred_vars`) and `draws_by_eff`, a list by effect of the draws
+#' matrices whose columns are that effect's rows.
+#'
+#' `conditional_smooths()` has its engine here too. `cs_build()` returns
+#' one grid per smooth term, each with the design `A` of the term over
+#' its coefficients; `cs_coef(fit, tm)` is those coefficients at the
+#' parameters a fit object carries, so a sampler takes one product
+#' `A %*% cs_coef()` per draw; `cs_frame()` lays one term's summary out
+#' in brms's columns and `cs_finalize()` makes the returned list.
+#' `cs_probs()` resolves brms's `prob` and deprecated `probs`.
+#'
 #' `ce_dots()` is the argument surface itself: it pulls
 #' `allow_new_levels` out of a call's dots, returns whether it was set,
 #' and REFUSES whatever is left, naming it. An extension that
@@ -241,18 +268,24 @@
 #' the fit method, which is how `allow_new_levels` came to work on a
 #' fit and warn on draws.
 #'
-#' Four more serve one purpose between them: making an unobserved
-#' group a DRAWN group rather than letting the first observed one
-#' stand in for it silently. `ce_group_vars()` names
-#' the grouping variables a `re_formula = NULL` call blanks in its
-#' grid; `ce_new_level_spec()` reads the blocks that blanking reaches;
-#' `ce_boot_grids()` puts a placeholder level back in the grid the
-#' design has to map; and `ce_draw_new_levels()` overwrites that
-#' level's coefficients with one draw from the covariance the passed
-#' object's own `theta` implies. A sampler calls the last one per
-#' POSTERIOR DRAW where the fit method calls it per bootstrap
-#' replicate; the construction is the same and the frames stay
-#' comparable.
+#' Three more serve one purpose between them: brms's rule for which
+#' group a grid row reads. `ce_group_vars()` names the grouping
+#' variables a `re_formula = NULL` call blanks where the grid does not
+#' set them. `ce_level_plan(fit, grids, base, re_formula)` then decides,
+#' per row and per group-level block, whether the row reads a level the
+#' fit saw or a NEW one (unset, unseen, or a combination a nested term
+#' never saw), and places each new one at a placeholder level of its
+#' block. A row reads only the block of its own level of a `gr(g, by =
+#' f)` term, and each new member value of an `mm()` term is its own new
+#' level. `ce_plan_eval(f, plan, gi, cache, ...)` evaluates grid `gi` at
+#' the parameters of `f`, drawing every new level from the covariance
+#' `f`'s own `theta` implies, once per distinct level: a sampler calls
+#' it per POSTERIOR DRAW, with a fresh `cache` environment per draw,
+#' where the fit method calls it per bootstrap replicate, so the
+#' construction is the same and the frames stay comparable.
+#' `ce_plan_has_new()` says whether a plan draws anything. They replace
+#' `ce_new_level_spec()`, `ce_boot_grids()` and `ce_draw_new_levels()`,
+#' which placed one new group over every row and are removed.
 #'
 #' @section The two-dialect argument seam:
 #' frmtmb answers to two argument dialects: a brms-named function takes
@@ -391,9 +424,6 @@
 #' @aliases ce_display_kind
 #' @aliases ce_pred_dpar
 #' @aliases ce_group_vars
-#' @aliases ce_new_level_spec
-#' @aliases ce_boot_grids
-#' @aliases ce_draw_new_levels
 #' @aliases ce_structure_check
 #' @aliases ce_re_formula
 #' @aliases ce_dots
@@ -413,6 +443,19 @@
 #' @aliases rescor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
+#' @aliases subset_resp_check
+#' @aliases subset_newdata
+#' @aliases cs_build
+#' @aliases cs_coef
+#' @aliases cs_frame
+#' @aliases cs_finalize
+#' @aliases cs_probs
+#' @aliases ce_spaghetti
+#' @aliases ce_check_distance
+#' @aliases ce_spaghetti_check
+#' @aliases ce_level_plan
+#' @aliases ce_plan_eval
+#' @aliases ce_plan_has_new
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
@@ -431,15 +474,16 @@
 #'   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
 #'   brms_par_labels, varcorr_matrices, varcorr_layout, varcorr_values,
 #'   ce_grids_build, ce_boot_one,
-#'   ce_frame, ce_finalize,
+#'   ce_frame, ce_finalize, ce_spaghetti, ce_check_distance,
+#'   ce_spaghetti_check, cs_build, cs_coef, cs_frame, cs_finalize,
+#'   cs_probs, ce_level_plan, ce_plan_eval, ce_plan_has_new,
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
-#'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
 #'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
-#'   arma_cond_resp, arma_cond_dpars)
+#'   arma_cond_resp, arma_cond_dpars, subset_resp_check, subset_newdata)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

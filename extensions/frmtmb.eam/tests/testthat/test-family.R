@@ -181,7 +181,14 @@ test_that("a term a family does not accept reads refused, not untested", {
     other <- ifelse(tb$feature_a == fm, tb$feature_b, tb$feature_a)
     keep <- other %in% ats
     expect_equal(sum(keep), length(ats))
-    unread <- keep & !(sub("[(][)]$", "", other) %in% ddm_accepts[[fm]])
+    # subset() and index() choose rows for every family and reach no
+    # density, so no allow-list names them and core's compat table
+    # reads them "works" for every family; core keeps that list
+    unread <- keep & !(sub("[(][)]$", "", other) %in%
+                         c(ddm_accepts[[fm]], frmtmb:::row_aterms))
+    rows <- keep & sub("[(][)]$", "", other) %in% frmtmb:::row_aterms
+    expect_equal(sum(rows), length(frmtmb:::row_aterms))
+    expect_true(all(tb$status[rows] == "works"), info = fm)
     expect_true(all(tb$status[unread] == "refused"), info = fm)
   }
   # and a measured row keeps its own note rather than the derived

@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.sample C:/Users/adf44/source/r/rellib-r3/frmtmb 
+gr-by-draws: .......
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT before frmtmb.sample test-gr-by-draws.R gated=FALSE pass=7 fail=0 err=0 skip=0 warn=0

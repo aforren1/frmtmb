@@ -1,0 +1,5 @@
+brms-output: .....................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-brms-output.R pass=21 fail=0 error=0 skip=0 warn=0

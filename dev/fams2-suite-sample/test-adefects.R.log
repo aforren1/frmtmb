@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.sample 
+adefects: ....................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.sample test-adefects.R pass=20 fail=0 err=0 skip=0 warn=0 blocks=3

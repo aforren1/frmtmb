@@ -312,7 +312,8 @@ test_that("an ordinal formula-route call announces its threshold gap", {
   # the model still sampled, thresholds included
   expect_s3_class(ds, "frmtmb_draws")
   expect_true("b_x" %in% colnames(ds$draws))
-  expect_gt(sum(grepl("^tau_raw", colnames(ds$draws))), 0L)
+  # stored under brms's names for the thresholds, as variables(fit) has
+  expect_gt(sum(startsWith(colnames(ds$draws), "b_Intercept[")), 0L)
 })
 
 test_that("prior = 'flat' opts out and warns about propriety", {

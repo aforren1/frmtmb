@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-fams2-lib/frmtmb.ode 
+Loading required package: frmtmb
+compat: ...............
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT frmtmb.ode test-compat.R pass=15 fail=0 err=0 skip=0 warn=0 blocks=4

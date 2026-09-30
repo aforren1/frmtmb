@@ -70,9 +70,15 @@ test_that("bandit2arm_dual reproduces Stan under both splits", {
   got <- list()
   for (sp in c("pe", "outcome")) {
     fam <- bandit2arm_dual(subject = id, trial = trial, split = sp)
-    o <- ln_fix_2arm(fam, seed = 102L, dpar = "Arew",
-                     pars = list(Apun = 0.15, tau = 3),
-                     rest = list(Apun ~ 1, tau ~ 1), graded = TRUE)
+    # the identity compares both sides at the point the fit stopped at,
+    # so a fit that stops short of the optimum (the kink below) warns
+    # and still tests the identity; nothing else may warn
+    o <- allow_warnings(
+      ln_fix_2arm(fam, seed = 102L, dpar = "Arew",
+                  pars = list(Apun = 0.15, tau = 3),
+                  rest = list(Apun ~ 1, tau ~ 1), graded = TRUE),
+      c("Optimizer did not report convergence: false convergence (8)",
+        "Large maximum absolute gradient at the optimum"))
     # The pe split selects its rate with sign(pe), so on GRADED payoffs
     # the joint log density has a kink in the random effects wherever a
     # prediction error crosses zero, and TMB's inner Newton solve stops
@@ -369,12 +375,18 @@ test_that("rlddm reproduces Stan with a correlated block on all four", {
                 drift = 2.5 + U[i, 2L], bs = 1.5 * exp(U[i, 3L]),
                 ndt = 0.25 * exp(U[i, 4L]), bias = 0.5),
     seed = 204)[[1L]]
-  fit <- frmtmb::frm(
-    frmtmb::bf(rt | dec(choice) + reward(pay1, pay2) +
-                 ndt_group(id) ~ 1 + (1 | p | id),
-               drift ~ 1 + (1 | p | id), bs ~ 1 + (1 | p | id),
-               ndt ~ 1 + (1 | p | id), bias = 0.5),
-    family = fam, data = d)
+  # a ten-parameter correlated block on 20 learners stops short of the
+  # optimum; the identity below is at the point it stopped at, so only
+  # the two convergence warnings are allowed
+  fit <- allow_warnings(
+    frmtmb::frm(
+      frmtmb::bf(rt | dec(choice) + reward(pay1, pay2) +
+                   ndt_group(id) ~ 1 + (1 | p | id),
+                 drift ~ 1 + (1 | p | id), bs ~ 1 + (1 | p | id),
+                 ndt ~ 1 + (1 | p | id), bias = 0.5),
+      family = fam, data = d),
+    c("Optimizer did not report convergence: false convergence (8)",
+      "Large maximum absolute gradient at the optimum"))
   expect_gt(ln_block_spread(fit), 0.05)
   ## PER-LEARNER bounds. Under ndt_group(id) the link's ceiling is each
   ## learner's own fastest response, so the Stan program takes a vector

@@ -1,0 +1,3 @@
+frmtmb from C:/Users/adf44/source/r/wt-defects-lib 
+present: hmm() cannot be combined with se(): that term reshapes a PER-ROW likelihood contribution, and an HMM's contribution is per SEQUENCE - the forward recursion coup 
+missing: se() carries a known standard deviation into the density, so only a family that reads it can be given one, and 'hmm(2, gaussian)' does not declare that it does. 

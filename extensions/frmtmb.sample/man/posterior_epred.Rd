@@ -230,6 +230,16 @@ double as "unset". The behavior when neither is given is unchanged:
 \code{NULL} on every draws method, \code{NA} on \code{pp_check()} for a fit.
 }
 
+\section{Laplace draws}{
+
+Draws from \code{frm_sample(laplace = TRUE)} hold no group-level
+coefficients, smooth coefficients or
+\code{mi()} values. A call that reads them is refused by name, and a
+call that does not, such as \code{re_formula = NA} on a model whose only
+integrated values are group-level coefficients, is computed from
+the draws exactly. See the Laplace draws section of \code{\link[=frm_sample]{frm_sample()}}.
+}
+
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&

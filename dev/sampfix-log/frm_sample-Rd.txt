@@ -1,0 +1,552 @@
+_S_a_m_p_l_e _a _m_o_d_e_l _w_i_t_h _N_U_T_S
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Runs 'tmbstan::tmbstan()' on the model's objective and returns the
+     draws with frmtmb parameter names. Given a 'frmtmb::frm()' fit it
+     samples the fitted objective, initialized at the ML estimates,
+     which shortens warmup considerably. Given a formula and 'data' it
+     assembles the same objective without optimizing anything first
+     (see Sampling from a formula).
+
+_U_s_a_g_e:
+
+     frm_sample(
+       fit,
+       data = NULL,
+       family = NULL,
+       ...,
+       prior = NULL,
+       init = NULL,
+       init_jitter = 0.25,
+       reparameterize = TRUE,
+       data2 = list(),
+       start = NULL,
+       control = NULL,
+       fit_control = frmtmb_control(),
+       na.action = stats::na.omit,
+       REML = FALSE,
+       .diagnostic = FALSE
+     )
+     
+_A_r_g_u_m_e_n_t_s:
+
+     fit: A 'frmtmb_fit', or a 'bf()'/formula to assemble and sample
+          directly (then 'data' is required).
+
+    data: A data frame of model data, when 'fit' is a formula.
+
+  family: Family, when 'fit' is a plain formula that does not carry one
+          ('frm_sample(bf(y ~ x), data = dd, family = poisson())'; the
+          '+' spelling 'bf(y ~ x) + poisson()' works too).
+
+     ...: Passed to 'tmbstan::tmbstan()' ('chains', 'iter', 'laplace'
+          (see Laplace draws), 'cores', ...). 'cores' parallelizes over
+          chains on every platform. On Windows the chains run on socket
+          workers, each of which rebuilds the tape from the serialized
+          objective closure (tmbstan retapes on the worker; the
+          closures are self-contained), giving draws identical to a
+          sequential run at the same seed. The per-worker startup (a
+          new R process, package load, retape) is a fixed several
+          seconds, so short chains gain nothing; long chains approach a
+          per-chain speedup. A core count inherited from
+          'options(mc.cores)', which rstan reads when 'cores' is not
+          given, behaves the same way.
+
+   prior: Priors: a 'frmtmb::set_prior()' specification, or a named
+          list of prior objects (see 'frmtmb::prior_normal()') whose
+          names are parameter names as in the draws (or whole
+          components: '"beta"', '"theta"', ...), or the string
+          '"flat"'. The objective is re-taped with the prior terms
+          added; a fitted model itself is unchanged. On both paths the
+          brms default priors apply to whatever this argument, and a
+          MAP fit's own prior, leave alone (see Default priors), and
+          'prior = "flat"' opts out of them entirely. A 'brmsprior'
+          object built by brms's own 'prior()' is translated row by
+          row. The argument takes brms's spelling, 'prior'. On a fit
+          that carries its own prior, a specification here for a slot
+          the fit's prior also names (the same class, coef, group,
+          resp, dpar and nlpar) REPLACES the stored one, as brms's
+          'update(prior = )' replaces a row; it is not refused as a
+          duplicate, and specifications for other slots stack with the
+          stored ones, the more specific applying. Two specifications
+          for one slot within this argument are refused. The 'priors'
+          of releases before 0.43 is gone rather than aliased, and
+          because this function's '...' would otherwise swallow it, the
+          old name is refused by name.
+
+    init: Initialization. On a fit the default ('"last.par.best"')
+          starts chain 1 exactly at the ML mode and every further chain
+          at the mode plus a normal perturbation of sd 'init_jitter' on
+          the unconstrained scale. The mode anchor keeps warmup short;
+          the jitter keeps the chains overdispersed enough for Rhat to
+          retain power against multimodality (the standard objection to
+          identical mode starts). '"random"' requests Stan's own
+          overdispersed initialization, and is the default from a
+          formula, where there is no mode to start at.
+
+init_jitter: Per-chain perturbation sd for the default init; '0' starts
+          every chain exactly at the mode. Draws from the R session's
+          RNG, so 'set.seed()' makes the inits reproducible.
+
+reparameterize: Sample the qualifying random-effect blocks in their
+          non-centered form (b = L(theta) z), which removes the funnel
+          of the centered joint posterior. 'TRUE' by default. Not every
+          block qualifies, and the call says which did not and why; see
+          Reparameterization, which also explains why nothing
+          downstream can tell the two routes apart. The mode-anchored
+          'init' still starts at the ML mode: it is mapped through z0 =
+          L(theta_hat)^-1 b_hat. Seeded draws differ between the two
+          routes, so 'reparameterize = FALSE' is also the way to
+          reproduce a run made before this default existed.
+
+data2, start, fit_control, na.action, REML: As in 'frmtmb::frm()'
+          ('fit_control' is that function's 'control'). They belong to
+          the formula path, where they assemble the model this function
+          samples, and on a fitted object they are refused by name
+          rather than accepted and discarded: the model is already
+          assembled, so nothing would read them. 'fit_control' is not
+          the sampler's control list; 'control' is.
+
+ control: The SAMPLER's control list, brms's spelling and brms's
+          meaning: 'control = list(adapt_delta = 0.99, max_treedepth =
+          12)' reaches 'tmbstan::tmbstan()' and then rstan unchanged,
+          so a 'brm()' call ports across with this argument included.
+          'NULL', the default, leaves rstan's own defaults in place,
+          and so does 'list()'. The names are rstan's ('adapt_delta',
+          'max_treedepth', 'stepsize', 'metric', ...) and an
+          unrecognized one is refused by name, because rstan answers an
+          unknown option by returning an empty fit rather than by
+          raising. 'frmtmb_control()' fields arriving here are refused
+          by name too and point at 'fit_control': earlier releases
+          spelled the fit-time options 'control', and a silent
+          reinterpretation would hand 'grad_tol' to the sampler. So is
+          an ABBREVIATION of the name: only 'control' binds to this
+          argument, and a shorter spelling would otherwise travel
+          through '...' and partial-match rstan's own 'control',
+          reaching the sampler unchecked.
+
+.diagnostic: Internal, and named with a dot because there is no reason
+          to set it by hand. 'TRUE' turns the default priors off and
+          silences the disclosure, and leaves the fit's own objective
+          alone: a MAP fit's penalty is taped into it, so no prior is
+          resolved again and no tape is rebuilt. 'check_laplace()' sets
+          it, because it measures the Laplace and Wald approximations
+          against the density the fit maximized and a default prior
+          would change what is being measured. Write 'prior = "flat"'
+          for the user-facing opt-out, which goes further and rebuilds
+          a MAP fit's objective without its penalty.
+
+_D_e_t_a_i_l_s:
+
+     *Both routes sample a posterior under the same default priors*
+     (see Default priors), brms 2.23's own weakly-informative ones.
+     What the fit adds is a starting point, not a different density:
+     the ML mode anchors the chains and shortens warmup, and the model
+     is the one the fit already carries.
+
+     The two differ only in what else is in the stack. A fit made with
+     'frm(prior = )' is a MAP fit, and it carries its own prior into
+     sampling: the priors that apply are then this call's prior =
+     first, the fit's own next, and the defaults under both, most
+     explicit winning per slot it addresses. 'prior = "flat"' opts out
+     of all of it and samples the bare likelihood, on either route.
+
+     'check_laplace()' is the one caller that stays unpenalized by
+     default. It measures the Laplace and Wald approximations against
+     the shape of the very objective the fit maximized, and a default
+     prior would change the thing being measured, so it asks for the
+     flat density explicitly rather than inheriting whatever this
+     function defaults to.
+
+_V_a_l_u_e:
+
+     An object of class 'frmtmb_draws': list with the 'stanfit', a
+     draws matrix with named columns ('as.matrix()' method), the
+     originating fit, and, when any block was non-centered, a 'reparam'
+     note saying which. The 'stanfit' holds the parameters as Stan
+     sampled them, so on a non-centered run its random-effect columns
+     are 'z' while the draws matrix holds 'b'.
+
+_S_a_m_p_l_i_n_g _f_r_o_m _a _f_o_r_m_u_l_a:
+
+     'frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian())'
+     parses, assembles and tapes exactly as 'frmtmb::frm()' does, stops
+     before the optimizer, and hands the objective to Stan. Every
+     pre-optimizer refusal still applies (REML, quadrature, the mixture
+     and 'frmtmb.latent::hmm()' guards). There is no mode, so the
+     default 'init' is '"random"': Stan's own overdispersed
+     initialization on the unconstrained scale, inside any bounds the
+     prior carries.
+
+     The returned object supports the whole draws surface -
+     'summary()', 'frmtmb::fixef()', 'frmtmb::VarCorr()',
+     'frmtmb::ranef()', 'frmtmb::hypothesis()', 'posterior_epred()',
+     'posterior_predict()', 'posterior_linpred()',
+     'frmtmb::pp_check()', 'frmtmb::as_draws()' - because those read
+     the model frame and one draw at a time. The methods that report a
+     maximum-likelihood quantity refuse instead of inventing one:
+     'check_laplace()' (it compares NUTS against a mode that does not
+     exist here), and on the embedded object reachable as 'x$fit',
+     'summary()', 'vcov()', 'confint()', 'logLik()', 'frmtmb::fixef()',
+     'frmtmb::ranef()', 'frmtmb::VarCorr()', 'predict()', 'fitted()',
+     'residuals()' and 'simulate()'.
+
+_R_e_p_a_r_a_m_e_t_e_r_i_z_a_t_i_o_n:
+
+     A random-effect block has a FUNNEL in its centered joint
+     posterior: the width of the prior on 'b' is a standard deviation
+     that is being sampled at the same time, so the region NUTS must
+     explore narrows as that standard deviation shrinks, and one step
+     size cannot fit both ends of it.
+
+     'reparameterize = TRUE' (the default) samples 'z ~ N(0, I)'
+     instead and computes b = L(theta) z on the tape, with 'L' the
+     block's own Cholesky factor, which is brms's construction. Each
+     draw is mapped back through ITS OWN 'theta', so the random-effect
+     columns of the draws matrix hold the same quantity in the same
+     order under the same names as 'reparameterize = FALSE' gives, and
+     every method downstream ('posterior_epred()', 'frmtmb::ranef()',
+     'frmtmb::log_lik()', 'frmtmb::loo()',
+     'frmtmb::conditional_effects()', 'frmtmb::hypothesis()') reads
+     them without knowing which route produced them. Only the 'stanfit'
+     inside the object carries 'z'.
+
+     Priors are unaffected. They are declared on the OUTER parameters
+     ('beta', 'theta', 'betad'), and 'theta' means the same thing on
+     both routes; nothing prior-able is reparameterized. What priors DO
+     decide is which blocks are eligible, below.
+
+     _Which blocks, and why not all of them._ A block is non-centered
+     when two things hold, and they are the same thing twice: every
+     parameter it has is a standard deviation or a correlation with a
+     Cholesky factor registered for its structure, and every one of
+     those parameters carries a PRIOR. Both are about not handing the
+     sampler a direction it can run away in. Non-centering gives NUTS
+     the run of 'theta''s whole range, and the centered funnel is what
+     was keeping a chain out of the parts of that range where the
+     posterior is flat or improper. Removing the funnel without closing
+     those off first trades a slow chain for a wrong one.
+
+     In practice that means a default-prior run, on EITHER route, whose
+     priors cover every standard deviation and every correlation,
+     non-centers '(1 | g)' and any block written one term at a time,
+     'diag()' and 'homdiag()' blocks, 'mgcv::s()' smooths, 'equalto()',
+     'gr(cov = )', and the CORRELATED blocks '(x | g)', 'cs()', 'ar1()'
+     and 'hetar1()'. A k = Hilbert-space 'gp()' block stays centered on
+     the formula route even though its factor is diagonal: its
+     LENGTHSCALES share the block's 'theta', the default priors cover
+     only standard deviations, and the gate wants every parameter of a
+     block priored. Prior the whole block by hand ('set_prior(class =
+     "theta")') to non-center it. 'rr()' is already non-centered by
+     construction, since its own coefficients are the standard normal
+     factors. What stays centered is a run whose variance parameters
+     are flat: 'prior = "flat"', and 'check_laplace()', which asks for
+     that density on purpose.
+
+     The call 'message()'s every block it left centered, with the
+     reason. A model made only of those samples centered throughout and
+     says so rather than failing. The reasons:
+
+        * A FLAT PRIOR on the block's standard deviation. Send 'sd'
+          down with 'z' where it is: b = sd z goes to zero, the
+          likelihood settles on the model without that random effect,
+          and the density stops changing: a flat tail with nothing to
+          stop a chain in it. Measured on a six-group random-intercept
+          model, one chain of 2000, three seeds: under flat priors the
+          non-centered chain walks 'theta' to -1e15 at a bulk-ESS of 1;
+          under the default 'student_t(3, 0, s)', which makes that tail
+          integrable, 174 to 284 against 3 to 48 centered.
+
+        * A FLAT PRIOR on the block's CORRELATION, which is the same
+          argument: flat on frmtmb's unbounded correlation parameter is
+          '(1 - rho^2)^-3/2', improper, with all its mass at |rho| = 1.
+          Before 0.39 that kept every correlated block centered,
+          because no proper correlation prior existed to close the
+          tail; 'lkj(eta)' now does, and it is a default, so '(Days |
+          Subject)', 'cs()', 'ar1()' and 'hetar1()' non-center like any
+          other block.
+
+        * A Student-t latent ('gr(dist = "student")'): a scale mixture,
+          not a linear factor.
+
+        * 'car()', 'spde()' and 'gr(prec = )': sparse precisions whose
+          factor is dense.
+
+        * The exact 'gp()' and the spatial covariances ('ou', 'exp',
+          'gau', 'mat'): a full factorization per gradient evaluation.
+
+        * 'toep()': not positive definite everywhere in its
+          parameterization, so b = L z is not a bijection there.
+
+     _What it is worth._ One chain of 2000 iterations, three seeds
+     (dev/benchmarks.md). Where each group's own data say little (the
+     regime the funnel lives in) it is decisive: 80 groups of 2 binary
+     observations run at a min-ESS of 236 against 5 centered, 55 times
+     the effective draws per second. Where the groups are informative
+     it is a wash: the 'epilepsy' GLMM and an uncorrelated 'sleepstudy'
+     are within noise of the centered chain either way. It is not a
+     blanket speed-up, and the blocks it declines to touch are the ones
+     where it would have done harm.
+
+     'laplace = TRUE' integrates the random effects out, which removes
+     the funnel by itself, so that route ignores 'reparameterize'
+     entirely.
+
+     The ML fit is untouched either way. The Laplace approximation
+     integrates 'b' out, and that integral is invariant under a linear
+     change of the integrated variable, so 'frm()' has nothing to
+     change and no fitted object ever carries a non-centered tape.
+
+_L_a_p_l_a_c_e _d_r_a_w_s:
+
+     'laplace = TRUE' passes to 'tmbstan::tmbstan()', which then
+     samples the outer parameters alone (the coefficients, the
+     distributional parameters and the covariance parameters) and
+     integrates the rest out with the Laplace approximation at every
+     step: the group-level coefficients, the coefficients of a smooth,
+     and the values of an 'mi()' term. The draws hold no columns for
+     those. brms has no such route, because its sampler always visits
+     the group-level coefficients.
+
+     _What the draws answer._ Every summary of the outer parameters:
+     'summary()', 'fixef()', 'VarCorr()', 'posterior_summary()', the
+     as_draws_*() converters, 'hypothesis()' on the coefficients and on
+     'sd_' and 'cor_' quantities, and 'mcmc_plot()'. Also every
+     predictive quantity that reads no integrated value:
+     'posterior_epred()', 'posterior_linpred()' and
+     'posterior_predict()' with 're_formula = NA' on a model whose only
+     integrated values are group-level coefficients, a distributional
+     parameter with no group-level term, and the default curves of
+     'conditional_effects()'. These are computed from the draws as they
+     are and are exact.
+
+     _What they refuse, by name._ A quantity that reads an integrated
+     value: a prediction at the observed group levels (the default
+     're_formula', with or without 'newdata'), any prediction on a
+     model with a smooth or an 'mi()' term that reads them, 'ranef()',
+     'coef()', 'log_lik()' and everything built on it ('loo()',
+     'waic()', 'psis()', 'pp_check()''s loo_* types), and 'bayes_R2()'.
+     The refusal names the function and says what to do instead.
+     Whether a call reads an integrated value is found out by
+     evaluating it at one draw with those values set to 'NA' and to
+     '0': a result that changes read them.
+
+     _Why they refuse rather than fill the values in._ Each draw's
+     conditional modes 'b_hat(theta)' are available, but a prediction
+     at the modes leaves out the uncertainty of the group effects given
+     'theta': on 12 groups of 10 gaussian rows the in-sample
+     'posterior_epred()' spread was 0.23 to 0.74 of the full draws'
+     (dev/sampfix-04-laplace-validate.R). Drawing 'b' from its Laplace
+     conditional, normal around 'b_hat(theta)' with the inverse inner
+     Hessian as its covariance, matched the full draws (spread ratio
+     0.95 to 1.05), but it makes 'posterior_epred()' depend on the
+     random seed and it would make these methods disagree with
+     'log_lik()' and 'ranef()' about what a draw contains. Sample
+     without 'laplace = TRUE' to get these quantities.
+
+     _Two edge cases._ On a model with nothing to integrate out,
+     'laplace = TRUE' is the model itself, so the call says so and
+     samples it on the full route, with draws identical to a call
+     without the argument. On a REML fit whose objective is sampled as
+     it stands ('prior = "flat"'), the objective integrates the
+     coefficients out too, and that combination is refused: the draws
+     would hold no coefficient.
+
+_D_e_f_a_u_l_t _p_r_i_o_r_s:
+
+     Both routes default to brms 2.23's own weakly-informative priors,
+     read off 'brms::default_prior()' on matched models. Write y* for
+     the response transformed by the 'mu' link and s = max(2.5,
+     round(mad(y*), 1)):
+
+       class                       default                                    scale                                
+       'b' (slopes)                flat                                       -                                    
+       'Intercept'                 student_t(3, round(median(y*), 1) - m, s)  link                                 
+       'sd'                        'student_t(3, 0, s)'                       natural sd, log-Jacobian applied     
+       'cor'                       'lkj(1)'                                   correlation matrix, Jacobian applied 
+       'rescor'                    'lkj(1)'                                   correlation matrix, Jacobian applied 
+       'sigma' (intercept only)    'student_t(3, 0, s)'                       natural                              
+       'sigma' (with a predictor)  'student_t(3, 0, 2.5)'                     log                                  
+      
+     'm' is the mean of the predictor's 'offset()', 0 without one. brms
+     takes it off because an offset moves the intercept by that much,
+     and only under the links below that transform the response; under
+     any other link the location stays 0.
+
+     The 'sd' default is written once per response, distributional
+     parameter and nonlinear parameter that has a random-effect
+     standard deviation, as brms writes one row for each. A class
+     '"sd"' specification reaches only its own response, distributional
+     parameter and nonlinear parameter (see 'frmtmb::set_prior()'), so
+     a 'set_prior(class = "sd")' of your own replaces the location
+     parameter's default and leaves, for example, a 'phi' block's
+     default in place, as in brms.
+
+     A multivariate model reads y* and 's' off each response for that
+     response's rows, which are written with 'resp', as brms's are.
+
+     The link is transformed only for 'identity', 'log', 'inverse',
+     'sqrt' and '1/mu^2' - brms's own list - with a log-scale family
+     ('frmtmb::lognormal()' and its relatives, whose 'mu' link is
+     spelled 'identity' but whose response is logged inside the
+     density) counted as 'log'. Under any other link ('logit',
+     'cloglog', ...), for a response that was a factor, and for a
+     family whose parameters run over categories (ordinal, categorical,
+     multinomial), the location is 0 and the scale 2.5 - which is what
+     brms reports for a bernoulli model. Under a 'log', 'inverse' or
+     '1/mu^2' link the ZEROS of the response are replaced by '0.1'
+     before the transform, element by element, exactly as brms does;
+     the non-zero values are left alone, so a count response with
+     median 1 keeps 'log(1) = 0' as its location.
+
+     The call 'message()'s the priors it chose, one compact line per
+     class, AND one line per slot it deliberately left flat, so a model
+     that gets few defaults - or none - says so rather than looking
+     flat by accident. Wrap it in 'suppressMessages()' to silence that.
+     'prior_summary()' on the returned draws reproduces the chosen
+     priors exactly.
+
+     _What is deliberately NOT matched._ Each of these is named in the
+     message whenever the model has one.
+
+        * A 'toep()' correlation stays flat. Its banded
+          parameterization is not positive definite everywhere, so
+          there is no correlation matrix over its whole parameter space
+          for an LKJ density to be about. Every other correlated
+          structure gets 'lkj(1)', brms's own default (see
+          'frmtmb::set_prior()' for what the density is on frmtmb's
+          parameters).
+
+        * ORDINAL THRESHOLDS stay flat. brms priors them 'student_t(3,
+          0, 2.5)' under its 'Intercept' class; frmtmb keeps them in
+          the 'thres' extra-parameter vector, which is not a design
+          column and which 'frmtmb::set_prior()''s class vocabulary
+          ('b'/'Intercept'/'sd'/'theta') cannot address. An ordinal
+          model still gets its 'sd' defaults, and the message names the
+          gap.
+
+        * The 'shape', 'phi' and 'nu' dispersion parameters stay flat:
+          brms gives them gamma and inverse-gamma defaults, which
+          'frmtmb::set_prior()' does not carry.
+
+        * NONLINEAR parameters stay flat, which is what brms does:
+          their coefficients are class 'b', and the response's median
+          and mad say nothing about a rate or a shape sitting inside a
+          nonlinear body. Write them with 'set_prior(nlpar = )', as the
+          brms nonlinear vignette does.
+
+     _Overriding and opting out._ A 'set_prior()' specification takes
+     over the classes it names and leaves the other defaults in place,
+     which is brms's partial-override rule; a named list of prior
+     objects takes over exactly the internal parameters it names.
+     'prior = "flat"' turns the defaults off entirely and samples the
+     likelihood, which warns when the model has variance components:
+     their flat-prior posteriors need not be proper, and neither the
+     chains nor Rhat can see that. On a MAP fit '"flat"' reaches
+     further than the defaults: that fit's own prior is taped into its
+     objective, and the bare likelihood is what '"flat"' names, so the
+     penalty is rebuilt out and the call says which prior it dropped.
+
+     _Three sources, most explicit first._ On a fitted model the stack
+     is this call's prior =, then the fit's own prior ('frm(prior = )'
+     makes a MAP fit, and that prior is part of the model the fit is),
+     then the defaults. Each addressed slot is settled by the most
+     explicit source that names it, one slot at a time: a call-level
+     'set_prior(class = "sd")' replaces the fit's 'sd' prior and the
+     'sd' default while the 'Intercept' default stays.
+     'prior_summary()' on the returned draws prints what the stack came
+     to.
+
+_T_h_e _p_r_e-_f_l_i_g_h_t _a_g_a_i_n_s_t _t_h_e _c_o_m_p_a_t_i_b_i_l_i_t_y _r_e_g_i_s_t_r_y:
+
+     Some models cannot be sampled at all, and the reason usually
+     belongs to the package that supplies the feature rather than to
+     this one. Such a package declares the pair through
+     'frmtmb::frmtmb_register_compat()' with the status '"refused"',
+     and this function reads those rows before it does anything else:
+     before the rstan and tmbstan namespaces are loaded, before the
+     formula route calls 'frmtmb::frm()', and before either route
+     retapes the objective for its priors. 'as_tmbstan()' runs the same
+     check. The refusal repeats the registry's own note and names the
+     row, so 'frm_compat("frm_sample", "<feature>")' gives the same
+     answer without running anything.
+
+     _What it can decide, and what it will not guess at._ Whether a
+     model uses a registry feature is settled by WHERE a call sits in
+     the formula. The check decides three ways.
+
+     A response FAMILY is matched by name, which is exact, because a
+     family is named and never called. It does not look inside
+     'frmtmb::mixture()', whose family name is the whole string
+     '"mixture(gaussian, gaussian)"', so a refused 'gaussian' row does
+     not reach a mixture of gaussians.
+
+     An ADDITION TERM is matched by POSITION. It is written inside the
+     bar on the left of the response formula and nowhere else, and the
+     'bf()' object carries that, so 'y | se(v) ~ x' is separated from
+     'y ~ a * se(x)' with a user's own 'se()', which frmtmb fits.
+
+     Everything else the vocabulary writes as a call is matched BY
+     NAME, on the display name, outside addition-term position, and
+     only when a formula actually writes that name and it is not also a
+     base R function. This is the part that is justifiable from names
+     alone rather than sound: a name test cannot see that a call sits
+     where the feature cannot occur, so a refusal registered on 'mo()',
+     'ma()', 'cosy()' or 'mm()' would also fire on a user's own
+     function of that name in a nonlinear body. Nothing is registered
+     on those today. 'mi_pred()', 'gp_pred()' and 'cs_pred()' are
+     spelled in the vocabulary differently from the way a formula
+     writes them, which the registry itself reports, so they warn
+     rather than matching a call no formula makes.
+
+     A refused row naming anything else, a covariance structure, a
+     fitting mode, another post-fit method, WARNS and samples, and so
+     does one whose name is a base R function. Refusing would fire on
+     correct models; silence would make a registered refusal look like
+     a passed check.
+
+     'frmtmb.ode' registers the one refused row there is: an
+     'frm_ode()' fit aborts at the first warmup step inside RTMBode,
+     and the abort leaves rstan's autodiff arena unusable for the rest
+     of the session, so the refusal is worth more than the attempt.
+
+_M_u_l_t_i_m_o_d_a_l _p_o_s_t_e_r_i_o_r_s:
+
+     For 'frmtmb::mixture()' fits the posterior is multimodal by
+     construction (label switching at minimum). Mode-centered inits,
+     jittered or not, leave every chain in one symmetry branch, so Rhat
+     cannot flag the others; use 'init = "random"' there and inspect
+     chains individually.
+
+_E_x_a_m_p_l_e_s:
+
+     if (requireNamespace("tmbstan", quietly = TRUE) &&
+         requireNamespace("rstan", quietly = TRUE) &&
+         !frmtmb.sample:::tmbstan_build_broken()) {
+     set.seed(9)
+     dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+     dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+     fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+     ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+     summary(ds)
+     fixef(ds)
+     hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+                class = NULL)
+     
+     # the same model sampled straight from the formula, with no ML fit.
+     # It reports the brms default priors it chose, and prior_summary()
+     # gives them back.
+     ds2 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
+                       chains = 1, iter = 500, refresh = 0)
+     prior_summary(ds2)
+     fixef(ds2)
+     
+     # a set_prior() specification takes over the classes it names and
+     # leaves the rest of the defaults alone
+     ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
+                       chains = 1, iter = 500, refresh = 0,
+                       prior = set_prior("exponential(1)", class = "sd"))
+     prior_summary(ds3)
+     }
+     

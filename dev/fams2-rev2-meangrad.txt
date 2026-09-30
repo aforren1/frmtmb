@@ -1,0 +1,3 @@
+log_ibeta_half(0.3, 300, 700) gradient: NaN NaN NaN 
+xbeta rows (0, 0.3) at mu = q = 1/6, phi 3000, kappa 0.25: gradient NaN NaN NaN 
+the same through MakeADFun with mu on the logit scale, at mu = plogis(qlogis(1/6)): FALSE 

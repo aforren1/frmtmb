@@ -1,0 +1,10 @@
+setup	frmtmb	brmsterms:39		TRUE	FALSE			TRUE
+assert	frmtmb	brmsterms:40	cannot transfer	FALSE	TRUE	ERROR: could not find function "is.brmsterms"		FALSE
+setup	frmtmb	brmsterms:41		TRUE	FALSE			TRUE
+assert	frmtmb	brmsterms:42	cannot transfer	FALSE	TRUE	ERROR: could not find function "is.brmsterms"		FALSE
+setup	frmtmb	brmsterms:43		TRUE	FALSE			TRUE
+assert	frmtmb	brmsterms:44	cannot transfer	FALSE	TRUE	ERROR: could not find function "brmsterms"		FALSE
+setup	frmtmb	brmsterms:45		TRUE	FALSE			TRUE
+assert	frmtmb	brmsterms:46	cannot transfer	FALSE	TRUE	ERROR: could not find function "brmsterms"		FALSE
+setup	frmtmb	brmsterms:88		FALSE	FALSE	could not find function "brmsterms"		FALSE
+assert	frmtmb	brmsterms:89	cannot transfer	FALSE	TRUE	STALE: reads 'bterms', whose last assignment failed: could not find function "brmsterms"		FALSE

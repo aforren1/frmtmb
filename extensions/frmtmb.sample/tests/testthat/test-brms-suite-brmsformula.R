@@ -56,30 +56,28 @@ test_that("brmsformula does not change a 'brmsformula' object", {
 })
 
 test_that("brmsformula detects auxiliary parameter equations", {
-  brms_port("brmsformula:30", "cannot transfer",
-    paste0(
-      "frmtmb has no equating of one dpar to another, bf(y ~ x, ",
-      "sigma1 = 'sigma2') (priorform ledger F8)"),
+  brms_port("brmsformula:30", "pass",
+    "",
     expect_error(bf(y~x, sigma1 = "sigmaa2"),
                  "Can only equate parameters of the same class")
   )
-  brms_port("brmsformula:32", "cannot transfer",
-    "frmtmb has no dpar equating (priorform ledger F9)",
+  brms_port("brmsformula:32", "pass",
+    "",
     expect_error(bf(y~x, mu3 = "mu2"),
                  "Equating parameters of class 'mu' is not allowed")
   )
-  brms_port("brmsformula:34", "cannot transfer",
-    "frmtmb has no dpar equating (priorform ledger F10)",
+  brms_port("brmsformula:34", "pass",
+    "",
     expect_error(bf(y~x, sigma1 = "sigma1"),
                  "Equating 'sigma1' with itself is not meaningful")
   )
-  brms_port("brmsformula:36", "cannot transfer",
-    "frmtmb has no dpar equating (priorform ledger F11)",
+  brms_port("brmsformula:36", "pass",
+    "",
     expect_error(bf(y~x, shape1 ~ x, shape2 = "shape1"),
                  "Cannot use predicted parameters on the right-hand side")
   )
-  brms_port("brmsformula:38", "cannot transfer",
-    "frmtmb has no dpar equating (priorform ledger F12)",
+  brms_port("brmsformula:38", "pass",
+    "",
     expect_error(bf(y~x, shape1 = "shape3", shape2 = "shape1"),
                  "Cannot use fixed parameters on the right-hand side")
   )
@@ -89,29 +87,29 @@ test_that("update_adterms works correctly", {
   brms_setup("brmsformula:43",
     form <- y | trials(size) ~ x
   )
-  brms_port("brmsformula:44", "cannot transfer",
-    "frmtmb exports no update_adterms() (priorform ledger F13)",
+  brms_port("brmsformula:44", "pass",
+    "",
     expect_equal(
       update_adterms(form, ~ trials(10)),
       y | trials(10) ~ x
     )
   )
-  brms_port("brmsformula:48", "cannot transfer",
-    "frmtmb exports no update_adterms() (priorform ledger F14)",
+  brms_port("brmsformula:48", "pass",
+    "",
     expect_equal(
       update_adterms(form, ~ weights(w)),
       y | trials(size) + weights(w) ~ x
     )
   )
-  brms_port("brmsformula:52", "cannot transfer",
-    "frmtmb exports no update_adterms() (priorform ledger F15)",
+  brms_port("brmsformula:52", "pass",
+    "",
     expect_equal(
       update_adterms(form, ~ weights(w), action = "replace"),
       y | weights(w) ~ x
     )
   )
-  brms_port("brmsformula:56", "cannot transfer",
-    "frmtmb exports no update_adterms() (priorform ledger F16)",
+  brms_port("brmsformula:56", "pass",
+    "",
     expect_equal(
       update_adterms(y ~ x, ~ trials(10)),
       y | trials(10) ~ x

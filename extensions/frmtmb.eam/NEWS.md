@@ -1,3 +1,14 @@
+# frmtmb.eam 0.11.2
+
+Needs frmtmb 0.66.0. No change to the package's code.
+
+* `test-family.R` exempts frmtmb's row addition terms, `subset()` and
+  `index()`, from its check that every addition term a family does not
+  accept reads "refused" in `frm_compat()`. frmtmb 0.66.0 fits both on
+  every family, and the check read them from `frmtmb:::row_aterms`, so
+  the test needs that frmtmb. It also asserts that each family's table
+  holds those cells and that each reads "works".
+
 # frmtmb.eam 0.11.1
 
 * `frmtmb.sample` is now a suggested package. `test-sampling.R` already

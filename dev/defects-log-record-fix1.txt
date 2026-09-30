@@ -1,0 +1,14 @@
+RESULT frmtmb test-brms-suite-brm.R pass=23 fail=0 err=0 skip=0 blocks=1
+RESULT frmtmb test-brms-suite-brmsfit-helpers.R pass=3 fail=0 err=0 skip=0 blocks=2
+RESULT frmtmb test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0 blocks=6
+RESULT frmtmb test-brms-suite-brmsterms.R pass=5 fail=0 err=0 skip=0 blocks=2
+RESULT frmtmb test-brms-suite-data-helpers.R pass=6 fail=0 err=0 skip=0 blocks=2
+RESULT frmtmb test-brms-suite-emmeans.R pass=11 fail=0 err=0 skip=0 blocks=3
+RESULT frmtmb test-brms-suite-families.R pass=84 fail=0 err=0 skip=0 blocks=7
+RESULT frmtmb test-brms-suite-methods.R pass=162 fail=0 err=0 skip=0 blocks=23
+RESULT frmtmb test-brms-suite-priors.R pass=36 fail=0 err=0 skip=0 blocks=12
+RESULT frmtmb test-brms-suite-standata.R pass=87 fail=0 err=0 skip=0 blocks=19
+RESULT frmtmb.sample test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0 blocks=6
+RESULT frmtmb.sample test-brms-suite-brmsterms.R pass=4 fail=0 err=0 skip=0 blocks=1
+RESULT frmtmb.sample test-brms-suite-families.R pass=84 fail=0 err=0 skip=0 blocks=7
+RESULT frmtmb.sample test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0 blocks=18

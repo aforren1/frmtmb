@@ -1,0 +1,3 @@
+RESULT frmtmb test-ce-levels.R [byall]: failed=0 error=1 passed=58
+                                                         test failed error
+10 a gr(g, by = f) row reads only the term of its own f level      0  TRUE

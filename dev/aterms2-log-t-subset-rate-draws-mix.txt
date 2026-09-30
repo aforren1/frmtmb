@@ -1,0 +1,642 @@
+subset-rate-draws: WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW1WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW2WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW34.W..W..5.....6.
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+2. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+3. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+4. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+5. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+6. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+7. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+8. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+9. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+10. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+11. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+12. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+13. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+14. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+15. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+16. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+17. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+18. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+19. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+20. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+21. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+22. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+23. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+24. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+25. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+26. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+27. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+28. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+29. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+30. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+31. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+32. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+33. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+34. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+35. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+36. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+37. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+38. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+39. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+40. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+41. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+42. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+43. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+44. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+45. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+46. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+47. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+48. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+49. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+50. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+51. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+52. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+53. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+54. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+55. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+56. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+57. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+58. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+59. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+60. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+61. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+62. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+63. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+64. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+65. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+66. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+67. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+68. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+69. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+70. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+71. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+72. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+73. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+74. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+75. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+76. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+77. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+78. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+79. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+80. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+81. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+82. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+83. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+84. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+85. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+86. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+87. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+88. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+89. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+90. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+91. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+92. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+93. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+94. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+95. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+96. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+97. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+98. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+99. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+100. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:38:3') - longer object length is not a multiple of shorter object length
+
+101. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+102. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+103. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+104. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+105. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+106. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+107. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+108. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+109. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+110. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+111. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+112. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+113. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+114. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+115. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+116. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+117. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+118. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+119. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+120. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+121. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+122. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+123. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+124. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+125. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+126. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+127. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+128. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+129. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+130. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+131. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+132. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+133. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+134. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+135. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+136. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+137. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+138. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+139. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+140. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+141. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+142. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+143. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+144. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+145. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+146. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+147. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+148. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+149. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+150. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+151. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+152. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+153. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+154. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+155. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+156. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+157. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+158. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+159. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+160. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+161. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+162. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+163. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+164. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+165. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+166. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+167. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+168. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+169. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+170. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+171. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+172. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+173. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+174. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+175. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+176. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+177. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+178. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+179. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+180. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+181. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+182. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+183. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+184. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+185. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+186. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+187. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+188. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+189. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+190. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+191. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+192. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+193. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+194. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+195. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+196. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+197. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+198. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+199. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+200. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - longer object length is not a multiple of shorter object length
+
+201. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:39:3') - Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+
+
+202. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+203. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+204. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+205. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+206. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+207. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+208. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+209. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+210. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+211. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+212. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+213. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+214. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+215. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+216. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+217. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+218. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+219. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+220. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+221. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+222. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+223. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+224. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+225. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+226. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+227. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+228. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+229. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+230. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+231. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+232. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+233. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+234. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+235. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+236. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+237. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+238. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+239. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+240. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+241. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+242. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+243. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+244. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+245. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+246. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+247. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+248. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+249. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+250. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+251. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+252. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+253. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+254. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+255. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+256. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+257. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+258. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+259. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+260. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+261. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+262. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+263. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+264. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+265. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+266. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+267. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+268. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+269. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+270. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+271. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+272. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+273. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+274. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+275. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+276. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+277. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+278. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+279. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+280. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+281. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+282. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+283. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+284. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+285. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+286. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+287. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+288. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+289. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+290. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+291. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+292. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+293. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+294. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+295. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+296. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+297. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+298. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+299. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+300. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+301. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:41:3') - longer object length is not a multiple of shorter object length
+
+302. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:59:5') - longer object length is not a multiple of shorter object length
+
+303. log_lik() of a subset model is one response's own rows ('test-subset-rate-draws.R:59:5') - longer object length is not a multiple of shorter object length
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-subset-rate-draws.R:38:3'): log_lik() of a subset model is 
+Expected `log_lik(cs$ds)` to throw a error.
+
+── 2. Failure ('test-subset-rate-draws.R:39:3'): log_lik() of a subset model is 
+Expected `loo(cs$ds)` to throw a error.
+
+── 3. Failure ('test-subset-rate-draws.R:42:3'): log_lik() of a subset model is 
+Expected `dim(ll1)` to be identical to `c(nrow(cs$ds$draws), sum(cs$d$s1))`.
+Differences:
+  `actual`: 100 60
+`expected`: 100 30
+
+
+── 4. Failure ('test-subset-rate-draws.R:43:3'): log_lik() of a subset model is 
+Expected `dim(ll2)` to be identical to `c(nrow(cs$ds$draws), sum(cs$d$s2))`.
+Differences:
+  `actual`: 100 60
+`expected`: 100 40
+
+
+── 5. Failure ('test-subset-rate-draws.R:68:3'): the posterior predictions take 
+Expected `posterior_predict(cs$ds, ndraws = 5)` to throw a error.
+
+── 6. Failure ('test-subset-rate-draws.R:93:3'): the posterior predictions take 
+Expected `mean(pp2[, 2])/mean(ep2[, 2])` > 0.9.
+Actual comparison: 0.00010 <= 0.90000
+Difference: -0.89990 <= 0
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-subset-rate-draws.R pass=11 fail=6 error=0 skip=0 warn=303

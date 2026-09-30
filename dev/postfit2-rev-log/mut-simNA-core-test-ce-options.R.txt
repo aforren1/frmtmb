@@ -1,0 +1,93 @@
+arm lane mutant simNA ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-postfit2-lib/frmtmb 
+mutant simNA : 1 replacement(s) in frmtmb :: ce_boot_draws 
+function (x, grids, categorical, resp, dpar, boot, seed, re_form = NA, 
+    anl = FALSE, nspec = list()) 
+{
+    lens <- vapply(grids, function(g) {
+        length(ce_boot_one(x, g$nd, categorical, resp, dpar, 
+            re_form, anl))
+    }, 1L)
+    tot <- sum(lens)
+    nkey <- ce_new_level_key(nspec)
+    pop <- !inherits(re_form, "formula") && length(re_form) == 
+        1L && is.na(re_form)
+    sim_re <- NA
+    key <- ce_boot_key(grids, categorical, resp, dpar, lens, 
+        nspec, conditional = is.null(sim_re))
+    if (inherits(boot, "frmtmb_boot")) {
+        if (!identical(boot$ce_key, key)) {
+            frm_stop("boot = was not produced by a conditional_effects(band = ", 
+                "\"boot\") call on this grid: its draws are ", 
+                if (is.null(boot$ce_key)) {
+                  "coefficients or another quantity"
+                }
+                else if (!identical(boot$ce_new %||% list(), 
+                  nkey)) {
+                  if (length(nkey)) {
+                    paste0("predictions for a different group: this call ", 
+                      "conditions on a NEW group (re_formula = NULL), ", 
+                      "and those draws do not carry that group's ", 
+                      "effects, so their percentiles are the ", 
+                      "population band")
+                  }
+                  else {
+                    paste0("predictions for a different group: those draws ", 
+                      "carry a NEW group's effects (they came from a ", 
+                      "re_formula = NULL call) and this call is the ", 
+                      "population curve, so their percentiles are too ", 
+                      "wide for it")
+                  }
+                }
+                else {
+                  paste0("predictions over a different grid (the effects, ", 
+                    "the resolution, the conditions or the data are ", 
+                    "not the same)")
+                }, ", so its percentiles would not be a band for this curve. ", 
+                "Pass a number of draws instead, or reuse attr(ce, \"boot\") ", 
+                "from an otherwise identical call", call. = FALSE)
+        }
+        return(list(bs = boot, lens = lens, offsets = cumsum(c(0L, 
+            lens))))
+    }
+    if (!is.null(boot) && !(is.numeric(boot) && length(boot) == 
+        1L && is.finite(boot) && boot >= 2)) {
+        frm_stop("boot = takes a single number of bootstrap draws (>= 2) or a ", 
+            "frmtmb_boot object; got ", class(boot)[1L], call. = FALSE)
+    }
+    nsim <- if (is.null(boot)) 
+        200L
+    else as.integer(boot)
+    FUN <- function(f) {
+        if (length(nspec)) 
+            f <- ce_draw_new_levels(f, nspec)
+        v <- tryCatch(unlist(lapply(grids, function(g) {
+            ce_boot_one(f, g$nd, categorical, resp, dpar, re_form, 
+                anl)
+        }), use.names = FALSE), error = function(e) NULL)
+        if (!is.numeric(v) || length(v) != tot) 
+            rep(NA_real_, tot)
+        else v
+    }
+    if (is.null(boot)) {
+        frm_message("conditional_effects(band = \"boot\"): refitting the model ", 
+            nsim, " times (one bootstrap shared by all ", length(grids), 
+            " grid(s)). Pass boot = <draws> for a ", "cheaper run, or boot = attr(ce, \"boot\") to reuse this one.")
+    }
+    bs <- frm_bootstrap(x, FUN = FUN, nsim = nsim, seed = seed, 
+        re_formula = sim_re)
+    bs$ce_key <- key
+    bs$ce_new <- nkey
+    list(bs = bs, lens = lens, offsets = cumsum(c(0L, lens)))
+}
+<environment: namespace:frmtmb>
+RESULT lane frmtmb test-ce-options.R [simNA]: tests=32 failed=2 error=0 skipped=0 warning=0 passed=30
+---- expectation_failure at line 136 in a boot band at an observed group belongs to that group 
+Expected `max(abs(m - w$estimate__))` < `0.3 * abs(re[lv])`.
+Actual comparison: 2.1 >= 0.6
+Difference: 1.5 >= 0 
+---- expectation_failure at line 137 in a boot band at an observed group belongs to that group 
+Expected `all(b$lower__ <= w$estimate__ & w$estimate__ <= b$upper__)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+ 

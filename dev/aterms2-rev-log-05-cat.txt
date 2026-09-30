@@ -1,0 +1,50 @@
+brms family $ad containing 'cat':
+  cumulative   weights,subset,thres,cat,index
+  sratio       weights,subset,thres,cat,index
+  cratio       weights,subset,thres,cat,index
+  acat         weights,subset,thres,cat,index
+  categorical  weights,subset,index
+  multinomial  weights,subset,trials,index
+  gaussian     weights,subset,se,cens,trunc,mi,index
+  poisson      weights,subset,cens,trunc,rate,index
+  binomial     weights,subset,trials,cens,trunc,index
+
+brms standata:
+brms cat(4)                              ok: standata
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead. See ?brmsformula for more details. 
+   nthres 3 
+brms cat(5), 4 observed                  ok: standata
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead. See ?brmsformula for more details. 
+   nthres 4 
+brms cat(k) column                       ERROR: Number of thresholds needs to be a single value.
+   nthres NA 
+brms cat(4) + thres(2)                   ok: standata
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead. See ?brmsformula for more details. 
+   nthres 3 
+brms cat(3) on gaussian                  ERROR: Argument 'cat' is not supported for family 'gaussian(identity)'.
+brms cat(4) on categorical               ERROR: Argument 'cat' is not supported for family 'categorical(logit)'.
+
+frmtmb:
+frm cat(4)                               ok: frmtmb_fit
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(4) is thres(4 - 1) 
+frm thres(3)                             ok: frmtmb_fit
+   fn identical cat(4) vs thres(3): TRUE 
+frm cat(5), 4 observed                   ok: frmtmb_fit
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(5) is thres(5 - 1) 
+      warning: thres(): the threshold Intercept[4] bounds response categories that no row takes, so the data do not place it: the maximum likelihood estimate runs of 
+frm thres(4), 4 observed                 ok: frmtmb_fit
+      warning: thres(): the threshold Intercept[4] bounds response categories that no row takes, so the data do not place it: the maximum likelihood estimate runs of 
+   thresholds 4  logLik identical: TRUE 
+frm cat(k) column                        ERROR: Number of thresholds needs to be a single value. Without gr = , one threshold vector serves every row, so thres() takes one number; a per-row count needs
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(k) is thres(k - 1) 
+frm cat(4) + thres(2)                    ERROR: The number of thresholds is set twice. cat(x) is brms's deprecated spelling of thres(x - 1); write one cat() or one thres()
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(4) is thres(4 - 1) 
+frm thres(2) + cat(4)                    ERROR: The number of thresholds is set twice. cat(x) is brms's deprecated spelling of thres(x - 1); write one cat() or one thres()
+frm cat(3) on gaussian                   ERROR: thres() is not a valid addition term for family 'gaussian': it sets the number of thresholds of an ordinal family, and this family has none. The ordinal 
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(3) is thres(3 - 1) 
+frm cat(4) on categorical                ERROR: categorical(): the response 'yi' has fewer than two categories
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(4) is thres(4 - 1) 
+frm cat(4) on factor response            ok: frmtmb_fit
+      warning: Addition argument 'cat' is deprecated. Use 'thres' instead: cat(4) is thres(4 - 1) 
+frm cat(x = 4)                           ERROR: cat() takes the number of categories: cat(x)
+frm cat() empty                          ERROR: cat() takes the number of categories: cat(x)

@@ -1,0 +1,226 @@
+ARM lane frmtmb.sample from C:/Users/adf44/source/r/wt-sampfix-lib
+mixture(cumulative, cumulative) refused by frm(): mixture() does not support component family 'cumulative'
+
+-- acat
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 0.9800, direct from the columns 0.9800
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- cratio
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- sratio
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- cratio_csfac
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] b_Intercept[3] bcs_fcb[1] bcs_fcb[2] bcs_fcb[3] bcs_fcc[1] bcs_fcc[2] bcs_fcc[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3 bcs2_1 bcs2_2 bcs2_3 bcs3_1 bcs3_2 bcs3_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x,fcb[1],fcb[2],fcb[3],fcc[1],fcc[2],fcc[3]; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- acat_thresgr
+  variables(ds):  b_x b_Intercept[p,1] b_Intercept[p,2] b_Intercept[p,3] b_Intercept[q,1] b_Intercept[q,2] b_Intercept[q,3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3 tau_raw_4 tau_raw_5 tau_raw_6
+  OLD: fixef rows Intercept[p,1],Intercept[p,2],Intercept[p,3],Intercept[q,1],Intercept[q,2],Intercept[q,3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[p,1] b_Intercept[p,2] b_Intercept[p,3] b_Intercept[q,1] b_Intercept[q,2] b_Intercept[q,3]
+  hypothesis('Intercept[p,1] < Intercept[p,2]') OK
+    Post.Prob 0.9867, direct from the columns 0.9867
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- cum_thresgr_probit
+  variables(ds):  b_x b_Intercept[p,1] b_Intercept[p,2] b_Intercept[p,3] b_Intercept[q,1] b_Intercept[q,2] b_Intercept[q,3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 2.22e-16
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3 tau_raw_4 tau_raw_5 tau_raw_6
+  OLD: fixef rows Intercept[p,1],Intercept[p,2],Intercept[p,3],Intercept[q,1],Intercept[q,2],Intercept[q,3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[p,1] b_Intercept[p,2] b_Intercept[p,3] b_Intercept[q,1] b_Intercept[q,2] b_Intercept[q,3]
+  hypothesis('Intercept[p,1] < Intercept[p,2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- mv_cum_sratio
+  variables(ds):  b_yo_x b_yo2_z b_yo_Intercept[1] b_yo_Intercept[2] b_yo_Intercept[3] b_yo2_Intercept[1] b_yo2_Intercept[2] b_yo2_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 2.22e-16
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_yo_x b_yo2_z yo_tau_raw_1 yo_tau_raw_2 yo_tau_raw_3 yo2_tau_raw_1 yo2_tau_raw_2 yo2_tau_raw_3
+  OLD: fixef rows yo_Intercept[1],yo_Intercept[2],yo_Intercept[3],yo2_Intercept[1],yo2_Intercept[2],yo2_Intercept[3],yo_x,yo2_z; summary OK; posterior_summary OK
+  threshold columns: b_yo_Intercept[1] b_yo_Intercept[2] b_yo_Intercept[3] b_yo2_Intercept[1] b_yo2_Intercept[2] b_yo2_Intercept[3]
+  hypothesis('yo_Intercept[1] < yo_Intercept[2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- cum_re
+  variables(ds):  b_x r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] theta_1 b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 1.67e-16
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] theta_1 tau_raw_1 tau_raw_2 tau_raw_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- mix_gauss
+  variables(ds):  b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2
+  OLD: fixef rows mu1_Intercept,mu1_x,mu2_Intercept,mu2_x; summary OK; posterior_summary OK
+  threshold columns: 
+  as_draws_df                        OK
+  posterior_summary                  OK
+  summary                            OK
+  conditional_effects                OK
+
+-- acat_prior
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 0
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: OK
+  OLD saved object: variables b_x tau_raw_1 tau_raw_2 tau_raw_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 0.9800, direct from the columns 0.9800
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+
+-- cum_re_lap
+  variables(ds):  b_x theta_1 b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  variables(fit) minus sd_/cor_ all in draws: TRUE
+  ref draws mapped: names same TRUE, max|diff| 0
+  epred lane vs ref max|diff| 2.22e-16
+  fixef rows same TRUE, max|diff| 0
+  posterior_predict: posterior_predict() needs the random effects, and these draws come from frm_sample(laplace = TRUE), which integrates them out instead of sampling them: a draw holds no group-level coefficients, smooth coefficients or mi() values to evaluate the model at. re_formula = NA leaves the group-level effects out and computes the population-level quantity from these draws, unless the model also integrates a smooth or mi() values, which re_formula = NA keeps. Resample without laplace = TRUE for the quantity that conditions on them
+  OLD saved object: variables b_x theta_1 tau_raw_1 tau_raw_2 tau_raw_3
+  OLD: fixef rows Intercept[1],Intercept[2],Intercept[3],x; summary OK; posterior_summary OK
+  threshold columns: b_Intercept[1] b_Intercept[2] b_Intercept[3]
+  hypothesis('Intercept[1] < Intercept[2]') OK
+    Post.Prob 1.0000, direct from the columns 1.0000
+  as_draws_df                        OK
+  posterior_summary                  OK
+  posterior_summary(variable = thr[1]) OK
+  mcmc_plot(variable = thr)          OK
+  as.matrix(variable = thr)          OK
+  summary                            OK
+  conditional_effects                OK
+Warning messages:
+1: The ESS has been capped to avoid unstable estimates. 
+2: The ESS has been capped to avoid unstable estimates. 
+
+-- named-list prior spelled as the new draws column
+  ERROR: Unknown parameter in prior: 'b_Intercept[1]'. Available: x, tau_raw_1, tau_raw_2, tau_raw_3 or component names beta, tau_raw
+  internal name tau_raw: OK (accepted)
+
+DONE

@@ -1,0 +1,29 @@
+ARM lane
+
+-- cumulative
+  variables(fit): b_x b_Intercept[1] b_Intercept[2]
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] lp__
+  every variables(fit) name that is not sd_/cor_ is a draws column: TRUE
+
+-- sratio_cs
+  variables(fit): b_x b_Intercept[1] b_Intercept[2] bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2]
+  variables(ds):  b_x b_Intercept[1] b_Intercept[2] bcs_fcb[1] bcs_fcb[2] bcs_fcc[1] bcs_fcc[2] lp__
+  every variables(fit) name that is not sd_/cor_ is a draws column: TRUE
+
+-- thres_gr
+  variables(fit): b_x b_Intercept[p,1] b_Intercept[p,2] b_Intercept[q,1] b_Intercept[q,2]
+  variables(ds):  b_x b_Intercept[p,1] b_Intercept[p,2] b_Intercept[q,1] b_Intercept[q,2] lp__
+  every variables(fit) name that is not sd_/cor_ is a draws column: TRUE
+
+-- mv
+  variables(fit): b_yo_x b_yo2_z b_yo_Intercept[1] b_yo_Intercept[2] b_yo2_Intercept[1] b_yo2_Intercept[2]
+  variables(ds):  b_yo_x b_yo2_z b_yo_Intercept[1] b_yo_Intercept[2] b_yo2_Intercept[1] b_yo2_Intercept[2] lp__
+  every variables(fit) name that is not sd_/cor_ is a draws column: TRUE
+
+== lane against the reference build (same sampler, same seed)
+  cumulative  names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+  sratio_cs   names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+  thres_gr    names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+  mv          names TRUE  max|draws diff| 0  max|epred diff| 0  fixef rows same TRUE, max diff 0  old storage: epred 0, fixef 0
+
+DONE

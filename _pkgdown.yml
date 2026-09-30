@@ -41,6 +41,7 @@ reference:
   - set_rescor
   - plus-bform
   - set_mecor
+  - update_adterms
   - num_factor
   - frmtmb-autocor
   - frmtmb-me
@@ -67,6 +68,7 @@ reference:
   - latent_probs
   - frmtmb-families
   - frmtmb-links
+  - print.frmtmb_family
   - brmsfamily
   - mixture
   - mixture_mvn
@@ -120,6 +122,8 @@ reference:
   - frm_linpred
   - fitted.frmtmb_fit
   - conditional_effects
+  - conditional_smooths
+  - make_conditions
   - simulate.frmtmb_fit
   - refit
   - update.frmtmb_fit

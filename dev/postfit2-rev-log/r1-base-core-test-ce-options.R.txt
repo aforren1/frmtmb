@@ -1,0 +1,37 @@
+arm base mutant none ns FALSE : frmtmb 0.65.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+RESULT base frmtmb test-ce-options.R: tests=5 failed=4 error=5 skipped=0 warning=0 passed=1
+---- expectation_error at line 17 in surface = TRUE draws both predictors over their range 
+<frmtmb_error/error/condition>
+Error: conditional_effects(surface = TRUE) is not implemented: the display draws curves with bands, not a fitted surface. Ask for the two-variable effect instead, e.g. effects = "x1:x2", which varies x1 over its range at three values of x2 (or at its levels) 
+---- expectation_failure at line 47 in select_points keeps the observations near the held values 
+Expected `names(all_pts)` to be identical to `c("f", "resp__", "effect1__")`.
+Differences:
+`actual`:   "x" "y"                 
+`expected`: "f" "resp__" "effect1__"
+ 
+---- expectation_error at line 48 in select_points keeps the observations near the held values 
+<frmtmb_error/error/condition>
+Error: conditional_effects() has no argument `select_points` 
+---- expectation_error at line 63 in spaghetti needs draws: boot refits have them, Wald does not 
+<frmtmb_error/error/condition>
+Error: conditional_effects() has no argument `spaghetti` 
+---- expectation_error at line 90 in a nonlinear predictor gets a delta-method Wald band 
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot put a wald band on a nonlinear predictor: predict() has no standard error for it. Use band = "boot", which refits instead of differentiating, method = "predict", whose band is a quantile of simulated responses, or display one nonlinear parameter with dpar = "a" 
+---- expectation_error at line 110 in the nonlinear Wald band is refused where one Jacobian is short 
+<frmtmb_error/error/condition>
+Error: conditional_effects() cannot put a wald band on a nonlinear predictor: predict() has no standard error for it. Use band = "boot", which refits instead of differentiating, method = "predict", whose band is a quantile of simulated responses, or display one nonlinear parameter with dpar = "a" 
+---- expectation_failure at line 136 in a boot band at an observed group belongs to that group 
+Expected `max(abs(m - w$estimate__))` < `0.3 * abs(re[lv])`.
+Actual comparison: 2.0 >= 0.6
+Difference: 1.4 >= 0 
+---- expectation_failure at line 137 in a boot band at an observed group belongs to that group 
+Expected `all(b$lower__ <= w$estimate__ & w$estimate__ <= b$upper__)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+ 
+---- expectation_failure at line 140 in a boot band at an observed group belongs to that group 
+Expected `max(abs(other$lower__ - b$lower__))` > `0.1 * max(abs(other$estimate__ - w$estimate__))`.
+Actual comparison: 0.000 <= 0.088
+Difference: -0.088 <= 0 

@@ -1,0 +1,47 @@
+ARM base PKG C:/Users/adf44/source/r/rellib-r3/frmtmb 
+brms-likelihood: ..................................................................................................................Setting order = 'mu' for mixtures of the same family.
+..Setting order = 'mu' for mixtures of the same family.
+....................................................................................................................................................................................................................................................................................................................................123
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-likelihood.R:1431:3'): row 24: rate() on poisson, negbin
+<frmtmb_error/error/condition>
+Error: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(y | rate(time) ~ x, data = dr, family = poisson()) at test-brms-likelihood.R:1431:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 5.       └─frmtmb:::parse_response(f)
+ 6.         └─frmtmb::frm_stop(...)
+
+── 2. Error ('test-brms-likelihood.R:1466:3'): row 25: subset() in a two-respons
+<frmtmb_error/error/condition>
+Error: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-brms-likelihood.R:1466:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         ├─frmtmb:::rewrite_cbind_response(parse_response(f), fam)
+ 6.         └─frmtmb:::parse_response(f)
+ 7.           └─frmtmb::frm_stop(...)
+
+── 3. Error ('test-brms-likelihood.R:1500:3'): check C: row 25b, subset() with m
+<frmtmb_error/error/condition>
+Error: mi() in a predictor takes one variable name: mi(x)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-brms-likelihood.R:1500:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─base::lapply(bform$forms, parse_one_response)
+ 4.       └─frmtmb (local) FUN(X[[i]], ...)
+ 5.         └─frmtmb:::parse_linpred(...)
+ 6.           └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+I believe in you!
+
+RESULT base test-brms-likelihood.R pass=440 fail=0 error=3 skip=0 warn=0

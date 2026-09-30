@@ -1,0 +1,16 @@
+850701a1a810fc4e0badf112a852d296 *tests/testthat/test-brms-suite-brm.R
+db57d6a80b7d9df7bbdbfc82cf0085c5 *tests/testthat/test-brms-suite-brmsfit-helpers.R
+ecfbfd3e454790997ff912d776ac49f5 *tests/testthat/test-brms-suite-brmsformula.R
+9c2d814d7633d2c3dbaa456acbd3a542 *tests/testthat/test-brms-suite-brmsterms.R
+0347384e3f3a9cb7d69798ee3de0bab4 *tests/testthat/test-brms-suite-data-helpers.R
+375d1496577ca0879b594619b1a2f1d0 *tests/testthat/test-brms-suite-emmeans.R
+e69f61e63173fb86deba3bd438f7f43b *tests/testthat/test-brms-suite-families.R
+41887742d025a441f348cc1a0fdd870d *tests/testthat/test-brms-suite-methods.R
+6735fd3171d7afb17319a28b385cbb2e *tests/testthat/test-brms-suite-priors.R
+5ebd76b267be75603fd5e49c7b9d187f *tests/testthat/test-brms-suite-standata.R
+ecfbfd3e454790997ff912d776ac49f5 *extensions/frmtmb.sample/tests/testthat/test-brms-suite-brmsformula.R
+0cf737f1c0b3ac4ae50aae5829755e90 *extensions/frmtmb.sample/tests/testthat/test-brms-suite-brmsterms.R
+e69f61e63173fb86deba3bd438f7f43b *extensions/frmtmb.sample/tests/testthat/test-brms-suite-families.R
+6cc5429dcc8cb7bbd27ff305490d7f3f *extensions/frmtmb.sample/tests/testthat/test-brms-suite-helper-copy.R
+232cf4efb83615b3bac53945f8cdc317 *extensions/frmtmb.sample/tests/testthat/test-brms-suite-methods.R
+331054d814997beb80a46839c5da8960 *extensions/frmtmb.sample/tests/testthat/helper-brms-suite.R

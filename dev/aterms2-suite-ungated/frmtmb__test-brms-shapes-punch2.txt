@@ -1,0 +1,5 @@
+brms-shapes-punch2: ......................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT test-brms-shapes-punch2.R pass=22 fail=0 error=0 skip=0 warn=0

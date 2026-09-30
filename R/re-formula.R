@@ -82,10 +82,12 @@ re_group_key <- function(g) {
 }
 
 #' The design columns one re_formula term asks for, named as the fitted
-#' components name theirs.
+#' components name theirs. `cmc = FALSE` reads the term as a predictor
+#' fitted with `cmc = FALSE` built it: without an intercept, treatment
+#' contrasts and no intercept column.
 #'
 #' @noRd
-re_term_cnms <- function(fit, term) {
+re_term_cnms <- function(fit, term, cmc = TRUE) {
   lhs <- term$lhs
   tt <- stats::terms(stats::as.formula(call("~", lhs)))
   if (isTRUE(term$double)) {
@@ -95,17 +97,32 @@ re_term_cnms <- function(fit, term) {
     return(c(if (attr(tt, "intercept") == 1L) "(Intercept)",
              unlist(lapply(labs, function(l) {
                re_term_cnms(fit, list(lhs = call("+", 0, str2lang(l)),
-                                      double = FALSE))
+                                      double = FALSE), cmc = cmc)
              }))))
   }
   if (!length(attr(tt, "term.labels"))) {
     return(if (attr(tt, "intercept") == 1L) "(Intercept)" else character(0))
   }
+  cmc_drop <- !cmc && attr(tt, "intercept") == 0L
+  if (cmc_drop) attr(tt, "intercept") <- 1L
   df <- fit$frame[["data_frame"]]
   mf <- tryCatch(stats::model.frame(tt, df, na.action = stats::na.pass),
                  error = function(e) NULL)
   if (is.null(mf)) return(NULL)
-  colnames(stats::model.matrix(tt, mf))
+  cn <- colnames(stats::model.matrix(tt, mf))
+  if (cmc_drop) cn <- setdiff(cn, "(Intercept)")
+  cn
+}
+
+#' Whether the predictor behind a linear-predictor key was fitted with
+#' `cmc = TRUE`, R's cell-mean coding.
+#'
+#' @noRd
+re_lp_cmc <- function(fit, lp_key) {
+  lp <- fit$frame[["linpreds"]][[lp_key]]
+  if (is.null(lp)) return(TRUE)
+  dp <- fit$spec$responses[[lp[["resp"]]]]$dpars[[lp[["dpar"]]]]
+  !isFALSE(dp[["cmc"]])
 }
 
 #' The fitted components a re_formula can address.
@@ -212,13 +229,19 @@ re_keep_plan <- function(fit, re_formula, what = "predict()") {
           nc$lp_key == lk && nc$group == gk
         }, NA))
         if (!length(at)) next
+        # a predictor fitted with cmc = FALSE built its columns as
+        # treatment contrasts, so the term is read the same way
+        want_lk <- if (re_lp_cmc(fit, lk)) want else {
+          re_term_cnms(fit, tm, cmc = FALSE)
+        }
+        if (is.null(want_lk) || !length(want_lk)) next
         got <- unlist(lapply(named[at], `[[`, "cnms"))
         # brms's rule (check_re_formula()): the term is found when its
         # columns are a subset of the fitted term's, so `(1 | g)` on a
         # `(1 + x | g)` fit keeps the intercept alone
-        if (!all(want %in% got)) next
+        if (!all(want_lk %in% got)) next
         for (k in at) {
-          keep[[k]] <- keep[[k]] | named[[k]]$cnms %in% want
+          keep[[k]] <- keep[[k]] | named[[k]]$cnms %in% want_lk
         }
         hit <- TRUE
       }

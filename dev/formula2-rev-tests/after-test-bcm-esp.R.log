@@ -1,0 +1,10 @@
+LIB C:/Users/adf44/source/r/wt-formula2-lib/frmtmb C:/Users/adf44/source/r/wt-formula2-lib/frmtmb 
+bcm-esp: ..S...S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. OptionalStopping matches Correlation_1's Stan program ('test-bcm-esp.R:42:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+2. Extraversion matches its Stan program ('test-bcm-esp.R:144:3') - Reason: set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+RESULT after frmtmb test-bcm-esp.R gated=FALSE pass=5 fail=0 err=0 skip=2 warn=0

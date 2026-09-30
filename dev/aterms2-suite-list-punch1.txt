@@ -1,0 +1,12 @@
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-subset-rate.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-arg-refusal.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-compat.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-methods-audit.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-methods.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-mv-gaps.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-multivariate.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-structure.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-simulate-ergonomics.R
+frmtmb C:\Users\adf44\source\r\frmtmb-wt-aterms2\tests\testthat test-predict-newdata.R
+frmtmb.sample C:\Users\adf44\source\r\frmtmb-wt-aterms2\extensions\frmtmb.sample\tests\testthat test-subset-rate-draws.R
+frmtmb.sample C:\Users\adf44\source\r\frmtmb-wt-aterms2\extensions\frmtmb.sample\tests\testthat test-draws-methods.R
