@@ -1,0 +1,4 @@
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+RESULT lane frmtmb 0.65.0 C:/Users/adf44/source/r/wt-defects-lib test-v15.R pass= 41 fail= 0 err= 0 skip= 0 warn= 0 

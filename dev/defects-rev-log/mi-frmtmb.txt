@@ -1,0 +1,98 @@
+===== uni  missing rows: 16 
+  resid response    : dim 80x4  NA 48
+     NA exactly at missing rows: TRUE 
+  resid pearson     : dim 80x4  NA 64
+     NA exactly at missing rows: TRUE 
+  resid deviance    : dim 80x4  NA 256
+     NA exactly at missing rows: TRUE 
+  resid osa         : ERROR: 'observation.name' must be in data component
+  resid all resp    : dim 80x4  NA 48
+  pp_check fit      : drawn  [warn: NA responses are not shown in 'pp_check'. ]
+  dharma            : ERROR: unused argument (resp = "ymi")
+  frame y at missing: dim 16  NA 0
+  predictive_error  : dim 20x80  NA 320
+     NA columns exactly the missing rows: TRUE 
+  residuals draws   : dim 80x4  NA 64
+  bayes_R2          : dim 1x4  NA 4
+   Estimate Est.Error Q2.5 Q97.5
+R2      NaN        NA   NA    NA
+attr(,"warnings")
+character(0)
+  log_lik           : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  loo               : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  pp_check draws    : drawn  [warn: NA responses are not shown in 'pp_check'. ]
+  fitted draws lin  : dim 80x4  NA 0
+===== mv  missing rows: 17 
+  resid response    : dim 80x4  NA 51
+     NA exactly at missing rows: TRUE 
+  resid pearson     : dim 80x4  NA 68
+     NA exactly at missing rows: TRUE 
+  resid deviance    : dim 80x4  NA 257
+     NA exactly at missing rows: TRUE 
+  resid osa         : ERROR: residuals(type = "osa") is not supported yet for multivariate fits: the one-step tape steps through the observations of a single response. Use type = "pearson"
+  resid all resp    : dim 80x4x2  NA 51
+  pp_check fit      : ERROR: pp_check() is not supported yet for multivariate fits
+  dharma            : ERROR: dharma_residuals() is not supported yet for multivariate fits
+  frame y at missing: dim 17  NA 0
+  predictive_error  : dim 20x80  NA 340
+     NA columns exactly the missing rows: TRUE 
+  residuals draws   : dim 80x4  NA 68
+  bayes_R2          : dim 2x4  NA 4
+       Estimate  Est.Error      Q2.5     Q97.5
+R2y   0.5258389 0.06535136 0.3719261 0.6305388
+R2xmi       NaN         NA        NA        NA
+attr(,"warnings")
+character(0)
+  log_lik           : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  loo               : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  pp_check draws    : drawn  [warn: NA responses are not shown in 'pp_check'. ]
+  fitted draws lin  : dim 80x4  NA 0
+===== mv2  missing rows: 16 
+  resid response    : dim 80x4  NA 48
+     NA exactly at missing rows: TRUE 
+  resid pearson     : dim 80x4  NA 64
+     NA exactly at missing rows: TRUE 
+  resid deviance    : dim 80x4  NA 256
+     NA exactly at missing rows: TRUE 
+  resid osa         : ERROR: residuals(type = "osa") is not supported yet for multivariate fits: the one-step tape steps through the observations of a single response. Use type = "pearson"
+  resid all resp    : dim 80x4x2  NA 48
+  pp_check fit      : ERROR: pp_check() is not supported yet for multivariate fits
+  dharma            : ERROR: dharma_residuals() is not supported yet for multivariate fits
+  frame y at missing: dim 16  NA 0
+  predictive_error  : dim 20x80  NA 320
+     NA columns exactly the missing rows: TRUE 
+  residuals draws   : dim 80x4  NA 64
+  bayes_R2          : dim 2x4  NA 4
+       Estimate  Est.Error      Q2.5     Q97.5
+R2ymi       NaN         NA        NA        NA
+R2y2  0.3940532 0.06529861 0.2608718 0.5037362
+attr(,"warnings")
+character(0)
+  log_lik           : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  loo               : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  pp_check draws    : drawn  [warn: NA responses are not shown in 'pp_check'. ]
+  fitted draws lin  : dim 80x4  NA 0
+===== sdy  missing rows: 5 
+  resid response    : dim 80x4  NA 15
+     NA exactly at missing rows: TRUE 
+  resid pearson     : dim 80x4  NA 20
+     NA exactly at missing rows: TRUE 
+  resid deviance    : dim 80x4  NA 245
+     NA exactly at missing rows: TRUE 
+  resid osa         : ERROR: 'observation.name' must be in data component
+  resid all resp    : dim 80x4  NA 15
+  pp_check fit      : drawn  [warn: NA responses are not shown in 'pp_check'. ]
+  dharma            : ERROR: unused argument (resp = "ymeas")
+  frame y at missing: dim 5  NA 0
+  predictive_error  : dim 20x80  NA 100
+     NA columns exactly the missing rows: TRUE 
+  residuals draws   : dim 80x4  NA 20
+  bayes_R2          : dim 1x4  NA 4
+   Estimate Est.Error Q2.5 Q97.5
+R2      NaN        NA   NA    NA
+attr(,"warnings")
+character(0)
+  log_lik           : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  loo               : ERROR: log_lik() is not defined for a model with in-model imputation (mi() / me()): a row whose response or predictor is latent contributes the density of a PARAMETER as well as of an observation, so its column would not
+  pp_check draws    : drawn  [warn: NA responses are not shown in 'pp_check'. ]
+  fitted draws lin  : dim 80x4  NA 0

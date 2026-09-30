@@ -28,7 +28,6 @@ families:76	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 6
 families:81	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 69)
 families:86	*	cannot transfer	brms-internal	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 70)
 families:88	*	cannot transfer	brms-internal	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 71)
-families:102	*	defect	argument	mixture() refuses the argument NAME order, where brms refuses its value 'x' (famlink ledger row 77, not fixed)
 families:107	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 78)
 families:108	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 79)
 families:109	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 80)
@@ -36,14 +35,8 @@ families:113	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 
 families:117	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 82)
 families:118	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 83)
 families:122	*	cannot transfer	stan	frmtmb has no xbeta(), and the assertion reads the Stan include file (famlink ledger row 84)
-brm:81	frmtmb	defect	different-error	not the same refusal: frmtmb validates the data first and refuses the missing column by name, 'The model uses `sei`, which is not a column of `data`', where brms refuses se() for weibull from the formula alone; with sei present frmtmb does refuse se() for weibull (dev/brmsport-probe3.R). The message is frmtmb's own, not base R's 'object not found', which is what this reason used to say
-brm:102	frmtmb	defect	internal-error	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
 brm:112	frmtmb	cannot transfer	absent	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
-brm:116	frmtmb	defect	refuses-accepted	categorical() refuses the integer response inhaler$rating (4 categories) with the FALSE claim 'fewer than two categories', before reaching the cs() check brms asserts; a factor response is accepted (dev/brmsport-probe3.R; priorform ledger P20 deferred it to famlink)
-standata:75	frmtmb	defect	refuses-accepted	bernoulli refuses a response with two distinct values -1 and -2 ('response must be 0/1'); brms codes them 1 and 0 (dev/brmsport-probe3.R)
-standata:83	frmtmb	defect	refuses-accepted	categorical() refuses integer codes 1..10 with the false claim 'fewer than two categories'; brms accepts positive integers (dev/brmsport-probe3.R)
-standata:85	frmtmb	defect	refuses-accepted	categorical() refuses integer codes 11..20 with the false claim 'fewer than two categories'; brms accepts them and recodes to 1..10
-standata:142	frmtmb	defect	refuses-accepted	categorical() refuses the two-category integer response rep(0:1, 5) with the false claim 'fewer than two categories', so brms's bernoulli suggestion is never reached
+standata:75	frmtmb	defect	refuses-accepted	bernoulli refuses a response with the two values -1 and -2 ('response must be 0/1'); brms codes them 1 and 0 by level order. Filed by lane wt-defects: the recoding has to be stored with the fit and applied on every refit (influence(), frm_bootstrap()) and every response read from newdata (pp_check(), residuals(newdata = ), predictive_error()), or a subset holding one of the two values is coded wrong in silence
 standata:171	frmtmb	cannot transfer	absent	frmtmb has no cat() addition term (brms's deprecated spelling of thres())
 standata:266	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
 standata:267	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
@@ -77,15 +70,12 @@ priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covarianc
 priors:14	frmtmb	cannot transfer	absent	sratio() takes no threshold = 'equidistant' and there is no cse() alias (priorform ledger P2)
 priors:27	frmtmb	divergence	class	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 priors:39	frmtmb	cannot transfer	stan	set_prior(check = FALSE) passes Stan code through, and frmtmb builds no Stan program (priorform ledger P9)
-priors:55	frmtmb	defect	naming	the prior table names a smooth's unpenalized column s(x).fx1 where brms writes sx_1, and variables() already writes bs_sx_1; priorform P11/P12 deferred to brmsnames and brmsnames deferred back, so no document decides it
-priors:59	frmtmb	defect	naming	the prior table names a smooth's unpenalized column s(x).fx1 where brms writes sx_1, and variables() already writes bs_sx_1; priorform P11/P12 deferred to brmsnames and brmsnames deferred back, so no document decides it
-priors:74	frmtmb	defect	refuses-accepted	default_prior() and get_prior() validate the response against the family and refuse brms's rnorm response under Beta(); brms returns 7 rows. PRE-EXISTING: refused at every commit back to base 0.58.0 (dev/brmsport-rev-regress.R). priorform's P13 showed a table only because dev/priorform-ledger.R replaced brms's y with runif(10)
+priors:74	frmtmb	divergence	policy	default_prior() answers brms's Beta() model on an rnorm() response now, as brms does (lane wt-defects); its 5 phi rows against brms's 6 lack the per-coefficient sd row (sd, g, Intercept), which frmtmb does not list because its class sd addresses a block and refuses coef (priorform ledger P1, P26)
 priors:85	frmtmb	divergence	policy	default_prior() describes frm(), which is flat in every slot; the sampling route's flat rescor is a filed frmtmb.sample defect (priorform ledger P15, dev/priorform-findings.md section 6)
 priors:91	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P16); the object read is the previous model's table
 priors:92	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P17)
 priors:93	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P18)
 priors:94	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P19); the object read is the previous model's table
-priors:101	frmtmb	defect	refuses-accepted	categorical() refuses the integer response c(1, rep(1:3, 3)) with the false claim 'fewer than two categories'; priorform ledger P20 deferred it to famlink as cannot transfer, and it is the defect of standata:83
 priors:123	frmtmb	divergence	policy	10 rows against brms's 9: two class theta rows added, one per-coefficient sd row absent (priorform ledger P26)
 priors:156	frmtmb	cannot transfer	stan	set_prior() takes no tag: a tag names a prior inside a Stan program (priorform ledger P33)
 priors:157	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P34)

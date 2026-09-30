@@ -15,14 +15,8 @@ test_that("validate_newdata handles factors correctly", {
   brms_setup("data-helpers:6",
     newdata <- fit$data[1:5, ]
   )
-  brms_port("data-helpers:7", "defect",
-    paste0(
-      "expect_silent() fails on R's 'contrasts dropped from factor ",
-      "Trt' warning, twice, from model.matrix() on the newdata ",
-      "slice; brms is silent. The NUMBERS are unaffected: the five ",
-      "predictions equal the first five of the full-data ones, max ",
-      "absolute difference 0 (dev/adefects-log/evidence.txt). Was ",
-      "fit-data"),
+  brms_port("data-helpers:7", "pass",
+    "",
     expect_silent(brms_shim_validate_newdata(newdata, fit))
   )
   brms_setup("data-helpers:8",
@@ -39,13 +33,13 @@ test_that("validate_newdata handles factors correctly", {
   brms_setup("data-helpers:11",
     newdata$fac <- 1:5
   )
-  brms_port("data-helpers:12", "defect",
+  brms_port("data-helpers:12", "divergence",
     paste0(
       "brms refuses the integer codes of `fac`, a factor column of ",
-      "the data that the model does not use; frmtmb refuses the ",
-      "new `visit` level set on the line before, and never checks ",
-      "an unused column. Both refuse the call, for different ",
-      "faults. Was fit-data"),
+      "the data that no term of the model reads; frmtmb never ",
+      "checks such a column, since no value in it can change the ",
+      "prediction, and refuses this call for the new `visit` level ",
+      "set the line before"),
     expect_error(brms_shim_validate_newdata(newdata, fit),
                  "New factor levels are not allowed")
   )

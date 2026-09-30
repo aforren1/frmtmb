@@ -1,0 +1,10 @@
+dens_overlay       ok  [warn: NA responses are not shown in 'pp_check'.]
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+error_hist         ok  [warn: NA responses are not shown in 'pp_check'.]
+error_scatter_avg  ok  [warn: NA responses are not shown in 'pp_check'.]
+scatter_avg        ok  [warn: NA responses are not shown in 'pp_check'.]
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat               ok  [warn: NA responses are not shown in 'pp_check'.]
+intervals          ok  [warn: NA responses are not shown in 'pp_check'.]
+loo_pit_overlay    ERROR: One of 'lw' and 'psis_object' must be specified.  [warn: NA responses are not shown in 'pp_check'.]

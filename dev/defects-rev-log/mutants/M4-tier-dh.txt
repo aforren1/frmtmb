@@ -1,0 +1,2 @@
+MUTANT M4 check_newdata_frame test-brms-suite-data-helpers.R pass= 5 fail= 1 err= 0 
+  caught by: validate_newdata handles factors correctly 

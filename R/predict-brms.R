@@ -204,10 +204,13 @@ predict_type_retired <- c(
 #' @param allow_new_levels Predict rows whose grouping-factor level the
 #'   fit never saw, instead of erroring. Each replicate draws that
 #'   level's effect from the block's estimated covariance.
-#' @param sample_new_levels brms's argument. `"gaussian"`, which is
-#'   what happens, or `NULL`. `"uncertainty"` and `"old_levels"`
-#'   resample the posterior draws of the levels that were seen, and a
-#'   maximum-likelihood fit has none, so both are refused by name.
+#' @param sample_new_levels brms's argument. `"gaussian"` (or `NULL`)
+#'   draws an unseen level's effect from its block's estimated
+#'   covariance. `"old_levels"` gives each unseen level the effect of
+#'   one seen level of its block, chosen at random once per call as
+#'   brms chooses it, read from each replicate's draw of the group
+#'   effects. `"uncertainty"` mixes the two per posterior draw, and a
+#'   maximum-likelihood fit has none, so it is refused by name.
 #' @param propagate_error Whether the error in the estimates is
 #'   propagated into the interval. `TRUE`, the default, draws the
 #'   parameters and the group effects of a level the fit saw. `FALSE`
@@ -287,15 +290,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
              "parallelized. Lower `ndraws` if a call is too slow",
              call. = FALSE)
   }
-  if (!is.null(sample_new_levels) &&
-      !identical(sample_new_levels, "gaussian")) {
-    frm_stop("predict() honors sample_new_levels = \"gaussian\" only. ",
-             "An unseen level's effect is drawn from its block's own ",
-             "estimated covariance, which is what brms's \"gaussian\" ",
-             "does. \"uncertainty\" and \"old_levels\" resample the ",
-             "POSTERIOR draws of the levels that were seen, and a ",
-             "maximum-likelihood fit has no such draws", call. = FALSE)
-  }
+  sample_new_levels <- check_sample_new_levels(
+    sample_new_levels, "predict()", allow = c("gaussian", "old_levels"))
   if (!is.null(newdata) && !is.data.frame(newdata)) {
     frm_stop("predict(): `newdata` must be a data frame, or NULL to draw ",
              "for the training rows, not ", arg_desc(newdata),
@@ -331,7 +327,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   object <- rr$fit
   re_formula <- rr$re_formula
   ds <- predict_simulate(object, rspecs, newdata, re_formula,
-                         allow_new_levels, ndraws, ntrys, propagate_error)
+                         allow_new_levels, ndraws, ntrys, propagate_error,
+                         sample_new_levels)
   if (!is.null(transform)) ds <- lapply(ds, match.fun(transform))
   if (!summary) {
     return(if (length(ds) == 1L) ds[[1L]] else predict_stack(ds))
@@ -344,6 +341,36 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                dimnames = list(rownames(per[[1L]]), colnames(per[[1L]]),
                                names(ds)))
   out
+}
+
+#' brms's `sample_new_levels`, as far as a maximum-likelihood fit can
+#' honor it, returned as the value in force. `fitted()` and `predict()`
+#' both take the unseen level's effect from its block's estimated
+#' covariance, which is brms's `"gaussian"`. `predict()` also takes
+#' `"old_levels"`, since its replicates draw the seen levels' effects
+#' and a seen level can lend its own; `fitted()` is a Wald summary with
+#' no such draws. `"uncertainty"` mixes the two per posterior draw, and
+#' is refused by name rather than ignored.
+#'
+#' @noRd
+check_sample_new_levels <- function(x, what, allow = "gaussian") {
+  if (is.null(x)) return("gaussian")
+  if (is.character(x) && length(x) == 1L && x %in% allow) return(x)
+  frm_stop(what, " honors sample_new_levels = ",
+           paste0("\"", allow, "\"", collapse = " and "), " only. ",
+           "An unseen level's effect is taken from its block's own ",
+           "estimated covariance, which is what brms's \"gaussian\" ",
+           "does",
+           if ("old_levels" %in% allow) {
+             ", or from one seen level's draw, which is \"old_levels\""
+           },
+           ". ",
+           if (!"old_levels" %in% allow) {
+             paste0("\"old_levels\" resamples the draws of the levels ",
+                    "that were seen, and this summary has none. ")
+           },
+           "\"uncertainty\" mixes the two per POSTERIOR draw, and a ",
+           "maximum-likelihood fit has none", call. = FALSE)
 }
 
 #' brms's summary of one response's simulated draws.
@@ -457,7 +484,8 @@ predict_category_props <- function(object, rspec, d) {
 #' @noRd
 predict_simulate <- function(object, rspecs, newdata, re_formula,
                              allow_new_levels, ndraws, ntrys,
-                             propagate_error) {
+                             propagate_error,
+                             sample_new_levels = "gaussian") {
   av <- list()
   nls <- list()
   for (nm in names(rspecs)) {
@@ -494,7 +522,7 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
                "Drop newdata to predict those rows", call. = FALSE)
     }
     nls[[nm]] <- predict_new_level_spec(object, rspec, newdata, re_formula,
-                                        allow_new_levels)
+                                        allow_new_levels, sample_new_levels)
   }
   # Every random quantity a replicate needs from the caller's stream is
   # taken UP FRONT: the parameter draws and one seed per replicate. A
@@ -785,9 +813,18 @@ predict_report_masked <- function(out, masked, ndraws) {
 #' not depend on the parameters, so `lp_eta_design()` runs once here
 #' and only the block covariance is re-read per replicate.
 #'
+#' brms's `sample_new_levels = "old_levels"` gives each unseen level the
+#' effect of ONE seen level of its block, chosen at random once per call
+#' and then read from every draw (`brms:::get_new_rsamples()`). The
+#' same holds here: the seen level is chosen here, before any replicate,
+#' and each replicate reads that level's effect from its own draw of the
+#' group effects, so the interval carries that level's conditional
+#' uncertainty. The choice is recorded as the `old_pick` attribute.
+#'
 #' @noRd
 predict_new_level_spec <- function(object, rspec, newdata, re_formula,
-                                   allow_new_levels) {
+                                   allow_new_levels,
+                                   sample_new_levels = "gaussian") {
   if (!isTRUE(allow_new_levels) || is.null(newdata)) return(NULL)
   use_re <- re_form_keeps(re_formula)
   if (!use_re) return(NULL)
@@ -821,7 +858,21 @@ predict_new_level_spec <- function(object, rspec, newdata, re_formula,
                 "predictors at once. Those rows are predicted at the ",
                 "population level for it", call. = FALSE)
   }
-  if (!length(out)) NULL else out
+  if (!length(out)) return(NULL)
+  if (identical(sample_new_levels, "old_levels")) {
+    # one seen level per unseen one, keyed as the draw below keys it;
+    # the keys depend on the design alone, so the estimates will do
+    pick <- list()
+    for (e in out) {
+      bl <- extra_var_blocks(lp_extra_var(object, e$ed, TRUE)$new_levels,
+                             e$n)
+      for (key in setdiff(names(bl), names(pick))) {
+        pick[[key]] <- sample.int(bl[[key]]$bk[["n_levels"]], 1L)
+      }
+    }
+    attr(out, "old_pick") <- pick
+  }
+  out
 }
 
 #' One replicate's unseen-level effects, as a per-dpar offset on the
@@ -835,6 +886,8 @@ predict_new_level_spec <- function(object, rspec, newdata, re_formula,
 #' @noRd
 predict_new_level_draw <- function(fs, spec) {
   if (is.null(spec)) return(NULL)
+  pick <- attr(spec, "old_pick")
+  cvec <- if (!is.null(pick)) coef_b(fs)
   shared <- list()
   out <- list()
   for (dnm in names(spec)) {
@@ -843,7 +896,14 @@ predict_new_level_draw <- function(fs, spec) {
     o <- numeric(e$n)
     for (key in names(bl)) {
       B <- bl[[key]]
-      if (is.null(shared[[key]])) shared[[key]] <- mvn_draw_cov(B$S)
+      if (is.null(shared[[key]])) {
+        shared[[key]] <- if (is.null(pick)) mvn_draw_cov(B$S) else {
+          # the chosen seen level's effects in this replicate's draw;
+          # a block's coefficients are laid out level by level
+          d <- B$bk[["dim"]]
+          cvec[B$bk[["c_idx"]]][(pick[[key]] - 1L) * d + seq_len(d)]
+        }
+      }
       o <- o + as.numeric(B$M %*% shared[[key]])
     }
     out[[dnm]] <- o

@@ -1,0 +1,1 @@
+RESULT after frmtmb.spline 0.9.0 test-conditions.R pass= 5 fail= 0 err= 0 skip= 0 warn= 0 

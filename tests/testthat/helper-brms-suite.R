@@ -79,9 +79,73 @@ brms_hollow_read <- function(e, env, intermediate = FALSE) {
   FALSE
 }
 
+# expect_true(all(x)) and expect_false(any(x)) hold on an EMPTY x: all()
+# of nothing is TRUE and any() of nothing is FALSE. The common way to get
+# one is `all(sdata$idxl_y_x_1 %in% 9:5)` reading an element frmtmb does
+# not have, since `NULL %in% y` is logical(0), and the `$` rule below
+# does not see it because a final absent name may be what brms means.
+# The spellings read through: `testthat::` on either side, `isTRUE()`,
+# parentheses, `!` (which turns all() into any() and back), and a named
+# argument such as `na.rm` beside the operand. Missed, and recorded in
+# dev/brmsport-findings.md section 13: `expect_equal(all(x), TRUE)` and
+# its kin, `all(x) && TRUE`, `!anyNA(x)`, and brms's own expect_range().
+# An all() over nothing that IS the right answer is flagged too, which
+# is loud: the row fails and needs a verdict.
+#
+# The operand is evaluated once more than the assertion evaluates it,
+# with warnings muffled as brms_port_run() muffles the assertion's;
+# evaluating it only once would mean rewriting brms's call around a
+# precomputed value, which changes the recorded messages.
+brms_call_name <- function(e) {
+  f <- e[[1]]
+  if (is.call(f) && identical(f[[1]], as.name("::")) && length(f) == 3L) {
+    f <- f[[3]]
+  }
+  if (is.name(f)) as.character(f) else ""
+}
+
+brms_empty_operand <- function(call) {
+  if (!is.call(call) || length(call) < 2L) return(NULL)
+  want <- switch(brms_call_name(call), expect_true = TRUE,
+                 expect_false = FALSE, NULL)
+  if (is.null(want)) return(NULL)
+  a <- call[[2]]
+  repeat {
+    if (!is.call(a) || length(a) != 2L) break
+    fn <- brms_call_name(a)
+    if (fn %in% c("isTRUE", "(")) {
+      a <- a[[2]]
+    } else if (identical(fn, "!")) {
+      a <- a[[2]]
+      want <- !want
+    } else {
+      break
+    }
+  }
+  if (!is.call(a) || !identical(brms_call_name(a), if (want) "all" else
+                                  "any")) {
+    return(NULL)
+  }
+  args <- as.list(a)[-1]
+  nms <- names(args) %||% rep("", length(args))
+  pos <- which(!nzchar(nms))
+  if (!length(pos)) return(NULL)
+  args[[pos[1L]]]
+}
+
+brms_hollow_empty <- function(call, env) {
+  x <- brms_empty_operand(call)
+  if (is.null(x)) return(FALSE)
+  v <- tryCatch(withCallingHandlers(eval(x, env), warning = function(w) {
+    invokeRestart("muffleWarning")
+  }), error = function(e) NA)
+  length(v) == 0L
+}
+
 # expect_null(), expect_true(is.null()), expect_length() and a NULL
 # comparison held on a hollow `$` read. Two NULLs from a genuine source
-# (names() of unnamed vectors) are not flagged.
+# (names() of unnamed vectors) are not flagged. An all() or any() over
+# nothing is brms_hollow_empty()'s, which brms_port_run() asks first.
 brms_hollow_null <- function(call, val, env) {
   if (!is.call(call)) return(FALSE)
   head <- as.character(call[[1]])[1]
@@ -154,7 +218,10 @@ brms_port_run <- function(call, env) {
       !brms_about_argument_refusal(call)) {
     vacuous <- TRUE
   }
-  if (held && brms_hollow_null(call, val, env)) {
+  if (held && brms_hollow_empty(call, env)) {
+    vacuous <- TRUE
+    why <- "all() or any() over an empty vector, such as NULL %in% y"
+  } else if (held && brms_hollow_null(call, val, env)) {
     vacuous <- TRUE
     why <- "a NULL read through a partial or intermediate $ match"
   }
@@ -431,13 +498,16 @@ brms_sampling_args <- c(
 )
 
 # Works on the unevaluated arguments, so a dropped save_pars() call is
-# never evaluated (frmtmb has no save_pars()).
+# never evaluated (frmtmb has no save_pars()). The kept ones are passed
+# on UNEVALUATED and evaluated in the caller's frame, as the call brms
+# answers would pass them: evaluating them here first handed the
+# callee values, so `update(fit, newdata = new_data)` could not record
+# the spelling `new_data`, which brms's `data_name` attribute is.
 brms_forward <- function(fun, fixed, dots_call, env) {
   nm <- names(dots_call)
   if (is.null(nm)) nm <- rep("", length(dots_call))
   keep <- dots_call[!nm %in% brms_sampling_args]
-  vals <- lapply(keep, eval, envir = env)
-  do.call(fun, c(fixed, vals))
+  do.call(fun, c(fixed, keep), envir = env)
 }
 
 # brm() is frm(). brms refuses before sampling and frm() refuses before
@@ -553,13 +623,9 @@ brms_fixture_spec <- function(k) {
                    "sigma ~ Trt; student"),
       formula = bf(count ~ Trt * Age + mo(Exp) + s(Age) + volume +
                      offset(Age) + (1 + Trt | visit) +
-                     arma(visit, patient, cov = TRUE),
+                     arma(visit, patient),
                    sigma ~ Trt),
-      family = student(),
-      changed = paste("arma() gains cov = TRUE: the ledger's verdicts",
-                      "on this fixture were settled on the covariance",
-                      "form, before frmtmb fitted brms's default",
-                      "cov = FALSE (?frmtmb-autocor)")),
+      family = student()),
     list(
       brms = paste("count | weights(AgeSD) ~ 1/(1 + exp(-a)) *",
                    "exp(b * Trt), a ~ Age + (1 | ID1 | patient),",

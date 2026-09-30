@@ -1,0 +1,2 @@
+2 rows removed because of missing values (na.action)
+RESULT after frmtmb 0.65.0 test-frame.R pass= 22 fail= 0 err= 0 skip= 0 warn= 0 

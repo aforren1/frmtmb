@@ -960,6 +960,19 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   resp <- rspec$resp_name
   data <- newdata %||% fit$frame[["data_frame"]]
   fargs <- names(formals(fun))
+  if (any(c("lw", "psis_object") %in% fargs) &&
+        length(fit$frame[["mi_map"]] %||% list())) {
+    # a loo type weights the draws by PSIS on log_lik(), which this
+    # package refuses for in-model imputation; bayesplot otherwise died
+    # on its own "One of 'lw' and 'psis_object' must be specified"
+    frm_stop("pp_check(type = \"", type, "\") weights the draws by ",
+             "Pareto-smoothed importance sampling on log_lik(), and ",
+             "log_lik() is not defined for a model with in-model ",
+             "imputation (mi() / me()): a row whose value is latent ",
+             "contributes the density of a parameter as well as of an ",
+             "observation. Use a type without 'loo', such as ",
+             "\"dens_overlay\"", call. = FALSE)
+  }
   if ("group" %in% fargs) {
     if (is.null(group)) {
       frm_stop("Argument 'group' is required for ppc type '", type, "'.",
@@ -1061,7 +1074,9 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
 #' @param row.names,optional Accepted for the generic and unused, as in
 #'   brms.
 #' @param ... For `as.matrix()`, `as.array()` and `as.data.frame()`, the
-#'   `regex`, `fixed` and `inc_warmup` brms passes on; anything else is
+#'   `regex`, `fixed` and `inc_warmup` brms passes on, and the
+#'   `iteration` and `chain` it hands to [posterior::subset_draws()]
+#'   (`as.array(x, chain = 1)` is the first chain); anything else is
 #'   refused by name, rather than silently changing nothing.
 #' @return A `posterior::draws_matrix`: one column per sampled variable
 #'   and one row per draw.
@@ -1527,6 +1542,28 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   sweep(-yrep, 2L, as.numeric(y), "+")
 }
 
+#' A fitted response as it was OBSERVED: `NA` where an `mi()` response
+#' is missing.
+#'
+#' The frame keeps the placeholder 0 at those rows, and the tape reads
+#' the latent value there instead; read as an observation, the
+#' placeholder made `predictive_error()` report `0 - yrep` at a row
+#' nobody observed. brms keeps its `Y` `NA` there (`get_y()` with
+#' `internal = TRUE`), so its predictive error and `bayes_R2()` are `NA`,
+#' and its `pp_check()` drops the row with a warning. Under `mi(sd = )`
+#' only the rows with no measurement are missing. The frame is read
+#' here rather than through core so this package needs no newer frmtmb.
+#'
+#' @noRd
+draws_observed_y <- function(fit, resp) {
+  y <- fit$frame[["y"]][[resp]]
+  mm <- fit$frame[["mi_map"]][[resp]]
+  if (is.null(mm) || is.matrix(y)) return(y)
+  miss <- if (is.null(mm$obs)) mm$rows else setdiff(mm$rows, mm$obs)
+  y[miss] <- NA
+  y
+}
+
 #' The observed response the predictive error is taken against: the
 #' fitted rows, or `newdata`'s own column when one is given.
 #'
@@ -1536,7 +1573,7 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
 #'
 #' @noRd
 draws_response_values <- function(fit, resp, newdata, what) {
-  if (is.null(newdata)) return(fit$frame[["y"]][[resp]])
+  if (is.null(newdata)) return(draws_observed_y(fit, resp))
   rspec <- fit$spec$responses[[resp]]
   y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
                 error = function(e) NULL)

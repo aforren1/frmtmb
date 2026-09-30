@@ -747,7 +747,9 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
     s
   }
   R2 <- lapply(sel, function(r) {
-    y <- fit$frame[["y"]][[resps[r]]]
+    # NA at a missing mi() row, so R2 is NA, as brms's is, rather than
+    # scored against the frame's placeholder
+    y <- draws_observed_y(fit, resps[r])
     if (is.null(y) || is.matrix(y)) {
       frm_stop("bayes_R2() needs a single numeric response column, and '",
                resps[r], "' is not one. A categorical, multinomial or ",

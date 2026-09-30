@@ -1,0 +1,71 @@
+
+===== A. residuals of an mi() response at its missing rows 
+  frame$y[['xmi']] at missing rows (first 5) :
+[1] 0 0 0 0 0
+  residual Estimate at missing rows (first 5) :
+[1]  0.001761673  0.097845358 -0.033920810 -0.057026780  0.026276119
+  fitted at missing rows (first 5) :
+[1] -0.001761673 -0.097845358  0.033920810  0.057026780 -0.026276119
+  estimates names :
+[1] "beta"  "betad" "miss" 
+  univariate y | mi() fit : fitted 
+  nobs :
+[1] 100
+  univariate residuals dim / NA count :
+[1] 100   4   0
+
+===== B. cs() layers: identity with thresholds, and a delta-method SE 
+  fixef :
+                Estimate Est.Error
+Intercept[1] -1.20815456 0.1753051
+Intercept[2] -0.14113851 0.1747772
+Intercept[3]  0.18300818 0.2360895
+x             0.78910218 0.1306002
+z[1]          0.13687865 0.1719444
+z[2]          0.15227597 0.1752067
+z[3]          0.01783561 0.2357147
+  max |layer - (bx x + cs_k z)| :
+[1] 0
+  max |P(Y=1) - F(tau1 - eta1)|, |P(Y=2) - ...| :
+[1] 2.220446e-16 1.110223e-16
+  vcov names :
+[1] "Intercept[1]" "Intercept[2]" "Intercept[3]" "x"            "z[1]"        
+[6] "z[2]"         "z[3]"        
+  max relative |Est.Error - delta SE| :
+[1] 1.034753e-11
+
+===== C. residuals(newdata =) on log(y) ~ x 
+  log(pos): newdata = d equals in-sample :
+[1] 0
+  names(fl$data) :
+[1] "log(pos)" "x"       
+
+===== D. old_levels with correlated slopes, dpar and by 
+  [warnings: Optimizer did not report convergence: false convergence (8) | Large maximum absolute gradient at the optimum (0.217 at theta_1): the curvature there is unusable, so how much log-like ]
+  picked level, its intercept and slope :
+        2         2         2 
+ 2.000000 -3.871098 -1.353373 
+  mean at x=0 and slope implied :
+[1] -3.872833 -1.342794
+Warning message:
+predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+  by = grp, new level in 'lo' (lo levels have means -6..1): picked means :
+[1] -6 -4 -2  0  1
+  dpar re old_levels dim :
+[1] 50  2
+  two factors, new level in each :
+      Estimate Est.Error      Q2.5     Q97.5
+[1,]  5.951004  1.124002  3.914770  8.151540
+[2,] -5.758814  1.107514 -7.864964 -3.676078
+  mm() new levels old_levels :
+      Estimate Est.Error      Q2.5     Q97.5
+[1,] -3.875374 0.9668473 -5.263109 -1.808048
+  gp + new level old_levels :
+     Estimate Est.Error     Q2.5    Q97.5
+[1,] 4.788937 0.9391629 2.897656 6.153726
+
+===== E. ranef, data_name, gp summary, categorical, spellings 
+Warning message:
+Optimizer did not report convergence: singular convergence (7) 
+Error: ranef() has 2 random-effect blocks on grouping factor 'g', so 'g' does not name one of them. Address a block by its term label - [["1 + x | g"]], [["sigma: 1 | g"]] - or by position. The label is also each block's "term" attribute and the `grp` column of as.data.frame()
+Execution halted

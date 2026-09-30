@@ -5,8 +5,8 @@ assert	frmtmb	standata:75	defect	FALSE	FALSE	ERROR: bernoulli: response must be 
 assert	frmtmb	standata:77	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:79	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:81	pass	TRUE	FALSE			TRUE
-assert	frmtmb	standata:83	defect	FALSE	FALSE	ERROR: categorical(): the response 'y' has fewer than two categories		FALSE
-assert	frmtmb	standata:85	defect	FALSE	FALSE	ERROR: categorical(): the response 'y' has fewer than two categories		FALSE
+assert	frmtmb	standata:83	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:85	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:87	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:89	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:91		TRUE	FALSE			TRUE
@@ -28,7 +28,7 @@ assert	frmtmb	standata:127	own	TRUE	FALSE		von_mises: response must be angles in
 assert	frmtmb	standata:130	own	TRUE	FALSE		hurdle_gamma: response must be non-negative	FALSE
 assert	frmtmb	standata:136	pass	TRUE	FALSE		Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 	TRUE
 assert	frmtmb	standata:139	pass	TRUE	FALSE		Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 	TRUE
-assert	frmtmb	standata:142	defect	FALSE	FALSE	ERROR: categorical(): the response 'y' has fewer than two categories		FALSE
+assert	frmtmb	standata:142	pass	TRUE	FALSE		Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 	TRUE
 setup	frmtmb	standata:148		TRUE	FALSE			TRUE
 assert	frmtmb	standata:153	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:155	pass	TRUE	FALSE			TRUE
@@ -60,11 +60,11 @@ assert	frmtmb	standata:268	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whos
 assert	frmtmb	standata:269	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), thres(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the te		FALSE
 setup	frmtmb	standata:305		TRUE	FALSE			TRUE
 setup	frmtmb	standata:309		TRUE	FALSE			TRUE
-assert	frmtmb	standata:310	cannot transfer	FALSE	FALSE	Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual              | expected                  [1] -0.0416060422003518 -                           [2] 0.0597203933752457  -                           [3] 0.660355803999387   -                           [4] -0.460435396585063  -                           [5] 0.447335276289116   -                       		FALSE
+assert	frmtmb	standata:310	cannot transfer	FALSE	FALSE	Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual             | expected                  [1] 1.1297987030726    -                           [2] -0.278577337860977 -                           [3] 1.40282405708904   -                           [4] -0.288694759052458 -                           [5] 1.51049504505274   -                           [6		FALSE
 setup	frmtmb	standata:313		TRUE	FALSE			TRUE
 setup	frmtmb	standata:314		TRUE	FALSE			TRUE
-assert	frmtmb	standata:315	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                       - -0.0416060422003518 [1]                        - 0.0597203933752457  [2]                        - 0.660355803999387   [3]                        - -0.460435396585063  [4]         		FALSE
-assert	frmtmb	standata:316	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - 1.57904404581599   [1]                        - -1.01145814899798  [2]                        - 0.144751623786265  [3]                        - 1.66622449287611   [4]              		FALSE
+assert	frmtmb	standata:315	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - 1.1297987030726    [1]                        - -0.278577337860977 [2]                        - 1.40282405708904   [3]                        - -0.288694759052458 [4]              		FALSE
+assert	frmtmb	standata:316	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - 0.162226724422233  [1]                        - -0.133832256007774 [2]                        - 0.275453669496492  [3]                        - -0.504554879466907 [4]              		FALSE
 setup	frmtmb	standata:610		TRUE	FALSE			TRUE
 setup	frmtmb	standata:616		TRUE	FALSE			TRUE
 setup	frmtmb	standata:619		FALSE	FALSE	mi() in a predictor takes one variable name: mi(x)		FALSE

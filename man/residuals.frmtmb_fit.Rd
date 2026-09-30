@@ -14,7 +14,10 @@
   sort = FALSE,
   summary = TRUE,
   robust = FALSE,
-  probs = c(0.025, 0.975)
+  probs = c(0.025, 0.975),
+  newdata = NULL,
+  resp = NULL,
+  allow_new_levels = FALSE
 )
 }
 \arguments{
@@ -23,7 +26,7 @@
 \item{type}{\code{"response"} (brms spells the same thing \code{"ordinary"},
 and both are accepted), \code{"pearson"}, \code{"deviance"}, or \code{"osa"}.
 brms's \code{residuals()} takes \code{newdata} in this position; this one
-has always taken \code{type} there, and \code{newdata} is refused by name.}
+has always taken \code{type} there, so give \code{newdata} by name.}
 
 \item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
 \code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
@@ -36,10 +39,8 @@ every row.}
 \item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}},
 and checked against that function's own formals. For every other
 type: refused, naming the argument. The \code{residuals.brmsfit()}
-arguments this one does not have (\code{newdata}, \code{re_formula},
-\code{method}, \code{resp}, \code{ndraws}, \code{draw_ids}, \code{sort}, \code{summary},
-\code{robust}, \code{probs}) are refused with the reason rather than
-reported as unknown names.}
+arguments this one does not have (\code{re_formula}, \code{method}) are
+refused with the reason rather than reported as unknown names.}
 
 \item{ndraws, draw_ids, sort, summary, robust}{brms's arguments. Each
 needs posterior draws and a maximum-likelihood fit has none, so
@@ -48,6 +49,19 @@ accepted and changes nothing.}
 
 \item{probs}{Probabilities of the two quantile columns, the ends of
 the Wald interval at those probabilities.}
+
+\item{newdata}{Optional data frame holding the response and the
+predictors: the residual is its response minus \code{fitted(newdata = )},
+with that fitted value's standard error, as brms's is. Only the
+\code{"response"} type is defined there.}
+
+\item{resp}{For a multivariate fit: the responses to report. \code{NULL}
+(the default) reports all of them, as brms's \verb{n x 4 x nresp} array
+with the third dimension named by response.}
+
+\item{allow_new_levels}{With \code{newdata}: a grouping level the fit never
+saw is predicted as \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}} predicts it, instead of
+an error.}
 }
 \value{
 brms's summary matrix: \code{n} rows with \code{NULL} dimnames, as
@@ -55,7 +69,9 @@ brms's are, and the columns \code{Estimate}, \code{Est.Error} and one per
 entry of \code{probs}, \code{NA} on censored rows.
 The observed response is fixed, so \code{Est.Error} is the standard
 error of the fitted value; a \code{"deviance"} or \code{"osa"} residual has
-none and reports \code{NA} there.
+none and reports \code{NA} there. A multivariate fit asked for more than
+one response gives an \verb{n x 4 x nresp} array, as brms's does;
+\code{"osa"} is univariate only.
 }
 \description{
 \code{"osa"} gives one-step-ahead (conditional quantile) residuals via

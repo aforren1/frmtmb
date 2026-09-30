@@ -1,3 +1,99 @@
+# frmtmb (development version)
+
+Lane wt-defects works the defect rows of the ported brms 2.23.0 suite.
+`dev/defects-findings.md` has the rows, the constructions and the
+before and after ledger.
+
+## Changed output
+
+* **`fitted(scale = "linear")` on an ordinal fit with a `cs()` term
+  returns one layer per threshold**, `n x 4 x (K - 1)` named `eta1`,
+  `eta2`, ... as brms does; on a multivariate fit the layers stack with
+  the other responses', as in brms.
+  It returned the shared predictor alone, which is the predictor at no
+  threshold of the model, because a `cs()` term moves each threshold's
+  predictor by its own coefficient. The layers are the ones the density
+  reads: on an `sratio()` fit, `P(Y = 1)` is `F(tau_1 - eta_1)` of the
+  first layer to within rounding.
+* **`summary()` reports a `gp()` term's standard deviation and length
+  scale**, under brms's heading "Gaussian Process Hyperparameters" and
+  brms's row names, `sdgp(gpx)` and `lscale(gpx)`, in `$gp`. The section
+  had a printer and nothing to fill it, so neither number appeared in
+  any summary. The length scale is on brms's scale, the inputs divided
+  by their largest distance; `confint_varcorr()` keeps it in data units.
+* **The prior table spells a smooth's unpenalized column and a
+  nonlinear parameter's intercept as brms does**, `sx_1` for `s(x).fx1`
+  and `Intercept` for `(Intercept)`, and lists a block's coefficients in
+  brms's order, sorted by name. `set_prior(coef = )` takes either
+  spelling.
+* A fit records the name of its data in `attr(fit$data, "data_name")`,
+  and `update(newdata = )` the new name, as brms does. `summary()`
+  prints that name. A data frame passed by value through `do.call()`
+  used to print its whole contents on the `Data:` line, and prints
+  nothing there now.
+
+## New arguments and answers
+
+* `residuals()` takes brms's `newdata`, the response there minus
+  `fitted(newdata = )` with that value's standard error, and
+  `allow_new_levels`. It answers a multivariate fit in brms's
+  `n x 4 x nresp` array, and `resp` narrows it; it refused both before.
+  `type = "osa"` stays univariate.
+* `ranef()` takes brms's `pars` and `groups` instead of refusing them.
+* `family()` takes brms's `resp`; `print()` of a family takes brms's
+  `links` and `newline`, and a mixture prints as brms prints it,
+  `Mixture` and then each component.
+* `fitted()` takes `sample_new_levels = "gaussian"`, which is what its
+  interval at an unseen level already was; `"old_levels"` and
+  `"uncertainty"` are refused by name, since this Wald summary has no
+  draws of the group effects.
+* `predict()` takes `sample_new_levels = "old_levels"`, which it
+  refused: each unseen level borrows the effect of one seen level of
+  its block, chosen at random once per call as brms chooses it, from
+  every replicate's draw of the group effects. `"uncertainty"` is still
+  refused.
+* `mixture()` takes brms's `order`: `"none"` and `FALSE` are what a fit
+  does, `"mu"` and `TRUE` are refused, and any other value is refused
+  in brms's words.
+* `categorical()` reads a numeric response as categories in numeric
+  order, as brms does. It claimed a response with ten categories had
+  "fewer than two".
+* `default_prior()` and `validate_prior()` no longer read the
+  response's values, as brms's do not: a `Beta()` model on a response
+  outside (0, 1) gets its table, and `frm()` still refuses the fit. An
+  ordinal family is the exception, as in brms: its threshold rows are
+  counted from the response, so a response it cannot read is refused.
+
+## Bug fixes
+
+* `residuals()`, `pp_check()` and `dharma_residuals()` no longer read a
+  missing `mi()` response as an observation. The frame holds the
+  placeholder 0 there, and `residuals()` reported `0 - mu` at those
+  rows, where brms's is `NA`. The residual there is `NA` now, in all
+  four columns, and `pp_check()` and `dharma_residuals()` leave the
+  row out, `pp_check()` with brms's warning. The univariate
+  `y | mi() ~ x` had the fault before; a multivariate fit refused
+  `residuals()` before. `residuals(type = "osa")` on such a response
+  is refused by name; it died inside TMB.
+
+* A factor column of `newdata` holding the levels as numbers
+  (`Trt = 0`) is read as those levels, as brms reads it. It died with
+  R's "contrasts apply only to factors". Prediction on a slice of the
+  fitted data whose factor carries a `contrasts` attribute no longer
+  warns "contrasts dropped from factor".
+* `y ~ x + set_rescor(TRUE)` and the other model-building helpers
+  (`lf()`, `nlf()`, `set_mecor()`) written inside a formula are refused
+  by name, in brms's words. They died in `model.frame()` with "invalid
+  type (list) for variable".
+* `(cs(x) | g)` is refused by name: on a family without category
+  specific effects as `cs()` is, and on an ordinal family because a
+  group-level category-specific effect is not supported. It died with
+  R's "could not find function \"cs\"".
+* `se()` on a family whose density does not read it is refused even when
+  its column is missing from the data, as brms refuses it from the
+  formula alone. The missing column was reported first and hid the
+  refusal.
+
 # frmtmb 0.65.0
 
 Seven lanes, each with an adversarial review. Each lane's

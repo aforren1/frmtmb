@@ -2635,7 +2635,8 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
            x = !is.null(x))
   y <- if (identical(prefix, "ppc")) {
     if (is.null(newdata)) {
-      object$frame[["y"]][[1L]]
+      # NA at a missing mi() row, which the NA rule below then drops
+      frame_observed_y(object, rspec$resp_name)
     } else {
       pp_check_newdata_y(object, rspec, newdata)
     }

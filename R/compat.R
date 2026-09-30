@@ -1387,7 +1387,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: rescor = TRUE requires every response to be gaussian, or every response to be student. A mix of the two is refused as well, as brms refuses it.")
   r("rescor", "gaussian", "works", "")
   r("rescor", "student", "conditional",
-    "Every response must be student(). The responses share ONE nu, brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D, so the row density is a multivariate t and a distributional sigma still works; nu is named nu, with no response, in variables(), summary() and priors (set_prior(class = \"nu\") takes no resp). A formula or a constant for nu is refused, as brms refuses it. Verified against mvtnorm::dmvt at a shared parameter point (relative residual 5e-16) and against a hand-written RTMB objective at the ML optimum (dev/mv-validate-student.R). fitted(), predict() (a joint multivariate-t draw) and the refusals of simulate() and residuals() are those of the gaussian rescor model.")
+    "Every response must be student(). The responses share ONE nu, brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D, so the row density is a multivariate t and a distributional sigma still works; nu is named nu, with no response, in variables(), summary() and priors (set_prior(class = \"nu\") takes no resp). A formula or a constant for nu is refused, as brms refuses it. Verified against mvtnorm::dmvt at a shared parameter point (relative residual 5e-16) and against a hand-written RTMB objective at the ML optimum (dev/mv-validate-student.R). fitted(), predict() (a joint multivariate-t draw), residuals() and the refusal of simulate() are those of the gaussian rescor model.")
   r("rescor", "cens()", "refused",
     "Refused. This pair was once accepted with the censoring silently dropped.")
   r("rescor", "trunc()", "refused",
@@ -1404,10 +1404,10 @@ compat_hand_rules_tbl <- function() {
     "predict() answers every response in brms's n x 4 x nresp array, drawing the responses of a replicate jointly; resp = narrows it.")
   r("rescor", "simulate", "refused",
     "Refused: simulate() is not supported for multivariate fits yet.")
-  r("rescor", "residuals", "refused",
-    "Refused: residuals() is not supported for multivariate fits yet.")
+  r("rescor", "residuals", "works",
+    "residuals() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it. Each layer is that response's own residual, as fitted() is.")
   r("rescor", "residuals_osa", "refused",
-    "Refused: residuals() is not supported for multivariate fits yet.")
+    "Refused: residuals(type = \"osa\") is not supported for multivariate fits yet; the one-step tape steps through a single response's observations.")
   r("rescor", "emmeans", "works",
     "Verified: without resp = the responses stack as the rep.meas factor, and a contrast across responses carries the cross-response covariance of the coefficients. The residual correlation does not enter a marginal mean.")
   # confint() and hypothesis() work on the outer parameter vector,
@@ -1423,10 +1423,11 @@ compat_hand_rules_tbl <- function() {
     "Refused: the post-fit methods below are univariate-only for now.")
   # residuals_osa x kind:structure claims "untested" at the same
   # signature as the univariate-only refusal above, so the pair is
-  # named outright: residuals(type = "osa") goes through the same
-  # single_response() guard and stops.
+  # named outright: residuals(type = "osa") refuses a multivariate fit.
+  r("mvbf", "residuals", "works",
+    "residuals() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it, and one response is an n x 4 matrix. A matrix-valued response does not stack with the others and is refused there, naming resp =.")
   r("mvbf", "residuals_osa", "refused",
-    "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
+    "Refused: residuals(type = \"osa\") is not supported for multivariate fits yet; the one-step tape steps through a single response's observations.")
   r("mvbf", "emmeans", "works",
     "Verified against univariate fits (dev/emm-validate.R): resp = selects one response, and without it the responses stack as brms's rep.meas factor. Without resp = the responses must share a link, as in brms; epred = TRUE has no such need.")
   r("mvbf", "fitted", "works",

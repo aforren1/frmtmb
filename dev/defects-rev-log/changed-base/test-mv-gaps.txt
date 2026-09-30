@@ -1,0 +1,4 @@
+RESULT base frmtmb 0.65.0 C:/Users/adf44/source/r/rellib-r3 test-mv-gaps.R pass= 55 fail= 0 err= 1 skip= 0 warn= 0 
+-- expectation_error line 120 in: student() rescor is the multivariate t, with one shared nu 
+   <frmtmb_error/error/condition>
+   Error: residuals() is not supported yet for multivariate fits 

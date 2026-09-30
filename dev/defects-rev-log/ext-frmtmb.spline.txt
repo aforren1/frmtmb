@@ -1,0 +1,16 @@
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-bracket-access.R pass= 1 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-conditions-census.R pass= 11 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-conditions.R pass= 5 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-curve.R pass= 65 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-deriv.R pass= 38 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-difference.R pass= 59 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-frailty.R pass= 30 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-gratia.R pass= 13 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-message-uniqueness.R pass= 4 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-new-levels.R pass= 59 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-royston-parmar.R pass= 67 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-rp-floored.R pass= 81 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-scale.R pass= 0 fail= 0 err= 0 skip= 1 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-span.R pass= 73 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.spline 0.9.0 C:/Users/adf44/source/r/rellib-r3 test-surface.R pass= 47 fail= 0 err= 0 skip= 0 warn= 0 
+SUITE lane frmtmb.spline ran 15 of 15 files

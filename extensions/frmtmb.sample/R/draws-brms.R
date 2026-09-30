@@ -162,7 +162,10 @@ draws_internal_matrix <- function(x, rows = NULL) {
 #' brms's `as.matrix()`, `as.array()` and `as.data.frame()` front end:
 #' `pars` is the deprecated alias of `variable` and `subset` of `draw`,
 #' each accepted with brms's own warning, and `regex`, `fixed` and
-#' `inc_warmup` pass through as brms's `...` passes them.
+#' `inc_warmup` pass through as brms's `...` passes them. So do
+#' `iteration` and `chain`, which brms hands to
+#' `posterior::subset_draws()` with `draw`: `as.array(fit, chain = 1)`
+#' is the first chain's iterations.
 #'
 #' `format` converts the draws array before the draw subset, because
 #' brms subsets in the format the method returns.
@@ -170,7 +173,8 @@ draws_internal_matrix <- function(x, rows = NULL) {
 #' @noRd
 draws_accessor_args <- function(x, pars, variable, draw, subset, what,
                                 format = identity, ...) {
-  frm_check_dots(..., .allow = c("regex", "fixed", "inc_warmup"))
+  frm_check_dots(..., .allow = c("regex", "fixed", "inc_warmup",
+                                 "iteration", "chain"))
   dots <- list(...)
   if (!anyNA(pars)) {
     frm_warning("Argument 'pars' is deprecated. Please use 'variable' ",
@@ -185,8 +189,9 @@ draws_accessor_args <- function(x, pars, variable, draw, subset, what,
   }
   a <- format(draws_as_array(x, variable, dots$regex %||% FALSE,
                              dots$inc_warmup %||% FALSE, what))
-  if (!is.null(draw)) {
-    a <- suppressMessages(posterior::subset_draws(a, draw = draw))
+  if (!is.null(draw) || !is.null(dots$iteration) || !is.null(dots$chain)) {
+    a <- suppressMessages(posterior::subset_draws(
+      a, draw = draw, iteration = dots$iteration, chain = dots$chain))
   }
   a
 }

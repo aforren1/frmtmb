@@ -565,3 +565,74 @@ removed on 2026-09-17. They now read `FRMTMB_PORT_ROOT` and
 `FRMTMB_PORT_LIB`, defaulting to the main checkout and the round's
 reference build, and assert the user Makevars flag that replaced the
 pin, as `dev/release/run-tests.R` does.
+
+## 13. What lane `wt-defects` changed (round of 2026-09-29)
+
+The lane worked the defect rows of the ledger at 0.65.0. The totals,
+the rows that moved and the rows left are generated into
+`dev/defects-findings.md` by `dev/defects-ledger-diff.R`; the
+generated block in section 4 above stays the historical one. Two
+changes reach the harness itself, and a reader of sections 2 and 3
+needs both:
+
+- **Fixture 1 is brms's own model.** Section 3's table gives it
+  `arma(visit, patient, cov = TRUE)`, chosen before frmtmb fitted
+  brms's default `cov = FALSE`. It is `arma(visit, patient)` now, as
+  brms writes it. Against the record with the old fixture three rows
+  changed and nothing else (`dev/defects-rec-diff.R`): `:737` and `:741`
+  hold, and `:747` fails for a new reason, recorded in its verdict.
+  The fixture still does not converge (false convergence, 8).
+- **`brms_forward()` passes the kept arguments unevaluated**, evaluated
+  in the caller's frame by the callee, as the call brms answers would
+  pass them. It evaluated them first, so `update(fit, newdata =
+  new_data)` could not record the spelling `new_data`, which is what
+  brms's `data_name` attribute is (`:924`). The guards report 64 of 64
+  after the change (`dev/defects-log/guards.txt`).
+
+The verdict moves are applied by `dev/defects-verdicts.R`, after the
+precedent of `dev/adefects-verdicts.R`.
+
+**A third harness rule, from the aterms2 review.** `expect_true(all(x))`
+and `expect_false(any(x))` held on an EMPTY `x`, since `all()` of
+nothing is TRUE: `all(sdata$idxl_y_x_1 %in% 9:5)` reading an element
+frmtmb does not have is `all(logical(0))`, and the `$` rule leaves a
+final absent name alone. `brms_hollow_empty()` in the helper now
+rejects the run as vacuous, "all() or any() over an empty vector". Four
+guard cases (E1, E2 and their controls) show it firing and not firing;
+the guards report 64 of 64. On this lane's build it changed no row: the
+whole record before and after the rule differs only in random numbers
+of three standata messages (`dev/defects-rec-diff.R`,
+`dev/defects-log/rec-before-empty/`). The ledger has 11 assertions of
+the two forms; 4 pass on a non-empty operand (`brmsfit-methods:46`,
+`:714`, `priors:122`, `standata:976`) and the other 7 did not hold
+before the rule either. `standata:620` is cannot transfer on this
+build, where `mi(idx =)` does not exist. The aterms2 review reports
+that with that lane's code and its `brms_standata_view()` edit the
+operand is the 10 values brms's `idxl_y_x_1` holds, so the rule would
+not fire there; that was not measured on this build.
+
+**The same rule after the review's minor 2** (punch round 1 of lane
+`wt-defects`). `brms_empty_operand()` now reads through `testthat::`,
+`isTRUE()`, parentheses, `!` (which swaps `all()` and `any()`) and a
+named argument such as `na.rm`. It evaluates the operand once, with
+warnings muffled as the assertion's are, and `brms_port_run()` asks it
+once: an operand is evaluated twice per held row, once by the
+assertion and once by the rule, where it was two and three times.
+Evaluating it only once would mean rewriting brms's call around a
+precomputed value, which changes the messages the ledger records.
+Measured with the reviewer's `dev/defects-rev-hollow.R`
+(`dev/defects-log/hollow-after.txt`) and `dev/defects-rev-hollow-warn.R`
+(0 warnings escape, 2 evaluations):
+
+- caught now, of the review's 9 missed spellings: `isTRUE(all(.))`,
+  `all(., na.rm = TRUE)`, `!any(.)`, `expect_false(!all(.))` and
+  `testthat::expect_true(all(.))`;
+- still missed: `expect_equal(all(.), TRUE)`, `expect_identical(any(.),
+  FALSE)`, `all(.) && TRUE` and `!anyNA(NULL)`, and brms's own
+  `expect_range()`, which wraps `all()`. None is a held row today;
+- a false alarm stays: an `all()` or `any()` over nothing that IS the
+  right answer, `expect_false(any(grepl("error", character(0))))`, is
+  rejected. That fails loud: the row stops holding and needs a verdict.
+
+Guards E3 to E6 and two controls cover the new spellings; the guards
+report 70 of 70.

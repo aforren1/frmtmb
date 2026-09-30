@@ -1,0 +1,58 @@
+===== uni 
+Compiling Stan program...
+Start sampling
+residuals : dim 80x4  NA 64  NA cols/rows pattern: 1,3,12,14,15
+pe : dim 20x80  NA 320  NA cols/rows pattern: 1,2,3,4,5
+r2 : dim 1x4  NA 4  NA cols/rows pattern: 1,NA,NA,NA,NA
+loglik : dim 20x80  NA 320  NA cols/rows pattern: 1,2,3,4,5  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont ]
+loo : ERROR: NAs not allowed in input.  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont | Ignoring relative efficiencies as some were NA. See argument 'r_eff' in ?loo::loo for more ]
+pp : ok  [warn: NA responses are not shown in 'pp_check'. ]
+fitted_lin : dim 80x4  NA 0  NA cols/rows pattern: NA,NA,NA,NA,NA
+   Estimate Est.Error Q2.5 Q97.5
+R2      NaN        NA   NA    NA
+attr(,"warnings")
+character(0)
+===== mv 
+Compiling Stan program...
+Start sampling
+residuals : dim 80x4x2  NA 68  NA cols/rows pattern: 1,18,23,24,25
+pe : dim 20x80x2  NA 340  NA cols/rows pattern: 1,2,3,4,5
+r2 : dim 2x4  NA 4  NA cols/rows pattern: 2,NA,NA,NA,NA
+loglik : dim 20x80  NA 340  NA cols/rows pattern: 1,2,3,4,5  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont ]
+loo : ERROR: NAs not allowed in input.  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont | The ESS has been capped to avoid unstable estimates. | Ignoring relative efficiencies as some were NA. See argument 'r_eff' in ?loo::loo for more ]
+pp : ERROR: Argument 'resp' must be a single variable name when applying this method to a multivariate model.
+fitted_lin : dim 80x4x2  NA 0  NA cols/rows pattern: NA,NA,NA,NA,NA
+       Estimate  Est.Error      Q2.5     Q97.5
+R2y   0.5225774 0.06917579 0.3692156 0.6303348
+R2xmi       NaN         NA        NA        NA
+attr(,"warnings")
+character(0)
+===== mv2 
+Compiling Stan program...
+Start sampling
+residuals : dim 80x4x2  NA 64  NA cols/rows pattern: 1,3,12,14,15
+pe : dim 20x80x2  NA 320  NA cols/rows pattern: 1,2,3,4,5
+r2 : dim 2x4  NA 4  NA cols/rows pattern: 1,NA,NA,NA,NA
+loglik : dim 20x80  NA 320  NA cols/rows pattern: 1,2,3,4,5  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont ]
+loo : ERROR: NAs not allowed in input.  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont | Ignoring relative efficiencies as some were NA. See argument 'r_eff' in ?loo::loo for more ]
+pp : ERROR: Argument 'resp' must be a single variable name when applying this method to a multivariate model.
+fitted_lin : dim 80x4x2  NA 0  NA cols/rows pattern: NA,NA,NA,NA,NA
+       Estimate  Est.Error      Q2.5     Q97.5
+R2ymi       NaN         NA        NA        NA
+R2y2  0.3951804 0.06670649 0.2420332 0.5037642
+attr(,"warnings")
+character(0)
+===== sdy 
+Compiling Stan program...
+Start sampling
+residuals : dim 80x4  NA 20  NA cols/rows pattern: 3,9,27,41,66
+pe : dim 20x80  NA 100  NA cols/rows pattern: 1,2,3,4,5
+r2 : dim 1x4  NA 4  NA cols/rows pattern: 1,NA,NA,NA,NA
+loglik : dim 20x80  NA 100  NA cols/rows pattern: 1,2,3,4,5  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont ]
+loo : ERROR: NAs not allowed in input.  [warn: NAs were found in the log-likelihood. Possibly this is because some of your responses cont | Ignoring relative efficiencies as some were NA. See argument 'r_eff' in ?loo::loo for more ]
+pp : ok  [warn: NA responses are not shown in 'pp_check'. ]
+fitted_lin : dim 80x4  NA 0  NA cols/rows pattern: NA,NA,NA,NA,NA
+   Estimate Est.Error Q2.5 Q97.5
+R2      NaN        NA   NA    NA
+attr(,"warnings")
+character(0)

@@ -19,7 +19,8 @@
   robust = FALSE,
   probs = c(0.025, 0.975),
   ...,
-  allow_new_levels = FALSE
+  allow_new_levels = FALSE,
+  sample_new_levels = NULL
 )
 }
 \arguments{
@@ -66,12 +67,23 @@ conditional fit and said nothing.}
 \item{allow_new_levels}{Predict unseen grouping-factor levels at the
 population level instead of erroring, as in
 \code{\link[=frm_linpred]{frm_linpred()}}.}
+
+\item{sample_new_levels}{brms's argument. \code{"gaussian"}, or \code{NULL}
+for it: an unseen level's effect is taken from its block's
+estimated covariance, so its variance widens \code{Est.Error} and the
+interval. \code{"old_levels"} reads a seen level's effect from a draw
+of the group effects, and this Wald summary takes none, so it is
+refused by name; \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} takes it. \code{"uncertainty"}
+is refused on both.}
 }
 \value{
 An \verb{n x 4} matrix with the columns \code{Estimate}, \code{Est.Error}
 and one per entry of \code{probs}. For an ordinal or categorical family
 an \verb{n x 4 x K} array, the third dimension named \code{P(Y = k)}, which
-is brms's shape. For a multivariate fit asked for more than one
+is brms's shape; at \code{scale = "linear"}, an ordinal fit with a \code{cs()}
+term gives \verb{n x 4 x (K - 1)}, one linear predictor per threshold,
+named \code{eta1}, \code{eta2}, ... as brms names them. For a multivariate
+fit asked for more than one
 response, an \verb{n x 4 x nresp} array with the third dimension named
 by response, which is brms's shape too; each cell's \code{Est.Error} is
 the standard error of that response's own expected value. A

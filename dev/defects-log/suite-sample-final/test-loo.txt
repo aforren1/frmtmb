@@ -1,0 +1,1 @@
+RESULT after frmtmb.sample 0.13.0 test-loo.R pass= 103 fail= 0 err= 0 skip= 2 warn= 0 

@@ -1,0 +1,2 @@
+Setting order = 'mu' for mixtures of the same family.
+RESULT after frmtmb 0.65.0 test-brms-methods.R pass= 979 fail= 0 err= 0 skip= 0 warn= 0 

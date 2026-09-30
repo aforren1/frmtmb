@@ -670,6 +670,36 @@ special_term_refusal <- function(tm) {
          })
 }
 
+#' The formula helpers that build a model rather than a term.
+#'
+#' Written inside a formula, `y ~ x + set_rescor(TRUE)`, one of these
+#' reached `model.frame()` as a variable and died there with R's
+#' "invalid type (list) for variable", which names neither the helper
+#' nor the fix. brms refuses the same terms by name
+#' (`check_accidental_helper_functions()`). As there, a function the
+#' user defined under the same name is left alone. A name that resolves
+#' to nothing is refused too, since `frmtmb::frm()` with the package not
+#' attached would otherwise die on "could not find function".
+#'
+#' @noRd
+formula_helper_funs <- c("nlf", "lf", "set_rescor", "set_mecor")
+
+#' @noRd
+check_helper_in_formula <- function(terms_list, env) {
+  ns <- asNamespace("frmtmb")
+  for (tm in terms_list) {
+    if (!is.call(tm) || !is.name(tm[[1L]])) next
+    fn <- as.character(tm[[1L]])
+    if (!fn %in% formula_helper_funs) next
+    found <- get0(fn, envir = env %||% globalenv(), mode = "function")
+    if (!is.null(found) && !identical(found, get(fn, envir = ns))) next
+    frm_stop("Function '", fn, "' should not be part of the right-hand ",
+             "side of a formula. It builds the model, so add it to the ",
+             "formula instead: bf(y ~ x) + ", fn, "(...)", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' A term's labels as `terms()` expands them, or `NULL` when it cannot.
 #' brms judges `cs()` placement on these labels, so `x * cs(g)` is
 #' reported as `x:cs(g)`, and `cs(x) * cs(x)`, which `terms()` collapses
@@ -1117,6 +1147,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # Evaluating the calls with mgcv's own constructors parses k=, by=,
   # bs=, and multi-variable smooths for free.
   terms_list <- split_plus(reformulas::RHSForm(rhs_form))
+  check_helper_in_formula(terms_list, env)
   # a whole-term special inside a larger term is refused here, and a term
   # that terms() collapses to bare specials (s(z) * s(z)) becomes them,
   # so every branch below sees a special only as a term of its own

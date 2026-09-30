@@ -348,6 +348,78 @@ extract_y <- function(resp, mf) {
 trials_families <- c("binomial", "beta_binomial", "zero_inflated_binomial",
                      "multinomial")
 
+#' Refuse `se()` on a family whose density does not read it.
+#'
+#' A capability test, not a name test. `se()` is the one core addition
+#' term whose whole effect lives inside the density: the core neither
+#' multiplies it in nor reshapes anything with it, it only hands
+#' `aterms[["se"]]` to the family and maps out a now redundant `sigma`.
+#' So the question is whether the density READS it, and the family
+#' answers by declaring it, which is what `accepts_aterms` and
+#' `required_aterms` are for. An undeclared family (`accepts_aterms =
+#' NULL`, which otherwise means "every term") is refused, because "did
+#' not say" cannot mean yes for a term that changes nothing unless it is
+#' read: that is the same silent wrong answer the allow-list exists to
+#' close.
+#'
+#' It reads the formula and the family only, so `assemble_frame()` also
+#' runs it before the data check when the `se()` column is missing, as
+#' brms refuses the term from the formula alone.
+#'
+#' @noRd
+check_se_declared <- function(resp) {
+  if (family_declares_aterm(resp$family, "se")) return(invisible(NULL))
+  frm_stop(
+    "se() carries a known standard deviation into the density, ",
+    "so only a family that reads it can be given one, and '",
+    resp$family[["family"]], "' does not declare that it does. ",
+    "A family declares it with frmtmb_family(accepts_aterms = ",
+    "c(..., \"se\")) or with required_aterms = \"se\", which ",
+    "also refuses a model that leaves the term out. The density ",
+    "then reads aterms[[\"se\"]] as the standard deviation, and ",
+    "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
+    "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
+    "where it is TRUE. The built-in families that read it are ",
+    "gaussian and student", call. = FALSE,
+    package = frm_family_package(resp$family))
+}
+
+#' Refuse a category-specific `cs(x)` on the left of a group-level bar.
+#'
+#' `(cs(period) | subject)` reached `model.frame()` as a call to a
+#' function nobody defines and died there with R's "could not find
+#' function \"cs\"". brms refuses it on a family without category
+#' specific effects ("Category specific effects are not supported for
+#' this family"), and so does this, in the words the population-level
+#' `cs(x)` is refused with. On the ordinal families that do take `cs()`
+#' brms fits a group-level category-specific effect; this package has no
+#' such term, and says so. The bar form `cs(x | g)`, a compound-symmetry
+#' covariance, is a different thing and is not reached here.
+#'
+#' @noRd
+check_cs_in_bar <- function(resp) {
+  fam <- resp$family
+  cs_ok <- identical(fam[["type"]], "ordinal") &&
+    !identical(fam[["family"]], "cumulative")
+  for (dp in resp$dpars) {
+    for (re in dp[["re"]] %||% list()) {
+      lhs <- re$bar[[2L]]
+      if (!calls_function(lhs, "cs")) next
+      if (!cs_ok) {
+        frm_stop("cs() needs an sratio, cratio, or acat family; the ",
+                 "group-level term (", deparse1(re$bar), ") has one",
+                 call. = FALSE)
+      }
+      frm_stop("A category-specific effect inside a group-level term, (",
+               deparse1(re$bar), "), is not supported: cs() is a ",
+               "population-level term here. Keep cs() outside the bar ",
+               "and write the group-level part without it, e.g. ",
+               "(1 + x | g)", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 #' Refuse a binomial-type response with no `trials()` term, as brms does.
 #'
 #' The densities read `trials %||% 1`, so a response without the term
@@ -478,7 +550,7 @@ cs_term_design <- function(cexpr, mf, env) {
 #' @noRd
 cs_term_newdata <- function(spec, newdata) {
   tt <- spec[["terms"]]
-  check_newdata_frame(tt, newdata, spec[["xlevels"]])
+  newdata <- check_newdata_frame(tt, newdata, spec[["xlevels"]])
   mfc <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
                             xlev = spec[["xlevels"]])
   X <- stats::model.matrix(tt, mfc, contrasts.arg = spec[["contrasts"]])
@@ -871,7 +943,7 @@ mm_member_designs <- function(mmspec, data, env, n_members,
   tt <- stats::terms(stats::as.formula(call("~", mmspec$lhs), env = env))
   tt <- patch_predvars(tt, predvar_map)
   Xp <- if (use_model_frame) {
-    check_newdata_frame(tt, data, xlev)
+    data <- check_newdata_frame(tt, data, xlev)
     mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
                               xlev = xlev)
     stats::model.matrix(tt, mf2)
@@ -1574,11 +1646,14 @@ check_frame_variables <- function(rhs, data, env) {
 #' resolve through `lookup_structural()`: data2 first, then data, then
 #' the formula environment.
 #'
-#' `check_trials = FALSE` is for the prior table alone. brms's
-#' `get_prior()` answers for a binomial-type response whatever its
-#' trials say, because no prior slot depends on them, so the table skips
-#' the trials refusal and the response check of every family that reads
-#' trials. A fit never passes it.
+#' `check_response = FALSE` is for the prior table and its validator
+#' alone. brms's `get_prior()` and `validate_prior()` never read the
+#' response's values, because no prior slot depends on them: they answer
+#' for a binomial-type response whatever its trials say, and for a
+#' `Beta()` response outside (0, 1) (`tests.priors.R`, "auxiliary
+#' parameters", draws `rnorm()`). So the table skips the trials refusal
+#' and `valid_y()`, except on an ordinal family, whose threshold count
+#' is read off the response. A fit never passes it.
 #'
 #' `thres_pin` is for a refit INSIDE the package that reassembles the
 #' frame from a subset or a replacement of the fitted data
@@ -1595,7 +1670,7 @@ check_frame_variables <- function(rhs, data, env) {
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
-                           check_trials = TRUE, thres_pin = NULL) {
+                           check_response = TRUE, thres_pin = NULL) {
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -1652,6 +1727,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         add_part(a)
       }
     }
+  }
+  # Whether a family takes se() is a fact about the formula, and brms
+  # refuses it from the formula alone, so a missing se() column must not
+  # hide that refusal behind "not a column of data". Only then is it
+  # raised here: with the column present the order is the one below, in
+  # which a structured family's own refusal of se() speaks first
+  # (frmtmb.latent's hmm() says why it cannot take the term).
+  for (resp in spec$responses) {
+    se_expr <- resp$aterms[["se"]]
+    if (!is.null(se_expr) &&
+          !all(vapply(all.vars(se_expr), function(v) {
+            v %in% names(data) ||
+              exists(v, envir = resp$formula_env %||% globalenv())
+          }, NA))) {
+      check_se_declared(resp)
+    }
+    check_cs_in_bar(resp)
   }
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
@@ -1792,7 +1884,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # reads the count: an in-package refit's threshold count comes from
     # the fitted model, never from the refit's own response
     av <- thres_pin_apply(thres_pin, resp, av)
-    if (check_trials) check_trials_given(resp, av)
+    if (check_response) check_trials_given(resp, av)
     # Before EVERY other guard, including the structured one, because
     # each of them is handed `av`: a declared term that is absent leaves
     # a hole in it, and a hole reads as NULL rather than as an error.
@@ -2054,34 +2146,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
     if (!is.null(av[["se"]])) {
-      # A capability test, not a name test. `se()` is the one core
-      # addition term whose whole effect lives inside the density: the
-      # core neither multiplies it in nor reshapes anything with it, it
-      # only hands `aterms[["se"]]` to the family and maps out a now
-      # redundant `sigma`. So the question is whether the density READS
-      # it, and the family answers by declaring it - which is what
-      # `accepts_aterms` and `required_aterms` are for. An undeclared
-      # family (`accepts_aterms = NULL`, which otherwise means "every
-      # term") is refused, because "did not say" cannot mean yes for a
-      # term that changes nothing unless it is read: that is the same
-      # silent-wrong-answer the allow-list exists to close, and it is
-      # also the behavior every custom family had before this test
-      # replaced the name test.
-      if (!family_declares_aterm(resp$family, "se")) {
-        frm_stop(
-          "se() carries a known standard deviation into the density, ",
-          "so only a family that reads it can be given one, and '",
-          resp$family[["family"]], "' does not declare that it does. ",
-          "A family declares it with frmtmb_family(accepts_aterms = ",
-          "c(..., \"se\")) or with required_aterms = \"se\", which ",
-          "also refuses a model that leaves the term out. The density ",
-          "then reads aterms[[\"se\"]] as the standard deviation, and ",
-          "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
-          "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
-          "where it is TRUE. The built-in families that read it are ",
-          "gaussian and student", call. = FALSE,
-                 package = frm_family_package(resp$family))
-      }
+      check_se_declared(resp)
       if (any(av[["se"]] <= 0)) {
         frm_stop("se() values must be positive", call. = FALSE)
       }
@@ -2139,11 +2204,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       n_thetaac <- n_thetaac + ac[["npar"]]
       autocor[[resp$resp_name]] <- ac
     }
-    reads_trials <- any(c(resp$family[["family"]],
-                          resp$family[["component_families"]]) %in%
-                          trials_families)
+    # the prior table skips the response check (check_response = FALSE),
+    # except on an ordinal family, whose threshold rows are counted from
+    # the response: brms's extract_nthres() refuses there too, "Could
+    # not extract the number of thresholds"
     if (!is.null(resp$family[["valid_y"]]) &&
-        (check_trials || !reads_trials)) {
+          (check_response || identical(resp$family[["type"]], "ordinal"))) {
       resp$family[["valid_y"]](y[[resp$resp_name]], av)
     }
     # The allow-list, LAST of the addition-term guards and after

@@ -1,0 +1,18 @@
+RESULT before frmtmb.sample 0.13.0 test-draws-methods.R pass= 149 fail= 2 err= 2 skip= 0 warn= 0 
+-- expectation_error in: as.array() and as.matrix() take brms's chain and iteration 
+   <frmtmb_error/error/condition>
+   Error: draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup 
+-- expectation_failure in: a missing mi() response is no observation on draws 
+   Expected `all(is.na(pe[, miss]))` to be TRUE.
+   Differences:
+   `actual`:   FALSE
+   `expected`: TRUE 
+    
+-- expectation_failure in: a missing mi() response is no observation on draws 
+   Expected `all(is.na(bayes_R2(ds, summary = FALSE)))` to be TRUE.
+   Differences:
+   `actual`:   FALSE
+   `expected`: TRUE 
+    
+-- expectation_error in: a missing mi() response is no observation on draws 
+   Error in `.get_lw(lw, psis_object)`: One of 'lw' and 'psis_object' must be specified. 

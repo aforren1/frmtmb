@@ -1,0 +1,10 @@
+frmtmb standata:310  held FALSE -> FALSE
+   A: Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual             | expected                  [1] -1.69363197304492  -                           [2] -0
+   B: Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual             | expected                  [1] 1.1297987030726    -                           [2] -0
+frmtmb standata:315  held FALSE -> FALSE
+   A: Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                    
+   B: Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                    
+frmtmb standata:316  held FALSE -> FALSE
+   A: Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                    
+   B: Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                    
+rows compared: 598  changed: 3 

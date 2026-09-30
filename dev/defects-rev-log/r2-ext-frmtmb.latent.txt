@@ -1,0 +1,11 @@
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-bracket-access.R pass= 1 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-conditions-census.R pass= 11 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-conditions.R pass= 6 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-hmm-starts.R pass= 84 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-hmm.R pass= 118 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-lca.R pass= 105 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-message-uniqueness.R pass= 4 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-prior-dpar.R pass= 10 fail= 0 err= 0 skip= 0 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-scale.R pass= 0 fail= 0 err= 0 skip= 2 warn= 0 
+RESULT lane frmtmb.latent 0.6.0 C:/Users/adf44/source/r/rellib-r3 test-structure-latent.R pass= 20 fail= 0 err= 0 skip= 0 warn= 0 
+SUITE lane frmtmb.latent ran 10 of 10 files

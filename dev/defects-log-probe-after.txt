@@ -1,0 +1,270 @@
+ARM after frmtmb 0.65.0 from C:/Users/adf44/source/r/wt-defects-lib 
+
+== brm:81 
+  ERROR: se() carries a known standard deviation into the density, so only a family that reads it can be given one, and 'weibull' does not declare that it does. A family declares it with frmtmb_family(accepts_aterms = c(..., "se")) or with required_aterms = "se", which also refuses a model that leaves the term out. The density then reads aterms[["se"]] as the standard deviation, and honors se(x, sigma = TRUE) by reading aterms[["se_sigma"]] and using sqrt(dpars[["sigma"]]^2 + aterms[["se"]]^2) where it is TRUE. The built-in families that read it are gaussian and student 
+<frmtmb_error: se() carries a known standard deviation into the density, so only a family that reads it can be given one, and 'weibull' does not declare that it does. A family declares it with frmtmb_family(accepts_aterms = c(..., "se")) or with required_aterms = "se", which also refuses a model that leaves the term out. The density then reads aterms[["se"]] as the standard deviation, and honors se(x, sigma = TRUE) by reading aterms[["se_sigma"]] and using sqrt(dpars[["sigma"]]^2 + aterms[["se"]]^2) where it is TRUE. The built-in families that read it are gaussian and student>
+
+== brm:102 
+  ERROR: Function 'set_rescor' should not be part of the right-hand side of a formula. It builds the model, so add it to the formula instead: bf(y ~ x) + set_rescor(...) 
+<frmtmb_error: Function 'set_rescor' should not be part of the right-hand side of a formula. It builds the model, so add it to the formula instead: bf(y ~ x) + set_rescor(...)>
+
+== brm:116 
+  ERROR: cs() needs an sratio, cratio, or acat family; the group-level term (cs(period) | subject) has one 
+<frmtmb_error: cs() needs an sratio, cratio, or acat family; the group-level term (cs(period) | subject) has one>
+
+== methods:283 
+
+Family: poisson 
+Link function: log 
+Parameters: mu (log)
+
+
+Family: poisson 
+Link function: log 
+Parameters: mu (log)
+
+
+== methods:284 
+
+Family: student 
+Link function: identity 
+Parameters: mu (identity), sigma (log), nu (logm1)
+Link function of 'sigma' (if predicted): log
+Link function of 'nu' (if predicted): logm1
+
+
+Family: student 
+Link function: identity 
+Parameters: mu (identity), sigma (log), nu (logm1)
+
+
+== methods:285 
+
+Mixture
+
+Family: gaussian 
+Link function: identity 
+
+Family: exponential 
+Link function: log 
+Parameters: mu1 (identity), sigma1 (log), mu2 (log), theta1 (identity)
+
+
+Mixture
+
+Family: gaussian 
+Link function: identity 
+
+Family: exponential 
+Link function: log 
+Parameters: mu1 (identity), sigma1 (log), mu2 (log), theta1 (identity)
+
+
+== methods:301 
+[1] 2 4
+[1] 2 4
+
+== methods:305 
+[1] 2 4
+[1] 2 4
+
+== methods:314 
+  ERROR: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there 
+<frmtmb_error: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there>
+
+== methods:317 
+  ERROR: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there 
+<frmtmb_error: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there>
+
+== methods:352 
+[1] 1 4 3
+[1] 1 4 3
+[1] 1 4 4
+[1] 1 4 4
+
+== methods:391 
+  ERROR: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask 
+<frmtmb_error: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, ask>
+
+== methods:396 
+  ERROR: plot() has no argument `ignore_prior` (and 1 more: plot). It takes: x, ask 
+<frmtmb_error: plot() has no argument `ignore_prior` (and 1 more: plot). It takes: x, ask>
+
+== methods:737 
+  WARNING: predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+[1] 2 4
+[1] 2 4
+
+== methods:741 
+  WARNING: predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+[1] 2 4
+[1] 2 4
+
+== methods:747 
+  WARNING: predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+  ERROR: A prediction on newdata with arma(visit, patient) needs the observed response 'count' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws 
+<frmtmb_error: A prediction on newdata with arma(visit, patient) needs the observed response 'count' in every row of newdata: under cov = FALSE the mean of a row is a regression on the residuals of the rows before it in its group, so a row has no mean until the earlier responses are known. Supply the response, or draw forecasts with simulate(newdata = ), which runs the recursion over its own draws>
+
+== methods:772 
+[1] 5 4
+[1] 5 4
+
+== methods:814 
+[[1]]
+[1] "1" "2" "3" "4"
+
+[[2]]
+[1] "Trt1"
+
+[[1]]
+[1] "1" "2" "3" "4"
+
+[[2]]
+[1] "Trt1"
+
+
+== methods:817 
+[1] 0
+[1] 0
+
+== methods:828 
+[1] 10  4
+[1] 10  4
+
+== methods:832 
+[1] 10  4
+[1] 10  4
+
+== methods:840 
+[1] 40  4  2
+[1] 40  4  2
+
+== methods:904 
+ Family: MV(gaussian, poisson) 
+ Links: volume: mu = identity; sigma = log; count: mu = log
+
+Formula: volume ~ Trt + gp(Age) 
+         count ~ Trt + Age 
+   Data:  (Number of observations: 40) 
+ Method: ML   logLik: -177.247   AIC: 370.495   BIC: 384.006 
+
+Gaussian Process Hyperparameters:
+                     Estimate Est.Error l-95% CI      u-95% CI
+sdgp(volume_gpAge)       0.00      1.10        0 2.496311e+253
+lscale(volume_gpAge)     0.03      3.67        0 7.438671e+107
+
+Regression Coefficients:
+                 Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+volume_Intercept     0.41      0.23    -0.05     0.87    1.76    0.078
+count_Intercept      3.00      0.05     2.90     3.09   60.22   <2e-16
+volume_Trt1         -0.41      0.35    -1.09     0.28   -1.17    0.243
+count_Trt1          -0.06      0.07    -0.20     0.09   -0.76    0.448
+count_Age            0.02      0.04    -0.05     0.09    0.50    0.615
+
+Further Distributional Parameters:
+             Estimate Est.Error l-95% CI u-95% CI
+sigma_volume      1.1      0.12     0.88     1.36
+ Family: MV(gaussian, poisson) 
+ Links: volume: mu = identity; sigma = log; count: mu = log
+
+Formula: volume ~ Trt + gp(Age) 
+         count ~ Trt + Age 
+   Data:  (Number of observations: 40) 
+ Method: ML   logLik: -177.247   AIC: 370.495   BIC: 384.006 
+
+Gaussian Process Hyperparameters:
+                     Estimate Est.Error l-95% CI      u-95% CI
+sdgp(volume_gpAge)       0.00      1.10        0 2.496311e+253
+lscale(volume_gpAge)     0.03      3.67        0 7.438671e+107
+
+Regression Coefficients:
+                 Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+volume_Intercept     0.41      0.23    -0.05     0.87    1.76    0.078
+count_Intercept      3.00      0.05     2.90     3.09   60.22   <2e-16
+volume_Trt1         -0.41      0.35    -1.09     0.28   -1.17    0.243
+count_Trt1          -0.06      0.07    -0.20     0.09   -0.76    0.448
+count_Age            0.02      0.04    -0.05     0.09    0.50    0.615
+
+Further Distributional Parameters:
+             Estimate Est.Error l-95% CI u-95% CI
+sigma_volume      1.1      0.12     0.88     1.36
+
+== methods:924 
+Fixed-effect design of 'count.mu' is rank deficient; dropping column(s): volume
+  WARNING: Optimizer did not report convergence: function evaluation limit reached without convergence (9) 
+  WARNING: Large maximum absolute gradient at the optimum (848 at Trt:Age): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+[1] "new_data"
+[1] "new_data"
+
+== methods:927 
+Fixed-effect design of 'count.mu' is rank deficient; dropping column(s): volume
+  WARNING: Optimizer did not report convergence: function evaluation limit reached without convergence (9) 
+  WARNING: Large maximum absolute gradient at the optimum (848 at Trt:Age): the curvature there is unusable, so how much log-likelihood is left could not be measured. The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+[1] "frmtmb_fit"
+[1] "frmtmb_fit"
+
+== methods:995 
+  ERROR: could not find function "parnames" 
+<simpleError in parnames(fit3): could not find function "parnames">
+
+== data-helpers:7 
+     Estimate Est.Error Q2.5 Q97.5
+[1,] 17.70115        NA   NA    NA
+[2,] 16.30716        NA   NA    NA
+[3,] 19.22318        NA   NA    NA
+[4,] 17.53203        NA   NA    NA
+[5,] 16.21305        NA   NA    NA
+
+== families:102 
+  ERROR: Argument 'order' is invalid. Valid options are: none, mu 
+<frmtmb_error: Argument 'order' is invalid. Valid options are: none, mu>
+
+== priors:55 
+[1] ""     "sx_1" "z"   
+[1] ""     "sx_1" "z"   
+
+== priors:74 
+route = "fit": the prior defaults frm() applies
+   prior     class    coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                               NA NA default
+2 (flat) Intercept                     phi       NA NA default
+3 (flat)         b                     phi       NA NA default
+4 (flat)         b       z             phi       NA NA default
+5 (flat)        sd                     phi       NA NA default
+6 (flat)        sd             g       phi       NA NA default
+7 (flat)     theta                               NA NA default
+8 (flat)     theta theta_1                       NA NA default
+route = "fit": the prior defaults frm() applies
+   prior     class    coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                               NA NA default
+2 (flat) Intercept                     phi       NA NA default
+3 (flat)         b                     phi       NA NA default
+4 (flat)         b       z             phi       NA NA default
+5 (flat)        sd                     phi       NA NA default
+6 (flat)        sd             g       phi       NA NA default
+7 (flat)     theta                               NA NA default
+8 (flat)     theta theta_1                       NA NA default
+
+== priors:101 
+[1] ""  "x"
+[1] ""  "x"
+
+== standata:75 
+  ERROR: bernoulli: response must be 0/1 
+<frmtmb_error: bernoulli: response must be 0/1>
+
+== standata:83 
+$y
+ [1]  1  2  3  4  5  6  7  8  9 10  1  2  3  4  5  6  7  8  9 10  1  2  3  4  5
+[26]  6  7  8  9 10  1  2  3  4  5  6  7  8  9 10  1  2  3  4  5  6  7  8  9 10
+
+$y
+ [1]  1  2  3  4  5  6  7  8  9 10  1  2  3  4  5  6  7  8  9 10  1  2  3  4  5
+[26]  6  7  8  9 10  1  2  3  4  5  6  7  8  9 10  1  2  3  4  5  6  7  8  9 10
+
+
+== standata:142 
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+<frmtmb frame> 10 observations, 1 response(s)
+  y.mu1: X[10 x 1] -> beta[1:1]
+  parameters: beta(1) 

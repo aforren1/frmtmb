@@ -1,3 +1,18 @@
+# frmtmb.sample (development version)
+
+* `as.array()`, `as.matrix()` and `as.data.frame()` of draws take
+  brms's `chain` and `iteration`, which brms hands to
+  `posterior::subset_draws()`: `as.array(ds, chain = 1)` is the first
+  chain. They were refused by name. Any other name is still refused.
+* `predictive_error()`, `pp_check()` and `bayes_R2()` of draws no
+  longer read a missing `mi()` response as an observation. The frame
+  holds the placeholder 0 there, and the predictive error was
+  `0 - yrep`; it is `NA` now, as brms's is, `bayes_R2()` is `NA`, as
+  brms's is, and `pp_check()` leaves the row out with brms's warning.
+  A `pp_check()` loo type on such a model is refused by name, since
+  `log_lik()` is not defined there; it died inside bayesplot. No newer
+  frmtmb is needed.
+
 # frmtmb.sample 0.13.0
 
 Needs frmtmb 0.65.0, for `arma_cond_resp()` and `arma_cond_dpars()`.

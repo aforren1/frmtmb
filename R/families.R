@@ -4131,6 +4131,10 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' @param ... Two or more component families.
 #' @param groups Optional one-sided formula naming the latent-class
 #'   grouping factor.
+#' @param order brms's argument. `NULL`, `"none"` or `FALSE` leaves the
+#'   components unordered, which is what a fit here does. `"mu"` or
+#'   `TRUE`, brms's ordering of the `mu` intercepts, is refused, and any
+#'   other value is refused as invalid, in brms's words.
 #' @return A `frmtmb_family`.
 #' @examples
 #' # two well-separated gaussian components
@@ -4158,7 +4162,7 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' head(mixture_probs(fg))   # one row per group, not per observation
 #' }
 #' @export
-mixture <- function(..., groups = NULL) {
+mixture <- function(..., groups = NULL, order = NULL) {
   named <- ...names()
   named <- named[!is.na(named) & nzchar(named)]
   if (length(named)) {
@@ -4166,10 +4170,11 @@ mixture <- function(..., groups = NULL) {
     # read as a component it came back as "not a supported family"
     frm_stop("mixture() has no argument ", paste0("`", named, "`",
                                                     collapse = ", "),
-             ". It takes the component families, unnamed, and `groups`. ",
-             "brms's `nmix` and `order` are not supported: repeat a ",
+             ". It takes the component families, unnamed, `groups` and ",
+             "`order`. brms's `nmix` is not supported: repeat a ",
              "component to use it twice", call. = FALSE)
   }
+  mixture_check_order(order)
   comps <- lapply(list(...), as_frmtmb_family)
   K <- length(comps)
   if (K < 2L) {
@@ -4187,6 +4192,44 @@ mixture <- function(..., groups = NULL) {
     }
   }
   mixture_build(comps, groups, ref = K)
+}
+
+#' brms's `mixture(order = )`, validated as brms validates it.
+#'
+#' brms orders the components by their `mu` intercepts under
+#' `order = "mu"` (or `TRUE`), which identifies them for a sampler, and
+#' leaves them alone under `"none"` (or `FALSE`). A fit here never
+#' constrains them, so `"none"` is what it does and is accepted. `"mu"`
+#' is refused rather than ignored: the caller asked for an ordering the
+#' fit would not deliver. Any other value is refused in brms's words.
+#'
+#' @noRd
+mixture_check_order <- function(order) {
+  if (is.null(order)) return(invisible(NULL))
+  if (length(order) != 1L) {
+    frm_stop("Argument 'order' must be of length 1.", call. = FALSE)
+  }
+  if (is.character(order)) {
+    if (!order %in% c("none", "mu")) {
+      frm_stop("Argument 'order' is invalid. Valid options are: none, mu",
+               call. = FALSE)
+    }
+  } else if (!is.logical(order) || is.na(order)) {
+    frm_stop("Argument 'order' is invalid. Valid options are: none, mu, ",
+             "or TRUE and FALSE for them", call. = FALSE)
+  } else {
+    order <- if (order) "mu" else "none"
+  }
+  if (identical(order, "mu")) {
+    frm_stop("mixture(order = \"mu\") is not supported: this package does ",
+             "not constrain the order of the components' mu intercepts. ",
+             "The likelihood is the same under any labeling, so a fit ",
+             "needs no ordering; to fix one, bound the intercepts with ",
+             "set_prior(\"\", class = \"Intercept\", dpar = \"mu2\", lb = ) ",
+             "and so on per component. order = \"none\" is accepted",
+             call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' The mixture family a formula's written thetas call for.
@@ -5308,7 +5351,8 @@ categorical_levels <- function(formula, data) {
 #' The category labels of a categorical response, in the order that fixes
 #' the reference category and the dpar names. A character vector is
 #' coerced with a message naming the order it took, because that order is
-#' the model; a factor keeps its own levels.
+#' the model; a factor keeps its own levels; numeric codes are read in
+#' numeric order, as brms reads them.
 #'
 #' @noRd
 categorical_y_levels <- function(y, label) {
@@ -5323,6 +5367,11 @@ categorical_y_levels <- function(y, label) {
     return(lv)
   }
   if (is.factor(y)) return(levels(y))
+  # Numeric codes are categories too, in numeric order, as brms reads
+  # them: 11:20 is ten categories with 11 the reference. This returned
+  # NULL once, and the caller then claimed "fewer than two categories"
+  # of a response that had ten.
+  if (is.numeric(y) && !is.matrix(y)) return(levels(factor(y)))
   NULL
 }
 
@@ -6618,18 +6667,58 @@ family_link_str <- function(fam) {
   paste(paste0(dp[keep], " = ", nm[keep]), collapse = "; ")
 }
 
+#' Print a family
+#'
+#' Prints the family, its link and each distributional parameter with
+#' its link, in brms's layout: the first two lines are brms's, spacing
+#' included, and a mixture opens with `Mixture` and names each
+#' component with its own link.
+#'
+#' @param x A family.
+#' @param links `TRUE` also prints brms's line per distributional
+#'   parameter other than `mu`, "Link function of 'sigma' (if
+#'   predicted): log"; a character vector prints those parameters only.
+#' @param newline Print a blank line at the end, as brms does.
+#' @param ... Unused; an argument given here is refused by name.
+#' @return `x`, invisibly.
+#' @examples
+#' print(student(), links = TRUE)
+#' print(mixture(gaussian(), exponential()))
 #' @export
-print.frmtmb_family <- function(x, ...) {
+print.frmtmb_family <- function(x, links = FALSE, newline = TRUE, ...) {
   frm_check_dots(...)
-  # brms's first two lines, spacing included, so output a ported script
-  # matches on reads the same
-  cat("\nFamily:", x[["family"]], "\n")
-  cat("Link function:", x$link, "\n")
-  links <- vapply(x[["links"]], function(l) {
+  if (!(isTRUE(links) || isFALSE(links) ||
+          (is.character(links) && !anyNA(links)))) {
+    frm_stop("`links` must be TRUE, FALSE or the names of distributional ",
+             "parameters, not ", arg_desc(links), call. = FALSE)
+  }
+  check_flag(newline, "newline")
+  lk <- vapply(x[["links"]], function(l) {
     if (is.list(l)) l[["name"]] %||% "?" else as.character(l)
   }, "")
-  cat("Parameters: ", paste0(x[["dpars"]], " (", links[x[["dpars"]]], ")",
-                             collapse = ", "), "\n\n", sep = "")
+  comps <- x[["component_families"]]
+  if (!is.null(comps)) {
+    # brms's print.mixfamily: the word, then each component in turn
+    cat("\nMixture\n")
+    for (k in seq_along(comps)) {
+      cat("\nFamily:", comps[[k]], "\n")
+      cat("Link function:", lk[[paste0("mu", k)]], "\n")
+    }
+  } else {
+    cat("\nFamily:", x[["family"]], "\n")
+    cat("Link function:", x$link, "\n")
+  }
+  cat("Parameters: ", paste0(x[["dpars"]], " (", lk[x[["dpars"]]], ")",
+                             collapse = ", "), "\n", sep = "")
+  if (!isFALSE(links)) {
+    dp <- setdiff(x[["dpars"]], "mu")
+    if (is.character(links)) dp <- intersect(dp, links)
+    for (d in dp) {
+      cat("Link function of '", d, "' (if predicted): ", lk[[d]], "\n",
+          sep = "")
+    }
+  }
+  if (newline) cat("\n")
   invisible(x)
 }
 

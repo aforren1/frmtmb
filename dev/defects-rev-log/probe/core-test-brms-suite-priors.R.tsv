@@ -1,0 +1,5 @@
+priors:91	cannot transfer	FALSE	TRUE	any	27	expect_true(any(with(prior, class == "sigma" & resp == "y1")))
+priors:92	cannot transfer	FALSE	TRUE	any	27	expect_true(any(with(prior, class == "ar" & resp == "y1")))
+priors:93	cannot transfer	FALSE	TRUE	any	27	expect_true(any(with(prior, class == "phi" & resp == "y2")))
+priors:94	cannot transfer	FALSE	TRUE	any	27	expect_true(!any(with(prior, class == "ar" & resp == "y2")))
+priors:122	pass	TRUE	FALSE	all	3	expect_true(all(c("b", "Intercept", "sd") %in% prior1$class))

@@ -1,0 +1,23 @@
+<environment: namespace:brms>
+beta         default_prior brms: 4 rows | frmtmb: 4 rows
+             validate_prior brms: 4 rows | frmtmb: 4 rows
+             common rows: 4  only brms:  
+             frm(): ERROR: beta: response must lie strictly in (0, 1) 
+bern         default_prior brms: 3 rows | frmtmb: 3 rows
+             validate_prior brms: 3 rows | frmtmb: 3 rows
+             common rows: 3  only brms:  
+             frm(): ERROR: bernoulli: response must be 0/1 
+pois         default_prior brms: 3 rows | frmtmb: 3 rows
+             validate_prior brms: 3 rows | frmtmb: 3 rows
+             common rows: 3  only brms:  
+             frm(): ERROR: poisson: response must be non-negative integers 
+cumul_cont   default_prior brms: ERROR: Could not extract the number of thresholds. Use ordered factors or positive integers as your ordinal response  | frmtmb: ERROR: Family 'cumulative' requires either positive integers or ordered factors as responses: integer codes 1..K
+             validate_prior brms: ERROR: Could not extract the number of thresholds. Use ordered factors or positive integers as your ordinal response  | frmtmb: ERROR: Family 'cumulative' requires either positive integers or ordered factors as responses: integer codes 1..K
+             frm(): ERROR: Family 'cumulative' requires either positive integers or ordered factors as respons 
+sratio_cont  default_prior brms: ERROR: Could not extract the number of thresholds. Use ordered factors or positive integers as your ordinal response  | frmtmb: ERROR: Family 'sratio' requires either positive integers or ordered factors as responses: integer codes 1..K
+             validate_prior brms: ERROR: Could not extract the number of thresholds. Use ordered factors or positive integers as your ordinal response  | frmtmb: ERROR: Family 'sratio' requires either positive integers or ordered factors as responses: integer codes 1..K
+             frm(): ERROR: Family 'sratio' requires either positive integers or ordered factors as responses:  
+cumul_ok     default_prior brms: 5 rows | frmtmb: 3 rows
+             validate_prior brms: 5 rows | frmtmb: 3 rows
+             common rows: 3  only brms: Intercept|1|||| ; Intercept|2|||| 
+             frm(): frmtmb_fit 

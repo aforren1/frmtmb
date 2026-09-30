@@ -41,6 +41,8 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms's default) and `cov = TRUE` (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
+| `categorical()` on a numeric response | same | the distinct values are the categories, in numeric order: `11:13` is three categories with `11` the reference |
+| `mixture(..., order = "none")` | same | brms's `order = "mu"`, which orders the components' intercepts for a sampler, is refused |
 
 ### Links
 
@@ -614,6 +616,8 @@ the SHAPE of what a standard generic returns:
   brms fills from draws; `fixef()`, `ranef()` and `coef()` take brms's
   `summary`, `robust` and `probs` in brms's positions and refuse
   `summary = FALSE` by name, because a fit has no draws to return.
+  `ranef()` also takes brms's `pars` and `groups`, and `family()` its
+  `resp`.
   `hypothesis()` reads brms's grammar too: every hypothesis states a
   relation, so write `"x = 0"` and not `"x"`.
 - `predict()`, `fitted()` and `residuals()` return brms's summary
@@ -624,7 +628,17 @@ the SHAPE of what a standard generic returns:
   `Q` columns are the simulation's own quantiles. An ordinal or
   categorical response gives brms's `n` by 4 by `K` array from
   `fitted()` and brms's `P(Y = k)` proportions from `predict()`.
-  `confint()` still takes `level =` rather than `probs =`.
+  `fitted(scale = "linear")` on an ordinal fit with a `cs()` term gives
+  one layer per threshold, as brms does, because the category-specific
+  part moves the predictor differently at each threshold.
+  `residuals()` takes brms's `newdata` (by name: its second argument
+  is `type`), which is the response there minus `fitted(newdata = )`,
+  and answers every response of a multivariate fit in brms's `n` by 4
+  by `nresp` array. `confint()` still takes `level =` rather than
+  `probs =`.
+- A factor column of `newdata` may hold the levels as numbers, as brms
+  reads it: `Trt = 0` is the level `"0"`. A number that is not a level
+  is refused as a new level.
 - **A matrix is not a vector, and every scalar summary of it changes.**
   This is brms fidelity, not a defect, and it is the one change in
   this list that gives a WRONG NUMBER rather than an error. brms's
@@ -688,9 +702,17 @@ the SHAPE of what a standard generic returns:
 - `predict(allow_new_levels = TRUE)` draws an unseen level's effect
   from its block's estimated covariance, which is brms's
   `sample_new_levels = "gaussian"`, so the interval at an unseen level
-  is wider than at a known one. brms's `"uncertainty"` and
-  `"old_levels"` resample the draws of the levels that were seen, and
-  a maximum-likelihood fit has none, so both are refused by name.
+  is wider than at a known one. `fitted()` takes the same
+  `sample_new_levels = "gaussian"`. `predict()` also takes
+  `"old_levels"`: each unseen level borrows one seen level's effect,
+  chosen once per call as brms chooses it, from every replicate's draw
+  of the group effects. brms's `"uncertainty"` mixes the two per
+  posterior draw, and a maximum-likelihood fit has none, so it is
+  refused by name; so is `"old_levels"` on `fitted()`, a Wald summary
+  with no draws to borrow from.
+- `update()` takes brms's `newdata` and records its name in
+  `attr(fit$data, "data_name")`, which `summary()` prints. It also
+  takes the `data =` of `stats::update()`, which brms refuses.
 - `emmeans()` takes brms's `dpar`, `nlpar`, `resp`, `epred` and
   `re_formula`, with brms's defaults. A multivariate fit without
   `resp` stacks its responses as brms's `rep.meas` factor. Where brms

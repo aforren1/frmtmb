@@ -211,11 +211,13 @@ test_that("get_prior lists a nonlinear parameter the way brms does", {
   gp <- get_prior(loss_form(), data = dd)
   expect_true("nlpar" %in% names(gp))
   # class "b" with the parameter in the nlpar column, the intercept
-  # among the coefficients rather than in its own class
+  # among the coefficients rather than in its own class, and spelled
+  # `Intercept` as brms spells it (priors:59 of the ported suite)
   for (np in c("ult", "omega", "theta")) {
     expect_true(any(gp$class == "b" & gp$nlpar == np & gp$coef == ""))
     expect_true(any(gp$class == "b" & gp$nlpar == np &
-                      gp$coef == "(Intercept)"))
+                      gp$coef == "Intercept"))
+    expect_false(any(gp$coef == "(Intercept)"))
     expect_false(any(gp$class == "Intercept" & gp$nlpar == np))
   }
   # the variance component is listed against the parameter that owns it

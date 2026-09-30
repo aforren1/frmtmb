@@ -1,0 +1,15 @@
+wrote 14 files; 494 assertion ids; 0 without a verdict
+./tests/testthat/test-brms-suite-brm.R
+./tests/testthat/test-brms-suite-brmsfit-helpers.R
+./extensions/frmtmb.sample/tests/testthat/test-brms-suite-methods.R
+./tests/testthat/test-brms-suite-methods.R
+./tests/testthat/test-brms-suite-brmsformula.R
+./extensions/frmtmb.sample/tests/testthat/test-brms-suite-brmsformula.R
+./tests/testthat/test-brms-suite-brmsterms.R
+./extensions/frmtmb.sample/tests/testthat/test-brms-suite-brmsterms.R
+./tests/testthat/test-brms-suite-data-helpers.R
+./tests/testthat/test-brms-suite-emmeans.R
+./tests/testthat/test-brms-suite-families.R
+./extensions/frmtmb.sample/tests/testthat/test-brms-suite-families.R
+./tests/testthat/test-brms-suite-priors.R
+./tests/testthat/test-brms-suite-standata.R

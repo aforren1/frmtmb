@@ -1,0 +1,1 @@
+brmsfit-methods:46	pass	TRUE	FALSE	all	4	expect_true(all(grepl("^b_", variables(draws))))

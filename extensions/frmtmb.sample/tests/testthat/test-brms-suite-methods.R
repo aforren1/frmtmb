@@ -152,16 +152,12 @@ test_that("as.matrix has reasonable ouputs", {
   brms_setup("brmsfit-methods:81",
     draws <- as.matrix(fit1, iteration = 1:10)
   )
-  brms_port("brmsfit-methods:82", "defect",
-    paste0(
-      "as.matrix() of draws refuses brms's iteration argument by ",
-      "name"),
+  brms_port("brmsfit-methods:82", "pass",
+    "",
     expect_true(is(draws, "matrix"))
   )
-  brms_port("brmsfit-methods:83", "defect",
-    paste0(
-      "as.matrix() of draws refuses brms's iteration argument by ",
-      "name"),
+  brms_port("brmsfit-methods:83", "pass",
+    "",
     expect_equal(dim(draws), c(10, length(variables(fit1))))
   )
 })
@@ -189,15 +185,15 @@ test_that("as.array has reasonable ouputs", {
   brms_setup("brmsfit-methods:93",
     draws <- as.array(fit1, chain = 1)
   )
-  brms_port("brmsfit-methods:94", "defect",
-    "as.array() of draws refuses brms's chain argument by name",
+  brms_port("brmsfit-methods:94", "pass",
+    "",
     expect_true(is.array(draws))
   )
   brms_setup("brmsfit-methods:95",
     ps_dim <- c(niterations(fit1), 1, length(variables(fit1)))
   )
-  brms_port("brmsfit-methods:96", "defect",
-    "as.array() of draws refuses brms's chain argument by name",
+  brms_port("brmsfit-methods:96", "pass",
+    "",
     expect_equal(dim(draws), ps_dim)
   )
 })

@@ -1,0 +1,1 @@
+RESULT after frmtmb 0.65.0 test-brms-parity-defects.R pass= 72 fail= 0 err= 0 skip= 0 warn= 0 

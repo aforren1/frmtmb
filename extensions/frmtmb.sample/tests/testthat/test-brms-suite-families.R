@@ -374,10 +374,8 @@ test_that("mixture returns expected results and errors", {
     expect_error(mixture(lognormal),
                  "Expecting at least 2 mixture components")
   )
-  brms_port("families:102", "defect",
-    paste0(
-      "mixture() refuses the argument NAME order, where brms ",
-      "refuses its value 'x' (famlink ledger row 77, not fixed)"),
+  brms_port("families:102", "pass",
+    "",
     expect_error(mixture(poisson, binomial, order = "x"),
                  "Argument 'order' is invalid")
   )

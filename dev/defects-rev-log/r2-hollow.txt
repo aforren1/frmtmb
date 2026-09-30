@@ -1,0 +1,16 @@
+a1   held=FALSE vacuous=TRUE  raw=TRUE  expect_true(all(sdata$idxl_y_x_1 %in% 9:5)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a2   held=FALSE vacuous=TRUE  raw=TRUE  expect_true(all(integer(0) == x)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a3   held=FALSE vacuous=TRUE  raw=TRUE  expect_true(isTRUE(all(sdata$idxl %in% 1))) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a4   held=FALSE vacuous=TRUE  raw=TRUE  expect_true(all(sdata$idxl %in% 1, na.rm = TRUE)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a5   held=FALSE vacuous=TRUE  raw=TRUE  expect_true(!any(sdata$idxl > 3)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a6   held=FALSE vacuous=TRUE  raw=TRUE  expect_false(!all(sdata$idxl > 3)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a7   held=TRUE  vacuous=FALSE raw=TRUE  expect_equal(all(sdata$idxl > 3), TRUE) | 
+a8   held=TRUE  vacuous=FALSE raw=TRUE  expect_identical(any(sdata$idxl > 3), FALSE) | 
+a9   held=FALSE vacuous=TRUE  raw=TRUE  testthat::expect_true(all(sdata$idxl > 3)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+a10  held=TRUE  vacuous=FALSE raw=TRUE  expect_true(all(sdata$idxl > 3) && TRUE) | 
+a11  held=TRUE  vacuous=FALSE raw=TRUE  expect_true(!anyNA(sdata$idxl)) | 
+a12  held=FALSE vacuous=TRUE  raw=TRUE  expect_true(all(dim(sdata$idxl) == c(3, 1))) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+b1   held=FALSE vacuous=TRUE  raw=TRUE  expect_false(any(grepl("error", empty_ok))) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+b2   held=FALSE vacuous=TRUE  raw=TRUE  expect_true(all(nchar(empty_ok) > 0)) | VACUOUS: all() or any() over an empty vector, such as NULL %in% y
+c1   held=TRUE  vacuous=FALSE raw=TRUE  expect_true(all(x > 0)) | 
+c2   held=TRUE  vacuous=FALSE raw=TRUE  expect_false(any(x > 5)) | 

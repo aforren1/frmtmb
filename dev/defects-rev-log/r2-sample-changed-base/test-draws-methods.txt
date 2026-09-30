@@ -1,0 +1,16 @@
+RESULT base frmtmb.sample 0.13.0 C:/Users/adf44/source/r/rellib-r3 test-draws-methods.R pass= 149 fail= 2 err= 1 skip= 0 warn= 0 
+-- expectation_error line 71 in: as.array() and as.matrix() take brms's chain and iteration 
+   <frmtmb_error/error/condition>
+   Error: draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup 
+-- expectation_failure line 612 in: a missing mi() response is no observation on draws 
+   Expected `all(is.na(pe[, miss]))` to be TRUE.
+   Differences:
+   `actual`:   FALSE
+   `expected`: TRUE 
+    
+-- expectation_failure line 614 in: a missing mi() response is no observation on draws 
+   Expected `all(is.na(bayes_R2(ds, summary = FALSE)))` to be TRUE.
+   Differences:
+   `actual`:   FALSE
+   `expected`: TRUE 
+    

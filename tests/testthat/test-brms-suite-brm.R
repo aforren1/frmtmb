@@ -31,15 +31,15 @@ test_that("brm produces expected errors", {
     expect_error(brm(bf(y | se(sei) ~ x, sigma ~ x), dat),
                  "Cannot predict or fix 'sigma' in this model")
   )
-  brms_port("brm:81", "defect",
+  brms_port_own("brm:81",
     paste0(
-      "not the same refusal: frmtmb validates the data first and ",
-      "refuses the missing column by name, 'The model uses `sei`, ",
-      "which is not a column of `data`', where brms refuses se() ",
-      "for weibull from the formula alone; with sei present frmtmb ",
-      "does refuse se() for weibull (dev/brmsport-probe3.R). The ",
-      "message is frmtmb's own, not base R's 'object not found', ",
-      "which is what this reason used to say"),
+      "se[(][)] carries a known standard deviation.*'weibull' does ",
+      "not declare"),
+    paste0(
+      "brms: Argument 'se' is not supported for family. The same ",
+      "refusal from the formula alone: frmtmb checks whether the ",
+      "family reads se() before it reads the data now (lane ",
+      "wt-defects), where it named the missing column sei first"),
     expect_error(brm(y | se(sei) ~ x, dat, family = weibull()),
                  "Argument 'se' is not supported for family")
   )
@@ -96,11 +96,8 @@ test_that("brm produces expected errors", {
     expect_error(brm(y~me(x, 2 * g)*me(x, g), dat),
                  "Variable 'x' is used in different calls to 'me'")
   )
-  brms_port("brm:102", "defect",
-    paste0(
-      "set_rescor() on the right-hand side reaches model.frame and ",
-      "dies with R's 'invalid type (list) for variable', not a ",
-      "designed refusal (dev/brmsport-probe3.R)"),
+  brms_port("brm:102", "pass",
+    "",
     expect_error(brm(y ~ 1 + set_rescor(TRUE), data = dat),
                  "Function 'set_rescor' should not be part")
   )
@@ -133,13 +130,16 @@ test_that("brm produces expected errors", {
     expect_error(brm(bf(y ~ 1) + arma(x), dat),
                  "Autocorrelation terms can only be specified")
   )
-  brms_port("brm:116", "defect",
+  brms_port_own("brm:116",
     paste0(
-      "categorical() refuses the integer response inhaler$rating ",
-      "(4 categories) with the FALSE claim 'fewer than two ",
-      "categories', before reaching the cs() check brms asserts; a ",
-      "factor response is accepted (dev/brmsport-probe3.R; ",
-      "priorform ledger P20 deferred it to famlink)"),
+      "cs[(][)] needs an sratio, cratio, or acat family; the ",
+      "group-level term"),
+    paste0(
+      "brms: Category specific effects are not supported for this ",
+      "family. The same refusal of cs() on categorical(); frmtmb ",
+      "read the integer response as having fewer than two ",
+      "categories before, and then died on R's could not find ",
+      "function cs"),
     expect_error(brm(rating ~ treat + (cs(period)|subject),
                      data = inhaler, family = categorical()),
                  "Category specific effects are not supported")

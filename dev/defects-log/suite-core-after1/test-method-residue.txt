@@ -1,0 +1,1 @@
+RESULT after frmtmb 0.65.0 test-method-residue.R pass= 64 fail= 0 err= 0 skip= 0 warn= 0 

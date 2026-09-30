@@ -117,7 +117,8 @@ test_that("student() rescor is the multivariate t, with one shared nu", {
   expect_identical(dim(fitted(fit)), c(as.integer(n), 4L, 2L))
   expect_identical(dim(predict(fit, ndraws = 50)), c(as.integer(n), 4L, 2L))
   expect_error(simulate(fit), "multivariate")
-  expect_error(residuals(fit), "multivariate")
+  expect_identical(dim(residuals(fit)), c(as.integer(n), 4L, 2L))
+  expect_error(residuals(fit, type = "osa"), "multivariate")
   gp <- get_prior(bf(y1 ~ x) + bf(y2 ~ x) + set_rescor(TRUE) + student(),
                   data = dd)
   expect_identical(gp$resp[gp$class == "nu"], "")

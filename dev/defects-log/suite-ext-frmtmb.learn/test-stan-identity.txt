@@ -1,0 +1,1 @@
+RESULT after frmtmb.learn 0.7.0 test-stan-identity.R pass= 0 fail= 0 err= 0 skip= 11 warn= 0 

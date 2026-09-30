@@ -1,0 +1,1 @@
+RESULT after frmtmb.sample 0.13.0 test-draws-methods.R pass= 156 fail= 0 err= 0 skip= 0 warn= 0 

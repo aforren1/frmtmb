@@ -25,9 +25,14 @@ test_that("standata accepts correct response variables depending on the family",
   )
   brms_port("standata:75", "defect",
     paste0(
-      "bernoulli refuses a response with two distinct values -1 ",
-      "and -2 ('response must be 0/1'); brms codes them 1 and 0 ",
-      "(dev/brmsport-probe3.R)"),
+      "bernoulli refuses a response with the two values -1 and -2 ",
+      "('response must be 0/1'); brms codes them 1 and 0 by level ",
+      "order. Filed by lane wt-defects: the recoding has to be ",
+      "stored with the fit and applied on every refit ",
+      "(influence(), frm_bootstrap()) and every response read from ",
+      "newdata (pp_check(), residuals(newdata = ), ",
+      "predictive_error()), or a subset holding one of the two ",
+      "values is coded wrong in silence"),
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(-c(1:2),5)),
                                family = "bernoulli")$Y, as.array(rep(1:0,5)))
   )
@@ -46,19 +51,13 @@ test_that("standata accepts correct response variables depending on the family",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(0,5)),
                                family = "bernoulli")$Y, as.array(rep(0, 5)))
   )
-  brms_port("standata:83", "defect",
-    paste0(
-      "categorical() refuses integer codes 1..10 with the false ",
-      "claim 'fewer than two categories'; brms accepts positive ",
-      "integers (dev/brmsport-probe3.R)"),
+  brms_port("standata:83", "pass",
+    "",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(1:10,5)),
                                family = "categorical")$Y, as.array(rep(1:10,5)))
   )
-  brms_port("standata:85", "defect",
-    paste0(
-      "categorical() refuses integer codes 11..20 with the false ",
-      "claim 'fewer than two categories'; brms accepts them and ",
-      "recodes to 1..10"),
+  brms_port("standata:85", "pass",
+    "",
     expect_equal(standata(y ~ 1, data = data.frame(y = rep(11:20,5)),
                                family = "categorical")$Y, as.array(rep(1:10,5)))
   )
@@ -185,12 +184,8 @@ test_that("standata suggests using family bernoulli if appropriate", {
                                  family = "acat"),
                    "family 'bernoulli' might be a more efficient choice.")
   )
-  brms_port("standata:142", "defect",
-    paste0(
-      "categorical() refuses the two-category integer response ",
-      "rep(0:1, 5) with the false claim 'fewer than two ",
-      "categories', so brms's bernoulli suggestion is never ",
-      "reached"),
+  brms_port("standata:142", "pass",
+    "",
     expect_message(standata(y ~ 1, data = data.frame(y = rep(0:1,5)),
                                family = "categorical"),
                   "family 'bernoulli' might be a more efficient choice.")

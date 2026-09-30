@@ -1,0 +1,3 @@
+No priors were set (plain maximum likelihood).
+MUTANT M6 fitted_point test-brms-suite-methods.R pass= 161 fail= 1 err= 0 
+  caught by: fitted has reasonable outputs 

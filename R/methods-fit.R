@@ -240,6 +240,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          spec_pars = summary_spec_frame(object, prob),
          cor_pars = summary_cor_pars_frame(object, prob),
          random = summary_random_list(object, prob),
+         gp = summary_gp_frame(object, prob),
          # the FLAG is stored beside the value: a plain ML fit has no
          # priors, and a summary asked for them still says so rather
          # than dropping the section
@@ -301,9 +302,14 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
 #'
 #' @noRd
 summary_data_name <- function(object) {
+  dn <- attr(object[["data"]], "data_name")
+  if (!is.null(dn)) return(dn)
   d <- object$call[["data"]]
-  if (is.null(d)) return("")
-  deparse1(d)
+  # a data frame passed by value through do.call() deparsed to its
+  # whole contents, one line of it per summary; brms records the
+  # spelling only, cut at 50 characters
+  if (!is.name(d) && !is.call(d)) return("")
+  substr(deparse1(d), 1L, 50L)
 }
 
 #' The two interval column names brms writes at coverage `prob`.
@@ -518,6 +524,58 @@ summary_random_list <- function(object, prob) {
   if (!length(out)) NULL else out
 }
 
+#' brms's `$gp`: each Gaussian process's standard deviation and length
+#' scale, under brms's names `sdgp(<prefix>gp<vars>)` and
+#' `lscale(<prefix>gp<vars>)`.
+#'
+#' The summary had a printer for this section and nothing that filled
+#' it, so a `gp()` fit's two hyperparameters appeared in no summary at
+#' all. brms reports the length scale on its RESCALED inputs, the
+#' coordinates divided by their largest pairwise distance (`gp(scale =
+#' TRUE)`, its default), so that is the scale reported here too: the
+#' approximate `gp(k = )` is estimated on those inputs already, and an
+#' exact `gp()`, which is estimated in data units, is divided by the same
+#' distance. The shift is a data constant on the log scale, so the
+#' standard error is unchanged by it. [confint_varcorr()] keeps the
+#' range in data units.
+#'
+#' @noRd
+summary_gp_frame <- function(object, prob) {
+  bks <- Filter(function(bk) bk[["covstruct"]] %in% c("gp", "hsgp"),
+                object$frame[["re_blocks"]])
+  if (!length(bks)) return(NULL)
+  tr <- tryCatch(suppressWarnings(varcorr_trans_rows(object)),
+                 error = function(e) NULL)
+  if (is.null(tr)) return(NULL)
+  out <- list()
+  for (bk in bks) {
+    rows <- which(tr$block == bk[["term_label"]])
+    if (!length(rows)) next
+    tb <- tr[rows, , drop = FALSE]
+    # the range row is in data units; brms's lscale is on inputs scaled
+    # by the largest distance between two distinct positions
+    dmax <- bk[["gp_dmax"]] %||% {
+      d2 <- Reduce(`+`, bk[["aux_D2"]] %||% list(0))
+      sqrt(max(d2))
+    }
+    if (isTRUE(dmax > 0)) {
+      rg <- tb$type == "range"
+      tb$est_t[rg] <- tb$est_t[rg] - log(dmax)
+    }
+    cp <- bk[["components"]][[1L]]
+    lp <- object$frame[["linpreds"]][[cp[["lp_key"]]]]
+    pre <- if (is.null(lp)) "" else brms_lp_prefix(object, lp)
+    nm <- paste0(if (nzchar(pre)) paste0(pre, "_"), "gp",
+                 brms_stan_name(paste(bk[["gp_vars"]], collapse = "")))
+    k <- cumsum(tb$type == "range")
+    idx <- if (max(k) > 1L) paste0("[", k, "]") else ""
+    lab <- ifelse(tb$type == "sd", paste0("sdgp(", nm, ")"),
+                  paste0("lscale(", nm, idx, ")"))
+    out[[length(out) + 1L]] <- summary_nat_frame(tb, prob, lab)
+  }
+  if (!length(out)) NULL else do.call(rbind, out)
+}
+
 #' The empty version of a brms summary block: brms gives a frame with
 #' its own columns and no rows, not NULL, when a model has no
 #' `spec_pars` or no `cor_pars` (measured, `dev/shapes-rev-brmsref.rds`
@@ -600,9 +658,9 @@ print.summary.frmtmb_fit <- function(x, ...) {
     cat("\nSmoothing Spline Hyperparameters (edf of the penalized part):\n")
     print(round(x$smooth_edf, 2))
   }
-  if (length(x$varcor_special %||% list())) {
-    cat("\nGaussian Process Terms:\n")
-    print_summary_block(x$varcor_special)
+  if (NROW(x[["gp"]])) {
+    cat("\nGaussian Process Hyperparameters:\n")
+    print_summary_block(x[["gp"]])
   }
   cat("\nRegression Coefficients:\n")
   print_summary_block(x$fixed)
@@ -673,11 +731,18 @@ df.residual.frmtmb_fit <- function(object, ...) {
 }
 
 #' @export
-family.frmtmb_fit <- function(object, ...) {
-  frm_check_dots(..., .unsupported = c(resp = paste(
-    "family() returns a NAMED LIST of families for a multivariate fit,",
-    "so index it by response name instead")))
+family.frmtmb_fit <- function(object, resp = NULL, ...) {
+  frm_check_dots(...)
   fams <- lapply(object$spec$responses, `[[`, "family")
+  # brms's family.brmsfit(): one response's family, or a list for several
+  if (!is.null(resp)) {
+    if (!is.character(resp) || !length(resp) || anyNA(resp)) {
+      frm_stop("`resp` must name responses of the model, not ",
+               arg_desc(resp), call. = FALSE)
+    }
+    for (r in setdiff(resp, names(fams))) stop_unknown_response(object, r)
+    fams <- fams[resp]
+  }
   if (length(fams) == 1) fams[[1]] else fams
 }
 
@@ -1311,12 +1376,17 @@ fixef_by_dpar <- function(object) {
 
 #' Extract random-effect modes
 #' @param object A `frmtmb_fit`.
-#' @param summary,robust,probs,pars,groups brms's arguments, in brms's
-#'   positions so that a positional brms call asks the same question.
-#'   brms answers `summary = FALSE` with the posterior draws and
-#'   `robust = TRUE` with their median and MAD, and a maximum-likelihood
-#'   fit has no draws, so both are refused by name with the reason. The
-#'   default of each is accepted and changes nothing.
+#' @param summary,robust,probs brms's arguments, in brms's positions so
+#'   that a positional brms call asks the same question. brms answers
+#'   `summary = FALSE` with the posterior draws and `robust = TRUE` with
+#'   their median and MAD, and a maximum-likelihood fit has no draws, so
+#'   both are refused by name with the reason. The default of each is
+#'   accepted and changes nothing.
+#' @param pars Optional coefficient names to keep, as brms's: `"x"`
+#'   keeps the `x` column of every group, a dpar's included
+#'   (`sigma_x`). A group left with no coefficient is dropped.
+#' @param groups Optional grouping factor names to keep. A name the
+#'   model does not have keeps nothing.
 #' @param condVar If `TRUE`, attach the conditional SDs of the modes
 #'   (from the Laplace posterior) as a `"condSD"` attribute on each
 #'   matrix, in matching layout.
@@ -1374,9 +1444,17 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # brms's positions ahead of `...`: ranef(fit, FALSE) used to set
   # `condVar` and return the default shape, identical() to ranef(fit)
   fit_refuse_draws_args("ranef()", summary = summary, robust = robust,
-                        probs = probs, pars = pars, groups = groups)
+                        probs = probs)
   require_fitted(object, "ranef()")
   check_flag(condVar, "condVar")
+  for (a in c("pars", "groups")) {
+    v <- get(a)
+    if (!is.null(v) && (!is.character(v) || anyNA(v))) {
+      frm_stop("ranef(): `", a, "` must be a character vector of ",
+               if (a == "pars") "coefficient" else "grouping factor",
+               " names, not ", arg_desc(v), call. = FALSE)
+    }
+  }
   cvec <- coef_b(object)
   # variances, not SDs: an esicar block's field is the CENTERED b, so
   # what it reports is the PROJECTED variance, and the projection
@@ -1392,18 +1470,41 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   out <- list()
   # a gr(g, by = f) term is one entry over all levels of g, as in brms
   blocks <- by_merged_blocks(object$frame[["re_blocks"]])
-  for (bk in blocks) {
+  if (!is.null(groups)) {
+    # brms's `groups`: the grouping factors to keep; a name that is none
+    # of them keeps nothing, and brms returns the empty list
+    blocks <- Filter(function(bk) {
+      (bk[["group_name"]] %||% bk[["term_label"]]) %in% groups
+    }, blocks)
+  }
+  keep_block <- rep(TRUE, length(blocks))
+  for (i in seq_along(blocks)) {
+    bk <- blocks[[i]]
     M <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
     # brms's coefficient names, which is what coef() puts on the same
     # columns: `Intercept`, not `(Intercept)`, and `sigma_Intercept` for
     # a block on sigma. A block brms has no r_ for (a reduced-rank
     # factor, a smooth basis) keeps the names it carries.
     rn <- bk[["cnms"]]
+    bare <- rn
     if (brms_block_has_r(bk)) {
-      bn <- tryCatch(brms_re_rnames(object, bk), error = function(e) NULL)
-      if (length(bn) == length(rn)) rn <- bn
+      bp <- tryCatch(brms_re_parts(object, bk), error = function(e) NULL)
+      if (length(bp$rnames) == length(rn)) {
+        rn <- bp$rnames
+        bare <- bp$coef
+      }
     }
     dimnames(M) <- list(bk[["levels"]], rn)
+    # brms's `pars` names coefficients WITHOUT their dpar prefix
+    # (`Intercept` selects `sigma_Intercept` too); a group left with no
+    # coefficient is dropped, as brms drops it
+    sel <- if (is.null(pars)) seq_along(rn) else {
+      which(bare %in% pars | rn %in% pars)
+    }
+    if (!length(sel)) {
+      keep_block[i] <- FALSE
+      next
+    }
     if (!is.null(cvr)) {
       # rr factors live in a different space than the displayed
       # coefficients; no conditional SDs for those blocks. An esicar
@@ -1419,7 +1520,10 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
         t(matrix(sqrt(cvr[bk[["b_idx"]]]), nrow = bk[["dim"]]))
       }
       dimnames(S) <- dimnames(M)
-      attr(M, "condSD") <- S
+      M <- M[, sel, drop = FALSE]
+      attr(M, "condSD") <- S[, sel, drop = FALSE]
+    } else {
+      M <- M[, sel, drop = FALSE]
     }
     # the block's own label stays reachable: it is what VarCorr() keys
     # by and the only thing that tells two blocks on one factor apart
@@ -1431,7 +1535,7 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # keyed by the GROUPING FACTOR, as brms and lme4 key it, and as this
   # package's own coef() already did: ranef(fit)$Subject used to be NULL
   # in a model where coef(fit)$Subject was a data frame
-  names(out) <- vapply(blocks, function(bk) {
+  names(out) <- vapply(blocks[keep_block], function(bk) {
     bk[["group_name"]] %||% bk[["term_label"]]
   }, "")
   structure(out, class = "ranef_frmtmb")
@@ -1898,8 +2002,7 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
 #'
 #' @noRd
 fit_refuse_draws_args <- function(what, summary = TRUE, robust = FALSE,
-                                  probs = NULL, pars = NULL,
-                                  groups = NULL) {
+                                  probs = NULL) {
   check_flag(summary, "summary")
   check_flag(robust, "robust")
   tail <- paste0(" Sample with frmtmb.sample::frm_sample() and call ",
@@ -1921,15 +2024,6 @@ fit_refuse_draws_args <- function(what, summary = TRUE, robust = FALSE,
              "draws, and this method returns point estimates with no ",
              "quantile columns. For an interval here use confint().", tail,
              call. = FALSE)
-  }
-  if (!is.null(pars)) {
-    frm_stop(what, " cannot honor `pars`: ",
-             brms_draws_summary_args[["pars"]], call. = FALSE)
-  }
-  if (!is.null(groups)) {
-    frm_stop(what, " cannot honor `groups`: brms's `groups` selects ",
-             "grouping factors; the return value here is a named list, so ",
-             "index it", call. = FALSE)
   }
   invisible(NULL)
 }

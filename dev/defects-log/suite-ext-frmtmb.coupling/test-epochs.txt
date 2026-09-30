@@ -1,0 +1,1 @@
+RESULT after frmtmb.coupling 0.6.0 test-epochs.R pass= 41 fail= 0 err= 0 skip= 0 warn= 0 

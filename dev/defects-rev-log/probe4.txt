@@ -1,0 +1,38 @@
+control: two NULL calls identical: FALSE 
+all.equal NULL vs none: TRUE 
+identical ignoring environments: TRUE 
+y ~ gp(x)  logLik -46.57706 
+             Estimate  Est.Error
+sdgp(gpx)   0.6203851 0.16134121
+lscale(gpx) 0.0990859 0.01611758
+  covstruct gp  gp_dmax NA  has aux_D2 TRUE 
+  block      term  type  estimate       lwr      upr
+1 gp(x)    sd(gp)    sd 0.6203851 0.3726426 1.032833
+2 gp(x) range(gp) range 0.9769994 0.7102897 1.343857
+y ~ gp(x, k = 20)  logLik -48.2738 
+             Estimate  Est.Error
+sdgp(gpx)   0.6631804 0.20586818
+lscale(gpx) 0.1128088 0.04410844
+  covstruct hsgp  gp_dmax 9.860125  has aux_D2 FALSE 
+          block      term  type  estimate       lwr      upr
+1 gp(x, k = 20)    sd(gp)    sd 0.6631804 0.3609083 1.218615
+2 gp(x, k = 20) range(gp) range 1.1123091 0.5168972 2.393573
+y ~ gp(x, k = 40)  logLik -46.57703 
+              Estimate  Est.Error
+sdgp(gpx)   0.62037808 0.16134144
+lscale(gpx) 0.09908432 0.01612005
+  covstruct hsgp  gp_dmax 9.860125  has aux_D2 FALSE 
+          block      term  type  estimate       lwr      upr
+1 gp(x, k = 40)    sd(gp)    sd 0.6203781 0.3726360 1.032828
+2 gp(x, k = 40) range(gp) range 0.9769838 0.7102401 1.343908
+[1] "Could not extract the number of thresholds. Use ordered factors or positive integers as your ordinal response and ensure that more than on response category is present."
+                prior     class coef group resp dpar nlpar lb ub tag
+          normal(0,1)         b                                     
+          normal(0,1)         b    x                                
+ student_t(3, 0, 2.5) Intercept                                     
+    gamma(0.01, 0.01)       phi                             0       
+       source
+         user
+ (vectorized)
+      default
+      default

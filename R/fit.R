@@ -700,6 +700,14 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                           sparse_x = isTRUE(control$sparse_x),
                           data2 = data2)
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
+  # brms's `data_name` attribute: the data as the call spelled it, which
+  # update(newdata = ) re-records. A value passed by do.call() has no
+  # spelling, and deparsing a whole data frame to get one would cost
+  # time in proportion to its rows, so it records nothing
+  dn <- substitute(data)
+  if ((is.name(dn) || is.call(dn)) && !is.null(frame[["data_frame"]])) {
+    attr(frame[["data_frame"]], "data_name") <- substr(deparse1(dn), 1L, 50L)
+  }
   # A family with a `family_finalize` slot derives itself from the
   # response during assembly, and the fit stores the spec separately
   # from the frame, so family(fit) would otherwise report the family as

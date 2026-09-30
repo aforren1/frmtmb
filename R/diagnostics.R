@@ -97,10 +97,14 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
   } else {
     as.vector(stats::na.omit(fitted_point(fit)))
   }
+  # a missing mi() response is no observation: the frame's placeholder
+  # would be scored against the draws as if it had been seen
+  yobs <- frame_observed_y(fit, rspec$resp_name)
+  keep <- !is.na(yobs)
   DHARMa::createDHARMa(
-    simulatedResponse = sims,
-    observedResponse = fit$frame[["y"]][[rspec$resp_name]],
-    fittedPredictedResponse = fpr,
+    simulatedResponse = sims[keep, , drop = FALSE],
+    observedResponse = yobs[keep],
+    fittedPredictedResponse = fpr[keep],
     integerResponse = identical(rspec$family[["type"]], "discrete") || ordinal,
     ...
   )
