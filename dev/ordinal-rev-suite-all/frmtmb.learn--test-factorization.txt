@@ -1,0 +1,18 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.learn  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | factorization                                                  
+⠋ |          1 | factorization                                                  
+⠦ |          7 | factorization                                                  
+⠸ |         14 | factorization                                                  
+⠼ |         15 | factorization                                                  
+⠦ |         17 | factorization                                                  
+⠼ |         25 | factorization                                                  
+⠹ |         33 | factorization                                                  
+✔ |         35 | factorization [3.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 35 ]
+RESULT lane frmtmb.learn test-factorization.R pass=35 fail=0 err=0 skip=0 warn=0

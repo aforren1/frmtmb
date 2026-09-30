@@ -1,0 +1,23 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | spectral                                                       
+⠋ |         11 | spectral                                                       
+⠹ |         33 | spectral                                                       
+⠼ |         45 | spectral                                                       
+⠏ |         60 | spectral                                                       
+⠦ |         67 | spectral                                                       
+⠴ |         76 | spectral                                                       
+⠋ |         81 | spectral                                                       
+⠼ |         85 | spectral                                                       
+⠴ |         86 | spectral                                                       
+⠸ |         94 | spectral                                                       
+⠴ |         96 | spectral                                                       
+⠇ |        109 | spectral                                                       
+✔ |        113 | spectral [3.9s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.9 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 113 ]
+RESULT lane frmtmb test-spectral.R pass=113 fail=0 err=0 skip=0 warn=0

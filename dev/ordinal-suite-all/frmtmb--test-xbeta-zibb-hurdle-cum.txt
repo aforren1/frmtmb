@@ -1,0 +1,5 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+RESULT test-xbeta-zibb-hurdle-cum.R pass=603 fail=1 err=0 skip=0 warn=0
+FAILING TESTS:
+                                                          test failed error
+ links, responses and options brms refuses are refused by name      1 FALSE

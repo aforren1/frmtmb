@@ -1,0 +1,10 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | habit-prep                                                     
+⠸ |         14 | habit-prep                                                     
+✔ |         16 | habit-prep
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 16 ]
+RESULT lane frmtmb test-habit-prep.R pass=16 fail=0 err=0 skip=0 warn=0

@@ -135,7 +135,9 @@ interop_coef_names <- function(model) {
   tpl <- model$frame[["par_template"]]
   for (cp in ord_extra_comps(model)) {
     v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (is.null(v)) {
+      v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
+    }
     nm <- c(nm, v)
   }
   nm

@@ -1,0 +1,80 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres-draws                                       
+⠋ |          1 | ordinal-disc-thres-draws                                       
+⠧ |          8 | ordinal-disc-thres-draws                                       
+⠏ |         10 | ordinal-disc-thres-draws                                       
+⠹ |         13 | ordinal-disc-thres-draws                                       
+⠼ |         15 | ordinal-disc-thres-draws                                       
+⠴ |         16 | ordinal-disc-thres-draws                                       
+⠦ |         17 | ordinal-disc-thres-draws                                       
+⠋ | 2       19 | ordinal-disc-thres-draws                                       
+⠸ | 2       22 | ordinal-disc-thres-draws                                       
+⠼ | 2       23 | ordinal-disc-thres-draws                                       
+⠏ | 3       27 | ordinal-disc-thres-draws                                       
+⠸ | 4       30 | ordinal-disc-thres-draws                                       
+⠼ | 4       31 | ordinal-disc-thres-draws                                       
+✖ | 4       32 | ordinal-disc-thres-draws [6.4s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres-draws.R:176:9'): two ordinal responses each keep their own threshold maps
+Expected flex y 1 < `1000 * .Machine$double.eps`.
+Actual comparison: 0.1209472520598 >= 0.0000000000002
+Difference: 0.1209472520596 >= 0
+
+Failure ('test-ordinal-disc-thres-draws.R:176:9'): two ordinal responses each keep their own threshold maps
+Expected flex y 150 < `1000 * .Machine$double.eps`.
+Actual comparison: 0.1159823802106 >= 0.0000000000002
+Difference: 0.1159823802104 >= 0
+
+Failure ('test-ordinal-disc-thres-draws.R:183:9'): two ordinal responses each keep their own threshold maps
+Expected equi delta_y < `1000 * .Machine$double.eps`.
+Actual comparison: 0.7910812859507 >= 0.0000000000002
+Difference: 0.7910812859505 >= 0
+
+Error ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+Error in `dimnames(x) <- dn`: length of 'dimnames' [2] not equal to array extent
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:150:7
+ 3.   ├─base::suppressWarnings(...) at test-ordinal-disc-thres-draws.R:150:7
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...) at test-ordinal-disc-thres-draws.R:150:7
+ 6.     └─frmtmb.sample:::draws_to_natural(m, fit)
+ 7.       └─base::`colnames<-`(`*tmp*`, value = nm_all)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.5 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres-draws.R:176:9'): two ordinal responses each keep their own threshold maps
+Expected flex y 1 < `1000 * .Machine$double.eps`.
+Actual comparison: 0.1209472520598 >= 0.0000000000002
+Difference: 0.1209472520596 >= 0
+
+Failure ('test-ordinal-disc-thres-draws.R:176:9'): two ordinal responses each keep their own threshold maps
+Expected flex y 150 < `1000 * .Machine$double.eps`.
+Actual comparison: 0.1159823802106 >= 0.0000000000002
+Difference: 0.1159823802104 >= 0
+
+Failure ('test-ordinal-disc-thres-draws.R:183:9'): two ordinal responses each keep their own threshold maps
+Expected equi delta_y < `1000 * .Machine$double.eps`.
+Actual comparison: 0.7910812859507 >= 0.0000000000002
+Difference: 0.7910812859505 >= 0
+
+Error ('test-ordinal-disc-thres-draws.R:164:5'): two ordinal responses each keep their own threshold maps
+Error in `dimnames(x) <- dn`: length of 'dimnames' [2] not equal to array extent
+Backtrace:
+    ▆
+ 1. └─frmtmb.sample (local) ordd_mv_draws(which) at test-ordinal-disc-thres-draws.R:164:5
+ 2.   ├─base::withCallingHandlers(...) at test-ordinal-disc-thres-draws.R:150:7
+ 3.   ├─base::suppressWarnings(...) at test-ordinal-disc-thres-draws.R:150:7
+ 4.   │ └─base::withCallingHandlers(...)
+ 5.   └─frmtmb.sample::frm_sample(...) at test-ordinal-disc-thres-draws.R:150:7
+ 6.     └─frmtmb.sample:::draws_to_natural(m, fit)
+ 7.       └─base::`colnames<-`(`*tmp*`, value = nm_all)
+
+[ FAIL 4 | WARN 0 | SKIP 0 | PASS 32 ]
+RESULT lane frmtmb.sample test-ordinal-disc-thres-draws.R pass=32 fail=3 err=1 skip=0 warn=0

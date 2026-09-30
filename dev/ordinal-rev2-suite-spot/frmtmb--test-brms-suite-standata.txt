@@ -1,0 +1,60 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-suite-standata                                            
+⠋ |          1 | brms-suite-standata                                            
+⠙ |          2 | brms-suite-standata                                            
+⠴ |         16 | brms-suite-standata                                            
+⠼ |         25 | brms-suite-standata                                            
+⠼ |         35 | brms-suite-standata                                            
+⠴ |         46 | brms-suite-standata                                            
+⠏ |         50 | brms-suite-standata                                            
+⠦ |         57 | brms-suite-standata                                            
+⠹ | 4       59 | brms-suite-standata                                            
+⠙ | 6       66 | brms-suite-standata                                            
+⠹ | 6       77 | brms-suite-standata                                            
+✖ | 6       81 | brms-suite-standata [2.1s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-brms-suite-standata.R:534:3'): standata allows fixed distributional parameters
+brms standata:724 now HOLDS but is recorded as 'cannot transfer' (reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:541:3'): standata allows fixed distributional parameters
+brms standata:725 now HOLDS but is recorded as 'cannot transfer' (reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:570:3'): Cell-mean coding can be disabled
+brms standata:738 now HOLDS but is recorded as 'cannot transfer' (lf(cmc = ) works now (lane formula2), but frmtmb's cumulative() has no disc, so lf(disc ~ ...) is refused as a parameter the family lacks; X_disc and Z_1_disc_1 are Stan data). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:578:3'): Cell-mean coding can be disabled
+brms standata:739 now HOLDS but is recorded as 'cannot transfer' (lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738); Z_1_disc_1 is Stan data). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:584:3'): Cell-mean coding can be disabled
+brms standata:740 now HOLDS but is recorded as 'cannot transfer' (lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:600:3'): Cell-mean coding can be disabled
+brms standata:745 now HOLDS but is recorded as 'cannot transfer' (bf(cmc = ) works now and frmtmb's Z equals brms's (dev/formula2-findings.md 2.4); the row reads Z_1_1, which the harness's standata view does not carry). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.2 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-brms-suite-standata.R:534:3'): standata allows fixed distributional parameters
+brms standata:724 now HOLDS but is recorded as 'cannot transfer' (reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:541:3'): standata allows fixed distributional parameters
+brms standata:725 now HOLDS but is recorded as 'cannot transfer' (reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:570:3'): Cell-mean coding can be disabled
+brms standata:738 now HOLDS but is recorded as 'cannot transfer' (lf(cmc = ) works now (lane formula2), but frmtmb's cumulative() has no disc, so lf(disc ~ ...) is refused as a parameter the family lacks; X_disc and Z_1_disc_1 are Stan data). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:578:3'): Cell-mean coding can be disabled
+brms standata:739 now HOLDS but is recorded as 'cannot transfer' (lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738); Z_1_disc_1 is Stan data). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:584:3'): Cell-mean coding can be disabled
+brms standata:740 now HOLDS but is recorded as 'cannot transfer' (lf(cmc = ) works now, but frmtmb's cumulative() has no disc (standata:738)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+Failure ('test-brms-suite-standata.R:600:3'): Cell-mean coding can be disabled
+brms standata:745 now HOLDS but is recorded as 'cannot transfer' (bf(cmc = ) works now and frmtmb's Z equals brms's (dev/formula2-findings.md 2.4); the row reads Z_1_1, which the harness's standata view does not carry). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+[ FAIL 6 | WARN 0 | SKIP 0 | PASS 81 ]
+RESULT lane frmtmb test-brms-suite-standata.R pass=81 fail=6 err=0 skip=0 warn=0

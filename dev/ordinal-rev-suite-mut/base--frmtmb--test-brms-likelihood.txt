@@ -1,0 +1,203 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb  frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-likelihood                                                
+⠋ |          1 | brms-likelihood                                                
+⠙ |         12 | brms-likelihood                                                
+⠼ |         25 | brms-likelihood                                                
+⠙ |         42 | brms-likelihood                                                
+⠸ |         44 | brms-likelihood                                                
+⠴ |         46 | brms-likelihood                                                
+⠏ |         50 | brms-likelihood                                                
+⠙ |         52 | brms-likelihood                                                
+⠸ |         54 | brms-likelihood                                                
+⠴ |         56 | brms-likelihood                                                
+⠧ |         58 | brms-likelihood                                                
+⠏ |         60 | brms-likelihood                                                
+⠙ |         62 | brms-likelihood                                                
+⠸ |         64 | brms-likelihood                                                
+⠴ |         66 | brms-likelihood                                                
+⠧ |         68 | brms-likelihood                                                
+⠏ |         70 | brms-likelihood                                                
+⠙ |         72 | brms-likelihood                                                
+⠸ |         74 | brms-likelihood                                                
+⠴ |         76 | brms-likelihood                                                
+⠧ |         78 | brms-likelihood                                                
+⠏ |         80 | brms-likelihood                                                
+⠙ |         82 | brms-likelihood                                                
+⠸ |         84 | brms-likelihood                                                
+⠴ |         86 | brms-likelihood                                                
+⠧ |         88 | brms-likelihood                                                
+⠏ |         90 | brms-likelihood                                                
+⠙ |         92 | brms-likelihood                                                
+⠸ |         94 | brms-likelihood                                                
+⠴ |         96 | brms-likelihood                                                
+⠧ |         98 | brms-likelihood                                                
+⠏ |        100 | brms-likelihood                                                
+⠸ |        104 | brms-likelihood                                                
+⠴ |        106 | brms-likelihood                                                
+⠧ |        108 | brms-likelihood                                                
+⠏ |        110 | brms-likelihood                                                
+⠴ | 4      112 | brms-likelihood                                                
+⠧ | 4      114 | brms-likelihood                                                
+⠏ | 4      116 | brms-likelihood                                                
+⠙ | 4      118 | brms-likelihood                                                
+⠸ | 4      120 | brms-likelihood                                                
+⠴ | 4      122 | brms-likelihood                                                Setting order = 'mu' for mixtures of the same family.
+
+⠇ | 4      125 | brms-likelihood                                                Setting order = 'mu' for mixtures of the same family.
+
+⠋ | 4      127 | brms-likelihood                                                Setting order = 'mu' for mixtures of the same family.
+
+⠹ | 4      129 | brms-likelihood                                                Setting order = 'mu' for mixtures of the same family.
+
+⠼ | 4      131 | brms-likelihood                                                
+⠦ | 4      133 | brms-likelihood                                                
+⠏ | 4      136 | brms-likelihood                                                
+⠙ | 4      138 | brms-likelihood                                                
+⠸ | 4      140 | brms-likelihood                                                
+⠦ | 4      143 | brms-likelihood                                                
+⠏ | 4      146 | brms-likelihood                                                
+⠹ | 4      149 | brms-likelihood                                                
+⠸ | 4      170 | brms-likelihood                                                
+⠴ | 4      172 | brms-likelihood                                                
+⠋ | 4      197 | brms-likelihood                                                
+⠸ | 4      200 | brms-likelihood                                                
+⠇ | 4      225 | brms-likelihood                                                
+⠙ | 4      228 | brms-likelihood                                                
+⠼ | 4      231 | brms-likelihood                                                
+⠧ | 4      234 | brms-likelihood                                                
+⠋ | 4      237 | brms-likelihood                                                
+⠴ | 4      252 | brms-likelihood                                                
+⠇ | 4      255 | brms-likelihood                                                
+⠏ | 4      276 | brms-likelihood                                                
+⠹ | 4      279 | brms-likelihood                                                
+⠼ | 4      301 | brms-likelihood                                                
+⠧ | 4      304 | brms-likelihood                                                
+⠹ | 4      319 | brms-likelihood                                                
+⠴ | 4      322 | brms-likelihood                                                
+⠸ | 4      330 | brms-likelihood                                                
+⠦ | 4      343 | brms-likelihood                                                
+⠏ | 4      346 | brms-likelihood                                                
+⠙ | 4      348 | brms-likelihood                                                
+⠙ | 4      358 | brms-likelihood                                                
+⠸ | 4      360 | brms-likelihood                                                
+⠴ | 4      362 | brms-likelihood                                                
+⠧ | 4      364 | brms-likelihood                                                
+⠏ | 4      366 | brms-likelihood                                                
+⠙ | 4      368 | brms-likelihood                                                
+⠸ | 4      370 | brms-likelihood                                                
+⠴ | 4      372 | brms-likelihood                                                
+⠹ | 4      389 | brms-likelihood                                                
+⠴ | 4      392 | brms-likelihood                                                
+⠇ | 4      405 | brms-likelihood                                                
+⠙ | 4      408 | brms-likelihood                                                
+⠴ | 4      432 | brms-likelihood                                                
+⠇ | 4      435 | brms-likelihood                                                
+⠹ | 4      439 | brms-likelihood                                                
+⠼ | 4      441 | brms-likelihood                                                
+⠦ | 4      443 | brms-likelihood                                                
+⠇ | 4      445 | brms-likelihood                                                
+⠋ | 4      447 | brms-likelihood                                                
+⠹ | 4      449 | brms-likelihood                                                
+⠼ | 4      451 | brms-likelihood                                                
+⠦ | 4      453 | brms-likelihood                                                
+⠇ | 4      455 | brms-likelihood                                                
+⠴ | 4      462 | brms-likelihood                                                
+⠧ | 4      464 | brms-likelihood                                                
+⠏ | 4      466 | brms-likelihood                                                
+⠙ | 4      468 | brms-likelihood                                                
+⠸ | 4      470 | brms-likelihood                                                
+⠴ | 4      472 | brms-likelihood                                                
+⠏ | 4      476 | brms-likelihood                                                
+⠹ | 4      479 | brms-likelihood                                                
+⠇ | 4      485 | brms-likelihood                                                
+✖ | 4      485 | brms-likelihood [45.0s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-brms-likelihood.R:517:3'): row 12e: disc on every ordinal family
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'cumulative': disc (available: )
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(dz, cumulative(), d) at test-brms-likelihood.R:517:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::parse_spec(bform)
+ 4.       └─frmtmb:::parse_one_response(bform)
+ 5.         └─frmtmb::frm_stop(...)
+
+Error ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-brms-likelihood.R:580:3'): row 12h: acat off the logit
+<frmtmb_error/error/condition>
+Error: acat() takes the 'logit' link only, and not because character "probit" is a bad link: brms accepts "probit", "probit_approx", "cloglog", "cauchit" and "softit" here, and they all map onto (0, 1). frmtmb refuses them because off the logit brms computes a category probability from a SECOND expression, a product of distribution functions times a reversed product of survivals. It agrees with acat's log-linear form when the distribution function is logistic, so it is the same model generalized, but it is a density frmtmb has not written, and substituting a distribution function into the log-linear form does not reach it. cumulative(), sratio() and cratio() do take these links. See ?`frmtmb-links`
+Backtrace:
+    ▆
+ 1. ├─frmtmb (local) ord_lp_row(list(y ~ x, disc ~ 0 + z), acat("probit"), d) at test-brms-likelihood.R:580:3
+ 2. │ └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3. │   └─frmtmb:::as_bform(expanded, family)
+ 4. └─frmtmb::acat("probit")
+ 5.   └─frmtmb:::fam_acat(link)
+ 6.     └─frmtmb:::acat_link(link)
+ 7.       └─frmtmb::frm_stop(...)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 45.0 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-brms-likelihood.R:517:3'): row 12e: disc on every ordinal family
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'cumulative': disc (available: )
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(dz, cumulative(), d) at test-brms-likelihood.R:517:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::parse_spec(bform)
+ 4.       └─frmtmb:::parse_one_response(bform)
+ 5.         └─frmtmb::frm_stop(...)
+
+Error ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-brms-likelihood.R:580:3'): row 12h: acat off the logit
+<frmtmb_error/error/condition>
+Error: acat() takes the 'logit' link only, and not because character "probit" is a bad link: brms accepts "probit", "probit_approx", "cloglog", "cauchit" and "softit" here, and they all map onto (0, 1). frmtmb refuses them because off the logit brms computes a category probability from a SECOND expression, a product of distribution functions times a reversed product of survivals. It agrees with acat's log-linear form when the distribution function is logistic, so it is the same model generalized, but it is a density frmtmb has not written, and substituting a distribution function into the log-linear form does not reach it. cumulative(), sratio() and cratio() do take these links. See ?`frmtmb-links`
+Backtrace:
+    ▆
+ 1. ├─frmtmb (local) ord_lp_row(list(y ~ x, disc ~ 0 + z), acat("probit"), d) at test-brms-likelihood.R:580:3
+ 2. │ └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3. │   └─frmtmb:::as_bform(expanded, family)
+ 4. └─frmtmb::acat("probit")
+ 5.   └─frmtmb:::fam_acat(link)
+ 6.     └─frmtmb:::acat_link(link)
+ 7.       └─frmtmb::frm_stop(...)
+
+[ FAIL 4 | WARN 0 | SKIP 0 | PASS 485 ]
+RESULT base frmtmb test-brms-likelihood.R pass=485 fail=0 err=4 skip=0 warn=0

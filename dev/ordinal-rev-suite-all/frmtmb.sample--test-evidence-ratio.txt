@@ -1,0 +1,28 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | evidence-ratio                                                 
+⠋ |          1 | evidence-ratio                                                 
+⠸ |          4 | evidence-ratio                                                 
+⠼ |          5 | evidence-ratio                                                 
+⠦ |          7 | evidence-ratio                                                 
+⠧ |          8 | evidence-ratio                                                 
+⠋ |         11 | evidence-ratio                                                 
+⠙ |         12 | evidence-ratio                                                 
+⠹ |         13 | evidence-ratio                                                 
+⠴ |         16 | evidence-ratio                                                 
+⠦ |         17 | evidence-ratio                                                 
+⠧ |         18 | evidence-ratio                                                 
+⠇ |         19 | evidence-ratio                                                 
+⠏ |         20 | evidence-ratio                                                 
+⠼ |         25 | evidence-ratio                                                 
+⠦ |         27 | evidence-ratio                                                 
+⠋ |         31 | evidence-ratio                                                 
+⠸ |         34 | evidence-ratio                                                 
+✔ |         36 | evidence-ratio [34.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 34.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 36 ]
+RESULT lane frmtmb.sample test-evidence-ratio.R pass=36 fail=0 err=0 skip=0 warn=0

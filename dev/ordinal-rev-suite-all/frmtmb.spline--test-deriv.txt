@@ -1,0 +1,21 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.spline  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | deriv                                                          
+⠋ |          1 | deriv                                                          
+⠹ |          3 | deriv                                                          
+⠴ |          6 | deriv                                                          
+⠇ |          9 | deriv                                                          
+⠋ |         11 | deriv                                                          
+⠴ |         16 | deriv                                                          
+⠙ |         22 | deriv                                                          
+⠦ |         27 | deriv                                                          
+⠏ |         30 | deriv                                                          
+⠦ |         37 | deriv                                                          
+✔ |         38 | deriv [5.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 38 ]
+RESULT lane frmtmb.spline test-deriv.R pass=38 fail=0 err=0 skip=0 warn=0

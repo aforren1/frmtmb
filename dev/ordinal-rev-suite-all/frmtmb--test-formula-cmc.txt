@@ -1,0 +1,20 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | formula-cmc                                                    
+⠋ |          1 | formula-cmc                                                    
+⠼ |          5 | formula-cmc                                                    
+⠋ |         11 | formula-cmc                                                    
+⠹ |         13 | formula-cmc                                                    
+⠧ |         18 | formula-cmc                                                    
+⠦ |         27 | formula-cmc                                                    
+⠋ |         31 | formula-cmc                                                    
+⠼ |         35 | formula-cmc                                                    
+⠧ |         38 | formula-cmc                                                    
+✔ |         49 | formula-cmc [2.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 49 ]
+RESULT lane frmtmb test-formula-cmc.R pass=49 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,52 @@
+lib: C:/Users/adf44/source/r/frmtmb-wt-ordinal/dev/ordinal-p1-mutlib/M2_acat_logit_nodisc/frmtmb  frmtmb: C:/Users/adf44/source/r/frmtmb-wt-ordinal/dev/ordinal-p1-mutlib/M2_acat_logit_nodisc/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠸ |          4 | ordinal-disc-thres                                             
+⠙ |         12 | ordinal-disc-thres                                             
+⠇ |         19 | ordinal-disc-thres                                             
+⠹ |         23 | ordinal-disc-thres                                             
+⠏ |         30 | ordinal-disc-thres                                             
+⠋ |         41 | ordinal-disc-thres                                             
+⠼ |         45 | ordinal-disc-thres                                             
+⠇ |         49 | ordinal-disc-thres                                             
+⠹ |         53 | ordinal-disc-thres                                             
+⠋ |         61 | ordinal-disc-thres                                             
+⠼ |         65 | ordinal-disc-thres                                             
+⠦ |         67 | ordinal-disc-thres                                             
+⠇ |         69 | ordinal-disc-thres                                             
+⠼ |         75 | ordinal-disc-thres                                             
+⠦ |         87 | ordinal-disc-thres                                             
+⠧ |         98 | ordinal-disc-thres                                             
+⠼ |        105 | ordinal-disc-thres                                             
+⠇ |        109 | ordinal-disc-thres                                             
+⠹ |        113 | ordinal-disc-thres                                             
+⠴ | 1      115 | ordinal-disc-thres                                             
+⠸ | 1      123 | ordinal-disc-thres                                             
+⠧ | 1      127 | ordinal-disc-thres                                             
+⠦ | 1      136 | ordinal-disc-thres                                             
+⠸ | 1      143 | ordinal-disc-thres                                             
+⠦ | 1      146 | ordinal-disc-thres                                             
+⠇ | 1      148 | ordinal-disc-thres                                             
+⠸ | 1      153 | ordinal-disc-thres                                             
+⠧ | 1      157 | ordinal-disc-thres                                             
+✖ | 1      160 | ordinal-disc-thres [5.6s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:288:7'): each density reads disc at a fixed point, not only at the optimum
+Expected acat logit  < 1e-12.
+Actual comparison: 0.026984682179 >= 0.000000000001
+Difference: 0.026984682178 >= 0
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.6 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:288:7'): each density reads disc at a fixed point, not only at the optimum
+Expected acat logit  < 1e-12.
+Actual comparison: 0.026984682179 >= 0.000000000001
+Difference: 0.026984682178 >= 0
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 160 ]
+RESULT mut:C:/Users/adf44/source/r/frmtmb-wt-ordinal/dev/ordinal-p1-mutlib/M2_acat_logit_nodisc frmtmb test-ordinal-disc-thres.R pass=160 fail=1 err=0 skip=0 warn=0

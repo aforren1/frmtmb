@@ -1,0 +1,19 @@
+arm lane 
+
+== flex_flex 
+  variables: b_y_x b_y2_x b_y_Intercept[1] b_y_Intercept[2] b_y_Intercept[3] b_y2_Intercept[1] b_y2_Intercept[2] 
+  ERROR: number of items to replace is not a multiple of replacement length 
+  call: m[, j[seq_len(R)]] <- v 
+
+== equi_flex 
+  ERROR: length of 'dimnames' [2] not equal to array extent 
+  call: dimnames(x) <- dn 
+
+== flex_stz 
+  variables: b_y_x b_y2_x b_y_Intercept[1] b_y_Intercept[2] b_y_Intercept[3] b_y2_Intercept[1] b_y2_Intercept[2] 
+  ERROR: number of items to replace is not a multiple of replacement length 
+  call: m[, j[seq_len(R)]] <- v 
+
+== equi_stz 
+  ERROR: length of 'dimnames' [2] not equal to array extent 
+  call: dimnames(x) <- dn 

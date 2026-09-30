@@ -147,7 +147,9 @@ brms_extra_fixef <- function(fit) {
   for (lp in ord_lps) {
     comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
     raw <- est[[comp]]
-    if (!length(tpl[[comp]]) || !length(raw)) next
+    # an EMPTY block still has thresholds, all at 0: sum-to-zero
+    # vectors of one threshold each, which brms reports as 0
+    if (is.null(tpl[[comp]]) || is.null(raw)) next
     fam <- brms_lp_family(fit, lp)
     map <- local({
       fam_ <- fam

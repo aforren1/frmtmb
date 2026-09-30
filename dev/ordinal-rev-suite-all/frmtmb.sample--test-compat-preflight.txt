@@ -1,0 +1,24 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | compat-preflight                                               
+⠧ |          8 | compat-preflight                                               
+⠧ |         18 | compat-preflight                                               
+⠏ |         20 | compat-preflight                                               
+⠹ |         23 | compat-preflight                                               
+⠋ |         41 | compat-preflight                                               
+⠼ |         55 | compat-preflight                                               
+⠹ |         63 | compat-preflight                                               
+⠸ |         64 | compat-preflight                                               
+⠦ |         67 | compat-preflight                                               
+⠇ |         69 | compat-preflight                                               
+⠏ |         70 | compat-preflight                                               
+⠋ |         71 | compat-preflight                                               
+⠙ |         72 | compat-preflight                                               
+✔ |         81 | compat-preflight [5.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 81 ]
+RESULT lane frmtmb.sample test-compat-preflight.R pass=81 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,86 @@
+frmtmb.sample from C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample frmtmb from C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+
+== cumulative equidistant, disc ~ z ==
+WARNING: There were 1 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+WARNING: Examine the pairs() plot to diagnose sampling problems
+ 
+WARNING: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+WARNING: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+variables: b_x b_disc_Intercept b_disc_z b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] delta lp__ 
+round trip max rel diff: 3.091304  same columns: FALSE 
+                  Estimate  Est.Error        Q2.5      Q97.5
+Intercept[1]   -14.5438787 14.0900231 -59.5297068 -2.4936361
+Intercept[2]    -3.6824945  3.8318290 -14.0847261 -0.4156587
+Intercept[3]     7.1788896  7.4058643   1.1466001 31.4836083
+Intercept[4]    18.0402738 17.8611447   3.3001183 79.1843889
+disc_Intercept  -2.3011647  0.7900501  -4.1071352 -0.9565887
+x                6.0227825  6.2514442   0.8644101 26.4629507
+disc_z           0.3754925  0.1078911   0.1778405  0.6022254
+[1]   5 200   5
+[1]   5 200
+
+  1   2   3   4   5 
+272 148 168 147 265 
+Intercept_disc ~ normal(0, 1)
+      Estimate Est.Error     Q2.5    Q97.5
+delta 10.86138  10.58324 1.996978 46.98852
+         Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob
+1 (delta)-(0.5) > 0 10.36138  10.58324 1.856394 35.84601        Inf         1
+  Star
+1    *
+
+== sratio sum_to_zero ==
+WARNING: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+variables: b_x b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] lp__ 
+round trip max rel diff: 0  same columns: FALSE 
+                 Estimate  Est.Error       Q2.5       Q97.5
+Intercept[1] -0.563398188 0.12842915 -0.8449097 -0.30636276
+Intercept[2] -0.339810271 0.15688874 -0.6455777 -0.01753452
+Intercept[3] -0.002602293 0.15374239 -0.2762518  0.31108242
+Intercept[4]  0.905810752 0.18369363  0.5686672  1.25766388
+x             0.329407282 0.07627193  0.1947816  0.48074957
+[1]   5 200   5
+[1]   5 200
+
+  1   2   3   4   5 
+365 249 175 148  63 
+No priors were used (flat improper priors on the outer parameters).
+NULL
+sum-to-zero in the draws, max |row sum|: 1.110223e-16 
+
+== hurdle flexible ==
+WARNING: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+variables: b_x hu b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] lp__ 
+round trip max rel diff: 1.744321  same columns: TRUE 
+               Estimate Est.Error        Q2.5      Q97.5
+Intercept[1] -1.0359589 0.1726404 -1.33280159 -0.6811436
+Intercept[2] -0.1271927 0.1748016 -0.44158057  0.1747672
+Intercept[3]  0.4936448 0.1720873  0.14877842  0.8110825
+Intercept[4]  1.3896349 0.2113986  1.02420082  1.7658965
+x             0.3388991 0.1603124  0.03065255  0.6664183
+[1]   5 200   6
+[1]   5 200
+
+  0   1   2   3   4   5 
+303 215 140 111 103 128 
+No priors were used (flat improper priors on the outer parameters).
+NULL

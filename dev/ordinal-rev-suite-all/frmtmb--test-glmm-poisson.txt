@@ -1,0 +1,13 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | glmm-poisson                                                   
+⠋ |          1 | glmm-poisson                                                   
+⠴ |          6 | glmm-poisson                                                   
+✔ |         12 | glmm-poisson [1.1s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.1 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 12 ]
+RESULT lane frmtmb test-glmm-poisson.R pass=12 fail=0 err=0 skip=0 warn=0

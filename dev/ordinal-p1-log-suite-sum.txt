@@ -1,0 +1,24 @@
+first run: 329 files; rerun: 0 files
+             pkg files  pass fail err skip warn
+          frmtmb   194 16058    8   0    0    0
+ frmtmb.coupling    11   542    0   0    5    0
+      frmtmb.eam    29  1743    0   0    3    0
+   frmtmb.latent    10   359    0   0    2    0
+    frmtmb.learn    15   500    0   0    2    0
+      frmtmb.ode    11   547    0   0    1    0
+   frmtmb.sample    44  2472    1   0    1    0
+   frmtmb.spline    15   553    0   0    1    0
+
+files with a failure, an error, a skip or a warning:
+             pkg                       file pass fail err skip warn
+          frmtmb test-brms-suite-families.R   83    1   0    0    0
+          frmtmb   test-brms-suite-priors.R   35    1   0    0    0
+          frmtmb test-brms-suite-standata.R   81    6   0    0    0
+ frmtmb.coupling               test-scale.R    0    0   0    5    0
+      frmtmb.eam               test-scale.R    0    0   0    3    0
+   frmtmb.latent               test-scale.R    0    0   0    2    0
+    frmtmb.learn               test-scale.R    0    0   0    2    0
+      frmtmb.ode               test-scale.R    0    0   0    1    0
+   frmtmb.sample test-brms-suite-families.R   83    1   0    0    0
+   frmtmb.sample               test-scale.R    0    0   0    1    0
+   frmtmb.spline               test-scale.R    0    0   0    1    0

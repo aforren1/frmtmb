@@ -95,9 +95,8 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{inverse.gaussian} \tab \code{1/mu^2}, \code{inverse}, \code{identity}, \code{log}, \code{softplus}, \code{squareplus} \cr
    \code{cox} \tab \code{log}, \code{identity}, \code{softplus}, \code{squareplus} \cr
    \code{von_mises} \tab \code{tan_half}, \code{identity} \cr
-   \code{cumulative}, \code{hurdle_cumulative} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit} \cr
+   \code{cumulative}, \code{hurdle_cumulative}, \code{acat} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit} \cr
    \code{sratio}, \code{cratio} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit} \cr
-   \code{acat} \tab \code{logit} ONLY. brms takes the same six as \code{cumulative}; this is the one place frmtmb departs, and the reason is below \cr
    \code{categorical}, \code{multinomial} \tab \code{logit} \cr
 }
 
@@ -106,21 +105,13 @@ An ordinal family's \code{link} names the cumulative distribution
 function the thresholds are read through, not a link on a mean, so
 only a link whose inverse maps onto the unit interval can serve.
 
-\code{acat()} is refused for a different reason, and it is the one place
-in this table where frmtmb takes less than brms. Probit, cloglog,
-cauchit and softit all map onto the unit interval and brms accepts
-every one of them for \code{acat}, so the refusal is not about the link.
-It is about the density. \code{brms:::inv_link_acat()} branches: on the
-logit a category probability is \code{c(1, cumprod(exp(x)))} normalized,
-which is the log-linear form frmtmb implements, and off the logit it
-is a product of distribution functions times a reversed product of
-survivals, normalized. The second form agrees with the first when
-the distribution function is logistic, so it generalizes the same
-model rather than replacing it, but it is a second expression that
-has to be written and taped. Substituting a distribution function
-into the log-linear form does not reach it, which is why the other
-three ordinal families could be routed through this registry and
-\code{acat()} could not. \code{acat()} says all of this when it refuses.
+\code{acat()} reads its link in two forms, as brms does
+(\code{brms:::inv_link_acat()}). On the logit a category probability is
+\code{c(1, cumprod(exp(x)))} normalized, the log-linear form. Off the
+logit it is a product of distribution functions times a reversed
+product of survivals, normalized. The second form agrees with the
+first when the distribution function is logistic, so it generalizes
+the same model rather than replacing it.
 }
 
 \section{Links for the other distributional parameters}{

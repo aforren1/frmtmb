@@ -1,0 +1,2 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+RESULT test-importance.R pass=226 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,14 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | zi                                                             
+⠋ |          1 | zi                                                             
+⠴ |          6 | zi                                                             
+⠏ |         10 | zi                                                             
+✔ |         11 | zi [1.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 11 ]
+RESULT lane frmtmb test-zi.R pass=11 fail=0 err=0 skip=0 warn=0

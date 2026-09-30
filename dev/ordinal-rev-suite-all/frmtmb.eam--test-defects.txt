@@ -1,0 +1,21 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | defects                                                        
+⠴ |          6 | defects                                                        
+⠸ |         14 | defects                                                        
+⠼ |         15 | defects                                                        
+⠦ |         17 | defects                                                        
+⠇ |         19 | defects                                                        
+⠸ |         24 | defects                                                        
+⠼ |         25 | defects                                                        
+⠋ |         31 | defects                                                        
+⠙ |         52 | defects                                                        
+⠹ |         53 | defects                                                        
+✔ |         59 | defects [17.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 17.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 59 ]
+RESULT lane frmtmb.eam test-defects.R pass=59 fail=0 err=0 skip=0 warn=0

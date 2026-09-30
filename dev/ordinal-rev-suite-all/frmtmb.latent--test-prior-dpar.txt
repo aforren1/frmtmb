@@ -1,0 +1,11 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.latent  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | prior-dpar                                                     
+⠋ |          1 | prior-dpar                                                     
+⠼ |          5 | prior-dpar                                                     
+✔ |         10 | prior-dpar
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 10 ]
+RESULT lane frmtmb.latent test-prior-dpar.R pass=10 fail=0 err=0 skip=0 warn=0

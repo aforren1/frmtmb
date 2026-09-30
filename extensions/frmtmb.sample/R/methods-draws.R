@@ -405,7 +405,8 @@ draws_fixef_ordinal <- function(object, all_pars) {
     if (all(brms %in% all_pars)) {
       list(names = brms, map = identity)
     } else {
-      list(names = paste0(e$comp, "_", seq_along(e$raw)), map = e$map)
+      list(names = paste0(e$comp, "_", seq_along(e$raw),
+                          recycle0 = TRUE), map = e$map)
     }
   })
   need <- unique(c(tab$brms[rows$idx[!is.na(rows$idx)]],
@@ -744,9 +745,10 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' @param nlpar The parameter an `nlf()` body names. brms keeps it
 #'   apart from `dpar`; frmtmb asks for either by the `dpar` name, so
 #'   this is the same setting and the slot is here for brms's position.
-#' @param incl_thres For `posterior_linpred()`: refused. brms subtracts
-#'   a cumulative family's thresholds from the predictor; frmtmb
-#'   returns the latent predictor itself.
+#' @param incl_thres For `posterior_linpred()`: refused. brms returns,
+#'   for any ordinal family, one layer per threshold, `disc * (thres -
+#'   mu)` (`disc * (mu - thres)` for cratio and acat); frmtmb returns
+#'   the latent predictor itself.
 #' @param negative_rt For `posterior_predict()`: refused. It is brms's
 #'   sign convention for its own wiener family.
 #' @param transform For `posterior_predict()`: a function applied to
@@ -906,10 +908,11 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                     ndraws_point_estimate)
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_linpred()")
   if (!is.null(incl_thres) && !identical(incl_thres, FALSE)) {
-    frm_stop("posterior_linpred(incl_thres = TRUE) subtracts an ordinal ",
-             "family's thresholds from the linear predictor, which brms ",
-             "supports for cumulative families alone. frmtmb keeps the ",
-             "thresholds out of the predictor: frm_linpred(type = \"link\") ",
+    frm_stop("posterior_linpred(incl_thres = TRUE) gives brms's ",
+             "per-threshold predictor of an ordinal family, disc times the ",
+             "distance between each threshold and the linear predictor. ",
+             "frmtmb keeps the thresholds out of the predictor: ",
+             "frm_linpred(type = \"link\") ",
              "and this function return the latent predictor itself, and ",
              "the thresholds are coefficients you can read off ",
              "posterior_summary()", call. = FALSE)

@@ -84,6 +84,7 @@
 \alias{brms_summarize_draws}
 \alias{brms_prob_cols}
 \alias{brms_fixef_rows}
+\alias{ord_delta_info}
 \alias{rescor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
@@ -228,6 +229,9 @@ population-level rows in brms's order: which coefficient-table rows
 they are, and the ordinal thresholds and \code{cs()} coefficients that are
 not, each with the map from the internal vector to the reported value,
 so a draws object can report the same rows \code{fixef()} does.
+\code{ord_delta_info(fit)} lists brms's \code{delta} parameters of an ordinal
+fit with equidistant thresholds: the name, where the internal value
+sits, and the map from it to \code{delta}.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

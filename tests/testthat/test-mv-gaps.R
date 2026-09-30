@@ -218,6 +218,10 @@ test_that("an ordinal response in a multivariate model is its own factor", {
         lm_[[paste0(r, "_", nm)]]
       }
     }
+    # an ordinal family's disc is held at 1 through a mapped coefficient,
+    # which parList() lists and the objective does not take
+    fx <- f$frame$betad_fixed_idx
+    if (length(fx)) pl$betad <- pl$betad[-fx]
     tot <- tot + f$obj$fn(unlist(pl))
   }
   expect_lt(abs(mv$obj$fn(pm) - tot),
@@ -293,8 +297,12 @@ test_that("a shared |ID| effect across ordinal and gaussian is Laplace-exact", {
                         random = "u", silent = TRUE)
   pf <- fit$obj$env$parList(fit$opt$par)
   bn <- names(fit$frame$par_template$beta)
+  # the ordinal response's disc is held at 1 through a mapped
+  # coefficient, which parList() lists and the reference does not have
+  bd <- pf$betad
+  if (length(fx <- fit$frame$betad_fixed_idx)) bd <- bd[-fx]
   qref <- c(pf$beta[match("o_x", bn)], pf[["o_tau_raw"]],
-            pf$beta[match(c("y1_(Intercept)", "y1_x"), bn)], pf$betad,
+            pf$beta[match(c("y1_(Intercept)", "y1_x"), bn)], bd,
             pf$theta)
   ref <- ob$fn(qref)
   expect_lt(abs(fit$opt$objective - ref), 1e4 * .Machine$double.eps * abs(ref))

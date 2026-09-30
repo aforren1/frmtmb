@@ -101,10 +101,16 @@ draws_natural_cols <- function(fit) {
   out <- list(names = tab$brms[i], linkinv = attr(tab, "linkinv")[i],
               linkfun = attr(tab, "linkfun")[i], simplex = smp,
               equated = equated,
-              extra = c(unlist(lapply(smp, function(s) {
-                s$names[length(s$names)]
-              })), vapply(equated, `[[`, "", "name")),
               ordinal = draws_ordinal_cols(fit))
+  # the columns added after the sampled ones: a mixture's last weight,
+  # an equated dpar, and the thresholds and delta an ordinal block
+  # reports beyond its internal parameters
+  out$extra <- c(unlist(lapply(smp, function(s) {
+    s$names[length(s$names)]
+  })), vapply(equated, `[[`, "", "name"),
+  unlist(lapply(out$ordinal, function(o) {
+    o$names[-seq_along(o$internal)]
+  })))
   if (is.environment(cache)) cache$brms_natural_cols_v2 <- out
   out
 }
@@ -123,28 +129,60 @@ draws_natural_cols <- function(fit) {
 #' inverse keeps the internal names, because a column must not carry a
 #' name that its values do not have.
 #'
+#' A threshold structure other than `"flexible"` holds fewer internal
+#' parameters than it reports: `"equidistant"` holds two per vector and
+#' reports every threshold and brms's `delta`, and `"sum_to_zero"`
+#' holds one fewer than its thresholds. The first `length(internal)`
+#' names replace the internal columns in place and the rest are added
+#' after every sampled column, as a mixture's last weight is, so no
+#' sampled column moves; `inv` reads them all back.
+#'
 #' @noRd
 draws_ordinal_cols <- function(fit) {
   # the formula route's fit has no estimates of its own; the blocks are
   # read off the layout, and any vector of the right length serves
   if (!length(fit$estimates)) fit$estimates <- fit$frame[["par_template"]]
+  dl <- ord_delta_info(fit)
   out <- list()
   for (e in brms_fixef_rows(fit)$extra) {
     if (!is.function(e$inv)) next
-    out[[length(out) + 1L]] <- list(
-      internal = paste0(e$comp, "_", seq_along(e$raw)),
-      names = paste0(e$cls, "_", e$names), map = e$map, inv = e$inv)
+    dd <- Filter(function(d) identical(d$comp, e$comp), dl)
+    out[[length(out) + 1L]] <- draws_ordinal_block(e, dd)
   }
   out
+}
+
+#' One block of `draws_ordinal_cols()`. A function of its own so that
+#' each block's maps close over that block's thresholds and `delta`s: a
+#' closure built in the loop body reads the loop's variables when it
+#' is called, after the loop has moved on to the last block, which gave
+#' every block of a multivariate model the last response's count and
+#' `delta` maps.
+#'
+#' @noRd
+draws_ordinal_block <- function(e, dd) {
+  K <- length(e$names)
+  map <- e$map
+  inv <- e$inv
+  list(internal = paste0(e$comp, "_", seq_along(e$raw),
+                         recycle0 = TRUE),
+       names = c(paste0(e$cls, "_", e$names),
+                 vapply(dd, `[[`, "", "name")),
+       map = function(r) {
+         c(map(r), vapply(dd, function(d) d$value(r[d$idx]), 0))
+       },
+       inv = function(v) inv(v[seq_len(K)]))
 }
 
 #' `f` applied to every row of `M`, one vector of the same length each.
 #'
 #' @noRd
 draws_rowmap <- function(M, f) {
+  k <- if (nrow(M)) length(f(M[1L, ])) else ncol(M)
   v <- vapply(seq_len(nrow(M)), function(r) as.numeric(f(M[r, ])),
-              numeric(ncol(M)))
-  matrix(v, nrow(M), ncol(M), byrow = TRUE, dimnames = dimnames(M))
+              numeric(k))
+  matrix(v, nrow(M), k, byrow = TRUE,
+         dimnames = if (k == ncol(M)) dimnames(M))
 }
 
 #' Map the natural-scale columns of a draws matrix from the link scale
@@ -173,9 +211,24 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
   for (o in nc$ordinal) {
     j <- match(if (inverse) o$names else o$internal, colnames(m))
     if (anyNA(j)) next
-    m[, j] <- draws_rowmap(m[, j, drop = FALSE],
-                           if (inverse) o$inv else o$map)
-    if (!inverse) colnames(m)[j] <- o$names
+    R <- length(o$internal)
+    v <- draws_rowmap(m[, j, drop = FALSE], if (inverse) o$inv else o$map)
+    if (inverse) {
+      m[, j[seq_len(R)]] <- v
+      if (length(j) > R) m <- m[, -j[-seq_len(R)], drop = FALSE]
+      next
+    }
+    m[, j] <- v[, seq_len(R), drop = FALSE]
+    colnames(m)[j] <- o$names[seq_len(R)]
+    if (length(o$names) > R) {
+      # before lp__, which brms and the sampler both keep last
+      at <- match("lp__", colnames(m), nomatch = ncol(m) + 1L) - 1L
+      nm_all <- append(colnames(m), o$names[-seq_len(R)], after = at)
+      m <- cbind(m[, seq_len(at), drop = FALSE],
+                 v[, -seq_len(R), drop = FALSE],
+                 m[, seq_len(ncol(m) - at) + at, drop = FALSE])
+      colnames(m) <- nm_all
+    }
   }
   for (s in nc$simplex) {
     K <- length(s$names)

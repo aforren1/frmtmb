@@ -1,0 +1,547 @@
+brms 2.23.0 
+
+######## stan_thres 
+function (bterms, prior, normalize, ...) 
+{
+    stopifnot(is.btl(bterms) || is.btnl(bterms))
+    out <- list()
+    if (!is_ordinal(bterms)) {
+        return(out)
+    }
+    px <- check_prefix(bterms)
+    p <- usc(combine_prefix(px))
+    resp <- usc(px$resp)
+    type <- str_if(has_ordered_thres(bterms), "ordered", "vector")
+    coef_type <- str_if(has_ordered_thres(bterms), "", "real")
+    gr <- grb <- ""
+    groups <- get_thres_groups(bterms)
+    if (has_thres_groups(bterms)) {
+        gr <- usc(seq_along(groups))
+        grb <- paste0("[", seq_along(groups), "]")
+    }
+    family <- bterms$family$family
+    link <- bterms$family$link
+    if (has_extra_cat(bterms)) {
+        str_add(out$fun) <- glue("  #includeR `stan_hurdle_ordinal_lpmf('{family}', '{link}')`\n")
+    }
+    else {
+        str_add(out$fun) <- glue("  #includeR `stan_ordinal_lpmf('{family}', '{link}')`\n")
+    }
+    if (fix_intercepts(bterms)) {
+        if (has_equidistant_thres(bterms)) {
+            stop2("Cannot use equidistant and fixed thresholds at the same time.")
+        }
+        str_add(out$tpar_def) <- "  // ordinal thresholds\n"
+        str_add(out$tpar_def) <- cglue("  {type}[nthres{resp}{grb}] Intercept{p}{gr};\n")
+        str_add(out$tpar_comp) <- "  // fix thresholds across ordinal mixture components\n"
+        str_add(out$tpar_comp) <- cglue("  Intercept{p}{gr} = fixed_Intercept{resp}{gr};\n")
+    }
+    else {
+        if (has_equidistant_thres(bterms)) {
+            bound <- subset2(prior, class = "delta", group = "", 
+                ls = px)$bound
+            for (i in seq_along(groups)) {
+                str_add_list(out) <- stan_prior(prior, class = "Intercept", 
+                  group = groups[i], prefix = "first_", suffix = glue("{p}{gr[i]}"), 
+                  px = px, comment = "first threshold", normalize = normalize)
+                str_add_list(out) <- stan_prior(prior, class = "delta", 
+                  group = groups[i], px = px, suffix = gr[i], 
+                  comment = "distance between thresholds", normalize = normalize)
+            }
+            str_add(out$tpar_def) <- "  // temporary thresholds for centered predictors\n"
+            str_add(out$tpar_def) <- cglue("  {type}[nthres{resp}{grb}] Intercept{p}{gr};\n")
+            str_add(out$tpar_comp) <- "  // compute equidistant thresholds\n"
+            str_add(out$tpar_comp) <- cglue("  for (k in 1:(nthres{resp}{grb})) {{\n", 
+                "    Intercept{p}{gr}[k] = first_Intercept{p}{gr}", 
+                " + (k - 1.0) * delta{p}{gr};\n", "  }}\n")
+        }
+        else {
+            for (i in seq_along(groups)) {
+                str_add_list(out) <- stan_prior(prior, class = "Intercept", 
+                  group = groups[i], coef = get_thres(bterms, 
+                    group = groups[i]), type = glue("{type}[nthres{resp}{grb[i]}]"), 
+                  coef_type = coef_type, px = px, suffix = glue("{p}{gr[i]}"), 
+                  comment = "temporary thresholds for centered predictors", 
+                  normalize = normalize)
+            }
+        }
+    }
+    stz <- ""
+    if (has_sum_to_zero_thres(bterms)) {
+        stz <- "_stz"
+        str_add(out$tpar_def) <- cglue("  vector[nthres{resp}{grb}] Intercept{p}_stz{gr};", 
+            "  // sum-to-zero constraint thresholds\n")
+        str_add(out$tpar_comp) <- "  // compute sum-to-zero constraint thresholds\n"
+        str_add(out$tpar_comp) <- cglue("  Intercept{p}_stz{gr} = Intercept{p}{gr} - mean(Intercept{p}{gr});\n")
+    }
+    if (has_thres_groups(bterms)) {
+        str_add(out$tpar_def) <- glue("  vector[nmthres{resp}] merged_Intercept{p}{stz};  // merged thresholds\n")
+        str_add(out$tpar_comp) <- "  // merge thresholds\n"
+        grj <- seq_along(groups)
+        grj <- glue("Kthres_start{resp}[{grj}]:Kthres_end{resp}[{grj}]")
+        str_add(out$tpar_comp) <- cglue("  merged_Intercept{p}{stz}[{grj}] = Intercept{p}{stz}{gr};\n")
+        str_add(out$pll_args) <- cglue(", vector merged_Intercept{p}{stz}")
+    }
+    else {
+        str_add(out$pll_args) <- glue(", vector Intercept{p}{stz}")
+    }
+    sub_X_means <- ""
+    if (stan_center_X(bterms) && length(all_terms(bterms$fe))) {
+        sub_X_means <- glue(" + dot_product(means_X{p}, b{p})")
+    }
+    str_add(out$gen_def) <- "  // compute actual thresholds\n"
+    str_add(out$gen_def) <- cglue("  vector[nthres{resp}{grb}] b{p}_Intercept{gr}", 
+        " = Intercept{p}{stz}{gr}{sub_X_means};\n")
+    out
+}
+<bytecode: 0x000001f55ea64af0>
+<environment: namespace:brms>
+
+######## prior_thres 
+function (bframe, def_scale_prior = "", ...) 
+{
+    prior <- empty_prior()
+    if (!is_ordinal(bframe)) {
+        return(prior)
+    }
+    if (fix_intercepts(bframe) && !is.mixfamily(bframe$family)) {
+        return(prior)
+    }
+    .prior_thres <- function(thres, thres_prior = "", group = "") {
+        prior <- empty_prior()
+        if (has_equidistant_thres(bframe)) {
+            thres <- character(0)
+            lb <- str_if(has_ordered_thres(bframe), "0")
+            prior <- prior + brmsprior(class = "delta", group = group, 
+                lb = lb, ls = px)
+        }
+        prior <- prior + brmsprior(prior = c(thres_prior, rep("", 
+            length(thres))), class = "Intercept", coef = c("", 
+            thres), group = group, ls = px)
+    }
+    px <- check_prefix(bframe)
+    groups <- get_thres_groups(bframe)
+    if (any(nzchar(groups))) {
+        prior <- prior + .prior_thres(character(0), def_scale_prior)
+        for (g in groups) {
+            prior <- prior + .prior_thres(get_thres(bframe, group = g), 
+                group = g)
+        }
+    }
+    else {
+        prior <- prior + .prior_thres(get_thres(bframe), def_scale_prior)
+    }
+    prior
+}
+<bytecode: 0x000001f55ea4feb0>
+<environment: namespace:brms>
+
+######## stan_ordinal_lpmf 
+function (family, link) 
+{
+    family <- as_one_character(family)
+    link <- as_one_character(link)
+    inv_link <- stan_inv_link(link)
+    th <- function(k) {
+        if (family %in% c("cumulative", "sratio")) {
+            out <- glue("thres[{k}] - mu")
+        }
+        else if (family %in% c("cratio", "acat")) {
+            out <- glue("mu - thres[{k}]")
+        }
+        glue("disc * ({out})")
+    }
+    out <- glue("  /* {family}-{link} log-PDF for a single response\n", 
+        "   * Args:\n", "   *   y: response category\n", "   *   mu: latent mean parameter\n", 
+        "   *   disc: discrimination parameter\n", "   *   thres: ordinal thresholds\n", 
+        "   * Returns:\n", "   *   a scalar to be added to the log posterior\n", 
+        "   */\n", "   real {family}_{link}_lpmf(int y, real mu, real disc, vector thres) {{\n")
+    if (family == "cumulative") {
+        if (inv_link == "inv_logit") {
+            str_add(out) <- glue("     int nthres = num_elements(thres);\n", 
+                "     if (y == 1) {{\n", "       return log_inv_logit({th(1)});\n", 
+                "     }} else if (y == nthres + 1) {{\n", "       return log1m_inv_logit({th('nthres')});\n", 
+                "     }} else {{\n", "       return log_inv_logit_diff({th('y')}, {th('y - 1')});\n", 
+                "     }}\n", "   }}\n")
+        }
+        else {
+            str_add(out) <- glue("     int nthres = num_elements(thres);\n", 
+                "     real p;\n", "     if (y == 1) {{\n", "       p = {inv_link}({th(1)});\n", 
+                "     }} else if (y == nthres + 1) {{\n", "       p = 1 - {inv_link}({th('nthres')});\n", 
+                "     }} else {{\n", "       p = {inv_link}({th('y')}) -\n", 
+                "           {inv_link}({th('y - 1')});\n", "     }}\n", 
+                "     return log(p);\n", "   }}\n")
+        }
+    }
+    else if (family %in% c("sratio", "cratio")) {
+        if (inv_link == "inv_cloglog") {
+            qk <- str_if(family == "sratio", "-exp({th('k')})", 
+                "log1m_exp(-exp({th('k')}))")
+        }
+        else if (inv_link == "inv_logit") {
+            qk <- str_if(family == "sratio", "log1m_inv_logit({th('k')})", 
+                "log_inv_logit({th('k')})")
+        }
+        else if (inv_link == "Phi") {
+            qk <- str_if(family == "sratio", "std_normal_lccdf({th('k')})", 
+                "std_normal_lcdf({th('k')})")
+        }
+        else if (inv_link == "Phi_approx") {
+            qk <- str_if(family == "sratio", "log1m_inv_logit(0.07056 * pow({th('k')}, 3.0) + 1.5976 * {th('k')})", 
+                "log_inv_logit(0.07056 * pow({th('k')}, 3.0) + 1.5976 * {th('k')})")
+        }
+        else if (inv_link == "inv_cauchit") {
+            qk <- str_if(family == "sratio", "cauchy_lccdf({th('k')}|0,1)", 
+                "cauchy_lcdf({th('k')}|0,1)")
+        }
+        qk <- glue(qk)
+        str_add(out) <- glue("     int nthres = num_elements(thres);\n", 
+            "     vector[nthres + 1] p;\n", "     vector[nthres] q;\n", 
+            "     int k = 1;\n", "     while (k <= min(y, nthres)) {{\n", 
+            "       q[k] = {qk};\n", "       p[k] = log1m_exp(q[k]);\n", 
+            "       for (kk in 1:(k - 1)) p[k] = p[k] + q[kk];\n", 
+            "       k += 1;\n", "     }}\n", "     if (y == nthres + 1) {{\n", 
+            "       p[nthres + 1] = sum(q);\n", "     }}\n", 
+            "     return p[y];\n", "   }}\n")
+    }
+    else if (family == "acat") {
+        if (inv_link == "inv_logit") {
+            str_add(out) <- glue("     int nthres = num_elements(thres);\n", 
+                "     vector[nthres + 1] p = append_row(0, cumulative_sum(disc * (mu - thres)));\n", 
+                "     return p[y] - log_sum_exp(p);\n", "   }}\n")
+        }
+        else {
+            str_add(out) <- glue("     int nthres = num_elements(thres);\n", 
+                "     vector[nthres + 1] p;\n", "     vector[nthres] q;\n", 
+                "     for (k in 1:(nthres))\n", "       q[k] = {inv_link}({th('k')});\n", 
+                "     for (k in 1:(nthres + 1)) {{\n", "       p[k] = 1.0;\n", 
+                "       for (kk in 1:(k - 1)) p[k] = p[k] * q[kk];\n", 
+                "       for (kk in k:(nthres)) p[k] = p[k] * (1 - q[kk]);\n", 
+                "     }}\n", "     return log(p[y]) - log(sum(p));\n", 
+                "   }}\n")
+        }
+    }
+    str_add(out) <- glue("  /* {family}-{link} log-PDF for a single response and merged thresholds\n", 
+        "   * Args:\n", "   *   y: response category\n", "   *   mu: latent mean parameter\n", 
+        "   *   disc: discrimination parameter\n", "   *   thres: vector of merged ordinal thresholds\n", 
+        "   *   j: start and end index for the applid threshold within 'thres'\n", 
+        "   * Returns:\n", "   *   a scalar to be added to the log posterior\n", 
+        "   */\n", "   real {family}_{link}_merged_lpmf(", "int y, real mu, real disc, vector thres, array[] int j) {{\n", 
+        "     return {family}_{link}_lpmf(y | mu, disc, thres[j[1]:j[2]]);\n", 
+        "   }}\n")
+    if (family == "cumulative" && link %in% c("logit", "probit")) {
+        sfx <- str_if(link == "logit", "logistic", link)
+        str_add(out) <- glue("  /* ordered-{sfx} log-PDF for a single response and merged thresholds\n", 
+            "   * Args:\n", "   *   y: response category\n", 
+            "   *   mu: latent mean parameter\n", "   *   thres: vector of merged ordinal thresholds\n", 
+            "   *   j: start and end index for the applid threshold within 'thres'\n", 
+            "   * Returns:\n", "   *   a scalar to be added to the log posterior\n", 
+            "   */\n", "   real ordered_{sfx}_merged_lpmf(", 
+            "int y, real mu, vector thres, array[] int j) {{\n", 
+            "     return ordered_{sfx}_lpmf(y | mu, thres[j[1]:j[2]]);\n", 
+            "   }}\n")
+    }
+    out
+}
+<bytecode: 0x000001f55ea66850>
+<environment: namespace:brms>
+
+######## inv_link_acat 
+function (x, link) 
+{
+    ndim <- length(dim(x))
+    dim_noncat <- dim(x)[-ndim]
+    nthres <- dim(x)[ndim]
+    marg_noncat <- seq_along(dim(x))[-ndim]
+    ones_arr <- array(1, dim = c(dim_noncat, 1))
+    dim_t <- c(nthres, dim_noncat)
+    if (link == "logit") {
+        exp_x_cumprod <- aperm(array(apply(exp(x), marg_noncat, 
+            cumprod), dim = dim_t), perm = c(marg_noncat + 1, 
+            1))
+        out <- abind::abind(ones_arr, exp_x_cumprod)
+    }
+    else {
+        x <- inv_link(x, link)
+        x_cumprod <- aperm(array(apply(x, marg_noncat, cumprod), 
+            dim = dim_t), perm = c(marg_noncat + 1, 1))
+        Sx_cumprod_rev <- apply(1 - slice(x, ndim, rev(seq_len(nthres)), 
+            drop = FALSE), marg_noncat, cumprod)
+        Sx_cumprod_rev <- aperm(array(Sx_cumprod_rev, dim = dim_t), 
+            perm = c(marg_noncat + 1, 1))
+        Sx_cumprod_rev <- slice(Sx_cumprod_rev, ndim, rev(seq_len(nthres)), 
+            drop = FALSE)
+        out <- abind::abind(ones_arr, x_cumprod) * abind::abind(Sx_cumprod_rev, 
+            ones_arr)
+    }
+    catsum <- array(apply(out, marg_noncat, sum), dim = dim_noncat)
+    sweep(out, marg_noncat, catsum, "/")
+}
+<bytecode: 0x000001f55eab2158>
+<environment: namespace:brms>
+
+######## inv_link 
+function (x, link) 
+{
+    switch(link, identity = x, log = exp(x), logm1 = expp1(x), 
+        log1p = expm1(x), inverse = 1/x, sqrt = x^2, `1/mu^2` = 1/sqrt(x), 
+        tan_half = 2 * atan(x), logit = inv_logit(x), probit = pnorm(x), 
+        cauchit = pcauchy(x), cloglog = inv_cloglog(x), probit_approx = pnorm(x), 
+        softplus = log1p_exp(x), squareplus = (x + sqrt(x^2 + 
+            4))/2, softit = inv_softit(x), stop2("Link '", link, 
+            "' is not supported."))
+}
+<bytecode: 0x000001f55eb37498>
+<environment: namespace:brms>
+
+######## dcumulative 
+function (x, eta, thres, disc = 1, link = "logit") 
+{
+    eta <- disc * (thres - eta)
+    if (link == "identity") {
+        out <- eta
+    }
+    else {
+        out <- inv_link_cumulative(eta, link = link)
+    }
+    out[, x, drop = FALSE]
+}
+<bytecode: 0x000001f55eb34a18>
+<environment: namespace:brms>
+
+######## dacat 
+function (x, eta, thres, disc = 1, link = "logit") 
+{
+    eta <- disc * (eta - thres)
+    if (link == "identity") {
+        out <- eta
+    }
+    else {
+        out <- inv_link_acat(eta, link = link)
+    }
+    out[, x, drop = FALSE]
+}
+<bytecode: 0x000001f55eb271f8>
+<environment: namespace:brms>
+
+######## dsratio 
+function (x, eta, thres, disc = 1, link = "logit") 
+{
+    eta <- disc * (thres - eta)
+    if (link == "identity") {
+        out <- eta
+    }
+    else {
+        out <- inv_link_sratio(eta, link = link)
+    }
+    out[, x, drop = FALSE]
+}
+<bytecode: 0x000001f55eb2da48>
+<environment: namespace:brms>
+
+######## dcratio 
+function (x, eta, thres, disc = 1, link = "logit") 
+{
+    eta <- disc * (eta - thres)
+    if (link == "identity") {
+        out <- eta
+    }
+    else {
+        out <- inv_link_cratio(eta, link = link)
+    }
+    out[, x, drop = FALSE]
+}
+<bytecode: 0x000001f55eb3fb28>
+<environment: namespace:brms>
+
+######## posterior_epred_ordinal 
+function (prep) 
+{
+    dens <- get(paste0("d", prep$family$family), mode = "function")
+    adjust <- ifelse(prep$family$link == "identity", 0, 1)
+    ncat_max <- max(prep$data$nthres) + adjust
+    nact_min <- min(prep$data$nthres) + adjust
+    init_mat <- matrix(ifelse(prep$family$link == "identity", 
+        NA, 0), nrow = prep$ndraws, ncol = ncat_max - nact_min)
+    args <- list(link = prep$family$link)
+    out <- vector("list", prep$nobs)
+    for (i in seq_along(out)) {
+        args_i <- args
+        args_i$eta <- slice_col(prep$dpars$mu, i)
+        args_i$disc <- slice_col(prep$dpars$disc, i)
+        args_i$thres <- subset_thres(prep, i)
+        ncat_i <- NCOL(args_i$thres) + adjust
+        args_i$x <- seq_len(ncat_i)
+        out[[i]] <- do_call(dens, args_i)
+        if (ncat_i < ncat_max) {
+            sel <- seq_len(ncat_max - ncat_i)
+            out[[i]] <- cbind(out[[i]], init_mat[, sel])
+        }
+    }
+    out <- abind(out, along = 3)
+    out <- aperm(out, perm = c(1, 3, 2))
+    dimnames(out)[[3]] <- seq_len(ncat_max)
+    out
+}
+<bytecode: 0x000001f55eb0e2e0>
+<environment: namespace:brms>
+
+######## def_dpar_prior 
+function (x, dpar) 
+{
+    stopifnot(is.brmsterms(x))
+    dpar <- as_one_character(dpar)
+    resp <- usc(x$resp)
+    dpar_class <- dpar_class(dpar, family = x)
+    link <- x$dpars[[dpar]]$family$link %||% "identity"
+    if (is.function(x$family$prior)) {
+        out <- x$family$prior(dpar_class, link = link)
+        if (!is.null(out)) {
+            return(out)
+        }
+    }
+    x$family$link <- link
+    if (link == "identity") {
+        out <- switch(dpar_class, "", mu = def_scale_prior(x, 
+            center = FALSE, dpar = dpar), sigma = def_scale_prior(x), 
+            shape = "gamma(0.01, 0.01)", nu = "gamma(2, 0.1)", 
+            phi = "gamma(0.01, 0.01)", kappa = "gamma(2, 0.01)", 
+            beta = "gamma(1, 0.1)", zi = "beta(1, 1)", hu = "beta(1, 1)", 
+            zoi = "beta(1, 1)", coi = "beta(1, 1)", bs = "gamma(1, 1)", 
+            ndt = glue("uniform(0, min_Y{resp})"), bias = "beta(1, 1)", 
+            quantile = "beta(1, 1)", xi = "normal(0, 2.5)", alpha = "normal(0, 4)", 
+            disc = "lognormal(0, 1)", theta = "logistic(0, 1)")
+    }
+    else {
+        out <- switch(dpar_class, "", mu = def_scale_prior(x, 
+            center = FALSE, dpar = dpar), sigma = def_scale_prior(x), 
+            shape = "student_t(3, 0, 2.5)", nu = "normal(2.7, 0.8)", 
+            phi = "student_t(3, 0, 2.5)", kappa = "normal(5.0, 0.8)", 
+            beta = "normal(1.7, 1.3)", zi = "logistic(0, 1)", 
+            hu = "logistic(0, 1)", zoi = "logistic(0, 1)", coi = "logistic(0, 1)", 
+            bs = "normal(-0.6, 1.3)", bias = "logistic(0, 1)", 
+            quantile = "logistic(0, 1)", xi = "normal(0, 4)", 
+            alpha = "normal(0, 4)", disc = "normal(0, 1)")
+    }
+    out
+}
+<bytecode: 0x000001f55eb2f9a0>
+<environment: namespace:brms>
+
+######## has_ordered_thres 
+function (family) 
+{
+    "ordered_thres" %in% family_info(family, "specials")
+}
+<bytecode: 0x000001f55eb1a890>
+<environment: namespace:brms>
+
+######## stan_center_X 
+function (x) 
+{
+    is.btl(x) && !no_center(x$fe) && has_intercept(x$fe) && !fix_intercepts(x) && 
+        !is_sparse(x$fe) && !has_sum_to_zero_thres(x)
+}
+<bytecode: 0x000001f55eb1d8c0>
+<environment: namespace:brms>
+
+######## has_thres_groups 
+function (family) 
+{
+    groups <- get_thres_groups(family)
+    any(nzchar(groups))
+}
+<bytecode: 0x000001f55eb3a040>
+<environment: namespace:brms>
+
+######## has_sum_to_zero_thres 
+function (family) 
+{
+    "sum_to_zero" %in% family_info(family, "threshold")
+}
+<bytecode: 0x000001f55eb0d000>
+<environment: namespace:brms>
+
+######## has_equidistant_thres 
+function (family) 
+{
+    "equidistant" %in% family_info(family, "threshold")
+}
+<bytecode: 0x000001f55eb470b0>
+<environment: namespace:brms>
+
+######## prepare_family 
+function (x) 
+{
+    stopifnot(is.brmsformula(x) || is.brmsterms(x))
+    family <- x$family
+    acframe <- frame_ac(x)
+    family$fun <- family[["fun"]] %||% family$family
+    if (use_ac_cov_time(acframe) && has_natural_residuals(x)) {
+        family$fun <- paste0(family$fun, "_time")
+    }
+    else if (has_ac_class(acframe, "sar")) {
+        acframe_sar <- subset2(acframe, class = "sar")
+        if (has_ac_subset(acframe_sar, type = "lag")) {
+            family$fun <- paste0(family$fun, "_lagsar")
+        }
+        else if (has_ac_subset(acframe_sar, type = "error")) {
+            family$fun <- paste0(family$fun, "_errorsar")
+        }
+    }
+    else if (has_ac_class(acframe, "fcor")) {
+        family$fun <- paste0(family$fun, "_fcor")
+    }
+    family
+}
+<bytecode: 0x000001f55eb740e0>
+<environment: namespace:brms>
+
+######## validate_family 
+function (family, link = NULL, threshold = NULL) 
+{
+    if (is.function(family)) {
+        family <- family()
+    }
+    if (!is(family, "brmsfamily")) {
+        if (is.family(family)) {
+            link <- family$link
+            family <- family$family
+        }
+        if (is.character(family)) {
+            if (is.null(link)) {
+                link <- family[2]
+            }
+            family <- .brmsfamily(family[1], link = link)
+        }
+        else {
+            stop2("Argument 'family' is invalid.")
+        }
+    }
+    if (is_ordinal(family) && !is.null(threshold)) {
+        threshold <- match.arg(threshold, c("flexible", "equidistant"))
+        family$threshold <- threshold
+    }
+    family
+}
+<bytecode: 0x000001f55eb50230>
+<environment: namespace:brms>
+
+######## is_equal 
+function (x, y, check.attributes = FALSE, ...) 
+{
+    isTRUE(all.equal(x, y, check.attributes = check.attributes, 
+        ...))
+}
+<bytecode: 0x000001f55eb55698>
+<environment: namespace:brms>
+
+######## (missing) log_lik_ordinal 
+
+######## posterior_epred_cumulative 
+function (prep) 
+{
+    posterior_epred_ordinal(prep)
+}
+<bytecode: 0x000001f55eb6dac0>
+<environment: namespace:brms>

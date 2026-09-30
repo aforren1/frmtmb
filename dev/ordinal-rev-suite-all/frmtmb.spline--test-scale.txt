@@ -1,0 +1,12 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.spline  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | scale                                                          
+✔ |      1   0 | scale
+
+══ Results ═════════════════════════════════════════════════════════════════════
+── Skipped tests (1) ───────────────────────────────────────────────────────────
+• set FRMTMB_SCALE_TESTS=true to run the scale tier (1): 'test-scale.R:43:3'
+
+[ FAIL 0 | WARN 0 | SKIP 1 | PASS 0 ]
+RESULT lane frmtmb.spline test-scale.R pass=0 fail=0 err=0 skip=1 warn=0

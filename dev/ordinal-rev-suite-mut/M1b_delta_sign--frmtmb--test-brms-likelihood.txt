@@ -1,0 +1,413 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib/M1b_delta_sign/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib/M1b_delta_sign/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-likelihood                                                
+⠋ |          1 | brms-likelihood                                                
+⠙ |         12 | brms-likelihood                                                
+⠼ |         25 | brms-likelihood                                                
+⠙ |         42 | brms-likelihood                                                
+⠸ |         44 | brms-likelihood                                                
+⠴ |         46 | brms-likelihood                                                
+⠏ |         50 | brms-likelihood                                                
+⠙ |         52 | brms-likelihood                                                
+⠸ |         54 | brms-likelihood                                                
+⠴ |         56 | brms-likelihood                                                
+⠧ |         58 | brms-likelihood                                                
+⠏ |         60 | brms-likelihood                                                
+⠙ |         62 | brms-likelihood                                                
+⠸ |         64 | brms-likelihood                                                
+⠴ |         66 | brms-likelihood                                                
+⠧ |         68 | brms-likelihood                                                
+⠏ |         70 | brms-likelihood                                                
+⠙ |         72 | brms-likelihood                                                
+⠸ |         74 | brms-likelihood                                                
+⠴ |         76 | brms-likelihood                                                
+⠧ |         78 | brms-likelihood                                                
+⠏ |         80 | brms-likelihood                                                
+⠙ |         82 | brms-likelihood                                                
+⠸ |         84 | brms-likelihood                                                
+⠴ |         86 | brms-likelihood                                                
+⠧ |         88 | brms-likelihood                                                
+⠏ |         90 | brms-likelihood                                                
+⠙ |         92 | brms-likelihood                                                
+⠸ |         94 | brms-likelihood                                                
+⠴ |         96 | brms-likelihood                                                
+⠧ |         98 | brms-likelihood                                                
+⠏ |        100 | brms-likelihood                                                
+⠸ |        104 | brms-likelihood                                                
+⠴ |        106 | brms-likelihood                                                
+⠧ |        108 | brms-likelihood                                                
+⠏ |        110 | brms-likelihood                                                
+⠙ |        112 | brms-likelihood                                                
+⠸ |        114 | brms-likelihood                                                
+⠴ |        116 | brms-likelihood                                                
+⠧ |        118 | brms-likelihood                                                
+⠏ |        120 | brms-likelihood                                                
+⠙ |        122 | brms-likelihood                                                
+⠸ |        124 | brms-likelihood                                                
+⠴ |        126 | brms-likelihood                                                
+⠹ | 1 5    127 | brms-likelihood                                                
+⠇ | 2 10    127 | brms-likelihood                                               
+⠏ | 2 10    128 | brms-likelihood                                               
+⠙ | 2 10    130 | brms-likelihood                                               
+⠸ | 2 10    132 | brms-likelihood                                               
+⠴ | 2 10    134 | brms-likelihood                                               
+⠧ | 2 10    136 | brms-likelihood                                               
+⠏ | 2 10    138 | brms-likelihood                                               
+⠙ | 2 10    140 | brms-likelihood                                               
+⠸ | 2 10    142 | brms-likelihood                                               
+⠴ | 2 10    144 | brms-likelihood                                               
+⠧ | 2 10    146 | brms-likelihood                                               
+⠏ | 2 10    148 | brms-likelihood                                               Setting order = 'mu' for mixtures of the same family.
+
+⠹ | 2 10    151 | brms-likelihood                                               Setting order = 'mu' for mixtures of the same family.
+
+⠼ | 2 10    153 | brms-likelihood                                               Setting order = 'mu' for mixtures of the same family.
+
+⠦ | 2 10    155 | brms-likelihood                                               Setting order = 'mu' for mixtures of the same family.
+
+⠇ | 2 10    157 | brms-likelihood                                               
+⠋ | 2 10    159 | brms-likelihood                                               
+⠸ | 2 10    162 | brms-likelihood                                               
+⠴ | 2 10    164 | brms-likelihood                                               
+⠧ | 2 10    166 | brms-likelihood                                               
+⠋ | 2 10    169 | brms-likelihood                                               
+⠸ | 2 10    172 | brms-likelihood                                               
+⠦ | 2 10    175 | brms-likelihood                                               
+⠧ | 2 10    196 | brms-likelihood                                               
+⠏ | 2 10    198 | brms-likelihood                                               
+⠼ | 2 10    223 | brms-likelihood                                               
+⠧ | 2 10    226 | brms-likelihood                                               
+⠹ | 2 10    251 | brms-likelihood                                               
+⠴ | 2 10    254 | brms-likelihood                                               
+⠇ | 2 10    257 | brms-likelihood                                               
+⠙ | 2 10    260 | brms-likelihood                                               
+⠼ | 2 10    263 | brms-likelihood                                               
+⠏ | 2 10    278 | brms-likelihood                                               
+⠹ | 2 10    281 | brms-likelihood                                               
+⠸ | 2 10    302 | brms-likelihood                                               
+⠦ | 2 10    305 | brms-likelihood                                               
+⠇ | 2 10    327 | brms-likelihood                                               
+⠙ | 2 10    330 | brms-likelihood                                               
+⠦ | 2 10    345 | brms-likelihood                                               
+⠏ | 2 10    348 | brms-likelihood                                               
+⠧ | 2 10    356 | brms-likelihood                                               
+⠋ | 2 10    369 | brms-likelihood                                               
+⠸ | 2 10    372 | brms-likelihood                                               
+⠴ | 2 10    374 | brms-likelihood                                               
+⠴ | 2 10    384 | brms-likelihood                                               
+⠧ | 2 10    386 | brms-likelihood                                               
+⠏ | 2 10    388 | brms-likelihood                                               
+⠙ | 2 10    390 | brms-likelihood                                               
+⠸ | 2 10    392 | brms-likelihood                                               
+⠴ | 2 10    394 | brms-likelihood                                               
+⠧ | 2 10    396 | brms-likelihood                                               
+⠏ | 2 10    398 | brms-likelihood                                               
+⠦ | 2 10    415 | brms-likelihood                                               
+⠏ | 2 10    418 | brms-likelihood                                               
+⠹ | 2 10    431 | brms-likelihood                                               
+⠴ | 2 10    434 | brms-likelihood                                               
+⠏ | 2 10    458 | brms-likelihood                                               
+⠹ | 2 10    461 | brms-likelihood                                               
+⠦ | 2 10    465 | brms-likelihood                                               
+⠇ | 2 10    467 | brms-likelihood                                               
+⠋ | 2 10    469 | brms-likelihood                                               
+⠹ | 2 10    471 | brms-likelihood                                               
+⠼ | 2 10    473 | brms-likelihood                                               
+⠦ | 2 10    475 | brms-likelihood                                               
+⠇ | 2 10    477 | brms-likelihood                                               
+⠋ | 2 10    479 | brms-likelihood                                               
+⠹ | 2 10    481 | brms-likelihood                                               
+⠏ | 2 10    488 | brms-likelihood                                               
+⠙ | 2 10    490 | brms-likelihood                                               
+⠸ | 2 10    492 | brms-likelihood                                               
+⠴ | 2 10    494 | brms-likelihood                                               
+⠧ | 2 10    496 | brms-likelihood                                               
+⠏ | 2 10    498 | brms-likelihood                                               
+⠸ | 2 10    502 | brms-likelihood                                               
+⠦ | 2 10    505 | brms-likelihood                                               
+✖ | 2 10    511 | brms-likelihood [50.5s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(start_par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+Large maximum absolute gradient at the optimum (170 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 315 in log-likelihood, more than frmtmb_control(grad_tol = 1e-06). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Error ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+<std::domain_error/C++Error/error/condition>
+Error: Exception: lb_free: Lower bounded variable is -0.769248, but must be greater than or equal to 0.000000 (in 'string', line 68, column 2 to column 22)
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+ 2.   └─frmtmb:::brms_lp_check(do.call(brms::bf, forms), bfam, d, fit) at test-brms-likelihood.R:510:3
+ 3.     ├─rstan::unconstrain_pars(sf, pars) at ./helper-brms.R:847:3
+ 4.     └─rstan::unconstrain_pars(sf, pars)
+ 5.       └─rstan (local) .local(object, ...)
+ 6.         └─object@.MISC$stan_fit_instance$unconstrain_pars(pars)
+
+Warning ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(start_par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+  2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+  3.     └─frmtmb:::fit_assembled(...)
+  4.       ├─frmtmb:::fit_error_context(...)
+  5.       │ ├─base::withCallingHandlers(...)
+  6.       │ └─base::tryCatch(...)
+  7.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.       ├─base::tryCatch(...)
+ 11.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 12.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 13.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 14.       └─frmtmb:::optimize_obj(...)
+ 15.         └─frmtmb (local) run(opt$par)
+ 16.           ├─base::tryCatch(...)
+ 17.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.           └─frmtmb:::run_optimizer(...)
+ 21.             └─stats::nlminb(...)
+
+Warning ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+Large maximum absolute gradient at the optimum (86.8 at tau_raw_3): one Newton step over the parameters no bound holds would still gain 317 in log-likelihood, more than frmtmb_control(grad_tol = 1e-06). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+ 2.   └─frmtmb::frm(do.call(bf, forms), family = fam, data = d, control = lp_tight) at test-brms-likelihood.R:506:3
+ 3.     └─frmtmb:::fit_assembled(...)
+ 4.       └─frmtmb:::check_convergence(fit, control)
+ 5.         └─frmtmb::frm_warning(m, call. = FALSE)
+
+Error ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+<std::domain_error/C++Error/error/condition>
+Error: Exception: lb_free: Lower bounded variable is -0.820318, but must be greater than or equal to 0.000000 (in 'string', line 72, column 2 to column 24)
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+ 2.   └─frmtmb:::brms_lp_check(do.call(brms::bf, forms), bfam, d, fit) at test-brms-likelihood.R:510:3
+ 3.     ├─rstan::unconstrain_pars(sf, pars) at ./helper-brms.R:847:3
+ 4.     └─rstan::unconstrain_pars(sf, pars)
+ 5.       └─rstan (local) .local(object, ...)
+ 6.         └─object@.MISC$stan_fit_instance$unconstrain_pars(pars)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 50.7 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-brms-likelihood.R:540:3'): row 12f: equidistant and sum-to-zero thresholds
+<std::domain_error/C++Error/error/condition>
+Error: Exception: lb_free: Lower bounded variable is -0.769248, but must be greater than or equal to 0.000000 (in 'string', line 68, column 2 to column 22)
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(y1, cumulative(threshold = "equidistant"), d) at test-brms-likelihood.R:540:3
+ 2.   └─frmtmb:::brms_lp_check(do.call(brms::bf, forms), bfam, d, fit) at test-brms-likelihood.R:510:3
+ 3.     ├─rstan::unconstrain_pars(sf, pars) at ./helper-brms.R:847:3
+ 4.     └─rstan::unconstrain_pars(sf, pars)
+ 5.       └─rstan (local) .local(object, ...)
+ 6.         └─object@.MISC$stan_fit_instance$unconstrain_pars(pars)
+
+Error ('test-brms-likelihood.R:555:3'): row 12g: structures under thres(gr = ), and the hurdle
+<std::domain_error/C++Error/error/condition>
+Error: Exception: lb_free: Lower bounded variable is -0.820318, but must be greater than or equal to 0.000000 (in 'string', line 72, column 2 to column 24)
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) ord_lp_row(...) at test-brms-likelihood.R:555:3
+ 2.   └─frmtmb:::brms_lp_check(do.call(brms::bf, forms), bfam, d, fit) at test-brms-likelihood.R:510:3
+ 3.     ├─rstan::unconstrain_pars(sf, pars) at ./helper-brms.R:847:3
+ 4.     └─rstan::unconstrain_pars(sf, pars)
+ 5.       └─rstan (local) .local(object, ...)
+ 6.         └─object@.MISC$stan_fit_instance$unconstrain_pars(pars)
+
+[ FAIL 2 | WARN 10 | SKIP 0 | PASS 511 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib/M1b_delta_sign frmtmb test-brms-likelihood.R pass=511 fail=0 err=2 skip=0 warn=10

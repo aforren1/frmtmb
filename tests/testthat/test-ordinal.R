@@ -96,20 +96,10 @@ test_that("the ordinal families take brms's link roster and no more", {
   # brms allows softit for cumulative and not for the sequential pair
   expect_error(sratio("softit"), "softit", fixed = TRUE)
   expect_error(cratio("softit"), "softit", fixed = TRUE)
-  # acat off the logit is a DIFFERENT density in brms, not a different
-  # link, so it is refused rather than silently fitted
-  expect_error(acat("probit"), "logit", fixed = TRUE)
-  # and the refusal must give the TRUE reason. probit, cloglog,
-  # cauchit and softit all map onto (0, 1) and brms accepts every one
-  # of them for acat, so the generic ordinal message, which says the
-  # link fails to map onto (0, 1), is false here twice over. It was
-  # what this constructor used to say.
+  # acat takes brms's six, read off the logit in brms's second form
+  # (test-ordinal-disc-thres.R checks that density against brms's)
   for (l in c("probit", "probit_approx", "cloglog", "cauchit", "softit")) {
-    m <- tryCatch(acat(l), error = conditionMessage)
-    expect_false(grepl("map onto (0, 1); you gave", m, fixed = TRUE),
-                 label = paste("acat(", l, ") blames the link"))
-    expect_match(m, "brms accepts", fixed = TRUE)
-    expect_match(m, "has not written", fixed = TRUE)
+    expect_s3_class(acat(l), "frmtmb_family")
   }
   # the families that DO take those links keep the general message,
   # which is true for them
@@ -123,7 +113,11 @@ test_that("the ordinal families take brms's link roster and no more", {
 
 test_that("the ordinal link is reported, and mu's identity link is not", {
   fam <- cumulative("cloglog")
+  # disc, which every ordinal family has, is named only where a fit
+  # models it, as brms names it
   expect_identical(frmtmb:::family_link_str(fam), "cdf = cloglog")
+  expect_identical(frmtmb:::family_link_str(fam, shown = "disc"),
+                   "cdf = cloglog; disc = log")
   # mu really does carry an identity link: the CDF applies to tau - eta
   expect_identical(fam$links$mu$name, "identity")
 })

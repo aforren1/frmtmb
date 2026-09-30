@@ -125,6 +125,9 @@
 #' they are, and the ordinal thresholds and `cs()` coefficients that are
 #' not, each with the map from the internal vector to the reported value,
 #' so a draws object can report the same rows `fixef()` does.
+#' `ord_delta_info(fit)` lists brms's `delta` parameters of an ordinal
+#' fit with equidistant thresholds: the name, where the internal value
+#' sits, and the map from it to `delta`.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -440,6 +443,7 @@
 #' @aliases brms_summarize_draws
 #' @aliases brms_prob_cols
 #' @aliases brms_fixef_rows
+#' @aliases ord_delta_info
 #' @aliases rescor_row_loglik
 #' @aliases arma_cond_resp
 #' @aliases arma_cond_dpars
@@ -482,7 +486,7 @@
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
-#'   brms_prob_cols, brms_fixef_rows, rescor_row_loglik,
+#'   brms_prob_cols, brms_fixef_rows, ord_delta_info, rescor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, subset_resp_check, subset_newdata)
 NULL
 

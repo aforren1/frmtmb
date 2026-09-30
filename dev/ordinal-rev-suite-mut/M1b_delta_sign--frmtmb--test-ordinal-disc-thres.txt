@@ -1,0 +1,400 @@
+lib: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib/M1b_delta_sign/frmtmb  frmtmb: C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib/M1b_delta_sign/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ |          1 | ordinal-disc-thres                                             
+⠦ | 1 3      3 | ordinal-disc-thres                                             
+⠴ | 2 4     10 | ordinal-disc-thres                                             
+⠇ | 2 4     13 | ordinal-disc-thres                                             
+⠹ | 2 4     17 | ordinal-disc-thres                                             
+⠦ | 2 4     21 | ordinal-disc-thres                                             
+⠏ | 2 4     24 | ordinal-disc-thres                                             
+⠸ | 2 4     28 | ordinal-disc-thres                                             
+⠧ | 2 4     32 | ordinal-disc-thres                                             
+⠋ | 2 4     35 | ordinal-disc-thres                                             
+⠼ | 2 4     39 | ordinal-disc-thres                                             
+⠇ | 2 4     43 | ordinal-disc-thres                                             
+⠹ | 2 4     47 | ordinal-disc-thres                                             
+⠦ | 2 4     51 | ordinal-disc-thres                                             
+⠼ | 2 4     59 | ordinal-disc-thres                                             
+⠇ | 2 4     63 | ordinal-disc-thres                                             
+⠋ | 2 4     65 | ordinal-disc-thres                                             
+⠹ | 2 4     67 | ordinal-disc-thres                                             
+⠏ | 2 4     74 | ordinal-disc-thres                                             
+⠋ | 2 7     82 | ordinal-disc-thres                                             
+⠸ | 2 7     85 | ordinal-disc-thres                                             
+⠙ | 2 8     92 | ordinal-disc-thres                                             
+⠋ | 4 14     93 | ordinal-disc-thres                                            
+⠦ | 4 14     99 | ordinal-disc-thres                                            
+⠏ | 4 14    102 | ordinal-disc-thres                                            
+⠙ | 4 14    104 | ordinal-disc-thres                                            
+⠇ | 5 18    106 | ordinal-disc-thres                                            
+⠹ | 5 18    110 | ordinal-disc-thres                                            
+⠦ | 5 18    114 | ordinal-disc-thres                                            
+✖ | 5 18    115 | ordinal-disc-thres [6.5s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-ordinal-disc-thres.R:54:7'): disc and every threshold structure are brms's density
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:54:7
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(start_par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:54:7'): disc and every threshold structure are brms's density
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:54:7
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(opt$par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:54:7'): disc and every threshold structure are brms's density
+Large maximum absolute gradient at the optimum (170 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 315 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:54:7
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Failure ('test-ordinal-disc-thres.R:59:7'): disc and every threshold structure are brms's density
+Expected cumulative equidistant < `1000 * .Machine$double.eps`.
+Actual comparison: NaN >= 0.0000000000002
+
+Warning ('test-ordinal-disc-thres.R:60:7'): disc and every threshold structure are brms's density
+NaNs produced
+
+Failure ('test-ordinal-disc-thres.R:62:7'): disc and every threshold structure are brms's density
+Expected cumulative equidistant < 1e-12.
+Actual comparison: NaN >= 0.000000000001
+
+Warning ('test-ordinal-disc-thres.R:190:5'): a structure on too few thresholds is refused, and only then
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_s3_class(...) at test-ordinal-disc-thres.R:190:5
+  2. │ └─testthat::quasi_label(enquo(object))
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. └─frmtmb::frm(y3 ~ x, family = cumulative(threshold = th), data = d)
+  5.   └─frmtmb:::fit_assembled(...)
+  6.     ├─frmtmb:::fit_error_context(...)
+  7.     │ ├─base::withCallingHandlers(...)
+  8.     │ └─base::tryCatch(...)
+  9.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.     ├─base::tryCatch(...)
+ 13.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.     └─frmtmb:::optimize_obj(...)
+ 17.       └─frmtmb (local) run(start_par)
+ 18.         ├─base::tryCatch(...)
+ 19.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.         └─frmtmb:::run_optimizer(...)
+ 23.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:190:5'): a structure on too few thresholds is refused, and only then
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_s3_class(...) at test-ordinal-disc-thres.R:190:5
+  2. │ └─testthat::quasi_label(enquo(object))
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. └─frmtmb::frm(y3 ~ x, family = cumulative(threshold = th), data = d)
+  5.   └─frmtmb:::fit_assembled(...)
+  6.     ├─frmtmb:::fit_error_context(...)
+  7.     │ ├─base::withCallingHandlers(...)
+  8.     │ └─base::tryCatch(...)
+  9.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.     ├─base::tryCatch(...)
+ 13.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.     └─frmtmb:::optimize_obj(...)
+ 17.       └─frmtmb (local) run(opt$par)
+ 18.         ├─base::tryCatch(...)
+ 19.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.         └─frmtmb:::run_optimizer(...)
+ 23.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:190:5'): a structure on too few thresholds is refused, and only then
+Large maximum absolute gradient at the optimum (74.7 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 828 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_s3_class(...) at test-ordinal-disc-thres.R:190:5
+ 2. │ └─testthat::quasi_label(enquo(object))
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb::frm(y3 ~ x, family = cumulative(threshold = th), data = d)
+ 5.   └─frmtmb:::fit_assembled(...)
+ 6.     └─frmtmb:::check_convergence(fit, control)
+ 7.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-ordinal-disc-thres.R:248:3'): class delta and class Intercept follow brms's parameters
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:248:3
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(start_par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:248:3'): class delta and class Intercept follow brms's parameters
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:248:3
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(opt$par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:248:3'): class delta and class Intercept follow brms's parameters
+Large maximum absolute gradient at the optimum (207 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 465 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:248:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-ordinal-disc-thres.R:254:3'): class delta and class Intercept follow brms's parameters
+NaNs produced
+
+Failure ('test-ordinal-disc-thres.R:256:3'): class delta and class Intercept follow brms's parameters
+Expected `abs(lprior - ref)/abs(ref)` < 1e-10.
+Actual comparison: NaN >= 0.0000000001
+
+Failure ('test-ordinal-disc-thres.R:263:3'): class delta and class Intercept follow brms's parameters
+Expected `abs(lprior - ref)/abs(ref)` < 1e-10.
+Actual comparison: 5.4400505107 >= 0.0000000001
+Difference: 5.4400505106 >= 0
+
+Warning ('test-ordinal-disc-thres.R:268:3'): delta is named as brms names it and reported
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:268:3
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(start_par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:268:3'): delta is named as brms names it and reported
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:268:3
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(opt$par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:268:3'): delta is named as brms names it and reported
+Large maximum absolute gradient at the optimum (182 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 387 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:268:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-ordinal-disc-thres.R:314:7'): the one-step density reads disc and the structure
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:314:7
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(start_par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:314:7'): the one-step density reads disc and the structure
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:314:7
+  2.   └─frmtmb:::fit_assembled(...)
+  3.     ├─frmtmb:::fit_error_context(...)
+  4.     │ ├─base::withCallingHandlers(...)
+  5.     │ └─base::tryCatch(...)
+  6.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  9.     ├─base::tryCatch(...)
+ 10.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 11.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 12.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 13.     └─frmtmb:::optimize_obj(...)
+ 14.       └─frmtmb (local) run(opt$par)
+ 15.         ├─base::tryCatch(...)
+ 16.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.         └─frmtmb:::run_optimizer(...)
+ 20.           └─stats::nlminb(...)
+
+Warning ('test-ordinal-disc-thres.R:314:7'): the one-step density reads disc and the structure
+Large maximum absolute gradient at the optimum (201 at tau_raw_1): one Newton step over the parameters no bound holds would still gain 535 in log-likelihood, more than frmtmb_control(grad_tol = 0.001). The fit may not have converged. diagnose() reports all three numbers; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:314:7
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+Warning ('test-ordinal-disc-thres.R:320:7'): the one-step density reads disc and the structure
+NaNs produced
+Backtrace:
+    ▆
+ 1. └─ff$lpdf(...) at test-ordinal-disc-thres.R:320:7
+
+Failure ('test-ordinal-disc-thres.R:323:7'): the one-step density reads disc and the structure
+Expected cumulative equidistant < `1000 * .Machine$double.eps`.
+Actual comparison: NaN >= 0.0000000000002
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.9 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-disc-thres.R:59:7'): disc and every threshold structure are brms's density
+Expected cumulative equidistant < `1000 * .Machine$double.eps`.
+Actual comparison: NaN >= 0.0000000000002
+
+Failure ('test-ordinal-disc-thres.R:62:7'): disc and every threshold structure are brms's density
+Expected cumulative equidistant < 1e-12.
+Actual comparison: NaN >= 0.000000000001
+
+Failure ('test-ordinal-disc-thres.R:256:3'): class delta and class Intercept follow brms's parameters
+Expected `abs(lprior - ref)/abs(ref)` < 1e-10.
+Actual comparison: NaN >= 0.0000000001
+
+Failure ('test-ordinal-disc-thres.R:263:3'): class delta and class Intercept follow brms's parameters
+Expected `abs(lprior - ref)/abs(ref)` < 1e-10.
+Actual comparison: 5.4400505107 >= 0.0000000001
+Difference: 5.4400505106 >= 0
+
+Failure ('test-ordinal-disc-thres.R:323:7'): the one-step density reads disc and the structure
+Expected cumulative equidistant < `1000 * .Machine$double.eps`.
+Actual comparison: NaN >= 0.0000000000002
+
+[ FAIL 5 | WARN 18 | SKIP 0 | PASS 115 ]
+RESULT mut:C:/Users/adf44/AppData/Local/Temp/1/claude/c--Users-adf44-source-r-frmtmb/66ed580c-211a-4baa-94bd-45a52ec3082c/scratchpad/ordrev-mutlib/M1b_delta_sign frmtmb test-ordinal-disc-thres.R pass=115 fail=5 err=0 skip=0 warn=18

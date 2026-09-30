@@ -1,0 +1,57 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | reparam                                                        
+⠹ |          3 | reparam                                                        
+⠸ |          4 | reparam                                                        
+⠼ |         25 | reparam                                                        
+⠴ |         26 | reparam                                                        
+⠇ |         49 | reparam                                                        
+⠧ |         78 | reparam                                                        
+⠇ |         89 | reparam                                                        
+⠴ |         96 | reparam                                                        
+⠦ |         97 | reparam                                                        
+⠋ |        101 | reparam                                                        
+⠹ |        113 | reparam                                                        
+⠼ |        115 | reparam                                                        
+⠙ |        122 | reparam                                                        
+⠦ |        127 | reparam                                                        
+⠏ |        130 | reparam                                                        
+⠙ |        132 | reparam                                                        
+⠼ |        135 | reparam                                                        
+⠧ |        138 | reparam                                                        
+⠏ |        140 | reparam                                                        
+⠸ |        144 | reparam                                                        
+⠦ |        147 | reparam                                                        
+⠋ |        151 | reparam                                                        
+⠦ |        157 | reparam                                                        
+⠧ |        158 | reparam                                                        
+⠴ |        166 | reparam                                                        
+⠇ |        169 | reparam                                                        
+⠹ |        193 | reparam                                                        
+⠙ |        202 | reparam                                                        
+⠹ |        263 | reparam                                                        
+⠴ |        266 | reparam                                                        
+⠧ |        268 | reparam                                                        
+⠋ |        271 | reparam                                                        frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠼ |        275 | reparam                                                        frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠋ |        281 | reparam                                                        
+⠴ |        286 | reparam                                                        
+⠇ |        289 | reparam                                                        
+✔ |        292 | reparam [18.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 18.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 292 ]
+RESULT lane frmtmb.sample test-reparam.R pass=292 fail=0 err=0 skip=0 warn=0

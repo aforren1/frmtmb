@@ -1,0 +1,15 @@
+frmtmb RESULT lane frmtmb test-ordinal-disc-thres.R pass=179 fail=0 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-ordinal.R pass=99 fail=0 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-thres-refit.R pass=118 fail=0 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-xbeta-zibb-hurdle-cum.R pass=607 fail=0 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-mv-gaps.R pass=58 fail=0 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-brms-families.R pass=1106 fail=0 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-brms-suite-standata.R pass=81 fail=6 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-brms-suite-priors.R pass=35 fail=1 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-brms-suite-families.R pass=83 fail=1 err=0 skip=0 warn=0
+frmtmb RESULT lane frmtmb test-brms-likelihood.R pass=543 fail=0 err=0 skip=0 warn=0
+frmtmb.sample RESULT lane frmtmb.sample test-ordinal-disc-thres-draws.R pass=44 fail=0 err=0 skip=0 warn=0
+frmtmb.sample RESULT lane frmtmb.sample test-ordinal-draws-names.R pass=27 fail=0 err=0 skip=0 warn=0
+frmtmb.sample RESULT lane frmtmb.sample test-brms-suite-families.R pass=83 fail=1 err=0 skip=0 warn=0
+frmtmb.eam RESULT lane frmtmb.eam test-family.R pass=61 fail=0 err=0 skip=0 warn=0
+RAN 14 of 14

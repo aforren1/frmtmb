@@ -1,0 +1,28 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | lba                                                            
+⠋ |          1 | lba                                                            
+⠼ |          5 | lba                                                            
+⠙ |         22 | lba                                                            
+⠹ |         23 | lba                                                            
+⠸ |         24 | lba                                                            
+⠇ |         39 | lba                                                            
+⠦ |         47 | lba                                                            
+⠋ |         51 | lba                                                            
+⠙ |         52 | lba                                                            
+⠦ |         57 | lba                                                            
+⠼ |         65 | lba                                                            
+⠦ |         67 | lba                                                            
+⠇ |         79 | lba                                                            
+⠦ |         87 | lba                                                            
+⠇ |         99 | lba                                                            
+⠧ |        108 | lba                                                            
+⠇ |        109 | lba                                                            
+✔ |        109 | lba [21.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 21.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 109 ]
+RESULT lane frmtmb.eam test-lba.R pass=109 fail=0 err=0 skip=0 warn=0

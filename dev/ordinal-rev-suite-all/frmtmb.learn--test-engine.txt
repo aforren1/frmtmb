@@ -1,0 +1,14 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.learn  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | engine                                                         
+⠋ |          1 | engine                                                         
+⠴ |          6 | engine                                                         
+⠋ |         11 | engine                                                         
+✔ |         19 | engine [1.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 19 ]
+RESULT lane frmtmb.learn test-engine.R pass=19 fail=0 err=0 skip=0 warn=0

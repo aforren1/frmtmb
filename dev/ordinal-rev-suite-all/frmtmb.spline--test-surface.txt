@@ -1,0 +1,32 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.spline  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | surface                                                        
+⠋ |          1 | surface                                                        
+⠦ |          7 | surface                                                        
+⠸ |         14 | surface                                                        
+⠏ |         20 | surface                                                        
+⠼ |         25 | surface                                                        
+⠴ |         26 | surface                                                        
+⠧ |         28 | surface                                                        
+⠇ |         29 | surface                                                        
+⠏ |         30 | surface                                                        
+⠋ |         31 | surface                                                        
+⠙ |         32 | surface                                                        
+⠹ |         33 | surface                                                        
+⠼ |         35 | surface                                                        
+⠴ |         36 | surface                                                        
+⠦ |         37 | surface                                                        
+⠧ |         38 | surface                                                        
+⠇ |         39 | surface                                                        
+⠏ |         40 | surface                                                        
+⠹ |         43 | surface                                                        
+⠸ |         44 | surface                                                        
+⠦ |         47 | surface                                                        
+✔ |         47 | surface [5.7s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.7 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 47 ]
+RESULT lane frmtmb.spline test-surface.R pass=47 fail=0 err=0 skip=0 warn=0

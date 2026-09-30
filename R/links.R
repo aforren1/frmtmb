@@ -81,30 +81,21 @@
 #' | `inverse.gaussian` | `1/mu^2`, `inverse`, `identity`, `log`, `softplus`, `squareplus` |
 #' | `cox` | `log`, `identity`, `softplus`, `squareplus` |
 #' | `von_mises` | `tan_half`, `identity` |
-#' | `cumulative`, `hurdle_cumulative` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
+#' | `cumulative`, `hurdle_cumulative`, `acat` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
 #' | `sratio`, `cratio` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` |
-#' | `acat` | `logit` ONLY. brms takes the same six as `cumulative`; this is the one place frmtmb departs, and the reason is below |
 #' | `categorical`, `multinomial` | `logit` |
 #'
 #' An ordinal family's `link` names the cumulative distribution
 #' function the thresholds are read through, not a link on a mean, so
 #' only a link whose inverse maps onto the unit interval can serve.
 #'
-#' `acat()` is refused for a different reason, and it is the one place
-#' in this table where frmtmb takes less than brms. Probit, cloglog,
-#' cauchit and softit all map onto the unit interval and brms accepts
-#' every one of them for `acat`, so the refusal is not about the link.
-#' It is about the density. `brms:::inv_link_acat()` branches: on the
-#' logit a category probability is `c(1, cumprod(exp(x)))` normalized,
-#' which is the log-linear form frmtmb implements, and off the logit it
-#' is a product of distribution functions times a reversed product of
-#' survivals, normalized. The second form agrees with the first when
-#' the distribution function is logistic, so it generalizes the same
-#' model rather than replacing it, but it is a second expression that
-#' has to be written and taped. Substituting a distribution function
-#' into the log-linear form does not reach it, which is why the other
-#' three ordinal families could be routed through this registry and
-#' `acat()` could not. `acat()` says all of this when it refuses.
+#' `acat()` reads its link in two forms, as brms does
+#' (`brms:::inv_link_acat()`). On the logit a category probability is
+#' `c(1, cumprod(exp(x)))` normalized, the log-linear form. Off the
+#' logit it is a product of distribution functions times a reversed
+#' product of survivals, normalized. The second form agrees with the
+#' first when the distribution function is logistic, so it generalizes
+#' the same model rather than replacing it.
 #'
 #' @section Links for the other distributional parameters:
 #'

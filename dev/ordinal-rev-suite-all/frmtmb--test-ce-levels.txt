@@ -1,0 +1,37 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ce-levels                                                      
+⠋ |          1 | ce-levels                                                      
+⠸ |          4 | ce-levels                                                      
+⠧ |          8 | ce-levels                                                      
+⠋ |         11 | ce-levels                                                      
+⠹ |         13 | ce-levels                                                      
+⠴ |         16 | ce-levels                                                      
+⠦ |         17 | ce-levels                                                      
+⠇ |         19 | ce-levels                                                      
+⠏ |         20 | ce-levels                                                      
+⠙ |         22 | ce-levels                                                      
+⠼ |         25 | ce-levels                                                      
+⠧ |         28 | ce-levels                                                      
+⠋ |         31 | ce-levels                                                      
+⠸ |         34 | ce-levels                                                      
+⠦ |         37 | ce-levels                                                      
+⠏ |         40 | ce-levels                                                      
+⠹ |         43 | ce-levels                                                      
+⠸ |         44 | ce-levels                                                      
+⠇ |         49 | ce-levels                                                      
+⠋ |         51 | ce-levels                                                      
+⠸ |         54 | ce-levels                                                      
+⠴ |         56 | ce-levels                                                      
+⠧ |         58 | ce-levels                                                      
+⠋ |         61 | ce-levels                                                      
+⠼ |         65 | ce-levels                                                      
+⠦ |         67 | ce-levels                                                      
+✔ |         69 | ce-levels [30.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 30.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 69 ]
+RESULT lane frmtmb test-ce-levels.R pass=69 fail=0 err=0 skip=0 warn=0

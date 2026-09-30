@@ -45,7 +45,9 @@ outer_par_map <- function(fit) {
   for (cp in names(tpl)) {
     if (cp %in% random) next
     v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (is.null(v)) {
+      v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
+    }
     if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
       v <- v[-fit$frame[["betad_fixed_idx"]]]
     }
@@ -2410,8 +2412,11 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
       identical(lp[["dpar"]], "mu")
   }, fit$frame[["linpreds"]])
   for (lp in ord_lps) {
-    raw <- vals[comp == extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")]
-    if (!length(raw)) next
+    tnm <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    # an EMPTY block (sum-to-zero, one threshold per vector) still has
+    # thresholds, all at 0, as brms reports them
+    if (is.null(fit$frame[["par_template"]][[tnm]])) next
+    raw <- vals[comp == tnm]
     fam <- brms_lp_family(fit, lp)
     th <- ord_threshold_values(fam, raw)
     pre <- brms_lp_prefix(fit, lp)
@@ -2420,6 +2425,10 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
       put(paste0("b_", brms_usc(pre, "Intercept"), "[", lab[k], "]"),
           th[k])
     }
+  }
+  for (d in ord_delta_info(fit)) {
+    raw <- vals[comp == d$comp]
+    if (length(raw) >= d$idx) put(d$name, d$value(raw[d$idx]))
   }
   for (lp in fit$frame[["linpreds"]]) {
     for (ct in lp[["cs"]] %||% list()) {
@@ -2433,6 +2442,40 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
     }
   }
   invisible(NULL)
+}
+
+#' The `delta` parameters of an ordinal fit with equidistant thresholds,
+#' one per threshold vector, under brms's names: `delta`, `delta_<resp>`
+#' in a multivariate model, and `delta_<k>` for the k-th level of
+#' `thres(gr = )` (brms numbers the levels there rather than naming
+#' them, `brms:::stan_thres()`). Each carries the template component
+#' and index that hold it and the map from that internal value to
+#' delta, which is `exp()` for the ordered families, whose delta brms
+#' bounds below by 0.
+#'
+#' @noRd
+ord_delta_info <- function(fit) {
+  out <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    fam <- brms_lp_family(fit, lp)
+    if (!identical(fam[["type"]], "ordinal") ||
+          !identical(lp[["dpar"]], "mu")) next
+    th <- fam[["thres"]]
+    if (!identical(th[["type"]], "equidistant")) next
+    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    lay <- thres_layout(th[["nthres"]], "equidistant")
+    pre <- brms_lp_prefix(fit, lp)
+    ordered <- fam[["family"]] %in% ord_ordered_families
+    for (g in seq_len(lay$G)) {
+      out[[length(out) + 1L]] <- list(
+        name = paste0("delta", if (nzchar(pre)) paste0("_", pre),
+                      if (isTRUE(th[["grouped"]])) paste0("_", g)),
+        comp = comp, idx = lay$rstart[g] + 1L,
+        value = if (ordered) exp else identity,
+        link = if (ordered) log else identity)
+    }
+  }
+  out
 }
 
 #' Split one hypothesis string the way `brms:::eval_hypothesis()` does:

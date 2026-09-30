@@ -1,0 +1,6 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+RESULT test-thres-refit.R pass=113 fail=5 err=0 skip=0 warn=0
+FAILING TESTS:
+                                                            test failed error
+ a bootstrap replicate without the top category keeps the layout      4 FALSE
+        a grouped bootstrap replicate keeps the per-level counts      1 FALSE

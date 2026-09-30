@@ -1,0 +1,187 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb  frmtmb: C:/Users/adf44/source/r/rellib-r4/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres                                             
+⠋ | 1        0 | ordinal-disc-thres                                             
+⠙ | 2        0 | ordinal-disc-thres                                             
+✖ | 10        1 | ordinal-disc-thres [1.1s]
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres.R:54:7'): disc and every threshold structure are brms's density
+Error in `get(fam)(threshold = th)`: unused argument (threshold = th)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:54:7
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:83:5'): acat off the logit is brms's second form
+Error in `acat(lk, threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:83:5
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:137:3'): disc reaches the grouped thresholds and the hurdle
+Error in `acat(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:137:3
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:164:5'): the structures are nested in the flexible model
+Error in `sratio(threshold = th)`: unused argument (threshold = th)
+Backtrace:
+    ▆
+ 1. └─base::vapply(...) at test-ordinal-disc-thres.R:163:3
+ 2.   └─frmtmb (local) FUN(X[[i]], ...)
+ 3.     ├─stats::logLik(frm(y ~ x, family = sratio(threshold = th), data = d)) at test-ordinal-disc-thres.R:164:5
+ 4.     └─frmtmb::frm(y ~ x, family = sratio(threshold = th), data = d)
+ 5.       └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:184:3'): a structure on too few thresholds is refused, and only then
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-ordinal-disc-thres.R:184:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::frm(...)
+ 8.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:210:5'): an intercept in disc warns on every ordinal family
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'cumulative': disc (available: )
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-ordinal-disc-thres.R:210:5
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(bf(y ~ x, disc ~ z), family = get(fam)(), data = d)
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-disc-thres.R:226:3'): class delta and class Intercept follow brms's parameters
+Error in `sratio(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::default_prior(y ~ x + z + cse(g), data = d, family = sratio(threshold = "equidistant")) at test-ordinal-disc-thres.R:226:3
+ 2.   └─frmtmb:::prior_design(object, data, family, data2, check_response = FALSE)
+ 3.     ├─frmtmb:::expand_dot_bform(as_bform(object, family), data)
+ 4.     └─frmtmb:::as_bform(object, family)
+
+Error ('test-ordinal-disc-thres.R:268:3'): delta is named as brms names it and reported
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:268:3
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:294:3'): the fitted paths read the structure on new data
+Error in `cratio(threshold = "sum_to_zero")`: unused argument (threshold = "sum_to_zero")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:294:3
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:314:7'): the one-step density reads disc and the structure
+Error in `get(fam)(threshold = th)`: unused argument (threshold = th)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:314:7
+ 2.   └─frmtmb:::as_bform(expanded, family)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.2 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-ordinal-disc-thres.R:54:7'): disc and every threshold structure are brms's density
+Error in `get(fam)(threshold = th)`: unused argument (threshold = th)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:54:7
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:83:5'): acat off the logit is brms's second form
+Error in `acat(lk, threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:83:5
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:137:3'): disc reaches the grouped thresholds and the hurdle
+Error in `acat(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:137:3
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:164:5'): the structures are nested in the flexible model
+Error in `sratio(threshold = th)`: unused argument (threshold = th)
+Backtrace:
+    ▆
+ 1. └─base::vapply(...) at test-ordinal-disc-thres.R:163:3
+ 2.   └─frmtmb (local) FUN(X[[i]], ...)
+ 3.     ├─stats::logLik(frm(y ~ x, family = sratio(threshold = th), data = d)) at test-ordinal-disc-thres.R:164:5
+ 4.     └─frmtmb::frm(y ~ x, family = sratio(threshold = th), data = d)
+ 5.       └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:184:3'): a structure on too few thresholds is refused, and only then
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-ordinal-disc-thres.R:184:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::frm(...)
+ 8.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:210:5'): an intercept in disc warns on every ordinal family
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'cumulative': disc (available: )
+Backtrace:
+    ▆
+ 1. ├─frmtmb:::allow_warnings(...) at test-ordinal-disc-thres.R:210:5
+ 2. │ └─base::withCallingHandlers(...) at ./helper-warnings.R:17:3
+ 3. └─frmtmb::frm(bf(y ~ x, disc ~ z), family = get(fam)(), data = d)
+ 4.   └─frmtmb:::parse_spec(bform)
+ 5.     └─frmtmb:::parse_one_response(bform)
+ 6.       └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-disc-thres.R:226:3'): class delta and class Intercept follow brms's parameters
+Error in `sratio(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::default_prior(y ~ x + z + cse(g), data = d, family = sratio(threshold = "equidistant")) at test-ordinal-disc-thres.R:226:3
+ 2.   └─frmtmb:::prior_design(object, data, family, data2, check_response = FALSE)
+ 3.     ├─frmtmb:::expand_dot_bform(as_bform(object, family), data)
+ 4.     └─frmtmb:::as_bform(object, family)
+
+Error ('test-ordinal-disc-thres.R:268:3'): delta is named as brms names it and reported
+Error in `cumulative(threshold = "equidistant")`: unused argument (threshold = "equidistant")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:268:3
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:294:3'): the fitted paths read the structure on new data
+Error in `cratio(threshold = "sum_to_zero")`: unused argument (threshold = "sum_to_zero")
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:294:3
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+Error ('test-ordinal-disc-thres.R:314:7'): the one-step density reads disc and the structure
+Error in `get(fam)(threshold = th)`: unused argument (threshold = th)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-ordinal-disc-thres.R:314:7
+ 2.   └─frmtmb:::as_bform(expanded, family)
+
+[ FAIL 10 | WARN 0 | SKIP 0 | PASS 1 ]
+RESULT base frmtmb test-ordinal-disc-thres.R pass=1 fail=0 err=10 skip=0 warn=0

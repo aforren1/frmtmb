@@ -3190,9 +3190,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
         # the threshold count, not max(y): thres(x = ) may name
         # categories above the highest one observed. A multivariate
-        # frame holds this response's thresholds under its own name
+        # frame holds this response's thresholds under its own name,
+        # and a structure other than flexible holds fewer parameters
+        # than thresholds, so its count is the family's
         tau_nm <- extra_map[[resp$resp_name]][["tau_raw"]] %||% "tau_raw"
-        K_cs <- length(extras[[tau_nm]]) + 1L
+        K_cs <- (resp$family[["thres"]][["nthres"]] %||%
+                   length(extras[[tau_nm]])) + 1L
         for (ti in seq_along(dp[["csterms"]])) {
           cexpr <- dp[["csterms"]][[ti]]
           cd <- cs_term_design(cexpr, mf, resp$formula_env)

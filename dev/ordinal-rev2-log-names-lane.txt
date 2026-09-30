@@ -1,0 +1,25 @@
+arm lane C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+model lm_like 
+model intercept_only 
+model no_fixed 
+model re_int 
+model re_slope_cor 
+model re_two 
+model smooth_tp 
+model smooth_null_empty 
+model smooth_re 
+model sigma_formula 
+model sigma_re 
+model fixed_nu 
+model bernoulli_re 
+model categorical 
+model zip_zi 
+model mixture 
+model mv_gauss 
+model mv_gauss_rescor 
+model ar1 
+model negbin 
+model ord_flex 
+model ord_flex_re 
+model ord_mv_gauss 
+done

@@ -1,0 +1,23 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | rsv-intercept                                                  
+⠋ |          1 | rsv-intercept                                                  
+⠹ |          3 | rsv-intercept                                                  
+⠧ |          8 | rsv-intercept                                                  
+⠙ |         12 | rsv-intercept                                                  
+⠴ |         16 | rsv-intercept                                                  
+⠏ |         20 | rsv-intercept                                                  
+⠙ |         22 | rsv-intercept                                                  
+⠧ |         28 | rsv-intercept                                                  
+⠸ |         34 | rsv-intercept                                                  
+⠋ |         41 | rsv-intercept                                                  
+⠸ |         44 | rsv-intercept                                                  
+⠋ |         51 | rsv-intercept                                                  
+✔ |         55 | rsv-intercept [3.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 55 ]
+RESULT lane frmtmb test-rsv-intercept.R pass=55 fail=0 err=0 skip=0 warn=0

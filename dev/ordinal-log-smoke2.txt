@@ -1,0 +1,256 @@
+frmtmb from C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+
+###### equi ######
+
+== VarCorr ==
+$g
+$g$sd
+           Estimate Est.Error       Q2.5     Q97.5
+Intercept 0.3515168 0.1395161 0.07807036 0.6249633
+
+
+
+== ce categorical ==
+[1] 500  13
+          x cats__ estimate__
+1 -2.893476      1  0.8076111
+2 -2.833732      1  0.7979768
+3 -2.773987      1  0.7879866
+
+== ce default ==
+          z estimate__
+1 -2.886678  0.3746178
+2 -2.821097  0.3714635
+3 -2.755517  0.3682375
+
+== emmeans ==
+ f  emmean      SE  df asymp.LCL asymp.UCL
+ p  0.0606 0.00662 Inf    0.0476    0.0736
+ q -0.3048 0.22700 Inf   -0.7494    0.1398
+ r -0.3787 0.22600 Inf   -0.8209    0.0636
+
+Confidence level used: 0.95 
+
+== residuals ==
+ERROR: residuals(type = "response") is not defined for the 'cumulative' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, and dharma_residuals() is the simulation-based check 
+
+== confint ==
+                 lwr          upr          est
+x          0.8184992  1.264972411  1.041735814
+fq        -0.8107975  0.079960661 -0.365418416
+fr        -0.8824060  0.003871255 -0.439267377
+disc_z     0.2597250  0.532514668  0.396119842
+theta_1   -1.8234020 -0.267593351 -1.045497689
+tau_raw_1 -1.9932887 -1.101344900 -1.547316789
+tau_raw_2 -0.1457522  0.132363533 -0.006694324
+
+== influence ==
+Case-deletion influence over levels of 'g' (8 refits)
+
+ unit cooks_d
+    b  0.5178
+    c  0.2784
+    f  0.1866
+    d  0.1483
+    e  0.1170
+    h  0.1014
+
+== bootstrap ==
+Parametric bootstrap: 3 refits, 0 failed or not converged
+
+       estimate        bias       se      lwr       upr
+x       1.04170 -1.9032e-05 0.166380  0.88419  1.200300
+fq     -0.36542  7.3747e-02 0.318490 -0.54136  0.041689
+fr     -0.43927  1.1014e-01 0.178350 -0.46058 -0.140390
+disc_z  0.39612 -1.3857e-02 0.045417  0.34894  0.430360
+
+== update refit ==
+[1] "b_x"             "b_fq"            "b_fr"            "b_disc_z"       
+[5] "sd_g__Intercept" "b_Intercept[1]"  "b_Intercept[2]"  "b_Intercept[3]" 
+[9] "delta"          
+
+== predict newdata ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.077    0.126    0.264    0.275    0.258
+[2,]    0.382    0.158    0.144    0.118    0.198
+[3,]    0.253    0.133    0.152    0.174    0.288
+
+== fitted newdata ==
+[1] 3 4 5
+
+== hypothesis ==
+  Hypothesis Estimate Est.Error  CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+1    (x) > 0 1.041736 0.1138983 0.8543898 1.229082         NA        NA    *
+
+== validate_prior ==
+ERROR: dpar(s) not available for family 'gaussian': disc (available: sigma) 
+
+###### stz ######
+
+== VarCorr ==
+$g
+$g$sd
+           Estimate Est.Error      Q2.5    Q97.5
+Intercept 0.6107574 0.1988913 0.2209377 1.000577
+
+
+
+== ce categorical ==
+[1] 500  13
+          x cats__ estimate__
+1 -2.893476      1  0.8632492
+2 -2.833732      1  0.8570287
+3 -2.773987      1  0.8505742
+
+== ce default ==
+          z estimate__
+1 -2.886678  0.3996289
+2 -2.821097  0.3983547
+3 -2.755517  0.3970651
+
+== emmeans ==
+ f   emmean      SE  df asymp.LCL asymp.UCL
+ p  0.05091 0.00571 Inf    0.0397    0.0621
+ q -0.00657 0.20800 Inf   -0.4147    0.4015
+ r -0.03245 0.20500 Inf   -0.4344    0.3695
+
+Confidence level used: 0.95 
+
+== residuals ==
+ERROR: residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, and dharma_residuals() is the simulation-based check 
+
+== confint ==
+                  lwr        upr          est
+x          0.68281745  1.0677961  0.875306771
+fq        -0.46677812  0.3518158 -0.057481180
+fr        -0.48581126  0.3191007 -0.083355258
+disc_z     0.03599022  0.3596018  0.197796030
+theta_1   -1.13131163  0.1452008 -0.493055393
+tau_raw_1 -0.95723129 -0.3817665 -0.669498902
+tau_raw_2 -0.97683128 -0.3930522 -0.684941747
+tau_raw_3 -0.28499928  0.3040888  0.009544743
+
+== influence ==
+Case-deletion influence over levels of 'g' (8 refits)
+
+ unit cooks_d
+    b  0.5827
+    g  0.2449
+    d  0.2171
+    c  0.1363
+    f  0.1203
+    e  0.1075
+
+== bootstrap ==
+Parametric bootstrap: 3 refits, 0 failed or not converged
+
+        estimate      bias       se       lwr       upr
+x       0.875310 -0.011191 0.139240  0.715260  0.952690
+fq     -0.057481  0.107380 0.290540 -0.233410  0.317810
+fr     -0.083355  0.043626 0.026099 -0.062411 -0.013344
+disc_z  0.197800  0.040775 0.112340  0.134340  0.347590
+
+== update refit ==
+[1] "b_x"             "b_fq"            "b_fr"            "b_disc_z"       
+[5] "sd_g__Intercept" "b_Intercept[1]"  "b_Intercept[2]"  "b_Intercept[3]" 
+
+== predict newdata ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.137    0.124    0.197    0.336    0.206
+[2,]    0.343    0.229    0.182    0.162    0.084
+[3,]    0.267    0.191    0.211    0.221    0.110
+
+== fitted newdata ==
+[1] 3 4 5
+
+== hypothesis ==
+  Hypothesis  Estimate  Est.Error  CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+1    (x) > 0 0.8753068 0.09821064 0.7137646 1.036849         NA        NA    *
+
+== validate_prior ==
+ERROR: dpar(s) not available for family 'gaussian': disc (available: sigma) 
+
+###### acat_disc ######
+
+== VarCorr ==
+$g
+$g$sd
+           Estimate  Est.Error       Q2.5     Q97.5
+Intercept 0.1667094 0.06895176 0.03156645 0.3018524
+
+
+
+== ce categorical ==
+[1] 500  13
+          x cats__ estimate__
+1 -2.893476      1  0.7273274
+2 -2.833732      1  0.7195457
+3 -2.773987      1  0.7115569
+
+== ce default ==
+          z estimate__
+1 -2.886678  0.1887106
+2 -2.821097  0.1884555
+3 -2.755517  0.1881946
+
+== emmeans ==
+ f emmean      SE  df asymp.LCL asymp.UCL
+ p  0.027 0.00362 Inf    0.0199    0.0341
+ q -0.166 0.11300 Inf   -0.3884    0.0555
+ r -0.146 0.10900 Inf   -0.3602    0.0677
+
+Confidence level used: 0.95 
+
+== residuals ==
+ERROR: residuals(type = "response") is not defined for the 'acat' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, and dharma_residuals() is the simulation-based check 
+
+== confint ==
+                  lwr         upr         est
+x          0.34265305  0.58665050  0.46465178
+fq        -0.41646565  0.02955152 -0.19345707
+fr        -0.38766641  0.04108127 -0.17329257
+disc_z    -0.05891825  0.73017308  0.33562741
+theta_1   -2.60215284 -0.98085312 -1.79150298
+tau_raw_1 -0.44646251  0.55148853  0.05251301
+tau_raw_2 -0.68042834  0.13456408 -0.27293213
+tau_raw_3 -0.54092935  0.23508185 -0.15292375
+
+== influence ==
+Case-deletion influence over levels of 'g' (8 refits)
+
+ unit cooks_d
+    b 0.57600
+    f 0.25420
+    d 0.15060
+    c 0.14430
+    g 0.13490
+    h 0.08355
+
+== bootstrap ==
+Parametric bootstrap: 3 refits, 0 failed or not converged
+
+       estimate      bias       se      lwr        upr
+x       0.46465 0.0053678 0.100620  0.37359  0.5647500
+fq     -0.19346 0.0112820 0.172170 -0.28676  0.0019016
+fr     -0.17329 0.0527400 0.070764 -0.17332 -0.0457900
+disc_z  0.33563 0.0449250 0.082125  0.29979  0.4554100
+
+== update refit ==
+[1] "b_x"             "b_fq"            "b_fr"            "b_disc_z"       
+[5] "sd_g__Intercept" "b_Intercept[1]"  "b_Intercept[2]"  "b_Intercept[3]" 
+
+== predict newdata ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.091    0.136    0.232    0.324    0.217
+[2,]    0.293    0.224    0.199    0.178    0.106
+[3,]    0.177    0.136    0.201    0.270    0.216
+
+== fitted newdata ==
+[1] 3 4 5
+
+== hypothesis ==
+  Hypothesis  Estimate  Est.Error  CI.Lower  CI.Upper Evid.Ratio Post.Prob Star
+1    (x) > 0 0.4646518 0.06224539 0.3622672 0.5670363         NA        NA    *
+
+== validate_prior ==
+ERROR: dpar(s) not available for family 'gaussian': disc (available: sigma) 

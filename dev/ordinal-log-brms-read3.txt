@@ -1,0 +1,367 @@
+
+==== posterior_linpred.brmsfit ====
+function (object, transform = FALSE, newdata = NULL, re_formula = NULL, 
+    re.form = NULL, resp = NULL, dpar = NULL, nlpar = NULL, incl_thres = NULL, 
+    ndraws = NULL, draw_ids = NULL, sort = FALSE, ...) 
+{
+    cl <- match.call()
+    if ("re.form" %in% names(cl) && !missing(re.form)) {
+        re_formula <- re.form
+    }
+    scale <- "linear"
+    transform <- as_one_logical(transform)
+    if (transform) {
+        scale <- "response"
+        if (is.null(dpar) && is.null(nlpar)) {
+            dpar <- "mu"
+        }
+    }
+    contains_draws(object)
+    object <- restructure(object)
+    prep <- prepare_predictions(object, newdata = newdata, re_formula = re_formula, 
+        resp = resp, ndraws = ndraws, draw_ids = draw_ids, check_response = FALSE, 
+        ...)
+    posterior_epred(prep, dpar = dpar, nlpar = nlpar, sort = sort, 
+        scale = scale, incl_thres = incl_thres, summary = FALSE)
+}
+<bytecode: 0x0000017696c8b348>
+<environment: namespace:brms>
+
+==== posterior_linpred.mvbrmsprep ====
+(none)
+
+==== posterior_linpred.brmsprep ====
+(none)
+
+==== fitted.brmsfit ====
+function (object, newdata = NULL, re_formula = NULL, scale = c("response", 
+    "linear"), resp = NULL, dpar = NULL, nlpar = NULL, ndraws = NULL, 
+    draw_ids = NULL, sort = FALSE, summary = TRUE, robust = FALSE, 
+    probs = c(0.025, 0.975), ...) 
+{
+    scale <- match.arg(scale)
+    summary <- as_one_logical(summary)
+    contains_draws(object)
+    object <- restructure(object)
+    prep <- prepare_predictions(object, newdata = newdata, re_formula = re_formula, 
+        resp = resp, ndraws = ndraws, draw_ids = draw_ids, check_response = FALSE, 
+        ...)
+    posterior_epred(prep, dpar = dpar, nlpar = nlpar, sort = sort, 
+        scale = scale, summary = summary, robust = robust, probs = probs)
+}
+<bytecode: 0x0000017696ca9c40>
+<environment: namespace:brms>
+
+==== get_dpar ====
+function (prep, dpar, i = NULL, inv_link = NULL) 
+{
+    stopifnot(is.brmsprep(prep) || is.mvbrmsprep(prep))
+    dpar <- as_one_character(dpar)
+    x <- prep$dpars[[dpar]]
+    stopifnot(!is.null(x))
+    if (is.list(x)) {
+        out <- predictor(x, i = i, fprep = prep)
+        if (is.null(inv_link)) {
+            inv_link <- apply_dpar_inv_link(dpar, family = prep$family)
+        }
+        else {
+            inv_link <- as_one_logical(inv_link)
+        }
+        if (inv_link) {
+            out <- inv_link(out, x$family$link)
+        }
+        if (length(i) == 1L) {
+            out <- slice_col(out, 1)
+        }
+    }
+    else if (!is.null(i) && !is.null(dim(x))) {
+        out <- slice_col(x, i)
+    }
+    else {
+        out <- x
+    }
+    out
+}
+<bytecode: 0x0000017696c879d8>
+<environment: namespace:brms>
+
+==== predictor.bprepl ====
+function (prep, i = NULL, fprep = NULL, ...) 
+{
+    nobs <- ifelse(!is.null(i), length(i), prep$nobs)
+    eta <- matrix(0, nrow = prep$ndraws, ncol = nobs) + predictor_fe(prep, 
+        i) + predictor_re(prep, i) + predictor_sp(prep, i) + 
+        predictor_sm(prep, i) + predictor_gp(prep, i) + predictor_offset(prep, 
+        i, nobs)
+    eta <- predictor_ac(eta, prep, i, fprep = fprep)
+    eta <- predictor_cs(eta, prep, i)
+    unname(eta)
+}
+<bytecode: 0x0000017696ca1ea8>
+<environment: namespace:brms>
+
+==== posterior_epred_hurdle_cumulative ====
+function (prep) 
+{
+    adjust <- ifelse(prep$family$link == "identity", 0, 1)
+    ncat_max <- max(prep$data$nthres) + adjust
+    nact_min <- min(prep$data$nthres) + adjust
+    init_mat <- matrix(ifelse(prep$family$link == "identity", 
+        NA, 0), nrow = prep$ndraws, ncol = ncat_max - nact_min)
+    args <- list(link = prep$family$link)
+    out <- vector("list", prep$nobs)
+    for (i in seq_along(out)) {
+        args_i <- args
+        args_i$eta <- slice_col(get_dpar(prep, "mu", i))
+        args_i$disc <- slice_col(get_dpar(prep, "disc", i))
+        args_i$thres <- subset_thres(prep, i)
+        ncat_i <- NCOL(args_i$thres) + adjust
+        args_i$x <- seq_len(ncat_i)
+        out[[i]] <- do_call(dcumulative, args_i)
+        if (ncat_i < ncat_max) {
+            sel <- seq_len(ncat_max - ncat_i)
+            out[[i]] <- cbind(out[[i]], init_mat[, sel])
+        }
+        hu <- get_dpar(prep, "hu", i)
+        out[[i]] <- cbind(hu, out[[i]] * (1 - hu))
+    }
+    out <- abind(out, along = 3)
+    out <- aperm(out, perm = c(1, 3, 2))
+    dimnames(out)[[3]] <- c(paste0(0), seq_len(ncat_max))
+    out
+}
+<bytecode: 0x0000017696cc0fc8>
+<environment: namespace:brms>
+
+==== posterior_predict_hurdle_cumulative ====
+function (i, prep, ...) 
+{
+    mu <- get_dpar(prep, "mu", i = i)
+    hu <- get_dpar(prep, "hu", i = i)
+    disc <- get_dpar(prep, "disc", i = i)
+    thres <- subset_thres(prep)
+    nthres <- NCOL(thres)
+    ndraws <- prep$ndraws
+    p <- pordinal(seq_len(nthres + 1L), eta = mu, disc = disc, 
+        thres = thres, family = "cumulative", link = prep$family$link)
+    tmp <- runif(ndraws, 0, 1)
+    ifelse(tmp < hu, 0L, first_greater(p, target = runif(prep$ndraws, 
+        min = 0, max = 1)))
+}
+<bytecode: 0x0000017696c907e8>
+<environment: namespace:brms>
+
+==== stan_log_lik_hurdle_cumulative ====
+function (bterms, ...) 
+{
+    p <- stan_log_lik_dpars(bterms, reqn = TRUE)
+    if (use_ordered_builtin(bterms, "logit")) {
+        lpdf <- "hurdle_cumulative_ordered_logistic"
+    }
+    else if (use_ordered_builtin(bterms, "probit")) {
+        lpdf <- "hurdle_cumulative_ordered_probit"
+    }
+    else {
+        lpdf <- paste0(bterms$family$family, "_", bterms$family$link)
+    }
+    if (has_thres_groups(bterms)) {
+        str_add(lpdf) <- "_merged"
+        p$Jthres <- stan_log_lik_advars(bterms, "Jthres", reqn = TRUE, 
+            ...)$Jthres
+        p$thres <- "merged_Intercept"
+    }
+    else {
+        p$thres <- "Intercept"
+    }
+    resp <- usc(bterms$resp)
+    mix <- get_mix_id(bterms)
+    prefix <- paste0(str_if(nzchar(mix), paste0("_mu", mix)), 
+        resp)
+    str_add(p$thres) <- prefix
+    if (has_sum_to_zero_thres(bterms)) {
+        str_add(p$thres) <- "_stz"
+    }
+    if (has_cs(bterms)) {
+        if (has_thres_groups(bterms)) {
+            stop2("Cannot use category specific effects ", "in models with multiple thresholds.")
+        }
+        str_add(p$thres) <- paste0(" - transpose(mucs", prefix, 
+            "[n])")
+    }
+    sdist(lpdf, p$mu, p$hu, p$disc, p$thres, p$Jthres, vec = FALSE)
+}
+<bytecode: 0x0000017696c9fab8>
+<environment: namespace:brms>
+
+==== summary.brmsfit ====
+function (object, priors = FALSE, prob = 0.95, robust = FALSE, 
+    mc_se = FALSE, ...) 
+{
+    priors <- as_one_logical(priors)
+    probs <- validate_ci_bounds(prob)
+    robust <- as_one_logical(robust)
+    mc_se <- as_one_logical(mc_se)
+    object <- restructure(object)
+    bterms <- brmsterms(object$formula)
+    out <- list(formula = object$formula, data_name = get_data_name(object$data), 
+        group = unique(object$ranef$group), nobs = nobs(object), 
+        ngrps = ngrps(object), autocor = object$autocor, prior = empty_prior(), 
+        algorithm = algorithm(object))
+    class(out) <- "brmssummary"
+    model_is_empty <- is.null(object$fit) || !length(object$fit@sim) || 
+        isTRUE(object$fit@sim$iter <= object$fit@sim$warmup)
+    if (model_is_empty) {
+        return(out)
+    }
+    stan_args <- object$fit@stan_args[[1]]
+    out$sampler <- paste0(stan_args$method, "(", stan_args$algorithm, 
+        ")")
+    if (priors) {
+        out$prior <- prior_summary(object, all = FALSE)
+    }
+    variables <- variables(object)
+    incl_classes <- c("b", "bs", "bcs", "bsp", "bmo", "bme", 
+        "bmi", "bm", valid_dpars(object), "delta", "lncor", "rescor", 
+        "ar", "ma", "sderr", "cosy", "cortime", "lagsar", "errorsar", 
+        "car", "sdcar", "rhocar", "sd", "cor", "df", "sds", "sdgp", 
+        "lscale", "simo")
+    incl_regex <- paste0("^", regex_or(incl_classes), "(_|$|\\[)")
+    variables <- variables[grepl(incl_regex, variables)]
+    draws <- as_draws_array(object, variable = variables)
+    out$total_ndraws <- ndraws(draws)
+    out$chains <- nchains(object)
+    if (length(object$fit@sim$iter)) {
+        out$iter <- object$fit@sim$iter
+        out$warmup <- object$fit@sim$warmup
+    }
+    else {
+        out$iter <- out$total_ndraws
+        out$warmup <- 0
+    }
+    out$thin <- nthin(object)
+    .summary <- function(draws, variables, probs, robust) {
+        .quantile <- function(x, ...) {
+            qs <- posterior::quantile2(x, probs = probs, ...)
+            prob <- probs[2] - probs[1]
+            names(qs) <- paste0(c("l-", "u-"), prob * 100, "% CI")
+            return(qs)
+        }
+        draws <- subset_draws(draws, variable = variables)
+        measures <- list()
+        if (robust) {
+            measures$Estimate <- median
+            if (mc_se) {
+                measures$MCSE <- posterior::mcse_median
+            }
+            measures$Est.Error <- mad
+        }
+        else {
+            measures$Estimate <- mean
+            if (mc_se) {
+                measures$MCSE <- posterior::mcse_mean
+            }
+            measures$Est.Error <- sd
+        }
+        c(measures) <- list(quantiles = .quantile)
+        if (!is.brmsfit_multiple(object)) {
+            c(measures) <- list(Rhat = posterior::rhat, Bulk_ESS = posterior::ess_bulk, 
+                Tail_ESS = posterior::ess_tail)
+        }
+        out <- do.call(summarize_draws, c(list(draws), measures))
+        out <- as.data.frame(out)
+        rownames(out) <- out$variable
+        out$variable <- NULL
+        return(out)
+    }
+    full_summary <- .summary(draws, variables, probs, robust)
+    out$has_rhat <- "Rhat" %in% colnames(full_summary)
+    if (algorithm(object) == "sampling") {
+        if (out$has_rhat) {
+            Rhats <- full_summary[, "Rhat"]
+            if (any(Rhats > 1.05, na.rm = TRUE)) {
+                warning2("Parts of the model have not converged (some Rhats are > 1.05). ", 
+                  "Be careful when analysing the results! We recommend running ", 
+                  "more iterations and/or setting stronger priors.")
+            }
+        }
+        div_trans <- sum(nuts_params(object, pars = "divergent__")$Value)
+        adapt_delta <- control_params(object)$adapt_delta
+        if (div_trans > 0) {
+            warning2("There were ", div_trans, " divergent transitions after warmup. ", 
+                "Increasing adapt_delta above ", adapt_delta, 
+                " may help. See ", "http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup")
+        }
+    }
+    fe_pars <- variables[grepl(fixef_pars(), variables)]
+    out$fixed <- full_summary[fe_pars, , drop = FALSE]
+    rownames(out$fixed) <- gsub(fixef_pars(), "", fe_pars)
+    spec_pars <- c(valid_dpars(object), "delta")
+    spec_pars <- paste0(spec_pars, collapse = "|")
+    spec_pars <- paste0("^(", spec_pars, ")($|_)")
+    spec_pars <- variables[grepl(spec_pars, variables)]
+    out$spec_pars <- full_summary[spec_pars, , drop = FALSE]
+    lncor_pars <- variables[grepl("^lncor_", variables)]
+    if (length(lncor_pars)) {
+        lncor_summary <- full_summary[lncor_pars, , drop = FALSE]
+        lncor_pars <- sub("__", ",", sub("__", "(", lncor_pars))
+        rownames(lncor_summary) <- paste0(lncor_pars, ")")
+        out$spec_pars <- rbind(out$spec_pars, lncor_summary)
+    }
+    rescor_pars <- variables[grepl("^rescor_", variables)]
+    if (length(rescor_pars)) {
+        out$rescor_pars <- full_summary[rescor_pars, , drop = FALSE]
+        rescor_pars <- sub("__", ",", sub("__", "(", rescor_pars))
+        rownames(out$rescor_pars) <- paste0(rescor_pars, ")")
+    }
+    cor_pars <- variables[grepl(regex_autocor_pars(), variables)]
+    out$cor_pars <- full_summary[cor_pars, , drop = FALSE]
+    rownames(out$cor_pars) <- cor_pars
+    cortime_pars <- variables[grepl("^cortime_", variables)]
+    if (length(cortime_pars)) {
+        tmp <- full_summary[cortime_pars, , drop = FALSE]
+        cortime_pars <- sub("__", ",", sub("__", "(", cortime_pars))
+        rownames(tmp) <- paste0(cortime_pars, ")")
+        out$cor_pars <- rbind(out$cor_pars, tmp)
+    }
+    for (g in out$group) {
+        gregex <- escape_dot(g)
+        sd_prefix <- paste0("^sd_", gregex, "__")
+        sd_pars <- variables[grepl(sd_prefix, variables)]
+        cor_prefix <- paste0("^cor_", gregex, "__")
+        cor_pars <- variables[grepl(cor_prefix, variables)]
+        df_prefix <- paste0("^df_", gregex, "$")
+        df_pars <- variables[grepl(df_prefix, variables)]
+        gpars <- c(df_pars, sd_pars, cor_pars)
+        out$random[[g]] <- full_summary[gpars, , drop = FALSE]
+        if (has_rows(out$random[[g]])) {
+            sd_names <- sub(sd_prefix, "sd(", sd_pars)
+            cor_names <- sub(cor_prefix, "cor(", cor_pars)
+            cor_names <- sub("__", ",", cor_names)
+            df_names <- sub(df_prefix, "df", df_pars)
+            gnames <- c(df_names, paste0(c(sd_names, cor_names), 
+                ")"))
+            rownames(out$random[[g]]) <- gnames
+        }
+    }
+    sm_pars <- variables[grepl("^sds_", variables)]
+    if (length(sm_pars)) {
+        out$splines <- full_summary[sm_pars, , drop = FALSE]
+        rownames(out$splines) <- paste0(gsub("^sds_", "sds(", 
+            sm_pars), ")")
+    }
+    mo_pars <- variables[grepl("^simo_", variables)]
+    if (length(mo_pars)) {
+        out$mo <- full_summary[mo_pars, , drop = FALSE]
+        rownames(out$mo) <- gsub("^simo_", "", mo_pars)
+    }
+    gp_pars <- variables[grepl("^(sdgp|lscale)_", variables)]
+    if (length(gp_pars)) {
+        out$gp <- full_summary[gp_pars, , drop = FALSE]
+        rownames(out$gp) <- gsub("^sdgp_", "sdgp(", rownames(out$gp))
+        rownames(out$gp) <- gsub("^lscale_", "lscale(", rownames(out$gp))
+        rownames(out$gp) <- paste0(rownames(out$gp), ")")
+    }
+    out
+}
+<bytecode: 0x0000017696d12e78>
+<environment: namespace:brms>

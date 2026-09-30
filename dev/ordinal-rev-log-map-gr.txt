@@ -1,0 +1,56 @@
+  prior     class coef group resp dpar nlpar lb ub tag       source
+ (flat)         b                                           default
+ (flat)         b    x                                 (vectorized)
+ (flat)     delta                             0             default
+ (flat)     delta          p                  0        (vectorized)
+ (flat)     delta          q                  0        (vectorized)
+ (flat) Intercept                                           default
+ (flat) Intercept          p                           (vectorized)
+ (flat) Intercept          q                           (vectorized)
+
+== both ==
+parameters {
+  vector[K] b;  // regression coefficients
+  real first_Intercept_1;  // first threshold
+  real<lower=0> delta_1;  // distance between thresholds
+  real first_Intercept_2;  // first threshold
+  real<lower=0> delta_2;  // distance between thresholds
+}
+transformed parameters {
+  // temporary thresholds for centered predictors
+  ordered[nthres[1]] Intercept_1;
+  ordered[nthres[2]] Intercept_2;
+  vector[nmthres] merged_Intercept;  // merged thresholds
+  real disc = 1;  // discrimination parameters
+  // prior contributions to the log posterior
+  real lprior = 0;
+  // compute equidistant thresholds
+  for (k in 1:(nthres[1])) {
+    Intercept_1[k] = first_Intercept_1 + (k - 1.0) * delta_1;
+  }
+  for (k in 1:(nthres[2])) {
+    Intercept_2[k] = first_Intercept_2 + (k - 1.0) * delta_2;
+  }
+  // merge thresholds
+  merged_Intercept[Kthres_start[1]:Kthres_end[1]] = Intercept_1;
+  merged_Intercept[Kthres_start[2]:Kthres_end[2]] = Intercept_2;
+  lprior += normal_lpdf(delta_1 | 1, 0.1)
+    - 1 * normal_lccdf(0 | 1, 0.1);
+  lprior += normal_lpdf(first_Intercept_2 | 0, 0.5);
+}
+model {
+  lprior += normal_lpdf(delta_1 | 1, 0.1)
+  lprior += normal_lpdf(first_Intercept_2 | 0, 0.5);
+NA
+NA
+NA
+NA
+List of 5
+ $ b                : num [1(1d)] 0.898
+ $ first_Intercept_1: num -0.351
+ $ delta_1          : num 0.907
+ $ first_Intercept_2: num -0.401
+ $ delta_2          : num 0.99
+Error in rstan:::unconstrained_param_names : 
+  object 'unconstrained_param_names' not found
+Execution halted

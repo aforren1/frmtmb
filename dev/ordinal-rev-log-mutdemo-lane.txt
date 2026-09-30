@@ -1,0 +1,5 @@
+arm lane frmtmb from C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+acat logit disc ~ 0 + z: logLik -452.277491063  disc coefficient 0.9096692 
+cratio logit disc ~ 0 + z: logLik -452.768510804  disc coefficient 0.1299653 
+sratio stz draws: max |epred(draw 1) - brms at stored columns| 1.665335e-16 
+log_lik[1, 1:3]: -1.514627 -1.718608 -4.985393 

@@ -551,7 +551,9 @@ brms_par_labels <- function(fit, include_random = TRUE) {
       next
     }
     v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (is.null(v)) {
+      v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
+    }
     out <- c(out, par_name_bare(v))
   }
   # brms's repair_stanfit(): a label given twice, such as the r_ level

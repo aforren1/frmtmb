@@ -17,7 +17,7 @@
 par_template_names <- function(v, comp) {
   nm <- names(v)
   if (!is.null(nm) && all(nzchar(nm))) return(nm)
-  paste0(comp, "_", seq_along(v))
+  paste0(comp, "_", seq_along(v), recycle0 = TRUE)
 }
 
 #' The template as an editable object: every component a NAMED numeric

@@ -1,0 +1,23 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-suite-families                                            
+⠋ |          1 | brms-suite-families                                            
+⠋ |         21 | brms-suite-families                                            
+⠧ | 1       47 | brms-suite-families                                            
+⠧ | 1       77 | brms-suite-families                                            
+✖ | 1       83 | brms-suite-families [1.1s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-brms-suite-families.R:135:3'): family functions returns expected results
+brms families:37 now HOLDS but is recorded as 'divergence' (acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.1 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-brms-suite-families.R:135:3'): family functions returns expected results
+brms families:37 now HOLDS but is recorded as 'divergence' (acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)). Change its row in dev/brmsport-verdicts.tsv and regenerate.
+
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 83 ]
+RESULT lane frmtmb test-brms-suite-families.R pass=83 fail=1 err=0 skip=0 warn=0

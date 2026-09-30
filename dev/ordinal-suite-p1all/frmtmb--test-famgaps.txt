@@ -1,0 +1,3 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+RESULT test-famgaps.R pass=100 fail=0 err=0 skip=0 warn=0

@@ -1,0 +1,20 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | v11                                                            
+⠋ |          1 | v11                                                            
+⠸ |          4 | v11                                                            
+⠧ |          8 | v11                                                            
+⠇ |          9 | v11                                                            
+⠙ |         12 | v11                                                            
+⠹ |         13 | v11                                                            
+⠸ |         14 | v11                                                            
+⠧ |         18 | v11                                                            
+⠇ |         19 | v11                                                            
+✔ |         22 | v11 [12.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 12.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 22 ]
+RESULT lane frmtmb test-v11.R pass=22 fail=0 err=0 skip=0 warn=0

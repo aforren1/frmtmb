@@ -1,0 +1,39 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | car-spde                                                       
+⠋ |          1 | car-spde                                                       
+⠴ |          6 | car-spde                                                       
+⠋ |         11 | car-spde                                                       
+⠴ |         16 | car-spde                                                       
+⠧ |         18 | car-spde                                                       
+⠋ |         21 | car-spde                                                       
+⠦ |         27 | car-spde                                                       
+⠏ |         30 | car-spde                                                       
+⠸ |         34 | car-spde                                                       
+⠼ |         35 | car-spde                                                       
+⠋ |         41 | car-spde                                                       
+⠋ |         51 | car-spde                                                       
+⠹ |         63 | car-spde                                                       
+⠏ |         70 | car-spde                                                       
+⠧ |         78 | car-spde                                                       
+⠧ |         88 | car-spde                                                       
+⠙ |        102 | car-spde                                                       
+⠼ |        105 | car-spde                                                       
+⠙ |        112 | car-spde                                                       
+⠦ |        117 | car-spde                                                       
+⠸ |        124 | car-spde                                                       
+⠏ |        130 | car-spde                                                       
+⠋ |        131 | car-spde                                                       
+⠙ |        132 | car-spde                                                       
+⠹ |        133 | car-spde                                                       
+⠸ |        134 | car-spde                                                       
+⠼ |        135 | car-spde                                                       
+⠴ |        136 | car-spde                                                       
+✔ |        136 | car-spde [8.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 8.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 136 ]
+RESULT lane frmtmb test-car-spde.R pass=136 fail=0 err=0 skip=0 warn=0

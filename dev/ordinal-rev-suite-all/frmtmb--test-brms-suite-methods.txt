@@ -1,0 +1,58 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-suite-methods                                             
+⠋ |          1 | brms-suite-methods                                             
+⠹ |          3 | brms-suite-methods                                             
+⠋ |         11 | brms-suite-methods                                             
+⠸ |         14 | brms-suite-methods                                             
+⠏ |         20 | brms-suite-methods                                             
+⠋ |         21 | brms-suite-methods                                             
+⠙ |         22 | brms-suite-methods                                             
+⠸ |         24 | brms-suite-methods                                             
+⠴ |         26 | brms-suite-methods                                             
+⠹ |         33 | brms-suite-methods                                             
+⠋ |         41 | brms-suite-methods                                             
+⠙ |         52 | brms-suite-methods                                             
+⠹ |         53 | brms-suite-methods                                             
+⠸ |         54 | brms-suite-methods                                             
+⠏ |         60 | brms-suite-methods                                             
+⠙ |         62 | brms-suite-methods                                             
+⠸ |         74 | brms-suite-methods                                             
+⠦ |         87 | brms-suite-methods                                             
+⠇ |         89 | brms-suite-methods                                             
+⠋ |         91 | brms-suite-methods                                             
+⠼ |         95 | brms-suite-methods                                             
+⠋ |        101 | brms-suite-methods                                             
+⠸ |        104 | brms-suite-methods                                             
+⠦ |        107 | brms-suite-methods                                             
+⠧ |        108 | brms-suite-methods                                             
+⠏ |        110 | brms-suite-methods                                             
+⠋ |        111 | brms-suite-methods                                             
+⠙ |        112 | brms-suite-methods                                             
+⠹ |        113 | brms-suite-methods                                             
+⠼ |        115 | brms-suite-methods                                             
+⠴ |        116 | brms-suite-methods                                             
+⠦ |        117 | brms-suite-methods                                             
+⠧ |        118 | brms-suite-methods                                             No priors were set (plain maximum likelihood).
+
+⠼ |        125 | brms-suite-methods                                             
+⠸ |        134 | brms-suite-methods                                             
+⠋ |        141 | brms-suite-methods                                             
+⠙ |        142 | brms-suite-methods                                             
+⠸ |        144 | brms-suite-methods                                             
+⠼ |        145 | brms-suite-methods                                             
+⠴ |        146 | brms-suite-methods                                             
+⠦ |        147 | brms-suite-methods                                             
+⠇ |        149 | brms-suite-methods                                             
+⠋ |        151 | brms-suite-methods                                             
+⠸ |        154 | brms-suite-methods                                             
+⠼ |        155 | brms-suite-methods                                             
+⠙ |        162 | brms-suite-methods                                             
+✔ |        162 | brms-suite-methods [64.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 64.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 162 ]
+RESULT lane frmtmb test-brms-suite-methods.R pass=162 fail=0 err=0 skip=0 warn=0

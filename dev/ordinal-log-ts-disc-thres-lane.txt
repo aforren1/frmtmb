@@ -1,0 +1,16 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-disc-thres-draws                                       
+⠋ |          1 | ordinal-disc-thres-draws                                       
+⠧ |          8 | ordinal-disc-thres-draws                                       
+⠏ |         10 | ordinal-disc-thres-draws                                       
+⠹ |         13 | ordinal-disc-thres-draws                                       
+⠼ |         15 | ordinal-disc-thres-draws                                       
+✔ |         15 | ordinal-disc-thres-draws [4.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 4.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 15 ]
+RESULT lane frmtmb.sample test-ordinal-disc-thres-draws.R pass=15 fail=0 err=0 skip=0 warn=0

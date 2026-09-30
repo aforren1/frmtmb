@@ -1,0 +1,23 @@
+== mv 1: cumulative disc ~ 0 + z (y) + sratio sum_to_zero (y2) ==
+  estimates components: beta betad y_tau_raw y2_tau_raw 
+                y_x            y_disc_z                y2_x y2_disc_(Intercept) 
+          0.8124810           0.4011170           0.5679264           0.0000000 
+  brms parameters: b_y Intercept_y b_disc_y b_y2 Intercept_y2 
+  sum of y2 thresholds / max: 0 
+  identity
+  LP const 9.095e-13 rel 7.94e-16 grad 0.000148 ours -1144.784555
+
+== mv 2: acat probit (y) + cratio (y2), disc ~ 0 + z on both ==
+       y_x   y_disc_z       y2_x  y2_disc_z 
+0.19804489 0.07920295 0.47758628 0.05349949 
+  brms parameters: b_y Intercept_y b_disc_y b_y2 Intercept_y2 b_disc_y2 
+  identity
+  LP const 4.547e-13 rel 4.02e-16 grad 0.000314 ours -1131.881542
+
+== hurdle_cumulative equidistant, disc ~ 0 + z, zeros and an unused middle category ==
+  table(yhm): 92 96 100 50 62 
+  brms nthres: 4  frmtmb: 4 
+  ERROR: Exception: Exception: vector[uni] indexing: accessing element out of range. index 5 out of range; expecting index to be between 1 and 4 (in 'string', line 24, column 7 to line 25, column 40) (in 'string', line 112, column 6 to column 83) 
+
+== the worker's cratio cloglog NaN, on its data (seed 20260930) ==
+  rows reading a threshold with th > 6.6: 1; max th read 8.75

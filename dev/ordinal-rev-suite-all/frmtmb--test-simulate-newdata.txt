@@ -1,0 +1,27 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | simulate-newdata                                               
+⠋ |          1 | simulate-newdata                                               
+⠹ |          3 | simulate-newdata                                               
+⠴ |          6 | simulate-newdata                                               
+⠧ |          8 | simulate-newdata                                               
+⠏ |         10 | simulate-newdata                                               
+⠼ |         15 | simulate-newdata                                               
+⠏ |         20 | simulate-newdata                                               
+⠴ |         26 | simulate-newdata                                               
+⠇ |         29 | simulate-newdata                                               
+⠹ |         33 | simulate-newdata                                               
+⠼ |         35 | simulate-newdata                                               
+⠏ |         40 | simulate-newdata                                               
+⠋ |         41 | simulate-newdata                                               
+⠴ |         46 | simulate-newdata                                               
+⠙ |         52 | simulate-newdata                                               
+⠹ |         53 | simulate-newdata                                               
+✔ |         57 | simulate-newdata [14.0s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 14.0 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 57 ]
+RESULT lane frmtmb test-simulate-newdata.R pass=57 fail=0 err=0 skip=0 warn=0

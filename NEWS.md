@@ -1,3 +1,80 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **Every ordinal family has brms's discrimination `disc`.**
+  `cumulative()`, `sratio()`, `cratio()` and `acat()` take
+  `link_disc = "log"` and `threshold = "flexible"`, in the order of
+  brms's constructors, and `disc` is held at 1 unless the formula
+  models it: `bf(y ~ x, disc ~ 0 + z)`. `lf(disc ~ ...)` is no longer
+  refused, and `family()` lists `disc` among the dpars. Held at 1,
+  `disc` shows nowhere, as in brms: not on the `Links:` line, not as a
+  `Fixed dpar:`, not in `fixef(flatten = TRUE)` or `coef()`. Every
+  other output of a flexible fit is unchanged: on 26 models of every
+  kind, 570 of 581 outputs are `identical()` to frmtmb 0.66.0, and the
+  11 that are not are the changes listed here
+  (`dev/ordinal-p1-bitwise.R`). The likelihood cannot tell an
+  intercept in `disc` apart from the scale of the thresholds, so the
+  fit warns unless a prior holds it, also when cell-means columns
+  (`disc ~ 0 + h`) add up to one; brms holds it with its default
+  `normal(0, 1)`.
+
+* **`hurdle_cumulative()` hides its `disc` held at 1 too**, as brms
+  does: its `summary()` and `print()` no longer read `disc = log` and
+  `Fixed dpar: disc = 1`, and `fixef(flatten = TRUE)`, and with it the
+  default statistic of `frm_bootstrap()`, drops the constant
+  `disc_(Intercept)` entry. `fixef(flatten = TRUE)` names are again all
+  row names of `confint()`, the invariant `?fixef` shows.
+
+* **`default_prior()` lists one `Intercept` row per level of
+  `thres(gr = )`**, as brms does, beside the class-wide one; each is a
+  row `set_prior(group = )` takes.
+
+* **`acat()` takes every link brms takes for it**: `probit`,
+  `probit_approx`, `cloglog`, `cauchit` and `softit` beside `logit`.
+  Off the logit, a category probability is brms's second form, a
+  product of distribution functions times a reversed product of
+  survivals, normalized (`brms:::inv_link_acat()`). They were refused.
+
+## New features
+
+* **`threshold = "equidistant"` and `threshold = "sum_to_zero"`** on
+  `cumulative()`, `sratio()`, `cratio()`, `acat()` and
+  `hurdle_cumulative()`, which refused both before. Equidistant
+  thresholds are the first threshold plus `k - 1` times `delta`, as in
+  brms; `variables()`, `summary()` and `hypothesis()` name it `delta`
+  (`delta_<k>` per level of `thres(gr = )`, `delta_<resp>` in a
+  multivariate model), and `set_prior(class = "delta")` gives it a
+  prior. `delta` is positive for the two families whose thresholds are
+  ordered, as brms bounds it. Class `"Intercept"` then addresses the
+  first threshold alone, as in brms. Sum-to-zero thresholds sum to zero
+  and the design is not centered, as in brms. brms declares one
+  parameter per threshold there and relies on its prior for the common
+  location, which the likelihood does not see; frmtmb estimates the
+  free directions instead, so class `"Intercept"` has no parameter to
+  address and is refused with the reason. Both structures work with
+  `thres(x = )`, `thres(gr = )`, `cs()`, `disc`, the post-fit methods
+  and the one-step residuals. `equidistant` needs two thresholds per
+  vector, since `delta` has nothing to measure on one. `sum_to_zero`
+  holds a single threshold at zero and is fitted there, with no
+  threshold parameter at all: under `thres(gr = )` brms runs the same
+  model, and on an ungrouped two-category response it is the logistic
+  regression without an intercept. `default_prior()` lists `delta` with
+  brms's lower bound of 0 for the ordered families.
+
+* The log density with `disc`, with both structures and of `acat()`
+  off the logit is brms's: against brms 2.23.0's compiled Stan program
+  at 29 shapes, the value agrees to at most 2.6e-16 relative and brms's
+  gradient at frmtmb's optimum is at most 2.3e-4 (rows 12e to 12h of
+  `test-brms-likelihood.R`; `dev/ordinal-findings.md` lists the shapes
+  brms's own program fails on).
+
+## Bug fixes
+
+* A `hurdle_cumulative()` fit's draws are named `b_Intercept[k]` in
+  frmtmb.sample, as the other ordinal families' are: the family now
+  declares its inverse threshold map. They were `tau_raw_k`.
+
 # frmtmb 0.66.0
 
 Six lanes of brms parity, each with an adversarial review and one to

@@ -1,0 +1,58 @@
+worker yh table: 90 55 43 34 31 47 
+logit sum_to_zero : nthres 4 | top branch: } else if (y == nthres + 2) { 
+probit equidistant : nthres 4 | top branch: } else if (y == nthres + 1) { 
+logit flexible : nthres 4 | top branch: } else if (y == nthres + 2) { 
+yh ~ x : target += hurdle_cumulative_ordered_logistic_lpmf(Y[n] | mu[n], hu[n], disc, Intercept_stz); 
+   real hurdle_cumulative_logit_lpmf(int y, real mu, real hu, real disc, vector thres) {
+
+     int nthres = num_elements(thres);
+     if (y == 0) {
+       return bernoulli_lpmf(1 | hu);
+     } else if (y == 1) {
+       return log_inv_logit(disc * (thres[1] - mu)) +
+                bernoulli_lpmf(0 | hu);
+     } else if (y == nthres + 2) {
+       return log1m_inv_logit(disc * (thres[nthres] - mu)) +
+                bernoulli_lpmf(0 | hu);
+     } else {
+       return log_inv_logit_diff(disc * (thres[y] - mu), disc * (thres[y - 1] - mu)) +
+                bernoulli_lpmf(0 | hu) ;
+     }
+   }
+  /* hurdle_cumulative-logit log-PDF for a single response and merged thresholds
+yh ~ x : target += hurdle_cumulative_ordered_logistic_lpmf(Y[n] | mu[n], hu, disc, Intercept_stz); 
+   real hurdle_cumulative_logit_lpmf(int y, real mu, real hu, real disc, vector thres) {
+
+     int nthres = num_elements(thres);
+     if (y == 0) {
+       return bernoulli_lpmf(1 | hu);
+     } else if (y == 1) {
+       return log_inv_logit(disc * (thres[1] - mu)) +
+                bernoulli_lpmf(0 | hu);
+     } else if (y == nthres + 2) {
+       return log1m_inv_logit(disc * (thres[nthres] - mu)) +
+                bernoulli_lpmf(0 | hu);
+     } else {
+       return log_inv_logit_diff(disc * (thres[y] - mu), disc * (thres[y - 1] - mu)) +
+                bernoulli_lpmf(0 | hu) ;
+     }
+   }
+  /* hurdle_cumulative-logit log-PDF for a single response and merged thresholds
+yh ~ x : target += hurdle_cumulative_logit_lpmf(Y[n] | mu[n], hu, disc[n], Intercept_stz); 
+   real hurdle_cumulative_logit_lpmf(int y, real mu, real hu, real disc, vector thres) {
+
+     int nthres = num_elements(thres);
+     if (y == 0) {
+       return bernoulli_lpmf(1 | hu);
+     } else if (y == 1) {
+       return log_inv_logit(disc * (thres[1] - mu)) +
+                bernoulli_lpmf(0 | hu);
+     } else if (y == nthres + 2) {
+       return log1m_inv_logit(disc * (thres[nthres] - mu)) +
+                bernoulli_lpmf(0 | hu);
+     } else {
+       return log_inv_logit_diff(disc * (thres[y] - mu), disc * (thres[y - 1] - mu)) +
+                bernoulli_lpmf(0 | hu) ;
+     }
+   }
+  /* hurdle_cumulative-logit log-PDF for a single response and merged thresholds

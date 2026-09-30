@@ -1,3 +1,31 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb development version: for `ord_delta_info()`, for the
+ordinal families' `disc` and threshold structures, and for
+`hurdle_cumulative()`'s inverse threshold map.
+
+## New features
+
+* **Draws of an ordinal fit with equidistant or sum-to-zero
+  thresholds** carry brms's names: every threshold `b_Intercept[k]`
+  and, for equidistant thresholds, `delta`. The sampler holds fewer
+  parameters than that (two per vector, or one fewer than the
+  thresholds); the columns past them are added after the sampled ones,
+  before `lp__`, as a mixture's last weight is, and dropped again
+  whenever a draw is handed back to the model.
+
+* **brms's default `normal(0, 1)` on the intercept of an ordinal
+  family's `disc`**, which is what places that intercept, since the
+  likelihood cannot tell it from the scale of the thresholds. Under
+  `link_disc = "identity"` brms uses `lognormal(0, 1)`, which
+  `set_prior()` does not carry, and the default-prior message names the
+  gap.
+
+## Bug fixes
+
+* A `hurdle_cumulative()` fit's draws are named `b_Intercept[k]`, as
+  the other ordinal families' are. They were `tau_raw_k`.
+
 # frmtmb.sample 0.14.0
 
 Needs frmtmb 0.66.0: for `subset_resp_check()` and `subset_newdata()`,

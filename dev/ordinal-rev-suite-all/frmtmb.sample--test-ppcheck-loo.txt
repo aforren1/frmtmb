@@ -1,0 +1,30 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb.sample  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ppcheck-loo                                                    
+⠋ |          1 | ppcheck-loo                                                    
+⠙ |          2 | ppcheck-loo                                                    
+⠹ |          3 | ppcheck-loo                                                    
+⠸ |          4 | ppcheck-loo                                                    
+⠼ |          5 | ppcheck-loo                                                    
+⠴ |          6 | ppcheck-loo                                                    
+⠦ |          7 | ppcheck-loo                                                    
+⠧ |          8 | ppcheck-loo                                                    
+⠇ |          9 | ppcheck-loo                                                    
+⠏ |         10 | ppcheck-loo                                                    
+⠋ |         11 | ppcheck-loo                                                    
+⠙ |         12 | ppcheck-loo                                                    
+⠹ |         13 | ppcheck-loo                                                    
+⠼ |         15 | ppcheck-loo                                                    
+⠦ |         17 | ppcheck-loo                                                    
+⠏ |         20 | ppcheck-loo                                                    
+⠋ |         21 | ppcheck-loo                                                    
+⠙ |         22 | ppcheck-loo                                                    
+⠦ |         27 | ppcheck-loo                                                    
+✔ |         27 | ppcheck-loo [5.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 5.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 27 ]
+RESULT lane frmtmb.sample test-ppcheck-loo.R pass=27 fail=0 err=0 skip=0 warn=0

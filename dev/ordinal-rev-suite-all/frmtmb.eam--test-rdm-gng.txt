@@ -1,0 +1,62 @@
+lib: C:/Users/adf44/source/r/rellib-r4/frmtmb.eam  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | rdm-gng                                                        
+⠋ |          1 | rdm-gng                                                        
+⠹ |         13 | rdm-gng                                                        
+⠴ |         16 | rdm-gng                                                        
+⠧ |         18 | rdm-gng                                                        
+⠸ |         24 | rdm-gng                                                        
+⠧ |         28 | rdm-gng                                                        
+⠇ |         29 | rdm-gng                                                        
+⠙ |         32 | rdm-gng                                                        
+⠸ |         34 | rdm-gng                                                        
+⠇ |         39 | rdm-gng                                                        
+⠋ |         51 | rdm-gng                                                        
+⠧ |         58 | rdm-gng                                                        
+⠴ |         86 | rdm-gng                                                        
+⠼ |        105 | rdm-gng                                                        
+⠹ |        113 | rdm-gng                                                        
+⠴ |        116 | rdm-gng                                                        
+⠇ |        119 | rdm-gng                                                        
+⠴ |        126 | rdm-gng                                                        
+⠦ |        127 | rdm-gng                                                        
+⠧ |        128 | rdm-gng                                                        
+⠇ |        129 | rdm-gng                                                        
+⠏ |        130 | rdm-gng                                                        
+⠋ |        131 | rdm-gng                                                        
+⠼ |        135 | rdm-gng                                                        
+⠧ |        138 | rdm-gng                                                        
+⠏ |        140 | rdm-gng                                                        
+⠋ |        141 | rdm-gng                                                        
+⠹ |        143 | rdm-gng                                                        
+⠸ |        144 | rdm-gng                                                        
+⠼ |        145 | rdm-gng                                                        
+⠹ |        153 | rdm-gng                                                        
+⠸ |        154 | rdm-gng                                                        
+⠼ |        155 | rdm-gng                                                        
+⠦ |        157 | rdm-gng                                                        
+⠋ |        161 | rdm-gng                                                        
+⠙ |        172 | rdm-gng                                                        
+⠼ |        175 | rdm-gng                                                        
+⠴ |        176 | rdm-gng                                                        
+⠋ |        181 | rdm-gng                                                        
+⠙ |        182 | rdm-gng                                                        
+⠹ |        183 | rdm-gng                                                        
+⠸ |        184 | rdm-gng                                                        
+⠼ |        185 | rdm-gng                                                        
+⠴ |        186 | rdm-gng                                                        
+⠦ |        187 | rdm-gng                                                        
+⠋ |        201 | rdm-gng                                                        
+⠴ |        206 | rdm-gng                                                        
+⠦ |        207 | rdm-gng                                                        
+⠧ |        208 | rdm-gng                                                        
+⠇ |        209 | rdm-gng                                                        
+⠦ |        217 | rdm-gng                                                        
+✔ |        221 | rdm-gng [123.8s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 123.8 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 221 ]
+RESULT lane frmtmb.eam test-rdm-gng.R pass=221 fail=0 err=0 skip=0 warn=0

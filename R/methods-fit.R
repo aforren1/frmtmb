@@ -47,8 +47,10 @@ par_est_se <- function(fit, vcov = NULL) {
 #' each response, because its families need not agree.
 #'
 #' @noRd
-family_links_str <- function(responses) {
-  s <- vapply(responses, function(r) family_link_str(r$family), "")
+family_links_str <- function(responses, fit = NULL) {
+  s <- vapply(responses, function(r) {
+    family_link_str(r$family, shown = lp_shown_dpars(fit, r))
+  }, "")
   # filter BEFORE the prefix: prefixing first makes a family with
   # nothing to say into the non-empty string "y: "
   keep <- nzchar(s)
@@ -145,6 +147,43 @@ print.frmtmb_fit <- function(x, ...) {
   invisible(x)
 }
 
+#' Is this linear predictor a distributional parameter its family holds
+#' at a default the user did not write, and that brms shows nowhere?
+#' Every ordinal family's `disc` at 1 is one (`ord_family_tail()`). Its
+#' coefficient is mapped and stays in the objective; the output a fit
+#' prints (Links, Fixed dpar, `fixef(flatten = TRUE)`, `coef()`, the
+#' summary's coefficient blocks) leaves it out, as brms's does. A value
+#' other than the family's own default was written by the user and
+#' shows.
+#'
+#' @noRd
+lp_hidden_fixed <- function(fit, lp) {
+  if (is.null(lp[["constant"]])) return(FALSE)
+  fam <- fit$spec$responses[[lp[["resp"]]]]$family
+  dp <- lp[["dpar"]]
+  if (!dp %in% (fam[["hidden_fixed_dpars"]] %||% character(0))) {
+    return(FALSE)
+  }
+  isTRUE(lp[["constant"]] == fam[["fixed_dpars"]][[dp]])
+}
+
+#' The hidden-by-default dpars of one response that a fit models, so
+#' that its Links line names them.
+#'
+#' @noRd
+lp_shown_dpars <- function(fit, rspec) {
+  hid <- rspec$family[["hidden_fixed_dpars"]] %||% character(0)
+  if (is.null(fit) || !length(hid)) return(character(0))
+  out <- character(0)
+  for (lp in fit$frame[["linpreds"]]) {
+    if (identical(lp[["resp"]], rspec$resp_name) && lp[["dpar"]] %in% hid &&
+          !lp_hidden_fixed(fit, lp)) {
+      out <- c(out, lp[["dpar"]])
+    }
+  }
+  out
+}
+
 #' The name a linear predictor's coefficient block gets in output. A
 #' multivariate fit needs the response in the key to stay unambiguous;
 #' a univariate fit shows the dpar alone.
@@ -198,6 +237,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
   ps <- par_est_se(object, vcov)
   coefs <- list()
   for (lp in object$frame[["linpreds"]]) {
+    if (lp_hidden_fixed(object, lp)) next
     est <- ps$est[[lp[["par"]]]][lp[["idx"]]]
     se <- ps$se[[lp[["par"]]]][lp[["idx"]]]
     z <- est / se
@@ -218,7 +258,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          # responses, the way print.frmtmb_fit() does. Reading
          # x$family for them printed no Links line at all on the one
          # kind of fit whose families need not agree.
-         links = family_links_str(object$spec$responses),
+         links = family_links_str(object$spec$responses, object),
          formula = formula(object), nobs = stats::nobs(object),
          formulas = if (inherits(object$bform, "frmtmb_mvformula")) {
            lapply(object$bform$forms, `[[`, "formula")
@@ -278,6 +318,9 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          extras = local({
            ex <- list()
            for (nm in object$frame[["extra_names"]] %||% character(0)) {
+             # an empty block (sum-to-zero thresholds, one per vector)
+             # has no row to report
+             if (!length(ps$est[[nm]])) next
              cm <- cbind(Estimate = ps$est[[nm]],
                          `Std. Error` = ps$se[[nm]])
              rownames(cm) <- paste0(nm, "_", seq_len(nrow(cm)))
@@ -286,8 +329,9 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
            ex
          }),
          fixed_dpars = local({
-           fx <- Filter(function(lp) !is.null(lp[["constant"]]),
-                        object$frame[["linpreds"]])
+           fx <- Filter(function(lp) {
+             !is.null(lp[["constant"]]) && !lp_hidden_fixed(object, lp)
+           }, object$frame[["linpreds"]])
            stats::setNames(vapply(fx, `[[`, numeric(1), "constant"),
                            vapply(fx, function(lp) {
                              coef_block_key(object, lp)
@@ -418,6 +462,24 @@ summary_spec_frame <- function(object, prob) {
     lo <- c(lo, f(cf[i] - q * se_in[i]))
     hi <- c(hi, f(cf[i] + q * se_in[i]))
     nm <- c(nm, nr$name[j])
+  }
+  # the distance between equidistant ordinal thresholds, which brms
+  # lists here beside the distributional parameters
+  dl <- ord_delta_info(object)
+  pc <- if (length(dl)) {
+    tryCatch(suppressWarnings(hyp_par_cov(object)), error = function(e) NULL)
+  }
+  for (d in dl) {
+    r <- object$estimates[[d$comp]][d$idx]
+    p <- if (!is.null(pc)) which(pc$comp == d$comp)[d$idx]
+    se_r <- if (length(p) == 1L && !is.na(p)) sqrt(pc$V[p, p]) else
+      NA_real_
+    est <- c(est, d$value(r))
+    # d(delta)/d(internal) is delta itself on the log scale, 1 otherwise
+    err <- c(err, if (identical(d$value, exp)) exp(r) * se_r else se_r)
+    lo <- c(lo, d$value(r - q * se_r))
+    hi <- c(hi, d$value(r + q * se_r))
+    nm <- c(nm, d$name)
   }
   for (s in smp %||% list()) {
     p <- s$to_simplex(cf[s$pos])
@@ -1102,8 +1164,9 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   cmap <- list()
   for (lp in object$frame[["linpreds"]]) {
     # an equated dpar (sigma1 = "sigma2") owns no coefficient; its
-    # target's block is the one
-    if (!is.null(lp[["equate"]])) next
+    # target's block is the one. A family's hidden default (an ordinal
+    # disc at 1) is no coefficient in brms either
+    if (!is.null(lp[["equate"]]) || lp_hidden_fixed(object, lp)) next
     key <- coef_block_key(object, lp)
     v <- object$estimates[[lp[["par"]]]][lp[["idx"]]]
     bn <- brms_lp_coef_names(lp, tab)
@@ -1278,7 +1341,9 @@ coef_shift_thresholds <- function(df, nms, bv, fam) {
 #'   come in linear-predictor order, which need not be the matrix's row
 #'   order; index by name. Distributional parameters held at a constant
 #'   are included here and are absent from `vcov()` and from the matrix,
-#'   which cover the ESTIMATED population-level coefficients only.
+#'   which cover the ESTIMATED population-level coefficients only. The
+#'   exception is a constant the family itself supplies and brms does
+#'   not show, an ordinal family's `disc` at 1, which is left out.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A coefficients-by-four matrix, or with `flatten = TRUE` a
@@ -1326,6 +1391,7 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     }
     out <- numeric(0)
     for (lp in object$frame[["linpreds"]]) {
+      if (lp_hidden_fixed(object, lp)) next
       out <- c(out, est[[lp[["par"]]]][lp[["idx"]]])
     }
     return(out)

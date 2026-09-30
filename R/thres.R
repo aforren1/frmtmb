@@ -1,4 +1,5 @@
-# brms's thres() addition term for the ordinal families.
+# brms's thres() addition term for the ordinal families, and brms's
+# threshold structures.
 #
 # `y | thres(x, gr) ~ ...` does two things in brms. `x` sets the number
 # of thresholds, for a response whose top categories are not all
@@ -15,6 +16,29 @@
 # `family_finalize()` slot, and the resolved layout rides on the family
 # object as `fam[["thres"]]`, where prediction and simulation on new
 # data read it back.
+#
+# The constructor's `threshold` argument picks how each threshold
+# vector is parameterized, as in brms 2.23.0 (`brms:::stan_thres()`):
+#
+#   flexible     one parameter per threshold. The ordered families
+#                (cumulative, hurdle_cumulative) hold them as the first
+#                threshold and log increments, the others as the
+#                thresholds themselves.
+#   equidistant  two per vector, the first threshold and the distance
+#                `delta` between neighbors: tau_k = tau_1 + (k - 1)
+#                delta. brms bounds delta below by 0 for the ordered
+#                families, so frmtmb holds log(delta) there.
+#   sum_to_zero  thresholds that sum to zero. brms declares all nthres
+#                of them and centers, which leaves one direction the
+#                likelihood does not see and that only its prior
+#                places; frmtmb estimates the nthres - 1 free
+#                directions: log increments for an ordered vector, and
+#                the first nthres - 1 thresholds otherwise, the last
+#                being minus their sum.
+#
+# The two structures other than flexible need the threshold count to map
+# the internal vector to the thresholds, and the count is a fact of the
+# response. So the finalizer builds them too.
 
 #' The group codes of a `thres(gr = )` factor, with the levels attached.
 #'
@@ -36,15 +60,34 @@ thres_group_codes <- function(v) {
   structure(as.numeric(f), thres_levels = levels(f))
 }
 
-#' The layout of the merged threshold vector: per group, its count and
-#' where its slice starts and ends.
+#' The number of internal parameters one threshold vector of `k`
+#' thresholds takes under a structure.
 #'
 #' @noRd
-thres_layout <- function(nthres) {
+thres_raw_len <- function(type, k) {
+  k <- as.integer(k)
+  switch(type,
+    flexible = k,
+    equidistant = rep(2L, length(k)),
+    sum_to_zero = k - 1L,
+    frm_stop("Internal error: unknown threshold structure '", type, "'",
+             call. = FALSE))
+}
+
+#' The layout of the merged threshold vector: per group, its count and
+#' where its slice starts and ends, among the thresholds (`start`,
+#' `end`) and among the internal parameters (`rstart`, `rend`), which
+#' differ unless the structure is `"flexible"`.
+#'
+#' @noRd
+thres_layout <- function(nthres, type = "flexible") {
   nthres <- as.integer(nthres)
   end <- cumsum(nthres)
+  rlen <- thres_raw_len(type, nthres)
+  rend <- cumsum(rlen)
   list(nthres = nthres, start = end - nthres + 1L, end = end,
-       G = length(nthres), K1max = max(nthres))
+       G = length(nthres), K1max = max(nthres), type = type,
+       rlen = rlen, rstart = rend - rlen + 1L, rend = rend)
 }
 
 #' Whether a family carries grouped thresholds.
@@ -68,22 +111,96 @@ thres_row_groups <- function(aterms, n) {
 }
 
 #' The merged internal vector mapped to the thresholds, one slice per
-#' group. cumulative holds each slice as (first threshold, log
-#' increments); sratio, cratio and acat hold the thresholds themselves.
-#' The loop runs over the parameter layout, not over rows, and works on
-#' the tape and on plain doubles alike.
+#' group, under the layout's structure. Under `"flexible"` cumulative
+#' holds each slice as (first threshold, log increments) and sratio,
+#' cratio and acat hold the thresholds themselves. The loop runs over
+#' the parameter layout, not over rows, and works on the tape and on
+#' plain doubles alike.
 #'
 #' @noRd
 thres_tau <- function(raw, lay, ordered) {
-  if (!ordered) return(raw)
-  "[<-" <- RTMB::ADoverload("[<-")
-  tau <- raw
-  for (g in seq_len(lay$G)) {
-    s <- lay$start[g]
-    e <- lay$end[g]
-    if (e > s) for (k in (s + 1L):e) tau[k] <- tau[k - 1L] + exp(raw[k])
+  type <- lay$type %||% "flexible"
+  if (identical(type, "flexible")) {
+    if (!ordered) return(raw)
+    "[<-" <- RTMB::ADoverload("[<-")
+    tau <- raw
+    for (g in seq_len(lay$G)) {
+      s <- lay$start[g]
+      e <- lay$end[g]
+      if (e > s) for (k in (s + 1L):e) tau[k] <- tau[k - 1L] + exp(raw[k])
+    }
+    return(tau)
   }
-  tau
+  "c" <- RTMB::ADoverload("c")
+  out <- NULL
+  for (g in seq_len(lay$G)) {
+    r <- if (lay$rlen[g] > 0L) raw[lay$rstart[g]:lay$rend[g]]
+    tg <- thres_slice_tau(r, lay$nthres[g], type, ordered)
+    out <- if (is.null(out)) tg else c(out, tg)
+  }
+  out
+}
+
+#' One threshold vector of `k` thresholds from its internal parameters
+#' `r`, under `"equidistant"` or `"sum_to_zero"` (see the head of this
+#' file). Written over arithmetic RTMB overloads, so it tapes.
+#'
+#' @noRd
+thres_slice_tau <- function(r, k, type, ordered) {
+  "c" <- RTMB::ADoverload("c")
+  if (identical(type, "equidistant")) {
+    d <- if (ordered) exp(r[2L]) else r[2L]
+    return(r[1L] + (seq_len(k) - 1) * d)
+  }
+  # sum_to_zero: a vector of one threshold is that threshold at zero
+  if (k == 1L) return(0)
+  if (ordered) {
+    u <- c(0, cumsum(exp(r)))
+    return(u - sum(u) / k)
+  }
+  c(r, -sum(r))
+}
+
+#' The inverse of `thres_tau()`, from the merged thresholds back to the
+#' internal vector, in plain doubles. A threshold vector that does not
+#' have the layout's structure (equidistant thresholds that are not
+#' equally spaced) is mapped by its first two thresholds, and one that
+#' does not sum to zero by its free directions, so the result is only
+#' meaningful for thresholds the structure can produce.
+#'
+#' @noRd
+thres_raw_from_tau <- function(tau, lay, ordered) {
+  type <- lay$type %||% "flexible"
+  unlist(lapply(seq_len(lay$G), function(g) {
+    tg <- tau[lay$start[g]:lay$end[g]]
+    k <- lay$nthres[g]
+    switch(type,
+      flexible = ord_raw_from_tau(tg, ordered),
+      equidistant = {
+        d <- tg[2L] - tg[1L]
+        c(tg[1L], if (ordered) log(d) else d)
+      },
+      sum_to_zero = if (ordered) log(diff(tg)) else tg[-k])
+  }))
+}
+
+#' Start values for one threshold vector of `k` thresholds under a
+#' structure, from the observed category frequencies `y` of its rows.
+#'
+#' @noRd
+thres_start <- function(y, k, type, ordered, link) {
+  if (identical(type, "flexible")) {
+    return(ord_tau_init(y, ordered, link, K = k + 1L)$tau_raw)
+  }
+  # the thresholds the frequencies imply, then the structure's own
+  # parameters closest to them
+  tau0 <- ord_tau_init(y, ordered = FALSE, link, K = k + 1L)$tau_raw
+  if (identical(type, "equidistant")) {
+    d <- if (k > 1L) (tau0[k] - tau0[1L]) / (k - 1L) else 1
+    return(c(tau0[1L], if (ordered) log(max(d, 0.05)) else d))
+  }
+  tc <- tau0 - mean(tau0)
+  if (ordered) log(pmax(diff(tc), 0.05)) else tc[-k]
 }
 
 #' The number of thresholds on each group, from the data, following
@@ -140,14 +257,44 @@ thres_counts <- function(y, x, gi, G, labels) {
   as.integer(out)
 }
 
-#' The ordinal families' `family_finalize()` slot: resolve `thres()`
-#' against the response and rebuild the pieces of the family that read
-#' the thresholds.
+#' Refuse a threshold structure on a vector too short to carry it.
 #'
-#' Without `thres()` the family comes back unchanged. A count alone only
-#' lengthens the threshold vector. Groups replace the density, the
-#' simulator, the start values and the map `variables()` reads the
-#' thresholds through.
+#' `equidistant` on a vector of one threshold leaves `delta`, the
+#' distance between two thresholds, with nothing to measure, so the
+#' likelihood is flat in it; that is refused. `sum_to_zero` on one
+#' threshold holds it at zero, a model with no threshold parameter at
+#' all, and it is fitted: brms declares a grouped count `int<lower=1>`
+#' and so runs it under `thres(gr = )` (all levels at one threshold
+#' included), and frmtmb fits the ungrouped case too, which brms's
+#' `int<lower=2> nthres` stops before sampling.
+#'
+#' @noRd
+thres_structure_check <- function(type, nthres, grouped, labels, family) {
+  if (!identical(type, "equidistant")) return(invisible(NULL))
+  if (identical(type, "equidistant") && any(nthres < 2L)) {
+    where <- if (grouped) {
+      paste0(" level(s) ", paste0("'", labels[nthres < 2L], "'",
+                                  collapse = ", "), " of thres(gr = ) have")
+    } else " the response has"
+    frm_stop(family, "(threshold = 'equidistant') needs at least two ",
+             "thresholds per threshold vector, and", where,
+             " one: delta, the distance between neighboring thresholds, ",
+             "has no second threshold to measure. Use the default ",
+             "threshold = 'flexible'", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The ordinal families' `family_finalize()` slot: resolve `thres()`
+#' and the threshold structure against the response and rebuild the
+#' pieces of the family that read the thresholds.
+#'
+#' Without `thres()` and with flexible thresholds the family comes back
+#' unchanged. A count alone only lengthens the threshold vector. Groups
+#' replace the density, the simulator, the start values and the map
+#' `variables()` reads the thresholds through, and so does a structure
+#' other than `"flexible"`, through the factories the constructor left
+#' on the family.
 #'
 #' @noRd
 thres_finalizer <- function(family, ordered, link) {
@@ -155,9 +302,12 @@ thres_finalizer <- function(family, ordered, link) {
   force(ordered)
   force(link)
   function(fam, y, aterms) {
+    type <- fam[["threshold"]] %||% "flexible"
     x <- aterms[["thres"]]
     gi <- aterms[["thres_gr"]]
-    if (is.null(x) && is.null(gi)) return(fam)
+    if (is.null(x) && is.null(gi) && identical(type, "flexible")) {
+      return(fam)
+    }
     labels <- attr(gi, "thres_levels")
     G <- length(labels)
     if (!is.null(gi)) gi <- as.integer(gi)
@@ -174,42 +324,64 @@ thres_finalizer <- function(family, ordered, link) {
                                         "' of thres(gr = )"),
                call. = FALSE)
     }
-    lay <- thres_layout(nthres)
+    thres_structure_check(type, nthres, !is.null(gi), labels,
+                          fam[["family"]])
+    lay <- thres_layout(nthres, type)
     # the thresholds above a group's highest observed category bound
-    # categories nobody chose; see thres_fit_check()
-    unident <- unlist(lapply(seq_along(nthres), function(g) {
-      if (seen[g] > nthres[g]) integer(0) else
-        (lay$start[g] + seen[g] - 1L):lay$end[g]
-    }))
+    # categories nobody chose; see thres_fit_check(). Equidistant
+    # thresholds place them from the first threshold and delta
+    unident <- if (identical(type, "equidistant")) integer(0) else {
+      unlist(lapply(seq_along(nthres), function(g) {
+        if (seen[g] > nthres[g]) integer(0) else
+          (lay$start[g] + seen[g] - 1L):lay$end[g]
+      }))
+    }
     fam[["thres"]] <- list(grouped = !is.null(gi), nthres = nthres,
                            levels = if (is.null(gi)) "" else labels,
                            groups = if (is.null(gi)) "" else
                              brms_rename(labels),
-                           unident = unident)
-    if (length(unident)) fam[["post"]][["fit_check"]] <- thres_fit_check
+                           unident = unident, type = type)
+    if (length(unident) && is.null(fam[["post"]][["fit_check"]])) {
+      fam[["post"]][["fit_check"]] <- thres_fit_check
+    }
     fam[["extra_pars"]] <- function(y, aterms) {
-      if (is.null(aterms[["thres_gr"]])) {
-        return(ord_tau_init(y, ordered, link, K = nthres + 1L))
-      }
-      g_row <- as.integer(aterms[["thres_gr"]])
+      g_row <- if (is.null(aterms[["thres_gr"]])) rep(1L, length(y)) else
+        as.integer(aterms[["thres_gr"]])
       raw <- unlist(lapply(seq_len(lay$G), function(g) {
-        ord_tau_init(y[g_row == g], ordered, link,
-                     K = lay$nthres[g] + 1L)$tau_raw
+        thres_start(y[g_row == g], lay$nthres[g], type, ordered, link)
       }))
       list(tau_raw = raw)
     }
-    if (is.null(gi)) return(fam)
-    fam[["lpdf"]] <- thres_lpdf(family, lay, ordered, link)
-    fam[["sim"]] <- thres_sim(family, lay, ordered, link)
-    fam[["post"]][["ord_thresholds"]] <- function(raw) {
-      unlist(lapply(seq_len(lay$G), function(g) {
-        ord_tau_from_raw(raw[lay$start[g]:lay$end[g]], ordered)
-      }))
+    if (is.null(gi) && identical(type, "flexible")) return(fam)
+    tmap <- function(raw) thres_tau(raw, lay, ordered)
+    if (!is.null(gi)) {
+      fam[["lpdf"]] <- thres_lpdf(family, lay, ordered, link)
+      fam[["sim"]] <- thres_sim(family, lay, ordered, link)
+    } else {
+      fam[["lpdf"]] <- fam[["ord_lpdf_make"]](tmap)
+      fam[["sim"]] <- fam[["ord_sim_make"]](tmap)
     }
+    if (identical(type, "flexible")) {
+      # grouped flexible thresholds report through the per-slice map
+      # they always used, `raw[1] + cumsum(exp(raw[-1]))`: the running
+      # sum of thres_tau() adds in another order, and its last-bit
+      # differences reached the reported thresholds (7.1e-15) and their
+      # delta-method covariance (1.2e-9)
+      fam[["post"]][["ord_thresholds"]] <- function(raw) {
+        unlist(lapply(seq_len(lay$G), function(g) {
+          ord_tau_from_raw(raw[lay$start[g]:lay$end[g]], ordered)
+        }))
+      }
+      fam[["post"]][["ord_thresholds_raw"]] <- function(tau) {
+        unlist(lapply(seq_len(lay$G), function(g) {
+          ord_raw_from_tau(tau[lay$start[g]:lay$end[g]], ordered)
+        }))
+      }
+      return(fam)
+    }
+    fam[["post"]][["ord_thresholds"]] <- tmap
     fam[["post"]][["ord_thresholds_raw"]] <- function(tau) {
-      unlist(lapply(seq_len(lay$G), function(g) {
-        ord_raw_from_tau(tau[lay$start[g]:lay$end[g]], ordered)
-      }))
+      thres_raw_from_tau(tau, lay, ordered)
     }
     fam
   }
@@ -261,12 +433,15 @@ thres_pin_of_fit <- function(fit) {
                                     levels_y = lv_y)
       next
     }
-    # ungrouped: the count IS the length of the threshold block, whether
-    # it was counted from the data or written as thres(x = )
+    # ungrouped: a flexible count IS the length of the threshold block,
+    # whether it was counted from the data or written as thres(x = ); the
+    # other structures record theirs on the family
     comp <- extra_tpl_name(frame, resp$resp_name, "tau_raw")
     raw <- frame[["par_template"]][[comp]]
     if (is.null(raw) || !length(raw)) next
-    out[[resp$resp_name]] <- list(grouped = FALSE, nthres = length(raw),
+    out[[resp$resp_name]] <- list(grouped = FALSE,
+                                  nthres = as.integer(th[["nthres"]] %||%
+                                                        length(raw)),
                                   levels_y = lv_y)
   }
   if (!length(out)) NULL else out
@@ -415,42 +590,49 @@ thres_lpdf <- function(family, lay, ordered, link) {
     n <- length(y)
     eta <- dpars[["mu"]]
     if (length(eta) < n) eta <- eta + numeric(n)
+    disc <- dpars[["disc"]] %||% 1
+    if (length(disc) < n) disc <- disc + numeric(n)
     tau <- thres_tau(extra$tau_raw, lay, ordered)
     gi <- thres_row_groups(aterms, n)
     s <- lay$start[gi]
     nk <- lay$nthres[gi]
     out <- switch(family,
-      cumulative = thres_lpdf_cumulative(y, eta, tau, s, nk, Fcdf, q),
-      acat = thres_lpdf_acat(y, eta, tau, s, nk, gi, lay),
-      thres_lpdf_seq(y, eta, tau, s, nk, lay$K1max, hz))
+      cumulative = thres_lpdf_cumulative(y, eta, tau, s, nk, Fcdf, q,
+                                         disc),
+      acat = if (identical(link$name, "logit")) {
+        thres_lpdf_acat(y, eta, tau, s, nk, gi, lay, disc)
+      } else {
+        thres_lpdf_acat_general(y, eta, tau, s, nk, lay$K1max, link, disc)
+      },
+      thres_lpdf_seq(y, eta, tau, s, nk, lay$K1max, hz, disc))
     off <- which(y > nk + 1)
     if (length(off)) out[off] <- -Inf
     out
   }
 }
 
-#' Grouped cumulative: `F(tau_y - eta) - F(tau_{y-1} - eta)` on the
-#' row's own slice, in log space for a link with a log-odds form, like
-#' `fam_cumulative()`.
+#' Grouped cumulative: `F(disc (tau_y - eta)) - F(disc (tau_{y-1} -
+#' eta))` on the row's own slice, in log space for a link with a
+#' log-odds form, like `fam_cumulative()`.
 #'
 #' @noRd
-thres_lpdf_cumulative <- function(y, eta, tau, s, nk, Fcdf, q) {
+thres_lpdf_cumulative <- function(y, eta, tau, s, nk, Fcdf, q, disc) {
   "[<-" <- RTMB::ADoverload("[<-")
   iK <- as.numeric(y == nk + 1)
   i1 <- as.numeric(y == 1)
   if (is.null(q)) {
-    up <- Fcdf(tau[s + pmin(y, nk) - 1L] - eta) * (1 - iK) + iK
-    lo <- Fcdf(tau[s + pmax(y - 1, 1) - 1L] - eta) * (1 - i1)
+    up <- Fcdf(disc * (tau[s + pmin(y, nk) - 1L] - eta)) * (1 - iK) + iK
+    lo <- Fcdf(disc * (tau[s + pmax(y - 1, 1) - 1L] - eta)) * (1 - i1)
     return(log(up - lo))
   }
-  out <- i1 * log_inv_logit(q(tau[s] - eta)) +
-    iK * log1m_inv_logit(q(tau[s + nk - 1L] - eta))
+  out <- i1 * log_inv_logit(q(disc * (tau[s] - eta))) +
+    iK * log1m_inv_logit(q(disc * (tau[s + nk - 1L] - eta)))
   # the interior categories only on the rows that have one, so no row
   # evaluates a threshold pair outside its own slice
   rm <- which(y > 1 & y <= nk)
   if (length(rm)) {
-    a <- q(tau[s[rm] + y[rm] - 1L] - eta[rm])
-    b <- q(tau[s[rm] + y[rm] - 2L] - eta[rm])
+    a <- q(disc[rm] * (tau[s[rm] + y[rm] - 1L] - eta[rm]))
+    b <- q(disc[rm] * (tau[s[rm] + y[rm] - 2L] - eta[rm]))
     out[rm] <- out[rm] + RTMB::logspace_sub(-b, -a) +
       log_inv_logit(a) + log_inv_logit(b)
   }
@@ -461,10 +643,10 @@ thres_lpdf_cumulative <- function(y, eta, tau, s, nk, Fcdf, q) {
 #' the largest group, the positions past a row's own slice masked out.
 #'
 #' @noRd
-thres_lpdf_seq <- function(y, eta, tau, s, nk, K1max, hz) {
+thres_lpdf_seq <- function(y, eta, tau, s, nk, K1max, hz, disc) {
   out <- 0
   for (j in seq_len(K1max)) {
-    Mj <- tau[s + pmin(j, nk) - 1L] - eta
+    Mj <- disc * (tau[s + pmin(j, nk) - 1L] - eta)
     live <- j <= nk
     out <- out + as.numeric(live & y == j) * hz$stop(Mj) +
       as.numeric(live & j < y) * hz$go(Mj)
@@ -473,12 +655,12 @@ thres_lpdf_seq <- function(y, eta, tau, s, nk, K1max, hz) {
 }
 
 #' Grouped acat: `P(y = r)` proportional to
-#' `exp((r - 1) eta - sum_{j < r} tau_j)` over the row's own `1..K`, the
-#' normalizer folded in log space and frozen past the row's top
-#' category.
+#' `exp(disc ((r - 1) eta - sum_{j < r} tau_j))` over the row's own
+#' `1..K`, the normalizer folded in log space and frozen past the row's
+#' top category.
 #'
 #' @noRd
-thres_lpdf_acat <- function(y, eta, tau, s, nk, gi, lay) {
+thres_lpdf_acat <- function(y, eta, tau, s, nk, gi, lay, disc) {
   "[<-" <- RTMB::ADoverload("[<-")
   # c(0, cumsum(slice)) per group, merged: group g starts at s_g + g - 1
   ct <- numeric(lay$end[lay$G] + lay$G)
@@ -492,13 +674,38 @@ thres_lpdf_acat <- function(y, eta, tau, s, nk, gi, lay) {
   num <- 0
   den <- NULL
   for (r in seq_len(lay$K1max + 1L)) {
-    Er <- (r - 1) * eta - ct[s2 + pmin(r, nk + 1L) - 1L]
+    Er <- disc * ((r - 1) * eta - ct[s2 + pmin(r, nk + 1L) - 1L])
     num <- num + as.numeric(y == r) * Er
     if (is.null(den)) {
       den <- Er
     } else {
       live <- as.numeric(r <= nk + 1L)
       den <- live * RTMB::logspace_add(den, Er) + (1 - live) * den
+    }
+  }
+  num - den
+}
+
+#' Grouped acat off the logit: `acat_general_E()` over threshold
+#' positions up to the largest group, a position past a row's own slice
+#' switched off, and the normalizer frozen past the row's top category.
+#'
+#' @noRd
+thres_lpdf_acat_general <- function(y, eta, tau, s, nk, K1max, link, disc) {
+  xs <- lapply(seq_len(K1max), function(j) {
+    disc * (eta - tau[s + pmin(j, nk) - 1L])
+  })
+  live <- lapply(seq_len(K1max), function(j) as.numeric(j <= nk))
+  E <- acat_general_E(xs, link, live)
+  num <- 0
+  den <- NULL
+  for (r in seq_len(K1max + 1L)) {
+    num <- num + as.numeric(y == r) * E[[r]]
+    if (is.null(den)) {
+      den <- E[[r]]
+    } else {
+      on <- as.numeric(r <= nk + 1L)
+      den <- on * RTMB::logspace_add(den, E[[r]]) + (1 - on) * den
     }
   }
   num - den
@@ -512,7 +719,8 @@ thres_sim <- function(family, lay, ordered, link) {
   function(dpars, aterms, n, extra) {
     P <- thres_cat_probs(family, rep(dpars[["mu"]], length.out = n),
                          extra$tau_raw, thres_row_groups(aterms, n), lay,
-                         ordered, link)
+                         ordered, link,
+                         rep(dpars[["disc"]] %||% 1, length.out = n))
     cp <- t(apply(P, 1L, cumsum))
     if (n == 1L) cp <- matrix(cp, 1L, ncol(P))
     pmin(1L + rowSums(cp < stats::runif(n)), ncol(P))
@@ -525,7 +733,8 @@ thres_sim <- function(family, lay, ordered, link) {
 #' reports there.
 #'
 #' @noRd
-thres_cat_probs <- function(family, eta, raw, gi, lay, ordered, link) {
+thres_cat_probs <- function(family, eta, raw, gi, lay, ordered, link,
+                            disc = rep(1, length(eta))) {
   tau <- thres_tau(raw, lay, ordered)
   P <- matrix(0, length(eta), lay$K1max + 1L)
   for (g in seq_len(lay$G)) {
@@ -533,7 +742,7 @@ thres_cat_probs <- function(family, eta, raw, gi, lay, ordered, link) {
     if (!length(rows)) next
     tg <- tau[lay$start[g]:lay$end[g]]
     P[rows, seq_len(lay$nthres[g] + 1L)] <-
-      ord_cat_probs(family, eta[rows], tg, NULL, link)
+      ord_cat_probs(family, eta[rows], tg, NULL, link, disc[rows])
   }
   P
 }
@@ -562,7 +771,7 @@ thres_newdata_codes <- function(fam, v) {
 #' @noRd
 thres_ncat <- function(fam, raw) {
   th <- fam[["thres"]]
-  if (isTRUE(th[["grouped"]])) return(max(th[["nthres"]]) + 1L)
+  if (!is.null(th[["nthres"]])) return(max(th[["nthres"]]) + 1L)
   length(raw) + 1L
 }
 
@@ -596,9 +805,15 @@ thres_fit_check <- function(fit, resp) {
     resolve_prior_input(list(frame = fit$frame, spec = fit$spec),
                         fit$prior)$entries
   }
+  comp <- extra_tpl_name(fit$frame, resp, "tau_raw")
   held <- unlist(lapply(ent, function(e) {
-    if (identical(e$comp, "tau_raw")) e$idx
+    if (identical(e$comp, comp)) e$idx
   }))
+  # under sum_to_zero an internal index is a free direction, not a
+  # threshold, so a prior on any of them holds the whole vector
+  if (length(held) && !identical(th[["type"]] %||% "flexible", "flexible")) {
+    held <- th[["unident"]]
+  }
   free <- setdiff(th[["unident"]], held)
   if (!length(free)) return(invisible(NULL))
   lab <- thres_labels(fam, sum(th[["nthres"]]))[free]

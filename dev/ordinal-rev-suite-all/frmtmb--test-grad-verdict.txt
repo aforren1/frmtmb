@@ -1,0 +1,25 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | grad-verdict                                                   
+⠋ |          1 | grad-verdict                                                   
+⠙ |         12 | grad-verdict                                                   
+⠙ |         22 | grad-verdict                                                   
+⠴ |         26 | grad-verdict                                                   
+⠋ |         31 | grad-verdict                                                   
+⠇ |         39 | grad-verdict                                                   
+⠏ |         40 | grad-verdict                                                   
+⠼ |         45 | grad-verdict                                                   
+⠴ |         46 | grad-verdict                                                   
+⠇ |         49 | grad-verdict                                                   
+⠙ |         52 | grad-verdict                                                   
+⠦ |         57 | grad-verdict                                                   
+⠙ |         62 | grad-verdict                                                   
+⠏ |         70 | grad-verdict                                                   
+✔ |         72 | grad-verdict [138.2s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 138.2 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 72 ]
+RESULT lane frmtmb test-grad-verdict.R pass=72 fail=0 err=0 skip=0 warn=0

@@ -305,9 +305,38 @@ brms_block_group <- function(nm) {
 # with a gradient of 9, and acat 9.6 nats out, because the ordered
 # transform was applied to thresholds that were already thresholds.
 brms_ord_thresholds <- function(fit) {
-  fam <- family(fit)[["family"]]
+  fam <- family(fit)
+  # a structure other than flexible holds fewer parameters than
+  # thresholds, and only the family knows the map; flexible keeps the
+  # hand-written storage fact above, so that a change there still fails
+  if (!identical(fam[["threshold"]] %||% "flexible", "flexible") ||
+        isTRUE(fam[["thres"]][["grouped"]])) {
+    return(ord_threshold_values(fam, fit$estimates[["tau_raw"]]))
+  }
   ord_tau_from_raw(fit$estimates[["tau_raw"]],
-                   ordered = fam %in% c("cumulative", "hurdle_cumulative"))
+                   ordered = fam[["family"]] %in%
+                     c("cumulative", "hurdle_cumulative"))
+}
+
+# The thresholds of one threshold vector: the k-th level of thres(gr = ),
+# or the only vector.
+brms_ord_group_thresholds <- function(fit, k = 1L) {
+  tau <- brms_ord_thresholds(fit)
+  nth <- family(fit)[["thres"]][["nthres"]] %||% length(tau)
+  end <- cumsum(nth)
+  tau[(end[k] - nth[k] + 1L):end[k]]
+}
+
+# brms centers the ordinal design unless the thresholds are grouped or
+# sum to zero, and says which by declaring Kc; the shift that centering
+# puts between brms's Intercept and the reported threshold is zero
+# otherwise.
+brms_ord_shift <- function(fit, sdat) {
+  if (is.null(sdat[["Kc"]])) return(0)
+  x <- brms_X_of(sdat, "mu")
+  fe <- brms_fe_of(fit, "mu")
+  cn <- brms_Xc_cols(sdat, "mu")
+  sum(colMeans(x)[cn] * unname(fe[brms_coef_to_frm(cn)]))
 }
 
 # frmtmb's column name for one brms group-level coefficient. An
@@ -426,6 +455,18 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       fe <- brms_fe_of(fit, sfx)
       cn <- brms_Xc_cols(sdat, sfx)
       out[[nm]] <- array(unname(fe[brms_coef_to_frm(cn)]), length(cn))
+    } else if (grepl("^(first_)?Intercept_[0-9]+$", nm) ||
+                 grepl("^first_Intercept$", nm)) {
+      # an ordinal threshold vector of one level of thres(gr = ), whole
+      # (Intercept_<k>) or as its first threshold under equidistant
+      # thresholds (first_Intercept, first_Intercept_<k>)
+      k <- if (grepl("_[0-9]+$", nm)) as.integer(sub("^.*_", "", nm)) else 1L
+      tg <- brms_ord_group_thresholds(fit, k) - brms_ord_shift(fit, sdat)
+      out[[nm]] <- if (startsWith(nm, "first_")) tg[1L] else as.numeric(tg)
+    } else if (grepl("^delta(_[0-9]+)?$", nm)) {
+      k <- if (grepl("_[0-9]+$", nm)) as.integer(sub("^.*_", "", nm)) else 1L
+      tg <- brms_ord_group_thresholds(fit, k)
+      out[[nm]] <- tg[2L] - tg[1L]
     } else if (grepl("^Intercept(_(.+))?$", nm)) {
       sfx <- brms_dpar_of(sub("^Intercept_?", "", nm))
       x <- brms_X_of(sdat, sfx)
@@ -439,7 +480,7 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
         # it. brms's generated quantity is
         #   b_Intercept = Intercept + dot_product(means_X, b)
         out[[nm]] <- as.numeric(
-          brms_ord_thresholds(fit) - shift)
+          brms_ord_thresholds(fit) - brms_ord_shift(fit, sdat))
       } else {
         # brms centers X inside the Stan program, so its Intercept is
         # the intercept of the centered fit, not the one frmtmb reports:

@@ -1,0 +1,33 @@
+
+== cum_stz 
+  variables: b_x b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] 
+  draw 1 threshold sums: -2.220446e-16 
+  max |posterior_epred - brms at stored columns| over 3 draws: 2.498002e-16 
+
+== acat_stz_probit 
+  variables: b_x b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] 
+  draw 1 threshold sums: 1.387779e-17 
+  max |posterior_epred - brms at stored columns| over 3 draws: 2.775558e-16 
+
+== cratio_equi 
+  variables: b_x b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] delta 
+  draw 1 delta columns: delta = 0.4090589 
+  max |posterior_epred - brms at stored columns| over 3 draws: 2.220446e-16 
+
+== sratio_equi_gr 
+  variables: b_x b_Intercept[p,1] b_Intercept[p,2] b_Intercept[p,3] b_Intercept[p,4] b_Intercept[q,1] b_Intercept[q,2] b_Intercept[q,3] b_Intercept[q,4] delta_1 delta_2 
+  draw 1 delta columns: delta_1 delta_2 = 0.6135562 0.2008446 
+  max |posterior_epred - brms at stored columns| over 3 draws: 2.220446e-16 
+
+== cum_stz_gr 
+  variables: b_x b_Intercept[p,1] b_Intercept[p,2] b_Intercept[p,3] b_Intercept[p,4] b_Intercept[q,1] b_Intercept[q,2] b_Intercept[q,3] b_Intercept[q,4] 
+  draw 1 threshold sums: 2.220446e-16 0 
+  max |posterior_epred - brms at stored columns| over 3 draws: 2.498002e-16 
+
+== cum_equi_disc 
+  variables: b_x b_disc_z b_Intercept[1] b_Intercept[2] b_Intercept[3] b_Intercept[4] delta 
+  draw 1 delta columns: delta = 0.9671532 
+  max |posterior_epred - brms at stored columns| over 3 draws: 2.220446e-16 
+
+== mv: equidistant y, sum_to_zero y2 ==
+  ERROR: length of 'dimnames' [2] not equal to array extent 

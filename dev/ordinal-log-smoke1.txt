@@ -1,0 +1,435 @@
+frmtmb from C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+
+== cumulative flexible disc ~ 0 + z ==
+logLik -592.006711 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error       Q2.5      Q97.5
+[1,]  0.2013187 0.02797355  0.1464915  0.2561458
+[2,] -0.4075160 0.05662498 -0.5184989 -0.2965330
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.070    0.234    0.329    0.248    0.119
+[2,]    0.268    0.278    0.172    0.130    0.152
+
+== simulate ==
+
+ 1  2  3  4  5 
+81 95 85 73 66 
+
+== cumulative equidistant disc ~ 0 + z ==
+logLik -594.1760281 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]" "delta"         
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error       Q2.5      Q97.5
+[1,]  0.2016131 0.02807586  0.1465854  0.2566408
+[2,] -0.4081120 0.05683210 -0.5195009 -0.2967231
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.089    0.206    0.363    0.240    0.102
+[2,]    0.255    0.234    0.218    0.159    0.134
+
+== simulate ==
+
+ 1  2  3  4  5 
+88 81 92 76 63 
+
+== cumulative sum_to_zero disc ~ 0 + z ==
+logLik -592.5504826 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error       Q2.5      Q97.5
+[1,]  0.2022128 0.02796119  0.1474099  0.2570157
+[2,] -0.4093259 0.05659997 -0.5202598 -0.2983920
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.050    0.221    0.316    0.277    0.136
+[2,]    0.253    0.277    0.200    0.131    0.139
+
+== simulate ==
+
+ 1  2  3  4  5 
+76 93 88 71 72 
+
+== sratio flexible disc ~ 0 + z ==
+logLik -622.7505387 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error        Q2.5      Q97.5
+[1,]  0.1416035 0.02390182  0.09475676  0.1884502
+[2,] -0.2866385 0.04838287 -0.38146717 -0.1918098
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.150    0.227    0.223    0.174    0.226
+[2,]    0.244    0.269    0.233    0.136    0.118
+
+== simulate ==
+
+  1   2   3   4   5 
+ 68 108  83  64  77 
+
+== sratio equidistant disc ~ 0 + z ==
+logLik -622.9850166 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]" "delta"         
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error        Q2.5      Q97.5
+[1,]  0.1412474 0.02388274  0.09443805  0.1880567
+[2,] -0.2859176 0.04834425 -0.38067061 -0.1911647
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.157    0.175    0.221    0.207    0.240
+[2,]    0.225    0.263    0.238    0.139    0.135
+
+== simulate ==
+
+ 1  2  3  4  5 
+75 99 83 67 76 
+
+== sratio sum_to_zero disc ~ 0 + z ==
+logLik -660.0656367 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error       Q2.5      Q97.5
+[1,]  0.1485406 0.02113894  0.1071091  0.1899722
+[2,] -0.3006809 0.04279015 -0.3845480 -0.2168138
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.119    0.255    0.345    0.235    0.046
+[2,]    0.344    0.336    0.194    0.096    0.030
+
+== simulate ==
+
+  1   2   3   4   5 
+116 121  88  57  18 
+
+== cratio flexible disc ~ 0 + z ==
+logLik -622.7505387 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error        Q2.5      Q97.5
+[1,]  0.1416035 0.02390182  0.09475676  0.1884502
+[2,] -0.2866385 0.04838287 -0.38146717 -0.1918098
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.152    0.217    0.218    0.193    0.220
+[2,]    0.240    0.256    0.244    0.145    0.115
+
+== simulate ==
+
+  1   2   3   4   5 
+ 68 108  83  64  77 
+
+== cratio equidistant disc ~ 0 + z ==
+logLik -622.9850166 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]" "delta"         
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error        Q2.5      Q97.5
+[1,]  0.1412474 0.02388274  0.09443805  0.1880567
+[2,] -0.2859176 0.04834425 -0.38067061 -0.1911647
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.166    0.189    0.226    0.169    0.250
+[2,]    0.226    0.272    0.235    0.152    0.115
+
+== simulate ==
+
+ 1  2  3  4  5 
+75 99 83 67 76 
+
+== cratio sum_to_zero disc ~ 0 + z ==
+logLik -660.0656367 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+       Estimate  Est.Error       Q2.5      Q97.5
+[1,]  0.1485406 0.02113894  0.1071091  0.1899722
+[2,] -0.3006809 0.04279015 -0.3845480 -0.2168138
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.097    0.301    0.345    0.206    0.051
+[2,]    0.334    0.317    0.199    0.110    0.040
+
+== simulate ==
+
+  1   2   3   4   5 
+116 121  88  57  18 
+
+== acat flexible disc ~ 0 + z ==
+logLik -602.6901275 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+        Estimate  Est.Error        Q2.5       Q97.5
+[1,]  0.04593268 0.01393210  0.01862626  0.07323910
+[2,] -0.09297846 0.02820183 -0.14825303 -0.03770389
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.097    0.245    0.299    0.240    0.119
+[2,]    0.223    0.256    0.219    0.184    0.118
+
+== simulate ==
+
+  1   2   3   4   5 
+ 66 109  94  80  51 
+
+== acat equidistant disc ~ 0 + z ==
+logLik -603.7562122 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]" "delta"         
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+        Estimate  Est.Error       Q2.5       Q97.5
+[1,]  0.04657121 0.01351964  0.0200732  0.07306922
+[2,] -0.09427099 0.02736691 -0.1479092 -0.04063283
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.117    0.232    0.322    0.208    0.121
+[2,]    0.220    0.239    0.218    0.168    0.155
+
+== simulate ==
+
+  1   2   3   4   5 
+ 69 103  97  81  50 
+
+== acat sum_to_zero disc ~ 0 + z ==
+logLik -603.4140393 
+[1] "b_x"            "b_disc_z"       "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+
+== fitted dims ==
+[1] 400   4   5
+
+== fitted linear ==
+        Estimate  Est.Error       Q2.5       Q97.5
+[1,]  0.04871057 0.01390937  0.0214487  0.07597244
+[2,] -0.09860156 0.02815582 -0.1537859 -0.04341717
+
+== predict ==
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4) P(Y = 5)
+[1,]    0.075    0.248    0.282    0.260    0.135
+[2,]    0.188    0.256    0.212    0.185    0.159
+
+== simulate ==
+
+  1   2   3   4   5 
+ 66 100  98  81  55 
+
+== summary cumulative equidistant ==
+ Family: cumulative 
+ Links: cdf = logit; disc = log
+
+Formula: y ~ x 
+   Data: d (Number of observations: 400) 
+ Method: ML   logLik: -626.036   AIC: 1258.07   BIC: 1270.05 
+
+Regression Coefficients:
+             Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept[1]    -1.43      0.12    -1.66    -1.20  -12.12  < 2e-16
+Intercept[2]    -0.46      0.09    -0.64    -0.27   -4.94  7.9e-07
+Intercept[3]     0.52      0.09     0.33     0.70    5.51  3.6e-08
+Intercept[4]     1.49      0.12     1.25     1.73   12.24  < 2e-16
+x                0.54      0.09     0.36     0.72    5.80  6.6e-09
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+delta     0.97      0.05     0.87     1.08
+
+Fixed dpar: disc = 1
+               Estimate  Est.Error       Q2.5      Q97.5
+Intercept[1] -1.4291765 0.11796696 -1.6603875 -1.1979655
+Intercept[2] -0.4556302 0.09229034 -0.6365160 -0.2747445
+Intercept[3]  0.5179160 0.09396860  0.3337410  0.7020911
+Intercept[4]  1.4914623 0.12187689  1.2525880  1.7303366
+x             0.5368436 0.09256307  0.3554233  0.7182639
+route = "fit": the prior defaults frm() applies
+   prior     class coef group resp dpar nlpar lb ub  source
+1 (flat)     delta                            NA NA default
+2 (flat) Intercept                            NA NA default
+3 (flat)         b                            NA NA default
+4 (flat)         b    x                       NA NA default
+Hypothesis Tests for class :
+         Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob
+1 (delta)-(0.5) > 0     0.47      0.05     0.39     0.56         NA        NA
+  Star
+1    *
+---
+'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+Method: wald. Est.Error is the standard error; Evid.Ratio and
+Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+'*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+        Hypothesis     z         p
+ (delta)-(0.5) > 0 8.862 3.945e-19
+
+== hurdle equidistant ==
+[1] "b_x"            "hu"             "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]" "delta"         
+ Family: hurdle_cumulative 
+ Links: cdf = logit; hu = logit; disc = log
+
+Formula: yh ~ x 
+   Data: d (Number of observations: 400) 
+ Method: ML   logLik: -696.926   AIC: 1401.85   BIC: 1417.82 
+
+Regression Coefficients:
+             Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept[1]    -1.34      0.13    -1.60    -1.07  -10.03  < 2e-16
+Intercept[2]    -0.41      0.11    -0.61    -0.20   -3.84  0.00012
+Intercept[3]     0.52      0.11     0.31     0.73    4.79  1.7e-06
+Intercept[4]     1.45      0.14     1.18     1.72   10.36  < 2e-16
+x                0.48      0.11     0.27     0.69    4.54  5.7e-06
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+hu        0.25      0.02     0.21     0.29
+delta     0.93      0.06     0.82     1.05
+
+Fixed dpar: disc = 1
+
+== hurdle sum_to_zero ==
+[1] "b_x"            "hu"             "b_Intercept[1]" "b_Intercept[2]"
+[5] "b_Intercept[3]" "b_Intercept[4]"
+, , P(Y = 0)
+
+     Estimate  Est.Error      Q2.5     Q97.5
+[1,]     0.25 0.02165064 0.2075655 0.2924345
+[2,]     0.25 0.02165064 0.2075655 0.2924345
+
+, , P(Y = 1)
+
+      Estimate  Est.Error       Q2.5     Q97.5
+[1,] 0.1215166 0.01230944 0.09739059 0.1456427
+[2,] 0.1785315 0.01650878 0.14617487 0.2108881
+
+, , P(Y = 2)
+
+      Estimate  Est.Error      Q2.5     Q97.5
+[1,] 0.1620464 0.01691271 0.1288981 0.1951947
+[2,] 0.1931172 0.02065079 0.1526424 0.2335920
+
+, , P(Y = 3)
+
+      Estimate  Est.Error      Q2.5     Q97.5
+[1,] 0.1579051 0.01875212 0.1211516 0.1946585
+[2,] 0.1518992 0.01804530 0.1165310 0.1872673
+
+, , P(Y = 4)
+
+      Estimate  Est.Error       Q2.5     Q97.5
+[1,] 0.1278965 0.01744711 0.09370077 0.1620922
+[2,] 0.1033588 0.01421660 0.07549476 0.1312228
+
+, , P(Y = 5)
+
+      Estimate  Est.Error       Q2.5     Q97.5
+[1,] 0.1806354 0.01407211 0.15305458 0.2082162
+[2,] 0.1230934 0.01380891 0.09602843 0.1501584
+
+
+== grouped equidistant ==
+ [1] "b_x"              "b_Intercept[a,1]" "b_Intercept[a,2]" "b_Intercept[a,3]"
+ [5] "b_Intercept[a,4]" "b_Intercept[b,1]" "b_Intercept[b,2]" "b_Intercept[b,3]"
+ [9] "b_Intercept[b,4]" "delta_1"          "delta_2"         
+ Family: sratio 
+ Links: cdf = logit; disc = log
+
+Formula: y | thres(gr = g) ~ x 
+   Data: d (Number of observations: 400) 
+ Method: ML   logLik: -621.765   AIC: 1253.53   BIC: 1273.49 
+
+Regression Coefficients:
+               Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept[a,1]    -1.34      0.15    -1.64    -1.04   -8.82  < 2e-16
+Intercept[a,2]    -0.87      0.10    -1.06    -0.67   -8.65  < 2e-16
+Intercept[a,3]    -0.40      0.12    -0.64    -0.16   -3.26   0.0011
+Intercept[a,4]     0.07      0.19    -0.31     0.45    0.38   0.7068
+Intercept[b,1]    -1.56      0.16    -1.87    -1.26   -9.95  < 2e-16
+Intercept[b,2]    -1.10      0.10    -1.30    -0.90  -10.79  < 2e-16
+Intercept[b,3]    -0.64      0.12    -0.87    -0.42   -5.59  2.2e-08
+Intercept[b,4]    -0.18      0.18    -0.54     0.17   -1.01   0.3125
+x                  0.41      0.07     0.28     0.55    5.91  3.5e-09
+
+Further Distributional Parameters:
+        Estimate Est.Error l-95% CI u-95% CI
+delta_1     0.47      0.09     0.29     0.65
+delta_2     0.46      0.09     0.28     0.64
+
+Fixed dpar: disc = 1
+
+== grouped stz ==
+[1] "b_x"              "b_Intercept[a,1]" "b_Intercept[a,2]" "b_Intercept[a,3]"
+[5] "b_Intercept[a,4]" "b_Intercept[b,1]" "b_Intercept[b,2]" "b_Intercept[b,3]"
+[9] "b_Intercept[b,4]"
+
+== disc intercept warns ==
+WARNING: acat: disc has an intercept, which the likelihood cannot tell apart from the scale of the thresholds, so it, the thresholds and the coefficients of mu have no usable standard error. Write disc ~ 0 + ..., or hold the intercept with a prior, as brms does with its default set_prior("normal(0, 1)", class = "Intercept", dpar = "disc") 
+
+== delta prior ==
+delta ~ normal(0, 1)
+[1] "b_x"            "b_Intercept[1]" "b_Intercept[2]" "b_Intercept[3]"
+[5] "b_Intercept[4]" "delta"         
+
+== stz intercept prior refused ==
+ERROR: Prior target not found (class=Intercept): with threshold = 'sum_to_zero' there is no threshold vector for class "Intercept" to address. brms puts that prior on thresholds it declares before centering them, whose common location the likelihood cannot see and only the prior places; frmtmb estimates the centered thresholds directly, so that parameter does not exist here. prior = list(tau_raw = ) reaches the free directions on the internal scale 

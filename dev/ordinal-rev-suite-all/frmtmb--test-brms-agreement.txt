@@ -1,0 +1,44 @@
+lib: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb  frmtmb: C:/Users/adf44/source/r/wt-ordinal-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-agreement                                                 
+⠋ |          1 | brms-agreement                                                 
+⠼ |          5 | brms-agreement                                                 
+⠇ |          9 | brms-agreement                                                 
+⠋ |         11 | brms-agreement                                                 
+⠦ |         17 | brms-agreement                                                 
+⠋ |         21 | brms-agreement                                                 
+⠦ |         27 | brms-agreement                                                 
+⠸ |         34 | brms-agreement                                                 
+⠙ |         42 | brms-agreement                                                 
+⠙ |         52 | brms-agreement                                                 
+⠋ |         61 | brms-agreement                                                 
+⠴ |         66 | brms-agreement                                                 
+⠼ |         75 | brms-agreement                                                 
+⠴ |         86 | brms-agreement                                                 
+⠇ |         89 | brms-agreement                                                 
+⠏ |        100 | brms-agreement                                                 
+⠼ |        105 | brms-agreement                                                 
+⠇ |        109 | brms-agreement                                                 
+⠦ |        117 | brms-agreement                                                 
+⠼ |        125 | brms-agreement                                                 
+⠸ |        134 | brms-agreement                                                 
+⠧ |        138 | brms-agreement                                                 
+⠧ |        148 | brms-agreement                                                 
+⠙ |        152 | brms-agreement                                                 
+⠸ |        154 | brms-agreement                                                 the number of chains is less than 1; sampling not done
+
+⠼ |        165 | brms-agreement                                                 
+⠹ |        173 | brms-agreement                                                 
+⠴ |        176 | brms-agreement                                                 
+⠦ |        177 | brms-agreement                                                 
+⠋ |        181 | brms-agreement                                                 
+⠼ |        185 | brms-agreement                                                 
+⠴ |        186 | brms-agreement                                                 
+✔ |        187 | brms-agreement [162.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 162.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 187 ]
+RESULT lane frmtmb test-brms-agreement.R pass=187 fail=0 err=0 skip=0 warn=0
