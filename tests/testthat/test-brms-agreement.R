@@ -307,12 +307,10 @@ test_that("mgcv smooths agree with brms's Zs/Xs bases", {
   expect_design_equal(fr$linpreds[["yg.mu"]]$Z,
                       cbind(sd$Zs_1_1, sd$Zs_1_2, sd$Zs_1_3), tol = 1e-10)
 
-  # s(): same dimensions, same column space, different basis rotation.
-  # DIVERGENCE (convention): brms calls mgcv::smoothCon() with
-  # diagonal.penalty = TRUE, we do not. The models are identical - the
-  # spans below coincide - but the individual basis columns are a
-  # reparameterization of each other, so coefficient values are not
-  # comparable one to one.
+  # s(): the same basis as brms. brms calls mgcv::smoothCon() with
+  # diagonal.penalty = TRUE, and so does frmtmb since the round of
+  # 2026-10-05; before, the spans coincided and the columns did not, so
+  # a null-space coefficient was not brms's (dev/fixes-findings.md).
   sd <- brms_standata(brms::bf(yg ~ s(x)), data = dd, family = gaussian())
   fr <- frm(bf(yg ~ s(x)) + gaussian(), data = dd, dry_run = "frame")
   sm <- fr$linpreds[["yg.mu"]]$smooths[[1]]
@@ -320,7 +318,12 @@ test_that("mgcv smooths agree with brms's Zs/Xs bases", {
   expect_identical(sm$nf, as.integer(sd$Ks))
   expect_span_equal(fr$linpreds[["yg.mu"]]$Z, sd$Zs_1_1)
   expect_span_equal(cbind(fr$linpreds[["yg.mu"]]$X), cbind(sd$X, sd$Xs))
-  # and the reparameterization is exactly diagonal.penalty
+  # column for column, the wiggly and the null-space parts
+  lp <- fr$linpreds[["yg.mu"]]
+  expect_design_equal(lp$Z, sd$Zs_1_1, tol = 1e-12)
+  expect_design_equal(lp$X[, grep("[.]fx", colnames(lp$X)), drop = FALSE],
+                      sd$Xs, tol = 1e-12)
+  # and the basis is exactly diagonal.penalty's
   scl <- mgcv::smoothCon(mgcv::s(x), data = dd, absorb.cons = TRUE,
                          diagonal.penalty = TRUE)
   re2 <- mgcv::smooth2random(scl[[1]], names(dd), type = 2)

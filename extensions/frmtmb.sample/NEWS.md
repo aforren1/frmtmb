@@ -1,3 +1,27 @@
+# frmtmb.sample (development version)
+
+Needs the next frmtmb for `ord_thres_linpred()`.
+
+## Breaking changes
+
+* Through frmtmb, a smooth's null-space draws (`bs_sx_1`) are on brms's
+  scale, and a prior with `coef = "sx_1"` is about brms's parameter:
+  frmtmb now builds `s()` with brms's `diagonal.penalty = TRUE` basis.
+
+## New features
+
+* `posterior_linpred(incl_thres = TRUE)` returns brms's linear
+  predictor with the thresholds included on every ordinal family: a
+  draws by observations by thresholds array with brms's dimnames,
+  layer `k` being `disc * (thres_k - mu)` for `cumulative()` and
+  `sratio()` and `disc * (mu - thres_k)` for `cratio()` and `acat()`,
+  under every threshold structure, with `cs()` terms, and `NA` past the
+  thresholds of a `thres(gr = )` level that has fewer. As in brms it is
+  ignored with `dpar`, `nlpar` or `transform = TRUE` and on a family
+  that is not ordinal. `hurdle_cumulative()` is refused: brms returns
+  the hurdle probability beside the threshold predictors times
+  `1 - hu` there, which is the predictor of nothing.
+
 # frmtmb.sample 0.15.0
 
 Needs frmtmb 0.67.0: for `ord_delta_info()`, the ordinal families'

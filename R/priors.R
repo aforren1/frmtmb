@@ -149,6 +149,16 @@
 #' unconstrained vector, so there is no Jacobian. `lb`/`ub` are refused
 #' there, because one number cannot box a whole vector of thresholds.
 #'
+#' One threshold is addressed by its number, as brms lists it:
+#' `set_prior("normal(0, 1)", class = "Intercept", coef = "2")` is a
+#' density on the second threshold, and it replaces a class-wide
+#' density there and only there. The vector stays one entry, so the
+#' log-Jacobian of `cumulative()`'s map enters once. Under
+#' `thres(gr = )` a threshold is named by its level and its number,
+#' `group = "a", coef = "2"`. brms has no per-threshold parameter
+#' under `threshold = "equidistant"`, and the row is refused there, as
+#' in brms.
+#'
 #' `prior = list(tau_raw = prior_normal(0, 5))` reaches the same
 #' parameters on the INTERNAL scale, one entry per threshold, which is
 #' the escape hatch to use when the increments rather than the
@@ -1887,11 +1897,29 @@ prior_table <- function(spec, frame, route) {
       }
       if (!identical(type, "sum_to_zero")) {
         add("Intercept", resp = resp_lab)
+        # under flexible thresholds brms lists one row per threshold,
+        # coef = "1", "2", ..., under each level of thres(gr = ) when
+        # they are grouped; equidistant thresholds have none
+        flex <- identical(type, "flexible")
+        if (!grouped && flex) {
+          K1 <- length(frame[["par_template"]][[
+            extra_tpl_name(frame, rspec$resp_name, "tau_raw")]])
+          for (k in seq_len(K1)) {
+            add("Intercept", coef = as.character(k), resp = resp_lab)
+          }
+        }
         # one row per level of thres(gr = ), each a threshold vector of
         # its own that group = addresses, as brms lists them
         if (grouped) {
-          for (g in th[["groups"]]) {
+          for (gi in seq_along(th[["groups"]])) {
+            g <- th[["groups"]][gi]
             add("Intercept", group = g, resp = resp_lab)
+            if (flex) {
+              for (k in seq_len(th[["nthres"]][gi])) {
+                add("Intercept", coef = as.character(k), group = g,
+                    resp = resp_lab)
+              }
+            }
           }
         }
       }
@@ -2876,9 +2904,7 @@ resolve_priorlist <- function(fit, pl) {
     raw <- frame[["par_template"]][[comp]] %||% numeric(0)
     if (!length(raw)) return(NULL)
     if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
-    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
-      return(NULL)
-    }
+    if (nzchar(s$dpar) || nzchar(s$nlpar %||% "")) return(NULL)
     if (nzchar(s$resp %||% "") &&
           !identical(s$resp, rspec$resp_name)) {
       return(NULL)
@@ -2914,14 +2940,51 @@ resolve_priorlist <- function(fit, pl) {
     # alone, `first_Intercept`, centered as the whole vector would be;
     # the distance is class "delta"
     equi <- identical(type, "equidistant")
+    # brms's per-threshold rows, coef = "1", "2", ...: under flexible
+    # thresholds each is one element of the vector, under each level of
+    # thres(gr = ) when the thresholds are grouped. brms has no such
+    # parameter under equidistant thresholds and refuses the row
+    k <- NULL
+    if (nzchar(s$coef)) {
+      if (equi) {
+        frm_stop("Prior target not found (", spec_target(s), "): with ",
+                 "threshold = 'equidistant' class \"Intercept\" is the ",
+                 "first threshold alone, so it takes no coef; brms ",
+                 "refuses the row too (\"The following priors do not ",
+                 "correspond to any model parameter\"). The distance ",
+                 "between thresholds is class \"delta\"", call. = FALSE)
+      }
+      if (grouped && !nzchar(s$group)) {
+        frm_stop("Prior target not found (", spec_target(s), "): the ",
+                 "thresholds are grouped by thres(gr = ), so one ",
+                 "threshold is named by its level and its number, ",
+                 "group = and coef =, as brms lists them", call. = FALSE)
+      }
+      k <- suppressWarnings(as.integer(s$coef))
+      if (is.na(k) || !identical(as.character(k), s$coef) || k < 1L) {
+        frm_stop("Prior target not found (", spec_target(s), "): coef = ",
+                 "on class \"Intercept\" of an ordinal family numbers a ",
+                 "threshold, \"1\", \"2\", ..., as brms lists them",
+                 call. = FALSE)
+      }
+    }
+    check_k <- function(n_k) {
+      if (!is.null(k) && k > n_k) {
+        frm_stop("Prior target not found (", spec_target(s), "): the ",
+                 "threshold vector has ", n_k, " threshold",
+                 if (n_k != 1L) "s", ", so coef = \"", k, "\" names none ",
+                 "of them", call. = FALSE)
+      }
+    }
     if (!grouped) {
+      check_k(length(raw))
       return(list(list(comp = comp, idx = if (equi) 1L else seq_along(raw),
                        dist = s$dist,
                        scale = if (ordered && !equi) "ordthres" else
                          "internal",
                        link = NULL,
                        offset = ordinal_center_offset(frame, rspec),
-                       lb = s$lb, ub = s$ub)))
+                       lb = s$lb, ub = s$ub, coef_k = k)))
     }
     # one entry per group: each slice is a vector of its own, so an
     # ordered map and its Jacobian are per slice. brms does not center
@@ -2938,11 +3001,12 @@ resolve_priorlist <- function(fit, pl) {
       }
     }
     lapply(gs, function(g) {
+      check_k(lay$nthres[g])
       list(comp = comp,
            idx = if (equi) lay$rstart[g] else lay$rstart[g]:lay$rend[g],
            dist = s$dist,
            scale = if (ordered && !equi) "ordthres" else "internal",
-           link = NULL, offset = NULL, lb = s$lb, ub = s$ub)
+           link = NULL, offset = NULL, lb = s$lb, ub = s$ub, coef_k = k)
     })
   }
 
@@ -3033,8 +3097,26 @@ resolve_priorlist <- function(fit, pl) {
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
         for (e in ord_th) {
+          key <- nm_of(e$comp, e$idx)
+          if (!is.null(e$coef_k)) {
+            # one threshold of the vector: its density replaces the
+            # class-wide one there and only there. The vector stays one
+            # entry, so an ordered map's log-Jacobian enters once
+            # (prior_logdens()), as Stan's `ordered` type adds it once
+            old <- assigned[[key]]
+            dists <- if (is.null(old)) {
+              rep(list(NULL), length(e$idx))
+            } else if (identical(old$dist$kind, "vec")) {
+              old$dist$dists
+            } else {
+              rep(list(old$dist), length(e$idx))
+            }
+            dists[e$coef_k] <- list(e$dist)
+            e$dist <- list(kind = "vec", dists = dists)
+          }
+          e$coef_k <- NULL
           claim(e$comp, e$idx)
-          assigned[[nm_of(e$comp, e$idx)]] <- e
+          assigned[[key]] <- e
         }
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
@@ -3514,6 +3596,17 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
 #'
 #' @noRd
 prior_base_logdens <- function(x, dist) {
+  if (identical(dist$kind, "vec")) {
+    # one density per element of a threshold vector, NULL for an
+    # element with none (a coef row without a class-wide row)
+    out <- 0
+    for (k in seq_along(dist$dists)) {
+      if (!is.null(dist$dists[[k]])) {
+        out <- out + prior_base_logdens(x[k], dist$dists[[k]])
+      }
+    }
+    return(out)
+  }
   switch(dist$kind,
     normal = RTMB::dnorm(x, dist$location, dist$scale, log = TRUE),
     t = RTMB::dt((x - dist$location) / dist$scale, df = dist$df,

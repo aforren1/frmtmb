@@ -28,9 +28,12 @@ error naming it, rather than silently changing nothing.}
 
 \item{full}{If \code{TRUE}, include covariance parameters (\code{theta}),
 named as in \code{confint()} (the glmmTMB \code{vcov(full = TRUE)}
-convention). \code{full = TRUE} keeps the INTERNAL names, because it is
-the matrix a delta-method calculation on \code{confint()}'s rows needs;
-the default block takes brms's.}
+convention). \code{full = TRUE} keeps the INTERNAL parameters, because
+it is the matrix a delta-method calculation on \code{confint()}'s rows
+needs; the default block takes brms's names. An ordinal fit's
+thresholds are named there as \code{confint()} names them, by what they
+are: \code{Intercept[1]}, \code{delta}, or a transform such as
+\code{log(Intercept[2] - Intercept[1])}.}
 
 \item{cluster}{Optional clustering factor. When given, the result is
 \code{\link[=vcov_cluster]{vcov_cluster()}}'s cluster-robust covariance instead of the

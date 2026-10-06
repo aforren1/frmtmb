@@ -1879,7 +1879,7 @@ check_frame_variables <- function(rhs, data, env) {
 #' matched to the data's by name.
 #'
 #' @noRd
-frame_raw_vars <- function(mf, data, rhs) {
+frame_raw_vars <- function(mf, data, rhs, env = NULL) {
   if (is.null(rhs) || !is.data.frame(data)) return(NULL)
   off_only <- character(0)
   other <- character(0)
@@ -1894,11 +1894,26 @@ frame_raw_vars <- function(mf, data, rhs) {
   }
   walk(rhs, FALSE)
   v <- setdiff(unique(other), names(mf))
-  v <- intersect(v, names(data))
-  if (!length(v)) return(NULL)
   rows <- match(rownames(mf), rownames(data))
   if (anyNA(rows)) return(NULL)
+  # a predictor keeps R's lookup in the formula environment (user
+  # decision of 2026-09-30), so a variable found there, one value per
+  # row of the data, is a raw variable as a column is; a function or a
+  # constant of another length is not
+  from_env <- list()
+  if (!is.null(env)) {
+    for (w in setdiff(v, names(data))) {
+      x <- tryCatch(get(w, envir = env), error = function(e) NULL)
+      if ((is.numeric(x) || is.factor(x) || is.character(x) ||
+             is.logical(x)) && is.null(dim(x)) && length(x) == nrow(data)) {
+        from_env[[w]] <- x[rows]
+      }
+    }
+  }
+  v <- intersect(v, names(data))
+  if (!length(v) && !length(from_env)) return(NULL)
   out <- data[rows, v, drop = FALSE]
+  for (w in names(from_env)) out[[w]] <- from_env[[w]]
   rownames(out) <- rownames(mf)
   out
 }
@@ -3107,8 +3122,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # change the fit: for t2 `X` and `S` are bit-identical either way
         # (`modCon >= 3` only sets `sm$Cp <- NULL`), and for s() `Cp` is
         # already NULL so the argument is inert.
+        #
+        # diagonal.penalty = TRUE is brms's (data_sm(), frame_basis_sm()
+        # since brms 2.8.7). It reparameterizes a single-penalty smooth
+        # so the penalty is the identity on its range, which fixes the
+        # scale of the null-space column: without it frmtmb's `sx_1` was
+        # brms's coefficient times a data-dependent factor (5.0 to 7.7
+        # on gamSim data, of either sign), so a prior or a hypothesis on
+        # it meant another parameter. The random part, and so the fit,
+        # does not change. mgcv ignores the flag for a smooth with
+        # several penalties (t2()), as it does in brms's call.
         scl <- mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
-                               modCon = 3)
+                               modCon = 3, diagonal.penalty = TRUE)
         for (sm in scl) {
           re2 <- mgcv::smooth2random(sm, names(mf), type = 2)
           if (isTRUE(re2$fixed)) {
@@ -3921,7 +3946,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          # a refit inside the package keeps the fit's choice
          drop_unused_levels = drop_unused_levels,
          data_frame = mf,
-         raw_vars = frame_raw_vars(mf, data, rhs_comb),
+         raw_vars = frame_raw_vars(mf, data, rhs_comb, env),
          na_action = attr(mf, "na.action"),
          # subset(): the rows of `data_frame` each such response uses,
          # and the rows before a univariate model's cut, for nobs()

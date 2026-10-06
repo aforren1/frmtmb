@@ -294,7 +294,14 @@ autoscale_prefit_converged <- function(sfit) {
   op <- sfit$opt
   if (!is.finite(op$objective) || !all(is.finite(op$par))) return(FALSE)
   if (!length(op$par)) return(identical(as.integer(op$convergence), 0L))
-  H <- tryCatch(stats::optimHess(op$par, sfit$obj$fn, sfit$obj$gr),
+  # in the pre-fit's own optimizer units, as autoscale_fit_sound() reads
+  # a fit: a smooth's null-space column has a small spread in brms's
+  # basis (smooth_fx_units()), and in raw units its coefficient alone
+  # put the block's condition ratio under the cutoff
+  u <- sfit$par_units %||% rep(1, length(op$par))
+  H <- tryCatch(stats::optimHess(op$par / u,
+                                 function(q) sfit$obj$fn(q * u),
+                                 function(q) sfit$obj$gr(q * u) * u),
                 error = function(e) NULL)
   if (is.null(H) || !all(is.finite(H))) return(FALSE)
   pd <- function(M) {
@@ -498,5 +505,50 @@ autoscale_units <- function(frame, plan, par_names) {
     out <- c(out, u)
   }
   stopifnot(length(out) == length(par_names))
+  out
+}
+
+#' Optimizer units for the null-space coefficients of the smooths:
+#' `1/s_j` for a null-space column with sample SD `s_j`, 1 elsewhere,
+#' aligned with `names(obj$par)`; `NULL` when the model has none.
+#'
+#' brms's basis (`diagonal.penalty = TRUE`, see the frame) gives these
+#' columns a small spread, 0.13 to 0.16 on gamSim data, so their
+#' coefficients are large. nlminb is not scale invariant, and in that
+#' geometry it ran a smoothing SD that belongs at zero far down its log
+#' scale, -90 where the old basis stopped at -8.5, until the outer
+#' Hessian was singular and every fixed-effect standard error NaN: 17
+#' of 140 gamSim fits against 3 (dev/fixes-sx-conv3.R, -conv6.R). The
+#' reported coefficient stays brms's; only the steps the optimizer
+#' takes, and the gradient its convergence check reads, are in unit-SD
+#' coordinates, as autoscale's are.
+#'
+#' @noRd
+smooth_fx_units <- function(frame, par_names) {
+  unit <- lapply(frame[["par_template"]], function(v) rep(1, length(v)))
+  hit <- FALSE
+  for (lp in frame[["linpreds"]]) {
+    X <- lp[["X"]]
+    idx <- lp[["idx"]]
+    if (is.null(X) || length(idx) != ncol(X)) next
+    for (si in lp[["smooths"]] %||% list()) {
+      for (j in si[["xf_idx"]] %||% integer(0)) {
+        s <- stats::sd(as.numeric(X[, j]))
+        if (!is.finite(s) || s <= 0) next
+        unit[[lp[["par"]]]][idx[j]] <- 1 / s
+        hit <- TRUE
+      }
+    }
+  }
+  if (!hit) return(NULL)
+  out <- numeric(0)
+  for (cp in unique(par_names)) {
+    u <- unit[[cp]]
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      u <- u[-frame[["betad_fixed_idx"]]]
+    }
+    out <- c(out, u)
+  }
+  if (length(out) != length(par_names)) return(NULL)
   out
 }

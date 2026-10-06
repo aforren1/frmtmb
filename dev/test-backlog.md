@@ -1627,6 +1627,16 @@ them, and the ledger records the ones the ported suite reaches.
 
 ### Open - low
 
+- **`fixef()` and `summary()` report NaN standard errors without a
+  warning** when the outer Hessian is singular, as at a smoothing SD on
+  its boundary; only `vcov()` warns. 3 of 140 gamSim smooth fits on
+  0.67.0, 5 of 140 on lane fixes' build (`dev/fixes-sx-conv3.R`,
+  `-conv5.R`). Lane fixes, punch round 1.
+- **conditional_effects(method = "posterior_predict")'s `estimate__`**
+  is the expected response where brms's is the median of its
+  predictive draws, on every family (poisson at x = -1: 1.46 against
+  brms's 1; `dev/fixes-ce-pred.R`). The bands agree. A divergence
+  until decided. Lane fixes, punch round 1, m8.
 - **A fixed `disc` in `variables()`**: brms lists `disc` (a transformed
   parameter, 1) on every ordinal fit; frmtmb lists no fixed dpar for any
   family. Lane ordinal, "Not done".

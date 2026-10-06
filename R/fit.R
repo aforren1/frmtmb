@@ -135,6 +135,20 @@
 #'   objective AT the starting values, and a nonlinear body is rarely
 #'   defined at zero. [par_template()] shows the names and the values
 #'   in force.
+#'
+#'   No start identifies a nonlinear model in which a combination of the
+#'   nonlinear parameters' coefficients changes no fitted value, as when
+#'   two of them enter only through their sum or difference and their
+#'   formulas share a term (`a + b` with `a ~ 1 + x` and `b ~ 1 + x`).
+#'   `frm()` fits it and then warns, naming the coefficients, when the
+#'   likelihood at the optimum is flat along such a combination (its
+#'   curvature below 1e-9 of the largest, on the Hessian of those
+#'   coefficients scaled to unit diagonal). A curved ridge that does not
+#'   flatten that far at the optimum (`exp(a)^k`) is not flagged there;
+#'   `vcov()` and `summary()` then report its standard errors as not
+#'   finite. A prior that reaches every flat direction identifies the
+#'   model, as brms's priors do; the split along that direction is then
+#'   set by the prior alone, so a weak prior gives very wide intervals.
 #' @param quadrature If `TRUE`, marginalize each scalar random effect by
 #'   adaptive Gauss-Kronrod quadrature instead of the Laplace
 #'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
@@ -1214,6 +1228,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   par_units <- if (!is.null(ascale)) {
     autoscale_units(frame, ascale, names(obj$par))
   }
+  su <- smooth_fx_units(frame, names(obj$par))
+  if (!is.null(su)) par_units <- (par_units %||% 1) * su
   # the optimizer trace rides on the optimizer's own control list, so
   # keep it out of the control stored on the fit (refit and friends
   # reuse that list and must not inherit a trace)
@@ -1314,12 +1330,22 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          control = control, quadrature = isTRUE(quadrature),
          importance = imp_record(imp),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
+         # whether autoscale's plan steered the optimizer; par_units also
+         # carries a smooth's null-space units (smooth_fx_units()), so it
+         # cannot say this, and diagnose() reads it
+         autoscaled = !is.null(ascale),
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
   if (!is.null(imp)) {
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
+  }
+  # on the user's own call only: a refit, the autoscale pre-fit or a
+  # bootstrap replicate would repeat it
+  if (announce_start && is.null(imp) && is.null(integrate)) {
+    flat_msg <- nl_flat_message(obj, opt, frame)
+    if (!is.null(flat_msg)) frm_warning(flat_msg, call. = FALSE)
   }
   # the box the optimizer ran under, which is the caller's bounds MERGED
   # with any a prior spelled; fit$lower and fit$upper hold only the
@@ -2139,6 +2165,30 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
   cold <- outer_from_template(make_start(frame, start, prior_entries),
                               obj, frame)
   if (differs(cold)) out[["the cold starting values"]] <- cold
+  # A prior's location places every coefficient of a nonlinear
+  # parameter, its slopes too, and a slope at a class-wide location can
+  # put the predictor outside the family's domain: fit2's normal(2, 2)
+  # on `a ~ Age` made mu = 2 + 2 Age, negative on Gamma("identity")
+  # (ledger row brmsfit-methods:955, dev/fixes-u955.R). The intercepts
+  # keep their placed values and the slopes start at zero. Only ever
+  # tried after a failure, so no fit that converged moves.
+  placed <- prior_nl_starts(frame, prior_entries)
+  if (length(placed) && is.null(start[["beta"]])) {
+    nms <- par_template_names(frame[["par_template"]][["beta"]], "beta")
+    slope <- vapply(placed, function(p) {
+      !grepl("(Intercept)", nms[p$idx], fixed = TRUE)
+    }, NA)
+    if (any(slope)) {
+      tpl2 <- make_start(frame, start, prior_entries)
+      for (p in placed[slope]) tpl2[["beta"]][p$idx] <- 0
+      flat <- outer_from_template(tpl2, obj, frame)
+      if (differs(flat) && is.finite(tryCatch(obj$fn(flat),
+                                              error = function(e) NA))) {
+        out[["the placed intercepts with the nonlinear slopes at zero"]] <-
+          flat
+      }
+    }
+  }
   if (isTRUE(control$profile)) {
     plain <- tryCatch({
       o <- RTMB::MakeADFun(nll, template, random = random, map = map,
@@ -2499,6 +2549,112 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   }
   best
 }
+
+#' Warn when the likelihood is flat, at the optimum, along a
+#' combination of the nonlinear parameters' coefficients.
+#'
+#' The outer Hessian block of those coefficients, by central differences
+#' of the exact gradient at the fitted point (2 k gradients for k
+#' coefficients), is scaled to unit diagonal; a flat direction is an
+#' eigenvalue below `nl_flat_tol` of the largest. The fitted point is
+#' scaled to the data by construction, which a check before the fit is
+#' not: two such checks refused identified models, one through
+#' `stats::D()` and one at fixed points where natural-unit bodies
+#' underflowed (lane fixes, punch rounds 1 and 2). This one only warns,
+#' and only on the user's own call.
+#'
+#' The tolerance is measured (dev/fixes-p2-flat.R): exact linear ridges
+#' (`a + b`, `a - b`, `a + 2 * b` with shared terms) give 8.7e-17 to
+#' 2.1e-16, `a * b` with two intercepts 3.9e-11; every identified model
+#' tried, natural units and near-collinear designs included, 3.4e-6 or
+#' more. A curved ridge whose differenced Hessian is noisier (`a +
+#' exp(b)` with intercept-only `b`, 2.3e-7; `exp(a)^k`, 4.6e-7) is not
+#' flagged here; the Hessian warnings of vcov() and summary() still
+#' see it. A coefficient whose diagonal is exactly 0 is left to
+#' `flat_par_note()`, which names it.
+#'
+#' Returns the message, or `NULL`.
+#'
+#' @noRd
+nl_flat_message <- function(obj, opt, frame) {
+  lps <- frame[["linpreds"]] %||% list()
+  bodies <- Filter(function(lp) !is.null(lp[["nl_body"]]), lps)
+  if (!length(bodies) || !length(opt$par)) return(NULL)
+  cols <- integer(0)
+  labels <- character(0)
+  for (lp in bodies) {
+    r <- lp[["resp"]]
+    for (p in intersect(lp[["nl_pars"]] %||% character(0),
+                        all.vars(lp[["nl_body"]]))) {
+      lpp <- lps[[linpred_key(r, p)]]
+      if (is.null(lpp) || !is.null(lpp[["constant"]]) ||
+            !identical(lpp[["par"]], "beta") || !length(lpp[["idx"]])) {
+        next
+      }
+      cn <- colnames(lpp[["X"]])[seq_along(lpp[["idx"]])]
+      cols <- c(cols, lpp[["idx"]])
+      labels <- c(labels, paste0(p, "_", sub("(Intercept)", "Intercept",
+                                             cn, fixed = TRUE)))
+    }
+  }
+  keep <- !duplicated(cols)
+  cols <- cols[keep]
+  labels <- labels[keep]
+  bpos <- which(names(obj$par) == "beta")
+  if (length(cols) < 2L ||
+        length(bpos) != length(frame[["par_template"]][["beta"]])) {
+    return(NULL)
+  }
+  pos <- bpos[cols]
+  p0 <- opt$par
+  env <- obj$env
+  # the differenced points must not become the fit's state: TMB keeps
+  # the best point it has evaluated, and sdreport() reads it
+  saved <- mget(intersect(c("last.par", "last.par.best", "value.best"),
+                          ls(env, all.names = TRUE)), envir = env)
+  on.exit({
+    for (nm in names(saved)) assign(nm, saved[[nm]], envir = env)
+  }, add = TRUE)
+  H <- tryCatch({
+    H <- matrix(NA_real_, length(pos), length(pos))
+    for (j in seq_along(pos)) {
+      h <- 1e-4 * max(abs(p0[pos[j]]), 1)
+      up <- p0
+      dn <- p0
+      up[pos[j]] <- up[pos[j]] + h
+      dn[pos[j]] <- dn[pos[j]] - h
+      H[, j] <- (obj$gr(up)[pos] - obj$gr(dn)[pos]) / (2 * h)
+    }
+    (H + t(H)) / 2
+  }, error = function(e) NULL)
+  if (is.null(H) || !all(is.finite(H))) return(NULL)
+  dg <- sqrt(abs(diag(H)))
+  ok <- dg > 0
+  if (sum(ok) < 2L) return(NULL)
+  S <- H[ok, ok, drop = FALSE] / outer(dg[ok], dg[ok])
+  ev <- eigen(S, symmetric = TRUE)
+  ratio <- abs(ev$values) / max(abs(ev$values))
+  flat <- ratio < nl_flat_tol
+  if (!any(flat)) return(NULL)
+  v <- ev$vectors[, flat, drop = FALSE]
+  load <- labels[ok][apply(abs(v) > 0.1, 1L, any)]
+  pars <- unique(sub("_.*$", "", load))
+  paste0("The coefficients ", paste(load, collapse = ", "),
+         " of the nonlinear parameter", if (length(pars) > 1L) "s", " ",
+         paste0("'", pars, "'", collapse = ", "), " are not identified: ",
+         "at the optimum the likelihood is flat along a combination of ",
+         "them (its curvature there is below ", format(nl_flat_tol),
+         " of the largest), so the estimates are one point of many and ",
+         "their standard errors are not finite. Two parameters that ",
+         "enter only through their sum or difference while their ",
+         "formulas share terms do this (a + b with a ~ 1 + x and ",
+         "b ~ 1 + x). Drop the shared terms from all but one formula, or ",
+         "put a prior on one parameter's coefficients, which then alone ",
+         "sets the split")
+}
+
+#' @noRd
+nl_flat_tol <- 1e-9
 
 #' Does an optimizer failure message read like an undefined objective?
 #'

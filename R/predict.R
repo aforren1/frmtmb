@@ -2762,6 +2762,89 @@ ord_linear_per_threshold <- function(object, eta, newdata, resp) {
   out
 }
 
+#' brms's linear predictor with the thresholds included, the quantity
+#' `posterior_linpred(incl_thres = TRUE)` returns per draw: an
+#' `n x K1` matrix whose column `k` is `disc * (tau_k - (eta + cs_k))`
+#' for `cumulative()` and `sratio()`, and `disc * ((eta + cs_k) - tau_k)`
+#' for `cratio()` and `acat()`, the argument brms's `dcumulative()`,
+#' `dsratio()`, `dcratio()` and `dacat()` pass to the link at
+#' `link = "identity"`. Under `thres(gr = )` a row reads its level's
+#' thresholds, and a level with fewer than `K1` of them is `NA` in the
+#' columns past its own, as in brms. Evaluated at `object`'s estimates,
+#' so frmtmb.sample calls it once per draw.
+#'
+#' `hurdle_cumulative()` is refused: brms returns the hurdle
+#' probability as a column `0` beside the threshold predictors times
+#' `1 - hu` (`posterior_epred_hurdle_cumulative()` run at the identity
+#' link), which mixes a probability with linear predictors and is the
+#' predictor of nothing (dev/fixes-thres-brms.R).
+#'
+#' @noRd
+ord_thres_linpred <- function(object, newdata = NULL, resp = NULL,
+                              re_formula = NULL, allow_new_levels = FALSE) {
+  rn <- resp %||% names(object$spec$responses)[1L]
+  rspec <- object$spec$responses[[rn]]
+  fam <- rspec$family
+  sgn <- switch(fam[["family"]] %||% "", cumulative = 1, sratio = 1,
+                cratio = -1, acat = -1, NULL)
+  if (is.null(sgn)) {
+    frm_stop("posterior_linpred(incl_thres = TRUE) is refused for family '",
+             fam[["family"]], "'. ",
+             if (identical(fam[["family"]], "hurdle_cumulative")) {
+               paste0("brms 2.23.0 returns the hurdle probability as a ",
+                      "column 0 beside the threshold predictors times ",
+                      "1 - hu, which is the linear predictor of nothing. ")
+             },
+             "Read the latent predictor with incl_thres = FALSE and the ",
+             "thresholds from posterior_summary()", call. = FALSE)
+  }
+  lp <- object$frame[["linpreds"]][[linpred_key(rn, "mu")]]
+  pl <- function(dp, type) {
+    as.numeric(frm_linpred(object, newdata = newdata, resp = rn, dpar = dp,
+                           re_formula = re_formula, type = type,
+                           allow_new_levels = allow_new_levels))
+  }
+  eta <- pl("mu", "link")
+  disc <- if (is.null(object$frame[["linpreds"]][[linpred_key(rn,
+                                                               "disc")]])) {
+    fam[["fixed_dpars"]][["disc"]] %||% 1
+  } else {
+    pl("disc", "response")
+  }
+  tau <- ord_threshold_values(fam, as.numeric(fit_extras(object,
+                                                         rn)[["tau_raw"]]))
+  th <- fam[["thres"]]
+  lay <- thres_layout(th[["nthres"]] %||% length(tau),
+                      th[["type"]] %||% "flexible")
+  K1 <- lay$K1max
+  # the thresholds and the cs() part are built on the fitted rows and
+  # padded the way frm_linpred() pads eta in sample
+  n_fit <- if (is.null(newdata)) object$frame[["n_obs"]] else nrow(newdata)
+  gi <- if (thres_grouped(fam)) {
+    thres_row_groups(ord_prob_aterms(object, rspec, newdata), n_fit)
+  } else {
+    rep(1L, n_fit)
+  }
+  Tm <- matrix(NA_real_, n_fit, K1)
+  for (g in seq_len(lay$G)) {
+    rows <- which(gi == g)
+    k <- lay$nthres[g]
+    if (length(rows) && k) {
+      Tm[rows, seq_len(k)] <- matrix(tau[lay$start[g]:lay$end[g]],
+                                     length(rows), k, byrow = TRUE)
+    }
+  }
+  CS <- ord_cs_offsets(object, lp, newdata, n_fit, K1)
+  if (is.null(newdata)) {
+    Tm <- napred(object, Tm)
+    if (!is.null(CS)) CS <- napred(object, CS)
+  }
+  if (is.null(CS)) CS <- 0
+  out <- sgn * disc * (Tm - eta - CS)
+  dimnames(out) <- NULL
+  out
+}
+
 #' The standard error of a fitted value, or `NULL` where none is
 #' available.
 #'

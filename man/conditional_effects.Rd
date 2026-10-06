@@ -73,11 +73,13 @@ aliases. \code{"predict"}: prediction intervals - quantile bands from
 \code{re_formula = NA}), around the expected response on the same
 scale as the draws (a count under \code{trials()}, the truncated mean
 under \code{trunc()}). The
-draws respect the response's addition terms: literal \code{trunc()}
-bounds apply, and \code{trials()}, \code{se()} or variable \code{trunc()} bounds
-must be pinned in \code{conditions} (a grid row is an artificial
-observation, so a reference value for those is meaningless and is
-an error rather than a silent default).}
+draws respect the response's addition terms. As in brms, a
+\code{trials()} variable that \code{conditions} does not set is held at 1,
+and the variable of an \code{se()} term or a \code{trunc()} bound at its
+mean, like every other variable. An expression bound is evaluated
+on the grid, where the response is at its mean too, so
+\code{trunc(lb = min(y) - 1)} is \code{mean(y) - 1}. Set the variable in
+\code{conditions} for a bound of your choice.}
 
 \item{band}{How the confidence band is built: \code{"wald"} (default,
 the delta method on the scale the band is symmetric on),

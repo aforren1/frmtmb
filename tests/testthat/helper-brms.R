@@ -176,6 +176,17 @@ brms_coef_to_frm <- function(x) {
 
 # Population-level effects for one linear predictor. The suffix is the
 # dpar or nlpar brms appended to the parameter name; a bare "b" is mu.
+# frmtmb's estimates of brms's design columns `cn`, by name. brms's
+# rename() spells a transformed column `polyz21` where frmtmb keeps
+# `poly(z, 2)1`, so a name that does not match as it stands is matched
+# in brms's spelling.
+brms_fe_cols <- function(fe, cn) {
+  idx <- match(brms_coef_to_frm(cn), names(fe))
+  miss <- is.na(idx)
+  if (any(miss)) idx[miss] <- match(cn[miss], brms_rename(names(fe)))
+  unname(fe[idx])
+}
+
 brms_dpar_of <- function(sfx) if (is.na(sfx) || !nzchar(sfx)) "mu" else sfx
 
 brms_X_of <- function(sdat, sfx) {
@@ -454,7 +465,7 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       sfx <- brms_dpar_of(sub("^b_?", "", nm))
       fe <- brms_fe_of(fit, sfx)
       cn <- brms_Xc_cols(sdat, sfx)
-      out[[nm]] <- array(unname(fe[brms_coef_to_frm(cn)]), length(cn))
+      out[[nm]] <- array(brms_fe_cols(fe, cn), length(cn))
     } else if (grepl("^(first_)?Intercept_[0-9]+$", nm) ||
                  grepl("^first_Intercept$", nm)) {
       # an ordinal threshold vector of one level of thres(gr = ), whole
@@ -472,7 +483,7 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       x <- brms_X_of(sdat, sfx)
       fe <- brms_fe_of(fit, sfx)
       cn <- brms_Xc_cols(sdat, sfx)
-      shift <- sum(colMeans(x)[cn] * unname(fe[brms_coef_to_frm(cn)]))
+      shift <- sum(colMeans(x)[cn] * brms_fe_cols(fe, cn))
       if (identical(sfx, "mu") && !is.null(sdat[["nthres"]])) {
         # ordinal: Intercept is the threshold vector, X carries no
         # intercept column, and the centering enters with the opposite
@@ -662,11 +673,11 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
     } else if (grepl("^zs_", nm)) {
       # brms builds s = sds[j] * zs, so zs is the wiggly part divided by
       # its own SD, as in the z rule for a group with one coefficient,
-      # but first the coefficients are put in brms's basis: brms calls
-      # mgcv::smoothCon() with diagonal.penalty = TRUE and frmtmb does
-      # not, so for s() the two bases are the same columns in the
-      # opposite order. The map has to be orthogonal or the two i.i.d.
-      # priors are not the same prior, and brms_basis_map() checks that.
+      # with the coefficients put in brms's basis first. Both packages
+      # call mgcv::smoothCon() with diagonal.penalty = TRUE, so for s()
+      # the map is the identity; it has to be orthogonal or the two
+      # i.i.d. priors are not the same prior, and brms_basis_map()
+      # checks that.
       ip <- brms_idx_parts(nm, "zs")
       bk <- brms_smooth_term(fit, ip$dpar, ip$idx[[1]])[[ip$idx[[2]]]]
       sdv <- sqrt(brms_block_cov(fit, bk)[1, 1])

@@ -60,6 +60,83 @@ outer_par_map <- function(fit) {
 #' @noRd
 outer_par_names <- function(fit) outer_par_map(fit)$names
 
+#' The names `confint()` and `vcov(full = TRUE)` print for the outer
+#' parameters: `outer_par_names()`, with an ordinal fit's thresholds and
+#' `cs()` coefficients under the names of what they are.
+#'
+#' The template holds those as `tau_raw_<k>` and `bcs<j>_<k>`, which say
+#' nothing a user can read. Where the internal parameter IS a reported
+#' one, it gets that name, as `fixef()` and brms spell it:
+#' `Intercept[1]`, `Intercept[a,2]`, `delta`, a `cs()` row `z[1]`.
+#' Where it is a transform of them, the name says the transform, so a
+#' row never carries a name its value does not have: `cumulative()`
+#' holds its later thresholds as log increments,
+#' `log(Intercept[2] - Intercept[1])`, and its equidistant distance as
+#' `log(delta)`. The interval stays on the internal scale, as every
+#' `confint()` row is. A family from another package keeps the
+#' template names.
+#'
+#' @noRd
+outer_par_labels <- function(fit) {
+  nm <- outer_par_names(fit)
+  lab <- ord_internal_labels(fit)
+  hit <- match(nm, names(lab))
+  nm[!is.na(hit)] <- lab[hit[!is.na(hit)]]
+  nm
+}
+
+#' `outer_par_labels()`'s map for the ordinal blocks, named by the
+#' template names it replaces.
+#'
+#' @noRd
+ord_internal_labels <- function(fit) {
+  out <- character(0)
+  ex <- tryCatch(brms_extra_fixef(fit), error = function(e) list())
+  if (!length(ex)) return(out)
+  dl <- ord_delta_info(fit)
+  builtin <- c("cumulative", "sratio", "cratio", "acat", "hurdle_cumulative")
+  for (e in ex) {
+    raw_n <- length(fit$frame[["par_template"]][[e$comp]])
+    if (!raw_n) next
+    tnm <- paste0(e$comp, "_", seq_len(raw_n))
+    if (!identical(e$cls, "b")) {
+      # a cs() block: the internal vector is the reported one
+      if (length(e$names) == raw_n) out[tnm] <- e$names
+      next
+    }
+    lp <- Filter(function(l) {
+      identical(extra_tpl_name(fit$frame, l[["resp"]], "tau_raw"),
+                e$comp) && identical(l[["dpar"]], "mu")
+    }, fit$frame[["linpreds"]])
+    if (!length(lp)) next
+    fam <- brms_lp_family(fit, lp[[1L]])
+    if (!fam[["family"]] %in% builtin) next
+    th <- fam[["thres"]]
+    type <- th[["type"]] %||% "flexible"
+    lay <- thres_layout(th[["nthres"]] %||% length(e$names), type)
+    ordered <- fam[["family"]] %in% ord_ordered_families
+    dn <- vapply(Filter(function(d) identical(d$comp, e$comp), dl),
+                 `[[`, "", "name")
+    incr <- function(t) {
+      k <- length(t)
+      paste0("log(", t[-1L], " - ", t[-k], ")")
+    }
+    lab <- unlist(lapply(seq_len(lay$G), function(g) {
+      t <- e$names[lay$start[g]:lay$end[g]]
+      k <- lay$nthres[g]
+      switch(type,
+        flexible = if (ordered) c(t[1L], incr(t)) else t,
+        equidistant = c(t[1L], if (ordered) {
+          paste0("log(", dn[g], ")")
+        } else dn[g]),
+        sum_to_zero = if (k < 2L) character(0) else
+          if (ordered) incr(t) else t[-k])
+    }))
+    if (length(lab) == raw_n) out[tnm] <- lab
+  }
+  out
+}
+
 ## Addressing a parameter by name. Three vocabularies meet here: the
 ## internal names of outer_par_map() (`tarsus_(Intercept)`, `theta_1`),
 ## the parenthesis-free spelling hypothesis() and variables() use
@@ -246,6 +323,31 @@ resolve_par_index <- function(fit, parm, what) {
   # below name a different scale and say so
   idx <- apply_nlpar_alias(fit, parm, idx)
   if (anyNA(idx)) {
+    # the printed name of an ordinal threshold or cs() row, with or
+    # without brms's `b_` (`b_Intercept[1]`, as variables() spells it),
+    # names the same internal parameter, so it resolves silently
+    lab <- outer_par_labels(fit)
+    lab_own <- ifelse(lab == nm, NA_character_, lab)
+    hit <- match(parm, lab_own)
+    hit2 <- match(sub("^b_", "", parm), lab_own)
+    hit[is.na(hit)] <- hit2[is.na(hit)]
+    took <- which(is.na(idx) & !is.na(hit))
+    idx[took] <- hit[took]
+    # `delta` of an ordered family is held as log(delta): an alias that
+    # names another scale, said as the sd aliases say it
+    dl <- match(paste0("log(", parm, ")"), lab_own)
+    took <- which(is.na(idx) & !is.na(dl))
+    if (length(took)) {
+      idx[took] <- dl[took]
+      frm_message(what, "(): ",
+                  paste0("'", parm[took], "' is ", lab[dl[took]],
+                         collapse = ", "),
+                  ". The result is on that parameter's internal ",
+                  "(unconstrained) scale, not the natural one; fixef() ",
+                  "and hypothesis() report the natural scale.")
+    }
+  }
+  if (anyNA(idx)) {
     # brms's `b_` spelling, which variables() and hypothesis() now use,
     # is a spelling of one coefficient too, so it resolves silently
     # a natural-scale name such as sigma is a transform of its
@@ -273,6 +375,22 @@ resolve_par_index <- function(fit, parm, what) {
     }
   }
   if (anyNA(idx)) {
+    # a threshold of an ordinal family that holds it through a transform
+    # (cumulative()'s log increments, a sum-to-zero vector) is brms's
+    # name for a quantity that is no single internal parameter here
+    thr <- unlist(lapply(tryCatch(brms_extra_fixef(fit),
+                                  error = function(e) list()), `[[`,
+                         "names"))
+    tb <- parm[is.na(idx) & sub("^b_", "", parm) %in% thr]
+    if (length(tb)) {
+      frm_stop("'", tb[1L], "' is a threshold, and this ordinal fit holds ",
+               "it through a transform of its internal parameters (the ",
+               "rows of confint() say which), so it has no row of its ",
+               "own. fixef() reports every threshold with its standard ",
+               "error, and hypothesis(fit, \"", sub("^b_", "", tb[1L]),
+               " = 0\") gives its delta-method interval (method = ",
+               "\"boot\" a bootstrap one)", call. = FALSE)
+    }
     bad <- parm[is.na(idx)]
     known <- variables(fit)
     if (any(bad %in% known)) {
@@ -289,7 +407,7 @@ resolve_par_index <- function(fit, parm, what) {
     }
     frm_stop("Unknown parameter(s) in ", what, "(parm =): ",
              paste(bad, collapse = ", "), ". Available: ",
-             paste(nm, collapse = ", "),
+             paste(outer_par_labels(fit), collapse = ", "),
              ". Parentheses may be dropped, intercept-only nonlinear ",
              "parameters may be named bare, and the one-to-one natural-scale ",
              "names of variables() (sd_<group>__<term>, and a correlation ",
@@ -303,6 +421,16 @@ resolve_par_index <- function(fit, parm, what) {
 #'
 #' Covariance parameters (`theta_*`) are reported on their internal
 #' (unconstrained) scale.
+#'
+#' An ordinal fit's thresholds and `cs()` coefficients are internal
+#' parameters too, and each row is named by what it is. Where the
+#' internal parameter is a threshold or brms's `delta`, the row has
+#' that name, as [fixef()] and brms spell it (`Intercept[1]`,
+#' `Intercept[a,2]`, `delta`); `b_Intercept[1]` and the template name
+#' `tau_raw_1` address it too. Where it is a transform, the name says
+#' which: `cumulative()` holds its later thresholds as log increments,
+#' `log(Intercept[2] - Intercept[1])`, and its equidistant distance as
+#' `log(delta)`, which `parm = "delta"` addresses with a message.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param parm Parameter names (see `rownames` of the Wald result) or
@@ -402,7 +530,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
              "method = '", method, "' does not go through a covariance ",
              "matrix", call. = FALSE)
   }
-  nm <- outer_par_names(object)
+  nm <- outer_par_labels(object)
   est <- object$opt$par
   a <- (1 - level) / 2
 
@@ -1350,9 +1478,11 @@ diagnose <- function(fit, quiet = FALSE) {
       # 1.685 on an autoscaled fit with a bound (seed 9202,
       # dev/gradcheck-rev-03-probe.R row B2).
       if (!is.null(fit$par_units) && !all(fit$par_units == 1)) {
-        cat("  This fit was standardized internally, so 'Max |gradient|'",
-            " is on the raw scale and every number below it is in the",
-            " per-parameter units the fit was judged in\n", sep = "")
+        cat("  This fit was judged in per-parameter units (",
+            if (isTRUE(fit$autoscaled)) "standardized internally" else
+              "a smooth's null-space columns at unit spread",
+            "), so 'Max |gradient|' is on the raw scale and every number ",
+            "below it is in those units\n", sep = "")
       }
     }
     cat("Hessian positive definite:", out$pdHess, "\n")
@@ -1461,9 +1591,11 @@ diagnose <- function(fit, quiet = FALSE) {
           paste(paste0(out$predictor_scale$column, " (sd ",
                        format(out$predictor_scale$sd, digits = 3), ")"),
                 collapse = "; "),
-          if (!is.null(fit$par_units)) {
+          if (isTRUE(fit$autoscaled)) {
             # this fit already ran the standardized pre-fit, by default
-            # or on request, so "refit with autoscale = TRUE" repeats it
+            # or on request, so "refit with autoscale = TRUE" repeats it.
+            # Not par_units: a smooth's null-space units set it too, and
+            # every smooth fit then lost the advice (review m12)
             paste0("\n  The fit was already standardized internally ",
                    "(frmtmb_control(autoscale = )); rescaling the column ",
                    "is still the cleaner model.\n")

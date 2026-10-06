@@ -117,7 +117,7 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #'
 #' It is every estimated coefficient plus the parameters an ordinal fit
 #' keeps outside `beta` and `betad`: the thresholds and the `cs()`
-#' coefficients, on their INTERNAL scale and under `confint()`'s names
+#' coefficients, on their INTERNAL scale and under the template's names
 #' (`tau_raw_1`, `bcs1_1`).
 #'
 #' They have to be here. marginaleffects builds its Jacobian by
@@ -649,8 +649,10 @@ emm_grid_vars <- function(object, t, tg) {
       v <- c(v, all.vars(rspec$aterms[[nm]]))
     }
   }
-  # a body also names parameters and constants, which are not columns
-  intersect(unique(v), names(model.frame(object)))
+  # a body also names parameters and constants, which are not columns;
+  # the base frame, because `z` of `poly(z, 2)` is not a model-frame
+  # column and the grid has to hold it
+  intersect(unique(v), names(ce_base_frame(object)))
 }
 
 #' A predictor and every predictor its nonlinear body reaches.
@@ -695,7 +697,11 @@ emm_terms <- function(object, tg) {
     # the offset stays in the terms: emmeans then puts it in the grid's
     # .offset. column and adds it at the grid's value, which is how
     # brms's emmeans() includes it (its basis is offset = FALSE)
-    return(stats::delete.response(tg$targets[[1L]]$lp[["terms"]]))
+    # with the fit's frozen bases, which emmeans evaluates the grid's
+    # offset and covariates through
+    return(patch_predvars(
+      stats::delete.response(tg$targets[[1L]]$lp[["terms"]]),
+      object$frame[["predvar_map"]]))
   }
   vars <- if (tg$route == "design") {
     unlist(lapply(tg$targets, function(t) {
@@ -749,9 +755,12 @@ recover_data.frmtmb_fit <- function(object, ..., data = NULL, resp = NULL,
   tryCatch({
     tg <- emm_target(object, resp = resp, dpar = dpar, nlpar = nlpar,
                      re_formula = re_formula, epred = epred)
+    # The grid holds the variables a transform reads (`z` of
+    # `poly(z, 2)`), as brms's grid and lm()'s hold them; the model
+    # frame has only the transformed columns, so emmeans found no `z`.
     emmeans::recover_data(emm_call(object, tg), emm_terms(object, tg),
                           na.action = NULL,
-                          data = data %||% model.frame(object), ...)
+                          data = data %||% ce_base_frame(object), ...)
   }, error = function(e) conditionMessage(e))
 }
 
@@ -807,7 +816,10 @@ emm_basis_design <- function(object, tg, xlev, grid) {
   pos <- list()
   for (t in tg$targets) {
     lp <- t$lp
-    trm <- stats::delete.response(lp[["terms"]])
+    # the fit's frozen bases: scale(z) and poly(z, 2) at a grid value
+    # take the training center and coefficients, not the grid's
+    trm <- patch_predvars(stats::delete.response(lp[["terms"]]),
+                          object$frame[["predvar_map"]])
     xl <- xlev_for(xlev, trm)
     m <- stats::model.frame(trm, grid, na.action = stats::na.pass,
                             xlev = xl)

@@ -922,9 +922,12 @@ estimated_coef_names <- function(fit) {
 #'   brms.
 #' @param full If `TRUE`, include covariance parameters (`theta`),
 #'   named as in `confint()` (the glmmTMB `vcov(full = TRUE)`
-#'   convention). `full = TRUE` keeps the INTERNAL names, because it is
-#'   the matrix a delta-method calculation on `confint()`'s rows needs;
-#'   the default block takes brms's.
+#'   convention). `full = TRUE` keeps the INTERNAL parameters, because
+#'   it is the matrix a delta-method calculation on `confint()`'s rows
+#'   needs; the default block takes brms's names. An ordinal fit's
+#'   thresholds are named there as `confint()` names them, by what they
+#'   are: `Intercept[1]`, `delta`, or a transform such as
+#'   `log(Intercept[2] - Intercept[1])`.
 #' @param cluster Optional clustering factor. When given, the result is
 #'   [vcov_cluster()]'s cluster-robust covariance instead of the
 #'   model-based one.
@@ -1004,8 +1007,8 @@ vcov_estimated <- function(object, full = FALSE) {
     if (full) {
       # cov.fixed rows repeat the component names; the per-parameter
       # names (confint rows) are the useful labels
-      dimnames(V) <- list(outer_par_names(object),
-                          outer_par_names(object))
+      dimnames(V) <- list(outer_par_labels(object),
+                          outer_par_labels(object))
       return(V)
     }
     ord <- c(which(rownames(V) == "beta"), which(rownames(V) == "betad"))
@@ -1024,7 +1027,7 @@ vcov_estimated <- function(object, full = FALSE) {
       comps <- setdiff(names(object$frame[["par_template"]]),
                        c("b", "miss", "beta"))
       keep <- unlist(lapply(comps, function(cp) which(rn == cp)))
-      onm <- outer_par_names(object)
+      onm <- outer_par_labels(object)
       if (length(keep) == length(onm)) {
         Vf <- as.matrix(Vall[keep, keep, drop = FALSE])
         dimnames(Vf) <- list(onm, onm)

@@ -256,7 +256,7 @@ test_that("cs() under sratio equals the binomial regression decomposition", {
 
   # the sequential model factorizes into one binary fit per threshold;
   # frmtmb's cs coefficients carry the opposite sign convention
-  expect_equal(unname(confint(fcs)[paste0("bcs2_", 1:3), "est"]), -b_glm,
+  expect_equal(unname(confint(fcs)[paste0("x[", 1:3, "]"), "est"]), -b_glm,
                tolerance = 1e-4)
   expect_lt(abs(as.numeric(logLik(fcs)) - ll_glm), 1e-6)
 })

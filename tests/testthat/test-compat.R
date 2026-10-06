@@ -533,3 +533,28 @@ test_that("the multivariate declarations match a multivariate fit", {
   hp <- hypothesis(fit, "y_x = 0", method = "profile")
   expect_equal(nrow(hp$hypothesis), 1L)
 })
+
+test_that("disc and the threshold structures have rows, and they hold", {
+  # Up to 0.67.0 the table had no row for either (dev/ordinal-findings.md,
+  # "Not done"), so frm_compat("disc") stopped as an unknown feature
+  for (st in c("disc", "equidistant", "sum_to_zero")) {
+    expect_identical(frm_compat(st, "cumulative")$status, "works")
+    expect_identical(frm_compat(st, "gaussian")$status, "refused")
+    expect_identical(frm_compat(st, "mixture")$status, "refused")
+  }
+  expect_identical(frm_compat("sum_to_zero", "prior")$status, "conditional")
+  # the refusals the rows claim are the ones frm() makes
+  set.seed(3)
+  d <- data.frame(x = rnorm(40))
+  d$y <- rnorm(40)
+  d$o <- sample(1:4, 40, TRUE)
+  expect_error(frm(bf(y ~ x, disc ~ x), data = d), "disc")
+  expect_error(gaussian(threshold = "equidistant"), "unused argument")
+  expect_error(frm(o ~ x, data = d,
+                   family = mixture(cumulative(), cumulative())),
+               "cumulative")
+  expect_error(frm(o ~ x, family = cumulative(threshold = "sum_to_zero"),
+                   data = d, prior = set_prior("normal(0, 1)",
+                                               class = "Intercept")),
+               "sum_to_zero")
+})

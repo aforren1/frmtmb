@@ -1069,14 +1069,11 @@ test_that("check C: row 11, s(x) is a random effect with one basis", {
   expect_setequal(names(pars), brms_stan_par_names(code))
   expect_par_roundtrip(sf, pars)
 
-  # The two s() bases are NOT the same columns. brms calls
-  # mgcv::smoothCon() with diagonal.penalty = TRUE and frmtmb does not,
-  # which test-brms-agreement.R already records as a convention
-  # divergence: same span, different rotation. Measured here, that
-  # rotation is a PERMUTATION, so it is orthogonal, the i.i.d. prior on
-  # the coefficients survives it, and the two models are one model
-  # written in two orders. A non-orthogonal map would not be, and
-  # brms_basis_map() refuses one.
+  # The two s() bases are the same columns: both call
+  # mgcv::smoothCon() with diagonal.penalty = TRUE since the round of
+  # 2026-10-05 (before, frmtmb's was a permutation of brms's). The map
+  # brms_basis_map() builds is then the identity; it would refuse a
+  # non-orthogonal one, which would change the i.i.d. prior.
   expect_identical(as.integer(sdat$nb_1), 1L)
   expect_length(pars[["zs_1_1"]], sdat$knots_1[[1]])
   bk <- brms_smooth_term(fit, "mu", 1)[[1]]

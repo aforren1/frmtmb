@@ -855,8 +855,11 @@ compat_features_build <- function(extra = NULL) {
            kind = "autocor"),
     lapply(c("REML", "quadrature", "importance", "profile", "autoscale",
              "sparse_x", "prior", "bounds", "verbose"), f, kind = "mode"),
+    # disc and the threshold structures are parts of an ordinal model
+    # rather than terms of the formula, so they sit with the structures
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
-             "mixture_mvn"), f, kind = "structure"),
+             "mixture_mvn", "disc", "equidistant", "sum_to_zero"), f,
+           kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans",
              "confint_profile", "hypothesis_profile",
@@ -1379,6 +1382,44 @@ compat_hand_rules_tbl <- function() {
     "thres(x = K) works. thres(gr = ) is refused: the one-step density selects the category over one shared set, and here the set differs by group. dharma_residuals() is the check to use.")
   r("thres()", "emmeans", "works",
     "The latent-scale means of the ordinal families; the thresholds, grouped or not, do not enter them.")
+
+  ## disc and the threshold structures ----------------------------------
+  # brms's discrimination parameter and its threshold = "equidistant"
+  # and "sum_to_zero" of the ordinal families (dev/ordinal-findings.md;
+  # the cells marked by a tiny fit are dev/fixes-compat-probe.R)
+  r("disc", "kind:family", "refused",
+    "Refused by name: disc is the discrimination parameter of the ordinal families, and no other family has it.")
+  r("disc", "group:ordinal", "works",
+    "brms's disc, held at 1 unless the formula models it, as in brms: disc ~ ... on its log link scales the distance between each threshold and the latent predictor. The densities agree with brms's own R-side densities at a shared parameter point for every family, link and threshold structure (test-ordinal-disc-thres.R). An intercept in disc cannot be told apart from the scale of the thresholds, so the fit warns about it; write disc ~ 0 + ..., or give it a prior as brms does.")
+  for (st in c("equidistant", "sum_to_zero")) {
+    r(st, "kind:family", "refused",
+      "Refused: threshold = is an argument of the ordinal family constructors alone, so any other family stops with an unused argument.")
+    r(st, "thres()", "works",
+      "Each level of thres(gr = ) takes the structure for its own threshold vector, as brms does (test-ordinal-disc-thres.R).")
+  }
+  r("equidistant", "group:ordinal", "works",
+    "brms's threshold = \"equidistant\": the first threshold and the distance delta between neighbors, delta held on the log scale where brms bounds it below by 0 (cumulative() and hurdle_cumulative()). The densities agree with brms's own densities (test-ordinal-disc-thres.R). fixef() reports every threshold, and frmtmb.sample's draws carry brms's delta.")
+  r("sum_to_zero", "group:ordinal", "works",
+    "brms's threshold = \"sum_to_zero\": thresholds that sum to zero. brms declares all of them and centers, which leaves one direction only its prior places; frmtmb estimates the free directions, so class \"Intercept\" has no parameter here and is refused. The densities agree with brms's own densities (test-ordinal-disc-thres.R).")
+  for (st in c("disc", "equidistant", "sum_to_zero")) {
+    r(st, "mixture", "refused",
+      "Refused with every ordinal family: an ordinal family is not a mixture component.")
+    for (m in c("fitted", "predict", "simulate", "residuals_osa")) {
+      r(st, m, "works",
+        "Reads the structure and disc, in sample and on newdata; the one-step density is the data density at every row kept (test-ordinal-disc-thres.R).")
+    }
+    r(st, "emmeans", "works",
+      "The latent-scale means of the ordinal families; the thresholds and disc do not enter them.")
+    for (m in c("REML", "quadrature", "confint_profile", "mvbf")) {
+      r(st, m, "works", "Verified by a tiny fit.")
+    }
+  }
+  r("disc", "prior", "works",
+    "class = \"Intercept\" or \"b\" with dpar = \"disc\" reaches disc's predictor, as in brms.")
+  r("equidistant", "prior", "works",
+    "class = \"Intercept\" is the first threshold alone, at the mean of the predictors, and class = \"delta\" the distance between thresholds, as brms has them. A per-threshold coef is refused, as brms refuses it.")
+  r("sum_to_zero", "prior", "conditional",
+    "class = \"Intercept\" is refused: brms's prior there is on thresholds it declares before centering them, a parameter frmtmb does not have. prior = list(tau_raw = ) reaches the free directions on the internal scale.")
 
   ## rate() --------------------------------------------------------------
   r("rate()", "kind:family", "refused",

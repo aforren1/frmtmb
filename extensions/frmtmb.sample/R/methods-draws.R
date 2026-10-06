@@ -745,10 +745,18 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' @param nlpar The parameter an `nlf()` body names. brms keeps it
 #'   apart from `dpar`; frmtmb asks for either by the `dpar` name, so
 #'   this is the same setting and the slot is here for brms's position.
-#' @param incl_thres For `posterior_linpred()`: refused. brms returns,
-#'   for any ordinal family, one layer per threshold, `disc * (thres -
-#'   mu)` (`disc * (mu - thres)` for cratio and acat); frmtmb returns
-#'   the latent predictor itself.
+#' @param incl_thres For `posterior_linpred()` on an ordinal family:
+#'   `TRUE` includes the thresholds, as in brms. The result is then a
+#'   draws by observations by thresholds array whose layer `k` is
+#'   `disc * (thres_k - mu)` for `cumulative()` and `sratio()` and
+#'   `disc * (mu - thres_k)` for `cratio()` and `acat()`, with a `cs()`
+#'   term's part added to `mu` at each threshold. Under `thres(gr = )` a
+#'   row reads its level's thresholds and is `NA` past them. As in brms
+#'   it is ignored when `dpar` or `nlpar` is given, under
+#'   `transform = TRUE`, and on a family that is not ordinal.
+#'   `hurdle_cumulative()` is refused: brms returns the hurdle
+#'   probability beside the threshold predictors times `1 - hu` there,
+#'   which is the linear predictor of nothing.
 #' @param negative_rt For `posterior_predict()`: refused. It is brms's
 #'   sign convention for its own wiener family.
 #' @param transform For `posterior_predict()`: a function applied to
@@ -913,17 +921,15 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   draws_refuse_sort(sort, "posterior_linpred()")
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
+  # brms reads incl_thres only for an ordinal family's location on the
+  # linear scale: with dpar or nlpar named, or under transform = TRUE,
+  # it is ignored (posterior_epred.brmsprep())
+  if (!is.null(incl_thres)) check_flag(incl_thres, "incl_thres")
+  rs <- object$fit$spec$responses[[resp %||%
+                                     names(object$fit$spec$responses)[1L]]]
+  incl <- isTRUE(incl_thres) && !isTRUE(transform) && is.null(dpar) &&
+    is.null(nlpar) && identical(rs$family[["type"]], "ordinal")
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_linpred()")
-  if (!is.null(incl_thres) && !identical(incl_thres, FALSE)) {
-    frm_stop("posterior_linpred(incl_thres = TRUE) gives brms's ",
-             "per-threshold predictor of an ordinal family, disc times the ",
-             "distance between each threshold and the linear predictor. ",
-             "frmtmb keeps the thresholds out of the predictor: ",
-             "frm_linpred(type = \"link\") ",
-             "and this function return the latent predictor itself, and ",
-             "the thresholds are coefficients you can read off ",
-             "posterior_summary()", call. = FALSE)
-  }
   # subset(): one response at a time, as brms asks
   subset_resp_check(object$fit, resp %||% names(object$fit$spec$responses),
                     "posterior_linpred()")
@@ -936,8 +942,13 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   # this promises.
   dpar <- dpar %||% draws_default_dpar(object$fit, resp)
   at <- function(r, fill = NA_real_, rf = re_form) {
-    frm_linpred(draws_fit_at(object, r, idx, fill), newdata = newdata,
-                resp = resp, dpar = dpar, re_formula = rf,
+    f <- draws_fit_at(object, r, idx, fill)
+    if (incl) {
+      return(ord_thres_linpred(f, newdata = newdata, resp = resp,
+                               re_formula = rf))
+    }
+    frm_linpred(f, newdata = newdata, resp = resp, dpar = dpar,
+                re_formula = rf,
                 type = if (transform) "response" else "link")
   }
   at_na <- function(fill) at(rows[1L], fill, NA)
@@ -948,6 +959,17 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   for (k in seq_along(rows)) {
     p <- at(rows[k])
     watch(p)
+    if (incl) {
+      # brms's shape: draws x observations x thresholds, the draws and
+      # the thresholds numbered, the observations not
+      if (is.null(out)) {
+        out <- array(NA_real_, c(length(rows), nrow(p), ncol(p)),
+                     dimnames = list(as.character(seq_along(rows)), NULL,
+                                     as.character(seq_len(ncol(p)))))
+      }
+      out[k, , ] <- p
+      next
+    }
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
   }

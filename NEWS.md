@@ -1,3 +1,99 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A smooth's null-space coefficient is brms's.** `s()` is built
+  with `mgcv::smoothCon(diagonal.penalty = TRUE)`, as brms builds its
+  `Xs` and `Zs`, so `fixef()`'s `sx_1` (and `sigma_sx0_1`) is brms's
+  coefficient and a prior with `coef = "sx_1"` or a hypothesis on it
+  is about brms's parameter. Before, it was brms's coefficient times a
+  data-dependent factor (5.0 to 7.7 on gamSim data, of either sign).
+  The design is now brms's standata `Xs` and `Zs` bitwise for every
+  single-penalty smooth, `by =` and 2-D `s()` included; `t2()` is
+  unchanged. The model is a reparameterization of the old one, but the
+  optimizer's path changes, so a different few fits stop at a worse
+  optimum. On 1020 gamSim fits per build (gamSim seeds 1 to 60, 18
+  smooth shapes; the review's `dev/fixes-rev2-smooth.R` and
+  `-smooth-cross.R`): convergence codes other than 0 in 11 against 16
+  on the old basis, non-finite fixed-effect standard errors in 37
+  against 31, and 9 fits on each build more than 1e-3 below the best
+  `logLik` either build or mgcv found, 6 of them the same fits; each
+  fit only one build got wrong reaches the other's optimum from the
+  other's smoothing SDs. The optimizer steps the null-space
+  coefficients in unit-SD coordinates, without which a smoothing SD at
+  zero ran far down its log scale and left NaN standard errors far
+  more often.
+* **A nonlinear fit warns when its nonlinear parameters' coefficients
+  are not identified at the optimum**, naming the coefficients: when
+  the likelihood is flat there along a combination of them, as with two
+  parameters that enter only through their sum or difference while
+  their formulas share a term (`a + b` with `a ~ 1 + x` and
+  `b ~ 1 + x`), or a product of two intercepts. Such a fit used to
+  return one point of the ridge without a word. The check reads the
+  Hessian of those coefficients at the fitted point, which costs 2 k
+  gradients for k coefficients (0.61 s of an 11.3 s fit at n = 200000).
+  A curved ridge whose curvature does not vanish to 1e-9 there
+  (`exp(a)^k`) is not flagged; `vcov()` and `summary()` still report
+  its standard errors as not finite. A prior that reaches every flat
+  direction removes the warning, and then the prior alone sets the
+  split, so a weak one gives very wide intervals.
+* **`conditional_effects()` holds the variable of a `trunc()` bound or
+  an `se()` term at its mean** when `conditions` does not set it, as
+  brms does, where it refused the display. An expression bound is
+  evaluated on the grid, where the response is at its mean too, so
+  `trunc(lb = min(y) - 1)` is `mean(y) - 1`, as in brms. The expected
+  value is the truncated mean at the held bound and agrees with brms
+  2.23.0.
+* **`confint()` and `vcov(full = TRUE)` name an ordinal fit's internal
+  threshold parameters by what they are**, where they read
+  `tau_raw_<k>`: `Intercept[1]`, `Intercept[a,2]` or `delta` where the
+  internal parameter is that one, and `log(Intercept[2] -
+  Intercept[1])` or `log(delta)` where it is a transform. A `cs()`
+  coefficient takes its `fixef()` name. `parm =` takes these names,
+  brms's `b_Intercept[1]`, and the old template names.
+
+## New features
+
+* `default_prior()` lists one class `"Intercept"` row per threshold,
+  `coef = "1"`, `"2"`, ..., under flexible thresholds, and per level
+  of `thres(gr = )`, as brms does, and `set_prior(class = "Intercept",
+  coef = "2")` puts a density on that threshold. It is refused under
+  `threshold = "equidistant"`, as in brms.
+* The compatibility table has rows for `disc` and the
+  `"equidistant"` and `"sum_to_zero"` threshold structures.
+* `ord_thres_linpred()` joins the sampling API: brms's linear
+  predictor with the thresholds included, at a fit's estimates, which
+  frmtmb.sample's `posterior_linpred(incl_thres = TRUE)` reads per
+  draw.
+
+## Bug fixes
+
+* A nonlinear fit whose default start a prior placed outside the
+  family's domain stopped at that start. A prior's location places
+  every coefficient of a nonlinear parameter, so fit2's `normal(2, 2)`
+  on `a ~ Age` put `mu = 2 + 2 Age` below 0 on `Gamma("identity")`.
+  After such a failure the fit restarts from the placed intercepts with
+  the slopes at zero; with fit2's priors the update of ledger row
+  `brmsfit-methods:955` then converges near brms's posterior means.
+  A fit that converged from its start is never restarted.
+* `emmeans()` stopped with "undefined columns selected" when a
+  transformed predictor's variable was found in the formula
+  environment rather than in the data.
+* `vcov_cluster()` and `cluster_scores()` stopped with "A map factor
+  length must equal parameter length" on every ordinal fit whose
+  `disc` is held at 1.
+* `confint(parm = "Intercept[2]")` on a family that holds that
+  threshold through a transform says so and points to `fixef()` and
+  `hypothesis()`.
+
+* `emmeans()` on a fit with a transformed predictor (`poly(z, 2)`,
+  `log(abs(z) + 1)`, `scale(z)`) stopped with "undefined columns
+  selected". The reference grid now holds the variable at its mean, as
+  brms's and `lm()`'s do, and the transform is evaluated with the fit's
+  frozen basis, so `scale()` takes the training center and scale and
+  `poly()` its training coefficients, also under `at =`. The means
+  agree with brms 2.23.0 at fixed parameters and with `glm()`.
+
 # frmtmb 0.67.0
 
 Three lanes of brms parity, each with an adversarial review and punch

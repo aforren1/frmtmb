@@ -1,31 +1,25 @@
 # Conditional-effects displays, diagnostic plot method, pp_check.
 
-#' Addition-term values for the conditional-effects grid. A grid row is
-#' an artificial observation, so an aterm that changes the predictive
-#' distribution (trials, se, truncation bounds) must not be taken at a
-#' reference value: the mean number of trials is rarely a whole number,
-#' and a mean truncation bound is nobody's bound. Those terms are read
-#' only from variables the user pinned in `conditions`; literal bounds
-#' apply as written. Everything else (`vint`/`vreal` payloads a custom
-#' family needs) is evaluated against the grid when it can be.
+#' Addition-term values for the conditional-effects grid, evaluated on
+#' the grid rows. A variable the caller does not pin in `conditions` is
+#' held where the grid holds it, at its mean, as brms's
+#' `prepare_conditions()` holds every variable of its `allvars`: a
+#' `trunc(lb = lo)` bound at `mean(lo)`, an `se(s)` at `mean(s)`, and an
+#' expression bound such as `min(y) - 1` at its value on the grid, where
+#' `y` is the response's mean, so `mean(y) - 1`
+#' (dev/fixes-ce-brms.R). `trials()` variables are held at 1 before
+#' this, as in brms. Literal bounds apply as written, and anything else
+#' (`vint`/`vreal` payloads a custom family needs) is evaluated against
+#' the grid when it can be.
 #'
 #' @noRd
-ce_aterms <- function(rspec, nd, cset, n) {
+ce_aterms <- function(rspec, nd, n) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
             row_aterms)
   strict <- c("trials", "se", "trunc_lb", "trunc_ub")
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
-    vars <- all.vars(ex)
-    pinned <- !length(vars) || all(vars %in% names(cset))
-    if (nm %in% strict && !pinned) {
-      frm_stop("conditional_effects() cannot evaluate ",
-               aterm_label(nm, ex), " on the effect grid: its value would ",
-               "be a reference value, not a real one. Pin ",
-               paste(setdiff(vars, names(cset)), collapse = ", "),
-               " in conditions = list(...).", call. = FALSE)
-    }
     v <- tryCatch(as.numeric(eval(ex, nd, rspec$formula_env)),
                   error = function(e) NULL)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
@@ -1192,11 +1186,13 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   `re_formula = NA`), around the expected response on the same
 #'   scale as the draws (a count under `trials()`, the truncated mean
 #'   under `trunc()`). The
-#'   draws respect the response's addition terms: literal `trunc()`
-#'   bounds apply, and `trials()`, `se()` or variable `trunc()` bounds
-#'   must be pinned in `conditions` (a grid row is an artificial
-#'   observation, so a reference value for those is meaningless and is
-#'   an error rather than a silent default).
+#'   draws respect the response's addition terms. As in brms, a
+#'   `trials()` variable that `conditions` does not set is held at 1,
+#'   and the variable of an `se()` term or a `trunc()` bound at its
+#'   mean, like every other variable. An expression bound is evaluated
+#'   on the grid, where the response is at its mean too, so
+#'   `trunc(lb = min(y) - 1)` is `mean(y) - 1`. Set the variable in
+#'   `conditions` for a bound of your choice.
 #' @param ndraws Simulated responses per grid point for
 #'   `method = "predict"`. For the draws method: how many evenly spaced
 #'   posterior draws the curves are computed over (default all).
@@ -2428,11 +2424,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       } else if (mean_display || !is.null(hook)) {
         if (mean_display) {
           # the mean runs through the addition terms as well as the
-          # dpars, so a term whose value on a grid row would be a
-          # reference value rather than a real one is refused here, on
-          # the same rule (and with the same message) method =
-          # "predict" has always used
-          ce_aterms(rspec, nd, cset, n)
+          # dpars, so a term the grid cannot evaluate is refused here,
+          # with the message method = "predict" uses
+          ce_aterms(rspec, nd, n)
         }
         # the expected response (or the reported dpar) and ITS standard
         # error: for the mean the delta method runs over every dpar's
@@ -2486,7 +2480,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # probability on the response scale and would reach log_pi()
         # already normalized
         dpv <- dpars_natural(x, rspec, nd, re_formula, anl)
-        avc <- ce_aterms(rspec, nd, cset, n)
+        avc <- ce_aterms(rspec, nd, n)
         # sim_response(), not fam$sim(): trunc() bounds are respected by
         # rejection, as everywhere else responses are drawn
         sims <- replicate(ndraws, sim_response(

@@ -240,14 +240,14 @@ test_that("CE prediction intervals respect trials() and trunc()", {
                              resolution = 4, ndraws = 500)
   expect_true(all(cet$x$lower__ >= 0.5))
 
-  # a variable bound is a real value, so it has to be pinned
+  # a variable bound left out of `conditions` is held at its mean, as
+  # brms holds it (dev/fixes-ce-brms.R); pinned, it is the pinned value
   dt$lo <- 0.5
   ft2 <- frm(bf(y | trunc(lb = lo) ~ x) + gaussian(), data = dt)
-  expect_error(
-    conditional_effects(ft2, effects = "x", method = "predict",
-                        resolution = 3, ndraws = 20),
-    "trunc\\(lb = lo\\)"
-  )
+  ce1 <- conditional_effects(ft2, effects = "x", method = "predict",
+                             resolution = 3, ndraws = 300)
+  expect_identical(unique(ce1$x$lo), 0.5)
+  expect_true(all(ce1$x$lower__ >= 0.5))
   ce2 <- conditional_effects(ft2, effects = "x", method = "predict",
                              resolution = 3, ndraws = 300,
                              conditions = list(lo = 0.5))

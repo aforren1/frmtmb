@@ -148,7 +148,21 @@ Without such a prior a nonlinear model still needs \code{start}.
 \code{frm()} optimizes rather than samples, so it evaluates the
 objective AT the starting values, and a nonlinear body is rarely
 defined at zero. \code{\link[=par_template]{par_template()}} shows the names and the values
-in force.}
+in force.
+
+No start identifies a nonlinear model in which a combination of the
+nonlinear parameters' coefficients changes no fitted value, as when
+two of them enter only through their sum or difference and their
+formulas share a term (\code{a + b} with \code{a ~ 1 + x} and \code{b ~ 1 + x}).
+\code{frm()} fits it and then warns, naming the coefficients, when the
+likelihood at the optimum is flat along such a combination (its
+curvature below 1e-9 of the largest, on the Hessian of those
+coefficients scaled to unit diagonal). A curved ridge that does not
+flatten that far at the optimum (\code{exp(a)^k}) is not flagged there;
+\code{vcov()} and \code{summary()} then report its standard errors as not
+finite. A prior that reaches every flat direction identifies the
+model, as brms's priors do; the split along that direction is then
+set by the prior alone, so a weak prior gives very wide intervals.}
 
 \item{quadrature}{If \code{TRUE}, marginalize each scalar random effect by
 adaptive Gauss-Kronrod quadrature instead of the Laplace
