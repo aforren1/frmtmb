@@ -4,7 +4,7 @@
 # pointing at one directory:
 #   Rscript dev/brms-vignettes/_summarize.R
 out <- Sys.getenv("BV_OUT", unset = tempdir())
-files <- list.files(out, pattern = "[.]csv$", full.names = TRUE)
+files <- list.files(out, pattern = "^brms.*[.]csv$", full.names = TRUE)
 d <- do.call(rbind, lapply(files, utils::read.csv, stringsAsFactors = FALSE))
 d$edge[is.na(d$edge) | d$edge == ""] <- "CLEAN"
 d <- d[d$kind != "data", ]

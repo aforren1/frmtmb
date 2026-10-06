@@ -165,6 +165,36 @@ transform_code <- function(code) {
 
 ## ------------------------------------------------------------ classifying
 
+POST_FUNS <- c(
+  "summary", "plot", "conditional_effects", "conditional_smooths",
+  "hypothesis", "pp_check", "predict", "fitted", "ranef", "fixef", "coef",
+  "loo", "LOO", "waic", "WAIC", "add_criterion", "bayes_R2", "loo_R2",
+  "marginal_effects", "marginal_smooths", "posterior_predict",
+  "posterior_epred", "posterior_linpred", "as_draws_array", "nchains",
+  "expose_functions", "stancode", "standata", "make_stancode", "prior_summary",
+  "VarCorr", "ngrps", "launch_shinystan", "mcmc_plot", "variables",
+  "residuals", "logLik", "confint", "simulate", "anova", "AIC", "BIC"
+)
+
+all_calls <- function(e, acc = character()) {
+  if (!is.call(e)) return(acc)
+  nm <- call_name(e)
+  if (!is.na(nm)) acc <- c(acc, nm)
+  for (i in seq_along(e)) if (is.call(e[[i]])) acc <- all_calls(e[[i]], acc)
+  acc
+}
+
+# The kind of a TRANSFORMED expression: "model", "post" or "other".
+kind_of <- function(src) {
+  p <- tryCatch(parse(text = src)[[1]], error = function(e) NULL)
+  if (is.null(p)) return("other")
+  fns <- all_calls(p)
+  if (any(fns %in% c("frm", "frm_multiple"))) return("model")
+  if ("update" %in% fns) return("model")
+  if (any(fns %in% POST_FUNS)) return("post")
+  "other"
+}
+
 is_model_call <- function(src) grepl("\\bfrm\\s*\\(|\\bfrm_multiple\\s*\\(", src)
 
 #' Score one merged result row (a row of results-merged.rds).

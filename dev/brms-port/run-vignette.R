@@ -15,11 +15,26 @@ CAP <- if (length(args) > 1) as.numeric(args[2]) else 120
 #          gaps slated to be fixed next.
 MODE <- if (length(args) > 2) args[3] else "raw"
 
-ROOT <- "C:/Users/adf44/source/r/frmtmb-wt-audit"
-HERE <- file.path(ROOT, "dev/brms-port")
+HERE <- local({
+  a <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  normalizePath(dirname(sub("^--file=", "", a[1])), winslash = "/")
+})
+source(file.path(HERE, "env.R"))
 source(file.path(HERE, "port-lib.R"))
-if (MODE %in% c("spell", "v035")) source(file.path(HERE, "patches.R")) else {
+if (MODE %in% c("spell", "v035", "need")) {
+  source(file.path(HERE, "patches.R"))
+} else {
   AUTO_RETRY <- list(); PATCH <- list()
+}
+# "need": only the explicit patches named in PORT_PATCHES (comma
+# separated) and no retry rule. A patch on an expression whose raw
+# failure was a cascade cannot be judged from the raw pass, because its
+# input never existed; this pass keeps the upstream patch and drops the
+# downstream one, so each is measured on its own.
+if (MODE == "need") {
+  keep <- strsplit(Sys.getenv("PORT_PATCHES"), ",", fixed = TRUE)[[1]]
+  AUTO_RETRY <- list()
+  PATCH <- PATCH[intersect(names(PATCH), keep)]
 }
 if (MODE == "v035") {
   # Stand-ins for a gaussian default (FN-1) and lf() (FN-10). Everything
@@ -27,105 +42,35 @@ if (MODE == "v035") {
   AUTO_RETRY <- AUTO_RETRY["default-family"]
   PATCH <- PATCH["brms_multivariate.9.1"]
 }
-RESDIR <- file.path(HERE, switch(MODE, spell = "results-spell",
-                                 v035 = "results-v035", "results"))
+# "keepprior": the raw transform, except that prior = stays in the call
+# and standalone prior()/set_prior() code runs. A second definition of
+# the transform, measured beside the first and never in place of it:
+# since 0.43.0 frm() translates a brmsprior, so a porter may keep the
+# priors, and in the nonlinear vignettes the priors are what locate
+# the fit.
+if (MODE == "keepprior") {
+  DROP_ARGS <- setdiff(DROP_ARGS, "prior")
+  PRIOR_RE <- "a^"
+}
+RESDIR <- file.path(PORT_OUT, switch(MODE, spell = "results-spell",
+                                     v035 = "results-v035",
+                                     need = "results-need",
+                                     keepprior = "results-keepprior",
+                                     "results"))
 dir.create(RESDIR, showWarnings = FALSE)
 OUT <- file.path(RESDIR, paste0(VIG, ".rds"))
 LOG <- file.path(RESDIR, paste0(VIG, ".log"))
 
-suppressMessages(pkgload::load_all(ROOT, quiet = TRUE, export_all = FALSE))
-
-POST_FUNS <- c(
-  "summary", "plot", "conditional_effects", "conditional_smooths",
-  "hypothesis", "pp_check", "predict", "fitted", "ranef", "fixef", "coef",
-  "loo", "LOO", "waic", "WAIC", "add_criterion", "bayes_R2", "loo_R2",
-  "marginal_effects", "marginal_smooths", "posterior_predict",
-  "posterior_epred", "posterior_linpred", "as_draws_array", "nchains",
-  "expose_functions", "stancode", "standata", "make_stancode", "prior_summary",
-  "VarCorr", "ngrps", "launch_shinystan", "mcmc_plot", "variables",
-  "residuals", "logLik", "confint", "simulate", "anova", "AIC", "BIC"
-)
-
-all_calls <- function(e, acc = character()) {
-  if (!is.call(e)) return(acc)
-  nm <- call_name(e)
-  if (!is.na(nm)) acc <- c(acc, nm)
-  for (i in seq_along(e)) if (is.call(e[[i]])) acc <- all_calls(e[[i]], acc)
-  acc
-}
-
-kind_of <- function(src) {
-  p <- tryCatch(parse(text = src)[[1]], error = function(e) NULL)
-  if (is.null(p)) return("other")
-  fns <- all_calls(p)
-  if (any(fns %in% c("frm", "frm_multiple"))) return("model")
-  if ("update" %in% fns) return("model")
-  if (any(fns %in% POST_FUNS)) return("post")
-  "other"
-}
+# The installed build, not a source tree: the audit measures what a user
+# gets from library(frmtmb). Up to 0.34.0 this was pkgload::load_all()
+# on a worktree, which attaches the same exports.
+suppressMessages(library(frmtmb))
 
 ## ------------------------------------------------------------ environment
-# The eval chain is  chunk env -> shim -> globalenv -> search path.
-# The shim supplies ONLY data-side conveniences (brms datasets, the one
-# brms data simulator, a mirror for a dead URL). No modeling or
-# post-processing function is shimmed: those must resolve to frmtmb or
-# fail, which is what the audit measures.
-shim <- new.env(parent = globalenv())
-
-local({
-  for (d in c("kidney", "inhaler", "loss", "epilepsy")) {
-    suppressWarnings(utils::data(list = d, package = "brms", envir = globalenv()))
-  }
-})
-
-shim$sim_multi_mem <- tryCatch(
-  getFromNamespace("sim_multi_mem", "brms"),
-  error = function(e) function(nschools = 10, nstudents = 1000, change = 0.1) {
-    # brms_multilevel's simulator is internal and unexported; this is the
-    # documented design (two schools per student, equal weights, a share
-    # of students changing school) reproduced for the audit only.
-    s1 <- sample(nschools, nstudents, TRUE)
-    s2 <- s1
-    ch <- sample(nstudents, round(change * nstudents))
-    s2[ch] <- sample(nschools, length(ch), TRUE)
-    eff <- stats::rnorm(nschools, 0, 3)
-    y <- 20 + 0.5 * (eff[s1] + eff[s2]) + stats::rnorm(nstudents, 0, 5)
-    data.frame(s1 = s1, s2 = s2, w1 = 0.5, w2 = 0.5, y = y)
-  }
-)
-
-shim$data <- function(..., package = NULL, envir = globalenv()) {
-  nm <- as.character(substitute(list(...)))[-1]
-  nm <- gsub('^"|"$', "", nm)
-  suppressWarnings(try(utils::data(list = nm, package = package,
-                                   envir = globalenv()), silent = TRUE))
-  miss <- nm[!vapply(nm, exists, logical(1), envir = globalenv())]
-  if (length(miss)) {
-    suppressWarnings(try(utils::data(list = miss, package = "brms",
-                                     envir = globalenv()), silent = TRUE))
-  }
-  invisible(nm)
-}
-
-# brms_multilevel points at a UCLA URL that no longer serves the file; the
-# same data is the author's own mirror used by brms_distreg.
-shim$read.csv <- function(file, ...) {
-  if (is.character(file) && grepl("stats.idre.ucla.edu", file)) {
-    file <- "https://paul-buerkner.github.io/data/fish.csv"
-  }
-  utils::read.csv(file, ...)
-}
-
-# Attaching brms would shadow every frmtmb generic and invalidate the run.
-shim$library <- function(package, ...) {
-  p <- tryCatch(as.character(substitute(package)), error = function(e) "")
-  if (identical(p, "brms")) {
-    message("[audit] library(brms) suppressed")
-    return(invisible())
-  }
-  eval(bquote(base::library(.(as.name(p)))), envir = globalenv())
-}
-shim$require <- shim$library
+# kind_of() and the shim live in port-lib.R and shim.R, which brms-fit.R
+# reads too, so both runners classify and build data the same way.
+source(file.path(HERE, "shim.R"))
+shim <- make_shim(suppress_brms = TRUE)
 
 ## ------------------------------------------------------------------- run
 env <- new.env(parent = shim)
@@ -134,17 +79,44 @@ on.exit(try(grDevices::dev.off(), silent = TRUE), add = TRUE)
 
 chunks <- extract_vignette(VIG)
 res <- list()
-cat("", file = LOG)
+cat("# ", port_build(), ", mode ", MODE, ", cap ", CAP, " s\n",
+    sep = "", file = LOG)
 
 fit_summary <- function(v) {
   out <- list()
   cls <- class(v)[1]
   out$class <- cls
-  if (inherits(v, "frmtmb_fit")) {
+  if (inherits(v, c("frmtmb_fit", "frmtmb_multiple"))) {
     out$loglik <- tryCatch(as.numeric(stats::logLik(v)), error = function(e) NA_real_)
+    # setNames: a one-row matrix drops its row name on `[, j]`
     out$fixef <- tryCatch({
       f <- fixef(v)
-      if (is.matrix(f)) f[, 1] else f
+      if (is.matrix(f)) stats::setNames(f[, 1], rownames(f)) else f
+    }, error = function(e) NULL)
+    # The estimate-plausibility table compares these to a brms fit, so
+    # keep the standard errors and the variance components too, in
+    # brms's own naming (fixef() and VarCorr() follow it).
+    out$fixef_se <- tryCatch({
+      f <- fixef(v)
+      if (is.matrix(f)) stats::setNames(f[, 2], rownames(f)) else NULL
+    }, error = function(e) NULL)
+    # A frm_multiple() result has no fixef() method at 0.67.0; its pooled
+    # table names the intercept "(Intercept)" and carries sigma's
+    # log-scale row, so both are mapped to what brms's fixef() reports.
+    if (inherits(v, "frmtmb_multiple") && is.null(out$fixef) &&
+        !is.null(v$pooled)) {
+      p <- v$pooled[!grepl("^sigma_", rownames(v$pooled)), ]
+      nm <- sub("^[(]Intercept[)]$", "Intercept", rownames(p))
+      out$fixef <- stats::setNames(p$estimate, nm)
+      out$fixef_se <- stats::setNames(p$se, nm)
+    }
+    out$sds <- tryCatch({
+      vc <- VarCorr(v)
+      unlist(lapply(names(vc), function(g) {
+        s <- vc[[g]]$sd
+        if (is.null(s)) return(NULL)
+        stats::setNames(s[, 1], paste0("sd_", g, "__", rownames(s)))
+      }))
     }, error = function(e) NULL)
     out$conv <- tryCatch(v$opt$convergence, error = function(e) NA)
     out$sigma <- tryCatch(stats::sigma(v), error = function(e) NA_real_)
@@ -152,7 +124,9 @@ fit_summary <- function(v) {
   out
 }
 
-run_one <- function(src) {
+run_one <- function(src, id) {
+  # one seed per expression (shim.R), so frmtmb and brms see the same data
+  set.seed(port_seed(id))
   warns <- character()
   t0 <- proc.time()[["elapsed"]]
   val <- tryCatch(
@@ -202,12 +176,12 @@ for (k in chunks) {
         src <- PATCH[[id]]
         rec$patch <- "explicit"
       }
-      r <- run_one(src)
+      r <- run_one(src, id)
       if (r$status == "ERROR" && length(AUTO_RETRY)) {
         for (pn in names(AUTO_RETRY)) {
           alt <- tryCatch(AUTO_RETRY[[pn]](src, r$msg), error = function(e) NULL)
           if (is.null(alt) || identical(alt, src)) next
-          r2 <- run_one(alt)
+          r2 <- run_one(alt, id)
           rec$patch <- c(rec$patch, pn)
           src <- alt
           r <- r2

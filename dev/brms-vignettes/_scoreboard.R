@@ -9,7 +9,7 @@
 #   BV_OUT=<dir> Rscript dev/brms-vignettes/_scoreboard.R
 
 out <- Sys.getenv("BV_OUT", unset = tempdir())
-d <- do.call(rbind, lapply(list.files(out, "[.]csv$", full.names = TRUE),
+d <- do.call(rbind, lapply(list.files(out, "^brms.*[.]csv$", full.names = TRUE),
                            utils::read.csv, stringsAsFactors = FALSE))
 d$edge[is.na(d$edge) | d$edge == ""] <- "CLEAN"
 n_all <- nrow(d)

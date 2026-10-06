@@ -1,13 +1,18 @@
 # Loose plausibility check: point estimates from the CLEAN fits next to
 # the posterior means the vignettes print. Not an agreement suite - the
 # question is only whether signs and magnitudes line up.
-HERE <- "C:/Users/adf44/source/r/frmtmb-wt-audit/dev/brms-port"
+# Superseded by plausibility.R, which compares against brms fits.
+HERE <- local({
+  a <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  normalizePath(dirname(sub("^--file=", "", a[1])), winslash = "/")
+})
+source(file.path(HERE, "env.R"))
 VIGS <- c("brms_overview", "brms_multilevel", "brms_distreg", "brms_nonlinear",
           "brms_phylogenetics", "brms_monotonic", "brms_multivariate",
           "brms_missings", "brms_customfamilies")
 res <- list()
 for (v in VIGS) {
-  f <- file.path(HERE, "results-spell", paste0(v, ".rds"))
+  f <- file.path(PORT_OUT, "results-spell", paste0(v, ".rds"))
   if (file.exists(f)) res <- c(res, readRDS(f))
 }
 for (r in res) {

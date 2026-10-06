@@ -91,9 +91,26 @@ bv_done <- function() {
 # what is being measured. brms data and reference values are reached
 # with the `brms::` prefix. `brms-coexistence.R` is the one script that
 # attaches brms on purpose.
+#
+# BV_LIB, when set, measures an INSTALLED build instead: those libraries
+# (";"-separated) go before the user library, and frmtmb and
+# frmtmb.sample are attached from them, the way a user gets them. Every
+# re-measurement after 0.44.0 uses this route, so that a regression can
+# be dated by pointing BV_LIB at an older release library.
 bv_load <- function() {
-  suppressMessages(pkgload::load_all(
-    Sys.getenv("BV_PKG", unset = "C:/Users/adf44/source/r/frmtmb-wt-brmsvig"),
-    quiet = TRUE, export_all = FALSE))
+  lib <- Sys.getenv("BV_LIB", unset = "")
+  if (nzchar(lib)) {
+    .libPaths(c(strsplit(lib, ";", fixed = TRUE)[[1]],
+                "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+    suppressMessages(library(frmtmb))
+    suppressMessages(library(frmtmb.sample))
+    cat("### build: frmtmb", as.character(utils::packageVersion("frmtmb")),
+        "from", dirname(system.file(package = "frmtmb")), "\n")
+  } else {
+    suppressMessages(pkgload::load_all(
+      Sys.getenv("BV_PKG",
+                 unset = "C:/Users/adf44/source/r/frmtmb-wt-brmsvig"),
+      quiet = TRUE, export_all = FALSE))
+  }
   options(warn = 1)
 }

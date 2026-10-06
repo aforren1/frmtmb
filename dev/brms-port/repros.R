@@ -1,7 +1,12 @@
 # Minimal repro for every FAILS-NEW item in dev/brms-vignette-port.md.
 # Each block prints PASS (works today) or the exact error. Rerun after a
 # fix to see an item flip.
-suppressMessages(pkgload::load_all("C:/Users/adf44/source/r/frmtmb-wt-audit", quiet = TRUE))
+HERE <- local({
+  a <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  normalizePath(dirname(sub("^--file=", "", a[1])), winslash = "/")
+})
+source(file.path(HERE, "env.R"))
+suppressMessages(library(frmtmb))
 set.seed(1)
 
 show <- function(tag, expr) {

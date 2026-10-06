@@ -71,9 +71,10 @@ PATCH <- list(
        data = data_repeat)',
   # lf() has no frmtmb equivalent; the dpar formula goes inside bf().
   "brms_multivariate.9.1" = 'bf_tarsus <- bf(tarsus ~ sex + (1|p|fosternest) + (1|q|dam),
-    sigma ~ 0 + sex) + skew_normal()',
-  # brms tests a one-sided hypothesis directly; frmtmb tests a contrast
-  # against zero and the user reads the sign and the interval.
-  "brms_distreg.5.1" = 'hyp <- "exp(sigma_Intercept + sigma_grouptreat) - exp(sigma_Intercept)"',
-  "brms_overview.6.1" = 'hypothesis(fit1, "Intercept - age", class = "sd", group = "patient")'
+    sigma ~ 0 + sex) + skew_normal()'
+  # Two patches stood here to 0.67.0: brms_distreg.5.1 and
+  # brms_overview.6.1 rewrote a one-sided hypothesis as a contrast with
+  # no relation. 0.61.0 refuses a hypothesis with no relation, as brms
+  # does, and the one-sided form runs, so both patches broke lines that
+  # run raw. Removed in the 2026-10-05 re-measurement.
 )
