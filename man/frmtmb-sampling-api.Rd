@@ -57,6 +57,7 @@
 \alias{hyp_eval_in}
 \alias{hyp_expr_vars}
 \alias{brms_par_labels}
+\alias{gp_brms_natural}
 \alias{varcorr_matrices}
 \alias{varcorr_layout}
 \alias{varcorr_values}
@@ -316,7 +317,9 @@ spelling, \code{brms_levels(bk, for_r)} its level spelling, and
 \code{brms_re_parts(fit, bk)} a block's prefixes and renamed coefficients;
 \code{brms_par_labels(fit, include_random)} labels a
 sampled parameter vector in template order, in brms's spelling where
-brms has a parameter with the same content. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
+brms has a parameter with the same content, and
+\code{gp_brms_natural(fit)} maps the \code{theta} entries it labels \code{sdgp_}
+and \code{lscale_} to brms's scales and back. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
 \code{varcorr_layout(fit)} is brms's \code{VarCorr()} grouping for the fit,
 and \code{varcorr_values(fit, vals, comp, layout)} gives the standard
 deviations, correlations and covariances of that layout at one

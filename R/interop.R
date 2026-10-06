@@ -345,11 +345,13 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
 #'     different links, since the stacked predictors would be on
 #'     different scales. brms refuses this too. Name one response, or
 #'     use `epred = TRUE`.
-#'   \item An exact `gp()` term predicted at a position the fit did not
-#'     see. Its kriging variance has no covariance between two grid
-#'     points here. Use an approximate `gp(..., k = )`, or hold the
-#'     covariate at an observed value with the `at` argument.
 #' }
+#'
+#' An exact `gp()` term predicted at a position the fit did not see adds
+#' the field's conditional covariance across the grid to the covariance
+#' of the grid predictions, as brms's draws of the field carry it. Two
+#' grid rows at one position load one residual, so a contrast between
+#' them is the coefficient part alone.
 #'
 #' @section Divergence from brms:
 #' For a nonlinear `mu` without `nlpar`, the brms reference grid holds
@@ -620,7 +622,8 @@ emm_grid_vars <- function(object, t, tg) {
     v <- c(v, ce_plot_vars(object, rspec, lp, r))
     for (lpk in emm_reach(object, rspec, lp, r)) {
       for (gi in lpk[["gps"]] %||% list()) {
-        v <- c(v, unlist(lapply(gi$exprs, all.vars)))
+        v <- c(v, unlist(lapply(c(gi$exprs, gi[["by"]][["expr"]]),
+                                all.vars)))
       }
       # A smooth indexed by a grouping factor is rebuilt at EVERY
       # re_formula, so the grid has to carry its factor whatever
@@ -894,6 +897,15 @@ emm_basis_grid <- function(object, tg, grid) {
     off <- off + length(p$est)
   }
   V <- G %*% jc$V[pos_all, pos_all, drop = FALSE] %*% t(G)
+  # the variance that is not coefficient uncertainty, an exact gp()'s
+  # kriging residual at an unseen position, covaries across the grid
+  # rows of one predictor, and the marginal means read it through V
+  off <- 0L
+  for (p in parts) {
+    rows <- off + seq_along(p$est)
+    V[rows, rows] <- V[rows, rows] + p$extra_cov
+    off <- off + length(p$est)
+  }
   list(X = diag(sum(n)), bhat = unname(unlist(lapply(parts, `[[`, "est"))),
        V = (V + t(V)) / 2)
 }
@@ -904,9 +916,9 @@ emm_basis_grid <- function(object, tg, grid) {
 #' @noRd
 emm_lp_part <- function(object, r, name, nd, re_formula) {
   b <- frm_lp_basis(object, newdata = nd, dpar = name, resp = r,
-                    re_formula = re_formula)
+                    re_formula = re_formula, extra_cov = TRUE)
   list(est = unname(b$eta), G = as.matrix(b$A), pos = b$coef_pos,
-       extra = b$extra_var, nonest = b$nonest)
+       extra_cov = unname(as.matrix(b$extra_cov)), nonest = b$nonest)
 }
 
 #' The expected response at the grid and its Jacobian, by the chain rule
@@ -927,7 +939,8 @@ emm_epred_part <- function(object, t, nd, re_formula) {
     lp <- object$frame[["linpreds"]][[linpred_key(t$resp, dnm)]]
     if (is.null(lp)) next
     bs[[dnm]] <- frm_lp_basis(object, newdata = nd, dpar = dnm,
-                              resp = t$resp, re_formula = re_formula)
+                              resp = t$resp, re_formula = re_formula,
+                              extra_cov = TRUE)
     links[[dnm]] <- lp[["link"]]
     dp[[dnm]] <- lp[["link"]]$linkinv(bs[[dnm]]$eta)
   }
@@ -941,6 +954,9 @@ emm_epred_part <- function(object, t, nd, re_formula) {
   }
   pos <- unique(unlist(lapply(bs, `[[`, "coef_pos")))
   G <- matrix(0, n, length(pos))
+  # each dpar's extra covariance through the mean's gradient in that
+  # dpar's eta; two dpars' kriging residuals are different fields
+  E <- matrix(0, n, n)
   for (dnm in names(bs)) {
     g <- mean_eta_grad(fam, dp, av, dnm, links[[dnm]], bs[[dnm]]$eta)
     A <- as.matrix(bs[[dnm]]$A)
@@ -948,17 +964,17 @@ emm_epred_part <- function(object, t, nd, re_formula) {
     for (j in seq_along(cols)) {
       G[, cols[j]] <- G[, cols[j]] + g * A[, j]
     }
+    E <- E + outer(g, g) * unname(as.matrix(bs[[dnm]]$extra_cov))
   }
-  extra <- Reduce(`+`, lapply(bs, `[[`, "extra_var"), numeric(n))
   nonest <- Reduce(`|`, lapply(bs, `[[`, "nonest"), rep(FALSE, n))
-  list(est = unname(as.numeric(m)), G = G, pos = pos, extra = extra,
+  list(est = unname(as.numeric(m)), G = G, pos = pos, extra_cov = E,
        nonest = nonest)
 }
 
-#' The grid basis carries coefficient uncertainty only. A row that also
-#' carries a kriging variance, or that the fit cannot estimate, is
-#' refused rather than reported with a covariance that is too small or
-#' an estimate that is not one.
+#' A row the fit cannot estimate is refused rather than reported with an
+#' estimate that is not one. A row carrying a kriging variance is not:
+#' `frm_lp_basis(extra_cov = TRUE)` returns its covariance across the
+#' grid, and `emm_basis_grid()` adds it to `V`.
 #'
 #' @noRd
 emm_check_part <- function(p, r, several) {
@@ -968,14 +984,6 @@ emm_check_part <- function(p, r, several) {
              where, ": the fit is rank deficient there, or the prediction ",
              "is not finite. Restrict the grid with at = or by =",
              call. = FALSE)
-  }
-  if (any(p$extra > 0)) {
-    frm_stop("emmeans cannot use this reference grid", where, ": an exact ",
-             "gp() term is predicted at a position the fit did not see. ",
-             "Its kriging variance is known point by point but not as a ",
-             "covariance between two grid points, which the marginal means ",
-             "need. Use an approximate gp(..., k = ), or hold the gp() ",
-             "covariate at an observed value with at =", call. = FALSE)
   }
   invisible(NULL)
 }

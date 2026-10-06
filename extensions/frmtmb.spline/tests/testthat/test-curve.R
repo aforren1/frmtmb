@@ -373,3 +373,34 @@ test_that("the covariance is core's, at the rows core says it is at", {
   expect_equal(attr(cv, "Sigma"),
                unname(lb$A %*% lb$V %*% t(lb$A)), tolerance = 1e-12)
 })
+
+test_that("a band past an exact gp()'s positions draws from its kriging", {
+  skip_on_cran()
+  # The construction of dev/gpby-crit.R: y ~ fac + gp(x), 60 points on
+  # [0, 6], a grid on [7, 12] past them. The band used to draw from
+  # A V A' and divide by a standard error that carried the kriging
+  # variance, so it was too narrow exactly where it should widen: its
+  # critical value was 2.02211 against 2.33046 for the same draw
+  # standardized by its own scale (dev/reviews/2026-09-08-diffcurve.md,
+  # R9, which put the shortfall at 17 percent on its data).
+  set.seed(1)
+  n <- 60
+  d <- data.frame(x = stats::runif(n, 0, 6),
+                  fac = factor(rep(c("A", "B"), length.out = n)))
+  d$y <- sin(d$x) + ifelse(d$fac == "B", 0.5, 0) + stats::rnorm(n, 0, 0.2)
+  fit <- frmtmb::frm(frmtmb::bf(y ~ fac + gp(x)),
+                     family = stats::gaussian(), data = d)
+  nd <- data.frame(x = seq(7, 12, length.out = 25),
+                   fac = factor("A", levels = levels(d$fac)))
+  cv <- frm_curve(fit, newdata = nd, nsim = 20000, seed = 1)
+  lb <- frmtmb::frm_lp_basis(fit, newdata = nd, re_formula = NA)
+  expect_gt(min(lb$extra_var / cv$.se^2), 0.01)
+  # the grid covariance is the whole of it, so its diagonal is .se^2
+  expect_lt(max(abs(sqrt(diag(attr(cv, "Sigma"))) / cv$.se - 1)), 1e-10)
+  # and the critical value is at least the bound that only fixes the
+  # scale, which a residual decorrelating faster than the mean raises
+  A <- as.matrix(lb$A)
+  S0 <- A %*% lb$V %*% t(A)
+  bound <- sp_sim_crit(S0, sqrt(diag(S0)), 20000, 0.95, seed = 1)
+  expect_gt(cv$.crit_sim[1], bound$crit - 4 * bound$mcse)
+})

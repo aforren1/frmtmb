@@ -191,10 +191,12 @@ has not written.
 
   Because rows now apply, such a row in a `get_prior()` table stops the
   call where it used to be dropped in silence: on a model with `s()`,
-  `gp()`, `mo()` or `car()`, blank that row or write the frmtmb class
+  `mo()` or `car()`, blank that row or write the frmtmb class
   the message names. Every refused row of a table is named in one
   message, so one edit round is enough. Of 20 shapes a brms user would
-  actually write, 3 stop: `s()`, `gp()` and `mo()`. The rest translate,
+  actually write, 3 stopped when this was measured: `s()`, `gp()` and
+  `mo()`. A `gp()` table now carries over whole, since `sdgp` and
+  `lscale` are classes here too. The rest translate,
   zero-inflated, hurdle and negbinomial models included.
 - A prior with a location DOES place a nonlinear start. brms uses its
   priors to place its sampler, and `frm()` reads them the same way for

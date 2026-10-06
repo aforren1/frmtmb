@@ -324,8 +324,13 @@ test_that("a factor smooth keeps its contribution on newdata", {
   rel <- max(abs(unname(as.vector(ref)) - unname(as.vector(got))) /
                abs(unname(as.vector(ref))))
   # relative to the values the run itself produced; the defect showed
-  # here as 0.676, and on another design it OVERSTATED a cell instead
-  expect_lt(rel, 8 * .Machine$double.eps)
+  # here as 0.676, and on another design it OVERSTATED a cell instead.
+  # The smooth's columns now go through its predictor's eta (the chain
+  # rule of fit_fd_se(), `b_chain`) rather than through a batch, which is
+  # a different central difference of the same derivative: two of them
+  # at a step of 1e-5 agree to the square of the step, 4.6e-11 here,
+  # and sqrt(eps) is far below the defect and far above that
+  expect_lt(rel, sqrt(.Machine$double.eps))
 })
 
 test_that("a block whose b is not positionwise refuses to batch", {
@@ -426,10 +431,12 @@ test_that("Est.Error at re_formula = NA carries a kept smooth's uncertainty", {
   ref <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = NULL))
   got <- as.vector(fitted(fit, newdata = nd,
                           re_formula = NA)[, "Est.Error", ])
-  # the batched route is the same arithmetic, so it agrees to round-off
-  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 8)
-  # and the smooth's share is far above round-off, which is what makes
-  # the 8-ulp assertion above tell the fixed route from the old one (the
+  # fitted() takes the smooth through its predictor's eta (the chain
+  # rule), a different central difference of the same derivative, so the
+  # two agree to the square of the 1e-5 step, 6.8e-11 relative here
+  expect_lt(max(abs(ref - got) / abs(ref)), sqrt(.Machine$double.eps))
+  # and the smooth's share is far above that, which is what makes the
+  # assertion above tell the fixed route from the old one (the
   # old answer was `bare`). The share itself is NOT a stable number: it
   # follows the fitted smoothing variance, which six groups barely
   # determine, and it measured 0.52 on Windows and 0.11 on the macOS
@@ -466,10 +473,10 @@ test_that("Est.Error of a category probability carries a POPULATION smooth", {
   }, NA)], `[[`, "b_idx"))))
   ref <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = sm, b_batch = NULL))
   got <- as.vector(fitted(fit, newdata = nd)[, "Est.Error", ])
-  # the same arithmetic in a different summation order: 27.9 ulp measured
-  # here, against the 8 the block above needs, because this route sums
-  # over the whole smooth rather than one block of a factor smooth
-  expect_lt(max(abs(ref - got) / (.Machine$double.eps * abs(ref))), 100)
+  # fitted() takes the smooth through its predictor's eta (the chain
+  # rule), a different central difference of the same derivative: they
+  # agree to the square of the 1e-5 step, 2.7e-10 relative here
+  expect_lt(max(abs(ref - got) / abs(ref)), sqrt(.Machine$double.eps))
   # the old answer was several times the right one on the extreme rows
   bare <- as.vector(frmtmb:::fit_fd_se(fit, f, b_idx = NULL))
   expect_gt(max(bare / ref), 3)

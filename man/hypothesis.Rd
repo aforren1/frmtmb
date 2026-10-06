@@ -212,12 +212,20 @@ effects are not allowed". Give the second term a copy of the factor
 under another name, \code{(1 | gr(id, cov = A)) + (1 | id_pe)}, and the
 two are \code{sd_id__Intercept} and \code{sd_id_pe__Intercept}.
 
-Excluded: \code{s()}/\code{t2()} smooths, \code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()}.
-Their theta segments are not standard deviations: an inverse
-smoothing parameter, lengthscales, a mixing proportion, a precision
-and an inverse range. There is no \verb{sd_<group>__<coef>} to name. Read
-those off \code{\link[=confint_varcorr]{confint_varcorr()}}, which reports each under its own
-label (\code{sd(gp)}, \code{range(gp)}, \code{sd(car)}, ...).
+Excluded: \code{s()}/\code{t2()} smooths, \code{car()} and \code{spde()}. Their theta
+segments are not standard deviations: an inverse smoothing
+parameter, a mixing proportion, a precision and an inverse range.
+There is no \verb{sd_<group>__<coef>} to name. Read those off
+\code{\link[=confint_varcorr]{confint_varcorr()}}, which reports each under its own label
+(\code{sd(car)}, ...).
+
+A \code{\link[brms:gp]{gp()}} term contributes brms's own names: \verb{sdgp_<term>} for its
+marginal standard deviation and \verb{lscale_<term>} for its length scale,
+on brms's scales, so the length scale is on the inputs \code{gp(scale = TRUE)} divides by their largest distance. The term is brms's label,
+\code{gpx} for \code{gp(x)}, with a response or distributional parameter
+prefix as for every other name, the by-level after it for
+\code{gp(x, by = f)} (\code{sdgp_gpxfa}), and the covariate after that for a
+non-isotropic term's length scales (\code{lscale_gpxzx}).
 }
 
 \section{Names that would collide}{

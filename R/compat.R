@@ -1562,7 +1562,7 @@ compat_hand_rules_tbl <- function() {
   r("frm_lp_basis", "rr", "works",
     "A reduced-rank block's loadings live in theta, so a design over (beta, b) alone is incomplete. A carries the loading columns through rr_jacobians() and coef_pos names their theta rows, so a caller gets the whole delta method rather than discovering a piece is absent.")
   r("frm_lp_basis", "gp", "works",
-    "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A'.")
+    "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A', and with extra_cov = TRUE as its full covariance across the rows, which every unseen row of one field shares; a difference between two grids reads the cross block of one call on the stacked grid.")
   r("frm_lp_basis", "predict", "works",
     "frm_linpred(se.fit = TRUE) is written as a consumer of it, which is the test that the shape is right: var(eta) is rowSums((A %*% V) * A) + extra_var.")
   r("nl", "kind:covstruct", "works",
@@ -1665,7 +1665,7 @@ compat_hand_rules_tbl <- function() {
   # self-pair row, which the resolved table cannot hold; every gp()
   # model has a family, so they are stated here instead.
   r("gp_pred()", "kind:family", "works",
-    "gp() takes 1 to 3 variables. The arguments k, c, and iso are evaluated in the formula environment, and c may be a vector with one entry per dimension. Several gp() terms may appear in one formula.")
+    "gp() takes 1 to 3 variables and brms's arguments by, k, iso, gr, cmc, scale and c, evaluated in the formula environment; c may be a vector with one entry per dimension, and iso defaults to TRUE as in brms. A factor by fits one GP per level (cmc = TRUE) or contrast GPs (cmc = FALSE), each scaled over its own rows with its own sdgp and lscale under brms's names; a numeric by multiplies one GP; a by-level the fit never saw is refused, as brms refuses it. cov = other than \"exp_quad\" is refused: the Matern and exponential kernels are not implemented. Several gp() terms may appear in one formula.")
   r("s()", "kind:mode", "untested", "", override = TRUE)
   r("s()", "kind:family", "works", "")
   r("t2()", "kind:family", "works", "")
@@ -1782,8 +1782,8 @@ compat_hand_rules_tbl <- function() {
     "The monotonic variable joins the reference grid, and its contribution is part of the means. The design basis used to leave it out.")
   r("emmeans", "mi_pred()", "untested",
     "Takes the grid route through frm_lp_basis(), which needs the variable complete in the grid. Not exercised.")
-  r("emmeans", "gp_pred()", "conditional",
-    "An approximate gp(..., k = ) works. An exact gp() is refused at a position the fit did not see, because its kriging variance has no covariance between grid points here; at = an observed value works.")
+  r("emmeans", "gp_pred()", "works",
+    "Works. An exact gp() at a position the fit did not see adds its kriging covariance across the grid to V, through frm_lp_basis(extra_cov = TRUE), so a contrast between two rows at one position cancels it and a mean at an unseen position carries it, as brms's draws of the field do.")
   r("emmeans", "group:ordinal", "conditional",
     "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use frm_linpred(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
   r("confint_profile", "kind:mode", "untested", "")

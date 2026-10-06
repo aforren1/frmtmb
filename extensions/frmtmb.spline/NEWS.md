@@ -1,3 +1,76 @@
+# frmtmb.spline (development version)
+
+Needs frmtmb's development version, for `frm_lp_basis(extra_cov = TRUE)`
+and `frm_extra_cov_deriv()`.
+
+## Breaking changes
+
+* **BREAKING: the `"Sigma"` attribute of `frm_curve()`,
+  `frm_curve_deriv()` and a difference curve is the grid's whole
+  covariance**, `A V A'` plus the covariance of the part that is not
+  coefficient uncertainty (an exact `gp()`'s kriging residual, an
+  unseen grouping level's draw). It was `A V A'` alone. Code that read
+  it as the coefficients' covariance gets a larger matrix wherever such
+  a part exists, and the same one elsewhere.
+* **BREAKING: `frm_curve_deriv()` leaves out the `gp()` kernel's
+  nugget**, which is white noise at each position and has no
+  derivative, and takes the rest of that part's derivative from
+  frmtmb's `frm_extra_cov_deriv()` rather than by differencing it. Its
+  `.se` at an exact `gp()`'s unseen positions therefore differs from
+  earlier builds.
+
+## Bug fixes and changes
+
+* **`frm_curve_deriv(order = 2)` past an exact `gp()`'s data, and at an
+  unseen grouping level, has the right standard error.** The design
+  stencil was applied to the extra covariance as well, which divided
+  its rounding by the step to the fourth power. On the review's
+  construction (`y ~ gp(x)`, 50 points on [0, 4], grid 3.0, 4.2, 4.8,
+  5.5) `.se` was 0, 0, 0, 0.875 and is now 0.285, 0.692, 0.830, 0.959,
+  which a 24 times larger step reproduces to 2e-5 relative; the
+  simultaneous critical value over [3.5, 5.5] was 19.34 and is 2.50
+  (`dev/gpby-rev-deriv2b.R`, `dev/gpby-p1-deriv2b-lane.txt`). At an
+  unseen level of `y ~ t + (1 + t | g)`, linear in `t`, the order-2
+  `.se` was 0 to 1.495 and is 0, the true value
+  (`dev/gpby-p1-deriv2-lane.txt`).
+* **A simultaneous band over an exact `gp()` past its observed
+  positions is no longer too narrow.** The band drew its deviation
+  process from `A V A'` and divided by a standard error that carried
+  the kriging variance, so it was narrow exactly where it should widen.
+  It now draws from the grid's whole covariance, `A V A'` plus the
+  kriging covariance core returns, and its `"Sigma"` attribute is that
+  whole covariance. On `y ~ fac + gp(x)`, 60 points on [0, 6], a grid
+  on [7, 12]: the critical value was 2.022, the reviewer's lower bound
+  2.330, and it is now 2.431 (`dev/gpby-crit.R`). Over 400 seeds of a
+  GP drawn from the model itself on a grid running past the data, the
+  whole-curve coverage moves from 0.7775 to 0.8100 (binomial mcse
+  0.0208 and 0.0196), 13 seeds covered by the new band only and none by
+  the old one only (`dev/gpby-cov-band.R`); the rest of the shortfall
+  from 0.95 is the plug-in hyperparameters', which the pointwise band
+  shares at 0.887 per point.
+* **A difference curve whose two grids sit at different exact `gp()`
+  positions is computed**, not refused. One `frm_lp_basis()` call on
+  the stacked grid returns the kriging covariance between the two
+  grids. `sp_same_latent()` is gone, and with it the refusal of
+  `y ~ fac + s(x, by = fac) + gp(x)` contrasted across `fac`.
+* **An unseen grouping level carries its draw into every route.** The
+  simultaneous band, `frm_curve_deriv()` and `frm_curve_feature()`
+  refused under `allow_new_levels = TRUE` at a level of a term
+  `re_formula` keeps, because the seam returned the level's variance
+  one row at a time; they now read its covariance. A difference
+  between two different unseen levels carries both draws, and one at
+  the same unseen level cancels it.
+* A peak's standard error leaves out the `gp()` kernel's nugget too,
+  for the same reason as `frm_curve_deriv()`.
+* A grid with no part outside the coefficients (a smooth, a
+  Hilbert-space `gp(k = )`, seen levels) allocates no extra `n x n`
+  matrix: `extra_cov` arrives as an empty sparse matrix and is skipped.
+  On a 2000-row `s(x)` grid `frm_curve_deriv(nsim = 1000)` peaks at the
+  previous release's 467 MB, and `frm_curve()` on a 2000-row exact
+  `gp(x)` grid past its data at 255 MB against 192 MB, the difference
+  being the kriging covariance the band now carries
+  (`dev/gpby-p1-mem.R`, `dev/gpby-p1-mem2.R`).
+
 # frmtmb.spline 0.9.0
 
 * Needs frmtmb 0.65.0. `frm_curve()` and its relatives take

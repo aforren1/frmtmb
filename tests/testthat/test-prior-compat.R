@@ -442,12 +442,15 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
   expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
                                                  class = "sds")),
                "class = \"sd\" with group", fixed = TRUE)
-  expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
-                                                 class = "sdgp")),
-               "class = \"sd\" with group", fixed = TRUE)
-  expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
-                                                 class = "lscale")),
-               "class = \"theta\"", fixed = TRUE)
+  # a gp()'s sd and length scales are brms's classes here too, so their
+  # rows carry over under the same class
+  pg <- frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
+                                          class = "sdgp") +
+                                brms::prior(normal(0, 1), class = "lscale",
+                                            coef = "gpx"))
+  expect_identical(vapply(unclass(pg), `[[`, "", "class"),
+                   c("sdgp", "lscale"))
+  expect_identical(unclass(pg)[[2L]]$coef, "gpx")
   expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
                                                  class = "sdcar")),
                "class = \"sd\" with group", fixed = TRUE)
@@ -556,17 +559,21 @@ test_that("coef and group narrow the classes that read them", {
 test_that("every refused row of a table is named in one message", {
   skip_if_not_installed("brms")
   # A table is edited as a whole, so stopping at the first bad row costs
-  # one round trip per bad row. y ~ gp(x) carries an `lscale` row AND an
-  # `sdgp` row: naming only the first made it two edit rounds.
+  # one round trip per bad row: a table with an `sds` row AND an `sdcar`
+  # row names both. (A gp() table, which once was the example, carries
+  # over whole now that sdgp and lscale are classes here.)
   set.seed(3)
   dd <- data.frame(x = stats::rnorm(60))
   dd$y <- stats::rnorm(60, dd$x)
   gp <- brms::get_prior(brms::bf(y ~ gp(x)), data = dd,
                         family = stats::gaussian())
-  msg <- tryCatch(frmtmb:::as_priorlist(gp), error = conditionMessage)
+  expect_s3_class(frmtmb:::as_priorlist(gp), "frmtmb_priorlist")
+  two <- brms::prior(student_t(3, 0, 1), class = "sds") +
+    brms::prior(student_t(3, 0, 1), class = "sdcar")
+  msg <- tryCatch(frmtmb:::as_priorlist(two), error = conditionMessage)
   expect_match(msg, "2 rows", fixed = TRUE)
-  expect_match(msg, "lscale", fixed = TRUE)
-  expect_match(msg, "sdgp", fixed = TRUE)
+  expect_match(msg, "sds", fixed = TRUE)
+  expect_match(msg, "sdcar", fixed = TRUE)
   # and one bad row still reads as one row
   one <- tryCatch(frmtmb:::as_priorlist(
     brms::prior(student_t(3, 0, 1), class = "sds")),

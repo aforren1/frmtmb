@@ -64,8 +64,8 @@ contributes nothing. Passed to every \code{\link[frmtmb:frm_lp_basis]{frmtmb::fr
 covariance check read the same rows. See the section "The
 population curve of a factor-smooth model" of \code{\link[=frm_curve]{frm_curve()}}. At an
 unseen level of a term \code{re_formula} keeps, such as \code{(1 | g)} at
-\code{NULL}, only the pointwise band of \code{\link[=frm_curve]{frm_curve()}} is answered; see
-its section "An unseen level of a \code{(1 | g)} term".}
+\code{NULL}, every route carries that level's draw; see the section "An
+unseen level of a \code{(1 | g)} term" of \code{\link[=frm_curve]{frm_curve()}}.}
 
 \item{level}{Coverage of both intervals.}
 

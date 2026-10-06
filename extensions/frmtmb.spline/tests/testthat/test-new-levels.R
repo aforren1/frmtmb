@@ -156,90 +156,107 @@ test_that("the derivative and the feature read the unseen level too", {
             diff(cv$t[1:2]))
 })
 
-test_that("a difference across two unseen levels is refused, not cancelled", {
-  # An unseen level of a BAR term carries its block's marginal variance
-  # as extra_var and loads no design column. Two DIFFERENT unseen levels
-  # therefore look identical to sp_same_latent(), which would cancel two
-  # independent draws and report a difference standard error of zero
-  # where the truth is sqrt(2) times the block sd. Measured in
-  # dev/splinecurve-band.R section 6.
+test_that("a difference across two unseen levels adds two draws", {
+  # An unseen level of a BAR term carries its block's covariance and
+  # loads no design column. Which rows share a draw is decided by the
+  # level's label (frmtmb's new_key), and frm_lp_basis(extra_cov = TRUE)
+  # on the stacked grid returns the cross term that decides it: two
+  # DIFFERENT unseen levels are independent draws and add, the SAME
+  # unseen level in both grids is one draw and cancels. Before that
+  # seam this pair was refused, because sp_same_latent() could not tell
+  # the two apart and would have cancelled two independent draws.
   o <- sp_fs_fixture()
   fit <- frmtmb::frm(frmtmb::bf(v ~ s(t, k = 10) + (1 | subject)),
                      family = stats::gaussian(), data = o$d)
   lev <- c(levels(o$d$subject), "A", "B")
   gA <- data.frame(t = o$unseen$t, subject = factor("A", levels = lev))
   gB <- transform(gA, subject = factor("B", levels = lev))
-  a <- sp_one_basis(fit, gA, NULL, NULL, NULL, TRUE)
-  b <- sp_one_basis(fit, gB, NULL, NULL, NULL, TRUE)
-  expect_true(all(a$lb$extra_var > 0))
-  # the predicate this refusal stands in front of cannot see the
-  # difference; if it ever can, this line flips and the refusal can go
-  expect_true(sp_same_latent(fit, a, b))
-  expect_error(frm_curve(fit, newdata = gA, contrast = gB,
-                         re_formula = NULL, allow_new_levels = TRUE,
-                         simultaneous = FALSE),
-               "nothing the seam returns says whether the two grids name")
+  la <- frmtmb::frm_lp_basis(fit, newdata = gA, re_formula = NULL,
+                             allow_new_levels = TRUE)
+  expect_true(all(la$extra_var > 0))
+  dif <- frm_curve(fit, newdata = gA, contrast = gB, re_formula = NULL,
+                   allow_new_levels = TRUE, simultaneous = FALSE)
+  lb <- frmtmb::frm_lp_basis(fit, newdata = gB, re_formula = NULL,
+                             allow_new_levels = TRUE)
+  C <- as.matrix(la$A) - as.matrix(lb$A)
+  v_coef <- rowSums((C %*% la$V) * C)
+  expect_lt(max(abs(dif$.se^2 / (v_coef + la$extra_var + lb$extra_var) -
+                      1)), 1e-10)
+  # one unseen level on both sides, the curve moved along t: its draw
+  # cancels and the difference is the smooth's alone
+  gA2 <- transform(gA, t = rev(t))
+  same <- frm_curve(fit, newdata = gA, contrast = gA2, re_formula = NULL,
+                    allow_new_levels = TRUE, simultaneous = FALSE)
+  l2 <- frmtmb::frm_lp_basis(fit, newdata = gA2, re_formula = NULL,
+                             allow_new_levels = TRUE)
+  C2 <- as.matrix(la$A) - as.matrix(l2$A)
+  expect_lt(max(abs(same$.se^2 - rowSums((C2 %*% la$V) * C2))),
+            1e-10 * max(la$extra_var))
   # the same pair with the grouping term dropped is the ordinary
-  # population difference, and it is answered
+  # population difference
   ok <- frm_curve(fit, newdata = gA, contrast = gB, re_formula = NA,
                   allow_new_levels = TRUE, simultaneous = FALSE)
   expect_true(all(ok$.estimate == 0))
 })
 
-test_that("an unseen bar-term level refuses routes that drop its variance", {
+test_that("an unseen bar-term level carries its draw into every route", {
   # One unseen level is ONE draw shared by every row, so the grid's
-  # covariance is C V C' + Z S Z'. frm_lp_basis() returns only the
-  # diagonal of the second part, as extra_var. The pointwise band adds it
-  # and is right; the simultaneous band, the derivative and the feature
-  # standard errors are built from C V C' and would omit it. Before the
-  # refusal the simultaneous critical value came out BELOW qnorm(0.975)
-  # and covered 35 and 15 percent (dev/reviews/2026-09-29-splinecurve.md,
-  # Finding A); the record of this file failing on that build is
-  # dev/splinecurve-r2-before.log.
+  # covariance is C V C' + Z S Z'. frm_lp_basis(extra_cov = TRUE)
+  # returns the second part whole, and the simultaneous band, the
+  # derivative and the feature read it. Before, they drew from C V C'
+  # alone and were refused: the simultaneous critical value came out
+  # BELOW qnorm(0.975) and covered 35 and 15 percent
+  # (dev/reviews/2026-09-29-splinecurve.md, Finding A).
   o <- sp_fs_fixture()
   lev <- c(levels(o$d$subject), "new")
   gu <- data.frame(t = o$unseen$t, subject = factor("new", levels = lev))
-  for (form in list(v ~ s(t, k = 10) + (1 | subject),
-                    v ~ s(t, k = 10) + (1 + t | subject))) {
+  for (slope in c(FALSE, TRUE)) {
+    form <- if (slope) v ~ s(t, k = 10) + (1 + t | subject) else
+      v ~ s(t, k = 10) + (1 | subject)
     fit <- suppressWarnings(frmtmb::frm(frmtmb::bf(form),
                                         family = stats::gaussian(),
                                         data = o$d))
     lb <- frmtmb::frm_lp_basis(fit, newdata = gu, re_formula = NULL,
-                               allow_new_levels = TRUE)
-    # the precondition: the new level really carries variance here
+                               allow_new_levels = TRUE, extra_cov = TRUE)
     expect_true(all(lb$extra_var > 0))
-    # the pointwise band carries it, and stays
-    pw <- frm_curve(fit, newdata = gu, re_formula = NULL,
-                    allow_new_levels = TRUE, simultaneous = FALSE)
     A <- as.matrix(lb$A)
-    expect_equal(pw$.se^2,
+    cv <- frm_curve(fit, newdata = gu, re_formula = NULL,
+                    allow_new_levels = TRUE, nsim = 2000, seed = 1)
+    expect_equal(cv$.se^2,
                  unname(diag(A %*% lb$V %*% t(A))) + lb$extra_var)
-    rx <- "new level's marginal variance.*`subject`"
-    expect_error(frm_curve(fit, newdata = gu, re_formula = NULL,
-                           allow_new_levels = TRUE, nsim = 2000, seed = 1),
-                 rx)
-    expect_error(frm_curve_deriv(fit, var = "t", newdata = gu,
-                                 re_formula = NULL, allow_new_levels = TRUE,
-                                 simultaneous = FALSE),
-                 rx)
-    expect_error(frm_curve_feature(fit, var = "t", type = "maximum",
-                                   newdata = gu, re_formula = NULL,
-                                   allow_new_levels = TRUE),
-                 rx)
+    Sig <- unname(A %*% lb$V %*% t(A)) + unname(lb$extra_cov)
+    expect_lt(max(abs(attr(cv, "Sigma") - Sig)), 1e-12 * max(abs(Sig)))
+    # the band now standardizes by the variance it draws from, so its
+    # critical value is at least the pointwise one
+    expect_gt(cv$.crit_sim[1L], cv$.crit[1L])
+    # the derivative: a random intercept moves the curve and not its
+    # slope, and a random slope adds its own variance to the slope's
+    dv <- frm_curve_deriv(fit, var = "t", newdata = gu, re_formula = NULL,
+                          allow_new_levels = TRUE, simultaneous = FALSE)
+    dp <- frm_curve_deriv(fit, var = "t", newdata = gu, re_formula = NA,
+                          allow_new_levels = TRUE, simultaneous = FALSE)
+    if (!slope) {
+      expect_lt(max(abs(dv$.se / dp$.se - 1)), 1e-6)
+    } else {
+      # the slope's variance, read off the new level's own variance
+      # s11 + 2 t s12 + t^2 s22 at three values of t
+      g3 <- data.frame(t = c(0, 1, 2), subject = gu$subject[1:3])
+      e3 <- frmtmb::frm_lp_basis(fit, newdata = g3, re_formula = NULL,
+                                 allow_new_levels = TRUE)$extra_var
+      s22 <- (e3[3] - 2 * e3[2] + e3[1]) / 2
+      expect_lt(max(abs(dv$.se^2 / (dp$.se^2 + s22) - 1)), 1e-4)
+    }
+    pk <- frm_curve_feature(fit, var = "t", type = "maximum",
+                            newdata = gu, re_formula = NULL,
+                            allow_new_levels = TRUE)
+    expect_identical(nrow(pk), 1L)
+    expect_true(is.finite(pk$.se))
     # core fills an ABSENT grouping column with NA under TRUE, which is
     # the same route
-    expect_error(frm_curve(fit, newdata = gu[, "t", drop = FALSE],
-                           re_formula = NULL, allow_new_levels = TRUE,
-                           nsim = 2000, seed = 1),
-                 rx)
-    # dropping the term is the population curve, and every route answers
-    cv <- frm_curve(fit, newdata = gu, re_formula = NA,
-                    allow_new_levels = TRUE, nsim = 2000, seed = 1)
-    expect_gt(cv$.crit_sim[1L], cv$.crit[1L])
-    expect_true(is.finite(attr(cv, "check")$cov_rel_error))
-    pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gu,
-                            re_formula = NA, allow_new_levels = TRUE)
-    expect_identical(nrow(pk), 1L)
+    cv2 <- frm_curve(fit, newdata = gu[, "t", drop = FALSE],
+                     re_formula = NULL, allow_new_levels = TRUE,
+                     nsim = 2000, seed = 1)
+    expect_equal(cv2$.se, cv$.se)
   }
 })
 

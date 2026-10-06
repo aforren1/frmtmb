@@ -269,6 +269,10 @@ draws_fit_at <- function(x, i, idx = draws_index(x), fill = NA_real_) {
   }
   fit$estimates <- est
   fit$cache <- new.env(parent = emptyenv())   # no stale sdreport
+  # one draw of an exact gp() at a position the fit did not see is a
+  # draw from its conditional given the draw's own field, as brms makes
+  # it, and not that conditional's mean
+  fit[["krige_draw"]] <- TRUE
   fit
 }
 

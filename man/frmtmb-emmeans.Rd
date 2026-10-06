@@ -104,11 +104,13 @@ latent predictor, or \code{\link[=frm_linpred]{frm_linpred()}} with \code{type =
 different links, since the stacked predictors would be on
 different scales. brms refuses this too. Name one response, or
 use \code{epred = TRUE}.
-\item An exact \code{gp()} term predicted at a position the fit did not
-see. Its kriging variance has no covariance between two grid
-points here. Use an approximate \code{gp(..., k = )}, or hold the
-covariate at an observed value with the \code{at} argument.
 }
+
+An exact \code{gp()} term predicted at a position the fit did not see adds
+the field's conditional covariance across the grid to the covariance
+of the grid predictions, as brms's draws of the field carry it. Two
+grid rows at one position load one residual, so a contrast between
+them is the coefficient part alone.
 }
 
 \section{Divergence from brms}{

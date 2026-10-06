@@ -365,27 +365,58 @@ test_that("a gp() difference at ONE position cancels the kriging residual", {
   expect_lt(abs(dif$.estimate[1L] / (-bhat) - 1), 1e5 * .Machine$double.eps)
 })
 
-test_that("a gp() difference at DIFFERENT positions is still refused", {
+test_that("a gp() difference at DIFFERENT positions carries the cross term", {
   skip_on_cran()
   o <- sp_gp_fit()
-  # the same contrast with the second grid's x moved. The two grids now
-  # load different draws of the field, the cross term is what carries
-  # the answer, and the seam does not return it.
-  for (shift in c(0.05, 1e-10)) {
+  # The closed form, built by hand from the fitted kernel: the two
+  # grids' kriging residuals r1 and r2 covary through
+  # k(x1, x2) - k(x1, X) K^-1 k(X, x2), and the difference carries
+  # var(r1) + var(r2) - 2 cov(r1, r2) beside (A1 - A2) V (A1 - A2)'.
+  # Until frm_lp_basis() returned the covariance this was refused, and
+  # it is not small: see the mirrored grid below.
+  hand <- function(fit, A, B) {
+    bk <- fit$frame$re_blocks[[1]]
+    th <- fit$estimates$theta[bk$theta_idx]
+    pos <- fit$frame$linpreds[["y.mu"]]$gps[[1]]$positions[, 1]
+    k <- function(a, b) exp(2 * th[1]) * exp(-outer(a, b, "-")^2 /
+                                                (2 * exp(2 * th[2])))
+    K <- k(pos, pos) + diag(exp(2 * th[1]) * 1e-6, length(pos))
+    kc <- function(a, b) k(a, b) - k(a, pos) %*% solve(K, k(pos, b))
+    nug <- exp(2 * th[1]) * 1e-6
+    e11 <- diag(kc(A$x, A$x)) + nug
+    e22 <- diag(kc(B$x, B$x)) + nug
+    e12 <- diag(kc(A$x, B$x)) + nug * (A$x == B$x)
+    la <- frmtmb::frm_lp_basis(fit, newdata = A)
+    lb <- frmtmb::frm_lp_basis(fit, newdata = B)
+    C <- as.matrix(la$A) - as.matrix(lb$A)
+    sqrt(rowSums((C %*% la$V) * C) + e11 + e22 - 2 * e12)
+  }
+  for (shift in c(0.05, 1)) {
     moved <- o$B
     moved$x <- moved$x + shift
-    expect_error(frm_curve(o$fit, newdata = o$A, contrast = moved,
-                           simultaneous = FALSE),
-                 "decided on the whole latent design", fixed = TRUE)
+    dif <- frm_curve(o$fit, newdata = o$A, contrast = moved,
+                     simultaneous = FALSE)
+    ref <- hand(o$fit, o$A, moved)
+    expect_lt(max(abs(dif$.se / ref - 1)), 1e-6)
   }
-  # The mirrored grid is where a NUMERIC sameness test breaks. On an
-  # exactly symmetric observed design, x and -x have kriging variances
-  # that agree to 1.11e-16, a relative 1e-10 on a variance of 1e-06, and
-  # they are different draws of the field: their residuals are
-  # correlated below one, so the difference does carry a variance the
-  # seam cannot supply. Any tolerant comparison of the two variances
-  # accepts this and understates the standard error. The design test
-  # refuses it, because the kriging WEIGHTS are not mirrored.
+  # a shift of 1e-10: the smooth part of the residual is continuous and
+  # all but cancels, and what is left is the nugget, white noise of
+  # 1e-6 sd^2 at each of the two positions that only ONE position shares
+  same <- frm_curve(o$fit, newdata = o$A, contrast = o$B,
+                    simultaneous = FALSE)
+  tiny <- o$B
+  tiny$x <- tiny$x + 1e-10
+  near <- frm_curve(o$fit, newdata = o$A, contrast = tiny,
+                    simultaneous = FALSE)
+  bk <- o$fit$frame$re_blocks[[1]]
+  nug <- exp(2 * o$fit$estimates$theta[bk$theta_idx][1]) * 1e-6
+  expect_lt(max(abs((near$.se^2 - same$.se^2) / (2 * nug) - 1)), 1e-3)
+
+  # The mirrored grid. On an exactly symmetric observed design, x and -x
+  # have kriging variances that agree to 1.11e-16, and they are
+  # different draws of the field whose residuals correlate below one,
+  # so the difference DOES carry a variance. A numeric sameness test on
+  # the two variances would have cancelled it.
   set.seed(2)
   xo <- seq(-5, 5, length.out = 41)
   ds <- data.frame(x = xo,
@@ -401,14 +432,17 @@ test_that("a gp() difference at DIFFERENT positions is still refused", {
   lmb <- frmtmb::frm_lp_basis(fs, newdata = mB, re_formula = NA)
   expect_lt(max(abs(lma$extra_var - lmb$extra_var)),
             1e-6 * max(lma$extra_var))
-  expect_error(frm_curve(fs, newdata = mA, contrast = mB,
-                         simultaneous = FALSE),
-               "decided on the whole latent design", fixed = TRUE)
+  dm <- frm_curve(fs, newdata = mA, contrast = mB, simultaneous = FALSE)
+  expect_lt(max(abs(dm$.se / hand(fs, mA, mB) - 1)), 1e-6)
+  # and the residual's share is real: the standard error without it
+  C <- as.matrix(lma$A) - as.matrix(lmb$A)
+  se_coef <- sqrt(rowSums((C %*% lma$V) * C))
+  expect_true(all(dm$.se > se_coef))
 
-  # and the same point where the seam makes it plainest. Two levels of
-  # one grouping block have identical marginal variances by construction
-  # and are different draws, which is the coincidence a numeric test
-  # passes and this one must not.
+  # Two levels of one grouping block have identical marginal variances
+  # by construction and are different draws. In sample they carry no
+  # extra variance at all, and the difference across levels goes
+  # through on the coefficient covariance alone.
   set.seed(5)
   m <- 400
   d <- data.frame(x = sort(stats::runif(m)),
@@ -424,16 +458,37 @@ test_that("a gp() difference at DIFFERENT positions is still refused", {
   g2 <- g1
   g2$g <- factor(2, levels = levels(d$g))
   la <- frmtmb::frm_lp_basis(fit, newdata = g1, re_formula = NULL)
-  lb <- frmtmb::frm_lp_basis(fit, newdata = g2, re_formula = NULL)
-  expect_identical(la$extra_var, lb$extra_var)
-  expect_false(sp_same_latent(fit, list(lb = la, C = as.matrix(la$A)),
-                              list(lb = lb, C = as.matrix(lb$A))))
-  # an in-sample level carries no extra variance at all, so the guard
-  # never runs on it and the difference across levels goes through
   expect_true(all(la$extra_var == 0))
   expect_s3_class(frm_curve(fit, newdata = g1, contrast = g2,
                             re_formula = NULL, simultaneous = FALSE),
                   "frmtmb_curve")
+})
+
+test_that("a by-factor smooth beside an exact gp() differences across fac", {
+  skip_on_cran()
+  # sp_same_latent() asked every non-fixed column to match and refused
+  # this model, whose gp() columns are bit-identical across fac and
+  # whose s(x, by = fac) columns differ by construction
+  set.seed(8)
+  n <- 120
+  d <- data.frame(x = sort(stats::runif(n, 0, 6)),
+                  fac = factor(rep(c("A", "B"), length.out = n)))
+  d$y <- sin(d$x) + ifelse(d$fac == "B", 0.3 * d$x, 0) +
+    stats::rnorm(n, 0, 0.3)
+  fit <- frmtmb::frm(frmtmb::bf(y ~ fac + s(x, by = fac, k = 6) + gp(x)),
+                     family = stats::gaussian(), data = d)
+  gx <- d$x[-1] - diff(d$x) / 2
+  A <- data.frame(x = gx, fac = factor("A", levels = levels(d$fac)))
+  B <- data.frame(x = gx, fac = factor("B", levels = levels(d$fac)))
+  dif <- frm_curve(fit, newdata = A, contrast = B, simultaneous = FALSE)
+  la <- frmtmb::frm_lp_basis(fit, newdata = A)
+  lb <- frmtmb::frm_lp_basis(fit, newdata = B)
+  expect_true(any(la$extra_var > 0))
+  # one position, one residual: it cancels and the difference is the
+  # coefficient part alone
+  C <- as.matrix(la$A) - as.matrix(lb$A)
+  ref <- sqrt(rowSums((C %*% la$V) * C))
+  expect_lt(max(abs(dif$.se / ref - 1)), 1e-10)
 })
 
 test_that("print() says the difference itself was not checked", {

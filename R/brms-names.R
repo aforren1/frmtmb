@@ -516,6 +516,9 @@ brms_check_re_dups <- function(fit) {
 #'   name the `stanfit` itself carries.
 #' - `miss`: `miss_<i>` for an `mi()` value and brms's
 #'   `Xme_<coef>[<i>]` for a `me()` latent value.
+#' - `theta` of a `gp()` block: brms's `sdgp_<term>` and
+#'   `lscale_<term>`, whose draws frmtmb.sample stores on brms's scales
+#'   (`gp_brms_natural()`).
 #' - everything else: the internal name, `theta_1`, `thetaac_1`,
 #'   `meanme_<coef>` (brms's name and brms's scale), `logsdme_<coef>`,
 #'   or the family's own extra-parameter names, with parentheses
@@ -554,6 +557,9 @@ brms_par_labels <- function(fit, include_random = TRUE) {
     if (is.null(v)) {
       v <- paste0(cp, "_", seq_along(tpl[[cp]]), recycle0 = TRUE)
     }
+    # a gp() block's sd and length scales are brms's sdgp_ and lscale_,
+    # which a sampler stores on brms's scales (gp_brms_natural())
+    if (cp == "theta") v <- gp_theta_labels(fit, v)
     out <- c(out, par_name_bare(v))
   }
   # brms's repair_stanfit(): a label given twice, such as the r_ level

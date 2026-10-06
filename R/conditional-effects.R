@@ -183,8 +183,33 @@ ce_lp_vars <- function(lp, rsv = TRUE) {
   for (m in lp[["me"]] %||% list()) {
     v <- c(v, m$xvars, all.vars(m$mult_expr))
   }
+  # a gp() term's covariates and its by variable, which brms's
+  # get_all_effects_type(x, "gp") reads off the term
+  v <- c(v, ce_gp_vars(lp))
   unique(v)
 }
+
+#' The variables of each `gp()` term of one linear predictor, its
+#' covariates and then its `by` variable, one entry per written term (a
+#' factor `by` splits a term into several blocks, which share a label
+#' stem).
+#'
+#' @noRd
+ce_gp_terms <- function(lp) {
+  out <- list()
+  for (gi in lp[["gps"]] %||% list()) {
+    vv <- unique(unlist(lapply(c(gi$exprs, gi[["by"]][["expr"]]),
+                               all.vars)))
+    key <- paste(vv, collapse = "\r")
+    out[[key]] <- vv
+  }
+  unname(out)
+}
+
+#' Every variable `ce_gp_terms()` names.
+#'
+#' @noRd
+ce_gp_vars <- function(lp) unique(unlist(ce_gp_terms(lp)))
 
 #' Every variable `conditional_effects()` can vary for one display.
 #'
@@ -273,12 +298,20 @@ ce_plot_vars_any <- function(x, rspec, resp, rsv = TRUE) {
 #'
 #' @noRd
 ce_lp_pairs <- function(lp) {
+  # a gp() term over several variables (its covariates and its by
+  # variable) is an interaction of all of them, as brms writes it with
+  # str2formula(vars, collapse = "*") in get_all_effects_type()
+  gp_pairs <- unlist(lapply(ce_gp_terms(lp), function(vv) {
+    if (length(vv) < 2L) return(character(0))
+    cb <- utils::combn(vv, 2L)
+    paste(cb[1L, ], cb[2L, ], sep = ":")
+  }))
+  out <- gp_pairs %||% character(0)
   tt <- lp[["terms"]]
-  if (is.null(tt)) return(character(0))
+  if (is.null(tt)) return(unique(out))
   ord <- attr(tt, "order")
   fac <- attr(tt, "factors")
-  if (is.null(ord) || !any(ord >= 2L)) return(character(0))
-  out <- character(0)
+  if (is.null(ord) || !any(ord >= 2L)) return(unique(out))
   for (k in which(ord >= 2L)) {
     lbls <- rownames(fac)[fac[, k] > 0]
     vs <- lapply(lbls, function(l) all.vars(str2lang(l)))
@@ -1820,7 +1853,7 @@ ce_model_vars <- function(x) {
         smooth_pred_vars(si$sm)
       })),
       unlist(lapply(lp[["gps"]] %||% list(), function(gi) {
-        unlist(lapply(gi$exprs, all.vars))
+        unlist(lapply(c(gi$exprs, gi[["by"]][["expr"]]), all.vars))
       })),
       # a cs() term's variable lives with the term, not in `terms`
       unlist(lapply(lp[["cs"]] %||% list(), function(ct) {

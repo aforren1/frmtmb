@@ -24,24 +24,28 @@
 # now verifies is that this package reads the seam correctly, rather
 # than that a reconstruction reproduced it.
 #
-# A DIFFERENCE CURVE is the same object twice. `contrast = ` builds the
-# seam at a second grid, subtracts the two designs and reports
-# `(A1 - A2) V (A1 - A2)'`. What the seam does NOT hand over is a second
-# route to that number: `frm_linpred(se.fit = TRUE)` returns a marginal
-# standard error per row and never the covariance BETWEEN the two grids,
-# which is the whole content of a difference. So the check is run on
-# each half and `cov_rel_error` is the worse of the two, and what it
-# licenses is that both designs were read correctly, not that the
-# difference's own standard error was verified against anything.
+# The variance that is NOT coefficient uncertainty comes from the same
+# call as a full covariance, `extra_cov` (frmtmb's `frm_lp_basis(extra_cov
+# = TRUE)`): an exact `gp()`'s kriging residual, which every unseen row
+# of one field shares, and a new grouping level's draw, which every row
+# at that level shares. The grid's covariance is `A V A' + extra_cov`,
+# and the band, the derivative and the feature are all built from it.
+# Before that seam existed this package drew the band from `A V A'` and
+# divided by a standard error that carried the residual, which made a
+# band over an exact `gp()` past the observed positions at least 17
+# percent too narrow (dev/diffcurve-findings.md).
 #
-# `extra_var` meets the same limit from the other side. An exact `gp()`
-# at an unseen position contributes a kriging residual per ROW, and the
-# seam returns no covariance between the two grids, so `var(g1 - g2)`
-# has no public route. It does not need one when the two grids load the
-# same residual, which they do whenever their non-fixed design columns
-# agree, and then the term is exactly zero rather than unknown. That is
-# the ordinary case and it is now computed; the refusal is what is left.
-# `sp_same_latent()` carries the test and the measurements behind it.
+# A DIFFERENCE CURVE is the same object twice, read in ONE call on the
+# stacked grid `rbind(newdata, contrast)`: the off-diagonal block of
+# `extra_cov` is the covariance between the two grids, so two grids at
+# the same `gp()` position cancel their residual and two at different
+# positions carry its difference, with no predicate deciding which. What
+# the seam does NOT hand over is a second route to the difference's
+# standard error: `frm_linpred(se.fit = TRUE)` returns a marginal
+# standard error per row. So the check is run on each half and
+# `cov_rel_error` is the worse of the two, and what it licenses is that
+# both designs were read correctly, not that the difference's own
+# standard error was verified against anything.
 
 #' Run `expr`, holding back any `ps()` knot-span warning frmtmb raises
 #' inside it.
@@ -188,9 +192,12 @@ sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula,
 #' The seam read at ONE grid: the design, its covariance and the
 #' standard error the check compares.
 #'
-#' Split out because a difference curve needs it twice and the halves
-#' must come off the same seam at the same coefficient rows before the
-#' subtraction means anything.
+#' `E` is the covariance of the variance that is not coefficient
+#' uncertainty, as core returns it (sparse when its blocks cover little
+#' of the grid, all zero when nothing contributes), and `Sigma` the
+#' grid's whole covariance `A V A' + E`, dense. A difference reads the
+#' stacked grid through here once, so both halves come off the same seam
+#' at the same coefficient rows.
 #'
 #' The standard error is `diag(A V A')` and NOT the `rowSums((A %*% V)
 #' * A)` core writes it with, even though a difference discards both
@@ -212,85 +219,28 @@ sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula,
 sp_one_basis <- function(fit, nd, dpar, resp, re_formula, allow_new_levels) {
   lbc <- sp_catch_span(frmtmb::frm_lp_basis(
     fit, newdata = nd, dpar = dpar, resp = resp, re_formula = re_formula,
-    allow_new_levels = allow_new_levels))
+    allow_new_levels = allow_new_levels, extra_cov = TRUE))
   lb <- lbc$value
   C <- as.matrix(lb$A)
   Sigma <- unname(C %*% lb$V %*% t(C))
-  list(lb = lb, C = C, Sigma = Sigma,
-       se = unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0))),
-       span = lbc$span)
+  se <- unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0)))
+  E <- lb$extra_cov
+  Sigma <- sp_add_extra(Sigma, E)
+  list(lb = lb, C = C, E = E, Sigma = Sigma, se = se, span = lbc$span)
 }
 
-#' Do the two grids of a difference load the SAME latent draw?
-#'
-#' Variance that is not coefficient uncertainty, which for a curve is an
-#' exact `gp()` kriging residual, arrives from the seam as one
-#' number per ROW with no covariance between the two grids, so a
-#' difference cannot form `var(g1 - g2)` in general. It does not have to
-#' when `g1` and `g2` are the SAME random variable: the term is then
-#' exactly zero and the difference is `(A1 - A2) V (A1 - A2)'` with
-#' nothing left over.
-#'
-#' The test is on the DESIGN and not on the numbers. A latent block
-#' reaches a prediction only through its own columns of `A`, so two
-#' grids whose non-fixed columns are bit-identical load one functional
-#' of one field, and whatever that functional leaves unexplained is one
-#' residual rather than two. Equality of `extra_var` alone would NOT do:
-#' two different levels of one grouping block have identical marginal
-#' variances by construction and are different draws. Measured on
-#' `y ~ fac + s(x, k = 6) + (1 | g)` at `re_formula = NULL`, contrasting
-#' level 1 against level 2: `extra_var` identical, non-fixed design
-#' columns not identical, so this returns `FALSE` where the numbers
-#' agree.
-#'
-#' Sensitivity, on `y ~ fac + gp(x)` at n = 90 with the grid off the
-#' observed positions: a contrast across `fac` at one `x` gives `TRUE`,
-#' and moving the second grid's `x` by 1e-10, or mirroring it about the
-#' range midpoint, gives `FALSE`.
-#'
-#' It is STRICTER than the mathematics needs, and the refusal says so.
-#' Only the block that carries `extra_var` has to match for the residual
-#' to cancel; this asks it of every non-fixed column. So a contrast
-#' across `fac` on `y ~ fac + s(x, by = fac) + gp(x)` is refused even
-#' though the `gp()` columns are bit-identical, because the by-factor
-#' smooth's own columns differ, which is what a by-factor smooth is for.
-#' Narrowing to the right block needs the block identity, and the only
-#' public route to it is the `b.<block>.<level>` shape of
-#' `frm_joint_cov()$labels`, which is name parsing this package does not
-#' do. It fails closed, so the cost is a refused answer and not a wrong
-#' one, and the core seam that returns a matrix-valued `extra_cov`
-#' removes the need for the predicate entirely.
-#'
-#' What it assumes: for an exact `gp()` the kriging weights fix the
-#' position uniquely unless every observed position is equidistant from
-#' the two grids' positions. In one dimension that needs every
-#' observation at one point, which makes the kernel matrix singular; in
-#' two it needs them collinear with the two positions mirrored across
-#' that line. That design was built: `gp(u, v)` with 60 observations all
-#' at `v = 0` and grids at `v = +0.75` and `v = -0.75`. This returns
-#' TRUE there and the omitted standard error is 0.888, so the escape is
-#' real and large. It is blocked by a SECOND condition rather than by
-#' this one: a `gp()` carries one length scale per dimension, so
-#' observations on a line do not identify the scale across it, the fit
-#' comes back singular and `frm_curve()` refuses at the covariance
-#' check. Moving three observations off the line makes the fit healthy
-#' and makes this predicate return `FALSE`. A fit that pinned the second
-#' length scale with a prior or a bound would be non-singular and would
-#' take the escape, so this is a second line of defence and not an
-#' airtight one.
-#'
-#' Everything else fails closed: a component vector that does not line
-#' up with the design, or no non-fixed column at all, returns `FALSE`
-#' and the call refuses.
+#' `S + E`, without a dense copy of `E` when it has no nonzero entry,
+#' which is every fit with no exact `gp()` off its positions and no
+#' unseen level.
 #'
 #' @noRd
-sp_same_latent <- function(fit, a, b) {
-  nm <- frmtmb::frm_joint_cov(fit)$names[a$lb$coef_pos]
-  if (length(nm) != ncol(a$C) || anyNA(nm)) return(FALSE)
-  keep <- !(nm %in% c("beta", "betad"))
-  if (!any(keep)) return(FALSE)
-  identical(a$C[, keep, drop = FALSE], b$C[, keep, drop = FALSE]) &&
-    identical(a$lb$extra_var, b$lb$extra_var)
+sp_add_extra <- function(S, E) {
+  if (is.null(E)) return(S)
+  if (inherits(E, "Matrix")) {
+    if (!length(E@x) || !any(E@x != 0)) return(S)
+    E <- as.matrix(E)
+  }
+  S + unname(E)
 }
 
 #' `sqrt(diag(A V A') + extra_var)` against `frm_linpred(se.fit = TRUE)`, or
@@ -321,89 +271,12 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
   rel
 }
 
-#' Refuse a route that would drop a new level's variance.
-#'
-#' `frm_lp_basis()` returns a new grouping level's variance one number
-#' per ROW, as `extra_var`, and no covariance between rows. One unseen
-#' level is ONE draw shared by every row, so the grid's covariance is
-#' `C V C' + Z S Z'` and the seam hands over only the diagonal of the
-#' second part. The pointwise band adds that diagonal and is right. The
-#' simultaneous band draws from `C V C'` and divides by a standard error
-#' that includes it, so its critical value fell BELOW `qnorm(0.975)`
-#' (0.646 on `(1 | subject)`, coverage 0.352); the derivative and the
-#' feature standard errors are built from `C V C'` alone and came out
-#' at 0.40 to 0.50 and about a quarter of the right values
-#' (dev/reviews/2026-09-29-splinecurve.md, Finding A). Before this
-#' package took `allow_new_levels` every one of these calls refused, so
-#' refusing keeps them where they were until the seam returns the
-#' covariance.
-#'
-#' Only under `allow_new_levels = TRUE`. Under `FALSE` the one source
-#' of `extra_var` is an exact `gp()` off the observed positions, which is
-#' older than this argument and of a recorded size of 7e-07; it is filed
-#' for the consolidating session rather than refused here.
-#'
-#' `what` names the route at run time so the three callers share one
-#' template.
-#'
-#' @noRd
-sp_new_level_stop <- function(parts, fn, what) {
-  if (!isTRUE(parts$allow_new_levels) || !any(parts$extra_var != 0)) {
-    return(invisible(NULL))
-  }
-  frm_stop(fn, ": with allow_new_levels = TRUE this grid carries a new ",
-           "level's marginal variance, from ",
-           sp_new_level_terms(parts$fit, parts$newdata), ". One unseen ",
-           "level is one draw shared by every row, and frm_lp_basis() ",
-           "returns its variance one number per row with no covariance ",
-           "between rows, so ", what, " would omit it and come out too ",
-           "narrow. The pointwise frm_curve(simultaneous = FALSE) band ",
-           "carries it. Use re_formula = NA to drop the term and read the ",
-           "population curve, or name a level the fit saw. When no row is ",
-           "at an unseen level, as with an exact gp() read between its ",
-           "observed positions, pass allow_new_levels = FALSE",
-           call. = FALSE)
-}
-
-#' Which grouping factor of the grid holds a level the fit did not see.
-#'
-#' Read through the public `ngrps()` and `ranef()` rather than the
-#' fitted frame. A grouping expression that is not a column, such as
-#' `g1:g2`, cannot be matched to the grid by name and falls through to
-#' the generic phrase; so does an exact `gp()`, the other source of
-#' `extra_var`. Wrapped in `tryCatch()` because a refusal must not fail
-#' while it names the thing it refuses.
-#'
-#' @noRd
-sp_new_level_terms <- function(fit, nd) {
-  found <- tryCatch({
-    re <- frmtmb::ranef(fit)
-    out <- character(0)
-    for (g in names(frmtmb::ngrps(fit))) {
-      if (!g %in% names(nd)) {
-        # core fills an absent grouping column with NA under TRUE, so
-        # every row is at a new level of it
-        out <- c(out, paste0("`", g, "`, absent from the grid"))
-        next
-      }
-      new <- setdiff(unique(as.character(nd[[g]])), rownames(re[[g]]))
-      if (length(new)) {
-        out <- c(out, paste0("`", g, "` at ",
-                             paste(new, collapse = ", ")))
-      }
-    }
-    out
-  }, error = function(e) character(0))
-  if (length(found)) paste(found, collapse = " and ") else {
-    "a grouping term or an exact gp() this grid reaches off the fit"
-  }
-}
-
 #' Everything the three exported functions share: the grid, the design,
 #' the covariance, and the check that the covariance is the right one.
 #'
-#' `frm_lp_basis()` (frmtmb >= 0.52.0) returns `A`, `V` and the variance
-#' that is not coefficient uncertainty. For a linear predictor it is the
+#' `frm_lp_basis(extra_cov = TRUE)` (frmtmb's development version)
+#' returns `A`, `V` and the variance that is not coefficient uncertainty
+#' as a full covariance over the rows. For a linear predictor it is the
 #' same object `frm_linpred(se.fit = TRUE)` reduces to a diagonal, so the
 #' two are compared on every call. For a NONLINEAR body `A` is a
 #' Jacobian, `frm_linpred(se.fit = TRUE)` refuses outright, and there is
@@ -411,20 +284,17 @@ sp_new_level_terms <- function(fit, nd) {
 #' which `print()` reports rather than hides.
 #'
 #' With `contrast`, the reported functional is `(A1 - A2) c` and its
-#' covariance is `(A1 - A2) V (A1 - A2)'`. Three things the one-grid
-#' path takes for granted have to be established first, and they are the
-#' whole difference between "the covariance is already assembled" and a
-#' difference curve:
-#'
-#' 1. The two designs must sit at the SAME rows of `V`. `coef_pos` says
-#'    where each one sits, so the subtraction is checked rather than
-#'    assumed.
-#' 2. `extra_var` is a per-row variance with no covariance between the
-#'    grids. Where the two grids load the SAME latent draw the cross
-#'    term is exactly zero and there is nothing to fetch, which
-#'    `sp_same_latent()` decides; otherwise the difference is refused.
-#' 3. The check compares each half against `frm_linpred(se.fit = TRUE)`.
-#'    There is no second route to the difference's own standard error.
+#' covariance is `(A1 - A2) V (A1 - A2)' + E11 + E22 - E12 - E21`, with
+#' `E` the extra covariance of the stacked grid `rbind(newdata,
+#' contrast)`, read in ONE call so that its off-diagonal block is the
+#' covariance between the two grids. Two grids at one exact `gp()`
+#' position load the same kriging residual, and it cancels; two at
+#' different positions load correlated ones, and their difference is
+#' what is left; a grid at an unseen grouping level and one at the SAME
+#' unseen level load one draw of its effect, and two different unseen
+#' levels independent draws. The check compares each half against
+#' `frm_linpred(se.fit = TRUE)`: there is no second route to the
+#' difference's own standard error.
 #'
 #' @noRd
 sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
@@ -438,15 +308,16 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     frm_stop("`newdata` must be a data frame with at least one row: it is ",
              "the grid the curve is evaluated on", call. = FALSE)
   }
-  a <- sp_one_basis(fit, newdata, dpar, resp, re_formula, allow_new_levels)
   nl <- sp_is_nl(fit, dpar, resp)
-  out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
-              se = a$se, rel = NA_real_, n_predict = 0L,
-              newdata = newdata, contrast = contrast, dpar = dpar,
-              resp = resp, re_formula = re_formula,
-              allow_new_levels = allow_new_levels, fit = fit, span = a$span,
-              extra_var = a$lb$extra_var)
   if (is.null(contrast)) {
+    a <- sp_one_basis(fit, newdata, dpar, resp, re_formula,
+                      allow_new_levels)
+    out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
+                E = a$E, se = a$se, rel = NA_real_,
+                n_predict = 0L, newdata = newdata, contrast = contrast,
+                dpar = dpar, resp = resp, re_formula = re_formula,
+                allow_new_levels = allow_new_levels, fit = fit,
+                span = a$span, extra_var = a$lb$extra_var)
     # A nonlinear body is the case core refuses se.fit for, so there is
     # no second number to check against. Everything else is checked.
     if (!nl) {
@@ -456,66 +327,55 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     }
     return(out)
   }
-  b <- sp_one_basis(fit, contrast, dpar, resp, re_formula, allow_new_levels)
-  if (!identical(a$lb$coef_pos, b$lb$coef_pos)) {
-    frm_stop("frm_curve(contrast = ): the two grids load on different ",
-             "coefficients (", length(a$lb$coef_pos), " and ",
-             length(b$lb$coef_pos), " of them), so subtracting their ",
-             "designs would pair columns that belong to different ",
-             "parameters. Both grids must reach the same linear predictor ",
-             "under the same re_formula", call. = FALSE)
+  n <- nrow(newdata)
+  i1 <- seq_len(n)
+  i2 <- n + i1
+  st <- sp_one_basis(fit, sp_stack(newdata, contrast), dpar, resp,
+                     re_formula, allow_new_levels)
+  dif <- function(M) M[i1, i1] + M[i2, i2] - M[i1, i2] - M[i2, i1]
+  C <- st$C[i1, , drop = FALSE] - st$C[i2, , drop = FALSE]
+  E <- dif(st$E)
+  Sigma <- sp_add_extra(unname(C %*% st$lb$V %*% t(C)), E)
+  # the stacked call counts the rows of both grids together, so a span
+  # message is re-asked of each grid to say which one holds the value
+  span <- if (length(st$span)) {
+    sp_span_both(
+      sp_span_on_grid(fit, newdata, dpar, resp, re_formula,
+                      allow_new_levels),
+      sp_span_on_grid(fit, contrast, dpar, resp, re_formula,
+                      allow_new_levels))
+  } else {
+    character(0)
   }
-  # Variance that is not coefficient uncertainty arrives per row with no
-  # covariance between the grids, so a difference can only report it
-  # when the two rows carry the SAME residual and it cancels exactly.
-  # That is the ordinary case, a contrast across a factor at one gp()
-  # position, and refusing it would refuse an answer that is right.
-  has_extra <- any(a$lb$extra_var != 0) || any(b$lb$extra_var != 0)
-  # An unseen level loads NO column of the design, so sp_same_latent()
-  # cannot tell two unseen levels apart: both show all-zero columns and
-  # the same marginal variance, and the predicate would call two
-  # independent draws one draw and cancel a variance that belongs in the
-  # answer. Refused before that predicate is ever asked.
-  if (has_extra && isTRUE(allow_new_levels)) {
-    frm_stop("frm_curve(contrast = , allow_new_levels = TRUE): a grid here ",
-             "carries variance that is not coefficient uncertainty, a new ",
-             "grouping level's marginal variance or an exact gp() kriging ",
-             "residual. An unseen level loads no column of the design, so ",
-             "nothing the seam returns says whether the two grids name the ",
-             "SAME unseen level, whose draw cancels, or two different ones, ",
-             "whose draws add. Drop the grouping term with re_formula = NA ",
-             "to difference the population curves, or use ",
-             "allow_new_levels = FALSE when no row is at an unseen level",
-             call. = FALSE)
-  }
-  if (has_extra && !sp_same_latent(fit, a, b)) {
-    frm_stop("frm_curve(contrast = ): this prediction carries variance that ",
-             "is not coefficient uncertainty, which for a curve is an exact ",
-             "gp() kriging residual. A difference can only report it when ",
-             "both grids load the same one, and that is decided on the ",
-             "whole latent design: EVERY column of it outside the fixed ",
-             "effects has to match, not only the gp() block's. Here they do ",
-             "not, so the gp() positions may well be identical and some ",
-             "other random-effect or smooth term is what differs. ",
-             "frm_lp_basis() returns that variance per row and no covariance ",
-             "between the grids, so there is no cross term to fall back on. ",
-             "Hold every latent term equal between the grids and contrast a ",
-             "fixed effect, or read the two curves separately",
-             call. = FALSE)
-  }
-  out$C <- a$C - b$C
-  out$Sigma <- unname(out$C %*% out$V %*% t(out$C))
-  out$se <- unname(sqrt(pmax(diag(out$Sigma), 0)))
-  out$eta <- a$lb$eta - b$lb$eta
-  out$span <- sp_span_both(a$span, b$span)
+  out <- list(eta = st$lb$eta[i1] - st$lb$eta[i2], C = C, V = st$lb$V,
+              Sigma = Sigma, E = E,
+              se = unname(sqrt(pmax(diag(Sigma), 0))), rel = NA_real_,
+              n_predict = 0L, newdata = newdata, contrast = contrast,
+              dpar = dpar, resp = resp, re_formula = re_formula,
+              allow_new_levels = allow_new_levels, fit = fit, span = span,
+              extra_var = as.numeric(E[cbind(i1, i1)]))
   if (!nl) {
     out$rel <- max(
-      sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
+      sp_cov_check(fit, newdata, st$se[i1], dpar, resp, re_formula,
                    allow_new_levels, tol, "`newdata`"),
-      sp_cov_check(fit, contrast, b$se, dpar, resp, re_formula,
+      sp_cov_check(fit, contrast, st$se[i2], dpar, resp, re_formula,
                    allow_new_levels, tol, "`contrast`"))
     out$n_predict <- 2L
   }
+  out
+}
+
+#' The two grids of a difference as one frame, `newdata`'s rows first.
+#'
+#' Only the columns both carry: a column one grid lacks is one the
+#' prediction does not read, or the grid that lacks it is refused by
+#' core under its own name either way.
+#'
+#' @noRd
+sp_stack <- function(a, b) {
+  nm <- intersect(names(a), names(b))
+  out <- rbind(a[nm], b[nm])
+  rownames(out) <- NULL
   out
 }
 
@@ -591,4 +451,38 @@ sp_sim_crit <- function(S, div, nsim, level, seed = NULL) {
        mcse = if (isTRUE(is.finite(f) && f > 0)) {
          sqrt(level * (1 - level) / nsim) / f
        } else NA_real_)
+}
+
+#' The covariance of the curve's derivative that is not coefficient
+#' uncertainty, from frmtmb's `frm_extra_cov_deriv()`, which forms it
+#' from its sources rather than by differencing `extra_cov`; for a
+#' difference, from one call on the stacked grid. `NULL` when nothing
+#' contributes, and for a nonlinear body, whose route refuses both
+#' sources.
+#'
+#' @noRd
+sp_extra_deriv <- function(sp, nd, ct, var, order, e) {
+  if (sp_is_nl(sp$fit, sp$dpar, sp$resp)) return(NULL)
+  one <- function(g) {
+    frmtmb::frm_extra_cov_deriv(sp$fit, g, var = var, order = order,
+                                eps = e, dpar = sp$dpar, resp = sp$resp,
+                                re_formula = sp$re_formula,
+                                allow_new_levels = sp$allow_new_levels)
+  }
+  E <- if (is.null(ct)) {
+    one(nd)
+  } else {
+    n <- nrow(nd)
+    i1 <- seq_len(n)
+    i2 <- n + i1
+    E2 <- one(sp_stack(nd, ct))
+    if (inherits(E2, "Matrix") && !length(E2@x)) return(NULL)
+    E2[i1, i1] + E2[i2, i2] - E2[i1, i2] - E2[i2, i1]
+  }
+  # an empty sparse matrix is the no-source case, and costs nothing
+  if (inherits(E, "Matrix")) {
+    if (!length(E@x) || !any(E@x != 0)) return(NULL)
+    E <- as.matrix(E)
+  }
+  if (!any(E != 0)) NULL else unname(E)
 }

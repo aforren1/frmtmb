@@ -54,8 +54,8 @@ contributes nothing. Passed to every \code{\link[frmtmb:frm_lp_basis]{frmtmb::fr
 covariance check read the same rows. See the section "The
 population curve of a factor-smooth model" of \code{\link[=frm_curve]{frm_curve()}}. At an
 unseen level of a term \code{re_formula} keeps, such as \code{(1 | g)} at
-\code{NULL}, only the pointwise band of \code{\link[=frm_curve]{frm_curve()}} is answered; see
-its section "An unseen level of a \code{(1 | g)} term".}
+\code{NULL}, every route carries that level's draw; see the section "An
+unseen level of a \code{(1 | g)} term" of \code{\link[=frm_curve]{frm_curve()}}.}
 
 \item{level}{Coverage of both intervals.}
 
@@ -79,7 +79,8 @@ the assembled covariance may show before the call refuses.}
 A data frame of class \code{frmtmb_curve}: the columns of
 \code{newdata}, then \code{.estimate}, \code{.se}, \code{.crit}, \code{.lower_ci},
 \code{.upper_ci}, and when \code{simultaneous = TRUE} also \code{.crit_sim},
-\code{.lower_sim} and \code{.upper_sim}. The grid covariance is the \code{"Sigma"}
+\code{.lower_sim} and \code{.upper_sim}. The grid covariance, \verb{A V A'} plus
+the variance that is not coefficient uncertainty, is the \code{"Sigma"}
 attribute, the fit is the \code{"fit"} attribute, and \code{"check"} carries
 the covariance agreement and the \code{predict()} call count.
 }
@@ -114,9 +115,11 @@ All of it comes from ONE call to frmtmb's exported seam,
 \code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}}, which returns the design \code{A} over the
 coefficient vector, the joint covariance \code{V} at exactly the rows \code{A}'s
 columns sit at, and the variance that is NOT coefficient uncertainty
-(a new grouping level's marginal variance, an exact \code{gp()}'s kriging
-variance) as a separate element, \code{extra_var}. \code{Sigma} is \verb{A V A'}, and
-the pointwise standard error is \code{sqrt(diag(Sigma) + extra_var)}.
+(a new grouping level's draw, an exact \code{gp()}'s kriging residual) as
+a separate covariance over the grid rows, \code{extra_cov}. \code{Sigma} is
+\verb{A V A' + extra_cov}, and the pointwise standard error is
+\code{sqrt(diag(Sigma))}. The simultaneous band draws from the same
+\code{Sigma} it standardizes by.
 
 Up to frmtmb 0.51.0 there was no such seam. This package rebuilt \code{A}
 by unit perturbation, one \code{predict()} call per contributing
@@ -279,30 +282,33 @@ cannot report.
 \section{An unseen level of a \code{(1 | g)} term}{
 
 An unseen level of a bar term is different from an unseen \code{fs}
-level. Where \code{re_formula} keeps the term, \code{frm_lp_basis()} returns
-the block's marginal variance as \code{extra_var}, one number per row. One
-unseen level is ONE draw shared by every row, so the covariance of
-the grid is \verb{A V A'} plus a block that the seam does not return. So
-with \code{allow_new_levels = TRUE} and a nonzero \code{extra_var}:
-
-\itemize{
-\item the POINTWISE band of \code{frm_curve(simultaneous = FALSE)} is
-answered and is right, because it adds \code{extra_var} row by row. The
-\code{"Sigma"} attribute is still \verb{A V A'} and does not carry it.
-\item \code{frm_curve(simultaneous = TRUE)}, \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} and
-\code{\link[=frm_curve_feature]{frm_curve_feature()}} REFUSE, naming the grouping factor. Each
-builds its answer from \verb{A V A'} and would omit the new level's
-variance. Measured on the curve-inference vignette's data before
-the refusal: a simultaneous critical value of 0.646 on \code{(1 | subject)} and 0.615 on \code{(1 + t | subject)}, against 2.146 and
-2.472 from the full covariance; derivative standard errors 0.40 to
-0.50 of the right ones; feature standard errors about a quarter.
-}
+level. Where \code{re_formula} keeps the term, the unseen level is ONE
+draw of its block's effect shared by every row at that level, so the
+covariance of the grid is \verb{A V A'} plus that draw's covariance, which
+\code{frm_lp_basis(extra_cov = TRUE)} returns. Every route reads it: the
+pointwise and simultaneous bands, \code{\link[=frm_curve_deriv]{frm_curve_deriv()}}, where a random
+intercept moves the curve and not its slope and a random slope adds
+its own variance to the slope's, and \code{\link[=frm_curve_feature]{frm_curve_feature()}}. A
+\code{contrast} at the SAME unseen level cancels the draw; one between two
+different unseen levels carries both. Before frmtmb returned the
+covariance, the bands drew from \verb{A V A'} alone, and the simultaneous
+critical value was 0.646 on \code{(1 | subject)} and 0.615 on
+\code{(1 + t | subject)} on the curve-inference vignette's data, against
+2.146 and 2.472 from the full covariance, so those routes refused.
 
 \code{re_formula = NA} drops the term and gives the population curve on
-every route. A model with BOTH \code{s(t, g, bs = "fs")} and \code{(1 | g)}
-read at an unseen \code{g} with \code{re_formula = NULL} gets the population
-curve plus the \code{(1 | g)} variance in its pointwise band, and the
-other routes refuse.
+every route.
+}
+
+\section{An exact \code{gp()} past its positions}{
+
+An exact \code{gp()} evaluated at a position the fit did not see carries
+the field's kriging residual, one draw of the field shared by every
+unseen row, and its covariance enters \code{Sigma} the same way. The band
+therefore widens where the grid leaves the observed positions. The
+\code{1e-6} nugget frmtmb puts on the kernel's correlation is white noise
+at each position, which has no derivative: \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} and a
+peak's standard error leave it out.
 }
 
 \section{Past a \code{ps()} knot span}{

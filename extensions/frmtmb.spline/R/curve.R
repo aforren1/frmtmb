@@ -28,9 +28,11 @@
 #' [frmtmb::frm_lp_basis()], which returns the design `A` over the
 #' coefficient vector, the joint covariance `V` at exactly the rows `A`'s
 #' columns sit at, and the variance that is NOT coefficient uncertainty
-#' (a new grouping level's marginal variance, an exact `gp()`'s kriging
-#' variance) as a separate element, `extra_var`. `Sigma` is `A V A'`, and
-#' the pointwise standard error is `sqrt(diag(Sigma) + extra_var)`.
+#' (a new grouping level's draw, an exact `gp()`'s kriging residual) as
+#' a separate covariance over the grid rows, `extra_cov`. `Sigma` is
+#' `A V A' + extra_cov`, and the pointwise standard error is
+#' `sqrt(diag(Sigma))`. The simultaneous band draws from the same
+#' `Sigma` it standardizes by.
 #'
 #' Up to frmtmb 0.51.0 there was no such seam. This package rebuilt `A`
 #' by unit perturbation, one `predict()` call per contributing
@@ -185,31 +187,31 @@
 #'
 #' @section An unseen level of a `(1 | g)` term:
 #' An unseen level of a bar term is different from an unseen `fs`
-#' level. Where `re_formula` keeps the term, `frm_lp_basis()` returns
-#' the block's marginal variance as `extra_var`, one number per row. One
-#' unseen level is ONE draw shared by every row, so the covariance of
-#' the grid is `A V A'` plus a block that the seam does not return. So
-#' with `allow_new_levels = TRUE` and a nonzero `extra_var`:
-#'
-#' \itemize{
-#'   \item the POINTWISE band of `frm_curve(simultaneous = FALSE)` is
-#'     answered and is right, because it adds `extra_var` row by row. The
-#'     `"Sigma"` attribute is still `A V A'` and does not carry it.
-#'   \item `frm_curve(simultaneous = TRUE)`, [frm_curve_deriv()] and
-#'     [frm_curve_feature()] REFUSE, naming the grouping factor. Each
-#'     builds its answer from `A V A'` and would omit the new level's
-#'     variance. Measured on the curve-inference vignette's data before
-#'     the refusal: a simultaneous critical value of 0.646 on `(1 |
-#'     subject)` and 0.615 on `(1 + t | subject)`, against 2.146 and
-#'     2.472 from the full covariance; derivative standard errors 0.40 to
-#'     0.50 of the right ones; feature standard errors about a quarter.
-#' }
+#' level. Where `re_formula` keeps the term, the unseen level is ONE
+#' draw of its block's effect shared by every row at that level, so the
+#' covariance of the grid is `A V A'` plus that draw's covariance, which
+#' `frm_lp_basis(extra_cov = TRUE)` returns. Every route reads it: the
+#' pointwise and simultaneous bands, [frm_curve_deriv()], where a random
+#' intercept moves the curve and not its slope and a random slope adds
+#' its own variance to the slope's, and [frm_curve_feature()]. A
+#' `contrast` at the SAME unseen level cancels the draw; one between two
+#' different unseen levels carries both. Before frmtmb returned the
+#' covariance, the bands drew from `A V A'` alone, and the simultaneous
+#' critical value was 0.646 on `(1 | subject)` and 0.615 on
+#' `(1 + t | subject)` on the curve-inference vignette's data, against
+#' 2.146 and 2.472 from the full covariance, so those routes refused.
 #'
 #' `re_formula = NA` drops the term and gives the population curve on
-#' every route. A model with BOTH `s(t, g, bs = "fs")` and `(1 | g)`
-#' read at an unseen `g` with `re_formula = NULL` gets the population
-#' curve plus the `(1 | g)` variance in its pointwise band, and the
-#' other routes refuse.
+#' every route.
+#'
+#' @section An exact `gp()` past its positions:
+#' An exact `gp()` evaluated at a position the fit did not see carries
+#' the field's kriging residual, one draw of the field shared by every
+#' unseen row, and its covariance enters `Sigma` the same way. The band
+#' therefore widens where the grid leaves the observed positions. The
+#' `1e-6` nugget frmtmb puts on the kernel's correlation is white noise
+#' at each position, which has no derivative: [frm_curve_deriv()] and a
+#' peak's standard error leave it out.
 #'
 #' @param object A `frmtmb_fit` from [frmtmb::frm()].
 #' @param newdata The grid, as a data frame. Every variable the linear
@@ -238,8 +240,8 @@
 #'   covariance check read the same rows. See the section "The
 #'   population curve of a factor-smooth model" of [frm_curve()]. At an
 #'   unseen level of a term `re_formula` keeps, such as `(1 | g)` at
-#'   `NULL`, only the pointwise band of [frm_curve()] is answered; see
-#'   its section "An unseen level of a `(1 | g)` term".
+#'   `NULL`, every route carries that level's draw; see the section "An
+#'   unseen level of a `(1 | g)` term" of [frm_curve()].
 #' @param level Coverage of both intervals.
 #' @param simultaneous Compute the simultaneous band. `FALSE` returns the
 #'   pointwise interval alone and skips the simulation.
@@ -273,7 +275,8 @@
 #' @return A data frame of class `frmtmb_curve`: the columns of
 #'   `newdata`, then `.estimate`, `.se`, `.crit`, `.lower_ci`,
 #'   `.upper_ci`, and when `simultaneous = TRUE` also `.crit_sim`,
-#'   `.lower_sim` and `.upper_sim`. The grid covariance is the `"Sigma"`
+#'   `.lower_sim` and `.upper_sim`. The grid covariance, `A V A'` plus
+#'   the variance that is not coefficient uncertainty, is the `"Sigma"`
 #'   attribute, the fit is the `"fit"` attribute, and `"check"` carries
 #'   the covariance agreement and the `predict()` call count.
 #'
@@ -311,12 +314,6 @@ frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
   sp_rp_gate(object)
   parts <- sp_curve_parts(object, newdata, dpar, resp, re_formula,
                           allow_new_levels, tol, contrast)
-  # the pointwise band adds the new level's variance and stays; only the
-  # simulation draws from a covariance that lacks it
-  if (isTRUE(simultaneous)) {
-    sp_new_level_stop(parts, "frm_curve(simultaneous = TRUE)",
-                      "the simultaneous band")
-  }
   # re-raised under this function's own name rather than let out of the
   # seam as it stands: the user called frm_curve(), not frm_lp_basis(),
   # and the sibling functions hand the seam a stencil rather than the

@@ -39,8 +39,8 @@ test_that("2-D exact gp() matches direct GP marginal ML", {
   rp <- gp2_ref_parts(dg)
   np <- nrow(rp$P)
 
-  f2 <- frm(bf(y ~ gp(x1, x2)) + gaussian(), data = dg)
-  # anisotropic (brms default): one lengthscale per dimension
+  f2 <- frm(bf(y ~ gp(x1, x2, iso = FALSE)) + gaussian(), data = dg)
+  # iso = FALSE: one lengthscale per dimension
   nll <- function(p) {
     Kp <- exp(2 * p[2]) * (exp(-rp$Dm1 / (2 * exp(2 * p[3])) -
                                 rp$Dm2 / (2 * exp(2 * p[4]))) +
@@ -73,6 +73,11 @@ test_that("2-D exact gp() matches direct GP marginal ML", {
                       control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fi)) + opi$value), 1e-4)
   expect_setequal(confint_varcorr(fi)$term, c("sd(gp)", "range(gp)"))
+  # brms's gp() defaults to iso = TRUE (R/formula-gp.R in 2.23.0), and so
+  # does this one: the default fit IS the isotropic one
+  fd <- frm(bf(y ~ gp(x1, x2)) + gaussian(), data = dg)
+  expect_identical(as.numeric(logLik(fd)), as.numeric(logLik(fi)))
+  expect_setequal(confint_varcorr(fd)$term, c("sd(gp)", "range(gp)"))
   # iso nests inside anisotropic
   expect_gte(as.numeric(logLik(f2)), as.numeric(logLik(fi)) - 1e-6)
 
@@ -151,6 +156,38 @@ test_that("exact gp() kriging matches the closed form", {
   expect_lt(abs(pm$se.fit[4] - pk$se.fit[1]), 1e-8)
 })
 
+test_that("the kriging draw's factor is the conditional covariance", {
+  # a sampler's draw at unseen positions comes from a pivoted Cholesky
+  # that stops at gp_krig_tol (dev/gpby-findings.md, Punch round 1, m4);
+  # what it drops is at most gp_krig_tol of the prior variance per entry
+  dg <- gp2_data()
+  for (iso in c(FALSE, TRUE)) {
+    f2 <- frm(bf(y ~ gp(x1, x2, iso = iso)) + gaussian(), data = dg)
+    lp <- f2$frame$linpreds[["y.mu"]]
+    # past the data, inside it, one position twice, and two 1e-9 apart
+    nd <- data.frame(x1 = c(seq(4.2, 6, length.out = 40),
+                            seq(0.1, 3.9, length.out = 40), 2.25, 2.25,
+                            1.3, 1.3 + 1e-9),
+                     x2 = c(seq(0, 5, length.out = 40),
+                            seq(3.9, 0.1, length.out = 40), 1.75, 1.75,
+                            0.4, 0.4))
+    ed <- lp_eta_design(f2, lp, nd, TRUE, FALSE)
+    krig <- Filter(Negate(is.null), lapply(ed$sm_parts, `[[`, "krig"))[[1]]
+    S <- gp_krig_cov(krig)
+    fc <- gp_krig_factor(krig)
+    expect_lt(ncol(fc$L), length(fc$white))
+    C <- tcrossprod(fc$L) + diag(fc$white, length(fc$white))
+    C <- (krig$sd2 * C[fc$idx, fc$idx]) * outer(krig$w, krig$w)
+    expect_lt(max(abs(C - S)), 4 * gp_krig_tol * krig$sd2)
+    # each row's variance is the extra_var a band uses
+    expect_lt(max(abs(diag(C) - diag(S))), 4 * gp_krig_tol * krig$sd2)
+    # the repeated position is one value of the field
+    set.seed(2)
+    v <- gp_krig_draw(krig)
+    expect_identical(v[81], v[82])
+  }
+})
+
 test_that("gp() k/c/iso resolve in the formula environment", {
   dg <- gp2_data()
   kk <- 10
@@ -194,13 +231,13 @@ test_that("gp() k/c/iso resolve in the formula environment", {
 
 test_that("2-D Hilbert-space gp() approximates the exact fit", {
   dg <- gp2_data()
-  f2 <- frm(bf(y ~ gp(x1, x2)) + gaussian(), data = dg)
+  f2 <- frm(bf(y ~ gp(x1, x2, iso = FALSE)) + gaussian(), data = dg)
   # brms's convention rescales both coordinates by one shared factor (the
   # largest pairwise distance over the whole coordinate matrix), so the
   # boundary is L = c per dimension. The wider effective domain lets the
   # default c = 1.25 reach 0.3 logLik at k = 10, where the pre-brms
   # half-range convention needed c = 1.5 for less accuracy.
-  fh <- frm(bf(y ~ gp(x1, x2, k = 10)) + gaussian(), data = dg)
+  fh <- frm(bf(y ~ gp(x1, x2, k = 10, iso = FALSE)) + gaussian(), data = dg)
   expect_equal(fh$frame$linpreds[["y.mu"]]$gps[[1]]$L, c(1.25, 1.25),
                tolerance = 1e-12)
   expect_lt(abs(as.numeric(logLik(fh)) - as.numeric(logLik(f2))), 0.3)

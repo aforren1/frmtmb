@@ -2486,6 +2486,11 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
   }
 
+  # a gp() term's sd and length scales, brms's sdgp_ and lscale_ on
+  # brms's scales, which are not standard deviations of a group
+  gpv <- gp_brms_values(fit, th)
+  for (j in seq_along(gpv)) put(names(gpv)[j], gpv[[j]])
+
   # distributional parameters on their natural scale, after the group
   # summaries, where brms lists them
   smp <- attr(tab, "simplex")
@@ -2974,12 +2979,21 @@ hyp_fd_grad <- function(f, v) {
 #' under another name, `(1 | gr(id, cov = A)) + (1 | id_pe)`, and the
 #' two are `sd_id__Intercept` and `sd_id_pe__Intercept`.
 #'
-#' Excluded: `s()`/`t2()` smooths, `gp()`/`hsgp()`, `car()` and `spde()`.
-#' Their theta segments are not standard deviations: an inverse
-#' smoothing parameter, lengthscales, a mixing proportion, a precision
-#' and an inverse range. There is no `sd_<group>__<coef>` to name. Read
-#' those off [confint_varcorr()], which reports each under its own
-#' label (`sd(gp)`, `range(gp)`, `sd(car)`, ...).
+#' Excluded: `s()`/`t2()` smooths, `car()` and `spde()`. Their theta
+#' segments are not standard deviations: an inverse smoothing
+#' parameter, a mixing proportion, a precision and an inverse range.
+#' There is no `sd_<group>__<coef>` to name. Read those off
+#' [confint_varcorr()], which reports each under its own label
+#' (`sd(car)`, ...).
+#'
+#' A [gp()] term contributes brms's own names: `sdgp_<term>` for its
+#' marginal standard deviation and `lscale_<term>` for its length scale,
+#' on brms's scales, so the length scale is on the inputs `gp(scale =
+#' TRUE)` divides by their largest distance. The term is brms's label,
+#' `gpx` for `gp(x)`, with a response or distributional parameter
+#' prefix as for every other name, the by-level after it for
+#' `gp(x, by = f)` (`sdgp_gpxfa`), and the covariate after that for a
+#' non-isotropic term's length scales (`lscale_gpxzx`).
 #'
 #' @section Names that would collide:
 #' brms's renaming can give two parameters one name, and frmtmb does
@@ -3129,10 +3143,11 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' `ma[1]`, `cosy`, `cortime__<t1>__<t2>`.
 #'
 #' `gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
-#' `sd_`/`cor_` names for their within-level covariance. Smooths,
-#' `gp()`/`hsgp()`, `car()` and `spde()` blocks contribute none: their
-#' parameters are not standard deviations. See the "Which random-effect
-#' blocks contribute names" section of [hypothesis()].
+#' `sd_`/`cor_` names for their within-level covariance. A `gp()` term
+#' contributes brms's `sdgp_<term>` and `lscale_<term>`. Smooths, `car()`
+#' and `spde()` blocks contribute none: their parameters are not
+#' standard deviations. See the "Which random-effect blocks contribute
+#' names" section of [hypothesis()].
 #'
 #' @param x A `frmtmb_fit` or `frmtmb_draws`.
 #' @param ... Refused: an argument the method does not have is an

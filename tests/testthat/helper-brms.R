@@ -676,30 +676,48 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       v <- as.numeric(amat %*% brms_block_b(fit, bk)) / sdv
       out[[nm]] <- array(v, length(v))
     } else if (grepl("^(sdgp|lscale)_", nm)) {
+      # A gp(by = ) term is Kgp_<i> sub-GPs in brms, one sdgp entry and
+      # one lscale row each, and one frmtmb block each, in the same
+      # order: the by-factor's design columns.
       pre <- sub("_.*$", "", nm)
       ip <- brms_idx_parts(nm, pre)
-      bk <- brms_gp_block(fit, ip$dpar, ip$idx[[1]])
-      th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
-      kgp <- sdat[[paste0("Kgp_", ip$idx[[1]])]]
-      if (!identical(as.integer(kgp), 1L)) {
-        stop("brms splits GP term ", ip$idx[[1]], " into ", kgp,
-             " sub-GPs; the by= spelling has no rule yet")
+      i <- ip$idx[[1]]
+      # the data carry brms's prefix too: Kgp_sigma_1, Kgp_y_1
+      gsfx <- if (identical(ip$dpar, "mu")) "" else
+        paste0(ip$dpar, "_")
+      bks <- brms_gp_term(fit, ip$dpar, i)
+      kgp <- as.integer(sdat[[paste0("Kgp_", gsfx, i)]])
+      if (length(bks) != kgp) {
+        stop("brms splits GP term ", i, " into ", kgp, " sub-GPs and ",
+             "frmtmb holds ", length(bks), " blocks for it")
       }
       if (identical(pre, "sdgp")) {
-        out[[nm]] <- array(exp(th[[1]]), 1)
+        out[[nm]] <- array(vapply(bks, function(bk) {
+          exp(fit$estimates[["theta"]][bk[["theta_idx"]]][[1]])
+        }, 0), kgp)
       } else {
-        dgp <- as.integer(sdat[[paste0("Dgp_", ip$idx[[1]])]])
-        rho <- if (isTRUE(bk[["gp_iso"]])) rep(exp(th[[2]]), dgp) else {
-          exp(th[-1])
+        # brms declares one length scale per sub-GP when isotropic and
+        # one per covariate otherwise
+        dgp <- if (isTRUE(bks[[1L]][["gp_iso"]])) 1L else {
+          as.integer(sdat[[paste0("Dgp_", gsfx, i)]])
         }
-        if (identical(bk[["covstruct"]], "gp")) {
-          # An exact gp() measures distances on the DATA scale in frmtmb
-          # and on brms's unit-maximum-distance scale in Stan, so the two
-          # length-scales differ by dmax. The HSGP form rescales its
-          # inputs the same way brms does and needs no correction.
-          rho <- rho / sdat[[paste0("dmax_", ip$idx[[1]])]]
-        }
-        out[[nm]] <- matrix(rho, nrow = 1, ncol = dgp)
+        rho <- t(vapply(seq_len(kgp), function(j) {
+          bk <- bks[[j]]
+          th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
+          r <- exp(th[-1])
+          if (identical(bk[["covstruct"]], "gp")) {
+            # An exact gp() measures distances on the DATA scale in
+            # frmtmb and on brms's unit-maximum-distance scale in Stan,
+            # so the two length-scales differ by dmax, which brms takes
+            # per sub-GP. The HSGP form rescales its inputs the same way
+            # brms does and needs no correction.
+            byfac <- !is.null(sdat[[paste0("Igp_", gsfx, i, "_1")]])
+            r <- r / sdat[[paste0("dmax_", gsfx, i,
+                                  if (byfac) paste0("_", j))]]
+          }
+          r
+        }, numeric(dgp)))
+        out[[nm]] <- matrix(rho, nrow = kgp, ncol = dgp)
       }
     } else if (grepl("^zgp_", nm)) {
       # brms builds the GP as L z with L the Cholesky factor of the
@@ -710,9 +728,19 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       # the nugget divergence in dev/brms-likelihood-tests.md. Nothing
       # here can repair that, and the exact spelling is asserted
       # structurally instead of being run through the identity.
+      # zgp_<i>_<j> is sub-GP j of a gp(by = ) term
       ip <- brms_idx_parts(nm, "zgp")
-      bk <- brms_gp_block(fit, ip$dpar, ip$idx[[1]])
-      lmat <- t(chol(brms_block_cov(fit, bk)))
+      bks <- brms_gp_term(fit, ip$dpar, ip$idx[[1]])
+      bk <- bks[[if (length(ip$idx) > 1L) ip$idx[[2]] else 1L]]
+      kb <- brms_block_cov(fit, bk)
+      # the HSGP covariance is diagonal: its square root is elementwise,
+      # which stays defined where a spectral density underflows a
+      # Cholesky factorization's pivot tolerance
+      lmat <- if (identical(bk[["covstruct"]], "hsgp")) {
+        diag(sqrt(diag(kb)), nrow(kb))
+      } else {
+        t(chol(kb))
+      }
       v <- solve(lmat, brms_block_b(fit, bk))
       out[[nm]] <- array(as.numeric(v), length(v))
       jac <- jac + sum(log(diag(lmat)))
@@ -800,14 +828,16 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
 #
 #   z_<i>       group-level effects
 #   zs_<i>_<j>  the penalized part of a smooth
-#   zgp_<i>     the latent variables of a Gaussian process
+#   zgp_<i>     the latent variables of a Gaussian process, zgp_<i>_<j>
+#               for sub-GP j of a gp(by = ) term
 #   Ymi_<r>     the missing entries of an mi() response
 #   Yl_<r>      the latent values of a measurement-error response
 #   rcar, zcar  a CAR field, on its own scale for the proper form and
 #               standardized for the intrinsic one
 #   zme_<i>     the standardized latent values of the me() terms
-brms_inner_pat <-
-  "^(z_\\d+|zs_\\d+_\\d+|zgp_\\d+|Ymi_.+|Yl_.+|rcar|zcar|zme_\\d+)$"
+brms_inner_pat <- paste0(
+  "^(z_\\d+|zs_\\d+_\\d+|zgp_([A-Za-z0-9]+_)*\\d+(_\\d+)?|Ymi_.+|",
+  "Yl_.+|rcar|zcar|zme_\\d+)$")
 
 # Which entries of the unconstrained vector those blocks occupy, found
 # by perturbing them and diffing, so it needs no knowledge of the
@@ -998,13 +1028,25 @@ brms_idx_parts <- function(nm, prefix) {
        idx = nums[k])
 }
 
+# Whether a block's brms prefix is `pre`: its dpar in a univariate
+# model, and in a multivariate one the response, after the dpar when
+# the dpar is not mu (brms's combine_prefix(): sigma_y, y).
+brms_prefix_is <- function(b, pre) {
+  dd <- brms_block_dpar(b)
+  if (identical(dd, pre)) return(TRUE)
+  key <- b$components[[1]]$lp_key %||% ""
+  rr <- brms_stan_name(sub("[.][^.]*$", "", key))
+  nzchar(rr) && identical(if (dd == "mu") rr else paste0(dd, "_", rr),
+                          pre)
+}
+
 # frmtmb's blocks of one covariance structure under one linear
 # predictor, in frmtmb's order, which is the formula order brms also
 # numbers by.
 brms_blocks_of <- function(fit, cs, dpar = "mu") {
   bks <- fit$frame[["re_blocks"]]
   keep <- vapply(bks, function(b) {
-    b[["covstruct"]] %in% cs && identical(brms_block_dpar(b), dpar)
+    b[["covstruct"]] %in% cs && brms_prefix_is(b, dpar)
   }, logical(1))
   bks[keep]
 }
@@ -1056,12 +1098,26 @@ brms_block_cov <- function(fit, bk) {
 # and Hilbert-space forms are one sequence, since brms declares the same
 # three parameters for both.
 brms_gp_block <- function(fit, dpar, i) {
+  bks <- brms_gp_term(fit, dpar, i)
+  if (length(bks) != 1L) {
+    stop("GP term ", i, " is ", length(bks), " sub-GPs (a by = term); ",
+         "read them with brms_gp_term()")
+  }
+  bks[[1L]]
+}
+
+# One GP TERM's frmtmb blocks, in sub-GP order. A gp(by = f) term is one
+# block per design column of the by-factor, and the blocks of one term
+# share the frame's term key, so a term is the run of blocks with one key.
+brms_gp_term <- function(fit, dpar, i) {
   bks <- brms_blocks_of(fit, c("gp", "hsgp"), dpar)
-  if (i > length(bks)) {
-    stop("brms declares GP term ", i, " but frmtmb has ", length(bks),
+  keys <- vapply(bks, function(b) b[["gp_brms"]][["term"]], "")
+  terms <- split(bks, factor(keys, levels = unique(keys)))
+  if (i > length(terms)) {
+    stop("brms declares GP term ", i, " but frmtmb has ", length(terms),
          " under linear predictor ", dpar)
   }
-  bks[[i]]
+  unname(terms[[i]])
 }
 
 # ---------------------------------------------------------------------

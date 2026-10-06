@@ -16,7 +16,7 @@ ce_locked_vars <- function(fit) {
         smooth_pred_vars(si$sm)
       })),
       unlist(lapply(lp[["gps"]] %||% list(), function(gi) {
-        unlist(lapply(gi$exprs, all.vars))
+        unlist(lapply(c(gi$exprs, gi[["by"]][["expr"]]), all.vars))
       })),
       names(lp[["data_list"]]),
       if (!is.null(lp[["nl_body"]])) all.vars(lp[["nl_body"]]))

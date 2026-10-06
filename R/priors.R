@@ -602,8 +602,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' a distributional parameter, which is a class in brms too.
 #'
 #' @noRd
-frmtmb_prior_classes <- c("b", "Intercept", "sd", "cor", "theta",
-                          "ar", "ma", "cosy", "cortime", "rescor",
+frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
+                          "theta", "ar", "ma", "cosy", "cortime", "rescor",
                           "delta")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
@@ -899,6 +899,11 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
                   "are addressed with class = \"b\" or ",
                   "class = \"Intercept\". "))
   }
+  if (cls %in% c("sdgp", "lscale") && nzchar(group)) {
+    return(paste0("class = \"", cls, "\" has no group: a gp() term is not ",
+                  "a grouping term, and brms's rows for it carry none. ",
+                  "`coef` names the term, as get_prior() lists it. "))
+  }
   if (!nzchar(coef) || !cls %in% c("sd", "cor")) return(NULL)
   if (identical(cls, "cor")) {
     return(paste0("class = \"cor\" addresses a whole correlation ",
@@ -919,9 +924,9 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' meaning, so a translated row keeps its class untouched.
 #'
 #' @noRd
-brms_direct_prior_classes <- c("b", "Intercept", "sd", "cor", "ar",
-                               "ma", "cosy", "cortime", "rescor",
-                               "delta")
+brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
+                               "cor", "ar", "ma", "cosy", "cortime",
+                               "rescor", "delta")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -978,17 +983,6 @@ brms_prior_class_refusal <- function(cls) {
       "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
       "spelling is class = \"sd\" with group = the smooth's label, e.g. ",
       "group = \"s(x)\"; get_prior() lists the label this model has. "),
-    sdgp = paste0(
-      "brms's \"sdgp\" is the marginal standard deviation of a gp(). ",
-      "frmtmb holds a gp() as a random-effect block, so its frmtmb ",
-      "spelling is class = \"sd\" with group = the term's label, e.g. ",
-      "group = \"gp(x)\"; get_prior() lists the label this model has. "),
-    lscale = paste0(
-      "brms's \"lscale\" is a gp() length-scale, which frmtmb keeps in ",
-      "the raw internal covariance vector rather than in a class of its ",
-      "own. Address it as class = \"theta\" with the coef get_prior() ",
-      "lists for the block (\"theta_1\", \"theta_2\", ...), remembering ",
-      "that a theta prior is on the INTERNAL scale. "),
     sdcar = paste0(
       "brms's \"sdcar\" is the standard deviation of a car() term. ",
       "frmtmb holds a car() as a random-effect block, so its frmtmb ",
@@ -1797,10 +1791,12 @@ prior_table <- function(spec, frame, route) {
     # a per-coefficient row here would claim a default nothing applies.
     # A default on cor is written class-wide, as brms's cor rows carry no
     # prefix; one on sd is written per prefix, as brms's sd rows are
-    d <- if (nzchar(coef)) NULL else
-      defs[[prior_slot_key(class,
-                           if (identical(class, "cor")) "" else dpar,
-                           nlpar, resp)]]
+    # The exception is a default WRITTEN per coefficient, which a gp()
+    # length scale's is: brms tunes its inv_gamma to each sub-GP's own
+    # distances and lists it on that sub-GP's row
+    slot <- prior_slot_key(class, if (identical(class, "cor")) "" else dpar,
+                           nlpar, resp)
+    d <- if (nzchar(coef)) defs[[paste0(slot, "|", coef)]] else defs[[slot]]
     # brms's column order, so a table read by position lines up with
     # the one brms returns
     rows[[length(rows) + 1L]] <<- data.frame(
@@ -1912,11 +1908,25 @@ prior_table <- function(spec, frame, route) {
 
   sd_rows <- list()
   cor_rows <- list()
+  gp_rows <- list()
   for (bk in frame[["re_blocks"]]) {
     key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
                                                                 bk),
                 dpar = block_dpar(spec, frame, bk),
                 resp = if (multi) block_resp(frame, bk) else "")
+    if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
+      # brms's classes sdgp and lscale, keyed by the prefix class "sd"
+      # uses, coef the sub-GP (frame_gp()'s sfx1 and sfx2)
+      sp <- unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
+                                                        "nlpar")])
+      for (i in seq_len(nrow(sp))) {
+        gp_rows[[length(gp_rows) + 1L]] <- list(
+          nlpar = sp$nlpar[i], dpar = sp$dpar[i], resp = sp$resp[i],
+          sfx1 = bk[["gp_brms"]][["sfx1"]],
+          sfx2 = bk[["gp_brms"]][["sfx2"]])
+      }
+      next
+    }
     # brms lists sd rows per prefix, so a block spanning mu and sigma
     # has a row for each (sd_spec_reach() is the rule the rows describe)
     sp <- unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
@@ -1944,6 +1954,19 @@ prior_table <- function(spec, frame, route) {
     for (k in cor_rows) {
       add("cor", group = k$group, dpar = k$dpar, nlpar = k$nlpar,
           resp = k$resp)
+    }
+  }
+  # brms lists lscale before sdgp, each class-wide and then per sub-GP,
+  # bounded below by 0
+  for (cl in c("lscale", "sdgp")) {
+    pre <- unique(lapply(gp_rows, `[`, c("dpar", "nlpar", "resp")))
+    for (k in pre) add(cl, dpar = k$dpar, nlpar = k$nlpar, resp = k$resp,
+                       lb = 0)
+    for (k in gp_rows) {
+      for (co in if (identical(cl, "sdgp")) k$sfx1 else k$sfx2) {
+        add(cl, coef = co, dpar = k$dpar, nlpar = k$nlpar, resp = k$resp,
+            lb = 0)
+      }
     }
   }
   # the R-side residual structures, under the class names brms shows for
@@ -2241,7 +2264,9 @@ sd_prefix_hint <- function(spec, frame) {
   sp <- unique(do.call(rbind, c(
     list(data.frame(resp = character(0), dpar = character(0),
                     nlpar = character(0))),
-    lapply(frame[["re_blocks"]], function(bk) {
+    # a gp() term's sd is class "sdgp", which the caller names
+    lapply(Filter(function(bk) !bk[["covstruct"]] %in% c("gp", "hsgp"),
+                  frame[["re_blocks"]]), function(bk) {
       block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
     }))))
   if (!NROW(sp)) return("This model has no random-effect standard deviations")
@@ -2767,6 +2792,66 @@ resolve_priorlist <- function(fit, pl) {
   # `resp` narrows to one response, as it does everywhere else; the
   # refusal names what the model actually has, so a class aimed at the
   # wrong structure says so rather than silently matching nothing.
+  # brms's classes "sdgp" and "lscale" on a gp() term's theta: the sd
+  # and the length scales on brms's natural scales, a sub-GP picked by
+  # brms's coef ("gpxfa"). The length scale brms priors is on its scaled
+  # inputs, exp(theta) / div, so the density sits at theta - log(div)
+  # (`shift`) with the same log-Jacobian class "sd" takes. resp, dpar
+  # and nlpar select by class "sd"'s rule (sd_spec_reach()).
+  resolve_gp_class <- function(s) {
+    hit <- FALSE
+    for (bk in frame[["re_blocks"]]) {
+      if (!bk[["covstruct"]] %in% c("gp", "hsgp")) next
+      meta <- bk[["gp_brms"]]
+      if (is.null(meta)) next
+      if (!any(sd_spec_reach(fit$spec, frame, bk, s)$reach)) next
+      if (identical(s$class, "sdgp")) {
+        pick <- 1L
+        cf <- meta$sfx1
+      } else {
+        pick <- 1L + seq_along(meta$sfx2)
+        cf <- meta$sfx2
+      }
+      keep <- !nzchar(s$coef) | cf == s$coef
+      shift <- if (identical(s$class, "lscale")) {
+        -log(bk[["gp_lscale_div"]] %||% 1)
+      } else 0
+      for (k in pick[keep]) {
+        hit <- TRUE
+        i <- bk[["theta_idx"]][k]
+        key <- nm_of("theta", i)
+        if (!is.null(s$dist)) {
+          claim("theta", i)
+          assigned[[key]] <<- list(comp = "theta", idx = i, dist = s$dist,
+                                   scale = "sd", shift = shift,
+                                   lb = s$lb, ub = s$ub)
+        } else if (!is.null(assigned[[key]])) {
+          assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+        }
+        nm_theta <- paste0("theta_", i)
+        if (!is.na(s$lb)) {
+          lower[nm_theta] <<- if (s$lb > 0) log(s$lb) - shift else -Inf
+        }
+        if (!is.na(s$ub)) upper[nm_theta] <<- log(s$ub) - shift
+      }
+    }
+    if (!hit) {
+      have <- unlist(lapply(frame[["re_blocks"]], function(bk) {
+        m <- bk[["gp_brms"]]
+        if (is.null(m)) NULL else if (identical(s$class, "sdgp")) m$sfx1 else
+          m$sfx2
+      }))
+      frm_stop("No gp() ", if (identical(s$class, "sdgp")) {
+        "standard deviations"
+      } else "length scales", " match ", spec_target(s), ". ",
+      if (length(have)) {
+        paste0("This model's are coef = ",
+               paste0("\"", unique(have), "\"", collapse = ", "))
+      } else "This model has no gp() term", call. = FALSE)
+    }
+    invisible(NULL)
+  }
+
   resolve_ac_class <- function(s) {
     acs <- frame[["autocor"]] %||% list()
     hit <- FALSE
@@ -3073,6 +3158,8 @@ resolve_priorlist <- function(fit, pl) {
       }, TRUE))
       hit <- FALSE
       for (bk in if (exact) frame[["re_blocks"]]) {
+        # a gp() term's sd is brms's class "sdgp", not "sd"
+        if (bk[["covstruct"]] %in% c("gp", "hsgp")) next
         sd_i <- covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
         sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
         for (k in sd_i) {
@@ -3095,8 +3182,16 @@ resolve_priorlist <- function(fit, pl) {
       }
       if (!hit) {
         frm_stop("No random-effect SDs match ", spec_target(s), ". ",
-                 sd_prefix_hint(fit$spec, frame), call. = FALSE)
+                 sd_prefix_hint(fit$spec, frame),
+                 if (any(vapply(frame[["re_blocks"]], function(bk) {
+                   bk[["covstruct"]] %in% c("gp", "hsgp")
+                 }, NA))) {
+                   paste0(". A gp() term's standard deviation is class ",
+                          "\"sdgp\", as in brms")
+                 }, call. = FALSE)
       }
+    } else if (s$class %in% c("sdgp", "lscale")) {
+      resolve_gp_class(s)
     } else if (s$class == "cor") {
       hit <- FALSE
       refused <- character(0)
@@ -4053,9 +4148,13 @@ resolve_priors <- function(fit, prior) {
 #'
 #' @noRd
 entry_offset <- function(e, pars) {
+  # `shift` is a constant, the change of scale between the parameter
+  # held and the one the density is about (a gp() length scale on
+  # brms's scaled inputs)
+  sh <- e[["shift"]] %||% 0
   o <- e$offset
-  if (is.null(o)) return(0)
-  sum(pars[[o$comp]][o$idx] * o$w)
+  if (is.null(o)) return(sh)
+  sum(pars[[o$comp]][o$idx] * o$w) + sh
 }
 
 #' AD-safe negative log prior over resolved per-parameter entries

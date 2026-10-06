@@ -223,7 +223,7 @@ test_that("each refusal reaches the user with its reason", {
                "predicts a distribution over the categories")
 })
 
-test_that("an exact gp() off its fitted positions is refused by name", {
+test_that("an exact gp() off its fitted positions carries its kriging", {
   skip_on_cran()
   set.seed(5)
   n <- 40
@@ -231,10 +231,24 @@ test_that("an exact gp() off its fitted positions is refused by name", {
                   x = round(runif(n, 0, 3), 1))
   d$y <- as.numeric(d$f) + sin(d$x) + rnorm(n, sd = 0.2)
   fit <- frm(bf(y ~ f + gp(x)), data = d)
-  expect_error(emmeans::emmeans(fit, "f"), "exact gp[(][)] term")
-  # at an observed position there is no kriging variance to omit
-  s <- emm_df(emmeans::emmeans(fit, "f", at = list(x = d$x[1])))
-  expect_true(all(is.finite(s$SE)))
+  # the grid sits at mean(x), which no observation holds. Refused until
+  # frm_lp_basis() returned the kriging covariance across the grid; the
+  # emmean's SE is now frm_linpred()'s at that row, kriging included
+  xb <- mean(d$x)
+  expect_false(xb %in% d$x)
+  em <- emmeans::emmeans(fit, "f")
+  s <- emm_df(em)
+  nd <- data.frame(f = factor(c("A", "B"), levels = levels(d$f)), x = xb)
+  p <- frm_linpred(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
+  expect_lt(max(abs(s$SE / p$se.fit - 1)), 1e-8)
+  ev <- frm_lp_basis(fit, newdata = nd, re_formula = NA)$extra_var
+  expect_true(all(ev > 0))
+  # one position, one residual: the contrast is the fB coefficient's
+  pr <- emm_df(emmeans::contrast(em, "pairwise"))
+  expect_lt(abs(pr$SE / sqrt(stats::vcov(fit)["fB", "fB"]) - 1), 1e-8)
+  # at an observed position there is no kriging variance at all
+  s0 <- emm_df(emmeans::emmeans(fit, "f", at = list(x = d$x[1])))
+  expect_true(all(is.finite(s0$SE)))
 })
 
 test_that("a group-indexed smooth puts its factor in the reference grid", {

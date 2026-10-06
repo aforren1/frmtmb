@@ -307,31 +307,43 @@ frm_curve_feature <- function(object, var,
   }
   parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re_formula,
                           sp$allow_new_levels, tol, cstk)
-  # after the root search, so a window with no root still returns its
-  # zero-row answer, which carries no standard error to be wrong
-  sp_new_level_stop(parts, "frm_curve_feature()",
-                    "the standard errors of the location and the height")
   nr <- length(roots)
-  blk <- function(k) parts$C[(k - 1L) * nr + seq_len(nr), , drop = FALSE]
-  eta <- function(k) parts$eta[(k - 1L) * nr + seq_len(nr)]
+  rws <- function(k) (k - 1L) * nr + seq_len(nr)
+  blk <- function(k) parts$C[rws(k), , drop = FALSE]
+  eta <- function(k) parts$eta[rws(k)]
   D1 <- (blk(4L) - blk(2L)) / (2 * e1)
   f1 <- (eta(4L) - eta(2L)) / (2 * e1)
   f2 <- (eta(5L) - 2 * eta(3L) + eta(1L)) / e2^2
   f0 <- eta(3L)
   C0 <- blk(3L)
-  qf <- function(A) sqrt(pmax(rowSums((A %*% parts$V) * A), 0))
+  # the variance that is not coefficient uncertainty: the height's is
+  # the diagonal of the extra covariance at the roots, and the slope's
+  # comes from its sources (sp_extra_deriv()), never from a difference
+  # of that covariance
+  qf <- function(A, ev) {
+    sqrt(pmax(rowSums((A %*% parts$V) * A) + ev, 0))
+  }
+  value_se <- qf(C0, parts$extra_var[rws(3L)])
   if (type == "crossing") {
     denom <- f1
-    se_t <- qf(C0) / abs(denom)
+    se_t <- value_se / abs(denom)
   } else {
     denom <- f2
-    se_t <- qf(D1) / abs(denom)
+    at <- row1[rep(1L, nr), , drop = FALSE]
+    at[[var]] <- roots
+    cat_ <- NULL
+    if (!is.null(crow1)) {
+      cat_ <- crow1[rep(1L, nr), , drop = FALSE]
+      cat_[[var]] <- roots
+    }
+    Ed <- sp_extra_deriv(sp, at, cat_, var, 1L, e1)
+    se_t <- qf(D1, if (is.null(Ed)) 0 else diag(Ed)) / abs(denom)
   }
   crit <- stats::qnorm(1 - (1 - level) / 2)
   out <- data.frame(
     .feature = type, .var = var, .estimate = roots, .se = se_t,
     .lower_ci = roots - crit * se_t, .upper_ci = roots + crit * se_t,
-    .value = f0, .value_se = qf(C0), stringsAsFactors = FALSE)
+    .value = f0, .value_se = value_se, stringsAsFactors = FALSE)
   structure(out, class = c("frmtmb_feature", "data.frame"),
             check = list(cov_rel_error = parts$rel,
                          n_predict = parts$n_predict,

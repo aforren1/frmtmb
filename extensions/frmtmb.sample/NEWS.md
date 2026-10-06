@@ -1,3 +1,48 @@
+# frmtmb.sample (development version)
+
+Needs frmtmb's development version, for `gp_brms_natural()`, prior
+classes `"sdgp"` and `"lscale"`, and the kriging draw.
+
+## Breaking changes
+
+* **A `gp()` term's draws carry brms's names on brms's scales:**
+  `sdgp_<term>` and `lscale_<term>` where they were `theta_1` and
+  `theta_2` on the internal log scale, as brms names them (`sdgp_gpxfa`
+  for level `a` of `gp(x, by = f)`). The lengthscale is on the inputs
+  brms divides by their largest distance.
+* **The default priors include brms's for a GP:** `student_t(3, 0, s)`
+  on class `"sdgp"` per prefix, and on class `"lscale"` an inverse
+  gamma per sub-GP, tuned to that sub-GP's own distances as brms's
+  `def_lscale_prior()` tunes it. `get_prior(route = "sample")` lists
+  them; on nine `gp()` designs every density row equals brms
+  `default_prior()`'s (63 rows, `dev/gpby-priors.R`). A Hilbert-space
+  `gp(k = )` block, whose lengthscales the defaults left flat, is now
+  non-centered.
+
+## Bug fixes
+
+* **A prediction at a position an exact `gp()` did not see is a draw of
+  the field there**, from its conditional law given the draw's own
+  values at the fitted positions, as brms's `posterior_epred()` draws
+  it. It was that law's mean, so `posterior_epred(newdata = )` past
+  the data had no spread from the field itself. At the same 1500
+  parameter draws of a brms fit, the spread of the predicted field at
+  six new positions is 0.978 to 1.001 of brms's, where the mean alone
+  reached 0.861 to 1.000 (`dev/gpby-brms-epred2.R`, final build in
+  `dev/gpby-p1-nugget-brms-1e-6.txt`). The law carries frmtmb's
+  nugget, `1e-6` of the variance, as white noise per distinct
+  position, as the fit's latent values do; two rows at one position
+  take one value exactly.
+* The draw's factor costs under 1 ms per posterior draw at 300 new
+  positions: a pivoted Cholesky factor that builds only the kernel
+  columns it pivots on (rank 7 to 15 there) and stops where what is
+  left is below `1e-12` of the prior variance, which joins the white
+  part (`dev/gpby-p1-krigfactor.R`). On `posterior_epred()` at 300
+  new positions over 300 draws, CPU time is 0.78 s, against 5.76 s for
+  a dense Cholesky of the same law and 0.63 s for the previous
+  release's conditional mean, on one machine in one session
+  (`dev/gpby-p1-krigdraw.R`).
+
 # frmtmb.sample 0.15.0
 
 Needs frmtmb 0.67.0: for `ord_delta_info()`, the ordinal families'

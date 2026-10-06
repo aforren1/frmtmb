@@ -614,29 +614,38 @@ summary_gp_frame <- function(object, prob) {
                  error = function(e) NULL)
   if (is.null(tr)) return(NULL)
   out <- list()
-  for (bk in bks) {
-    rows <- which(tr$block == bk[["term_label"]])
-    if (!length(rows)) next
-    tb <- tr[rows, , drop = FALSE]
-    # the range row is in data units; brms's lscale is on inputs scaled
-    # by the largest distance between two distinct positions
-    dmax <- bk[["gp_dmax"]] %||% {
-      d2 <- Reduce(`+`, bk[["aux_D2"]] %||% list(0))
-      sqrt(max(d2))
+  blocks <- object$frame[["re_blocks"]]
+  # brms's order within a term: every sub-GP's sdgp, then the length
+  # scales with the levels innermost (gp_brms_terms())
+  for (e in gp_brms_terms(object)) {
+    sd_rows <- list()
+    ls_rows <- list()
+    for (k in seq_along(e$blocks)) {
+      bk <- blocks[[e$blocks[k]]]
+      tb <- tr[tr$block == bk[["term_label"]], , drop = FALSE]
+      if (!nrow(tb)) next
+      # the range row is in data units; brms's lscale is on the inputs
+      # its scale = TRUE divides by the largest distance between two
+      # positions of this sub-GP's rows
+      div <- if (identical(bk[["covstruct"]], "hsgp")) {
+        bk[["gp_dmax"]] %||% 1
+      } else {
+        bk[["gp_lscale_div"]] %||% 1
+      }
+      rg <- which(tb$type == "range")
+      tb$est_t[rg] <- tb$est_t[rg] - log(div)
+      sd_rows[[k]] <- tb[tb$type == "sd", , drop = FALSE]
+      for (d in seq_along(rg)) {
+        ls_rows[[(d - 1L) * length(e$blocks) + k]] <- tb[rg[d], ,
+                                                         drop = FALSE]
+      }
     }
-    if (isTRUE(dmax > 0)) {
-      rg <- tb$type == "range"
-      tb$est_t[rg] <- tb$est_t[rg] - log(dmax)
-    }
-    cp <- bk[["components"]][[1L]]
-    lp <- object$frame[["linpreds"]][[cp[["lp_key"]]]]
-    pre <- if (is.null(lp)) "" else brms_lp_prefix(object, lp)
-    nm <- paste0(if (nzchar(pre)) paste0(pre, "_"), "gp",
-                 brms_stan_name(paste(bk[["gp_vars"]], collapse = "")))
-    k <- cumsum(tb$type == "range")
-    idx <- if (max(k) > 1L) paste0("[", k, "]") else ""
-    lab <- ifelse(tb$type == "sd", paste0("sdgp(", nm, ")"),
-                  paste0("lscale(", nm, idx, ")"))
+    tb <- do.call(rbind, c(sd_rows, ls_rows))
+    if (is.null(tb) || !nrow(tb)) next
+    lab <- c(paste0("sdgp(", sub("^sdgp_", "", e$sdgp), ")"),
+             paste0("lscale(", sub("^lscale_", "", as.vector(e$lscale)),
+                    ")"))
+    if (length(lab) != nrow(tb)) next
     out[[length(out) + 1L]] <- summary_nat_frame(tb, prob, lab)
   }
   if (!length(out)) NULL else do.call(rbind, out)

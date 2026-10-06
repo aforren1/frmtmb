@@ -1432,6 +1432,70 @@ re_batch_try <- function(S, ci, bi, keep) {
   list(idx = bi[keep], owner = owner)
 }
 
+#' The chain-rule columns `fit_fd_se()` can take for the smooth, `gp()`
+#' and `hsgp()` blocks among `b_idx`, and the variance that is not
+#' coefficient uncertainty on each predictor of `resp`.
+#'
+#' A row of such a block's design loads every one of its columns once
+#' the row is off the fitted positions (a kriging row, a smooth basis
+#' row), so no batch can attribute a difference, and one pair of
+#' evaluations per coefficient was the whole cost: 329 evaluations for a
+#' 160-coefficient exact `gp()` at three new rows. Its effects reach the
+#' prediction only through one predictor's `eta`, linearly through `Z`,
+#' so the derivative is `(d out / d eta) Z`: one pair per predictor.
+#' `Z` is the design `lp_eta_design()` builds, in sample the predictor's
+#' own `Z`.
+#'
+#' Returns `list(chain, extra)`, each a list of entries keyed by the
+#' predictor; empty where the design cannot be rebuilt, which leaves the
+#' caller on the routes it had.
+#'
+#' @noRd
+fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
+                         b_idx) {
+  chain <- list()
+  extra <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!is.null(resp) && !identical(lp[["resp"]], resp)) next
+    if (!is.null(lp[["nl_body"]])) next
+    key <- linpred_key(lp[["resp"]], lp[["dpar"]])
+    ed <- tryCatch(suppressWarnings(
+      lp_eta_design(fit, lp, newdata, use_re, allow_new_levels)),
+      error = function(e) NULL)
+    if (is.null(ed)) next
+    for (bk in fit$frame[["re_blocks"]] %||% list()) {
+      if (!bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||
+          !block_b_positionwise(bk)) {
+        next
+      }
+      mine <- vapply(bk[["components"]], function(cp) {
+        identical(cp$lp_key, key)
+      }, NA)
+      if (!any(mine)) next
+      keep <- which(bk[["b_idx"]] %in% b_idx)
+      if (!length(keep)) next
+      Z <- if (is.null(newdata)) {
+        if (is.null(lp[["Z"]])) next
+        as.matrix(lp[["Z"]][, bk[["c_idx"]][keep], drop = FALSE])
+      } else {
+        sp <- Find(function(s) identical(s$bk[["c_idx"]], bk[["c_idx"]]),
+                   ed[["sm_parts"]])
+        if (is.null(sp)) next
+        as.matrix(sp$Xr)[, keep, drop = FALSE]
+      }
+      chain[[length(chain) + 1L]] <- list(key = key,
+                                          idx = bk[["b_idx"]][keep], Z = Z)
+    }
+    if (!is.null(newdata)) {
+      ev <- lp_extra_var_vec(fit, ed, use_re)
+      if (any(ev > 0)) {
+        extra[[length(extra) + 1L]] <- list(key = key, var = ev)
+      }
+    }
+  }
+  list(chain = chain, extra = extra)
+}
+
 #' Positions in `b` of EVERY smooth, `gp()` and `hsgp()` block.
 #'
 #' `re_formula` does not govern these: `NA` keeps them, so the

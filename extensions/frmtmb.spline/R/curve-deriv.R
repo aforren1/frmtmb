@@ -142,8 +142,6 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   }
   parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re_formula,
                           sp$allow_new_levels, tol, cstack)
-  sp_new_level_stop(parts, "frm_curve_deriv()",
-                    "the derivative's standard error")
   m <- nrow(nd)
   lo <- seq_len(m)
   mid <- m + lo
@@ -157,6 +155,13 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
     est <- (parts$eta[hi] - 2 * parts$eta[mid] + parts$eta[lo]) / e^2
   }
   Sigma <- D %*% parts$V %*% t(D)
+  # the derivative of the variance that is not coefficient uncertainty,
+  # a kriging residual's and a new level's, from its sources: the
+  # stencil applied to their covariance divided its rounding by e^4 at
+  # order 2 and returned a standard error of 0 past an exact gp()'s data
+  # (dev/reviews/2026-10-05-gpby.md, B1)
+  Ed <- sp_extra_deriv(sp, nd, ct, var, order, e)
+  if (!is.null(Ed)) Sigma <- Sigma + Ed
   se <- sqrt(pmax(diag(Sigma), 0))
   parts$newdata <- nd
   parts$contrast <- ct

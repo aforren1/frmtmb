@@ -450,7 +450,7 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
              " must be a single value (got length ", length(val), ")",
              call. = FALSE)
   }
-  if (nm %in% c("iso", "sigma", "scale")) {
+  if (nm %in% c("iso", "sigma", "scale", "gr", "cmc")) {
     if (!is.logical(val) || is.na(val)) {
       frm_stop(fn, "(): ", nm, " = ", deparse1(expr),
                " must be TRUE or FALSE", call. = FALSE)
@@ -473,6 +473,94 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
              call. = FALSE)
   }
   as.numeric(val)
+}
+
+#' brms's `gp(..., by = NA, k = NA, cov = "exp_quad", iso = TRUE,
+#' gr = TRUE, cmc = TRUE, scale = TRUE, c = 5/4)`, read from brms 2.23.0
+#' (`R/formula-gp.R`). Every unnamed argument is a covariate, as brms's
+#' `...` takes them. Names match exactly: `[[` and not `$`, because
+#' `aa$c` would partial-match `cmc` when only `cmc` is written.
+#'
+#' `by` is a bare column name, as in brms, which deparses it and reads it
+#' with `get()`. A factor (or character or logical) `by` fits one GP per
+#' level under `cmc = TRUE` and contrast GPs under `cmc = FALSE`; a
+#' numeric `by` multiplies one GP.
+#'
+#' @noRd
+parse_gp_call <- function(tm, env) {
+  aa <- as.list(tm)[-1]
+  nms <- names(aa) %||% rep("", length(aa))
+  argn <- c("by", "k", "cov", "iso", "gr", "cmc", "scale", "c")
+  vars <- aa[!nzchar(nms)]
+  bad <- setdiff(nms[nzchar(nms)], argn)
+  if (length(vars) < 1L || length(bad)) {
+    frm_stop("gp() takes 1-3 variables plus brms's named arguments ",
+             paste(argn, collapse = ", "),
+             if (length(bad)) paste0(" (unknown: ",
+                                     paste(bad, collapse = ", "), ")"),
+             ": gp(x), gp(x, k = 30), gp(x1, x2), gp(x, by = f)",
+             call. = FALSE)
+  }
+  if (anyDuplicated(nms[nzchar(nms)])) {
+    frm_stop("gp(): an argument is given twice", call. = FALSE)
+  }
+  if (length(vars) > 3L) {
+    frm_stop("gp() supports at most 3 dimensions (got ", length(vars),
+             ")", call. = FALSE)
+  }
+  arg <- function(nm) if (nm %in% nms) aa[[match(nm, nms)]] else NULL
+  by <- arg("by")
+  if (!is.null(by) && (identical(by, NA) || identical(by, quote(NA)))) {
+    by <- NULL
+  }
+  if (!is.null(by) && !is.name(by)) {
+    frm_stop("gp(): by = must name one column of the data, as in brms, ",
+             "which reads it with get(); got ", deparse1(by),
+             ". Make the variable a column first", call. = FALSE)
+  }
+  k <- arg("k")
+  k <- if (is.null(k) || identical(k, NA) || identical(k, quote(NA))) {
+    NULL
+  } else {
+    eval_spec_arg(k, "k", env)
+  }
+  cov <- arg("cov")
+  cov <- if (is.null(cov)) "exp_quad" else {
+    v <- tryCatch(eval(cov, env), error = function(e) NULL)
+    if (!is.character(v) || length(v) != 1L || is.na(v)) {
+      frm_stop("gp(): cov = must be one kernel name, such as \"exp_quad\"",
+               call. = FALSE)
+    }
+    v
+  }
+  if (identical(cov, "matern12")) cov <- "exponential"
+  if (!cov %in% c("exp_quad", "matern52", "matern32", "exponential")) {
+    frm_stop("'", cov, "' is not a valid GP covariance kernel. Valid ",
+             "kernels are: 'exp_quad', 'matern52', 'matern32', ",
+             "'exponential'", call. = FALSE)
+  }
+  if (!identical(cov, "exp_quad")) {
+    frm_stop("gp(cov = \"", cov, "\"): brms's Matern and exponential ",
+             "kernels are not implemented here yet; only the squared ",
+             "exponential kernel, cov = \"exp_quad\", is", call. = FALSE)
+  }
+  flag <- function(nm, default) {
+    v <- arg(nm)
+    if (is.null(v)) default else eval_spec_arg(v, nm, env)
+  }
+  cc <- arg("c")
+  list(
+    exprs = vars,
+    by = by,
+    k = k,
+    cov = cov,
+    # brms ignores iso with one covariate and defaults it to TRUE
+    iso = length(vars) == 1L || flag("iso", TRUE),
+    gr = flag("gr", TRUE),
+    cmc = flag("cmc", TRUE),
+    scale = flag("scale", TRUE),
+    c = if (is.null(cc)) 5 / 4 else eval_spec_arg(cc, "c", env)
+  )
 }
 
 #' Positional-or-named argument matching for the predictor specials that
@@ -1392,26 +1480,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       }
       if (op_star) rest[[length(rest) + 1L]] <- other
     } else if (is.call(tm) && identical(tm[[1]], as.name("gp"))) {
-      aa <- as.list(tm)[-1]
-      nms <- names(aa) %||% rep("", length(aa))
-      vars <- aa[nms == ""]
-      if (length(vars) < 1L || !all(nms %in% c("", "k", "c", "iso"))) {
-        frm_stop("gp() takes 1-3 variables plus optional k = (basis size ",
-                 "per dimension), c = (boundary factor), and iso = ",
-                 "(shared lengthscale): gp(x), gp(x, k = 30), gp(x1, x2)",
-                 call. = FALSE)
-      }
-      if (length(vars) > 3L) {
-        frm_stop("gp() supports at most 3 dimensions (got ", length(vars),
-                 ")", call. = FALSE)
-      }
-      gpterms[[length(gpterms) + 1L]] <- list(
-        exprs = vars,
-        k = if (!is.null(aa$k)) eval_spec_arg(aa$k, "k", env),
-        c = if (!is.null(aa$c)) eval_spec_arg(aa$c, "c", env) else 1.25,
-        iso = if (!is.null(aa$iso)) eval_spec_arg(aa$iso, "iso", env)
-              else FALSE
-      )
+      gpterms[[length(gpterms) + 1L]] <- parse_gp_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("car"))) {
       carterms[[length(carterms) + 1L]] <- parse_car_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("spde"))) {

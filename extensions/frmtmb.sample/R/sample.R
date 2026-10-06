@@ -741,12 +741,12 @@ ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
                  "supplies by default unless prior = \"flat\" turned",
                  "them off")
          } else if (identical(bk[["covstruct"]], "hsgp")) {
-           # the class-"sd" default cannot reach a lengthscale, so the
-           # generic flat-prior advice below would never fix this block
-           paste("its lengthscales share the block's theta and have a",
-                 "flat prior here, which no default covers.",
-                 "Prior the whole block,",
-                 "set_prior(class = \"theta\"), to non-center it")
+           # the sd advice below would leave the lengthscales flat
+           paste("its sd or its length scales have a flat prior here.",
+                 "Give them priors, set_prior(class = \"sdgp\") and",
+                 "set_prior(class = \"lscale\"), which frm_sample()",
+                 "supplies by default unless prior = \"flat\" turned",
+                 "them off")
          } else {
            paste("its variance parameter has a flat prior here, and a",
                  "non-centered chain walks the flat tail that opens at",
@@ -1085,12 +1085,114 @@ natural_dpar_prior <- function(dist, dpar, resp = "") {
 #' prefix, so a default has to be written once per prefix to reach
 #' every standard deviation, as brms writes one per row.
 #'
+#' brms's default length-scale prior for each `gp()` sub-GP, its
+#' `def_lscale_prior()`: an inverse gamma putting 1 percent of its mass
+#' below the smallest distance between two of the sub-GP's scaled
+#' positions (floored at 1 percent of the largest) and 1 percent above
+#' the largest, one per covariate when the term is not isotropic.
+#' `normal(0, 0.5)` where the two conditions have no solution, as in
+#' brms. A list of `set_prior()` arguments.
+#'
 #' @noRd
-default_sd_prefixes <- function(fit) {
+default_lscale_priors <- function(fit) {
+  multi <- length(fit$spec$responses) > 1L
+  out <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    rspec <- fit$spec$responses[[lp[["resp"]]]]
+    dp <- lp[["dpar"]]
+    for (gi in lp[["gps"]] %||% list()) {
+      bk <- fit$frame[["re_blocks"]][[gi[["block_id"]]]]
+      X <- gi[["prior_x"]]
+      cf <- bk[["gp_brms"]][["sfx2"]]
+      if (is.null(X) || is.null(cf)) next
+      pr <- if (isTRUE(bk[["gp_iso"]])) {
+        brms_lscale_prior(X)
+      } else {
+        vapply(seq_len(ncol(X)), function(j) {
+          brms_lscale_prior(X[, j, drop = FALSE])
+        }, "")
+      }
+      for (j in seq_along(cf)) {
+        out[[length(out) + 1L]] <- list(
+          prior = pr[j], coef = cf[j],
+          resp = if (multi) lp[["resp"]] else "",
+          dpar = default_lp_dpar(rspec, dp),
+          nlpar = if (dp %in% (rspec$nlpars %||% character(0))) dp else "")
+      }
+    }
+  }
+  out
+}
+
+#' One `def_lscale_prior()` density, brms 2.23.0's own construction:
+#' `nleqslv()` from `c(0, 0)` on the log shape and log scale. brms reads
+#' the answer only when the solver converged and rounds it to six
+#' decimals, which makes any solver that converges to the unique root
+#' give the same string; this one is Newton's method with a central
+#' difference Jacobian and step halving.
+#'
+#' @noRd
+brms_lscale_prior <- function(X, plb = 0.01, pub = 0.01) {
+  X <- as.matrix(X)
+  dq <- 0
+  for (j in seq_len(ncol(X))) dq <- dq + outer(X[, j], X[, j], "-")^2
+  ub <- sqrt(max(dq))
+  lb <- sqrt(min(dq[dq > 0]))
+  lb <- max(lb, 0.01 * ub)
+  # brms's pinvgamma(q, shape, scale) is pgamma(1 / q, shape, rate =
+  # scale) in the opposite tail
+  fn <- function(x) {
+    a <- exp(x[1])
+    b <- exp(x[2])
+    c(stats::pgamma(1 / lb, a, rate = b, lower.tail = FALSE, log.p = TRUE) -
+        log(plb),
+      stats::pgamma(1 / ub, a, rate = b, lower.tail = TRUE, log.p = TRUE) -
+        log(pub))
+  }
+  x <- c(0, 0)
+  f <- fn(x)
+  ok <- FALSE
+  for (it in seq_len(200L)) {
+    if (!all(is.finite(f))) break
+    if (max(abs(f)) < 1e-12) {
+      ok <- TRUE
+      break
+    }
+    J <- vapply(1:2, function(k) {
+      h <- c(0, 0)
+      h[k] <- 1e-6
+      (fn(x + h) - fn(x - h)) / 2e-6
+    }, numeric(2))
+    step <- tryCatch(solve(J, -f), error = function(e) NULL)
+    if (is.null(step) || !all(is.finite(step))) break
+    t <- 1
+    repeat {
+      xn <- x + t * step
+      fnew <- fn(xn)
+      if (all(is.finite(fnew)) && sum(fnew^2) < sum(f^2)) break
+      t <- t / 2
+      if (t < 1e-10) break
+    }
+    if (t < 1e-10) break
+    x <- xn
+    f <- fnew
+  }
+  if (!ok) return("normal(0, 0.5)")
+  p <- round(exp(x), 6)
+  sprintf("inv_gamma(%s, %s)", format(p[1], digits = 15),
+          format(p[2], digits = 15))
+}
+
+#' `gp = TRUE` gives the same prefixes for the `gp()` blocks, which brms
+#' priors as class `"sdgp"` rather than `"sd"`.
+#'
+#' @noRd
+default_sd_prefixes <- function(fit, gp = FALSE) {
   multi <- length(fit$spec$responses) > 1L
   out <- list()
   for (bk in fit$frame[["re_blocks"]]) {
     if (!length(block_sd_idx(bk))) next
+    if (xor(gp, bk[["covstruct"]] %in% c("gp", "hsgp"))) next
     for (cp in bk[["components"]] %||% list()) {
       lp <- fit$frame[["linpreds"]][[cp[["lp_key"]] %||% ""]]
       if (is.null(lp)) next
@@ -1192,6 +1294,18 @@ default_priors_for <- function(fit) {
     add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sd",
                   resp = k[["resp"]], dpar = k[["dpar"]],
                   nlpar = k[["nlpar"]]))
+  }
+  # a gp() term's sd: brms's prior_gp() writes the same def_scale_prior
+  # on class "sdgp", and its length scales an inv_gamma tuned to each
+  # sub-GP's own distances (def_lscale_prior())
+  for (k in default_sd_prefixes(fit, gp = TRUE)) {
+    add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sdgp",
+                  resp = k[["resp"]], dpar = k[["dpar"]],
+                  nlpar = k[["nlpar"]]))
+  }
+  for (e in default_lscale_priors(fit)) {
+    add(set_prior(e$prior, class = "lscale", coef = e$coef, resp = e$resp,
+                  dpar = e$dpar, nlpar = e$nlpar))
   }
   # lkj(1), brms's own default: uniform over correlation matrices. Only
   # when some block's correlation HAS an LKJ density, so that a model
@@ -1344,7 +1458,8 @@ announce_default_priors <- function(pl, notes) {
     # set_prior() reaches: a multivariate model refuses a row without
     # its resp, and a categorical or mixture one a location without its
     # dpar
-    f <- c(dpar = sp$dpar, nlpar = s$nlpar %||% "", resp = s$resp %||% "")
+    f <- c(coef = s$coef %||% "", dpar = sp$dpar, nlpar = s$nlpar %||% "",
+           resp = s$resp %||% "")
     f <- f[nzchar(f)]
     lab <- if (length(f)) {
       paste0(sp$class, " (", paste0(names(f), " = ", f, collapse = ", "),
@@ -1354,8 +1469,10 @@ announce_default_priors <- function(pl, notes) {
     }
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
                           if (isTRUE(s$natural)) "  [natural scale]"
-                          else if (identical(s$class, "sd"))
+                          else if (s$class %in% c("sd", "sdgp"))
                             "  [natural sd scale]"
+                          else if (identical(s$class, "lscale"))
+                            "  [brms's scaled inputs]"
                           else if (identical(s$class, "cor"))
                             "  [correlation matrix]" else ""))
   }
@@ -1608,12 +1725,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `(1 | g)` and any block written one term at a time, `diag()` and
 #' `homdiag()` blocks, [mgcv::s()] smooths, `equalto()`, `gr(cov = )`,
 #' and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and `hetar1()`.
-#' A `k =` Hilbert-space `gp()` block stays
-#' centered on the formula route even though its factor is diagonal:
-#' its LENGTHSCALES share the block's `theta`, the default priors cover
-#' only standard deviations, and the gate wants every parameter of a
-#' block priored. Prior the whole block by hand
-#' (`set_prior(class = "theta")`) to non-center it.
+#' A `k =` Hilbert-space `gp()` block non-centers too, since its
+#' factor is diagonal and the defaults prior its sd and its length
+#' scales (brms's classes `"sdgp"` and `"lscale"`).
 #' `rr()` is already non-centered by
 #' construction, since its own coefficients are the standard normal
 #' factors. What stays centered is a run whose variance parameters are

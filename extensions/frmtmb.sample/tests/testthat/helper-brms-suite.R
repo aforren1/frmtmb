@@ -727,11 +727,9 @@ brms_fixture_spec <- function(k) {
     list(
       brms = paste("volume ~ Trt + gp(Age, by = Trt, gr = TRUE); gaussian",
                    "and count ~ Trt + Age; poisson; no rescor"),
-      formula = bf(volume ~ Trt + gp(Age)) +
+      formula = bf(volume ~ Trt + gp(Age, by = Trt, gr = TRUE)) +
         gaussian() + bf(count ~ Trt + Age) + poisson() + set_rescor(FALSE),
-      family = NULL,
-      changed = paste("gp(Age, by = Trt, gr = TRUE) becomes gp(Age):",
-                      "frmtmb's gp() takes no by or gr"))
+      family = NULL)
   )
 }
 

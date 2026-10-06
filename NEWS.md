@@ -1,3 +1,114 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`gp()` defaults to `iso = TRUE`, as brms 2.23.0 does.** A
+  multi-dimensional `gp(x1, x2)` now shares one lengthscale over the
+  Euclidean distance; `gp(x1, x2, iso = FALSE)` gives one per
+  dimension, which was the old default. The code comment that called
+  the old default brms's was wrong: brms's `gp()` signature has
+  `iso = TRUE`, and its Stan program for `gp(x, z)` declares one
+  lengthscale (`dev/gpby-brms-explore.R`).
+* **Prior class `"sd"` no longer reaches a `gp()` term.** brms priors a
+  GP's marginal standard deviation as class `"sdgp"` and its
+  lengthscales as class `"lscale"`, and frmtmb now has both classes
+  (see New features). `set_prior(class = "sd")` on a model whose only
+  random-effect block is a `gp()` is refused, and the message names
+  `"sdgp"`. A brms prior table with `sdgp` and `lscale` rows, which was
+  refused by name, now carries over row for row.
+* **BREAKING: `get_prior()` lists no class `"sd"` rows for a `gp()`
+  term.** It listed `sd` rows for the GP's block, which no prior could
+  reach as brms names it; it lists the `sdgp` and `lscale` rows
+  brms's `default_prior()` lists instead.
+* **BREAKING: `summary()$gp` labels a lengthscale row with brms's
+  name**, `lscale(gpxzx)` and `lscale(gpxzz)` where it wrote
+  `lscale(gpxz[1])` and `lscale(gpxz[2])` for `gp(x, z, iso = FALSE)`
+  (`dev/gpby-p1-sumgp.R`). Code that indexed the table by the old row
+  names must use the new ones.
+
+## New features
+
+* **`gp(x, by = f)`, with brms's semantics.** `gp()` takes brms's whole
+  argument list: `by`, `k`, `cov`, `iso`, `gr`, `cmc`, `scale` and `c`
+  (`k = NA` and `by = NA` mean none, as in brms). A factor `by` fits
+  one GP per level under `cmc = TRUE` and an intercept GP plus
+  contrast GPs under `cmc = FALSE`, each over its own rows, scaled and
+  centered over those rows alone and with its own standard deviation
+  and lengthscales, as `brms:::data_gp()` builds them; a numeric `by`
+  multiplies one GP. `gr = FALSE` keeps one latent value per row and
+  `scale = FALSE` keeps the inputs unscaled. On six Hilbert-space forms
+  (factor and numeric `by`, `cmc = FALSE`, `gr = FALSE`, isotropic and
+  anisotropic two-dimensional) brms's Stan log density at frmtmb's
+  estimates equals frmtmb's joint density to 2.8e-14 and its gradient
+  in the latent values vanishes to 2.6e-14 (`dev/gpby-lpcheck.R`); the
+  exact form's marginal likelihood is the closed form to 1e-8 relative
+  (`tests/testthat/test-gp-by.R`). A by-level the fit never saw is
+  refused with brms's own message, `allow_new_levels = TRUE` included,
+  as brms refuses it. `cov =` other than `"exp_quad"` is refused: the
+  Matern and exponential kernels are not implemented.
+* **brms's names for a GP's parameters.** `variables()` and
+  `hypothesis()` read `sdgp_<term>` and `lscale_<term>` (`sdgp_gpx`,
+  `sdgp_gpxfa` for level `a` of `gp(x, by = f)`, `lscale_gpxzx` for a
+  non-isotropic term), on brms's scales, and `summary()$gp` labels its
+  rows the same way (see Breaking changes). Before, `variables()`
+  listed neither parameter, so brms's `variables(fit6)` test could not
+  transfer.
+* **Prior classes `"sdgp"` and `"lscale"`**, brms's, with `coef` the
+  sub-GP brms names (`"gpxfa"`). Both are on brms's natural scales
+  with the log-Jacobian applied; the lengthscale is on the inputs brms
+  divides by their largest distance. `get_prior()` lists the rows
+  brms's `default_prior()` lists.
+* **`frm_lp_basis(extra_cov = TRUE)`** returns `extra_cov`, the full
+  covariance over the rows of the variance that is not coefficient
+  uncertainty: an exact `gp()`'s kriging residual at an unseen position,
+  which every unseen row of one field shares, and a new grouping
+  level's draw, which every row at that level shares. Its diagonal is
+  `extra_var` exactly. It is a sparse `Matrix` where its sources cover
+  few entries, an empty one (nothing allocated) on a fit with no such
+  source, and dense otherwise: a 2000-row grid past an exact `gp()`'s
+  data peaks at 106 MB in the call (`dev/gpby-p1-mem3.R`). One call on
+  a stacked grid gives the covariance between two grids.
+* **`frm_extra_cov_deriv()`**, the covariance of the `order`-th
+  derivative of that same part, built from its sources: an exact
+  `gp()`'s kriging residual by the squared exponential kernel's closed
+  form derivatives, a new grouping level by differencing its draw's
+  design rows. Differencing `extra_cov` itself divides its rounding by
+  the step to the fourth power at order 2, which gave a standard error
+  of 0 past an exact `gp()`'s data and up to 1.5 for the curvature of a
+  term linear in the variable, whose true value is 0
+  (`dev/reviews/2026-10-05-gpby.md`, B1).
+* **`emmeans()` on an exact `gp()` at a position the fit did not see.**
+  Refused until now; the kriging covariance across the grid enters `V`,
+  so a mean at an unseen position carries it and a contrast between
+  two rows at one position cancels it.
+
+## Bug fixes
+
+* **`conditional_effects()` on a `gp()` fit had nothing to draw.**
+  `y ~ gp(x)` stopped with "No plottable predictors found"; a `gp()`
+  term's covariates and its `by` variable are now effects, and a term
+  over several variables adds their two-way displays, as brms's
+  `get_all_effects_type(x, "gp")` does: `x`, `f` and `x:f` for
+  `gp(x, by = f)`.
+* **`fitted()`'s `Est.Error` on a category distribution left out an
+  exact `gp()`'s kriging variance** at a position the fit did not see,
+  and a new grouping level's variance, which the scalar route has
+  always added. Past the data the shortfall was 8 percent of the
+  standard error on the `test-fd-chain.R` fixture. The analytic route
+  `conditional_effects()` takes for an ordinal family had the same gap.
+* **`fitted()`'s finite-difference `Est.Error` costs one pair of
+  evaluations per smooth or `gp()` block** where it cost one per
+  coefficient. Such a block reaches a category probability only through
+  its predictor's `eta`, linearly, so the derivative is the chain rule
+  `(d p / d eta) Z`. Counted calls of the fitted value on
+  `dev/gpby-fdcost.R`'s cells: a 160-coefficient `gp(x)` at three new
+  rows 330 to 12, `s(x, k = 8) + (1 | g)` 26 to 16 and 24 to 14, a
+  12-column `gp(x, k = 12)` 34 to 12, a control unchanged at 12.
+* Kriging at an unseen `gp()` position works in correlation units, so a
+  draw whose standard deviation underflows no longer stops the solve
+  as exactly singular, and a row at an observed position is the fitted
+  value exactly rather than through the kriging weights.
+
 # frmtmb 0.67.0
 
 Three lanes of brms parity, each with an adversarial review and punch

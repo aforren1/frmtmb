@@ -1624,6 +1624,28 @@ them, and the ledger records the ones the ported suite reaches.
   variables are not pinned in `conditions`** (`ce_aterms()`); brms
   holds such a variable at its mean, and a `min(y) - 1` bound at
   `mean(y) - 1`. Pre-existing. Lane formrobust, section 9.
+- **`fitted()` on an ordinal fit whose `disc` predictor has no fixed
+  column stops** with "requires numeric/complex matrix/vector
+  arguments" in `lp_eta_design()` at `X %*% est[[lp$par]][lp$idx]`:
+  `bf(y ~ z, disc ~ 0 + gp(x, k = 6))` and `disc ~ 0 + (1 | g)` on
+  `cumulative()`, in sample and on newdata. `est$betad` is `NULL` when
+  no `disc` column is fixed. `disc ~ 0 + s(x)` (which keeps a fixed
+  linear column), `sigma ~ 0 + gp(x)` and `sigma ~ 0 + (1 | g)` work,
+  so the gap is the `betad` slot, not gp(). Pre-existing on 0.67.0 and
+  on the gpby lane build. Found by the gpby review
+  (`dev/reviews/2026-10-05-gpby.md`); scope in `dev/gpby-p1-disc2.R`,
+  `dev/gpby-p1-disc2.txt`.
+- **`frm_sample(fit)` on an exact `y ~ gp(x)` fit does not move**:
+  stepsize NaN, acceptance 0, all 300 post-warmup transitions
+  divergent, every draw at one point, on rellib-r5 and on the gpby lane
+  build alike (60 points, data seed 5, `chains = 1, iter = 600,
+  seed = 4`). It is not a flat prior: since frmtmb.sample 0.43.0 the
+  fit route carries brms's defaults, and `prior_summary()` is the same
+  four rows on both routes. The formula route on the same data and
+  seed samples (acceptance 0.97 lane, 0.92 base). The fit route's
+  start or its first gradient is the suspect. Repro
+  `dev/gpby-p1-m1b.R lane|base`, logs `dev/gpby-p1-m1b-*.txt`,
+  `dev/gpby-p1-m1.txt`.
 
 ### Open - low
 

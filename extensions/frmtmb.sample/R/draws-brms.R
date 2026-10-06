@@ -98,9 +98,13 @@ draws_natural_cols <- function(fit) {
   equated <- lapply(attr(tab, "equated"), function(e) {
     list(name = e$name, from = tab$brms[e$row])
   })
-  out <- list(names = tab$brms[i], linkinv = attr(tab, "linkinv")[i],
-              linkfun = attr(tab, "linkfun")[i], simplex = smp,
-              equated = equated,
+  # a gp() term's sd and length scales: brms's sdgp_ and lscale_ draws
+  # are on brms's scales, which the internal log theta is not
+  gpn <- gp_brms_natural(fit)
+  out <- list(names = c(tab$brms[i], gpn$names),
+              linkinv = c(attr(tab, "linkinv")[i], gpn$linkinv),
+              linkfun = c(attr(tab, "linkfun")[i], gpn$linkfun),
+              simplex = smp, equated = equated,
               ordinal = draws_ordinal_cols(fit))
   # the columns added after the sampled ones: a mixture's last weight,
   # an equated dpar, and the thresholds and delta an ordinal block
