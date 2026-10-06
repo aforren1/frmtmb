@@ -1343,8 +1343,8 @@ compat_hand_rules_tbl <- function() {
     "Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none.")
   r("thres()", "group:ordinal", "works",
     "thres(x = K) sets the number of thresholds; thres(gr = g) gives each level of g a threshold vector of its own, merged as brms merges them, with a count per level. The log-likelihood agrees with brms's own densities at a shared parameter point to about 5e-16, relative, for all four families under the logit, probit and cauchit links, and with MASS::polr fitted per group and ordinal::clm(nominal = ~ g) at the optimum to about 3e-12 (dev/thres-validate.R). Thresholds above a level's highest observed category are not identified without a prior on class Intercept, and the fit warns about them.")
-  r("thres()", "hurdle_cumulative", "conditional",
-    "thres(x = K) sets the number of thresholds, counted over the ordinal categories above the hurdle. thres(gr = ) is refused by name: the grouped densities have no hurdle. brms fits it.")
+  r("thres()", "hurdle_cumulative", "works",
+    "thres(x = K) and thres(gr = g) count the thresholds over the ordinal categories above the hurdle, and each group's density keeps the hurdle, as brms's hurdle_cumulative_*_merged_lpmf does. The log density equals brms 2.23.0's compiled program at the optimum and at three perturbed points to at most 1.6 ulp, under the logit and the probit, with hu ~ z, disc ~ 0 + z, equidistant and sum_to_zero thresholds (dev/ordmix-lpcheck.R). thres(gr = ) with cs() is refused, as brms refuses it.")
   r("thres()", "weights()", "works",
     "Verified: weights of 2 give the fit of the duplicated data, to the last printed digit.")
   r("thres()", "cs_pred()", "conditional",
@@ -1357,8 +1357,8 @@ compat_hand_rules_tbl <- function() {
   }
   r("thres()", "mvbf", "refused",
     "Refused with every ordinal family: families with extra parameters are not supported in multivariate fits yet.")
-  r("thres()", "mixture", "refused",
-    "Refused with every ordinal family: an ordinal family is not a mixture component.")
+  r("thres()", "mixture", "works",
+    "An ordinal mixture: each component has its own thresholds under order = \"none\", the default, and one shared vector under order = \"mu\", as brms has them; thres(x = ) and thres(gr = ) apply to every component. The log density equals brms 2.23.0's compiled program at the optimum and at three perturbed points to at most 2.5 ulp over the 20 shapes of dev/ordmix-lpcheck.R. A probit component whose latent distance from a threshold passes about 38 has a NaN density where brms's is finite (the review's three-component probit, sratio and acat mixture, one perturbed point; dev/test-backlog.md); brms's equidistant mixture does not compile, and frmtmb fits the model its transformed parameters describe. Every component hurdle_cumulative() or none; groups = is refused.")
   r("thres()", "REML", "works",
     "Verified by a tiny fit with a random intercept.")
   r("thres()", "quadrature", "works",
@@ -1659,7 +1659,11 @@ compat_hand_rules_tbl <- function() {
   r("cs_pred()", "group:ordinal_cs", "works",
     "A cs() term is expanded by model.matrix() as brms expands its Xcs, so a factor or character predictor gives treatment-contrast dummies with one coefficient per dummy per threshold (bcs_fb[k]), and new data are recoded against the fit's levels. A column written on both sides (y ~ x + cs(x)) is refused: it is not identified, and brms fits it.")
   r("cs_pred()", "cumulative", "refused",
-    "Refused: category-specific effects are not identified under the cumulative parameterization.")
+    "Refused: cs() moves each threshold of a row by its own amount, so under the cumulative parameterization a row's thresholds can cross, and the category between two crossed thresholds then has a negative probability. brms 2.23.0 fits it, with a warning that the effects are experimental; hurdle_cumulative() takes it as brms does.")
+  r("cs_pred()", "hurdle_cumulative", "works",
+    "As brms fits it: the offsets come off each row's thresholds, and the log density equals brms 2.23.0's compiled probit program to at most 0.8 ulp, with and without disc and hu predictors (dev/ordmix-lpcheck.R; brms's logit program reads the top category out of range, upstream brms-1). Rows whose offsets make two thresholds cross have a negative category probability: their density is NaN, as brms's is, their fitted() probabilities are NaN where brms returns the negative difference, and simulate() gives NA there. With thres(gr = ) it is refused, as in brms.")
+  r("cs_pred()", "mixture", "conditional",
+    "An ordinal mixture takes cs() in the formula of each component whose family takes it (sratio, cratio, acat, hurdle_cumulative), each with coefficients of its own (bcs_mu1_x[k]), and refuses it on a cumulative() component. Verified against brms 2.23.0's compiled program to at most 0.9 ulp (dev/ordmix-lpcheck.R).")
   r("gp_pred()", "kind:mode", "untested", "", override = TRUE)
   # gp()'s own arity limits used to sit on a gp_pred() x gp_pred()
   # self-pair row, which the resolved table cannot hold; every gp()

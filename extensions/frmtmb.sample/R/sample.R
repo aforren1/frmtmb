@@ -1124,6 +1124,18 @@ default_lp_dpar <- function(rspec, dp) {
   if (dp %in% rspec$primary_dpars && !several) "" else dp
 }
 
+#' Whether `dp` is an ordinal discrimination of `rspec`: `disc` of an
+#' ordinal family, or `disc<k>` of an ordinal mixture's component `k`.
+#'
+#' @noRd
+ord_disc_dpar <- function(rspec, dp) {
+  if (!identical(rspec$family[["type"]], "ordinal")) {
+    return(identical(dp, "disc"))
+  }
+  identical(dp, "disc") ||
+    (!is.null(rspec$family[["mix"]]) && grepl("^disc[0-9]+$", dp))
+}
+
 #' brms's default priors for the model this object holds, as a
 #' `frmtmb_priorlist`, or `NULL` when the model has no slot they cover.
 #'
@@ -1175,16 +1187,17 @@ default_priors_for <- function(fit) {
         add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma",
                       resp = rs))
       }
-    } else if (identical(lp[["dpar"]], "disc") &&
+    } else if (ord_disc_dpar(rspec, lp[["dpar"]]) &&
                  !identical(lp[["link"]]$name, "identity")) {
       # an ordinal discrimination: brms's def_dpar_prior() puts
       # normal(0, 1) on the link-scale intercept, which is also what
       # places that intercept at all, since the likelihood cannot tell
       # it from the scale of the thresholds. Under the identity link
       # brms writes lognormal(0, 1), which set_prior() does not carry;
-      # default_prior_notes() names that gap
-      add(set_prior("normal(0, 1)", class = "Intercept", dpar = "disc",
-                    resp = rs))
+      # default_prior_notes() names that gap. An ordinal mixture's
+      # disc1, disc2, ... each get it, as brms's rows show
+      add(set_prior("normal(0, 1)", class = "Intercept",
+                    dpar = lp[["dpar"]], resp = rs))
     }
   }
 
@@ -1232,14 +1245,14 @@ default_prior_notes <- function(fit) {
                                "class)"))
       lpd <- Filter(function(lp) {
         identical(lp[["resp"]], rspec$resp_name) &&
-          identical(lp[["dpar"]], "disc") && is.null(lp[["constant"]]) &&
+          ord_disc_dpar(rspec, lp[["dpar"]]) && is.null(lp[["constant"]]) &&
           "(Intercept)" %in% colnames(lp[["X"]]) &&
           identical(lp[["link"]]$name, "identity")
       }, fit$frame[["linpreds"]])
-      if (length(lpd)) {
-        notes <- c(notes, paste0("no default for the intercept of disc",
-                                 of, " under the identity link (brms ",
-                                 "uses lognormal(0, 1))"))
+      for (lp in lpd) {
+        notes <- c(notes, paste0("no default for the intercept of ",
+                                 lp[["dpar"]], of, " under the identity ",
+                                 "link (brms uses lognormal(0, 1))"))
       }
     }
     # dispersion dpars brms gives a gamma or inverse-gamma default, which

@@ -140,17 +140,17 @@ brms_extra_fixef <- function(fit) {
   lp_dp <- function(lp) {
     paste(lp[["resp"]] %||% NA_character_, lp[["dpar"]], sep = ":")
   }
-  ord_lps <- Filter(function(lp) {
-    identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
-      identical(lp[["dpar"]], "mu")
-  }, fit$frame[["linpreds"]])
-  for (lp in ord_lps) {
-    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+  # one block per ordinal predictor: an ordinal mixture's components
+  # each report their thresholds, b_mu1_Intercept[k], b_mu2_Intercept[k],
+  # and under order = "mu" two of them read the same template component
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    lp <- ob$lp
+    comp <- ob$comp
     raw <- est[[comp]]
     # an EMPTY block still has thresholds, all at 0: sum-to-zero
     # vectors of one threshold each, which brms reports as 0
     if (is.null(tpl[[comp]]) || is.null(raw)) next
-    fam <- brms_lp_family(fit, lp)
+    fam <- ob$fam
     map <- local({
       fam_ <- fam
       function(r) ord_threshold_values(fam_, r)

@@ -527,8 +527,11 @@ emm_target_one <- function(object, r, dpar, nlpar, epred) {
   }
   link <- lp[["link"]][["name"]] %||% "identity"
   # an ordinal location is latent: its inverse link maps no threshold
-  # to anything, so there is no response scale to transform to
-  latent <- identical(fam[["type"]], "ordinal") && nm == "mu"
+  # to anything, so there is no response scale to transform to. An
+  # ordinal mixture's mu1, mu2, ... are each a component's location
+  latent <- identical(fam[["type"]], "ordinal") &&
+    (nm == "mu" || (!is.null(fam[["mix"]][["ord"]]) &&
+                      nm %in% fam[["primary_dpars"]]))
   misc <- if (latent) {
     list()
   } else {

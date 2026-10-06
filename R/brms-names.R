@@ -538,7 +538,10 @@ brms_par_labels <- function(fit, include_random = TRUE) {
       next
     }
     if (cp == "betad") {
-      out <- c(out, lab[-seq_len(n_beta)])
+      # not lab[-seq_len(n_beta)]: with no location column that index is
+      # empty and selects nothing, which dropped every betad label and
+      # named the draws one column off (dev/ordmix-emptybeta.R)
+      out <- c(out, lab[seq_along(lab) > n_beta])
       next
     }
     if (cp %in% c("b", "miss") && !include_random) next

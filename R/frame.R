@@ -3448,10 +3448,30 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       cs_info <- list()
       cs_mm <- list()
       if (length(dp[["csterms"]] %||% list())) {
-        if (!identical(resp$family[["type"]], "ordinal") ||
-            resp$family[["family"]] %in% ord_ordered_families) {
-          frm_stop("cs() needs an sratio, cratio, or acat family",
+        cs_fam <- cs_target_family(resp$family, dp[["name"]])
+        ord_mix <- !is.null(resp$family[["mix"]][["ord"]])
+        ordinal <- identical(resp$family[["type"]], "ordinal")
+        if (is.null(cs_fam) &&
+            (ordinal || !grepl("^mu[0-9]*$", dp[["name"]]))) {
+          # brms's sentence first, on any family (sigma ~ cs(w) on a
+          # gaussian too). The base build put these offsets in the one
+          # slot the densities read, so cs() in disc's formula moved
+          # the thresholds as if written in mu's
+          # (dev/ordmix-base-behavior.R)
+          frm_stop("Category specific effects are only supported for the ",
+                   "main parameter 'mu'. cs() moves the thresholds of an ",
+                   "ordinal family's latent predictor",
+                   if (ord_mix) {
+                     ", which in an ordinal mixture is mu1, mu2, ..."
+                   },
+                   ", and `", dp[["name"]], "` is not that predictor",
                    call. = FALSE)
+        }
+        # hurdle_cumulative() takes cs() as brms fits it; cumulative()
+        # stays refused (see compat.R)
+        if (!ordinal || identical(cs_fam[["family"]], "cumulative")) {
+          frm_stop("cs() needs an sratio, cratio, or acat family, or ",
+                   "hurdle_cumulative()", call. = FALSE)
         }
         if (thres_grouped(resp$family)) {
           # brms 2.23.0 refuses the pair in the same words

@@ -1,3 +1,87 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`cs()` in the formula of a parameter other than the latent
+  predictor is refused**, in brms's words ("Category specific effects
+  are only supported for the main parameter 'mu'"). The offsets of
+  every predictor went into the one slot the ordinal densities read,
+  so `bf(y ~ x, disc ~ cs(z))` fitted `y ~ x + cs(z)` under disc's
+  name, its log-likelihood that model's to 1.1e-9, with the
+  coefficients reported as `disc_z[k]` (`dev/ordmix-base-behavior.R`).
+
+## New features
+
+* **`mixture()` takes ordinal components**, as brms does:
+  `cumulative()`, `sratio()`, `cratio()` and `acat()` in any
+  combination, each with its own link, `disc<k>` and threshold
+  structure, or `hurdle_cumulative()` for every component.
+  `order = "none"`, brms's default for them, gives each component its
+  own thresholds, `b_mu1_Intercept[k]`, `b_mu2_Intercept[k]`, and
+  `order = "mu"` gives all of them one shared vector, brms's
+  `fixed_Intercept`, which a sum-to-zero component centers (with
+  components that have a `mu` intercept, `order = "mu"` stays
+  refused).
+  `thres(x = )`, `thres(gr = )`, `cs()` per component, `theta<k> ~`
+  and `disc<k> ~` work. The category probabilities that `fitted()`,
+  `predict()`, `simulate()`, `conditional_effects()` and
+  frmtmb.sample's `posterior_epred()` and `log_lik()` report are the
+  theta-weighted sums of the components'. The log density equals brms
+  2.23.0's compiled program at the optimum and at three perturbed
+  parameter vectors to at most 2.5 ulp on the 20 mixture shapes of
+  `dev/ordmix-lpcheck.R`; a probit component whose latent distance
+  from a threshold passes about 38 has a `NaN` density where brms's
+  is finite (one point of the review's three-component probit, sratio
+  and acat mixture). `fixef()` has brms's rows in brms's
+  order. `default_prior()` lists brms's threshold rows, and
+  `set_prior(class = "Intercept", dpar = "mu1")` (with no `dpar` under
+  `order = "mu"`) lands where brms puts it. brms's equidistant mixture
+  does not compile (its parameters block declares a bare `delta` per
+  component, and its body reads `delta_mu<k>`); frmtmb fits the model
+  the body describes and names it `delta_mu<k>`. `groups = `, a
+  `hurdle_cumulative()` component beside one without a hurdle, and
+  `cs()` on a `cumulative()` component are refused. A mixture whose
+  likelihood has a flat direction by construction warns: no predictor
+  in any parameter, or hurdle components whose `hu<k>` and mixing
+  weights have none, unless priors hold enough of those parameters
+  (a threshold prior holds none of the hurdle's); or shared thresholds
+  with no `mu<k>` predictor on components of one family, link and
+  `disc`. A fit whose component ends at a degenerate boundary warns
+  and names it: a step function of its predictors (doubling its latent
+  distances costs the log-likelihood less than 0.1), a threshold no
+  row is near, or two thresholds that are the same number. Maximum
+  likelihood for an ordinal mixture often has its supremum there (22
+  of 160 simulated two-component fits; the warning fires on 20 of them
+  and on none of the other 138, nor on any of 167 sound fits with
+  strong predictors under four links), so compare several starts, or
+  hold the components with priors.
+
+* **`hurdle_cumulative()` takes `thres(gr = )` and `cs()`**, as brms
+  fits them. Each group's density keeps the hurdle, the counts are
+  over the categories above it, and `cs()` comes off each row's
+  thresholds. The log density equals brms 2.23.0's compiled program
+  to at most 1.6 ulp under the logit and the probit, with `hu ~`,
+  `disc ~` and every threshold structure (`dev/ordmix-lpcheck.R`). A
+  row whose `cs()` offsets cross two thresholds has a negative
+  category probability: its density and `fitted()` are `NaN` there
+  (brms returns the negative difference), and `simulate()` gives `NA`.
+  `cs()` with `thres(gr = )` stays refused, as in brms.
+
+## Bug fixes
+
+* **A gradient that is not finite at the reported optimum** passed
+  `check_convergence()` in silence, because its test compares a finite
+  number with `grad_tol`. nlminb reports X-convergence there (a
+  three-component ordinal mixture whose probit component saturated,
+  gradient `Inf`). The fit now warns and names the parameters.
+
+* **The draws of a model whose location predictor has no column** (an
+  ordinal `y ~ 1` with a modeled `disc`, or `y ~ cs(x)`) were named one
+  column off: `brms_par_labels()` dropped the labels of every
+  distributional coefficient, so frmtmb.sample stored disc's slope as
+  `b_Intercept[1]` and the last threshold as `tau_raw[3]`
+  (`dev/ordmix-emptybeta.R`).
+
 # frmtmb 0.67.0
 
 Three lanes of brms parity, each with an adversarial review and punch

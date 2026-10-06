@@ -144,12 +144,42 @@ draws_ordinal_cols <- function(fit) {
   if (!length(fit$estimates)) fit$estimates <- fit$frame[["par_template"]]
   dl <- ord_delta_info(fit)
   out <- list()
-  for (e in brms_fixef_rows(fit)$extra) {
+  ex <- brms_fixef_rows(fit)$extra
+  # an order = "mu" ordinal mixture reports ONE threshold block under
+  # every component's names, b_mu1_Intercept[k] and b_mu2_Intercept[k],
+  # so the blocks that read one template component are joined: their
+  # names and maps in order, and the way back through the first block
+  # that has one (a sum-to-zero component recenters the shared vector,
+  # and its thresholds cannot give back the vector's location)
+  comps <- unique(vapply(ex, `[[`, "", "comp"))
+  for (cp in comps) {
+    es <- Filter(function(e) identical(e$comp, cp), ex)
+    e <- if (length(es) == 1L) es[[1L]] else draws_join_blocks(es)
     if (!is.function(e$inv)) next
     dd <- Filter(function(d) identical(d$comp, e$comp), dl)
     out[[length(out) + 1L]] <- draws_ordinal_block(e, dd)
   }
   out
+}
+
+#' Several `brms_fixef_rows()` blocks that read the same template
+#' component, as one: the names one after the other under the first
+#' block's class, the forward maps concatenated, and the inverse of the
+#' first block that declares one, applied to that block's own names.
+#'
+#' @noRd
+draws_join_blocks <- function(es) {
+  inv_at <- which(vapply(es, function(e) is.function(e$inv), NA))[1L]
+  if (is.na(inv_at)) return(list(comp = es[[1L]]$comp, inv = NULL))
+  ends <- cumsum(lengths(lapply(es, `[[`, "names")))
+  span <- (ends[inv_at] - length(es[[inv_at]]$names) + 1L):ends[inv_at]
+  maps <- lapply(es, `[[`, "map")
+  inv1 <- es[[inv_at]]$inv
+  list(comp = es[[1L]]$comp, cls = es[[1L]]$cls,
+       names = unlist(lapply(es, `[[`, "names")),
+       raw = es[[1L]]$raw,
+       map = function(r) unlist(lapply(maps, function(f) f(r))),
+       inv = function(v) inv1(v[span]))
 }
 
 #' One block of `draws_ordinal_cols()`. A function of its own so that
@@ -213,9 +243,13 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
     if (anyNA(j)) next
     R <- length(o$internal)
     v <- draws_rowmap(m[, j, drop = FALSE], if (inverse) o$inv else o$map)
+    # `x[seq_along(x) > R]` and not `x[-seq_len(R)]`: a block with no
+    # internal parameter (R = 0: sum-to-zero thresholds on a binary
+    # response) makes `-seq_len(R)` empty, and an empty negative index
+    # selects nothing, so its held column was neither added nor dropped
     if (inverse) {
       m[, j[seq_len(R)]] <- v
-      if (length(j) > R) m <- m[, -j[-seq_len(R)], drop = FALSE]
+      if (length(j) > R) m <- m[, -j[seq_along(j) > R], drop = FALSE]
       next
     }
     m[, j] <- v[, seq_len(R), drop = FALSE]
@@ -223,9 +257,10 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
     if (length(o$names) > R) {
       # before lp__, which brms and the sampler both keep last
       at <- match("lp__", colnames(m), nomatch = ncol(m) + 1L) - 1L
-      nm_all <- append(colnames(m), o$names[-seq_len(R)], after = at)
+      nm_all <- append(colnames(m), o$names[seq_along(o$names) > R],
+                       after = at)
       m <- cbind(m[, seq_len(at), drop = FALSE],
-                 v[, -seq_len(R), drop = FALSE],
+                 v[, seq_len(ncol(v)) > R, drop = FALSE],
                  m[, seq_len(ncol(m) - at) + at, drop = FALSE])
       colnames(m) <- nm_all
     }

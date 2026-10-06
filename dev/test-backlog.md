@@ -1664,6 +1664,41 @@ them, and the ledger records the ones the ported suite reaches.
   formrobust. Lane ordinal met brms-2 (softit) and brms-8
   (`probit_approx`) again.
 
+## Filed by lane ordmix after punch round 1, 2026-10-05
+
+### Open - medium
+
+- **The probit's log-odds form underflows past `|eta| = 38.2`**
+  (`R/links.R`, `logit_eta` of `probit`): `log(pnorm(eta)) -
+  log(pnorm(-eta))` is `-Inf` or `Inf` there, and the ordinal densities
+  then give `NaN`. A plain cumulative probit fit at slope 20 has a
+  `NaN` objective on both 0.67.0 and the lane build
+  (`dev/ordmix-rev-probit-sat.R`); in an ordinal mixture a component
+  can reach that region on its own, and the review's
+  `mixture(cumulative("probit"), sratio("cloglog"), acat())` ended
+  there with an infinite gradient (now a warning in
+  `check_convergence()`). The fix, `pnorm(eta, log.p = TRUE) -
+  pnorm(-eta, log.p = TRUE)`, holds to `|eta| = 60` and beyond, but it
+  is not the current form bit for bit where that is finite: 483 of
+  2001 grid values on `[-38, 38]` differ (at most 4.3e-12 relative),
+  and 1903 of 1977 derivatives (at most 1.4e-13), through RTMB's tape
+  (`dev/ordmix-p1-probit.R`, log `dev/ordmix-p1-log-probit.txt`). So
+  it moves every plain probit fit, and the round's rule kept it out. A
+  fix that keeps the plain fits needs a branch at `|eta| = 38` on the
+  tape, or an accepted change to the probit fits.
+
+### Open - low
+
+- **A multi-start option for ordinal mixtures** (`frmtmb_control(starts
+  = n)`, best of `n` jittered starts). Not built: in the review's 160
+  two-component fits, 22 ended at a degenerate boundary, and in 16 of
+  the 22 that point had the higher log-likelihood, so "best of n"
+  picks the degenerate point more often than it escapes it. A useful
+  option has to rank starts by something other than the likelihood
+  (the degenerate check of `mixture_ord_degeneracy()` is a candidate)
+  and report every start, which is more than a small change. Priors on
+  the components (as brms has them) are the remedy the warning names.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

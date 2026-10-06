@@ -4109,7 +4109,9 @@ fam_cumulative <- function(link = "logit", link_disc = "log",
         }
         return(log(dens + sel[[K]] * (1 - Fk[[K1]])) * ov$keep)
       }
-      ord_cumulative_logpmf(y, eta, tau, lk, disc)
+      # `.gap_floor` is set by an ordinal mixture for its components
+      ord_cumulative_logpmf(y, eta, tau, lk, disc,
+                            gap_floor = isTRUE(dpars[[".gap_floor"]]))
     }
   }
   fam <- frmtmb_family(
@@ -4149,13 +4151,26 @@ fam_cumulative <- function(link = "logit", link_disc = "log",
 #' the output a fit prints leaves it out (`lp_hidden_fixed()`) while
 #' the objective keeps the mapped coefficient.
 #'
+#' Two more factories, `(lay, ordered)`, build the grouped density and
+#' simulator of `thres(gr = )`. The four common families share
+#' `thres_lpdf()` and `thres_sim()`; `hurdle_cumulative()` passes its
+#' own, because the grouped density must keep the hurdle.
+#'
 #' @noRd
-ord_family_tail <- function(fam, lk, threshold, make_lpdf, make_sim) {
+ord_family_tail <- function(fam, lk, threshold, make_lpdf, make_sim,
+                            make_glpdf = NULL, make_gsim = NULL) {
   fam[["fixed_dpars"]] <- list(disc = 1)
   fam[["hidden_fixed_dpars"]] <- "disc"
   fam[["threshold"]] <- threshold
   fam[["ord_lpdf_make"]] <- make_lpdf
   fam[["ord_sim_make"]] <- make_sim
+  nm <- fam[["family"]]
+  fam[["ord_glpdf_make"]] <- make_glpdf %||% function(lay, ordered) {
+    thres_lpdf(nm, lay, ordered, lk)
+  }
+  fam[["ord_gsim_make"]] <- make_gsim %||% function(lay, ordered) {
+    thres_sim(nm, lay, ordered, lk)
+  }
   ord_tag_link(fam, lk)
 }
 
@@ -4170,18 +4185,42 @@ ord_code0 <- function(fam) if (isTRUE(fam[["extra_cat"]])) 0L else 1L
 
 #' The ordinal families whose thresholds are held ordered, as
 #' `(tau_1, log increments)`: brms declares them `ordered` for these two
-#' (`brms:::has_ordered_thres()`). `cs()` is refused for both, as its
-#' offsets could make a difference of their probabilities negative.
+#' (`brms:::has_ordered_thres()`). `cs()` is refused for `cumulative()`,
+#' as its offsets could make a difference of its probabilities
+#' negative; `hurdle_cumulative()` takes it, as brms fits it, and says
+#' what such a row gives.
 #'
 #' @noRd
 ord_ordered_families <- c("cumulative", "hurdle_cumulative")
+
+#' The ordinal family whose thresholds a `cs()` term in the formula of
+#' `dpar` would move: the family itself for its `mu`, component `k` of
+#' an ordinal mixture for `mu<k>`, and `NULL` for any other dpar, whose
+#' predictor reaches no threshold.
+#'
+#' @noRd
+cs_target_family <- function(fam, dpar) {
+  mx <- fam[["mix"]][["ord"]]
+  if (is.null(mx)) return(if (identical(dpar, "mu")) fam)
+  k <- match(dpar, paste0("mu", seq_len(mx$K)))
+  if (is.na(k)) NULL else mx$comps[[k]]
+}
 
 #' The cumulative log-probability of categories `y` in `1..K`, with the
 #' distribution function read at `disc * (tau - eta)`: the data path of
 #' the densities of `fam_cumulative()` and `fam_hurdle_cumulative()`.
 #'
+#' `cs`, the `n x (K - 1)` matrix of `cs()` offsets, moves each row's
+#' thresholds to `tau_k - cs_ik`, as brms reads `Intercept -
+#' transpose(mucs[n])`; `ord_cumulative_logpmf_cs()` does that case.
+#' `gap_floor` holds an interior category's probability away from an
+#' exact zero (`ord_log_interior()`), which an ordinal mixture asks for.
+#'
 #' @noRd
-ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
+ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1, cs = NULL,
+                                  gap_floor = FALSE) {
+  if (!is.null(cs)) return(ord_cumulative_logpmf_cs(y, eta, tau, cs, lk,
+                                                    disc))
   Fcdf <- lk$linkinv
   # Any link carrying `logit_eta` has an exact log-space difference
   # (see below), because that field turns its CDF into a logistic one.
@@ -4195,7 +4234,7 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
   if (is.null(q)) {
     up <- Fcdf(disc * (tau[pmin(y, K1)] - eta)) * (1 - iK) + iK
     lo <- Fcdf(disc * (tau[pmax(y - 1, 1)] - eta)) * (1 - i1)
-    return(log(up - lo))
+    return(log(ord_gap_floor(up - lo, gap_floor)))
   }
   # log(F(a) - F(b)) entirely in log space. `q` is the log odds of F,
   # so F is the logistic of it exactly, and for a logistic
@@ -4214,8 +4253,91 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1) {
     ym <- pmin(pmax(y, 2L), K1)
     a <- q(disc * (tau[ym] - eta))
     b <- q(disc * (tau[ym - 1L] - eta))
-    out <- out + (1 - i1 - iK) *
-      (RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b))
+    out <- out + (1 - i1 - iK) * ord_log_interior(a, b, gap_floor)
+  }
+  out
+}
+
+#' `log(F(a) - F(b))` for an interior category, `a` and `b` its two
+#' thresholds read on the log-odds scale of the link (`a >= b`).
+#'
+#' With `gap_floor`, the gap `a - b` is held at `1e-300` or above. In an
+#' ordinal mixture one component can stop using a category, and its
+#' threshold increment then runs to 0 until the two thresholds are the
+#' same double: `log(0)` with an infinite derivative, which reaches the
+#' mixture's gradient as NaN through a component weight of 0 and stops
+#' the optimizer ("NA/NaN gradient evaluation"; measured on
+#' dev/ordmix-dbg4.R, seed 20261011, with the thresholds 25.76 and
+#' 25.76 + exp(-32.85)). It binds only where the two thresholds are the
+#' same double: on 100000 random pairs (gaps 1e-12 to 50) its value is
+#' the unfloored value bit for bit. Its gradient is not: the rewritten
+#' expression tapes other operations, and 8675 of the 200000 partial
+#' derivatives differ (median 5.6e-16 relative, up to 4e-3 where `b`
+#' is near -40, dev/ordmix-p1-m4.R). The floor is off outside a
+#' mixture so that a plain fit keeps its gradient, and so its
+#' optimizer path, bit for bit.
+#'
+#' @noRd
+ord_log_interior <- function(a, b, gap_floor = FALSE) {
+  if (!gap_floor) {
+    return(RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b))
+  }
+  z <- b - a
+  cap <- -1e-300
+  z <- 0.5 * (z + cap - abs(cap - z))
+  -b + RTMB::logspace_sub(0 * z, z) + log_inv_logit(a) + log_inv_logit(b)
+}
+
+#' A category probability held at `1e-300` or above when `on`: the
+#' plain-difference form of `ord_log_interior()`, for a link with no
+#' log-odds form (the cauchit).
+#'
+#' @noRd
+ord_gap_floor <- function(p, on) {
+  if (!on) return(p)
+  lo <- 1e-300
+  lo + 0.5 * ((p - lo) + abs(p - lo))
+}
+
+#' `ord_cumulative_logpmf()` with `cs()` offsets: row `i` reads the
+#' thresholds `tau_k - cs[i, k]`.
+#'
+#' Those can cross, which they cannot without `cs()`, and a category
+#' whose two thresholds cross has a negative "probability", as in brms
+#' (its `log_inv_logit_diff()` is then undefined). So the clamp of the
+#' plain path, which evaluates an interior pair on every row and masks
+#' it off, would put that undefined value into rows that are not in the
+#' category. Each category is formed on its own rows instead; the row
+#' sets are data, so the loop over categories is resolved at tape time.
+#'
+#' @noRd
+ord_cumulative_logpmf_cs <- function(y, eta, tau, cs, lk, disc = 1) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- length(y)
+  if (length(eta) < n) eta <- eta + numeric(n)
+  if (length(disc) < n) disc <- disc + numeric(n)
+  Fcdf <- lk$linkinv
+  q <- lk[["logit_eta"]]
+  K1 <- length(tau)
+  out <- 0 * eta
+  for (k in seq_len(K1 + 1L)) {
+    rows <- which(y == k)
+    if (!length(rows)) next
+    e <- eta[rows]
+    dk <- disc[rows]
+    up <- if (k <= K1) dk * (tau[k] - cs[rows, k] - e)
+    lo <- if (k >= 2L) dk * (tau[k - 1L] - cs[rows, k - 1L] - e)
+    out[rows] <- if (is.null(q)) {
+      log((if (k <= K1) Fcdf(up) else 1) - (if (k >= 2L) Fcdf(lo) else 0))
+    } else if (k == 1L) {
+      log_inv_logit(q(up))
+    } else if (k == K1 + 1L) {
+      log1m_inv_logit(q(lo))
+    } else {
+      a <- q(up)
+      b <- q(lo)
+      RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b)
+    }
   }
   out
 }
@@ -4246,7 +4368,9 @@ fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
       # a zero row reads category 1 in the ordinal term, which carries
       # weight 0 there
       base <- ord_cumulative_logpmf(pmax(y, 1), dpars[["mu"]], tau, lk,
-                                    dpars[["disc"]] %||% 1)
+                                    dpars[["disc"]] %||% 1,
+                                    cs = dpars[[".cs"]],
+                                    gap_floor = isTRUE(dpars[[".gap_floor"]]))
       i0 * g$l + (1 - i0) * (g$l1m + base)
     }
   }
@@ -4256,13 +4380,29 @@ fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
       tau <- tmap(extra$tau_raw)
       P <- hurdle_cum_probs(rep(dpars[["mu"]], length.out = n),
                             rep(dpars[["disc"]] %||% 1, length.out = n),
-                            tau, Fcdf)
-      K <- ncol(P)
-      cp <- t(apply(P, 1L, cumsum))
-      if (n == 1L) cp <- matrix(cp, 1L, K)
-      cat_ <- pmin(1L + rowSums(cp < stats::runif(n)), K)
-      hu <- rep(dpars[["hu"]], length.out = n)
-      ifelse(stats::runif(n) < hu, 0L, cat_)
+                            tau, Fcdf, cs = dpars[[".cs"]])
+      hurdle_cum_draw(P, dpars, n)
+    }
+  }
+  # thres(gr = ): each row reads its own group's slice, through the
+  # grouped cumulative density, with the hurdle kept outside it, as
+  # brms's hurdle_cumulative_*_merged_lpmf keeps it
+  make_glpdf <- function(lay, ordered) {
+    base_g <- thres_lpdf("cumulative", lay, ordered, lk)
+    function(y, dpars, aterms, extra) {
+      i0 <- as.numeric(y == 0)
+      g <- dpar_log_complement(dpars, "hu", lk_hu)
+      base <- base_g(pmax(y, 1), dpars, aterms, extra)
+      i0 * g$l + (1 - i0) * (g$l1m + base)
+    }
+  }
+  make_gsim <- function(lay, ordered) {
+    function(dpars, aterms, n, extra) {
+      P <- thres_cat_probs("cumulative", rep(dpars[["mu"]], length.out = n),
+                           extra$tau_raw, thres_row_groups(aterms, n), lay,
+                           ordered, lk,
+                           rep(dpars[["disc"]] %||% 1, length.out = n))
+      hurdle_cum_draw(P, dpars, n)
     }
   }
   fam <- frmtmb_family(
@@ -4300,7 +4440,28 @@ fam_hurdle_cumulative <- function(link = "logit", link_hu = "logit",
     drop_intercept = TRUE
   )
   fam[["extra_cat"]] <- TRUE
-  ord_family_tail(fam, lk, threshold, make_lpdf, make_sim)
+  ord_family_tail(fam, lk, threshold, make_lpdf, make_sim,
+                  make_glpdf = make_glpdf, make_gsim = make_gsim)
+}
+
+#' One draw per row from a hurdle cumulative model: the ordinal
+#' category from `P`, the `n x K` probabilities of categories `1..K`,
+#' and then the hurdle, which sends a row to 0 with probability `hu`.
+#'
+#' A row whose `cs()` offsets cross two thresholds has a negative
+#' probability in `P`, which is no distribution to draw from, so its
+#' draw is `NA`, as its density is `NaN`.
+#'
+#' @noRd
+hurdle_cum_draw <- function(P, dpars, n) {
+  K <- ncol(P)
+  cp <- t(apply(P, 1L, cumsum))
+  if (n == 1L) cp <- matrix(cp, 1L, K)
+  cat_ <- pmin(1L + rowSums(cp < stats::runif(n)), K)
+  hu <- rep(dpars[["hu"]], length.out = n)
+  out <- ifelse(stats::runif(n) < hu, 0L, cat_)
+  out[rowSums(!(P >= 0)) > 0] <- NA_integer_
+  out
 }
 
 #' `ord_tau_from_raw()` for an ordered threshold vector, written so that
@@ -4316,48 +4477,65 @@ ord_tau_from_raw_ad <- function(raw) {
 }
 
 #' The `n x K` probabilities of the ordinal categories `1..K` of a
-#' cumulative model with discrimination `disc`, in plain doubles.
+#' cumulative model with discrimination `disc`, in plain doubles, the
+#' `cs()` offsets `cs` taken off each row's thresholds.
 #'
 #' @noRd
-hurdle_cum_probs <- function(eta, disc, tau, Fcdf) {
+hurdle_cum_probs <- function(eta, disc, tau, Fcdf, cs = NULL) {
   n <- length(eta)
-  M <- disc * (matrix(tau, n, length(tau), byrow = TRUE) - eta)
+  M <- matrix(tau, n, length(tau), byrow = TRUE) - eta
+  if (!is.null(cs)) M <- M - cs
+  M <- disc * M
   Fm <- cbind(0, Fcdf(M), 1)
   Fm[, -1L, drop = FALSE] - Fm[, -ncol(Fm), drop = FALSE]
 }
 
-#' `hurdle_cumulative()`'s `family_finalize()` slot: `thres(x = )` and
-#' the threshold structure are resolved by the ordinal families' own
-#' finalizer on the rows above the hurdle, and `thres(gr = )` is
-#' refused.
+#' `hurdle_cumulative()`'s `family_finalize()` slot: `thres(x = )`,
+#' `thres(gr = )` and the threshold structure are resolved by the
+#' ordinal families' own finalizer on the rows above the hurdle.
 #'
-#' The grouped densities `thres_finalizer()` builds read `mu` alone and
-#' have no hurdle, so accepting `gr = ` would silently fit the model
-#' without it.
+#' A hurdle zero is not an ordinal category, so the counts, the
+#' checks and the start values see the rows above it alone, each with
+#' its own `thres(gr = )` code. The grouped density the finalizer then
+#' builds is the family's own (`ord_glpdf_make`), which keeps the
+#' hurdle: `thres_lpdf()` alone has none, and the refusal this
+#' replaces existed because accepting `gr = ` would have fitted the
+#' model without it.
 #'
 #' @noRd
 hurdle_thres_finalizer <- function(lk) {
   inner <- thres_finalizer("cumulative", ordered = TRUE, link = lk)
   function(fam, y, aterms) {
-    if (!is.null(aterms[["thres_gr"]])) {
-      frm_stop("hurdle_cumulative() takes thres(x = ) but not ",
-               "thres(gr = ): grouped thresholds are not implemented ",
-               "for the hurdle family. brms fits them", call. = FALSE)
-    }
-    if (is.null(aterms[["thres"]]) &&
+    if (is.null(aterms[["thres"]]) && is.null(aterms[["thres_gr"]]) &&
           identical(fam[["threshold"]] %||% "flexible", "flexible")) {
       return(fam)
     }
-    pos <- y > 0
-    ax <- aterms
-    if (length(ax[["thres"]]) == length(y)) ax[["thres"]] <- ax[["thres"]][pos]
-    out <- inner(fam, y[pos], ax)
+    out <- inner(fam, y[y > 0], hurdle_above_aterms(aterms, y))
     # the ordinal finalizer's start values count the categories over
     # every row it is handed, and a hurdle zero is not one of them
     ep <- out[["extra_pars"]]
-    out[["extra_pars"]] <- function(y, aterms) ep(y[y > 0], aterms)
+    out[["extra_pars"]] <- function(y, aterms) {
+      ep(y[y > 0], hurdle_above_aterms(aterms, y))
+    }
     out
   }
+}
+
+#' The `thres()` values of the rows above a hurdle: a per-row count or
+#' group code is subset to the rows with `y > 0`, the group code
+#' keeping the levels it carries as an attribute.
+#'
+#' @noRd
+hurdle_above_aterms <- function(aterms, y) {
+  pos <- y > 0
+  for (nm in c("thres", "thres_gr")) {
+    v <- aterms[[nm]]
+    if (length(v) == length(y) && length(y) > 1L) {
+      aterms[[nm]] <- structure(v[pos],
+                                thres_levels = attr(v, "thres_levels"))
+    }
+  }
+  aterms
 }
 
 #' An ordinal family's fit-end check: the ordinal finalizer's
@@ -4378,12 +4556,28 @@ hurdle_thres_finalizer <- function(lk) {
 #' holds for every ordinal family, because each reads its distribution
 #' function at `disc` times a difference of thresholds and `mu`.
 #'
+#' `k` names component `k` of an ordinal mixture, whose `disc<k>`,
+#' `mu<k>` and threshold block are checked the same way.
+#'
 #' @noRd
-ord_fit_check <- function(fit, resp) {
+ord_fit_check <- function(fit, resp, k = NULL) {
   fam <- fit$spec$responses[[resp]]$family
-  if (length(fam[["thres"]][["unident"]])) thres_fit_check(fit, resp)
-  lp <- fit$frame[["linpreds"]][[linpred_key(resp, "disc")]]
+  if (is.null(k) && length(fam[["thres"]][["unident"]])) {
+    thres_fit_check(fit, resp)
+  }
+  sfx <- if (is.null(k)) "" else as.character(k)
+  lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("disc", sfx))]]
   if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
+  mx <- fam[["mix"]][["ord"]]
+  if (!is.null(k) && isTRUE(mx$shared)) {
+    # thresholds shared with a component whose disc is held fixed are on
+    # that component's scale, which places this disc's intercept too
+    held_by <- vapply(setdiff(seq_len(mx$K), k), function(j) {
+      lpj <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("disc", j))]]
+      !is.null(lpj[["constant"]])
+    }, NA)
+    if (any(held_by)) return(invisible(NULL))
+  }
   j <- which(colnames(lp[["X"]]) == "(Intercept)")
   # a design without an intercept column can still span one: the cell
   # means of `disc ~ 0 + h` add up to it, and then a common shift of
@@ -4414,14 +4608,16 @@ ord_fit_check <- function(fit, resp) {
   # scale, and with it the intercept, if only through that prior: the
   # re-check's fit with a prior on class Intercept alone had standard
   # errors of at most 1.71 (dev/fams2-rev2-guards.txt, section 4)
-  lpm <- fit$frame[["linpreds"]][[linpred_key(resp, "mu")]]
-  tau_nm <- extra_tpl_name(fit$frame, resp, "tau_raw")
+  lpm <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("mu", sfx))]]
+  tau_nm <- extra_tpl_name(fit$frame, resp,
+                           if (is.null(k)) "tau_raw" else mx$tau_names[k])
   pinned <- any(vapply(ent, function(e) {
     identical(e$comp, tau_nm) ||
       (!is.null(lpm) && identical(e$comp, lpm[["par"]]) &&
          any(lpm[["idx"]] %in% e$idx))
   }, NA))
-  frm_warning(fam[["family"]], ": disc has an intercept",
+  dnm <- paste0("disc", sfx)
+  frm_warning(fam[["family"]], ": ", dnm, " has an intercept",
               if (spans) {
                 paste0(" (its columns, ",
                        paste(colnames(lp[["X"]])[j], collapse = ", "),
@@ -4432,19 +4628,19 @@ ord_fit_check <- function(fit, resp) {
               "thresholds, so ",
               if (pinned) {
                 paste0("only the priors on the thresholds or on the ",
-                       "coefficients of mu place it. ")
+                       "coefficients of mu", sfx, " place it. ")
               } else {
-                paste0("it, the thresholds and the coefficients of mu ",
-                       "have no usable standard error. ")
+                paste0("it, the thresholds and the coefficients of mu",
+                       sfx, " have no usable standard error. ")
               },
               if (spans) {
                 paste0("Leave out one of those columns, or hold them with ",
-                       "a prior on class = \"b\", dpar = \"disc\"")
+                       "a prior on class = \"b\", dpar = \"", dnm, "\"")
               } else {
-                paste0("Write disc ~ 0 + ..., or hold the intercept with a ",
-                       "prior, as brms does with its default ",
+                paste0("Write ", dnm, " ~ 0 + ..., or hold the intercept ",
+                       "with a prior, as brms does with its default ",
                        "set_prior(\"normal(0, 1)\", class = \"Intercept\", ",
-                       "dpar = \"disc\")")
+                       "dpar = \"", dnm, "\")")
               }, call. = FALSE)
   invisible(NULL)
 }
@@ -5164,8 +5360,73 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' component means are initialized on spread-out response quantiles,
 #' and multimodality is real (compare starts, or order the intercepts
 #' with bounds: `set_prior("", class = "Intercept", dpar = ..., lb = )`
-#' per component). Component families with extra parameters
-#' (ordinal) are not supported.
+#' per component).
+#'
+#' @section Ordinal components:
+#' The components can be ordinal, as in brms: [cumulative()],
+#' [sratio()], [cratio()] and [acat()] in any combination, each with its
+#' own link and threshold structure, or [hurdle_cumulative()] for every
+#' component. Component `k` has the latent predictor `mu<k>` and the
+#' discrimination `disc<k>` (held at 1 unless its formula models it;
+#' `hu<k>` too for the hurdle family). The category probabilities of
+#' the mixture are the `theta`-weighted sum of the components'
+#' category probabilities, and `fitted()`, `predict()` and `simulate()`
+#' use that sum.
+#'
+#' `order` sets the thresholds, as in brms. `"none"`, the default,
+#' gives each component its own thresholds, reported as
+#' `b_mu1_Intercept[k]`, `b_mu2_Intercept[k]`, and addressed by
+#' `set_prior(class = "Intercept", dpar = "mu1")`. `"mu"` (or `TRUE`)
+#' gives all components one threshold vector, brms's
+#' `fixed_Intercept`: it is ordered if one component is
+#' `cumulative()` or `hurdle_cumulative()`, a sum-to-zero component
+#' centers it, and `set_prior(class = "Intercept")` with no `dpar`
+#' addresses it. `"mu"` cannot be combined with
+#' `threshold = "equidistant"`, as in brms. `thres(x = )`,
+#' `thres(gr = )` and `cs()` (on the components that take it) work as
+#' for one ordinal family, per component.
+#'
+#' The likelihood does not change when two components change places, so
+#' the labels follow the start values. A component has no `mu`
+#' intercept to start apart, so component `k` starts with its
+#' thresholds shifted by `-F^-1(k / (K + 1))` on its link's scale, which
+#' gives component 1 the lowest latent location; under `order = "mu"`
+#' the slopes of `mu<k>` start apart instead. `groups = ` is not
+#' available with ordinal components. Three designs have a flat
+#' direction in the likelihood, and the fit warns about each while the
+#' parameters no prior holds outnumber what the data identify (a
+#' threshold prior holds none of the hurdle's `hu<k>` or mixing
+#' weights): hurdle components whose
+#' `hu<k>` and mixing weights have no predictors; a mixture with no
+#' predictor in any distributional parameter, where every row has one
+#' category distribution; and `order = "mu"` with no
+#' predictor in any `mu<k>`, when the components are the same family
+#' with the same link and the same held `disc`, so that they are one
+#' distribution.
+#'
+#' Maximum likelihood for an ordinal mixture often has its supremum at
+#' a degenerate boundary, where a component turns into a step function
+#' of its predictors: its slopes and threshold distances run off, and
+#' their standard errors mean nothing. In 160 fits of a two-component
+#' mixture to simulated data with two well-separated classes (300 or
+#' 500 rows), 22 ended there, and in 16 of the 22 the degenerate point
+#' had a higher log-likelihood than the best non-degenerate optimum
+#' found from other starts, so a better start does not move such a fit
+#' off it. The fit warns when a component ends at such a point: when
+#' doubling all its latent distances (or, with `cs()`, one threshold's)
+#' costs the log-likelihood less than 0.1, or when no row lies within a
+#' latent distance of 50 of one of its thresholds. Strong predictors
+#' alone do not set it off: none of 167 sound fits with slopes up to 15
+#' warned, under the logit, probit, cloglog and cauchit. Compare
+#' several starts (`frm(start = )`), the more so with three or more
+#' components, and hold the components with priors on `class =
+#' "Intercept"` and `class = "b"` with `dpar = "mu<k>"`, as a brms fit
+#' does; or use fewer components. An ordinal mixture holds each
+#' interior category's probability at `exp(-692)` or above, so that a
+#' component which stops using a category does not stop the optimizer
+#' with an undefined gradient. This floor binds only where two
+#' thresholds of a component are the same double, and the fit warns
+#' when it ends there.
 #'
 #' With `groups = ~g` the mixture moves to the group level (latent
 #' classes): every observation of a group shares one class draw, and
@@ -5193,7 +5454,9 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' @param order brms's argument. `NULL`, `"none"` or `FALSE` leaves the
 #'   components unordered, which is what a fit here does. `"mu"` or
 #'   `TRUE`, brms's ordering of the `mu` intercepts, is refused, and any
-#'   other value is refused as invalid, in brms's words.
+#'   other value is refused as invalid, in brms's words. With ordinal
+#'   components, `"mu"` or `TRUE` gives the components one shared
+#'   threshold vector, as in brms (see "Ordinal components").
 #' @return A `frmtmb_family`.
 #' @examples
 #' # two well-separated gaussian components
@@ -5208,6 +5471,17 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #'
 #' # the mixing weight can take its own predictor
 #' frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
+#'
+#' # ordinal components, each with its own thresholds
+#' set.seed(5)
+#' do <- data.frame(x = rnorm(300))
+#' cls <- rbinom(300, 1, 0.4)
+#' lat <- ifelse(cls == 1, 1.5 * do$x + 1, -do$x - 1) + rlogis(300)
+#' do$y <- findInterval(lat, c(-1.5, 0, 1.5)) + 1
+#' fo <- frm(bf(y ~ x), family = mixture(cumulative(), cumulative()),
+#'           data = do)
+#' fixef(fo)
+#' head(fitted(fo)[, "Estimate", ])
 #'
 #' \donttest{
 #' # latent classes: every observation of a group shares one class
@@ -5233,7 +5507,6 @@ mixture <- function(..., groups = NULL, order = NULL) {
              "`order`. brms's `nmix` is not supported: repeat a ",
              "component to use it twice", call. = FALSE)
   }
-  mixture_check_order(order)
   comps <- lapply(list(...), as_frmtmb_family)
   K <- length(comps)
   if (K < 2L) {
@@ -5241,6 +5514,11 @@ mixture <- function(..., groups = NULL, order = NULL) {
              "or more component families", call. = FALSE)
   }
   mixture_check_components(comps)
+  ordinal <- all(vapply(comps, function(cp) {
+    identical(cp[["type"]], "ordinal")
+  }, NA))
+  order <- mixture_check_order(order, ordinal)
+  if (ordinal) return(mixture_ordinal(comps, groups, order))
   for (cp in comps) {
     if (!is.null(cp$extra_pars) || isTRUE(cp$drop_intercept)) {
       frm_stop("mixture() does not support component family '", cp$family,
@@ -5253,7 +5531,8 @@ mixture <- function(..., groups = NULL, order = NULL) {
   mixture_build(comps, groups, ref = K)
 }
 
-#' brms's `mixture(order = )`, validated as brms validates it.
+#' brms's `mixture(order = )`, validated as brms validates it, and
+#' returned as `"none"` or `"mu"`.
 #'
 #' brms orders the components by their `mu` intercepts under
 #' `order = "mu"` (or `TRUE`), which identifies them for a sampler, and
@@ -5262,9 +5541,14 @@ mixture <- function(..., groups = NULL, order = NULL) {
 #' is refused rather than ignored: the caller asked for an ordering the
 #' fit would not deliver. Any other value is refused in brms's words.
 #'
+#' Ordinal components are the exception, as in brms. Their `mu` has no
+#' intercept to order, and brms reads `order = "mu"` there as one
+#' threshold vector that every component shares (`fix_intercepts()`),
+#' which a fit can deliver. brms's default for them is `"none"`.
+#'
 #' @noRd
-mixture_check_order <- function(order) {
-  if (is.null(order)) return(invisible(NULL))
+mixture_check_order <- function(order, ordinal = FALSE) {
+  if (is.null(order)) return("none")
   if (length(order) != 1L) {
     frm_stop("Argument 'order' must be of length 1.", call. = FALSE)
   }
@@ -5279,7 +5563,7 @@ mixture_check_order <- function(order) {
   } else {
     order <- if (order) "mu" else "none"
   }
-  if (identical(order, "mu")) {
+  if (identical(order, "mu") && !ordinal) {
     frm_stop("mixture(order = \"mu\") is not supported: this package does ",
              "not constrain the order of the components' mu intercepts. ",
              "The likelihood is the same under any labeling, so a fit ",
@@ -5288,7 +5572,7 @@ mixture_check_order <- function(order) {
              "and so on per component. order = \"none\" is accepted",
              call. = FALSE)
   }
-  invisible(NULL)
+  order
 }
 
 #' The mixture family a formula's written thetas call for.
@@ -5545,6 +5829,797 @@ mixture_build <- function(comps, groups, ref) {
     fam[["structure"]] <- mixture_structure(fam[["mix"]])
   }
   fam
+}
+
+#' The checks `mixture()` applies to a set of ordinal components, before
+#' it builds the family from them.
+#'
+#' brms 2.23.0's rules, measured with `stancode()` and `standata()`
+#' (dev/ordmix-brms-code.R, dev/ordmix-brms-code2.R): every component is
+#' ordinal; each keeps its own thresholds under `order = "none"`, the
+#' default, and all share one vector under `order = "mu"`, which brms
+#' refuses beside an equidistant structure; each keeps its own `disc`,
+#' held at 1 unless modeled.
+#'
+#' @noRd
+mixture_ordinal <- function(comps, groups, order) {
+  if (!is.null(groups)) {
+    frm_stop("mixture(groups = ) does not take ordinal components: a ",
+             "latent-class ordinal mixture is not implemented. brms has ",
+             "no `groups` argument; without it the mixture is brms's, ",
+             "one class draw per row", call. = FALSE)
+  }
+  hc <- vapply(comps, function(cp) isTRUE(cp[["extra_cat"]]), NA)
+  if (any(hc) && !all(hc)) {
+    frm_stop("Cannot mix hurdle_cumulative() with an ordinal family ",
+             "that has no hurdle. The hurdle component codes its response ",
+             "0..K, with 0 the hurdle, and the other codes it 1..K, so ",
+             "the two do not describe one response. Use ",
+             "hurdle_cumulative() for every component, or for none",
+             call. = FALSE)
+  }
+  if (identical(order, "mu")) {
+    eq <- vapply(comps, function(cp) {
+      identical(cp[["threshold"]], "equidistant")
+    }, NA)
+    if (any(eq)) {
+      frm_stop("Cannot use equidistant and fixed thresholds at the same ",
+               "time. order = \"mu\" holds one threshold vector for every ",
+               "component, and brms refuses it beside an equidistant ",
+               "one. Use order = \"none\", which gives each component ",
+               "thresholds of its own", call. = FALSE)
+    }
+  }
+  mixture_build_ordinal(comps, ref = length(comps), order = order)
+}
+
+#' An ordinal mixture family: brms's `mixture()` of `cumulative()`,
+#' `sratio()`, `cratio()`, `acat()` or `hurdle_cumulative()`
+#' components.
+#'
+#' Component `k` reads `mu<k>`, `disc<k>` (and `hu<k>`) and its
+#' thresholds. Under `order = "none"` those are a vector of its own,
+#' the template component `tau_raw<k>`, under its own threshold
+#' structure. Under `order = "mu"` every component reads one shared
+#' vector, `tau_raw`, as brms's `fixed_Intercept`: ordered when any
+#' component is, and centered by each sum-to-zero component, so it is
+#' held as a sum-to-zero vector only when every component is one (any
+#' other component sees its location).
+#'
+#' The threshold count is a fact of the response, so the family is
+#' rebuilt by its `family_finalize()` from the components as
+#' `mixture()` received them (`y` and `aterms` given), after each
+#' component's own finalizer has resolved `thres()` and its structure.
+#' A refit finalizes again from the same components.
+#'
+#' The category probabilities are the theta-weighted sums of the
+#' components', so `fitted()`, `simulate()` and the draws read them out
+#' of this density one category at a time, as for any ordinal family.
+#'
+#' @noRd
+mixture_build_ordinal <- function(comps, ref, order, y = NULL,
+                                  aterms = NULL) {
+  K <- length(comps)
+  shared <- identical(order, "mu")
+  final <- !is.null(y)
+  cf <- if (!final) comps else lapply(comps, function(cp) {
+    fin <- cp[["family_finalize"]]
+    if (is.function(fin)) fin(cp, y, aterms) else cp
+  })
+  dpars <- character(0)
+  links <- list()
+  fixed <- list()
+  hidden <- character(0)
+  for (k in seq_len(K)) {
+    for (dp in cf[[k]][["dpars"]]) {
+      nm <- paste0(dp, k)
+      dpars <- c(dpars, nm)
+      links[[nm]] <- cf[[k]][["links"]][[dp]]
+    }
+    fx <- cf[[k]][["fixed_dpars"]] %||% list()
+    for (dp in names(fx)) fixed[[paste0(dp, k)]] <- fx[[dp]]
+    hd <- cf[[k]][["hidden_fixed_dpars"]] %||% character(0)
+    if (length(hd)) hidden <- c(hidden, paste0(hd, k))
+  }
+  theta_ids <- setdiff(seq_len(K), ref)
+  for (k in theta_ids) {
+    nm <- paste0("theta", k)
+    dpars <- c(dpars, nm)
+    links[[nm]] <- "identity"
+  }
+  # component k's view of the dpars: its own under their plain names,
+  # with the cs() offsets and the link-scale predictors the robust
+  # accessors read (`.eta_hu`) carried across
+  comp_dpars <- function(dpars_all, k) {
+    out <- list()
+    for (dp in cf[[k]][["dpars"]]) {
+      out[[dp]] <- dpars_all[[paste0(dp, k)]]
+      e <- dpars_all[[paste0(".eta_", dp, k)]]
+      if (!is.null(e)) out[[paste0(".eta_", dp)]] <- e
+    }
+    cs <- dpars_all[[paste0(".cs_mu", k)]]
+    if (!is.null(cs)) out[[".cs"]] <- cs
+    # a component may stop using a category (ord_log_interior())
+    out[[".gap_floor"]] <- TRUE
+    out
+  }
+  log_pi <- function(dpars_all) {
+    Ts <- vector("list", K)
+    for (k in theta_ids) Ts[[k]] <- dpars_all[[paste0("theta", k)]]
+    Ts[[ref]] <- 0 * dpars_all[["mu1"]]
+    lse <- Ts[[1L]]
+    for (k in seq.int(2L, K)) lse <- RTMB::logspace_add(lse, Ts[[k]])
+    lapply(Ts, function(t_) t_ - lse)
+  }
+
+  code0 <- ord_code0(cf[[1L]])
+  th <- if (final) cf[[1L]][["thres"]]
+  nthres <- if (final) th[["nthres"]] %||% (max(y) - 1L)
+  grouped <- isTRUE(th[["grouped"]])
+  lay_fx <- if (final) thres_layout(nthres, "flexible")
+  tau_names <- if (shared) rep("tau_raw", K) else paste0("tau_raw", seq_len(K))
+  ordered_sh <- any(vapply(cf, function(cp) {
+    cp[["family"]] %in% ord_ordered_families
+  }, NA))
+  stz <- vapply(cf, function(cp) identical(cp[["threshold"]], "sum_to_zero"),
+                NA)
+  type_sh <- if (all(stz)) "sum_to_zero" else "flexible"
+  lay_sh <- if (final) thres_layout(nthres, type_sh)
+  sh_tau <- function(raw) {
+    if (!is.null(lay_sh)) return(thres_tau(raw, lay_sh, ordered_sh))
+    if (ordered_sh) ord_tau_from_raw_ad(raw) else raw
+  }
+  # brms centers the shared vector inside each sum-to-zero component
+  # (`Intercept_mu2_stz = Intercept_mu2 - mean(Intercept_mu2)`), which
+  # changes nothing when the shared vector already sums to zero
+  recenter <- stz & !all(stz)
+  comp_fun <- lapply(cf, function(cp) {
+    if (!shared) return(cp[["lpdf"]])
+    if (grouped) cp[["ord_glpdf_make"]](lay_fx, FALSE) else
+      cp[["ord_lpdf_make"]](identity)
+  })
+  comp_tau <- function(raw, k) {
+    tau <- sh_tau(raw)
+    if (recenter[k]) {
+      tau <- thres_center_slices(tau, lay_fx %||% thres_layout(length(tau)))
+    }
+    tau
+  }
+  comp_extra <- function(extra, k) {
+    raw <- extra[[tau_names[k]]]
+    list(tau_raw = if (shared) comp_tau(raw, k) else raw)
+  }
+  lpdf <- function(y, dpars, aterms, extra) {
+    if (!is.null(osa_unwrap(y))) {
+      frm_stop("residuals(type = \"osa\") is not available for an ",
+               "ordinal mixture: a one-step residual needs the mixture's ",
+               "category distribution as one CDF, and the components ",
+               "step through their own. dharma_residuals() is the ",
+               "simulation-based check", call. = FALSE)
+    }
+    lp <- log_pi(dpars)
+    ll <- NULL
+    for (k in seq_len(K)) {
+      llk <- comp_fun[[k]](y, comp_dpars(dpars, k), aterms,
+                           comp_extra(extra, k)) + lp[[k]]
+      ll <- if (is.null(ll)) llk else mixture_logspace_add(ll, llk)
+    }
+    ll
+  }
+  ncat <- function() max(nthres) + 2L - code0
+  sim <- function(dpars, aterms, n, extra) {
+    dp <- lapply(dpars, function(v) {
+      if (is.matrix(v)) v else rep(v, length.out = n)
+    })
+    codes <- code0 + seq_len(ncat()) - 1L
+    P <- vapply(codes, function(cd) {
+      exp(as.numeric(lpdf(rep.int(cd, n), dp, aterms, extra)))
+    }, numeric(n))
+    if (n == 1L) P <- matrix(P, 1L)
+    cp <- t(apply(P / rowSums(P), 1L, cumsum))
+    if (n == 1L) cp <- matrix(cp, 1L)
+    codes[pmin(1L + rowSums(cp < stats::runif(n)), length(codes))]
+  }
+  extra_pars <- function(y, aterms) {
+    if (shared) {
+      return(list(tau_raw = mixture_ord_shared_start(
+        y, aterms, lay_sh %||% thres_layout(max(y) - 1L, type_sh),
+        type_sh, ordered_sh, cf[[1L]][["ord_link"]], code0)))
+    }
+    out <- list()
+    for (k in seq_len(K)) {
+      r <- cf[[k]][["extra_pars"]](y, aterms)[["tau_raw"]]
+      out[[tau_names[k]]] <- mixture_ord_spread(cf[[k]], r, k, K)
+    }
+    out
+  }
+  init <- list()
+  for (k in seq_len(K)) {
+    for (dp in setdiff(cf[[k]][["dpars"]], "mu")) {
+      fn <- cf[[k]][["init_dpars"]][[dp]]
+      if (!is.null(fn)) init[[paste0(dp, k)]] <- fn
+    }
+  }
+  fam <- frmtmb_family(
+    paste0("mixture(", paste(vapply(cf, `[[`, "", "family"),
+                             collapse = ", "), ")"),
+    accepts_aterms = unique(unlist(lapply(cf, accepted_aterm_names),
+                                   use.names = FALSE)),
+    exclusive_aterms = mixture_exclusive_aterms(cf),
+    family_finalize = function(fam, y, aterms) {
+      mixture_build_ordinal(comps, fam[["mix"]][["ref"]], order, y, aterms)
+    },
+    dpars = dpars,
+    links = links,
+    lpdf = lpdf,
+    valid_y = function(y, aterms) {
+      for (cp in cf) if (!is.null(cp[["valid_y"]])) cp[["valid_y"]](y, aterms)
+    },
+    init_dpars = init,
+    type = "ordinal",
+    extra_pars = extra_pars,
+    sim = sim,
+    post = list(
+      fit_check = mixture_ord_fit_check,
+      start_spread = if (shared) {
+        function(frame, resp, tpl) {
+          mixture_ord_start_spread(frame, resp, tpl, cf)
+        }
+      },
+      dpar_response = list(
+        dpars = paste0("theta", theta_ids),
+        value = function(dpars, dnm) {
+          exp(log_pi(dpars)[[as.integer(sub("^theta", "", dnm))]])
+        },
+        deriv = function(dpars, dnm) {
+          p <- exp(log_pi(dpars)[[as.integer(sub("^theta", "", dnm))]])
+          p * (1 - p)
+        }
+      )
+    ),
+    primary_dpars = paste0("mu", seq_len(K)),
+    drop_intercept = TRUE
+  )
+  fam[["fixed_dpars"]] <- fixed
+  fam[["hidden_fixed_dpars"]] <- hidden
+  if (code0 == 0L) fam[["extra_cat"]] <- TRUE
+  fam[["component_families"]] <- vapply(cf, `[[`, "", "family")
+  if (final) {
+    fam[["thres"]] <- list(grouped = grouped, nthres = nthres,
+                           levels = th[["levels"]] %||% "",
+                           groups = th[["groups"]] %||% "",
+                           # the same categories go unobserved in every
+                           # component, so the first's positions serve
+                           # the vector they share under order = "mu"
+                           unident = th[["unident"]] %||% integer(0))
+  }
+  # what a post-fit path needs to read component k's thresholds off its
+  # block: the family it reads them through (`view`), whose maps take
+  # the block's internal vector, and the block's template name
+  views <- lapply(seq_len(K), function(k) {
+    v <- cf[[k]]
+    if (!shared) return(v)
+    v[["post"]][["ord_thresholds"]] <- function(raw) {
+      as.numeric(comp_tau(raw, k))
+    }
+    v[["post"]][["ord_thresholds_raw"]] <- if (!recenter[k]) {
+      function(tau) {
+        if (is.null(lay_sh)) ord_raw_from_tau(tau, ordered_sh) else
+          thres_raw_from_tau(tau, lay_sh, ordered_sh)
+      }
+    }
+    if (final) v[["thres"]] <- c(fam[["thres"]], list(type = type_sh))
+    v[["threshold"]] <- type_sh
+    v
+  })
+  fam[["mix"]] <- list(
+    K = K,
+    comp_lpdf = function(y, dpars, aterms, k, extra) {
+      comp_fun[[k]](y, comp_dpars(dpars, k), aterms, comp_extra(extra, k))
+    },
+    comp_dpars = comp_dpars,
+    log_pi = log_pi,
+    ref = ref,
+    ord = list(K = K, shared = shared, order = order,
+               tau_names = tau_names, comps = cf, views = views,
+               ordered_sh = ordered_sh, type_sh = type_sh, final = final)
+  )
+  fam[["mix_rebuild"]] <- function(r) mixture_build_ordinal(comps, r, order)
+  fam[["structure"]] <- frmtmb_structure(
+    latent_probs = function(fit, block) mixture_posterior(fit),
+    supports = structure_supports_all(reml = FALSE, profile = FALSE),
+    refusals = mixture_multimodal_refusals("a mixture() family")
+  )
+  fam
+}
+
+#' `RTMB::logspace_add()`, with two `-Inf` giving `-Inf` on plain
+#' doubles. A grouped ordinal density is `-Inf` at a category past a
+#' row's own count in every component, and the post-fit paths ask it
+#' about every category; the taped objective never does.
+#'
+#' @noRd
+mixture_logspace_add <- function(a, b) {
+  if (inherits(a, "advector") || inherits(b, "advector")) {
+    return(RTMB::logspace_add(a, b))
+  }
+  m <- pmax(a, b)
+  out <- m + log1p(exp(-abs(a - b)))
+  out[is.infinite(m) & m < 0] <- -Inf
+  out
+}
+
+#' Start values of one component's own thresholds in an ordinal
+#' mixture, moved apart from the other components'.
+#'
+#' Equal starts are a stationary point of the mixture likelihood: every
+#' component gets the same gradient, so the optimizer cannot tell them
+#' apart. A continuous mixture separates its starts through the `mu`
+#' intercepts (`mixture_mu_start()`); an ordinal `mu` has no intercept,
+#' so component `k` shifts its thresholds by `-F^-1(k / (K + 1))` on its
+#' link's scale, which orders the components' latent locations as the
+#' continuous mixture orders its means. A sum-to-zero vector cannot
+#' shift, and is scaled instead.
+#'
+#' @noRd
+mixture_ord_spread <- function(cp, raw, k, K) {
+  map <- cp[["post"]][["ord_thresholds"]] %||% identity
+  inv <- cp[["post"]][["ord_thresholds_raw"]] %||% identity
+  ck <- -cp[["ord_link"]]$linkfun(k / (K + 1))
+  tau <- map(raw)
+  tau <- if (identical(cp[["threshold"]], "sum_to_zero")) {
+    tau * exp(ck / 2)
+  } else {
+    tau + ck
+  }
+  inv(tau)
+}
+
+#' Start values of the `mu<k>` coefficients of an `order = "mu"` ordinal
+#' mixture, which shares its thresholds: the one place left where the
+#' components can start apart.
+#'
+#' With shared thresholds and no intercept, equal coefficient starts
+#' make the components identical, a stationary point that the optimizer
+#' does not leave: measured on `dev/ordmix-explore1.R` (seed 20261005),
+#' both slopes stopped at 0.2552104 with `theta1` at 0.5 and no usable
+#' standard error. Component `k` therefore starts each coefficient at
+#' `-F^-1(k / (K + 1))` divided by its column's standard deviation and
+#' by the square root of the column count, the latent shift
+#' `mixture_ord_spread()` gives thresholds, spread over the design. A
+#' column with no spread is left at 0, and so is any predictor that is
+#' not a plain design (a constant, an equated or a nonlinear one).
+#'
+#' @noRd
+mixture_ord_start_spread <- function(frame, resp, tpl, comps) {
+  K <- length(comps)
+  for (k in seq_len(K)) {
+    lp <- frame[["linpreds"]][[linpred_key(resp, paste0("mu", k))]]
+    if (is.null(lp) || !is.null(lp[["constant"]]) ||
+          !is.null(lp[["equate"]]) || !is.null(lp[["nl_body"]])) next
+    X <- lp[["X"]]
+    p <- lp[["n_param_cols"]] %||% ncol(X)
+    if (!p || !length(lp[["idx"]])) next
+    p <- min(p, length(lp[["idx"]]))
+    cm <- Matrix::colMeans(X[, seq_len(p), drop = FALSE])
+    sdv <- sqrt(pmax(Matrix::colMeans(X[, seq_len(p), drop = FALSE]^2) -
+                       cm^2, 0))
+    ck <- -comps[[k]][["ord_link"]]$linkfun(k / (K + 1))
+    b <- ifelse(sdv > 0, ck / (sdv * sqrt(p)), 0)
+    tpl[[lp[["par"]]]][lp[["idx"]][seq_len(p)]] <- as.numeric(b)
+  }
+  tpl
+}
+
+#' Start values of the threshold vector every component of an
+#' `order = "mu"` ordinal mixture shares, from the category frequencies
+#' of the rows above a hurdle (all rows without one), one slice per
+#' level of `thres(gr = )`.
+#'
+#' @noRd
+mixture_ord_shared_start <- function(y, aterms, lay, type, ordered, link,
+                                     code0) {
+  gi <- aterms[["thres_gr"]]
+  keep <- if (code0 == 0L) y > 0 else rep(TRUE, length(y))
+  yy <- y[keep]
+  g_row <- if (is.null(gi)) rep(1L, length(yy)) else as.integer(gi)[keep]
+  unlist(lapply(seq_len(lay$G), function(g) {
+    thres_start(yy[g_row == g], lay$nthres[g], type, ordered, link)
+  }))
+}
+
+#' An ordinal mixture's fit-end checks, component by component: the
+#' unplaced `disc<k>` intercept of `ord_fit_check()` and the thresholds
+#' `thres(x = )` asked for above the highest observed category.
+#'
+#' @noRd
+mixture_ord_fit_check <- function(fit, resp) {
+  fam <- fit$spec$responses[[resp]]$family
+  mx <- fam[["mix"]][["ord"]]
+  for (k in seq_len(mx$K)) {
+    ord_fit_check(fit, resp, k = k)
+    if (mx$shared && k > 1L) next
+    v <- mx$views[[k]]
+    if (length(v[["thres"]][["unident"]])) {
+      thres_fit_check(fit, resp, fam = v,
+                      comp = extra_tpl_name(fit$frame, resp,
+                                            mx$tau_names[k]))
+    }
+  }
+  mixture_ord_ident_check(fit, resp, fam, mx)
+  mixture_ord_degenerate_check(fit, resp)
+  invisible(NULL)
+}
+
+#' Warn about the ordinal mixtures whose likelihood has a flat
+#' direction by construction. brms fits them and lets its priors place
+#' the direction; a maximum likelihood fit reports standard errors that
+#' mean nothing there.
+#'
+#' - No predictor in any dpar: the rows of a threshold group share one
+#'   category distribution, whose `ncat - 1` free proportions (one per
+#'   threshold, and the hurdle's zero) are all the likelihood sees,
+#'   through more parameters than that (any mixture of two components
+#'   has more).
+#' - Hurdle components whose `hu<k>` and mixing weights are all single
+#'   numbers: the data see `P(Y = 0) = sum_k theta_k hu_k` and the
+#'   weight `theta_k (1 - hu_k)` of each component's ordinal part, `K`
+#'   numbers for `2K - 1` parameters. Measured on dev/ordmix-smoke.R
+#'   (seed 20261005): `hu1` and `hu2` came back with standard errors of
+#'   18.2 and 10.4 on the logit scale, and no warning.
+#' - `order = "mu"` with no predictor in any `mu<k>`, and components of
+#'   one family, link and structure with the same held `disc`: they
+#'   share their thresholds and their latent location, so they are one
+#'   distribution and `theta` is not in the likelihood.
+#'
+#' The first two count the parameters no prior holds against what the
+#' data identify (`mixture_ord_prior_held()`): an hu<k> or theta<k>
+#' prior holds the hurdle direction, and any prior holds its own
+#' parameters in the no-predictor case.
+#'
+#' @noRd
+mixture_ord_ident_check <- function(fit, resp, fam, mx) {
+  lp_of <- function(dp) fit$frame[["linpreds"]][[linpred_key(resp, dp)]]
+  # a predictor that is one number for every row: a constant, or an
+  # intercept alone with no group-level or category-specific term
+  one_number <- function(lp, icpt = TRUE) {
+    if (is.null(lp) || !is.null(lp[["constant"]])) return(TRUE)
+    if (!is.null(lp[["nl_body"]]) || !is.null(lp[["Z"]]) ||
+          length(lp[["cs"]] %||% list())) {
+      return(FALSE)
+    }
+    cn <- colnames(lp[["X"]])
+    if (icpt) identical(cn, "(Intercept)") else !length(cn)
+  }
+  K <- mx$K
+  mus <- paste0("mu", seq_len(K))
+  thetas <- paste0("theta", setdiff(seq_len(K), fam[["mix"]][["ref"]]))
+  hu <- paste0("hu", seq_len(K))
+  # A prior places a flat direction only where it holds a parameter
+  # that direction moves, and one prior places one direction: the
+  # warnings count the parameters no prior holds against what the data
+  # identify. Round 1 silenced both on any prior at all, so a prior on
+  # one component's thresholds hid a hurdle mixture whose hu and theta
+  # standard errors were 59.5 to 296 or NaN, 10 of 10 fits
+  # (dev/ordmix-rev2-b1.R)
+  held <- mixture_ord_prior_held(fit)
+  no_mu <- all(vapply(mus, function(d) one_number(lp_of(d), FALSE), NA))
+  others <- setdiff(names(fit$spec$responses[[resp]]$dpars), mus)
+  if (no_mu && all(vapply(others, function(d) one_number(lp_of(d)), NA))) {
+    # with no predictor anywhere, the rows of a threshold group share
+    # one category distribution, whose free proportions are all the
+    # data identify: one per threshold, and one for a hurdle's zero.
+    # The zero is one number for every group, not one per group: hu
+    # and theta are shared, so P(Y = 0) is too (the review: 7 counted,
+    # Hessian rank 6, with two groups)
+    nth <- fam[["thres"]][["nthres"]] %||% (ordinal_ncat(fit, resp) - 1L)
+    n_id <- sum(nth) + isTRUE(fam[["extra_cat"]])
+    np <- length(fit$opt$par)
+    n_held <- mixture_ord_n_held(fit, held)
+    if (np - n_held > n_id) {
+      frm_warning(fam[["family"]], ": no distributional parameter has a ",
+                  "predictor, so every row has the same category ",
+                  "distribution", if (length(nth) > 1L) " in its group",
+                  ", and the likelihood sees its ", n_id,
+                  " free proportions through ", np, " parameters",
+                  if (n_held) paste0(", ", n_held, " of them held by a ",
+                                     "prior"),
+                  ". The components are not identified; give them ",
+                  "predictors, or priors", call. = FALSE)
+    }
+    return(invisible(NULL))
+  }
+  # the parameters among them, a held value not being one, and those
+  # a prior holds: only an hu<k> or theta<k> prior places this
+  # direction, a threshold prior does not
+  free_d <- Filter(function(d) is.null(lp_of(d)[["constant"]]),
+                   c(hu, thetas))
+  n_free <- length(free_d)
+  n_hold <- sum(vapply(free_d, function(d) {
+    lp <- lp_of(d)
+    any(paste(lp[["par"]], lp[["idx"]]) %in% held)
+  }, NA))
+  if (isTRUE(fam[["extra_cat"]]) &&
+        all(vapply(hu, function(d) one_number(lp_of(d)), NA)) &&
+        all(vapply(thetas, function(d) one_number(lp_of(d)), NA)) &&
+        n_free - n_hold > K) {
+    frm_warning(fam[["family"]], ": with ", paste(hu, collapse = ", "),
+                " and the mixing weights each a single number, the ",
+                "likelihood sees only P(Y = 0) and each component's ",
+                "share of the rows above it, ", K, " numbers for ",
+                n_free, " parameters, so hu and theta have no ",
+                "usable standard error. Give an hu<k> a predictor, hold ",
+                "them with priors, as brms does with beta(1, 1), or use ",
+                "one hurdle_cumulative() component", call. = FALSE)
+  }
+  # shared thresholds and no mu predictor make the components one
+  # distribution only when they ARE one: the same family, link and
+  # structure, and the same held disc. Two families, or two links, at
+  # one threshold vector are two distributions, and theta is in the
+  # likelihood (the review: SEs finite in 16 of 20 fits each)
+  discs <- lapply(paste0("disc", seq_len(K)), function(d) {
+    lp_of(d)[["constant"]]
+  })
+  same <- function(f) length(unique(vapply(mx$comps, f, ""))) == 1L
+  identical_comps <- !any(vapply(discs, is.null, NA)) &&
+    length(unique(unlist(discs))) == 1L &&
+    same(function(cp) cp[["family"]]) &&
+    same(function(cp) cp[["ord_link"]][["name"]] %||% "") &&
+    same(function(cp) cp[["threshold"]] %||% "flexible")
+  if (isTRUE(mx$shared) && no_mu && !isTRUE(fam[["extra_cat"]]) &&
+        identical_comps) {
+    frm_warning(fam[["family"]], ": order = \"mu\" shares the thresholds, ",
+                "and no mu<k> has a predictor, so the components are one ",
+                "distribution and the mixing weights are not in the ",
+                "likelihood. Give the mu<k> predictors, or use order = ",
+                "\"none\", where each component has thresholds of its own",
+                call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The parameters a prior entry of the fit holds, as `"<component>
+#' <index>"` keys into the parameter template.
+#'
+#' @noRd
+mixture_ord_prior_held <- function(fit) {
+  if (is.null(fit$prior)) return(character(0))
+  ent <- resolve_prior_input(list(frame = fit$frame, spec = fit$spec),
+                             fit$prior)$entries
+  unique(unlist(lapply(ent, function(e) {
+    if (length(e$idx)) paste(e$comp, e$idx)
+  })))
+}
+
+#' How many of the optimizer's parameters the keys `held` cover: per
+#' template component, at most its free count.
+#'
+#' @noRd
+mixture_ord_n_held <- function(fit, held) {
+  if (!length(held)) return(0L)
+  comp <- sub(" [^ ]*$", "", held)
+  free <- table(names(fit$opt$par))
+  sum(vapply(unique(comp), function(cp) {
+    if (is.na(free[cp])) 0L else min(sum(comp == cp), as.integer(free[cp]))
+  }, 0L))
+}
+
+#' Warn when a component of a fitted ordinal mixture ends at a
+#' degenerate boundary, which maximum likelihood often reaches for
+#' these mixtures: with nothing like brms's priors to hold it, a
+#' component can turn into a step function of its predictors, and the
+#' likelihood is often highest there. On the review's data-generating
+#' process 22 of 160 default fits were degenerate, and in 16 of the 22
+#' the degenerate point had the higher likelihood than the best of 6
+#' other starts (dev/ordmix-rev-degen.R).
+#'
+#' A component is flagged in three cases (`mixture_ord_degeneracy()`):
+#'
+#' - It is a step function: doubling its discrimination, which doubles
+#'   every latent distance of the component, changes the mixture's
+#'   log-likelihood by less than 0.1 (`sharpen > -0.1`); with cs(),
+#'   doubling one threshold's distances alone does too. A component
+#'   whose slopes and thresholds have run off loses nothing by running
+#'   further; a sound one loses. This does not depend on the link or
+#'   on how strong the predictors are, and a fixed latent distance did:
+#'   the round-1 cut of 50 fired on 20 of 20 sound fits with slopes of
+#'   15 and -8, and missed cauchit step functions, whose tails reach 0
+#'   or 1 only far out (F(50) = 0.9936).
+#' - A threshold has run off: no row's latent position lies within 50
+#'   of it (`near > 50`), so the data do not place it. Thresholds above
+#'   the data are left out; thres_fit_check() reports them.
+#' - Two of its ordered thresholds are the same double, where the gap
+#'   floor of `ord_log_interior()` holds the category's probability at
+#'   about `exp(-692)`.
+#'
+#' Measured (dev/ordmix-p2-crit.R, dev/ordmix-p2-log-crit-sum.txt), the
+#' review's label (an `|estimate| > 30` or a non-finite standard error)
+#' as the truth: on the review's 160 fits, 20 of 22 degenerate fits
+#' warn and 0 of 138 others; on 140 fits of seven identified designs, 3
+#' of 8 and 0 of 132; on 237 fits of the review's margin designs (four
+#' links, slopes scaled 1 to 10 times, n up to 5000; three probit fits
+#' stopped at a NaN gradient), 0 of 167 sound fits and 0 of
+#' 43 poorly estimated ones warn, and 7 of 8 degenerate ones do. Among
+#' the sound and poor fits the largest `sharpen` is -0.31 and the
+#' largest `near` 20.5. The misses are components that stopped using
+#' an interior category without running off (`near` 9.4 to 33.8).
+#' Probit fits whose standard errors are NaN at a latent distance of
+#' about 38 are the probit's own underflow (dev/test-backlog.md), not a
+#' degenerate component, and do not warn.
+#'
+#' @noRd
+mixture_ord_degenerate_check <- function(fit, resp) {
+  dg <- mixture_ord_degeneracy(fit, resp)
+  step <- (dg$sharpen > -0.1) %in% TRUE
+  runoff <- (dg$near > 50) %in% TRUE
+  bad <- step | runoff | dg$collapsed %in% TRUE
+  if (!any(bad)) return(invisible(NULL))
+  fam <- fit$spec$responses[[resp]]$family
+  what <- vapply(which(bad), function(i) {
+    paste0("component ", dg$component[i], " (", paste(c(
+      if (step[i]) {
+        paste0("a step function of its predictors: doubling its ",
+               "latent distances changes the log-likelihood by ",
+               format(signif(dg$sharpen[i], 2)), ", so its slopes and ",
+               "thresholds run off")
+      },
+      if (runoff[i]) {
+        paste0("a threshold no row is near: the closest latent distance ",
+               "is ", format(signif(dg$near[i], 3)), ", so the data do ",
+               "not place it")
+      },
+      if (isTRUE(dg$collapsed[i])) {
+        paste0("two of its thresholds are the same number, where the ",
+               "likelihood holds the category between them at about ",
+               "exp(-692)")
+      }), collapse = "; "), ")")
+  }, "")
+  frm_warning(fam[["family"]], ": ", paste(what, collapse = "; "),
+              " ended at a degenerate boundary. Maximum likelihood for ",
+              "an ordinal mixture often has its supremum there, so its ",
+              "estimates run off and their standard errors mean ",
+              "nothing. Compare several starts (frm(start = )), hold the ",
+              "component with priors, as brms does (class Intercept and ",
+              "b with dpar = \"mu<k>\"), or use fewer components",
+              call. = FALSE)
+  invisible(NULL)
+}
+
+#' How far each component of a fitted ordinal mixture has run toward a
+#' degenerate boundary, one row per component.
+#'
+#' - `reach`: the largest `|disc (tau_j - cs_ij - eta_i)|` over the
+#'   rows and the component's own thresholds that the data place, on
+#'   its link's scale.
+#' - `collapsed`: two of an ordered component's thresholds are the same
+#'   double, where the gap floor of `ord_log_interior()` binds.
+#' - `sharpen`: the mixture's log-likelihood with the component's
+#'   discrimination doubled, less its log-likelihood at the fit; near 0
+#'   or above for a step function. NA where the doubled likelihood is
+#'   not finite (a saturated probit). Case weights enter divided by
+#'   their mean, so constant weights do not change it.
+#' - `near`: for each threshold the data place, the latent distance to
+#'   the closest row; the largest over the thresholds.
+#' - `cover`: the smallest, over categories, of the largest probability
+#'   any row gives the category.
+#' - `weight`: the component's mixing weight, averaged over the rows.
+#'
+#' @noRd
+mixture_ord_degeneracy <- function(fit, resp) {
+  rspec <- fit$spec$responses[[resp]]
+  fam <- rspec$family
+  mx <- fam[["mix"]][["ord"]]
+  dp <- with_cs_offsets(fit, rspec, eval_dpars(fit))[[resp]]
+  lpi <- fam[["mix"]][["log_pi"]](dp)
+  av <- fit$frame[["aterm_values"]][[resp]]
+  ex <- fit_extras(fit, resp)
+  y <- fit$frame[["y"]][[resp]]
+  n_all <- length(y)
+  wts <- rep(as.numeric(av[["weights"]] %||% 1), length.out = n_all)
+  # per unit of mean weight: the sharpening cut is an absolute change in
+  # log-likelihood, and constant weights rescale it without moving the
+  # fit (weights 1/n warned on 20 of 20 fits, 11 of them sound; weights
+  # 0.1 on none; dev/ordmix-rev3-b3.R)
+  wts <- wts / mean(wts)
+  # the weighted mixture log-likelihood at dpars `d`, as the objective
+  # sums it
+  ll_at <- function(d) {
+    lp_k <- fam[["mix"]][["log_pi"]](d)
+    L <- vapply(seq_len(mx$K), function(k) {
+      rep(as.numeric(lp_k[[k]]), length.out = n_all) +
+        as.numeric(fam[["mix"]][["comp_lpdf"]](y, d, av, k, ex))
+    }, numeric(n_all))
+    m <- apply(L, 1L, max)
+    sum(wts * (m + log(rowSums(exp(L - m)))))
+  }
+  ll0 <- ll_at(dp)
+  out <- NULL
+  for (k in seq_len(mx$K)) {
+    lp <- fit$frame[["linpreds"]][[linpred_key(resp, paste0("mu", k))]]
+    ob <- ord_lp_block(fit$frame, fit$spec, lp)
+    tau <- as.numeric(ord_threshold_values(ob$fam,
+                                           fit$estimates[[ob$comp]]))
+    eta <- as.numeric(dp[[paste0("mu", k)]])
+    n <- length(eta)
+    disc <- rep(as.numeric(dp[[paste0("disc", k)]] %||% 1), length.out = n)
+    cs <- dp[[cs_slot(paste0("mu", k))]]
+    th <- ob$fam[["thres"]]
+    lay <- thres_layout(th[["nthres"]] %||% length(tau))
+    gi <- if (isTRUE(th[["grouped"]])) as.integer(av[["thres_gr"]]) else
+      rep(1L, n)
+    reach <- 0
+    near <- 0
+    collapsed <- FALSE
+    # a threshold that bounds only categories no row takes (thres(x = )
+    # above the data) runs off whatever the component does, and
+    # thres_fit_check() already says so: it is left out here, or every
+    # such fit would be called degenerate (reach 2.2e7 on the "thres(x
+    # = ) above the data" test's fit)
+    unident <- th[["unident"]] %||% integer(0)
+    for (g in seq_len(lay$G)) {
+      jg <- lay$start[g]:lay$end[g]
+      keep <- !jg %in% unident
+      tg <- tau[jg]
+      if (ob$ordered && length(tg) > 1L &&
+            any(diff(tg) == 0 & keep[-1L] & keep[-length(keep)])) {
+        collapsed <- TRUE
+      }
+      r <- which(gi == g)
+      if (!length(r) || !any(keep)) next
+      M <- matrix(tg, length(r), length(tg), byrow = TRUE) - eta[r]
+      if (!is.null(cs)) M <- M - cs[r, seq_along(tg), drop = FALSE]
+      A <- abs(disc[r] * M[, keep, drop = FALSE])
+      reach <- max(reach, A, na.rm = TRUE)
+      # an all-NaN column has no closest row, and min() of nothing
+      # warns
+      near <- max(near, vapply(seq_len(ncol(A)), function(j) {
+        v <- A[, j][!is.na(A[, j])]
+        if (length(v)) min(v) else 0
+      }, 0))
+    }
+    # every latent distance of the component doubled at once
+    d2 <- dp
+    dk <- paste0("disc", k)
+    d2[[dk]] <- 2 * (dp[[dk]] %||% 1)
+    sh <- ll_at(d2) - ll0
+    # With cs() each threshold has a slope of its own, and one of them
+    # can be a step function while the rest are placed: sratio's third
+    # step on the gated brms test's y ~ cs(x), slope -2607 with a
+    # standard error of 4e5, where doubling the whole component costs
+    # 2.2 (dev/ordmix-p2-log-csfires.txt). Each threshold's distances
+    # are doubled alone through the cs slot, tau_j - cs'_ij - eta_i =
+    # 2 (tau_j - cs_ij - eta_i).
+    if (!is.null(cs) && lay$G == 1L) {
+      sh <- c(sh, vapply(seq_len(ncol(cs)), function(j) {
+        d3 <- dp
+        cs3 <- cs
+        cs3[, j] <- 2 * cs[, j] + eta - tau[j]
+        d3[[cs_slot(paste0("mu", k))]] <- cs3
+        ll_at(d3) - ll0
+      }, 0))
+    }
+    sh <- sh[is.finite(sh)]
+    sharpen <- if (length(sh)) max(sh) else NA_real_
+    # the largest probability any row gives each category, and the
+    # smallest of those over the categories: a category the component
+    # no longer uses
+    codes <- ord_code0(fam) + seq_len(ordinal_ncat(fit, resp)) - 1L
+    # a component at the boundary can give NaN on every row for a
+    # category (dev/ordmix-cum3two.R), and max() of nothing warns, which
+    # a fit-end check must not
+    cover <- vapply(codes, function(cd) {
+      v <- exp(fam[["mix"]][["comp_lpdf"]](rep.int(cd, n), dp, av, k, ex))
+      v <- v[!is.na(v)]
+      if (length(v)) max(v) else NA_real_
+    }, 0)
+    cover <- if (all(is.na(cover))) NA_real_ else min(cover, na.rm = TRUE)
+    out <- rbind(out, data.frame(component = k, reach = reach,
+                                 collapsed = collapsed, sharpen = sharpen,
+                                 near = near, cover = cover,
+                                 weight = mean(exp(rep(lpi[[k]],
+                                                       length.out = n)))))
+  }
+  out
 }
 
 #' The two fitting options every mixture-type family refuses, in its own
@@ -7134,8 +8209,16 @@ as_frmtmb_family <- function(x) {
 #' scored by these codes, so the hurdle scores 0; brms scores each
 #' column by its position and reads one higher. `disc` and `threshold`
 #' work as for the other ordinal families (see Ordinal thresholds and
-#' discrimination). `thres(x = )` works; `thres(gr = )` and `cs()` are
-#' refused.
+#' discrimination). `thres(x = )` and `thres(gr = )` count the
+#' categories above the hurdle, and `thres(gr = )` keeps the hurdle in
+#' each group's density, as brms's `hurdle_cumulative_*_merged_lpmf`
+#' does. `cs()` takes the category-specific offsets off each row's
+#' thresholds, as in brms; they can make two thresholds cross for some
+#' rows, and the probability of the category between them is then
+#' negative. The density is then `NaN`, as brms's is, and so are the
+#' row's `fitted()` probabilities, where brms returns the negative
+#' difference; `simulate()` gives `NA` for the row. `cs()` and
+#' `thres(gr = )` together are refused, as in brms.
 #'
 #' @section Ordinal thresholds and discrimination:
 #' Every ordinal family (`cumulative()`, `sratio()`, `cratio()`,
@@ -7869,7 +8952,12 @@ family_link_str <- function(fam, shown = character(0)) {
     return(paste(c(paste0("cdf = ", ol[["name"]]), more), collapse = "; "))
   }
   if (!length(dp) || !length(lk)) return("")
+  mx <- fam[["mix"]][["ord"]]
   nm <- vapply(dp, function(d) {
+    # an ordinal mixture's mu<k> reports its component's cdf, as brms
+    # reports mu1 = logit
+    k <- if (!is.null(mx)) match(d, paste0("mu", seq_len(mx$K))) else NA
+    if (!is.na(k)) return(mx$comps[[k]][["ord_link"]][["name"]] %||% "?")
     l <- lk[[d]]
     if (is.null(l)) NA_character_ else (l[["name"]] %||% NA_character_)
   }, character(1))

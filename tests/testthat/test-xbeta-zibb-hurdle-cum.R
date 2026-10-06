@@ -153,7 +153,7 @@ test_that("links, responses and options brms refuses are refused by name", {
                "Could not extract the number of thresholds")
 })
 
-test_that("cens(), trunc(), cs(), thres(gr = ) and osa are refused", {
+test_that("cens(), trunc(), cs() with thres(gr = ) and osa are refused", {
   d <- sim_zibb(1, n = 60)
   expect_error(frm(bf(y | trials(tr) + cens(x > 1) ~ x),
                    family = zero_inflated_beta_binomial(), data = d),
@@ -163,10 +163,11 @@ test_that("cens(), trunc(), cs(), thres(gr = ) and osa are refused", {
                "need a family with a CDF")
   dh <- sim_hc(3, n = 120)
   dh$g <- gl(2, 60)
-  expect_error(frm(bf(y ~ cs(x)), family = hurdle_cumulative(), data = dh),
-               "cs() needs an sratio, cratio, or acat family", fixed = TRUE)
-  expect_error(frm(bf(y | thres(gr = g) ~ x), family = hurdle_cumulative(),
-                   data = dh), "not thres(gr = )", fixed = TRUE)
+  # cs() and thres(gr = ) each fit (test-hurdle-cum-thres-cs.R); the
+  # two together are refused, as brms refuses them
+  expect_error(frm(bf(y | thres(gr = g) ~ cs(x)),
+                   family = hurdle_cumulative(), data = dh),
+               "Cannot use category specific effects", fixed = TRUE)
   fit <- frm(bf(y ~ x), family = hurdle_cumulative(), data = dh)
   expect_error(residuals(fit, type = "osa"), "point mass", fixed = TRUE)
   fx <- frm(bf(y ~ x), family = xbeta(), data = dx)

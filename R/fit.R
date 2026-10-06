@@ -2786,6 +2786,13 @@ make_start <- function(frame, start, prior_entries = NULL,
   # [[ ]] throughout: $beta would partial-match nothing here today, but
   # the template's component names are a moving set
   for (p in placed) tpl[["beta"]][p$idx] <- p$value
+  # A family whose components cannot be told apart through an intercept
+  # spreads their starts itself: an ordinal mixture that shares its
+  # thresholds (mixture_ord_start_spread()). Before `start`, which wins.
+  for (resp in frame[["spec"]]$responses) {
+    sp <- resp$family[["post"]][["start_spread"]]
+    if (is.function(sp)) tpl <- sp(frame, resp$resp_name, tpl)
+  }
   claimed <- integer(0)
   if (!is.null(start)) {
     nl_named <- unique(unlist(lapply(frame[["spec"]]$responses,
@@ -3149,6 +3156,20 @@ check_convergence <- function(fit, control) {
     # grad_verdict().
     v <- grad_verdict(fit, gvec, control)
     if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
+  } else if (!is.null(gvec) && length(gvec) && any(!is.finite(gvec))) {
+    # A gradient that is not finite at the reported optimum used to pass
+    # in silence: the test above needs a finite number to compare. The
+    # optimizer can still report convergence there (nlminb's
+    # X-convergence on a three-component ordinal mixture whose probit
+    # component saturated, gradient Inf; dev/ordmix-rev-probit-sat.R).
+    bad <- names(fit$opt$par)[!is.finite(gvec)]
+    msgs <- c(msgs, paste0(
+      "The gradient at the reported optimum is not finite (",
+      paste(unique(bad), collapse = ", "), "), so convergence could not ",
+      "be checked: the objective's derivative is undefined there, which ",
+      "puts a parameter at a boundary of the likelihood, such as a ",
+      "saturated link or a degenerate mixture component. Treat the ",
+      "estimates as unreliable, and refit from other starting values"))
   }
   # Covariance verdicts are only known once sdreport has run (se =
   # TRUE); the lazy path surfaces them through vcov()/summary()/

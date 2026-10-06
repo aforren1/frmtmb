@@ -2357,8 +2357,13 @@ ord_extra_comps <- function(fit) {
   tpl <- fit$frame[["par_template"]]
   out <- character(0)
   for (r in names(fit$spec$responses)) {
-    nm <- extra_tpl_name(fit$frame, r, "tau_raw")
-    if (length(tpl[[nm]])) out <- c(out, nm)
+    # an ordinal mixture's components each hold a block, tau_raw<k>, or
+    # share the one tau_raw
+    mx <- fit$spec$responses[[r]]$family[["mix"]][["ord"]]
+    for (nm0 in unique(mx$tau_names %||% "tau_raw")) {
+      nm <- extra_tpl_name(fit$frame, r, nm0)
+      if (length(tpl[[nm]])) out <- c(out, nm)
+    }
   }
   for (lp in fit$frame[["linpreds"]]) {
     for (ct in lp[["cs"]] %||% list()) out <- c(out, ct[["par"]])
@@ -2538,17 +2543,15 @@ hyp_env_vals <- function(fit, vals, comp) {
 #'
 #' @noRd
 hyp_put_ordinal <- function(fit, vals, comp, put) {
-  ord_lps <- Filter(function(lp) {
-    identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
-      identical(lp[["dpar"]], "mu")
-  }, fit$frame[["linpreds"]])
-  for (lp in ord_lps) {
-    tnm <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+  # an ordinal mixture's component k names its own, b_mu<k>_Intercept[k]
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    lp <- ob$lp
+    tnm <- ob$comp
     # an EMPTY block (sum-to-zero, one threshold per vector) still has
     # thresholds, all at 0, as brms reports them
     if (is.null(fit$frame[["par_template"]][[tnm]])) next
     raw <- vals[comp == tnm]
-    fam <- brms_lp_family(fit, lp)
+    fam <- ob$fam
     th <- ord_threshold_values(fam, raw)
     pre <- brms_lp_prefix(fit, lp)
     lab <- thres_labels(fam, length(th))
@@ -2587,13 +2590,15 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
 #' @noRd
 ord_delta_info <- function(fit) {
   out <- list()
-  for (lp in fit$frame[["linpreds"]]) {
-    fam <- brms_lp_family(fit, lp)
-    if (!identical(fam[["type"]], "ordinal") ||
-          !identical(lp[["dpar"]], "mu")) next
+  # an ordinal mixture's component k has its own delta, delta_mu<k>,
+  # the name brms's transformed parameters use (its parameters block
+  # declares a bare `delta` per component, which stanc refuses)
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    lp <- ob$lp
+    fam <- ob$fam
     th <- fam[["thres"]]
     if (!identical(th[["type"]], "equidistant")) next
-    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    comp <- ob$comp
     lay <- thres_layout(th[["nthres"]], "equidistant")
     pre <- brms_lp_prefix(fit, lp)
     ordered <- fam[["family"]] %in% ord_ordered_families

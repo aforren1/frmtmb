@@ -376,7 +376,8 @@ build_objective <- function(frame) {
         zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec),
         mevals = mevals)
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
-      # the sequential ordinal lpdfs through dpars$.cs
+      # the sequential ordinal lpdfs through dpars$.cs (an ordinal
+      # mixture's component k through `.cs_mu<k>`, cs_slot())
       if (length(lp[["cs"]] %||% list())) {
         CS <- 0
         for (ct in lp[["cs"]]) {
@@ -384,7 +385,7 @@ build_objective <- function(frame) {
           CS <- CS + RTMB::matrix(ct$vals, length(ct$vals), 1) %*%
             RTMB::matrix(bcs, 1, length(bcs))
         }
-        dparv[[lp[["resp"]]]][[".cs"]] <- CS
+        dparv[[lp[["resp"]]]][[cs_slot(lp[["dpar"]])]] <- CS
       }
       dparv[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
       # The linear predictor rides along beside the inverse-linked value

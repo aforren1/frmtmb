@@ -1,3 +1,22 @@
+# frmtmb.sample (development version)
+
+Needs frmtmb's development version: for ordinal mixtures, for
+`hurdle_cumulative()` with `thres(gr = )` and `cs()`, and for the
+names of the draws of a model with no location column.
+
+## New features
+
+* **Draws of an ordinal mixture** carry brms's names, each component's
+  thresholds `b_mu1_Intercept[k]` and `b_mu2_Intercept[k]`. Under
+  `order = "mu"` both come from the one shared vector, which is read
+  back through the first component that reports it uncentered.
+  `posterior_epred()` and `log_lik()` agree with the theta-weighted sum
+  of brms's R-side category probabilities at the stored columns to the
+  double epsilon.
+
+* **brms's default `normal(0, 1)` on the intercept of a modeled
+  `disc<k>`** of an ordinal mixture, as on `disc`.
+
 # frmtmb.sample 0.15.0
 
 Needs frmtmb 0.67.0: for `ord_delta_info()`, the ordinal families'

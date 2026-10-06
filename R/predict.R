@@ -2898,6 +2898,13 @@ fitted_no_draws <- c(
 #'
 #' @noRd
 ordinal_ncat <- function(fit, resp = NULL) {
+  # an ordinal mixture keeps a block per component, and the count they
+  # all share is on the family
+  fam0 <- (if (is.null(resp)) fit$spec$responses[[1L]] else
+    fit$spec$responses[[resp]])$family
+  if (!is.null(fam0[["mix"]][["ord"]])) {
+    return(max(fam0[["thres"]][["nthres"]]) + 2L - ord_code0(fam0))
+  }
   raw <- fit$estimates[[extra_tpl_name(fit$frame, resp, "tau_raw")]]
   if (is.null(raw)) {
     rspec <- if (is.null(resp)) {
@@ -3027,9 +3034,20 @@ cs_offsets_add <- function(fit, resp, newdata, dpv) {
     if (!length(cst) || !identical(lp[["resp"]], resp)) next
     n <- length(dpv[[1L]])
     K1 <- length(fit$estimates[[cst[[1L]]$par]])
-    dpv[[".cs"]] <- ord_cs_offsets(fit, lp, newdata, n, K1)
+    dpv[[cs_slot(lp[["dpar"]])]] <- ord_cs_offsets(fit, lp, newdata, n, K1)
   }
   dpv
+}
+
+#' The dpar-list entry a predictor's `cs()` offsets ride in: `.cs` for
+#' an ordinal family's `mu`, and `.cs_mu<k>` for component `k` of an
+#' ordinal mixture, which hands it to that component as `.cs`. One slot
+#' per predictor, because each component of a mixture may carry `cs()`
+#' terms of its own.
+#'
+#' @noRd
+cs_slot <- function(dpar) {
+  if (identical(dpar, "mu")) ".cs" else paste0(".cs_", dpar)
 }
 
 #' `n x K` category probabilities of an ordinal fit.
@@ -3078,6 +3096,9 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list(),
 ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
                       allow_new_levels = FALSE) {
   fam <- rspec$family
+  if (!is.null(fam[["mix"]][["ord"]])) {
+    return(ord_mix_probs(object, rspec, newdata, use_re, allow_new_levels))
+  }
   lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
   if (!is.null(lp[["nl_body"]])) {
     frm_stop("type = \"response\" is not supported for an ordinal family ",
@@ -3106,6 +3127,63 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   # a row that cannot be estimated from the retained design columns has
   # no category distribution either
   if (any(ed[["nonest"]])) P[ed[["nonest"]], ] <- NA_real_
+  P
+}
+
+#' `ord_probs()` for an ordinal mixture: every dpar of the response at
+#' the rows being predicted, each component's `cs()` offsets in its own
+#' slot, and the category probabilities read out of the mixture's
+#' density one category at a time. That density is the theta-weighted
+#' sum of the components' category probabilities, so the columns are
+#' that sum without a second copy of the arithmetic.
+#'
+#' @noRd
+ord_mix_probs <- function(object, rspec, newdata, use_re,
+                          allow_new_levels) {
+  fam <- rspec$family
+  rn <- rspec$resp_name
+  K <- ordinal_ncat(object, rn)
+  K1 <- max(fam[["thres"]][["nthres"]])
+  dp <- list()
+  ne <- list()
+  rnm <- NULL
+  for (dnm in names(rspec$dpars)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rn, dnm)]]
+    if (!is.null(lp[["nl_body"]])) {
+      frm_stop("type = \"response\" is not supported for an ordinal ",
+               "mixture whose `", dnm, "` has a nonlinear predictor",
+               call. = FALSE)
+    }
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    eta <- unname(ed[["eta"]])
+    dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
+    ne[[dnm]] <- ed[["nonest"]]
+    if (dnm == "mu1") rnm <- names(ed[["eta"]])
+  }
+  n <- max(lengths(dp))
+  nonest <- rep(FALSE, n)
+  for (v in ne) nonest <- nonest | rep(v, length.out = n)
+  for (dnm in names(rspec$dpars)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rn, dnm)]]
+    cs <- ord_cs_offsets(object, lp, newdata, n, K1)
+    if (!is.null(cs)) dp[[cs_slot(dnm)]] <- cs
+  }
+  dp <- lapply(dp, function(v) if (is.matrix(v)) v else rep(v, length.out = n))
+  ex <- fit_extras(object, rn)
+  av <- ord_prob_aterms(object, rspec, newdata)
+  codes <- ord_code0(fam) + seq_len(K) - 1L
+  P <- matrix(NA_real_, n, K)
+  for (k in seq_len(K)) {
+    P[, k] <- exp(as.numeric(fam[["lpdf"]](rep.int(codes[k], n), dp, av,
+                                            ex)))
+  }
+  P <- P / rowSums(P)
+  colnames(P) <- object$frame[["y_levels"]][[rn]] %||% as.character(codes)
+  if (is.null(rnm) && is.null(newdata)) {
+    rnm <- rownames(object$frame[["data_frame"]])
+  }
+  if (!is.null(rnm) && length(rnm) == n) rownames(P) <- rnm
+  if (any(nonest)) P[nonest, ] <- NA_real_
   P
 }
 
@@ -4603,7 +4681,7 @@ with_cs_offsets <- function(fit, rspec, dpv) {
     for (ct in lp[["cs"]]) {
       CS <- CS + outer(ct$vals, fit$estimates[[ct$par]])
     }
-    dpv[[lp[["resp"]]]][[".cs"]] <- CS
+    dpv[[lp[["resp"]]]][[cs_slot(lp[["dpar"]])]] <- CS
   }
   dpv
 }

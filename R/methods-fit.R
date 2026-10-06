@@ -1211,9 +1211,11 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           optional = TRUE
         )
       }
+      # the predictor's own threshold block: an ordinal mixture's
+      # component k reads tau_raw<k>, or the tau_raw all share
+      ob <- ord_lp_block(object$frame, object$spec, lp)
       thr <- Filter(function(e) {
-        identical(e$comp, extra_tpl_name(object$frame, lp[["resp"]],
-                                         "tau_raw")) &&
+        !is.null(ob) && identical(e$comp, ob$comp) &&
           identical(e$key, key)
       }, rows$extra)
       for (j in seq_len(cp$dim)) {
@@ -1226,8 +1228,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           # family's likelihood gives eta against a threshold. That was
           # a stray `(Intercept)` column holding the mode alone beside
           # thresholds repeated unchanged across groups.
-          df <- coef_shift_thresholds(df, thr[[1L]]$names, bv,
-                                      brms_lp_family(object, lp))
+          df <- coef_shift_thresholds(df, thr[[1L]]$names, bv, ob$fam)
           next
         }
         # a random-effect column the fixed part does not have (an

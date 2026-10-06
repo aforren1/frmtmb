@@ -1858,40 +1858,41 @@ prior_table <- function(spec, frame, route) {
     icpt_b <- isFALSE(lp[["center"]])
     if ("(Intercept)" %in% cn && !icpt_b) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
-    } else if (!nzchar(dpar_lab) &&
-                 identical(rspec$family[["type"]], "ordinal") &&
-                 length(frame[["par_template"]][[
-                   extra_tpl_name(frame, rspec$resp_name, "tau_raw")]] %||%
+    } else if (!is.null(ob <- ord_lp_block(frame, spec, lp)) &&
+                 (!ob$shared || identical(ob$k, 1L)) &&
+                 length(frame[["par_template"]][[ob$comp]] %||%
                           numeric(0))) {
       # an ordinal family has no intercept column: the thresholds
       # replace it, and class "Intercept" is what addresses them here as
       # it does in brms. Under sum_to_zero brms's Intercept is a vector
       # frmtmb does not have (ordinal_threshold_entry()), and under
       # equidistant the distance between thresholds is class "delta",
-      # listed once for the model and once per level of thres(gr = )
-      th <- rspec$family[["thres"]]
+      # listed once for the model and once per level of thres(gr = ).
+      # An ordinal mixture's component k lists its own under dpar
+      # "mu<k>"; the vector an order = "mu" mixture shares is listed
+      # once, with no dpar, as brms lists its fixed_Intercept
+      th <- ob$fam[["thres"]]
       type <- th[["type"]] %||% "flexible"
       grouped <- isTRUE(th[["grouped"]])
+      tdp <- ob$prior_dpar
       if (identical(type, "equidistant")) {
         # brms bounds delta below by 0 where the thresholds are ordered,
         # and says so in its table
-        lb_d <- if (rspec$family[["family"]] %in% ord_ordered_families) {
-          0
-        } else NA_real_
-        add("delta", resp = resp_lab, lb = lb_d)
+        lb_d <- if (ob$ordered) 0 else NA_real_
+        add("delta", dpar = tdp, resp = resp_lab, lb = lb_d)
         if (grouped) {
           for (g in th[["groups"]]) {
-            add("delta", group = g, resp = resp_lab, lb = lb_d)
+            add("delta", group = g, dpar = tdp, resp = resp_lab, lb = lb_d)
           }
         }
       }
       if (!identical(type, "sum_to_zero")) {
-        add("Intercept", resp = resp_lab)
+        add("Intercept", dpar = tdp, resp = resp_lab)
         # one row per level of thres(gr = ), each a threshold vector of
         # its own that group = addresses, as brms lists them
         if (grouped) {
           for (g in th[["groups"]]) {
-            add("Intercept", group = g, resp = resp_lab)
+            add("Intercept", group = g, dpar = tdp, resp = resp_lab)
           }
         }
       }
@@ -2872,13 +2873,16 @@ resolve_priorlist <- function(fit, pl) {
     rs <- fit$spec$responses
     rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
     if (is.null(rspec)) return(NULL)
-    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
+    if (nzchar(s$coef) || nzchar(s$nlpar %||% "")) return(NULL)
+    # the block the dpar names: "" for a plain family's thresholds and
+    # for the vector an order = "mu" mixture shares, mu<k> for one
+    # component's own under order = "none", as brms keys the rows
+    ob <- ord_prior_block(frame, fit$spec, rspec, s$dpar)
+    if (is.null(ob)) return(NULL)
+    comp <- ob$comp
     raw <- frame[["par_template"]][[comp]] %||% numeric(0)
     if (!length(raw)) return(NULL)
-    if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
-    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
-      return(NULL)
-    }
     if (nzchar(s$resp %||% "") &&
           !identical(s$resp, rspec$resp_name)) {
       return(NULL)
@@ -2889,8 +2893,8 @@ resolve_priorlist <- function(fit, pl) {
     # hold the thresholds themselves and brms declares them unordered
     # (brms:::has_ordered_thres() is FALSE for all three), so neither
     # side has a Jacobian there
-    ordered <- rspec$family[["family"]] %in% ord_ordered_families
-    th <- rspec$family[["thres"]]
+    ordered <- ob$ordered
+    th <- ob$fam[["thres"]]
     grouped <- isTRUE(th[["grouped"]])
     type <- th[["type"]] %||% "flexible"
     if (identical(type, "sum_to_zero")) {
@@ -2920,7 +2924,12 @@ resolve_priorlist <- function(fit, pl) {
                        scale = if (ordered && !equi) "ordthres" else
                          "internal",
                        link = NULL,
-                       offset = ordinal_center_offset(frame, rspec),
+                       # brms centers no design under order = "mu"
+                       # (stan_center_X() is FALSE with fixed thresholds)
+                       offset = if (!ob$shared) {
+                         ordinal_center_offset(frame, rspec,
+                                               ob$lp[["dpar"]])
+                       },
                        lb = s$lb, ub = s$ub)))
     }
     # one entry per group: each slice is a vector of its own, so an
@@ -2954,20 +2963,27 @@ resolve_priorlist <- function(fit, pl) {
   ordinal_delta_entry <- function(s) {
     rs <- fit$spec$responses
     rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
-    th <- rspec$family[["thres"]]
-    if (is.null(rspec) || !identical(th[["type"]], "equidistant")) {
+    # component k of an ordinal mixture: dpar = "mu<k>", brms's row
+    ob <- if (!is.null(rspec)) {
+      ord_prior_block(frame, fit$spec, rspec, s$dpar)
+    }
+    th <- ob$fam[["thres"]]
+    if (is.null(ob) || !identical(th[["type"]], "equidistant")) {
       frm_stop("Prior target not found (", spec_target(s), "): class ",
                "\"delta\" is the distance between the thresholds of an ",
                "ordinal family with threshold = 'equidistant', and this ",
-               "model has none", call. = FALSE)
+               "model has none",
+               if (nzchar(s$dpar)) paste0(" under dpar = \"", s$dpar, "\""),
+               call. = FALSE)
     }
-    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
+    if (nzchar(s$coef) || nzchar(s$nlpar %||% "")) {
       frm_stop("Prior target not found (", spec_target(s), "): class ",
                "\"delta\" is one parameter per threshold vector, so it ",
-               "takes no coef, dpar or nlpar. group = selects the vector ",
-               "of one level of thres(gr = )", call. = FALSE)
+               "takes no coef or nlpar. group = selects the vector ",
+               "of one level of thres(gr = ), and dpar = \"mu<k>\" the ",
+               "component of an ordinal mixture", call. = FALSE)
     }
-    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    comp <- ob$comp
     lay <- thres_layout(th[["nthres"]], "equidistant")
     gs <- seq_len(lay$G)
     if (nzchar(s$group)) {
@@ -2988,7 +3004,7 @@ resolve_priorlist <- function(fit, pl) {
                  }, call. = FALSE)
       }
     }
-    ordered <- rspec$family[["family"]] %in% ord_ordered_families
+    ordered <- ob$ordered
     lapply(gs, function(g) {
       list(comp = comp, idx = lay$rstart[g] + 1L, dist = s$dist,
            scale = if (ordered) "sd" else "internal", link = NULL,
@@ -3245,10 +3261,12 @@ has_ordinal_thresholds <- function(fit, resp = NULL) {
 #' predictor enters the density as `tau - eta`.
 #'
 #' @noRd
-ordinal_center_offset <- function(frame, rspec) {
+ordinal_center_offset <- function(frame, rspec, dpar = NULL) {
   for (lp in frame[["linpreds"]]) {
     if (!identical(lp[["resp"]], rspec$resp_name)) next
     if (!lp[["dpar"]] %in% rspec$primary_dpars) next
+    # an ordinal mixture's component k is centered on its own mu<k>
+    if (!is.null(dpar) && !identical(lp[["dpar"]], dpar)) next
     # bf(center = FALSE): brms's thresholds are then the uncentered ones
     if (isFALSE(lp[["center"]])) return(NULL)
     X <- lp[["X"]]
