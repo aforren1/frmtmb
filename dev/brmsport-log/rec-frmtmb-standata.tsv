@@ -1,7 +1,7 @@
 assert	frmtmb	standata:69	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:71	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:73	pass	TRUE	FALSE			TRUE
-assert	frmtmb	standata:75	defect	TRUE	FALSE			TRUE
+assert	frmtmb	standata:75	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:77	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:79	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:81	pass	TRUE	FALSE			TRUE
@@ -60,11 +60,11 @@ assert	frmtmb	standata:268	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:269	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:305		TRUE	FALSE			TRUE
 setup	frmtmb	standata:309		TRUE	FALSE			TRUE
-assert	frmtmb	standata:310	cannot transfer	FALSE	FALSE	Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual             | expected                  [1] -1.10830559292306  -                           [2] 0.633157028436453  -                           [3] -0.404284676019118 -                           [4] -1.01854196912043  -                           [5] -1.11349603645078  -                           [6		FALSE
+assert	frmtmb	standata:310	cannot transfer	FALSE	FALSE	Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual             | expected                  [1] -2.44987954384782  -                           [2] -2.03656296005194  -                           [3] -0.25003376429933  -                           [4] -0.433924079314511 -                           [5] 0.0364740213740206 -                           [6		FALSE
 setup	frmtmb	standata:313		TRUE	FALSE			TRUE
 setup	frmtmb	standata:314		TRUE	FALSE			TRUE
-assert	frmtmb	standata:315	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - -1.10830559292306  [1]                        - 0.633157028436453  [2]                        - -0.404284676019118 [3]                        - -1.01854196912043  [4]              		FALSE
-assert	frmtmb	standata:316	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - -0.64924017267404  [1]                        - 1.64605696895179   [2]                        - -0.873545199968959 [3]                        - -0.563928853837618 [4]              		FALSE
+assert	frmtmb	standata:315	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - -2.44987954384782  [1]                        - -2.03656296005194  [2]                        - -0.25003376429933  [3]                        - -0.433924079314511 [4]              		FALSE
+assert	frmtmb	standata:316	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                       - 1.71132157384026    [1]                        - -0.0680666640313461 [2]                        - 1.10409454652941    [3]                        - -2.30104488762607   [4]         		FALSE
 setup	frmtmb	standata:610		TRUE	FALSE			TRUE
 setup	frmtmb	standata:616		TRUE	FALSE			TRUE
 setup	frmtmb	standata:619		TRUE	FALSE			TRUE
@@ -91,26 +91,26 @@ assert	frmtmb	standata:712	pass	TRUE	FALSE		Some levels of 'g' correspond to mul
 setup	frmtmb	standata:717		TRUE	FALSE			TRUE
 assert	frmtmb	standata:718	cannot transfer	FALSE	FALSE	Expected `colnames(standata(y ~ 1 + poly(x, 3), dat)$X)` to equal `c("Intercept", "polyx31", "polyx32", "polyx33")`. Differences: `actual`:   "Intercept" "poly(x, 3)1" "poly(x, 3)2" "poly(x, 3)3" `expected`: "Intercept" "polyx31"     "polyx32"     "polyx33"     		FALSE
 setup	frmtmb	standata:723		TRUE	FALSE			TRUE
-assert	frmtmb	standata:724	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	standata:725	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	standata:724	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:725	pass	TRUE	FALSE			TRUE
 assert	frmtmb	standata:726	own	TRUE	FALSE		dpar(s) not available for family 'gaussian': bias (available: sigma)	FALSE
 setup	frmtmb	standata:731		TRUE	FALSE			TRUE
 setup	frmtmb	standata:732		TRUE	FALSE			TRUE
 setup	frmtmb	standata:736		TRUE	FALSE			TRUE
 setup	frmtmb	standata:737		TRUE	FALSE			TRUE
-assert	frmtmb	standata:738	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	standata:739	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	standata:740	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	standata:738	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:739	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:740	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:742		TRUE	FALSE			TRUE
 setup	frmtmb	standata:743		TRUE	FALSE			TRUE
 assert	frmtmb	standata:744	pass	TRUE	FALSE			TRUE
-assert	frmtmb	standata:745	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	standata:745	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:926		TRUE	FALSE			TRUE
 setup	frmtmb	standata:927		TRUE	FALSE			TRUE
 assert	frmtmb	standata:928	divergence	FALSE	FALSE	Expected `colnames(sdata$X)` to equal `c("Intercept", "x1", "x2")`. Differences: `actual`:   "Intercept" "x1"      `expected`: "Intercept" "x1" "x2" 		FALSE
 setup	frmtmb	standata:969		TRUE	FALSE			TRUE
-assert	frmtmb	standata:970	cannot transfer	TRUE	FALSE		Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead.	TRUE
-assert	frmtmb	standata:974	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	standata:970	pass	TRUE	FALSE		Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead.	TRUE
+assert	frmtmb	standata:974	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:975		TRUE	FALSE			TRUE
 assert	frmtmb	standata:976	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:1045		TRUE	FALSE			TRUE
@@ -145,4 +145,4 @@ setup	frmtmb	standata:1125		TRUE	FALSE			TRUE
 setup	frmtmb	standata:1128		TRUE	FALSE			TRUE
 assert	frmtmb	standata:1129	pass	TRUE	FALSE			TRUE
 setup	frmtmb	standata:1132		TRUE	FALSE			TRUE
-assert	frmtmb	standata:1133	cannot transfer	FALSE	FALSE	Expected `colnames(sdata$X)` to equal `c("Intercept", "xb", "xc")`. Differences: `actual`:   "Intercept" "xb"      `expected`: "Intercept" "xb" "xc" 		FALSE
+assert	frmtmb	standata:1133	divergence	FALSE	FALSE	Expected `colnames(sdata$X)` to equal `c("Intercept", "xb", "xc")`. Differences: `actual`:   "Intercept" "xb"      `expected`: "Intercept" "xb" "xc" 		FALSE

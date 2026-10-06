@@ -1,3 +1,474 @@
+# frmtmb 0.68.0
+
+Five lanes, each with an adversarial review and punch rounds: `fixes`
+(`emmeans()` on transformed predictors, `trunc()` and `se()` in
+`conditional_effects()`, the ordinal leftovers of 0.67.0, brms's `s()`
+null-space basis, the nonlinear flat-direction warning), `gpby`
+(`gp(x, by = )` with brms's arguments and prior classes, and the exact
+`gp()` kriging covariance at new positions), `ordmix` (ordinal
+mixtures, `hurdle_cumulative()` with `thres(gr = )` and `cs()`),
+`nanse` (a fit says which parameters have no standard error, and why,
+and `frm_allfit()` starts where `lme4::allFit()` does) and `vigport`
+(the brms vignette port measured again, records only). The
+consolidation lifted the refusal of `cs()` on `cumulative()` and made
+`conditional_effects(method = "predict")` report the median, both the
+user's decisions of 2026-10-06. Each lane's `dev/<lane>-findings.md`
+has the validation, the numbers and the scripts, and
+`dev/reviews/2026-10-05-<lane>.md` (`2026-10-06-nanse.md` for lane
+nanse) has the review; `dev/round-20261005.md` is the round's record.
+In brms's own ported suite, bin 1 now passes 389 of 494
+assertions, up from 387 at 0.67.0.
+
+## Breaking changes
+
+* **`frm()` builds the Hessian at the optimum and warns when a
+  parameter has no standard error.** The warning starts "Standard
+  errors are not available for k of n parameters", names each
+  parameter, and gives the reason: a bound holds it, the data separate
+  the outcomes, the likelihood is flat along it, a step along it raises
+  the log-likelihood (confirmed with two objective evaluations, else it
+  is called flat), or its Hessian row is not finite. Before, a
+  converged fit could return `NaN` for every standard error with no
+  warning: `ls ~ mo(income) * age` on the brms_monotonic vignette's own
+  data code did so on 55 of 200 data sets at optimizer code 0. Now 26
+  of those 200 fits get this warning, 17 get a convergence warning, none
+  loses a standard error silently, and the warning fires on none of the
+  357 `mo()` fits whose standard errors are all finite. In the eight
+  test suites it fires 43 times outside its own tests, every time at
+  optimizer code 0 on a fit where sdreport() gave a non-finite standard
+  error. A fit that did not converge gets its convergence warning
+  instead. An earlier warning explains only the parameters it names: a
+  grouping factor with one level its variance, an observation-level
+  effect its variance and `sigma`, a family's own fit-end check (a
+  threshold no row places, an unidentified `disc` intercept,
+  `zero_one_inflated_beta()`'s `coi`) all but bound-held parameters. A
+  check set to `"ignore"` explains nothing. The cost grows with the
+  number of parameters. Without random effects the check reads the
+  exact Hessian, about one gradient per coefficient: 8 to 23 percent of
+  the fit on seven small models and 19 to 24 percent on a glm with 301
+  coefficients. With random effects it builds the finite-difference
+  Hessian, two gradients per outer parameter, when the model has at most
+  10 outer parameters or those gradients are at most a quarter of the
+  evaluations the optimizer made. Otherwise the check waits for the
+  first use of a standard error and warns there, also when that use is
+  `fixef()`. The rule counts work and does not read the clock, so the
+  same call warns in the same place on an idle machine and a loaded one
+  (`dev/nanse-rev2-determinism.R`: 40 of 40 at fit time in both). Mixed
+  models with 14 to 23 outer parameters were checked at fit time for 19
+  to 23 percent; with 42 to 403 the check waited, and the fit cost 3
+  percent or less. `summary()` reuses the finite-difference Hessian.
+  `frmtmb_control(check_se = "ignore")` skips the check and `"stop"`
+  makes it an error (`dev/nanse-findings.md`).
+
+* **A parameter without a standard error no longer takes the others
+  with it.** Where sdreport()'s inverse fails, the covariance is
+  recomputed. First the Hessian is scaled to unit diagonal, and on a
+  model without random effects the exact Hessian replaces the
+  finite-difference one. Of the 55 `mo()` fits above, 47 get every
+  standard error back, equal to the same Hessian inverted with the
+  saturated simplex coordinate held to 2.9e-5 relative, and 8 lose only
+  one to three parameters. An `a * exp(b * x)` fit with `x` spanning 0
+  to 1e5 gets its standard errors back too; the finite-difference step
+  of 1e-3 in `b = -2e-5` had given a diagonal of 1.3e96. Where both
+  repairs fail, a parameter held by a bound (test-backlog "The
+  covariance machinery is not bound-aware") and a simplex weight whose
+  Hessian row is exactly zero lose their standard errors, and so does
+  every parameter with a measurable part along a direction the
+  likelihood does not determine, however many share it: `y ~ a + b`
+  with `a ~ 0 + f` at 60 levels loses all 60 `a` coefficients and `b`.
+  The other parameters keep theirs. `summary()` lists the lost
+  parameters with the reason instead of a bare `NaN`. A prediction,
+  emmean, hypothesis or `VarCorr()` entry that moves along a removed
+  direction gets a `NaN` standard error, and `fitted()`, `predict()`,
+  `frm_linpred()`, `conditional_effects()`, `emmeans()`,
+  `hypothesis()` and `VarCorr()` warn once per call with the number of
+  such rows; one that does not keeps its standard error. So
+  `conditional_effects()` keeps its bands on the `mo()` fits, and on
+  `y ~ x + (1 | g1) + (1 + x | g2)` with the `g2` block at variance 0,
+  `VarCorr()` keeps `g1`'s sd error (0.233, as `hypothesis()` gives it)
+  and the residual sd's (0.0794). A parameter that keeps its standard
+  error does not pass a removed direction to the predictions through
+  its own small part in it, and a `conditional_effects()` plot whose
+  band is `NaN` draws the curve alone instead of stopping on "need
+  finite 'ylim' values". Under REML or `profile = TRUE`
+  the coefficients' standard errors come from the joint precision,
+  which this does not repair, and the warning says so. A fit that did
+  not converge keeps sdreport()'s own covariance.
+
+* **`frm_allfit()` starts every optimizer where lme4's `allFit()`
+  does.** The refits started from zero, so on a nonlinear model 3 of
+  4 refits failed and `bobyqa` reported success 155 log-likelihood
+  units below the fit it was checking. They now start at the original
+  fit's estimates (`start_from_mle = TRUE`, lme4's default) or, with
+  `start_from_mle = FALSE`, at the original fit's own start, including
+  its `start =`. The printed table compares every refit with the best
+  log-likelihood reached and marks a success code more than `grad_tol`
+  below it as "converged elsewhere". A failed refit keeps its error
+  message in `$errors`. The fit object stores its caller's `start` as
+  `fit$start`.
+
+* **A smooth's null-space coefficient is brms's.** `s()` is built
+  with `mgcv::smoothCon(diagonal.penalty = TRUE)`, as brms builds its
+  `Xs` and `Zs`, so `fixef()`'s `sx_1` (and `sigma_sx0_1`) is brms's
+  coefficient and a prior with `coef = "sx_1"` or a hypothesis on it
+  is about brms's parameter. Before, it was brms's coefficient times a
+  data-dependent factor (5.0 to 7.7 on gamSim data, of either sign).
+  The design is now brms's standata `Xs` and `Zs` bitwise for every
+  single-penalty smooth, `by =` and 2-D `s()` included; `t2()` is
+  unchanged. The model is a reparameterization of the old one, but the
+  optimizer's path changes, so a different few fits stop at a worse
+  optimum. On 1020 gamSim fits per build (gamSim seeds 1 to 60, 18
+  smooth shapes; the review's `dev/fixes-rev2-smooth.R` and
+  `-smooth-cross.R`): convergence codes other than 0 in 11 against 16
+  on the old basis, non-finite fixed-effect standard errors in 37
+  against 31, and 9 fits on each build more than 1e-3 below the best
+  `logLik` either build or mgcv found, 6 of them the same fits; each
+  fit only one build got wrong reaches the other's optimum from the
+  other's smoothing SDs. The optimizer steps the null-space
+  coefficients in unit-SD coordinates, without which a smoothing SD at
+  zero ran far down its log scale and left NaN standard errors far
+  more often.
+
+* **A nonlinear fit warns when its nonlinear parameters' coefficients
+  are not identified at the optimum**, naming the coefficients: when
+  the likelihood is flat there along a combination of them, as with two
+  parameters that enter only through their sum or difference while
+  their formulas share a term (`a + b` with `a ~ 1 + x` and
+  `b ~ 1 + x`), or a product of two intercepts. Such a fit used to
+  return one point of the ridge without a word. The check reads the
+  Hessian of those coefficients at the fitted point, which costs 2 k
+  gradients for k coefficients (0.61 s of an 11.3 s fit at n = 200000).
+  A curved ridge whose curvature does not vanish to 1e-9 there
+  (`exp(a)^k`) is not flagged; `vcov()` and `summary()` still report
+  its standard errors as not finite. A prior that reaches every flat
+  direction removes the warning, and then the prior alone sets the
+  split, so a weak one gives very wide intervals.
+
+* **`conditional_effects()` holds the variable of a `trunc()` bound or
+  an `se()` term at its mean** when `conditions` does not set it, as
+  brms does, where it refused the display. An expression bound is
+  evaluated on the grid, where the response is at its mean too, so
+  `trunc(lb = min(y) - 1)` is `mean(y) - 1`, as in brms. The expected
+  value is the truncated mean at the held bound and agrees with brms
+  2.23.0.
+
+* **`confint()` and `vcov(full = TRUE)` name an ordinal fit's internal
+  threshold parameters by what they are**, where they read
+  `tau_raw_<k>`: `Intercept[1]`, `Intercept[a,2]` or `delta` where the
+  internal parameter is that one, and `log(Intercept[2] -
+  Intercept[1])` or `log(delta)` where it is a transform. A `cs()`
+  coefficient takes its `fixef()` name. `parm =` takes these names,
+  brms's `b_Intercept[1]`, and the old template names.
+
+* **`gp()` defaults to `iso = TRUE`, as brms 2.23.0 does.** A
+  multi-dimensional `gp(x1, x2)` now shares one lengthscale over the
+  Euclidean distance; `gp(x1, x2, iso = FALSE)` gives one per
+  dimension, which was the old default. The code comment that called
+  the old default brms's was wrong: brms's `gp()` signature has
+  `iso = TRUE`, and its Stan program for `gp(x, z)` declares one
+  lengthscale (`dev/gpby-brms-explore.R`).
+
+* **Prior class `"sd"` no longer reaches a `gp()` term.** brms priors a
+  GP's marginal standard deviation as class `"sdgp"` and its
+  lengthscales as class `"lscale"`, and frmtmb now has both classes
+  (see New features). `set_prior(class = "sd")` on a model whose only
+  random-effect block is a `gp()` is refused, and the message names
+  `"sdgp"`. A brms prior table with `sdgp` and `lscale` rows, which was
+  refused by name, now carries over row for row.
+
+* **`get_prior()` lists no class `"sd"` rows for a `gp()`
+  term.** It listed `sd` rows for the GP's block, which no prior could
+  reach as brms names it; it lists the `sdgp` and `lscale` rows
+  brms's `default_prior()` lists instead.
+
+* **`summary()$gp` labels a lengthscale row with brms's
+  name**, `lscale(gpxzx)` and `lscale(gpxzz)` where it wrote
+  `lscale(gpxz[1])` and `lscale(gpxz[2])` for `gp(x, z, iso = FALSE)`
+  (`dev/gpby-p1-sumgp.R`). Code that indexed the table by the old row
+  names must use the new ones.
+
+* **`cs()` in the formula of a parameter other than the latent
+  predictor is refused**, in brms's words ("Category specific effects
+  are only supported for the main parameter 'mu'"). The offsets of
+  every predictor went into the one slot the ordinal densities read,
+  so `bf(y ~ x, disc ~ cs(z))` fitted `y ~ x + cs(z)` under disc's
+  name, its log-likelihood that model's to 1.1e-9, with the
+  coefficients reported as `disc_z[k]` (`dev/ordmix-base-behavior.R`).
+
+* **`conditional_effects(method = "predict")` reports the median of
+  its simulated responses as `estimate__`**, as brms reports the median
+  of its predictive draws. It reported the expected response, which
+  `method = "epred"` still shows. The band is unchanged, and the
+  estimate is the 50% point of the same draws: a whole count for a
+  discrete family when `ndraws` is odd, inside the bounds of a
+  truncated one. At a Poisson fit's x = -1, 0, 1 it is 1, 2, 4, where
+  it was 1.46, 2.52, 4.35, and brms's median at the same parameters is
+  1, 2, 4 (`dev/fixes-ce-pred.R`, `test-ce-predict-median.R`).
+  frmtmb.sample's draws route reported the median already. The user's
+  decision of 2026-10-06.
+
+## New features
+
+* `default_prior()` lists one class `"Intercept"` row per threshold,
+  `coef = "1"`, `"2"`, ..., under flexible thresholds, and per level
+  of `thres(gr = )`, as brms does, and `set_prior(class = "Intercept",
+  coef = "2")` puts a density on that threshold. It is refused under
+  `threshold = "equidistant"`, as in brms.
+
+* The compatibility table has rows for `disc` and the
+  `"equidistant"` and `"sum_to_zero"` threshold structures.
+
+* **`gp(x, by = f)`, with brms's semantics.** `gp()` takes brms's whole
+  argument list: `by`, `k`, `cov`, `iso`, `gr`, `cmc`, `scale` and `c`
+  (`k = NA` and `by = NA` mean none, as in brms). A factor `by` fits
+  one GP per level under `cmc = TRUE` and an intercept GP plus
+  contrast GPs under `cmc = FALSE`, each over its own rows, scaled and
+  centered over those rows alone and with its own standard deviation
+  and lengthscales, as `brms:::data_gp()` builds them; a numeric `by`
+  multiplies one GP. `gr = FALSE` keeps one latent value per row and
+  `scale = FALSE` keeps the inputs unscaled. On six Hilbert-space forms
+  (factor and numeric `by`, `cmc = FALSE`, `gr = FALSE`, isotropic and
+  anisotropic two-dimensional) brms's Stan log density at frmtmb's
+  estimates equals frmtmb's joint density to 2.8e-14 and its gradient
+  in the latent values vanishes to 2.6e-14 (`dev/gpby-lpcheck.R`); the
+  exact form's marginal likelihood is the closed form to 1e-8 relative
+  (`tests/testthat/test-gp-by.R`). A by-level the fit never saw is
+  refused with brms's own message, `allow_new_levels = TRUE` included,
+  as brms refuses it. `cov =` other than `"exp_quad"` is refused: the
+  Matern and exponential kernels are not implemented.
+
+* **brms's names for a GP's parameters.** `variables()` and
+  `hypothesis()` read `sdgp_<term>` and `lscale_<term>` (`sdgp_gpx`,
+  `sdgp_gpxfa` for level `a` of `gp(x, by = f)`, `lscale_gpxzx` for a
+  non-isotropic term), on brms's scales, and `summary()$gp` labels its
+  rows the same way (see Breaking changes). Before, `variables()`
+  listed neither parameter, so brms's `variables(fit6)` test could not
+  transfer.
+
+* **Prior classes `"sdgp"` and `"lscale"`**, brms's, with `coef` the
+  sub-GP brms names (`"gpxfa"`). Both are on brms's natural scales
+  with the log-Jacobian applied; the lengthscale is on the inputs brms
+  divides by their largest distance. `get_prior()` lists the rows
+  brms's `default_prior()` lists.
+
+* **`frm_lp_basis(extra_cov = TRUE)`** returns `extra_cov`, the full
+  covariance over the rows of the variance that is not coefficient
+  uncertainty: an exact `gp()`'s kriging residual at an unseen position,
+  which every unseen row of one field shares, and a new grouping
+  level's draw, which every row at that level shares. Its diagonal is
+  `extra_var` exactly. It is a sparse `Matrix` where its sources cover
+  few entries, an empty one (nothing allocated) on a fit with no such
+  source, and dense otherwise: a 2000-row grid past an exact `gp()`'s
+  data peaks at 106 MB in the call (`dev/gpby-p1-mem3.R`). One call on
+  a stacked grid gives the covariance between two grids.
+
+* **`frm_extra_cov_deriv()`**, the covariance of the `order`-th
+  derivative of that same part, built from its sources: an exact
+  `gp()`'s kriging residual by the squared exponential kernel's closed
+  form derivatives, a new grouping level by differencing its draw's
+  design rows. Differencing `extra_cov` itself divides its rounding by
+  the step to the fourth power at order 2, which gave a standard error
+  of 0 past an exact `gp()`'s data and up to 1.5 for the curvature of a
+  term linear in the variable, whose true value is 0
+  (`dev/reviews/2026-10-05-gpby.md`, B1).
+
+* **`emmeans()` on an exact `gp()` at a position the fit did not see.**
+  Refused until now; the kriging covariance across the grid enters `V`,
+  so a mean at an unseen position carries it and a contrast between
+  two rows at one position cancels it.
+
+* **`mixture()` takes ordinal components**, as brms does:
+  `cumulative()`, `sratio()`, `cratio()` and `acat()` in any
+  combination, each with its own link, `disc<k>` and threshold
+  structure, or `hurdle_cumulative()` for every component.
+  `order = "none"`, brms's default for them, gives each component its
+  own thresholds, `b_mu1_Intercept[k]`, `b_mu2_Intercept[k]`, and
+  `order = "mu"` gives all of them one shared vector, brms's
+  `fixed_Intercept`, which a sum-to-zero component centers (with
+  components that have a `mu` intercept, `order = "mu"` stays
+  refused).
+  `thres(x = )`, `thres(gr = )`, `cs()` per component, `theta<k> ~`
+  and `disc<k> ~` work. The category probabilities that `fitted()`,
+  `predict()`, `simulate()`, `conditional_effects()` and
+  frmtmb.sample's `posterior_epred()` and `log_lik()` report are the
+  theta-weighted sums of the components'. The log density equals brms
+  2.23.0's compiled program at the optimum and at three perturbed
+  parameter vectors to at most 2.5 ulp on the 20 mixture shapes of
+  `dev/ordmix-lpcheck.R`; a probit component whose latent distance
+  from a threshold passes about 38 has a `NaN` density where brms's
+  is finite (one point of the review's three-component probit, sratio
+  and acat mixture). `fixef()` has brms's rows in brms's
+  order. `default_prior()` lists brms's threshold rows, and
+  `set_prior(class = "Intercept", dpar = "mu1")` (with no `dpar` under
+  `order = "mu"`) lands where brms puts it. A sum-to-zero component
+  lists no class `"Intercept"` rows, where brms lists one per
+  threshold, as for one sum-to-zero family. brms's equidistant mixture
+  does not compile (its parameters block declares a bare `delta` per
+  component, and its body reads `delta_mu<k>`); frmtmb fits the model
+  the body describes and names it `delta_mu<k>`. `groups = ` and a
+  `hurdle_cumulative()` component beside one without a hurdle are
+  refused. A mixture whose
+  likelihood has a flat direction by construction warns: no predictor
+  in any parameter, or hurdle components whose `hu<k>` and mixing
+  weights have none, unless priors hold enough of those parameters
+  (a threshold prior holds none of the hurdle's); or shared thresholds
+  with no `mu<k>` predictor on components of one family, link and
+  `disc`. A fit whose component ends at a degenerate boundary warns
+  and names it: a step function of its predictors (doubling its latent
+  distances costs the log-likelihood less than 0.1), a threshold no
+  row is near, or two thresholds that are the same number. Maximum
+  likelihood for an ordinal mixture often has its supremum there (22
+  of 160 simulated two-component fits; the warning fires on 20 of them
+  and on none of the other 138, nor on any of 167 sound fits with
+  strong predictors under four links), so compare several starts, or
+  hold the components with priors.
+
+* **`hurdle_cumulative()` takes `thres(gr = )` and `cs()`**, as brms
+  fits them. Each group's density keeps the hurdle, the counts are
+  over the categories above it, and `cs()` comes off each row's
+  thresholds, with brms's warning that the effects are experimental.
+  The log density equals brms 2.23.0's compiled program to at most
+  1.6 ulp under the logit and the probit, with `hu ~`,
+  `disc ~` and every threshold structure (`dev/ordmix-lpcheck.R`). A
+  row whose `cs()` offsets cross two thresholds has a negative
+  category probability: its density and `fitted()` are `NaN` there
+  (brms returns the negative difference), and `simulate()` gives `NA`.
+  `cs()` with `thres(gr = )` stays refused, as in brms.
+
+* **`cs()` on `cumulative()`**, as brms 2.23.0 fits it, with brms's
+  warning that category-specific effects for the family are
+  experimental. It was refused. Row `i` reads the thresholds
+  `tau_k - cs_ik`, brms's `Intercept - transpose(mucs[n])`, and the log
+  density equals brms's compiled program to at most 0.9 ulp at the
+  optimum and at three perturbed points on six shapes: the logit and
+  the probit, a predictor beside `cs()`, two `cs()` terms, a factor in
+  `cs()`, `disc ~ 0 + z`, equidistant thresholds and a mixture with
+  `sratio()` (`dev/rel068-cs-lpcheck.R`). The offsets can make a row's
+  thresholds cross: such a row's density and `fitted()` probabilities
+  are `NaN`, as brms's density is (brms's `posterior_epred()` returns
+  the negative difference), and `simulate()` gives `NA` there.
+  `predict()` gives `NA` proportions for a row that crosses at the
+  estimates; a row that crosses only in some of its simulated
+  parameter draws reports the proportions over the other draws, and
+  the call warns with the draws dropped per row, here and on
+  `hurdle_cumulative()` (the user's decision of 2026-10-06).
+  `hurdle_cumulative()` and a `cumulative()` component of an ordinal
+  mixture take `cs()` the same way and warn as brms does, once per
+  component. A family that takes no `cs()` is refused in brms's words,
+  "Category specific effects are not supported for this family". The
+  user's decision of 2026-10-06.
+
+* **Ordinal mixtures and the per-threshold features meet.**
+  `default_prior()` lists the per-threshold class `"Intercept"` rows of
+  each component under `dpar = "mu<k>"`, and of the vector an
+  `order = "mu"` mixture shares once with no `dpar`, as brms lists
+  them; `set_prior(class = "Intercept", coef = "2", dpar = "mu1")` puts
+  a density on that threshold alone. `confint()` and
+  `vcov(full = TRUE)` name a mixture's thresholds by what they are,
+  `mu1_Intercept[1]` and `log(mu1_Intercept[2] - mu1_Intercept[1])`,
+  and the shared vector once, as `Intercept[1]`. The compatibility
+  table's cells for `disc`, `"equidistant"` and `"sum_to_zero"` with
+  `mixture` say what the release does: equidistant is refused under
+  `order = "mu"`, as in brms.
+
+## Performance
+
+* **The kriging draw on a high-rank grid is faster.** Past a quarter
+  of the unseen positions, `gp_krig_factor()` takes the whole
+  conditional covariance and LAPACK's pivoted Cholesky instead of its
+  column loop: 0.020 s against 0.071 s at rank 400 of 400 positions and
+  0.161 s against 0.293 s at rank 499 of 1000, with the law unchanged
+  (`dev/rel068-krig-rank.R`). The low-rank regime the loop was built
+  for is untouched.
+
+## Bug fixes
+
+* A nonlinear fit whose default start a prior placed outside the
+  family's domain stopped at that start. A prior's location places
+  every coefficient of a nonlinear parameter, so fit2's `normal(2, 2)`
+  on `a ~ Age` put `mu = 2 + 2 Age` below 0 on `Gamma("identity")`.
+  After such a failure the fit restarts from the placed intercepts with
+  the slopes at zero; with fit2's priors the update of ledger row
+  `brmsfit-methods:955` then converges near brms's posterior means.
+  A fit that converged from its start is never restarted.
+
+* `emmeans()` stopped with "undefined columns selected" when a
+  transformed predictor's variable was found in the formula
+  environment rather than in the data.
+
+* `vcov_cluster()` and `cluster_scores()` stopped with "A map factor
+  length must equal parameter length" on every ordinal fit whose
+  `disc` is held at 1.
+
+* `confint(parm = "Intercept[2]")` on a family that holds that
+  threshold through a transform says so and points to `fixef()` and
+  `hypothesis()`.
+
+* `emmeans()` on a fit with a transformed predictor (`poly(z, 2)`,
+  `log(abs(z) + 1)`, `scale(z)`) stopped with "undefined columns
+  selected". The reference grid now holds the variable at its mean, as
+  brms's and `lm()`'s do, and the transform is evaluated with the fit's
+  frozen basis, so `scale()` takes the training center and scale and
+  `poly()` its training coefficients, also under `at =`. The means
+  agree with brms 2.23.0 at fixed parameters and with `glm()`.
+
+* **`conditional_effects()` on a `gp()` fit had nothing to draw.**
+  `y ~ gp(x)` stopped with "No plottable predictors found"; a `gp()`
+  term's covariates and its `by` variable are now effects, and a term
+  over several variables adds their two-way displays, as brms's
+  `get_all_effects_type(x, "gp")` does: `x`, `f` and `x:f` for
+  `gp(x, by = f)`.
+
+* **`fitted()`'s `Est.Error` on a category distribution left out an
+  exact `gp()`'s kriging variance** at a position the fit did not see,
+  and a new grouping level's variance, which the scalar route has
+  always added. Past the data the shortfall was 8 percent of the
+  standard error on the `test-fd-chain.R` fixture. The analytic route
+  `conditional_effects()` takes for an ordinal family had the same gap.
+
+* **`fitted()`'s finite-difference `Est.Error` costs one pair of
+  evaluations per smooth or `gp()` block** where it cost one per
+  coefficient. Such a block reaches a category probability only through
+  its predictor's `eta`, linearly, so the derivative is the chain rule
+  `(d p / d eta) Z`. Counted calls of the fitted value on
+  `dev/gpby-fdcost.R`'s cells: a 160-coefficient `gp(x)` at three new
+  rows 330 to 12, `s(x, k = 8) + (1 | g)` 26 to 16 and 24 to 14, a
+  12-column `gp(x, k = 12)` 34 to 12, a control unchanged at 12.
+
+* Kriging at an unseen `gp()` position works in correlation units, so a
+  draw whose standard deviation underflows no longer stops the solve
+  as exactly singular, and a row at an observed position is the fitted
+  value exactly rather than through the kriging weights.
+
+* **A gradient that is not finite at the reported optimum** passed
+  `check_convergence()` in silence, because its test compares a finite
+  number with `grad_tol`. nlminb reports X-convergence there (a
+  three-component ordinal mixture whose probit component saturated,
+  gradient `Inf`). The fit now warns and names the parameters.
+
+* **The draws of a model whose location predictor has no column** (an
+  ordinal `y ~ 1` with a modeled `disc`, or `y ~ cs(x)`) were named one
+  column off: `brms_par_labels()` dropped the labels of every
+  distributional coefficient, so frmtmb.sample stored disc's slope as
+  `b_Intercept[1]` and the last threshold as `tau_raw[3]`
+  (`dev/ordmix-emptybeta.R`).
+
+* `?refit` says that `refit()` does not repeat the warning `frm()`
+  gives when a nonlinear model's likelihood is flat at the optimum: the
+  design and its flat direction are the original fit's.
+
+* `vignette("brms-migration")` was stale on `hurdle_cumulative()` (it
+  takes the threshold structures, `thres(gr = )` and `cs()`), on
+  `acat()`'s links, on `disc`, and on `order = "mu"` for ordinal
+  mixtures, and now says what `cs()` on the cumulative families does.
+
+## Extension API
+
+* `ord_thres_linpred()` joins the sampling API: brms's linear
+  predictor with the thresholds included, at a fit's estimates, which
+  frmtmb.sample's `posterior_linpred(incl_thres = TRUE)` reads per
+  draw. An ordinal mixture is refused first, in brms's words:
+  "'incl_thres' is not supported for mixture models."
 # frmtmb 0.67.0
 
 Three lanes of brms parity, each with an adversarial review and punch

@@ -31,6 +31,15 @@ costs one re-tape plus the optimization. This is the engine for
 parametric bootstrap: simulate responses with \code{\link[=simulate]{simulate()}}, refit to
 each.
 }
+\details{
+A refit does not repeat the warning \code{\link[=frm]{frm()}} gives when a
+nonlinear model's likelihood is flat at the optimum along a
+combination of its parameters' coefficients. The design, and so the
+flat direction, is the original fit's, which already warned; a
+parametric bootstrap would otherwise warn once per replicate. The
+refit's standard errors along that direction are as unusable as
+the original's.
+}
 \examples{
 set.seed(2)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))

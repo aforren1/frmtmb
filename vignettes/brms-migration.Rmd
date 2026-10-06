@@ -39,7 +39,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
-| `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes flexible thresholds only, and neither `thres(gr = )` nor `cs()` (see What changes) |
+| `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes brms's threshold structures, `thres(gr = )` and `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
@@ -48,7 +48,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
 | `categorical()` on a numeric response | same | the distinct values are the categories, in numeric order: `11:13` is three categories with `11` the reference |
-| `mixture(..., order = "none")` | same | brms's `order = "mu"`, which orders the components' intercepts for a sampler, is refused |
+| `mixture(..., order = "none")` | same | brms's `order = "mu"`, which orders the components' intercepts for a sampler, is refused, except on ordinal components, where it gives them one shared threshold vector, as in brms |
 
 ### Links
 
@@ -76,10 +76,9 @@ Two cautions when porting a link:
 
 The ordinal families take brms's sets: `cumulative()` takes `logit`,
 `probit`, `probit_approx`, `cloglog`, `cauchit` and `softit`, and
-`sratio()` and `cratio()` take the same without `softit`. `acat()` is
-the one place the roster is narrower. It takes `logit` only, because
-brms computes acat off the logit from a second density that frmtmb
-has not written.
+`sratio()` and `cratio()` take the same without `softit`, and `acat()`
+takes all six. Off the logit, `acat()` uses brms's second density, as
+brms does.
 
 ## What changes
 
@@ -153,10 +152,7 @@ has not written.
   written without `resp` on a MULTIVARIATE model applies to EVERY
   response, following frmtmb's own convention that a class-wide prior
   is class-wide; brms refuses such a row and asks for `resp`. Write
-  `resp` to address one response. Separately, `cumulative()` has no
-  `disc` distributional parameter here at all, so a `disc` formula is
-  refused when the model is parsed and the acceptance rule above is
-  never reached for it.
+  `resp` to address one response.
 
   **frmtmb's own `set_prior()` takes brms's words with brms's meaning,
   and that is a BEHAVIOR CHANGE for a script written before 0.53.0.**
@@ -191,10 +187,12 @@ has not written.
 
   Because rows now apply, such a row in a `get_prior()` table stops the
   call where it used to be dropped in silence: on a model with `s()`,
-  `gp()`, `mo()` or `car()`, blank that row or write the frmtmb class
+  `mo()` or `car()`, blank that row or write the frmtmb class
   the message names. Every refused row of a table is named in one
   message, so one edit round is enough. Of 20 shapes a brms user would
-  actually write, 3 stop: `s()`, `gp()` and `mo()`. The rest translate,
+  actually write, 3 stopped when this was measured: `s()`, `gp()` and
+  `mo()`. A `gp()` table now carries over whole, since `sdgp` and
+  `lscale` are classes here too. The rest translate,
   zero-inflated, hurdle and negbinomial models included.
 - A prior with a location DOES place a nonlinear start. brms uses its
   priors to place its sampler, and `frm()` reads them the same way for
@@ -228,7 +226,7 @@ has not written.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
   measurement error, `cs()` (or brms's other name for it, `cse()`)
-  category-specific ordinal effects,
+  category-specific ordinal effects on every ordinal family,
   `gp(x)` / `gp(x, k =)` Gaussian processes, and `mixture()`
   families (including group-level latent classes via `groups = ~g`)
   all work. `mo()`/`mi()` support two-way `:`/`*` interactions with
@@ -266,15 +264,25 @@ has not written.
   `newdata` is recoded against the fit's levels, an unused level's column
   is dropped as brms drops it, and a multivariate fit takes `cs()` in any
   response.
-- `thres()` works on the four ordinal families. `y | thres(K) ~ x`
+- `cs()` on `cumulative()` and `hurdle_cumulative()` is fitted as brms
+  fits it, with brms's warning that the effects are experimental: each
+  row reads its own thresholds, the fitted thresholds less the row's
+  offsets. Those can cross, and then the category between two crossed
+  thresholds has a negative probability. brms's density is undefined
+  there and so is frmtmb's. Where brms's `posterior_epred()` returns the
+  negative difference, `fitted()` returns `NaN` for every category of
+  such a row, and `simulate()` returns `NA`.
+- `thres()` works on the five ordinal families. `y | thres(K) ~ x`
   sets the number of thresholds, and `y | thres(gr = g) ~ x` fits one
   threshold vector per level of `g`, named `Intercept[g,k]` as in
   brms. The section "Ordinal thresholds, thres()" of `?frm` says
   where the count and the unobserved categories differ from brms.
   brms's deprecated `cat(K)` is read as `thres(K - 1)`, with brms's
   warning.
-- `hurdle_cumulative()` takes `thres(x = )` and refuses `thres(gr = )`
-  and `cs()`. Its `threshold` takes `"flexible"` only. The expected
+- `hurdle_cumulative()` takes `thres(x = )`, `thres(gr = )` (each group
+  keeps the hurdle in its density, as in brms), `cs()` (not together
+  with `thres(gr = )`, as brms refuses it too) and the threshold
+  structures `"equidistant"` and `"sum_to_zero"`. The expected
   category that `conditional_effects()` shows by default is scored by
   the category codes `0..K`, so the hurdle scores 0; brms scores each
   column by its position and reads one higher. With the logit link and

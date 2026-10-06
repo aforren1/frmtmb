@@ -1,31 +1,25 @@
 # Conditional-effects displays, diagnostic plot method, pp_check.
 
-#' Addition-term values for the conditional-effects grid. A grid row is
-#' an artificial observation, so an aterm that changes the predictive
-#' distribution (trials, se, truncation bounds) must not be taken at a
-#' reference value: the mean number of trials is rarely a whole number,
-#' and a mean truncation bound is nobody's bound. Those terms are read
-#' only from variables the user pinned in `conditions`; literal bounds
-#' apply as written. Everything else (`vint`/`vreal` payloads a custom
-#' family needs) is evaluated against the grid when it can be.
+#' Addition-term values for the conditional-effects grid, evaluated on
+#' the grid rows. A variable the caller does not pin in `conditions` is
+#' held where the grid holds it, at its mean, as brms's
+#' `prepare_conditions()` holds every variable of its `allvars`: a
+#' `trunc(lb = lo)` bound at `mean(lo)`, an `se(s)` at `mean(s)`, and an
+#' expression bound such as `min(y) - 1` at its value on the grid, where
+#' `y` is the response's mean, so `mean(y) - 1`
+#' (dev/fixes-ce-brms.R). `trials()` variables are held at 1 before
+#' this, as in brms. Literal bounds apply as written, and anything else
+#' (`vint`/`vreal` payloads a custom family needs) is evaluated against
+#' the grid when it can be.
 #'
 #' @noRd
-ce_aterms <- function(rspec, nd, cset, n) {
+ce_aterms <- function(rspec, nd, n) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
             row_aterms)
   strict <- c("trials", "se", "trunc_lb", "trunc_ub")
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
-    vars <- all.vars(ex)
-    pinned <- !length(vars) || all(vars %in% names(cset))
-    if (nm %in% strict && !pinned) {
-      frm_stop("conditional_effects() cannot evaluate ",
-               aterm_label(nm, ex), " on the effect grid: its value would ",
-               "be a reference value, not a real one. Pin ",
-               paste(setdiff(vars, names(cset)), collapse = ", "),
-               " in conditions = list(...).", call. = FALSE)
-    }
     v <- tryCatch(as.numeric(eval(ex, nd, rspec$formula_env)),
                   error = function(e) NULL)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
@@ -183,8 +177,33 @@ ce_lp_vars <- function(lp, rsv = TRUE) {
   for (m in lp[["me"]] %||% list()) {
     v <- c(v, m$xvars, all.vars(m$mult_expr))
   }
+  # a gp() term's covariates and its by variable, which brms's
+  # get_all_effects_type(x, "gp") reads off the term
+  v <- c(v, ce_gp_vars(lp))
   unique(v)
 }
+
+#' The variables of each `gp()` term of one linear predictor, its
+#' covariates and then its `by` variable, one entry per written term (a
+#' factor `by` splits a term into several blocks, which share a label
+#' stem).
+#'
+#' @noRd
+ce_gp_terms <- function(lp) {
+  out <- list()
+  for (gi in lp[["gps"]] %||% list()) {
+    vv <- unique(unlist(lapply(c(gi$exprs, gi[["by"]][["expr"]]),
+                               all.vars)))
+    key <- paste(vv, collapse = "\r")
+    out[[key]] <- vv
+  }
+  unname(out)
+}
+
+#' Every variable `ce_gp_terms()` names.
+#'
+#' @noRd
+ce_gp_vars <- function(lp) unique(unlist(ce_gp_terms(lp)))
 
 #' Every variable `conditional_effects()` can vary for one display.
 #'
@@ -273,12 +292,20 @@ ce_plot_vars_any <- function(x, rspec, resp, rsv = TRUE) {
 #'
 #' @noRd
 ce_lp_pairs <- function(lp) {
+  # a gp() term over several variables (its covariates and its by
+  # variable) is an interaction of all of them, as brms writes it with
+  # str2formula(vars, collapse = "*") in get_all_effects_type()
+  gp_pairs <- unlist(lapply(ce_gp_terms(lp), function(vv) {
+    if (length(vv) < 2L) return(character(0))
+    cb <- utils::combn(vv, 2L)
+    paste(cb[1L, ], cb[2L, ], sep = ":")
+  }))
+  out <- gp_pairs %||% character(0)
   tt <- lp[["terms"]]
-  if (is.null(tt)) return(character(0))
+  if (is.null(tt)) return(unique(out))
   ord <- attr(tt, "order")
   fac <- attr(tt, "factors")
-  if (is.null(ord) || !any(ord >= 2L)) return(character(0))
-  out <- character(0)
+  if (is.null(ord) || !any(ord >= 2L)) return(unique(out))
   for (k in which(ord >= 2L)) {
     lbls <- rownames(fac)[fac[, k] > 0]
     vs <- lapply(lbls, function(l) all.vars(str2lang(l)))
@@ -1189,14 +1216,19 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   aliases. `"predict"`: prediction intervals - quantile bands from
 #'   `ndraws` responses simulated from the family at each grid point
 #'   (observation noise; random effects stay excluded, as in brms with
-#'   `re_formula = NA`), around the expected response on the same
-#'   scale as the draws (a count under `trials()`, the truncated mean
-#'   under `trunc()`). The
-#'   draws respect the response's addition terms: literal `trunc()`
-#'   bounds apply, and `trials()`, `se()` or variable `trunc()` bounds
-#'   must be pinned in `conditions` (a grid row is an artificial
-#'   observation, so a reference value for those is meaningless and is
-#'   an error rather than a silent default).
+#'   `re_formula = NA`), with `estimate__` the MEDIAN of the same
+#'   draws, as brms reports the median of its predictive draws: on the
+#'   scale of the draws (a count under `trials()`, inside the bounds
+#'   under `trunc()`), and a whole count for a discrete family when
+#'   `ndraws` is odd. It is not the expected response, which
+#'   `method = "epred"` shows. The
+#'   draws respect the response's addition terms. As in brms, a
+#'   `trials()` variable that `conditions` does not set is held at 1,
+#'   and the variable of an `se()` term or a `trunc()` bound at its
+#'   mean, like every other variable. An expression bound is evaluated
+#'   on the grid, where the response is at its mean too, so
+#'   `trunc(lb = min(y) - 1)` is `mean(y) - 1`. Set the variable in
+#'   `conditions` for a bound of your choice.
 #' @param ndraws Simulated responses per grid point for
 #'   `method = "predict"`. For the draws method: how many evenly spaced
 #'   posterior draws the curves are computed over (default all).
@@ -1820,7 +1852,7 @@ ce_model_vars <- function(x) {
         smooth_pred_vars(si$sm)
       })),
       unlist(lapply(lp[["gps"]] %||% list(), function(gi) {
-        unlist(lapply(gi$exprs, all.vars))
+        unlist(lapply(c(gi$exprs, gi[["by"]][["expr"]]), all.vars))
       })),
       # a cs() term's variable lives with the term, not in `terms`
       unlist(lapply(lp[["cs"]] %||% list(), function(ct) {
@@ -2139,6 +2171,8 @@ ce_nl_link_se <- function(x, nd, dpar, resp, re_formula) {
     })
   se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0) + lb$extra_var)
   se[lb$nonest] <- NA_real_
+  se[lb$se_nonest] <- NaN
+  se_pred_warn(lb$se_nonest)
   list(fit = as.vector(lb$eta), se.fit = se)
 }
 
@@ -2428,11 +2462,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       } else if (mean_display || !is.null(hook)) {
         if (mean_display) {
           # the mean runs through the addition terms as well as the
-          # dpars, so a term whose value on a grid row would be a
-          # reference value rather than a real one is refused here, on
-          # the same rule (and with the same message) method =
-          # "predict" has always used
-          ce_aterms(rspec, nd, cset, n)
+          # dpars, so a term the grid cannot evaluate is refused here,
+          # with the message method = "predict" uses
+          ce_aterms(rspec, nd, n)
         }
         # the expected response (or the reported dpar) and ITS standard
         # error: for the mean the delta method runs over every dpar's
@@ -2486,15 +2518,18 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # probability on the response scale and would reach log_pi()
         # already normalized
         dpv <- dpars_natural(x, rspec, nd, re_formula, anl)
-        avc <- ce_aterms(rspec, nd, cset, n)
+        avc <- ce_aterms(rspec, nd, n)
         # sim_response(), not fam$sim(): trunc() bounds are respected by
         # rejection, as everywhere else responses are drawn
         sims <- replicate(ndraws, sim_response(
           fam, dpv, avc, n, extra = fit_extras(x, rspec$resp_name)))
-        # the point estimate moves onto the response scale the bands
-        # live on: a binomial band is a count, not a probability, and a
-        # truncated band is centered on the truncated mean
-        df$estimate__ <- response_mean(fam, dpv, avc)
+        # the point estimate is the median of the same simulated
+        # responses the band is a quantile band of, as brms's estimate__
+        # is the median of its predictive draws (posterior_summary(robust
+        # = TRUE)): on the response scale the band lives on, a whole
+        # count for a discrete family (with an odd ndraws), inside the
+        # bounds of a truncated one (dev/fixes-ce-pred.R)
+        df$estimate__ <- apply(sims, 1, stats::quantile, 0.5)
         df$lower__ <- apply(sims, 1, stats::quantile, (1 - prob) / 2)
         df$upper__ <- apply(sims, 1, stats::quantile, 1 - (1 - prob) / 2)
         df$se__ <- apply(sims, 1, stats::sd)
@@ -3095,7 +3130,10 @@ ce_plot_one <- function(df, cond = NULL, o = ce_plot_defaults(),
     # panel of its own rather than a second set of colors
     ylab <- paste0("P(", attr(df, "response"), ")")
     if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
-    ylim <- ylim %||% range(df$lower__, df$upper__, na.rm = TRUE)
+    # the estimate is in the range too: a band that is NaN (a lost
+    # direction) leaves the curve to be drawn alone
+    ylim <- ylim %||% range(df$lower__, df$upper__, df$estimate__,
+                            na.rm = TRUE)
     # "cats__" is the category dimension itself, which already has the
     # grouping slot; only a real second PREDICTOR needs its own panel
     if (length(ev) == 2L && !identical(ev[2L], "cats__")) {
@@ -3118,8 +3156,9 @@ ce_plot_one <- function(df, cond = NULL, o = ce_plot_defaults(),
   if (!is.null(spag) && !is.null(cond) && !is.null(spag[["cond__"]])) {
     spag <- spag[as.character(spag$cond__) == cond, , drop = FALSE]
   }
-  ylim <- ylim %||% range(df$lower__, df$upper__, spag$estimate__,
-                          if (!is.null(pts)) pts$y, na.rm = TRUE)
+  ylim <- ylim %||% range(df$lower__, df$upper__, df$estimate__,
+                          spag$estimate__, if (!is.null(pts)) pts$y,
+                          na.rm = TRUE)
   # brms's `mean`: with spaghetti, FALSE leaves the estimate line out;
   # without spaghetti the line is the display and is always drawn
   line <- o$mean || is.null(spag)

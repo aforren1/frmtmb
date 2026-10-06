@@ -248,3 +248,263 @@ test_that("the collision message keeps saying start$ for start", {
   expect_match(msg, "`start[$]b`")
   expect_false(grepl("newparams", msg, fixed = TRUE))
 })
+
+# Coefficients of the nonlinear parameters with a direction that
+# changes no fitted value have a flat likelihood ridge: the update of
+# ledger row brmsfit-methods:955 (bf(count ~ a + b) with fit2's
+# a ~ Age + ..., b ~ Age + ...) is exactly flat along a_Intercept + t,
+# b_Intercept - t (dev/fixes-u955.R). frm() fitted such a model to an
+# arbitrary point on the ridge without a word. It now warns at the
+# fitted point, from the Hessian block of those coefficients there
+# (nl_flat_message()). Two checks before the fit refused identified
+# models (a symbolic one on pnorm() bodies, a Jacobian at fixed points
+# on natural-unit bodies; punch rounds 1 and 2), which is why the check
+# moved to the fitted point and warns rather than refuses.
+nl_sum_data <- local({
+  set.seed(955)
+  n <- 60
+  d <- data.frame(x = stats::rnorm(n), z = stats::rnorm(n))
+  d$y <- 3 + 0.5 * d$x + 0.3 * d$z + stats::rnorm(n, 0, 0.4)
+  d
+})
+
+# the warnings a fit raises and the error it stops with, if any
+nl_run <- function(expr) {
+  w <- character()
+  err <- NA_character_
+  tryCatch(suppressMessages(withCallingHandlers(expr, warning = function(x) {
+    w <<- c(w, conditionMessage(x))
+    invokeRestart("muffleWarning")
+  })), error = function(e) err <<- conditionMessage(e))
+  list(w = w, err = err)
+}
+
+nl_flat <- "are not identified: at the optimum the likelihood is flat"
+
+nl_flat_w <- function(r) {
+  w <- r$w[grepl(nl_flat, r$w, fixed = TRUE)]
+  if (length(w)) w[1L] else NA_character_
+}
+
+test_that("a flat combination of nonlinear coefficients warns", {
+  r <- nl_run(frm(bf(y ~ a + b, a ~ 1 + x, b ~ 1 + x, nl = TRUE),
+                  data = nl_sum_data))
+  expect_identical(r$err, NA_character_)
+  m <- nl_flat_w(r)
+  for (cf in c("a_Intercept", "a_x", "b_Intercept", "b_x")) {
+    expect_match(m, cf, fixed = TRUE)
+  }
+  # a body that is a function of the sum, a difference, a weighted sum
+  # and a product of two intercepts
+  for (fo in list(bf(y ~ exp(a + b) * z, a ~ 1, b ~ 1 + x, nl = TRUE),
+                  bf(y ~ a - b, a ~ 1 + x, b ~ 1, nl = TRUE),
+                  bf(y ~ a + 2 * b, a ~ 1 + x, b ~ 1, nl = TRUE),
+                  bf(y ~ a * b, a ~ 1, b ~ 1, nl = TRUE))) {
+    st <- switch(deparse1(fo$formula), "y ~ a * b" = c(1, 1),
+                 "y ~ exp(a + b) * z" = c(0, 0, 0), c(3, 0, 0.5))
+    m <- nl_flat_w(nl_run(frm(fo, data = nl_sum_data,
+                              start = list(beta = st))))
+    expect_match(m, "a_Intercept", fixed = TRUE,
+                 label = deparse1(fo$formula))
+  }
+  # only the coefficients that move are named
+  m <- nl_flat_w(nl_run(frm(bf(y ~ a + b, a ~ 1 + x, b ~ 0 + x + z,
+                               nl = TRUE), data = nl_sum_data)))
+  expect_match(m, "The coefficients a_x, b_x of", fixed = TRUE)
+  # a prior on one coefficient leaves the other flat direction open
+  m <- nl_flat_w(nl_run(frm(bf(y ~ a + b, a ~ 1 + x, b ~ 1 + x, nl = TRUE),
+                            data = nl_sum_data,
+                            prior = set_prior("normal(0, 1)", nlpar = "b",
+                                              coef = "Intercept"))))
+  expect_match(m, "a_x", fixed = TRUE)
+  expect_false(grepl("a_Intercept", m, fixed = TRUE))
+  # the update of brmsfit-methods:955's shape, on Gamma("identity"),
+  # here from the parent fit's estimates: it reaches the ridge, and
+  # warns
+  dg <- nl_sum_data
+  dg$y <- exp(dg$y / 3)
+  f0 <- frm(bf(y ~ 1 / (1 + exp(-a)) * exp(b * z), a ~ 1 + x, b ~ 1 + x,
+               nl = TRUE), data = dg, family = Gamma("identity"),
+            start = list(beta = c(2, 0, 0.5, 0)))
+  r <- nl_run(update(f0, formula. = bf(y ~ a + b, nl = TRUE)))
+  expect_identical(r$err, NA_character_)
+  expect_match(nl_flat_w(r), "a_Intercept, a_x, b_Intercept, b_x",
+               fixed = TRUE)
+})
+
+test_that("the flat check names coefficients or stays silent", {
+  # an exact ridge a + b beside c0 ~ 1 (lane fixes' final review, item
+  # 7's control): with the noise of the differenced Hessian in the
+  # naming threshold (lane nanse's RB3) no coefficient cleared it, and
+  # the warning read "The coefficients  of the nonlinear parameter ''"
+  # (the 0.68.0 merge). The check now stays silent there, and the
+  # standard-error check names the parameters
+  set.seed(45)
+  d5 <- data.frame(x = rnorm(200))
+  d5$y <- 1 + 0.5 * d5$x + rnorm(200, 0, 0.3)
+  r <- nl_run(frm(bf(y ~ a + b + log(c0), a ~ 1 + x, b ~ 1 + x, c0 ~ 1,
+                     nl = TRUE), data = d5,
+                  start = list(beta = c(0.5, 0.25, 0.5, 0.25, 1))))
+  expect_identical(r$err, NA_character_)
+  expect_false(any(grepl("The coefficients  of", r$w, fixed = TRUE)))
+  named <- grepl("are not identified: at the optimum", r$w, fixed = TRUE) |
+    grepl("Standard errors are not available", r$w, fixed = TRUE)
+  expect_true(any(named))
+  expect_true(any(grepl("a_x", r$w[named], fixed = TRUE)))
+})
+
+test_that("refit() does not repeat the flat-direction warning", {
+  # documented in ?refit at 0.68.0 (lane fixes' consolidation item 2):
+  # the design and its flat direction are the original fit's, which
+  # warned, so a parametric bootstrap does not warn once per replicate
+  r <- nl_run(f0 <- frm(bf(y ~ a + b, a ~ 1 + x, b ~ 1 + x, nl = TRUE),
+                        data = nl_sum_data))
+  expect_false(is.na(nl_flat_w(r)))
+  set.seed(3)
+  ys <- simulate(f0, nsim = 1)[[1]]
+  r2 <- nl_run(refit(f0, ys))
+  expect_identical(r2$err, NA_character_)
+  expect_true(is.na(nl_flat_w(r2)))
+})
+
+test_that("an identified nonlinear model fits without that warning", {
+  no_flat <- function(r, lab) {
+    expect_identical(r$err, NA_character_, label = lab)
+    expect_false(any(grepl(nl_flat, r$w, fixed = TRUE)), label = lab)
+  }
+  # disjoint terms: the joint design has full rank, and the fit is lm's
+  f1 <- frm(bf(y ~ a + b, a ~ 1 + x, b ~ 0 + z, nl = TRUE),
+            data = nl_sum_data)
+  ref <- stats::lm(y ~ x + z, data = nl_sum_data)
+  # within a small fraction of lm's own standard errors
+  se_ref <- unname(sqrt(diag(stats::vcov(ref))))
+  expect_lt(max(abs(unname(fixef(f1)[c("a_Intercept", "a_x", "b_z"),
+                                     "Estimate"]) - unname(coef(ref))) /
+                  se_ref), 1e-3)
+  no_flat(nl_run(frm(bf(y ~ a * exp(b * x), a ~ 1, b ~ 1, nl = TRUE),
+                     data = nl_sum_data, start = list(beta = c(3, 0)))),
+          "a * exp(b * x)")
+  no_flat(nl_run(frm(bf(y ~ a + exp(b), a ~ 1, b ~ 1 + x, nl = TRUE),
+                     data = nl_sum_data,
+                     start = list(beta = c(1, 0.5, 0.1)))),
+          "a + exp(b), b ~ 1 + x")
+  # a prior on every coefficient of one parameter identifies the sum
+  no_flat(nl_run(frm(bf(y ~ a + b, a ~ 1 + x, b ~ 1 + x, nl = TRUE),
+                     data = nl_sum_data,
+                     prior = set_prior("normal(0, 1)", nlpar = "b"))),
+          "a + b with a prior on b")
+  # a parameter that a second body also reads breaks the tie
+  no_flat(nl_run(frm(bf(y ~ a + b, a ~ 1, b ~ 1, nl = TRUE) +
+                       nlf(sigma ~ c0 + 0.1 * a, c0 ~ 1), data = nl_sum_data,
+                     start = list(beta = c(3, 0)))),
+          "a + b, a in sigma's body")
+})
+
+# The two identified models the fixed-point Jacobian check refused
+# (punch round 2, B2): in their natural units the body saturates at
+# coefficients near 0, a column underflowed to 0 and read as flat. Both
+# fit on 0.67.0 with finite standard errors
+# (dev/fixes-rev2-log/nl2-rellib-r5.txt).
+test_that("a logistic growth curve over calendar years fits", {
+  set.seed(22)
+  yr <- seq(1900, 2000, length.out = 120)
+  d <- data.frame(yr = yr, y = 50 / (1 + exp((1950 - yr) / 12)) +
+                    stats::rnorm(120, 0, 1.5))
+  r <- nl_run(fit <- frm(bf(y ~ Asym / (1 + exp((xmid - yr) / exp(lscal))),
+                            Asym ~ 1, xmid ~ 1, lscal ~ 1, nl = TRUE),
+                         data = d, start = list(beta = c(50, 1950, log(12)))))
+  expect_identical(r$err, NA_character_)
+  expect_false(any(grepl(nl_flat, r$w, fixed = TRUE)))
+  # nls on SSlogis is the same model; the two optimizers agree within a
+  # small fraction of frmtmb's own standard errors
+  ref <- stats::nls(y ~ SSlogis(yr, Asym, xmid, scal), data = d)
+  fe <- fixef(fit)
+  est <- c(fe["Asym_Intercept", "Estimate"], fe["xmid_Intercept", "Estimate"],
+           exp(fe["lscal_Intercept", "Estimate"]))
+  se <- c(fe["Asym_Intercept", "Est.Error"], fe["xmid_Intercept", "Est.Error"],
+          exp(fe["lscal_Intercept", "Estimate"]) *
+            fe["lscal_Intercept", "Est.Error"])
+  expect_true(all(is.finite(se)))
+  expect_lt(max(abs(est - unname(stats::coef(ref))) / se), 1e-2)
+})
+
+test_that("a psychometric function with a lapse rate fits, x 200 to 400", {
+  set.seed(21)
+  x <- stats::runif(800, 200, 400)
+  d <- data.frame(x = x, y = stats::rbinom(800, 1, 0.04 * 0.5 + 0.96 *
+                                             stats::pnorm(x, 300, 25)))
+  r <- nl_run(fit <- frm(bf(y ~ lapse * 0.5 + (1 - lapse) *
+                              pnorm(x, m0, exp(ls)),
+                            lapse ~ 1, m0 ~ 1, ls ~ 1, nl = TRUE),
+                         family = bernoulli(link = "identity"), data = d,
+                         start = list(beta = c(0.05, 300, log(25)))))
+  expect_identical(r$err, NA_character_)
+  expect_false(any(grepl(nl_flat, r$w, fixed = TRUE)))
+  expect_true(all(is.finite(fixef(fit)[, "Est.Error"])))
+})
+
+# The three identified models the symbolic check refused (punch round
+# 1, B1): stats::D() differentiates pnorm() and dnorm() in their first
+# argument only, so a mean and an sd had "identical" derivatives, 0.
+# Each fits on 0.67.0 with finite standard errors
+# (dev/fixes-rev-log/nl-false-base.txt).
+test_that("a response-preparation model in pnorm()'s mean and sd fits", {
+  set.seed(7)
+  n <- 3000
+  pt <- stats::runif(n, 0, 0.6)
+  f1 <- stats::pnorm(pt, 0.20, 0.045)
+  f2 <- stats::pnorm(pt, 0.32, 0.045)
+  p <- f2 * 0.95 + f1 * (1 - f2) * 0.2 + (1 - f1) * (1 - f2) * 0.5
+  d1 <- data.frame(pt = pt, y = stats::rbinom(n, 1, p))
+  prep <- frm(
+    bf(y ~ pnorm(pt, m2, exp(ls)) * 0.95 +
+         pnorm(pt, m1, exp(ls)) * (1 - pnorm(pt, m2, exp(ls))) * 0.2 +
+         (1 - pnorm(pt, m1, exp(ls))) * (1 - pnorm(pt, m2, exp(ls))) * 0.5,
+       m1 ~ 1, m2 ~ 1, ls ~ 1, nl = TRUE),
+    family = bernoulli(link = "identity"), data = d1,
+    start = list(beta = c(0.15, 0.4, -3)))
+  expect_true(all(is.finite(fixef(prep)[, "Est.Error"])))
+})
+
+test_that("a psychometric pnorm(x, m0, exp(ls)) fits", {
+  set.seed(11)
+  x <- stats::runif(800, -2, 2)
+  d2 <- data.frame(x = x, y = stats::rbinom(800, 1, stats::pnorm(x, 0.3, 0.7)))
+  psy <- frm(bf(y ~ pnorm(x, m0, exp(ls)), m0 ~ 1, ls ~ 1, nl = TRUE),
+             family = bernoulli(link = "identity"), data = d2,
+             start = list(beta = c(0, 0)))
+  # the same model written in the first argument is the same fit
+  psy2 <- frm(bf(y ~ pnorm((x - m0) / exp(ls)), m0 ~ 1, ls ~ 1, nl = TRUE),
+              family = bernoulli(link = "identity"), data = d2,
+              start = list(beta = c(0, 0)))
+  expect_lt(abs(as.numeric(logLik(psy) - logLik(psy2))),
+            1e-8 * abs(as.numeric(logLik(psy2))))
+})
+
+test_that("a Gaussian bump h * dnorm(x, c0, exp(ls)) fits", {
+  set.seed(12)
+  x <- stats::runif(300, -3, 3)
+  d3 <- data.frame(x = x, y = 2 * stats::dnorm(x, 0.5, 1.2) +
+                     stats::rnorm(300, 0, 0.05))
+  bump <- frm(bf(y ~ h * dnorm(x, c0, exp(ls)), h ~ 1, c0 ~ 1, ls ~ 1,
+                 nl = TRUE), data = d3, start = list(beta = c(1, 0, 0)))
+  expect_true(all(is.finite(fixef(bump)[, "Est.Error"])))
+})
+
+test_that("a parameter carried by its random effects alone is not flat", {
+  # zz ~ 0 + (1 | g) is zero without its random effects, so with them
+  # held at zero exp(lsd) * zz looked flat in lsd; the check refused
+  # drmTMB's agreement model on the first Jacobian build of punch round
+  # 1. It evaluates the random effects at nonzero values now
+  set.seed(505)
+  ng <- 40
+  g <- factor(rep(seq_len(ng), each = 10))
+  wg <- stats::rnorm(ng)
+  d <- data.frame(g = g, x = stats::rnorm(400), w = wg[g])
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(ng, 0, exp(-0.5 + 0.5 * wg))[g] +
+    stats::rnorm(400, 0, 0.7)
+  fit <- frm(bf(y ~ b0 + exp(lsd) * zz, b0 ~ x, lsd ~ 0 + w,
+                zz ~ 0 + (1 | g), nl = TRUE), family = gaussian(),
+             data = d)
+  expect_identical(fit$opt$convergence, 0L)
+})

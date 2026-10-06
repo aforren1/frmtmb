@@ -470,8 +470,6 @@ test_that("declared refusals at the frame stage really refuse", {
          fr(y | se(s) ~ x, family = poisson()))
   refuse("cens()", "binomial",
          fr(y | cens(cc) ~ x, family = bernoulli()))
-  refuse("cs_pred()", "cumulative",
-         fr(o ~ cs(x), family = cumulative()))
   refuse("|ID|", "ar1",
          fr(bf(y ~ ar1(0 + o | q | g)) + bf(y2 ~ x) + set_rescor(FALSE),
             family = gaussian()))
@@ -532,4 +530,58 @@ test_that("the multivariate declarations match a multivariate fit", {
   expect_lt(ci[, "lwr"], ci[, "upr"])
   hp <- hypothesis(fit, "y_x = 0", method = "profile")
   expect_equal(nrow(hp$hypothesis), 1L)
+})
+
+test_that("disc and the threshold structures have rows, and they hold", {
+  # Up to 0.67.0 the table had no row for either (dev/ordinal-findings.md,
+  # "Not done"), so frm_compat("disc") stopped as an unknown feature
+  for (st in c("disc", "equidistant", "sum_to_zero")) {
+    expect_identical(frm_compat(st, "cumulative")$status, "works")
+    expect_identical(frm_compat(st, "gaussian")$status, "refused")
+  }
+  expect_identical(frm_compat("sum_to_zero", "prior")$status, "conditional")
+  # the refusals the rows claim are the ones frm() makes
+  set.seed(3)
+  d <- data.frame(x = rnorm(40))
+  d$y <- rnorm(40)
+  d$o <- sample(1:4, 40, TRUE)
+  expect_error(frm(bf(y ~ x, disc ~ x), data = d), "disc")
+  expect_error(gaussian(threshold = "equidistant"), "unused argument")
+  expect_error(frm(o ~ x, family = cumulative(threshold = "sum_to_zero"),
+                   data = d, prior = set_prior("normal(0, 1)",
+                                               class = "Intercept")),
+               "sum_to_zero")
+})
+
+test_that("the structures' mixture cells hold for ordinal mixtures", {
+  # Lane fixes wrote these cells "refused" while an ordinal family could
+  # not be a mixture component; lane ordmix made it one, so at the
+  # 0.68.0 merge they say what the merged build does
+  # (dev/round-20261005.md)
+  expect_identical(frm_compat("disc", "mixture")$status, "works")
+  expect_identical(frm_compat("sum_to_zero", "mixture")$status, "works")
+  expect_identical(frm_compat("equidistant", "mixture")$status,
+                   "conditional")
+  set.seed(20261005)
+  n <- 400
+  d <- data.frame(x = rnorm(n), z = rnorm(n))
+  cls <- stats::rbinom(n, 1, stats::plogis(-0.4 + 0.5 * d$z))
+  lat <- ifelse(cls == 1, 1.5 * d$x + 1, -0.8 * d$x - 1) + stats::rlogis(n)
+  d$o <- 1L + (lat > -1.5) + (lat > 0) + (lat > 1.5)
+  fits <- function(f, fam) {
+    fit <- frm(f, family = fam, data = d)
+    expect_s3_class(fit, "frmtmb_fit")
+    expect_true(is.finite(as.numeric(logLik(fit))))
+  }
+  # each cell's "works" is a fit
+  fits(bf(o ~ x, disc1 ~ 0 + z), mixture(cumulative(), sratio()))
+  fits(bf(o ~ x), mixture(cumulative(threshold = "sum_to_zero"), sratio()))
+  fits(bf(o ~ x), mixture(cratio(), cumulative(threshold = "sum_to_zero"),
+                          order = "mu"))
+  fits(bf(o ~ x), mixture(cumulative(threshold = "equidistant"), sratio()))
+  # and the condition is brms's refusal
+  expect_error(mixture(cumulative(threshold = "equidistant"), sratio(),
+                       order = "mu"),
+               "Cannot use equidistant and fixed thresholds at the same time",
+               fixed = TRUE)
 })

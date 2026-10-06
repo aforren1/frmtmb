@@ -231,7 +231,10 @@ test_that("an ordinal response in a multivariate model is its own factor", {
   v <- variables(mv)
   expect_true(all(c("b_o_Intercept[1]", "b_o_Intercept[3]",
                     "b_o2_Intercept[2]") %in% v))
-  expect_true(all(c("o_tau_raw_1", "o2_tau_raw_2") %in%
+  # the internal threshold parameters under the names of what they
+  # are: cumulative()'s first threshold and sratio()'s thresholds
+  # themselves
+  expect_true(all(c("o_Intercept[1]", "o2_Intercept[2]") %in%
                     rownames(vcov(mv, full = TRUE))))
   fx <- fixef(mv)
   expect_true(all(c("o_Intercept[1]", "o2_Intercept[1]", "o_x") %in%

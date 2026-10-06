@@ -344,7 +344,10 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     return(if (length(ds) == 1L) ds[[1L]] else predict_stack(ds))
   }
   per <- lapply(seq_along(ds), function(i) {
-    predict_summarize_one(object, rspecs[[i]], ds[[i]], probs, robust)
+    cross <- predict_cross_rows(object, rspecs[[i]], newdata, re_formula,
+                                allow_new_levels)
+    predict_summarize_one(object, rspecs[[i]], ds[[i]], probs, robust,
+                          cross)
   })
   if (length(per) == 1L) return(per[[1L]])
   out <- array(unlist(per), c(nrow(per[[1L]]), ncol(per[[1L]]), length(per)),
@@ -384,12 +387,31 @@ check_sample_new_levels <- function(x, what, allow = "gaussian") {
            "maximum-likelihood fit has none", call. = FALSE)
 }
 
+#' The rows of an ordinal `cs()` response whose thresholds cross at the
+#' plug-in estimate, where `fitted()` is `NaN`, or `NULL` where the
+#' response cannot cross (`ord_response_has_cs()`). A row that cannot
+#' be estimated is `NA` there, not `NaN`, and is not counted.
+#'
+#' @noRd
+predict_cross_rows <- function(object, rspec, newdata, re_formula,
+                               allow_new_levels) {
+  if (!ord_response_has_cs(object, rspec)) return(NULL)
+  P <- tryCatch(frm_linpred(object, newdata = newdata,
+                            resp = rspec$resp_name, type = "response",
+                            re_formula = re_formula,
+                            allow_new_levels = allow_new_levels),
+                error = function(e) NULL)
+  if (!is.matrix(P)) return(NULL)
+  rowSums(is.nan(P)) > 0L
+}
+
 #' brms's summary of one response's simulated draws.
 #'
 #' @noRd
-predict_summarize_one <- function(object, rspec, d, probs, robust) {
+predict_summarize_one <- function(object, rspec, d, probs, robust,
+                                  cross = NULL) {
   if (fam_is_category_valued(rspec$family)) {
-    return(predict_category_props(object, rspec, d))
+    return(predict_category_props(object, rspec, d, cross))
   }
   if (length(dim(d)) == 3L) {
     # one summary layer per column of a matrix-valued response
@@ -450,11 +472,38 @@ fam_is_category_valued <- function(fam) {
   fam[["type"]] %in% c("ordinal", "categorical")
 }
 
+#' Whether a response has a `cs()` term on a predictor whose family
+#' keeps its thresholds ordered (`cumulative()`, `hurdle_cumulative()`,
+#' or such a component of an ordinal mixture): the case where a row's
+#' thresholds can cross.
+#'
+#' @noRd
+ord_response_has_cs <- function(object, rspec) {
+  if (!identical(rspec$family[["type"]], "ordinal")) return(FALSE)
+  for (dp in names(rspec$dpars)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dp)]]
+    if (!length(lp[["cs"]])) next
+    tf <- cs_target_family(rspec$family, dp)
+    if (!is.null(tf) && tf[["family"]] %in% ord_ordered_families) {
+      return(TRUE)
+    }
+  }
+  FALSE
+}
+
 #' brms's predictive summary of a category-valued response: the
 #' simulated proportion of each category, one column per category.
 #'
+#' `cross`, when given, marks the rows whose thresholds cross at the
+#' plug-in estimate, where `fitted()` is `NaN`: those rows are `NA`.
+#' Under `cs()` on a family that keeps its thresholds ordered, a
+#' replicate is `NA` where its parameter draw crosses two of the row's
+#' thresholds; elsewhere the proportions are over the replicates that do
+#' not cross, and the call warns once with how many were dropped (the
+#' user's decision of 2026-10-06).
+#'
 #' @noRd
-predict_category_props <- function(object, rspec, d) {
+predict_category_props <- function(object, rspec, d, cross = NULL) {
   lv <- object$frame[["y_levels"]][[rspec$resp_name]]
   K <- if (!is.null(lv)) {
     length(lv)
@@ -468,12 +517,43 @@ predict_category_props <- function(object, rspec, d) {
   code0 <- ord_code0(rspec$family)
   out <- t(apply(d, 2L, function(col) {
     # over the replicates that are THERE: a replicate that drew a
-    # non-finite dpar is NA, and dividing by the full count would
-    # report proportions that do not sum to one
+    # non-finite dpar, or whose cs() thresholds cross, is NA, and
+    # dividing by the full count would report proportions that do not
+    # sum to one
     ok <- col[!is.na(col)]
     if (!length(ok)) return(rep(NA_real_, K))
     tabulate(as.integer(ok) + 1L - code0, K) / length(ok)
   }))
+  if (ord_response_has_cs(object, rspec)) {
+    if (is.null(cross) || length(cross) != ncol(d)) {
+      cross <- rep(FALSE, ncol(d))
+    }
+    nas <- colSums(is.na(d))
+    out[cross, ] <- NA_real_
+    dropped <- which(nas > 0L & !cross)
+    if (length(dropped) || any(cross)) {
+      per <- if (length(dropped) <= 6L) {
+        paste0("row ", dropped, " ", nas[dropped], collapse = ", ")
+      } else {
+        paste0(min(nas[dropped]), " to ", max(nas[dropped]), " per row")
+      }
+      frm_warning(
+        if (length(dropped)) {
+          paste0("On ", length(dropped), " of ", ncol(d), " row(s) the cs() ",
+                 "offsets make two thresholds cross in some simulated ",
+                 "parameter draws, where the row has no category ",
+                 "distribution; their proportions are over the other ",
+                 "replicates (replicates dropped, of ", nrow(d), ": ", per,
+                 ").")
+        },
+        if (any(cross)) {
+          paste0(if (length(dropped)) " ", sum(cross), " row(s) cross at ",
+                 "the estimates themselves, as fitted() is NaN there, ",
+                 "and their proportions are NA.")
+        },
+        call. = FALSE)
+    }
+  }
   colnames(out) <- brms_category_labels(
     lv %||% as.character(code0 + seq_len(K) - 1L), K)
   rownames(out) <- NULL
@@ -1430,6 +1510,70 @@ re_batch_try <- function(S, ci, bi, keep) {
   nz <- Matrix::which(Sb != 0, arr.ind = TRUE)
   owner[nz[, 1L]] <- nz[, 2L]
   list(idx = bi[keep], owner = owner)
+}
+
+#' The chain-rule columns `fit_fd_se()` can take for the smooth, `gp()`
+#' and `hsgp()` blocks among `b_idx`, and the variance that is not
+#' coefficient uncertainty on each predictor of `resp`.
+#'
+#' A row of such a block's design loads every one of its columns once
+#' the row is off the fitted positions (a kriging row, a smooth basis
+#' row), so no batch can attribute a difference, and one pair of
+#' evaluations per coefficient was the whole cost: 329 evaluations for a
+#' 160-coefficient exact `gp()` at three new rows. Its effects reach the
+#' prediction only through one predictor's `eta`, linearly through `Z`,
+#' so the derivative is `(d out / d eta) Z`: one pair per predictor.
+#' `Z` is the design `lp_eta_design()` builds, in sample the predictor's
+#' own `Z`.
+#'
+#' Returns `list(chain, extra)`, each a list of entries keyed by the
+#' predictor; empty where the design cannot be rebuilt, which leaves the
+#' caller on the routes it had.
+#'
+#' @noRd
+fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
+                         b_idx) {
+  chain <- list()
+  extra <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!is.null(resp) && !identical(lp[["resp"]], resp)) next
+    if (!is.null(lp[["nl_body"]])) next
+    key <- linpred_key(lp[["resp"]], lp[["dpar"]])
+    ed <- tryCatch(suppressWarnings(
+      lp_eta_design(fit, lp, newdata, use_re, allow_new_levels)),
+      error = function(e) NULL)
+    if (is.null(ed)) next
+    for (bk in fit$frame[["re_blocks"]] %||% list()) {
+      if (!bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||
+          !block_b_positionwise(bk)) {
+        next
+      }
+      mine <- vapply(bk[["components"]], function(cp) {
+        identical(cp$lp_key, key)
+      }, NA)
+      if (!any(mine)) next
+      keep <- which(bk[["b_idx"]] %in% b_idx)
+      if (!length(keep)) next
+      Z <- if (is.null(newdata)) {
+        if (is.null(lp[["Z"]])) next
+        as.matrix(lp[["Z"]][, bk[["c_idx"]][keep], drop = FALSE])
+      } else {
+        sp <- Find(function(s) identical(s$bk[["c_idx"]], bk[["c_idx"]]),
+                   ed[["sm_parts"]])
+        if (is.null(sp)) next
+        as.matrix(sp$Xr)[, keep, drop = FALSE]
+      }
+      chain[[length(chain) + 1L]] <- list(key = key,
+                                          idx = bk[["b_idx"]][keep], Z = Z)
+    }
+    if (!is.null(newdata)) {
+      ev <- lp_extra_var_vec(fit, ed, use_re)
+      if (any(ev > 0)) {
+        extra[[length(extra) + 1L]] <- list(key = key, var = ev)
+      }
+    }
+  }
+  list(chain = chain, extra = extra)
 }
 
 #' Positions in `b` of EVERY smooth, `gp()` and `hsgp()` block.

@@ -228,12 +228,9 @@ non-centers
 \code{(1 | g)} and any block written one term at a time, \code{diag()} and
 \code{homdiag()} blocks, \code{\link[mgcv:s]{mgcv::s()}} smooths, \code{equalto()}, \code{gr(cov = )},
 and the CORRELATED blocks \code{(x | g)}, \code{cs()}, \code{ar1()} and \code{hetar1()}.
-A \verb{k =} Hilbert-space \code{gp()} block stays
-centered on the formula route even though its factor is diagonal:
-its LENGTHSCALES share the block's \code{theta}, the default priors cover
-only standard deviations, and the gate wants every parameter of a
-block priored. Prior the whole block by hand
-(\code{set_prior(class = "theta")}) to non-center it.
+A \verb{k =} Hilbert-space \code{gp()} block non-centers too, since its
+factor is diagonal and the defaults prior its sd and its length
+scales (brms's classes \code{"sdgp"} and \code{"lscale"}).
 \code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
 factors. What stays centered is a run whose variance parameters are

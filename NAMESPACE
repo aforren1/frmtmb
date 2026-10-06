@@ -212,7 +212,8 @@ export(build_objective, row_lpdf, with_cs_offsets,
   hyp_samples_frame, hyp_brms_result, brms_coef_names, brms_re_rnames,
   brms_block_has_r, brms_coef_table, brms_stan_name, brms_group_name,
   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
-  brms_par_labels, varcorr_matrices, varcorr_layout, varcorr_values,
+  brms_par_labels, gp_brms_natural, varcorr_matrices, varcorr_layout,
+  varcorr_values,
   ce_grids_build, ce_boot_one,
   ce_frame, ce_finalize, ce_spaghetti, ce_check_distance,
   ce_spaghetti_check, cs_build, cs_coef, cs_frame, cs_finalize,
@@ -222,7 +223,8 @@ export(build_objective, row_lpdf, with_cs_offsets,
   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
   fam_is_category_valued, predict_category_props, vcov_estimated,
   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
-  brms_prob_cols, brms_fixef_rows, ord_delta_info, rescor_row_loglik,
+  brms_prob_cols, brms_fixef_rows, ord_delta_info, ord_thres_linpred,
+  rescor_row_loglik,
   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
   subset_newdata)
@@ -263,6 +265,7 @@ export(frm_bootstrap)
 export(frm_compat)
 export(frm_compat_features)
 export(frm_compat_rules)
+export(frm_extra_cov_deriv)
 export(frm_family_package)
 export(frm_hazard_reads)
 export(frm_joint_cov)

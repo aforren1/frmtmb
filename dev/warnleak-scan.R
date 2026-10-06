@@ -7,8 +7,12 @@
 # writes one line per escaped warning.
 #
 # Usage: Rscript dev/warnleak-scan.R <package> <test file> <out file>
-.libPaths(c("C:/Users/adf44/source/r/rellib-r5",
+.libPaths(c("C:/Users/adf44/source/r/rellib-r6",
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+# inside local(), so no variable of the scan reaches the global
+# environment, where a test could find it by R's lookup rule
+# (dev/release/run-tests.R says how that showed at 0.68.0)
+local({
 a <- commandArgs(trailingOnly = TRUE)
 p <- a[1]; f <- a[2]; out <- a[3]
 suppressMessages({library(testthat); library(p, character.only = TRUE)})
@@ -25,3 +29,4 @@ for (x in r) for (e in x$results) {
                           sep = "\t"))
 }
 writeLines(lines, out)
+})

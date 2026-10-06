@@ -175,21 +175,80 @@ with adaptive quadrature, and `frm(importance = )` reweights it
 
 ### NaN standard errors
 
-"Some standard errors are not finite" has two causes and one symptom.
-The covariance is the inverse Hessian, so ONE unusable direction sends
-every entry to `NaN`, and the fit-time warning used to guess at
-overparameterization for both.
+The covariance is the inverse of the Hessian at the optimum. A plain
+inverse fails as a whole: one unusable direction makes every entry
+`NaN`. `frm()` does not stop there. It builds the Hessian when it
+fits, and when the plain inverse fails it tries two repairs before it
+gives up on a parameter:
 
-`diagnose(fit)` separates them. It reports "Flat directions" when the
-likelihood does not depend on a parameter at all: zero gradient and an
-empty Hessian row, measured by perturbing the parameter and seeing
-whether the gradient moves. Parameters named there are not
-identified AT THAT POINT, which is a starting-value problem, not a
-model-size problem. A nonlinear term evaluated outside its own support
-is the usual cause; see the nonlinear section of
-`vignette("frmtmb")`. With no flat direction the covariance failed for
-the other reason, and the model has parameters the data cannot tell
-apart.
+1. It scales the Hessian to unit diagonal and inverts that. This is
+   the same matrix, so it changes nothing where the plain inverse
+   worked. It recovers the standard errors where one parameter is on a
+   very different scale from the others. On a model without random
+   effects it also uses the exact Hessian instead of a
+   finite-difference one, which matters for a coefficient of a
+   covariate in large units.
+2. When that also fails, it removes the directions the likelihood does
+   not determine and keeps the standard errors of the other
+   parameters. A parameter goes with a direction when a measurable part
+   of it lies along that direction, so a direction spread over many
+   coefficients takes all of them.
+
+The parameters it removes have no standard error. `frm()` names them
+in one warning, "Standard errors are not available for k of n
+parameters", with a reason for each:
+
+* **A bound holds it.** The fit is a constrained optimum. The other
+  standard errors are conditional on the bound.
+* **The data separate the outcomes.** A coefficient of a binomial or
+  ordinal model runs off toward infinity, and the optimizer stops
+  where its tolerances do.
+* **The likelihood is flat along it.** A standard deviation at 0 does
+  this. So does a `mo()` simplex weight at 0, because the simplex
+  coordinate has gone to minus infinity. Two parameters that enter
+  only through their sum do it too, and so does a nonlinear term
+  evaluated outside its own support; see the nonlinear section of
+  `vignette("frmtmb")`.
+* **A step along it raises the log-likelihood.** The estimates are not
+  a maximum in that direction. Refit from other starting values. A
+  short step along the direction confirms this before the warning
+  says it; a direction where the step does not gain is called flat.
+* **Its Hessian row is not finite.**
+
+An earlier warning that names a parameter, such as the one for a
+grouping factor with one level, explains that parameter only. The
+other parameters still appear in this warning. A setting of `"ignore"`
+on the earlier check does not explain anything.
+
+`summary()` repeats the list under the coefficient tables, and
+`confint()` and `vcov()` show `NaN` for those parameters only. A
+prediction whose standard error depends on a removed direction gets
+`NaN` for it, and so does an emmean or a `hypothesis()`. `fitted()`,
+`predict()`, `frm_linpred()`, `conditional_effects()`, `emmeans()` and
+`hypothesis()` warn once per call with the number of such rows. A
+prediction that does not move along a removed
+direction keeps its standard error. A fit that did not converge gets
+the convergence warning instead of this one, and keeps sdreport()'s
+own covariance.
+
+The check costs time. On a model without random effects it reads the
+exact Hessian, at about one gradient per coefficient: 8 to 23 percent
+of the fit on small models and 19 to 24 percent on a model with 301
+coefficients. With random effects it builds the finite-difference
+Hessian, two gradients per outer parameter, when the model has at
+most 10 outer parameters or those gradients are at most a quarter of
+the evaluations the optimizer made. Otherwise the check waits for the
+first use of a standard error (`summary()`, `fixef()`, `vcov()`,
+`confint()`, a prediction's standard error) and warns there, so a
+large mixed model can fit without the warning and give it later. The
+rule counts work and does not read the clock, so a call warns in the
+same place on every run. To
+skip the check, use `frmtmb_control(check_se = "ignore")`.
+
+`diagnose(fit)` also reports "Flat directions" when the likelihood
+does not depend on a parameter at all: zero gradient and an empty
+Hessian row, measured by perturbing the parameter and seeing whether
+the gradient moves.
 
 To measure the violation rather than route around it, install the
 companion package **frmtmb.sample** and read

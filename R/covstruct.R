@@ -1546,8 +1546,17 @@ spde_prec <- function(theta, blk) {
 # otherwise; parameter count depends on the dimension count, so npar
 # and start are handled at the frame call sites (gp_npar/gp_start),
 # like rr.
-# the 1e-6 nugget keeps the notoriously ill-conditioned SE kernel
+# the nugget (gp_nugget) keeps the notoriously ill-conditioned SE kernel
 # Cholesky-factorizable as the range grows (standard GP practice)
+#' The exact gp()'s nugget, on the CORRELATION: white noise of
+#' `gp_nugget * sd^2` at each position, part of the fitted model. One
+#' constant, read by the density, the kriging and the sampler's draw of
+#' the field, so a change to it changes all three together; brms's
+#' Stan program uses 1e-12 absolute (dev/brms-likelihood-tests.md).
+#'
+#' @noRd
+gp_nugget <- 1e-6
+
 #' Number of `theta` entries for an exact gp block: one `log sd` plus one
 #' lengthscale, shared when `iso` and one per input dimension otherwise.
 #'
@@ -1570,7 +1579,7 @@ gp_corr <- function(theta, blk) {
     rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
     Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho^2)
   }
-  exp(-Q) + diag(1e-6, nrow(blk[["aux_D2"]][[1]]))
+  exp(-Q) + diag(gp_nugget, nrow(blk[["aux_D2"]][[1]]))
 }
 
 #' Numeric `K(X*, X)` of a fitted exact-gp block at new coordinates Xnew
@@ -1588,7 +1597,7 @@ gp_cross_cov <- function(theta, blk, Xnew, pos) {
     Q <- Q + dj^2 / (2 * rho^2)
     same <- same * (dj == 0)
   }
-  exp(2 * theta[1]) * (exp(-Q) + 1e-6 * same)
+  exp(2 * theta[1]) * (exp(-Q) + gp_nugget * same)
 }
 
 covstruct_registry[["gp"]] <- list(

@@ -1,3 +1,13 @@
+# frmtmb.learn 0.7.2
+
+No change to the package's code. Needs frmtmb 0.68.0 for its tests.
+
+* `test-engine.R`, `test-reference.R` and `test-stan-identity.R` allow
+  frmtmb 0.68.0's warning that standard errors are not available,
+  and `test-engine.R` requires it on its fit with a constant
+  likelihood, where no parameter has a standard error (lane nanse,
+  `dev/nanse-findings.md`).
+
 # frmtmb.learn 0.7.1
 
 No change to the package's code.

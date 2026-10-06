@@ -179,7 +179,7 @@ dpar_frame_rhs <- function(dp) {
     for (v in all.vars(cexpr)) parts <- c(parts, list(as.name(v)))
   }
   for (ge in dp[["gpterms"]] %||% list()) {
-    for (ex in ge$exprs) {
+    for (ex in c(ge$exprs, if (!is.null(ge$by)) list(ge$by))) {
       for (v in all.vars(ex)) parts <- c(parts, list(as.name(v)))
     }
   }
@@ -490,16 +490,15 @@ check_se_declared <- function(resp) {
 #' @noRd
 check_cs_in_bar <- function(resp) {
   fam <- resp$family
-  cs_ok <- identical(fam[["type"]], "ordinal") &&
-    !identical(fam[["family"]], "cumulative")
+  cs_ok <- identical(fam[["type"]], "ordinal")
   for (dp in resp$dpars) {
     for (re in dp[["re"]] %||% list()) {
       lhs <- re$bar[[2L]]
       if (!calls_function(lhs, "cs")) next
       if (!cs_ok) {
-        frm_stop("cs() needs an sratio, cratio, or acat family; the ",
-                 "group-level term (", deparse1(re$bar), ") has one",
-                 call. = FALSE)
+        frm_stop("Category specific effects are not supported for this ",
+                 "family. cs() needs an ordinal family; the group-level ",
+                 "term (", deparse1(re$bar), ") has one", call. = FALSE)
       }
       frm_stop("A category-specific effect inside a group-level term, (",
                deparse1(re$bar), "), is not supported: cs() is a ",
@@ -1879,7 +1878,7 @@ check_frame_variables <- function(rhs, data, env) {
 #' matched to the data's by name.
 #'
 #' @noRd
-frame_raw_vars <- function(mf, data, rhs) {
+frame_raw_vars <- function(mf, data, rhs, env = NULL) {
   if (is.null(rhs) || !is.data.frame(data)) return(NULL)
   off_only <- character(0)
   other <- character(0)
@@ -1894,11 +1893,26 @@ frame_raw_vars <- function(mf, data, rhs) {
   }
   walk(rhs, FALSE)
   v <- setdiff(unique(other), names(mf))
-  v <- intersect(v, names(data))
-  if (!length(v)) return(NULL)
   rows <- match(rownames(mf), rownames(data))
   if (anyNA(rows)) return(NULL)
+  # a predictor keeps R's lookup in the formula environment (user
+  # decision of 2026-09-30), so a variable found there, one value per
+  # row of the data, is a raw variable as a column is; a function or a
+  # constant of another length is not
+  from_env <- list()
+  if (!is.null(env)) {
+    for (w in setdiff(v, names(data))) {
+      x <- tryCatch(get(w, envir = env), error = function(e) NULL)
+      if ((is.numeric(x) || is.factor(x) || is.character(x) ||
+             is.logical(x)) && is.null(dim(x)) && length(x) == nrow(data)) {
+        from_env[[w]] <- x[rows]
+      }
+    }
+  }
+  v <- intersect(v, names(data))
+  if (!length(v) && !length(from_env)) return(NULL)
   out <- data[rows, v, drop = FALSE]
+  for (w in names(from_env)) out[[w]] <- from_env[[w]]
   rownames(out) <- rownames(mf)
   out
 }
@@ -3107,8 +3121,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # change the fit: for t2 `X` and `S` are bit-identical either way
         # (`modCon >= 3` only sets `sm$Cp <- NULL`), and for s() `Cp` is
         # already NULL so the argument is inert.
+        #
+        # diagonal.penalty = TRUE is brms's (data_sm(), frame_basis_sm()
+        # since brms 2.8.7). It reparameterizes a single-penalty smooth
+        # so the penalty is the identity on its range, which fixes the
+        # scale of the null-space column: without it frmtmb's `sx_1` was
+        # brms's coefficient times a data-dependent factor (5.0 to 7.7
+        # on gamSim data, of either sign), so a prior or a hypothesis on
+        # it meant another parameter. The random part, and so the fit,
+        # does not change. mgcv ignores the flag for a smooth with
+        # several penalties (t2()), as it does in brms's call.
         scl <- mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
-                               modCon = 3)
+                               modCon = 3, diagonal.penalty = TRUE)
         for (sm in scl) {
           re2 <- mgcv::smooth2random(sm, names(mf), type = 2)
           if (isTRUE(re2$fixed)) {
@@ -3175,7 +3199,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # block over the unique coordinate rows); gp(..., k=) is the
       # Hilbert-space approximation (tensor-product sine basis in Z,
       # spectral-density prior SDs). D up to 3; iso shares one
-      # lengthscale, the default is one per dimension (brms).
+      # lengthscale, brms's default; iso = FALSE gives one per
+      # dimension. A factor `by` is one independent GP per contrast
+      # column (one per level under brms's cmc = TRUE), each over its own
+      # rows with its own scaling and its own sd and lengthscales, as
+      # brms:::data_gp() builds them; a numeric `by` multiplies one GP.
       gp_info <- list()
       for (ge in dp[["gpterms"]] %||% list()) {
         Xc <- do.call(cbind, lapply(ge$exprs, function(ex) {
@@ -3184,96 +3212,129 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         Dg <- ncol(Xc)
         iso <- isTRUE(ge$iso) || Dg == 1L
         vnames <- vapply(ge$exprs, deparse1, "")
-        lab0 <- paste0("gp(", paste(vnames, collapse = ", "),
-                       if (!is.null(ge$k)) paste0(", k = ", ge$k) else "",
-                       ")")
-        if (is.null(ge$k)) {
-          posdf <- unique(as.data.frame(Xc))
-          posdf <- posdf[do.call(order, posdf), , drop = FALSE]
-          pos <- unname(as.matrix(posdf))
-          npos <- nrow(pos)
-          if (npos > 500L) {
-            frm_stop("gp() without k= builds a dense ", npos,
-                     "-point covariance; use k= for the Hilbert-space ",
-                     "approximation", call. = FALSE)
-          }
-          Zg <- Matrix::sparseMatrix(i = seq_len(nrow(Xc)),
-                                     j = match(pos_rowkey(Xc),
-                                               pos_rowkey(pos)),
-                                     x = 1, dims = c(nrow(Xc), npos))
-          components[[length(components) + 1L]] <- list(
-            lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
-            covstruct = "gp", id = NULL,
-            dim = npos, n_levels = 1L,
-            levels = NULL, cnms = paste0(lab0, ".", seq_len(npos)),
-            bar = NULL, Zlocal = methods::as(Zg, "CsparseMatrix"),
-            aux_D2 = lapply(seq_len(Dg), function(j) {
-              outer(pos[, j], pos[, j], "-")^2
-            }),
-            gp_D = Dg, gp_iso = iso, gp_vars = vnames,
-            group_name = lab0,
-            label = paste0(dp_prefix, lab0)
-          )
-          gp_info[[length(gp_info) + 1L]] <- list(
-            exprs = ge$exprs, type = "exact", positions = pos,
-            comp_id = length(components), block_id = NULL, label = lab0
-          )
-        } else {
-          # brms's input convention (brms:::.data_gp): rescale by the
-          # largest pairwise distance over the DISTINCT coordinate rows,
-          # center on that scale, then take a shared boundary
-          # L_j = c_j * max(1, range of the whole centered matrix). The
-          # same gp(x, k, c) call is then the same approximation here and
-          # in brms. Distinct rows because brms's gr = TRUE default
-          # collapses duplicate positions before computing the scale, so
-          # ties would otherwise shift the center.
-          cvec <- ge$c
+        lab0 <- gp_term_label(ge, vnames)
+        cvec <- ge$c
+        if (!is.null(ge$k)) {
           if (length(cvec) == 1L) cvec <- rep(cvec, Dg)
           if (length(cvec) != Dg) {
             frm_stop("gp(): c = must be length 1 or the number of ",
                      "variables (", Dg, ")", call. = FALSE)
           }
-          uq <- Xc[!duplicated(pos_rowkey(Xc)), , drop = FALSE]
-          dmax <- gp_max_dist(uq)
-          if (!isTRUE(dmax > 0)) {
-            # a single scale over all coordinates, so it vanishes only
-            # when every coordinate row is identical
-            frm_stop("gp(", paste(vnames, collapse = ", "),
-                     "): the coordinates have no spread", call. = FALSE)
-          }
-          ctr <- colMeans(uq / dmax)
-          Lb <- gp_choose_L(sweep(uq / dmax, 2, ctr), cvec)
-          xc <- sweep(Xc / dmax, 2, ctr)
-          m <- ge$k
-          if (m^Dg > 1000) {
-            frm_stop("gp(): k = ", m, " over ", Dg, " dimensions gives ",
-                     m^Dg, " basis columns (cap 1000); lower k=",
-                     call. = FALSE)
-          }
-          idx <- as.matrix(do.call(expand.grid,
-                                   rep(list(seq_len(m)), Dg)))
-          omega <- sweep(idx * pi, 2, 2 * Lb, "/")
-          Phi <- hsgp_basis(xc, omega, Lb)
-          M_b <- nrow(omega)
-          components[[length(components) + 1L]] <- list(
-            lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
-            covstruct = "hsgp", id = NULL,
-            dim = M_b, n_levels = 1L,
-            levels = NULL, cnms = paste0(lab0, ".", seq_len(M_b)),
-            bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
-            aux_omega = omega,
-            gp_D = Dg, gp_iso = iso, gp_vars = vnames,
-            gp_dmax = dmax,
-            group_name = lab0,
-            label = paste0(dp_prefix, lab0)
-          )
-          gp_info[[length(gp_info) + 1L]] <- list(
-            exprs = ge$exprs, type = "hsgp", center = ctr, L = Lb,
-            dmax = dmax, omega = omega, comp_id = length(components),
-            block_id = NULL, label = lab0
-          )
         }
-        comp_ids <- c(comp_ids, length(components))
+        byv <- if (!is.null(ge$by)) {
+          eval(ge$by, mf, resp$formula_env)
+        }
+        subs <- gp_sub_terms(ge, byv, vnames, iso, nrow(Xc))
+        for (sb in subs) {
+          rows <- sb$rows
+          Xs <- Xc[rows, , drop = FALSE]
+          lab <- paste0(lab0, sb$lab_sfx)
+          # brms's gr = TRUE keeps one latent value per distinct
+          # position; gr = FALSE one per observation
+          uq <- if (isTRUE(ge$gr)) {
+            Xs[!duplicated(pos_rowkey(Xs)), , drop = FALSE]
+          } else {
+            Xs
+          }
+          # brms's scale = TRUE divides by the largest pairwise distance
+          # over those rows (brms:::.data_gp), level by level
+          dmax <- if (isTRUE(ge$scale)) gp_max_dist(uq) else 1
+          if (isTRUE(ge$scale) && !isTRUE(dmax > 0)) {
+            frm_stop("gp(", paste(vnames, collapse = ", "), "): the ",
+                     "coordinates have no spread",
+                     if (nzchar(sb$lab_sfx)) paste0(" in", sb$lab_sfx),
+                     ", so they cannot be scaled. brms says: Could not ",
+                     "scale GP covariates. Please set 'scale' to FALSE ",
+                     "in 'gp'", call. = FALSE)
+          }
+          # which written term this sub-GP belongs to: brms names and
+          # orders a term's parameters together, levels innermost
+          brms_meta <- list(sfx1 = sb$sfx1, sfx2 = sb$sfx2,
+                            term = paste0(lp_key, "\r", lab0))
+          if (is.null(ge$k)) {
+            if (isTRUE(ge$gr)) {
+              posdf <- as.data.frame(uq)
+              posdf <- posdf[do.call(order, posdf), , drop = FALSE]
+              pos <- unname(as.matrix(posdf))
+              jpos <- match(pos_rowkey(Xs), pos_rowkey(pos))
+            } else {
+              pos <- unname(Xs)
+              jpos <- seq_len(nrow(Xs))
+            }
+            npos <- nrow(pos)
+            if (npos > 500L) {
+              frm_stop("gp() without k= builds a dense ", npos,
+                       "-point covariance; use k= for the Hilbert-space ",
+                       "approximation", call. = FALSE)
+            }
+            Zg <- Matrix::sparseMatrix(i = rows, j = jpos, x = sb$mult,
+                                       dims = c(nrow(Xc), npos))
+            components[[length(components) + 1L]] <- list(
+              lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
+              covstruct = "gp", id = NULL,
+              dim = npos, n_levels = 1L,
+              levels = NULL, cnms = paste0(lab, ".", seq_len(npos)),
+              bar = NULL, Zlocal = methods::as(Zg, "CsparseMatrix"),
+              aux_D2 = lapply(seq_len(Dg), function(j) {
+                outer(pos[, j], pos[, j], "-")^2
+              }),
+              gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+              # the exact form keeps data units inside; brms reports
+              # its lengthscale on the scaled inputs
+              gp_lscale_div = dmax, gp_brms = brms_meta,
+              group_name = lab,
+              label = paste0(dp_prefix, lab)
+            )
+            gp_info[[length(gp_info) + 1L]] <- list(
+              exprs = ge$exprs, type = "exact", positions = pos,
+              prior_x = uq / dmax,
+              by = sb$by, comp_id = length(components), block_id = NULL,
+              label = lab
+            )
+          } else {
+            # brms's input convention (brms:::.data_gp): rescale by the
+            # largest pairwise distance, center on that scale, then take
+            # a shared boundary L_j = c_j * max(1, range of the whole
+            # centered matrix). The same gp(x, k, c) call is then the
+            # same approximation here and in brms. The rows are the
+            # distinct positions under gr = TRUE, because brms collapses
+            # duplicates before computing the scale, so ties would
+            # otherwise shift the center.
+            ctr <- colMeans(uq / dmax)
+            Lb <- gp_choose_L(sweep(uq / dmax, 2, ctr), cvec)
+            m <- ge$k
+            if (m^Dg > 1000) {
+              frm_stop("gp(): k = ", m, " over ", Dg, " dimensions gives ",
+                       m^Dg, " basis columns (cap 1000); lower k=",
+                       call. = FALSE)
+            }
+            idx <- as.matrix(do.call(expand.grid,
+                                     rep(list(seq_len(m)), Dg)))
+            omega <- sweep(idx * pi, 2, 2 * Lb, "/")
+            Phi <- matrix(0, nrow(Xc), nrow(omega))
+            Phi[rows, ] <- sb$mult *
+              hsgp_basis(sweep(Xs / dmax, 2, ctr), omega, Lb)
+            M_b <- nrow(omega)
+            components[[length(components) + 1L]] <- list(
+              lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
+              covstruct = "hsgp", id = NULL,
+              dim = M_b, n_levels = 1L,
+              levels = NULL, cnms = paste0(lab, ".", seq_len(M_b)),
+              bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
+              aux_omega = omega,
+              gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+              gp_dmax = dmax, gp_lscale_div = 1, gp_brms = brms_meta,
+              group_name = lab,
+              label = paste0(dp_prefix, lab)
+            )
+            gp_info[[length(gp_info) + 1L]] <- list(
+              exprs = ge$exprs, type = "hsgp", center = ctr, L = Lb,
+              dmax = dmax, omega = omega, by = sb$by, prior_x = uq / dmax,
+              comp_id = length(components), block_id = NULL, label = lab
+            )
+          }
+          comp_ids <- c(comp_ids, length(components))
+        }
       }
 
       # Spatial GMRF terms: car(M, gr = g) over an adjacency matrix and
@@ -3448,9 +3509,29 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       cs_info <- list()
       cs_mm <- list()
       if (length(dp[["csterms"]] %||% list())) {
-        if (!identical(resp$family[["type"]], "ordinal") ||
-            resp$family[["family"]] %in% ord_ordered_families) {
-          frm_stop("cs() needs an sratio, cratio, or acat family",
+        cs_fam <- cs_target_family(resp$family, dp[["name"]])
+        ord_mix <- !is.null(resp$family[["mix"]][["ord"]])
+        ordinal <- identical(resp$family[["type"]], "ordinal")
+        if (is.null(cs_fam) &&
+            (ordinal || !grepl("^mu[0-9]*$", dp[["name"]]))) {
+          # brms's sentence first, on any family (sigma ~ cs(w) on a
+          # gaussian too). The base build put these offsets in the one
+          # slot the densities read, so cs() in disc's formula moved
+          # the thresholds as if written in mu's
+          # (dev/ordmix-base-behavior.R)
+          frm_stop("Category specific effects are only supported for the ",
+                   "main parameter 'mu'. cs() moves the thresholds of an ",
+                   "ordinal family's latent predictor",
+                   if (ord_mix) {
+                     ", which in an ordinal mixture is mu1, mu2, ..."
+                   },
+                   ", and `", dp[["name"]], "` is not that predictor",
+                   call. = FALSE)
+        }
+        if (!ordinal) {
+          frm_stop("Category specific effects are not supported for this ",
+                   "family. cs() needs an ordinal family: cumulative(), ",
+                   "sratio(), cratio(), acat() or hurdle_cumulative()",
                    call. = FALSE)
         }
         if (thres_grouped(resp$family)) {
@@ -3483,6 +3564,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           }
         }
         check_cs_identified(X, cs_info, lp_key, mo_info)
+        # brms 2.23.0 fits cs() on the two families with ordered
+        # thresholds and warns in these words (brms:::check_cs(), once
+        # per predictor; dev/rel068-cs-brms.R). The reason is that a
+        # row's thresholds can cross, which the second sentence says. It
+        # comes after the refusals, so that a model refused for another
+        # reason does not also warn
+        if (cs_fam[["family"]] %in% ord_ordered_families) {
+          frm_warning("Category specific effects for this family should ",
+                      "be considered experimental and may have convergence ",
+                      "issues. cs() moves each threshold of a row by its ",
+                      "own amount, so under ", cs_fam[["family"]], "() a ",
+                      "row's thresholds can cross; such a row has no ",
+                      "category distribution: its density and fitted() ",
+                      "probabilities are NaN, and simulate() gives NA",
+                      call. = FALSE)
+        }
       }
 
       # `paste()` recycles to the LONGEST argument, so a design with no
@@ -3736,6 +3833,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_iso = cps[[1]]$gp_iso,
       gp_vars = cps[[1]]$gp_vars,
       gp_dmax = cps[[1]]$gp_dmax,
+      gp_lscale_div = cps[[1]]$gp_lscale_div,
+      gp_brms = cps[[1]]$gp_brms,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       # reformulas writes g/h's nested factor as h:g and brms as g:h; the
@@ -3921,7 +4020,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          # a refit inside the package keeps the fit's choice
          drop_unused_levels = drop_unused_levels,
          data_frame = mf,
-         raw_vars = frame_raw_vars(mf, data, rhs_comb),
+         raw_vars = frame_raw_vars(mf, data, rhs_comb, env),
          na_action = attr(mf, "na.action"),
          # subset(): the rows of `data_frame` each such response uses,
          # and the rows before a univariate model's cut, for nobs()

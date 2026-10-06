@@ -10,7 +10,8 @@ frm_lp_basis(
   dpar = NULL,
   resp = NULL,
   re_formula = NULL,
-  allow_new_levels = FALSE
+  allow_new_levels = FALSE,
+  extra_cov = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,9 @@ the terms it names. See \code{\link[=frm_linpred]{frm_linpred()}} for the full r
 
 \item{allow_new_levels}{Whether a grouping level the fit never saw is
 allowed.}
+
+\item{extra_cov}{If \code{TRUE}, also return \code{extra_cov}, the full
+covariance over the rows of the variance in \code{extra_var}.}
 }
 \value{
 A list with
@@ -46,9 +50,15 @@ because an exact \code{gp()}'s kriging variance and a new grouping
 level's marginal variance are not.}
 \item{\code{nonest}}{length \code{n}; rows that load on a direction the
 rank-deficient design could not identify.}
+\item{\code{extra_cov}}{only with \code{extra_cov = TRUE}: \verb{n x n}; the
+covariance between rows of the variance in \code{extra_var}, whose
+diagonal it is, exactly. A sparse \code{\link[Matrix:Matrix]{Matrix::Matrix()}} when its
+blocks cover little of the grid (all zero when nothing
+contributes), a dense matrix otherwise.}
 }
 \code{var(eta)} is \code{rowSums((A \%*\% V) * A) + extra_var}, and
-\code{frm_linpred(se.fit = TRUE)} is written that way.
+\code{frm_linpred(se.fit = TRUE)} is written that way. The covariance of
+the whole prediction is \verb{A V A' + extra_cov}.
 }
 \description{
 \code{frm_linpred(se.fit = TRUE)} builds a matrix \code{A} with one row per
@@ -64,6 +74,29 @@ perturbation, one \code{predict()} call per coefficient.
 The name follows \code{emmeans::emm_basis()}, which is the same idea for
 the fixed block alone.
 }
+\section{Variance that is not coefficient uncertainty}{
+
+Two sources reach \code{extra_var}. An exact \code{gp()} evaluated at a position
+the fit did not see adds the field's conditional (kriging) covariance
+given its values at the fitted positions,
+\verb{k(x, x') - k(x, X) K^-1 k(X, x')}; rows at an observed position carry
+none. Every unseen row of one \code{gp()} term loads the SAME draw of the
+field, so those rows covary, and a simultaneous band, a difference
+between two grids or a derivative needs the whole matrix rather than
+its diagonal. A grouping level the fit never saw
+(\code{allow_new_levels = TRUE}) adds its block's covariance: rows at the
+same unseen level load one draw of its effect and covary fully, and
+rows at two different unseen levels load independent draws.
+
+For a difference between two grids, call this once on the stacked
+grid \code{rbind(newdata, newdata2)}: the off-diagonal block of
+\code{extra_cov} is the covariance between them. For a DERIVATIVE of the
+curve, do not difference \code{extra_cov}: a finite difference of a
+covariance divides its rounding by the step to the power of twice
+the order. \code{\link[=frm_extra_cov_deriv]{frm_extra_cov_deriv()}} returns that covariance from its
+sources.
+}
+
 \section{A nonlinear body}{
 
 For a nonlinear predictor \code{A} is a JACOBIAN rather than a design, and

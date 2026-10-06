@@ -57,6 +57,7 @@
 \alias{hyp_eval_in}
 \alias{hyp_expr_vars}
 \alias{brms_par_labels}
+\alias{gp_brms_natural}
 \alias{varcorr_matrices}
 \alias{varcorr_layout}
 \alias{varcorr_values}
@@ -85,6 +86,7 @@
 \alias{brms_prob_cols}
 \alias{brms_fixef_rows}
 \alias{ord_delta_info}
+\alias{ord_thres_linpred}
 \alias{rescor_row_loglik}
 \alias{arma_cond_resp}
 \alias{arma_cond_dpars}
@@ -257,7 +259,10 @@ not, each with the map from the internal vector to the reported value,
 so a draws object can report the same rows \code{fixef()} does.
 \code{ord_delta_info(fit)} lists brms's \code{delta} parameters of an ordinal
 fit with equidistant thresholds: the name, where the internal value
-sits, and the map from it to \code{delta}.
+sits, and the map from it to \code{delta}. \code{ord_thres_linpred(fit, newdata, resp, re_formula, allow_new_levels)} is brms's linear
+predictor with the thresholds included at the fit's estimates, the
+\verb{n x K1} matrix one draw of \code{posterior_linpred(incl_thres = TRUE)}
+holds.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.
@@ -316,7 +321,9 @@ spelling, \code{brms_levels(bk, for_r)} its level spelling, and
 \code{brms_re_parts(fit, bk)} a block's prefixes and renamed coefficients;
 \code{brms_par_labels(fit, include_random)} labels a
 sampled parameter vector in template order, in brms's spelling where
-brms has a parameter with the same content. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
+brms has a parameter with the same content, and
+\code{gp_brms_natural(fit)} maps the \code{theta} entries it labels \code{sdgp_}
+and \code{lscale_} to brms's scales and back. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
 \code{varcorr_layout(fit)} is brms's \code{VarCorr()} grouping for the fit,
 and \code{varcorr_values(fit, vals, comp, layout)} gives the standard
 deviations, correlations and covariances of that layout at one

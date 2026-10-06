@@ -181,8 +181,11 @@ by hand, as above.
 
 mgcv smooths and `gp()` terms work in any linear predictor; their
 smoothing and kernel parameters are estimated as variance components.
-`gp()` takes up to three variables (separate lengthscales per
-dimension; `iso = TRUE` shares one). The exact form predicts at new
+`gp()` takes up to three variables and brms's arguments: `iso = TRUE`,
+the default, shares one lengthscale and `iso = FALSE` gives one per
+dimension, and `by = f` fits one GP per level of a factor, with its
+own standard deviation and lengthscale, or multiplies the GP by a
+numeric `by`. The exact form predicts at new
 positions by kriging; the Hilbert-space form (`k =`) interpolates
 through its basis, capped at `k^D <= 1000` columns. The Hilbert-space
 form uses brms's input convention: the coordinates are divided by their

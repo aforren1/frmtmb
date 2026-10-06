@@ -1273,11 +1273,13 @@ test_that("update has reasonable outputs", {
   )
   brms_port("brmsfit-methods:955", "defect",
     paste0(
-      "update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is no ",
-      "longer refused and keeps fit2's parameter formulas with ",
-      "brms's message (lane formrobust), but the refit stops from ",
-      "the default starting values ('NA/NaN gradient evaluation'); ",
-      "brms's testmode does not fit, so brms never meets the start"),
+      "update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) keeps ",
+      "fit2's parameter formulas with brms's message, but the ",
+      "fixture lacks fit2's priors; the update stops at its zero ",
+      "start ('NA/NaN gradient evaluation'); with the priors it ",
+      "converges (7.1488, 11.5849, 1.6474, -0.7932; ",
+      "dev/fixes-rev3-u955.R). brms's testmode does not fit, so ",
+      "brms never meets the start"),
     expect_true(is(up, "brmsfit"))
   )
   brms_setup("brmsfit-methods:956",
@@ -1328,10 +1330,8 @@ test_that("variables has reasonable ouputs", {
         variables(fit2)
     ))
   )
-  brms_port("brmsfit-methods:991", "cannot transfer",
-    paste0(
-      "lscale_volume_gpAgeTrt0 needs gp(Age, by = Trt), which ",
-      "frmtmb's gp() does not take (D8)"),
+  brms_port("brmsfit-methods:991", "pass",
+    "",
     expect_true(all(
       c("lscale_volume_gpAgeTrt0", "lscale_volume_gpAgeTrt1") %in%
         variables(fit6)

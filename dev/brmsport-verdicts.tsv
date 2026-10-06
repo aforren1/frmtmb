@@ -17,7 +17,7 @@ brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name
 brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The same refusal of the same call in frmtmb's words
 brm:110	frmtmb	pass	
 brm:112	frmtmb	pass	
-brm:116	frmtmb	pass	frmtmb's own words: cs[(][)] needs an sratio, cratio, or acat family; the group-level term | brms: Category specific effects are not supported for this family. The same refusal of cs() on categorical(); frmtmb read the integer response as having fewer than two categories before, and then died on R's could not find function cs
+brm:116	frmtmb	pass	
 brm:121	frmtmb	pass	
 brm:123	frmtmb	pass	
 brm:125	frmtmb	pass	
@@ -238,12 +238,12 @@ brmsfit-methods:942	frmtmb	divergence	update() returns a frmtmb_fit brms's class
 brmsfit-methods:945	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:949	frmtmb	divergence	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:953	frmtmb	divergence	update(fit2, bf(. ~ ., a + b ~ 1, nl = TRUE)) refits now, keeping the nonlinear body (lane formula2); the row asserts is(up, 'brmsfit'), and frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2), as brmsfit-methods:957
-brmsfit-methods:955	frmtmb	defect	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is no longer refused and keeps fit2's parameter formulas with brms's message (lane formrobust), but the refit stops from the default starting values ('NA/NaN gradient evaluation'); brms's testmode does not fit, so brms never meets the start
+brmsfit-methods:955	frmtmb	defect	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) keeps fit2's parameter formulas with brms's message, but the fixture lacks fit2's priors; the update stops at its zero start ('NA/NaN gradient evaluation'); with the priors it converges (7.1488, 11.5849, 1.6474, -0.7932; dev/fixes-rev3-u955.R). brms's testmode does not fit, so brms never meets the start
 brmsfit-methods:957	frmtmb	divergence	update(family = acat()) returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:959	frmtmb	divergence	update(fit3, bf(~ ., family = acat())) refits now with family acat and the old formula (lane formula2); the row asserts is(up, 'brmsfit'), which rule 2 of 2026-09-17 forbids, as brmsfit-methods:957
 brmsfit-methods:978	frmtmb	divergence	variables(fit) lists an ML fit's parameters; simo_, r_ and s_ draws and prior_ and lp__ are posterior or Stan quantities (D5, D10; dev/brmsnames-findings.md A10)
 brmsfit-methods:984	frmtmb	divergence	variables(fit2) has brms's b_, sd_ and cor_ names; the r_ and prior_ names are posterior or Stan quantities (D5, D10)
-brmsfit-methods:991	frmtmb	cannot transfer	lscale_volume_gpAgeTrt0 needs gp(Age, by = Trt), which frmtmb's gp() does not take (D8)
+brmsfit-methods:991	frmtmb	pass	
 brmsfit-methods:995	frmtmb	pass	
 brmsfit-methods:999	frmtmb	pass	
 brmsfit-methods:1000	frmtmb	pass	
@@ -303,7 +303,7 @@ emmeans:27	frmtmb	pass
 emmeans:30	frmtmb	pass	
 emmeans:35	frmtmb	pass	
 emmeans:38	frmtmb	pass	
-emmeans:42	frmtmb	cannot transfer	frmtmb refuses it by name: fit6's volume response has an exact gp(Age), predicted at the grid's mean Age, which is not a fitted position, and the kriging covariance between two grid points is not available (emm_check_part(), R/interop.R). brms draws that covariance jointly. at = list(Age = <an observed value>) or an approximate gp(Age, k = ) answers
+emmeans:42	frmtmb	pass	
 emmeans:47	frmtmb	pass	
 emmeans:50	frmtmb	pass	
 families:4	frmtmb	pass	

@@ -128,16 +128,8 @@ test_that("brm produces expected errors", {
     expect_error(brm(bf(y ~ 1) + arma(x), dat),
                  "Autocorrelation terms can only be specified")
   )
-  brms_port_own("brm:116",
-    paste0(
-      "cs[(][)] needs an sratio, cratio, or acat family; the ",
-      "group-level term"),
-    paste0(
-      "brms: Category specific effects are not supported for this ",
-      "family. The same refusal of cs() on categorical(); frmtmb ",
-      "read the integer response as having fewer than two ",
-      "categories before, and then died on R's could not find ",
-      "function cs"),
+  brms_port("brm:116", "pass",
+    "",
     expect_error(brm(rating ~ treat + (cs(period)|subject),
                      data = inhaler, family = categorical()),
                  "Category specific effects are not supported")

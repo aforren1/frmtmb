@@ -276,13 +276,16 @@ sim_newdata_design <- function(fit, rspec, newdata, allow_new_levels) {
     per[[dnm]] <- list(lp = lp, ed = ed, xb = xb)
   }
   n <- nrow(newdata)
-  CS <- NULL
+  # one offset matrix per predictor that has cs() terms, under the slot
+  # its density reads (cs_slot())
+  CS <- list()
   for (lp in fit$frame[["linpreds"]]) {
     if (!identical(lp[["resp"]], rn) || !length(lp[["cs"]] %||% list())) {
       next
     }
+    sl <- cs_slot(lp[["dpar"]])
     for (ct in ord_cs_values(fit, lp, newdata, n)) {
-      CS <- (CS %||% 0) + outer(ct$vals, est[[ct$par]])
+      CS[[sl]] <- (CS[[sl]] %||% 0) + outer(ct$vals, est[[ct$par]])
     }
   }
   list(per = per, cs = CS, n = n)
@@ -323,7 +326,7 @@ sim_newdata_dpars <- function(fit, rspec, newdata, allow_new_levels, dz,
     if (!is.null(off[[dnm]])) eta <- eta + off[[dnm]]
     dp[[dnm]] <- as.vector(pd$lp[["link"]]$linkinv(eta))
   }
-  if (!is.null(dz$cs)) dp[[".cs"]] <- dz$cs
+  for (sl in names(dz$cs)) dp[[sl]] <- dz$cs[[sl]]
   dp
 }
 

@@ -89,9 +89,14 @@ test_that("one trial per subject is not read as one subject with n trials", {
   d <- frm_task_design("bandit2arm", n_subject = 6L, n_trial = 1L,
                        seed = 43L)
   d$choice <- c(1L, 2L, 1L, 1L, 2L, 1L)
-  fit <- frmtmb::frm(
-    frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1),
-    family = bandit2arm_delta(subject = id, trial = trial), data = d)
+  # with the likelihood constant (below), no parameter has a standard
+  # error, and frm() says so
+  fit <- allow_warnings(
+    frmtmb::frm(
+      frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1),
+      family = bandit2arm_delta(subject = id, trial = trial), data = d),
+    "Standard errors are not available",
+    require = "Standard errors are not available")
   # every subject's FIRST trial starts from Q1 = Q2 = 0, so the choice
   # probability is 0.5 whatever the parameters are. A test on the block
   # dimensions alone would pass on a block that was right by accident;

@@ -68,6 +68,17 @@ A matrix with columns \code{lwr}, \code{upr}, \code{est}.
 Covariance parameters (\verb{theta_*}) are reported on their internal
 (unconstrained) scale.
 }
+\details{
+An ordinal fit's thresholds and \code{cs()} coefficients are internal
+parameters too, and each row is named by what it is. Where the
+internal parameter is a threshold or brms's \code{delta}, the row has
+that name, as \code{\link[=fixef]{fixef()}} and brms spell it (\code{Intercept[1]},
+\code{Intercept[a,2]}, \code{delta}); \code{b_Intercept[1]} and the template name
+\code{tau_raw_1} address it too. Where it is a transform, the name says
+which: \code{cumulative()} holds its later thresholds as log increments,
+\code{log(Intercept[2] - Intercept[1])}, and its equidistant distance as
+\code{log(delta)}, which \code{parm = "delta"} addresses with a message.
+}
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))

@@ -31,7 +31,10 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   (`frmtmb-wt-fams2/tests/testthat/test-brms-likelihood.R:463`).
 - Record: `frmtmb-wt-fams2/dev/reviews/2026-09-29-fams2.md` claim 4;
   `frmtmb-wt-fams2/dev/fams2-findings.md` "brms defect"; repro
-  `frmtmb-wt-fams2/dev/fams2-brms-hc-bug.R`.
+  `frmtmb-wt-fams2/dev/fams2-brms-hc-bug.R`. Met again 2026-10-05 by
+  lane ordmix on the `cs()` path: `yh ~ cs(x)` with
+  `hurdle_cumulative()` (logit) stops at "index 4 out of range"
+  (`dev/ordmix-findings.md`, "brms 2.23.0 defects met").
 - Status: not reported.
 
 ### brms-2. The softit link does not compile
@@ -258,9 +261,16 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   stanc refuses the program.
 - Workaround: none needed. frmtmb names the parameters as brms's
   transformed-parameter code does, `delta_y` and `delta_y2`; frmtmb
-  refuses ordinal mixtures for other reasons.
+  fits ordinal mixtures since 0.68.0 and names one delta per
+  component, `delta_mu1`, as brms's transformed parameters read them;
+  `dev/ordmix-lpcheck.R` compiles brms's program with the declarations
+  renamed that way (its `patch_delta`).
 - Record: `dev/ordinal-findings.md`, "brms 2.23.0 defects met", item 4,
-  and punch round 1, m4; `dev/ordinal-log-brms-code.txt`.
+  and punch round 1, m4; `dev/ordinal-log-brms-code.txt`. Confirmed
+  for mixtures 2026-10-05 by lane ordmix (`dev/ordmix-findings.md`,
+  "brms 2.23.0 defects met": one bare `delta` per component, read as
+  `delta_mu<k>`, and `delta_mu1_1` read beside a declared `delta_1`
+  under `thres(gr = )`).
 - Status: not reported.
 
 ### brms-18. A new level of an `mm(by = )` term cannot be drawn
@@ -301,6 +311,74 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   divergences" (a); `dev/reviews/2026-09-30-formrobust.md`, minor 2.
 - Status: not reported. Low impact: a response that holds one value
   is rare.
+
+### brms-20. An ordinal mixture's gradient is NaN where its density is finite
+
+- Seen: 2.23.0. Found 2026-10-05 (lane ordmix).
+- Repro: `dev/ordmix-lpcheck.R acat_probit`:
+  `mixture(acat("probit"), cumulative("cloglog"))` on `y ~ x`, brms's
+  compiled program with flat priors, `rstan::grad_log_prob()` at
+  frmtmb's optimum. Each component alone (`acat_probit_1`,
+  `cum_cloglog_1`) has a finite gradient (0.00137 and 0.000163).
+- Expected: a finite gradient; brms's log density there equals
+  frmtmb's to 2.5 ulp, and frmtmb's gradient is 2.8e-4. Actual: NaN.
+  It comes from the mixture's `log_sum_exp` over a component term that
+  underflows on some row, the pattern of lane ordinal's defect 1.
+- Workaround: none needed; frmtmb's densities are written in log
+  space.
+- Record: `dev/ordmix-findings.md`, "brms 2.23.0 defects met".
+- Status: not reported.
+
+### brms-21. `posterior_linpred(incl_thres = TRUE)` on `hurdle_cumulative()` returns no linear predictor
+
+- Seen: 2.23.0. Found 2026-10-05 (lane fixes and its review).
+- Repro: `dev/fixes-rev-thres2.R`. brms runs
+  `posterior_epred_hurdle_cumulative()` at the identity link: column
+  `0` is `hu`, and columns 1 to K are `(1 - hu) * (tau_k - eta)`
+  (`all.equal` TRUE on 220 rows).
+- Expected: the threshold predictors `disc * (tau_k - eta)`, as for
+  `cumulative()`, or a refusal. Actual: a probability beside linear
+  predictors scaled by `1 - hu`, which is the predictor of nothing.
+- Workaround: frmtmb refuses the call and says why, a divergence the
+  user decided on 2026-10-06.
+- Record: `dev/fixes-findings.md`, punch round 1, m9;
+  `dev/reviews/2026-10-05-fixes.md`, m9.
+- Status: not reported.
+
+### brms-22. Crossing `cs()` thresholds give a negative probability and a draw from another distribution
+
+- Seen: 2.23.0. Found 2026-10-05 (the ordmix review).
+- Repro: `dev/ordmix-rev-crossing.R`. `brms:::dcumulative()` at the
+  thresholds 0, 1, 0.5 returns 0.5, 0.2311, -0.1086, 0.3775, and the
+  draw rule of `posterior_predict()` gives the shares 0.505, 0.222, 0,
+  0.274.
+- Expected: no probability below zero; at least, draws from the
+  distribution `posterior_epred()` reports. Actual: a negative
+  `posterior_epred()` entry, and draws from a different distribution.
+  The Stan density is undefined there (`log_inv_logit_diff()`), so a
+  sampler rejects the point.
+- Workaround: frmtmb gives `NaN` for such a row's `fitted()`
+  probabilities and `NA` for its draw, on `hurdle_cumulative()` and,
+  since 0.68.0, on `cumulative()`.
+- Record: `dev/reviews/2026-10-05-ordmix.md`, "Post-fit";
+  `dev/round-20261005.md`, small change a.
+- Status: not reported.
+
+### brms-23. `brm(threshold = )` is accepted and dropped
+
+- Seen: 2.23.0. Found 2026-10-05 (lane vigport, repro R7).
+- Repro: `dev/vigport-repros.R` R7: the JSS paper's
+  `brm(..., family = sratio(), threshold = "equidistant")`. brm()
+  says "passing unknown arguments: threshold" and fits flexible
+  thresholds; `stancode()` drops the argument with no message
+  ("brms: delta in program, threshold = argument FALSE").
+- Expected: a refusal, or the threshold structure. Actual: the
+  argument is ignored, silently in `stancode()`.
+- Workaround: in frmtmb `threshold` is an argument of the family
+  constructor, `sratio(threshold = "equidistant")`, as in current brms.
+- Record: `dev/vigport-findings.md`, "Defects found, not fixed" (R7)
+  and the ranked list, item 6.
+- Status: not reported.
 
 ## RTMB
 

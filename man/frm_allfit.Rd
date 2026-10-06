@@ -4,7 +4,7 @@
 \alias{frm_allfit}
 \title{Refit a model with every available optimizer}
 \usage{
-frm_allfit(fit, optimizers = NULL, ...)
+frm_allfit(fit, optimizers = NULL, start_from_mle = TRUE, ...)
 }
 \arguments{
 \item{fit}{A \code{frmtmb_fit}.}
@@ -12,13 +12,20 @@ frm_allfit(fit, optimizers = NULL, ...)
 \item{optimizers}{Named list of optimizers (names or functions, as
 in \code{\link[=frmtmb_control]{frmtmb_control()}}). Default: everything available.}
 
+\item{start_from_mle}{If \code{TRUE} (default), start every optimizer at
+the original fit's estimates; if \code{FALSE}, where the original fit
+started.}
+
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}
 }
 \value{
 A \code{frmtmb_allfit} object: \verb{$fits} (the refits, \code{NULL} where
-one errored) and a printed comparison of logLik, convergence, and
-fixed-effect spread.
+one errored), \verb{$errors} (the error message of each refit that
+failed, \code{NA} elsewhere), \verb{$times}, and \verb{$original}, the
+log-likelihood and convergence code of the fit that was checked.
+Printing it compares log-likelihoods, convergence and fixed-effect
+spread.
 }
 \description{
 The lme4 \code{allFit()} idea: reuse the assembled design and refit under
@@ -26,6 +33,24 @@ each optimizer, to separate optimizer trouble from model
 misspecification. Uses nlminb and optim (L-BFGS-B) always, plus
 bobyqa (minqa) and NLopt L-BFGS (nloptr) when those packages are
 installed.
+}
+\details{
+Every optimizer starts from the same point, as in lme4: by default
+the original fit's estimates (lme4's \code{start_from_mle = TRUE}), or,
+with \code{start_from_mle = FALSE}, the point the original fit started
+from, which includes its \verb{start =} and the starting values a located
+prior places on a nonlinear parameter. A nonlinear model is rarely
+defined at the default start of zero, so refits from there fail or
+stop somewhere else, and their disagreement then says nothing about
+the original fit.
+
+The printed table compares each refit with the best log-likelihood
+any fit reached, the original included. An optimizer that reports
+convergence more than \code{grad_tol} (see \code{\link[=frmtmb_control]{frmtmb_control()}}) below that
+best is marked as having stopped elsewhere, so a success code at a
+worse optimum does not read as agreement. One that reaches the best
+while reporting a failure code agrees, with its code shown: started
+at the optimum, \code{optim}'s line search can fail there (code 52).
 }
 \examples{
 set.seed(6)

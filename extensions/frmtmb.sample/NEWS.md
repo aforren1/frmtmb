@@ -1,3 +1,91 @@
+# frmtmb.sample 0.16.0
+
+Needs frmtmb 0.68.0: for `ord_thres_linpred()`; for
+`gp_brms_natural()`, the prior classes `"sdgp"` and `"lscale"` and the
+kriging draw; and for ordinal mixtures, `hurdle_cumulative()` with
+`thres(gr = )` and `cs()`, and the names of the draws of a model with
+no location column.
+
+## Breaking changes
+
+* **Through frmtmb, a smooth's null-space draws (`bs_sx_1`) are on
+  brms's scale**, and a prior with `coef = "sx_1"` is about brms's parameter:
+  frmtmb now builds `s()` with brms's `diagonal.penalty = TRUE` basis.
+
+* **A `gp()` term's draws carry brms's names on brms's scales:**
+  `sdgp_<term>` and `lscale_<term>` where they were `theta_1` and
+  `theta_2` on the internal log scale, as brms names them (`sdgp_gpxfa`
+  for level `a` of `gp(x, by = f)`). The lengthscale is on the inputs
+  brms divides by their largest distance.
+
+* **The default priors include brms's for a GP:** `student_t(3, 0, s)`
+  on class `"sdgp"` per prefix, and on class `"lscale"` an inverse
+  gamma per sub-GP, tuned to that sub-GP's own distances as brms's
+  `def_lscale_prior()` tunes it. `get_prior(route = "sample")` lists
+  them; on nine `gp()` designs every density row equals brms
+  `default_prior()`'s (63 rows, `dev/gpby-priors.R`). A Hilbert-space
+  `gp(k = )` block, whose lengthscales the defaults left flat, is now
+  non-centered.
+
+## New features
+
+* `posterior_linpred(incl_thres = TRUE)` returns brms's linear
+  predictor with the thresholds included on every ordinal family: a
+  draws by observations by thresholds array with brms's dimnames,
+  layer `k` being `disc * (thres_k - mu)` for `cumulative()` and
+  `sratio()` and `disc * (mu - thres_k)` for `cratio()` and `acat()`,
+  under every threshold structure, with `cs()` terms, and `NA` past the
+  thresholds of a `thres(gr = )` level that has fewer. As in brms it is
+  ignored with `dpar`, `nlpar` or `transform = TRUE` and on a family
+  that is not ordinal. `hurdle_cumulative()` is refused, a divergence
+  the user decided on 2026-10-06: brms returns the hurdle probability
+  beside the threshold predictors times `1 - hu` there, which is the
+  predictor of nothing (`dev/upstream-bugs.md`, brms-21). An ordinal
+  mixture is refused in brms's words, "'incl_thres' is not supported
+  for mixture models."
+
+* **Draws of an ordinal mixture** carry brms's names, each component's
+  thresholds `b_mu1_Intercept[k]` and `b_mu2_Intercept[k]`. Under
+  `order = "mu"` both come from the one shared vector, which is read
+  back through the first component that reports it uncentered.
+  `posterior_epred()` and `log_lik()` agree with the theta-weighted sum
+  of brms's R-side category probabilities at the stored columns to the
+  double epsilon.
+
+* **brms's default `normal(0, 1)` on the intercept of a modeled
+  `disc<k>`** of an ordinal mixture, as on `disc`.
+
+* Through frmtmb 0.68.0, draws of a `cs()` model on `cumulative()`, as
+  brms samples it: the per-threshold coefficients are
+  `bcs_x[k]`, and a draw's `posterior_epred()` equals brms's own
+  R-side density at that draw to 1.9e-16 (`dev/rel068-cs-probe.R`).
+  A row whose offsets cross two thresholds has `NaN` probabilities and
+  an `NA` draw, as in core.
+
+## Bug fixes
+
+* **A prediction at a position an exact `gp()` did not see is a draw of
+  the field there**, from its conditional law given the draw's own
+  values at the fitted positions, as brms's `posterior_epred()` draws
+  it. It was that law's mean, so `posterior_epred(newdata = )` past
+  the data had no spread from the field itself. At the same 1500
+  parameter draws of a brms fit, the spread of the predicted field at
+  six new positions is 0.978 to 1.001 of brms's, where the mean alone
+  reached 0.861 to 1.000 (`dev/gpby-brms-epred2.R`, final build in
+  `dev/gpby-p1-nugget-brms-1e-6.txt`). The law carries frmtmb's
+  nugget, `1e-6` of the variance, as white noise per distinct
+  position, as the fit's latent values do; two rows at one position
+  take one value exactly.
+
+* The draw's factor costs under 1 ms per posterior draw at 300 new
+  positions: a pivoted Cholesky factor that builds only the kernel
+  columns it pivots on (rank 7 to 15 there) and stops where what is
+  left is below `1e-12` of the prior variance, which joins the white
+  part (`dev/gpby-p1-krigfactor.R`). On `posterior_epred()` at 300
+  new positions over 300 draws, CPU time is 0.78 s, against 5.76 s for
+  a dense Cholesky of the same law and 0.63 s for the previous
+  release's conditional mean, on one machine in one session
+  (`dev/gpby-p1-krigdraw.R`).
 # frmtmb.sample 0.15.0
 
 Needs frmtmb 0.67.0: for `ord_delta_info()`, the ordinal families'

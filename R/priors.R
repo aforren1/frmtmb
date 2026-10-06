@@ -149,6 +149,16 @@
 #' unconstrained vector, so there is no Jacobian. `lb`/`ub` are refused
 #' there, because one number cannot box a whole vector of thresholds.
 #'
+#' One threshold is addressed by its number, as brms lists it:
+#' `set_prior("normal(0, 1)", class = "Intercept", coef = "2")` is a
+#' density on the second threshold, and it replaces a class-wide
+#' density there and only there. The vector stays one entry, so the
+#' log-Jacobian of `cumulative()`'s map enters once. Under
+#' `thres(gr = )` a threshold is named by its level and its number,
+#' `group = "a", coef = "2"`. brms has no per-threshold parameter
+#' under `threshold = "equidistant"`, and the row is refused there, as
+#' in brms.
+#'
 #' `prior = list(tau_raw = prior_normal(0, 5))` reaches the same
 #' parameters on the INTERNAL scale, one entry per threshold, which is
 #' the escape hatch to use when the increments rather than the
@@ -602,8 +612,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' a distributional parameter, which is a class in brms too.
 #'
 #' @noRd
-frmtmb_prior_classes <- c("b", "Intercept", "sd", "cor", "theta",
-                          "ar", "ma", "cosy", "cortime", "rescor",
+frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
+                          "theta", "ar", "ma", "cosy", "cortime", "rescor",
                           "delta")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
@@ -899,6 +909,11 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
                   "are addressed with class = \"b\" or ",
                   "class = \"Intercept\". "))
   }
+  if (cls %in% c("sdgp", "lscale") && nzchar(group)) {
+    return(paste0("class = \"", cls, "\" has no group: a gp() term is not ",
+                  "a grouping term, and brms's rows for it carry none. ",
+                  "`coef` names the term, as get_prior() lists it. "))
+  }
   if (!nzchar(coef) || !cls %in% c("sd", "cor")) return(NULL)
   if (identical(cls, "cor")) {
     return(paste0("class = \"cor\" addresses a whole correlation ",
@@ -919,9 +934,9 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' meaning, so a translated row keeps its class untouched.
 #'
 #' @noRd
-brms_direct_prior_classes <- c("b", "Intercept", "sd", "cor", "ar",
-                               "ma", "cosy", "cortime", "rescor",
-                               "delta")
+brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
+                               "cor", "ar", "ma", "cosy", "cortime",
+                               "rescor", "delta")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -978,17 +993,6 @@ brms_prior_class_refusal <- function(cls) {
       "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
       "spelling is class = \"sd\" with group = the smooth's label, e.g. ",
       "group = \"s(x)\"; get_prior() lists the label this model has. "),
-    sdgp = paste0(
-      "brms's \"sdgp\" is the marginal standard deviation of a gp(). ",
-      "frmtmb holds a gp() as a random-effect block, so its frmtmb ",
-      "spelling is class = \"sd\" with group = the term's label, e.g. ",
-      "group = \"gp(x)\"; get_prior() lists the label this model has. "),
-    lscale = paste0(
-      "brms's \"lscale\" is a gp() length-scale, which frmtmb keeps in ",
-      "the raw internal covariance vector rather than in a class of its ",
-      "own. Address it as class = \"theta\" with the coef get_prior() ",
-      "lists for the block (\"theta_1\", \"theta_2\", ...), remembering ",
-      "that a theta prior is on the INTERNAL scale. "),
     sdcar = paste0(
       "brms's \"sdcar\" is the standard deviation of a car() term. ",
       "frmtmb holds a car() as a random-effect block, so its frmtmb ",
@@ -1797,10 +1801,12 @@ prior_table <- function(spec, frame, route) {
     # a per-coefficient row here would claim a default nothing applies.
     # A default on cor is written class-wide, as brms's cor rows carry no
     # prefix; one on sd is written per prefix, as brms's sd rows are
-    d <- if (nzchar(coef)) NULL else
-      defs[[prior_slot_key(class,
-                           if (identical(class, "cor")) "" else dpar,
-                           nlpar, resp)]]
+    # The exception is a default WRITTEN per coefficient, which a gp()
+    # length scale's is: brms tunes its inv_gamma to each sub-GP's own
+    # distances and lists it on that sub-GP's row
+    slot <- prior_slot_key(class, if (identical(class, "cor")) "" else dpar,
+                           nlpar, resp)
+    d <- if (nzchar(coef)) defs[[paste0(slot, "|", coef)]] else defs[[slot]]
     # brms's column order, so a table read by position lines up with
     # the one brms returns
     rows[[length(rows) + 1L]] <<- data.frame(
@@ -1858,40 +1864,63 @@ prior_table <- function(spec, frame, route) {
     icpt_b <- isFALSE(lp[["center"]])
     if ("(Intercept)" %in% cn && !icpt_b) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
-    } else if (!nzchar(dpar_lab) &&
-                 identical(rspec$family[["type"]], "ordinal") &&
-                 length(frame[["par_template"]][[
-                   extra_tpl_name(frame, rspec$resp_name, "tau_raw")]] %||%
+    } else if (!is.null(ob <- ord_lp_block(frame, spec, lp)) &&
+                 (!ob$shared || identical(ob$k, 1L)) &&
+                 length(frame[["par_template"]][[ob$comp]] %||%
                           numeric(0))) {
       # an ordinal family has no intercept column: the thresholds
       # replace it, and class "Intercept" is what addresses them here as
       # it does in brms. Under sum_to_zero brms's Intercept is a vector
       # frmtmb does not have (ordinal_threshold_entry()), and under
       # equidistant the distance between thresholds is class "delta",
-      # listed once for the model and once per level of thres(gr = )
-      th <- rspec$family[["thres"]]
+      # listed once for the model and once per level of thres(gr = ).
+      # An ordinal mixture's component k lists its own under dpar
+      # "mu<k>"; the vector an order = "mu" mixture shares is listed
+      # once, with no dpar, as brms lists its fixed_Intercept
+      th <- ob$fam[["thres"]]
       type <- th[["type"]] %||% "flexible"
       grouped <- isTRUE(th[["grouped"]])
+      tdp <- ob$prior_dpar
       if (identical(type, "equidistant")) {
         # brms bounds delta below by 0 where the thresholds are ordered,
         # and says so in its table
-        lb_d <- if (rspec$family[["family"]] %in% ord_ordered_families) {
-          0
-        } else NA_real_
-        add("delta", resp = resp_lab, lb = lb_d)
+        lb_d <- if (ob$ordered) 0 else NA_real_
+        add("delta", dpar = tdp, resp = resp_lab, lb = lb_d)
         if (grouped) {
           for (g in th[["groups"]]) {
-            add("delta", group = g, resp = resp_lab, lb = lb_d)
+            add("delta", group = g, dpar = tdp, resp = resp_lab, lb = lb_d)
           }
         }
       }
       if (!identical(type, "sum_to_zero")) {
-        add("Intercept", resp = resp_lab)
+        add("Intercept", dpar = tdp, resp = resp_lab)
+        # under flexible thresholds brms lists one row per threshold,
+        # coef = "1", "2", ..., under each level of thres(gr = ) when
+        # they are grouped; equidistant thresholds have none. The count
+        # is the block's own component: in a mixture the plain
+        # "tau_raw" component does not exist, and each row carries the
+        # block's dpar, "mu<k>" under order = "none" and none for the
+        # vector an order = "mu" mixture shares, as brms lists them
+        flex <- identical(type, "flexible")
+        if (!grouped && flex) {
+          K1 <- length(frame[["par_template"]][[ob$comp]])
+          for (k in seq_len(K1)) {
+            add("Intercept", coef = as.character(k), dpar = tdp,
+                resp = resp_lab)
+          }
+        }
         # one row per level of thres(gr = ), each a threshold vector of
         # its own that group = addresses, as brms lists them
         if (grouped) {
-          for (g in th[["groups"]]) {
-            add("Intercept", group = g, resp = resp_lab)
+          for (gi in seq_along(th[["groups"]])) {
+            g <- th[["groups"]][gi]
+            add("Intercept", group = g, dpar = tdp, resp = resp_lab)
+            if (flex) {
+              for (k in seq_len(th[["nthres"]][gi])) {
+                add("Intercept", coef = as.character(k), group = g,
+                    dpar = tdp, resp = resp_lab)
+              }
+            }
           }
         }
       }
@@ -1912,11 +1941,25 @@ prior_table <- function(spec, frame, route) {
 
   sd_rows <- list()
   cor_rows <- list()
+  gp_rows <- list()
   for (bk in frame[["re_blocks"]]) {
     key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
                                                                 bk),
                 dpar = block_dpar(spec, frame, bk),
                 resp = if (multi) block_resp(frame, bk) else "")
+    if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
+      # brms's classes sdgp and lscale, keyed by the prefix class "sd"
+      # uses, coef the sub-GP (frame_gp()'s sfx1 and sfx2)
+      sp <- unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
+                                                        "nlpar")])
+      for (i in seq_len(nrow(sp))) {
+        gp_rows[[length(gp_rows) + 1L]] <- list(
+          nlpar = sp$nlpar[i], dpar = sp$dpar[i], resp = sp$resp[i],
+          sfx1 = bk[["gp_brms"]][["sfx1"]],
+          sfx2 = bk[["gp_brms"]][["sfx2"]])
+      }
+      next
+    }
     # brms lists sd rows per prefix, so a block spanning mu and sigma
     # has a row for each (sd_spec_reach() is the rule the rows describe)
     sp <- unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
@@ -1944,6 +1987,19 @@ prior_table <- function(spec, frame, route) {
     for (k in cor_rows) {
       add("cor", group = k$group, dpar = k$dpar, nlpar = k$nlpar,
           resp = k$resp)
+    }
+  }
+  # brms lists lscale before sdgp, each class-wide and then per sub-GP,
+  # bounded below by 0
+  for (cl in c("lscale", "sdgp")) {
+    pre <- unique(lapply(gp_rows, `[`, c("dpar", "nlpar", "resp")))
+    for (k in pre) add(cl, dpar = k$dpar, nlpar = k$nlpar, resp = k$resp,
+                       lb = 0)
+    for (k in gp_rows) {
+      for (co in if (identical(cl, "sdgp")) k$sfx1 else k$sfx2) {
+        add(cl, coef = co, dpar = k$dpar, nlpar = k$nlpar, resp = k$resp,
+            lb = 0)
+      }
     }
   }
   # the R-side residual structures, under the class names brms shows for
@@ -2241,7 +2297,9 @@ sd_prefix_hint <- function(spec, frame) {
   sp <- unique(do.call(rbind, c(
     list(data.frame(resp = character(0), dpar = character(0),
                     nlpar = character(0))),
-    lapply(frame[["re_blocks"]], function(bk) {
+    # a gp() term's sd is class "sdgp", which the caller names
+    lapply(Filter(function(bk) !bk[["covstruct"]] %in% c("gp", "hsgp"),
+                  frame[["re_blocks"]]), function(bk) {
       block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
     }))))
   if (!NROW(sp)) return("This model has no random-effect standard deviations")
@@ -2767,6 +2825,66 @@ resolve_priorlist <- function(fit, pl) {
   # `resp` narrows to one response, as it does everywhere else; the
   # refusal names what the model actually has, so a class aimed at the
   # wrong structure says so rather than silently matching nothing.
+  # brms's classes "sdgp" and "lscale" on a gp() term's theta: the sd
+  # and the length scales on brms's natural scales, a sub-GP picked by
+  # brms's coef ("gpxfa"). The length scale brms priors is on its scaled
+  # inputs, exp(theta) / div, so the density sits at theta - log(div)
+  # (`shift`) with the same log-Jacobian class "sd" takes. resp, dpar
+  # and nlpar select by class "sd"'s rule (sd_spec_reach()).
+  resolve_gp_class <- function(s) {
+    hit <- FALSE
+    for (bk in frame[["re_blocks"]]) {
+      if (!bk[["covstruct"]] %in% c("gp", "hsgp")) next
+      meta <- bk[["gp_brms"]]
+      if (is.null(meta)) next
+      if (!any(sd_spec_reach(fit$spec, frame, bk, s)$reach)) next
+      if (identical(s$class, "sdgp")) {
+        pick <- 1L
+        cf <- meta$sfx1
+      } else {
+        pick <- 1L + seq_along(meta$sfx2)
+        cf <- meta$sfx2
+      }
+      keep <- !nzchar(s$coef) | cf == s$coef
+      shift <- if (identical(s$class, "lscale")) {
+        -log(bk[["gp_lscale_div"]] %||% 1)
+      } else 0
+      for (k in pick[keep]) {
+        hit <- TRUE
+        i <- bk[["theta_idx"]][k]
+        key <- nm_of("theta", i)
+        if (!is.null(s$dist)) {
+          claim("theta", i)
+          assigned[[key]] <<- list(comp = "theta", idx = i, dist = s$dist,
+                                   scale = "sd", shift = shift,
+                                   lb = s$lb, ub = s$ub)
+        } else if (!is.null(assigned[[key]])) {
+          assigned[[key]] <<- entry_bounds(assigned[[key]], s)
+        }
+        nm_theta <- paste0("theta_", i)
+        if (!is.na(s$lb)) {
+          lower[nm_theta] <<- if (s$lb > 0) log(s$lb) - shift else -Inf
+        }
+        if (!is.na(s$ub)) upper[nm_theta] <<- log(s$ub) - shift
+      }
+    }
+    if (!hit) {
+      have <- unlist(lapply(frame[["re_blocks"]], function(bk) {
+        m <- bk[["gp_brms"]]
+        if (is.null(m)) NULL else if (identical(s$class, "sdgp")) m$sfx1 else
+          m$sfx2
+      }))
+      frm_stop("No gp() ", if (identical(s$class, "sdgp")) {
+        "standard deviations"
+      } else "length scales", " match ", spec_target(s), ". ",
+      if (length(have)) {
+        paste0("This model's are coef = ",
+               paste0("\"", unique(have), "\"", collapse = ", "))
+      } else "This model has no gp() term", call. = FALSE)
+    }
+    invisible(NULL)
+  }
+
   resolve_ac_class <- function(s) {
     acs <- frame[["autocor"]] %||% list()
     hit <- FALSE
@@ -2872,13 +2990,18 @@ resolve_priorlist <- function(fit, pl) {
     rs <- fit$spec$responses
     rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
     if (is.null(rspec)) return(NULL)
-    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
+    # coef = "1", "2", ... names one threshold (below), so only an
+    # nlpar leaves the thresholds
+    if (nzchar(s$nlpar %||% "")) return(NULL)
+    # the block the dpar names: "" for a plain family's thresholds and
+    # for the vector an order = "mu" mixture shares, mu<k> for one
+    # component's own under order = "none", as brms keys the rows
+    ob <- ord_prior_block(frame, fit$spec, rspec, s$dpar)
+    if (is.null(ob)) return(NULL)
+    comp <- ob$comp
     raw <- frame[["par_template"]][[comp]] %||% numeric(0)
     if (!length(raw)) return(NULL)
-    if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
-    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
-      return(NULL)
-    }
     if (nzchar(s$resp %||% "") &&
           !identical(s$resp, rspec$resp_name)) {
       return(NULL)
@@ -2889,8 +3012,8 @@ resolve_priorlist <- function(fit, pl) {
     # hold the thresholds themselves and brms declares them unordered
     # (brms:::has_ordered_thres() is FALSE for all three), so neither
     # side has a Jacobian there
-    ordered <- rspec$family[["family"]] %in% ord_ordered_families
-    th <- rspec$family[["thres"]]
+    ordered <- ob$ordered
+    th <- ob$fam[["thres"]]
     grouped <- isTRUE(th[["grouped"]])
     type <- th[["type"]] %||% "flexible"
     if (identical(type, "sum_to_zero")) {
@@ -2914,14 +3037,56 @@ resolve_priorlist <- function(fit, pl) {
     # alone, `first_Intercept`, centered as the whole vector would be;
     # the distance is class "delta"
     equi <- identical(type, "equidistant")
+    # brms's per-threshold rows, coef = "1", "2", ...: under flexible
+    # thresholds each is one element of the vector, under each level of
+    # thres(gr = ) when the thresholds are grouped. brms has no such
+    # parameter under equidistant thresholds and refuses the row
+    k <- NULL
+    if (nzchar(s$coef)) {
+      if (equi) {
+        frm_stop("Prior target not found (", spec_target(s), "): with ",
+                 "threshold = 'equidistant' class \"Intercept\" is the ",
+                 "first threshold alone, so it takes no coef; brms ",
+                 "refuses the row too (\"The following priors do not ",
+                 "correspond to any model parameter\"). The distance ",
+                 "between thresholds is class \"delta\"", call. = FALSE)
+      }
+      if (grouped && !nzchar(s$group)) {
+        frm_stop("Prior target not found (", spec_target(s), "): the ",
+                 "thresholds are grouped by thres(gr = ), so one ",
+                 "threshold is named by its level and its number, ",
+                 "group = and coef =, as brms lists them", call. = FALSE)
+      }
+      k <- suppressWarnings(as.integer(s$coef))
+      if (is.na(k) || !identical(as.character(k), s$coef) || k < 1L) {
+        frm_stop("Prior target not found (", spec_target(s), "): coef = ",
+                 "on class \"Intercept\" of an ordinal family numbers a ",
+                 "threshold, \"1\", \"2\", ..., as brms lists them",
+                 call. = FALSE)
+      }
+    }
+    check_k <- function(n_k) {
+      if (!is.null(k) && k > n_k) {
+        frm_stop("Prior target not found (", spec_target(s), "): the ",
+                 "threshold vector has ", n_k, " threshold",
+                 if (n_k != 1L) "s", ", so coef = \"", k, "\" names none ",
+                 "of them", call. = FALSE)
+      }
+    }
     if (!grouped) {
+      check_k(length(raw))
       return(list(list(comp = comp, idx = if (equi) 1L else seq_along(raw),
                        dist = s$dist,
                        scale = if (ordered && !equi) "ordthres" else
                          "internal",
                        link = NULL,
-                       offset = ordinal_center_offset(frame, rspec),
-                       lb = s$lb, ub = s$ub)))
+                       # brms centers no design under order = "mu"
+                       # (stan_center_X() is FALSE with fixed thresholds)
+                       offset = if (!ob$shared) {
+                         ordinal_center_offset(frame, rspec,
+                                               ob$lp[["dpar"]])
+                       },
+                       lb = s$lb, ub = s$ub, coef_k = k)))
     }
     # one entry per group: each slice is a vector of its own, so an
     # ordered map and its Jacobian are per slice. brms does not center
@@ -2938,11 +3103,12 @@ resolve_priorlist <- function(fit, pl) {
       }
     }
     lapply(gs, function(g) {
+      check_k(lay$nthres[g])
       list(comp = comp,
            idx = if (equi) lay$rstart[g] else lay$rstart[g]:lay$rend[g],
            dist = s$dist,
            scale = if (ordered && !equi) "ordthres" else "internal",
-           link = NULL, offset = NULL, lb = s$lb, ub = s$ub)
+           link = NULL, offset = NULL, lb = s$lb, ub = s$ub, coef_k = k)
     })
   }
 
@@ -2954,20 +3120,27 @@ resolve_priorlist <- function(fit, pl) {
   ordinal_delta_entry <- function(s) {
     rs <- fit$spec$responses
     rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
-    th <- rspec$family[["thres"]]
-    if (is.null(rspec) || !identical(th[["type"]], "equidistant")) {
+    # component k of an ordinal mixture: dpar = "mu<k>", brms's row
+    ob <- if (!is.null(rspec)) {
+      ord_prior_block(frame, fit$spec, rspec, s$dpar)
+    }
+    th <- ob$fam[["thres"]]
+    if (is.null(ob) || !identical(th[["type"]], "equidistant")) {
       frm_stop("Prior target not found (", spec_target(s), "): class ",
                "\"delta\" is the distance between the thresholds of an ",
                "ordinal family with threshold = 'equidistant', and this ",
-               "model has none", call. = FALSE)
+               "model has none",
+               if (nzchar(s$dpar)) paste0(" under dpar = \"", s$dpar, "\""),
+               call. = FALSE)
     }
-    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
+    if (nzchar(s$coef) || nzchar(s$nlpar %||% "")) {
       frm_stop("Prior target not found (", spec_target(s), "): class ",
                "\"delta\" is one parameter per threshold vector, so it ",
-               "takes no coef, dpar or nlpar. group = selects the vector ",
-               "of one level of thres(gr = )", call. = FALSE)
+               "takes no coef or nlpar. group = selects the vector ",
+               "of one level of thres(gr = ), and dpar = \"mu<k>\" the ",
+               "component of an ordinal mixture", call. = FALSE)
     }
-    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    comp <- ob$comp
     lay <- thres_layout(th[["nthres"]], "equidistant")
     gs <- seq_len(lay$G)
     if (nzchar(s$group)) {
@@ -2988,7 +3161,7 @@ resolve_priorlist <- function(fit, pl) {
                  }, call. = FALSE)
       }
     }
-    ordered <- rspec$family[["family"]] %in% ord_ordered_families
+    ordered <- ob$ordered
     lapply(gs, function(g) {
       list(comp = comp, idx = lay$rstart[g] + 1L, dist = s$dist,
            scale = if (ordered) "sd" else "internal", link = NULL,
@@ -3033,8 +3206,26 @@ resolve_priorlist <- function(fit, pl) {
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
         for (e in ord_th) {
+          key <- nm_of(e$comp, e$idx)
+          if (!is.null(e$coef_k)) {
+            # one threshold of the vector: its density replaces the
+            # class-wide one there and only there. The vector stays one
+            # entry, so an ordered map's log-Jacobian enters once
+            # (prior_logdens()), as Stan's `ordered` type adds it once
+            old <- assigned[[key]]
+            dists <- if (is.null(old)) {
+              rep(list(NULL), length(e$idx))
+            } else if (identical(old$dist$kind, "vec")) {
+              old$dist$dists
+            } else {
+              rep(list(old$dist), length(e$idx))
+            }
+            dists[e$coef_k] <- list(e$dist)
+            e$dist <- list(kind = "vec", dists = dists)
+          }
+          e$coef_k <- NULL
           claim(e$comp, e$idx)
-          assigned[[nm_of(e$comp, e$idx)]] <- e
+          assigned[[key]] <- e
         }
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
@@ -3073,6 +3264,8 @@ resolve_priorlist <- function(fit, pl) {
       }, TRUE))
       hit <- FALSE
       for (bk in if (exact) frame[["re_blocks"]]) {
+        # a gp() term's sd is brms's class "sdgp", not "sd"
+        if (bk[["covstruct"]] %in% c("gp", "hsgp")) next
         sd_i <- covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
         sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
         for (k in sd_i) {
@@ -3095,8 +3288,16 @@ resolve_priorlist <- function(fit, pl) {
       }
       if (!hit) {
         frm_stop("No random-effect SDs match ", spec_target(s), ". ",
-                 sd_prefix_hint(fit$spec, frame), call. = FALSE)
+                 sd_prefix_hint(fit$spec, frame),
+                 if (any(vapply(frame[["re_blocks"]], function(bk) {
+                   bk[["covstruct"]] %in% c("gp", "hsgp")
+                 }, NA))) {
+                   paste0(". A gp() term's standard deviation is class ",
+                          "\"sdgp\", as in brms")
+                 }, call. = FALSE)
       }
+    } else if (s$class %in% c("sdgp", "lscale")) {
+      resolve_gp_class(s)
     } else if (s$class == "cor") {
       hit <- FALSE
       refused <- character(0)
@@ -3245,10 +3446,12 @@ has_ordinal_thresholds <- function(fit, resp = NULL) {
 #' predictor enters the density as `tau - eta`.
 #'
 #' @noRd
-ordinal_center_offset <- function(frame, rspec) {
+ordinal_center_offset <- function(frame, rspec, dpar = NULL) {
   for (lp in frame[["linpreds"]]) {
     if (!identical(lp[["resp"]], rspec$resp_name)) next
     if (!lp[["dpar"]] %in% rspec$primary_dpars) next
+    # an ordinal mixture's component k is centered on its own mu<k>
+    if (!is.null(dpar) && !identical(lp[["dpar"]], dpar)) next
     # bf(center = FALSE): brms's thresholds are then the uncentered ones
     if (isFALSE(lp[["center"]])) return(NULL)
     X <- lp[["X"]]
@@ -3514,6 +3717,17 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
 #'
 #' @noRd
 prior_base_logdens <- function(x, dist) {
+  if (identical(dist$kind, "vec")) {
+    # one density per element of a threshold vector, NULL for an
+    # element with none (a coef row without a class-wide row)
+    out <- 0
+    for (k in seq_along(dist$dists)) {
+      if (!is.null(dist$dists[[k]])) {
+        out <- out + prior_base_logdens(x[k], dist$dists[[k]])
+      }
+    }
+    return(out)
+  }
   switch(dist$kind,
     normal = RTMB::dnorm(x, dist$location, dist$scale, log = TRUE),
     t = RTMB::dt((x - dist$location) / dist$scale, df = dist$df,
@@ -4053,9 +4267,13 @@ resolve_priors <- function(fit, prior) {
 #'
 #' @noRd
 entry_offset <- function(e, pars) {
+  # `shift` is a constant, the change of scale between the parameter
+  # held and the one the density is about (a gp() length scale on
+  # brms's scaled inputs)
+  sh <- e[["shift"]] %||% 0
   o <- e$offset
-  if (is.null(o)) return(0)
-  sum(pars[[o$comp]][o$idx] * o$w)
+  if (is.null(o)) return(sh)
+  sum(pars[[o$comp]][o$idx] * o$w) + sh
 }
 
 #' AD-safe negative log prior over resolved per-parameter entries

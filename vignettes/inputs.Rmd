@@ -453,7 +453,7 @@ head(names(frm_linpred(fit)), 3)
 
 ## Runtime and how it scales
 
-A fit has four costs, and only one of them grows quickly.
+A fit has five costs, and only one of them grows quickly.
 
 | Stage | Behavior with data size |
 |---|---|
@@ -461,7 +461,8 @@ A fit has four costs, and only one of them grows quickly.
 | frame | Linear in `n` and in the number of random-effect columns. |
 | tape | One pass over the objective. Independent of the number of optimizer iterations. |
 | optimize | (number of outer iterations) x (cost of one objective evaluation). This dominates. |
-| sdreport | One Hessian and one sparse solve at the optimum. Skipped unless `se = TRUE` or a method needs it. |
+| Hessian | At the optimum, to check that every parameter has a standard error. Without random effects the exact Hessian, about one gradient per coefficient. With random effects two gradients per outer parameter, when the model has at most 10 outer parameters or those gradients are at most a quarter of the optimizer's evaluations; otherwise it waits for the first standard-error use. `frmtmb_control(check_se = "ignore")` skips it. |
+| sdreport | One sparse solve at the optimum, which reuses that Hessian. Skipped unless `se = TRUE` or a method needs it. |
 
 One objective evaluation costs an inner Newton solve, whose work is the
 sparse Cholesky factorization of the inner Hessian. That matrix is

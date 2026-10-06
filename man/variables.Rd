@@ -60,10 +60,11 @@ natural-scale parameters under brms's names: \code{ar[1]}, \code{ar[2]},
 \code{ma[1]}, \code{cosy}, \verb{cortime__<t1>__<t2>}.
 
 \code{gr(cov = )}, \code{gr(prec = )} and \code{equalto()} blocks contribute
-\code{sd_}/\code{cor_} names for their within-level covariance. Smooths,
-\code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()} blocks contribute none: their
-parameters are not standard deviations. See the "Which random-effect
-blocks contribute names" section of \code{\link[=hypothesis]{hypothesis()}}.
+\code{sd_}/\code{cor_} names for their within-level covariance. A \code{gp()} term
+contributes brms's \verb{sdgp_<term>} and \verb{lscale_<term>}. Smooths, \code{car()}
+and \code{spde()} blocks contribute none: their parameters are not
+standard deviations. See the "Which random-effect blocks contribute
+names" section of \code{\link[=hypothesis]{hypothesis()}}.
 }
 \examples{
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))

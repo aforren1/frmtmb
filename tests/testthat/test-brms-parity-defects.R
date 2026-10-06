@@ -105,7 +105,8 @@ test_that("cs() inside a group-level term is refused by name", {
                    g = factor(rep(1:6, 10)))
   dd$yf <- factor(dd$y)
   expect_error(frm(yf ~ x + (cs(x) | g), data = dd, family = categorical()),
-               "cs() needs an sratio, cratio, or acat family", fixed = TRUE)
+               "Category specific effects are not supported for this family",
+               fixed = TRUE)
   expect_error(frm(y ~ x + (cs(x) | g), data = dd, family = sratio()),
                "is not supported: cs() is a population-level term here",
                fixed = TRUE)
@@ -467,8 +468,11 @@ test_that("the prior table spells a smooth's column as brms does", {
                    c("", "Intercept", "sx_1", "z"))
   # either spelling lands on the same coefficient
   lb <- function(co) {
-    f <- frm(y ~ z + s(x), data = dd,
-             prior = set_prior("", class = "b", coef = co, lb = 5))
+    # the bound holds the coefficient, which then has no standard error
+    f <- allow_warnings(
+      frm(y ~ z + s(x), data = dd,
+          prior = set_prior("", class = "b", coef = co, lb = 5)),
+      "s(x).fx1: a bound holds it", require = "s(x).fx1: a bound holds it")
     fixef_by_dpar(f)$mu[["s(x).fx1"]]
   }
   a <- lb("sx_1")

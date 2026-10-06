@@ -1753,15 +1753,18 @@ FUZZ_CONVERGENCE_SENSITIVE <- c(
   "simulate_mean_rows", "unit_weights", "loglik_identity"
 )
 
-# Only the verdicts check_convergence() (R/fit.R) issues about the
-# optimum itself count as "the fit warned". nlminb prints "NA/NaN
-# function evaluation" whenever a line-search step lands outside the
-# support, which healthy fits do routinely, so treating it as a
-# convergence warning muted invariants on fits that converged cleanly.
+# Only the verdicts check_convergence() and se_check() (R/fit.R,
+# R/se-check.R) issue about the optimum itself count as "the fit
+# warned". nlminb prints "NA/NaN function evaluation" whenever a
+# line-search step lands outside the support, which healthy fits do
+# routinely, so treating it as a convergence warning muted invariants
+# on fits that converged cleanly. se_check()'s warning replaced "Some
+# standard errors are not finite", which only se = TRUE raised.
 FUZZ_NONCONVERGENCE <- paste(
   c("Optimizer did not report convergence",
     "Large maximum absolute gradient",
-    "Hessian is not positive definite"),
+    "Hessian is not positive definite",
+    "Standard errors are not available"),
   collapse = "|")
 
 fuzz_triage <- function(findings) {

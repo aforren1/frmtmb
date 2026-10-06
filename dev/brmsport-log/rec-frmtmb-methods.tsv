@@ -1,20 +1,20 @@
-assert	frmtmb	brmsfit-methods:112	cannot transfer	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:113	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:112	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:113	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:150		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:151	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:152		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:154	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:154	divergence	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:156		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:157	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:159		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:161		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:162	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:162	divergence	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:163		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:164	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:164	divergence	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:166		FALSE	FALSE	spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
 assert	frmtmb	brmsfit-methods:167	cannot transfer	FALSE	TRUE	STALE: reads 'me', whose last assignment failed: spaghetti = TRUE draws one curve per draw, and with band = "wald" a maximum-likelihood fit has only its estimate. Use band = "boot", whose refits give one curve each, or draw from the posterior with frmtmb.sample::frm_sample()		FALSE
 setup	frmtmb	brmsfit-methods:168		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:169	cannot transfer	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:169	divergence	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:170	pass	TRUE	FALSE		Cannot use 'spaghetti' and 'surface' at the same time.	TRUE
 setup	frmtmb	brmsfit-methods:175		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:177	pass	TRUE	FALSE			TRUE
@@ -32,7 +32,7 @@ assert	frmtmb	brmsfit-methods:197	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:198		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:201	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:203	pass	TRUE	FALSE		All specified effects are invalid for this model. Valid effects are (combinations of): 'Trt', 'Age', 'volume', 'Exp', 'visit'	TRUE
-assert	frmtmb	brmsfit-methods:205	defect	TRUE	FALSE		Some specified effects are invalid for this model: 'Trtc' Valid effects are (combinations of): 'Trt', 'Age', 'volume', 'Exp', 'visit'	TRUE
+assert	frmtmb	brmsfit-methods:205	pass	TRUE	FALSE		Some specified effects are invalid for this model: 'Trtc' Valid effects are (combinations of): 'Trt', 'Age', 'volume', 'Exp', 'visit'	TRUE
 assert	frmtmb	brmsfit-methods:207	own	TRUE	FALSE		Effects support at most two variables: 'Trtc:a:b'	FALSE
 setup	frmtmb	brmsfit-methods:210		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:211		TRUE	FALSE			TRUE
@@ -40,7 +40,7 @@ setup	frmtmb	brmsfit-methods:212		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:213	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:214		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:215	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:217	defect	FALSE	FALSE	Expected `me4 <- conditional_effects(fit4)` to throw a warning.		FALSE
+assert	frmtmb	brmsfit-methods:217	divergence	FALSE	FALSE	Expected `me4 <- conditional_effects(fit4)` to throw a warning.		FALSE
 assert	frmtmb	brmsfit-methods:221	divergence	FALSE	TRUE	STALE: reads 'me4', whose last assignment failed: Expected `me4 <- conditional_effects(fit4)` to throw a warning.		FALSE
 setup	frmtmb	brmsfit-methods:222		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:223	divergence	FALSE	FALSE	Expected `is(me4, "brms_conditional_effects")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
@@ -111,11 +111,11 @@ assert	frmtmb	brmsfit-methods:373	divergence	FALSE	TRUE	ERROR: could not find fu
 setup	frmtmb	brmsfit-methods:388		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:389	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:390	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:391	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:391	divergence	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:393		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:394	hollow	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:395	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:396	defect	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb	brmsfit-methods:396	divergence	FALSE	FALSE	Expected `is(object, "ggplot")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:398		FALSE	FALSE	Some parameters cannot be found in the model:  'r_visit[4,Intercept]' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		FALSE
 assert	frmtmb	brmsfit-methods:399	divergence	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: Some parameters cannot be found in the model:  'r_visit[4,Intercept]' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		TRUE
 assert	frmtmb	brmsfit-methods:400	divergence	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: Some parameters cannot be found in the model:  'r_visit[4,Intercept]' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		FALSE
@@ -173,7 +173,7 @@ assert	frmtmb	brmsfit-methods:741	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:744		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:745		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:746		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:747	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:747	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:749		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:750	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:752		TRUE	FALSE			TRUE
@@ -260,8 +260,8 @@ setup	frmtmb	brmsfit-methods:958		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:959	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:978	divergence	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:984	divergence	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-assert	frmtmb	brmsfit-methods:991	cannot transfer	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-assert	frmtmb	brmsfit-methods:995	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:991	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:995	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:999	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:1000	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:1035	pass	TRUE	FALSE			TRUE

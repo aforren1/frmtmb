@@ -1629,16 +1629,18 @@ them, and the ledger records the ones the ported suite reaches.
 
 - **A fixed `disc` in `variables()`**: brms lists `disc` (a transformed
   parameter, 1) on every ordinal fit; frmtmb lists no fixed dpar for any
-  family. Lane ordinal, "Not done".
+  family. Lane ordinal, "Not done". Closed at 0.68.0 (lane fixes).
 - **Class `"Intercept"` with `coef`** does not address one ordinal
   threshold; brms lists per-threshold rows under flexible and
   sum-to-zero thresholds. Pre-existing. Lane ordinal, "Not done".
+  Closed at 0.68.0 (lane fixes).
 - **`confint()` names the ordinal internal parameters `tau_raw_k`**;
   under equidistant thresholds `tau_raw_2` is `log(delta)`.
-  Pre-existing. Lane ordinal, "Not done".
+  Pre-existing. Lane ordinal, "Not done". Closed at 0.68.0 (lane
+  fixes).
 - **The compatibility table (`R/compat.R`)** has no rows for the
   threshold structures or `disc`. frmtmb.eam's tests read that table.
-  Lane ordinal, "Not done".
+  Lane ordinal, "Not done". Closed at 0.68.0 (lane fixes).
 - **frmtmb.sample's default prior on the `disc` intercept under
   `link_disc = "identity"`**: brms uses `lognormal(0, 1)`, which
   `set_prior()` does not carry, and the default-prior message names the
@@ -1663,6 +1665,251 @@ them, and the ledger records the ones the ported suite reaches.
   all-`TRUE` bernoulli response coded as all failures), lane
   formrobust. Lane ordinal met brms-2 (softit) and brms-8
   (`probit_approx`) again.
+
+## Filed at the 0.68.0 release (2026-10-06)
+
+What the four lanes of the round of 2026-10-05 (`vigport`, `fixes`,
+`gpby`, `ordmix`) found and did not fix, and what the consolidation
+found. Each item names its lane and the record with the measurement;
+`dev/round-20261005.md` is the round's record. Lane nanse (silent NaN
+standard errors, the starts of `frm_allfit()`) was still in work at the
+release and owns vigport's defects 8 and 9 and fixes' consolidation
+items 1 and 3; they are listed here so that nothing is lost if that
+lane's merge is delayed. Lane ordmix's own section below ("Filed by
+lane ordmix after punch round 1") holds the probit underflow and the
+multi-start option. Deliberate divergences are in the lanes' findings
+and the ledger, and upstream defects in `dev/upstream-bugs.md`.
+
+### Closed by this round (were open at 0.67.0)
+
+- Class `"Intercept"` with `coef = "1"`, ... addresses one ordinal
+  threshold, and `default_prior()` lists the per-threshold rows, also
+  under `dpar = "mu<k>"` in an ordinal mixture (fixes, ordmix and the
+  merge).
+- `confint()` and `vcov(full = TRUE)` name the ordinal internal
+  parameters by what they are (fixes; ordinal mixtures at the merge).
+- The compatibility table has rows for `disc` and the threshold
+  structures (fixes; their mixture cells at the merge).
+- A fixed `disc` in `variables()` (fixes).
+- `emmeans()` on a transformed predictor (fixes).
+- `conditional_effects(method = "predict")`'s `estimate__` is the
+  median of its draws, as brms's is (the user's decision of
+  2026-10-06, at the merge; lane fixes' m8).
+- `cs()` on `cumulative()` fits, as in brms (the user's decision of
+  2026-10-06, at the merge).
+- vigport's defect 1 (the `s()` null-space scale; fixes) and defect 6
+  (the migration vignette on `hurdle_cumulative()`; at the merge).
+
+### Open - medium
+
+- **vigport defect 2: `stancode()`, `standata()` and `pp_mixture()` on
+  a `frmtmb_fit` have no refusal.** Without brms loaded the error is
+  "no applicable method"; with the brms namespace loaded they dispatch
+  to brms's default and say "Data must be specified using the 'data'
+  argument". Repro `dev/vigport-repros.R` R1. Lane vigport.
+- **vigport defect 4: `update()` keeps a prior the new formula cannot
+  use, and refuses.** brms's `update()` of `brms_overview`'s `fit2`
+  recompiles and drops the stale `lkj(2)` prior without a message
+  (the reviewer's `dev/vigport-rev-brms-update.R`). Repro
+  `dev/vigport-repros.R` R3. Lane vigport.
+- **vigport defect 7: `brms_multilevel`'s `fit_loss2` does not
+  converge reliably.** nlminb reports false convergence; eight refits
+  over four optimizers and two starts span -358.52 to -359.26 (0.74),
+  the best `nloptr_lbfgs` at -358.5206 with code 0, 0.025 above
+  nlminb's code-1 value (`dev/vigport-pr1-conv.R`). brms samples it
+  with Rhat 1.01. Whether a better optimum exists is not settled.
+  Lane vigport.
+- **vigport defects 8 and 9, owned by lane nanse**: `ls ~ mo(income) *
+  age` has all-NaN standard errors on 72 of 200 of `brms_monotonic`'s
+  data sets, 55 of them silent (`dev/vigport-pr1-mo.R`); and
+  `frm_allfit()` refits a nonlinear model with `start = NULL`
+  (`R/allfit.R:93`; `dev/vigport-rev2-allfit.R`).
+- **fixes, consolidation item 1: a linear ridge next to a coefficient
+  near an undefined region gives NaN standard errors and no warning.**
+  `a + b + log(c0)` with `a, b ~ 1 + x`, `c0` estimated at 5.9e-5: the
+  differenced Hessian of the flat check is not finite, so the check is
+  silent, and the gradient is finite, so no non-finite-gradient
+  warning either (the fixes final review, item 7). Owned by lane
+  nanse with the item below.
+- **`fixef()` and `summary()` report NaN standard errors without a
+  warning** when the outer Hessian is singular, as at a smoothing SD on
+  its boundary; only `vcov()` warns. 3 of 140 gamSim smooth fits on
+  0.67.0, 5 of 140 on lane fixes' build (`dev/fixes-sx-conv3.R`,
+  `-conv5.R`). Lane fixes, punch round 1.
+  Owned by lane nanse.
+- **`fitted()` on an ordinal fit whose `disc` predictor has no fixed
+  column stops** with "requires numeric/complex matrix/vector
+  arguments" in `lp_eta_design()` at `X %*% est[[lp$par]][lp$idx]`:
+  `bf(y ~ z, disc ~ 0 + gp(x, k = 6))` and `disc ~ 0 + (1 | g)` on
+  `cumulative()`, in sample and on newdata. `est$betad` is `NULL` when
+  no `disc` column is fixed. `disc ~ 0 + s(x)` (which keeps a fixed
+  linear column), `sigma ~ 0 + gp(x)` and `sigma ~ 0 + (1 | g)` work,
+  so the gap is the `betad` slot, not gp(). Pre-existing on 0.67.0 and
+  on the gpby lane build. Found by the gpby review
+  (`dev/reviews/2026-10-05-gpby.md`); scope in `dev/gpby-p1-disc2.R`,
+  `dev/gpby-p1-disc2.txt`.
+- **`frm_sample(fit)` on an exact `y ~ gp(x)` fit does not move**:
+  stepsize NaN, acceptance 0, all 300 post-warmup transitions
+  divergent, every draw at one point, on rellib-r5 and on the gpby lane
+  build alike (60 points, data seed 5, `chains = 1, iter = 600,
+  seed = 4`). It is not a flat prior: since frmtmb.sample 0.43.0 the
+  fit route carries brms's defaults, and `prior_summary()` is the same
+  four rows on both routes. The formula route on the same data and
+  seed samples (acceptance 0.97 lane, 0.92 base). The fit route's
+  start or its first gradient is the suspect. Repro
+  `dev/gpby-p1-m1b.R lane|base`, logs `dev/gpby-p1-m1b-*.txt`,
+  `dev/gpby-p1-m1.txt`.
+- **`frm_sample()` repeats a warning the frame build gives**: on
+  `y ~ z + cs(x)` with `cumulative()` it gives brms's experimental
+  warning 6 times where `frm()` and brms's `brm()` give it once
+  (`dev/rel068-cs-probe.R`, `dev/rel068-log/cs-probe.txt`). Every
+  warning raised while the sampling route builds its frames is
+  repeated the same way. Found at the 0.68.0 consolidation.
+- **`cs()` on a cumulative component of an ordinal mixture often stops
+  in the optimizer.** On 20 seeds of a two-class mixture with no `cs()`
+  effect (n = 300; the release review's `dev/relrev-csfail.R`):
+  `mixture(cumulative, sratio)` with `cs(z)` gave a NaN-gradient error
+  on 7, no convergence on 11, 1 clean fit and 1 warned;
+  `mixture(cumulative, cumulative)` with `cs(z)` gave 4 errors, 16 not
+  converged, 0 clean. Controls: `mixture(sratio, sratio)` with `cs(z)`
+  0 errors (6 not converged, 3 clean, 11 warned), and
+  `mixture(cumulative, sratio)` without `cs()` 0 errors (5 not
+  converged, 14 clean, 1 warned). Plain `cumulative()` and the probit
+  with `cs()` fit 20 of 20. The NaN gradient comes from rows crossing
+  during the search; brms's warning ("may have convergence issues")
+  covers it. The release review, m5.
+- **`mo()` point estimates are not always the maximum.** On 52 of 200
+  seeds of `brms_monotonic`'s `ls ~ mo(income) * age` the log-likelihood
+  is more than 0.01 below the exact profile maximum, up to 1.95 below;
+  on 20 the fit stops with code 0 on a softmax plateau that a step
+  toward a simplex vertex improves by up to 0.70 (prototype
+  `dev/nanse-mo-escape.R` in lane nanse's worktree), and on 38 it is at
+  another local maximum after that escape. An escape, or a simplex
+  parameterization with a reachable boundary, changes every saturated
+  `mo()` fit and the sampler's parameterization: a lane of its own.
+  Lane nanse, `dev/nanse-findings.md`, "Defect found, not fixed"; it
+  corrects the vigport review's "valid optimum" (corrected on that page).
+
+### Open - low (found by the review of the 0.68.0 consolidation)
+
+- **Unseeded data in the ported brms suite** moves the recorded
+  messages of `standata:310`, `:315` and `:316` at every regeneration,
+  so `dev/rel068-msgdiff.R` lists them each time. Mask numbers in its
+  `norm()` (for example `gsub("-?[0-9.]+(e-?[0-9]+)?", "#", s)`) or
+  seed each block in `brms_port()`. The verdicts are not affected. The
+  release review, m9.
+- **`(cs(1) | g)` with brms attached after frmtmb dies with an internal
+  error**, "variable lengths differ (found for '.frm_cs(1)')", on every
+  family (`dev/relrev-cs1g.R`); without brms attached it gets frmtmb's
+  refusal. Pre-existing, the same on rellib-r5. And
+  `conditional_effects(method = "predict")` on `categorical()` says it
+  "has no meaning on an ordinal family". The release review, m10.
+- **A sum-to-zero component of an `order = "none"` mixture lists no
+  class `"Intercept"` rows**, where brms lists 4, as for one sum-to-zero
+  family (the threshold vector brms declares before centering is not a
+  frmtmb parameter). The NEWS mixture bullet says so. The release
+  review, m11.
+- **`test-perf.R` "fit time grows with n and stays within a linear
+  envelope" is a wall-clock bound** (`t_large < 100 * max(t_small,
+  0.01)`), which the rules forbid. Under load it failed once in the
+  release's first gated run after lane nanse's merge (1.29 s against
+  1.00; 22 test processes beside two study scripts), and passed 3 of 3
+  alone (`dev/release/perf1..3.log`). nanse's fit-time check adds 8 to
+  24 percent to a small fit, which narrows the margin. Replace it with
+  a count (objective evaluations, AD nodes) or a ratio to a control
+  timed in the same process. Found at the 0.68.0 nanse merge.
+
+### Open - low
+
+- **vigport defect 3: `plot()` of a fit suggests `x` for brms's `N`**
+  ("plot() has no argument `N`. Did you mean `x`?"). Repro
+  `dev/vigport-repros.R` R2. Lane vigport.
+- **vigport defect 5: `fixef()` has no `frm_multiple()` method**, and
+  the pooled table names the intercept `(Intercept)` and sigma
+  `sigma_(Intercept)`, where brms's `fixef()` of a `brm_multiple()`
+  fit says `Intercept`. Repro `dev/vigport-repros.R` R4. Lane vigport.
+- **ordmix: the degenerate-component check misses a component that
+  stopped using an interior category** (8 misses of the review's
+  sets, accepted at its re-check), and it costs 11 to 14 percent of
+  the fit at n = 50000 (1.45 s of 12.9 s; 2.55 s of 17.8 s with
+  `cs()`; `dev/ordmix-rev3-misc.R`). The ordmix final review, c2, c3.
+- **ordmix: an `order = "mu"` mixture's `insight` parameter scale**
+  stays internal, since its block list holds `tau_raw` twice; and a
+  sum-to-zero component has no class `Intercept` row, which brms
+  lists. `dev/ordmix-findings.md`, "Not done, and why".
+- **fixes: F11 seed 8** (`bf(y ~ s(x1), sigma ~ s(x2))`) stops 0.142
+  below rellib-r5's optimum, converged, with finite standard errors:
+  sigma's smoothing SD sits at a local optimum (theta -7.99, -0.80)
+  where 0.67.0 runs it to the boundary (-28.88, -9.87). `restarts = 3`
+  does not move it, and dropping the smooth units brings back the
+  NaN-SE runaway elsewhere (`dev/fixes-p2-f11.R`). A known local
+  optimum of the new optimizer path. `dev/fixes-findings.md`, m11.
+- **gpby: brms's other `gp()` kernels** (`cov = "matern32"`,
+  `"matern52"`, `"exponential"`) are refused by name. The exact form
+  needs the kernel in `gp_corr()` and `gp_cross_cov()`; the
+  Hilbert-space form needs brms's spectral densities.
+  `dev/gpby-findings.md` section 7.
+- **gpby: `zgp` is not a draw name.** frmtmb samples the field and
+  brms its standardized `zgp`; the map is the change of variables
+  `L^-1 b`, which a column cannot be renamed into. Section 7.
+- **gpby: the draws' column order** puts each sub-GP's `sdgp` beside
+  its `lscale`; brms puts every `sdgp` first. Names match, order does
+  not. Section 7.
+- **gpby: core `predict()` holds a `gp()` curve at its mode** and draws
+  neither its coefficients nor the kriging residual, so its interval
+  past the positions is narrower than brms's. Section 7.
+- **gpby: a nonlinear body refuses a contributing exact `gp()` at an
+  unseen position** (`lp_basis_nl()`). Section 7.
+- **gpby r4: `test-gp-by-draws.R`'s formula-route fixture chain is
+  poorly mixed** (on the m1b construction, `iter = 600`, one chain: 215
+  transitions over the maximum tree depth, R-hat 1.56,
+  `dev/gpby-p1-m1b-lane.txt`). Its assertions read the kriging law at
+  one fixed draw, so they are not at risk; a later test must not read
+  posterior summaries off it. The gpby re-check, r4.
+
+### Upstream, listed in `dev/upstream-bugs.md` for the user to file
+
+- brms 2.23.0: brms-20 (an ordinal mixture's NaN gradient at a
+  finite density) and brms-22 (crossing `cs()` thresholds), lane
+  ordmix; brms-21 (`incl_thres` on `hurdle_cumulative()`), lane fixes;
+  brms-23 (`threshold =` passed to `brm()` and dropped), lane vigport.
+  Lane ordmix met brms-1 (on the `cs()` path) and brms-17 (in
+  mixtures) again.
+
+## Filed by lane ordmix after punch round 1, 2026-10-05
+
+### Open - medium
+
+- **The probit's log-odds form underflows past `|eta| = 38.2`**
+  (`R/links.R`, `logit_eta` of `probit`): `log(pnorm(eta)) -
+  log(pnorm(-eta))` is `-Inf` or `Inf` there, and the ordinal densities
+  then give `NaN`. A plain cumulative probit fit at slope 20 has a
+  `NaN` objective on both 0.67.0 and the lane build
+  (`dev/ordmix-rev-probit-sat.R`); in an ordinal mixture a component
+  can reach that region on its own, and the review's
+  `mixture(cumulative("probit"), sratio("cloglog"), acat())` ended
+  there with an infinite gradient (now a warning in
+  `check_convergence()`). The fix, `pnorm(eta, log.p = TRUE) -
+  pnorm(-eta, log.p = TRUE)`, holds to `|eta| = 60` and beyond, but it
+  is not the current form bit for bit where that is finite: 483 of
+  2001 grid values on `[-38, 38]` differ (at most 4.3e-12 relative),
+  and 1903 of 1977 derivatives (at most 1.4e-13), through RTMB's tape
+  (`dev/ordmix-p1-probit.R`, log `dev/ordmix-p1-log-probit.txt`). So
+  it moves every plain probit fit, and the round's rule kept it out. A
+  fix that keeps the plain fits needs a branch at `|eta| = 38` on the
+  tape, or an accepted change to the probit fits.
+
+### Open - low
+
+- **A multi-start option for ordinal mixtures** (`frmtmb_control(starts
+  = n)`, best of `n` jittered starts). Not built: in the review's 160
+  two-component fits, 22 ended at a degenerate boundary, and in 16 of
+  the 22 that point had the higher log-likelihood, so "best of n"
+  picks the degenerate point more often than it escapes it. A useful
+  option has to rank starts by something other than the likelihood
+  (the degenerate check of `mixture_ord_degeneracy()` is a candidate)
+  and report every start, which is more than a small change. Priors on
+  the components (as brms has them) are the remedy the warning names.
 
 ## Reference
 

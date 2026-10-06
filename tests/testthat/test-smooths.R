@@ -214,3 +214,88 @@ test_that("REML on a location-scale smooth differs from mgcv's by design", {
   # range
   expect_gt(reml[["curve_sigma"]] / reml[["curve_mu"]], 10)
 })
+
+# The null-space column of a single-penalty smooth is brms's. brms
+# 2.23.0 builds its Xs and Zs with mgcv::smoothCon(diagonal.penalty =
+# TRUE) (data_sm(), frame_basis_sm()); up to 0.67.0 frmtmb did not, so
+# its `sx_1` was brms's coefficient times a data-dependent factor (5.0
+# to 7.7 on gamSim data, of either sign) and a prior or a hypothesis on
+# it meant another parameter. The wiggly part spanned the same space
+# either way, so the fit is a reparameterization of the old one
+# (dev/fixes-sx.R, dev/fixes-sx-conv3.R).
+# the numbers and the shape of two matrices, without brms's attributes
+sm_values <- function(m) {
+  m <- as.matrix(m)
+  list(dim = dim(m), values = as.vector(m))
+}
+
+test_that("a smooth's design is brms's standata Xs and Zs, bitwise", {
+  skip_if_not_installed("brms")
+  set.seed(1)
+  d <- mgcv::gamSim(eg = 6, n = 200, scale = 2, verbose = FALSE)
+  d$z <- stats::runif(200)
+  d$g <- factor(sample(c("a", "b", "c"), 200, TRUE))
+  for (fo in list(y ~ s(x1) + s(x2), y ~ s(x1, bs = "cr", k = 6),
+                  y ~ s(x1, by = g) + g, y ~ s(x1, by = z), y ~ s(x1, x2),
+                  y ~ t2(x1, x2))) {
+    fit <- suppressWarnings(frm(bf(fo), data = d))
+    sd <- brms_standata(brms::bf(fo), data = d)
+    lp <- fit$frame$linpreds[[1]]
+    fx <- grep("[.]fx[0-9]+$", colnames(lp$X))
+    expect_identical(sm_values(lp$X[, fx, drop = FALSE]),
+                     sm_values(sd$Xs), label = deparse1(fo))
+    bks <- Filter(function(bk) identical(bk[["covstruct"]], "smooth"),
+                  fit$frame$re_blocks)
+    zs <- grep("^Zs_", names(sd), value = TRUE)
+    expect_identical(length(bks), length(zs))
+    if (!grepl("t2", deparse1(fo), fixed = TRUE)) {
+      for (k in seq_along(zs)) {
+        expect_identical(
+          sm_values(lp$Z[, bks[[k]][["b_idx"]], drop = FALSE]),
+          sm_values(sd[[zs[k]]]), label = zs[k])
+      }
+    }
+  }
+  # a distributional parameter's smooth too
+  fs <- frm(bf(y ~ x1, sigma ~ s(x0)), data = d)
+  ss <- brms_standata(brms::bf(y ~ x1, sigma ~ s(x0)), data = d)
+  X <- fs$frame$linpreds[["y.sigma"]]$X
+  expect_identical(sm_values(X[, grep("[.]fx", colnames(X)), drop = FALSE]),
+                   sm_values(ss$Xs_sigma))
+})
+
+test_that("the reparameterized smooth keeps its fit and its predictions", {
+  set.seed(41)
+  n <- 300
+  dd <- data.frame(x = runif(n), x2 = runif(n))
+  dd$y <- sin(3 * dd$x) + dd$x2^2 + rnorm(n, 0, 0.3)
+  fit <- frm(bf(y ~ s(x) + s(x2)), data = dd)
+  ref <- mgcv::gam(y ~ s(x) + s(x2), data = dd, method = "ML")
+  # the null-space coefficient is the one on brms's column, so the
+  # column times it is the smooth's linear part in both bases
+  fx <- grep("[.]fx1$", colnames(fit$frame$linpreds[[1]]$X))
+  expect_identical(length(fx), 2L)
+  gap <- abs(as.numeric(logLik(fit)) - gam_ml_loglik(ref))
+  expect_lt(gap, 1e-6 * abs(gam_ml_loglik(ref)))
+  # newdata at the fitted rows reproduces the in-sample fit, to the
+  # rounding of a basis rebuilt by PredictMat() (1.2e-12 measured)
+  a <- fitted(fit, newdata = dd[1:10, ])[, "Estimate"]
+  b <- fitted(fit)[1:10, "Estimate"]
+  expect_lt(max(abs(a - b)) / max(abs(b)), 1e6 * .Machine$double.eps)
+})
+
+test_that("diagnose() advises autoscale on a smooth fit it did not run", {
+  # a smooth's null-space units are optimizer units, not autoscale; read
+  # as autoscale they dropped the advice to refit with autoscale = TRUE
+  # (review m12, dev/fixes-rev2-diag.R)
+  set.seed(3)
+  d <- suppressMessages(mgcv::gamSim(eg = 6, n = 200, verbose = FALSE))
+  d$w <- stats::runif(200, 0, 1e4)
+  fit <- suppressWarnings(frm(bf(y ~ s(x1) + s(x2) + w), data = d))
+  expect_false(isTRUE(fit$autoscaled))
+  out <- utils::capture.output(suppressWarnings(diagnose(fit)))
+  expect_true(any(grepl("refit with frmtmb_control(autoscale = TRUE)", out,
+                        fixed = TRUE)))
+  expect_false(any(grepl("already standardized internally", out,
+                         fixed = TRUE)))
+})

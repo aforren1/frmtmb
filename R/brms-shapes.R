@@ -140,17 +140,17 @@ brms_extra_fixef <- function(fit) {
   lp_dp <- function(lp) {
     paste(lp[["resp"]] %||% NA_character_, lp[["dpar"]], sep = ":")
   }
-  ord_lps <- Filter(function(lp) {
-    identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
-      identical(lp[["dpar"]], "mu")
-  }, fit$frame[["linpreds"]])
-  for (lp in ord_lps) {
-    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+  # one block per ordinal predictor: an ordinal mixture's components
+  # each report their thresholds, b_mu1_Intercept[k], b_mu2_Intercept[k],
+  # and under order = "mu" two of them read the same template component
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    lp <- ob$lp
+    comp <- ob$comp
     raw <- est[[comp]]
     # an EMPTY block still has thresholds, all at 0: sum-to-zero
     # vectors of one threshold each, which brms reports as 0
     if (is.null(tpl[[comp]]) || is.null(raw)) next
-    fam <- brms_lp_family(fit, lp)
+    fam <- ob$fam
     map <- local({
       fam_ <- fam
       function(r) ord_threshold_values(fam_, r)
@@ -310,7 +310,12 @@ brms_fixef_extra_vcov <- function(fit, rows) {
     if (length(p) != length(e$raw)) return(NULL)
     A[i, p] <- fd_gradient_row(e$map, e$raw, rows$pos[i])
   }
-  V <- A %*% pc$V %*% t(A)
+  # the covariance without the lost directions, and NaN for a row that
+  # moves along one, so a lost parameter does not take the others (RB2)
+  V <- A %*% pc$Vp %*% t(A)
+  bad <- attr(hyp_prop_var(pc, A), "lost")
+  V[bad, ] <- NaN
+  V[, bad] <- NaN
   dimnames(V) <- list(rows$names, rows$names)
   V
 }
@@ -415,6 +420,7 @@ fit_set_outer <- function(fit, v, map = outer_par_map(fit)) {
 #'
 #' @noRd
 fit_draw_space <- function(fit) {
+  se_flush_deferred(fit)
   map <- outer_par_map(fit)
   V <- tryCatch(suppressWarnings(vcov(fit, full = TRUE)),
                 error = function(e) NULL)
@@ -454,8 +460,31 @@ fit_draw_space <- function(fit) {
 #' Returns `NULL` when the covariance is not usable, so the caller
 #' reports `NA` standard errors rather than bounds built from `NaN`.
 #'
+#' Three routes for the group-effect columns, cheapest first:
+#'
+#' - `b_chain`, the chain rule through one linear predictor: each entry
+#'   names a predictor (`key`), the effects it carries (`idx`) and their
+#'   design rows (`Z`). An output row depends on those effects only
+#'   through its own `eta`, which is linear in them, so
+#'   `d out / d b = (d out / d eta) Z`, and `d out / d eta` on EVERY row
+#'   is one pair of evaluations with that predictor's `eta` moved by a
+#'   step (`fit$eta_shift`, read by `lp_eta_design()`). A smooth or a
+#'   `gp()` block whose rows load every column, which no batch can
+#'   attribute, costs one pair here instead of one per coefficient.
+#'   `extra` entries add `(d out / d eta)^2` times the variance that is
+#'   not coefficient uncertainty, an exact `gp()`'s kriging variance or a
+#'   new level's, on that predictor.
+#' - `b_batch`, from `re_b_batches()`: a block whose rows each load at
+#'   most one of its effects, perturbed together and attributed by row.
+#' - one pair per effect for whatever is left.
+#'
+#' The routes mix: the quadratic form is taken over the whole joint
+#' covariance, the batched effects held as one (column, value) pair per
+#' output position.
+#'
 #' @noRd
-fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL) {
+fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
+                      b_chain = NULL, extra = NULL) {
   ds <- fit_draw_space(fit)
   V <- ds$V
   map <- ds$map
@@ -496,7 +525,27 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL) {
     dn <- as.vector(as.matrix(f(fit_set_outer(fit, vm, map))))
     J[, j] <- (up - dn) / (2 * h)
   }
-  parts <- NULL
+  nr <- nrow(m0)
+  nk <- max(1L, length(m0) %/% max(1L, nr))
+  # d out / d eta of one predictor on every row, from ONE pair of
+  # evaluations with its eta moved; memoized, since the chain columns
+  # and the extra variance of one predictor read the same derivative
+  geta <- list()
+  g_of <- function(key) {
+    if (is.null(geta[[key]])) {
+      shifted <- function(step) {
+        g <- fit
+        g[["eta_shift"]] <- list(key = key, h = step)
+        g$cache <- new.env(parent = emptyenv())
+        as.vector(as.matrix(f(g)))
+      }
+      geta[[key]] <<- (shifted(eps) - shifted(-eps)) / (2 * eps)
+    }
+    geta[[key]]
+  }
+  Jx <- NULL
+  dense_k <- integer(0)
+  parts <- list()
   if (nbd) {
     # a fresh cache with the perturbed values, for the reason
     # fit_set_outer() gives: a stored sdreport, joint precision or
@@ -508,13 +557,20 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL) {
       g$cache <- new.env(parent = emptyenv())
       as.vector(as.matrix(f(g)))
     }
-    nr <- nrow(m0)
-    nk <- max(1L, length(m0) %/% max(1L, nr))
-    batched <- rep(FALSE, nbd)
-    parts <- list()
+    covered <- rep(FALSE, nbd)
+    for (ch in b_chain %||% list()) {
+      k <- match(ch$idx, b_idx)
+      if (anyNA(k) || any(covered[k]) || nrow(ch$Z) != nr) next
+      # the output's flattening is column-major over n x K, so the
+      # design row of output position (r, k) is row r
+      Zr <- ch$Z[rep(seq_len(nr), times = nk), , drop = FALSE]
+      Jx <- cbind(Jx, g_of(ch$key) * Zr)
+      dense_k <- c(dense_k, k)
+      covered[k] <- TRUE
+    }
     for (bt in b_batch %||% list()) {
       k <- match(bt$idx, b_idx)
-      if (anyNA(k) || length(bt$owner) != nr) next
+      if (anyNA(k) || any(covered[k]) || length(bt$owner) != nr) next
       h <- eps * pmax(1, abs(b0[bt$idx]))
       up <- perturb(bt$idx, h)
       dn <- perturb(bt$idx, -h)
@@ -530,34 +586,25 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL) {
       val[ok] <- (up[ok] - dn[ok]) / (2 * h[own[ok]])
       col <- ifelse(ok, k[own], NA_integer_)
       parts[[length(parts) + 1L]] <- list(col = col, val = val)
-      batched[k] <- TRUE
+      covered[k] <- TRUE
     }
-    if (!all(batched)) {
-      # a mixed case would need the cross terms between the batched
-      # effects and the dense ones as well; one effect at a time is the
-      # answer that needs no new algebra, and the blocks that land here
-      # (multi-membership, rr) are the small ones
-      parts <- NULL
-      J <- cbind(J, matrix(0, nrow(J), nbd))
-      for (k in seq_len(nbd)) {
-        j <- b_idx[k]
-        h <- eps * max(1, abs(b0[j]))
-        J[, p + k] <- (perturb(j, h) - perturb(j, -h)) / (2 * h)
-      }
-      V_dense <- V
-    } else {
-      V_dense <- V[seq_len(p), seq_len(p), drop = FALSE]
+    # one effect at a time for what neither route covers (a
+    # multi-membership term, an rr block): the small ones
+    for (k in which(!covered)) {
+      j <- b_idx[k]
+      h <- eps * max(1, abs(b0[j]))
+      Jx <- cbind(Jx, (perturb(j, h) - perturb(j, -h)) / (2 * h))
+      dense_k <- c(dense_k, k)
     }
-  } else {
-    V_dense <- V
   }
-  var_out <- rowSums((J %*% V_dense) * J)
+  Jd <- if (is.null(Jx)) J else cbind(J, Jx)
+  dpos <- c(seq_len(p), p + dense_k)
+  var_out <- rowSums((Jd %*% V[dpos, dpos, drop = FALSE]) * Jd)
   if (length(parts)) {
     # var = Jd' Vdd Jd + 2 Jd' Vdb Jb + Jb' Vbb Jb, with the b part held
     # as one (column, value) pair per batch per output position rather
     # than as a matrix of mostly zeros
-    Jd <- J[, seq_len(p), drop = FALSE]
-    Vdb <- V[seq_len(p), p + seq_len(nbd), drop = FALSE]
+    Vdb <- V[dpos, p + seq_len(nbd), drop = FALSE]
     Vbb <- V[p + seq_len(nbd), p + seq_len(nbd), drop = FALSE]
     for (a in parts) {
       ca <- ifelse(is.na(a$col), 1L, a$col)
@@ -568,6 +615,13 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL) {
         var_out <- var_out + a$val * b$val * Vbb[cbind(ca, cb)]
       }
     }
+  }
+  # the variance that is not coefficient uncertainty, through the same
+  # derivative: an exact gp()'s kriging variance at an unseen position,
+  # a new level's draw
+  for (ex in extra %||% list()) {
+    if (length(ex$var) != nr || !any(ex$var > 0)) next
+    var_out <- var_out + g_of(ex$key)^2 * rep(ex$var, times = nk)
   }
   se <- sqrt(pmax(0, var_out))
   matrix(se, nrow(m0), ncol(m0), dimnames = dimnames(m0))

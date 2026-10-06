@@ -1,5 +1,234 @@
 # brms vignette audit: the hand-translated port
 
+## Re-measurement at frmtmb 0.67.0, 2026-10-05
+
+Lane `vigport`, worktree `frmtmb-wt-vigport` at 9e902909. The twelve
+scripts ran unchanged in substance against the installed 0.67.0
+release library `rellib-r5` with frmtmb.sample attached (`BV_LIB`,
+`dev/brms-vignettes/_harness.R`), and against 0.65.0 (`rellib-r3`) and
+0.66.0 (`rellib-r4`) to date changes. The full record, with every
+defect and repro, is `dev/vigport-findings.md`.
+
+### What a re-run can measure here
+
+Each bv() row carries the label its author gave it at 0.42.0, and the
+label is part of the script. So `_scoreboard.R` reproduces the tables
+below this section exactly (567 calls; ML model calls 38 of 56 clean)
+whatever the build does, and it is not a measurement of 0.67.0. What
+changes with the build is each row's OUTCOME. `_drift.R` sets the
+outcome against the label: FAILS-NOW is a CLEAN, SPELLING or BEHAVIOR
+row that errors today, RUNS-NOW a MISSING or REFUSAL row that runs
+today, STILL-OPEN one that still errors.
+
+<!-- BEGIN generated: hand translation drift -->
+| label at 0.42.0 | rows | ran at 0.67.0 | erred at 0.67.0 |
+|---|---|---|---|
+| CLEAN | 233 | 229 | 4 |
+| SPELLING | 90 | 86 | 4 |
+| BEHAVIOR | 117 | 109 | 8 |
+| MISSING | 61 | 10 | 51 |
+| REFUSAL | 38 | 14 | 24 |
+| all | 539 | 448 | 91 |
+
+| drift | ML | SAMPLE | all |
+|---|---|---|---|
+| AS-LABELED | 237 | 187 | 424 |
+| FAILS-NOW | 11 | 5 | 16 |
+| RUNS-NOW | 18 | 6 | 24 |
+| STILL-OPEN | 51 | 24 | 75 |
+
+Per vignette, model then post calls that RAN at 0.67.0, of all:
+
+| vignette | ML model | ML post | SAMPLE model | SAMPLE post |
+|---|---|---|---|---|
+| brms-coexistence | 3 of 4 | 25 of 29 | 2 of 2 | 32 of 34 |
+| brms_customfamilies | 2 of 2 | 11 of 16 | 2 of 2 | 7 of 9 |
+| brms_distreg | 6 of 7 | 15 of 17 | 4 of 4 | 21 of 23 |
+| brms_families | 1 of 1 | 36 of 43 | 0 | 0 |
+| brms_missings | 4 of 4 | 6 of 13 | 2 of 3 | 9 of 12 |
+| brms_monotonic | 7 of 10 | 10 of 15 | 5 of 7 | 10 of 11 |
+| brms_multilevel | 10 of 10 | 20 of 22 | 7 of 8 | 14 of 18 |
+| brms_multivariate | 3 of 3 | 14 of 21 | 4 of 4 | 13 of 17 |
+| brms_nonlinear | 6 of 6 | 27 of 29 | 6 of 6 | 13 of 14 |
+| brms_overview | 6 of 7 | 10 of 18 | 5 of 5 | 11 of 15 |
+| brms_phylogenetics | 6 of 6 | 24 of 26 | 6 of 7 | 20 of 21 |
+| brms_threading | 0 | 3 of 8 | 0 | 0 |
+<!-- END generated -->
+
+448 of the 539 rows that are not data setup run on 0.67.0, against 437
+on 0.65.0 and 446 on 0.66.0. No row that ran on 0.65.0 or 0.66.0 fails
+on 0.67.0.
+
+### FAILS-NOW: 16 rows, none a regression
+
+- 6 are the 0.58.0 dots refusal, a deliberate BREAKING change:
+  `summary(fit, waic = TRUE)` on both paths for `fit1` and `fit4` of
+  `brms_overview`, `plot(fit1, N = 2)` in `brms_distreg` and
+  `plot(fit1, variable = "simo", regex = TRUE)` in `brms_monotonic`.
+  brms's `summary.brmsfit()` has no `waic`; its `plot.brmsfit()` does
+  have `N`, `variable` and `regex`, and frmtmb's message for those is
+  the generic one.
+- 7 follow brms on purpose, each checked on brms 2.23.0: a hypothesis
+  with no relation (3 rows, refused since 0.61.0); `class = "sd"` with
+  no `nlpar` on a nonlinear model (1 row and its 2 cascades);
+  `class = "Intercept", dpar = "sigma"` on a model with no sigma
+  formula (1 row, 0.53.0).
+- 1 is a translation made stale by 0.61.0: `unlist(fixef(f))` reads
+  brms's 4-column matrix.
+- 2 erred when labeled as well (`multinomial()` without `K`, and
+  `nchains()` on a `frm_multiple()` result, which now refuses with the
+  workaround named).
+
+### RUNS-NOW: 24 rows
+
+21 are closed gaps. 0.66.0: `conditional_smooths()` (3 rows),
+`surface = TRUE` (2), the default Wald band on a nonlinear predictor
+(3), `residuals()` of a multivariate
+fit. Earlier: the vignette's `method = "predict"` call on a nonlinear
+fit (2, 0.43.0), `fitted()` of a multivariate fit,
+`pp_check(draws, resp = )`, `hurdle_negbinomial()` and
+`zero_one_inflated_beta()` (0.64.0), a prior on a `cs()` coefficient,
+brms's `prior()` (0.43.0), `class = "sigma"` (0.53.0), and
+`parnames()`, `posterior_samples()`, `nsamples()` on draws with brms
+attached. 3 rows ran when labeled.
+
+### Which workarounds are still needed
+
+`dev/brms-vignettes/_workarounds.R` runs the BRMS line in place of each
+workaround:
+
+<!-- BEGIN generated: workaround necessity -->
+| row (the brms spelling, run on 0.67.0) | runs | the 0.42.0 workaround | error now |
+|---|---|---|---|
+| WA start: brms_nonlinear fit1, no prior, no start | yes | start = list(beta = c(1, 0)) |  |
+| WA start: brms_nonlinear fit1 with the vignette's prior1 | yes | start = list(beta = c(1, 0)) |  |
+| WA start: brms_nonlinear fit_loss with the vignette's priors | yes | start = list(beta = c(5000, 1, 45)) |  |
+| WA start: brms_nonlinear fit_loss, no prior, no start | NO | start = list(beta = c(5000, 1, 45)) | The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). No |
+| WA start: brms_multilevel fit_loss1 with nlprior | yes | start = list(beta = c(5000, 1, 45)), and nlpar = becoming dpar = |  |
+| WA start: brms_nonlinear fit_ir2 with its prior | yes | prior dropped, start = list(beta = c(0, 0)) |  |
+| WA start: brms_nonlinear fit_ir3 with its priors | yes | start = list(beta = c(0, 0.3)), and the beta(1, 1) density dropped |  |
+| WA start: brms_multilevel SAMPLE fit_loss1 with nlprior | yes | set_prior(class = 'Intercept', dpar = 'ult') and start = |  |
+| WA band: conditional_effects(fit_loss1), default band | yes | band = 'boot' |  |
+| WA band: the vignette's method = 'predict' call | yes | method = 'predict' becoming band = 'boot' |  |
+| WA facet: plot(me_loss, ncol = 5, points = TRUE) | yes | par(mfrow = c(2, 5)) set by the caller |  |
+| WA threshold: sratio(threshold = 'equidistant') + cs prior | yes | threshold = and the cs prior both dropped |  |
+| brms 2.23.0: brm(threshold = 'equidistant') as a brm() argument | yes |  |  |
+| WA threshold: cumulative(threshold = 'equidistant') | yes | threshold = has no spelling |  |
+| WA surface: conditional_effects(surface = TRUE) on t2() | yes | effects = 'x1:x2' curves at three values |  |
+| WA smooths: conditional_smooths() | yes | conditional_effects() as the stand-in |  |
+| WA prior: brms_phylogenetics model_simple with its prior block | yes | set_prior() strings, and the sigma prior on dpar = 'sigma' |  |
+| WA prior: brms_overview fit1 with its three set_prior() rows | yes |  |  |
+| WA prior: dirichlet on a mo() simplex (brms_monotonic fit4) | NO | no spelling; fit4 is fit1 again | Cannot parse prior 'dirichlet(c(2, 1, 1))'; expected e.g. "normal(0, 5)" |
+| WA mixture: bf(y ~ 1, mu1 ~ x1, mu2 ~ x1) | NO | y ~ x1 as the main formula, only mu2 named | dpar(s) not available for family 'mixture(gaussian, gaussian)': mu1 (available: sigma1, mu |
+| brms 2.23.0: bf(y ~ 1, mu1 ~ x1, mu2 ~ x1) in stancode() | yes |  |  |
+| frmtmb spelling of the mixture, for pp_mixture() | yes |  |  |
+| WA mixture: pp_mixture(fit) on the ML fit | NO | mixture_probs() as the point-fit substitute | no applicable method for 'pp_mixture' applied to an object of class "frmtmb_fit" |
+| WA custom: brms's custom_family() call verbatim | NO | R lpdf in place of lb/ub/type/vars and the Stan block | unused arguments (lb = c(0, 0), ub = c(1, NA), vars = "vint1[n]") |
+| WA custom: family = beta_binomial2 (brms's argument form) | yes | bf(...) + fam in place of family = |  |
+| WA translation: per-submodel fixef() at the 0.61.0 shape | yes | the 0.42.0 line read unlist(fixef(f)) as five numbers |  |
+| WA translation: hypothesis(fit_imp1, 'age = 0') | yes |  |  |
+| brms 2.23.0: a hypothesis with no relation | NO |  | Every hypothesis must be of the form 'left (= OR < OR >) right'. |
+| WA mv: pp_check(fit1, resp = 'tarsus') on the ML fit | NO | predict(resp = ) against the observed column | pp_check() is not supported yet for multivariate fits |
+| WA mv: add_criterion(fit1, 'loo') | NO | AIC() printed rather than attached | could not find function "add_criterion" |
+| dots: plot(fit, N = 2, ask = FALSE) | NO | N = absorbed by ... | plot() has no argument `N`. Did you mean `x`?. It takes: x, which, ask |
+| dots: plot(fit, variable = '^b', regex = TRUE) | NO | variable = and regex = absorbed by ... | plot() has no argument `variable` (and 1 more: regex). It takes: x, which, ask |
+| dots: summary(fit, waic = TRUE) | NO | waic = absorbed by ... | summary() has no argument `waic`. It takes: object, priors, prob, robust, mc_se, vcov |
+| brms 2.23.0: formals of plot.brmsfit and summary.brmsfit | yes |  |  |
+| stancode(fit) on a frmtmb_fit, brms namespace loaded | NO | a refusal naming frm_sample() | Data must be specified using the 'data' argument. |
+
+workaround rows: 26; the brms spelling now runs on 19, still fails on 7
+<!-- END generated -->
+
+So the edits a porter no longer makes: `start =` on a nonlinear model
+that keeps its vignette priors, `band = "boot"`, `method = "predict"`
+becoming `band = "boot"`, the caller's `par(mfrow)`, dropping
+`threshold =` (it goes in the family, as in brms 2.23.0), a two-way
+effect for a surface, `conditional_effects()` for
+`conditional_smooths()`, `set_prior()` strings for brms's `prior()`
+block, and `bf(...) + fam` for a custom family.
+
+### Open rows by cause
+
+<!-- BEGIN generated: gap ranking -->
+**mechanical port (spell pass, 0.67.0): calls blocked per cause**
+
+| rank | cause | model | post | other | of which cascade |
+|---|---|---|---|---|---|
+| 1 | loo(), LOO(), waic() on a maximum-likelihood fit | 0 | 9 | 0 | 0 |
+| 2 | brms's Stan-side custom_family()/stanvar() spelling | 1 | 4 | 2 | 5 |
+| 3 | plot() of a fit lacks plot.brmsfit()'s N, variable, regex | 0 | 5 | 0 | 0 |
+| 4 | frm_multiple() result has no pooled post-processing | 0 | 4 | 2 | 2 |
+| 5 | add_criterion() does not exist | 0 | 3 | 0 | 0 |
+| 6 | group-level mo() is refused | 1 | 1 | 0 | 1 |
+| 7 | pp_check() refuses a multivariate fit | 0 | 2 | 0 | 0 |
+| 8 | threshold = as an frm() argument (brms 2.23 drops it silently) | 1 | 1 | 0 | 1 |
+| 9 | bayes_R2() on a maximum-likelihood fit | 0 | 1 | 0 | 0 |
+| 10 | summary() refuses brms's swallowed waic = | 0 | 1 | 0 | 0 |
+
+rows: 38 failing (3 model, 31 post, 4 other), 0 unclassified
+
+**hand translation (0.67.0): open rows per cause**
+
+| cause | ML | SAMPLE | of which cascade |
+|---|---|---|---|
+| loo(), LOO(), waic() on a maximum-likelihood fit | 11 | 6 | 0 |
+| brms-only names with no frmtmb analog (threading, shinystan, ...) | 7 | 0 | 0 |
+| frm_multiple() result has no pooled post-processing | 5 | 1 | 0 |
+| brms's Stan-side custom_family()/stanvar() spelling | 3 | 2 | 0 |
+| conditional_effects(method = 'predict') on draws | 0 | 5 | 0 |
+| dirichlet / simo prior on a mo() simplex | 4 | 1 | 0 |
+| families brms has and frmtmb lacks | 5 | 0 | 0 |
+| add_criterion() does not exist | 3 | 1 | 0 |
+| class = sd without nlpar on a nonlinear model (brms refuses it too) | 0 | 4 | 3 |
+| summary() refuses brms's swallowed waic = | 2 | 2 | 0 |
+| hypothesis() with no relation (brms refuses it too) | 3 | 0 | 0 |
+| plot() of a fit lacks plot.brmsfit()'s N, variable, regex | 3 | 0 | 0 |
+| pp_check() refuses a multivariate fit | 2 | 1 | 0 |
+| pp_mixture(), stancode(), standata() on a fit: no refusal | 3 | 0 | 0 |
+| group-level mo() is refused | 1 | 1 | 0 |
+| plot() of draws | 0 | 2 | 0 |
+| threshold = as an frm() argument (brms 2.23 drops it silently) | 2 | 0 | 0 |
+| bayes_R2() on a maximum-likelihood fit | 1 | 0 | 0 |
+| brms attached after frmtmb (bf() masked) | 1 | 0 | 0 |
+| class Intercept, dpar sigma without a sigma formula (brms refuses it too) | 1 | 0 | 0 |
+| custom family without a simulator | 1 | 0 | 0 |
+| fixef() returns brms's matrix since 0.61.0 (translation stale) | 1 | 0 | 0 |
+| horseshoe prior | 1 | 0 | 0 |
+| log_lik() on an mi() model | 0 | 1 | 0 |
+| mixture: brms's mu1 ~ formula beside the main formula | 1 | 0 | 0 |
+| multinomial() needs K, which brms reads from the data | 1 | 0 | 0 |
+| rescor_matrix() on draws (refused, names the fit) | 0 | 1 | 0 |
+| update() on draws | 0 | 1 | 0 |
+
+rows: 91 open, 0 unclassified
+<!-- END generated -->
+
+### Estimate plausibility
+
+Replaced by a comparison against brms fits on the same data, in
+`dev/brms-vignette-port.md` and `dev/vigport-findings.md`. The
+variance-component reading below still holds for components at a
+boundary: there ML sits below brms's posterior mean. It does not cover
+every low component: the `bmi` residual SD of the `mi()` models is low
+for a small-sample reason (16 observed rows), and the `fit_loss2`
+components come from a fit that did not converge.
+
+### Reproduce
+
+```sh
+bash dev/brms-vignettes/_run-all.sh C:/Users/adf44/source/r/rellib-r5 \
+  $PWD/dev/vigport-bv-out/r5
+BV_OUT=$PWD/dev/vigport-bv-out/r5 Rscript dev/brms-vignettes/_drift.R
+BV_LIB=C:/Users/adf44/source/r/rellib-r5 BV_OUT=$PWD/dev/vigport-bv-out/r5-wa \
+  BV_DIR=$PWD/dev/brms-vignettes Rscript dev/brms-vignettes/_workarounds.R
+```
+
+---
+
+## The 0.42.0 measurement, 2026-09-03, with its 0.43.0 and 0.44.0 revisions
+
+Everything below describes that measurement and is not relabeled.
+
 Audit date 2026-09-03, frmtmb v0.42.0 (worktree `wt-brmsvig`), brms
 2.23.0, R 4.6.1 on Windows.
 

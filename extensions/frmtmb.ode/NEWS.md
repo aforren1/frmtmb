@@ -1,3 +1,14 @@
+# frmtmb.ode 0.7.2
+
+No change to the package's code. Needs frmtmb 0.68.0 for its tests.
+
+* `test-ode-nlf.R` allows, and requires, frmtmb 0.68.0's warning that a
+  nonlinear model's likelihood is flat at the optimum. Its model reads
+  `ke` and `V` only as `ke / V`, and its second output is an amount, so
+  `(lke + t, lV + t)` changes nothing; the test compares the two
+  spellings of that model, which agree on the ridge (lane fixes,
+  `dev/fixes-findings.md`).
+
 # frmtmb.ode 0.7.1
 
 No change to the package's code.

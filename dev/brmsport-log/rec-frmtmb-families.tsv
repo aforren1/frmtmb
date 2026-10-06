@@ -29,7 +29,7 @@ assert	frmtmb	families:33	pass	TRUE	FALSE		'probit' is not a supported link for 
 assert	frmtmb	families:34	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:35	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:36	pass	TRUE	FALSE			TRUE
-assert	frmtmb	families:37	divergence	TRUE	FALSE			TRUE
+assert	frmtmb	families:37	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:38	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:39	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:40	pass	TRUE	FALSE			TRUE

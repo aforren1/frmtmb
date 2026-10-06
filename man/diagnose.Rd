@@ -97,11 +97,11 @@ each other are over-parameterization, and the model is too big.
 Parameters the likelihood is flat in are unidentified AT THIS POINT,
 and the remedy is a starting value: a nonlinear term evaluated
 outside its own support (a bump whose centre starts far from the
-data) is flat in several of its parameters at once. One unusable
-direction makes EVERY standard error \code{NaN}, so \code{bad_se} names the
-whole vector and \code{flat} names the cause. The check is measured by
-perturbing each candidate and seeing whether the gradient moves, and
-runs only when the covariance has already failed.
+data) is flat in several of its parameters at once. \code{bad_se} names
+the parameters without a standard error; the others keep theirs (see
+\code{check_se} in \code{\link[=frmtmb_control]{frmtmb_control()}}), and \code{flat} names the cause. The
+check is measured by perturbing each candidate and seeing whether the
+gradient moves, and runs only when the covariance has already failed.
 }
 \examples{
 set.seed(1)

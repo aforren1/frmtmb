@@ -2,11 +2,113 @@
 
 Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
 0.64.0 brms-parity release, 2026-09-29 at the 0.65.0 and 0.66.0
-releases and 2026-09-30 at the 0.67.0 release. Read this, then
+releases, 2026-09-30 at the 0.67.0 release and 2026-10-06 at the
+0.68.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.68.0 round, 2026-10-05 to 2026-10-06
+
+**The user decided on 2026-10-06 to hold the release for lane nanse**,
+which was merged onto the four-lane tree after its review
+(`dev/round-20261005.md`, "Lane nanse merged"). Its check runs by
+default: every `frm()` call builds the Hessian at the optimum and
+warns when a parameter has no standard error, naming it and why
+(`frmtmb_control(check_se = "ignore")` skips it, `"stop"` makes it an
+error). The cost is 8 to 24 percent of the fit on models without
+random effects (the exact Hessian), 19 to 23 percent on mixed models
+with up to about 23 outer parameters (a finite-difference Hessian),
+and 3 percent or less on larger mixed models, where the check waits
+for the first use of a standard error (lane nanse's findings,
+"Cost").
+
+`dev/round-20261005.md` is this round's record, with the verification
+of the release tree. Each lane has `dev/<lane>-findings.md` and
+`dev/reviews/2026-10-05-<lane>.md` (`2026-10-06-nanse.md` for nanse).
+Five lanes merged:
+
+- `fixes`: `emmeans()` on transformed predictors, `trunc()` and `se()`
+  in `conditional_effects()`, `posterior_linpred(incl_thres = TRUE)`,
+  per-threshold `Intercept` rows, `confint()` names for the ordinal
+  internal parameters, compat rows for `disc` and the threshold
+  structures, brms's `s()` null-space basis (BREAKING), and a warning
+  at the optimum when a nonlinear model's likelihood is flat.
+- `gpby`: `gp(x, by = )` with brms's `cmc`, `gr`, `iso` (default
+  `TRUE`, BREAKING) and prior classes `sdgp` and `lscale`; the exact
+  `gp()`'s kriging covariance at new positions
+  (`frm_lp_basis(extra_cov = TRUE)`, `frm_extra_cov_deriv()`), its draw
+  in frmtmb.sample, and frmtmb.spline's curves over it.
+- `ordmix`: ordinal mixtures (`order = "none"` and `"mu"`),
+  `hurdle_cumulative()` with `thres(gr = )` and `cs()`, the
+  degenerate-component and flat-direction warnings.
+- `vigport`: the brms vignette port measured again (records only); its
+  defects are filed.
+
+- `nanse`: a fit says which parameters have no standard error and
+  why, keeps the others' (sdreport()'s inverse lost all of them), gives
+  NaN predictions along a lost direction, and `frm_allfit()` starts
+  where `lme4::allFit()` does (vigport's defects 8 and 9, lane fixes'
+  consolidation items 1 and 3).
+
+Versions: frmtmb **0.68.0**; frmtmb.sample **0.16.0**, floor frmtmb
+0.68.0 (`ord_thres_linpred()`, `gp_brms_natural()`, the `sdgp` and
+`lscale` classes, the kriging draw, ordinal mixtures);
+frmtmb.spline **0.10.0**, floor 0.68.0 (`frm_lp_basis(extra_cov =
+TRUE)`, `frm_extra_cov_deriv()`); frmtmb.ode **0.7.2**, floor 0.68.0,
+no code change (its test requires the flat warning); frmtmb.learn
+**0.7.2**, floor 0.68.0, no code change (its test requires nanse's SE
+warning). The release
+library is `C:/Users/adf44/source/r/rellib-r6`; `rellib-r5` keeps the
+0.67.0 build. In brms's own ported suite, bin 1 passes 389 of 494
+(387 at 0.67.0).
+
+### Decisions the user made on 2026-10-06, for this round
+
+- **The exact `gp()` nugget stays `1e-6`.** Over 180 fits (the gpby
+  re-check, r1) `1e-6` converges on every one, `1e-8` warns on 6 of 45
+  and `1e-12` converges on none. Per-draw parity with brms's `1e-12`
+  jitter, if wanted later, belongs to a sampled fit, not to maximum
+  likelihood.
+- **`posterior_linpred(incl_thres = TRUE)` on `hurdle_cumulative()`
+  stays refused**, a divergence: brms returns the hurdle probability
+  beside the threshold predictors times `1 - hu`, the predictor of
+  nothing (`dev/upstream-bugs.md`, brms-21).
+- **`cs()` on `cumulative()` is lifted**, as brms 2.23.0 fits it, with
+  brms's warning; `hurdle_cumulative()` and cumulative mixture
+  components follow the same rule. A row whose offsets cross two
+  thresholds keeps frmtmb's `NaN` `fitted()` and `NA` draw, where brms
+  returns a negative probability (brms-22).
+- **`conditional_effects(method = "predict")`'s `estimate__` is the
+  median** of the plug-in predictive draws, the same draws its band is
+  a quantile band of, as brms reports its median. BREAKING.
+- **`predict()` on an ordinal `cs()` row whose thresholds cross**:
+  the row is `NA` only where the plug-in estimate crosses, as
+  `fitted()` is `NaN` there; elsewhere the proportions are over the
+  replicates that do not cross, and the call warns once with the
+  replicates dropped per row (the release review's m3).
+- **vigport's defects 8 and 9** (silent NaN standard errors on
+  `mo(income) * age`; `frm_allfit()` refits a nonlinear model with
+  `start = NULL`) are addressed in lane nanse, with fixes' consolidation
+  items 1 and 3.
+
+### What the 0.68.0 round is evidence for
+
+**A test runner can answer for a missing variable.** Lane gpby's new
+`test-gp-by.R` asks for a prediction without the `by = f` column and
+expects frmtmb's refusal. Under `dev/release/run-tests.R`, whose global
+`f` held the test file's path, R's lookup rule found that `f` and the
+test saw "New factor levels" instead. R CMD check has no such global.
+The runner now runs inside `local()`; a runner must leave the global
+environment empty.
+
+**Four clean lanes still need their interplay written down.** The
+three `R/priors.R` conflicts were the visible part; the compat cells,
+the `incl_thres` refusal and the mixture labels merged clean and were
+each wrong on the merged tree until resolved. Each resolution has a
+test seen to fail on a build with that one resolution undone
+(`dev/rel068-mutants.R`).
 
 ## The 0.67.0 round, 2026-09-30
 

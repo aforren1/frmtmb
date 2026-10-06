@@ -855,8 +855,11 @@ compat_features_build <- function(extra = NULL) {
            kind = "autocor"),
     lapply(c("REML", "quadrature", "importance", "profile", "autoscale",
              "sparse_x", "prior", "bounds", "verbose"), f, kind = "mode"),
+    # disc and the threshold structures are parts of an ordinal model
+    # rather than terms of the formula, so they sit with the structures
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
-             "mixture_mvn"), f, kind = "structure"),
+             "mixture_mvn", "disc", "equidistant", "sum_to_zero"), f,
+           kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans",
              "confint_profile", "hypothesis_profile",
@@ -907,8 +910,8 @@ frmtmb_compat_groups_lst <- list(
   gaussian_like = c("gaussian", "student"),
   ordinal = c("cumulative", "hurdle_cumulative", "sratio", "cratio",
               "acat"),
-  # cs() category-specific effects are undefined under the cumulative
-  # parameterization; the sequential and adjacent-category ones take them
+  # the families that take cs() with no caveat; cumulative() and
+  # hurdle_cumulative() take it with brms's warning, in rows of their own
   ordinal_cs = c("sratio", "cratio", "acat"),
   discrete = c("poisson", "negbinomial", "nbinom1", "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
@@ -1343,8 +1346,8 @@ compat_hand_rules_tbl <- function() {
     "Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none.")
   r("thres()", "group:ordinal", "works",
     "thres(x = K) sets the number of thresholds; thres(gr = g) gives each level of g a threshold vector of its own, merged as brms merges them, with a count per level. The log-likelihood agrees with brms's own densities at a shared parameter point to about 5e-16, relative, for all four families under the logit, probit and cauchit links, and with MASS::polr fitted per group and ordinal::clm(nominal = ~ g) at the optimum to about 3e-12 (dev/thres-validate.R). Thresholds above a level's highest observed category are not identified without a prior on class Intercept, and the fit warns about them.")
-  r("thres()", "hurdle_cumulative", "conditional",
-    "thres(x = K) sets the number of thresholds, counted over the ordinal categories above the hurdle. thres(gr = ) is refused by name: the grouped densities have no hurdle. brms fits it.")
+  r("thres()", "hurdle_cumulative", "works",
+    "thres(x = K) and thres(gr = g) count the thresholds over the ordinal categories above the hurdle, and each group's density keeps the hurdle, as brms's hurdle_cumulative_*_merged_lpmf does. The log density equals brms 2.23.0's compiled program at the optimum and at three perturbed points to at most 1.6 ulp, under the logit and the probit, with hu ~ z, disc ~ 0 + z, equidistant and sum_to_zero thresholds (dev/ordmix-lpcheck.R). thres(gr = ) with cs() is refused, as brms refuses it.")
   r("thres()", "weights()", "works",
     "Verified: weights of 2 give the fit of the duplicated data, to the last printed digit.")
   r("thres()", "cs_pred()", "conditional",
@@ -1357,8 +1360,8 @@ compat_hand_rules_tbl <- function() {
   }
   r("thres()", "mvbf", "refused",
     "Refused with every ordinal family: families with extra parameters are not supported in multivariate fits yet.")
-  r("thres()", "mixture", "refused",
-    "Refused with every ordinal family: an ordinal family is not a mixture component.")
+  r("thres()", "mixture", "works",
+    "An ordinal mixture: each component has its own thresholds under order = \"none\", the default, and one shared vector under order = \"mu\", as brms has them; thres(x = ) and thres(gr = ) apply to every component. The log density equals brms 2.23.0's compiled program at the optimum and at three perturbed points to at most 2.5 ulp over the 20 shapes of dev/ordmix-lpcheck.R. A probit component whose latent distance from a threshold passes about 38 has a NaN density where brms's is finite (the review's three-component probit, sratio and acat mixture, one perturbed point; dev/test-backlog.md); brms's equidistant mixture does not compile, and frmtmb fits the model its transformed parameters describe. Every component hurdle_cumulative() or none; groups = is refused.")
   r("thres()", "REML", "works",
     "Verified by a tiny fit with a random intercept.")
   r("thres()", "quadrature", "works",
@@ -1379,6 +1382,50 @@ compat_hand_rules_tbl <- function() {
     "thres(x = K) works. thres(gr = ) is refused: the one-step density selects the category over one shared set, and here the set differs by group. dharma_residuals() is the check to use.")
   r("thres()", "emmeans", "works",
     "The latent-scale means of the ordinal families; the thresholds, grouped or not, do not enter them.")
+
+  ## disc and the threshold structures ----------------------------------
+  # brms's discrimination parameter and its threshold = "equidistant"
+  # and "sum_to_zero" of the ordinal families (dev/ordinal-findings.md;
+  # the cells marked by a tiny fit are dev/fixes-compat-probe.R)
+  r("disc", "kind:family", "refused",
+    "Refused by name: disc is the discrimination parameter of the ordinal families, and no other family has it.")
+  r("disc", "group:ordinal", "works",
+    "brms's disc, held at 1 unless the formula models it, as in brms: disc ~ ... on its log link scales the distance between each threshold and the latent predictor. The densities agree with brms's own R-side densities at a shared parameter point for every family, link and threshold structure (test-ordinal-disc-thres.R). An intercept in disc cannot be told apart from the scale of the thresholds, so the fit warns about it; write disc ~ 0 + ..., or give it a prior as brms does.")
+  for (st in c("equidistant", "sum_to_zero")) {
+    r(st, "kind:family", "refused",
+      "Refused: threshold = is an argument of the ordinal family constructors alone, so any other family stops with an unused argument.")
+    r(st, "thres()", "works",
+      "Each level of thres(gr = ) takes the structure for its own threshold vector, as brms does (test-ordinal-disc-thres.R).")
+  }
+  r("equidistant", "group:ordinal", "works",
+    "brms's threshold = \"equidistant\": the first threshold and the distance delta between neighbors, delta held on the log scale where brms bounds it below by 0 (cumulative() and hurdle_cumulative()). The densities agree with brms's own densities (test-ordinal-disc-thres.R). fixef() reports every threshold, and frmtmb.sample's draws carry brms's delta.")
+  r("sum_to_zero", "group:ordinal", "works",
+    "brms's threshold = \"sum_to_zero\": thresholds that sum to zero. brms declares all of them and centers, which leaves one direction only its prior places; frmtmb estimates the free directions, so class \"Intercept\" has no parameter here and is refused. The densities agree with brms's own densities (test-ordinal-disc-thres.R).")
+  for (st in c("disc", "equidistant", "sum_to_zero")) {
+    for (m in c("fitted", "predict", "simulate", "residuals_osa")) {
+      r(st, m, "works",
+        "Reads the structure and disc, in sample and on newdata; the one-step density is the data density at every row kept (test-ordinal-disc-thres.R).")
+    }
+    r(st, "emmeans", "works",
+      "The latent-scale means of the ordinal families; the thresholds and disc do not enter them.")
+    for (m in c("REML", "quadrature", "confint_profile", "mvbf")) {
+      r(st, m, "works", "Verified by a tiny fit.")
+    }
+  }
+  # an ordinal mixture (lane ordmix): each component carries the
+  # structure and its own disc<k>, as brms has them
+  r("disc", "mixture", "works",
+    "Each component of an ordinal mixture has its own disc<k>, held at 1 unless the formula models it (disc1 ~ 0 + z), as brms has it. The log density equals brms 2.23.0's compiled program (dev/ordmix-lpcheck.R).")
+  r("equidistant", "mixture", "conditional",
+    "Under order = \"none\" each component has its own first threshold and delta (delta_mu1, ...). brms 2.23.0's program for it does not compile (it declares one delta and reads delta_mu<k>), and frmtmb fits the model brms's transformed parameters describe. Under order = \"mu\" it is refused, as brms refuses it: \"Cannot use equidistant and fixed thresholds at the same time\".")
+  r("sum_to_zero", "mixture", "works",
+    "Under order = \"none\" each component's thresholds sum to zero; under order = \"mu\" a sum-to-zero component centers the shared vector, as brms's Intercept_mu<k>_stz does. The log density equals brms 2.23.0's compiled program (dev/ordmix-lpcheck.R).")
+  r("disc", "prior", "works",
+    "class = \"Intercept\" or \"b\" with dpar = \"disc\" reaches disc's predictor, as in brms.")
+  r("equidistant", "prior", "works",
+    "class = \"Intercept\" is the first threshold alone, at the mean of the predictors, and class = \"delta\" the distance between thresholds, as brms has them. A per-threshold coef is refused, as brms refuses it.")
+  r("sum_to_zero", "prior", "conditional",
+    "class = \"Intercept\" is refused: brms's prior there is on thresholds it declares before centering them, a parameter frmtmb does not have. prior = list(tau_raw = ) reaches the free directions on the internal scale.")
 
   ## rate() --------------------------------------------------------------
   r("rate()", "kind:family", "refused",
@@ -1562,7 +1609,7 @@ compat_hand_rules_tbl <- function() {
   r("frm_lp_basis", "rr", "works",
     "A reduced-rank block's loadings live in theta, so a design over (beta, b) alone is incomplete. A carries the loading columns through rr_jacobians() and coef_pos names their theta rows, so a caller gets the whole delta method rather than discovering a piece is absent.")
   r("frm_lp_basis", "gp", "works",
-    "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A'.")
+    "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A', and with extra_cov = TRUE as its full covariance across the rows, which every unseen row of one field shares; a difference between two grids reads the cross block of one call on the stacked grid.")
   r("frm_lp_basis", "predict", "works",
     "frm_linpred(se.fit = TRUE) is written as a consumer of it, which is the test that the shape is right: var(eta) is rowSums((A %*% V) * A) + extra_var.")
   r("nl", "kind:covstruct", "works",
@@ -1655,17 +1702,21 @@ compat_hand_rules_tbl <- function() {
   r("me()", "hypothesis_profile", "untested", "")
 
   r("cs_pred()", "kind:family", "refused",
-    "Refused: cs() needs an sratio, cratio, or acat family.")
+    "Refused, in brms's words: \"Category specific effects are not supported for this family.\" cs() needs an ordinal family.")
   r("cs_pred()", "group:ordinal_cs", "works",
     "A cs() term is expanded by model.matrix() as brms expands its Xcs, so a factor or character predictor gives treatment-contrast dummies with one coefficient per dummy per threshold (bcs_fb[k]), and new data are recoded against the fit's levels. A column written on both sides (y ~ x + cs(x)) is refused: it is not identified, and brms fits it.")
-  r("cs_pred()", "cumulative", "refused",
-    "Refused: category-specific effects are not identified under the cumulative parameterization.")
+  r("cs_pred()", "cumulative", "works",
+    "As brms 2.23.0 fits it, with brms's warning that the effects are experimental: row i reads the thresholds tau_k - cs_ik, brms's Intercept - transpose(mucs[n]). The log density equals brms 2.23.0's compiled program to at most 0.9 ulp at the optimum and at three perturbed points on six shapes: the logit and the probit, a predictor beside cs(), two cs() terms, a factor in cs(), disc ~ 0 + z, equidistant thresholds and a mixture with sratio(); at the 6 of 24 points whose offsets cross two thresholds on some row both are NaN (dev/rel068-cs-lpcheck.R). Rows whose offsets make two thresholds cross have a negative category probability: their density is NaN, as brms's is, their fitted() probabilities are NaN where brms returns the negative difference, and simulate() gives NA there; predict() gives NA proportions for a row that crosses at the estimates, and for a row that crosses only in some of its simulated parameter draws the proportions over the others, with a warning that counts the draws dropped. With thres(gr = ) it is refused, as in brms.")
+  r("cs_pred()", "hurdle_cumulative", "works",
+    "As brms fits it, with brms's warning that the effects are experimental: the offsets come off each row's thresholds, and the log density equals brms 2.23.0's compiled probit program to at most 0.8 ulp, with and without disc and hu predictors (dev/ordmix-lpcheck.R; brms's logit program reads the top category out of range, upstream brms-1). Rows whose offsets make two thresholds cross have a negative category probability: their density is NaN, as brms's is, their fitted() probabilities are NaN where brms returns the negative difference, and simulate() gives NA there; predict() gives NA proportions for a row that crosses at the estimates, and for a row that crosses only in some of its simulated parameter draws the proportions over the others, with a warning that counts the draws dropped. With thres(gr = ) it is refused, as in brms.")
+  r("cs_pred()", "mixture", "works",
+    "An ordinal mixture takes cs() in the formula of each component, each with coefficients of its own (bcs_mu1_x[k]); a cumulative() or hurdle_cumulative() component warns as brms warns, once per component. Verified against brms 2.23.0's compiled program (dev/ordmix-lpcheck.R, dev/rel068-cs-lpcheck.R).")
   r("gp_pred()", "kind:mode", "untested", "", override = TRUE)
   # gp()'s own arity limits used to sit on a gp_pred() x gp_pred()
   # self-pair row, which the resolved table cannot hold; every gp()
   # model has a family, so they are stated here instead.
   r("gp_pred()", "kind:family", "works",
-    "gp() takes 1 to 3 variables. The arguments k, c, and iso are evaluated in the formula environment, and c may be a vector with one entry per dimension. Several gp() terms may appear in one formula.")
+    "gp() takes 1 to 3 variables and brms's arguments by, k, iso, gr, cmc, scale and c, evaluated in the formula environment; c may be a vector with one entry per dimension, and iso defaults to TRUE as in brms. A factor by fits one GP per level (cmc = TRUE) or contrast GPs (cmc = FALSE), each scaled over its own rows with its own sdgp and lscale under brms's names; a numeric by multiplies one GP; a by-level the fit never saw is refused, as brms refuses it. cov = other than \"exp_quad\" is refused: the Matern and exponential kernels are not implemented. Several gp() terms may appear in one formula.")
   r("s()", "kind:mode", "untested", "", override = TRUE)
   r("s()", "kind:family", "works", "")
   r("t2()", "kind:family", "works", "")
@@ -1782,8 +1833,8 @@ compat_hand_rules_tbl <- function() {
     "The monotonic variable joins the reference grid, and its contribution is part of the means. The design basis used to leave it out.")
   r("emmeans", "mi_pred()", "untested",
     "Takes the grid route through frm_lp_basis(), which needs the variable complete in the grid. Not exercised.")
-  r("emmeans", "gp_pred()", "conditional",
-    "An approximate gp(..., k = ) works. An exact gp() is refused at a position the fit did not see, because its kriging variance has no covariance between grid points here; at = an observed value works.")
+  r("emmeans", "gp_pred()", "works",
+    "Works. An exact gp() at a position the fit did not see adds its kriging covariance across the grid to V, through frm_lp_basis(extra_cov = TRUE), so a contrast between two rows at one position cancels it and a mean at an unseen position carries it, as brms's draws of the field do.")
   r("emmeans", "group:ordinal", "conditional",
     "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use frm_linpred(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
   r("confint_profile", "kind:mode", "untested", "")

@@ -11,7 +11,7 @@
 # both gone, and a hardcoded path makes the guards unrunnable rather
 # than red.
 .libPaths(c(Sys.getenv("FRMTMB_PORT_LIB",
-                       "C:/Users/adf44/source/r/rellib-r5"),
+                       "C:/Users/adf44/source/r/rellib-r6"),
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 suppressPackageStartupMessages({
   library(testthat)

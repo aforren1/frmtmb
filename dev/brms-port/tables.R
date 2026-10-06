@@ -1,7 +1,11 @@
 # Emit the per-vignette markdown tables for dev/brms-vignette-port.md.
-HERE <- "C:/Users/adf44/source/r/frmtmb-wt-audit/dev/brms-port"
+HERE <- local({
+  a <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  normalizePath(dirname(sub("^--file=", "", a[1])), winslash = "/")
+})
+source(file.path(HERE, "env.R"))
 source(file.path(HERE, "port-lib.R"))
-M <- readRDS(file.path(HERE, "results-merged.rds"))
+M <- readRDS(file.path(PORT_OUT, "results-merged.rds"))
 VIGS <- c("brms_overview", "brms_multilevel", "brms_distreg", "brms_nonlinear",
           "brms_phylogenetics", "brms_monotonic", "brms_multivariate",
           "brms_missings", "brms_customfamilies")

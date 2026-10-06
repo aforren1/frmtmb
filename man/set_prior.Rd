@@ -196,6 +196,16 @@ type applies to brms's ordered thresholds. \code{sratio()}, \code{cratio()} and
 unconstrained vector, so there is no Jacobian. \code{lb}/\code{ub} are refused
 there, because one number cannot box a whole vector of thresholds.
 
+One threshold is addressed by its number, as brms lists it:
+\code{set_prior("normal(0, 1)", class = "Intercept", coef = "2")} is a
+density on the second threshold, and it replaces a class-wide
+density there and only there. The vector stays one entry, so the
+log-Jacobian of \code{cumulative()}'s map enters once. Under
+\code{thres(gr = )} a threshold is named by its level and its number,
+\verb{group = "a", coef = "2"}. brms has no per-threshold parameter
+under \code{threshold = "equidistant"}, and the row is refused there, as
+in brms.
+
 \code{prior = list(tau_raw = prior_normal(0, 5))} reaches the same
 parameters on the INTERNAL scale, one entry per threshold, which is
 the escape hatch to use when the increments rather than the

@@ -373,3 +373,68 @@ test_that("the covariance is core's, at the rows core says it is at", {
   expect_equal(attr(cv, "Sigma"),
                unname(lb$A %*% lb$V %*% t(lb$A)), tolerance = 1e-12)
 })
+
+test_that("a band past an exact gp()'s positions draws from its kriging", {
+  skip_on_cran()
+  # The construction of dev/gpby-crit.R: y ~ fac + gp(x), 60 points on
+  # [0, 6], a grid on [7, 12] past them. The band used to draw from
+  # A V A' and divide by a standard error that carried the kriging
+  # variance, so it was too narrow exactly where it should widen: its
+  # critical value was 2.02211 against 2.33046 for the same draw
+  # standardized by its own scale (dev/reviews/2026-09-08-diffcurve.md,
+  # R9, which put the shortfall at 17 percent on its data).
+  set.seed(1)
+  n <- 60
+  d <- data.frame(x = stats::runif(n, 0, 6),
+                  fac = factor(rep(c("A", "B"), length.out = n)))
+  d$y <- sin(d$x) + ifelse(d$fac == "B", 0.5, 0) + stats::rnorm(n, 0, 0.2)
+  fit <- frmtmb::frm(frmtmb::bf(y ~ fac + gp(x)),
+                     family = stats::gaussian(), data = d)
+  nd <- data.frame(x = seq(7, 12, length.out = 25),
+                   fac = factor("A", levels = levels(d$fac)))
+  cv <- frm_curve(fit, newdata = nd, nsim = 20000, seed = 1)
+  lb <- frmtmb::frm_lp_basis(fit, newdata = nd, re_formula = NA)
+  expect_gt(min(lb$extra_var / cv$.se^2), 0.01)
+  # the grid covariance is the whole of it, so its diagonal is .se^2
+  expect_lt(max(abs(sqrt(diag(attr(cv, "Sigma"))) / cv$.se - 1)), 1e-10)
+  # and the critical value is at least the bound that only fixes the
+  # scale, which a residual decorrelating faster than the mean raises
+  A <- as.matrix(lb$A)
+  S0 <- A %*% lb$V %*% t(A)
+  bound <- sp_sim_crit(S0, sqrt(diag(S0)), 20000, 0.95, seed = 1)
+  expect_gt(cv$.crit_sim[1], bound$crit - 4 * bound$mcse)
+})
+
+test_that("a curve along a direction the fit lost gets NaN and one warning", {
+  # y ~ a + b with a and b both ~ 1 + x: only a + b is determined, so a
+  # curve of `a` alone has no standard error. The covariance check used
+  # to stop with "this package is reading the seam wrongly" instead.
+  set.seed(955)
+  dd <- data.frame(x = stats::rnorm(60))
+  dd$y <- 3 + 0.5 * dd$x + stats::rnorm(60, 0, 0.4)
+  fit <- suppressWarnings(frmtmb::frm(
+    frmtmb::bf(y ~ a + b, a ~ 1 + x, b ~ 1 + x, nl = TRUE), data = dd))
+  nd <- data.frame(x = seq(-2, 2, length.out = 9))
+  lost <- function(expr) {
+    n <- 0L
+    v <- withCallingHandlers(expr, frmtmb_se_lost_prediction = function(w) {
+      n <<- n + 1L
+      invokeRestart("muffleWarning")
+    })
+    list(value = v, n = n)
+  }
+  for (sim in c(FALSE, TRUE)) {
+    r <- lost(frm_curve(fit, newdata = nd, dpar = "a", simultaneous = sim,
+                        nsim = 500, seed = 1))
+    expect_true(all(is.nan(r$value$.se)))
+    expect_identical(r$n, 1L)
+    r <- lost(frm_curve_deriv(fit, var = "x", newdata = nd, dpar = "a",
+                              simultaneous = sim, nsim = 500, seed = 1))
+    expect_true(all(is.nan(r$value$.se)))
+    expect_identical(r$n, 1L)
+  }
+  # the mean, which the data determine, keeps its band and says nothing
+  expect_no_warning(cv <- frm_curve(fit, newdata = nd, simultaneous = TRUE,
+                                    nsim = 500, seed = 1))
+  expect_true(all(is.finite(cv$.se)))
+})

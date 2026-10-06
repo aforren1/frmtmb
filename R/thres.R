@@ -161,6 +161,98 @@ thres_slice_tau <- function(r, k, type, ordered) {
   c(r, -sum(r))
 }
 
+#' The threshold block an ordinal linear predictor reads, or `NULL` for
+#' any other predictor.
+#'
+#' An ordinal family's `mu` reads the response's `tau_raw`. Component
+#' `k` of an ordinal mixture reads its own `tau_raw<k>` through its own
+#' family, or, under `order = "mu"`, the `tau_raw` every component
+#' shares through a view of its family whose maps start from the shared
+#' vector (`mixture_build_ordinal()`). Every post-fit path that names,
+#' maps or places a prior on thresholds goes through here, so that a
+#' mixture's blocks are found where a plain family's one is.
+#'
+#' `comp` is the template name, `fam` the family whose `post` maps and
+#' `thres` layout describe the block, `k` the component (`NULL` outside
+#' a mixture), `shared` whether other components read the same block,
+#' and `prior_dpar` the dpar brms's prior rows give it: `""` for a
+#' plain family and for the shared vector, which brms's `fixed_Intercept`
+#' carries at the top level, and `mu<k>` otherwise.
+#'
+#' @noRd
+ord_lp_block <- function(frame, spec, lp) {
+  rs <- spec$responses
+  r <- if (is.null(lp[["resp"]])) rs[[1L]] else rs[[lp[["resp"]]]]
+  fam <- r[["family"]]
+  if (!identical(fam[["type"]], "ordinal")) return(NULL)
+  rn <- r[["resp_name"]]
+  mx <- fam[["mix"]][["ord"]]
+  if (is.null(mx)) {
+    if (!identical(lp[["dpar"]], "mu")) return(NULL)
+    return(list(comp = extra_tpl_name(frame, rn, "tau_raw"), fam = fam,
+                k = NULL, shared = FALSE, prior_dpar = "",
+                ordered = fam[["family"]] %in% ord_ordered_families))
+  }
+  k <- match(lp[["dpar"]], paste0("mu", seq_len(mx$K)))
+  if (is.na(k)) return(NULL)
+  shared <- isTRUE(mx$shared)
+  list(comp = extra_tpl_name(frame, rn, mx$tau_names[k]),
+       fam = mx$views[[k]], k = k, shared = shared,
+       prior_dpar = if (shared) "" else lp[["dpar"]],
+       # the shared vector is ordered when any component's is, as brms
+       # declares fixed_Intercept
+       ordered = if (shared) isTRUE(mx$ordered_sh) else
+         mx$comps[[k]][["family"]] %in% ord_ordered_families)
+}
+
+#' The threshold block a class `"Intercept"` or `"delta"` prior with
+#' `dpar` addresses on one ordinal response, or `NULL` when none has
+#' that `dpar`: `""` for a plain family and for the vector an
+#' `order = "mu"` mixture shares (the first component's view of it),
+#' `mu<k>` for component `k` of an `order = "none"` mixture, as brms
+#' keys the rows.
+#'
+#' @noRd
+ord_prior_block <- function(frame, spec, rspec, dpar) {
+  for (b in ord_lp_blocks(frame, spec)) {
+    if (!identical(b$lp[["resp"]] %||% rspec$resp_name, rspec$resp_name)) {
+      next
+    }
+    if (identical(b$prior_dpar, dpar %||% "")) return(b)
+  }
+  NULL
+}
+
+#' Every ordinal linear predictor of a frame with its threshold block
+#' (`ord_lp_block()`), in the frame's order, each as the block with the
+#' predictor added as `lp`.
+#'
+#' @noRd
+ord_lp_blocks <- function(frame, spec) {
+  out <- list()
+  for (lp in frame[["linpreds"]]) {
+    b <- ord_lp_block(frame, spec, lp)
+    if (!is.null(b)) out[[length(out) + 1L]] <- c(list(lp = lp), b)
+  }
+  out
+}
+
+#' Each slice of a merged threshold vector less its own mean, on the
+#' tape and on plain doubles: what a sum-to-zero component of an
+#' `order = "mu"` ordinal mixture does to the shared vector.
+#'
+#' @noRd
+thres_center_slices <- function(tau, lay) {
+  "c" <- RTMB::ADoverload("c")
+  out <- NULL
+  for (g in seq_len(lay$G)) {
+    tg <- tau[lay$start[g]:lay$end[g]]
+    tg <- tg - sum(tg) / lay$nthres[g]
+    out <- if (is.null(out)) tg else c(out, tg)
+  }
+  out
+}
+
 #' The inverse of `thres_tau()`, from the merged thresholds back to the
 #' internal vector, in plain doubles. A threshold vector that does not
 #' have the layout's structure (equidistant thresholds that are not
@@ -355,8 +447,16 @@ thres_finalizer <- function(family, ordered, link) {
     if (is.null(gi) && identical(type, "flexible")) return(fam)
     tmap <- function(raw) thres_tau(raw, lay, ordered)
     if (!is.null(gi)) {
-      fam[["lpdf"]] <- thres_lpdf(family, lay, ordered, link)
-      fam[["sim"]] <- thres_sim(family, lay, ordered, link)
+      # the family's own grouped factories when it has them: the hurdle
+      # family's keep the hurdle, which thres_lpdf() has not
+      glpdf <- fam[["ord_glpdf_make"]] %||% function(lay, ordered) {
+        thres_lpdf(family, lay, ordered, link)
+      }
+      gsim <- fam[["ord_gsim_make"]] %||% function(lay, ordered) {
+        thres_sim(family, lay, ordered, link)
+      }
+      fam[["lpdf"]] <- glpdf(lay, ordered)
+      fam[["sim"]] <- gsim(lay, ordered)
     } else {
       fam[["lpdf"]] <- fam[["ord_lpdf_make"]](tmap)
       fam[["sim"]] <- fam[["ord_sim_make"]](tmap)
@@ -435,9 +535,13 @@ thres_pin_of_fit <- function(fit) {
     }
     # ungrouped: a flexible count IS the length of the threshold block,
     # whether it was counted from the data or written as thres(x = ); the
-    # other structures record theirs on the family
+    # other structures record theirs on the family, and so does an
+    # ordinal mixture, whose blocks are its components'
     comp <- extra_tpl_name(frame, resp$resp_name, "tau_raw")
     raw <- frame[["par_template"]][[comp]]
+    if (!is.null(fam[["mix"]][["ord"]]) && !is.null(th[["nthres"]])) {
+      raw <- numeric(th[["nthres"]])
+    }
     if (is.null(raw) || !length(raw)) next
     out[[resp$resp_name]] <- list(grouped = FALSE,
                                   nthres = as.integer(th[["nthres"]] %||%
@@ -597,8 +701,10 @@ thres_lpdf <- function(family, lay, ordered, link) {
     s <- lay$start[gi]
     nk <- lay$nthres[gi]
     out <- switch(family,
+      # `.gap_floor` is set by an ordinal mixture (ord_log_interior())
       cumulative = thres_lpdf_cumulative(y, eta, tau, s, nk, Fcdf, q,
-                                         disc),
+                                         disc,
+                                         isTRUE(dpars[[".gap_floor"]])),
       acat = if (identical(link$name, "logit")) {
         thres_lpdf_acat(y, eta, tau, s, nk, gi, lay, disc)
       } else {
@@ -616,14 +722,15 @@ thres_lpdf <- function(family, lay, ordered, link) {
 #' log-odds form, like `fam_cumulative()`.
 #'
 #' @noRd
-thres_lpdf_cumulative <- function(y, eta, tau, s, nk, Fcdf, q, disc) {
+thres_lpdf_cumulative <- function(y, eta, tau, s, nk, Fcdf, q, disc,
+                                  gap_floor = FALSE) {
   "[<-" <- RTMB::ADoverload("[<-")
   iK <- as.numeric(y == nk + 1)
   i1 <- as.numeric(y == 1)
   if (is.null(q)) {
     up <- Fcdf(disc * (tau[s + pmin(y, nk) - 1L] - eta)) * (1 - iK) + iK
     lo <- Fcdf(disc * (tau[s + pmax(y - 1, 1) - 1L] - eta)) * (1 - i1)
-    return(log(up - lo))
+    return(log(ord_gap_floor(up - lo, gap_floor)))
   }
   out <- i1 * log_inv_logit(q(disc * (tau[s] - eta))) +
     iK * log1m_inv_logit(q(disc * (tau[s + nk - 1L] - eta)))
@@ -633,8 +740,14 @@ thres_lpdf_cumulative <- function(y, eta, tau, s, nk, Fcdf, q, disc) {
   if (length(rm)) {
     a <- q(disc[rm] * (tau[s[rm] + y[rm] - 1L] - eta[rm]))
     b <- q(disc[rm] * (tau[s[rm] + y[rm] - 2L] - eta[rm]))
-    out[rm] <- out[rm] + RTMB::logspace_sub(-b, -a) +
-      log_inv_logit(a) + log_inv_logit(b)
+    # written out in its old order when off, so a plain fit's tape is
+    # the same to the bit
+    out[rm] <- if (gap_floor) {
+      out[rm] + ord_log_interior(a, b, TRUE)
+    } else {
+      out[rm] + RTMB::logspace_sub(-b, -a) +
+        log_inv_logit(a) + log_inv_logit(b)
+    }
   }
   out
 }
@@ -798,14 +911,16 @@ thres_labels <- function(fam, n) {
 #' then the warning has nothing to say.
 #'
 #' @noRd
-thres_fit_check <- function(fit, resp) {
-  fam <- fit$spec$responses[[resp]]$family
+thres_fit_check <- function(fit, resp, fam = NULL, comp = NULL) {
+  # an ordinal mixture checks each component's block through its own
+  # family and template name (mixture_ord_fit_check())
+  fam <- fam %||% fit$spec$responses[[resp]]$family
   th <- fam[["thres"]]
   ent <- if (!is.null(fit$prior)) {
     resolve_prior_input(list(frame = fit$frame, spec = fit$spec),
                         fit$prior)$entries
   }
-  comp <- extra_tpl_name(fit$frame, resp, "tau_raw")
+  comp <- comp %||% extra_tpl_name(fit$frame, resp, "tau_raw")
   held <- unlist(lapply(ent, function(e) {
     if (identical(e$comp, comp)) e$idx
   }))

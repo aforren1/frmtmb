@@ -30,7 +30,18 @@ par_est_se <- function(fit, vcov = NULL) {
   se <- if (degenerate) {
     lapply(est, function(v) rep(NA_real_, length(v)))
   } else {
-    as.list(sdr_of(fit), what = "Std. Error")
+    sdr <- sdr_of(fit)
+    # a random effect of a block whose sd the Hessian lost has a variance
+    # below zero by rounding, and TMB's sqrt() says "NaNs produced"; the
+    # SE warning already named that block
+    withCallingHandlers(
+      as.list(sdr, what = "Std. Error"),
+      warning = function(w) {
+        if (length(sdr$se_lost) &&
+              identical(conditionMessage(w), "NaNs produced")) {
+          invokeRestart("muffleWarning")
+        }
+      })
   }
   if (length(fit$frame[["betad_fixed_idx"]])) {
     se$betad[fit$frame[["betad_fixed_idx"]]] <- NA_real_
@@ -315,6 +326,12 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
            }
          }),
          smooth_edf = smooth_edf(object),
+         # why a standard error is NaN, so the table does not show a
+         # bare NaN (se_check())
+         se_lost = local({
+           lost <- tryCatch(sdr_of(object)$se_lost, error = function(e) NULL)
+           if (length(lost)) se_lost_clauses(object, lost)
+         }),
          extras = local({
            ex <- list()
            for (nm in object$frame[["extra_names"]] %||% character(0)) {
@@ -372,6 +389,7 @@ brms_ci_cols <- function(prob) {
 #'
 #' @noRd
 summary_fixed_frame <- function(object, ps, rdf, prob) {
+  se_flush_deferred(object)
   rows <- brms_fixef_rows(object)
   est <- unname(brms_fixef_values(object, rows))
   se <- rep(NA_real_, length(rows$names))
@@ -426,6 +444,7 @@ par_est_se_flat <- function(ps, object) {
 #'
 #' @noRd
 summary_spec_frame <- function(object, prob) {
+  se_flush_deferred(object)
   tab <- brms_coef_table(object)
   inv <- attr(tab, "linkinv")
   smp <- attr(tab, "simplex")
@@ -472,8 +491,11 @@ summary_spec_frame <- function(object, prob) {
   for (d in dl) {
     r <- object$estimates[[d$comp]][d$idx]
     p <- if (!is.null(pc)) which(pc$comp == d$comp)[d$idx]
-    se_r <- if (length(p) == 1L && !is.na(p)) sqrt(pc$V[p, p]) else
-      NA_real_
+    se_r <- if (length(p) == 1L && !is.na(p)) {
+      G <- matrix(0, 1L, length(pc$comp))
+      G[1L, p] <- 1
+      sqrt(as.numeric(hyp_prop_var(pc, G)))
+    } else NA_real_
     est <- c(est, d$value(r))
     # d(delta)/d(internal) is delta itself on the log scale, 1 otherwise
     err <- c(err, if (identical(d$value, exp)) exp(r) * se_r else se_r)
@@ -614,29 +636,38 @@ summary_gp_frame <- function(object, prob) {
                  error = function(e) NULL)
   if (is.null(tr)) return(NULL)
   out <- list()
-  for (bk in bks) {
-    rows <- which(tr$block == bk[["term_label"]])
-    if (!length(rows)) next
-    tb <- tr[rows, , drop = FALSE]
-    # the range row is in data units; brms's lscale is on inputs scaled
-    # by the largest distance between two distinct positions
-    dmax <- bk[["gp_dmax"]] %||% {
-      d2 <- Reduce(`+`, bk[["aux_D2"]] %||% list(0))
-      sqrt(max(d2))
+  blocks <- object$frame[["re_blocks"]]
+  # brms's order within a term: every sub-GP's sdgp, then the length
+  # scales with the levels innermost (gp_brms_terms())
+  for (e in gp_brms_terms(object)) {
+    sd_rows <- list()
+    ls_rows <- list()
+    for (k in seq_along(e$blocks)) {
+      bk <- blocks[[e$blocks[k]]]
+      tb <- tr[tr$block == bk[["term_label"]], , drop = FALSE]
+      if (!nrow(tb)) next
+      # the range row is in data units; brms's lscale is on the inputs
+      # its scale = TRUE divides by the largest distance between two
+      # positions of this sub-GP's rows
+      div <- if (identical(bk[["covstruct"]], "hsgp")) {
+        bk[["gp_dmax"]] %||% 1
+      } else {
+        bk[["gp_lscale_div"]] %||% 1
+      }
+      rg <- which(tb$type == "range")
+      tb$est_t[rg] <- tb$est_t[rg] - log(div)
+      sd_rows[[k]] <- tb[tb$type == "sd", , drop = FALSE]
+      for (d in seq_along(rg)) {
+        ls_rows[[(d - 1L) * length(e$blocks) + k]] <- tb[rg[d], ,
+                                                         drop = FALSE]
+      }
     }
-    if (isTRUE(dmax > 0)) {
-      rg <- tb$type == "range"
-      tb$est_t[rg] <- tb$est_t[rg] - log(dmax)
-    }
-    cp <- bk[["components"]][[1L]]
-    lp <- object$frame[["linpreds"]][[cp[["lp_key"]]]]
-    pre <- if (is.null(lp)) "" else brms_lp_prefix(object, lp)
-    nm <- paste0(if (nzchar(pre)) paste0(pre, "_"), "gp",
-                 brms_stan_name(paste(bk[["gp_vars"]], collapse = "")))
-    k <- cumsum(tb$type == "range")
-    idx <- if (max(k) > 1L) paste0("[", k, "]") else ""
-    lab <- ifelse(tb$type == "sd", paste0("sdgp(", nm, ")"),
-                  paste0("lscale(", nm, idx, ")"))
+    tb <- do.call(rbind, c(sd_rows, ls_rows))
+    if (is.null(tb) || !nrow(tb)) next
+    lab <- c(paste0("sdgp(", sub("^sdgp_", "", e$sdgp), ")"),
+             paste0("lscale(", sub("^lscale_", "", as.vector(e$lscale)),
+                    ")"))
+    if (length(lab) != nrow(tb)) next
     out[[length(out) + 1L]] <- summary_nat_frame(tb, prob, lab)
   }
   if (!length(out)) NULL else do.call(rbind, out)
@@ -745,6 +776,13 @@ print.summary.frmtmb_fit <- function(x, ...) {
   if (NROW(x[["me"]])) {
     cat("\nNoise-free Terms (me()):\n")
     print_summary_block(x[["me"]])
+  }
+  if (length(x[["se_lost"]])) {
+    cat("\nParameters without a standard error (NaN wherever shown):\n")
+    w <- max(40L, getOption("width", 80L)) - 4L
+    for (s in x[["se_lost"]]) {
+      cat(paste0("  ", strwrap(s, width = w, exdent = 2L)), sep = "\n")
+    }
   }
   if (isTRUE(x$priors)) {
     cat("\nPriors:\n")
@@ -922,9 +960,12 @@ estimated_coef_names <- function(fit) {
 #'   brms.
 #' @param full If `TRUE`, include covariance parameters (`theta`),
 #'   named as in `confint()` (the glmmTMB `vcov(full = TRUE)`
-#'   convention). `full = TRUE` keeps the INTERNAL names, because it is
-#'   the matrix a delta-method calculation on `confint()`'s rows needs;
-#'   the default block takes brms's.
+#'   convention). `full = TRUE` keeps the INTERNAL parameters, because
+#'   it is the matrix a delta-method calculation on `confint()`'s rows
+#'   needs; the default block takes brms's names. An ordinal fit's
+#'   thresholds are named there as `confint()` names them, by what they
+#'   are: `Intercept[1]`, `delta`, or a transform such as
+#'   `log(Intercept[2] - Intercept[1])`.
 #' @param cluster Optional clustering factor. When given, the result is
 #'   [vcov_cluster()]'s cluster-robust covariance instead of the
 #'   model-based one.
@@ -999,16 +1040,19 @@ vcov_estimated <- function(object, full = FALSE) {
     # invert the outer Hessian that is a matrix of NaN, on a fit whose
     # own convergence checks all passed - so say so here, or nothing
     # does. (The REML/profile branch below warns through
-    # solve_joint_precision().)
-    if (any(!is.finite(V))) warn_nonfinite_cov(object$cache, object)
+    # solve_joint_precision().) Judged on the block returned: a lost
+    # simplex coordinate is not in the coefficient block.
+    ord <- c(which(rownames(V) == "beta"), which(rownames(V) == "betad"))
+    if (any(!is.finite(if (full) V else V[ord, ord]))) {
+      warn_nonfinite_cov(object$cache, object)
+    }
     if (full) {
       # cov.fixed rows repeat the component names; the per-parameter
       # names (confint rows) are the useful labels
-      dimnames(V) <- list(outer_par_names(object),
-                          outer_par_names(object))
+      dimnames(V) <- list(outer_par_labels(object),
+                          outer_par_labels(object))
       return(V)
     }
-    ord <- c(which(rownames(V) == "beta"), which(rownames(V) == "betad"))
     V <- V[ord, ord, drop = FALSE]
   } else {
     Q <- sdr_of(object)$jointPrecision
@@ -1024,7 +1068,7 @@ vcov_estimated <- function(object, full = FALSE) {
       comps <- setdiff(names(object$frame[["par_template"]]),
                        c("b", "miss", "beta"))
       keep <- unlist(lapply(comps, function(cp) which(rn == cp)))
-      onm <- outer_par_names(object)
+      onm <- outer_par_labels(object)
       if (length(keep) == length(onm)) {
         Vf <- as.matrix(Vall[keep, keep, drop = FALSE])
         dimnames(Vf) <- list(onm, onm)
@@ -1211,9 +1255,11 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           optional = TRUE
         )
       }
+      # the predictor's own threshold block: an ordinal mixture's
+      # component k reads tau_raw<k>, or the tau_raw all share
+      ob <- ord_lp_block(object$frame, object$spec, lp)
       thr <- Filter(function(e) {
-        identical(e$comp, extra_tpl_name(object$frame, lp[["resp"]],
-                                         "tau_raw")) &&
+        !is.null(ob) && identical(e$comp, ob$comp) &&
           identical(e$key, key)
       }, rows$extra)
       for (j in seq_len(cp$dim)) {
@@ -1226,8 +1272,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           # family's likelihood gives eta against a threshold. That was
           # a stray `(Intercept)` column holding the mode alone beside
           # thresholds repeated unchanged across groups.
-          df <- coef_shift_thresholds(df, thr[[1L]]$names, bv,
-                                      brms_lp_family(object, lp))
+          df <- coef_shift_thresholds(df, thr[[1L]]$names, bv, ob$fam)
           next
         }
         # a random-effect column the fixed part does not have (an
@@ -1398,6 +1443,9 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   }
   rows <- brms_fixef_rows(object)
   cf <- unname(brms_fixef_values(object, rows))
+  # a waiting SE check reports to fixef()'s caller, not into the
+  # suppression below
+  se_flush_deferred(object)
   V <- tryCatch(suppressWarnings(vcov(object)), error = function(e) NULL)
   se <- if (is.null(V)) NULL else unname(sqrt(diag(V))[rows$names])
   out <- brms_summary_matrix(cf, se, probs, rownames = rows$names)
@@ -2041,8 +2089,13 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
     vm <- pc$vals; vm[i] <- vm[i] - step
     J[, k] <- (flat(vp) - flat(vm)) / (2 * step)
   }
-  Vr <- pc$V[rel, rel, drop = FALSE]
-  se <- sqrt(pmax(0, rowSums((J %*% Vr) * J)))
+  G <- matrix(0, length(q0), length(pc$comp))
+  G[, rel] <- J
+  # NaN only for an entry that moves along a lost direction, with one
+  # warning; the shown covariance would make every entry NaN (RB2)
+  v <- hyp_prop_var(pc, G)
+  se_pred_warn(attr(v, "lost"), "VarCorr() entries")
+  se <- sqrt(as.numeric(v))
   stats_nm <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
   tab <- cbind(q0, se, outer(se, stats::qnorm(probs)) + q0)
   colnames(tab) <- stats_nm

@@ -15,7 +15,9 @@ grouping factor.}
 \item{order}{brms's argument. \code{NULL}, \code{"none"} or \code{FALSE} leaves the
 components unordered, which is what a fit here does. \code{"mu"} or
 \code{TRUE}, brms's ordering of the \code{mu} intercepts, is refused, and any
-other value is refused as invalid, in brms's words.}
+other value is refused as invalid, in brms's words. With ordinal
+components, \code{"mu"} or \code{TRUE} gives the components one shared
+threshold vector, as in brms (see "Ordinal components").}
 }
 \value{
 A \code{frmtmb_family}.
@@ -55,8 +57,74 @@ instead: the likelihood is invariant to component relabeling, so the
 component means are initialized on spread-out response quantiles,
 and multimodality is real (compare starts, or order the intercepts
 with bounds: \code{set_prior("", class = "Intercept", dpar = ..., lb = )}
-per component). Component families with extra parameters
-(ordinal) are not supported.
+per component).
+}
+\section{Ordinal components}{
+
+The components can be ordinal, as in brms: \code{\link[=cumulative]{cumulative()}},
+\code{\link[=sratio]{sratio()}}, \code{\link[=cratio]{cratio()}} and \code{\link[=acat]{acat()}} in any combination, each with its
+own link and threshold structure, or \code{\link[=hurdle_cumulative]{hurdle_cumulative()}} for every
+component. Component \code{k} has the latent predictor \verb{mu<k>} and the
+discrimination \verb{disc<k>} (held at 1 unless its formula models it;
+\verb{hu<k>} too for the hurdle family). The category probabilities of
+the mixture are the \code{theta}-weighted sum of the components'
+category probabilities, and \code{fitted()}, \code{predict()} and \code{simulate()}
+use that sum.
+
+\code{order} sets the thresholds, as in brms. \code{"none"}, the default,
+gives each component its own thresholds, reported as
+\code{b_mu1_Intercept[k]}, \code{b_mu2_Intercept[k]}, and addressed by
+\code{set_prior(class = "Intercept", dpar = "mu1")}. \code{"mu"} (or \code{TRUE})
+gives all components one threshold vector, brms's
+\code{fixed_Intercept}: it is ordered if one component is
+\code{cumulative()} or \code{hurdle_cumulative()}, a sum-to-zero component
+centers it, and \code{set_prior(class = "Intercept")} with no \code{dpar}
+addresses it. \code{"mu"} cannot be combined with
+\code{threshold = "equidistant"}, as in brms. \code{thres(x = )},
+\code{thres(gr = )} and \code{cs()} work as for one ordinal family, per
+component; a \code{cumulative()} or \code{hurdle_cumulative()} component with
+\code{cs()} warns once, as brms warns.
+
+The likelihood does not change when two components change places, so
+the labels follow the start values. A component has no \code{mu}
+intercept to start apart, so component \code{k} starts with its
+thresholds shifted by \code{-F^-1(k / (K + 1))} on its link's scale, which
+gives component 1 the lowest latent location; under \code{order = "mu"}
+the slopes of \verb{mu<k>} start apart instead. \verb{groups = } is not
+available with ordinal components. Three designs have a flat
+direction in the likelihood, and the fit warns about each while the
+parameters no prior holds outnumber what the data identify (a
+threshold prior holds none of the hurdle's \verb{hu<k>} or mixing
+weights): hurdle components whose
+\verb{hu<k>} and mixing weights have no predictors; a mixture with no
+predictor in any distributional parameter, where every row has one
+category distribution; and \code{order = "mu"} with no
+predictor in any \verb{mu<k>}, when the components are the same family
+with the same link and the same held \code{disc}, so that they are one
+distribution.
+
+Maximum likelihood for an ordinal mixture often has its supremum at
+a degenerate boundary, where a component turns into a step function
+of its predictors: its slopes and threshold distances run off, and
+their standard errors mean nothing. In 160 fits of a two-component
+mixture to simulated data with two well-separated classes (300 or
+500 rows), 22 ended there, and in 16 of the 22 the degenerate point
+had a higher log-likelihood than the best non-degenerate optimum
+found from other starts, so a better start does not move such a fit
+off it. The fit warns when a component ends at such a point: when
+doubling all its latent distances (or, with \code{cs()}, one threshold's)
+costs the log-likelihood less than 0.1, or when no row lies within a
+latent distance of 50 of one of its thresholds. Strong predictors
+alone do not set it off: none of 167 sound fits with slopes up to 15
+warned, under the logit, probit, cloglog and cauchit. Compare
+several starts (\code{frm(start = )}), the more so with three or more
+components, and hold the components with priors on \code{class = "Intercept"} and \code{class = "b"} with \code{dpar = "mu<k>"}, as a brms fit
+does; or use fewer components. An ordinal mixture holds each
+interior category's probability at \code{exp(-692)} or above, so that a
+component which stops using a category does not stop the optimizer
+with an undefined gradient. This floor binds only where two
+thresholds of a component are the same double, and the fit warns
+when it ends there.
 
 With \code{groups = ~g} the mixture moves to the group level (latent
 classes): every observation of a group shares one class draw, and
@@ -78,6 +146,7 @@ Mixing-weight predictors are evaluated at each group's first row
 posterior class probabilities per group (or per observation for
 ordinary mixtures), conditional on the random-effect modes.
 }
+
 \examples{
 # two well-separated gaussian components
 set.seed(3)
@@ -91,6 +160,17 @@ head(mixture_probs(fit))
 
 # the mixing weight can take its own predictor
 frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
+
+# ordinal components, each with its own thresholds
+set.seed(5)
+do <- data.frame(x = rnorm(300))
+cls <- rbinom(300, 1, 0.4)
+lat <- ifelse(cls == 1, 1.5 * do$x + 1, -do$x - 1) + rlogis(300)
+do$y <- findInterval(lat, c(-1.5, 0, 1.5)) + 1
+fo <- frm(bf(y ~ x), family = mixture(cumulative(), cumulative()),
+          data = do)
+fixef(fo)
+head(fitted(fo)[, "Estimate", ])
 
 \donttest{
 # latent classes: every observation of a group shares one class

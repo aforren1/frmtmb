@@ -169,12 +169,17 @@ test_that("cs() category-specific effects match direct ML", {
   # a plain sratio fit is strictly worse (cs is real here)
   f0 <- frm(bf(y ~ x) + sratio(), data = dd)
   expect_gt(as.numeric(logLik(fit)), as.numeric(logLik(f0)) + 5)
-  # cs works for cratio and acat, refuses cumulative; the family refusal
-  # comes before the identifiability check, so it still names the family
+  # cs works for cratio and acat, and on a non-ordinal family the
+  # family refusal comes before the identifiability check, so it still
+  # names the family
   expect_no_error(frm(bf(y ~ cs(x)) + cratio(), data = dd))
   expect_no_error(frm(bf(y ~ cs(x)) + acat(), data = dd))
+  expect_error(frm(bf(y ~ x + cs(x)) + poisson(), data = dd),
+               "not supported for this family")
+  # cumulative() takes cs() since 0.68.0, so there the identifiability
+  # check speaks, before brms's warning would
   expect_error(frm(bf(y ~ x + cs(x)) + cumulative(), data = dd),
-               "sratio, cratio, or acat")
+               "is not identified", fixed = TRUE)
 })
 
 test_that("cs() variables reach the model frame on their own", {

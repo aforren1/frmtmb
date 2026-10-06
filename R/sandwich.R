@@ -322,7 +322,11 @@ cluster_scores_at <- function(fit, cl) {
   frame[["cluster_w"]] <- lapply(
     stats::setNames(nm = names(frame[["aterm_values"]])),
     function(r) as.integer(cl))
-  tpl <- fit$obj$env$parameters
+  # the full-shape parameter list: `env$parameters` holds a mapped
+  # component in the map's reduced shape, so a partly mapped one (the
+  # ordinal families' disc, held at 1 beside a free coefficient) failed
+  # MakeADFun with "A map factor length must equal parameter length"
+  tpl <- fit$obj$env$parList(fit$opt$par)
   tpl[["clw"]] <- rep(1, length(gs))
   ri <- fit$obj$env$random
   random <- if (length(ri)) unique(names(fit$obj$env$par)[ri])
@@ -480,7 +484,7 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
 
   S <- cluster_scores_at(object, cl)
   B <- vcov(object, full = TRUE)
-  nm <- outer_par_names(object)
+  nm <- outer_par_labels(object)
   if (!identical(dim(B), c(length(nm), length(nm)))) {
     frm_stop("the model-based covariance and the score matrix do not ",
              "line up; this is a bug in frmtmb", call. = FALSE)

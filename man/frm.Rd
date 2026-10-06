@@ -97,7 +97,10 @@ of one vector and not others is refused.}
 (\code{FALSE}) defers it until standard errors are first needed
 (\code{summary}, \code{vcov}, \code{confint}, \code{frm_linpred(se.fit = TRUE)}), which cuts
 roughly a quarter off fit time in fit-and-predict or bootstrap
-loops. The deferred report is cached, so nothing is computed twice.}
+loops. The deferred report is cached, so nothing is computed twice.
+Either way the fit builds the Hessian at the optimum and warns when
+a parameter has no standard error; see \code{check_se} in
+\code{\link[=frmtmb_control]{frmtmb_control()}}.}
 
 \item{na.action}{How to handle missing values, as in \code{\link[stats:lm]{stats::lm()}}
 (default \link[stats:na.omit]{stats::na.omit}). Rows dropped for missingness are
@@ -148,7 +151,21 @@ Without such a prior a nonlinear model still needs \code{start}.
 \code{frm()} optimizes rather than samples, so it evaluates the
 objective AT the starting values, and a nonlinear body is rarely
 defined at zero. \code{\link[=par_template]{par_template()}} shows the names and the values
-in force.}
+in force.
+
+No start identifies a nonlinear model in which a combination of the
+nonlinear parameters' coefficients changes no fitted value, as when
+two of them enter only through their sum or difference and their
+formulas share a term (\code{a + b} with \code{a ~ 1 + x} and \code{b ~ 1 + x}).
+\code{frm()} fits it and then warns, naming the coefficients, when the
+likelihood at the optimum is flat along such a combination (its
+curvature below 1e-9 of the largest, on the Hessian of those
+coefficients scaled to unit diagonal). A curved ridge that does not
+flatten that far at the optimum (\code{exp(a)^k}) is not flagged there;
+\code{vcov()} and \code{summary()} then report its standard errors as not
+finite. A prior that reaches every flat direction identifies the
+model, as brms's priors do; the split along that direction is then
+set by the prior alone, so a weak prior gives very wide intervals.}
 
 \item{quadrature}{If \code{TRUE}, marginalize each scalar random effect by
 adaptive Gauss-Kronrod quadrature instead of the Laplace
@@ -352,13 +369,21 @@ has no column to go in), and \code{mo(x):mo(w)} is refused outright.
 \section{Category-specific effects, cs()}{
 
 \code{cs(x)} gives a predictor one coefficient per category boundary
-instead of one for the whole response, in the \code{sratio()}, \code{cratio()}
-and \code{acat()} families. The term contributes an \code{n} by \code{K - 1} matrix
-of offsets to the thresholds, so the effect of \code{x} on the first
-boundary need not be its effect on the second. \code{cumulative()} refuses
-it, as brms does: category-specific effects are not identified under
-that parameterization, because the cumulative probabilities would stop
-being monotone.
+instead of one for the whole response, in every ordinal family. The
+term contributes an \code{n} by \code{K - 1} matrix of offsets to the
+thresholds, so the effect of \code{x} on the first boundary need not be
+its effect on the second. On \code{cumulative()} and \code{hurdle_cumulative()}
+the offsets can make one row's thresholds cross, and the category
+between two crossed thresholds then has a negative probability. brms
+fits these models with a warning that the effects are experimental,
+and so does this package. Such a row's density is \code{NaN}, as brms's
+is; its \code{fitted()} probabilities are \code{NaN} too, where brms returns
+the negative difference; and \code{simulate()} gives \code{NA} for it.
+\code{predict()} reports \code{NA} proportions for a row whose thresholds cross
+at the estimates, where \code{fitted()} is \code{NaN}. A row whose thresholds
+cross only in some of its simulated parameter draws reports the
+proportions over the draws that do not cross, and the call warns
+once with the number of draws dropped per row.
 
 A \code{cs()} term is expanded by \code{stats::model.matrix()} like any other
 population-level term, which is what brms does too. A numeric

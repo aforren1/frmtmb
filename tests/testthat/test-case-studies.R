@@ -111,9 +111,14 @@ test_that("the multi-trait animal model reads the pedigree", {
   # never entered the likelihood at all.
   I <- diag(n)
   dimnames(I) <- dimnames(A)
-  fmv_id <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = I)),
-                   sigma ~ 0 + trait) + gaussian(),
-                data = long, data2 = list(I = I))
+  # with the identity the genetic and residual variances are one sum,
+  # so their standard errors are not available, and frm() says so
+  fmv_id <- allow_warnings(
+    frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = I)),
+           sigma ~ 0 + trait) + gaussian(),
+        data = long, data2 = list(I = I)),
+    "Standard errors are not available",
+    require = "Standard errors are not available")
   expect_gt(as.numeric(logLik(fmv)) - as.numeric(logLik(fmv_id)), 5)
 })
 
@@ -256,7 +261,7 @@ test_that("cs() under sratio equals the binomial regression decomposition", {
 
   # the sequential model factorizes into one binary fit per threshold;
   # frmtmb's cs coefficients carry the opposite sign convention
-  expect_equal(unname(confint(fcs)[paste0("bcs2_", 1:3), "est"]), -b_glm,
+  expect_equal(unname(confint(fcs)[paste0("x[", 1:3, "]"), "est"]), -b_glm,
                tolerance = 1e-4)
   expect_lt(abs(as.numeric(logLik(fcs)) - ll_glm), 1e-6)
 })

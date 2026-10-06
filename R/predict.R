@@ -13,9 +13,17 @@ get_joint_cov <- function(fit) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   Q <- joint_precision(fit)
+  null <- NULL
   if (is.null(Q)) {
-    V <- sdr_of(fit)$cov.fixed
-    rn <- rownames(V)
+    # a parameter without a standard error is NaN in cov.fixed, which a
+    # product would spread to every prediction; the finite covariance
+    # sdr_rescue() keeps gives the right variance to a prediction that
+    # does not move along the lost directions, and `null` spans them so
+    # that one that does gets NaN instead (jc_nonest())
+    sdr <- sdr_of(fit)
+    V <- sdr$cov_fixed_prop %||% sdr$cov.fixed
+    rn <- rownames(sdr$cov.fixed)
+    null <- sdr$se_null
   } else {
     # same degradation vcov() uses: a singular joint precision gives NaN
     # standard errors and one warning naming diagnose(), not a raw
@@ -23,7 +31,8 @@ get_joint_cov <- function(fit) {
     V <- as.matrix(solve_joint_precision(Q, cache, fit))
     rn <- rownames(Q)
   }
-  cache$Vjoint <- list(V = V, names = rn)
+  cache$Vjoint <- list(V = V, names = rn, null = null,
+                       units = if (!is.null(null)) fit$par_units)
   cache$Vjoint
 }
 
@@ -543,42 +552,89 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # ride the smooth-parts machinery (curve kept at population level).
   # Exact gp at unseen positions kriges: conditional-mean weights
   # K* K^-1 at the fitted kernel slot into Xr, and the conditional
-  # variance diag(K** - K* K^-1 K*') rides along for se.fit.
+  # covariance K** - K* K^-1 K*' of the unseen rows rides along in
+  # `krig`, whose diagonal is `extra_var` (gp_krig_cov()). A gp(by = )
+  # sub-GP reaches only the rows its multiplier is nonzero on.
   for (gi in lp[["gps"]] %||% list()) {
     Xc <- do.call(cbind, lapply(gi$exprs, function(ex) {
       as.numeric(eval(ex, newdata, env))
     }))
     bk <- fit$frame[["re_blocks"]][[gi$block_id]]
+    nn <- nrow(Xc)
+    w <- gp_by_mult(gi$by, newdata, env, nn)
+    on <- which(w != 0)
     extra_var <- NULL
+    krig <- NULL
     if (gi$type == "hsgp") {
       # dmax/center/L are the fitted scaling, so an in-sample newdata
       # row rebuilds its fitted basis row bit for bit
-      Xr <- hsgp_basis(sweep(Xc / gi$dmax, 2, gi$center), gi$omega, gi$L)
+      Xr <- matrix(0, nn, nrow(gi$omega))
+      if (length(on)) {
+        Xr[on, ] <- w[on] * hsgp_basis(
+          sweep(Xc[on, , drop = FALSE] / gi$dmax, 2, gi$center),
+          gi$omega, gi$L)
+      }
     } else {
       pos <- gi$positions
-      j <- match(pos_rowkey(Xc), pos_rowkey(pos))
-      if (anyNA(j)) {
+      Xr <- matrix(0, nn, nrow(pos))
+      j <- match(pos_rowkey(Xc[on, , drop = FALSE]), pos_rowkey(pos))
+      seen <- on[!is.na(j)]
+      # an observed position is an indicator: its latent value is the
+      # fitted one, with no conditional variance left
+      Xr[cbind(seen, j[!is.na(j)])] <- w[seen]
+      nw <- on[is.na(j)]
+      if (length(nw)) {
+        # in correlation units: the weights K* K^-1 do not depend on the
+        # sd, and a draw whose sd underflows (a sampler's flat tail) left
+        # K exactly zero and the solve singular
         th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
-        K <- unname(covstruct_registry[["gp"]]$vcov(th, bk))
-        Ks <- gp_cross_cov(th, bk, Xc, pos)
-        Xr <- t(solve(K, t(Ks)))
-        # observed rows reduce to indicators (K* row = K row), so their
-        # conditional variance vanishes; the clamp absorbs roundoff
-        kss <- exp(2 * th[1]) * (1 + 1e-6)
-        extra_var <- pmax(kss - rowSums(Xr * Ks), 0)
-      } else {
-        # every row observed: exact indicator fast path
-        Xr <- as.matrix(Matrix::sparseMatrix(i = seq_len(nrow(Xc)),
-                                             j = j, x = 1,
-                                             dims = c(nrow(Xc),
-                                                      nrow(pos))))
+        thc <- th
+        thc[1] <- 0
+        K <- unname(covstruct_registry[["gp"]]$vcov(thc, bk))
+        Xn <- Xc[nw, , drop = FALSE]
+        Ks <- gp_cross_cov(thc, bk, Xn, pos)
+        # Through K's Cholesky factor R the kriging term is P P', P = Ks
+        # R^-1: the variance below, the covariance (gp_krig_cov()) and a
+        # sampler's draw (gp_krig_factor()) then share one arithmetic,
+        # and a pivot at a small variance does not divide one formula's
+        # rounding by another's
+        R <- tryCatch(chol(K), error = function(e) NULL)
+        if (!is.null(R)) {
+          P <- t(backsolve(R, t(Ks), transpose = TRUE))
+          Xw <- t(backsolve(R, t(P)))
+          rs <- rowSums(P^2)
+        } else {
+          # rounding left K semi-definite, which a solve still takes
+          P <- NULL
+          Xw <- t(solve(K, t(Ks)))
+          rs <- rowSums(Xw * Ks)
+        }
+        Xr[nw, ] <- w[nw] * Xw
+        sd2 <- exp(2 * th[1])
+        krig <- list(rows = nw, X = Xn, w = w[nw], Xw = Xw, Ks = Ks, P = P,
+                     rs = rs, theta = thc, sd2 = sd2, bk = bk)
+        extra_var <- numeric(nn)
+        # the clamp absorbs roundoff at a position that kriges to
+        # nearly an observed one
+        extra_var[nw] <- w[nw]^2 * (sd2 * pmax((1 + gp_nugget) - rs, 0))
       }
     }
-    if (is.null(dim(Xr))) Xr <- matrix(Xr, nrow = nrow(Xc))
+    # A posterior draw evaluated here is one draw of the field: brms
+    # draws the unseen positions from their joint conditional given the
+    # fitted ones (brms:::.predictor_gp_new()), so a sampler sets
+    # `krige_draw` and the residual is drawn jointly over the rows
+    # (gp_krig_draw()).
+    draw <- NULL
+    if (isTRUE(fit[["krige_draw"]]) && !is.null(krig)) {
+      draw <- numeric(nn)
+      draw[krig$rows] <- gp_krig_draw(krig)
+    }
     sm_parts[[length(sm_parts) + 1L]] <- list(
       bk = bk,
       Xr = Xr,
-      extra_var = extra_var
+      extra_var = extra_var,
+      krig = krig,
+      draw = draw
     )
   }
 
@@ -1958,6 +2014,9 @@ frm_linpred <- function(object, newdata = NULL,
   # the kept columns still have a finite variance, but it is not the
   # standard error of anything the fit estimates
   if (any(ed[["nonest"]])) se_eta[ed[["nonest"]]] <- NA_real_
+  # nor is a variance along a direction the Hessian lost
+  se_eta[lb$se_nonest] <- NaN
+  se_pred_warn(lb$se_nonest)
 
   out <- if (!is.null(hook)) {
     # the delta method through the reporting transform, with respect to
@@ -2036,6 +2095,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     }
     if (length(sm_parts)) {
       eta <- eta + sm_eta(sm_parts, cvec)
+      for (sp in sm_parts) if (!is.null(sp$draw)) eta <- eta + sp$draw
     }
   }
   if (!is.null(off)) eta <- eta + off
@@ -2049,6 +2109,12 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
                 "; predicting NA there", call. = FALSE)
     eta[nonest] <- NA_real_
   }
+  # a finite-difference standard error moves ONE predictor's eta on every
+  # row at once (fit_fd_se(), `b_chain`), which reads d output / d eta
+  # off one pair of evaluations where perturbing its coefficients one at
+  # a time cost a pair each
+  sh <- object[["eta_shift"]]
+  if (!is.null(sh) && identical(sh$key, key)) eta <- eta + sh$h
   list(eta = eta, X = X, off = off, re_parts = re_parts,
        sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n)
 }
@@ -2204,11 +2270,277 @@ lp_extra_var <- function(object, ed, use_re) {
     }
   }
   gp <- list()
+  krig <- list()
   for (sp in ed[["sm_parts"]]) {
     if (!is.null(sp$extra_var)) gp[[length(gp) + 1L]] <- sp$extra_var
+    if (!is.null(sp$krig)) krig[[length(krig) + 1L]] <- sp$krig
   }
-  list(new_levels = nl, gp = gp)
+  list(new_levels = nl, gp = gp, krig = krig)
 }
+
+#' The conditional covariance of an exact `gp()`'s latent field at the
+#' unseen rows of one prediction, given its values at the fitted
+#' positions: `w w' * (k(X, X) - Xw K Xw')`, with `K Xw' = Ks'`. Rows at
+#' an observed position carry none, so only the unseen rows `krig$rows`
+#' are returned. Its diagonal is the `extra_var` `pred_design()` stores,
+#' and is set to it so the two cannot drift apart by a rounding.
+#'
+#' A 2000-row grid makes this a 32 MB matrix, and the version that formed
+#' it whole held seven of them at once (dev/gpby-findings.md, Punch
+#' round 1, m5): `outer()` alone makes three. It is filled instead in
+#' column blocks of about 4 MB, the upper triangle computed and mirrored,
+#' so the result is the only `n x n` and is symmetric as stored. The
+#' kriging term is `A A'` with `A = Ks R^-1`, `R' R = K`.
+#'
+#' @noRd
+gp_krig_cov <- function(krig) {
+  # pred_design() builds `krig` in correlation units; the diagonal is
+  # scaled in the order `extra_var` is, so the two agree to the bit
+  X <- krig$X
+  th <- krig$theta
+  n <- nrow(X)
+  sd2 <- krig$sd2
+  w <- krig$w
+  scaled <- any(w != 1)
+  rho2 <- vapply(seq_len(ncol(X)), function(j) {
+    2 * (if (isTRUE(krig$bk[["gp_iso"]])) exp(th[2]) else exp(th[1 + j]))^2
+  }, 0)
+  pq <- gp_krig_root(krig)
+  P <- pq$P
+  Q <- pq$Q
+  S <- matrix(0, n, n)
+  step <- max(1L, floor(2^19 / n))
+  for (c0 in seq(1L, n, by = step)) {
+    cc <- c0:min(n, c0 + step - 1L)
+    r <- seq_len(max(cc))
+    E <- 0
+    for (j in seq_along(rho2)) {
+      E <- E + outer(X[r, j], X[cc, j], "-")^2 / rho2[j]
+    }
+    B <- sd2 * (exp(-E) - tcrossprod(P[r, , drop = FALSE],
+                                     Q[cc, , drop = FALSE]))
+    if (scaled) B <- B * outer(w[r], w[cc])
+    # the block on the diagonal is written by both assignments below, so
+    # it is made symmetric first
+    dd <- r >= c0
+    B[dd, ] <- (B[dd, , drop = FALSE] + t(B[dd, , drop = FALSE])) / 2
+    S[r, cc] <- B
+    S[cc, r] <- t(B)
+  }
+  s <- sd2 * pmax((1 + gp_nugget) - krig$rs, 0)
+  # two rows at one position load ONE residual, so their covariance is
+  # its variance, in the arithmetic the diagonal uses: a difference
+  # between them then cancels exactly rather than to a rounding
+  key <- pos_rowkey(X)
+  if (anyDuplicated(key)) {
+    for (g in split(seq_along(key), key)) {
+      if (length(g) > 1L) S[g, g] <- s[g[1L]] * outer(w[g], w[g])
+    }
+  }
+  diag(S) <- if (scaled) s * (w * w) else s
+  S
+}
+
+#' The kriging term `Ks K^-1 Ks'` of `gp_krig_cov()` as `P Q'`: `P = Q =
+#' Ks R^-1` with `R' R = K` as `pred_design()` formed it, so that the
+#' product is symmetric; `Xw Ks'` where K's factor failed. The variance,
+#' the covariance and the draw's factor (`gp_krig_factor()`) all take
+#' it, with `krig$rs`, its diagonal.
+#'
+#' @noRd
+gp_krig_root <- function(krig) {
+  if (is.null(krig$P)) list(P = krig$Xw, Q = krig$Ks) else
+    list(P = krig$P, Q = krig$P)
+}
+
+#' The variance that is not coefficient uncertainty as a full `n x n`
+#' covariance over the rows of one prediction: every exact `gp()`
+#' kriging residual and every new grouping level's draw.
+#'
+#' Two rows covary when they load the same draw. A kriging residual is
+#' one draw of the field for every unseen row of that sub-GP, so its
+#' block is `gp_krig_cov()`. A new level is one draw per (block, level)
+#' key, `extra_var_blocks()`'s grouping, so its part is `M S M'` over the
+#' rows that key reaches; two different unseen levels are independent
+#' draws and contribute nothing off the diagonal. Its diagonal is
+#' `lp_extra_var_vec()`.
+#'
+#' @noRd
+lp_extra_cov <- function(object, ed, use_re) {
+  n <- ed[["n"]]
+  ev <- lp_extra_var(object, ed, use_re)
+  blocks <- list()
+  for (B in extra_var_blocks(ev$new_levels, n)) {
+    Mr <- B$M[B$rows, , drop = FALSE]
+    blocks[[length(blocks) + 1L]] <- list(rows = B$rows,
+                                          C = Mr %*% B$S %*% t(Mr))
+  }
+  for (kg in ev$krig) {
+    blocks[[length(blocks) + 1L]] <- list(rows = kg$rows,
+                                          C = gp_krig_cov(kg))
+  }
+  # the diagonal is the vector predict() adds, to the bit, so a band
+  # built from this matrix and a standard error from se.fit agree
+  extra_cov_assemble(blocks, n, lp_extra_var_vec(object, ed, use_re))
+}
+
+#' Blocks `list(rows, C)` summed into one `n x n` covariance. Each source
+#' is a block over the rows that share its draw, so the matrix is sparse
+#' unless the blocks cover most of it, and then dense. With no block
+#' nothing is allocated. `dg`, when given, replaces the diagonal.
+#'
+#' @noRd
+extra_cov_assemble <- function(blocks, n, dg = NULL) {
+  if (!length(blocks)) {
+    return(Matrix::sparseMatrix(i = integer(0), j = integer(0),
+                                x = numeric(0), dims = c(n, n)))
+  }
+  nnz <- sum(vapply(blocks, function(b) length(b$rows)^2, 0))
+  if (nnz > n^2 / 4) {
+    r1 <- blocks[[1L]]$rows
+    if (length(blocks) == 1L && length(r1) == n && all(r1 == seq_len(n))) {
+      # the one block is the matrix. Its caller still holds it, so writing
+      # the diagonal would copy it; a kriging block already has dg's
+      # diagonal (gp_krig_cov()), and then nothing is written
+      out <- blocks[[1L]]$C
+      if (!is.null(dg) && identical(diag(out), dg)) dg <- NULL
+    } else {
+      out <- matrix(0, n, n)
+      for (k in seq_along(blocks)) {
+        r <- blocks[[k]]$rows
+        out[r, r] <- if (k == 1L) blocks[[k]]$C else
+          out[r, r] + blocks[[k]]$C
+      }
+    }
+    if (!is.null(dg)) diag(out) <- dg
+    return(out)
+  }
+  ii <- unlist(lapply(blocks, function(b) rep(b$rows, length(b$rows))))
+  jj <- unlist(lapply(blocks, function(b) {
+    rep(b$rows, each = length(b$rows))
+  }))
+  xx <- unlist(lapply(blocks, function(b) as.vector(b$C)))
+  if (is.null(dg)) {
+    # repeated (i, j) pairs are summed
+    return(Matrix::sparseMatrix(i = ii, j = jj, x = xx, dims = c(n, n)))
+  }
+  off <- ii != jj
+  Matrix::sparseMatrix(i = c(ii[off], which(dg != 0)),
+                       j = c(jj[off], which(dg != 0)),
+                       x = c(xx[off], dg[dg != 0]), dims = c(n, n))
+}
+
+#' One draw of an exact `gp()`'s kriging residual at the unseen rows of
+#' `krig`, from its joint conditional law `gp_krig_cov()`.
+#'
+#' Drawn once per DISTINCT position and copied, so two rows at one
+#' position carry one value exactly, then multiplied by each row's `by`
+#' value. The law is the smooth conditional covariance plus the nugget,
+#' `gp_nugget * sd^2`, as white noise per distinct position, which is
+#' how the fit's latent values carry it.
+#'
+#' A sampler calls this once per posterior draw, and a dense factor of
+#' the smooth part cost an `n x n` kernel and an `n^3` Cholesky per draw
+#' (dev/gpby-findings.md, Punch round 1, m4). The smooth part is close
+#' to low rank at the positions a grid asks for, so it is factored by a
+#' pivoted Cholesky that builds only the kernel columns it pivots on and
+#' stops once every remaining conditional variance is below
+#' `gp_krig_tol` of the prior variance. What remains is added to the
+#' white part, so each row's variance is still its `extra_var`; only
+#' correlations below `gp_krig_tol` are dropped, a millionth of the
+#' nugget.
+#'
+#' @noRd
+gp_krig_draw <- function(krig) {
+  fc <- gp_krig_factor(krig)
+  v <- sqrt(fc$white) * stats::rnorm(length(fc$white))
+  if (ncol(fc$L)) v <- v + as.vector(fc$L %*% stats::rnorm(ncol(fc$L)))
+  krig$w * (sqrt(krig$sd2) * v)[fc$idx]
+}
+
+#' The factor `gp_krig_draw()` draws from, in correlation units: the
+#' smooth part's pivoted Cholesky columns `L` and the white variance
+#' `white` over the distinct positions, and `idx` from each row to its
+#' position. `L L' + diag(white)`, scaled by `sd^2 w w'` at `idx`, is
+#' `gp_krig_cov()`.
+#'
+#' @noRd
+gp_krig_factor <- function(krig) {
+  key <- pos_rowkey(krig$X)
+  u <- !duplicated(key)
+  Xu <- krig$X[u, , drop = FALSE]
+  pq <- gp_krig_root(krig)
+  P <- pq$P[u, , drop = FALSE]
+  Qr <- pq$Q[u, , drop = FALSE]
+  n <- nrow(Xu)
+  th <- krig$theta
+  rho2 <- vapply(seq_len(ncol(Xu)), function(j) {
+    2 * (if (isTRUE(krig$bk[["gp_iso"]])) exp(th[2]) else exp(th[1 + j]))^2
+  }, 0)
+  # the smooth part's conditional variance, in correlation units, as
+  # extra_var has it
+  d <- pmax(1 - krig$rs[u], 0)
+  d0 <- d
+  L <- matrix(0, n, min(n, 32L))
+  k <- 0L
+  repeat {
+    j <- which.max(d)
+    if (!length(j) || d[j] <= gp_krig_tol) break
+    # past about a quarter of the positions the column-at-a-time loop
+    # is slower than the whole kernel and one LAPACK factor
+    # (dev/rel068-krig-rank.R measures both regimes), so
+    # a high-rank grid takes the dense route
+    if (k >= n / 4) return(gp_krig_factor_dense(Xu, P, Qr, rho2, d0, key, u))
+    k <- k + 1L
+    if (k > ncol(L)) L <- cbind(L, matrix(0, n, min(n, 2L * ncol(L)) -
+                                            ncol(L)))
+    Q <- 0
+    for (a in seq_len(ncol(Xu))) Q <- Q + (Xu[, a] - Xu[j, a])^2 / rho2[a]
+    col <- exp(-Q) - as.vector(P %*% Qr[j, ])
+    if (k > 1L) {
+      col <- col - as.vector(L[, seq_len(k - 1L), drop = FALSE] %*%
+                               L[j, seq_len(k - 1L)])
+    }
+    col <- col / sqrt(d[j])
+    # the pivot's own entry is its remaining variance's root, so that
+    # variance is used up exactly and the row cannot be picked again
+    col[j] <- sqrt(d[j])
+    L[, k] <- col
+    d <- pmax(d - col^2, 0)
+    d[j] <- 0
+  }
+  list(L = L[, seq_len(k), drop = FALSE], white = gp_nugget + d,
+       idx = match(key, key[u]))
+}
+
+#' `gp_krig_factor()`'s dense route for a high-rank grid: the smooth
+#' conditional covariance over the distinct positions whole, in
+#' correlation units, and LAPACK's pivoted Cholesky with the same
+#' stopping rule, `gp_krig_tol`. What the factor leaves of each
+#' position's variance joins the white part, as in the pivoted loop, so
+#' `L L' + diag(white)` is the same law.
+#'
+#' @noRd
+gp_krig_factor_dense <- function(Xu, P, Qr, rho2, d, key, u) {
+  E <- 0
+  for (a in seq_len(ncol(Xu))) {
+    E <- E + outer(Xu[, a], Xu[, a], "-")^2 / rho2[a]
+  }
+  C <- exp(-E) - tcrossprod(P, Qr)
+  C <- (C + t(C)) / 2
+  # the diagonal as extra_var has it, so the two cannot drift apart
+  diag(C) <- d
+  R <- suppressWarnings(chol(C, pivot = TRUE, tol = gp_krig_tol))
+  r <- attr(R, "rank")
+  L <- t(R[seq_len(r), order(attr(R, "pivot")), drop = FALSE])
+  list(L = L, white = gp_nugget + pmax(d - rowSums(L^2), 0),
+       idx = match(key, key[u]))
+}
+
+# Where gp_krig_draw() stops factoring: a conditional variance this small
+# against the prior's is drawn as white noise. A millionth of frmtmb's
+# nugget, and below the rounding of the kriging solve that produced it.
+gp_krig_tol <- 1e-12
 
 #' Collect the new-level variance sources into INDEPENDENT DRAWS.
 #'
@@ -2353,6 +2685,7 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   }
   V <- jc$V[pos_all, pos_all, drop = FALSE]
   var_m <- pmax(rowSums((G %*% V) * G), 0)
+  lost_dir <- jc_nonest(jc, G, pos_all)
 
   # New grouping levels: a block whose components sit in several linear
   # predictors enters once, through the summed gradient over its own
@@ -2381,6 +2714,8 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
     rep(e$nonest, length.out = n)
   }))
   if (any(nonest)) se_m[nonest] <- NA_real_
+  se_m[lost_dir] <- NaN
+  se_pred_warn(lost_dir)
   out <- list(fit = m, se.fit = se_m)
   if (is.null(newdata)) {
     out$fit <- napred(object, out$fit)
@@ -2762,6 +3097,96 @@ ord_linear_per_threshold <- function(object, eta, newdata, resp) {
   out
 }
 
+#' brms's linear predictor with the thresholds included, the quantity
+#' `posterior_linpred(incl_thres = TRUE)` returns per draw: an
+#' `n x K1` matrix whose column `k` is `disc * (tau_k - (eta + cs_k))`
+#' for `cumulative()` and `sratio()`, and `disc * ((eta + cs_k) - tau_k)`
+#' for `cratio()` and `acat()`, the argument brms's `dcumulative()`,
+#' `dsratio()`, `dcratio()` and `dacat()` pass to the link at
+#' `link = "identity"`. Under `thres(gr = )` a row reads its level's
+#' thresholds, and a level with fewer than `K1` of them is `NA` in the
+#' columns past its own, as in brms. Evaluated at `object`'s estimates,
+#' so frmtmb.sample calls it once per draw.
+#'
+#' `hurdle_cumulative()` is refused: brms returns the hurdle
+#' probability as a column `0` beside the threshold predictors times
+#' `1 - hu` (`posterior_epred_hurdle_cumulative()` run at the identity
+#' link), which mixes a probability with linear predictors and is the
+#' predictor of nothing (dev/fixes-thres-brms.R). An ordinal mixture is
+#' refused first, in brms's words.
+#'
+#' @noRd
+ord_thres_linpred <- function(object, newdata = NULL, resp = NULL,
+                              re_formula = NULL, allow_new_levels = FALSE) {
+  rn <- resp %||% names(object$spec$responses)[1L]
+  rspec <- object$spec$responses[[rn]]
+  fam <- rspec$family
+  # said first and in brms's words (posterior_epred.R): a mixture has no
+  # one threshold predictor, and brms refuses before it reads the family
+  if (!is.null(fam[["mix"]])) {
+    frm_stop("'incl_thres' is not supported for mixture models.",
+             call. = FALSE)
+  }
+  sgn <- switch(fam[["family"]] %||% "", cumulative = 1, sratio = 1,
+                cratio = -1, acat = -1, NULL)
+  if (is.null(sgn)) {
+    frm_stop("posterior_linpred(incl_thres = TRUE) is refused for family '",
+             fam[["family"]], "'. ",
+             if (identical(fam[["family"]], "hurdle_cumulative")) {
+               paste0("brms 2.23.0 returns the hurdle probability as a ",
+                      "column 0 beside the threshold predictors times ",
+                      "1 - hu, which is the linear predictor of nothing. ")
+             },
+             "Read the latent predictor with incl_thres = FALSE and the ",
+             "thresholds from posterior_summary()", call. = FALSE)
+  }
+  lp <- object$frame[["linpreds"]][[linpred_key(rn, "mu")]]
+  pl <- function(dp, type) {
+    as.numeric(frm_linpred(object, newdata = newdata, resp = rn, dpar = dp,
+                           re_formula = re_formula, type = type,
+                           allow_new_levels = allow_new_levels))
+  }
+  eta <- pl("mu", "link")
+  disc <- if (is.null(object$frame[["linpreds"]][[linpred_key(rn,
+                                                               "disc")]])) {
+    fam[["fixed_dpars"]][["disc"]] %||% 1
+  } else {
+    pl("disc", "response")
+  }
+  tau <- ord_threshold_values(fam, as.numeric(fit_extras(object,
+                                                         rn)[["tau_raw"]]))
+  th <- fam[["thres"]]
+  lay <- thres_layout(th[["nthres"]] %||% length(tau),
+                      th[["type"]] %||% "flexible")
+  K1 <- lay$K1max
+  # the thresholds and the cs() part are built on the fitted rows and
+  # padded the way frm_linpred() pads eta in sample
+  n_fit <- if (is.null(newdata)) object$frame[["n_obs"]] else nrow(newdata)
+  gi <- if (thres_grouped(fam)) {
+    thres_row_groups(ord_prob_aterms(object, rspec, newdata), n_fit)
+  } else {
+    rep(1L, n_fit)
+  }
+  Tm <- matrix(NA_real_, n_fit, K1)
+  for (g in seq_len(lay$G)) {
+    rows <- which(gi == g)
+    k <- lay$nthres[g]
+    if (length(rows) && k) {
+      Tm[rows, seq_len(k)] <- matrix(tau[lay$start[g]:lay$end[g]],
+                                     length(rows), k, byrow = TRUE)
+    }
+  }
+  CS <- ord_cs_offsets(object, lp, newdata, n_fit, K1)
+  if (is.null(newdata)) {
+    Tm <- napred(object, Tm)
+    if (!is.null(CS)) CS <- napred(object, CS)
+  }
+  if (is.null(CS)) CS <- 0
+  out <- sgn * disc * (Tm - eta - CS)
+  dimnames(out) <- NULL
+  out
+}
+
 #' The standard error of a fitted value, or `NULL` where none is
 #' available.
 #'
@@ -2781,6 +3206,9 @@ ord_linear_per_threshold <- function(object, eta, newdata, resp) {
 #' @noRd
 fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
                             allow_new_levels, est) {
+  # the handler below muffles what fitted_point() already said, which
+  # would include a waiting SE check's report
+  se_flush_deferred(object)
   if (is.matrix(est)) {
     f <- function(fit) {
       fitted_point(fit, newdata, re_formula, scale, resp, dpar,
@@ -2815,7 +3243,14 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
     bt <- if (length(b_idx)) {
       re_b_batches(object, newdata, resp, allow_new_levels, b_idx)
     }
-    return(fit_fd_se(object, f, b_idx = b_idx, b_batch = bt))
+    # a smooth or gp() block that no batch can attribute goes through its
+    # predictor's eta instead, one pair for the block; the same
+    # derivative carries the kriging and new-level variance, which the
+    # scalar route below adds through se.fit
+    ch <- fd_eta_chain(object, newdata, resp, allow_new_levels,
+                       re_form_keeps(re_formula), b_idx)
+    return(fit_fd_se(object, f, b_idx = b_idx, b_batch = bt,
+                     b_chain = ch$chain, extra = ch$extra))
   }
   # fitted_point() has already raised this call's warnings, so they are
   # muffled here, except the one only the standard error can raise: a
@@ -2827,7 +3262,8 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
                 dpar = dpar, resp = resp, re_formula = re_formula,
                 allow_new_levels = allow_new_levels, se.fit = TRUE),
     warning = function(w) {
-      if (!inherits(w, "frmtmb_modes_conditional_se")) {
+      if (!inherits(w, c("frmtmb_modes_conditional_se",
+                         "frmtmb_se_lost_prediction"))) {
         invokeRestart("muffleWarning")
       }
     }),
@@ -2898,6 +3334,13 @@ fitted_no_draws <- c(
 #'
 #' @noRd
 ordinal_ncat <- function(fit, resp = NULL) {
+  # an ordinal mixture keeps a block per component, and the count they
+  # all share is on the family
+  fam0 <- (if (is.null(resp)) fit$spec$responses[[1L]] else
+    fit$spec$responses[[resp]])$family
+  if (!is.null(fam0[["mix"]][["ord"]])) {
+    return(max(fam0[["thres"]][["nthres"]]) + 2L - ord_code0(fam0))
+  }
   raw <- fit$estimates[[extra_tpl_name(fit$frame, resp, "tau_raw")]]
   if (is.null(raw)) {
     rspec <- if (is.null(resp)) {
@@ -3027,9 +3470,20 @@ cs_offsets_add <- function(fit, resp, newdata, dpv) {
     if (!length(cst) || !identical(lp[["resp"]], resp)) next
     n <- length(dpv[[1L]])
     K1 <- length(fit$estimates[[cst[[1L]]$par]])
-    dpv[[".cs"]] <- ord_cs_offsets(fit, lp, newdata, n, K1)
+    dpv[[cs_slot(lp[["dpar"]])]] <- ord_cs_offsets(fit, lp, newdata, n, K1)
   }
   dpv
+}
+
+#' The dpar-list entry a predictor's `cs()` offsets ride in: `.cs` for
+#' an ordinal family's `mu`, and `.cs_mu<k>` for component `k` of an
+#' ordinal mixture, which hands it to that component as `.cs`. One slot
+#' per predictor, because each component of a mixture may carry `cs()`
+#' terms of its own.
+#'
+#' @noRd
+cs_slot <- function(dpar) {
+  if (identical(dpar, "mu")) ".cs" else paste0(".cs_", dpar)
 }
 
 #' `n x K` category probabilities of an ordinal fit.
@@ -3078,6 +3532,9 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list(),
 ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
                       allow_new_levels = FALSE) {
   fam <- rspec$family
+  if (!is.null(fam[["mix"]][["ord"]])) {
+    return(ord_mix_probs(object, rspec, newdata, use_re, allow_new_levels))
+  }
   lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
   if (!is.null(lp[["nl_body"]])) {
     frm_stop("type = \"response\" is not supported for an ordinal family ",
@@ -3106,6 +3563,63 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   # a row that cannot be estimated from the retained design columns has
   # no category distribution either
   if (any(ed[["nonest"]])) P[ed[["nonest"]], ] <- NA_real_
+  P
+}
+
+#' `ord_probs()` for an ordinal mixture: every dpar of the response at
+#' the rows being predicted, each component's `cs()` offsets in its own
+#' slot, and the category probabilities read out of the mixture's
+#' density one category at a time. That density is the theta-weighted
+#' sum of the components' category probabilities, so the columns are
+#' that sum without a second copy of the arithmetic.
+#'
+#' @noRd
+ord_mix_probs <- function(object, rspec, newdata, use_re,
+                          allow_new_levels) {
+  fam <- rspec$family
+  rn <- rspec$resp_name
+  K <- ordinal_ncat(object, rn)
+  K1 <- max(fam[["thres"]][["nthres"]])
+  dp <- list()
+  ne <- list()
+  rnm <- NULL
+  for (dnm in names(rspec$dpars)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rn, dnm)]]
+    if (!is.null(lp[["nl_body"]])) {
+      frm_stop("type = \"response\" is not supported for an ordinal ",
+               "mixture whose `", dnm, "` has a nonlinear predictor",
+               call. = FALSE)
+    }
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    eta <- unname(ed[["eta"]])
+    dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
+    ne[[dnm]] <- ed[["nonest"]]
+    if (dnm == "mu1") rnm <- names(ed[["eta"]])
+  }
+  n <- max(lengths(dp))
+  nonest <- rep(FALSE, n)
+  for (v in ne) nonest <- nonest | rep(v, length.out = n)
+  for (dnm in names(rspec$dpars)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rn, dnm)]]
+    cs <- ord_cs_offsets(object, lp, newdata, n, K1)
+    if (!is.null(cs)) dp[[cs_slot(dnm)]] <- cs
+  }
+  dp <- lapply(dp, function(v) if (is.matrix(v)) v else rep(v, length.out = n))
+  ex <- fit_extras(object, rn)
+  av <- ord_prob_aterms(object, rspec, newdata)
+  codes <- ord_code0(fam) + seq_len(K) - 1L
+  P <- matrix(NA_real_, n, K)
+  for (k in seq_len(K)) {
+    P[, k] <- exp(as.numeric(fam[["lpdf"]](rep.int(codes[k], n), dp, av,
+                                            ex)))
+  }
+  P <- P / rowSums(P)
+  colnames(P) <- object$frame[["y_levels"]][[rn]] %||% as.character(codes)
+  if (is.null(rnm) && is.null(newdata)) {
+    rnm <- rownames(object$frame[["data_frame"]])
+  }
+  if (!is.null(rnm) && length(rnm) == n) rownames(P) <- rnm
+  if (any(nonest)) P[nonest, ] <- NA_real_
   P
 }
 
@@ -3334,6 +3848,12 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
   nq <- ncol(P0)
   SE <- matrix(NA_real_, n, nq)
   G <- matrix(0, n, n_beta + sum(n_more) + length(extra_d))
+  # the variance that is not coefficient uncertainty on each predictor,
+  # an exact gp()'s kriging variance or a new level's, through the same
+  # derivative its eta has; frm_linpred(se.fit = TRUE) adds it, and the
+  # category probabilities left it out
+  ev_mu <- lp_extra_var_vec(object, ed, use_re)
+  ev_more <- lapply(more, function(m) lp_extra_var_vec(object, m$ed, use_re))
   for (k in seq_len(nq)) {
     G[, seq_len(n_beta)] <- dPde[, k] * A
     off <- n_beta
@@ -3342,8 +3862,14 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
       off <- off + ncol(m$A)
     }
     for (i in seq_along(extra_d)) G[, off + i] <- extra_d[[i]][, k]
-    SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
+    v <- rowSums((G %*% V) * G) + dPde[, k]^2 * ev_mu
+    for (i in seq_along(more)) v <- v + more[[i]]$dP[, k]^2 * ev_more[[i]]
+    SE[, k] <- sqrt(pmax(v, 0))
+    lost_k <- jc_nonest(jc, G, all_pos)
+    SE[lost_k, k] <- NaN
+    lost_dir <- if (k == 1L) lost_k else lost_dir | lost_k
   }
+  if (nq) se_pred_warn(lost_dir)
   nonest <- ed[["nonest"]]
   for (m in more) nonest <- nonest | m$ed[["nonest"]]
   if (any(nonest)) {
@@ -4603,7 +5129,7 @@ with_cs_offsets <- function(fit, rspec, dpv) {
     for (ct in lp[["cs"]]) {
       CS <- CS + outer(ct$vals, fit$estimates[[ct$par]])
     }
-    dpv[[lp[["resp"]]]][[".cs"]] <- CS
+    dpv[[lp[["resp"]]]][[cs_slot(lp[["dpar"]])]] <- CS
   }
   dpv
 }
@@ -4706,6 +5232,16 @@ frm_joint_cov <- function(object) {
   require_fitted(object, "frm_joint_cov()")
   jc <- get_joint_cov(object)
   jc$labels <- joint_coef_labels(object, jc)
+  # the internal covariance keeps finite rows for the parameters the
+  # Hessian lost, for predictions that do not move along them; what a
+  # caller reads shows them as vcov() does
+  lost <- if (!is.null(jc$null)) sdr_of(object)$se_lost
+  i <- match(names(lost), outer_par_names(object))
+  i <- i[!is.na(i)]
+  if (length(i)) {
+    jc$V[i, ] <- NaN
+    jc$V[, i] <- NaN
+  }
   jc
 }
 
@@ -4781,6 +5317,8 @@ b_coef_labels <- function(fit) {
 #'   the terms it names. See [frm_linpred()] for the full rule.
 #' @param allow_new_levels Whether a grouping level the fit never saw is
 #'   allowed.
+#' @param extra_cov If `TRUE`, also return `extra_cov`, the full
+#'   covariance over the rows of the variance in `extra_var`.
 #' @return A list with
 #' \describe{
 #'   \item{`eta`}{the linear predictor, exactly
@@ -4796,9 +5334,35 @@ b_coef_labels <- function(fit) {
 #'     level's marginal variance are not.}
 #'   \item{`nonest`}{length `n`; rows that load on a direction the
 #'     rank-deficient design could not identify.}
+#'   \item{`extra_cov`}{only with `extra_cov = TRUE`: `n x n`; the
+#'     covariance between rows of the variance in `extra_var`, whose
+#'     diagonal it is, exactly. A sparse [Matrix::Matrix()] when its
+#'     blocks cover little of the grid (all zero when nothing
+#'     contributes), a dense matrix otherwise.}
 #' }
 #' `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
-#' `frm_linpred(se.fit = TRUE)` is written that way.
+#' `frm_linpred(se.fit = TRUE)` is written that way. The covariance of
+#' the whole prediction is `A V A' + extra_cov`.
+#' @section Variance that is not coefficient uncertainty:
+#' Two sources reach `extra_var`. An exact `gp()` evaluated at a position
+#' the fit did not see adds the field's conditional (kriging) covariance
+#' given its values at the fitted positions,
+#' `k(x, x') - k(x, X) K^-1 k(X, x')`; rows at an observed position carry
+#' none. Every unseen row of one `gp()` term loads the SAME draw of the
+#' field, so those rows covary, and a simultaneous band, a difference
+#' between two grids or a derivative needs the whole matrix rather than
+#' its diagonal. A grouping level the fit never saw
+#' (`allow_new_levels = TRUE`) adds its block's covariance: rows at the
+#' same unseen level load one draw of its effect and covary fully, and
+#' rows at two different unseen levels load independent draws.
+#'
+#' For a difference between two grids, call this once on the stacked
+#' grid `rbind(newdata, newdata2)`: the off-diagonal block of
+#' `extra_cov` is the covariance between them. For a DERIVATIVE of the
+#' curve, do not difference `extra_cov`: a finite difference of a
+#' covariance divides its rounding by the step to the power of twice
+#' the order. [frm_extra_cov_deriv()] returns that covariance from its
+#' sources.
 #' @section A nonlinear body:
 #' For a nonlinear predictor `A` is a JACOBIAN rather than a design, and
 #' it is computed by taping the body against the coefficients it reaches
@@ -4838,10 +5402,12 @@ b_coef_labels <- function(fit) {
 #'                       se.fit = TRUE)$se.fit)
 #' @export
 frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
-                         re_formula = NULL, allow_new_levels = FALSE) {
+                         re_formula = NULL, allow_new_levels = FALSE,
+                         extra_cov = FALSE) {
   require_frmtmb_fit(object, "frm_lp_basis()")
   require_fitted(object, "frm_lp_basis()")
   check_flag(allow_new_levels, "allow_new_levels")
+  check_flag(extra_cov, "extra_cov")
   if (!is.null(newdata) && !is.data.frame(newdata)) {
     frm_stop("`newdata` must be a data frame, or NULL to use the training ",
              "data, not ", arg_desc(newdata), call. = FALSE)
@@ -4865,15 +5431,23 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
   }
   jc <- get_joint_cov(object)
   if (!is.null(lp[["nl_body"]])) {
-    return(lp_basis_nl(object, lp, rspec, newdata, use_re,
-                       allow_new_levels, jc))
+    out <- lp_basis_nl(object, lp, rspec, newdata, use_re,
+                       allow_new_levels, jc)
+    # the nonlinear route refuses every source of extra variance
+    if (extra_cov) {
+      out$extra_cov <- Matrix::Diagonal(x = out$extra_var)
+    }
+    return(out)
   }
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   has_rr <- isTRUE(object$frame[["has_rr"]])
   rrj <- if (has_rr) rr_jacobians(object)
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
-  lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A), da$coef_pos,
-               lp_extra_var_vec(object, ed, use_re), ed[["nonest"]])
+  out <- lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A),
+                      da$coef_pos, lp_extra_var_vec(object, ed, use_re),
+                      ed[["nonest"]])
+  if (extra_cov) out$extra_cov <- lp_extra_cov(object, ed, use_re)
+  out
 }
 
 #' The variance sources that are not coefficient uncertainty, summed to
@@ -4903,7 +5477,9 @@ lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
        V = jc$V[coef_pos, coef_pos, drop = FALSE],
        coef_names = if (is.null(lab)) NULL else lab[coef_pos],
        extra_var = extra_var,
-       nonest = nonest %||% rep(FALSE, length(eta)))
+       nonest = nonest %||% rep(FALSE, length(eta)),
+       # rows whose standard error the lost directions take (jc_nonest())
+       se_nonest = jc_nonest(jc, A, coef_pos))
 }
 
 #' Which component of the parameter list each row of the joint

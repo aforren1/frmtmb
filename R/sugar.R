@@ -231,6 +231,13 @@ prior_summary.frmtmb_fit <- function(object, ...) {
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A new `frmtmb_fit`.
+#' @details A refit does not repeat the warning [frm()] gives when a
+#'   nonlinear model's likelihood is flat at the optimum along a
+#'   combination of its parameters' coefficients. The design, and so the
+#'   flat direction, is the original fit's, which already warned; a
+#'   parametric bootstrap would otherwise warn once per replicate. The
+#'   refit's standard errors along that direction are as unusable as
+#'   the original's.
 #' @name refit
 #' @aliases refit
 NULL

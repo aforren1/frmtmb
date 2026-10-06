@@ -223,7 +223,11 @@ bv("post", "ML: reversed attach order (brms first, then frmtmb)", {
   child <- tempfile(fileext = ".R")
   writeLines(c(
     'suppressMessages(library(brms))',
-    'suppressMessages(pkgload::load_all(',
+    'lib <- Sys.getenv("BV_LIB")',
+    'if (nzchar(lib)) {',
+    '  .libPaths(c(strsplit(lib, ";", fixed = TRUE)[[1]], .libPaths()))',
+    '  suppressMessages(library(frmtmb))',
+    '} else suppressMessages(pkgload::load_all(',
     '  Sys.getenv("BV_PKG", unset = "C:/Users/adf44/source/r/frmtmb-wt-brmsvig"),',
     '  quiet = TRUE, export_all = FALSE))',
     'both <- intersect(getNamespaceExports("frmtmb"), getNamespaceExports("brms"))',

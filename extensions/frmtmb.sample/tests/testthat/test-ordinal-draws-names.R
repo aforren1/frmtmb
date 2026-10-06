@@ -91,6 +91,28 @@ test_that("the old storage and the new one answer every reader alike", {
   }
 })
 
+test_that("a threshold block with no free parameter keeps its column", {
+  # sum-to-zero thresholds on a binary response: the one threshold is
+  # held, so the sampler has no column for it, and brms still stores
+  # b_Intercept[1] (dev/ordmix-rev-emptyblock.R). Both directions used
+  # to drop it: the stored draws lacked the column, and the inverse
+  # returned no column at all.
+  set.seed(11)
+  n <- 200L
+  d <- data.frame(x = stats::rnorm(n))
+  d$y <- 1L + (0.8 * d$x + stats::rlogis(n) > 0)
+  expect_message(
+    fit <- frm(bf(y ~ x), family = cumulative(threshold = "sum_to_zero"),
+               data = d),
+    "Only 2 levels")
+  p <- ord_pair(fit)
+  expect_identical(setdiff(variables(p$new), "lp__"), variables(fit))
+  expect_identical(unname(p$new$draws[, "b_Intercept[1]"]),
+                   rep(fixef(fit)["Intercept[1]", "Estimate"], nrow(p$raw)))
+  back <- frmtmb.sample:::draws_to_natural(p$new$draws, fit, inverse = TRUE)
+  expect_identical(back, p$old$draws)
+})
+
 test_that("frm_sample() stores the thresholds under brms's names", {
   skip_on_cran()
   skip_sampler()

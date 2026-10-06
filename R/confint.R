@@ -60,6 +60,94 @@ outer_par_map <- function(fit) {
 #' @noRd
 outer_par_names <- function(fit) outer_par_map(fit)$names
 
+#' The names `confint()` and `vcov(full = TRUE)` print for the outer
+#' parameters: `outer_par_names()`, with an ordinal fit's thresholds and
+#' `cs()` coefficients under the names of what they are.
+#'
+#' The template holds those as `tau_raw_<k>` and `bcs<j>_<k>`, which say
+#' nothing a user can read. Where the internal parameter IS a reported
+#' one, it gets that name, as `fixef()` and brms spell it:
+#' `Intercept[1]`, `Intercept[a,2]`, `delta`, a `cs()` row `z[1]`.
+#' Where it is a transform of them, the name says the transform, so a
+#' row never carries a name its value does not have: `cumulative()`
+#' holds its later thresholds as log increments,
+#' `log(Intercept[2] - Intercept[1])`, and its equidistant distance as
+#' `log(delta)`. The interval stays on the internal scale, as every
+#' `confint()` row is. A family from another package keeps the
+#' template names.
+#'
+#' @noRd
+outer_par_labels <- function(fit) {
+  nm <- outer_par_names(fit)
+  lab <- ord_internal_labels(fit)
+  hit <- match(nm, names(lab))
+  nm[!is.na(hit)] <- lab[hit[!is.na(hit)]]
+  nm
+}
+
+#' `outer_par_labels()`'s map for the ordinal blocks, named by the
+#' template names it replaces.
+#'
+#' An ordinal mixture has one block per component (`ord_lp_blocks()`),
+#' each labeled through the family it reads its block with, as
+#' `mu1_Intercept[1]` under `order = "none"`. Under `order = "mu"` every
+#' component reads one shared vector. It is labeled once, by its own
+#' structure and with no component in the name (`Intercept[1]`, the
+#' spelling of brms's prior row; brms's parameter is
+#' `fixed_Intercept`): a sum-to-zero component centers the shared
+#' vector, so that component's names would describe other values.
+#'
+#' @noRd
+ord_internal_labels <- function(fit) {
+  out <- character(0)
+  ex <- tryCatch(brms_extra_fixef(fit), error = function(e) list())
+  if (!length(ex)) return(out)
+  dl <- ord_delta_info(fit)
+  blocks <- ord_lp_blocks(fit$frame, fit$spec)
+  builtin <- c("cumulative", "sratio", "cratio", "acat", "hurdle_cumulative")
+  for (e in ex) {
+    raw_n <- length(fit$frame[["par_template"]][[e$comp]])
+    if (!raw_n) next
+    tnm <- paste0(e$comp, "_", seq_len(raw_n))
+    if (!identical(e$cls, "b")) {
+      # a cs() block: the internal vector is the reported one
+      if (length(e$names) == raw_n) out[tnm] <- e$names
+      next
+    }
+    # under order = "mu" the second component reads the vector the
+    # first one labeled
+    if (all(tnm %in% names(out))) next
+    ob <- Find(function(b) identical(b$comp, e$comp), blocks)
+    if (is.null(ob)) next
+    fam <- ob$fam
+    if (!fam[["family"]] %in% builtin) next
+    th <- fam[["thres"]]
+    type <- th[["type"]] %||% fam[["threshold"]] %||% "flexible"
+    lay <- thres_layout(th[["nthres"]] %||% length(e$names), type)
+    ordered <- ob$ordered
+    if (isTRUE(ob$shared)) e$names <- sub("^mu[0-9]+_", "", e$names)
+    dn <- vapply(Filter(function(d) identical(d$comp, e$comp), dl),
+                 `[[`, "", "name")
+    incr <- function(t) {
+      k <- length(t)
+      paste0("log(", t[-1L], " - ", t[-k], ")")
+    }
+    lab <- unlist(lapply(seq_len(lay$G), function(g) {
+      t <- e$names[lay$start[g]:lay$end[g]]
+      k <- lay$nthres[g]
+      switch(type,
+        flexible = if (ordered) c(t[1L], incr(t)) else t,
+        equidistant = c(t[1L], if (ordered) {
+          paste0("log(", dn[g], ")")
+        } else dn[g]),
+        sum_to_zero = if (k < 2L) character(0) else
+          if (ordered) incr(t) else t[-k])
+    }))
+    if (length(lab) == raw_n) out[tnm] <- lab
+  }
+  out
+}
+
 ## Addressing a parameter by name. Three vocabularies meet here: the
 ## internal names of outer_par_map() (`tarsus_(Intercept)`, `theta_1`),
 ## the parenthesis-free spelling hypothesis() and variables() use
@@ -246,6 +334,31 @@ resolve_par_index <- function(fit, parm, what) {
   # below name a different scale and say so
   idx <- apply_nlpar_alias(fit, parm, idx)
   if (anyNA(idx)) {
+    # the printed name of an ordinal threshold or cs() row, with or
+    # without brms's `b_` (`b_Intercept[1]`, as variables() spells it),
+    # names the same internal parameter, so it resolves silently
+    lab <- outer_par_labels(fit)
+    lab_own <- ifelse(lab == nm, NA_character_, lab)
+    hit <- match(parm, lab_own)
+    hit2 <- match(sub("^b_", "", parm), lab_own)
+    hit[is.na(hit)] <- hit2[is.na(hit)]
+    took <- which(is.na(idx) & !is.na(hit))
+    idx[took] <- hit[took]
+    # `delta` of an ordered family is held as log(delta): an alias that
+    # names another scale, said as the sd aliases say it
+    dl <- match(paste0("log(", parm, ")"), lab_own)
+    took <- which(is.na(idx) & !is.na(dl))
+    if (length(took)) {
+      idx[took] <- dl[took]
+      frm_message(what, "(): ",
+                  paste0("'", parm[took], "' is ", lab[dl[took]],
+                         collapse = ", "),
+                  ". The result is on that parameter's internal ",
+                  "(unconstrained) scale, not the natural one; fixef() ",
+                  "and hypothesis() report the natural scale.")
+    }
+  }
+  if (anyNA(idx)) {
     # brms's `b_` spelling, which variables() and hypothesis() now use,
     # is a spelling of one coefficient too, so it resolves silently
     # a natural-scale name such as sigma is a transform of its
@@ -273,6 +386,22 @@ resolve_par_index <- function(fit, parm, what) {
     }
   }
   if (anyNA(idx)) {
+    # a threshold of an ordinal family that holds it through a transform
+    # (cumulative()'s log increments, a sum-to-zero vector) is brms's
+    # name for a quantity that is no single internal parameter here
+    thr <- unlist(lapply(tryCatch(brms_extra_fixef(fit),
+                                  error = function(e) list()), `[[`,
+                         "names"))
+    tb <- parm[is.na(idx) & sub("^b_", "", parm) %in% thr]
+    if (length(tb)) {
+      frm_stop("'", tb[1L], "' is a threshold, and this ordinal fit holds ",
+               "it through a transform of its internal parameters (the ",
+               "rows of confint() say which), so it has no row of its ",
+               "own. fixef() reports every threshold with its standard ",
+               "error, and hypothesis(fit, \"", sub("^b_", "", tb[1L]),
+               " = 0\") gives its delta-method interval (method = ",
+               "\"boot\" a bootstrap one)", call. = FALSE)
+    }
     bad <- parm[is.na(idx)]
     known <- variables(fit)
     if (any(bad %in% known)) {
@@ -289,7 +418,7 @@ resolve_par_index <- function(fit, parm, what) {
     }
     frm_stop("Unknown parameter(s) in ", what, "(parm =): ",
              paste(bad, collapse = ", "), ". Available: ",
-             paste(nm, collapse = ", "),
+             paste(outer_par_labels(fit), collapse = ", "),
              ". Parentheses may be dropped, intercept-only nonlinear ",
              "parameters may be named bare, and the one-to-one natural-scale ",
              "names of variables() (sd_<group>__<term>, and a correlation ",
@@ -303,6 +432,16 @@ resolve_par_index <- function(fit, parm, what) {
 #'
 #' Covariance parameters (`theta_*`) are reported on their internal
 #' (unconstrained) scale.
+#'
+#' An ordinal fit's thresholds and `cs()` coefficients are internal
+#' parameters too, and each row is named by what it is. Where the
+#' internal parameter is a threshold or brms's `delta`, the row has
+#' that name, as [fixef()] and brms spell it (`Intercept[1]`,
+#' `Intercept[a,2]`, `delta`); `b_Intercept[1]` and the template name
+#' `tau_raw_1` address it too. Where it is a transform, the name says
+#' which: `cumulative()` holds its later thresholds as log increments,
+#' `log(Intercept[2] - Intercept[1])`, and its equidistant distance as
+#' `log(delta)`, which `parm = "delta"` addresses with a message.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param parm Parameter names (see `rownames` of the Wald result) or
@@ -402,7 +541,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
              "method = '", method, "' does not go through a covariance ",
              "matrix", call. = FALSE)
   }
-  nm <- outer_par_names(object)
+  nm <- outer_par_labels(object)
   est <- object$opt$par
   a <- (1 - level) / 2
 
@@ -1179,11 +1318,11 @@ log_sd_theta_index <- function(fit) {
 #' Parameters the likelihood is flat in are unidentified AT THIS POINT,
 #' and the remedy is a starting value: a nonlinear term evaluated
 #' outside its own support (a bump whose centre starts far from the
-#' data) is flat in several of its parameters at once. One unusable
-#' direction makes EVERY standard error `NaN`, so `bad_se` names the
-#' whole vector and `flat` names the cause. The check is measured by
-#' perturbing each candidate and seeing whether the gradient moves, and
-#' runs only when the covariance has already failed.
+#' data) is flat in several of its parameters at once. `bad_se` names
+#' the parameters without a standard error; the others keep theirs (see
+#' `check_se` in [frmtmb_control()]), and `flat` names the cause. The
+#' check is measured by perturbing each candidate and seeing whether the
+#' gradient moves, and runs only when the covariance has already failed.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param quiet If `TRUE`, return the diagnostics without printing.
@@ -1264,8 +1403,11 @@ diagnose <- function(fit, quiet = FALSE) {
   # negative diagonal entries; the resulting NaN SEs are the finding
   # (reported through bad_se), not a warning to relay
   se <- if (!length(V)) numeric(0) else suppressWarnings(sqrt(diag(V)))
-  ev <- if (!length(V)) NULL else {
-    tryCatch(eigen(V, symmetric = TRUE, only.values = TRUE)$values,
+  # sdreport()'s own inverse where sdr_rescue() replaced it: the
+  # replacement has NaN rows for the lost parameters and no eigenvalues
+  Vraw <- sdr_of(fit)$cov_fixed_raw %||% V
+  ev <- if (!length(Vraw)) NULL else {
+    tryCatch(eigen(Vraw, symmetric = TRUE, only.values = TRUE)$values,
              error = function(e) NULL)
   }
   # theta is absent from fits with no random effects; abs(NULL) is an
@@ -1350,9 +1492,11 @@ diagnose <- function(fit, quiet = FALSE) {
       # 1.685 on an autoscaled fit with a bound (seed 9202,
       # dev/gradcheck-rev-03-probe.R row B2).
       if (!is.null(fit$par_units) && !all(fit$par_units == 1)) {
-        cat("  This fit was standardized internally, so 'Max |gradient|'",
-            " is on the raw scale and every number below it is in the",
-            " per-parameter units the fit was judged in\n", sep = "")
+        cat("  This fit was judged in per-parameter units (",
+            if (isTRUE(fit$autoscaled)) "standardized internally" else
+              "a smooth's null-space columns at unit spread",
+            "), so 'Max |gradient|' is on the raw scale and every number ",
+            "below it is in those units\n", sep = "")
       }
     }
     cat("Hessian positive definite:", out$pdHess, "\n")
@@ -1461,9 +1605,11 @@ diagnose <- function(fit, quiet = FALSE) {
           paste(paste0(out$predictor_scale$column, " (sd ",
                        format(out$predictor_scale$sd, digits = 3), ")"),
                 collapse = "; "),
-          if (!is.null(fit$par_units)) {
+          if (isTRUE(fit$autoscaled)) {
             # this fit already ran the standardized pre-fit, by default
-            # or on request, so "refit with autoscale = TRUE" repeats it
+            # or on request, so "refit with autoscale = TRUE" repeats it.
+            # Not par_units: a smooth's null-space units set it too, and
+            # every smooth fit then lost the advice (review m12)
             paste0("\n  The fit was already standardized internally ",
                    "(frmtmb_control(autoscale = )); rescaling the column ",
                    "is still the cleaner model.\n")
@@ -2357,8 +2503,13 @@ ord_extra_comps <- function(fit) {
   tpl <- fit$frame[["par_template"]]
   out <- character(0)
   for (r in names(fit$spec$responses)) {
-    nm <- extra_tpl_name(fit$frame, r, "tau_raw")
-    if (length(tpl[[nm]])) out <- c(out, nm)
+    # an ordinal mixture's components each hold a block, tau_raw<k>, or
+    # share the one tau_raw
+    mx <- fit$spec$responses[[r]]$family[["mix"]][["ord"]]
+    for (nm0 in unique(mx$tau_names %||% "tau_raw")) {
+      nm <- extra_tpl_name(fit$frame, r, nm0)
+      if (length(tpl[[nm]])) out <- c(out, nm)
+    }
   }
   for (lp in fit$frame[["linpreds"]]) {
     for (ct in lp[["cs"]] %||% list()) out <- c(out, ct[["par"]])
@@ -2381,6 +2532,16 @@ ord_threshold_values <- function(fam, raw) {
 #' lincombs). REML: beta is integrated out, so the blocks come from the
 #' joint precision.
 #'
+#' `V` is the covariance as vcov() shows it, NaN in the rows of a
+#' parameter without a standard error. A product of it spreads that NaN
+#' to every row, including ones the data determine (VarCorr() on a fit
+#' with a group sd at 0 lost the other groups' and the residual sd's
+#' errors; lane nanse review, RB2). So a delta method reads `Vp`, the
+#' covariance without the lost directions, through hyp_prop_var(),
+#' which gives NaN exactly to the rows that move along them (`jc`, the
+#' null basis of jc_nonest()). Without a lost parameter `Vp` is `V` and
+#' `jc` is NULL.
+#'
 #' @noRd
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
@@ -2392,9 +2553,15 @@ hyp_par_cov <- function(fit) {
     keep <- which(rn %in% comps)
     # par.fixed equals opt$par at the optimum (this branch is never
     # taken under control profile = TRUE)
+    Vp <- if (!is.null(sdr$se_null) && !is.null(sdr$cov_fixed_prop)) {
+      sdr$cov_fixed_prop[keep, keep, drop = FALSE]
+    } else V[keep, keep, drop = FALSE]
     list(vals = unname(sdr$par.fixed[keep]), comp = rn[keep],
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
-         n_outer = length(fit$opt$par))
+         n_outer = length(fit$opt$par), Vp = Vp,
+         jc = if (!is.null(sdr$se_null)) {
+           list(null = sdr$se_null, units = fit$par_units)
+         })
   } else {
     Q <- sdr_of(fit)$jointPrecision
     Vall <- solve_joint_precision(Q, fit$cache, fit)
@@ -2408,10 +2575,27 @@ hyp_par_cov <- function(fit) {
       cnt[k] <- cnt[k] + 1L
       vals[i] <- vo$vals[vo$comp == k][cnt[k]]
     }
-    list(vals = vals, comp = rn[keep],
-         V = as.matrix(Vall[keep, keep, drop = FALSE]), outer_pos = NULL,
-         n_outer = length(fit$opt$par))
+    V <- as.matrix(Vall[keep, keep, drop = FALSE])
+    list(vals = vals, comp = rn[keep], V = V, outer_pos = NULL,
+         n_outer = length(fit$opt$par), Vp = V, jc = NULL)
   }
+}
+
+#' Delta-method variances `diag(G Vp G')` over hyp_par_cov()'s
+#' positions, NaN for a row of `G` that moves along a direction the
+#' Hessian lost (jc_nonest()). Attribute `lost` marks those rows, for
+#' the caller's one warning.
+#'
+#' @noRd
+hyp_prop_var <- function(pc, G) {
+  G <- as.matrix(G)
+  v <- pmax(rowSums((G %*% pc$Vp) * G), 0)
+  bad <- if (!is.null(pc$jc) && !is.null(pc$outer_pos)) {
+    jc_nonest(pc$jc, G, pc$outer_pos)
+  } else rep(FALSE, nrow(G))
+  v[bad] <- NaN
+  attr(v, "lost") <- bad
+  v
 }
 
 #' Named list of every variable a hypothesis can name, under brms's
@@ -2486,6 +2670,11 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
   }
 
+  # a gp() term's sd and length scales, brms's sdgp_ and lscale_ on
+  # brms's scales, which are not standard deviations of a group
+  gpv <- gp_brms_values(fit, th)
+  for (j in seq_along(gpv)) put(names(gpv)[j], gpv[[j]])
+
   # distributional parameters on their natural scale, after the group
   # summaries, where brms lists them
   smp <- attr(tab, "simplex")
@@ -2538,17 +2727,15 @@ hyp_env_vals <- function(fit, vals, comp) {
 #'
 #' @noRd
 hyp_put_ordinal <- function(fit, vals, comp, put) {
-  ord_lps <- Filter(function(lp) {
-    identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
-      identical(lp[["dpar"]], "mu")
-  }, fit$frame[["linpreds"]])
-  for (lp in ord_lps) {
-    tnm <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+  # an ordinal mixture's component k names its own, b_mu<k>_Intercept[k]
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    lp <- ob$lp
+    tnm <- ob$comp
     # an EMPTY block (sum-to-zero, one threshold per vector) still has
     # thresholds, all at 0, as brms reports them
     if (is.null(fit$frame[["par_template"]][[tnm]])) next
     raw <- vals[comp == tnm]
-    fam <- brms_lp_family(fit, lp)
+    fam <- ob$fam
     th <- ord_threshold_values(fam, raw)
     pre <- brms_lp_prefix(fit, lp)
     lab <- thres_labels(fam, length(th))
@@ -2587,13 +2774,15 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
 #' @noRd
 ord_delta_info <- function(fit) {
   out <- list()
-  for (lp in fit$frame[["linpreds"]]) {
-    fam <- brms_lp_family(fit, lp)
-    if (!identical(fam[["type"]], "ordinal") ||
-          !identical(lp[["dpar"]], "mu")) next
+  # an ordinal mixture's component k has its own delta, delta_mu<k>,
+  # the name brms's transformed parameters use (its parameters block
+  # declares a bare `delta` per component, which stanc refuses)
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    lp <- ob$lp
+    fam <- ob$fam
     th <- fam[["thres"]]
     if (!identical(th[["type"]], "equidistant")) next
-    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    comp <- ob$comp
     lay <- thres_layout(th[["nthres"]], "equidistant")
     pre <- brms_lp_prefix(fit, lp)
     ordered <- fam[["family"]] %in% ord_ordered_families
@@ -2974,12 +3163,21 @@ hyp_fd_grad <- function(f, v) {
 #' under another name, `(1 | gr(id, cov = A)) + (1 | id_pe)`, and the
 #' two are `sd_id__Intercept` and `sd_id_pe__Intercept`.
 #'
-#' Excluded: `s()`/`t2()` smooths, `gp()`/`hsgp()`, `car()` and `spde()`.
-#' Their theta segments are not standard deviations: an inverse
-#' smoothing parameter, lengthscales, a mixing proportion, a precision
-#' and an inverse range. There is no `sd_<group>__<coef>` to name. Read
-#' those off [confint_varcorr()], which reports each under its own
-#' label (`sd(gp)`, `range(gp)`, `sd(car)`, ...).
+#' Excluded: `s()`/`t2()` smooths, `car()` and `spde()`. Their theta
+#' segments are not standard deviations: an inverse smoothing
+#' parameter, a mixing proportion, a precision and an inverse range.
+#' There is no `sd_<group>__<coef>` to name. Read those off
+#' [confint_varcorr()], which reports each under its own label
+#' (`sd(car)`, ...).
+#'
+#' A [gp()] term contributes brms's own names: `sdgp_<term>` for its
+#' marginal standard deviation and `lscale_<term>` for its length scale,
+#' on brms's scales, so the length scale is on the inputs `gp(scale =
+#' TRUE)` divides by their largest distance. The term is brms's label,
+#' `gpx` for `gp(x)`, with a response or distributional parameter
+#' prefix as for every other name, the by-level after it for
+#' `gp(x, by = f)` (`sdgp_gpxfa`), and the covariate after that for a
+#' non-isotropic term's length scales (`lscale_gpxzx`).
 #'
 #' @section Names that would collide:
 #' brms's renaming can give two parameters one name, and frmtmb does
@@ -3129,10 +3327,11 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' `ma[1]`, `cosy`, `cortime__<t1>__<t2>`.
 #'
 #' `gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
-#' `sd_`/`cor_` names for their within-level covariance. Smooths,
-#' `gp()`/`hsgp()`, `car()` and `spde()` blocks contribute none: their
-#' parameters are not standard deviations. See the "Which random-effect
-#' blocks contribute names" section of [hypothesis()].
+#' `sd_`/`cor_` names for their within-level covariance. A `gp()` term
+#' contributes brms's `sdgp_<term>` and `lscale_<term>`. Smooths, `car()`
+#' and `spde()` blocks contribute none: their parameters are not
+#' standard deviations. See the "Which random-effect blocks contribute
+#' names" section of [hypothesis()].
 #'
 #' @param x A `frmtmb_fit` or `frmtmb_draws`.
 #' @param ... Refused: an argument the method does not have is an
@@ -3396,13 +3595,26 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
       stat_name <- "t"
     }
   }
+  # cov.fixed is NaN for a parameter the Hessian lost, which would take
+  # every hypothesis that touches it, even a combination the data
+  # determine (a_k + b where only the sum enters); hyp_prop_var() reads
+  # the covariance without the lost directions and gives NaN to the
+  # hypotheses that move along them, as predict() does. A supplied
+  # `vcov` is used as given.
+  if (!is.null(vcov)) {
+    pc$Vp <- pc$V
+    pc$jc <- NULL
+  }
+  lost_h <- logical(k_n)
   profiles <- vector("list", k_n)
   se <- lwr <- upr <- stat <- p <- numeric(k_n)
   for (i in seq_len(k_n)) {
     ex <- exs[[i]]
     fn <- function(v) hyp_eval(x, ex, v, pc$comp)
     g <- hyp_fd_grad(fn, pc$vals)
-    se[i] <- sqrt(max(0, drop(t(g) %*% pc$V %*% g)))
+    vg <- hyp_prop_var(pc, matrix(g, 1L))
+    se[i] <- sqrt(vg)
+    lost_h[i] <- attr(vg, "lost")
     dir <- hp$dir[i]
     wr <- hyp_wald_row(vals0[i], se[i], dir, alpha, qfun, pfun)
     stat[i] <- wr$stat
@@ -3446,6 +3658,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
       upr[i] <- unname(ci[2]) + const
     }
   }
+  se_pred_warn(lost_h, "hypotheses")
   test <- data.frame(Hypothesis = labels, stat = stat, p = p)
   names(test)[2L] <- stat_name
   # a directional claim passes when its one-sided bound excludes 0,

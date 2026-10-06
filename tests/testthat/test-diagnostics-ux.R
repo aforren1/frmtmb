@@ -108,10 +108,12 @@ test_that("gaussian OLRE warns about confounding with sigma (lme4)", {
   d <- make_gauss()
   expect_warning(frm(y ~ x + (1 | obs), data = d, family = gaussian()),
                  "confounded with the residual sd")
-  expect_silent(
+  # "ignore" drops the OLRE warning only; the standard errors it would
+  # have explained are still lost, so the SE check names them
+  expect_no_warning(allow_warnings(
     frm(y ~ x + (1 | obs), data = d, family = gaussian(),
-        control = frmtmb_control(check_olre = "ignore"))
-  )
+        control = frmtmb_control(check_olre = "ignore")),
+    "Standard errors are not available"), message = "confounded")
   # overdispersion for a discrete family is the legitimate use
   expect_silent(frm(cnt ~ x + (1 | obs), data = d, family = poisson()))
   # se() pins the residual sd row by row, so the split is identified:
@@ -443,26 +445,32 @@ test_that("diagnose() names the flat directions instead of every parameter", {
   d <- flat_peak_data()
   # `pk` starts at 0 while w runs from 1 to 45: the bump is numerically
   # zero everywhere, so it never had a gradient to follow
-  fit <- suppressWarnings(frm(
+  wn <- character()
+  fit <- withCallingHandlers(frm(
     bf(I ~ apo - chi * logw + exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),
        apo ~ 1 + (1 | id), chi ~ 1, pk ~ 1, lamp ~ 1, lsig ~ 1,
        nl = TRUE),
-    family = exponential(link = "log"), data = d))
+    family = exponential(link = "log"), data = d),
+    warning = function(x) {
+      wn <<- c(wn, conditionMessage(x))
+      invokeRestart("muffleWarning")
+    })
   dg <- diagnose(fit, quiet = TRUE)
   expect_false(dg$pdHess)
-  expect_true(length(dg$bad_se) > length(dg$flat))   # the old report
   expect_setequal(dg$flat, c("pk_(Intercept)", "lamp_(Intercept)",
                              "lsig_(Intercept)"))
-  # the flat set is a SUBSET of the NaN standard errors: the others are
-  # NaN only because the Hessian could not be inverted
-  expect_true(all(dg$flat %in% dg$bad_se))
+  # Every standard error used to be NaN, because one unusable direction
+  # spoils the plain inverse; since lane nanse the flat set is exactly
+  # what is lost and the other parameters keep theirs
+  expect_setequal(dg$bad_se, dg$flat)
   expect_output(print(diagnose(fit)), "Flat directions")
-  # and the covariance warning says so rather than guessing at size.
-  # It fires once per fit, so both claims are read off the one message.
-  w <- tryCatch(vcov(fit), warning = function(x) conditionMessage(x))
-  expect_match(w, "likelihood is FLAT")
-  expect_match(w, "not identified AT THIS POINT")
-  expect_false(grepl("probably overparameterized", w, fixed = TRUE))
+  # and the fit-time warning says so rather than guessing at size
+  wn <- grep("Standard errors are not available", wn, value = TRUE)
+  expect_length(wn, 1L)
+  expect_match(wn, "flat along them")
+  expect_match(wn, "pk_(Intercept), lamp_(Intercept), lsig_(Intercept)",
+               fixed = TRUE)
+  expect_false(grepl("overparameterized", wn, fixed = TRUE))
 })
 
 test_that("the same model with the centre on the data has no flat direction", {
@@ -499,6 +507,13 @@ test_that("a healthy fit pays nothing for the flat check", {
 # cause it never measured - the same defect this check was added to
 # remove, relocated to another model class.
 
+# Seed 71 of brms_monotonic's own data code: the interaction's simplex
+# has a weight at 0 with its coordinate at -1293, where that coordinate's
+# Hessian row is exactly zero. The fixture this test used before lane
+# nanse (seed 6 of `y ~ mo(mo) + x`) no longer reaches the flat path:
+# its saturated coordinate's row is tiny but not empty, and the
+# unit-diagonal inverse now gives every parameter a finite standard
+# error, which the first assertion below pins.
 flat_mo_fit <- function(seed = 6, n = 300) {
   set.seed(seed)
   d <- data.frame(x = stats::rnorm(n), g = factor(rep(1:15, n / 15)),
@@ -507,17 +522,37 @@ flat_mo_fit <- function(seed = 6, n = 300) {
   suppressWarnings(frm(y ~ mo(mo) + x, data = d))
 }
 
+flat_mo_fit71 <- function(capture = FALSE) {
+  set.seed(71)
+  lev <- c("below_20", "20_to_40", "40_to_100", "greater_100")
+  income <- factor(sample(lev, 100, TRUE), levels = lev, ordered = TRUE)
+  ls <- c(30, 60, 70, 75)[income] + stats::rnorm(100, sd = 7)
+  d <- data.frame(income, ls)
+  d$age <- stats::rnorm(100, mean = 40, sd = 10)
+  wn <- character()
+  fit <- withCallingHandlers(frm(ls ~ mo(income) * age, data = d),
+                             warning = function(x) {
+                               wn <<- c(wn, conditionMessage(x))
+                               invokeRestart("muffleWarning")
+                             })
+  if (capture) list(fit = fit, warnings = wn) else fit
+}
+
 test_that("a flat direction with no nonlinear term is named without a nonlinear cause", {
-  fit <- flat_mo_fit()
+  # the old fixture: a saturated simplex coordinate that is not exactly
+  # flat now keeps every standard error
+  expect_true(all(is.finite(sqrt(diag(vcov(flat_mo_fit(), full = TRUE))))))
+  r <- flat_mo_fit71(capture = TRUE)
+  fit <- r$fit
   # the fixture is only useful while it stays degenerate in this one way
   expect_length(unlist(lapply(fit$frame[["spec"]]$responses,
                               function(r) r$nlpars)), 0L)
   dg <- diagnose(fit, quiet = TRUE)
-  expect_true("zeta1_2" %in% dg$flat)
+  expect_true("zeta2_2" %in% dg$flat)
 
   # the detector is right: the objective does not move when it moves
   p <- fit$opt$par
-  j <- match("zeta1_2", frmtmb:::outer_par_names(fit))
+  j <- match("zeta2_2", frmtmb:::outer_par_names(fit))
   p1 <- p
   p1[j] <- p1[j] + 1
   expect_equal(fit$obj$fn(p1), fit$obj$fn(p), tolerance = 1e-12)
@@ -528,23 +563,30 @@ test_that("a flat direction with no nonlinear term is named without a nonlinear 
   expect_false(grepl("nonlinear", txt, fixed = TRUE))
   expect_false(grepl("bump", txt, fixed = TRUE))
 
-  w <- tryCatch(vcov(fit), warning = function(x) conditionMessage(x))
-  expect_match(w, "likelihood is FLAT")
+  w <- grep("Standard errors are not available", r$warnings, value = TRUE)
+  expect_length(w, 1L)
+  expect_match(w, "flat along it")
   expect_false(grepl("nonlinear", w, fixed = TRUE))
-  expect_false(grepl("probably overparameterized", w, fixed = TRUE))
+  expect_false(grepl("overparameterized", w, fixed = TRUE))
 })
 
 test_that("the nonlinear explanation still fires on a nonlinear fit", {
   d <- flat_peak_data()
-  fit <- suppressWarnings(frm(
+  wn <- character()
+  fit <- withCallingHandlers(frm(
     bf(I ~ apo - chi * logw + exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),
        apo ~ 1 + (1 | id), chi ~ 1, pk ~ 1, lamp ~ 1, lsig ~ 1,
        nl = TRUE),
-    family = exponential(link = "log"), data = d))
+    family = exponential(link = "log"), data = d),
+    warning = function(x) {
+      wn <<- c(wn, conditionMessage(x))
+      invokeRestart("muffleWarning")
+    })
   txt <- paste(utils::capture.output(print(diagnose(fit))), collapse = " ")
   expect_match(txt, "nonlinear term evaluated outside its own support")
-  w <- tryCatch(vcov(fit), warning = function(x) conditionMessage(x))
-  expect_match(w, "nonlinear term that has left its own support")
+  # the fit-time warning carries the remedy; vcov() no longer repeats it
+  wn <- grep("Standard errors are not available", wn, value = TRUE)
+  expect_match(wn, "nonlinear term that has left its own support")
 })
 
 test_that("a theta in the flat set says which block's standard deviation it is",

@@ -76,15 +76,8 @@ test_that("emmeans supports 'epred' predictions", {
   brms_setup("emmeans:41",
     em <- summary(emmeans(fit6, "Age", by = "Trt", epred = TRUE))
   )
-  brms_port("emmeans:42", "cannot transfer",
-    paste0(
-      "frmtmb refuses it by name: fit6's volume response has an ",
-      "exact gp(Age), predicted at the grid's mean Age, which is ",
-      "not a fitted position, and the kriging covariance between ",
-      "two grid points is not available (emm_check_part(), ",
-      "R/interop.R). brms draws that covariance jointly. at = ",
-      "list(Age = <an observed value>) or an approximate gp(Age, k ",
-      "= ) answers"),
+  brms_port("emmeans:42", "pass",
+    "",
     expect_equal(nrow(em), 2)
   )
 })

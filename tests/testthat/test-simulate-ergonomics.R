@@ -210,16 +210,22 @@ test_that("CE prediction intervals respect trials() and trunc()", {
   # path, which disagreed with itself.
   expect_message(
     ce1 <- conditional_effects(fb, effects = "x", method = "predict",
-                               resolution = 4, ndraws = 200),
+                               resolution = 4, ndraws = 201),
     "holding the trials variable\\(s\\) nt at 1"
   )
   expect_true(all(ce1$x$upper__ <= 1))
-  expect_true(all(ce1$x$estimate__ > 0 & ce1$x$estimate__ < 1))
+  # the estimate is the median of one-trial draws (since 0.68.0, as
+  # brms reports it), so 0 or 1
+  expect_true(all(ce1$x$estimate__ %in% c(0, 1)))
   # the default path holds it at the same 1, so the two methods draw
-  # the same quantity
+  # the same quantity: the median is 1 where the probability is past
+  # one half, read where it is clearly so
   ce0 <- suppressMessages(conditional_effects(fb, effects = "x",
                                               resolution = 4))
-  expect_lt(max(abs(ce0$x$estimate__ / ce1$x$estimate__ - 1)), 0.15)
+  far <- abs(ce0$x$estimate__ - 0.5) > 0.1
+  expect_true(any(far))
+  expect_identical(ce1$x$estimate__[far],
+                   as.numeric(ce0$x$estimate__[far] > 0.5))
 
   ce <- conditional_effects(fb, effects = "x", method = "predict",
                             resolution = 4, ndraws = 400,
@@ -240,14 +246,14 @@ test_that("CE prediction intervals respect trials() and trunc()", {
                              resolution = 4, ndraws = 500)
   expect_true(all(cet$x$lower__ >= 0.5))
 
-  # a variable bound is a real value, so it has to be pinned
+  # a variable bound left out of `conditions` is held at its mean, as
+  # brms holds it (dev/fixes-ce-brms.R); pinned, it is the pinned value
   dt$lo <- 0.5
   ft2 <- frm(bf(y | trunc(lb = lo) ~ x) + gaussian(), data = dt)
-  expect_error(
-    conditional_effects(ft2, effects = "x", method = "predict",
-                        resolution = 3, ndraws = 20),
-    "trunc\\(lb = lo\\)"
-  )
+  ce1 <- conditional_effects(ft2, effects = "x", method = "predict",
+                             resolution = 3, ndraws = 300)
+  expect_identical(unique(ce1$x$lo), 0.5)
+  expect_true(all(ce1$x$lower__ >= 0.5))
   ce2 <- conditional_effects(ft2, effects = "x", method = "predict",
                              resolution = 3, ndraws = 300,
                              conditions = list(lo = 0.5))

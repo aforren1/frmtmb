@@ -51,7 +51,7 @@ assert	frmtmb.sample	brmsfit-methods:579	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:580	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:593	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:594	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:595	defect	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:595	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:599	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:617		TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:618		TRUE	FALSE			TRUE
@@ -64,7 +64,7 @@ assert	frmtmb.sample	brmsfit-methods:628	cannot transfer	FALSE	TRUE	STALE: reads
 setup	frmtmb.sample	brmsfit-methods:632		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:633	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:634	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:635	defect	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:635	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:640		FALSE	FALSE	cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
 assert	frmtmb.sample	brmsfit-methods:641	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
 setup	frmtmb.sample	brmsfit-methods:645		TRUE	FALSE			TRUE

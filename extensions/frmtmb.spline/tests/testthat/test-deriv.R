@@ -170,3 +170,92 @@ test_that("a feature needs a grid to scan", {
                                  newdata = data.frame(t = seq(0, 1, 0.1))),
                "one finite number")
 })
+
+test_that("an exact gp()'s curvature past its data keeps its kriging part", {
+  skip_on_cran()
+  # dev/reviews/2026-10-05-gpby.md, B1: the stencil applied to the extra
+  # covariance divided its rounding by eps^4 at order 2, and the .se past
+  # the data came out 0, 0, 0, 0.875. The extra part is now the kernel's
+  # closed form, written out here by hand from the fitted theta
+  set.seed(5)
+  x <- sort(stats::runif(50, 0, 4))
+  dg <- data.frame(x = x, y = sin(1.3 * x) + stats::rnorm(50, 0, 0.15))
+  fg <- frmtmb::frm(frmtmb::bf(y ~ gp(x)), family = stats::gaussian(),
+                    data = dg)
+  th <- fg$estimates$theta
+  s2 <- exp(2 * th[1])
+  l <- exp(th[2])
+  pos <- fg$frame$linpreds[["y.mu"]]$gps[[1]]$positions[, 1]
+  K <- exp(-outer(pos, pos, "-")^2 / (2 * l^2)) + diag(1e-6, length(pos))
+  xs <- c(3.0, 4.2, 4.8, 5.5)
+  r <- outer(xs, pos, "-")
+  k0 <- exp(-r^2 / (2 * l^2))
+  k1 <- -r / l^2 * k0
+  k2 <- (r^2 / l^4 - 1 / l^2) * k0
+  v1 <- s2 * (1 / l^2 - rowSums((k1 %*% solve(K)) * k1))
+  v2 <- s2 * (3 / l^4 - rowSums((k2 %*% solve(K)) * k2))
+  nd <- data.frame(x = xs)
+  # the curve's own standard error carries it, does not depend on the
+  # design step, and is at least the extra part
+  d2 <- frm_curve_deriv(fg, var = "x", order = 2, newdata = nd,
+                        simultaneous = FALSE)
+  d2b <- frm_curve_deriv(fg, var = "x", order = 2, newdata = nd,
+                         simultaneous = FALSE, eps = 4 * attr(d2, "eps"))
+  expect_true(all(d2$.se^2 >= v2))
+  expect_lt(max(abs(d2$.se / d2b$.se - 1)), 1e-4)
+  d1 <- frm_curve_deriv(fg, var = "x", order = 1, newdata = nd,
+                        simultaneous = FALSE)
+  expect_true(all(d1$.se^2 >= v1))
+  # and a simultaneous band over it is an ordinary one
+  g2 <- frm_curve_deriv(fg, var = "x", order = 2,
+                        newdata = data.frame(x = seq(3.5, 5.5,
+                                                     length.out = 21)),
+                        nsim = 2000, seed = 1)
+  expect_true(all(g2$.se > 0))
+  expect_lt(g2$.crit_sim[1], 2 * stats::qnorm(0.975))
+  # and the extra part is the closed form. Both subtract the kriging
+  # quadratic form from the derivative's prior variance, so inside the
+  # data (x = 3, v1 near 1e-6) they agree to rounding of the prior
+  # variance, not of v1 itself
+  e1 <- diag(frmtmb::frm_extra_cov_deriv(fg, nd, var = "x", order = 1))
+  e2 <- diag(frmtmb::frm_extra_cov_deriv(fg, nd, var = "x", order = 2))
+  expect_lt(max(abs(e1 - v1)), 1e-8 * s2 / l^2)
+  expect_lt(max(abs(e2 - v2)), 1e-8 * 3 * s2 / l^4)
+})
+
+test_that("an unseen level's draw carries no curvature a line does not", {
+  skip_on_cran()
+  # B1 again: y ~ t + (1 + t | g) is linear in t, so the new level's
+  # draw has no second derivative and the order-2 standard error is the
+  # coefficients' alone. The stencil on the extra covariance gave .se
+  # from 0 to 1.495
+  set.seed(23)
+  ng <- 25
+  d <- data.frame(g = factor(rep(seq_len(ng), each = 12)),
+                  t = rep(seq(0, 1, length.out = 12), ng))
+  u0 <- stats::rnorm(ng, 0, 0.5)
+  u1 <- stats::rnorm(ng, 0, 0.3)
+  d$y <- -1 + 2 * d$t + u0[d$g] + u1[d$g] * d$t +
+    stats::rnorm(nrow(d), 0, 0.2)
+  fit <- frmtmb::frm(frmtmb::bf(y ~ t + (1 + t | g)),
+                     family = stats::gaussian(), data = d)
+  tt <- seq(0, 1, length.out = 21)
+  nd <- data.frame(t = tt, g = factor("n1", levels = c(levels(d$g), "n1")))
+  # order 1 at the level: the slope's own variance, from VarCorr()
+  d1 <- frm_curve_deriv(fit, var = "t", order = 1, newdata = nd,
+                        re_formula = NULL, allow_new_levels = TRUE,
+                        simultaneous = FALSE)
+  Sg <- frmtmb::VarCorr(fit)$g$cov[, "Estimate", ]
+  ref <- sqrt(stats::vcov(fit)["t", "t"] + Sg[2, 2])
+  expect_lt(max(abs(d1$.se / ref - 1)), 1e-6)
+  # order 2: coefficients and draw alike are a line in t, so the whole
+  # .se is rounding, far below the slope's
+  d2 <- frm_curve_deriv(fit, var = "t", order = 2, newdata = nd,
+                        re_formula = NULL, allow_new_levels = TRUE,
+                        simultaneous = FALSE)
+  expect_lt(max(d2$.se), 1e-6 * min(d1$.se))
+  E2 <- frmtmb::frm_extra_cov_deriv(fit, nd, var = "t", order = 2,
+                                    re_formula = NULL,
+                                    allow_new_levels = TRUE)
+  expect_lt(max(abs(E2)), 1e-12 * min(d1$.se^2))
+})

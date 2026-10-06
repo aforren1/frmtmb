@@ -506,6 +506,19 @@ warn_nonfinite_cov <- function(cache = NULL, fit = NULL) {
     if (isTRUE(cache$warned_nonfinite_cov)) return(invisible(NULL))
     cache$warned_nonfinite_cov <- TRUE
   }
+  # where the standard-error check has the reasons, give them, so this
+  # agrees with what it says (se_lost_clauses())
+  lost <- if (!is.null(fit) && is.environment(fit$cache)) {
+    fit$cache$sdr$se_lost
+  }
+  if (length(lost)) {
+    frm_warning("Some standard errors are not finite, so vcov() and ",
+                "summary() report NaN for them. ",
+                paste(se_lost_clauses(fit, lost), collapse = ". "),
+                ". See the 'Convergence problems' section of ",
+                "vignette('diagnostics')", call. = FALSE)
+    return(invisible(NULL))
+  }
   # "probably overparameterized" is a guess, and the wrong one when the
   # likelihood is flat in a direction. Given the fit, measure instead.
   note <- if (is.null(fit)) "" else flat_par_note(fit)

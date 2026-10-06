@@ -383,6 +383,9 @@ prior_draw_to_internal <- function(e, v, est) {
   } else {
     v
   }
+  # a constant `shift` (a gp() length scale on brms's scaled inputs)
+  # is undone the way the centering offset is
+  x <- x - (e[["shift"]] %||% 0)
   o <- e$offset
   if (is.null(o)) return(x)
   x - sum(est[[o$comp]][o$idx] * o$w)

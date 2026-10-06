@@ -383,7 +383,9 @@ test_that("the slots this package cannot answer refuse by name", {
   expect_error(as.mcmc(ds, NA, FALSE, FALSE, TRUE),
                "nothing to include")
   expect_error(posterior_predict(ds, negative_rt = TRUE), "wiener")
-  expect_error(posterior_linpred(ds, incl_thres = TRUE), "thresholds")
+  # brms ignores incl_thres on a family that is not ordinal
+  expect_identical(posterior_linpred(ds, incl_thres = TRUE),
+                   posterior_linpred(ds))
 })
 
 test_that("predictive_error takes brms's newdata and method slots", {

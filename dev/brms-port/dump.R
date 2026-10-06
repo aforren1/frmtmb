@@ -1,7 +1,11 @@
 # Dump extracted + transformed code for eyeballing. Rscript dump.R <vignette>
 args <- commandArgs(trailingOnly = TRUE)
-root <- "C:/Users/adf44/source/r/frmtmb-wt-audit"
-source(file.path(root, "dev/brms-port/port-lib.R"))
+HERE <- local({
+  a <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  normalizePath(dirname(sub("^--file=", "", a[1])), winslash = "/")
+})
+source(file.path(HERE, "env.R"))
+source(file.path(HERE, "port-lib.R"))
 for (v in args) {
   ch <- extract_vignette(v)
   cat("########## ", v, " : ", length(ch), " chunks\n", sep = "")

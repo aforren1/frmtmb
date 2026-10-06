@@ -223,7 +223,7 @@ test_that("each refusal reaches the user with its reason", {
                "predicts a distribution over the categories")
 })
 
-test_that("an exact gp() off its fitted positions is refused by name", {
+test_that("an exact gp() off its fitted positions carries its kriging", {
   skip_on_cran()
   set.seed(5)
   n <- 40
@@ -231,10 +231,24 @@ test_that("an exact gp() off its fitted positions is refused by name", {
                   x = round(runif(n, 0, 3), 1))
   d$y <- as.numeric(d$f) + sin(d$x) + rnorm(n, sd = 0.2)
   fit <- frm(bf(y ~ f + gp(x)), data = d)
-  expect_error(emmeans::emmeans(fit, "f"), "exact gp[(][)] term")
-  # at an observed position there is no kriging variance to omit
-  s <- emm_df(emmeans::emmeans(fit, "f", at = list(x = d$x[1])))
-  expect_true(all(is.finite(s$SE)))
+  # the grid sits at mean(x), which no observation holds. Refused until
+  # frm_lp_basis() returned the kriging covariance across the grid; the
+  # emmean's SE is now frm_linpred()'s at that row, kriging included
+  xb <- mean(d$x)
+  expect_false(xb %in% d$x)
+  em <- emmeans::emmeans(fit, "f")
+  s <- emm_df(em)
+  nd <- data.frame(f = factor(c("A", "B"), levels = levels(d$f)), x = xb)
+  p <- frm_linpred(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
+  expect_lt(max(abs(s$SE / p$se.fit - 1)), 1e-8)
+  ev <- frm_lp_basis(fit, newdata = nd, re_formula = NA)$extra_var
+  expect_true(all(ev > 0))
+  # one position, one residual: the contrast is the fB coefficient's
+  pr <- emm_df(emmeans::contrast(em, "pairwise"))
+  expect_lt(abs(pr$SE / sqrt(stats::vcov(fit)["fB", "fB"]) - 1), 1e-8)
+  # at an observed position there is no kriging variance at all
+  s0 <- emm_df(emmeans::emmeans(fit, "f", at = list(x = d$x[1])))
+  expect_true(all(is.finite(s0$SE)))
 })
 
 test_that("a group-indexed smooth puts its factor in the reference grid", {
@@ -277,5 +291,106 @@ test_that("a group-indexed smooth puts its factor in the reference grid", {
     expect_true(all(is.finite(emm_df(emmeans::emmeans(fit, "f",
                                                       re_formula = NULL)
                                      )$emmean)))
+  }
+})
+
+# A transformed predictor. The model frame holds the transformed
+# columns (`poly(z, 2)`) and not `z`, so emmeans's reference grid found
+# no `z` and stopped with "undefined columns selected" on 0.67.0
+# (dev/rel067-emmoffset.R). brms's grid and lm()'s hold the variable
+# at its mean and evaluate the transform at the grid with the fit's
+# frozen basis: scale() takes the training center and scale, poly()
+# its training coefficients (dev/fixes-emm-brms.R, at fixed
+# parameters, agrees with brms to 9 digits).
+emm_tr_data <- function() {
+  set.seed(20260930)
+  n <- 120
+  d <- data.frame(x = rnorm(n), z = rnorm(n, 1, 2),
+                  time = runif(n, 1, 5),
+                  f = factor(sample(c("a", "b", "c"), n, TRUE)))
+  d$yc <- rpois(n, d$time * exp(0.3 + 0.4 * d$x + 0.2 * d$z))
+  d
+}
+
+test_that("a transformed predictor's grid holds its variable, as glm's", {
+  d <- emm_tr_data()
+  for (fo in list(yc ~ poly(z, 2) + f, yc ~ log(abs(z) + 1) + f,
+                  yc ~ scale(z) + f + offset(log(time)),
+                  yc ~ scale(z) * f)) {
+    fit <- frm(bf(fo), data = d, family = poisson())
+    ref <- stats::glm(fo, data = d, family = poisson())
+    # the two optimizers stop at slightly different points; each
+    # comparison is held to a multiple of that measured floor
+    floor <- emm_rel(unname(fixef(fit)[, "Estimate"]), unname(coef(ref)))
+    floor_se <- emm_rel(sqrt(diag(vcov(fit))), sqrt(diag(vcov(ref))))
+    rg <- emmeans::ref_grid(fit)
+    expect_equal(unique(rg@grid$z), mean(d$z), label = deparse1(fo))
+    for (at in list(list(), list(z = c(-1, 3)))) {
+      a <- emm_df(emmeans::emmeans(fit, ~ z + f, at = at))
+      b <- emm_df(emmeans::emmeans(ref, ~ z + f, at = at))
+      expect_identical(a$z, b$z)
+      expect_lt(emm_rel(a$emmean, b$emmean), 100 * floor,
+                label = deparse1(fo))
+      expect_lt(emm_rel(a$SE, b$SE), 10 * floor_se, label = deparse1(fo))
+    }
+  }
+})
+
+test_that("scale() in a grid takes the training center and scale", {
+  d <- emm_tr_data()
+  fit <- frm(bf(yc ~ scale(z) + f), data = d, family = poisson())
+  b <- fixef(fit)[, "Estimate"]
+  # the grid's own center would put the two rows at -/+ 0.71 whatever
+  # the values, and a single value would scale to NaN
+  for (zv in list(3, c(0, 4))) {
+    a <- emm_df(emmeans::emmeans(fit, ~ z | f, at = list(z = zv,
+                                                       f = "a")))
+    want <- b[["Intercept"]] + b[["scalez"]] * (zv - mean(d$z)) / sd(d$z)
+    expect_equal(a$emmean, want)
+  }
+  # the grid route reads the same frozen basis
+  e <- emm_df(emmeans::emmeans(fit, ~ f, epred = TRUE,
+                               at = list(z = 4)))
+  lin <- b[["Intercept"]] + c(0, b[["fb"]], b[["fc"]]) +
+    b[["scalez"]] * (4 - mean(d$z)) / sd(d$z)
+  expect_equal(e$emmean, exp(lin))
+})
+
+test_that("emmeans() on transformed predictors equals brms's", {
+  skip_unless_brms_fit()
+  d <- emm_tr_data()
+  for (fo in list(yc ~ poly(z, 2) + f, yc ~ log(abs(z) + 1) + f,
+                  yc ~ scale(z) + f + offset(log(time)))) {
+    fit <- frm(bf(fo), data = d, family = poisson())
+    bb <- brms_fixed_fit(brms::bf(fo), poisson(), d, fit, ndraws = 4)
+    for (args in list(list(), list(at = list(z = c(0, 4))),
+                      list(epred = TRUE))) {
+      a <- do.call(emmeans::emmeans, c(list(bb, ~ z + f), args))
+      b <- do.call(emmeans::emmeans, c(list(fit, ~ z + f), args))
+      expect_exact_num(emm_df(a)$emmean, emm_df(b)$emmean,
+                       label = deparse1(fo))
+    }
+  }
+})
+
+test_that("a transformed predictor read from the formula environment", {
+  # zz is not a column of the data: a predictor keeps R's lookup in the
+  # formula environment (user decision of 2026-09-30), and the grid has
+  # to find it there too. On 0.67.0 and on the first lane build this
+  # stopped with "undefined columns selected" (review m4)
+  set.seed(7101)
+  n <- 150
+  dd <- data.frame(f = factor(sample(c("a", "b", "c"), n, TRUE)))
+  zz <- stats::runif(n, 0.5, 4)
+  dd$y <- stats::rpois(n, exp(0.2 + 0.3 * zz - 0.05 * zz^2 +
+                                0.2 * as.numeric(dd$f)))
+  fit <- frm(bf(y ~ poly(zz, 2) + f), data = dd, family = poisson())
+  ref <- stats::glm(y ~ poly(zz, 2) + f, data = dd, family = poisson())
+  floor <- emm_rel(unname(fixef(fit)[, "Estimate"]), unname(coef(ref)))
+  for (at in list(list(), list(zz = c(1, 3)))) {
+    a <- emm_df(emmeans::emmeans(fit, ~ zz + f, at = at))
+    b <- emm_df(emmeans::emmeans(ref, ~ zz + f, at = at))
+    expect_identical(a$zz, b$zz)
+    expect_lt(emm_rel(a$emmean, b$emmean), 100 * floor)
   }
 })

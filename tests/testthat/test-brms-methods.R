@@ -771,10 +771,16 @@ test_that("conditional_effects draws the expected response, zero-inflated", {
     expect_exact_num(frm_linpred(s$fit, newdata = nd, type = "response",
                              re_formula = ~ 0), ep,
                      label = paste("frm_linpred(response) is epred,", nm))
-    cfp <- suppressWarnings(conditional_effects(s$fit,
-                                                method = "predict"))$x
-    expect_exact_num(cfp$estimate__, ep,
-                     label = paste("ce method=predict is epred,", nm))
+    # method = "predict" reports the median of its predictive draws,
+    # as brms does (since 0.68.0): a whole count here, with an odd
+    # number of draws, inside its own band
+    cfp <- suppressWarnings(conditional_effects(s$fit, method = "predict",
+                                                ndraws = 401))$x
+    expect_identical(cfp$estimate__, round(cfp$estimate__),
+                     label = paste("ce method=predict is a count,", nm))
+    expect_true(all(cfp$lower__ <= cfp$estimate__ &
+                      cfp$estimate__ <= cfp$upper__),
+                label = paste("ce method=predict in its band,", nm))
     expect_exact_num(fitted(s$fit)[, "Estimate"],
                      brms::posterior_epred(s$brmsfit)[1, ],
                      label = paste("frmtmb fitted() is epred,", nm))
@@ -832,11 +838,16 @@ test_that("a nonlinear predictor gets a wald band", {
   expect_identical(nrow(cw$x), 100L)
   expect_true(all(is.finite(cw$x$se__)))
 
-  # the curve is brms's, and the one method = "predict" draws
-  cf <- suppressWarnings(conditional_effects(s$fit, method = "predict"))
+  # the curve is brms's, and method = "predict" draws around it: its
+  # estimate is the median of 2001 draws (since 0.68.0, as brms reports
+  # it), within five Monte Carlo sds of a symmetric family's center,
+  # sqrt(pi / 2) sd / sqrt(n) each
+  cf <- suppressWarnings(conditional_effects(s$fit, method = "predict",
+                                             ndraws = 2001))
   expect_identical(names(cf), "x")
-  expect_exact_num(cb$x$estimate__, cf$x$estimate__,
-                   label = "nonlinear ce under method = predict")
+  expect_true(all(abs(cf$x$estimate__ - cb$x$estimate__) <
+                    5 * sqrt(pi / 2) * cf$x$se__ / sqrt(2001)),
+              label = "nonlinear ce under method = predict")
   expect_exact_num(cb$x$estimate__, cw$x$estimate__,
                    label = "nonlinear ce under the wald band")
 })
@@ -874,11 +885,14 @@ test_that("the hurdle families get the expected response too", {
   expect_exact_num(fitted(fh)[, "Estimate"], frm_linpred(fh, type = "response"),
                    label = "hurdle fitted() is frm_linpred(response)")
 
-  # method = "predict" reaches the same mean up to Monte Carlo error,
-  # which is the independent check on the analytic one
+  # method = "predict" reports the median of its draws (since 0.68.0,
+  # as brms does): a whole count, with an odd number of draws, inside
+  # its band
   set.seed(7)
-  pm <- suppressWarnings(conditional_effects(fh, method = "predict"))$x
-  expect_lt(max(abs(pm$estimate__ / epred - 1)), 0.15)
+  pm <- suppressWarnings(conditional_effects(fh, method = "predict",
+                                             ndraws = 401))$x
+  expect_identical(pm$estimate__, round(pm$estimate__))
+  expect_true(all(pm$lower__ <= pm$estimate__ & pm$estimate__ <= pm$upper__))
 })
 
 test_that("an unknown argument is named against conditional_effects()", {

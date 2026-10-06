@@ -258,8 +258,16 @@ expected category that \code{conditional_effects()} shows by default is
 scored by these codes, so the hurdle scores 0; brms scores each
 column by its position and reads one higher. \code{disc} and \code{threshold}
 work as for the other ordinal families (see Ordinal thresholds and
-discrimination). \code{thres(x = )} works; \code{thres(gr = )} and \code{cs()} are
-refused.
+discrimination). \code{thres(x = )} and \code{thres(gr = )} count the
+categories above the hurdle, and \code{thres(gr = )} keeps the hurdle in
+each group's density, as brms's \verb{hurdle_cumulative_*_merged_lpmf}
+does. \code{cs()} takes the category-specific offsets off each row's
+thresholds, as in brms; they can make two thresholds cross for some
+rows, and the probability of the category between them is then
+negative. The density is then \code{NaN}, as brms's is, and so are the
+row's \code{fitted()} probabilities, where brms returns the negative
+difference; \code{simulate()} gives \code{NA} for the row. \code{cs()} and
+\code{thres(gr = )} together are refused, as in brms.
 }
 
 \section{Ordinal thresholds and discrimination}{
@@ -530,7 +538,11 @@ of distribution functions times a reversed product of survivals (see
 
 \code{cumulative()} and \code{hurdle_cumulative()} keep their thresholds
 increasing, because their category probabilities are differences of
-the distribution function. The
+the distribution function. A \code{cs()} term moves each threshold of a
+row by its own amount, so it can make one row's thresholds cross;
+brms fits that with a warning, and so does this package: such a
+row's density and \code{fitted()} probabilities are \code{NaN}, and
+\code{simulate()} gives \code{NA} there. The
 thresholds of \code{sratio()}, \code{cratio()} and \code{acat()} are unconstrained,
 as in brms: their category probabilities are positive for any
 thresholds, so a fit may have two of them cross.

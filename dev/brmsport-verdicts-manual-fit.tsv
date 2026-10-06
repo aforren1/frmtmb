@@ -47,12 +47,11 @@ brmsfit-methods:942	frmtmb	divergence	class	update() returns a frmtmb_fit brms's
 brmsfit-methods:945	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:949	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:953	frmtmb	divergence	class	update(fit2, bf(. ~ ., a + b ~ 1, nl = TRUE)) refits now, keeping the nonlinear body (lane formula2); the row asserts is(up, 'brmsfit'), and frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2), as brmsfit-methods:957
-brmsfit-methods:955	frmtmb	defect	start-values	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) is no longer refused and keeps fit2's parameter formulas with brms's message (lane formrobust), but the refit stops from the default starting values ('NA/NaN gradient evaluation'); brms's testmode does not fit, so brms never meets the start
+brmsfit-methods:955	frmtmb	defect	start-values	update(fit2, formula. = bf(count ~ a + b, nl = TRUE)) keeps fit2's parameter formulas with brms's message, but the fixture lacks fit2's priors; the update stops at its zero start ('NA/NaN gradient evaluation'); with the priors it converges (7.1488, 11.5849, 1.6474, -0.7932; dev/fixes-rev3-u955.R). brms's testmode does not fit, so brms never meets the start
 brmsfit-methods:957	frmtmb	divergence	class	update(family = acat()) returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:959	frmtmb	divergence	class	update(fit3, bf(~ ., family = acat())) refits now with family acat and the old formula (lane formula2); the row asserts is(up, 'brmsfit'), which rule 2 of 2026-09-17 forbids, as brmsfit-methods:957
 brmsfit-methods:978	frmtmb	divergence	policy	variables(fit) lists an ML fit's parameters; simo_, r_ and s_ draws and prior_ and lp__ are posterior or Stan quantities (D5, D10; dev/brmsnames-findings.md A10)
 brmsfit-methods:984	frmtmb	divergence	policy	variables(fit2) has brms's b_, sd_ and cor_ names; the r_ and prior_ names are posterior or Stan quantities (D5, D10)
-brmsfit-methods:991	frmtmb	cannot transfer	fixture	lscale_volume_gpAgeTrt0 needs gp(Age, by = Trt), which frmtmb's gp() does not take (D8)
 brmsfit-methods:91	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10); frmtmb.sample keeps it in x$stanfit
 brmsfit-methods:102	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10)
 brmsfit-methods:103	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10)
@@ -64,7 +63,6 @@ brmsfit-methods:794	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no p
 brmsfit-methods:797	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
 brmsfit-methods:798	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
 brmsfit-methods:802	frmtmb.sample	cannot transfer	stan	prior_draws() on fit1$fit, the stanfit, and no prior draws (D10)
-emmeans:42	frmtmb	cannot transfer	absent	frmtmb refuses it by name: fit6's volume response has an exact gp(Age), predicted at the grid's mean Age, which is not a fitted position, and the kriging covariance between two grid points is not available (emm_check_part(), R/interop.R). brms draws that covariance jointly. at = list(Age = <an observed value>) or an approximate gp(Age, k = ) answers
 data-helpers:12	frmtmb	divergence	policy	brms refuses the integer codes of `fac`, a factor column of the data that no term of the model reads; frmtmb never checks such a column, since no value in it can change the prediction, and refuses this call for the new `visit` level set the line before
 data-helpers:22	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 data-helpers:26	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()

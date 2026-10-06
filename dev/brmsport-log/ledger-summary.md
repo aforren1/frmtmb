@@ -6,22 +6,22 @@
 |---|---|---|---|---|---|
 | `tests.brm.R` | 23 | 23 | 0 | 0 | 0 |
 | `tests.brmsfit-helpers.R` | 3 | 2 | 0 | 0 | 1 |
-| `tests.brmsfit-methods.R` | 223 | 156 | 2 | 44 | 21 |
+| `tests.brmsfit-methods.R` | 223 | 157 | 2 | 44 | 20 |
 | `tests.brmsformula.R` | 16 | 16 | 0 | 0 | 0 |
 | `tests.brmsterms.R` | 5 | 0 | 0 | 0 | 5 |
 | `tests.data-helpers.R` | 6 | 2 | 0 | 1 | 3 |
-| `tests.emmeans.R` | 11 | 10 | 0 | 0 | 1 |
+| `tests.emmeans.R` | 11 | 11 | 0 | 0 | 0 |
 | `tests.families.R` | 84 | 76 | 0 | 0 | 8 |
 | `tests.priors.R` | 36 | 25 | 0 | 5 | 6 |
 | `tests.standata.R` | 87 | 77 | 0 | 2 | 8 |
-| **total** | **494** | **387** | **2** | **52** | **53** |
+| **total** | **494** | **389** | **2** | **52** | **51** |
 
 ### Outcome by class
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 355 |
-| pass | own-words | 31 |
+| pass | - | 358 |
+| pass | own-words | 30 |
 | pass | weak-pass | 1 |
 | defect | argument | 1 |
 | defect | start-values | 1 |
@@ -30,16 +30,16 @@
 | divergence | hollow | 1 |
 | divergence | no-draws | 11 |
 | divergence | policy | 13 |
-| cannot transfer | absent | 3 |
+| cannot transfer | absent | 2 |
 | cannot transfer | brms-internal | 15 |
-| cannot transfer | fixture | 2 |
+| cannot transfer | fixture | 1 |
 | cannot transfer | mcmc | 4 |
 | cannot transfer | no-draws | 3 |
 | cannot transfer | stan | 26 |
 
-Bin 1 passes: 387 of 494 (78.3%).
-Against bins 1 and 2: 387 of 823 (47.0%); bin 2 was not ported.
-Runs testthat alone would count as a pass and the harness does not, over both packages: 6 (1 vacuous, 5 reading a stale object); hollow passes marked by hand: 1.
+Bin 1 passes: 389 of 494 (78.7%).
+Against bins 1 and 2: 389 of 823 (47.3%); bin 2 was not ported.
+Runs testthat alone would count as a pass and the harness does not, over both packages: 5 (1 vacuous, 4 reading a stale object); hollow passes marked by hand: 1.
 
 ### The frmtmb.sample half
 
