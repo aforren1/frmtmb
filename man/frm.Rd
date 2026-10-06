@@ -97,7 +97,10 @@ of one vector and not others is refused.}
 (\code{FALSE}) defers it until standard errors are first needed
 (\code{summary}, \code{vcov}, \code{confint}, \code{frm_linpred(se.fit = TRUE)}), which cuts
 roughly a quarter off fit time in fit-and-predict or bootstrap
-loops. The deferred report is cached, so nothing is computed twice.}
+loops. The deferred report is cached, so nothing is computed twice.
+Either way the fit builds the Hessian at the optimum and warns when
+a parameter has no standard error; see \code{check_se} in
+\code{\link[=frmtmb_control]{frmtmb_control()}}.}
 
 \item{na.action}{How to handle missing values, as in \code{\link[stats:lm]{stats::lm()}}
 (default \link[stats:na.omit]{stats::na.omit}). Rows dropped for missingness are

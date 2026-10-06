@@ -71,12 +71,15 @@ test_that("max_ndt above min(rt) is refused alone and allowed in a mixture", {
                    family = wiener(max_ndt = 0.4), data = dat),
                "allow_unreachable")
 
-  # and lifts inside a mixture
-  fit <- frm(bf(rt | dec(upper) ~ 1, bias1 = 0.5),
-             family = mixture(wiener(max_ndt = 0.4,
-                                     allow_unreachable = TRUE),
-                              lognormal()),
-             data = dat)
+  # and lifts inside a mixture. These rows do not place the wiener
+  # component's parameters, and frm() says their standard errors are
+  # not available.
+  fit <- allow_warnings(
+    frm(bf(rt | dec(upper) ~ 1, bias1 = 0.5),
+        family = mixture(wiener(max_ndt = 0.4, allow_unreachable = TRUE),
+                         lognormal()),
+        data = dat),
+    "Standard errors are not available")
   expect_true(is.finite(as.numeric(logLik(fit))))
   # the point of the exercise: the non-decision time is free to sit
   # above the fastest response time, which a bare fit cannot do
@@ -270,7 +273,8 @@ test_that("a mixture survives a negative-span row end to end", {
 
   # nlminb reports false convergence on this design on Ubuntu and not on
   # Windows; the test is that the fit SURVIVES the rows, so a nonzero
-  # optimizer code is allowed and any other warning still escapes
+  # optimizer code is allowed and any other warning still escapes. A
+  # converged fit there says that ndt1 has no standard error.
   fit <- allow_warnings(
     frm(bf(rt | dec(upper) ~ 1, bias1 = 0.5),
         family = mixture(wiener(max_ndt = 0.4, variability = "st",
@@ -278,7 +282,8 @@ test_that("a mixture survives a negative-span row end to end", {
                          lognormal()),
         data = dat),
     c("Optimizer did not report convergence",
-      "Large maximum absolute gradient"))
+      "Large maximum absolute gradient",
+      "Standard errors are not available"))
   expect_true(is.finite(as.numeric(logLik(fit))))
   expect_true(all(is.finite(unlist(fixef_by_dpar(fit)))))
 

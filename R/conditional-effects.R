@@ -2139,6 +2139,8 @@ ce_nl_link_se <- function(x, nd, dpar, resp, re_formula) {
     })
   se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0) + lb$extra_var)
   se[lb$nonest] <- NA_real_
+  se[lb$se_nonest] <- NaN
+  se_pred_warn(lb$se_nonest)
   list(fit = as.vector(lb$eta), se.fit = se)
 }
 
@@ -3095,7 +3097,10 @@ ce_plot_one <- function(df, cond = NULL, o = ce_plot_defaults(),
     # panel of its own rather than a second set of colors
     ylab <- paste0("P(", attr(df, "response"), ")")
     if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
-    ylim <- ylim %||% range(df$lower__, df$upper__, na.rm = TRUE)
+    # the estimate is in the range too: a band that is NaN (a lost
+    # direction) leaves the curve to be drawn alone
+    ylim <- ylim %||% range(df$lower__, df$upper__, df$estimate__,
+                            na.rm = TRUE)
     # "cats__" is the category dimension itself, which already has the
     # grouping slot; only a real second PREDICTOR needs its own panel
     if (length(ev) == 2L && !identical(ev[2L], "cats__")) {
@@ -3118,8 +3123,9 @@ ce_plot_one <- function(df, cond = NULL, o = ce_plot_defaults(),
   if (!is.null(spag) && !is.null(cond) && !is.null(spag[["cond__"]])) {
     spag <- spag[as.character(spag$cond__) == cond, , drop = FALSE]
   }
-  ylim <- ylim %||% range(df$lower__, df$upper__, spag$estimate__,
-                          if (!is.null(pts)) pts$y, na.rm = TRUE)
+  ylim <- ylim %||% range(df$lower__, df$upper__, df$estimate__,
+                          spag$estimate__, if (!is.null(pts)) pts$y,
+                          na.rm = TRUE)
   # brms's `mean`: with spaghetti, FALSE leaves the estimate line out;
   # without spaghetti the line is the display and is always drawn
   line <- o$mean || is.null(spag)

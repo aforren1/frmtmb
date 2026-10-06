@@ -340,6 +340,9 @@ frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
 #' @noRd
 sp_assemble <- function(parts, est, se, Sigma, level, simultaneous, nsim,
                         transform, seed, newdata, what) {
+  # NaN is a row along a direction the fit's Hessian lost
+  # (sp_one_basis()); said once, under the caller's own name
+  sp_lost_warn(is.nan(se))
   crit <- stats::qnorm(1 - (1 - level) / 2)
   out <- newdata
   out[[".estimate"]] <- est
@@ -355,7 +358,11 @@ sp_assemble <- function(parts, est, se, Sigma, level, simultaneous, nsim,
                "points: a band over one point is the pointwise interval",
                call. = FALSE)
     }
-    sim <- sp_sim_crit(Sigma, se, nsim, level, seed)
+    # sp_sim_crit() leaves the NaN rows out of the maximum; with no row
+    # left there is no band to calibrate
+    sim <- if (all(is.nan(se))) list(crit = NaN, mcse = NA_real_) else {
+      sp_sim_crit(Sigma, se, nsim, level, seed)
+    }
     out[[".crit_sim"]] <- sim$crit
     out[[".lower_sim"]] <- est - sim$crit * se
     out[[".upper_sim"]] <- est + sim$crit * se
@@ -514,4 +521,19 @@ sp_check_count <- function(x, nm, min = 1L) {
              call. = FALSE)
   }
   invisible(NULL)
+}
+
+#' One warning for the rows of a curve, a derivative or a feature that
+#' have no standard error because they move along a direction the fit's
+#' Hessian lost. The class is core's, so a caller that handles core's
+#' prediction warning handles this one too.
+#'
+#' @noRd
+sp_lost_warn <- function(bad) {
+  if (!any(bad)) return(invisible(NULL))
+  frm_warning(sum(bad), " of ", length(bad), " grid rows move along a ",
+              "direction the fit does not determine (a parameter without ",
+              "a standard error), so their standard errors and bands are ",
+              "NaN; summary() on the fit lists those parameters",
+              class = "frmtmb_se_lost_prediction", call. = FALSE)
 }

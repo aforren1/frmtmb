@@ -95,8 +95,12 @@ test_that("FN-5: class/group name the natural-scale summaries", {
     frm(bf(y ~ x + (1 + x | g)), family = gaussian(), data = d)
   )
   est <- function(h) h$hypothesis$Estimate
-  a <- hypothesis(fit, "Intercept - x > 0", class = "sd", group = "g")
-  b <- hypothesis(fit, "sd_g__Intercept - sd_g__x > 0", class = NULL)
+  # the flat block takes the SEs of these hypotheses, which warn so
+  lost <- "hypotheses move along a direction"
+  a <- allow_warnings(
+    hypothesis(fit, "Intercept - x > 0", class = "sd", group = "g"), lost)
+  b <- allow_warnings(
+    hypothesis(fit, "sd_g__Intercept - sd_g__x > 0", class = NULL), lost)
   expect_equal(est(a), est(b), tolerance = 1e-10)
   expect_equal(attr(a, "test")$p, attr(b, "test")$p, tolerance = 1e-10)
   expect_identical(a$class, "sd_g")

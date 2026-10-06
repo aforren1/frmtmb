@@ -373,3 +373,37 @@ test_that("the covariance is core's, at the rows core says it is at", {
   expect_equal(attr(cv, "Sigma"),
                unname(lb$A %*% lb$V %*% t(lb$A)), tolerance = 1e-12)
 })
+
+test_that("a curve along a direction the fit lost gets NaN and one warning", {
+  # y ~ a + b with a and b both ~ 1 + x: only a + b is determined, so a
+  # curve of `a` alone has no standard error. The covariance check used
+  # to stop with "this package is reading the seam wrongly" instead.
+  set.seed(955)
+  dd <- data.frame(x = stats::rnorm(60))
+  dd$y <- 3 + 0.5 * dd$x + stats::rnorm(60, 0, 0.4)
+  fit <- suppressWarnings(frmtmb::frm(
+    frmtmb::bf(y ~ a + b, a ~ 1 + x, b ~ 1 + x, nl = TRUE), data = dd))
+  nd <- data.frame(x = seq(-2, 2, length.out = 9))
+  lost <- function(expr) {
+    n <- 0L
+    v <- withCallingHandlers(expr, frmtmb_se_lost_prediction = function(w) {
+      n <<- n + 1L
+      invokeRestart("muffleWarning")
+    })
+    list(value = v, n = n)
+  }
+  for (sim in c(FALSE, TRUE)) {
+    r <- lost(frm_curve(fit, newdata = nd, dpar = "a", simultaneous = sim,
+                        nsim = 500, seed = 1))
+    expect_true(all(is.nan(r$value$.se)))
+    expect_identical(r$n, 1L)
+    r <- lost(frm_curve_deriv(fit, var = "x", newdata = nd, dpar = "a",
+                              simultaneous = sim, nsim = 500, seed = 1))
+    expect_true(all(is.nan(r$value$.se)))
+    expect_identical(r$n, 1L)
+  }
+  # the mean, which the data determine, keeps its band and says nothing
+  expect_no_warning(cv <- frm_curve(fit, newdata = nd, simultaneous = TRUE,
+                                    nsim = 500, seed = 1))
+  expect_true(all(is.finite(cv$.se)))
+})

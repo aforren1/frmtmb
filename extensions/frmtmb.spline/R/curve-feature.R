@@ -327,11 +327,19 @@ frm_curve_feature <- function(object, var,
     denom <- f2
     se_t <- qf(D1) / abs(denom)
   }
+  # a stencil row along a direction the fit's Hessian lost takes the
+  # root's standard errors
+  lost <- Reduce(`|`, lapply(1:5, function(k) {
+    parts$lost[(k - 1L) * nr + seq_len(nr)]
+  }))
+  se_t[lost] <- NaN
+  sp_lost_warn(lost)
   crit <- stats::qnorm(1 - (1 - level) / 2)
   out <- data.frame(
     .feature = type, .var = var, .estimate = roots, .se = se_t,
     .lower_ci = roots - crit * se_t, .upper_ci = roots + crit * se_t,
-    .value = f0, .value_se = qf(C0), stringsAsFactors = FALSE)
+    .value = f0, .value_se = ifelse(lost, NaN, qf(C0)),
+    stringsAsFactors = FALSE)
   structure(out, class = c("frmtmb_feature", "data.frame"),
             check = list(cov_rel_error = parts$rel,
                          n_predict = parts$n_predict,

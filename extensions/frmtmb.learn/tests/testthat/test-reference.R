@@ -163,10 +163,14 @@ test_that("bandit4arm2_kalman_filter matches the model written out longhand", {
   d$choice <- frm_task_simulate(
     fam, d, pars = list(tau = 0.15, lambda = 0.98, center = 50, mu0 = 50,
                         sigma0 = 10, sigmaD = 3), seed = 73)[[1L]]$choice
-  fit <- frmtmb::frm(
-    frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ 1, lambda ~ 1,
-               center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1),
-    family = fam, data = d)
+  # the identity holds at any point; at this one the likelihood curves
+  # downward along sigma0, and frm() says it has no standard error
+  fit <- allow_warnings(
+    frmtmb::frm(
+      frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ 1, lambda ~ 1,
+                 center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1),
+      family = fam, data = d),
+    "Standard errors are not available")
   ref <- ln_ref_kalman(d, ln_nat(fit))
   expect_equal(ref, ln_engine_ll(fit), tolerance = 1e-8)
 })

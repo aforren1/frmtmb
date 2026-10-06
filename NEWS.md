@@ -1,3 +1,91 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`frm()` builds the Hessian at the optimum and warns when a
+  parameter has no standard error.** The warning starts "Standard
+  errors are not available for k of n parameters", names each
+  parameter, and gives the reason: a bound holds it, the data separate
+  the outcomes, the likelihood is flat along it, a step along it raises
+  the log-likelihood (confirmed with two objective evaluations, else it
+  is called flat), or its Hessian row is not finite. Before, a
+  converged fit could return `NaN` for every standard error with no
+  warning: `ls ~ mo(income) * age` on the brms_monotonic vignette's own
+  data code did so on 55 of 200 data sets at optimizer code 0. Now 26
+  of those 200 fits get this warning, 17 get a convergence warning, none
+  loses a standard error silently, and the warning fires on none of the
+  357 `mo()` fits whose standard errors are all finite. In the eight
+  test suites it fires 43 times outside its own tests, every time at
+  optimizer code 0 on a fit where sdreport() gave a non-finite standard
+  error. A fit that did not converge gets its convergence warning
+  instead. An earlier warning explains only the parameters it names: a
+  grouping factor with one level its variance, an observation-level
+  effect its variance and `sigma`, a family's own fit-end check (a
+  threshold no row places, an unidentified `disc` intercept,
+  `zero_one_inflated_beta()`'s `coi`) all but bound-held parameters. A
+  check set to `"ignore"` explains nothing. The cost grows with the
+  number of parameters. Without random effects the check reads the
+  exact Hessian, about one gradient per coefficient: 8 to 23 percent of
+  the fit on seven small models and 19 to 24 percent on a glm with 301
+  coefficients. With random effects it builds the finite-difference
+  Hessian, two gradients per outer parameter, when the model has at most
+  10 outer parameters or those gradients are at most a quarter of the
+  evaluations the optimizer made. Otherwise the check waits for the
+  first use of a standard error and warns there, also when that use is
+  `fixef()`. The rule counts work and does not read the clock, so the
+  same call warns in the same place on an idle machine and a loaded one
+  (`dev/nanse-rev2-determinism.R`: 40 of 40 at fit time in both). Mixed
+  models with 14 to 23 outer parameters were checked at fit time for 19
+  to 23 percent; with 42 to 403 the check waited, and the fit cost 3
+  percent or less. `summary()` reuses the finite-difference Hessian.
+  `frmtmb_control(check_se = "ignore")` skips the check and `"stop"`
+  makes it an error (`dev/nanse-findings.md`).
+* **A parameter without a standard error no longer takes the others
+  with it.** Where sdreport()'s inverse fails, the covariance is
+  recomputed. First the Hessian is scaled to unit diagonal, and on a
+  model without random effects the exact Hessian replaces the
+  finite-difference one. Of the 55 `mo()` fits above, 47 get every
+  standard error back, equal to the same Hessian inverted with the
+  saturated simplex coordinate held to 2.9e-5 relative, and 8 lose only
+  one to three parameters. An `a * exp(b * x)` fit with `x` spanning 0
+  to 1e5 gets its standard errors back too; the finite-difference step
+  of 1e-3 in `b = -2e-5` had given a diagonal of 1.3e96. Where both
+  repairs fail, a parameter held by a bound (test-backlog "The
+  covariance machinery is not bound-aware") and a simplex weight whose
+  Hessian row is exactly zero lose their standard errors, and so does
+  every parameter with a measurable part along a direction the
+  likelihood does not determine, however many share it: `y ~ a + b`
+  with `a ~ 0 + f` at 60 levels loses all 60 `a` coefficients and `b`.
+  The other parameters keep theirs. `summary()` lists the lost
+  parameters with the reason instead of a bare `NaN`. A prediction,
+  emmean, hypothesis or `VarCorr()` entry that moves along a removed
+  direction gets a `NaN` standard error, and `fitted()`, `predict()`,
+  `frm_linpred()`, `conditional_effects()`, `emmeans()`,
+  `hypothesis()` and `VarCorr()` warn once per call with the number of
+  such rows; one that does not keeps its standard error. So
+  `conditional_effects()` keeps its bands on the `mo()` fits, and on
+  `y ~ x + (1 | g1) + (1 + x | g2)` with the `g2` block at variance 0,
+  `VarCorr()` keeps `g1`'s sd error (0.233, as `hypothesis()` gives it)
+  and the residual sd's (0.0794). A parameter that keeps its standard
+  error does not pass a removed direction to the predictions through
+  its own small part in it, and a `conditional_effects()` plot whose
+  band is `NaN` draws the curve alone instead of stopping on "need
+  finite 'ylim' values". Under REML or `profile = TRUE`
+  the coefficients' standard errors come from the joint precision,
+  which this does not repair, and the warning says so. A fit that did
+  not converge keeps sdreport()'s own covariance.
+* **`frm_allfit()` starts every optimizer where lme4's `allFit()`
+  does.** The refits started from zero, so on a nonlinear model 3 of
+  4 refits failed and `bobyqa` reported success 155 log-likelihood
+  units below the fit it was checking. They now start at the original
+  fit's estimates (`start_from_mle = TRUE`, lme4's default) or, with
+  `start_from_mle = FALSE`, at the original fit's own start, including
+  its `start =`. The printed table compares every refit with the best
+  log-likelihood reached and marks a success code more than `grad_tol`
+  below it as "converged elsewhere". A failed refit keeps its error
+  message in `$errors`. The fit object stores its caller's `start` as
+  `fit$start`.
+
 # frmtmb 0.67.0
 
 Three lanes of brms parity, each with an adversarial review and punch

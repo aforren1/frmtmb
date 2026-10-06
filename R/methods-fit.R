@@ -30,7 +30,18 @@ par_est_se <- function(fit, vcov = NULL) {
   se <- if (degenerate) {
     lapply(est, function(v) rep(NA_real_, length(v)))
   } else {
-    as.list(sdr_of(fit), what = "Std. Error")
+    sdr <- sdr_of(fit)
+    # a random effect of a block whose sd the Hessian lost has a variance
+    # below zero by rounding, and TMB's sqrt() says "NaNs produced"; the
+    # SE warning already named that block
+    withCallingHandlers(
+      as.list(sdr, what = "Std. Error"),
+      warning = function(w) {
+        if (length(sdr$se_lost) &&
+              identical(conditionMessage(w), "NaNs produced")) {
+          invokeRestart("muffleWarning")
+        }
+      })
   }
   if (length(fit$frame[["betad_fixed_idx"]])) {
     se$betad[fit$frame[["betad_fixed_idx"]]] <- NA_real_
@@ -315,6 +326,12 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
            }
          }),
          smooth_edf = smooth_edf(object),
+         # why a standard error is NaN, so the table does not show a
+         # bare NaN (se_check())
+         se_lost = local({
+           lost <- tryCatch(sdr_of(object)$se_lost, error = function(e) NULL)
+           if (length(lost)) se_lost_clauses(object, lost)
+         }),
          extras = local({
            ex <- list()
            for (nm in object$frame[["extra_names"]] %||% character(0)) {
@@ -372,6 +389,7 @@ brms_ci_cols <- function(prob) {
 #'
 #' @noRd
 summary_fixed_frame <- function(object, ps, rdf, prob) {
+  se_flush_deferred(object)
   rows <- brms_fixef_rows(object)
   est <- unname(brms_fixef_values(object, rows))
   se <- rep(NA_real_, length(rows$names))
@@ -426,6 +444,7 @@ par_est_se_flat <- function(ps, object) {
 #'
 #' @noRd
 summary_spec_frame <- function(object, prob) {
+  se_flush_deferred(object)
   tab <- brms_coef_table(object)
   inv <- attr(tab, "linkinv")
   smp <- attr(tab, "simplex")
@@ -472,8 +491,11 @@ summary_spec_frame <- function(object, prob) {
   for (d in dl) {
     r <- object$estimates[[d$comp]][d$idx]
     p <- if (!is.null(pc)) which(pc$comp == d$comp)[d$idx]
-    se_r <- if (length(p) == 1L && !is.na(p)) sqrt(pc$V[p, p]) else
-      NA_real_
+    se_r <- if (length(p) == 1L && !is.na(p)) {
+      G <- matrix(0, 1L, length(pc$comp))
+      G[1L, p] <- 1
+      sqrt(as.numeric(hyp_prop_var(pc, G)))
+    } else NA_real_
     est <- c(est, d$value(r))
     # d(delta)/d(internal) is delta itself on the log scale, 1 otherwise
     err <- c(err, if (identical(d$value, exp)) exp(r) * se_r else se_r)
@@ -746,6 +768,13 @@ print.summary.frmtmb_fit <- function(x, ...) {
     cat("\nNoise-free Terms (me()):\n")
     print_summary_block(x[["me"]])
   }
+  if (length(x[["se_lost"]])) {
+    cat("\nParameters without a standard error (NaN wherever shown):\n")
+    w <- max(40L, getOption("width", 80L)) - 4L
+    for (s in x[["se_lost"]]) {
+      cat(paste0("  ", strwrap(s, width = w, exdent = 2L)), sep = "\n")
+    }
+  }
   if (isTRUE(x$priors)) {
     cat("\nPriors:\n")
     if (is.null(x$prior)) {
@@ -999,8 +1028,12 @@ vcov_estimated <- function(object, full = FALSE) {
     # invert the outer Hessian that is a matrix of NaN, on a fit whose
     # own convergence checks all passed - so say so here, or nothing
     # does. (The REML/profile branch below warns through
-    # solve_joint_precision().)
-    if (any(!is.finite(V))) warn_nonfinite_cov(object$cache, object)
+    # solve_joint_precision().) Judged on the block returned: a lost
+    # simplex coordinate is not in the coefficient block.
+    ord <- c(which(rownames(V) == "beta"), which(rownames(V) == "betad"))
+    if (any(!is.finite(if (full) V else V[ord, ord]))) {
+      warn_nonfinite_cov(object$cache, object)
+    }
     if (full) {
       # cov.fixed rows repeat the component names; the per-parameter
       # names (confint rows) are the useful labels
@@ -1008,7 +1041,6 @@ vcov_estimated <- function(object, full = FALSE) {
                           outer_par_names(object))
       return(V)
     }
-    ord <- c(which(rownames(V) == "beta"), which(rownames(V) == "betad"))
     V <- V[ord, ord, drop = FALSE]
   } else {
     Q <- sdr_of(object)$jointPrecision
@@ -1398,6 +1430,9 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   }
   rows <- brms_fixef_rows(object)
   cf <- unname(brms_fixef_values(object, rows))
+  # a waiting SE check reports to fixef()'s caller, not into the
+  # suppression below
+  se_flush_deferred(object)
   V <- tryCatch(suppressWarnings(vcov(object)), error = function(e) NULL)
   se <- if (is.null(V)) NULL else unname(sqrt(diag(V))[rows$names])
   out <- brms_summary_matrix(cf, se, probs, rownames = rows$names)
@@ -2041,8 +2076,13 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
     vm <- pc$vals; vm[i] <- vm[i] - step
     J[, k] <- (flat(vp) - flat(vm)) / (2 * step)
   }
-  Vr <- pc$V[rel, rel, drop = FALSE]
-  se <- sqrt(pmax(0, rowSums((J %*% Vr) * J)))
+  G <- matrix(0, length(q0), length(pc$comp))
+  G[, rel] <- J
+  # NaN only for an entry that moves along a lost direction, with one
+  # warning; the shown covariance would make every entry NaN (RB2)
+  v <- hyp_prop_var(pc, G)
+  se_pred_warn(attr(v, "lost"), "VarCorr() entries")
+  se <- sqrt(as.numeric(v))
   stats_nm <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
   tab <- cbind(q0, se, outer(se, stats::qnorm(probs)) + q0)
   colnames(tab) <- stats_nm

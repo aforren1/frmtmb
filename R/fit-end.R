@@ -32,7 +32,15 @@ fit_end_checks <- function(fit) {
     fc <- resp$family[["post"]][["fit_check"]]
     if (!is.function(fc)) next
     fam_nm <- resp$family[["family"]]
-    tryCatch(fc(fit, resp$resp_name), error = function(e) {
+    # A family's own verdict on where its fit landed (a threshold no row
+    # places, an unidentified disc intercept or coi, a degenerate
+    # mixture component) names the parameters and the remedy, so the
+    # standard-error warning that would follow it is not raised.
+    explained <- function(w) {
+      if (is.environment(fit$cache)) fit$cache$se_explained <- fam_nm
+    }
+    tryCatch(withCallingHandlers(fc(fit, resp$resp_name),
+                                 warning = explained), error = function(e) {
       frm_warning("The '", fam_nm, "' family's post$fit_check hook failed ",
                   "after the fit finished, so whatever it checks was not ",
                   "checked: ", conditionMessage(e),

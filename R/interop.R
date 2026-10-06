@@ -164,6 +164,7 @@ interop_coef_vector <- function(model) {
 #'
 #' @noRd
 interop_vcov <- function(model) {
+  se_flush_deferred(model)
   cps <- ord_extra_comps(model)
   V0 <- vcov_estimated(model)
   if (!length(cps)) return(V0)
@@ -848,6 +849,13 @@ emm_basis_design <- function(object, tg, xlev, grid) {
   V <- matrix(0, length(p), length(p))
   ok <- !is.na(p)
   V[ok, ok] <- Vall[p[ok], p[ok], drop = FALSE]
+  # A coefficient the Hessian lost is NaN in V, and emmeans skips the
+  # zero entries of a grid row, so exactly the rows that use it get a
+  # NaN standard error. Say so once, as a prediction does.
+  if (length(sdr_of(object)$se_lost)) {
+    gone <- !is.finite(diag(V))
+    se_pred_warn(rowSums(X[, gone, drop = FALSE] != 0) > 0)
+  }
   list(X = X, bhat = unname(unlist(bh, use.names = FALSE)), V = V)
 }
 
@@ -894,6 +902,11 @@ emm_basis_grid <- function(object, tg, grid) {
     off <- off + length(p$est)
   }
   V <- G %*% jc$V[pos_all, pos_all, drop = FALSE] %*% t(G)
+  # a grid row along a direction the Hessian lost has no variance
+  lost_dir <- jc_nonest(jc, G, pos_all)
+  V[lost_dir, ] <- NaN
+  V[, lost_dir] <- NaN
+  se_pred_warn(lost_dir)
   list(X = diag(sum(n)), bhat = unname(unlist(lapply(parts, `[[`, "est"))),
        V = (V + t(V)) / 2)
 }

@@ -131,15 +131,21 @@ test_that("the merged block actually reads the relationship matrix", {
   # Refitting with the identity has to move the log likelihood.
   I <- diag(nrow(d$A))
   dimnames(I) <- dimnames(d$A)
-  f_I <- frm(mvbf(bf(y1 ~ 1 + (1 | q | gr(id, cov = I))) + gaussian(),
-                  bf(y2 ~ 1 + (1 | q | gr(id, cov = I))) + gaussian()),
-             data = d$wide, data2 = list(I = I))
+  # with one row per id and the identity, a residual sd and the group
+  # sds are one sum, and frm() says those standard errors are lost
+  f_I <- allow_warnings(
+    frm(mvbf(bf(y1 ~ 1 + (1 | q | gr(id, cov = I))) + gaussian(),
+             bf(y2 ~ 1 + (1 | q | gr(id, cov = I))) + gaussian()),
+        data = d$wide, data2 = list(I = I)),
+    "Standard errors are not available")
   expect_gt(as.numeric(logLik(fw)) - as.numeric(logLik(f_I)), 1)
 
   # and a plain us |ID| merge is that identity fit
-  f_us <- frm(mvbf(bf(y1 ~ 1 + (1 | q | id)) + gaussian(),
-                   bf(y2 ~ 1 + (1 | q | id)) + gaussian()),
-              data = d$wide)
+  f_us <- allow_warnings(
+    frm(mvbf(bf(y1 ~ 1 + (1 | q | id)) + gaussian(),
+             bf(y2 ~ 1 + (1 | q | id)) + gaussian()),
+        data = d$wide),
+    "Standard errors are not available")
   expect_equal(f_us$frame$re_blocks[[1]]$covstruct, "us")
   expect_equal(as.numeric(logLik(f_us)), as.numeric(logLik(f_I)),
                tolerance = 1e-5)

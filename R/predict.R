@@ -13,9 +13,17 @@ get_joint_cov <- function(fit) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   Q <- joint_precision(fit)
+  null <- NULL
   if (is.null(Q)) {
-    V <- sdr_of(fit)$cov.fixed
-    rn <- rownames(V)
+    # a parameter without a standard error is NaN in cov.fixed, which a
+    # product would spread to every prediction; the finite covariance
+    # sdr_rescue() keeps gives the right variance to a prediction that
+    # does not move along the lost directions, and `null` spans them so
+    # that one that does gets NaN instead (jc_nonest())
+    sdr <- sdr_of(fit)
+    V <- sdr$cov_fixed_prop %||% sdr$cov.fixed
+    rn <- rownames(sdr$cov.fixed)
+    null <- sdr$se_null
   } else {
     # same degradation vcov() uses: a singular joint precision gives NaN
     # standard errors and one warning naming diagnose(), not a raw
@@ -23,7 +31,8 @@ get_joint_cov <- function(fit) {
     V <- as.matrix(solve_joint_precision(Q, cache, fit))
     rn <- rownames(Q)
   }
-  cache$Vjoint <- list(V = V, names = rn)
+  cache$Vjoint <- list(V = V, names = rn, null = null,
+                       units = if (!is.null(null)) fit$par_units)
   cache$Vjoint
 }
 
@@ -1958,6 +1967,9 @@ frm_linpred <- function(object, newdata = NULL,
   # the kept columns still have a finite variance, but it is not the
   # standard error of anything the fit estimates
   if (any(ed[["nonest"]])) se_eta[ed[["nonest"]]] <- NA_real_
+  # nor is a variance along a direction the Hessian lost
+  se_eta[lb$se_nonest] <- NaN
+  se_pred_warn(lb$se_nonest)
 
   out <- if (!is.null(hook)) {
     # the delta method through the reporting transform, with respect to
@@ -2353,6 +2365,7 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   }
   V <- jc$V[pos_all, pos_all, drop = FALSE]
   var_m <- pmax(rowSums((G %*% V) * G), 0)
+  lost_dir <- jc_nonest(jc, G, pos_all)
 
   # New grouping levels: a block whose components sit in several linear
   # predictors enters once, through the summed gradient over its own
@@ -2381,6 +2394,8 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
     rep(e$nonest, length.out = n)
   }))
   if (any(nonest)) se_m[nonest] <- NA_real_
+  se_m[lost_dir] <- NaN
+  se_pred_warn(lost_dir)
   out <- list(fit = m, se.fit = se_m)
   if (is.null(newdata)) {
     out$fit <- napred(object, out$fit)
@@ -2781,6 +2796,9 @@ ord_linear_per_threshold <- function(object, eta, newdata, resp) {
 #' @noRd
 fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
                             allow_new_levels, est) {
+  # the handler below muffles what fitted_point() already said, which
+  # would include a waiting SE check's report
+  se_flush_deferred(object)
   if (is.matrix(est)) {
     f <- function(fit) {
       fitted_point(fit, newdata, re_formula, scale, resp, dpar,
@@ -2827,7 +2845,8 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
                 dpar = dpar, resp = resp, re_formula = re_formula,
                 allow_new_levels = allow_new_levels, se.fit = TRUE),
     warning = function(w) {
-      if (!inherits(w, "frmtmb_modes_conditional_se")) {
+      if (!inherits(w, c("frmtmb_modes_conditional_se",
+                         "frmtmb_se_lost_prediction"))) {
         invokeRestart("muffleWarning")
       }
     }),
@@ -3343,7 +3362,11 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
     }
     for (i in seq_along(extra_d)) G[, off + i] <- extra_d[[i]][, k]
     SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
+    lost_k <- jc_nonest(jc, G, all_pos)
+    SE[lost_k, k] <- NaN
+    lost_dir <- if (k == 1L) lost_k else lost_dir | lost_k
   }
+  if (nq) se_pred_warn(lost_dir)
   nonest <- ed[["nonest"]]
   for (m in more) nonest <- nonest | m$ed[["nonest"]]
   if (any(nonest)) {
@@ -4706,6 +4729,16 @@ frm_joint_cov <- function(object) {
   require_fitted(object, "frm_joint_cov()")
   jc <- get_joint_cov(object)
   jc$labels <- joint_coef_labels(object, jc)
+  # the internal covariance keeps finite rows for the parameters the
+  # Hessian lost, for predictions that do not move along them; what a
+  # caller reads shows them as vcov() does
+  lost <- if (!is.null(jc$null)) sdr_of(object)$se_lost
+  i <- match(names(lost), outer_par_names(object))
+  i <- i[!is.na(i)]
+  if (length(i)) {
+    jc$V[i, ] <- NaN
+    jc$V[, i] <- NaN
+  }
   jc
 }
 
@@ -4903,7 +4936,9 @@ lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
        V = jc$V[coef_pos, coef_pos, drop = FALSE],
        coef_names = if (is.null(lab)) NULL else lab[coef_pos],
        extra_var = extra_var,
-       nonest = nonest %||% rep(FALSE, length(eta)))
+       nonest = nonest %||% rep(FALSE, length(eta)),
+       # rows whose standard error the lost directions take (jc_nonest())
+       se_nonest = jc_nonest(jc, A, coef_pos))
 }
 
 #' Which component of the parameter list each row of the joint

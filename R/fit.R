@@ -86,6 +86,9 @@
 #'   (`summary`, `vcov`, `confint`, `frm_linpred(se.fit = TRUE)`), which cuts
 #'   roughly a quarter off fit time in fit-and-predict or bootstrap
 #'   loops. The deferred report is cached, so nothing is computed twice.
+#'   Either way the fit builds the Hessian at the optimum and warns when
+#'   a parameter has no standard error; see `check_se` in
+#'   [frmtmb_control()].
 #' @param na.action How to handle missing values, as in [stats::lm()]
 #'   (default [stats::na.omit]). Rows dropped for missingness are
 #'   reported in a message; wrap the call in `suppressMessages()` to
@@ -643,14 +646,11 @@
 #'   nonzero optimizer status (with the optimizer's own message and, for
 #'   a nonlinear model, a hint that `start` was not set), a maximum
 #'   absolute gradient above `grad_tol` that a Newton step confirms is
-#'   worth more than `grad_tol` in log likelihood, and, once the
-#'   standard-error
-#'   machinery has run (at fit time under `se = TRUE`, otherwise on the
-#'   first `vcov()`, `summary()` or [diagnose()] call), a Hessian that is
-#'   not positive definite or, failing that, non-finite standard errors.
-#'   The last two are exclusive: a Hessian that is not positive definite
-#'   explains the standard errors, so only the first of the pair is
-#'   raised.
+#'   worth more than `grad_tol` in log likelihood, and, on a fit that
+#'   raised neither, one warning that names every parameter without a
+#'   standard error and why (`check_se` in [frmtmb_control()]). Under
+#'   `se = TRUE`, a Hessian that is not positive definite while every
+#'   standard error is finite also warns.
 #' @srrstats {RE3.1} Those diagnostics are `warning()` conditions, so
 #'   `suppressWarnings()` silences them, and the returned object still
 #'   carries enough to identify the failure: `fit$opt$convergence` and
@@ -827,7 +827,9 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # from the frame, so family(fit) would otherwise report the family as
   # written rather than the one that was taped.
   spec <- carry_finalized_responses(spec, frame)
-  check_re_structure(spec, frame, control)
+  # a structure that loses a variance's standard error by construction
+  # has said so; se_check() reads this rather than saying it again
+  attr(frame, "se_explained") <- check_re_structure(spec, frame, control)
   suggest_bernoulli(spec, frame)
   if (identical(dry_run, "frame")) return(frame)
 
@@ -973,7 +975,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           importance = 0L,
                           template = NULL, data2 = list(),
                           objective_only = FALSE,
-                          announce_start = FALSE) {
+                          announce_start = FALSE,
+                          check_se = announce_start) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
@@ -1000,15 +1003,21 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (vb) vb_stage("autoscale pre-fit", t0)
     verdict <- autoscale_prefit_verdict(pre, control, vb)
     if (identical(verdict, "choose")) {
-      return(autoscale_choose(
+      # the standard-error check runs once, on the fit that is kept; its
+      # warning must not take part in choosing it
+      fit <- autoscale_choose(
         function(ctl, tpl) {
           fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                         control = ctl, se = se, lower = lower_arg,
                         upper = upper_arg, prior = prior,
                         quadrature = quadrature, importance = importance,
                         template = tpl, data2 = data2,
-                        announce_start = announce_start)
-        }, control, pre$template, vb))
+                        announce_start = announce_start, check_se = FALSE)
+        }, control, pre$template, vb)
+      if (check_se) {
+        se_check(fit, control)
+      }
+      return(fit)
     }
     if (isTRUE(verdict)) {
       template <- pre$template
@@ -1314,6 +1323,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          control = control, quadrature = isTRUE(quadrature),
          importance = imp_record(imp),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
+         # the caller's own `start`, so frm_allfit() can start each
+         # optimizer where this fit started
+         start = start,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
@@ -1331,10 +1343,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (vb) vb_stage("sdreport", t0)
   }
   chk <- check_convergence(fit, control)
+  # a fit that stopped short has no curvature worth a second warning
+  if (length(chk$warnings)) fit$cache$se_explained <- "convergence"
   # Fit-end checks: a family that wants to inspect its own fit, and the
   # knot-span coverage of any ps() block. Both need the finished object,
   # which is why neither can live in family_finalize() or in the frame.
   fit_end_checks(fit)
+  if (check_se) {
+    se_check(fit, control)
+  }
   if (vb) {
     vb_stage("done", t_fit,
              paste0("objective ", format(fit$opt$objective, digits = 8),
@@ -1616,9 +1633,10 @@ sdr_of <- function(fit) {
   require_fitted(fit, paste("The standard-error machinery (summary(),",
                             "vcov(), confint(), frm_linpred(se.fit =))"))
   cache <- fit$cache
-  if (is.null(cache$sdr)) {
-    cache$sdr <- autoscale_sdreport(fit)
-  }
+  if (is.null(cache$sdr)) cache$sdr <- autoscale_sdreport(fit)
+  # a fit whose check waited reports at its first standard-error use,
+  # which may come after one that ran under suppressWarnings()
+  if (!is.null(cache$se_deferred)) se_deferred_report(fit, cache$sdr)
   cache$sdr
 }
 
@@ -1750,6 +1768,33 @@ sdr_of <- function(fit) {
 #'   proportional to the identity, so the block and the residual are
 #'   separately identified. That is the animal model with one
 #'   measurement per individual.
+#' @param check_se What to do when a converged fit has parameters with
+#'   no standard error: `"warning"` (default), `"ignore"`, or `"stop"`.
+#'   [frm()] looks at the Hessian at the optimum to find out, so the
+#'   cost grows with the number of parameters. Without random effects
+#'   it reads the exact Hessian, about one gradient per coefficient,
+#'   with no limit. With random effects it builds the finite-difference
+#'   Hessian, two gradients per outer parameter, which [summary()] then
+#'   reuses, when the model has at most 10 outer parameters or those
+#'   gradients are at most a quarter of the objective and gradient
+#'   evaluations the optimizer made. Otherwise the check waits for the
+#'   first standard-error use (`summary()`, `fixef()`, `vcov()`,
+#'   `confint()`, a prediction's standard error) and warns there. The
+#'   rule counts work and does not read the clock, so the same call warns
+#'   in the same place on any machine. Measured against `"ignore"`: 8 to
+#'   23 percent on seven small models and on mixed models with 14 to 23
+#'   outer parameters, 19 to 24 percent on a glm with 301 coefficients,
+#'   and 3 percent or less on mixed models with 42 to 403 outer
+#'   parameters, where the check waited. `"ignore"` skips it. The
+#'   warning names each parameter and the reason: a bound holds it, the
+#'   data separate the outcomes, the likelihood is flat along it (a
+#'   standard deviation or a `mo()` simplex weight at 0, parameters that
+#'   enter only through a combination), a step along it raises the
+#'   log-likelihood, or its Hessian row is not finite. The other
+#'   parameters keep their standard errors, and a prediction, emmean or
+#'   [hypothesis()] that moves along a lost direction gets none, with
+#'   one warning per call. A fit that did not converge warns about that
+#'   instead.
 #' @param importance_seed Seed for the standard normal draws of
 #'   `frm(importance =)`. The draws are taken from a private random
 #'   stream, so the fit neither reads nor disturbs the session's random
@@ -1867,6 +1912,7 @@ frmtmb_control <- function(optimizer = "nlminb",
                            autoscale = NULL,
                            check_nlev_1 = c("warning", "ignore", "stop"),
                            check_olre = c("warning", "ignore", "stop"),
+                           check_se = c("warning", "ignore", "stop"),
                            importance_seed = 1L, importance_rounds = 5L,
                            importance_ess = 0.25,
                            verbose = NULL) {
@@ -1913,6 +1959,7 @@ frmtmb_control <- function(optimizer = "nlminb",
        sparse_x = isTRUE(sparse_x), autoscale = autoscale,
        check_nlev_1 = frm_match_arg(check_nlev_1),
        check_olre = frm_match_arg(check_olre),
+       check_se = frm_match_arg(check_se),
        importance_seed = as.integer(importance_seed),
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess,
@@ -1939,9 +1986,14 @@ re_check_act <- function(what, msg) {
 #' holds that variance. Each check reports through `re_check_act()`, so
 #' the control setting decides between silence, a warning, and an error.
 #'
+#' Returns the checks that found something, or `NULL`: either structure
+#' leaves a variance with no standard error, which se_check() then does
+#' not report a second time.
+#'
 #' @noRd
 check_re_structure <- function(spec, frame, control) {
   gaussian_like <- c("gaussian", "student", "lognormal")
+  found <- list()
   for (bk in frame[["re_blocks"]]) {
     # smooth / gp / hsgp blocks carry a synthetic n_levels of 1 and no
     # grouping levels at all; only real grouping factors are checked
@@ -1958,6 +2010,10 @@ check_re_structure <- function(spec, frame, control) {
                "not identified and collapses to zero. Drop the term (it ",
                "is absorbed by the intercept), or set ",
                "frmtmb_control(check_nlev_1 = \"ignore\")"))
+      if (identical(control$check_nlev_1 %||% "warning", "warning")) {
+        found[[length(found) + 1L]] <- list(
+          kind = "nlev_1", theta_idx = bk[["theta_idx"]])
+      }
       next
     }
     lp <- frame[["linpreds"]][[bk[["components"]][[1L]]$lp_key]]
@@ -1995,9 +2051,14 @@ check_re_structure <- function(spec, frame, control) {
                "meaningful for discrete families (overdispersion), not ",
                "here. Set frmtmb_control(check_olre = \"ignore\") to ",
                "keep it"))
+      if (identical(control$check_olre %||% "warning", "warning")) {
+        found[[length(found) + 1L]] <- list(
+          kind = "olre", theta_idx = bk[["theta_idx"]],
+          resp = lp[["resp"]])
+      }
     }
   }
-  invisible(NULL)
+  invisible(if (length(found)) found)
 }
 
 #' The objective as nlminb sees it: a NaN at a TRIAL point becomes +Inf.
@@ -2224,8 +2285,20 @@ optimize_obj <- function(obj, control,
     tally <- new.env(parent = emptyenv())
     tally$n <- 0L
   }
+  # the evaluations the optimizer asks for, counted rather than timed:
+  # se_check_at_fit() weighs the fit-time Hessian against them, and a
+  # count gives the same answer on an idle machine and a loaded one
+  tally$evals <- tally$evals %||% 0L
+  fn_c <- function(x) {
+    tally$evals <- tally$evals + 1L
+    obj$fn(x)
+  }
+  gr_c <- function(x) {
+    tally$evals <- tally$evals + 1L
+    obj$gr(x)
+  }
   run <- function(par) {
-    tryCatch(run_optimizer(optimizer, par, obj$fn, obj$gr,
+    tryCatch(run_optimizer(optimizer, par, fn_c, gr_c,
                            bounds$lower, bounds$upper, control$optCtrl,
                            par_units, tally),
              error = function(e) optimizer_from_best(obj, par, e, optimizer,
@@ -2251,6 +2324,7 @@ optimize_obj <- function(obj, control,
   # only the nlminb path maps trials; optim and a custom optimizer have
   # no count to report, and NULL says so where 0 would claim a measurement
   if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n
+  opt$evals <- tally$evals
   opt
 }
 
@@ -3150,26 +3224,17 @@ check_convergence <- function(fit, control) {
     v <- grad_verdict(fit, gvec, control)
     if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
   }
-  # Covariance verdicts are only known once sdreport has run (se =
-  # TRUE); the lazy path surfaces them through vcov()/summary()/
-  # diagnose() instead. pdHess does not imply usable standard errors:
-  # the Cholesky it comes from succeeds on a Hessian LAPACK's solver
-  # then refuses as computationally singular, and cov.fixed is NaN.
+  # Standard errors that are not finite are se_check()'s verdict, which
+  # runs after this on every fit and names the parameters. What stays
+  # here is the se = TRUE verdict on a Hessian that is not positive
+  # definite while every standard error is finite.
   sdr <- fit$cache$sdr
-  if (!is.null(sdr) && !is.null(sdr$pdHess) && !isTRUE(sdr$pdHess)) {
+  if (!is.null(sdr) && isFALSE(sdr$pdHess) && !length(sdr$se_lost)) {
     # "overparameterized" is one of two causes and the wrong one when a
     # direction is flat; flat_par_note() names the parameters when it is
     msgs <- c(msgs, paste0("Hessian is not positive definite; standard ",
                            "errors are unreliable. The model may be ",
                            "overparameterized", flat_par_note(fit)))
-  } else if (!is.null(sdr) && length(sdr$cov.fixed) &&
-             any(!is.finite(sdr$cov.fixed))) {
-    msgs <- c(msgs, paste0("Some standard errors are not finite: the ",
-                           "covariance could not be recovered from the ",
-                           "Hessian", flat_par_note(fit),
-                           ". diagnose() names the offending ",
-                           "parameters; see the 'Convergence problems' ",
-                           "section of vignette('diagnostics')"))
   }
   for (m in msgs) frm_warning(m, call. = FALSE)
   invisible(list(grad = g, warnings = msgs))

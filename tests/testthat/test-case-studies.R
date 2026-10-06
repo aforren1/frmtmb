@@ -111,9 +111,14 @@ test_that("the multi-trait animal model reads the pedigree", {
   # never entered the likelihood at all.
   I <- diag(n)
   dimnames(I) <- dimnames(A)
-  fmv_id <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = I)),
-                   sigma ~ 0 + trait) + gaussian(),
-                data = long, data2 = list(I = I))
+  # with the identity the genetic and residual variances are one sum,
+  # so their standard errors are not available, and frm() says so
+  fmv_id <- allow_warnings(
+    frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = I)),
+           sigma ~ 0 + trait) + gaussian(),
+        data = long, data2 = list(I = I)),
+    "Standard errors are not available",
+    require = "Standard errors are not available")
   expect_gt(as.numeric(logLik(fmv)) - as.numeric(logLik(fmv_id)), 5)
 })
 

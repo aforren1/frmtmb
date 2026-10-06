@@ -436,14 +436,22 @@ autoscale_choose <- function(run, control, template, vb = 0L) {
 #' @noRd
 autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
   u <- fit$par_units
+  # the fit-time check (se_check()) built this Hessian already; it is
+  # reused only at the point it was taken
+  hc <- if (is.environment(fit$cache)) fit$cache$hessian_fixed
   if (is.null(u) || all(u == 1)) {
-    return(sdr_name_joint(RTMB::sdreport(fit$obj, getJointPrecision = jp),
-                          fit$obj))
+    H <- if (!is.null(hc) && is.null(hc$Hq) &&
+               identical(hc$at, sdr_outer_point(fit$obj))) hc$H
+    sdr <- RTMB::sdreport(fit$obj, hessian.fixed = H,
+                          getJointPrecision = jp)
+    return(sdr_rescue(fit, sdr_name_joint(sdr, fit$obj), H))
   }
   obj <- fit$obj
   q0 <- fit$opt$par / u
-  Hq <- stats::optimHess(q0, function(q) obj$fn(q * u),
-                         function(q) obj$gr(q * u) * u)
+  Hq <- if (!is.null(hc$Hq) && identical(hc$at, fit$opt$par)) hc$Hq else {
+    stats::optimHess(q0, function(q) obj$fn(q * u),
+                     function(q) obj$gr(q * u) * u)
+  }
   sdr <- RTMB::sdreport(obj, par.fixed = fit$opt$par,
                         hessian.fixed = Hq / outer(u, u),
                         getJointPrecision = jp)
@@ -454,7 +462,7 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
     sdr$cov.fixed <- V
     sdr$pdHess <- !inherits(try(chol(Hq), silent = TRUE), "try-error")
   }
-  sdr_name_joint(sdr, obj)
+  sdr_rescue(fit, sdr_name_joint(sdr, obj), Hq / outer(u, u))
 }
 
 #' Name the joint precision when sdreport left it unnamed.

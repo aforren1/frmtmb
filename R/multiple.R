@@ -590,9 +590,11 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, class = "b",
       g <- hyp_fd_grad(function(v) hyp_eval(fit, ex, v, pc$comp),
                        pc$vals)
       Q[i, j] <- val
-      U[i, j] <- max(0, drop(t(g) %*% pc$V %*% g))
+      # NaN along a direction this imputation's Hessian lost (RB2)
+      U[i, j] <- as.numeric(hyp_prop_var(pc, matrix(g, 1L)))
     }
   }
+  se_pred_warn(rowSums(is.nan(U)) > 0, "hypotheses")
   pl <- rubin_pool(Q, U, df.residual(x$fits[[1]]))
   k_n <- length(exs)
   lwr <- upr <- stat <- p <- numeric(k_n)

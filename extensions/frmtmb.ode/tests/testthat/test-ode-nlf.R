@@ -19,21 +19,25 @@ test_that("frm_ode() composes inside an nlf() body", {
                   conc = mu + stats::rnorm(length(mu), 0, 0.3))
   st <- list(beta = c(0, log(0.25), log(8)))
 
-  direct <- frm(bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0),
-                                  times = time,
-                                  parms = list(exp(lka), exp(lke),
-                                               exp(lV)),
-                                  group = id, output = 2L),
-                   lka ~ 1, lke ~ 1, lV ~ 1, nl = TRUE) + gaussian(),
-                data = d, start = st)
-  vianlf <- frm(bf(conc ~ pk, nl = TRUE) +
-                  nlf(pk ~ frm_ode(pk_dyn, init = list(dose, 0),
-                                   times = time,
-                                   parms = list(exp(lka), exp(lke),
-                                                exp(lV)),
-                                   group = id, output = 2L)) +
-                  lf(lka ~ 1, lke ~ 1, lV ~ 1) + gaussian(),
-                data = d, start = st)
+  # pk_dyn reads ke and V only as ke / V, and output 2 is an amount, so
+  # lke + t, lV + t changes nothing and frm() says those two have no
+  # standard error. The test is about the two spellings agreeing.
+  lost <- "lke_(Intercept), lV_(Intercept): the likelihood is flat"
+  direct <- allow_warnings(
+    frm(bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
+                          parms = list(exp(lka), exp(lke), exp(lV)),
+                          group = id, output = 2L),
+           lka ~ 1, lke ~ 1, lV ~ 1, nl = TRUE) + gaussian(),
+        data = d, start = st),
+    lost, require = lost)
+  vianlf <- allow_warnings(
+    frm(bf(conc ~ pk, nl = TRUE) +
+          nlf(pk ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
+                           parms = list(exp(lka), exp(lke), exp(lV)),
+                           group = id, output = 2L)) +
+          lf(lka ~ 1, lke ~ 1, lV ~ 1) + gaussian(),
+        data = d, start = st),
+    lost, require = lost)
   expect_equal(as.numeric(logLik(vianlf)), as.numeric(logLik(direct)),
                tolerance = 1e-10)
   expect_equal(frm_linpred(vianlf), frm_linpred(direct), tolerance = 1e-10)

@@ -1179,11 +1179,11 @@ log_sd_theta_index <- function(fit) {
 #' Parameters the likelihood is flat in are unidentified AT THIS POINT,
 #' and the remedy is a starting value: a nonlinear term evaluated
 #' outside its own support (a bump whose centre starts far from the
-#' data) is flat in several of its parameters at once. One unusable
-#' direction makes EVERY standard error `NaN`, so `bad_se` names the
-#' whole vector and `flat` names the cause. The check is measured by
-#' perturbing each candidate and seeing whether the gradient moves, and
-#' runs only when the covariance has already failed.
+#' data) is flat in several of its parameters at once. `bad_se` names
+#' the parameters without a standard error; the others keep theirs (see
+#' `check_se` in [frmtmb_control()]), and `flat` names the cause. The
+#' check is measured by perturbing each candidate and seeing whether the
+#' gradient moves, and runs only when the covariance has already failed.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param quiet If `TRUE`, return the diagnostics without printing.
@@ -1264,8 +1264,11 @@ diagnose <- function(fit, quiet = FALSE) {
   # negative diagonal entries; the resulting NaN SEs are the finding
   # (reported through bad_se), not a warning to relay
   se <- if (!length(V)) numeric(0) else suppressWarnings(sqrt(diag(V)))
-  ev <- if (!length(V)) NULL else {
-    tryCatch(eigen(V, symmetric = TRUE, only.values = TRUE)$values,
+  # sdreport()'s own inverse where sdr_rescue() replaced it: the
+  # replacement has NaN rows for the lost parameters and no eigenvalues
+  Vraw <- sdr_of(fit)$cov_fixed_raw %||% V
+  ev <- if (!length(Vraw)) NULL else {
+    tryCatch(eigen(Vraw, symmetric = TRUE, only.values = TRUE)$values,
              error = function(e) NULL)
   }
   # theta is absent from fits with no random effects; abs(NULL) is an
@@ -2381,6 +2384,16 @@ ord_threshold_values <- function(fam, raw) {
 #' lincombs). REML: beta is integrated out, so the blocks come from the
 #' joint precision.
 #'
+#' `V` is the covariance as vcov() shows it, NaN in the rows of a
+#' parameter without a standard error. A product of it spreads that NaN
+#' to every row, including ones the data determine (VarCorr() on a fit
+#' with a group sd at 0 lost the other groups' and the residual sd's
+#' errors; lane nanse review, RB2). So a delta method reads `Vp`, the
+#' covariance without the lost directions, through hyp_prop_var(),
+#' which gives NaN exactly to the rows that move along them (`jc`, the
+#' null basis of jc_nonest()). Without a lost parameter `Vp` is `V` and
+#' `jc` is NULL.
+#'
 #' @noRd
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
@@ -2392,9 +2405,15 @@ hyp_par_cov <- function(fit) {
     keep <- which(rn %in% comps)
     # par.fixed equals opt$par at the optimum (this branch is never
     # taken under control profile = TRUE)
+    Vp <- if (!is.null(sdr$se_null) && !is.null(sdr$cov_fixed_prop)) {
+      sdr$cov_fixed_prop[keep, keep, drop = FALSE]
+    } else V[keep, keep, drop = FALSE]
     list(vals = unname(sdr$par.fixed[keep]), comp = rn[keep],
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
-         n_outer = length(fit$opt$par))
+         n_outer = length(fit$opt$par), Vp = Vp,
+         jc = if (!is.null(sdr$se_null)) {
+           list(null = sdr$se_null, units = fit$par_units)
+         })
   } else {
     Q <- sdr_of(fit)$jointPrecision
     Vall <- solve_joint_precision(Q, fit$cache, fit)
@@ -2408,10 +2427,27 @@ hyp_par_cov <- function(fit) {
       cnt[k] <- cnt[k] + 1L
       vals[i] <- vo$vals[vo$comp == k][cnt[k]]
     }
-    list(vals = vals, comp = rn[keep],
-         V = as.matrix(Vall[keep, keep, drop = FALSE]), outer_pos = NULL,
-         n_outer = length(fit$opt$par))
+    V <- as.matrix(Vall[keep, keep, drop = FALSE])
+    list(vals = vals, comp = rn[keep], V = V, outer_pos = NULL,
+         n_outer = length(fit$opt$par), Vp = V, jc = NULL)
   }
+}
+
+#' Delta-method variances `diag(G Vp G')` over hyp_par_cov()'s
+#' positions, NaN for a row of `G` that moves along a direction the
+#' Hessian lost (jc_nonest()). Attribute `lost` marks those rows, for
+#' the caller's one warning.
+#'
+#' @noRd
+hyp_prop_var <- function(pc, G) {
+  G <- as.matrix(G)
+  v <- pmax(rowSums((G %*% pc$Vp) * G), 0)
+  bad <- if (!is.null(pc$jc) && !is.null(pc$outer_pos)) {
+    jc_nonest(pc$jc, G, pc$outer_pos)
+  } else rep(FALSE, nrow(G))
+  v[bad] <- NaN
+  attr(v, "lost") <- bad
+  v
 }
 
 #' Named list of every variable a hypothesis can name, under brms's
@@ -3396,13 +3432,26 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
       stat_name <- "t"
     }
   }
+  # cov.fixed is NaN for a parameter the Hessian lost, which would take
+  # every hypothesis that touches it, even a combination the data
+  # determine (a_k + b where only the sum enters); hyp_prop_var() reads
+  # the covariance without the lost directions and gives NaN to the
+  # hypotheses that move along them, as predict() does. A supplied
+  # `vcov` is used as given.
+  if (!is.null(vcov)) {
+    pc$Vp <- pc$V
+    pc$jc <- NULL
+  }
+  lost_h <- logical(k_n)
   profiles <- vector("list", k_n)
   se <- lwr <- upr <- stat <- p <- numeric(k_n)
   for (i in seq_len(k_n)) {
     ex <- exs[[i]]
     fn <- function(v) hyp_eval(x, ex, v, pc$comp)
     g <- hyp_fd_grad(fn, pc$vals)
-    se[i] <- sqrt(max(0, drop(t(g) %*% pc$V %*% g)))
+    vg <- hyp_prop_var(pc, matrix(g, 1L))
+    se[i] <- sqrt(vg)
+    lost_h[i] <- attr(vg, "lost")
     dir <- hp$dir[i]
     wr <- hyp_wald_row(vals0[i], se[i], dir, alpha, qfun, pfun)
     stat[i] <- wr$stat
@@ -3446,6 +3495,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
       upr[i] <- unname(ci[2]) + const
     }
   }
+  se_pred_warn(lost_h, "hypotheses")
   test <- data.frame(Hypothesis = labels, stat = stat, p = p)
   names(test)[2L] <- stat_name
   # a directional claim passes when its one-sided bound excludes 0,

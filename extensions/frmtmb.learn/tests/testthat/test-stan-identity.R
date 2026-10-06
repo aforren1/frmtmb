@@ -127,10 +127,14 @@ test_that("bandit4arm2_kalman_filter reproduces a Stan program", {
   d$choice <- frm_task_simulate(
     fam, d, pars = list(tau = tau, lambda = 0.98, center = 50, mu0 = 50,
                         sigma0 = 10, sigmaD = 3), seed = 104)[[1L]]$choice
-  fit <- frmtmb::frm(
-    frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ cond + (1 | id),
-               lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1),
-    family = fam, data = d)
+  # the identity holds at any point; at this one a parameter has no
+  # standard error, and frm() says so
+  fit <- allow_warnings(
+    frmtmb::frm(
+      frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ cond + (1 | id),
+                 lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1),
+      family = fam, data = d),
+    "Standard errors are not available")
   ln_lp_check(fit, ln_stan_code_kalman(),
               ln_stan_data(fit, d, ~ cond,
                            list(pay = as.matrix(d[, paste0("pay", 1:4)]),
@@ -202,11 +206,13 @@ test_that("bandit4arm2_kalman_filter reproduces Stan with the bonus", {
     fam, d, pars = list(tau = tau, lambda = 0.98, center = 50, mu0 = 50,
                         sigma0 = 10, sigmaD = 3, phi = 1.5),
     seed = 107)[[1L]]$choice
-  fit <- frmtmb::frm(
-    frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ cond + (1 | id),
-               lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1,
-               phi ~ 1),
-    family = fam, data = d)
+  fit <- allow_warnings(
+    frmtmb::frm(
+      frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ cond + (1 | id),
+                 lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1,
+                 phi ~ 1),
+      family = fam, data = d),
+    "Standard errors are not available")
   ln_lp_check(fit, ln_stan_code_kalman(bonus = TRUE),
               ln_stan_data(fit, d, ~ cond,
                            list(pay = as.matrix(d[, paste0("pay", 1:4)]),

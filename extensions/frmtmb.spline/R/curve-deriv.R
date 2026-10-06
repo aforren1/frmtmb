@@ -158,6 +158,8 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   }
   Sigma <- D %*% parts$V %*% t(D)
   se <- sqrt(pmax(diag(Sigma), 0))
+  # a stencil row along a lost direction takes the derivative's row
+  se[parts$lost[lo] | parts$lost[mid] | parts$lost[hi]] <- NaN
   parts$newdata <- nd
   parts$contrast <- ct
   # core counted the STENCIL it was handed, `c(x - e, x, x + e)`, which

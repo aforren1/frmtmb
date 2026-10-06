@@ -433,6 +433,7 @@ me_newdata_value <- function(fit, mt, newdata, env, nd_mult) {
 #'
 #' @noRd
 me_hyper_table <- function(fit, prob = 0.95) {
+  se_flush_deferred(fit)
   me <- fit$frame[["me"]]
   if (is.null(me)) return(NULL)
   comps <- me_comps(fit)

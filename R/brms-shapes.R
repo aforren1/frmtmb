@@ -310,7 +310,12 @@ brms_fixef_extra_vcov <- function(fit, rows) {
     if (length(p) != length(e$raw)) return(NULL)
     A[i, p] <- fd_gradient_row(e$map, e$raw, rows$pos[i])
   }
-  V <- A %*% pc$V %*% t(A)
+  # the covariance without the lost directions, and NaN for a row that
+  # moves along one, so a lost parameter does not take the others (RB2)
+  V <- A %*% pc$Vp %*% t(A)
+  bad <- attr(hyp_prop_var(pc, A), "lost")
+  V[bad, ] <- NaN
+  V[, bad] <- NaN
   dimnames(V) <- list(rows$names, rows$names)
   V
 }
@@ -415,6 +420,7 @@ fit_set_outer <- function(fit, v, map = outer_par_map(fit)) {
 #'
 #' @noRd
 fit_draw_space <- function(fit) {
+  se_flush_deferred(fit)
   map <- outer_par_map(fit)
   V <- tryCatch(suppressWarnings(vcov(fit, full = TRUE)),
                 error = function(e) NULL)

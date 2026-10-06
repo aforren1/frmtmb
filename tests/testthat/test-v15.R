@@ -24,7 +24,11 @@ test_that("hetar1/homcs/homtoep match glmmTMB (or a self-consistency)", {
   )
   expect_loglik_equal(f1, g1, tol = 1e-5)
 
-  f2 <- frm(bf(y ~ 1 + homcs(tim + 0 | g)) + gaussian(), data = dd)
+  # the compound-symmetry variance and the residual sd are not told apart
+  # on these data, and frm() says those standard errors are lost
+  f2 <- allow_warnings(
+    frm(bf(y ~ 1 + homcs(tim + 0 | g)) + gaussian(), data = dd),
+    "Standard errors are not available")
   g2 <- suppressWarnings(
     glmmTMB::glmmTMB(y ~ 1 + homcs(tim + 0 | g), data = dd)
   )

@@ -826,11 +826,22 @@ test_that("a start on the label-symmetry axis warns", {
              data = dd)
   st <- fit$estimates[["beta"]]
   st[] <- 0
-  expect_warning(
+  # The collapsed fit that follows also has parameters without a
+  # standard error, which frm() reports in a second warning; both are
+  # collected, so neither escapes and nothing else may appear.
+  w <- character()
+  withCallingHandlers(
     frm(bf(y ~ 1),
         family = hmm(K = 2, gaussian(), time = t, group = id),
         data = dd, start = list(beta = st)),
-    "fixed point of the label symmetry")
+    warning = function(x) {
+      w <<- c(w, conditionMessage(x))
+      invokeRestart("muffleWarning")
+    })
+  expect_true(any(grepl("fixed point of the label symmetry", w,
+                        fixed = TRUE)))
+  expect_true(all(grepl(paste0("fixed point of the label symmetry|",
+                               "Standard errors are not available"), w)))
 })
 
 test_that("the default start spreads the state means over the response", {

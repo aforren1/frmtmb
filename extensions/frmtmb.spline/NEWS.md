@@ -1,3 +1,20 @@
+# frmtmb.spline (development version)
+
+* `frm_curve()`, `frm_curve_deriv()` and `frm_curve_feature()` give a
+  `NaN` standard error and band to a grid row that moves along a
+  direction the fit's Hessian lost, and warn once per call with the
+  number of such rows (class `frmtmb_se_lost_prediction`, as core's
+  predictions). Those rows stay out of the covariance cross-check and
+  out of the simultaneous critical value. Before, a curve of `a` alone
+  on `y ~ a + b` with `a` and `b` both `~ 1 + x` stopped with "the
+  assembled covariance of this grid disagrees with frm_linpred(se.fit
+  = TRUE) by NaN relative ... this package is reading the seam
+  wrongly", which blamed this package for a property of the fit. The
+  curve of the mean, which the data determine, keeps its band. A
+  difference curve takes a row as lost when either grid's row is, which
+  is conservative. Needs the frmtmb release that marks those rows
+  (`frm_lp_basis()$se_nonest`); with an older frmtmb nothing changes.
+
 # frmtmb.spline 0.9.0
 
 * Needs frmtmb 0.65.0. `frm_curve()` and its relatives take

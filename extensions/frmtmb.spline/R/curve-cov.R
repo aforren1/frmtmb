@@ -216,8 +216,13 @@ sp_one_basis <- function(fit, nd, dpar, resp, re_formula, allow_new_levels) {
   lb <- lbc$value
   C <- as.matrix(lb$A)
   Sigma <- unname(C %*% lb$V %*% t(C))
-  list(lb = lb, C = C, Sigma = Sigma,
-       se = unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0))),
+  # a row that moves along a direction the fit's Hessian lost has no
+  # standard error; `V` leaves those directions out, so its finite value
+  # there would be too small (frmtmb >= 0.68.0 marks the rows)
+  lost <- lb$se_nonest %||% rep(FALSE, nrow(C))
+  se <- unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0)))
+  se[lost] <- NaN
+  list(lb = lb, C = C, Sigma = Sigma, se = se, lost = lost,
        span = lbc$span)
 }
 
@@ -302,13 +307,21 @@ sp_same_latent <- function(fit, a, b) {
 #'
 #' @noRd
 sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
-                         allow_new_levels, tol, side) {
-  ref <- frmtmb::frm_linpred(fit, newdata = nd, type = "link", dpar = dpar,
-                             resp = resp, re_formula = re_formula,
-                             allow_new_levels = allow_new_levels,
-                             se.fit = TRUE)
+                         allow_new_levels, tol, side,
+                         lost = rep(FALSE, length(se))) {
+  # frm_linpred() says the same thing about the same rows; the caller
+  # says it once, under the name of the function the user called
+  ref <- withCallingHandlers(
+    frmtmb::frm_linpred(fit, newdata = nd, type = "link", dpar = dpar,
+                        resp = resp, re_formula = re_formula,
+                        allow_new_levels = allow_new_levels,
+                        se.fit = TRUE),
+    frmtmb_se_lost_prediction = function(w) invokeRestart("muffleWarning"))
   se_ref <- as.numeric(ref$se.fit)
-  rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
+  # rows without a standard error are NaN on both routes and carry
+  # nothing to compare
+  if (all(lost)) return(NA_real_)
+  rel <- max(abs(se[!lost] / pmax(se_ref[!lost], .Machine$double.eps) - 1))
   if (!is.finite(rel) || rel > tol) {
     frm_stop("frm_curve(): the assembled covariance of ", side,
              " disagrees with frm_linpred(se.fit = TRUE) by ",
@@ -441,7 +454,7 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
   a <- sp_one_basis(fit, newdata, dpar, resp, re_formula, allow_new_levels)
   nl <- sp_is_nl(fit, dpar, resp)
   out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
-              se = a$se, rel = NA_real_, n_predict = 0L,
+              se = a$se, lost = a$lost, rel = NA_real_, n_predict = 0L,
               newdata = newdata, contrast = contrast, dpar = dpar,
               resp = resp, re_formula = re_formula,
               allow_new_levels = allow_new_levels, fit = fit, span = a$span,
@@ -451,7 +464,7 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     # no second number to check against. Everything else is checked.
     if (!nl) {
       out$rel <- sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
-                              allow_new_levels, tol, "this grid")
+                              allow_new_levels, tol, "this grid", a$lost)
       out$n_predict <- 1L
     }
     return(out)
@@ -506,14 +519,20 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
   out$C <- a$C - b$C
   out$Sigma <- unname(out$C %*% out$V %*% t(out$C))
   out$se <- unname(sqrt(pmax(diag(out$Sigma), 0)))
+  # conservative: a difference of two rows that each move along a lost
+  # direction may itself be determined, but the seam marks rows, not
+  # differences, so either half takes the row
+  out$lost <- a$lost | b$lost
+  out$se[out$lost] <- NaN
   out$eta <- a$lb$eta - b$lb$eta
   out$span <- sp_span_both(a$span, b$span)
   if (!nl) {
-    out$rel <- max(
+    r <- c(
       sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
-                   allow_new_levels, tol, "`newdata`"),
+                   allow_new_levels, tol, "`newdata`", a$lost),
       sp_cov_check(fit, contrast, b$se, dpar, resp, re_formula,
-                   allow_new_levels, tol, "`contrast`"))
+                   allow_new_levels, tol, "`contrast`", b$lost))
+    out$rel <- if (all(is.na(r))) NA_real_ else max(r, na.rm = TRUE)
     out$n_predict <- 2L
   }
   out

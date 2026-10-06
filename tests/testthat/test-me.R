@@ -259,7 +259,11 @@ test_that("brms's names: bsp_, meanme_, sdme_, corme__ and Xme_", {
   expect_identical(lab[startsWith(lab, "Xme_mex[")],
                    paste0("Xme_mex[", seq_len(nrow(d)), "]"))
   # a transformed variable keeps brms's rename()
-  f2 <- frm(bf(y ~ me(log(x + 5), sx)) + gaussian(), data = d)
+  # these data do not place this model's intercept, slope and latent sd
+  # apart, and frm() says those standard errors are not available
+  f2 <- allow_warnings(frm(bf(y ~ me(log(x + 5), sx)) + gaussian(),
+                           data = d),
+                       "Standard errors are not available")
   expect_true("bsp_melogxP5sx" %in% variables(f2))
   expect_true("sdme_melogxP5" %in% variables(f2))
 })

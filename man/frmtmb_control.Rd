@@ -14,6 +14,7 @@ frmtmb_control(
   autoscale = NULL,
   check_nlev_1 = c("warning", "ignore", "stop"),
   check_olre = c("warning", "ignore", "stop"),
+  check_se = c("warning", "ignore", "stop"),
   importance_seed = 1L,
   importance_rounds = 5L,
   importance_ess = 0.25,
@@ -155,6 +156,34 @@ also skipped for the known-structure blocks \code{gr(cov = )},
 proportional to the identity, so the block and the residual are
 separately identified. That is the animal model with one
 measurement per individual.}
+
+\item{check_se}{What to do when a converged fit has parameters with
+no standard error: \code{"warning"} (default), \code{"ignore"}, or \code{"stop"}.
+\code{\link[=frm]{frm()}} looks at the Hessian at the optimum to find out, so the
+cost grows with the number of parameters. Without random effects
+it reads the exact Hessian, about one gradient per coefficient,
+with no limit. With random effects it builds the finite-difference
+Hessian, two gradients per outer parameter, which \code{\link[=summary]{summary()}} then
+reuses, when the model has at most 10 outer parameters or those
+gradients are at most a quarter of the objective and gradient
+evaluations the optimizer made. Otherwise the check waits for the
+first standard-error use (\code{summary()}, \code{fixef()}, \code{vcov()},
+\code{confint()}, a prediction's standard error) and warns there. The
+rule counts work and does not read the clock, so the same call warns
+in the same place on any machine. Measured against \code{"ignore"}: 8 to
+23 percent on seven small models and on mixed models with 14 to 23
+outer parameters, 19 to 24 percent on a glm with 301 coefficients,
+and 3 percent or less on mixed models with 42 to 403 outer
+parameters, where the check waited. \code{"ignore"} skips it. The
+warning names each parameter and the reason: a bound holds it, the
+data separate the outcomes, the likelihood is flat along it (a
+standard deviation or a \code{mo()} simplex weight at 0, parameters that
+enter only through a combination), a step along it raises the
+log-likelihood, or its Hessian row is not finite. The other
+parameters keep their standard errors, and a prediction, emmean or
+\code{\link[=hypothesis]{hypothesis()}} that moves along a lost direction gets none, with
+one warning per call. A fit that did not converge warns about that
+instead.}
 
 \item{importance_seed}{Seed for the standard normal draws of
 \code{frm(importance =)}. The draws are taken from a private random

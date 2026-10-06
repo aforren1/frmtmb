@@ -135,6 +135,9 @@ conditional_smooths.frmtmb_fit <- function(x, smooths = NULL,
     Ak <- tm$A[, keep, drop = FALSE]
     V <- jc$V[pos[keep], pos[keep], drop = FALSE]
     se <- sqrt(pmax(rowSums((Ak %*% V) * Ak), 0))
+    lost_dir <- jc_nonest(jc, Ak, pos[keep])
+    se[lost_dir] <- NaN
+    se_pred_warn(lost_dir)
     cs_frame(tm, est, se, est + stats::qnorm(band_p[1L]) * se,
              est + stats::qnorm(band_p[2L]) * se)
   })
