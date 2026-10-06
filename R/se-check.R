@@ -844,9 +844,13 @@ jc_nonest <- function(jc, G, pos) {
 }
 
 #' The cosine above which a prediction counts as moving along a lost
-#' direction. The directions come from an exact AD Hessian on the only
-#' models that use them (no random effects), so they are accurate to
-#' rounding and the test can be tight.
+#' direction. Without random effects the directions come from an exact
+#' AD Hessian, so they are accurate to rounding and the test can be
+#' tight. With random effects (joint_cov_repair()) they come from a
+#' finite-difference Hessian, but se_tier3() zeroes every loading of a
+#' parameter that keeps its standard error, so a prediction that loads
+#' no lost parameter has a component of exactly zero and the threshold
+#' does not decide it.
 #'
 #' @noRd
 se_pred_tol <- 1e-6

@@ -19,9 +19,25 @@ to (\code{"beta"}, \code{"betad"}, \code{"b"}, \code{"theta"}, ...), which is wh
 \item{\code{labels}}{length \code{p}; one label per row,
 \verb{beta.<coefficient>} for a fixed effect and \verb{b.<block>.<level>}
 for a random one.}
+\item{\code{lost_pos}}{the rows of \code{V} that belong to a parameter whose
+standard error is lost (see \code{summary()}); \code{integer(0)} when none
+is.}
 }
+The other elements (\code{null}, \code{units}) are internal.
 A fit with no random effects has no joint precision, and \code{V} is then
 the fixed-effect covariance \code{sdreport()$cov.fixed}; \code{names} says so.
+
+A parameter whose standard error is lost has \code{NaN} in its row and
+column, as in \code{\link[=vcov]{vcov()}}. The rest of \code{V} propagates the uncertainty of
+the outer parameters along the directions the fit determines and
+none along the lost ones. When each lost parameter is a direction of
+its own, that is the covariance with the lost parameters held at
+their estimates. When the loss is one direction that mixes several
+parameters, a combination of them orthogonal to it keeps its
+variance: on a \code{gr(g, by = f)} fit that lost one direction over two
+sds, a slope effect's variance is 7.1e-4 here against 1.7e-6 with
+both sds held, and the prediction standard errors differ by at most
+0.4 percent.
 }
 \description{
 The covariance of everything the fit estimates, \code{beta}, \code{betad},

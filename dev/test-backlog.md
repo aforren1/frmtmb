@@ -1911,6 +1911,94 @@ and the ledger, and upstream defects in `dev/upstream-bugs.md`.
   and report every start, which is more than a small change. Priors on
   the components (as brms has them) are the remedy the warning names.
 
+## Filed at 0.68.1
+
+Found by lane cifix (`dev/cifix-findings.md`) and its review
+(`dev/reviews/2026-10-06-cifix.md`); none blocks the CI patch. "The
+emulator" is `dev/cifix-openblas.sh`, R 4.6.1 with OpenBLAS 0.3.26.
+
+### Open - high
+
+- **The SE check's tier 1 accepts an inverse built on a Hessian row of
+  pure noise** (review item 4). Instrumented, all 353 test files: 117
+  fits in 58 files (core 102, coupling 4, learn 2, sample 6, spline 3)
+  keep `solve(H)` with a row whose maximum is 2.0e-12 to 3.1e-05; 125
+  of the 128 parameters are variance components at a boundary, whose
+  reported SE (optimizer scale) is 884 to 750,000, median 4,960, with
+  no warning. 5 of 104 change verdict with the BLAS, which is why
+  `test-aliased-grouping.R:138` and `test-open-issues.R:52` now wrap
+  the warning. Repro: `(1 | Subject/a)` on sleepstudy with
+  `a = factor(Days %% 3)` (`dev/cifix-diagnest.R`: Hessian row
+  +7.1e-12 with the reference BLAS, -7.1e-12 with OpenBLAS). Remedy the
+  review recommends: apply tier 3's empty-row rule before tiers 1 and
+  2, in a planned round. Budget 48 test files (most need
+  `allow_warnings()`; `test-diagnostics-ux.R:99` and
+  `test-car-spde.R:324` need a decision), and consider a shorter
+  message for a variance component at its boundary (lme4: "boundary
+  (singular) fit").
+- **A nonlinear ridge on a fit with random effects reports a huge SE
+  with no SE warning** (review item 4). `y ~ a + b, a ~ 0 + f,
+  b ~ 1 + (1 | g), nl = TRUE` (`dev/cifixrev-refits.R`, R2, seed 1,
+  k = 10 levels of f, 6 of g): tier 1 accepts the finite-difference
+  Hessian and a prediction of `a` has SE 822,571; only the lane-fixes
+  identification warning fires. Without `(1 | g)` the exact Hessian
+  gives NaN. The empty-row rule does not catch it; it needs tier 2's
+  eigenvalue test on the finite-difference Hessian.
+- **Separation is not named at the default budget** (review m5).
+  `set.seed(514); d <- data.frame(x = rnorm(240) * 1e-4, z =
+  rnorm(240)); d$yb <- as.integer(d$z > 0); frm(yb ~ z + x, family =
+  bernoulli(), data = d)`: with OpenBLAS nlminb stops at code 9 after
+  1997 evaluations with "function evaluation limit reached", and the
+  word separation never reaches the user; the reference BLAS stops at
+  code 0 after 1939 and names it. `glm()` reports fitted probabilities
+  of 0 or 1 after 25 iterations. The convergence check should name
+  separation when a binomial-type mean coefficient has run past |10|
+  with fitted probabilities at 0 or 1, whatever code nlminb returns.
+  `test-se-check.R` now sets `eval.max = iter.max = 4000` for that
+  test (`dev/cifix-diagsep.R`).
+
+### Open - medium
+
+- **`ranef(condVar = TRUE)` still reads sdreport()'s own random-effect
+  covariance** (review m6), which is the indefinite inverse when an SE
+  is lost. On the `gr(g, by = f)` fixture (`dev/cifixrev-r1.R`, seed
+  11) condsd / sqrt(diag of the repaired V_bb) runs from 0 to 99, so
+  `ranef()` and `frm_linpred()` describe the same `b` with different
+  covariances. Route it through `get_joint_cov()` when the repair ran.
+- **`test-cumulative-cs.R:132` and `test-ordinal-mixture.R:751` are
+  fragile to rounding** (review item 5). With the emulator, on 0.68.0
+  and 0.68.1 alike, the first stops with "NA/NaN gradient evaluation"
+  (`mixture(cumulative, sratio)`) and the second lets "singular
+  convergence (7)" escape; both pass on the Ubuntu runner. The
+  `ubuntu-latest` label moves to Ubuntu 26 from 2026-10-19, and a new
+  OpenBLAS there may surface them. Repro: run each file with the
+  emulator, `OPENBLAS_NUM_THREADS=4` (`dev/cifix-par.sh`).
+- **frmtmb.sample lets two warnings escape on the Ubuntu runner**
+  (review item 5; check-frmtmb.sample on d24f7b86: FAIL 0, WARN 2,
+  SKIP 18, PASS 2274). `test-brms-shapes-draws.R:106`: "Method
+  'posterior_samples' is deprecated", from the runner's brms, more
+  than once, past the test's `expect_warning()`; use
+  `allow_warnings()`. `test-compat-preflight.R:95`: "no DISPLAY
+  variable so Tk is not available"; find which call loads tcltk at
+  preflight.
+
+### Open - low
+
+- **Core's gp() position key is 15 significant digits, not exact**
+  (review m2). `pos_rowkey()` pastes the coordinates, so 1/3 and
+  1/3 * (1 + 2^-52) share a key and are kriged as one position; the
+  spline's `sp_row_key()` compares doubles exactly, so the two layers
+  disagree on what one row is. Harmless numerically (the rows differ
+  by 9.1e-11 at most there, the per-row rounding). Remedy: key on
+  exact doubles, for example `sprintf("%a")` per coordinate
+  (`dev/cifixrev-dedup.R`).
+- **`gp_krig_cov()` forms `outer(w, w)` whole under `gp(x, by =
+  <numeric>)`** (review m9): two n x n beside the result, which undoes
+  part of the blockwise memory discipline of the gpby review's m5.
+  Peak memory on a 2000-row grid was not distinguishable from load
+  noise (`dev/cifixrev-krigmem.R`). Remedy: scale each column block
+  after it is symmetrized.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

@@ -320,9 +320,7 @@ frm_curve_feature <- function(object, var,
   # the diagonal of the extra covariance at the roots, and the slope's
   # comes from its sources (sp_extra_deriv()), never from a difference
   # of that covariance
-  qf <- function(A, ev) {
-    sqrt(pmax(rowSums((A %*% parts$V) * A) + ev, 0))
-  }
+  qf <- function(A, ev) sp_se(rowSums((A %*% parts$V) * A), ev)
   value_se <- qf(C0, parts$extra_var[rws(3L)])
   if (type == "crossing") {
     denom <- f1
@@ -341,11 +339,16 @@ frm_curve_feature <- function(object, var,
   }
   # a stencil row along a direction the fit's Hessian lost takes the
   # root's standard errors
-  lost <- Reduce(`|`, lapply(1:5, function(k) {
-    parts$lost[(k - 1L) * nr + seq_len(nr)]
+  st5 <- function(v) Reduce(`|`, lapply(1:5, function(k) {
+    v[(k - 1L) * nr + seq_len(nr)]
   }))
+  lost <- st5(parts$lost)
   se_t[lost] <- NaN
   sp_lost_warn(lost)
+  # and one a rank-deficient fit cannot estimate, as core reports it
+  na <- st5(parts$na)
+  se_t[na] <- NA_real_
+  value_se[na] <- NA_real_
   crit <- stats::qnorm(1 - (1 - level) / 2)
   out <- data.frame(
     .feature = type, .var = var, .estimate = roots, .se = se_t,

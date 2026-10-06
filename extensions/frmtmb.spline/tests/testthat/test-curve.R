@@ -438,3 +438,34 @@ test_that("a curve along a direction the fit lost gets NaN and one warning", {
                                     nsim = 500, seed = 1))
   expect_true(all(is.finite(cv$.se)))
 })
+
+test_that("a row a rank-deficient fit cannot estimate is NA, not a refusal", {
+  # x2 is 2 * x1 in the data, so the fit drops x2's column, and a grid
+  # row off that line loads on it. frm_linpred() reports NA there; this
+  # package read its lost rows from se_nonest alone, compared NA with a
+  # number and refused the whole grid with "disagrees ... by NA
+  # relative" (dev/cifix-nonest.R)
+  set.seed(3)
+  n <- 200
+  d <- data.frame(x1 = stats::rnorm(n), z = stats::runif(n))
+  d$x2 <- 2 * d$x1
+  d$y <- 1 + d$x1 + sin(2 * pi * d$z) + stats::rnorm(n, 0, 0.3)
+  fit <- frmtmb::frm(frmtmb::bf(y ~ x1 + x2 + s(z, k = 6)), data = d)
+  nd <- data.frame(z = seq(0.05, 0.95, length.out = 7), x1 = 0.5,
+                   x2 = c(1, 1, 1, 2, 1, 1, 1))
+  seen <- 0L
+  quiet <- function(expr) {
+    withCallingHandlers(expr, warning = function(w) {
+      if (grepl("Rank-deficient fit", conditionMessage(w), fixed = TRUE)) {
+        seen <<- seen + 1L
+        invokeRestart("muffleWarning")
+      }
+    })
+  }
+  cv <- quiet(frm_curve(fit, newdata = nd, simultaneous = FALSE))
+  ref <- quiet(frmtmb::frm_linpred(fit, newdata = nd, se.fit = TRUE))
+  expect_gt(seen, 1L)
+  expect_identical(which(is.na(cv$.se)), 4L)
+  expect_identical(is.na(cv$.se), is.na(unname(ref$se.fit)))
+  expect_equal(cv$.se[-4L], unname(ref$se.fit[-4L]), tolerance = 1e-10)
+})

@@ -49,8 +49,12 @@ test_that("random-effect terms cannot be crossed with '*' or ':' (lme4#196)", {
     frm(bf(Reaction ~ Days + (1 | Subject:b)) + gaussian(), data = ss),
     "frmtmb_fit"
   )
+  # the Subject:b sd runs to zero, and whether its noise-level Hessian row
+  # loses the SE is the platform's call (test-aliased-grouping.R)
   expect_s3_class(
-    frm(bf(Reaction ~ Days + (1 | Subject/b)) + gaussian(), data = ss),
+    allow_warnings(
+      frm(bf(Reaction ~ Days + (1 | Subject/b)) + gaussian(), data = ss),
+      "Standard errors are not available"),
     "frmtmb_fit"
   )
 })

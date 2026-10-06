@@ -374,11 +374,20 @@ test_that("REML does not promise the coefficients' standard errors", {
 })
 
 test_that("separated data are named as separation", {
-  # m7: test-predfix's design, seed 514, which stops at code 0
+  # m7: test-predfix's design, seed 514. The estimates run off toward
+  # infinity, so where nlminb stops is a matter of rounding: at the
+  # default budget of 1000 it stopped at code 0 on Windows and hit the
+  # limit (code 9) on Ubuntu, whose convergence warning then explains
+  # the fit and the SE check stays silent. At 4000 it stops at code 0
+  # on both, after 1939 objective and gradient calls here and 2090 with
+  # OpenBLAS 0.3.26 (dev/cifix-findings.md).
   set.seed(514)
   d <- data.frame(x = stats::rnorm(240) * 1e-4, z = stats::rnorm(240))
   d$yb <- as.integer(d$z > 0)
-  r <- se_capture(frm(yb ~ z + x, family = bernoulli(), data = d))
+  ctl <- frmtmb_control(optCtrl = list(eval.max = 4000, iter.max = 4000))
+  r <- se_capture(frm(yb ~ z + x, family = bernoulli(), data = d,
+                      control = ctl))
+  expect_identical(r$value$opt$convergence, 0L)
   hit <- grep(se_lost_phrase, r$warnings, fixed = TRUE, value = TRUE)
   expect_length(hit, 1L)
   expect_match(hit, "the data separate the outcomes", fixed = TRUE)
@@ -521,4 +530,55 @@ test_that("an identified remainder keeps its SEs after a flat row goes", {
     expect_equal(unname(se), unname(ref), tolerance = 0.02,
                  info = paste("seed", s))
   }
+})
+
+test_that("a fit with random effects and a lost sd gets a covariance", {
+  # Both smoothing sds run to zero and lose their standard errors, so
+  # the outer Hessian is indefinite and so is the joint precision built
+  # on it. 0.68.0 inverted that precision as it was: grid rows got
+  # coefficient variances as low as -0.0026 here, and
+  # frm_linpred(se.fit = TRUE) reported the kriging variance alone
+  # (dev/cifix-findings.md, scan seed 21, n = 100). The repaired
+  # covariance propagates only the outer parameters that keep a
+  # standard error, so no row can fall below its variance with every
+  # outer parameter held at its estimate: that is the law of total
+  # variance, and it holds on any fit, lost parameters or not.
+  set.seed(21)
+  n <- 100
+  d <- data.frame(x = sort(stats::runif(n, 0, 6)),
+                  fac = factor(rep(c("A", "B"), length.out = n)))
+  d$y <- sin(d$x) + ifelse(d$fac == "B", 0.3 * d$x, 0) +
+    stats::rnorm(n, 0, 0.3)
+  fit <- suppressWarnings(
+    frm(bf(y ~ fac + s(x, by = fac, k = 6) + gp(x)), data = d))
+  gx <- d$x[-1] - diff(d$x) / 2
+  nd <- data.frame(x = rep(gx, 2),
+                   fac = factor(rep(c("A", "B"), each = length(gx))))
+  lb <- frm_lp_basis(fit, newdata = nd)
+  A <- as.matrix(lb$A)
+  q <- rowSums((A %*% lb$V) * A)
+  Q <- joint_precision(fit)
+  r <- fit$obj$env$random
+  pr <- match(lb$coef_pos, r)
+  inr <- !is.na(pr)
+  W <- as.matrix(Matrix::solve(Q[r, r]))[pr[inr], pr[inr]]
+  q_in <- rowSums((A[, inr] %*% W) * A[, inr])
+  expect_true(all(q_in > 0))
+  expect_gt(min(q / q_in), 1 - 1e-8)
+  # and frm_linpred() reports that variance, not the kriging part alone
+  se <- frm_linpred(fit, newdata = nd, se.fit = TRUE)$se.fit
+  expect_equal(se^2, q + lb$extra_var, tolerance = 1e-10)
+  # The rest depends on this platform's fit having lost the sds, which
+  # it does on Windows with the reference BLAS and with OpenBLAS 0.3.26;
+  # a run where it did not has asserted the bound above and stops here.
+  lost <- sdr_of(fit)$se_lost
+  skip_if(!length(lost), "this fit kept every standard error here")
+  # frm_joint_cov() shows a lost parameter as vcov() does, NaN, and the
+  # covariance of everything else is finite
+  jc <- frm_joint_cov(fit)
+  bad <- jc$lost_pos
+  expect_length(bad, length(lost))
+  expect_true(all(jc$names[bad] == "theta"))
+  expect_true(all(is.nan(jc$V[bad, ])))
+  expect_true(all(is.finite(jc$V[-bad, -bad])))
 })

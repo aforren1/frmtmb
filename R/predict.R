@@ -14,6 +14,8 @@ get_joint_cov <- function(fit) {
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   Q <- joint_precision(fit)
   null <- NULL
+  units <- NULL
+  lost_pos <- integer(0)
   if (is.null(Q)) {
     # a parameter without a standard error is NaN in cov.fixed, which a
     # product would spread to every prediction; the finite covariance
@@ -24,16 +26,91 @@ get_joint_cov <- function(fit) {
     V <- sdr$cov_fixed_prop %||% sdr$cov.fixed
     rn <- rownames(sdr$cov.fixed)
     null <- sdr$se_null
+    if (!is.null(null)) units <- fit$par_units
+    lost_pos <- match(names(sdr$se_lost), outer_par_names(fit))
   } else {
-    # same degradation vcov() uses: a singular joint precision gives NaN
-    # standard errors and one warning naming diagnose(), not a raw
-    # LAPACK message from deep inside predict()
-    V <- as.matrix(solve_joint_precision(Q, cache, fit))
+    rep <- joint_cov_repair(fit, Q, sdr_of(fit))
+    if (!is.null(rep)) {
+      V <- rep$V
+      null <- rep$null
+      units <- rep$units
+      lost_pos <- rep$lost_pos
+    } else {
+      # same degradation vcov() uses: a singular joint precision gives
+      # NaN standard errors and one warning naming diagnose(), not a raw
+      # LAPACK message from deep inside predict()
+      V <- as.matrix(solve_joint_precision(Q, cache, fit))
+    }
     rn <- rownames(Q)
   }
-  cache$Vjoint <- list(V = V, names = rn, null = null,
-                       units = if (!is.null(null)) fit$par_units)
+  cache$Vjoint <- list(V = V, names = rn, null = null, units = units,
+                       lost_pos = lost_pos[!is.na(lost_pos)])
   cache$Vjoint
+}
+
+#' The joint covariance of a fit with random effects whose outer Hessian
+#' lost standard errors (sdr_rescue()), or `NULL` when nothing was lost.
+#'
+#' The joint precision `Q` that sdreport() returns is built so that its
+#' inverse carries the inverse outer Hessian `H^-1` as the covariance of
+#' the outer parameters, and propagates it into the random effects:
+#'
+#'     V = [Qrr^-1 + J Vf J'   J Vf]      J = -Qrr^-1 Qrf,  Vf = H^-1
+#'         [Vf J'              Vf  ]
+#'
+#' When a parameter's standard error is lost, `H` is singular or
+#' indefinite along it, so `Q` is too, and `solve(Q)` is not a
+#' covariance. On `y ~ fac + s(x, by = fac) + gp(x)` with both smoothing
+#' sds run to zero it gave grid rows coefficient variances down to
+#' -0.10 (OpenBLAS, n = 120, seed 14), and frm_linpred(se.fit = TRUE) a
+#' standard error of 0.00076, the kriging part alone, on a row whose
+#' standard error is at least 0.064 (n = 100, seed 21;
+#' dev/cifix-findings.md). The formula above with `Vf` the covariance
+#' the rescue keeps, the pseudo-inverse over the directions the data
+#' determine and zero along the lost ones, is the same covariance the
+#' no-random-effect branch uses: the random block is the inner one plus
+#' the propagated part along the determined directions. That is
+#' conditional on the lost DIRECTIONS. When each lost parameter is a
+#' direction of its own it is the covariance with them held at their
+#' estimates, as mgcv reports a smooth at a fitted smoothing parameter;
+#' when one lost direction mixes several parameters, a combination
+#' orthogonal to it keeps its variance (a gr(g, by = f) slope effect:
+#' 7.1e-4 here, 1.7e-6 with both sds held; prediction standard errors
+#' within 0.4 percent; dev/reviews/2026-10-06-cifix.md, m3). `Qrr` and
+#' `Qrf` are the inner Hessian's blocks and do not depend on `H`. A
+#' prediction that loads a lost parameter directly moves along `null`
+#' and gets NaN (jc_nonest()).
+#'
+#' @noRd
+joint_cov_repair <- function(fit, Q, sdr) {
+  Vf <- sdr$cov_fixed_prop
+  if (is.null(Vf) || !length(sdr$se_lost)) return(NULL)
+  p <- nrow(Q)
+  r <- fit$obj$env$random
+  f <- setdiff(seq_len(p), r)
+  if (!length(r) || length(f) != nrow(Vf) ||
+        length(f) != length(outer_par_names(fit))) {
+    return(NULL)
+  }
+  Qrr <- Q[r, r, drop = FALSE]
+  Wrr <- tryCatch(as.matrix(Matrix::solve(Qrr)), error = function(e) NULL)
+  if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
+  J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
+  JV <- J %*% Vf
+  V <- matrix(0, p, p, dimnames = list(rownames(Q), rownames(Q)))
+  V[r, r] <- Wrr + tcrossprod(JV, J)
+  V[r, f] <- JV
+  V[f, r] <- t(JV)
+  V[f, f] <- Vf
+  null <- NULL
+  if (NCOL(sdr$se_null)) {
+    null <- matrix(0, p, NCOL(sdr$se_null))
+    null[f, ] <- sdr$se_null
+  }
+  units <- rep(1, p)
+  units[f] <- fit$par_units %||% 1
+  list(V = V, null = null, units = units,
+       lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
 }
 
 #' The joint precision of every estimated parameter, fixed and random,
@@ -592,7 +669,18 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         thc[1] <- 0
         K <- unname(covstruct_registry[["gp"]]$vcov(thc, bk))
         Xn <- Xc[nw, , drop = FALSE]
-        Ks <- gp_cross_cov(thc, bk, Xn, pos)
+        # One kriging row per distinct position, copied to every row at
+        # it. Rows at one position are one draw of the field, and
+        # gp_krig_cov() and a difference curve rely on their weights and
+        # variance being bit-identical. Computed row by row they are not
+        # on an optimized BLAS: OpenBLAS's triangular solve rounds a
+        # column by where it sits in the right-hand side, and a
+        # difference curve stacks its two grids into one call
+        # (dev/cifix-findings.md).
+        ukey <- pos_rowkey(Xn)
+        uu <- which(!duplicated(ukey))
+        um <- match(ukey, ukey[uu])
+        Ks <- gp_cross_cov(thc, bk, Xn[uu, , drop = FALSE], pos)
         # Through K's Cholesky factor R the kriging term is P P', P = Ks
         # R^-1: the variance below, the covariance (gp_krig_cov()) and a
         # sampler's draw (gp_krig_factor()) then share one arithmetic,
@@ -609,6 +697,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
           Xw <- t(solve(K, t(Ks)))
           rs <- rowSums(Xw * Ks)
         }
+        Ks <- Ks[um, , drop = FALSE]
+        if (!is.null(P)) P <- P[um, , drop = FALSE]
+        Xw <- Xw[um, , drop = FALSE]
+        rs <- rs[um]
         Xr[nw, ] <- w[nw] * Xw
         sd2 <- exp(2 * th[1])
         krig <- list(rows = nw, X = Xn, w = w[nw], Xw = Xw, Ks = Ks, P = P,
@@ -2289,14 +2381,22 @@ lp_extra_var <- function(object, ed, use_re) {
 #' it whole held seven of them at once (dev/gpby-findings.md, Punch
 #' round 1, m5): `outer()` alone makes three. It is filled instead in
 #' column blocks of about 4 MB, the upper triangle computed and mirrored,
-#' so the result is the only `n x n` and is symmetric as stored. The
+#' so the result is the only `n x n` beside the one over the distinct
+#' positions, when rows repeat one, and is symmetric as stored. The
 #' kriging term is `A A'` with `A = Ks R^-1`, `R' R = K`.
 #'
 #' @noRd
 gp_krig_cov <- function(krig) {
   # pred_design() builds `krig` in correlation units; the diagonal is
-  # scaled in the order `extra_var` is, so the two agree to the bit
-  X <- krig$X
+  # scaled in the order `extra_var` is, so the two agree to the bit.
+  # Rows at one position are one draw of the field, so the covariance is
+  # formed over the distinct positions and each row reads its
+  # position's row: two such rows covary by exactly its variance and a
+  # difference between them cancels exactly, on any BLAS
+  key <- pos_rowkey(krig$X)
+  u <- which(!duplicated(key))
+  idx <- match(key, key[u])
+  X <- krig$X[u, , drop = FALSE]
   th <- krig$theta
   n <- nrow(X)
   sd2 <- krig$sd2
@@ -2306,8 +2406,8 @@ gp_krig_cov <- function(krig) {
     2 * (if (isTRUE(krig$bk[["gp_iso"]])) exp(th[2]) else exp(th[1 + j]))^2
   }, 0)
   pq <- gp_krig_root(krig)
-  P <- pq$P
-  Q <- pq$Q
+  P <- pq$P[u, , drop = FALSE]
+  Q <- pq$Q[u, , drop = FALSE]
   S <- matrix(0, n, n)
   step <- max(1L, floor(2^19 / n))
   for (c0 in seq(1L, n, by = step)) {
@@ -2319,7 +2419,6 @@ gp_krig_cov <- function(krig) {
     }
     B <- sd2 * (exp(-E) - tcrossprod(P[r, , drop = FALSE],
                                      Q[cc, , drop = FALSE]))
-    if (scaled) B <- B * outer(w[r], w[cc])
     # the block on the diagonal is written by both assignments below, so
     # it is made symmetric first
     dd <- r >= c0
@@ -2327,17 +2426,9 @@ gp_krig_cov <- function(krig) {
     S[r, cc] <- B
     S[cc, r] <- t(B)
   }
-  s <- sd2 * pmax((1 + gp_nugget) - krig$rs, 0)
-  # two rows at one position load ONE residual, so their covariance is
-  # its variance, in the arithmetic the diagonal uses: a difference
-  # between them then cancels exactly rather than to a rounding
-  key <- pos_rowkey(X)
-  if (anyDuplicated(key)) {
-    for (g in split(seq_along(key), key)) {
-      if (length(g) > 1L) S[g, g] <- s[g[1L]] * outer(w[g], w[g])
-    }
-  }
-  diag(S) <- if (scaled) s * (w * w) else s
+  diag(S) <- sd2 * pmax((1 + gp_nugget) - krig$rs[u], 0)
+  if (n < length(idx)) S <- S[idx, idx, drop = FALSE]
+  if (scaled) S <- S * outer(w, w)
   S
 }
 
@@ -5213,9 +5304,25 @@ na_unpad <- function(fit, x) {
 #'   \item{`labels`}{length `p`; one label per row,
 #'     `beta.<coefficient>` for a fixed effect and `b.<block>.<level>`
 #'     for a random one.}
+#'   \item{`lost_pos`}{the rows of `V` that belong to a parameter whose
+#'     standard error is lost (see `summary()`); `integer(0)` when none
+#'     is.}
 #' }
+#' The other elements (`null`, `units`) are internal.
 #' A fit with no random effects has no joint precision, and `V` is then
 #' the fixed-effect covariance `sdreport()$cov.fixed`; `names` says so.
+#'
+#' A parameter whose standard error is lost has `NaN` in its row and
+#' column, as in [vcov()]. The rest of `V` propagates the uncertainty of
+#' the outer parameters along the directions the fit determines and
+#' none along the lost ones. When each lost parameter is a direction of
+#' its own, that is the covariance with the lost parameters held at
+#' their estimates. When the loss is one direction that mixes several
+#' parameters, a combination of them orthogonal to it keeps its
+#' variance: on a `gr(g, by = f)` fit that lost one direction over two
+#' sds, a slope effect's variance is 7.1e-4 here against 1.7e-6 with
+#' both sds held, and the prediction standard errors differ by at most
+#' 0.4 percent.
 #' @seealso [frm_lp_basis()], [vcov()], [frmtmb-extension-api]
 #' @examples
 #' set.seed(1)
@@ -5235,9 +5342,7 @@ frm_joint_cov <- function(object) {
   # the internal covariance keeps finite rows for the parameters the
   # Hessian lost, for predictions that do not move along them; what a
   # caller reads shows them as vcov() does
-  lost <- if (!is.null(jc$null)) sdr_of(object)$se_lost
-  i <- match(names(lost), outer_par_names(object))
-  i <- i[!is.na(i)]
+  i <- jc$lost_pos
   if (length(i)) {
     jc$V[i, ] <- NaN
     jc$V[, i] <- NaN

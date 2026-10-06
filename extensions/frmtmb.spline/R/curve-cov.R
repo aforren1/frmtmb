@@ -223,16 +223,50 @@ sp_one_basis <- function(fit, nd, dpar, resp, re_formula, allow_new_levels) {
   lb <- lbc$value
   C <- as.matrix(lb$A)
   Sigma <- unname(C %*% lb$V %*% t(C))
-  # a row that moves along a direction the fit's Hessian lost has no
-  # standard error; `V` leaves those directions out, so its finite value
-  # there would be too small (frmtmb >= 0.68.0 marks the rows)
-  lost <- lb$se_nonest %||% rep(FALSE, nrow(C))
-  se <- unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0)))
-  se[lost] <- NaN
+  rows <- sp_lost_rows(lb)
+  se <- sp_se(diag(Sigma), lb$extra_var, rows$lost, rows$na)
   E <- lb$extra_cov
   Sigma <- sp_add_extra(Sigma, E)
-  list(lb = lb, C = C, E = E, Sigma = Sigma, se = se, lost = lost,
-       span = lbc$span)
+  list(lb = lb, C = C, E = E, Sigma = Sigma, se = se,
+       lost = rows$lost, na = rows$na, span = lbc$span)
+}
+
+#' The rows of one `frm_lp_basis()` call that have no standard error,
+#' read off that call and nowhere else.
+#'
+#' Core marks two kinds, and `frm_linpred(se.fit = TRUE)` reports them
+#' from the same call: `nonest`, a row of a rank-deficient design that
+#' loads a dropped coefficient, as NA (`na` here), and `se_nonest`, a
+#' row that moves along a direction the fit's Hessian lost (frmtmb >=
+#' 0.68.0), as NaN (`lost`). `V` leaves both out, so its finite value
+#' there would be too small. Every route here takes its rows from this
+#' one function, so the curve, the check and core cannot name different
+#' ones.
+#'
+#' @noRd
+sp_lost_rows <- function(lb) {
+  n <- NROW(lb$A)
+  list(lost = (lb$se_nonest %||% rep(FALSE, n)) %in% TRUE,
+       na = (lb$nonest %||% rep(FALSE, n)) %in% TRUE)
+}
+
+#' A standard error from a coefficient variance `q` and a variance that
+#' is not coefficient uncertainty `e`, in core's arithmetic.
+#'
+#' Each part is clamped at zero on its own and then added, the order
+#' `frm_linpred(se.fit = TRUE)` uses. Clamping the sum instead gave a
+#' standard error of exactly 0 wherever `q` came out below `-e`, while
+#' core reported `sqrt(e)` on the same row: the check then read a
+#' relative disagreement of exactly 1 and refused, which is what the
+#' Ubuntu run of 0.68.0 showed (dev/cifix-findings.md). Rows in `lost`
+#' are NaN and rows in `na` NA, as core reports them.
+#'
+#' @noRd
+sp_se <- function(q, e, lost = FALSE, na = FALSE) {
+  se <- unname(sqrt(pmax(q, 0) + pmax(e, 0)))
+  se[lost] <- NaN
+  se[na] <- NA_real_
+  se
 }
 
 #' `S + E`, without a dense copy of `E` when it has no nonzero entry,
@@ -258,8 +292,7 @@ sp_add_extra <- function(S, E) {
 #'
 #' @noRd
 sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
-                         allow_new_levels, tol, side,
-                         lost = rep(FALSE, length(se))) {
+                         allow_new_levels, tol, side) {
   # frm_linpred() says the same thing about the same rows; the caller
   # says it once, under the name of the function the user called
   ref <- withCallingHandlers(
@@ -269,10 +302,22 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula,
                         se.fit = TRUE),
     frmtmb_se_lost_prediction = function(w) invokeRestart("muffleWarning"))
   se_ref <- as.numeric(ref$se.fit)
-  # rows without a standard error are NaN on both routes and carry
-  # nothing to compare
-  if (all(lost)) return(NA_real_)
-  rel <- max(abs(se[!lost] / pmax(se_ref[!lost], .Machine$double.eps) - 1))
+  # A row without a standard error is NA or NaN on both routes, and
+  # WHICH rows those are is checked too: a route that reports a number
+  # where the other has none reads the seam as wrongly as one that
+  # reports a different number
+  miss <- is.na(se)
+  if (!identical(miss, is.na(se_ref))) {
+    k <- sum(miss != is.na(se_ref))
+    frm_stop("frm_curve(): the assembled covariance of ", side,
+             " and frm_linpred(se.fit = TRUE) disagree about which rows ",
+             "have a standard error (", k, " of ", length(se), "). Both ",
+             "come from frm_lp_basis(); a disagreement means this package ",
+             "is reading the seam wrongly, and a fit where the two ",
+             "disagree is one it must not report a band for", call. = FALSE)
+  }
+  if (all(miss)) return(NA_real_)
+  rel <- max(abs(se[!miss] / pmax(se_ref[!miss], .Machine$double.eps) - 1))
   if (!is.finite(rel) || rel > tol) {
     frm_stop("frm_curve(): the assembled covariance of ", side,
              " disagrees with frm_linpred(se.fit = TRUE) by ",
@@ -327,8 +372,9 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     a <- sp_one_basis(fit, newdata, dpar, resp, re_formula,
                       allow_new_levels)
     out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
-                E = a$E, se = a$se, lost = a$lost, rel = NA_real_,
-                n_predict = 0L, newdata = newdata, contrast = contrast,
+                E = a$E, se = a$se, lost = a$lost, na = a$na,
+                rel = NA_real_, n_predict = 0L, newdata = newdata,
+                contrast = contrast,
                 dpar = dpar, resp = resp, re_formula = re_formula,
                 allow_new_levels = allow_new_levels, fit = fit,
                 span = a$span, extra_var = a$lb$extra_var)
@@ -336,20 +382,37 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     # no second number to check against. Everything else is checked.
     if (!nl) {
       out$rel <- sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
-                              allow_new_levels, tol, "this grid", a$lost)
+                              allow_new_levels, tol, "this grid")
       out$n_predict <- 1L
     }
     return(out)
   }
   n <- nrow(newdata)
   i1 <- seq_len(n)
-  i2 <- n + i1
-  st <- sp_one_basis(fit, sp_stack(newdata, contrast), dpar, resp,
+  stk <- sp_stack(newdata, contrast)
+  # A row the two grids share exactly is evaluated once and read twice,
+  # so its difference is exactly zero in the estimate, the design and
+  # the extra covariance. Evaluated twice it is zero only where the BLAS
+  # rounds a row the same wherever it sits, which OpenBLAS does not
+  # (dev/cifix-findings.md).
+  key <- sp_row_key(stk)
+  uq <- which(!duplicated(key))
+  ix <- match(key, key[uq])
+  j1 <- ix[i1]
+  j2 <- ix[n + i1]
+  st <- sp_one_basis(fit, stk[uq, , drop = FALSE], dpar, resp,
                      re_formula, allow_new_levels)
-  dif <- function(M) M[i1, i1] + M[i2, i2] - M[i1, i2] - M[i2, i1]
-  C <- st$C[i1, , drop = FALSE] - st$C[i2, , drop = FALSE]
+  dif <- function(M) M[j1, j1] + M[j2, j2] - M[j1, j2] - M[j2, j1]
+  C <- st$C[j1, , drop = FALSE] - st$C[j2, , drop = FALSE]
   E <- dif(st$E)
-  Sigma <- sp_add_extra(unname(C %*% st$lb$V %*% t(C)), E)
+  Sigma <- unname(C %*% st$lb$V %*% t(C))
+  # conservative: a difference of two rows that each move along a lost
+  # direction may itself be determined, but the seam marks rows, not
+  # differences, so either half takes the row
+  lost <- st$lost[j1] | st$lost[j2]
+  na <- st$na[j1] | st$na[j2]
+  se <- sp_se(diag(Sigma), diag(as.matrix(E)), lost, na)
+  Sigma <- sp_add_extra(Sigma, E)
   # the stacked call counts the rows of both grids together, so a span
   # message is re-asked of each grid to say which one holds the value
   span <- if (length(st$span)) {
@@ -361,24 +424,19 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
   } else {
     character(0)
   }
-  # conservative: a difference of two rows that each move along a lost
-  # direction may itself be determined, but the seam marks rows, not
-  # differences, so either half takes the row
-  lost <- st$lost[i1] | st$lost[i2]
-  se <- unname(sqrt(pmax(diag(Sigma), 0)))
-  se[lost] <- NaN
-  out <- list(eta = st$lb$eta[i1] - st$lb$eta[i2], C = C, V = st$lb$V,
-              Sigma = Sigma, E = E, se = se, lost = lost, rel = NA_real_,
-              n_predict = 0L, newdata = newdata, contrast = contrast,
+  out <- list(eta = st$lb$eta[j1] - st$lb$eta[j2], C = C, V = st$lb$V,
+              Sigma = Sigma, E = E, se = se, lost = lost, na = na,
+              rel = NA_real_, n_predict = 0L, newdata = newdata,
+              contrast = contrast,
               dpar = dpar, resp = resp, re_formula = re_formula,
               allow_new_levels = allow_new_levels, fit = fit, span = span,
               extra_var = as.numeric(E[cbind(i1, i1)]))
   if (!nl) {
     r <- c(
-      sp_cov_check(fit, newdata, st$se[i1], dpar, resp, re_formula,
-                   allow_new_levels, tol, "`newdata`", st$lost[i1]),
-      sp_cov_check(fit, contrast, st$se[i2], dpar, resp, re_formula,
-                   allow_new_levels, tol, "`contrast`", st$lost[i2]))
+      sp_cov_check(fit, newdata, st$se[j1], dpar, resp, re_formula,
+                   allow_new_levels, tol, "`newdata`"),
+      sp_cov_check(fit, contrast, st$se[j2], dpar, resp, re_formula,
+                   allow_new_levels, tol, "`contrast`"))
     out$rel <- if (all(is.na(r))) NA_real_ else max(r, na.rm = TRUE)
     out$n_predict <- 2L
   }
@@ -397,6 +455,25 @@ sp_stack <- function(a, b) {
   out <- rbind(a[nm], b[nm])
   rownames(out) <- NULL
   out
+}
+
+#' One key per row of a grid, equal exactly when every column is.
+#'
+#' `duplicated()` on the frame itself compares numbers through
+#' `as.character()`, at 15 significant digits, and would merge two
+#' positions 1e-16 apart; `match()` compares the doubles themselves. A
+#' column that is not a plain vector, such as a matrix column, gives
+#' every row its own key, so nothing is merged that might differ.
+#'
+#' @noRd
+sp_row_key <- function(d) {
+  codes <- lapply(d, function(v) {
+    if (is.atomic(v) && is.null(dim(v))) match(v, unique(v)) else NULL
+  })
+  if (!length(codes) || any(vapply(codes, is.null, NA))) {
+    return(as.character(seq_len(nrow(d))))
+  }
+  do.call(paste, c(unname(codes), sep = "\r"))
 }
 
 #' Is this linear predictor computed by a nonlinear body?

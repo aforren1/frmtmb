@@ -135,8 +135,13 @@ test_that("grouping factors written as calls fit (lme4#464, #156)", {
   h_colon <- frm(bf(Reaction ~ Days + (1 | Subject:a)) + gaussian(),
                  data = ss)
   expect_s3_class(h_colon, "frmtmb_fit")
-  h_slash <- frm(bf(Reaction ~ Days + (1 | Subject/a)) + gaussian(),
-                 data = ss)
+  # The Subject:a sd runs to exp(-29), and its finite-difference Hessian
+  # row is +-7.1e-12 of noise whose sign is the platform's: Windows
+  # keeps sdreport()'s inverse and Ubuntu (OpenBLAS) says the SE is
+  # lost (dev/cifix-findings.md). Grouping is what is tested here.
+  h_slash <- allow_warnings(
+    frm(bf(Reaction ~ Days + (1 | Subject/a)) + gaussian(), data = ss),
+    "Standard errors are not available")
   expect_length(ranef(h_slash), 2L)
   # a call nested inside ':' is resolved too
   h_mixed <- frm(bf(Reaction ~ Days + (1 | a:factor(b))) + gaussian(),

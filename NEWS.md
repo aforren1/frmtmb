@@ -1,3 +1,53 @@
+# frmtmb 0.68.1
+
+The Ubuntu checks of 0.68.0 failed where the Windows and macOS ones
+passed. `dev/cifix-findings.md` has the causes, the numbers and an
+OpenBLAS build of R for Windows that reproduces them.
+
+## Breaking changes
+
+* **A fit with random effects and a parameter without a standard error
+  gives its predictions a covariance.** When the outer Hessian lost a
+  standard error (a smoothing or group sd at zero, for example), the
+  joint precision built on it was not positive definite, and inverting
+  it gave grid rows of `s(x, by = fac) + gp(x)` coefficient variances
+  as low as -0.10 (with OpenBLAS; -0.016 with the reference BLAS).
+  `frm_linpred(se.fit = TRUE)` then reported the kriging variance alone
+  on those rows, 0.00076 where the standard error is at least 0.064,
+  and too small a variance on others.
+  The joint covariance now propagates the outer parameters' uncertainty
+  only along the directions the fit determines, as the fit without
+  random effects already did. It is conditional on the lost
+  directions: when each lost parameter is a direction of its own, that
+  is the covariance with them held at their estimates.
+  `frm_linpred()`, `frm_lp_basis()`, `frm_joint_cov()` and everything
+  built on them change on such fits, and only on them.
+  `frm_joint_cov()` shows a lost parameter's row and column as `NaN`,
+  as `vcov()` does, and returns their rows as `lost_pos`. `vcov()`
+  under REML, which reads the joint precision directly, is not
+  changed.
+
+## Bug fixes
+
+* On a fit with random effects, a prediction that moves along a
+  direction the fit does not determine gets a `NaN` standard error and
+  one warning, as it already did without random effects. On
+  `y ~ x + (1 | id)` with one observation per id, where sigma and the
+  id sd lose their standard errors, `frm_linpred(dpar = "sigma",
+  se.fit = TRUE)` and `fitted(dpar = "sigma")` reported a standard
+  error of 0 with no warning, under ML and REML.
+
+* Rows of one prediction at the same unseen exact `gp()` position get
+  bit-identical kriging weights, variance and covariance on every
+  BLAS. Each distinct position is kriged once. With OpenBLAS the rows
+  differed by a few ulps, so a difference curve across a factor at
+  one position kept 9 ulps of the residual it cancels.
+
+* Tests that passed on Windows by a platform accident now pass on
+  Ubuntu too: the separation fit of `test-se-check.R` has a budget at
+  which nlminb converges on both, and two fits whose sd runs to zero
+  allow the standard-error warning that OpenBLAS's rounding gives them.
+
 # frmtmb 0.68.0
 
 Five lanes, each with an adversarial review and punch rounds: `fixes`

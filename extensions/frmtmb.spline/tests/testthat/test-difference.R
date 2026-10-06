@@ -126,7 +126,9 @@ test_that("a grid differenced with itself is exactly zero", {
   fit <- sp_diff_fit(d)
   g <- sp_diff_grids(d)
   z <- frm_curve(fit, newdata = g$A, contrast = g$A, simultaneous = FALSE)
-  # exactly, because A1 - A2 is the zero matrix and not a small one
+  # exactly, because A1 - A2 is the zero matrix and not a small one: a
+  # row both grids share is evaluated once. Evaluated twice, row 25
+  # came out -2.2e-16 with OpenBLAS at four threads (dev/cifix-findings.md)
   expect_identical(z$.estimate, rep(0, nrow(z)))
   expect_identical(z$.se, rep(0, nrow(z)))
   # and this is what a reader who differenced two calls to frm_curve()
@@ -345,15 +347,23 @@ test_that("a gp() difference at ONE position cancels the kriging residual", {
   dif <- frm_curve(o$fit, newdata = o$A, contrast = o$B,
                    simultaneous = FALSE)
   # The STANDARD ERROR is flat bit for bit, and that is the strong
-  # claim: the gp() columns of the two designs are bit-identical, so
-  # A1 - A2 is exactly zero there and nothing that varies with x can
-  # reach the covariance. The ESTIMATE is flat only to a few ulps,
+  # claim: core kriges each distinct position once and copies the row,
+  # so the gp() columns of the two designs and their kriging variances
+  # are bit-identical, A1 - A2 is exactly zero there, and nothing that
+  # varies with x can reach the covariance. Before core did that, this
+  # held only on a BLAS that rounds a row the same wherever it sits:
+  # the Ubuntu check of 0.68.0 (OpenBLAS) failed it by 9 ulps on row 1
+  # (dev/cifix-findings.md). The ESTIMATE is flat only to a few ulps,
   # because eta1 - eta2 subtracts two numbers that each carry the gp
-  # contribution and the cancellation is not exact. Measured spread
-  # 2.2e-16 on a value of 0.45, about 4 ulps.
+  # contribution and the cancellation is not exact, so its rounding
+  # scales with those numbers and not with the difference. Measured
+  # spread against a largest |eta| of 1.5: 2.2e-16 on Windows, 3.3e-16
+  # with OpenBLAS (dev/cifix-probe354.R), 0.67 and 1.0 of the bound's
+  # unit eps * max|eta|.
   expect_identical(dif$.se, rep(dif$.se[1L], nrow(dif)))
+  eta <- frmtmb::frm_linpred(o$fit, newdata = rbind(o$A, o$B))
   expect_lt(diff(range(dif$.estimate)),
-            16 * .Machine$double.eps * abs(mean(dif$.estimate)))
+            16 * .Machine$double.eps * max(abs(eta)))
   # and that value is the facB contrast, which core's vcov() reaches by
   # a route this package does not use. The two are reductions of one
   # sdreport, so they agree to the roundoff of a solve over the fit's 92
@@ -464,13 +474,8 @@ test_that("a gp() difference at DIFFERENT positions carries the cross term", {
                   "frmtmb_curve")
 })
 
-test_that("a by-factor smooth beside an exact gp() differences across fac", {
-  skip_on_cran()
-  # sp_same_latent() asked every non-fixed column to match and refused
-  # this model, whose gp() columns are bit-identical across fac and
-  # whose s(x, by = fac) columns differ by construction
-  set.seed(8)
-  n <- 120
+sp_bygp_fit <- function(n, seed) {
+  set.seed(seed)
   d <- data.frame(x = sort(stats::runif(n, 0, 6)),
                   fac = factor(rep(c("A", "B"), length.out = n)))
   d$y <- sin(d$x) + ifelse(d$fac == "B", 0.3 * d$x, 0) +
@@ -485,17 +490,58 @@ test_that("a by-factor smooth beside an exact gp() differences across fac", {
                 fixed = TRUE)) invokeRestart("muffleWarning")
     })
   gx <- d$x[-1] - diff(d$x) / 2
-  A <- data.frame(x = gx, fac = factor("A", levels = levels(d$fac)))
-  B <- data.frame(x = gx, fac = factor("B", levels = levels(d$fac)))
-  dif <- frm_curve(fit, newdata = A, contrast = B, simultaneous = FALSE)
-  la <- frmtmb::frm_lp_basis(fit, newdata = A)
-  lb <- frmtmb::frm_lp_basis(fit, newdata = B)
+  list(fit = fit,
+       A = data.frame(x = gx, fac = factor("A", levels = levels(d$fac))),
+       B = data.frame(x = gx, fac = factor("B", levels = levels(d$fac))))
+}
+
+test_that("a by-factor smooth beside an exact gp() differences across fac", {
+  skip_on_cran()
+  # sp_same_latent() asked every non-fixed column to match and refused
+  # this model, whose gp() columns are bit-identical across fac and
+  # whose s(x, by = fac) columns differ by construction
+  o <- sp_bygp_fit(120, 8)
+  dif <- frm_curve(o$fit, newdata = o$A, contrast = o$B,
+                   simultaneous = FALSE)
+  la <- frmtmb::frm_lp_basis(o$fit, newdata = o$A)
+  lb <- frmtmb::frm_lp_basis(o$fit, newdata = o$B)
   expect_true(any(la$extra_var > 0))
   # one position, one residual: it cancels and the difference is the
   # coefficient part alone
   C <- as.matrix(la$A) - as.matrix(lb$A)
   ref <- sqrt(rowSums((C %*% la$V) * C))
   expect_lt(max(abs(dif$.se / ref - 1)), 1e-10)
+})
+
+test_that("smoothing sds at zero leave the check and core agreeing", {
+  skip_on_cran()
+  # The Ubuntu check of 0.68.0 refused the fit above with "disagrees
+  # with frm_linpred(se.fit = TRUE) by 1 relative". With both smoothing
+  # sds lost, the joint covariance core inverted was not positive
+  # definite, a grid row's coefficient variance q came out below minus
+  # its kriging variance e, and this package's sqrt(max(q + e, 0)) was
+  # 0 where core's sqrt(max(q, 0) + e) was not. These two fits refuse
+  # that way on Windows with frmtmb 0.68.0 (dev/cifix-scan2.R: 3 of 120
+  # fits there, 4 of 120 with OpenBLAS), the first on `newdata` and the
+  # second on `contrast`. Core now propagates only the outer parameters
+  # that keep a standard error, and both routes clamp in one order.
+  for (cs in list(c(100, 21), c(120, 4))) {
+    o <- sp_bygp_fit(cs[1], cs[2])
+    lab <- paste0("n = ", cs[1], ", seed = ", cs[2])
+    dif <- frm_curve(o$fit, newdata = o$A, contrast = o$B,
+                     simultaneous = FALSE)
+    expect_true(all(is.finite(dif$.se) & dif$.se > 0), info = lab)
+    for (g in list(o$A, o$B)) {
+      lb <- frmtmb::frm_lp_basis(o$fit, newdata = g)
+      A <- as.matrix(lb$A)
+      # every row has a coefficient variance, not a rounding of one
+      q <- unname(rowSums((A %*% lb$V) * A))
+      expect_gt(min(q), max(lb$extra_var), label = lab)
+      one <- frm_curve(o$fit, newdata = g, simultaneous = FALSE)
+      expect_equal(one$.se, sqrt(q + lb$extra_var), tolerance = 1e-10,
+                   info = lab)
+    }
+  }
 })
 
 test_that("print() says the difference itself was not checked", {

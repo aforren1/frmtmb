@@ -161,10 +161,12 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   # order 2 and returned a standard error of 0 past an exact gp()'s data
   # (dev/reviews/2026-10-05-gpby.md, B1)
   Ed <- sp_extra_deriv(sp, nd, ct, var, order, e)
+  # a stencil row along a lost direction, or one a rank-deficient fit
+  # cannot estimate, takes the derivative's row
+  st3 <- function(v) v[lo] | v[mid] | v[hi]
+  se <- sp_se(diag(Sigma), if (is.null(Ed)) 0 else diag(Ed),
+              st3(parts$lost), st3(parts$na))
   if (!is.null(Ed)) Sigma <- Sigma + Ed
-  se <- sqrt(pmax(diag(Sigma), 0))
-  # a stencil row along a lost direction takes the derivative's row
-  se[parts$lost[lo] | parts$lost[mid] | parts$lost[hi]] <- NaN
   parts$newdata <- nd
   parts$contrast <- ct
   # core counted the STENCIL it was handed, `c(x - e, x, x + e)`, which

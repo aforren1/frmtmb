@@ -1,3 +1,29 @@
+# frmtmb.spline 0.10.1
+
+Needs frmtmb 0.68.1, whose joint covariance is positive semi-definite
+on a fit that lost a standard error; its tests fail against 0.68.0.
+
+## Bug fixes
+
+* `frm_curve()` no longer refuses a fit whose smoothing sds ran to
+  zero with "disagrees with frm_linpred(se.fit = TRUE) by 1 relative".
+  A standard error is now `sqrt(max(q, 0) + max(e, 0))` from the
+  coefficient variance `q` and the variance `e` that is not
+  coefficient uncertainty, the order core uses. Clamping `q + e` as a
+  whole gave 0 where core gave `sqrt(e)`, whenever `q` came out below
+  `-e`. The same arithmetic now serves `frm_curve_deriv()` and the
+  height and slope of `frm_curve_feature()`.
+
+* The rows without a standard error are read once from
+  `frm_lp_basis()`: `nonest` (a rank-deficient design, NA) as well as
+  `se_nonest` (a lost direction, NaN). The check against
+  `frm_linpred(se.fit = TRUE)` also compares WHICH rows have none,
+  and refuses with its own message when the two routes disagree.
+
+* A difference curve evaluates a row that both grids share once, so a
+  grid differenced with itself is exactly zero on every BLAS. With
+  OpenBLAS one estimate came out -2.2e-16.
+
 # frmtmb.spline 0.10.0
 
 Needs frmtmb 0.68.0, for `frm_lp_basis(extra_cov = TRUE)` and

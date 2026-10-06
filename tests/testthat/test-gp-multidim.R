@@ -156,6 +156,34 @@ test_that("exact gp() kriging matches the closed form", {
   expect_lt(abs(pm$se.fit[4] - pk$se.fit[1]), 1e-8)
 })
 
+test_that("rows at one unseen position krige alike wherever they sit", {
+  # A difference curve stacks two grids into one prediction, so one
+  # position sits at row i and again at row n + 1 + i. They are one draw
+  # of the field and must load identical weights and variance, or the
+  # residual a difference cancels is left behind as rounding. With
+  # every row solved separately, OpenBLAS 0.3.26 rounded a right-hand
+  # side by its column in the solve, and the Ubuntu check of 0.68.0
+  # failed on it (dev/cifix-findings.md). The reference BLAS on Windows
+  # passes either way, so this pins the property where it can fail.
+  set.seed(17)
+  xg <- round(runif(120, 0, 10), 1)
+  dg <- data.frame(y = sin(xg) + rnorm(120, 0, 0.3), x = xg)
+  fg <- frm(bf(y ~ gp(x)) + gaussian(), data = dg)
+  xs <- seq(0.05, 9.95, length.out = 119)
+  nd <- data.frame(x = c(xs, 3.333, xs))
+  i1 <- seq_along(xs)
+  i2 <- length(xs) + 1L + i1
+  lb <- frm_lp_basis(fg, newdata = nd, extra_cov = TRUE)
+  A <- unname(as.matrix(lb$A))
+  expect_identical(A[i1, ], A[i2, ])
+  expect_identical(lb$extra_var[i1], lb$extra_var[i2])
+  E <- unname(as.matrix(lb$extra_cov))
+  expect_identical(E[i1, i1], E[i2, i2])
+  expect_identical(E[i1, i1], E[i1, i2])
+  # and every row of it is a kriging row, not an observed position
+  expect_true(all(lb$extra_var > 0))
+})
+
 test_that("the kriging draw's factor is the conditional covariance", {
   # a sampler's draw at unseen positions comes from a pivoted Cholesky
   # that stops at gp_krig_tol (dev/gpby-findings.md, Punch round 1, m4);

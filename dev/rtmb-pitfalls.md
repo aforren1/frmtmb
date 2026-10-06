@@ -3,7 +3,7 @@
 Each item below cost real time once. Read this before you write or
 review objective code, a covariance block, a custom family, or a
 hand-rolled reference in a test. Items 1 to 13 and 16 to 18 are about
-the tape. Items 14, 15, 19 and 20 are about the toolchain around it.
+the tape. Items 14, 15 and 19 to 21 are about the toolchain around it.
 
 This file was moved into the repository on 2026-09-28 from a
 machine-local memory so that it survives a change of machine.
@@ -134,3 +134,18 @@ machine-local memory so that it survives a change of machine.
     Never truncate or delete a file you did not create. Before you
     declare an agent dead, list processes by every prefix it may have
     used and by its worktree path.
+21. On this machine a result can differ by a few ulps between two
+    fresh R processes with identical inputs, according to the core
+    type the process starts on. The Intel Core Ultra 9 285K is hybrid
+    (Windows numbers its P-cores 0-1, 10-13 and 22-23), and some
+    compiled code below RTMB picks its kernel once per process from a
+    CPU query, so the AD gradient's rounding follows that choice for
+    the life of the process. Within one process every fit agrees. On a
+    fit with a flat direction a few ulps move the estimate visibly:
+    theta_1 came out -11.4241 in 8 of 12 processes and -11.3562 in 4.
+    A lane read this as dependence on what ran earlier in the process,
+    and was wrong (dev/reviews/2026-10-06-cifix.md, item 6). Before
+    calling two runs different, or before testing a bitwise claim,
+    compare within one process, or pin both with
+    `start /affinity <mask>` to one core type, or repeat on several
+    processes. CI runners are not hybrid.

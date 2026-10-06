@@ -9,6 +9,41 @@ releases, 2026-09-30 at the 0.67.0 release and 2026-10-06 at the
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
 
+## 0.68.1, the CI fix, 2026-10-06
+
+0.68.1 (with frmtmb.spline 0.10.1, floor `frmtmb (>= 0.68.1)`) fixes
+the Ubuntu failures of 0.68.0: check-frmtmb.spline
+(`test-difference.R:354` and `:490`), R-CMD-check on both Ubuntu jobs
+and test-coverage (`test-se-check.R:383`). Lane cifix,
+`dev/cifix-findings.md`; review `dev/reviews/2026-10-06-cifix.md`
+(MERGEABLE). What it changed:
+
+- core: a fit with random effects and a lost standard error gets a
+  positive semi-definite joint covariance (`joint_cov_repair()`), so
+  its predictions no longer read a negative coefficient variance, and
+  a prediction along a lost direction gets NaN and one warning, as
+  without random effects (BREAKING for those fits only);
+- core: each distinct unseen `gp()` position is kriged once, so rows
+  at one position are bit-identical on every BLAS;
+- spline: one standard-error arithmetic in core's clamp order, one
+  source for the rows without a standard error (`nonest` as well as
+  `se_nonest`), and a row both grids of a difference share evaluated
+  once;
+- tests: the separation fit gets a budget that converges on both BLAS,
+  and two fits whose sd runs to zero allow the platform-dependent SE
+  warning.
+
+`dev/cifix-openblas.sh` builds a copy of R with OpenBLAS 0.3.26, the
+runners' version, which reproduced every CI symptom on this machine.
+The one unverified step is the real Ubuntu runner: only a push shows
+it green. Watch `test-cumulative-cs.R:132` and
+`test-ordinal-mixture.R:751` when `ubuntu-latest` moves to Ubuntu 26
+from 2026-10-19. Found-not-fixed items are in `dev/test-backlog.md`,
+"Filed at 0.68.1"; the largest is the SE check's tier 1 accepting a
+pure-noise Hessian row (117 fits in 58 test files), for a planned
+round. On this hybrid CPU, compare results within one process or pin
+the core type (`dev/rtmb-pitfalls.md` item 21).
+
 ## The 0.68.0 round, 2026-10-05 to 2026-10-06
 
 **The user decided on 2026-10-06 to hold the release for lane nanse**,
