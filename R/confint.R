@@ -835,6 +835,9 @@ confint_varcorr <- function(fit, level = 0.95) {
   )
   label <- function(i) paste0(tr$block[i], " ", tr$term[i])
   bad <- which(is.na(tr$se_t))
+  # a block the fit's boundary message already named (se_boundary_act())
+  # gets its NA bounds without a second warning
+  bad <- bad[!tr$block[bad] %in% se_boundary_blocks(fit)]
   if (length(bad)) {
     frm_warning("No interval for ", length(bad), " component",
                 if (length(bad) > 1L) "s" else "",
@@ -1174,7 +1177,6 @@ diagnose_singular <- function(fit, tol = 1e-4) {
   is_cor <- !is.na(vc$var2)
   bad <- ifelse(is_cor, abs(vc$sdcor) > 1 - tol, vc$sdcor < tol)
   bad[is.na(bad)] <- FALSE
-  if (!any(bad)) return(NULL)
   out <- data.frame(
     block = vc$grp[bad],
     term = ifelse(is_cor[bad],
@@ -1182,8 +1184,45 @@ diagnose_singular <- function(fit, tol = 1e-4) {
                   paste0("sd(", vc$var1[bad], ")")),
     value = vc$sdcor[bad]
   )
+  # a standard deviation the fit's boundary message named is at zero by
+  # the likelihood, whatever its size in the response's units, and the
+  # message sends the reader here (se_boundary_names())
+  ex <- tryCatch(singular_from_se(fit), error = function(e) NULL)
+  if (NROW(ex)) {
+    out <- rbind(out, ex[!paste(ex$block, ex$term) %in%
+                           paste(out$block, out$term), , drop = FALSE])
+  }
+  if (!nrow(out)) return(NULL)
   rownames(out) <- NULL
   out
+}
+
+#' The standard deviations the standard-error check called a boundary
+#' (`se_lost` "boundary"), as diagnose_singular() rows.
+#'
+#' @noRd
+singular_from_se <- function(fit) {
+  lost <- sdr_of(fit)$se_lost
+  bn <- names(lost)[lost == "boundary"]
+  if (!length(bn)) return(NULL)
+  om <- outer_par_map(fit)
+  thn <- om$names[om$comp == "theta"]
+  th <- fit$estimates[["theta"]]
+  sd_i <- log_sd_theta_index(fit)
+  rows <- list()
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    for (k in intersect(bk[["theta_idx"]], sd_i)) {
+      if (!thn[k] %in% bn) next
+      nm <- names(sd_i)[match(k, sd_i)]
+      pre <- paste0(bk[["term_label"]], " ")
+      if (startsWith(nm, pre)) nm <- substring(nm, nchar(pre) + 1L)
+      rows[[length(rows) + 1L]] <- data.frame(
+        block = bk[["term_label"]],
+        term = paste0("sd(", nm, ")"), value = exp(th[k]))
+    }
+  }
+  if (!length(rows)) return(NULL)
+  do.call(rbind, rows)
 }
 
 #' The theta components that are LOG STANDARD DEVIATIONS, named the way
@@ -2560,7 +2599,8 @@ hyp_par_cov <- function(fit) {
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par), Vp = Vp,
          jc = if (!is.null(sdr$se_null)) {
-           list(null = sdr$se_null, units = fit$par_units)
+           list(null = sdr$se_null, units = fit$par_units,
+                boundary = se_null_boundary(fit, sdr))
          })
   } else {
     Q <- sdr_of(fit)$jointPrecision
@@ -2583,19 +2623,43 @@ hyp_par_cov <- function(fit) {
 
 #' Delta-method variances `diag(G Vp G')` over hyp_par_cov()'s
 #' positions, NaN for a row of `G` that moves along a direction the
-#' Hessian lost (jc_nonest()). Attribute `lost` marks those rows, for
-#' the caller's one warning.
+#' Hessian lost (jc_nonest()). Attribute `lost` marks those rows.
+#' Attribute `warn` marks the ones a caller's one warning is about: a
+#' row that moves only along variance components at their boundary was
+#' named by the fit's boundary message (se_boundary_act()), and saying
+#' it again on every VarCorr() would repeat it.
 #'
 #' @noRd
 hyp_prop_var <- function(pc, G) {
   G <- as.matrix(G)
   v <- pmax(rowSums((G %*% pc$Vp) * G), 0)
-  bad <- if (!is.null(pc$jc) && !is.null(pc$outer_pos)) {
+  on <- !is.null(pc$jc) && !is.null(pc$outer_pos)
+  bad <- if (on) {
     jc_nonest(pc$jc, G, pc$outer_pos)
   } else rep(FALSE, nrow(G))
+  warn <- bad
+  bcol <- pc$jc$boundary
+  if (on && any(bad) && any(bcol)) {
+    jw <- pc$jc
+    jw$null <- jw$null[, !bcol, drop = FALSE]
+    warn <- bad & jc_nonest(jw, G, pc$outer_pos)
+  }
   v[bad] <- NaN
   attr(v, "lost") <- bad
+  attr(v, "warn") <- warn
   v
+}
+
+#' Which columns of the null basis of `sdr` (sdr_rescue()) span only
+#' variance components at their boundary.
+#'
+#' @noRd
+se_null_boundary <- function(fit, sdr) {
+  N <- sdr$se_null
+  lost <- sdr$se_lost
+  if (!NCOL(N) || !any(lost == "boundary")) return(logical(NCOL(N)))
+  bpos <- match(names(lost)[lost == "boundary"], outer_par_names(fit))
+  apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% bpos))
 }
 
 #' Named list of every variable a hypothesis can name, under brms's

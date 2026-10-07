@@ -1999,6 +1999,46 @@ emulator" is `dev/cifix-openblas.sh`, R 4.6.1 with OpenBLAS 0.3.26.
   noise (`dev/cifixrev-krigmem.R`). Remedy: scale each column block
   after it is symmetrized.
 
+## Filed by lane setier, 2026-10-07
+
+### Open - high
+
+- **A gaussian random-intercept fit stops short of the maximum near
+  sd = 0, at code 0, and says nothing on base.** `y ~ x + (1 | g)`
+  (20 groups of 5, sigma 1) with the response multiplied by 1e-3, 1
+  and 1e3, 40 seeds each: the fit ends more than 1e-4 below lme4's
+  log-likelihood on 4, 0 and 20 of the 40, by up to 0.825, 23 of the 24
+  at optimizer code 0 (seed 36 at 1e-3: "false convergence (8)"). The
+  sd sits near zero (2.5e-22 times sigma on seed 19 at 1e-3, where lme4
+  puts it at 0.31), so the log-likelihood is flat toward zero, and
+  `escape_stationary()` does not reach it. rellib-r6 gives the same
+  fits, and the trial merge with lane optima gives the same counts.
+  On base 3 of the 24 say nothing at all and 18 give only the SE
+  warning's "flat"; since lane setier the SE warning says "the fit
+  stopped short of the maximum" (or the convergence warning stays).
+  The answer itself is still wrong. Repro: `dev/setier-rev2-scale2.R
+  <lib>`, `dev/setier-rev2-trap.R <lib>`, `dev/setier-rev2-short.R
+  <lib>` (setier review, re-check RB2). For the optimizer's lane: the
+  start of a group sd scaled to the response, or an escape that tries
+  the sd at a fraction of the residual sd as `se_sd_gain_up()` does.
+
+### Open - medium
+
+- **One fit in test-id-kron.R ends at one of two optima from run to
+  run.** The merged-dpar fit ("merging across dpars of one response
+  takes the same path") stops at code 7 with the log-likelihood flat in
+  the sd-sigma correlation. Ten runs of the file at once: 8 of 10 end
+  at objective 128.07435688 (largest gradient 1.6e-4), 2 of 10 at
+  128.074356883 (gradient 5.6e-4, the last parameter 499.80 against
+  499.17), on rellib-r6 as well, so it is not from lane setier. Run
+  alone, or the fit alone (`dev/setier-idk.R <lib>`), it is always the
+  first. Since lane setier the first is a boundary stop (the boundary
+  message) and the second keeps the code 7 warning, so the file's
+  condition count changes between suite runs; the tests pass either
+  way. Repro: `dev/setier-idk-test.R` (the file with the fit printed),
+  ten at once. Something in the objective or the optimizer is not
+  deterministic within one build.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

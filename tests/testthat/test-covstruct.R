@@ -40,7 +40,11 @@ test_that("cs matches glmmTMB", {
 test_that("homdiag matches glmmTMB", {
   skip_if_not_installed("glmmTMB")
   dd <- sim_ar1_data(seed = 53, rho = 0)
-  fit <- frm(bf(y ~ 1 + homdiag(tim + 0 | g)) + gaussian(), data = dd)
+  # rho = 0 data: the homdiag variance and sigma trade off, so neither
+  # has a standard error (lane setier); the likelihood is the point here
+  fit <- allow_warnings(
+    frm(bf(y ~ 1 + homdiag(tim + 0 | g)) + gaussian(), data = dd),
+    "Standard errors are not available")
   ref <- glmmTMB::glmmTMB(y ~ 1 + homdiag(tim + 0 | g),
                           data = dd, REML = FALSE)
   expect_loglik_equal(fit, ref, tol = 1e-6)

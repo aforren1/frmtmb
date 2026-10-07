@@ -269,6 +269,9 @@ test_that("a small loading on a downward direction keeps its SE", {
   expect_length(hit, 1L)
   expect_match(hit, "theta_2, theta_3: the likelihood is flat", fixed = TRUE)
   expect_false(grepl("not a maximum", hit, fixed = TRUE))
+  # not a boundary fit: moving the slope sd down by 2 costs 1.4e-5 and
+  # the correlation still rises toward its end (dev/setier-grby.R)
+  expect_false(any(sdr_of(r$value)$se_lost == "boundary"))
   se_x <- fixef(r$value)["x", "Est.Error"]
   # the plain sdreport() inverse, which keeps x finite on this fit
   raw <- suppressWarnings(RTMB::sdreport(r$value$obj)$cov.fixed)
@@ -388,9 +391,13 @@ test_that("separated data are named as separation", {
   r <- se_capture(frm(yb ~ z + x, family = bernoulli(), data = d,
                       control = ctl))
   expect_identical(r$value$opt$convergence, 0L)
-  hit <- grep(se_lost_phrase, r$warnings, fixed = TRUE, value = TRUE)
-  expect_length(hit, 1L)
-  expect_match(hit, "the data separate the outcomes", fixed = TRUE)
+  # check_convergence() names the separation (whatever the code, see
+  # test-se-tier.R), and its warning explains the coefficients the SE
+  # check would name again
+  expect_length(r$warnings, 1L)
+  expect_match(r$warnings, "The data separate the outcomes", fixed = TRUE)
+  expect_length(grep(se_lost_phrase, r$warnings, fixed = TRUE), 0L)
+  expect_true(all(sdr_of(r$value)$se_lost == "separation"))
 })
 
 test_that("the fit-time Hessian is sdreport()'s", {
@@ -465,8 +472,8 @@ test_that("a lost group sd does not take the other variance components", {
   n <- 60
   d <- data.frame(x = rnorm(n), g1 = factor(rep(1:12, 5)), g2 = gl(6, 10))
   d$y <- 1 + 0.5 * d$x + rnorm(12, 0, 0.8)[d$g1] + rnorm(n)
-  fit <- suppressWarnings(frm(bf(y ~ x + (1 | g1) + (1 + x | g2)),
-                              data = d))
+  fit <- suppressMessages(suppressWarnings(
+    frm(bf(y ~ x + (1 | g1) + (1 + x | g2)), data = d)))
   expect_setequal(names(sdr_of(fit)$se_lost),
                   c("theta_2", "theta_3", "theta_4"))
   r <- se_capture(VarCorr(fit))
@@ -477,8 +484,21 @@ test_that("a lost group sd does not take the other variance components", {
                tolerance = 1e-6)
   expect_true(is.finite(vc$residual__$sd[1, "Est.Error"]))
   expect_true(all(is.nan(vc$g2$sd[, "Est.Error"])))
-  expect_length(r$warnings, 1L)
-  expect_match(r$warnings, "VarCorr() entries move along", fixed = TRUE)
+  # g2 sits at the edge of its parameter space, which the fit's boundary
+  # message said; VarCorr() does not say it again (lane setier)
+  expect_true(all(sdr_of(fit)$se_lost == "boundary"))
+  expect_length(r$warnings, 0L)
+  # a lost sd that is not at a boundary still gets VarCorr()'s warning:
+  # a gaussian observation-level effect trades off against sigma
+  set.seed(5)
+  d2 <- data.frame(id = factor(1:80), x = rnorm(80))
+  d2$y <- 1 + 0.5 * d2$x + rnorm(80)
+  fo <- suppressWarnings(frm(bf(y ~ x + (1 | id)), data = d2,
+                             control = frmtmb_control(check_olre = "ignore")))
+  expect_false(any(sdr_of(fo)$se_lost == "boundary"))
+  r2 <- se_capture(VarCorr(fo))
+  expect_length(r2$warnings, 1L)
+  expect_match(r2$warnings, "VarCorr() entries move along", fixed = TRUE)
   s <- summary(fit)
   expect_true(is.finite(s$random$g1[1, "Est.Error"]))
   expect_true(is.finite(s$spec_pars[1, "Est.Error"]))

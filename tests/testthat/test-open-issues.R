@@ -83,7 +83,10 @@ test_that("mo()/mi() interaction multipliers must be numeric (brms#1828)", {
   # numeric and logical multipliers keep working
   fit <- frm(bf(ls ~ mo(income) * z) + gaussian(), data = dat)
   expect_true("moincome:z" %in% names(fixef_by_dpar(fit)$mu))
-  fit_l <- frm(bf(ls ~ mo(income) * xl) + gaussian(), data = dat)
+  # its interaction simplex stops on a slope that still rises, which
+  # the check names (lane setier); the coefficient names are the point
+  fit_l <- allow_warnings(frm(bf(ls ~ mo(income) * xl) + gaussian(),
+                              data = dat), "Standard errors are not available")
   expect_true("moincome:xl" %in% names(fixef_by_dpar(fit_l)$mu))
 })
 

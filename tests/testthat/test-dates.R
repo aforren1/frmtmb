@@ -67,8 +67,10 @@ test_that("a Date grouping variable says nothing", {
   # wrong
   d <- date_data(40)
   d$g <- as.Date("2020-01-01") + rep(0:3, each = 10)
-  expect_no_message(
-    fit <- frm(bf(y ~ days + (1 | g)) + gaussian(), data = d))
+  # these data have no group variance, so the standard-error check's
+  # boundary message is due; nothing else is
+  expect_no_message(allow_boundary(
+    fit <- frm(bf(y ~ days + (1 | g)) + gaussian(), data = d)))
   expect_identical(unname(ngrps(fit)[["g"]]), 4L)
 })
 

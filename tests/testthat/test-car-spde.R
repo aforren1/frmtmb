@@ -314,14 +314,23 @@ test_that("bym2 recovers its mixing parameter on repeated lattices", {
 test_that("the car post-fit surface answers", {
   s <- car_lattice_data(3)
   W <- s$W
-  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "bym2")) + gaussian(),
-             data = s$d)
+  fit <- allow_boundary(
+    frm(bf(y ~ x + car(W, gr = loc, type = "bym2")) + gaussian(),
+        data = s$d))
   re <- ranef(fit)[[1]]
   expect_equal(dim(re), c(s$n, 1L))
   expect_equal(rownames(re), rownames(s$W))
   expect_equal(colnames(varcorr_matrices(fit)[[1]]), "sd(car)")
   cv <- confint_varcorr(fit)
-  expect_true(all(cv$lwr < cv$estimate & cv$estimate < cv$upr))
+  # a component at the edge of its parameter space (bym2's mixing
+  # parameter here) has no Wald interval; every other one brackets its
+  # estimate (lane setier)
+  ok <- !is.na(cv$lwr)
+  expect_true(all(cv$lwr[ok] < cv$estimate[ok] &
+                    cv$estimate[ok] < cv$upr[ok]))
+  lost <- sdr_of(fit)$se_lost
+  expect_true(all(lost == "boundary"))
+  expect_identical(sum(!ok), length(lost))
   # in-sample and newdata prediction see the same design
   rows <- c(1L, 10L, nrow(s$d))
   p_in <- frm_linpred(fit, se.fit = TRUE)

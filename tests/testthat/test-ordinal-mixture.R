@@ -360,7 +360,10 @@ test_that("simulate() draws from the fitted category distribution", {
     frm(bf(y | thres(gr = g) ~ x), family = mixture(cumulative(), sratio()),
         data = d),
     "degenerate boundary", require = "degenerate boundary")
-  P <- fitted(fit)[, "Estimate", ]
+  # the collapsed thresholds have no standard error, so the rows whose
+  # probabilities move with them get none either, said once (lane
+  # setier: fitted() reads the covariance that holds them)
+  P <- allow_warnings(fitted(fit), "move along a direction")[, "Estimate", ]
   sims <- simulate(fit, nsim = 400, seed = 7)
   codes <- vapply(sims, as.integer, integer(nrow(d)))
   freq <- vapply(1:4, function(k) mean(codes == k), 0)

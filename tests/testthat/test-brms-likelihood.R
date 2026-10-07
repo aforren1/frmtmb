@@ -787,7 +787,12 @@ test_that("check C: row 3's (1 | g) variant, monotonic interaction", {
   dm <- data.frame(inc = sample(0:3, 300, TRUE), z = rnorm(300),
                    g = factor(rep(1:20, 15)))
   dm$y <- 1 + c(0, 1, 1.6, 2)[dm$inc + 1] + 0.3 * dm$z + rnorm(300)
-  fit <- frm(bf(y ~ mo(inc):z + (1 | g)) + gaussian(), data = dm)
+  # the interaction's simplex has a weight at 0, so its coordinate has
+  # no standard error, on every platform since the check asks tier 3
+  # first (lane setier)
+  fit <- allow_warnings(
+    frm(bf(y ~ mo(inc):z + (1 | g)) + gaussian(), data = dm),
+    "Standard errors are not available")
   brms_lp_check(brms::bf(y ~ mo(inc):z + (1 | g)), gaussian(), dm, fit,
                 joint = TRUE, const = lgamma(3))
 })

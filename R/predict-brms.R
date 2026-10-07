@@ -1152,8 +1152,20 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   if (!propagate_error) return(function(s) object)
   ds <- fit_draw_space(object)
   V <- ds$V
+  # a draw cannot tell which predictions move along a lost direction, so
+  # only a fit whose lost parameters are all variance components at
+  # their boundary (held at zero, as the boundary message said) draws
+  # from the covariance that holds them; any other loss keeps the
+  # plug-in fallback and its warning
+  if (!is.null(ds$jc) && !isTRUE(ds$boundary_only)) V <- NULL
   L <- if (is.null(V) || !all(is.finite(V))) NULL else {
-    tryCatch(chol(V + diag(0, nrow(V))), error = function(e) NULL)
+    tryCatch(chol(V + diag(0, nrow(V))), error = function(e) {
+      if (is.null(ds$jc)) return(NULL)
+      # held directions make the covariance singular: its symmetric
+      # square root still draws from it
+      e <- eigen(V, symmetric = TRUE)
+      sqrt(pmax(e$values, 0)) * t(e$vectors)
+    })
   }
   if (is.null(L)) {
     # a fit whose covariance did not come back from the Hessian has no

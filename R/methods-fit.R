@@ -1602,6 +1602,16 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     if (!is.null(dcr)) {
       cvr <- pmax(dcr[names(sdr$par.random) == "b"], 0)
     }
+    # sdreport() builds diag.cov.random from its own inverse of the outer
+    # Hessian, which is not a covariance when a standard error was lost:
+    # on a gr(g, by = f) fit its condsd ran from 0 to 99 times what the
+    # repaired joint covariance gives the same b, which predictions read
+    # (dev/reviews/2026-10-06-cifix.md, m6). One covariance, one answer.
+    if (!is.null(cvr) && length(sdr$se_lost)) {
+      jc <- tryCatch(get_joint_cov(object), error = function(e) NULL)
+      bj <- if (!is.null(jc)) which(jc$names == "b")
+      if (length(bj) == length(cvr)) cvr <- pmax(diag(jc$V)[bj], 0)
+    }
   }
   out <- list()
   # a gr(g, by = f) term is one entry over all levels of g, as in brms
@@ -2094,7 +2104,7 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
   # NaN only for an entry that moves along a lost direction, with one
   # warning; the shown covariance would make every entry NaN (RB2)
   v <- hyp_prop_var(pc, G)
-  se_pred_warn(attr(v, "lost"), "VarCorr() entries")
+  se_pred_warn(attr(v, "warn"), "VarCorr() entries")
   se <- sqrt(as.numeric(v))
   stats_nm <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
   tab <- cbind(q0, se, outer(se, stats::qnorm(probs)) + q0)

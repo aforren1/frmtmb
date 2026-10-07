@@ -1361,20 +1361,21 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
   }
+  # the box the optimizer ran under, which is the caller's bounds MERGED
+  # with any a prior spelled; fit$lower and fit$upper hold only the
+  # former, and the convergence check needs both (fit_outer_box()), as
+  # does the standard-error analysis nl_flat_message() asks for
+  fit$cache$bounds <- bounds
   # on the user's own call only: a refit, the autoscale pre-fit or a
   # bootstrap replicate would repeat it
   if (announce_start && is.null(imp) && is.null(integrate)) {
-    flat_msg <- nl_flat_message(obj, opt, frame)
+    flat_msg <- nl_flat_message(obj, opt, frame, fit)
     if (!is.null(flat_msg)) {
       frm_warning(flat_msg, call. = FALSE)
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
   }
-  # the box the optimizer ran under, which is the caller's bounds MERGED
-  # with any a prior spelled; fit$lower and fit$upper hold only the
-  # former, and the convergence check needs both (fit_outer_box())
-  fit$cache$bounds <- bounds
   if (se) {
     if (vb) t0 <- vb_now()
     fit$cache$sdr <- autoscale_sdreport(fit)
@@ -1817,7 +1818,8 @@ sdr_of <- function(fit) {
 #'   gradients are at most a quarter of the objective and gradient
 #'   evaluations the optimizer made. Otherwise the check waits for the
 #'   first standard-error use (`summary()`, `fixef()`, `vcov()`,
-#'   `confint()`, a prediction's standard error) and warns there. The
+#'   `confint()`, a prediction's standard error) and warns there; under
+#'   `"stop"` it does not wait, so that [frm()] itself stops. The
 #'   rule counts work and does not read the clock, so the same call warns
 #'   in the same place on any machine. Measured against `"ignore"`: 8 to
 #'   23 percent on seven small models and on mixed models with 14 to 23
@@ -1832,7 +1834,18 @@ sdr_of <- function(fit) {
 #'   parameters keep their standard errors, and a prediction, emmean or
 #'   [hypothesis()] that moves along a lost direction gets none, with
 #'   one warning per call. A fit that did not converge warns about that
-#'   instead.
+#'   instead. A covariance parameter at the edge of its parameter space
+#'   (a group standard deviation at zero, a correlation or mixing
+#'   parameter at its limit) is reported as lme4 reports a singular fit,
+#'   with a message, "Boundary (singular) fit", of class
+#'   `frmtmb_boundary_fit`; `"stop"` makes it an error too. When the
+#'   optimizer stops with a non-zero code there (nlminb's "singular
+#'   convergence") but the gradient is within `grad_tol` and every lost
+#'   parameter is at its edge, the fit gets this message and not the
+#'   convergence warning, as lme4's checkConv() does. A smooth,
+#'   `gp()` or `hsgp()` term at its own limit loses those standard errors
+#'   without a message, as mgcv reports a smoothing parameter at
+#'   infinity.
 #' @param importance_seed Seed for the standard normal draws of
 #'   `frm(importance =)`. The draws are taken from a private random
 #'   stream, so the fit neither reads nor disturbs the session's random
@@ -2662,12 +2675,13 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
 #' Returns the message, or `NULL`.
 #'
 #' @noRd
-nl_flat_message <- function(obj, opt, frame) {
+nl_flat_message <- function(obj, opt, frame, fit = NULL) {
   lps <- frame[["linpreds"]] %||% list()
   bodies <- Filter(function(lp) !is.null(lp[["nl_body"]]), lps)
   if (!length(bodies) || !length(opt$par)) return(NULL)
   cols <- integer(0)
   labels <- character(0)
+  onames <- character(0)
   for (lp in bodies) {
     r <- lp[["resp"]]
     for (p in intersect(lp[["nl_pars"]] %||% character(0),
@@ -2678,6 +2692,7 @@ nl_flat_message <- function(obj, opt, frame) {
         next
       }
       cn <- colnames(lpp[["X"]])[seq_along(lpp[["idx"]])]
+      onames <- c(onames, paste0(p, "_", cn))
       cols <- c(cols, lpp[["idx"]])
       labels <- c(labels, paste0(p, "_", sub("(Intercept)", "Intercept",
                                              cn, fixed = TRUE)))
@@ -2686,6 +2701,7 @@ nl_flat_message <- function(obj, opt, frame) {
   keep <- !duplicated(cols)
   cols <- cols[keep]
   labels <- labels[keep]
+  onames <- onames[keep]
   bpos <- which(names(obj$par) == "beta")
   if (length(cols) < 2L ||
         length(bpos) != length(frame[["par_template"]][["beta"]])) {
@@ -2734,6 +2750,21 @@ nl_flat_message <- function(obj, opt, frame) {
   tau <- max(sqrt(nl_flat_tol), 10 * sqrt(sum(E^2)) / gap)
   proj <- sqrt(rowSums(ev$vectors[, flat, drop = FALSE]^2))
   load <- labels[ok][proj > tau]
+  # The standard-error check reads the same question off the outer
+  # Hessian with a curvature probe this check does not have, and the two
+  # must not disagree: at cor(x1, x2) = 1 - 1e-9 this check named a_x1
+  # and b_x2 while lm() and the exact Hessian give them 1268, which
+  # vcov() printed (setier review, item 7). So it names only what the
+  # check lost as flat.
+  if (length(load) && !is.null(fit) &&
+        !identical(fit$control$check_se, "ignore")) {
+    an <- tryCatch(se_fit_analysis(fit, force = TRUE),
+                   error = function(e) NULL)
+    if (!is.null(an)) {
+      lost <- names(an$lost)[an$lost == "flat"]
+      load <- load[onames[ok][proj > tau] %in% lost]
+    }
+  }
   # no projection clears the noise of the differenced Hessian, so this
   # check cannot say which coefficients are flat; it stays silent and
   # the standard-error check names the parameters (the 0.68.0 merge:
@@ -3344,17 +3375,27 @@ check_convergence <- function(fit, control) {
   # collected first, warned second, so the verbose summary line can
   # report how many diagnostics the fit raised
   msgs <- character(0)
-  if (fit$opt$convergence != 0) {
-    # a nonlinear model that started at zero is the likeliest cause, and
-    # `start` is the only lever, so name it here [brms#734]
-    nl_hint <- if (any(vapply(fit$spec$responses,
-                              function(r) length(r$nlpars) > 0L, TRUE))) {
-      paste0(". This is a nonlinear model; unless `start` or a ",
-             "located prior placed them, the fit began at zero, which ",
-             "is rarely in the right region (see par_template())")
-    } else ""
-    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                           fit$opt$message, nl_hint))
+  # Separation sends the optimizer toward infinity, so where it stops,
+  # and with which code, is a platform's rounding: it is named whatever
+  # the code, and in place of the optimizer's own verdict, which it
+  # explains. On a fit that converged it is not a convergence warning,
+  # and the standard-error check still looks at the other parameters.
+  sep <- if (is.null(fit$importance)) {
+    tryCatch(separation_check(fit), error = function(e) NULL)
+  }
+  if (!is.null(sep)) {
+    if (is.environment(fit$cache)) {
+      fit$cache$se_explained_sep <- sep$pars
+      fit$cache$se_sep_named <- sep$named
+      # an sdreport taken at the fit (se = TRUE) predates the verdict
+      if (!is.null(fit$cache$sdr)) {
+        fit$cache$sdr <- sdr_sep_lost(fit, fit$cache$sdr, sep$named)
+      }
+    }
+    frm_warning(sep$message, call. = FALSE, class = "frmtmb_separation")
+    if (!isTRUE(fit$opt$convergence == 0)) {
+      return(invisible(list(grad = NA_real_, warnings = sep$message)))
+    }
   }
   gvec <- if (!length(fit$opt$par)) NULL else {
     try(drop(fit$obj$gr(fit$opt$par)), silent = TRUE)
@@ -3365,6 +3406,29 @@ check_convergence <- function(fit, control) {
   # absolute gradient near machine noise times 1e6)
   g <- if (is.null(gvec)) NA_real_ else {
     max(abs(gvec * (fit$par_units %||% 1)))
+  }
+  # nlminb stops with "singular convergence (7)" where a variance
+  # component runs to its boundary: on y ~ x + (1 + x | g) with no slope
+  # variance, 69 of 100 seeds, every one singular for lme4, at its
+  # log-likelihood to 2.6e-6, the largest gradient at most 4.8e-4
+  # (dev/setier-rev-rs20.R). lme4's checkConv() skips its derivative
+  # checks on a singular fit and gives its boundary message instead;
+  # so does this, when the gradient is within grad_tol and every
+  # standard error the check loses is a boundary one (se_check() then
+  # gives the message)
+  bstop <- is.null(sep) && fit$opt$convergence != 0 &&
+    is.null(fit$importance) && se_boundary_stop(fit, g, control)
+  if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
+    # a nonlinear model that started at zero is the likeliest cause, and
+    # `start` is the only lever, so name it here [brms#734]
+    nl_hint <- if (any(vapply(fit$spec$responses,
+                              function(r) length(r$nlpars) > 0L, TRUE))) {
+      paste0(". This is a nonlinear model; unless `start` or a ",
+             "located prior placed them, the fit began at zero, which ",
+             "is rarely in the right region (see par_template())")
+    } else ""
+    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
+                           fit$opt$message, nl_hint))
   }
   if (!is.null(fit$importance)) {
     # An importance-corrected objective is a Monte Carlo estimate, and
@@ -3407,14 +3471,17 @@ check_convergence <- function(fit, control) {
                "in the same place")
       })
     }
-  } else if (is.finite(g) && g > control$grad_tol) {
+  } else if (is.null(sep) && is.finite(g) && g > control$grad_tol) {
+    # (a separated fit's gradient and curvature are those of a run toward
+    # infinity, which its warning has named)
     # the absolute gradient is the trip-wire and not the verdict: a
     # component a bound holds is not evidence, and what decides is how
     # much log likelihood one Newton step would still buy. See
     # grad_verdict().
     v <- grad_verdict(fit, gvec, control)
     if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
-  } else if (!is.null(gvec) && length(gvec) && any(!is.finite(gvec))) {
+  } else if (is.null(sep) && !is.null(gvec) && length(gvec) &&
+               any(!is.finite(gvec))) {
     # A gradient that is not finite at the reported optimum used to pass
     # in silence: the test above needs a finite number to compare. The
     # optimizer can still report convergence there (nlminb's

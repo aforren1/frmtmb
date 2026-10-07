@@ -96,10 +96,13 @@ test_that("a one-level grouping factor is reported (lme4 lmerControl)", {
         control = frmtmb_control(check_nlev_1 = "stop")),
     "single level"
   )
-  expect_silent(
+  # "ignore" drops the structural warning only; the variance it would
+  # have explained sits at zero, which the standard-error check reports
+  # as a boundary fit, with a message
+  expect_no_warning(allow_boundary(
     f <- frm(y ~ x + (1 | one), data = d, family = gaussian(),
-             control = frmtmb_control(check_nlev_1 = "ignore"))
-  )
+             control = frmtmb_control(check_nlev_1 = "ignore")),
+    require = TRUE))
   # ignoring it still fits: the variance simply collapses to zero
   expect_lt(as.data.frame(varcorr_matrices(f))$sdcor[1], 1e-3)
 })
@@ -123,8 +126,10 @@ test_that("gaussian OLRE warns about confounding with sigma (lme4)", {
   expect_silent(
     frm(bf(yi | se(sei) ~ 1 + (1 | obs)) + gaussian(), data = dm)
   )
-  # and an ordinary grouping factor is never flagged
-  expect_silent(frm(y ~ x + (1 | g), data = d, family = gaussian()))
+  # and an ordinary grouping factor is never flagged (g has no variance
+  # in these data, so the boundary message is due)
+  expect_no_warning(allow_boundary(
+    frm(y ~ x + (1 | g), data = d, family = gaussian())))
 })
 
 # --- diagnose() upgrades [glmmTMB diagnose(), lme4 isSingular] --------

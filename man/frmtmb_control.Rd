@@ -168,7 +168,8 @@ reuses, when the model has at most 10 outer parameters or those
 gradients are at most a quarter of the objective and gradient
 evaluations the optimizer made. Otherwise the check waits for the
 first standard-error use (\code{summary()}, \code{fixef()}, \code{vcov()},
-\code{confint()}, a prediction's standard error) and warns there. The
+\code{confint()}, a prediction's standard error) and warns there; under
+\code{"stop"} it does not wait, so that \code{\link[=frm]{frm()}} itself stops. The
 rule counts work and does not read the clock, so the same call warns
 in the same place on any machine. Measured against \code{"ignore"}: 8 to
 23 percent on seven small models and on mixed models with 14 to 23
@@ -183,7 +184,18 @@ log-likelihood, or its Hessian row is not finite. The other
 parameters keep their standard errors, and a prediction, emmean or
 \code{\link[=hypothesis]{hypothesis()}} that moves along a lost direction gets none, with
 one warning per call. A fit that did not converge warns about that
-instead.}
+instead. A covariance parameter at the edge of its parameter space
+(a group standard deviation at zero, a correlation or mixing
+parameter at its limit) is reported as lme4 reports a singular fit,
+with a message, "Boundary (singular) fit", of class
+\code{frmtmb_boundary_fit}; \code{"stop"} makes it an error too. When the
+optimizer stops with a non-zero code there (nlminb's "singular
+convergence") but the gradient is within \code{grad_tol} and every lost
+parameter is at its edge, the fit gets this message and not the
+convergence warning, as lme4's checkConv() does. A smooth,
+\code{gp()} or \code{hsgp()} term at its own limit loses those standard errors
+without a message, as mgcv reports a smoothing parameter at
+infinity.}
 
 \item{importance_seed}{Seed for the standard normal draws of
 \code{frm(importance =)}. The draws are taken from a private random

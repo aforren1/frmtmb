@@ -393,8 +393,11 @@ test_that("cox() frailty models come out of the Laplace approximation", {
   ct <- stats::rexp(n, 0.2)
   dd <- data.frame(time = pmin(tt, ct), cens = as.numeric(tt > ct),
                    ev = as.numeric(tt <= ct), x = x, g = g)
-  fit <- frm(bf(time | cens(cens) ~ x + (1 | g)), family = cox(),
-             data = dd)
+  # a baseline-hazard coordinate at its limit has no standard error
+  # (lane setier); the estimates are the point here
+  fit <- allow_warnings(frm(bf(time | cens(cens) ~ x + (1 | g)),
+                            family = cox(), data = dd),
+                        "Standard errors are not available")
   sd_hat <- sqrt(as.numeric(varcorr_matrices(fit)[[1L]]))
   expect_equal(sd_hat, 0.8, tolerance = 0.3)
   expect_equal(unname(fixef_by_dpar(fit)$mu["x"]), 0.7, tolerance = 0.2)

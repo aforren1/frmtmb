@@ -1,3 +1,122 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A standard error built on a row of noise is gone, on every
+  platform.** The standard-error check kept sdreport()'s inverse of the
+  outer Hessian whenever it gave positive variances, even when a
+  parameter's row of the finite-difference Hessian was pure noise. A
+  variance component at zero then got a standard error of about 10^3 to
+  10^5 on its log scale, or `NaN` and a warning, by the sign of that
+  noise: `(1 | Subject/a)` on `sleepstudy` gave 375,150 with the
+  reference BLAS and `NaN` with OpenBLAS. The check now keeps an inverse
+  only where its third tier would remove nothing: no row within the
+  Hessian's noise, no log standard deviation at its edge (below), no
+  parameter held by a bound, and no direction flatter than 1e-9 of the
+  largest unless the likelihood curves along it. Such a parameter now
+  has a `NaN` standard error in `vcov()`, `summary()` and `confint()`,
+  and the other standard errors are those of the Hessian without it. A
+  fit that loses nothing keeps sdreport()'s covariance bit for bit. A
+  parameter held by a bound is now reported on every fit, where before
+  it was only when some unrelated direction was nearly flat.
+
+* **A covariance parameter at the edge of its parameter space is a
+  boundary fit, said with a message.** A group standard deviation is at
+  its edge when moving it a factor of 7 toward zero changes the
+  log-likelihood by at most 1e-6; a correlation or mixing parameter
+  when moving it further toward its limit does the same; the one
+  correlation of a block whose standard deviation is at zero is
+  undefined. Its lost standard error is reported as lme4 reports a
+  singular fit: one message, "Boundary (singular) fit: ...", of class
+  `frmtmb_boundary_fit`, naming the parameters with brms's names
+  (`sd_g__Intercept`), and not the standard-error warning. An sd near
+  zero is first moved up to 0.01, 0.03, 0.1, 0.3 and 1 times the
+  residual sd (1 on the link scale without one): if any gains, the fit
+  stopped short of its maximum, and the warning says so ("the fit
+  stopped short of the maximum"; at a non-zero code the convergence
+  warning stays). Of 24 random-intercept fits that stop 1e-4 to 0.825
+  below lme4's log-likelihood, none gets the boundary message. Under
+  `quadrature = TRUE` no boundary verdict is given, since that check
+  cannot run on a quadrature objective: such an sd keeps the "flat"
+  standard-error warning, as before. On 600
+  simulated random-intercept, random-slope and binomial fits the
+  message fired
+  on 267 of the 269 that lme4 calls singular and on none of the other
+  331; on larger single-sd designs (60 to 300 groups) on 16 of the 17
+  lme4 calls singular and none of the other 103; on random slopes with
+  a correlation of 0.95 or 0.99, on 19 of the 33 lme4 calls singular
+  (20 with OpenBLAS) and on 2 others, whose correlation lme4 puts at
+  1 - 2e-7 and 1 - 4.5e-6. When nlminb stops with "singular
+  convergence (7)" there, the gradient is within `grad_tol` and every
+  lost parameter is
+  at its edge, the fit gets this message and not "Optimizer did not
+  report convergence", as lme4's checkConv() does (67 of 69 such
+  random-slope fits). `frmtmb_control(check_se = "ignore")` silences
+  it, and `"stop"` makes it an error at `frm()`, which now builds the
+  check there even when it would otherwise wait for the first
+  `summary()`. A smooth, `gp()` or `hsgp()` term at its own limit (a
+  smooth reduced to its unpenalized part, as mgcv reports in silence)
+  loses those standard errors with no message: 91 of 140 gamSim fits
+  do. `summary()` lists both under "Parameters without a standard
+  error", and `diagnose()` lists the standard deviations as singular.
+  `VarCorr()`, `confint_varcorr()`, `predict()` and `fitted()` do not
+  warn again about them; `predict()`'s draws hold them at their
+  estimates.
+
+* **A small eigenvalue of the outer Hessian keeps its standard error
+  only if the likelihood is quadratic along it.** The check takes the
+  symmetric second difference `f(p + t) + f(p - t) - 2 f(p)` along the
+  direction, at the step the curvature says loses 2 * `grad_tol` each
+  way and at half of it; it keeps the direction when the full one is at
+  least 2 * `grad_tol` and 3 to 5.5 times the half one (a quadratic
+  gives 4). Symmetric, so that a fit not exactly stationary along the
+  direction keeps it: an identified poisson or bernoulli pair at a
+  correlation of 1 - 5e-11 and raw polynomials of degree 5 or 6 on
+  `[1, 2]`, alone or with a random intercept, keep every standard error,
+  close to glm()'s, lm()'s and lme4's. A straight step off a curved
+  ridge, which loses as the fourth power, does not keep it.
+
+* **A nonlinear ridge on a fit with random effects loses its standard
+  errors.** `y ~ a + b` with `a ~ 0 + f` and `b ~ 1 + (1 | g)`, where
+  only `a_k + b` is identified, kept finite standard errors from the
+  finite-difference Hessian, and a prediction of `a` reported 822,571.
+  The ridge's coefficients now have `NaN` standard errors, and a
+  prediction along the ridge gets `NaN` and one warning, as without
+  random effects. The identification warning for nonlinear parameters
+  now names only the coefficients the standard-error check lost: at a
+  correlation of 1 - 1e-9 between two covariates it named coefficients
+  whose standard error, 1268, lm() and the exact Hessian both give.
+
+* **Separation is a warning of its own, named once the fit has run far
+  enough, whatever code the optimizer returned.** In a `bernoulli()`,
+  `binomial()` or `beta_binomial()` mean, "The data separate the
+  outcomes (complete separation)" or "(quasi-complete separation)", with
+  the coefficients involved (the first five and the count), class
+  `frmtmb_separation`. The fit is checked against the definition, along
+  the direction it ran off in, so a large but finite
+  effect is never named (0 of 338 non-separated fits, 162 of 162
+  separated ones, logit link; probit and cloglog are named too). It
+  replaces the convergence warning it explains, and the coefficients it
+  names show no standard error (`NaN`) on every path. A fit stopped
+  very early may not have run far enough to show it: complete
+  separation at `eval.max` 5, 10, 20 and 40 was named on 5, 16, 19 and
+  20 of 20 fits, a level of a factor with no successes at 5, 10 and 20
+  on 0, 0 and 20; the misses keep the convergence warning. A factor too
+  wide to decompose (above 2000 columns) has each column tried on its
+  own. Before, on
+  `yb ~ z + x` with `yb = z > 0`, nlminb stopped at code 9 with
+  OpenBLAS and the user read only "Optimizer did not report
+  convergence"; on a level of a factor with no successes, nothing was
+  said. The check keeps a sparse design sparse: 0.4 s on a
+  1e6-row fit with a 500-level factor that took 719 s.
+
+## Bug fixes
+
+* `ranef(condVar = TRUE)` on a fit that lost a standard error reads the
+  repaired joint covariance that predictions read. It read sdreport()'s
+  own conditional variances, built on the indefinite inverse: on a
+  `gr(g, by = f)` fit they ran from 0 to 99 times the repaired ones.
+
 # frmtmb 0.68.1
 
 The Ubuntu checks of 0.68.0 failed where the Windows and macOS ones

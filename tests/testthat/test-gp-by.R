@@ -171,7 +171,12 @@ test_that("brms's names: sdgp_ and lscale_ per by-level, in brms's order", {
   # a non-isotropic term names one length scale per covariate, the
   # levels varying fastest, as brms's as.vector(sfx2)
   d$z <- stats::runif(nrow(d), 0, 3)
-  f2 <- frm(bf(y ~ gp(x, z, by = f, iso = FALSE, k = 5)), data = d)
+  # level c's sd and z length scale trade off along a ridge (y does not
+  # depend on z), so they have no standard errors (lane setier); the
+  # names are the point here
+  f2 <- allow_warnings(
+    frm(bf(y ~ gp(x, z, by = f, iso = FALSE, k = 5)), data = d),
+    "Standard errors are not available")
   expect_identical(rownames(summary(f2)$gp)[4:9],
                    paste0("lscale(gpxzf", rep(c("a", "b", "c"), 2),
                           rep(c("x", "z"), each = 3), ")"))

@@ -426,6 +426,20 @@ fit_draw_space <- function(fit) {
                 error = function(e) NULL)
   nb <- length(fit$frame[["par_template"]][["beta"]])
   if (!(fit$REML || isTRUE(fit$control$profile)) || nb == 0L) {
+    # a lost standard error is NaN in vcov(), and a product of it is NaN
+    # in every row; the covariance sdr_rescue() keeps for propagation
+    # holds the lost directions at their estimates, and `null` spans
+    # them so that a row moving along one gets NaN (jc_nonest())
+    sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+    Vp <- sdr$cov_fixed_prop
+    if (length(sdr$se_lost) && !is.null(Vp) && !is.null(V) &&
+          all(dim(Vp) == dim(V))) {
+      dimnames(Vp) <- dimnames(V)
+      return(list(map = map, V = Vp,
+                  jc = list(null = sdr$se_null, units = fit$par_units,
+                            boundary = se_null_boundary(fit, sdr)),
+                  boundary_only = all(sdr$se_lost == "boundary")))
+    }
     return(list(map = map, V = V))
   }
   bn <- names(fit$frame[["par_template"]][["beta"]])
@@ -506,6 +520,7 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
     }
   }
   if (is.null(V) || !all(is.finite(V))) return(NULL)
+  jc <- ds$jc
   v0 <- fit_outer_vector(fit, map)
   b0 <- fit$estimates[["b"]]
   m0 <- as.matrix(f(fit))
@@ -624,6 +639,20 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
     var_out <- var_out + g_of(ex$key)^2 * rep(ex$var, times = nk)
   }
   se <- sqrt(pmax(0, var_out))
+  if (!is.null(jc) && NCOL(jc$null)) {
+    # an output that moves along a lost direction has no standard error;
+    # one warning, unless the directions are only variance components at
+    # their boundary, which the fit's boundary message named
+    bad <- jc_nonest(jc, J, seq_len(p))
+    se[bad] <- NaN
+    warn <- bad
+    if (any(bad) && any(jc$boundary)) {
+      jw <- jc
+      jw$null <- jw$null[, !jc$boundary, drop = FALSE]
+      warn <- bad & jc_nonest(jw, J, seq_len(p))
+    }
+    se_pred_warn(warn)
+  }
   matrix(se, nrow(m0), ncol(m0), dimnames = dimnames(m0))
 }
 

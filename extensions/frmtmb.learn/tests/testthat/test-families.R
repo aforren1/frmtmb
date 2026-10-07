@@ -129,8 +129,12 @@ test_that("the Kalman gain falls as a subject learns", {
   d$choice <- frm_task_simulate(
     fam, d, pars = list(tau = 0.15, lambda = 0.98, center = 50, mu0 = 50,
                         sigma0 = 12, sigmaD = 2), seed = 56)[[1L]]$choice
-  fit <- ln_fit(fam, d, choice | payoff(pay1, pay2, pay3, pay4) ~ 1,
-                lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1)
+  # sigma0 is flat at its estimate here, so it has no standard error
+  # (core's tier-3-first check, lane setier); the trace is the point
+  fit <- allow_warnings(
+    ln_fit(fam, d, choice | payoff(pay1, pay2, pay3, pay4) ~ 1,
+           lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1),
+    "Standard errors are not available")
   tr <- frm_value_trace(fit)
   expect_true(all(c("mu1", "s1", "s4") %in% names(tr)))
   # the posterior variance of an arm starts at sigma0^2 and is pulled
