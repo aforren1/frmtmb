@@ -12,7 +12,6 @@ brm:92	frmtmb	The [|]abc[|] key is used over more than one grouping specificatio
 brmsfit-methods:207	frmtmb	Effects support at most two variables: 'Trtc:a:b'	brms: please use the 'conditions' argument
 brmsfit-methods:330	frmtmb	Unknown dpar: 'inv'	brms: Invalid argument 'dpar'
 brmsfit-methods:414	frmtmb	`alpha` must be a single number strictly between 0 and 1	brms: Argument 'alpha' must be a single value in [0,1]
-brmsfit-methods:719	frmtmb.sample	needs a mixture[(][)] family fit	brms: Method 'pp_mixture' can only be applied to mixture models
 data-helpers:9	frmtmb	New levels in grouping factor .visit.: 5	brms: Levels '5' of grouping factor 'visit' cannot be used. The same refusal of the same case in frmtmb's words
 families:44	*	takes a single link name, not a character of length 2	brms: Cannot coerce 'alink' to a single character value
 standata:106	frmtmb	Factor responses are only supported for binomial families	brms: Family 'student' requires numeric responses

@@ -237,8 +237,12 @@ brms does.
   brms gets for free from the posterior: `hypothesis()` pools any
   function of the parameters, and `anova()` on the result compares two
   nested `frm_multiple()` fits with the D1, D2 and D3 rules of `mice`
-  (D3 by default). Mixture fits are ML: expect multimodality, compare
-  starts (`frm_allfit()`).
+  (D3 by default). `fixef()`, `summary()` and `conditional_effects()`
+  of the result pool by Rubin's rules where brms combines the draws of
+  the imputations; `plot()`, `as_draws_array()` and `nchains()` read
+  draws, so they are refused. Mixture fits are ML: expect multimodality,
+  compare starts (`frm_allfit()`). `pp_mixture()` gives the component
+  probabilities at the estimates in brms's array.
 - **`cs()` refuses a column written on both sides**, where brms fits it.
   `y ~ x + cs(x)` is not identified: adding a constant to the
   population-level coefficient of `x` and subtracting the same constant
@@ -801,12 +805,21 @@ the SHAPE of what a standard generic returns:
   summarizes draws, a nonlinear `mu` and `epred = TRUE` use the delta
   method through `frm_lp_basis()`; see `?frmtmb-emmeans`.
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for
-  simulation-based residual checks use `dharma_residuals()`.
+  simulation-based residual checks use `dharma_residuals()`. brms's
+  `N`, `variable` and `regex` choose per-parameter panels of draws, so
+  they are refused by name; `plot(frm_sample(fit), variable = ,
+  regex = )` draws brms's panels.
+- `add_criterion()` and `summary(waic = TRUE)` ask for posterior
+  criteria, so on a fit they are refused by name; `summary()` prints
+  `AIC` and `BIC`, and `add_criterion(frm_sample(fit), "loo")` stores
+  the criterion as brms does.
 
 ## Seeing the model code
 
-brms users inspect the generated model with `stancode(fit)`. The
-frmtmb analog is the objective function itself: an ordinary R closure
+brms users inspect the generated model with `stancode(fit)`, which
+here stops with the reason and points to this section; so does
+`standata(fit)`. The frmtmb analog is the objective function itself:
+an ordinary R closure
 that `RTMB::MakeADFun()` tapes, rebuilt deterministically from the
 fitted frame.
 

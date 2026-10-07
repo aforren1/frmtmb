@@ -110,6 +110,19 @@
 #' and is silent on every other; the second returns `newdata` unchanged
 #' when the response has no `subset()`.
 #'
+#' A `mo()` simplex is held in coordinates whose chart suits maximum
+#' likelihood and not a sampler (`?frm`, "Monotonic effects").
+#' `mo_simplex(z, chart)` maps coordinates to the simplex and
+#' `mo_coords(w, chart)` back, in the fit's chart (`chart = NULL`) or
+#' the softmax (`chart = "softmax"`, log ratios to the first weight).
+#' `mo_chart_frame(frame, chart)` is a copy of the frame whose objective
+#' reads every simplex in `chart`, and `mo_frame_terms(fit)` lists each
+#' term's simplex component, its size and brms's names for its weights,
+#' `simo_<label>1[k]`. `summary_mo_frame(fit, prob)` is the weights'
+#' table `summary()` prints: each weight with its delta-method standard
+#' error and interval, `NA` for a weight at 0 or 1 (named by the
+#' `face` attribute).
+#'
 #' @section The prior seam:
 #' The prior VOCABULARY - [set_prior()], [prior_normal()] and its
 #' relatives, [get_prior()], [prior_summary()] - is ordinary exported
@@ -483,6 +496,11 @@
 #' @aliases response_codes_newdata
 #' @aliases subset_resp_check
 #' @aliases subset_newdata
+#' @aliases mo_simplex
+#' @aliases mo_coords
+#' @aliases mo_chart_frame
+#' @aliases mo_frame_terms
+#' @aliases summary_mo_frame
 #' @aliases cs_build
 #' @aliases cs_coef
 #' @aliases cs_frame
@@ -525,7 +543,8 @@
 #'   rescor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
-#'   subset_newdata)
+#'   subset_newdata, mo_simplex, mo_coords, mo_chart_frame, mo_frame_terms,
+#'   summary_mo_frame)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

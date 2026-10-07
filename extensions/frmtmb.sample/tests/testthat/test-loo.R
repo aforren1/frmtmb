@@ -456,7 +456,8 @@ test_that("multi-model loo() and the draws-surface odd ends refuse", {
   fd <- fake_draws(uf)
   expect_error(loo(fd, fd), "one model here")
   expect_error(waic(fd, fd), "one model here")
-  expect_error(plot(fd), "mcmc_plot")
+  # plot() of draws is brms's trace-and-histogram display since lane
+  # surface (test-add-criterion.R), no longer a refusal
   expect_error(update(fd), "no formula to revise")
   expect_error(rescor_matrix(fd), "fitted point estimate")
 })

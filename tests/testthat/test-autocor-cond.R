@@ -277,8 +277,12 @@ test_that("the coefficients are unconstrained, named and bounded as brms's", {
             1e-2 * abs(f0$estimates$thetaac - 0.3))
   # and a box on an order-2 AR is a box on both coefficients, which the
   # transformed cov = TRUE parameterization cannot offer
-  fb <- frm(y ~ x + ar(week, subj, p = 2), data = d, family = gaussian(),
-            prior = set_prior("", class = "ar", lb = -0.05, ub = 0.05))
+  # (the box holds ar[1], whose standard error the check now reports
+  # lost on every fit, not only beside a flat direction; lane setier)
+  fb <- allow_warnings(
+    frm(y ~ x + ar(week, subj, p = 2), data = d, family = gaussian(),
+        prior = set_prior("", class = "ar", lb = -0.05, ub = 0.05)),
+    "a bound holds it", require = "a bound holds it")
   expect_true(all(abs(fb$estimates$thetaac) <= 0.05))
 })
 

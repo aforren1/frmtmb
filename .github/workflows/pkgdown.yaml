@@ -85,7 +85,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
+    # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
+    runs-on: ubuntu-24.04
     # The build is cancellable because it deploys nothing: a newer push
     # should not wait behind an older one. The deploy job has its own,
     # uncancellable group.
@@ -283,7 +285,9 @@ jobs:
     # Until then the build job still runs and still uploads the site, so
     # a broken build is caught on the push that broke it.
     if: needs.build.outputs.pages_mode == 'workflow'
-    runs-on: ubuntu-latest
+    # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
+    # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
+    runs-on: ubuntu-24.04
     # A deploy is never cancelled part way, and runs queue instead of
     # racing, so the newest run is the last to write. GitHub's own Pages
     # starter workflow uses this group for the same reason.

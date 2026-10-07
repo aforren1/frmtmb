@@ -55,6 +55,7 @@ reference:
   - frm_allfit
   - frm_simulate
   - frm_multiple
+  - frm_multiple-methods
 - title: Families
   contents:
   - frmtmb_family
@@ -103,6 +104,9 @@ reference:
   - loo
   - log_lik
   - bayes_R2
+  - add_criterion
+  - pp_mixture
+  - stancode
   - posterior_summary
   - expose_functions
   - draws-dimensions
@@ -248,7 +252,7 @@ redirects:
   - ["reference/nvariables.frmtmb_draws.html", "reference/draws-dimensions.html"]
   - ["reference/pairs.frmtmb_draws.html", "frmtmb.sample/reference/draws-diagnostics.html"]
   - ["reference/parnames.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-deprecated.html"]
-  - ["reference/plot.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
+  - ["reference/plot.frmtmb_draws.html", "frmtmb.sample/reference/plot.frmtmb_draws.html"]
   - ["reference/post_prob.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
   - ["reference/post_prob.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
   - ["reference/posterior_epred.frmtmb_draws.html", "frmtmb.sample/reference/posterior_epred.html"]
@@ -263,8 +267,7 @@ redirects:
   - ["reference/posterior_samples.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
   - ["reference/posterior_summary.frmtmb_draws.html", "reference/posterior_summary.html"]
   - ["reference/pp_check.frmtmb_draws.html", "reference/pp_check.html"]
-  - ["reference/pp_mixture.frmtmb_draws.html", "frmtmb.sample/reference/pp_mixture.html"]
-  - ["reference/pp_mixture.html", "frmtmb.sample/reference/pp_mixture.html"]
+  - ["reference/pp_mixture.frmtmb_draws.html", "frmtmb.sample/reference/pp_mixture.frmtmb_draws.html"]
   - ["reference/predictive_error.frmtmb_draws.html", "reference/posterior_summary.html"]
   - ["reference/predictive_error.html", "reference/posterior_summary.html"]
   - ["reference/predictive_interval.frmtmb_draws.html", "reference/posterior_summary.html"]
@@ -279,9 +282,8 @@ redirects:
   - ["reference/rhat.frmtmb_draws.html", "frmtmb.sample/reference/draws-diagnostics.html"]
   - ["reference/rhat.html", "frmtmb.sample/reference/draws-diagnostics.html"]
   - ["reference/stancode.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
-  - ["reference/stancode.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
   - ["reference/standata.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
-  - ["reference/standata.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
+  - ["reference/standata.html", "reference/stancode.html"]
   - ["reference/update.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
   - ["reference/VarCorr.frmtmb_fit.html", "reference/VarCorr.html"]
   - ["reference/variables.frmtmb_draws.html", "reference/variables.html"]

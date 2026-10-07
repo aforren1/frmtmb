@@ -436,7 +436,18 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   `-1e7` the first derivative is 9990923 (true 1e7).
 - Workaround: `ddm_rt_u_floor <- 1e-10`
   (`extensions/frmtmb.eam/R/wiener-rtcdf.R:68`).
-- Record: `dev/phase3b-rtmb-report-pnorm.md` (filing draft).
+- Also (lane optima, 2026-10-07, the review's
+  `dev/optima-rev-links.R`): the FIRST derivative of `pnorm(x, log.p =
+  TRUE)` against the Mills-ratio series degrades smoothly from about
+  `|x| = 1e3`: relative error 4.8e-11 at -1e3, 1.3e-9 at -1e4, 2.0e-5
+  at -1e6, 1.5e-3 at -9.4e6, 0.34 at -1e8, and the derivative is
+  exactly 0 from -1e9 on; it is NaN on 137 of 2001 points within 0.1
+  percent of -4.46e9 (`dev/optima-pnorm-scan.R`). The value is exact
+  to 1e154. Workaround: the probit's `logit_eta` reads the logs at
+  `|eta| <= 1000` only and continues with the tail's leading term
+  (`R/links.R`).
+- Record: `dev/phase3b-rtmb-report-pnorm.md` (filing draft);
+  `dev/optima-findings.md`.
 - Status: not reported (draft ready).
 
 ### RTMB-4. `dnbinom_robust()` gradient in the size is wrong at very large sizes

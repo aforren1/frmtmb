@@ -582,9 +582,18 @@ solve_joint_precision <- function(Q, cache = NULL, fit = NULL) {
   matrix(NaN, nrow(Q), ncol(Q), dimnames = dimnames(Q))
 }
 
-#' One string key per coordinate row, used to match gp() prediction
-#' positions against fitted positions. Defined once so frame assembly
-#' and kriging can never disagree on the separator.
+#' One string key per coordinate row: one `gp()` position. Frame
+#' assembly, the match of a new row to a fitted position and the
+#' grouping of unseen rows into kriged positions (`pred_design()`,
+#' `gp_krig_cov()`, `gp_krig_factor()`) all use it, so the three can
+#' never disagree.
+#'
+#' It is brms's rule, deliberately: `brms:::match_rows()` pastes the
+#' coordinates, so rows equal to 15 significant digits are one position,
+#' on the fitting data and on new data alike (brms 2.23.0 makes 1/3 and
+#' 1/3 * (1 + 2^-52) one position: `dev/ciharden-brmsgp.R`,
+#' `dev/ciharden-rev-brmsgpnew.R`). frmtmb.spline's `sp_row_key()`
+#' compares exactly, so it merges a subset of what this merges.
 #'
 #' @noRd
 pos_rowkey <- function(M) {

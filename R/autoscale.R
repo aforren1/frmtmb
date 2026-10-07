@@ -444,17 +444,30 @@ autoscale_choose <- function(run, control, template, vb = 0L) {
 autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
   u <- fit$par_units
   # the fit-time check (se_check()) built this Hessian already; it is
-  # reused only at the point it was taken
+  # reused only at the point it was taken. Otherwise it is built here,
+  # at the cost sdreport() would pay for it, because sdr_rescue() needs
+  # its noise to tell a row of noise from curvature
   hc <- if (is.environment(fit$cache)) fit$cache$hessian_fixed
+  fresh <- function() {
+    h <- tryCatch(fit_outer_hessian(fit), error = function(e) NULL)
+    if (!is.null(h) && is.environment(fit$cache)) {
+      fit$cache$hessian_fixed <- h
+    }
+    h
+  }
   if (is.null(u) || all(u == 1)) {
-    H <- if (!is.null(hc) && is.null(hc$Hq) &&
-               identical(hc$at, sdr_outer_point(fit$obj))) hc$H
+    at <- sdr_outer_point(fit$obj)
+    if (is.null(hc) || !is.null(hc$Hq) || !identical(hc$at, at)) {
+      hc <- if (length(at)) fresh()
+    }
+    H <- if (!is.null(hc) && is.null(hc$Hq) && identical(hc$at, at)) hc$H
     sdr <- RTMB::sdreport(fit$obj, hessian.fixed = H,
                           getJointPrecision = jp)
     return(sdr_rescue(fit, sdr_name_joint(sdr, fit$obj), H))
   }
   obj <- fit$obj
   q0 <- fit$opt$par / u
+  if (is.null(hc$Hq) || !identical(hc$at, fit$opt$par)) hc <- fresh()
   Hq <- if (!is.null(hc$Hq) && identical(hc$at, fit$opt$par)) hc$Hq else {
     stats::optimHess(q0, function(q) obj$fn(q * u),
                      function(q) obj$gr(q * u) * u)

@@ -6,6 +6,7 @@
 skip_unless_brms_suite()
 
 test_that("brmsterms correctly check fixed auxiliary parameters", {
+  withr::local_seed(38L)
   brms_setup("brmsterms:39",
     bform <- bf(y~1, sigma = 4, family = gaussian)
   )
@@ -48,6 +49,7 @@ test_that("brmsterms correctly check fixed auxiliary parameters", {
 })
 
 test_that("unused variables are correctly incorporated", {
+  withr::local_seed(87L)
   brms_setup("brmsterms:88",
     bterms <- brmsterms(bf(y ~ 1, unused = ~ x))
   )

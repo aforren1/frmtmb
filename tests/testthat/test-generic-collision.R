@@ -31,7 +31,8 @@ brms_shared <- c(
   "loo_compare", "waic", "bayes_R2", "prior_summary", "pp_check",
   "conditional_effects", "conditional_smooths", "expose_functions",
   "autocor",
-  "hypothesis", "parnames",
+  "hypothesis", "parnames", "stancode", "standata", "pp_mixture",
+  "add_criterion",
   "posterior_summary", "LOO", "WAIC", "ngrps", "fixef", "ranef",
   "VarCorr"
 )

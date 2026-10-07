@@ -334,9 +334,27 @@ a simplex of \code{D} non-negative steps summing to one. \code{b} is therefore
 the AVERAGE step, on the coefficient scale of any other predictor,
 and \code{zeta} says how that total is distributed over the categories.
 \code{b} appears in \code{fixef()} under the term's label (\code{mox}, or \code{mox:z}
-for an interaction); the simplex is held as its \code{D - 1} free softmax
-coordinates in a \verb{zeta<j>} component of \code{\link[=par_template]{par_template()}}, and
-\code{summary()} prints those coordinates rather than the simplex.
+for an interaction); the simplex is held as \code{D - 1} free coordinates
+in a \verb{zeta<j>} component of \code{\link[=par_template]{par_template()}}. \code{summary()} reports the
+simplex itself under "Monotonic Simplex Parameters", as brms does,
+with delta-method standard errors and Wald intervals held inside
+\verb{[0, 1]}; \code{confint()}, \code{vcov()} and \code{start} read the coordinates,
+which have no reading of their own.
+
+The coordinates are those of stereographic projection onto the unit
+sphere, whose squared components are the simplex. \code{zeta = 0} is the
+uniform simplex, and every face of the simplex, where a step is 0,
+is at a finite coordinate. A softmax puts a face at an infinite
+coordinate, where the likelihood is flat toward it and an optimizer
+stops short; this parameterization does not, so a step that is 0 at
+the maximum is 0 at the estimate and keeps a finite curvature. After
+the fit, a term whose simplex is on a face is also refitted with its
+scale coefficient held at the other sign, because each sign of \code{b}
+has its own local maximum, and the better of the two is kept
+(\code{frmtmb_control(mo_search = FALSE)} turns that off). The sampler of
+frmtmb.sample does not use these coordinates: it samples the softmax
+under brms's default \code{dirichlet(1)} and reports brms's \code{simo_}
+weights.
 
 Every monotonic TERM gets its own simplex. \code{y ~ mo(x) * z} fits two:
 one shape for the main effect and one for the interaction, because

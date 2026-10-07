@@ -31,7 +31,7 @@ $R    = "C:/Program Files/R/R-4.6.1/bin/Rscript.exe"
 if (-not (Test-Path $R)) { throw "Rscript missing: $R" }
 if ($Dest -eq "") { $Dest = "$ROOT/dev/docsci-site" }
 
-$env:R_LIBS = "C:/Users/adf44/source/r/rellib-r6;C:/Users/adf44/AppData/Local/R/win-library/4.6"
+$env:R_LIBS = "C:/Users/adf44/source/r/rellib-r7;C:/Users/adf44/AppData/Local/R/win-library/4.6"
 $env:NOT_CRAN = "true"
 # StanHeaders 2.39.1 compiles only with the user Makevars C++17 flag, and
 # HOME depends on the launcher, so name the file (dev/tmbstan121-findings.md)

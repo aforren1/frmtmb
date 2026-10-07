@@ -77,7 +77,7 @@ setup	frmtmb.sample	brmsfit-methods:711		TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:713	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:714	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:718	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:719	own	TRUE	FALSE		mixture_probs() needs a mixture() family fit	FALSE
+assert	frmtmb.sample	brmsfit-methods:719	pass	TRUE	FALSE		Method 'pp_mixture' can only be applied to mixture models.	TRUE
 assert	frmtmb.sample	brmsfit-methods:779	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:788		FALSE	FALSE	could not find function "prior_draws"		FALSE
 setup	frmtmb.sample	brmsfit-methods:789		TRUE	FALSE			TRUE

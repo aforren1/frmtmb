@@ -7,7 +7,7 @@
 # writes one line per escaped warning.
 #
 # Usage: Rscript dev/warnleak-scan.R <package> <test file> <out file>
-.libPaths(c("C:/Users/adf44/source/r/rellib-r6",
+.libPaths(c("C:/Users/adf44/source/r/rellib-r7",
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 # inside local(), so no variable of the scan reaches the global
 # environment, where a test could find it by R's lookup rule

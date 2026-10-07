@@ -6,6 +6,7 @@
 skip_unless_brms_suite()
 
 test_that("family functions returns expected results", {
+  withr::local_seed(3L)
   brms_port("families:4", "pass",
     "",
     expect_equal(student(identity)$link, "identity")
@@ -283,6 +284,7 @@ test_that("family functions returns expected results", {
 })
 
 test_that("print brmsfamily works correctly", {
+  withr::local_seed(79L)
   brms_port("families:80", "pass",
     "",
     expect_output(print(weibull()), "Family: weibull \nLink function: log")
@@ -294,6 +296,7 @@ test_that("print brmsfamily works correctly", {
 })
 
 test_that("mixture returns expected results and errors", {
+  withr::local_seed(84L)
   brms_setup("families:85",
     mix <- mixture(gaussian, nmix = 3)
   )
@@ -352,6 +355,7 @@ test_that("mixture returns expected results and errors", {
 })
 
 test_that("response interval is defined correctly", {
+  withr::local_seed(106L)
   brms_port("families:107", "cannot transfer",
     paste0(
       "xbeta() exists now (lane fams2); the row reads brms's ",
@@ -374,6 +378,7 @@ test_that("response interval is defined correctly", {
 })
 
 test_that("distributional parameters are as expected", {
+  withr::local_seed(112L)
   brms_port("families:113", "pass",
     "",
     expect_identical(xbeta()$dpars, c("mu", "phi", "kappa"))
@@ -381,6 +386,7 @@ test_that("distributional parameters are as expected", {
 })
 
 test_that("default priors are as expected", {
+  withr::local_seed(116L)
   brms_port("families:117", "cannot transfer",
     paste0(
       "xbeta() exists now (lane fams2); the row prints $prior, ",
@@ -396,6 +402,7 @@ test_that("default priors are as expected", {
 })
 
 test_that("correct STAN code is used", {
+  withr::local_seed(121L)
   brms_port("families:122", "cannot transfer",
     paste0(
       "xbeta() exists now (lane fams2); the row reads $include, ",

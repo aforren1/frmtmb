@@ -272,7 +272,7 @@ sim_newdata_design <- function(fit, rspec, newdata, allow_new_levels) {
     }
     ed <- lp_eta_design(fit, lp, newdata, TRUE, allow_new_levels)
     # the fixed part, formed exactly as lp_eta_design() forms it
-    xb <- drop(as.matrix(ed[["X"]] %*% est[[lp[["par"]]]][lp[["idx"]]]))
+    xb <- lp_fixed_part(ed[["X"]], est, lp)
     per[[dnm]] <- list(lp = lp, ed = ed, xb = xb)
   }
   n <- nrow(newdata)

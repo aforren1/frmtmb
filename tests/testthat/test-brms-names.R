@@ -458,8 +458,8 @@ test_that("brms's names: r_ repeats are suffixed, merged levels refused", {
 
   # a by-smooth's sds_ drops the ':' that its bs_ keeps, as brms names
   # them; a monotonic scale is bsp_
-  # two smooth sds and a simplex weight sit at 0 on these data, and frm()
-  # says their standard errors are not available
+  # the smooth sds sit at 0 on these data, and frm() may say that
+  # standard errors are not available
   fs <- allow_warnings(
     frm(bf(y ~ s(z, by = f2) + mo(xo)) + gaussian(), data = d),
     "Standard errors are not available")

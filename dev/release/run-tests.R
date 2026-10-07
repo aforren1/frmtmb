@@ -20,7 +20,7 @@ local({
 # FRMTMB_RELLIB puts a library ahead of the release one, for a "before"
 # arm that holds core alone (dev/rel068-mutants.R); the release library
 # stays behind it for the extensions
-LIB <- "C:/Users/adf44/source/r/rellib-r6"
+LIB <- "C:/Users/adf44/source/r/rellib-r7"
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
 }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))

@@ -377,10 +377,22 @@ model_family_names <- function(x, family = NULL) {
 #' test would not be. `inherits = FALSE`, so a user's own masking
 #' definition cannot flip it either way.
 #'
-#' Memoized, because a name that matches nothing loads all fourteen
-#' namespaces to find that out, and this now runs on a path deliberately
-#' cleared of package loading. The answer cannot change within a
+#' Memoized, because a name that matches nothing reads all fourteen
+#' packages to find that out. The answer cannot change within a
 #' session: base-priority packages ship with R and are not replaced.
+#'
+#' A package whose namespace is not loaded is not loaded to answer:
+#' this runs on a path deliberately cleared of package loading, and
+#' loading tcltk on a headless Linux machine warns "no DISPLAY variable
+#' so Tk is not available" into a call that has nothing to do with Tk.
+#' That warning escaped the Ubuntu check of frmtmb.sample on d24f7b86.
+#' Such a package is read from its lazy-load database
+#' (`base_r_objects()`) and decided by `exists()` alone: reading the
+#' value would unserialize a closure whose environment is the package
+#' namespace, and R resolves that reference by loading the package
+#' (`tclVar` loads tcltk, `mle` loads stats4). The cost is that a
+#' non-function object of such a package counts as a function; none of
+#' the registry's call-shaped names is one (`dev/ciharden-regexists.R`).
 #'
 #' @noRd
 base_r_function <- local({
@@ -392,15 +404,41 @@ base_r_function <- local({
               "parallel", "compiler", "datasets", "tcltk")
     ans <- FALSE
     for (p in pkgs) {
-      ns <- tryCatch(asNamespace(p), error = function(e) NULL)
+      ns <- base_r_objects(p)
       if (!is.null(ns) && exists(nm, ns, inherits = FALSE) &&
-            is.function(get(nm, ns))) {
+            (!isNamespace(ns) || is.function(get(nm, ns)))) {
         ans <- TRUE
         break
       }
     }
     seen[[nm]] <- ans
     ans
+  }
+})
+
+#' The objects of a base-priority package without loading it: its
+#' namespace when that is loaded, otherwise its lazy-load database read
+#' into an environment of promises, which runs no `.onLoad()` as long as
+#' no promise is forced (`base_r_function()` only asks `exists()`). NULL
+#' when the package has no database, as `datasets` has none of code.
+#'
+#' @noRd
+base_r_objects <- local({
+  dbs <- new.env(parent = emptyenv())
+  function(p) {
+    if (isNamespaceLoaded(p)) return(asNamespace(p))
+    if (!is.null(dbs[[p]])) return(dbs[[p]])
+    dir <- find.package(p, lib.loc = .Library, quiet = TRUE)
+    base <- file.path(dir, "R", p)
+    if (!length(dir) || !file.exists(paste0(base, ".rdx"))) return(NULL)
+    e <- new.env(parent = emptyenv())
+    ok <- tryCatch({
+      lazyLoad(base, envir = e)
+      TRUE
+    }, error = function(err) FALSE)
+    if (!ok) return(NULL)
+    dbs[[p]] <- e
+    e
   }
 })
 
@@ -598,18 +636,131 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
 #' Retape the fit's objective with priors added; parameters start at the
 #' ML estimates so sampling initializes at (near) the posterior mode.
 #'
+#' A model with `mo()` terms is retaped in softmax coordinates with
+#' brms's `dirichlet(1)` on each simplex (`mo_sample_frame()`); every
+#' other model is retaped as it always was.
+#'
 #' @noRd
 prior_augmented_obj <- function(fit, entries) {
-  nll <- build_objective(fit$frame)
+  nll <- build_objective(mo_sample_frame(fit))
   nlp <- neg_log_prior_fn(entries)
+  snlp <- mo_simplex_nlp(fit)
   tpl <- fit$frame[["par_template"]]
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(tpl[["b"]])) "b",
               if (!is.null(tpl[["miss"]])) "miss")
   if (!length(random)) random <- NULL
-  RTMB::MakeADFun(function(pars) nll(pars) + nlp(pars),
-                  fit$estimates, random = random,
+  fn <- if (is.null(snlp)) {
+    function(pars) nll(pars) + nlp(pars)
+  } else {
+    function(pars) nll(pars) + nlp(pars) + snlp(pars)
+  }
+  RTMB::MakeADFun(fn, mo_sample_pars(fit, fit$estimates), random = random,
                   map = fit$frame[["map"]], silent = TRUE)
+}
+
+# --- mo() simplexes ---------------------------------------------------
+#
+# The fit holds a mo() simplex in the chart of frmtmb's mo_simplex(),
+# whose faces are folds at finite coordinates: right for maximum
+# likelihood, wrong for a sampler. With no density on the coordinates
+# the chart itself is the prior, prod(w)^(-1/2) summed over 2^D sign
+# sheets, which is not integrable at the barycenter: a weakly
+# identified simplex sat there with sd 0 and coordinates near 1e18
+# (dev/optima-rev-sample2-arm.R). brms's dirichlet(1) carried to that
+# chart vanishes on every fold, so its 2^D sheets are walled off from
+# each other: 50 divergences, chains stuck on different sheets (R-hat
+# 8.47). The softmax is one sheet with no fold, and the same prior
+# there samples cleanly. So the sampler runs in softmax coordinates
+# and the draws are carried back to the fit's chart before anything
+# reads them (dev/optima-findings.md, punch round 1).
+
+#' The frame the sampler tapes: the fit's own, or a copy whose `mo()`
+#' simplexes read softmax coordinates.
+#'
+#' @noRd
+mo_sample_frame <- function(fit) {
+  if (!length(mo_frame_terms(fit))) return(fit$frame)
+  mo_chart_frame(fit$frame, "softmax")
+}
+
+#' A parameter list with each `mo()` simplex moved from the fit's chart
+#' to softmax coordinates (a weight at a face starts at 1e-8, since a
+#' face is at an infinite softmax coordinate).
+#'
+#' @noRd
+mo_sample_pars <- function(fit, pars) {
+  for (tm in mo_frame_terms(fit)) {
+    pars[[tm$zeta]] <- mo_coords(mo_simplex(pars[[tm$zeta]]), "softmax")
+  }
+  pars
+}
+
+#' brms's default prior on a `mo()` simplex, `dirichlet(1)`, the uniform
+#' density on the simplex, as a negative log density of the softmax
+#' coordinates: the uniform density times the softmax's Jacobian,
+#' `prod(w)` over all D weights, is `Gamma(D) prod(w)`. `NULL` without
+#' `mo()` terms.
+#'
+#' It is not a prior frm_sample(prior = "flat") turns off: a flat
+#' density on the simplex IS dirichlet(1), and a flat density on the
+#' coordinates instead is `1 / prod(w)` on the simplex, infinite mass at
+#' every face (the softmax arm of dev/optima-rev-sample2-arm.R: every
+#' draw at a vertex, 44 divergences).
+#'
+#' @noRd
+mo_simplex_nlp <- function(fit) {
+  terms <- mo_frame_terms(fit)
+  if (!length(terms)) return(NULL)
+  function(pars) {
+    "c" <- RTMB::ADoverload("c")
+    out <- 0
+    for (tm in terms) {
+      a <- c(0, pars[[tm$zeta]])
+      # log(sum(exp(a))) without overflow on the tape
+      lse <- a[1L]
+      for (k in seq_along(a)[-1L]) lse <- RTMB::logspace_add(lse, a[k])
+      # sum(log w) = sum(a) - D * lse
+      out <- out - (sum(a) - tm$D * lse) - lgamma(tm$D)
+    }
+    out
+  }
+}
+
+#' The draws matrix with each `mo()` simplex's softmax columns carried to
+#' the fit's chart, the coordinates every reader of the draws hands back
+#' to the model (`draws_to_natural()` names them as brms's `simo_`).
+#'
+#' @noRd
+mo_draws_to_chart <- function(m, fit, laplace) {
+  terms <- mo_frame_terms(fit)
+  if (!length(terms)) return(m)
+  pidx <- draws_par_index(fit, laplace = laplace)
+  for (tm in terms) {
+    j <- pidx[[tm$zeta]]
+    if (is.null(j) || max(j) > ncol(m)) next
+    m[, j] <- draws_rowmap(m[, j, drop = FALSE], function(z) {
+      mo_coords(mo_simplex(z, "softmax"))
+    })
+  }
+  m
+}
+
+#' `draws_to_natural()`'s blocks for the `mo()` simplexes, in the shape
+#' of an ordinal block (`draws_ordinal_block()`): the `D - 1` chart
+#' columns become brms's `simo_<label>1[1..D-1]` in place, and
+#' `simo_<label>1[D]` is added right after them (`adjacent`), so each
+#' term's weights sit together in brms's order.
+#'
+#' @noRd
+draws_mo_cols <- function(fit) {
+  lapply(mo_frame_terms(fit), function(tm) {
+    list(internal = paste0(tm$zeta, "_", seq_len(tm$D - 1L)),
+         names = tm$names,
+         map = function(r) mo_simplex(r),
+         inv = function(v) mo_coords(v[seq_len(tm$D)]),
+         adjacent = TRUE)
+  })
 }
 
 # --- non-centered sampling --------------------------------------------
@@ -783,7 +934,7 @@ announce_ncp <- function(plan) {
 #'
 #' @noRd
 ncp_objective <- function(fit, idx, entries) {
-  frame <- fit$frame
+  frame <- mo_sample_frame(fit)
   frame[["ncp_blocks"]] <- idx
   nll <- build_objective(frame)
   fn <- if (length(entries)) {
@@ -792,13 +943,18 @@ ncp_objective <- function(fit, idx, entries) {
   } else {
     nll
   }
+  snlp <- mo_simplex_nlp(fit)
+  if (!is.null(snlp)) {
+    fn0 <- fn
+    fn <- function(pars) fn0(pars) + snlp(pars)
+  }
   tpl <- fit$frame[["par_template"]]
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(tpl[["b"]])) "b",
               if (!is.null(tpl[["miss"]])) "miss")
   if (!length(random)) random <- NULL
-  RTMB::MakeADFun(fn, ncp_start_pars(fit, idx), random = random,
-                  map = fit$frame[["map"]], silent = TRUE)
+  RTMB::MakeADFun(fn, mo_sample_pars(fit, ncp_start_pars(fit, idx)),
+                  random = random, map = fit$frame[["map"]], silent = TRUE)
 }
 
 #' The starting parameter list on the non-centered scale: `z0 = L^-1 b`
@@ -1395,6 +1551,15 @@ default_prior_notes <- function(fit) {
                              paste(ungated, collapse = ", "),
                              " (no LKJ density fits its parameters)"))
   }
+  mo <- mo_frame_terms(fit)
+  if (length(mo)) {
+    notes <- c(notes, paste0(
+      "simo: dirichlet(1), brms's default, on every mo() simplex (",
+      paste(sub("[[]1[]]$", "", vapply(mo, function(t) t$names[1L], "")),
+            collapse = ", "),
+      "); it is the flat density on the simplex, and prior = \"flat\" ",
+      "keeps it"))
+  }
   notes
 }
 
@@ -1869,6 +2034,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 #' | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
 #' | `Intercept` of an ordinal family's `disc` | `normal(0, 1)` | link |
+#' | `simo` (a `mo()` simplex) | `dirichlet(1)` | the simplex |
+#'
+#' A `mo()` simplex is sampled in softmax coordinates under
+#' `dirichlet(1)`, brms's default and the flat density on the simplex,
+#' which `prior = "flat"` therefore keeps; the fit's own coordinates
+#' (see "Monotonic effects" in [frmtmb::frm()]) have folds at the faces
+#' that wall a density off into separate sheets. The draws carry brms's
+#' names, `simo_<term>1[k]`, one column per weight. A `simo` row in
+#' `prior =` is refused: there is no Dirichlet density in
+#' [frmtmb::set_prior()].
 #'
 #' The `disc` default is brms's for every `link_disc` but the identity,
 #' where brms uses `lognormal(0, 1)`, which [frmtmb::set_prior()] does
@@ -2284,7 +2459,21 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     # weaker thing - no prior ADDED to the density the fit maximized -
     # which is fit$obj as it stands
     obj <- prior_augmented_obj(fit, list())
+  } else if (length(mo_frame_terms(fit))) {
+    # fit$obj reads a mo() simplex in the maximum-likelihood chart, which
+    # has no density a sampler can use; the retape samples the softmax
+    # under dirichlet(1). A MAP fit under `.diagnostic` (check_laplace())
+    # keeps the prior it was fitted with, which is taped into fit$obj and
+    # is resolved again for the retape
+    own_entries <- if (isTRUE(.diagnostic) && !is.null(own)) {
+      sample_resolve_priors(fit, NULL, base = own,
+                            defaults = FALSE)$ri$entries
+    }
+    obj <- prior_augmented_obj(fit, own_entries %||% list())
   }
+  # the sampled simplex coordinates are softmax ones exactly when the
+  # objective was retaped (mo_sample_frame())
+  mo_soft <- length(mo_frame_terms(fit)) && !identical(obj, fit$obj)
   if (laplace && "beta" %in% names(obj$env$par)[obj$env$random]) {
     # a REML fit's own objective integrates the coefficients out too.
     # The prior-carrying routes rebuild it without that, but sampled as
@@ -2394,6 +2583,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
   colnames(m) <- stan_names
+  if (mo_soft) m <- mo_draws_to_chart(m, fit, laplace)
   if (length(ncp$idx)) m <- ncp_backtransform(m, fit, ncp$idx)
   # brms reports an unmodeled distributional parameter as the parameter
   # itself: the `sigma` column holds sigma, not log sigma
@@ -2459,6 +2649,19 @@ print.frmtmb_draws <- function(x, ...) {
 #' of them explicitly (`frm_sample(.diagnostic = TRUE)`) rather than
 #' inheriting whatever the default is: a prior nothing in the fit ever
 #' saw would change the very thing being measured.
+#'
+#' One density is added, on a model with `mo()` terms, and it adds
+#' nothing to the comparison: each simplex is sampled in softmax
+#' coordinates under `dirichlet(1)`, the flat density on the simplex, so
+#' that the posterior of the weights is the likelihood the fit maximized
+#' (times a MAP fit's own prior). With no density at all the sampled
+#' coordinates would be the prior, which in softmax coordinates is
+#' `1 / prod(w)` and in the fit's own coordinates is not integrable. The
+#' simplex is compared on the weight scale: its rows are brms's `simo_`
+#' weights, with `ml` and `wald_se` the weights and delta-method errors
+#' `summary()` reports. A weight at 0 or 1 (a face or a vertex of the
+#' simplex) has no Wald error (`NA`) and is reported in a message rather
+#' than flagged.
 #'
 #' That is also why it samples CENTERED on an ordinary fit.
 #' `frm_sample()`'s non-centered
@@ -2527,9 +2730,35 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   keep <- draws_outer_cols(ds)
   ml <- fit$opt$par
   se <- sqrt(diag(sdr_of(fit)$cov.fixed))
+  # A mo() simplex is compared on the weight scale. Its coordinates are
+  # not comparable: the fit's chart has 2^D sheets, and on 106 of 200
+  # simplexes of ls ~ mo(income) * age (seeds 1 to 100) the fit sits on
+  # another sheet than the one draws are carried back to (the review's
+  # dev/optima-rev2-laplace.R). The ML weights and their delta-method
+  # errors are summary()'s (summary_mo_frame()); the draws are the
+  # simo_ columns. The coordinates leave both sides.
+  mo_terms <- mo_frame_terms(fit)
+  mo_tab <- NULL
+  if (length(mo_terms)) {
+    in_mo <- names(ml) %in% vapply(mo_terms, `[[`, "", "zeta")
+    ml <- ml[!in_mo]
+    se <- se[!in_mo]
+    mo_names <- unlist(lapply(mo_terms, `[[`, "names"))
+    keep <- setdiff(keep, mo_names)
+    mo_tab <- summary_mo_frame(fit, 0.95)
+  }
   stopifnot(length(ml) == length(keep))
   post_mean <- colMeans(m[, keep, drop = FALSE])
   post_sd <- apply(m[, keep, drop = FALSE], 2, stats::sd)
+  if (!is.null(mo_tab)) {
+    W <- ds$draws[, mo_names, drop = FALSE]
+    keep <- c(keep, mo_names)
+    ml <- c(ml, mo_tab[, "Estimate"])
+    se <- c(se, mo_tab[, "Est.Error"])
+    post_mean <- c(post_mean, colMeans(W))
+    post_sd <- c(post_sd, apply(W, 2, stats::sd))
+    m <- cbind(m[, setdiff(colnames(m), mo_names), drop = FALSE], W)
+  }
   # the check is only as good as the chain: a short chain that wandered
   # inflates post_sd and reads as "Laplace questionable" when the truth
   # is "chain unusable", so the effective sample size rides along and
@@ -2560,9 +2789,22 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   }
   flagged <- abs(out$z_shift) > 0.5 | out$sd_ratio > 1.5 |
     out$sd_ratio < 2 / 3
+  # a weight at 0 or 1 has no Wald error (summary_mo_frame()), and no
+  # Wald interval to judge: it is a boundary estimate, named as such
+  # paste0() of a prefix and nothing is the prefix, not nothing
+  face <- attr(mo_tab, "face") %||% character(0)
+  if (length(face)) face <- paste0("simo_", face)
+  flagged <- flagged %in% TRUE & !out$parameter %in% face
   if (any(flagged)) {
     frm_message("Laplace/Wald approximation questionable for: ",
                 paste(out$parameter[flagged], collapse = ", "))
+  }
+  if (length(face)) {
+    frm_message("check_laplace(): ", paste(face, collapse = ", "),
+                " sit", if (length(face) == 1L) "s", " at 0 or 1, on the ",
+                "boundary of the simplex, where the Laplace approximation ",
+                "and the Wald error do not apply; read the posterior ",
+                "instead")
   }
   out
 }
@@ -2578,6 +2820,13 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' priors, no non-centering, no named draws. [frm_sample()] is the
 #' route that applies brms's default priors and returns the draws
 #' surface; this one is the escape hatch to tmbstan's own arguments.
+#' A `mo()` simplex is therefore sampled flat in the fit's own
+#' coordinates, with no density on it, and those coordinates fold at the
+#' simplex's faces and have one point at infinity: on a weakly
+#' identified simplex the draws collapse there (to the uniform simplex,
+#' with coordinates near 1e18). The function says so in a message on a
+#' fit with `mo()` terms; [frm_sample()] samples the simplex under
+#' brms's `dirichlet(1)` instead.
 #' `control` means here what it means in [frm_sample()] and in brms,
 #' the sampler's own list, because everything reaches
 #' [tmbstan::tmbstan()] unchanged.
@@ -2644,6 +2893,17 @@ as_tmbstan <- function(fit, ...) {
     frm_stop("as_tmbstan() needs the 'tmbstan' package", call. = FALSE)
   }
   check_tmbstan_build("as_tmbstan()")
+  mo <- mo_frame_terms(fit)
+  if (length(mo)) {
+    frm_message("as_tmbstan(): the mo() simplex ",
+                paste(sub("[[]1[]]$", "", vapply(mo, function(t) {
+                  t$names[1L]
+                }, "")), collapse = ", "),
+                " has no density on this route and is sampled flat in ",
+                "the fit's own coordinates, which a weakly identified ",
+                "simplex collapses in. frm_sample() samples it under ",
+                "brms's dirichlet(1)")
+  }
   sf <- tmbstan::tmbstan(fit$obj, ...)
   check_stan_draws(sf, "as_tmbstan()")
   sf

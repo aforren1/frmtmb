@@ -226,8 +226,10 @@ Your `.libPaths()` therefore has two entries, your own library first:
   from the checkout in its workflow and listed in `paths:`.
   `tests/testthat/test-ci-siblings.R` asserts both.
 - **You cannot `local_mocked_bindings()` a generic frmtmb or
-  frmtmb.sample binds to its owner.** 56 exported names at 0.67.0,
-  29 in frmtmb and 27 in frmtmb.sample (55 at 0.66.0, counted with
+  frmtmb.sample binds to its owner.** 57 exported names at 0.69.0
+  (lane surface, rechecked on the merged build), 33 in frmtmb and 24
+  in frmtmb.sample (56 at
+  0.67.0 and 0.68.1, 29 and 27; 55 at 0.66.0; counted with
   `bindingIsActive()` over each namespace's exports), are ACTIVE
   bindings installed by `frm_install_generics()`. Assigning to an
   active binding CALLS its function with the value, and that function
@@ -392,6 +394,15 @@ own work rather than in review.
   `test-data2.R` and `test-id-kron.R` fail that way, and the failures
   are the runner's, not the package's. Call
   `library(p, character.only = TRUE)` before `test_file()`.
+
+## Added after the 0.69.0 round
+
+- **An OpenBLAS pass is `dev/ciharden-openblas.sh <ver> lapack`**, so
+  that LAPACK is routed to OpenBLAS too, as on the ubuntu runners.
+  `dev/optima-openblas.sh` and `dev/cifix-openblas.sh` route BLAS only
+  and keep R's reference LAPACK; lane optima's pass with the first
+  could not show the two failures the 0.69.0 merged tree has under
+  OpenBLAS LAPACK (`dev/reviews/2026-10-07-release.md`, B1).
 
 
 ## Cost, which is a real constraint

@@ -47,7 +47,13 @@ name: brms-tiers
 
 jobs:
   brms-tiers:
-    runs-on: ubuntu-latest
+    # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
+    # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
+    # When it moves, add the image to the Stan cache prefix below in the
+    # same commit (as ubuntu-next.yaml's stan-next job does), or the
+    # first run restores 24.04 programs and never compiles with the new
+    # g++.
+    runs-on: ubuntu-24.04
     # Measured on the Windows development box: the identity tier needs
     # 24 Stan programs at 55 to 70 s each, and a run from an empty cache
     # took 24.6 minutes end to end. The methods tier reuses 22 of those

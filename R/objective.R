@@ -153,6 +153,121 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   ll
 }
 
+#' The simplex of a `mo()` term from its `D - 1` free coordinates `z`.
+#'
+#' `z` is a point of the plane that stereographic projection maps onto
+#' the unit sphere in `D` dimensions, and the simplex is the squared
+#' coordinates of that sphere point, `w = u^2`. The projection's pole is
+#' `-(1, ..., 1) / sqrt(D)`, so `z = 0` is the barycenter, the start a
+#' softmax at zero also gave.
+#'
+#' Why not the softmax, `w = exp(c(0, z)) / sum(.)`: a weight of 0 is
+#' at an infinite coordinate there, and the gradient toward a vertex is
+#' of the order of the weight that remains. A fit whose simplex runs to
+#' a vertex stops on that plateau with code 0, wherever the likelihood
+#' still rises: on brms_monotonic's `ls ~ mo(income) * age`, 84 of 200
+#' data sets stopped more than 1e-6 below the exact maximum, 53 by more
+#' than 0.01 and up to 1.95 (dev/optima-findings.md). Here every face
+#' of the simplex is at a finite point, `u_j = 0`, where `w_j = u_j^2`
+#' folds: the likelihood is quadratic in `u_j` there, with curvature
+#' twice the derivative along the face's normal, so a face the
+#' likelihood should leave is a saddle the optimizer leaves, and a face
+#' that is the maximum is an ordinary minimum of the objective with a
+#' finite Hessian. The one point at infinity is the pole, whose image
+#' is the barycenter; `mo_search()` brings a fit that drifted toward it
+#' back to the chart near zero.
+#'
+#' `chart = "softmax"` is the sampler's: frmtmb.sample sets it on its
+#' own copy of the frame (`mo_chart_frame()`). A sampler needs a density
+#' on the coordinates, and the folds `u_j = 0` that serve the optimizer
+#' are zeros of this chart's Jacobian, so a uniform density on the
+#' simplex is walls of zero density between the chart's `2^D` sheets,
+#' which chains do not cross. The softmax is one sheet with no fold.
+#'
+#' @noRd
+mo_simplex <- function(z, chart = NULL) {
+  if (identical(chart, "softmax")) {
+    "c" <- RTMB::ADoverload("c")
+    e <- exp(c(0, z))
+    return(e / sum(e))
+  }
+  D <- length(z) + 1L
+  P <- -1 / sqrt(D)
+  r2 <- sum(z * z)
+  u <- (2 * as.vector(mo_sphere_basis(D) %*% z) + (r2 - 1) * P) / (r2 + 1)
+  w <- u * u
+  # one division keeps the weights summing to 1 to rounding, as the
+  # softmax's did; the top category reads D * sum(w)
+  w / sum(w)
+}
+
+#' An orthonormal basis of the plane orthogonal to `(1, ..., 1)`, the
+#' `D x (D - 1)` matrix `mo_simplex()` projects through.
+#'
+#' @noRd
+mo_sphere_basis <- function(D) {
+  H <- stats::contr.helmert(D)
+  sweep(H, 2L, sqrt(colSums(H^2)), "/")
+}
+
+#' The coordinates `mo_simplex()` maps to the simplex `w`, taken on the
+#' sheet with every `u_j = sqrt(w_j) >= 0`. That sheet lies inside the
+#' unit ball of the coordinates, so these are the canonical coordinates
+#' of `w`: every other preimage differs by the sign of some `u_j`, and
+#' lies farther out.
+#'
+#' `chart = "softmax"` gives the log ratios to the first weight, with
+#' every weight held at `floor` or above first, because a face is at an
+#' infinite softmax coordinate and a sampler's start must be finite.
+#'
+#' @noRd
+mo_coords <- function(w, chart = NULL, floor = 1e-8) {
+  if (identical(chart, "softmax")) {
+    w <- pmax(w, floor)
+    return(log(w[-1L] / w[1L]))
+  }
+  D <- length(w)
+  u <- sqrt(pmax(w, 0) / sum(pmax(w, 0)))
+  as.numeric(crossprod(mo_sphere_basis(D), u)) / (1 + sum(u) / sqrt(D))
+}
+
+#' A copy of `frame` whose `mo()` simplexes read their coordinates in
+#' `chart` (see `mo_simplex()`). The objective built from it is the
+#' same model in other coordinates; `mo_frame_terms()` lists where the
+#' coordinates sit.
+#'
+#' @noRd
+mo_chart_frame <- function(frame, chart = "softmax") {
+  for (k in seq_along(frame[["linpreds"]])) {
+    mos <- frame[["linpreds"]][[k]][["mo"]]
+    if (!length(mos)) next
+    for (j in seq_along(mos)) mos[[j]][["chart"]] <- chart
+    frame[["linpreds"]][[k]][["mo"]] <- mos
+  }
+  frame
+}
+
+#' Every `mo()` term of a frame: its simplex component, `D`, and the
+#' names brms gives its simplex, `simo<prefix>_<label>1[k]`, after
+#' brms's `rename_sp()`, where the prefix is that of the term's
+#' predictor (`_sigma` for a simplex in sigma's formula, empty in mu's).
+#'
+#' @noRd
+mo_frame_terms <- function(fit) {
+  out <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    pre <- brms_lp_prefix(fit, lp)
+    for (mi in lp[["mo"]] %||% list()) {
+      lab <- brms_rename(mi[["label"]])
+      nm <- paste0("simo", if (nzchar(pre)) paste0("_", pre), "_", lab,
+                   "1[", seq_len(mi[["D"]]), "]")
+      out[[length(out) + 1L]] <- list(zeta = mi[["zeta"]], D = mi[["D"]],
+                                      names = nm)
+    }
+  }
+  out
+}
+
 #' The part of one linear predictor that the random-effect coefficients
 #' do not enter: `X beta`, the offset, and the `mo()`, `mi()` and `me()`
 #' terms.
@@ -199,8 +314,7 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
   # monotonic terms: scale coefficient (in beta, zero X column)
   # times D * cumulative simplex at the observed category
   for (mi in lp[["mo"]] %||% list()) {
-    zeta <- exp(c(0, pars[[mi$zeta]]))
-    zeta <- zeta / sum(zeta)
+    zeta <- mo_simplex(pars[[mi$zeta]], mi[["chart"]])
     cz0 <- c(0, cumsum(zeta))
     term <- mi$D * cz0[mi$codes + 1L]
     if (!is.null(mi$mult)) term <- term * mi$mult

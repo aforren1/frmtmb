@@ -29,6 +29,7 @@ nsubjects <- 8
 nvisits <- 4
 
 test_that("autocor has reasonable ouputs", {
+  withr::local_seed(111L)
   brms_port("brmsfit-methods:112", "pass",
     "",
     expect_true(is.null(SW(autocor(fit1))))
@@ -40,6 +41,7 @@ test_that("autocor has reasonable ouputs", {
 })
 
 test_that("conditional_effects has reasonable ouputs", {
+  withr::local_seed(149L)
   brms_setup("brmsfit-methods:150",
     me <- conditional_effects(fit1, resp = "count")
   )
@@ -276,6 +278,7 @@ test_that("conditional_effects has reasonable ouputs", {
 })
 
 test_that("conditional_smooths has reasonable ouputs", {
+  withr::local_seed(267L)
   brms_setup("brmsfit-methods:268",
     ms <- conditional_smooths(fit1)
   )
@@ -313,6 +316,7 @@ test_that("conditional_smooths has reasonable ouputs", {
 })
 
 test_that("family has reasonable ouputs", {
+  withr::local_seed(281L)
   brms_port("brmsfit-methods:282", "divergence",
     paste0(
       "family(fit) is a frmtmb_family, not a brmsfamily brms's ",
@@ -339,6 +343,7 @@ test_that("family has reasonable ouputs", {
 })
 
 test_that("fitted has reasonable outputs", {
+  withr::local_seed(288L)
   skip_on_cran()
   brms_setup("brmsfit-methods:291",
     fi <- fitted(fit1)
@@ -421,15 +426,8 @@ test_that("fitted has reasonable outputs", {
     "",
     expect_equal(dim(fi), c(nobs(fit1), 4))
   )
-  brms_port("brmsfit-methods:326", "cannot transfer",
-    paste0(
-      "fitted(fit1, dpar = 'sigma') is brms's four-column summary ",
-      "now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN ",
-      "standard errors), so the Est.Error and the two Q columns ",
-      "are NA and all(fi > 0) is NA rather than TRUE. The Estimate ",
-      "column is positive, which is what the assertion is about; ",
-      "brms's fixture converged. A converged stand-in would ",
-      "transfer it (dev/brmsport-findings.md section 3)"),
+  brms_port("brmsfit-methods:326", "pass",
+    "",
     expect_true(all(fi > 0))
   )
   brms_setup("brmsfit-methods:327",
@@ -538,6 +536,7 @@ test_that("fitted has reasonable outputs", {
 })
 
 test_that("fixef has reasonable ouputs", {
+  withr::local_seed(362L)
   brms_setup("brmsfit-methods:363",
     fixef1 <- SM(fixef(fit1))
   )
@@ -558,6 +557,7 @@ test_that("fixef has reasonable ouputs", {
 })
 
 test_that("formula has reasonable ouputs", {
+  withr::local_seed(372L)
   brms_port("brmsfit-methods:373", "divergence",
     paste0(
       "is.brmsformula(formula(fit1)): brms's class name; frmtmb ",
@@ -568,6 +568,7 @@ test_that("formula has reasonable ouputs", {
 })
 
 test_that("hypothesis has reasonable ouputs", {
+  withr::local_seed(387L)
   brms_setup("brmsfit-methods:388",
     hyp <- hypothesis(fit1, c("Age > Trt1", "Trt1:Age = -1"))
   )
@@ -692,6 +693,7 @@ test_that("hypothesis has reasonable ouputs", {
 })
 
 test_that("model.frame has reasonable ouputs", {
+  withr::local_seed(566L)
   brms_port("brmsfit-methods:567", "pass",
     "",
     expect_equal(model.frame(fit1), fit1$data)
@@ -699,6 +701,7 @@ test_that("model.frame has reasonable ouputs", {
 })
 
 test_that("ngrps has reasonable ouputs", {
+  withr::local_seed(583L)
   brms_port("brmsfit-methods:584", "pass",
     "",
     expect_equal(ngrps(fit1), list(visit = 4))
@@ -710,6 +713,7 @@ test_that("ngrps has reasonable ouputs", {
 })
 
 test_that("nobs has reasonable ouputs", {
+  withr::local_seed(588L)
   brms_port("brmsfit-methods:589", "pass",
     "",
     expect_equal(nobs(fit1), nobs)
@@ -717,6 +721,7 @@ test_that("nobs has reasonable ouputs", {
 })
 
 test_that("plot has reasonable outputs", {
+  withr::local_seed(603L)
   brms_port("brmsfit-methods:604", "cannot transfer",
     paste0(
       "brms's plot() of a fit draws posterior trace and density ",
@@ -746,6 +751,7 @@ test_that("plot has reasonable outputs", {
 })
 
 test_that("pp_check has reasonable outputs", {
+  withr::local_seed(673L)
   brms_port("brmsfit-methods:674", "pass",
     "",
     expect_ggplot(pp_check(fit1))
@@ -835,6 +841,7 @@ test_that("pp_check has reasonable outputs", {
 })
 
 test_that("predict has reasonable outputs", {
+  withr::local_seed(724L)
   brms_setup("brmsfit-methods:725",
     pred <- predict(fit1)
   )
@@ -964,6 +971,7 @@ test_that("predict has reasonable outputs", {
 })
 
 test_that("print has reasonable outputs", {
+  withr::local_seed(783L)
   brms_port("brmsfit-methods:784", "pass",
     "",
     expect_output(SW(print(fit1)), "Multilevel Hyperparameters:")
@@ -971,6 +979,7 @@ test_that("print has reasonable outputs", {
 })
 
 test_that("prior_summary has reasonable outputs", {
+  withr::local_seed(805L)
   brms_port("brmsfit-methods:806", "divergence",
     paste0(
       "prior_summary(fit) is frmtmb's prior table, not a brmsprior ",
@@ -981,6 +990,7 @@ test_that("prior_summary has reasonable outputs", {
 })
 
 test_that("ranef has reasonable outputs", {
+  withr::local_seed(809L)
   brms_setup("brmsfit-methods:810",
     ranef1 <- SM(ranef(fit1))
   )
@@ -1020,6 +1030,7 @@ test_that("ranef has reasonable outputs", {
 })
 
 test_that("residuals has reasonable outputs", {
+  withr::local_seed(823L)
   brms_setup("brmsfit-methods:824",
     res1 <- SW(residuals(fit1, type = "pearson", probs = c(0.65)))
   )
@@ -1078,6 +1089,7 @@ test_that("residuals has reasonable outputs", {
 })
 
 test_that("summary has reasonable outputs", {
+  withr::local_seed(885L)
   brms_setup("brmsfit-methods:886",
     summary1 <- SW(summary(fit1, priors = TRUE))
   )
@@ -1141,6 +1153,7 @@ test_that("summary has reasonable outputs", {
 })
 
 test_that("update has reasonable outputs", {
+  withr::local_seed(907L)
   brms_setup("brmsfit-methods:913",
     up <- update(fit1, testmode = TRUE)
   )
@@ -1306,6 +1319,7 @@ test_that("update has reasonable outputs", {
 })
 
 test_that("variables has reasonable ouputs", {
+  withr::local_seed(977L)
   brms_port("brmsfit-methods:978", "divergence",
     paste0(
       "variables(fit) lists an ML fit's parameters; simo_, r_ and ",
@@ -1344,6 +1358,7 @@ test_that("variables has reasonable ouputs", {
 })
 
 test_that("vcov has reasonable outputs", {
+  withr::local_seed(998L)
   brms_port("brmsfit-methods:999", "pass",
     "",
     expect_equal(dim(vcov(fit1)), c(9, 9))
@@ -1355,6 +1370,7 @@ test_that("vcov has reasonable outputs", {
 })
 
 test_that("contrasts of grouping factors are not stored #214", {
+  withr::local_seed(1034L)
   brms_port("brmsfit-methods:1035", "pass",
     "",
     expect_true(is.null(attr(fit1$data$patient, "contrasts")))

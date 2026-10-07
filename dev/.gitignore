@@ -61,3 +61,8 @@ release/check-*/
 !/brmssuite-classified.tsv
 !/suite-baseline.tsv
 !/win-library-4.6-manifest-2026-09-28.csv
+
+# Compiled probes (a lane review built one with gcc): binaries never
+# belong in the repository; the repository keeps the .c source.
+*.dll
+*.o

@@ -18,6 +18,7 @@ frmtmb_control(
   importance_seed = 1L,
   importance_rounds = 5L,
   importance_ess = 0.25,
+  mo_search = TRUE,
   verbose = NULL
 )
 }
@@ -168,7 +169,8 @@ reuses, when the model has at most 10 outer parameters or those
 gradients are at most a quarter of the objective and gradient
 evaluations the optimizer made. Otherwise the check waits for the
 first standard-error use (\code{summary()}, \code{fixef()}, \code{vcov()},
-\code{confint()}, a prediction's standard error) and warns there. The
+\code{confint()}, a prediction's standard error) and warns there; under
+\code{"stop"} it does not wait, so that \code{\link[=frm]{frm()}} itself stops. The
 rule counts work and does not read the clock, so the same call warns
 in the same place on any machine. Measured against \code{"ignore"}: 8 to
 23 percent on seven small models and on mixed models with 14 to 23
@@ -177,13 +179,25 @@ and 3 percent or less on mixed models with 42 to 403 outer
 parameters, where the check waited. \code{"ignore"} skips it. The
 warning names each parameter and the reason: a bound holds it, the
 data separate the outcomes, the likelihood is flat along it (a
-standard deviation or a \code{mo()} simplex weight at 0, parameters that
-enter only through a combination), a step along it raises the
+standard deviation at 0, a \code{mo()} simplex split by a category no
+row is in, parameters that enter only through a combination), a
+step along it raises the
 log-likelihood, or its Hessian row is not finite. The other
 parameters keep their standard errors, and a prediction, emmean or
 \code{\link[=hypothesis]{hypothesis()}} that moves along a lost direction gets none, with
 one warning per call. A fit that did not converge warns about that
-instead.}
+instead. A covariance parameter at the edge of its parameter space
+(a group standard deviation at zero, a correlation or mixing
+parameter at its limit) is reported as lme4 reports a singular fit,
+with a message, "Boundary (singular) fit", of class
+\code{frmtmb_boundary_fit}; \code{"stop"} makes it an error too. When the
+optimizer stops with a non-zero code there (nlminb's "singular
+convergence") but the gradient is within \code{grad_tol} and every lost
+parameter is at its edge, the fit gets this message and not the
+convergence warning, as lme4's checkConv() does. A smooth,
+\code{gp()} or \code{hsgp()} term at its own limit loses those standard errors
+without a message, as mgcv reports a smoothing parameter at
+infinity.}
 
 \item{importance_seed}{Seed for the standard normal draws of
 \code{frm(importance =)}. The draws are taken from a private random
@@ -219,6 +233,19 @@ a unit takes its worst group to \code{0.03}. The designs the warning is
 FOR sit between the two, and draws are what move them: a correlated
 slope in \code{mu} plus a \code{sigma} block over 12 groups of 10 rows holds
 a worst group of \code{0.17} at 500 draws and \code{0.40} at 2000.}
+
+\item{mo_search}{After the fit, refit each \code{mo()} term whose simplex
+has a weight at 0 with its scale coefficient held at the other sign,
+and keep the better fit (see "Monotonic effects" in \code{\link[=frm]{frm()}}). Each
+sign of the coefficient has its own local maximum, and on
+brms_monotonic's \code{ls ~ mo(income) * age} the search took the fits
+at the maximum likelihood from 174 of 200 data sets to 199. It
+costs up to two refits of the whole model per such term, and so
+grows with the model: with it the fit took 2.0 times the objective
+evaluations it took without it on that model, and 3.3 to 3.8 times
+those of frmtmb 0.68.1 on a model of 5000 rows with a random
+intercept over 100 groups. \code{FALSE} turns it off. A model without
+\code{mo()} terms is not affected.}
 
 \item{verbose}{Report fit progress through \code{\link[=message]{message()}}, one terse
 line per stage with its elapsed seconds, so a slow fit shows where

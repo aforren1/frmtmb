@@ -292,9 +292,27 @@
 #' the AVERAGE step, on the coefficient scale of any other predictor,
 #' and `zeta` says how that total is distributed over the categories.
 #' `b` appears in `fixef()` under the term's label (`mox`, or `mox:z`
-#' for an interaction); the simplex is held as its `D - 1` free softmax
-#' coordinates in a `zeta<j>` component of [par_template()], and
-#' `summary()` prints those coordinates rather than the simplex.
+#' for an interaction); the simplex is held as `D - 1` free coordinates
+#' in a `zeta<j>` component of [par_template()]. `summary()` reports the
+#' simplex itself under "Monotonic Simplex Parameters", as brms does,
+#' with delta-method standard errors and Wald intervals held inside
+#' `[0, 1]`; `confint()`, `vcov()` and `start` read the coordinates,
+#' which have no reading of their own.
+#'
+#' The coordinates are those of stereographic projection onto the unit
+#' sphere, whose squared components are the simplex. `zeta = 0` is the
+#' uniform simplex, and every face of the simplex, where a step is 0,
+#' is at a finite coordinate. A softmax puts a face at an infinite
+#' coordinate, where the likelihood is flat toward it and an optimizer
+#' stops short; this parameterization does not, so a step that is 0 at
+#' the maximum is 0 at the estimate and keeps a finite curvature. After
+#' the fit, a term whose simplex is on a face is also refitted with its
+#' scale coefficient held at the other sign, because each sign of `b`
+#' has its own local maximum, and the better of the two is kept
+#' (`frmtmb_control(mo_search = FALSE)` turns that off). The sampler of
+#' frmtmb.sample does not use these coordinates: it samples the softmax
+#' under brms's default `dirichlet(1)` and reports brms's `simo_`
+#' weights.
 #'
 #' Every monotonic TERM gets its own simplex. `y ~ mo(x) * z` fits two:
 #' one shape for the main effect and one for the interaction, because
@@ -854,6 +872,9 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   attr(frame, "se_explained") <- check_re_structure(spec, frame, control)
   suggest_bernoulli(spec, frame)
   if (identical(dry_run, "frame")) return(frame)
+  # a prior update() carried over from the original fit, marked as
+  # brms marks it: what the new model cannot take is dropped here
+  prior <- prior_drop_unmatched(prior, spec, frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = NULL, upper = NULL,
@@ -1304,6 +1325,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (is.null(imp)) {
     opt <- escape_stationary(obj, opt, frame, ctl_opt, bounds, par_units,
                              verbose = vb, tally = tally)
+    # a control list built before the option existed has no entry
+    if (!isFALSE(ctl_opt$mo_search)) {
+      opt <- mo_search(obj, opt, frame, ctl_opt, bounds, par_units,
+                       verbose = vb, tally = tally)
+    }
   }
 
   # Estimates come cheaply from the parameter list at the optimum;
@@ -1361,20 +1387,21 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
   }
+  # the box the optimizer ran under, which is the caller's bounds MERGED
+  # with any a prior spelled; fit$lower and fit$upper hold only the
+  # former, and the convergence check needs both (fit_outer_box()), as
+  # does the standard-error analysis nl_flat_message() asks for
+  fit$cache$bounds <- bounds
   # on the user's own call only: a refit, the autoscale pre-fit or a
   # bootstrap replicate would repeat it
   if (announce_start && is.null(imp) && is.null(integrate)) {
-    flat_msg <- nl_flat_message(obj, opt, frame)
+    flat_msg <- nl_flat_message(obj, opt, frame, fit)
     if (!is.null(flat_msg)) {
       frm_warning(flat_msg, call. = FALSE)
       # explains every lost parameter but a bound-held one (se_report())
       fit$cache$se_explained <- "nl_flat"
     }
   }
-  # the box the optimizer ran under, which is the caller's bounds MERGED
-  # with any a prior spelled; fit$lower and fit$upper hold only the
-  # former, and the convergence check needs both (fit_outer_box())
-  fit$cache$bounds <- bounds
   if (se) {
     if (vb) t0 <- vb_now()
     fit$cache$sdr <- autoscale_sdreport(fit)
@@ -1817,7 +1844,8 @@ sdr_of <- function(fit) {
 #'   gradients are at most a quarter of the objective and gradient
 #'   evaluations the optimizer made. Otherwise the check waits for the
 #'   first standard-error use (`summary()`, `fixef()`, `vcov()`,
-#'   `confint()`, a prediction's standard error) and warns there. The
+#'   `confint()`, a prediction's standard error) and warns there; under
+#'   `"stop"` it does not wait, so that [frm()] itself stops. The
 #'   rule counts work and does not read the clock, so the same call warns
 #'   in the same place on any machine. Measured against `"ignore"`: 8 to
 #'   23 percent on seven small models and on mixed models with 14 to 23
@@ -1826,13 +1854,25 @@ sdr_of <- function(fit) {
 #'   parameters, where the check waited. `"ignore"` skips it. The
 #'   warning names each parameter and the reason: a bound holds it, the
 #'   data separate the outcomes, the likelihood is flat along it (a
-#'   standard deviation or a `mo()` simplex weight at 0, parameters that
-#'   enter only through a combination), a step along it raises the
+#'   standard deviation at 0, a `mo()` simplex split by a category no
+#'   row is in, parameters that enter only through a combination), a
+#'   step along it raises the
 #'   log-likelihood, or its Hessian row is not finite. The other
 #'   parameters keep their standard errors, and a prediction, emmean or
 #'   [hypothesis()] that moves along a lost direction gets none, with
 #'   one warning per call. A fit that did not converge warns about that
-#'   instead.
+#'   instead. A covariance parameter at the edge of its parameter space
+#'   (a group standard deviation at zero, a correlation or mixing
+#'   parameter at its limit) is reported as lme4 reports a singular fit,
+#'   with a message, "Boundary (singular) fit", of class
+#'   `frmtmb_boundary_fit`; `"stop"` makes it an error too. When the
+#'   optimizer stops with a non-zero code there (nlminb's "singular
+#'   convergence") but the gradient is within `grad_tol` and every lost
+#'   parameter is at its edge, the fit gets this message and not the
+#'   convergence warning, as lme4's checkConv() does. A smooth,
+#'   `gp()` or `hsgp()` term at its own limit loses those standard errors
+#'   without a message, as mgcv reports a smoothing parameter at
+#'   infinity.
 #' @param importance_seed Seed for the standard normal draws of
 #'   `frm(importance =)`. The draws are taken from a private random
 #'   stream, so the fit neither reads nor disturbs the session's random
@@ -1865,6 +1905,18 @@ sdr_of <- function(fit) {
 #'   FOR sit between the two, and draws are what move them: a correlated
 #'   slope in `mu` plus a `sigma` block over 12 groups of 10 rows holds
 #'   a worst group of `0.17` at 500 draws and `0.40` at 2000.
+#' @param mo_search After the fit, refit each `mo()` term whose simplex
+#'   has a weight at 0 with its scale coefficient held at the other sign,
+#'   and keep the better fit (see "Monotonic effects" in [frm()]). Each
+#'   sign of the coefficient has its own local maximum, and on
+#'   brms_monotonic's `ls ~ mo(income) * age` the search took the fits
+#'   at the maximum likelihood from 174 of 200 data sets to 199. It
+#'   costs up to two refits of the whole model per such term, and so
+#'   grows with the model: with it the fit took 2.0 times the objective
+#'   evaluations it took without it on that model, and 3.3 to 3.8 times
+#'   those of frmtmb 0.68.1 on a model of 5000 rows with a random
+#'   intercept over 100 groups. `FALSE` turns it off. A model without
+#'   `mo()` terms is not affected.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -1952,13 +2004,14 @@ frmtmb_control <- function(optimizer = "nlminb",
                            check_olre = c("warning", "ignore", "stop"),
                            check_se = c("warning", "ignore", "stop"),
                            importance_seed = 1L, importance_rounds = 5L,
-                           importance_ess = 0.25,
+                           importance_ess = 0.25, mo_search = TRUE,
                            verbose = NULL) {
   # The three flags below reach isTRUE() later, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
   # mistake instead of quietly turning the option off.
   check_flag(profile, "profile")
   check_flag(sparse_x, "sparse_x")
+  check_flag(mo_search, "mo_search")
   # NULL is the default rule (autoscale_decide()), not a third flag value
   if (!is.null(autoscale)) check_flag(autoscale, "autoscale")
   check_count(restarts, "restarts", min = 0L)
@@ -2000,7 +2053,7 @@ frmtmb_control <- function(optimizer = "nlminb",
        check_se = frm_match_arg(check_se),
        importance_seed = as.integer(importance_seed),
        importance_rounds = as.integer(importance_rounds),
-       importance_ess = importance_ess,
+       importance_ess = importance_ess, mo_search = isTRUE(mo_search),
        verbose = verbose)
 }
 
@@ -2121,14 +2174,27 @@ check_re_structure <- function(spec, frame, control) {
 #' across its restarts, and a run that raises (and is retried from its
 #' best point) never returns a result that could carry its count.
 #'
+#' It also remembers the last point tried and the best finite one, for
+#' `nlminb_best_par()`.
+#'
 #' @noRd
 nlminb_trial_fn <- function(fn, tally = NULL) {
   n_eval <- 0L
   n_mapped <- 0L
+  last_par <- NULL
+  last_val <- NA_real_
+  best_par <- NULL
+  best_val <- Inf
   list(
     fn = function(par) {
       v <- fn(par)
       n_eval <<- n_eval + 1L
+      last_par <<- par
+      last_val <<- if (length(v) == 1L) as.numeric(v) else NA_real_
+      if (length(v) == 1L && is.finite(v) && v < best_val) {
+        best_val <<- as.numeric(v)
+        best_par <<- par
+      }
       if (n_eval > 1L && length(v) == 1L && is.nan(v)) {
         n_mapped <<- n_mapped + 1L
         if (!is.null(tally)) tally$n <- tally$n + 1L
@@ -2136,8 +2202,38 @@ nlminb_trial_fn <- function(fn, tally = NULL) {
       }
       v
     },
-    count = function() n_mapped
+    count = function() n_mapped,
+    last = function() list(par = last_par, val = last_val),
+    best = function() list(par = best_par, val = best_val)
   )
+}
+
+#' The point nlminb's result should report.
+#'
+#' When PORT stops on a trial it rejected (a mapped NaN or an infinite
+#' objective, typically with "false convergence (8)"), `par` is that
+#' trial while `objective` is the best value seen, so the two describe
+#' different points. Every caller reads the estimates off `par`, and
+#' frm()'s restart starts from it: on a cs() ordinal mixture whose
+#' thresholds crossed at the last trial the restart's first gradient
+#' was NaN and the fit died with "NA/NaN gradient evaluation" (7 of 20
+#' seeds, dev/optima-csmix.R). The best finite point replaces `par`
+#' only when `par` is the rejected last trial, so a run that ended on a
+#' finite point is returned as it was.
+#'
+#' @noRd
+nlminb_best_par <- function(res, fnw) {
+  last <- fnw$last()
+  best <- fnw$best()
+  if (is.null(last$par) || is.null(best$par) || is.finite(last$val) ||
+        !identical(unname(as.numeric(res$par)),
+                   unname(as.numeric(last$par)))) {
+    return(res)
+  }
+  res$par <- stats::setNames(as.numeric(best$par), names(res$par))
+  res$objective <- best$val
+  res$rejected_last <- TRUE
+  res
 }
 
 #' One optimizer invocation, normalized to nlminb's result shape.
@@ -2165,6 +2261,10 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
                            scale = if (is.null(par_units)) 1 else
                              1 / par_units,
                            lower = lower, upper = upper)
+      res <- nlminb_best_par(res, fnw)
+      # the objective's state (its last point, and with random effects
+      # their inner modes, which parList() reads) is the rejected trial's
+      if (isTRUE(res$rejected_last)) fn(res$par)
       res$nonfinite_trials <- fnw$count()
       res
     },
@@ -2603,6 +2703,7 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   # into no tally, so `tally$n` alone is the escape's own trials and
   # would REPLACE a quadrature fit's total with a smaller number
   n_before <- if (is.null(tally)) 0L else tally$n
+  saved <- obj_state_save(obj)
   best <- opt
   for (p in starts) {
     p <- pmin(pmax(p, bounds$lower), bounds$upper)
@@ -2614,6 +2715,11 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
       best <- o
     }
   }
+  # the random effects' modes are read from the objective's last point:
+  # skew_normal() with (1 | g) reported modes up to 0.143 away from its
+  # optimum's on 5 of the 14 escapes of seeds 1 to 40
+  # (dev/optima-rev-escape.R)
+  obj_settle(obj, opt, best, saved)
   # recorded whenever the escape RAN, gain or no gain: a fit that paid
   # for two restarts and kept its own optimum is the measurement that
   # says what the fallback costs
@@ -2635,6 +2741,197 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   }
   best
 }
+
+#' Leave the objective at the optimum a fit keeps after trying others.
+#'
+#' The objective remembers its last point and its best one, and the fit
+#' reads both afterwards: `parList()` takes the random effects' inner
+#' modes from the last, `sdreport()` its point from the best. When the
+#' kept optimum is the one the tries started from, the state saved
+#' before them (`saved`) is put back as it was; otherwise the objective
+#' is evaluated at the kept point, which makes that point the last one,
+#' and it is made the best one too.
+#'
+#' @noRd
+obj_settle <- function(obj, opt, best, saved) {
+  if (identical(best, opt)) {
+    obj_state_restore(obj, saved)
+  } else {
+    v <- obj$fn(best$par)
+    obj$env$last.par.best <- obj$env$last.par
+    obj$env$value.best <- v
+  }
+  invisible(NULL)
+}
+
+#' Where each `mo()` term's simplex coordinates and scale coefficient
+#' sit in the outer parameter vector: `z` the coordinates, `b` the
+#' coefficient or `NA` when it is not an outer parameter (`beta` under
+#' `profile = TRUE` or REML), `D` the number of steps.
+#'
+#' @noRd
+mo_search_terms <- function(obj, frame) {
+  pn <- names(obj$par)
+  out <- list()
+  for (lp in frame[["linpreds"]]) {
+    mos <- lp[["mo"]] %||% list()
+    if (!length(mos) || !is.null(lp[["constant"]])) next
+    idx <- outer_index_of(lp, pn, frame)
+    for (mi in mos) {
+      z <- which(pn == mi[["zeta"]])
+      if (length(z) != mi[["D"]] - 1L) next
+      b <- if (is.null(idx)) NA_integer_ else idx[mi[["col"]]]
+      out[[length(out) + 1L]] <- list(z = z, b = b, D = mi[["D"]])
+    }
+  }
+  out
+}
+
+#' Bring a `mo()` fit to the maximum the simplex parameterization alone
+#' does not reach.
+#'
+#' `mo_simplex()` has no plateau at the faces, but two things remain,
+#' and both are measured on brms_monotonic's `ls ~ mo(income) * age`
+#' against its exact maximum (dev/optima-findings.md):
+#'
+#' 1. The chart's one point at infinity. When the scale coefficient is
+#'    near 0 the simplex barely moves the likelihood, the optimizer can
+#'    take a long step in its coordinates, and it then creeps toward the
+#'    pole, whose image is the barycenter, on a gradient that decays
+#'    with the distance. A term whose coordinates left the unit ball is
+#'    moved to the canonical coordinates of the same simplex
+#'    (`mo_coords()`, inside the ball), where the gradient is whole
+#'    again, and refitted from there.
+#' 2. The sign of the scale coefficient. For a fixed sign the term's
+#'    increments `b * D * w` range over a convex cone, and a likelihood
+#'    concave in the linear predictor has one maximum per cone; the
+#'    other sign's cone is another local maximum that no local step
+#'    reaches. Of the 200 data sets, 22 fits on the chart alone ended
+#'    more than 0.01 below the maximum in the wrong cone.
+#'    When a simplex is on its boundary (a weight below `mo_face_tol`)
+#'    the fit may be one of them, so the other cone is searched: the
+#'    coefficient's sign is held by a bound, the simplex starts near
+#'    the vertex along which the gradient at `b = 0` favors that sign
+#'    most, and the result is refitted without the bound. An interior
+#'    simplex with a nonzero coefficient is a stationary point of the
+#'    unconstrained increments, which a concave likelihood has once, so
+#'    it is not searched.
+#'
+#' The better optimum is kept. Silent, like `escape_stationary()`;
+#' `verbose = TRUE` reports it and the result carries `mo_search` so
+#' the cost stays measurable.
+#'
+#' @noRd
+mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
+                      verbose = 0L, tally = NULL) {
+  terms <- mo_search_terms(obj, frame)
+  if (!length(terms) || !all(is.finite(opt$par)) ||
+        !is.finite(opt$objective)) {
+    return(opt)
+  }
+  if (verbose) t0 <- vb_now()
+  # for obj_settle()
+  saved <- obj_state_save(obj)
+  np <- length(opt$par)
+  lower <- rep_len(bounds$lower, np)
+  upper <- rep_len(bounds$upper, np)
+  n_before <- if (is.null(tally)) 0L else tally$n
+  best <- opt
+  runs <- 0L
+  # a gain below this is the same optimum reached twice
+  better <- function(o) {
+    !is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
+      best$objective - o$objective > 1e-10 * max(1, abs(best$objective))
+  }
+  refit <- function(p, lo = lower, up = upper, ctl = control) {
+    runs <<- runs + 1L
+    tryCatch(optimize_obj(obj, ctl, list(lower = lo, upper = up),
+                          par_units, start_par = p, tally = tally),
+             error = function(e) NULL)
+  }
+  # the gradient at a held bound does not vanish, so optimize_obj()'s
+  # restart would rerun every bounded search to no purpose
+  ctl_held <- control
+  ctl_held$restarts <- 0L
+  # 1. back from the pole
+  p <- best$par
+  moved <- FALSE
+  for (tm in terms) {
+    z <- p[tm$z]
+    if (sum(z * z) > 1) {
+      p[tm$z] <- mo_coords(mo_simplex(z))
+      moved <- TRUE
+    }
+  }
+  if (moved) {
+    o <- refit(pmin(pmax(p, lower), upper))
+    # the same simplex at other coordinates: keep it unless it is worse
+    if (!is.null(o) && all(is.finite(o$par)) && is.finite(o$objective) &&
+          o$objective <= best$objective) {
+      best <- o
+    }
+  }
+  # 2. the other sign's cone
+  for (tm in terms) {
+    if (is.na(tm$b)) next
+    b <- best$par[tm$b]
+    w <- mo_simplex(best$par[tm$z])
+    if (b == 0 || min(w) >= mo_face_tol) next
+    s <- sign(b)
+    lo <- lower
+    up <- upper
+    if (s > 0) up[tm$b] <- min(up[tm$b], 0) else lo[tm$b] <- max(lo[tm$b], 0)
+    if (-b < lo[tm$b] || -b > up[tm$b]) next
+    vertex <- function(k, mix = 0) {
+      v <- (1 - mix) * replace(numeric(tm$D), k, 1) + mix / tm$D
+      mo_coords(v)
+    }
+    p0 <- best$par
+    p0[tm$b] <- 0
+    score <- vapply(seq_len(tm$D), function(k) {
+      p0[tm$z] <- vertex(k)
+      g <- tryCatch(obj$gr(p0)[tm$b], error = function(e) NA_real_)
+      if (is.finite(g)) s * g else -Inf
+    }, 0)
+    p <- best$par
+    p[tm$b] <- -b
+    p[tm$z] <- vertex(which.max(score), mix = 0.1)
+    o <- refit(pmin(pmax(p, lo), up), lo, up, ctl_held)
+    # the other cone's optimum is no better: nothing to release
+    if (!better(o)) next
+    o <- refit(pmin(pmax(o$par, lower), upper))
+    if (better(o)) best <- o
+  }
+  if (!runs) return(opt)
+  obj_settle(obj, opt, best, saved)
+  gain <- opt$objective - best$objective
+  best$mo_search <- c(runs = runs, gain = gain)
+  # a search run replaces `opt`, whose escape record would go with it
+  if (is.null(best$stationary_escape)) {
+    best$stationary_escape <- opt$stationary_escape
+  }
+  if (!is.null(tally) && !is.null(best$nonfinite_trials)) {
+    best$nonfinite_trials <- (opt$nonfinite_trials %||% 0L) +
+      max(tally$n - n_before, 0L)
+  }
+  if (!is.null(tally)) best$evals <- tally$evals
+  if (verbose) {
+    vb_stage("mo() search", t0,
+             paste0(runs, " run", if (runs != 1L) "s", ", gain ",
+                    format(gain, digits = 3)))
+  }
+  best
+}
+
+#' A simplex weight below this is on the simplex's boundary for
+#' `mo_search()`. On the sphere chart a face that is the maximum is a
+#' minimum of the objective in `u_j`, and nlminb resolves it well: on
+#' the 200 fits of dev/optima-mo-study.R the smallest weight was at
+#' most 2.1e-7 on the 192 with a weight at a face, median 1.8e-11, and
+#' at least 0.013 on the 8 without.
+#'
+#' @noRd
+mo_face_tol <- 1e-6
 
 #' Warn when the likelihood is flat, at the optimum, along a
 #' combination of the nonlinear parameters' coefficients.
@@ -2662,12 +2959,13 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
 #' Returns the message, or `NULL`.
 #'
 #' @noRd
-nl_flat_message <- function(obj, opt, frame) {
+nl_flat_message <- function(obj, opt, frame, fit = NULL) {
   lps <- frame[["linpreds"]] %||% list()
   bodies <- Filter(function(lp) !is.null(lp[["nl_body"]]), lps)
   if (!length(bodies) || !length(opt$par)) return(NULL)
   cols <- integer(0)
   labels <- character(0)
+  onames <- character(0)
   for (lp in bodies) {
     r <- lp[["resp"]]
     for (p in intersect(lp[["nl_pars"]] %||% character(0),
@@ -2678,6 +2976,7 @@ nl_flat_message <- function(obj, opt, frame) {
         next
       }
       cn <- colnames(lpp[["X"]])[seq_along(lpp[["idx"]])]
+      onames <- c(onames, paste0(p, "_", cn))
       cols <- c(cols, lpp[["idx"]])
       labels <- c(labels, paste0(p, "_", sub("(Intercept)", "Intercept",
                                              cn, fixed = TRUE)))
@@ -2686,6 +2985,7 @@ nl_flat_message <- function(obj, opt, frame) {
   keep <- !duplicated(cols)
   cols <- cols[keep]
   labels <- labels[keep]
+  onames <- onames[keep]
   bpos <- which(names(obj$par) == "beta")
   if (length(cols) < 2L ||
         length(bpos) != length(frame[["par_template"]][["beta"]])) {
@@ -2734,6 +3034,21 @@ nl_flat_message <- function(obj, opt, frame) {
   tau <- max(sqrt(nl_flat_tol), 10 * sqrt(sum(E^2)) / gap)
   proj <- sqrt(rowSums(ev$vectors[, flat, drop = FALSE]^2))
   load <- labels[ok][proj > tau]
+  # The standard-error check reads the same question off the outer
+  # Hessian with a curvature probe this check does not have, and the two
+  # must not disagree: at cor(x1, x2) = 1 - 1e-9 this check named a_x1
+  # and b_x2 while lm() and the exact Hessian give them 1268, which
+  # vcov() printed (setier review, item 7). So it names only what the
+  # check lost as flat.
+  if (length(load) && !is.null(fit) &&
+        !identical(fit$control$check_se, "ignore")) {
+    an <- tryCatch(se_fit_analysis(fit, force = TRUE),
+                   error = function(e) NULL)
+    if (!is.null(an)) {
+      lost <- names(an$lost)[an$lost == "flat"]
+      load <- load[onames[ok][proj > tau] %in% lost]
+    }
+  }
   # no projection clears the noise of the differenced Hessian, so this
   # check cannot say which coefficients are flat; it stays silent and
   # the standard-error check names the parameters (the 0.68.0 merge:
@@ -3344,17 +3659,27 @@ check_convergence <- function(fit, control) {
   # collected first, warned second, so the verbose summary line can
   # report how many diagnostics the fit raised
   msgs <- character(0)
-  if (fit$opt$convergence != 0) {
-    # a nonlinear model that started at zero is the likeliest cause, and
-    # `start` is the only lever, so name it here [brms#734]
-    nl_hint <- if (any(vapply(fit$spec$responses,
-                              function(r) length(r$nlpars) > 0L, TRUE))) {
-      paste0(". This is a nonlinear model; unless `start` or a ",
-             "located prior placed them, the fit began at zero, which ",
-             "is rarely in the right region (see par_template())")
-    } else ""
-    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                           fit$opt$message, nl_hint))
+  # Separation sends the optimizer toward infinity, so where it stops,
+  # and with which code, is a platform's rounding: it is named whatever
+  # the code, and in place of the optimizer's own verdict, which it
+  # explains. On a fit that converged it is not a convergence warning,
+  # and the standard-error check still looks at the other parameters.
+  sep <- if (is.null(fit$importance)) {
+    tryCatch(separation_check(fit), error = function(e) NULL)
+  }
+  if (!is.null(sep)) {
+    if (is.environment(fit$cache)) {
+      fit$cache$se_explained_sep <- sep$pars
+      fit$cache$se_sep_named <- sep$named
+      # an sdreport taken at the fit (se = TRUE) predates the verdict
+      if (!is.null(fit$cache$sdr)) {
+        fit$cache$sdr <- sdr_sep_lost(fit, fit$cache$sdr, sep$named)
+      }
+    }
+    frm_warning(sep$message, call. = FALSE, class = "frmtmb_separation")
+    if (!isTRUE(fit$opt$convergence == 0)) {
+      return(invisible(list(grad = NA_real_, warnings = sep$message)))
+    }
   }
   gvec <- if (!length(fit$opt$par)) NULL else {
     try(drop(fit$obj$gr(fit$opt$par)), silent = TRUE)
@@ -3365,6 +3690,29 @@ check_convergence <- function(fit, control) {
   # absolute gradient near machine noise times 1e6)
   g <- if (is.null(gvec)) NA_real_ else {
     max(abs(gvec * (fit$par_units %||% 1)))
+  }
+  # nlminb stops with "singular convergence (7)" where a variance
+  # component runs to its boundary: on y ~ x + (1 + x | g) with no slope
+  # variance, 69 of 100 seeds, every one singular for lme4, at its
+  # log-likelihood to 2.6e-6, the largest gradient at most 4.8e-4
+  # (dev/setier-rev-rs20.R). lme4's checkConv() skips its derivative
+  # checks on a singular fit and gives its boundary message instead;
+  # so does this, when the gradient is within grad_tol and every
+  # standard error the check loses is a boundary one (se_check() then
+  # gives the message)
+  bstop <- is.null(sep) && fit$opt$convergence != 0 &&
+    is.null(fit$importance) && se_boundary_stop(fit, g, control)
+  if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
+    # a nonlinear model that started at zero is the likeliest cause, and
+    # `start` is the only lever, so name it here [brms#734]
+    nl_hint <- if (any(vapply(fit$spec$responses,
+                              function(r) length(r$nlpars) > 0L, TRUE))) {
+      paste0(". This is a nonlinear model; unless `start` or a ",
+             "located prior placed them, the fit began at zero, which ",
+             "is rarely in the right region (see par_template())")
+    } else ""
+    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
+                           fit$opt$message, nl_hint))
   }
   if (!is.null(fit$importance)) {
     # An importance-corrected objective is a Monte Carlo estimate, and
@@ -3407,14 +3755,17 @@ check_convergence <- function(fit, control) {
                "in the same place")
       })
     }
-  } else if (is.finite(g) && g > control$grad_tol) {
+  } else if (is.null(sep) && is.finite(g) && g > control$grad_tol) {
+    # (a separated fit's gradient and curvature are those of a run toward
+    # infinity, which its warning has named)
     # the absolute gradient is the trip-wire and not the verdict: a
     # component a bound holds is not evidence, and what decides is how
     # much log likelihood one Newton step would still buy. See
     # grad_verdict().
     v <- grad_verdict(fit, gvec, control)
     if (isTRUE(v$warn)) msgs <- c(msgs, grad_warning_msg(v))
-  } else if (!is.null(gvec) && length(gvec) && any(!is.finite(gvec))) {
+  } else if (is.null(sep) && !is.null(gvec) && length(gvec) &&
+               any(!is.finite(gvec))) {
     # A gradient that is not finite at the reported optimum used to pass
     # in silence: the test above needs a finite number to compare. The
     # optimizer can still report convergence there (nlminb's

@@ -28,3 +28,20 @@ allow_warnings <- function(expr, allowed, require = character()) {
   }
   invisible(val)
 }
+
+# Evaluate `expr`, muffling the boundary (singular) fit message of the
+# standard-error check (class frmtmb_boundary_fit) and nothing else, for
+# a test whose data happen to put a variance component at zero and whose
+# point is some other condition. `require = TRUE` asserts the message
+# was given.
+allow_boundary <- function(expr, require = FALSE) {
+  seen <- 0L
+  val <- withCallingHandlers(expr, frmtmb_boundary_fit = function(m) {
+    seen <<- seen + 1L
+    invokeRestart("muffleMessage")
+  })
+  if (require) {
+    testthat::expect_gt(seen, 0L)
+  }
+  invisible(val)
+}

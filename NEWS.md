@@ -1,3 +1,315 @@
+# frmtmb 0.69.0
+
+Four lanes, each with an adversarial review and punch rounds:
+`ciharden` (tests and CI made independent of platform rounding, CI
+pinned to `ubuntu-24.04` with a Stan job on Ubuntu 26.04 beside it,
+less memory in the `gp()` kriging covariance), `surface` (the brms
+post-processing calls a ported script meets on a maximum-likelihood
+fit now answer or refuse by name), `setier` (which standard errors a
+fit can report, a boundary fit said as lme4 says it, separation named)
+and `optima` (fits that stopped short of the maximum likelihood:
+`mo()`, the probit tails, `cs()` ordinal mixtures, nlminb's rejected
+trial point). Each lane's `dev/<lane>-findings.md` has the validation,
+the numbers and the scripts, and `dev/reviews/2026-10-07-<lane>.md`
+has the review; `dev/round-20261007.md` is the round's record.
+In brms's own ported suite, bin 1 now passes 390 of 494 assertions,
+up from 389 at 0.68.1.
+
+## Breaking changes
+
+* **`stancode()`, `standata()` and `pp_mixture()` are frmtmb's
+  generics**, with methods for a fit; they were frmtmb.sample's, with
+  methods for draws only. `stancode(fit)` and `standata(fit)` stop with
+  the reason and name `build_objective()` and `fit$frame`. Before, they
+  said "no applicable method", and with brms loaded they reached
+  brms's default method, which said "Data must be specified using the
+  'data' argument" about a fit that has data. frmtmb.sample re-exports
+  the three generics and needs this version.
+
+* **The pooled table of `frm_multiple()` names its rows as brms does**:
+  `Intercept`, not `(Intercept)`, as `fixef()` of each fit names them.
+  A distributional parameter without a formula, pooled on its link
+  scale, is `sigma_Intercept`.
+
+* **`update()` drops a stored prior the updated model cannot take**, as
+  brms's `update()` does, and says which in a message, where brms is
+  silent. Updating `brms_overview`'s `fit2`, which removes the last
+  correlation, stopped at the class-wide `lkj(2)` prior; it now fits
+  without it. A prior passed to `update()` itself replaces the stored
+  one, where brms merges the two, and is checked as `frm()` checks it.
+
+* **A standard error built on a row of noise is gone, on every
+  platform.** The standard-error check kept sdreport()'s inverse of the
+  outer Hessian whenever it gave positive variances, even when a
+  parameter's row of the finite-difference Hessian was pure noise. A
+  variance component at zero then got a standard error of about 10^3 to
+  10^5 on its log scale, or `NaN` and a warning, by the sign of that
+  noise: `(1 | Subject/a)` on `sleepstudy` gave 375,150 with the
+  reference BLAS and `NaN` with OpenBLAS. The check now keeps an inverse
+  only where its third tier would remove nothing: no row within the
+  Hessian's noise, no log standard deviation at its edge (below), no
+  parameter held by a bound, and no direction flatter than 1e-9 of the
+  largest unless the likelihood curves along it. Such a parameter now
+  has a `NaN` standard error in `vcov()`, `summary()` and `confint()`,
+  and the other standard errors are those of the Hessian without it. A
+  fit that loses nothing keeps sdreport()'s covariance bit for bit. A
+  parameter held by a bound is now reported on every fit, where before
+  it was only when some unrelated direction was nearly flat.
+
+* **A covariance parameter at the edge of its parameter space is a
+  boundary fit, said with a message.** A group standard deviation is at
+  its edge when moving it a factor of 7 toward zero changes the
+  log-likelihood by at most 1e-6; a correlation or mixing parameter
+  when moving it further toward its limit does the same; the one
+  correlation of a block whose standard deviation is at zero is
+  undefined. Its lost standard error is reported as lme4 reports a
+  singular fit: one message, "Boundary (singular) fit: ...", of class
+  `frmtmb_boundary_fit`, naming the parameters with brms's names
+  (`sd_g__Intercept`), and not the standard-error warning. An sd near
+  zero is first moved up to 0.01, 0.03, 0.1, 0.3 and 1 times the
+  residual sd (1 on the link scale without one): if any gains, the fit
+  stopped short of its maximum, and the warning says so ("the fit
+  stopped short of the maximum"; at a non-zero code the convergence
+  warning stays). Of 24 random-intercept fits that stop 1e-4 to 0.825
+  below lme4's log-likelihood, none gets the boundary message. Under
+  `quadrature = TRUE` no boundary verdict is given, since that check
+  cannot run on a quadrature objective: such an sd keeps the "flat"
+  standard-error warning, as before. On 600
+  simulated random-intercept, random-slope and binomial fits the
+  message fired
+  on 267 of the 269 that lme4 calls singular and on none of the other
+  331; on larger single-sd designs (60 to 300 groups) on 16 of the 17
+  lme4 calls singular and none of the other 103; on random slopes with
+  a correlation of 0.95 or 0.99, on 19 of the 33 lme4 calls singular
+  (20 with OpenBLAS) and on 2 others, whose correlation lme4 puts at
+  1 - 2e-7 and 1 - 4.5e-6. When nlminb stops with "singular
+  convergence (7)" there, the gradient is within `grad_tol` and every
+  lost parameter is
+  at its edge, the fit gets this message and not "Optimizer did not
+  report convergence", as lme4's checkConv() does (67 of 69 such
+  random-slope fits). `frmtmb_control(check_se = "ignore")` silences
+  it, and `"stop"` makes it an error at `frm()`, which now builds the
+  check there even when it would otherwise wait for the first
+  `summary()`. A smooth, `gp()` or `hsgp()` term at its own limit (a
+  smooth reduced to its unpenalized part, as mgcv reports in silence)
+  loses those standard errors with no message: 91 of 140 gamSim fits
+  do. `summary()` lists both under "Parameters without a standard
+  error", and `diagnose()` lists the standard deviations as singular.
+  `VarCorr()`, `confint_varcorr()`, `predict()` and `fitted()` do not
+  warn again about them; `predict()`'s draws hold them at their
+  estimates.
+
+* **A small eigenvalue of the outer Hessian keeps its standard error
+  only if the likelihood is quadratic along it.** The check takes the
+  symmetric second difference `f(p + t) + f(p - t) - 2 f(p)` along the
+  direction, at the step the curvature says loses 2 * `grad_tol` each
+  way and at half of it; it keeps the direction when the full one is at
+  least 2 * `grad_tol` and 3 to 5.5 times the half one (a quadratic
+  gives 4). Symmetric, so that a fit not exactly stationary along the
+  direction keeps it: an identified poisson or bernoulli pair at a
+  correlation of 1 - 5e-11 and raw polynomials of degree 5 or 6 on
+  `[1, 2]`, alone or with a random intercept, keep every standard error,
+  close to glm()'s, lm()'s and lme4's. A straight step off a curved
+  ridge, which loses as the fourth power, does not keep it.
+
+* **A nonlinear ridge on a fit with random effects loses its standard
+  errors.** `y ~ a + b` with `a ~ 0 + f` and `b ~ 1 + (1 | g)`, where
+  only `a_k + b` is identified, kept finite standard errors from the
+  finite-difference Hessian, and a prediction of `a` reported 822,571.
+  The ridge's coefficients now have `NaN` standard errors, and a
+  prediction along the ridge gets `NaN` and one warning, as without
+  random effects. The identification warning for nonlinear parameters
+  now names only the coefficients the standard-error check lost: at a
+  correlation of 1 - 1e-9 between two covariates it named coefficients
+  whose standard error, 1268, lm() and the exact Hessian both give.
+
+* **Separation is a warning of its own, named once the fit has run far
+  enough, whatever code the optimizer returned.** In a `bernoulli()`,
+  `binomial()` or `beta_binomial()` mean, "The data separate the
+  outcomes (complete separation)" or "(quasi-complete separation)", with
+  the coefficients involved (the first five and the count), class
+  `frmtmb_separation`. The fit is checked against the definition, along
+  the direction it ran off in, so a large but finite
+  effect is never named (0 of 338 non-separated fits, 162 of 162
+  separated ones, logit link; probit and cloglog are named too). It
+  replaces the convergence warning it explains, and the coefficients it
+  names show no standard error (`NaN`) on every path. A fit stopped
+  very early may not have run far enough to show it: complete
+  separation at `eval.max` 5, 10, 20 and 40 was named on 5, 16, 19 and
+  20 of 20 fits, a level of a factor with no successes at 5, 10 and 20
+  on 0, 0 and 20; the misses keep the convergence warning. A factor too
+  wide to decompose (above 2000 columns) has each column tried on its
+  own. Before, on
+  `yb ~ z + x` with `yb = z > 0`, nlminb stopped at code 9 with
+  OpenBLAS and the user read only "Optimizer did not report
+  convergence"; on a level of a factor with no successes, nothing was
+  said. The check keeps a sparse design sparse: 0.4 s on a
+  1e6-row fit with a 500-level factor that took 719 s.
+
+* **A `mo()` fit reaches the maximum likelihood.** The simplex of a
+  monotonic term was held as softmax coordinates, which put a step of
+  0 at an infinite coordinate. A fit whose step ran toward 0 stopped
+  on that plateau with code 0, wherever the likelihood still rose, or
+  at the local maximum of the coefficient's other sign. On
+  brms_monotonic's own `ls ~ mo(income) * age`, 84 of 200 data sets
+  ended more than 1e-6 below the exact maximum, 53 by more than 0.01
+  and up to 1.95, and 18 had standard errors that were not finite.
+  Now 199 of 200 reach it to 1e-6 (the other is 0.049 below), every
+  standard error is finite, and no fit warns. The simplex is held as
+  the coordinates of stereographic projection onto the unit sphere,
+  whose squared components are the simplex: `zeta = 0` is still the
+  uniform simplex, and every face is at a finite coordinate, where a
+  step of 0 keeps a finite curvature. After the fit, a term whose
+  simplex is on a face is refitted with its coefficient held at the
+  other sign, and the better fit is kept; `fit$opt$mo_search` records
+  the refits and `frmtmb_control(mo_search = FALSE)` turns them off.
+  The search costs objective evaluations, and the factor grows with
+  the model, since each refit is of the whole model: 2.4 times
+  0.68.1's over the 200 interaction fits, 1.3 times on the plain
+  `ls ~ mo(income)` (which reached the maximum before and does now),
+  and 3.3 to 3.8 times on a model of 5000 rows with a random intercept
+  over 100 groups. The `zeta<j>` values that `confint()`, `vcov()` and
+  `start` read are these coordinates, which have no reading of their
+  own; `summary()` now reports the simplex itself, as brms does, under
+  "Monotonic Simplex Parameters" (`moincome1[1]`, ...), with
+  delta-method standard errors; a weight at 0 or 1 has none there (the
+  chart folds at the face, and the delta method would give an interval
+  of [0, 0] or about [1, 1]), and a line under the table says so.
+  `dev/optima-findings.md` has the measurements.
+
+* **The probit, cloglog and softit links keep their log-odds in the
+  far tails.** The probit's was `log(pnorm(eta)) - log(pnorm(-eta))`,
+  infinite past `|eta| = 38.2` and with a NaN derivative on 24 of 2001
+  points inside it; an ordinal probit's density was then NaN. It now
+  reads both logs from `pnorm(log.p = TRUE)`: within 7e-16 of Rmpfr
+  in value on `[-200, 200]` and 3.6e-12 in derivative. The old form
+  erred by up to 4.3e-12 where it was finite, and probit fits move
+  with it: estimates by up to 9e-10 relative, log-likelihoods by up
+  to 3.4e-13. Past `|eta| = 1000`, where RTMB's derivative of
+  `pnorm(log.p = TRUE)` degrades, it continues as the tail's leading
+  term. The cloglog's and softit's log-odds lost their derivative
+  below `eta = -708` and their value below -745; below -40 they are
+  `eta` itself, which they equal there to double precision. Above
+  -40 both are unchanged in value, and their fits move by an ulp of
+  the derivative: estimates by up to 3.6e-12 relative.
+
+## New features
+
+* **`pp_mixture()` on a mixture fit**, ordinal mixtures included: the
+  component probabilities at the estimates in brms's
+  observations-by-statistics-by-components array, with components
+  named `P(K = k | Y)`. The quantile columns are a Wald interval on the
+  logit, and `Est.Error` is the standard deviation of that same
+  logit-normal law, integrated numerically: the delta-method error of
+  the probability itself understates the spread near 0 and 1 by orders
+  of magnitude. On a 300-row two-gaussian mixture against brms 2.23.0's
+  `pp_mixture()` (4 chains of 1500 draws), `Est.Error` was a median
+  1.11 of brms's posterior SD over all rows (the delta method's was
+  0.36), 0.84 to 1.27 by bin for probabilities between 0.001 and 0.999,
+  and up to 4.8 times it within 0.001 of an edge; the interval was a
+  median 1.04 of brms's width, and every estimate was inside brms's
+  95% interval. brms's draws arguments are refused by name.
+
+* **`fixef()`, `summary()` and `conditional_effects()` of a
+  `frm_multiple()` result** pool the imputations by Rubin's rules, where
+  brms's `brm_multiple()` combines their draws. `fixef()` has brms's
+  rows, ordinal thresholds included, and a t interval on the
+  Barnard-Rubin degrees of freedom. Its estimates agree with
+  `mice::pool()` of `lm()` on `nhanes` to 4.1e-6; its standard errors
+  are 0.93 of mice's, because each imputation's variance is the
+  maximum-likelihood one, and its complete-data degrees of freedom are
+  `df.residual()` of the fit, which counts `sigma` (20 there, where
+  `lm()` has 21), as `anova()` of a `frm_multiple()` result already
+  takes them. `summary()` prints brms's blocks with
+  `df` and `fmi` columns. `conditional_effects()` pools every grid
+  point of the first imputation's grid on the scale its Wald band is
+  symmetric on; `method = "predict"` and the bootstrap and profile
+  bands are refused by name.
+
+* **`add_criterion()`** exists, with brms's criterion names. On a fit
+  it refuses each criterion by name: every one is a posterior quantity,
+  and `AIC()` and `BIC()` are the maximum-likelihood comparison. On
+  draws, frmtmb.sample's method stores it as brms does.
+
+## Bug fixes
+
+* **`plot()` of a fit refuses brms's `plot.brmsfit()` arguments by
+  name** (`N`, `nvariables`, `variable`, `regex`, `pars`, `fixed`,
+  `combo`, `bins`, `theme`, `plot`, `newpage`), with the reason and
+  `plot(frm_sample(fit), ...)` for brms's display. It suggested `x`
+  for `N`.
+
+* **`summary(fit, waic = TRUE)` is refused by name with the reason.**
+  brms 2.23.0 ignores the argument.
+
+* **`fitted()` on an ordinal fit whose `disc` predictor has no fixed
+  column** (`disc ~ 0 + gp(x, k = 6)`, `disc ~ 0 + (1 | g)`) stopped
+  with "requires numeric/complex matrix/vector arguments", in sample
+  and on new data.
+
+* **`frm_sample(fit)` on an exact `y ~ gp(x)` fit moves.** A one-scale
+  dense block (`gp()`, `ou()`, `homcs()`, `homtoep()`, the spatial
+  structures and `gr(cov =)` with one coefficient) whose log sd passed
+  about -372 had the zero matrix as its covariance, and its field's
+  log density was `+Inf`. The sampler's first long step from the mode
+  reached such a point and stayed there: acceptance 0, step size NaN,
+  every transition divergent. The variance is now floored at 1e-300,
+  which is the variance itself, bit for bit, above 9e-285, so no fit
+  changes.
+
+* **`(cs(1) | g)` with brms attached after frmtmb** got the internal
+  "variable lengths differ (found for '.frm_cs(1)')"; it gets the
+  refusal it gets without brms. The refusal of
+  `conditional_effects(method = "predict")` on `categorical()` names
+  that family, where it said "ordinal family".
+
+* `ranef(condVar = TRUE)` on a fit that lost a standard error reads the
+  repaired joint covariance that predictions read. It read sdreport()'s
+  own conditional variances, built on the indefinite inverse: on a
+  `gr(g, by = f)` fit they ran from 0 to 99 times the repaired ones.
+
+* `frm()` read its estimates, and started its restart, from the trial
+  point nlminb had rejected when nlminb stopped on one ("false
+  convergence (8)"), while `logLik()` reported the best point. The
+  best point the optimizer evaluated is now the fit's.
+
+* A fit whose family declares a stationary point (`skew_normal()`)
+  and that has random effects reported the random effects' modes of
+  the last escape it tried, not of the optimum it kept. On
+  `skew_normal()` with `(1 | g)`, seeds 1 to 40, the escape ran on 14
+  fits and on 5 `ranef()` was off by 0.002 to 0.143.
+
+* `cs()` on a cumulative component of an ordinal mixture no longer
+  stops with "NA/NaN gradient evaluation". `mixture(cumulative(),
+  sratio())` with `cs(z)` died on 7 of 20 data sets and
+  `mixture(cumulative(), cumulative())` on 4 of 20; both now finish on
+  all 20. Two causes: the rejected trial point above, and two
+  thresholds of one row that the line search had brought to the same
+  double, where the component's density was `-Inf`, the mixture's
+  finite and its gradient NaN. That touch is now as undefined as the
+  crossing past it. Most of these fits still report non-convergence,
+  correctly: their optimum is where a row's category closes in one
+  component, and the gradient there does not vanish. On the 18 of 20
+  `mixture(cumulative(), sratio())` fits that stop with "false
+  convergence (8)", some row's two thresholds are within 2.3e-13 of
+  each other.
+
+## Performance
+
+* The kriging covariance of a `gp()` term no longer holds extra
+  `n x n` copies of the prediction grid: `gp(x, by = <numeric>)` held
+  two more, and every exact `gp()` one more for writing its diagonal.
+  It is the same matrix to the bit.
+
+## Extension API
+
+* **The sampling API exports `mo_simplex()`, `mo_coords()`,
+  `mo_chart_frame()`, `mo_frame_terms()` and `summary_mo_frame()`**
+  (`?frmtmb-sampling-api`), so that an extension can read a `mo()`
+  simplex in the coordinates the fit holds it in, or in the softmax
+  chart a sampler needs, and give the weights brms's `simo_` names.
+  frmtmb.sample 0.17.0 samples a `mo()` simplex through them.
+
 # frmtmb 0.68.1
 
 The Ubuntu checks of 0.68.0 failed where the Windows and macOS ones

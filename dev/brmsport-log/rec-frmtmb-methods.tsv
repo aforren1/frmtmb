@@ -76,7 +76,7 @@ assert	frmtmb	brmsfit-methods:317	divergence	FALSE	TRUE	STALE: reads 'fi', whose
 setup	frmtmb	brmsfit-methods:320		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:324		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:325	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:326	cannot transfer	FALSE	FALSE	Expected `all(fi > 0)` to be TRUE. Differences: `actual`:   <NA> `expected`: TRUE 		FALSE
+assert	frmtmb	brmsfit-methods:326	cannot transfer	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:327		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:328	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:329	pass	TRUE	FALSE			TRUE
@@ -135,10 +135,10 @@ assert	frmtmb	brmsfit-methods:567	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:584	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:585	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:589	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:604	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, which, ask		FALSE
-assert	frmtmb	brmsfit-methods:605	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
-assert	frmtmb	brmsfit-methods:606	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
-assert	frmtmb	brmsfit-methods:607	cannot transfer	FALSE	TRUE	VACUOUS: plot() has no argument `variable`. It takes: x, which, ask	plot() has no argument `variable`. It takes: x, which, ask	TRUE
+assert	frmtmb	brmsfit-methods:604	cannot transfer	FALSE	FALSE	ERROR: plot() cannot honor `plot`: brms decides with it whether the pages of posterior panels are drawn or only returned. plot() of a maximum-likelihood fit draws residual diagnostics, and a fit has no draws and no per-parameter panels. For brms's display, sample first: plot(frmtmb.sample::frm_sample(fit), variable = , regex = , N = ). For one parameter's likelihood, plot(profile(fit, parm))		FALSE
+assert	frmtmb	brmsfit-methods:605	cannot transfer	FALSE	FALSE	ERROR: plot() cannot honor `variable`: brms chooses the parameters whose posterior draws it plots with it. plot() of a maximum-likelihood fit draws residual diagnostics, and a fit has no draws and no per-parameter panels. For brms's display, sample first: plot(frmtmb.sample::frm_sample(fit), variable = , regex = , N = ). For one parameter's likelihood, plot(profile(fit, parm))		FALSE
+assert	frmtmb	brmsfit-methods:606	cannot transfer	FALSE	FALSE	ERROR: plot() cannot honor `variable`: brms chooses the parameters whose posterior draws it plots with it. plot() of a maximum-likelihood fit draws residual diagnostics, and a fit has no draws and no per-parameter panels. For brms's display, sample first: plot(frmtmb.sample::frm_sample(fit), variable = , regex = , N = ). For one parameter's likelihood, plot(profile(fit, parm))		FALSE
+assert	frmtmb	brmsfit-methods:607	cannot transfer	FALSE	TRUE	VACUOUS: plot() cannot honor `variable`: brms chooses the parameters whose posterior draws it plots with it. plot() of a maximum-likelihood fit draws residual diagnostics, and a fit has no draws and no per-parameter panels. For brms's display, sample first: plot(frmtmb.sample::frm_sample(fit), variable = , regex = , N = ). For one parameter's likelihood, plot(profile(fit, parm))	plot() cannot honor `variable`: brms chooses the parameters whose posterior draws it plots with it. plot() of a maximum-likelihood fit draws residual diagnostics, and a fit has no draws and no per-parameter panels. For brms's display, sample first: plot(frmtmb.sample::frm_sample(fit), variable = , regex = , N = ). For one parameter's likelihood, plot(profile(fit, parm))	TRUE
 assert	frmtmb	brmsfit-methods:674	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:675	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:676	pass	TRUE	FALSE			TRUE

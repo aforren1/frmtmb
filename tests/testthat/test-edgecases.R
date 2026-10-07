@@ -220,7 +220,9 @@ test_that("rows dropped by na.action are reported once (G2.14b)", {
   dd3 <- dd
   dd3$y[1:3] <- 0
   dd3$x[40] <- 0
-  expect_no_message(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd3))
+  # (g has no variance in these data: the boundary message is due)
+  expect_no_message(allow_boundary(
+    frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd3)))
   expect_no_message(
     suppressMessages(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd))
   )

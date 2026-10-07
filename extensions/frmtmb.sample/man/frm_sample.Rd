@@ -362,8 +362,18 @@ priors, read off \code{brms::default_prior()} on matched models. Write
    \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
    \code{Intercept} of an ordinal family's \code{disc} \tab \code{normal(0, 1)} \tab link \cr
+   \code{simo} (a \code{mo()} simplex) \tab \code{dirichlet(1)} \tab the simplex \cr
 }
 
+
+A \code{mo()} simplex is sampled in softmax coordinates under
+\code{dirichlet(1)}, brms's default and the flat density on the simplex,
+which \code{prior = "flat"} therefore keeps; the fit's own coordinates
+(see "Monotonic effects" in \code{\link[frmtmb:frm]{frmtmb::frm()}}) have folds at the faces
+that wall a density off into separate sheets. The draws carry brms's
+names, \verb{simo_<term>1[k]}, one column per weight. A \code{simo} row in
+\verb{prior =} is refused: there is no Dirichlet density in
+\code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}.
 
 The \code{disc} default is brms's for every \code{link_disc} but the identity,
 where brms uses \code{lognormal(0, 1)}, which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} does

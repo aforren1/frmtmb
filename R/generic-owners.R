@@ -1,7 +1,10 @@
 # Why this file exists.
 #
-# frmtmb ports the brms vocabulary, so it exports 30 S3 generics, and
-# 28 of those names are already owned by another package. An exported
+# frmtmb ports the brms vocabulary, so it exports S3 generics whose
+# names another package already owns: the 33 of `frm_generic_owners`
+# below (29 until stancode, standata, pp_mixture and add_criterion came
+# here from frmtmb.sample), and nlme's and generics' four that are
+# imported and re-exported (frmtmb-shared-generics). An exported
 # generic is not a neutral alias: UseMethod() consults the method table
 # of the namespace where the generic IT REACHED was defined. A frmtmb
 # generic sitting above brms on the search path therefore sends a
@@ -130,6 +133,10 @@ frm_generic_owners <- list(
   conditional_effects = "brms",
   conditional_smooths = "brms",
   expose_functions = "brms",
+  stancode = "brms",
+  standata = "brms",
+  pp_mixture = "brms",
+  add_criterion = "brms",
   autocor = "brms",
   hypothesis = "brms",
   parnames = "brms",

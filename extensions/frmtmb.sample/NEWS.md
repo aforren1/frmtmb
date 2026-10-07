@@ -1,3 +1,92 @@
+# frmtmb.sample 0.17.0
+
+Needs frmtmb 0.69.0: it imports and re-exports frmtmb's `stancode()`,
+`standata()`, `pp_mixture()` and `add_criterion()` generics, and it
+holds a `mo()` simplex through frmtmb's `mo_simplex()`, `mo_coords()`,
+`mo_chart_frame()`, `mo_frame_terms()` and `summary_mo_frame()`.
+
+## Breaking changes
+
+* **`stancode()`, `standata()` and `pp_mixture()` are frmtmb's
+  generics**, re-exported here; this package keeps its methods for
+  draws. frmtmb defines them because it now has methods for a fit.
+
+* **`pp_mixture()`'s summary names its components `P(K = k | Y)` and
+  numbers its rows**, as brms does and as frmtmb's method for a fit
+  does. They were `class1`, `class2`. On draws of a model that is not a
+  mixture it stops in brms's words, "Method 'pp_mixture' can only be
+  applied to mixture models.", as on a fit.
+
+* **`frm_sample()` puts brms's default `dirichlet(1)` on every `mo()`
+  simplex and reports brms's `simo_` weights.** The sampler put no
+  density on a simplex, so the fit's coordinates were the prior. In
+  frmtmb's old softmax coordinates that prior is `1 / prod(w)`, and a
+  weakly identified simplex sat at a vertex (44 divergences); in the
+  coordinates frmtmb now fits in it is not integrable at the
+  barycenter, and the draws sat there with sd 0. The simplex is now
+  sampled in softmax coordinates under `dirichlet(1)`, which is the
+  flat density on the simplex (so `prior = "flat"` keeps it), and the
+  draws carry the weights as `simo_<term>1[k]`, brms's names, in place
+  of the `zeta<j>_k` coordinates. Against brms 2.23.0 on a weakly
+  identified simplex and on brms_monotonic's `fit1` (4 chains of 2000
+  each side), every weight's mean and sd agree within 1.7 Monte Carlo
+  standard errors, with 0 divergences and R-hat at most 1.0033.
+  Models without `mo()` terms sample exactly as before. A `simo` row in
+  `prior =` is still refused: `set_prior()` has no Dirichlet density.
+
+* With more than one `mo()` term, each term's weights are adjacent
+  columns, term by term, as brms orders them.
+
+* `check_laplace()` on a `mo()` fit compares each simplex on the
+  weight scale: the ML weights and their delta-method errors (as
+  `summary()` gives them) against the posterior of the `simo_`
+  weights. The coordinates are not comparable, since the fit's sheet
+  and the draws' need not be the same. The simplex is sampled under
+  `dirichlet(1)` there too, the flat density on the simplex, under
+  which the weights' posterior is the fit's likelihood; a MAP fit
+  keeps its own prior. A weight at 0 or 1 is reported in a message,
+  with no Wald error.
+
+* `as_tmbstan()` says in a message, on a fit with `mo()` terms, that
+  the simplex has no density on that route (it is sampled flat in the
+  fit's own coordinates, which a weakly identified simplex collapses
+  in) and that `frm_sample()` samples it under `dirichlet(1)`.
+
+## New features
+
+* **`plot()` of draws is brms's display**: a histogram and a trace per
+  parameter through `bayesplot::mcmc_combo()`, `nvariables` to a page,
+  with brms's `pars`, `variable`, `regex`, `fixed`, `combo`, `bins`,
+  `theme`, `plot`, `ask` and `newpage`, and `N` as brms's deprecated
+  alias with brms's warning. It refused every call before.
+
+* **`add_criterion()` on draws** stores `loo`, `waic` and `bayes_R2` in
+  `x$criteria` as brms does, and `loo()` and `waic()` with no further
+  argument return the stored object, brms's `use_stored`.
+  `overwrite = TRUE` clears the stored criterion before it computes, as
+  brms does, so it recomputes. `kfold`,
+  `loo_subsample`, `loo_R2` and `marglik` are refused with their own
+  reasons.
+
+## Bug fixes
+
+* `posterior_samples()` on draws warns once that it is deprecated.
+  While brms was loaded it warned twice, once from brms's generic and
+  once from the method.
+
+* The compatibility pre-flight of `frm_sample()` no longer loads R's
+  base-priority packages to ask whether a name is one of their
+  functions; it reads them without loading. On a headless Linux
+  machine, loading tcltk warned "no DISPLAY variable so Tk is not
+  available" into an unrelated call.
+
+* `check_laplace()` leaves a parameter whose `z_shift` or `sd_ratio` is
+  not finite out of its "Laplace/Wald approximation questionable"
+  message. The test passed `NA` to `if (any(...))`, so such a parameter
+  stopped the call ("missing value where TRUE/FALSE needed") when no
+  other parameter was flagged, and was listed as `NA` when one was. The
+  returned table is unchanged.
+
 # frmtmb.sample 0.16.0
 
 Needs frmtmb 0.68.0: for `ord_thres_linpred()`; for

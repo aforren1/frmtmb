@@ -324,7 +324,11 @@ test_that("FN-11: frm_multiple refuses what it cannot pool", {
   })
   fm <- frm_multiple(y ~ x, data = imps, family = gaussian())
   expect_error(plot(fm), "no pooled display")
-  expect_error(conditional_effects(fm, "x"), "no pooled version")
+  # conditional_effects() pools by Rubin's rules since lane surface
+  # (test-multiple-methods.R); the bands it cannot pool are refused
+  expect_s3_class(conditional_effects(fm, "x"), "frmtmb_conditional_effects")
+  expect_error(conditional_effects(fm, "x", band = "boot"),
+               "cannot honor band")
   skip_if_not_installed("posterior")
   expect_error(posterior::as_draws_array(fm), "needs draws")
   expect_error(posterior::nchains(fm), "needs draws")

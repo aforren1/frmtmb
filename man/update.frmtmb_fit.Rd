@@ -49,6 +49,13 @@ delta are pooled, and one of the delta replaces one of the same
 name, with a message. The family of the delta wins over the \code{family}
 argument. On a nonlinear model the delta can only be \code{~ .}, which
 keeps the body.
+
+The prior of the original fit is carried over. As in brms, a
+specification in it that matches no parameter of the updated model,
+such as a class \code{"cor"} prior after the update removes the last
+correlation, is dropped. brms drops it silently; frmtmb says which
+it dropped, in a message. A \code{prior} given to \code{update()} replaces the
+stored one and is checked as \code{\link[=frm]{frm()}} checks it.
 }
 \examples{
 set.seed(3)

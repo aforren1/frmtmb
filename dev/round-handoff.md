@@ -2,12 +2,106 @@
 
 Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
 0.64.0 brms-parity release, 2026-09-29 at the 0.65.0 and 0.66.0
-releases, 2026-09-30 at the 0.67.0 release and 2026-10-06 at the
-0.68.0 release. Read this, then
+releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
+0.68.0 release and 2026-10-07 at the 0.69.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.69.0 round, 2026-10-06 to 2026-10-07
+
+`dev/round-20261007.md` is this round's record, with the verification
+of the release tree under the reference BLAS and under OpenBLAS 0.3.32
+(BLAS and LAPACK, 4 threads), the Ubuntu 26.04 runners' version; the
+consolidation review (`dev/reviews/2026-10-07-release.md`) ran it under
+0.3.26 as well, the 24.04 runners'. Each lane has
+`dev/<lane>-findings.md` and `dev/reviews/2026-10-07-<lane>.md`.
+Four lanes merged, in this order:
+
+- `ciharden`: the test suites no longer depend on platform rounding (a
+  scan of all eight suites under five BLAS and thread configurations,
+  `dev/ciharden-scan.sh`, with an OpenBLAS build of R on Windows,
+  `dev/ciharden-openblas.sh`); `test-perf.R` counts tape nodes and
+  bytes, not time; the ported suite is seeded per block; two
+  frmtmb.sample defects the runner showed; CI pinned.
+- `surface`: the brms post-processing calls a ported script meets on
+  an ML fit answer or refuse by name (`stancode()`, `standata()`,
+  `pp_mixture()`, `add_criterion()`, `plot()`, `update()` with a stale
+  prior, `frm_multiple()` pooled by Rubin's rules).
+- `setier`: which standard errors a fit can report (tier 3 asked
+  first, a curvature probe), boundary fits, separation, the nonlinear
+  ridge with random effects.
+- `optima`: fits that stopped short of the maximum (`mo()`, the probit
+  tails, nlminb's rejected trial point, `cs()` ordinal mixtures).
+
+Versions: frmtmb **0.69.0** (minor, breaking); frmtmb.sample
+**0.17.0** (minor, breaking), floor frmtmb 0.69.0 (it imports the four
+generics and the `mo_` helpers). The other six extensions keep their
+versions and floors: no `R/` change, and the two test edits (frmtmb.eam
+`test-sampling.R`, frmtmb.learn `test-families.R`) allow a warning
+without requiring it and pass on 0.68.1. The release library is
+`C:/Users/adf44/source/r/rellib-r7`; `rellib-r6` keeps the 0.68.1
+build. In brms's own ported suite, bin 1 passes 390 of 494 (389 at
+0.68.1).
+
+### Decisions the user made in this round
+
+- **Unseen `gp()` positions are grouped at 15 significant digits, as
+  brms 2.23.0's new-data rule groups them** (`pos_rowkey()`, brms's
+  paste key). Lane ciharden's exact key was reverted in its punch
+  round (review B2); the 0.68.1 backlog item asking for an exact key
+  is closed by this decision.
+- **frmtmb.sample puts brms's default `dirichlet(1)` on every `mo()`
+  simplex and reports brms's `simo_` weights. BREAKING**: the sampler
+  put no density on a simplex, so the fit's coordinates were its
+  prior; `prior = "flat"` keeps `dirichlet(1)`, the flat density on the
+  simplex.
+- **A boundary fit is reported as a message, as lme4 reports a
+  singular fit**: "Boundary (singular) fit: ...", class
+  `frmtmb_boundary_fit`, not the standard-error warning; `check_se =
+  "stop"` makes it an error and `"ignore"` silences it. When nlminb
+  stops with a non-zero code there, the gradient is within `grad_tol`
+  and every lost parameter is at its edge, the message replaces the
+  convergence warning, as lme4's checkConv() does.
+- **The quadrature carve-out**: under `quadrature = TRUE` no boundary
+  verdict is given, because the upward check that tells a boundary
+  from a stop short of the maximum cannot run on a quadrature
+  objective; such an sd keeps the "flat" standard-error warning, as
+  at 0.68.1 (setier, punch 2b).
+- **The Stan job runs on Ubuntu 26.04 in `ubuntu-next.yaml` only**
+  (weekly and on demand, beside 24.04, its own cache key per image),
+  never on push; `brms-likelihood.yaml` is unchanged.
+- **CI is pinned to `ubuntu-24.04`**, every workflow with the dated
+  comment "Pinned 2026-10-06". When `ubuntu-next.yaml` is green on
+  26.04, move the pins (search the workflows for that comment).
+  `ubuntu-latest` moves to 26.04 between 2026-10-19 and 2026-11-19.
+
+### What the 0.69.0 round is evidence for
+
+**A clean three-way merge still needs the site checked.** No lane
+touched `_pkgdown.yml`, every lane's own check passed, and the merged
+tree failed `pkgdown::check_pkgdown()`: lane surface's four new core
+topics were in no index, and two `redirects:` entries for retired core
+pages (`reference/pp_mixture.html`, `reference/stancode.html`) would
+have overwritten the live pages surface brought back. Run
+`check_pkgdown()` in every lane that adds or moves a topic.
+
+**Two lanes can each be right and their union platform-dependent.**
+On the merged tree, two results fail when OpenBLAS (0.3.26 or 0.3.32)
+also provides LAPACK, the ubuntu-24.04 and 26.04 runners'
+configuration, and pass with either version as BLAS only: a fuzz spec
+errors where base fits it (lane optima's build errors too), and the
+ported row `data-helpers:7` gets a false alarm on five estimable
+predictions, because optima's change makes fixture 1 converge there
+and the 0.68.0 estimability test then reads a lost basis with the
+intercept's share zeroed (the consolidation review, B1). Neither file
+runs on CI; both are filed. The lesson: a lane's OpenBLAS pass must
+route LAPACK too, `dev/ciharden-openblas.sh <ver> lapack`, because
+`dev/optima-openblas.sh` and `dev/cifix-openblas.sh` route BLAS only,
+and lane optima's pass with the first could not show either result.
+Run each lane, and the merged tree, under the runners' configuration
+(`dev/ciharden-scan.sh`), not only the reference.
 
 ## 0.68.1, the CI fix, 2026-10-06
 

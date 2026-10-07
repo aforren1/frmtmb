@@ -117,7 +117,12 @@ test_that("quadrature survives non-gaussian families and nested blocks", {
       dd <- d
       dd$y <- cs$y()
       fo <- stats::as.formula(paste("y ~ 1 + x +", re))
-      fit <- frm(bf(fo) + cs$fam, data = dd, quadrature = TRUE)
+      # the nested beta fit puts both sds at zero; under quadrature they
+      # keep the "flat" verdict, since the boundary check cannot run on
+      # that objective (lane setier)
+      fit <- allow_warnings(
+        frm(bf(fo) + cs$fam, data = dd, quadrature = TRUE),
+        "Standard errors are not available")
       lab <- paste(cs$fam$family, re)
       expect_s3_class(fit, "frmtmb_fit")
       expect_true(is.finite(as.numeric(logLik(fit))), label = lab)

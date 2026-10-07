@@ -527,6 +527,10 @@ loo.frmtmb_draws <- function(x, ndraws = NULL, resp = NULL, ...) {
   # a second model arrives positionally as ndraws, so check the named
   # formals too
   loo_one_model(c(list(ndraws, resp), list(...)), "loo")
+  # brms's use_stored: a criterion add_criterion() stored is returned
+  # when the call asks for nothing else
+  st <- draws_stored_criterion(x, "loo", ndraws, resp, ...)
+  if (!is.null(st)) return(st)
   ll <- loo_matrix(x, ndraws, resp, "loo()")
   loo::loo.matrix(ll, r_eff = loo_r_eff(ll), ...)
 }
@@ -537,10 +541,136 @@ loo.frmtmb_draws <- function(x, ndraws = NULL, resp = NULL, ...) {
 #' @export
 waic.frmtmb_draws <- function(x, ndraws = NULL, resp = NULL, ...) {
   loo_one_model(c(list(ndraws, resp), list(...)), "waic")
+  st <- draws_stored_criterion(x, "waic", ndraws, resp, ...)
+  if (!is.null(st)) return(st)
   # waic needs no importance weights, so it needs no r_eff either
   loo::waic.matrix(loo_matrix(x, ndraws, resp, "waic()"), ...)
 }
 
+
+#' The criterion `add_criterion()` stored, when the call asks for
+#' nothing it does not hold: brms's `use_stored`, which is `TRUE`
+#' exactly when no argument beyond the model is given.
+#'
+#' @noRd
+draws_stored_criterion <- function(x, crit, ndraws, resp, ...) {
+  if (!is.null(ndraws) || !is.null(resp) || ...length()) return(NULL)
+  st <- x[["criteria"]][[crit]]
+  if (inherits(st, "loo")) st else NULL
+}
+
+#' brms's criterion names for `add_criterion()`, in brms's order.
+#'
+#' @noRd
+add_criterion_options <- c("loo", "waic", "kfold", "loo_subsample",
+                           "bayes_R2", "loo_R2", "marglik")
+
+#' Add model comparison criteria to draws
+#'
+#' brms's `add_criterion()`: compute each criterion once and store it in
+#' `x$criteria`, so that a later `loo()`, `waic()` or `loo_compare()`
+#' without further arguments reads it instead of computing it again, as
+#' brms's do. `"loo"` and `"waic"` are computed by [loo()] and [waic()],
+#' and `"bayes_R2"` by [frmtmb::bayes_R2()] with `summary = FALSE`, as
+#' brms stores it. `"kfold"`, `"loo_subsample"`, `"loo_R2"` and
+#' `"marglik"` are refused with the reason their own functions give. On
+#' a maximum-likelihood fit, [frmtmb::add_criterion()] refuses every
+#' criterion and names `AIC()` and `BIC()`.
+#'
+#' @param x A `frmtmb_draws` from [frm_sample()].
+#' @param criterion A subset of `"loo"`, `"waic"`, `"kfold"`,
+#'   `"loo_subsample"`, `"bayes_R2"`, `"loo_R2"` and `"marglik"`.
+#' @param model_name The name stored with a loo-type criterion; by
+#'   default the deparsed `x`, as in brms.
+#' @param overwrite If `TRUE`, recompute a criterion that is already
+#'   stored; otherwise it is kept, as in brms.
+#' @param file A file name without its `.rds` extension. When given, the
+#'   object is saved there with [saveRDS()] after a criterion is added,
+#'   as in brms.
+#' @param force_save If `TRUE`, save to `file` even when nothing was
+#'   added.
+#' @param ... Passed to the criterion's function.
+#' @return `x`, with the criteria in `x$criteria`.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     requireNamespace("loo", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
+#'   set.seed(9)
+#'   dd <- data.frame(x = rnorm(60))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)
+#'   ds <- frm_sample(bf(y ~ x), family = gaussian(), data = dd,
+#'                    chains = 1, iter = 500, refresh = 0)
+#'   ds <- add_criterion(ds, "loo")
+#'   identical(loo(ds), ds$criteria$loo)
+#' }
+#' }
+#' @exportS3Method brms::add_criterion
+#' @export
+add_criterion.frmtmb_draws <- function(x, criterion, model_name = NULL,
+                                       overwrite = FALSE, file = NULL,
+                                       force_save = FALSE, ...) {
+  ok <- !missing(criterion) && is.character(criterion) &&
+    length(criterion) > 0L && !anyNA(criterion)
+  if (ok && any(criterion == "R2")) {
+    # brms's warning and its mapping
+    frm_warning("Criterion 'R2' is deprecated. Please use 'bayes_R2' ",
+                "instead.", call. = FALSE)
+    criterion[criterion == "R2"] <- "bayes_R2"
+  }
+  if (!ok || !all(criterion %in% add_criterion_options)) {
+    # brms's words
+    frm_stop("Argument 'criterion' should be a subset of ",
+             paste(add_criterion_options, collapse = ", "), call. = FALSE)
+  }
+  criterion <- unique(criterion)
+  check_flag(overwrite, "overwrite")
+  check_flag(force_save, "force_save")
+  if (is.null(model_name)) {
+    model_name <- paste(deparse(substitute(x)), collapse = "")
+  } else if (!is.character(model_name) || length(model_name) != 1L ||
+               is.na(model_name)) {
+    frm_stop("model_name must be one string, not ",
+             paste(class(model_name), collapse = "/"), call. = FALSE)
+  }
+  new <- if (overwrite) {
+    criterion
+  } else {
+    criterion[vapply(criterion, function(k) is.null(x$criteria[[k]]), NA)]
+  }
+  # refused before anything is computed, so a refusal costs nothing
+  for (k in new) {
+    switch(k,
+      kfold = kfold(x),
+      loo_subsample = loo_subsample(x),
+      marglik = bridge_sampler(x),
+      loo_R2 = frm_stop("add_criterion(criterion = \"loo_R2\") is not ",
+                        "available for frmtmb draws: loo_R2() is not ",
+                        "implemented here. bayes_R2 is, and loo() gives ",
+                        "the predictive comparison", call. = FALSE),
+      NULL)
+  }
+  # cleared first, as brms clears them: loo() and waic() return a stored
+  # criterion, so overwrite = TRUE would hand back the one it replaces
+  x$criteria[new] <- NULL
+  for (k in new) {
+    val <- switch(k,
+      loo = loo(x, ...),
+      waic = waic(x, ...),
+      bayes_R2 = bayes_R2(x, summary = FALSE, ...))
+    if (inherits(val, "loo")) attr(val, "model_name") <- model_name
+    x$criteria[[k]] <- val
+  }
+  if (!is.null(file) && (force_save || length(new))) {
+    if (!is.character(file) || length(file) != 1L || is.na(file)) {
+      frm_stop("file must be one string, the file name without its ",
+               ".rds extension", call. = FALSE)
+    }
+    saveRDS(x, file = paste0(file, ".rds"))
+  }
+  x
+}
 
 #' brms's loo(a, b) compares in one call; here comparison is its own
 #' verb, and loo::loo.matrix would otherwise die coercing the second

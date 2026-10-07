@@ -6,6 +6,7 @@
 skip_unless_brms_suite()
 
 test_that("validate_newdata handles factors correctly", {
+  withr::local_seed(3L)
   brms_setup("data-helpers:4",
     fit <- brms_fixture(1)
   )
@@ -46,6 +47,7 @@ test_that("validate_newdata handles factors correctly", {
 })
 
 test_that("validate_data returns correct model.frames", {
+  withr::local_seed(16L)
   brms_setup("data-helpers:17",
     dat <- data.frame(y = 1:5, x = 1:5, z = 6:10, g = 5:1)
   )

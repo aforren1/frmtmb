@@ -96,10 +96,13 @@ test_that("a one-level grouping factor is reported (lme4 lmerControl)", {
         control = frmtmb_control(check_nlev_1 = "stop")),
     "single level"
   )
-  expect_silent(
+  # "ignore" drops the structural warning only; the variance it would
+  # have explained sits at zero, which the standard-error check reports
+  # as a boundary fit, with a message
+  expect_no_warning(allow_boundary(
     f <- frm(y ~ x + (1 | one), data = d, family = gaussian(),
-             control = frmtmb_control(check_nlev_1 = "ignore"))
-  )
+             control = frmtmb_control(check_nlev_1 = "ignore")),
+    require = TRUE))
   # ignoring it still fits: the variance simply collapses to zero
   expect_lt(as.data.frame(varcorr_matrices(f))$sdcor[1], 1e-3)
 })
@@ -123,8 +126,10 @@ test_that("gaussian OLRE warns about confounding with sigma (lme4)", {
   expect_silent(
     frm(bf(yi | se(sei) ~ 1 + (1 | obs)) + gaussian(), data = dm)
   )
-  # and an ordinary grouping factor is never flagged
-  expect_silent(frm(y ~ x + (1 | g), data = d, family = gaussian()))
+  # and an ordinary grouping factor is never flagged (g has no variance
+  # in these data, so the boundary message is due)
+  expect_no_warning(allow_boundary(
+    frm(y ~ x + (1 | g), data = d, family = gaussian())))
 })
 
 # --- diagnose() upgrades [glmmTMB diagnose(), lme4 isSingular] --------
@@ -507,13 +512,13 @@ test_that("a healthy fit pays nothing for the flat check", {
 # cause it never measured - the same defect this check was added to
 # remove, relocated to another model class.
 
-# Seed 71 of brms_monotonic's own data code: the interaction's simplex
-# has a weight at 0 with its coordinate at -1293, where that coordinate's
-# Hessian row is exactly zero. The fixture this test used before lane
-# nanse (seed 6 of `y ~ mo(mo) + x`) no longer reaches the flat path:
-# its saturated coordinate's row is tiny but not empty, and the
-# unit-diagonal inverse now gives every parameter a finite standard
-# error, which the first assertion below pins.
+# A monotonic simplex whose coordinate does not enter the likelihood
+# (helper-mo-flat.R): its Hessian row is exactly zero. It replaced seed
+# 71 of brms_monotonic's data code, whose softmax coordinate had run to
+# -1293 on a plateau the simplex chart of lane optima no longer has.
+# The fixture before lane nanse (seed 6 of `y ~ mo(mo) + x`) no longer
+# reaches the flat path either: every parameter keeps a finite
+# standard error, which the first assertion below pins.
 flat_mo_fit <- function(seed = 6, n = 300) {
   set.seed(seed)
   d <- data.frame(x = stats::rnorm(n), g = factor(rep(1:15, n / 15)),
@@ -522,15 +527,10 @@ flat_mo_fit <- function(seed = 6, n = 300) {
   suppressWarnings(frm(y ~ mo(mo) + x, data = d))
 }
 
-flat_mo_fit71 <- function(capture = FALSE) {
-  set.seed(71)
-  lev <- c("below_20", "20_to_40", "40_to_100", "greater_100")
-  income <- factor(sample(lev, 100, TRUE), levels = lev, ordered = TRUE)
-  ls <- c(30, 60, 70, 75)[income] + stats::rnorm(100, sd = 7)
-  d <- data.frame(income, ls)
-  d$age <- stats::rnorm(100, mean = 40, sd = 10)
+flat_mo_fit_zero <- function(capture = FALSE) {
+  d <- mo_flat_data()
   wn <- character()
-  fit <- withCallingHandlers(frm(ls ~ mo(income) * age, data = d),
+  fit <- withCallingHandlers(frm(ls ~ mo(inc) + age, data = d),
                              warning = function(x) {
                                wn <<- c(wn, conditionMessage(x))
                                invokeRestart("muffleWarning")
@@ -542,17 +542,17 @@ test_that("a flat direction with no nonlinear term is named without a nonlinear 
   # the old fixture: a saturated simplex coordinate that is not exactly
   # flat now keeps every standard error
   expect_true(all(is.finite(sqrt(diag(vcov(flat_mo_fit(), full = TRUE))))))
-  r <- flat_mo_fit71(capture = TRUE)
+  r <- flat_mo_fit_zero(capture = TRUE)
   fit <- r$fit
   # the fixture is only useful while it stays degenerate in this one way
   expect_length(unlist(lapply(fit$frame[["spec"]]$responses,
                               function(r) r$nlpars)), 0L)
   dg <- diagnose(fit, quiet = TRUE)
-  expect_true("zeta2_2" %in% dg$flat)
+  expect_true("zeta1_1" %in% dg$flat)
 
   # the detector is right: the objective does not move when it moves
   p <- fit$opt$par
-  j <- match("zeta2_2", frmtmb:::outer_par_names(fit))
+  j <- match("zeta1_1", frmtmb:::outer_par_names(fit))
   p1 <- p
   p1[j] <- p1[j] + 1
   expect_equal(fit$obj$fn(p1), fit$obj$fn(p), tolerance = 1e-12)

@@ -8,6 +8,7 @@ brm <- brms_shim_brm
 inhaler <- brms::inhaler
 
 test_that("brm produces expected errors", {
+  withr::local_seed(71L)
   brms_setup("brm:72",
     dat <- data.frame(y = rnorm(10), x = rnorm(10), g = rep(1:5, 2))
   )

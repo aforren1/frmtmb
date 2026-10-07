@@ -95,6 +95,11 @@
 \alias{response_codes_newdata}
 \alias{subset_resp_check}
 \alias{subset_newdata}
+\alias{mo_simplex}
+\alias{mo_coords}
+\alias{mo_chart_frame}
+\alias{mo_frame_terms}
+\alias{summary_mo_frame}
 \alias{cs_build}
 \alias{cs_coef}
 \alias{cs_frame}
@@ -216,6 +221,19 @@ on \code{newdata} it answers for the rows where that response's subset is
 TRUE. The first refuses anything but a single \code{resp} on such a model
 and is silent on every other; the second returns \code{newdata} unchanged
 when the response has no \code{subset()}.
+
+A \code{mo()} simplex is held in coordinates whose chart suits maximum
+likelihood and not a sampler (\code{?frm}, "Monotonic effects").
+\code{mo_simplex(z, chart)} maps coordinates to the simplex and
+\code{mo_coords(w, chart)} back, in the fit's chart (\code{chart = NULL}) or
+the softmax (\code{chart = "softmax"}, log ratios to the first weight).
+\code{mo_chart_frame(frame, chart)} is a copy of the frame whose objective
+reads every simplex in \code{chart}, and \code{mo_frame_terms(fit)} lists each
+term's simplex component, its size and brms's names for its weights,
+\verb{simo_<label>1[k]}. \code{summary_mo_frame(fit, prob)} is the weights'
+table \code{summary()} prints: each weight with its delta-method standard
+error and interval, \code{NA} for a weight at 0 or 1 (named by the
+\code{face} attribute).
 }
 
 \section{The prior seam}{

@@ -26,15 +26,34 @@ test_that("frm_sample runs a short chain on a wiener model", {
   fit <- frm(bf(rt | vint(upper) ~ 1, bias = 0.5), family = wiener(),
              data = dat)
 
-  smp <- frmtmb.sample::frm_sample(fit, chains = 1, iter = 400,
-                                   warmup = 200, seed = 3,
-                                   refresh = 0)
+  # One chain of 200 draws: whether its ESS or R-hat crosses rstan's
+  # warning line is rounding (both ESS warnings with OpenBLAS 0.3.26,
+  # none with the reference BLAS; dev/ciharden-findings.md), and this
+  # block asserts the chain runs and sits at the mode, not its mixing
+  smp <- allow_warnings(
+    frmtmb.sample::frm_sample(fit, chains = 1, iter = 400, warmup = 200,
+                              seed = 3, refresh = 0),
+    c("Effective Samples Size", "The largest R-hat is"))
   expect_true(!is.null(smp))
   # the sampled posterior sits around the mode the optimizer found
   fx <- unlist(fixef_by_dpar(fit))
   su <- summary(smp)
   expect_true(is.finite(fx[["mu.(Intercept)"]]))
   expect_true(nrow(as.data.frame(su)) > 0 || length(su) > 0)
+  # With its ESS and R-hat warnings allowed, this is what says the chain
+  # works: no divergent transition, and each parameter's posterior mean
+  # within 3 posterior sds of the mode on the sampler's scale (measured
+  # at most 0.152 sd with the reference BLAS and 0.096 with OpenBLAS
+  # 0.3.32, dev/ciharden-rev-eamchain.R)
+  sf <- smp$stanfit
+  sp <- rstan::get_sampler_params(sf, inc_warmup = FALSE)
+  expect_identical(sum(vapply(sp, function(m) sum(m[, "divergent__"]), 0)),
+                   0)
+  est <- fit$opt$par
+  s <- rstan::summary(sf)$summary
+  z <- (s[seq_along(est), "mean"] - est) / s[seq_along(est), "sd"]
+  expect_true(all(is.finite(z)))
+  expect_lt(max(abs(z)), 3)
 })
 
 test_that("the density is finite over a wide sweep of the parameters", {

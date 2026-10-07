@@ -360,7 +360,10 @@ test_that("simulate() draws from the fitted category distribution", {
     frm(bf(y | thres(gr = g) ~ x), family = mixture(cumulative(), sratio()),
         data = d),
     "degenerate boundary", require = "degenerate boundary")
-  P <- fitted(fit)[, "Estimate", ]
+  # the collapsed thresholds have no standard error, so the rows whose
+  # probabilities move with them get none either, said once (lane
+  # setier: fitted() reads the covariance that holds them)
+  P <- allow_warnings(fitted(fit), "move along a direction")[, "Estimate", ]
   sims <- simulate(fit, nsim = 400, seed = 7)
   codes <- vapply(sims, as.integer, integer(nrow(d)))
   freq <- vapply(1:4, function(k) mean(codes == k), 0)
@@ -738,7 +741,11 @@ test_that("the degenerate check says only what it found", {
   # three components on two-class data (dev/ordmix-cum3two.R): one
   # component gives NaN for a category on every row, and the check's
   # max() over no number warned "no non-missing arguments to max"
-  # beside its own warning. Any warning but the check's fails here.
+  # beside its own warning. Any warning but the check's fails here, with
+  # one exception: three components on two classes have a ridge, and
+  # whether nlminb stops on it with "singular convergence (7)" is
+  # rounding (it does with OpenBLAS 0.3.26, dev/ciharden-findings.md).
+  # That is the optimizer's verdict, not the check's, so it may come.
   set.seed(20261005 + 11)
   n <- 400
   x <- rnorm(n)
@@ -751,7 +758,8 @@ test_that("the degenerate check says only what it found", {
   allow_warnings(
     frm(bf(y ~ x), family = mixture(cumulative(), cumulative(),
                                     cumulative()), data = d),
-    "degenerate boundary", require = "degenerate boundary")
+    c("degenerate boundary", "Optimizer did not report convergence"),
+    require = "degenerate boundary")
 })
 
 test_that("thres(x = ) above the data warns once per threshold block", {

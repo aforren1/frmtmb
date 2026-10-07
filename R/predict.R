@@ -250,8 +250,7 @@ coef_b <- function(fit, b = fit$estimates[["b"]]) {
 #'
 #' @noRd
 mo_col_values <- function(fit, mi, codes = mi$codes) {
-  zeta <- exp(c(0, fit$estimates[[mi$zeta]]))
-  zeta <- zeta / sum(zeta)
+  zeta <- mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]])
   cz0 <- c(0, cumsum(zeta))
   mi$D * cz0[codes + 1L]
 }
@@ -2129,6 +2128,22 @@ frm_linpred <- function(object, newdata = NULL,
   out
 }
 
+#' The fixed part `X b` of one linear predictor.
+#'
+#' A predictor with no fixed column, `disc ~ 0 + gp(x)` or
+#' `disc ~ 0 + (1 | g)`, has a zero-column design, and its coefficient
+#' slot may not exist at all: `betad` is absent from the estimates when
+#' no `disc` or `sigma` column is estimated. `X %*% NULL` stopped
+#' fitted() there with "requires numeric/complex matrix/vector
+#' arguments", so the empty design is a zero vector of the design's
+#' rows, as `build_objective()` forms it on the tape.
+#'
+#' @noRd
+lp_fixed_part <- function(X, est, lp) {
+  if (!ncol(X)) return(numeric(nrow(X)))
+  drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+}
+
 #' eta and the design pieces of one linear predictor, in sample or on
 #' newdata. Shared by `predict()` and by the joint delta method for the
 #' expected response, so both see exactly the same eta.
@@ -2157,7 +2172,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     X <- patch_mo_cols(object, lp, lp[["X"]])
     off <- lp[["offset"]]
     n <- nrow(X)   # a subset() response has fewer rows than the frame
-    eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+    eta <- lp_fixed_part(X, est, lp)
     if (!is.null(lp[["Z"]])) {
       cvec <- coef_b(object)
       if (use_re) {
@@ -2180,7 +2195,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     sm_parts <- pd$sm_parts
     nonest <- pd$nonest
     n <- nrow(X)
-    eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+    eta <- lp_fixed_part(X, est, lp)
     cvec <- coef_b(object)
     if (use_re && length(re_parts)) {
       eta <- eta + re_eta(re_parts, cvec, n)
@@ -2382,7 +2397,8 @@ lp_extra_var <- function(object, ed, use_re) {
 #' round 1, m5): `outer()` alone makes three. It is filled instead in
 #' column blocks of about 4 MB, the upper triangle computed and mirrored,
 #' so the result is the only `n x n` beside the one over the distinct
-#' positions, when rows repeat one, and is symmetric as stored. The
+#' positions, when rows repeat one, and is symmetric as stored; a
+#' numeric `by` scales it in the same blocks. The
 #' kriging term is `A A'` with `A = Ks R^-1`, `R' R = K`.
 #'
 #' @noRd
@@ -2426,9 +2442,24 @@ gp_krig_cov <- function(krig) {
     S[r, cc] <- B
     S[cc, r] <- t(B)
   }
-  diag(S) <- sd2 * pmax((1 + gp_nugget) - krig$rs[u], 0)
+  # written by index, because `diag<-` is a closure that copies S whole
+  # (dev/ciharden-krigmem.R counts the n x n allocations)
+  S[cbind(seq_len(n), seq_len(n))] <- sd2 * pmax((1 + gp_nugget) -
+                                                   krig$rs[u], 0)
   if (n < length(idx)) S <- S[idx, idx, drop = FALSE]
-  if (scaled) S <- S * outer(w, w)
+  if (scaled) {
+    # gp(x, by = <numeric>), scaled a column block at a time, because
+    # `S * outer(w, w)` holds two more n x n beside S. Each entry is
+    # S[i, j] * (w[i] * w[j]) as before, and a product of two doubles
+    # does not depend on their order, so S stays symmetric to the bit
+    # and its diagonal stays `extra_var`'s `w^2 * v`
+    m <- length(w)
+    step <- max(1L, floor(2^19 / m))
+    for (c0 in seq(1L, m, by = step)) {
+      cc <- c0:min(m, c0 + step - 1L)
+      S[, cc] <- S[, cc, drop = FALSE] * outer(w, w[cc])
+    }
+  }
   S
 }
 

@@ -574,6 +574,28 @@ covstruct_registry <- list(
   )
 )
 
+#' The variance `sd^2` of a block with one scale, from its log sd, with
+#' a floor where `exp()` underflows.
+#'
+#' Below a log sd of about -372, `exp(2 * log_sd)` is exactly 0, the
+#' block's covariance is the zero matrix, and RTMB's `dmvnorm()` of a
+#' nonzero `b` against it returned `+Inf`, a log density no point can
+#' have. The fit never goes there, but a sampler's first long leapfrog
+#' step does: `frm_sample(fit)` on an exact `y ~ gp(x)` fit stepped to
+#' log sd -1138, read the `+Inf` as a point of infinite density, and
+#' stayed there with every later transition divergent. With the floor
+#' the zero matrix is `1e-300` times the correlation, and a `b` that is
+#' not exactly zero has a log density near `-|b|^2 * 1e300`, or `-Inf`
+#' where that overflows, which a sampler rejects.
+#'
+#' The floor is outside every cancelling sum (rtmb-pitfalls item 11),
+#' and it is below half an ulp of any variance above 9e-285, so the sum
+#' is the variance itself, bit for bit, wherever a fit can be: the
+#' objective of every fit is unchanged.
+#'
+#' @noRd
+sd2_floored <- function(log_sd) exp(2 * log_sd) + 1e-300
+
 # Continuous-position AR / exponential covariance over num_factor()
 # levels: Sigma_ij = sd^2 * exp(-rate * |t_i - t_j|). theta = (log sd,
 # log rate); blk$aux_D holds the distance matrix.
@@ -581,7 +603,7 @@ covstruct_registry[["ou"]] <- list(
   npar = function(dim) 2L,
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    Sigma <- exp(2 * theta[1]) * exp(-exp(theta[2]) * blk[["aux_D"]])
+    Sigma <- sd2_floored(theta[1]) * exp(-exp(theta[2]) * blk[["aux_D"]])
     dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
@@ -658,7 +680,7 @@ covstruct_registry[["homcs"]] <- list(
     a <- 1 / (d - 1)
     rho <- -a + (1 + a) / (1 + exp(-theta[2]))
     C <- diag(d) * (1 - rho) + rho
-    Sigma <- exp(2 * theta[1]) * C
+    Sigma <- sd2_floored(theta[1]) * C
     dim(b) <- c(d, length(b) %/% d)
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
@@ -688,7 +710,7 @@ covstruct_registry[["homtoep"]] <- list(
     }
     M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
     C <- RTMB::matrix(cvec[as.vector(M)], d, d)
-    Sigma <- exp(2 * theta[1]) * C
+    Sigma <- sd2_floored(theta[1]) * C
     dim(b) <- c(d, length(b) %/% d)
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
@@ -714,7 +736,7 @@ spatial_entry <- function(corr_fn, npar_k) {
     npar = function(dim) npar_k,
     sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
-      Sigma <- exp(2 * theta[1]) * corr_fn(blk[["aux_D"]], theta)
+      Sigma <- sd2_floored(theta[1]) * corr_fn(blk[["aux_D"]], theta)
       dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
       sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
@@ -775,7 +797,7 @@ covstruct_registry[["gr_cov"]] <- list(
   },
   nll = function(b, theta, blk) {
     if (blk[["dim"]] == 1L) {
-      Sigma <- exp(2 * theta[1]) * blk[["aux_A"]]
+      Sigma <- sd2_floored(theta[1]) * blk[["aux_A"]]
       return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
     }
     S <- us_sigma(theta, blk[["dim"]])
@@ -1607,7 +1629,7 @@ covstruct_registry[["gp"]] <- list(
   },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    Sigma <- exp(2 * theta[1]) * gp_corr(theta, blk)
+    Sigma <- sd2_floored(theta[1]) * gp_corr(theta, blk)
     dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },

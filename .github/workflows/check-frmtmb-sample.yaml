@@ -46,7 +46,9 @@ name: check-frmtmb.sample
 
 jobs:
   check-frmtmb-sample:
-    runs-on: ubuntu-latest
+    # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
+    # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
+    runs-on: ubuntu-24.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes

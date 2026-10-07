@@ -469,17 +469,23 @@ test_that("probit's log-odds holds where the round trip has saturated", {
   # pnorm(eta) rounds to one
   expect_equal(1 - stats::pnorm(9), 0)
   expect_identical(log1p(-stats::pnorm(9)), -Inf)
-  # the robust field is still exact there, and stays so until pnorm
-  # itself underflows near |eta| = 38.2
-  for (e0 in c(7, 9, 20, 37)) {
-    expect_equal(probit$logit_eta(e0),
-                 stats::pnorm(e0, log.p = TRUE) -
-                   stats::pnorm(-e0, log.p = TRUE),
-                 tolerance = 1e-12)
+  # the robust field is still exact there, and past |eta| = 38.2, where
+  # pnorm() itself underflows and log(pnorm()) gave an infinite log-odds
+  # until lane optima read the logs from pnorm(log.p = TRUE)
+  for (e0 in c(7, 9, 20, 37, 40, 60, 500, 1000)) {
+    expect_identical(probit$logit_eta(e0),
+                     stats::pnorm(e0, log.p = TRUE) -
+                       stats::pnorm(-e0, log.p = TRUE))
     expect_true(is.finite(probit$logit_eta(e0)))
     expect_true(is.finite(probit$logit_eta(-e0)))
   }
-  expect_false(is.finite(probit$logit_eta(40)))
+  # past |eta| = 1000 it continues as the tail's leading term, which
+  # keeps it increasing and odd, and within 1e-4 of eta^2 / 2 there
+  far <- c(1001, 1e4, 1e6)
+  q <- probit$logit_eta(far)
+  expect_true(all(diff(c(probit$logit_eta(1000), q)) > 0))
+  expect_identical(probit$logit_eta(-far), -q)
+  expect_lt(max(abs(q / (far^2 / 2) - 1)), 1e-4)
 })
 
 test_that("probit_approx's log-odds is the cubic and never saturates", {

@@ -184,6 +184,47 @@ test_that("rows at one unseen position krige alike wherever they sit", {
   expect_true(all(lb$extra_var > 0))
 })
 
+test_that("unseen rows make one position as brms's new-data rule does", {
+  # brms groups new gp() rows with match_rows(), equal to 15 significant
+  # digits: u and u * (1 + 2^-52) are one unseen position, and so are
+  # 1/3 and 1/3 * (1 + 2^-52) (dev/ciharden-rev-brmsgpnew.R). One
+  # position is one draw of the field, so frmtmb gives its rows
+  # identical rows of the kriging covariance; two positions do not.
+  set.seed(17)
+  xg <- round(runif(60, 0, 10), 1)
+  d <- data.frame(y = sin(xg) + rnorm(60, 0, 0.3), x = xg)
+  fg <- frm(bf(y ~ gp(x)) + gaussian(), data = d)
+  u <- 10 / 3
+  nd <- data.frame(x = c(u, u * (1 + 2^-52), u, 1 / 3, 1 / 3 * (1 + 2^-52)),
+                   y = 0)
+  ed <- lp_eta_design(fg, fg$frame$linpreds[["y.mu"]], nd, FALSE, FALSE)
+  kg <- Filter(Negate(is.null), lapply(ed$sm_parts, `[[`, "krig"))[[1L]]
+  expect_length(kg$rows, 5L)
+  S <- gp_krig_cov(kg)
+  rowkey <- apply(S, 1L, function(r) paste(sprintf("%a", r), collapse = " "))
+  ours <- match(rowkey, unique(rowkey))
+  expect_identical(ours, c(1L, 1L, 1L, 2L, 2L))
+  skip_if_not_installed("brms")
+  fb <- suppressMessages(suppressWarnings(
+    brms::brm(y ~ gp(x), data = d, empty = TRUE)))
+  sd <- brms::standata(fb, newdata = nd, internal = TRUE)
+  expect_identical(ours, as.integer(sd$Jgp_1))
+})
+
+test_that("rows of the data one bit apart find their fitted position", {
+  # The frame makes them one latent position, as brms does, so
+  # prediction at the fitting data must read that position for both,
+  # with no kriging variance
+  set.seed(17)
+  xg <- c(1 / 3, 1 / 3 * (1 + 2^-52), round(runif(60, 0, 10), 1))
+  dg <- data.frame(y = sin(xg) + rnorm(62, 0, 0.3), x = xg)
+  fg <- frm(bf(y ~ gp(x)) + gaussian(), data = dg)
+  lb <- frm_lp_basis(fg, newdata = dg[1:2, ])
+  A <- unname(as.matrix(lb$A))
+  expect_identical(A[1, ], A[2, ])
+  expect_identical(lb$extra_var, c(0, 0))
+})
+
 test_that("the kriging draw's factor is the conditional covariance", {
   # a sampler's draw at unseen positions comes from a pivoted Cholesky
   # that stops at gp_krig_tol (dev/gpby-findings.md, Punch round 1, m4);

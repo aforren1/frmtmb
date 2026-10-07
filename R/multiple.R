@@ -18,6 +18,24 @@ rubin_pool <- function(Q, U, dfcom) {
              df = df_old * df_obs / (df_old + df_obs), fmi = lam)
 }
 
+#' Row names of the pooled coefficient table: brms's, as `fixef()` and
+#' `vcov()` of each fit name the same coefficients (`Intercept`,
+#' `sigma_x`). A distributional parameter nobody wrote a formula for is
+#' pooled here on its link scale, where brms reports the parameter
+#' itself under its bare name, so it keeps its predictor's name,
+#' `sigma_Intercept`, which says what the number is.
+#'
+#' @noRd
+multiple_row_names <- function(fit) {
+  tab <- brms_coef_table(fit)
+  nm <- sub("^(b|bs|bsp|bcs)_", "", tab$brms)
+  nat <- tab$natural
+  # brms's name of the intercept that predictor would have, had a
+  # formula been written for it (sigma_Intercept, sigma_bmi_Intercept)
+  nm[nat] <- paste0(tab$brms[nat], "_Intercept")
+  nm
+}
+
 #' Fit a model across multiply imputed datasets
 #'
 #' The frequentist counterpart of brms's `brm_multiple()`: fits the
@@ -42,9 +60,12 @@ rubin_pool <- function(Q, U, dfcom) {
 #' @param data A list of completed data frames, or a `mice::mids`.
 #' @param level Confidence level for the `$pooled_varcorr` interval.
 #' @return A `frmtmb_multiple` object: `pooled` (the Rubin table for
-#'   the fixed effects), `pooled_varcorr` (grp/term/type/estimate/
+#'   the fixed effects, its rows named as brms names them, `Intercept`
+#'   and `sigma_Intercept`), `pooled_varcorr` (grp/term/type/estimate/
 #'   lwr/upr/df/fmi for the random-effect SDs and correlations; `NULL`
 #'   without random effects), and `fits` (the per-imputation fits).
+#'   `fixef()`, `summary()` and `conditional_effects()` pool across the
+#'   imputations; see [frm_multiple-methods].
 #' @examples
 #' set.seed(8)
 #' n <- 80
@@ -104,10 +125,12 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
                numeric(length(nm)))
   pl <- rubin_pool(cf, matrix(us, nrow = length(nm)), dfcom)
   tstat <- pl$estimate / pl$se
+  # brms's names, which fixef() of each fit uses: `Intercept`, not the
+  # design column's `(Intercept)`
   tab <- data.frame(
     estimate = pl$estimate, se = pl$se, df = pl$df, t = tstat,
     p = 2 * stats::pt(-abs(tstat), pl$df), fmi = pl$fmi,
-    row.names = nm
+    row.names = multiple_row_names(fits[[1]])
   )
 
   # variance components, pooled on the log/atanh scales and
@@ -678,18 +701,354 @@ ndraws.frmtmb_multiple <- function(x) multiple_no_draws("ndraws")
 
 #' @export
 plot.frmtmb_multiple <- function(x, ...) {
-  frm_stop("plot() has no pooled display for a frm_multiple() result. ",
-           "Plot one imputation's fit, `plot(x$fits[[1]])`, or print the ",
-           "object for the pooled coefficients and variance components",
+  # brms's plot() of a brm_multiple() fit draws the trace and the
+  # histogram of the combined draws, chosen with variable =, regex =
+  # and N =; there are no draws here to choose from
+  frm_stop("plot() has no pooled display for a frm_multiple() result: ",
+           "brms's display is the posterior draws of each parameter, and ",
+           "this is m maximum-likelihood fits pooled by Rubin's rules. ",
+           "summary() and fixef() give the pooled coefficients, ",
+           "conditional_effects() the pooled effect curves, and ",
+           "`plot(x$fits[[1]])` one imputation's residual diagnostics",
            call. = FALSE)
 }
 
+## Pooled post-processing: the brms_missings vignette's calls on a
+## brm_multiple() fit, with Rubin's rules where brms combines the draws
+## of the imputations.
+
+#' Pooled coefficients, summary and effect curves of a frm_multiple() fit
+#'
+#' brms's `brm_multiple()` combines the posterior draws of the m
+#' imputations, so `fixef()`, `summary()` and `conditional_effects()` of
+#' its result summarize the combined draws. A [frm_multiple()] result is
+#' m maximum-likelihood fits, and these methods pool them by Rubin's
+#' rules with the Barnard-Rubin degrees of freedom instead:
+#'
+#' * `fixef()` pools `fixef()` of each imputation, so it has brms's rows,
+#'   names and order, ordinal thresholds included. `Estimate` is the
+#'   mean over the imputations, `Est.Error` the square root of the total
+#'   variance (within plus `1 + 1/m` times between), and the quantile
+#'   columns a t interval on the pooled degrees of freedom.
+#' * `summary()` prints that table, the distributional parameters
+#'   without a formula pooled on their link scale and transformed back,
+#'   and the pooled variance components, with the degrees of freedom
+#'   and the fraction of missing information (`fmi`) of each row where
+#'   brms prints R-hat and effective sample sizes.
+#' * `conditional_effects()` computes the curves of every imputation on
+#'   the grid of the first (brms's grid, which `brm_multiple()` reads
+#'   from the first data set), pools each grid point on the scale its
+#'   Wald band is symmetric on (the link, or the logit of an ordinal
+#'   category probability), and transforms back. Only the Wald band
+#'   pools this way: `method = "predict"` and the bootstrap and profile
+#'   bands are refused by name.
+#'
+#' brms's draws arguments have no meaning on pooled fits and are
+#' refused by name, as on one fit.
+#'
+#' @param object,x A `frmtmb_multiple` from [frm_multiple()].
+#' @param summary,robust brms's arguments, refused when not the
+#'   default: there are no draws.
+#' @param probs Probabilities of the quantile columns of `fixef()`.
+#' @param pars Row names to keep, in the order given, as in brms.
+#' @param priors If `TRUE`, `summary()` also prints the prior of the
+#'   first imputation's fit.
+#' @param prob The coverage of the summary's and the curves' intervals.
+#' @param mc_se brms's argument, refused when `TRUE`.
+#' @param effects,... For `conditional_effects()`, passed to
+#'   [conditional_effects()] on each imputation's fit. Otherwise refused
+#'   by name.
+#' @return `fixef()`: brms's coefficient matrix. `summary()`: a
+#'   `summary.frmtmb_multiple` object, printed in brms's layout.
+#'   `conditional_effects()`: a conditional-effects object, which
+#'   `plot()` draws.
+#' @seealso [frm_multiple()], [hypothesis()] for pooled functions of
+#'   the parameters, [anova.frmtmb_multiple()].
+#' @examples
+#' set.seed(8)
+#' n <- 80
+#' x <- rnorm(n)
+#' y <- rnorm(n, 1 + 0.5 * x, 1)
+#' x[sample(n, 15)] <- NA
+#' imps <- lapply(1:3, function(i) {
+#'   xi <- x
+#'   xi[is.na(xi)] <- sample(x[!is.na(x)], sum(is.na(xi)), TRUE)
+#'   data.frame(y = y, x = xi)
+#' })
+#' fm <- frm_multiple(bf(y ~ x), family = gaussian(), data = imps)
+#' fixef(fm)
+#' summary(fm)
+#' ce <- conditional_effects(fm, "x")
+#' head(ce$x[, c("x", "estimate__", "lower__", "upper__")])
+#' @name frm_multiple-methods
+NULL
+
+#' @rdname frm_multiple-methods
+#' @export
+fixef.frmtmb_multiple <- function(object, summary = TRUE, robust = FALSE,
+                                  probs = c(0.025, 0.975), pars = NULL,
+                                  ...) {
+  frm_check_dots(...)
+  fit_refuse_draws_args("fixef()", summary = summary, robust = robust)
+  pl <- multiple_pool_fixef(object)
+  qs <- lapply(probs %||% numeric(0), function(p) {
+    pl$estimate + stats::qt(p, pl$df) * pl$se
+  })
+  out <- cbind(Estimate = pl$estimate, `Est.Error` = pl$se)
+  if (length(qs)) out <- cbind(out, do.call(cbind, qs))
+  colnames(out) <- c("Estimate", "Est.Error", brms_prob_cols(probs))
+  rownames(out) <- pl$names
+  brms_pars_filter(out, pars, "fixef()")
+}
+
+#' Rubin's rules over `fixef()` of each imputation: brms's rows, names
+#' and order, with the pooled degrees of freedom and fmi.
+#'
+#' @noRd
+multiple_pool_fixef <- function(object) {
+  fx <- lapply(object$fits, function(f) fixef(f))
+  rn <- rownames(fx[[1L]])
+  for (j in seq_along(fx)[-1L]) {
+    if (!identical(rownames(fx[[j]]), rn)) {
+      frm_stop("the imputations' fits have different coefficients (",
+               "imputation ", j, " differs from the first), so there is ",
+               "no pooled table: a factor level, say, is missing from ",
+               "one of the imputed data sets", call. = FALSE)
+    }
+  }
+  Q <- matrix(vapply(fx, function(m) m[, "Estimate"], numeric(length(rn))),
+              nrow = length(rn))
+  U <- matrix(vapply(fx, function(m) m[, "Est.Error"]^2,
+                     numeric(length(rn))), nrow = length(rn))
+  pl <- rubin_pool(Q, U, df.residual(object$fits[[1L]]))
+  pl$names <- rn
+  pl
+}
+
+#' A pooled summary block: brms's four columns with a t interval on the
+#' pooled degrees of freedom, and `df` and `fmi` where brms prints its
+#' convergence columns.
+#'
+#' @noRd
+multiple_block <- function(est, se, df, fmi, prob, names,
+                           linkinv = identity, mu_eta = NULL) {
+  q <- stats::qt(1 - (1 - prob) / 2, df)
+  lo <- linkinv(est - q * se)
+  hi <- linkinv(est + q * se)
+  e <- if (is.null(mu_eta)) se else abs(mu_eta(est)) * se
+  pct <- format(prob * 100, drop0trailing = TRUE)
+  out <- data.frame(linkinv(est), e, pmin(lo, hi), pmax(lo, hi), df, fmi,
+                    row.names = names)
+  names(out) <- c("Estimate", "Est.Error", paste0("l-", pct, "% CI"),
+                  paste0("u-", pct, "% CI"), "df", "fmi")
+  out
+}
+
+#' @rdname frm_multiple-methods
+#' @export
+summary.frmtmb_multiple <- function(object, priors = FALSE, prob = 0.95,
+                                    robust = FALSE, mc_se = FALSE, ...) {
+  frm_check_dots(..., .unsupported = brms_summary_args)
+  check_flag(priors, "priors")
+  check_probability(prob, "prob")
+  fit_refuse_draws_args("summary()", robust = robust)
+  check_flag(mc_se, "mc_se")
+  if (mc_se) {
+    frm_stop("summary() of a frm_multiple() result cannot honor ",
+             "mc_se = TRUE: ", brms_summary_args[["mc_se"]], call. = FALSE)
+  }
+  f1 <- object$fits[[1L]]
+  s1 <- summary(f1, priors = priors)
+  pl <- multiple_pool_fixef(object)
+  fixed <- multiple_block(pl$estimate, pl$se, pl$df, pl$fmi, prob,
+                          pl$names)
+  # the distributional parameters nobody wrote a formula for: pooled on
+  # their link scale in `$pooled`, reported on their own, as brms does
+  tab <- brms_coef_table(f1)
+  nat <- which(tab$natural)
+  spec <- NULL
+  if (length(nat)) {
+    pooled <- object$pooled
+    spec <- do.call(rbind, lapply(nat, function(i) {
+      lp <- f1$frame[["linpreds"]][[linpred_key(tab$resp[i], tab$dpar[i])]]
+      multiple_block(pooled$estimate[i], pooled$se[i], pooled$df[i],
+                     pooled$fmi[i], prob, tab$brms[i],
+                     linkinv = lp[["link"]]$linkinv,
+                     mu_eta = lp[["link"]]$mu_eta)
+    }))
+  }
+  structure(list(m = object$m, family = s1$family, links = s1$links,
+                 formula = s1$formula, formulas = s1$formulas,
+                 data_name = "the imputed data sets", nobs = s1$nobs,
+                 ngrps = s1$ngrps, fixed = fixed, spec_pars = spec,
+                 varcorr = object$pooled_varcorr, level = object$level,
+                 prob = prob, priors = priors, prior = s1$prior),
+            class = "summary.frmtmb_multiple")
+}
+
+#' @export
+print.summary.frmtmb_multiple <- function(x, digits = 2, ...) {
+  frm_check_dots(...)
+  mv_forms <- x$formulas %||% list()
+  if (length(mv_forms) > 1L) {
+    cat(" Family: MV(", paste(vapply(x$family, `[[`, "", "family"),
+                              collapse = ", "), ") \n", sep = "")
+  } else {
+    cat(" Family:", x$family[["family"]], "\n")
+  }
+  cat_family_links(x$links %||% family_link_str(x$family))
+  if (length(mv_forms) > 1L) {
+    cat("Formula: ", paste(vapply(mv_forms, deparse1, ""),
+                           collapse = " \n         "), " \n", sep = "")
+  } else {
+    cat("Formula:", deparse1(x$formula), "\n")
+  }
+  cat("   Data:", x$data_name,
+      paste0("(Number of observations: ", x$nobs, ")"), "\n")
+  cat(" Method: ML on each of ", x$m, " imputations, pooled by Rubin's ",
+      "rules (Barnard-Rubin df)\n", sep = "")
+  if (NROW(x$varcorr)) {
+    cat("\nMultilevel Hyperparameters (pooled on the log and Fisher-z ",
+        "scales, ", format(x$level * 100), "% interval):\n", sep = "")
+    vc <- x$varcorr
+    vc[-(1:3)] <- lapply(vc[-(1:3)], signif, digits + 2L)
+    print(vc, row.names = FALSE)
+  }
+  cat("\nRegression Coefficients:\n")
+  print(round(x$fixed, digits))
+  if (NROW(x$spec_pars)) {
+    cat("\nFurther Distributional Parameters:\n")
+    print(round(x$spec_pars, digits))
+  }
+  if (isTRUE(x$priors)) {
+    cat("\nPriors (of the first imputation's fit):\n")
+    if (is.null(x$prior)) {
+      cat("No priors were set (plain maximum likelihood).\n")
+    } else {
+      print(x$prior)
+    }
+  }
+  invisible(x)
+}
+
+#' @rdname frm_multiple-methods
 #' @exportS3Method brms::conditional_effects
 #' @export
-conditional_effects.frmtmb_multiple <- function(x, ...) {
-  frm_stop("conditional_effects() has no pooled version for a ",
-           "frm_multiple() result: an effect curve would have to be ",
-           "pooled across imputations, which is not implemented. Compute ",
-           "it on one imputation's fit, `conditional_effects(x$fits[[1]])`",
-           call. = FALSE)
+conditional_effects.frmtmb_multiple <- function(x, effects = NULL, ...,
+                                                prob = 0.95) {
+  dots <- list(...)
+  check_probability(prob, "prob")
+  if (!is.null(dots$method) &&
+        !identical(ce_method(dots$method), "epred")) {
+    frm_stop("conditional_effects() of a frm_multiple() result cannot ",
+             "honor method = \"predict\": a predictive interval is a ",
+             "quantile of simulated responses, and the simulations of the ",
+             "imputations would have to be pooled as draws, which is not ",
+             "implemented. Use method = \"epred\" (the default), or ",
+             "conditional_effects(x$fits[[1]], method = \"predict\") for ",
+             "one imputation", call. = FALSE)
+  }
+  if (!is.null(dots$band) && !identical(dots$band, "wald")) {
+    frm_stop("conditional_effects() of a frm_multiple() result cannot ",
+             "honor band = \"", dots$band, "\": Rubin's rules pool an ",
+             "estimate and its standard error, which the Wald band has ",
+             "and a ", dots$band, " band does not. Use band = \"wald\" ",
+             "(the default)", call. = FALSE)
+  }
+  for (a in c("spaghetti", "surface")) {
+    if (isTRUE(dots[[a]])) {
+      frm_stop("conditional_effects() of a frm_multiple() result cannot ",
+               "honor ", a, " = TRUE: it pools curves point by point, ",
+               "and ", if (a == "spaghetti") "a spaghetti display draws " else
+                 "a surface is a grid of ", "one ",
+               if (a == "spaghetti") "curve per draw" else
+                 "fit's points, which pool the same way only on line plots",
+               ". Call it on one imputation's fit for that",
+               call. = FALSE)
+    }
+  }
+  ce1 <- conditional_effects(x$fits[[1L]], effects = effects, prob = prob,
+                             ...)
+  ps <- attr(ce1, "pool_scale")
+  if (is.null(ps)) {
+    frm_stop("conditional_effects() of a frm_multiple() result pools a ",
+             "Wald band on the scale it is symmetric on, and this display ",
+             "has none: its band scale is chosen grid point by grid point ",
+             "(a reported dpar such as a mixing weight). Call it on one ",
+             "imputation's fit, conditional_effects(x$fits[[1]])",
+             call. = FALSE)
+  }
+  link <- ps$link
+  q <- function(df) stats::qt(1 - (1 - prob) / 2, df)
+  internal <- c("cond__", "effect1__", "effect2__", "estimate__", "se__",
+                "lower__", "upper__", "cats__")
+  resp_vars <- names(x$fits[[1L]]$spec$responses)
+  out <- ce1
+  for (e in names(ce1)) {
+    d1 <- ce1[[e]]
+    # the per-category display keys its effect "x:cats__", which names
+    # the categories and not a variable of the call
+    ev <- setdiff(attr(d1, "effects"), "cats__")
+    e_call <- paste(ev, collapse = ":")
+    covs <- setdiff(names(d1), c(internal, ev, resp_vars))
+    # the first imputation's grid, given to every other fit exactly:
+    # the effect values as int_conditions and the other covariates as
+    # condition sets
+    ic <- lapply(ev, function(v) {
+      u <- unique(d1[[v]])
+      if (is.factor(u)) as.character(u) else u
+    })
+    names(ic) <- ev
+    conds <- unique(d1[covs])
+    key <- function(d) {
+      do.call(paste, c(lapply(d[c(ev, covs, intersect("cats__", names(d)))],
+                              as.character), sep = "\r"))
+    }
+    k1 <- key(d1)
+    tr <- function(d) {
+      t <- link$linkfun(d$estimate__)
+      s <- if (identical(ps$se_on, "link")) d$se__ else
+        d$se__ / abs(link$mu_eta(t))
+      list(t = t, s = s)
+    }
+    T1 <- tr(d1)
+    Q <- matrix(NA_real_, nrow(d1), x$m)
+    U <- Q
+    Q[, 1L] <- T1$t
+    U[, 1L] <- T1$s^2
+    for (j in seq_len(x$m)[-1L]) {
+      cej <- conditional_effects(x$fits[[j]], effects = e_call,
+                                 prob = prob,
+                                 int_conditions = ic,
+                                 conditions = if (length(covs)) {
+                                   conds
+                                 } else {
+                                   list()
+                                 },
+                                 ...)
+      dj <- cej[[1L]]
+      pos <- match(k1, key(dj))
+      if (anyNA(pos)) {
+        frm_stop("conditional_effects() could not evaluate imputation ",
+                 j, " on the first imputation's grid for '", e, "', so ",
+                 "the curves do not pool point by point. Give the grid ",
+                 "yourself with int_conditions = and conditions =",
+                 call. = FALSE)
+      }
+      Tj <- tr(dj[pos, , drop = FALSE])
+      Q[, j] <- Tj$t
+      U[, j] <- Tj$s^2
+    }
+    pl <- rubin_pool(Q, U, df.residual(x$fits[[1L]]))
+    lo <- link$linkinv(pl$estimate - q(pl$df) * pl$se)
+    hi <- link$linkinv(pl$estimate + q(pl$df) * pl$se)
+    d1$estimate__ <- link$linkinv(pl$estimate)
+    d1$se__ <- if (identical(ps$se_on, "link")) pl$se else
+      pl$se * abs(link$mu_eta(pl$estimate))
+    d1$lower__ <- pmin(lo, hi)
+    d1$upper__ <- pmax(lo, hi)
+    out[[e]] <- d1
+  }
+  attr(out, "pool_scale") <- NULL
+  out
 }

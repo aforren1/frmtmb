@@ -14,6 +14,7 @@ fit4 <- brms_fixture(4)
 fit6 <- brms_fixture(6)
 
 test_that("emmeans returns expected output structure", {
+  withr::local_seed(13L)
   brms_setup("emmeans:14",
     em <- summary(emmeans(fit1, "Age", by = "Trt"))
   )
@@ -59,6 +60,7 @@ test_that("emmeans returns expected output structure", {
 })
 
 test_that("emmeans supports 'epred' predictions", {
+  withr::local_seed(33L)
   brms_setup("emmeans:34",
     em <- summary(emmeans(fit2, "Age", epred = TRUE))
   )
@@ -83,6 +85,7 @@ test_that("emmeans supports 'epred' predictions", {
 })
 
 test_that("emmeans supports multilevel terms", {
+  withr::local_seed(45L)
   brms_setup("emmeans:46",
     em <- summary(emmeans(fit1, "Age", by = "Trt", re_formula = NULL))
   )

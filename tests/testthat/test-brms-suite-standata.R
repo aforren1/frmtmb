@@ -8,6 +8,7 @@ standata <- brms_shim_standata
 SW <- suppressWarnings
 
 test_that("standata accepts correct response variables depending on the family", {
+  withr::local_seed(67L)
   brms_port("standata:69", "pass",
     "",
     expect_equal(standata(y ~ 1, data = data.frame(y = seq(-9.9,0,0.1)),
@@ -96,6 +97,7 @@ test_that("standata accepts correct response variables depending on the family",
 })
 
 test_that("standata rejects incorrect response variables depending on the family", {
+  withr::local_seed(104L)
   brms_port_own("standata:106",
     "Factor responses are only supported for binomial families",
     "brms: Family 'student' requires numeric responses",
@@ -160,6 +162,7 @@ test_that("standata rejects incorrect response variables depending on the family
 })
 
 test_that("standata suggests using family bernoulli if appropriate", {
+  withr::local_seed(135L)
   brms_port("standata:136", "pass",
     "",
     expect_message(standata(y | trials(1) ~ 1, data = list(y = rep(0:1,5)),
@@ -181,6 +184,7 @@ test_that("standata suggests using family bernoulli if appropriate", {
 })
 
 test_that("standata returns correct values for addition terms", {
+  withr::local_seed(147L)
   brms_setup("standata:148",
     dat <- data.frame(y = rnorm(9), s = 1:9, w = 1:9, c1 = rep(-1:1, 3),
                       c2 = rep(c("left","none","right"), 3),
@@ -239,6 +243,7 @@ test_that("standata returns correct values for addition terms", {
 })
 
 test_that("standata rejects incorrect addition terms", {
+  withr::local_seed(176L)
   brms_setup("standata:177",
     dat <- data.frame(y = rnorm(9), s = -(1:9), w = -(1:9),
                       c = rep(-2:0, 3), t = 9:1, z = 1:9)
@@ -273,6 +278,7 @@ test_that("standata rejects incorrect addition terms", {
 })
 
 test_that("standata removes NAs correctly", {
+  withr::local_seed(239L)
   brms_setup("standata:240",
     dat <- data.frame(y = c(rnorm(9), NA))
   )
@@ -286,6 +292,7 @@ test_that("standata removes NAs correctly", {
 })
 
 test_that("standata handles the 'subset' addition argument correctly", {
+  withr::local_seed(245L)
   brms_setup("standata:246",
     dat1 <- data.frame(
       y1 = rnorm(15), y2 = NA,
@@ -337,6 +344,7 @@ test_that("standata handles the 'subset' addition argument correctly", {
 })
 
 test_that("standata allows to retrieve the initial data order", {
+  withr::local_seed(304L)
   brms_setup("standata:305",
     dat <- data.frame(y1 = rnorm(100), y2 = rnorm(100),
                             id = sample(1:10, 100, TRUE),
@@ -377,6 +385,7 @@ test_that("standata allows to retrieve the initial data order", {
 })
 
 test_that("standata handles 'mi' terms with 'subset'", {
+  withr::local_seed(609L)
   brms_setup("standata:610",
     dat <- data.frame(
       y = rnorm(10), x = c(rnorm(9), NA), z = rnorm(10),
@@ -434,6 +443,7 @@ test_that("standata handles 'mi' terms with 'subset'", {
 })
 
 test_that("by variables in grouping terms are handled correctly", {
+  withr::local_seed(690L)
   brms_setup("standata:691",
     gvar <- c("1A", "1B", "2A", "2B", "3A", "3B", "10", "100", "2", "3")
   )
@@ -501,6 +511,7 @@ test_that("by variables in grouping terms are handled correctly", {
 })
 
 test_that("standata handles calls to the 'poly' function", {
+  withr::local_seed(716L)
   brms_setup("standata:717",
     dat <- data.frame(y = rnorm(10), x = rnorm(10))
   )
@@ -516,6 +527,7 @@ test_that("standata handles calls to the 'poly' function", {
 })
 
 test_that("standata allows fixed distributional parameters", {
+  withr::local_seed(722L)
   brms_setup("standata:723",
     dat <- list(y = 1:10)
   )
@@ -536,6 +548,7 @@ test_that("standata allows fixed distributional parameters", {
 })
 
 test_that("Cell-mean coding can be disabled", {
+  withr::local_seed(730L)
   brms_setup("standata:731",
     df <- data.frame(y = 1:10, g = rep(c("a", "b"), 5))
   )
@@ -579,6 +592,7 @@ test_that("Cell-mean coding can be disabled", {
 })
 
 test_that("dots in formula are correctly expanded", {
+  withr::local_seed(925L)
   brms_setup("standata:926",
     dat <- data.frame(y = 1:10, x1 = 1:10, x2 = 1:10)
   )
@@ -597,6 +611,7 @@ test_that("dots in formula are correctly expanded", {
 })
 
 test_that("reserved variables 'Intercept' is handled correctly", {
+  withr::local_seed(968L)
   brms_setup("standata:969",
     dat <- data.frame(y = 1:10)
   )
@@ -621,6 +636,7 @@ test_that("reserved variables 'Intercept' is handled correctly", {
 })
 
 test_that("standata handles addition term 'rate' is correctly", {
+  withr::local_seed(1044L)
   brms_setup("standata:1045",
     data <- data.frame(y = rpois(10, 1), x = rnorm(10), time = 1:10)
   )
@@ -634,6 +650,7 @@ test_that("standata handles addition term 'rate' is correctly", {
 })
 
 test_that("standata handles grouped ordinal thresholds correctly", {
+  withr::local_seed(1050L)
   brms_setup("standata:1051",
     dat <- data.frame(
       y = c(1:5, 1:4, 4),
@@ -707,6 +724,7 @@ test_that("standata handles grouped ordinal thresholds correctly", {
 })
 
 test_that("NAs are allowed in unused interval censoring variables", {
+  withr::local_seed(1109L)
   brms_setup("standata:1110",
     dat <- data.frame(y = rnorm(10), ce = c(1, rep(2, 9)))
   )
@@ -745,6 +763,7 @@ test_that("NAs are allowed in unused interval censoring variables", {
 })
 
 test_that("drop_unused_factor levels works correctly", {
+  withr::local_seed(1124L)
   brms_setup("standata:1125",
     dat <- data.frame(y = rnorm(10), x = factor(c("a", "b"), levels = c("a", 
         "b", "c")))
