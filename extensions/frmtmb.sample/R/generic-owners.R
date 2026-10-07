@@ -1,6 +1,6 @@
 # Why this file exists.
 #
-# This package defines 27 S3 generics of its own, and every one of
+# This package defines 24 S3 generics of its own, and every one of
 # those names is owned by another package: rstantools, loo,
 # bridgesampling, bayesplot, posterior, coda, gratia or brms. A generic
 # defined here and exported is a rival, not an alias. `UseMethod()`
@@ -47,8 +47,9 @@
 #' then by loading each candidate and reading the environment of its
 #' exported function, because a package that exports a name may only
 #' have imported it: brms exported 20 of the 28 audited and defined 8
-#' (dev/samplegen-audit.R). `parnames` has since moved to frmtmb,
-#' which defines it for a fit, and this package re-exports it. The
+#' (dev/samplegen-audit.R). `parnames`, and later `stancode`,
+#' `standata` and `pp_mixture`, have since moved to frmtmb, which
+#' defines them for a fit, and this package re-exports them. The
 #' owner is the package that DEFINES the generic, because that is the
 #' table brms's own methods are in.
 #'
@@ -83,9 +84,6 @@ sample_generic_owners <- list(
   mcmc_plot = "brms",
   posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
-  pp_mixture = "brms",
   reloo = "brms",
-  restructure = "brms",
-  stancode = "brms",
-  standata = "brms"
+  restructure = "brms"
 )

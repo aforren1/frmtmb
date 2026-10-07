@@ -3,6 +3,7 @@
 S3method(LOO,frmtmb_draws)
 S3method(VarCorr,frmtmb_draws)
 S3method(WAIC,frmtmb_draws)
+S3method(add_criterion,frmtmb_draws)
 S3method(as.array,frmtmb_draws)
 S3method(as.data.frame,frmtmb_draws)
 S3method(as.matrix,frmtmb_draws)
@@ -26,6 +27,7 @@ S3method(bridgesampling::bridge_sampler,frmtmb_draws)
 S3method(bridgesampling::post_prob,frmtmb_draws)
 S3method(brms::LOO,frmtmb_draws)
 S3method(brms::WAIC,frmtmb_draws)
+S3method(brms::add_criterion,frmtmb_draws)
 S3method(brms::conditional_effects,frmtmb_draws)
 S3method(brms::conditional_smooths,frmtmb_draws)
 S3method(brms::expose_functions,frmtmb_draws)
@@ -136,6 +138,7 @@ S3method(waic,frmtmb_draws)
 export(LOO)
 export(VarCorr)
 export(WAIC)
+export(add_criterion)
 export(as.mcmc)
 export(as_draws)
 export(as_draws_array)
@@ -200,6 +203,7 @@ importFrom(frmtmb,
   LOO,
   VarCorr,
   WAIC,
+  add_criterion,
   as_draws,
   as_draws_array,
   as_draws_df,
@@ -224,9 +228,12 @@ importFrom(frmtmb,
   parnames,
   posterior_summary,
   pp_check,
+  pp_mixture,
   prior_summary,
   ranef,
   set_prior,
+  stancode,
+  standata,
   variables,
   waic
 )

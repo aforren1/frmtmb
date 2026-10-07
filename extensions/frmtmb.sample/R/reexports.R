@@ -102,6 +102,22 @@ frmtmb::variables
 #' @export
 frmtmb::parnames
 
+#' @importFrom frmtmb stancode
+#' @export
+frmtmb::stancode
+
+#' @importFrom frmtmb standata
+#' @export
+frmtmb::standata
+
+#' @importFrom frmtmb pp_mixture
+#' @export
+frmtmb::pp_mixture
+
+#' @importFrom frmtmb add_criterion
+#' @export
+frmtmb::add_criterion
+
 #' @importFrom frmtmb pp_check
 #' @export
 frmtmb::pp_check

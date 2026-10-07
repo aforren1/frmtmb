@@ -144,7 +144,16 @@ brms_print_args <- c(
 #' @noRd
 brms_summary_args <- c(
   mc_se = paste("Monte Carlo standard errors describe a sampler, and",
-                "a maximum likelihood fit has none")
+                "a maximum likelihood fit has none"),
+  # brms 2.23.0's summary() has no `waic` either and drops it into its
+  # dots in silence; old brms printed WAIC there, so a ported call asks
+  # for something it would not get in either package
+  waic = paste("WAIC averages the pointwise likelihood over posterior",
+               "draws, and a maximum likelihood fit has none (brms",
+               "2.23.0's summary() has no `waic` either, and ignores it).",
+               "The summary already prints AIC and BIC, the maximum",
+               "likelihood comparison; for WAIC, sample first:",
+               "waic(frmtmb.sample::frm_sample(fit))")
 )
 
 # brms's print() of a fit IS its summary, and the two used to disagree

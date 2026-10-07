@@ -1,3 +1,38 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb release after 0.68.1 (`frmtmb (>= 0.68.1.9000)` in
+DESCRIPTION until consolidation sets the release): it imports and
+re-exports frmtmb's `stancode()`, `standata()`, `pp_mixture()` and
+`add_criterion()` generics.
+
+## Breaking changes
+
+* **`stancode()`, `standata()` and `pp_mixture()` are frmtmb's
+  generics**, re-exported here; this package keeps its methods for
+  draws. frmtmb defines them because it now has methods for a fit.
+
+* **`pp_mixture()`'s summary names its components `P(K = k | Y)` and
+  numbers its rows**, as brms does and as frmtmb's method for a fit
+  does. They were `class1`, `class2`. On draws of a model that is not a
+  mixture it stops in brms's words, "Method 'pp_mixture' can only be
+  applied to mixture models.", as on a fit.
+
+## New features
+
+* **`plot()` of draws is brms's display**: a histogram and a trace per
+  parameter through `bayesplot::mcmc_combo()`, `nvariables` to a page,
+  with brms's `pars`, `variable`, `regex`, `fixed`, `combo`, `bins`,
+  `theme`, `plot`, `ask` and `newpage`, and `N` as brms's deprecated
+  alias with brms's warning. It refused every call before.
+
+* **`add_criterion()` on draws** stores `loo`, `waic` and `bayes_R2` in
+  `x$criteria` as brms does, and `loo()` and `waic()` with no further
+  argument return the stored object, brms's `use_stored`.
+  `overwrite = TRUE` clears the stored criterion before it computes, as
+  brms does, so it recomputes. `kfold`,
+  `loo_subsample`, `loo_R2` and `marglik` are refused with their own
+  reasons.
+
 # frmtmb.sample 0.16.0
 
 Needs frmtmb 0.68.0: for `ord_thres_linpred()`; for

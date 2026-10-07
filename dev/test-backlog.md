@@ -1999,6 +1999,38 @@ emulator" is `dev/cifix-openblas.sh`, R 4.6.1 with OpenBLAS 0.3.26.
   noise (`dev/cifixrev-krigmem.R`). Remedy: scale each column block
   after it is symmetrized.
 
+## Filed by lane surface, 2026-10-07
+
+From `dev/surface-findings.md` and its review
+(`dev/reviews/2026-10-07-surface.md`).
+
+### Open - low
+
+- **A dense block with several scales still has a `+Inf` or `NaN`
+  log density where a log sd underflows.** Lane surface floored the
+  variance of the six one-scale dense structures (`sd2_floored()`), but
+  at log sd -1137.64 with a nonzero field `us` with two or more
+  coefficients and `cs` give `+Inf`, and `ar1` gives `NaN`, on 0.68.1
+  and the lane alike (`us` with one coefficient and `diag` give
+  `-Inf`; the review's `dev/surface-rev-otherblocks.R`). On
+  `frm_sample(fit)` every prior is flat on the fit route and
+  frmtmb.sample keeps these blocks centered (`ncp_plan()`), so a long
+  first leapfrog step could stick a chain there as it stuck the exact
+  `gp()` chain. Latent, not shown: 16 sampler seeds of `(1 + x | g)`
+  never went below theta -15.3 (`dev/surface-rev-ussweep.R`). The
+  remedy is the same floor per scale, or a log-scale density.
+- **frmtmb.sample names the `mo()` simplex draws `zeta1_1`,
+  `zeta1_2`**, the internal softmax coordinates, where brms's are
+  `simo_moincome1[1]` to `[3]` on the simplex, so
+  `plot(ds, variable = "simo", regex = TRUE)` and a ported script that
+  selects `simo_` find nothing (`dev/surface-simo.R`).
+- **`update(prior =)` replaces the stored prior; brms merges** the new
+  rows with the stored user rows (a new row wins its slot) and drops
+  what matches nothing. Measured by the review: a stored
+  `normal(0, 0.05)` on `b_x` is discarded by `update(fit, prior =
+  <a sigma prior>)` (b_x 0.236 to 0.766; merged 0.236). frmtmb could
+  merge and still check the new rows strictly.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

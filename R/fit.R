@@ -854,6 +854,9 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   attr(frame, "se_explained") <- check_re_structure(spec, frame, control)
   suggest_bernoulli(spec, frame)
   if (identical(dry_run, "frame")) return(frame)
+  # a prior update() carried over from the original fit, marked as
+  # brms marks it: what the new model cannot take is dropped here
+  prior <- prior_drop_unmatched(prior, spec, frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = NULL, upper = NULL,

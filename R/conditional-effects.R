@@ -591,11 +591,22 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
     return("linpred")
   }
   if (identical(method, "predict")) {
-    frm_stop("method = \"predict\" has no meaning on an ordinal family: the ",
+    frm_stop("method = \"predict\" has no meaning on ",
+             if (identical(rspec$family[["type"]], "ordinal")) {
+               "an ordinal family"
+             } else {
+               paste0("family '", rspec$family[["family"]], "', whose ",
+                      "response is a category")
+             }, ": the ",
              "category probabilities conditional_effects() draws ARE the ",
              "predictive distribution, so there is no further observation ",
              "noise to add. Use method = \"epred\" (the default), or ask ",
-             "for the latent predictor with dpar = \"mu\"", call. = FALSE)
+             if (identical(rspec$family[["type"]], "ordinal")) {
+               "for the latent predictor with dpar = \"mu\""
+             } else {
+               paste0("for one category's predictor with dpar = \"",
+                      setdiff(names(rspec$dpars), "mu")[1L], "\"")
+             }, call. = FALSE)
   }
   if (is.null(categorical) || isTRUE(categorical)) return("cats")
   if (!identical(rspec$family[["type"]], "ordinal")) {
@@ -2581,7 +2592,33 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # the bootstrap rides along so a second call can reuse it: refits are
   # the expensive part and nobody should pay for them twice
   if (!is.null(bd)) attr(out, "boot") <- bd$bs
+  attr(out, "pool_scale") <- ce_pool_scale(band, method, categorical,
+                                           cats_mean, hook, rspec, lp)
   out
+}
+
+#' The scale on which a Wald band of `conditional_effects()` is
+#' symmetric, which is where `conditional_effects()` of a
+#' `frm_multiple()` result pools the imputations by Rubin's rules.
+#'
+#' `link` maps `estimate__` to that scale, and `se_on` says whether
+#' `se__` is already on it (`"link"`) or on the displayed scale
+#' (`"response"`, the ordinal category probabilities, whose band is on
+#' their logit). `NULL` where the band is not a Wald band of one
+#' transform per call: a bootstrap or profile band, a predictive
+#' interval, and a reported dpar whose band scale is chosen grid by
+#' grid.
+#'
+#' @noRd
+ce_pool_scale <- function(band, method, categorical, cats_mean, hook,
+                          rspec, lp) {
+  if (band != "wald" || method == "predict" || !is.null(hook)) return(NULL)
+  if (categorical) {
+    if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
+    return(list(link = get_link("logit"), se_on = "response"))
+  }
+  if (cats_mean) return(list(link = get_link("identity"), se_on = "link"))
+  list(link = lp[["link"]], se_on = "link")
 }
 
 #' Pointwise percentile of a draws matrix (draws in rows), NA where a
@@ -3333,6 +3370,38 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
   }
 }
 
+#' brms's `plot.brmsfit()` arguments, each with the reason a
+#' maximum-likelihood fit cannot honor it.
+#'
+#' They used to reach the generic refusal of the dots, which suggested
+#' `x` for `N` and named none of them; and an unknown argument that is
+#' a graphical parameter would be accepted silently by base graphics.
+#' Each is refused by name instead, and the reason names the display
+#' that has them.
+#'
+#' @noRd
+plot_fit_brms_args <- local({
+  tail <- paste0(
+    "plot() of a maximum-likelihood fit draws residual diagnostics, and ",
+    "a fit has no draws and no per-parameter panels. For brms's display, ",
+    "sample first: plot(frmtmb.sample::frm_sample(fit), variable = , ",
+    "regex = , N = ). For one parameter's likelihood, ",
+    "plot(profile(fit, parm))")
+  sel <- paste0("brms chooses the parameters whose posterior draws it ",
+                "plots with it. ", tail)
+  lay <- paste0("brms sets how many parameters' posterior panels go on ",
+                "one page with it. ", tail)
+  look <- paste0("brms passes it to the bayesplot panels of the posterior ",
+                 "draws. ", tail)
+  draw <- paste0("brms decides with it whether the pages of posterior ",
+                 "panels are drawn or only returned. ", tail)
+  page <- paste0("brms decides with it whether the first page of ",
+                 "posterior panels starts a new graphics page. ", tail)
+  c(N = lay, nvariables = lay, variable = sel, regex = sel, pars = sel,
+    fixed = sel, combo = look, bins = look, theme = look, plot = draw,
+    newpage = page)
+})
+
 #' Diagnostic plots for a fit
 #'
 #' Panel 1: Pearson residuals against fitted values with a lowess
@@ -3350,8 +3419,24 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
 #' @param ask Whether to prompt between plots; defaults to the usual
 #'   interactive-device rule.
 #' @param ... Refused: an argument the method does not have is an
-#'   error naming it, rather than silently changing nothing.
+#'   error naming it, rather than silently changing nothing. brms's
+#'   `plot.brmsfit()` arguments (`N`, `nvariables`, `variable`, `regex`,
+#'   `pars`, `fixed`, `combo`, `bins`, `theme`, `plot`, `newpage`) are
+#'   refused by name with the reason: they choose and lay out the
+#'   per-parameter panels of posterior draws, and a maximum-likelihood
+#'   fit has no draws and no such panels.
 #' @return `x`, invisibly. Called for the plots it draws.
+#'
+#' @section brms's display:
+#' brms's `plot()` of a fit draws a histogram and a trace of the
+#' posterior draws of each parameter, `nvariables` (or `N`) parameters
+#' to a page, selected with `variable` and `regex`. A
+#' maximum-likelihood fit has one estimate per parameter and no chains,
+#' so this method draws the residual diagnostics a frequentist fit is
+#' read with, and refuses brms's arguments by name. For brms's display,
+#' sample and plot the draws:
+#' `plot(frmtmb.sample::frm_sample(fit), variable = "^b_", regex = TRUE)`.
+#' For one parameter's likelihood, `plot(profile(fit, parm))`.
 #'
 #' @srrstats {RE6.0} A `frmtmb_fit` has a default `plot()` method, so
 #'   `plot(fit)` works without the user naming a function. It draws the
@@ -3387,7 +3472,7 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
 #' plot(fit, which = 2)
 #' @export
 plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
-  frm_check_dots(...)
+  frm_check_dots(..., .unsupported = plot_fit_brms_args)
   # the values, not brms's summary matrix: a scatter plot needs one
   # number per row
   r <- residual_values(x, type = "pearson")

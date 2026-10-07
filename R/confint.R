@@ -2320,6 +2320,13 @@ update_pool_pars <- function(out, old, new) {
 #' argument. On a nonlinear model the delta can only be `~ .`, which
 #' keeps the body.
 #'
+#' The prior of the original fit is carried over. As in brms, a
+#' specification in it that matches no parameter of the updated model,
+#' such as a class `"cor"` prior after the update removes the last
+#' correlation, is dropped. brms drops it silently; frmtmb says which
+#' it dropped, in a message. A `prior` given to `update()` replaces the
+#' stored one and is checked as [frm()] checks it.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param formula. A complete formula or [bf()], or a delta such as
 #'   `~ . + z` or `. ~ . + z`.
@@ -2404,6 +2411,14 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
   # assembles; an explicit data2 = in the update wins
   if (length(object$data2) && !("data2" %in% names(extras))) {
     cl$data2 <- object$data2
+  }
+  # the stored prior goes in by value, marked as brms's update() marks
+  # it, so frm() drops a specification the new formula leaves without a
+  # parameter (prior_drop_unmatched()); a prior given to this call is
+  # checked like any other
+  if (!("prior" %in% names(extras)) &&
+        inherits(object$prior, "frmtmb_priorlist")) {
+    cl$prior <- structure(object$prior, allow_invalid_prior = TRUE)
   }
   eval(cl, parent.frame())
 }

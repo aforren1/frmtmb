@@ -2,28 +2,19 @@
 % Please edit documentation in R/methods-draws.R
 \name{frmtmb-draws-refusals}
 \alias{frmtmb-draws-refusals}
-\alias{stancode}
 \alias{stancode.frmtmb_draws}
-\alias{standata}
 \alias{standata.frmtmb_draws}
 \alias{expose_functions.frmtmb_draws}
-\alias{plot.frmtmb_draws}
 \alias{update.frmtmb_draws}
 \alias{restructure}
 \alias{restructure.frmtmb_draws}
 \title{Methods a ported brms script may call that frmtmb does not have}
 \usage{
-stancode(object, ...)
-
 \method{stancode}{frmtmb_draws}(object, ...)
-
-standata(object, ...)
 
 \method{standata}{frmtmb_draws}(object, ...)
 
 \method{expose_functions}{frmtmb_draws}(x, ...)
-
-\method{plot}{frmtmb_draws}(x, ...)
 
 \method{update}{frmtmb_draws}(object, ...)
 

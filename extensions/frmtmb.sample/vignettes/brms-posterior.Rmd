@@ -148,9 +148,13 @@ than at "could not find function".
 | `stancode(ds)` | there is no Stan program; the R closure is the source | `ds$fit$obj$fn`, `ds$fit$frame` |
 | `standata(ds)` | nothing is exported to a Stan data list | `ds$fit$frame`, `model.matrix()`, `getME()` |
 | `expose_functions(ds)` | a custom family is already plain R | call the `lpdf` you passed to `custom_family()` |
-| `plot(ds)` | brms's default panel is trace and density | `mcmc_plot(ds)`, `mcmc_plot(ds, type = "trace")` |
 | `update(ds)` | draws carry no formula to revise | `update()` the fit, then `frm_sample()` it |
 | `restructure(ds)` | no older-object upgrade path exists | re-run `frm_sample()` |
+
+`plot(ds)` does not stop: it draws brms's histogram and trace panels,
+`nvariables` parameters to a page, chosen with `variable` and `regex`
+as in brms. `add_criterion(ds, "loo")` stores the criterion in the
+draws, and a later `loo(ds)` reads it, as in brms.
 
 brms's deprecated spellings `posterior_samples()`, `nsamples()` and
 `parnames()` do not stop: each answers with brms's deprecation warning,

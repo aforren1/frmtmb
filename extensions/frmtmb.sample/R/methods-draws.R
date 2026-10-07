@@ -2465,10 +2465,8 @@ draws_bayesplot_ns <- function(what) {
 #'   head(pp_mixture(ds)[, "Estimate", ])
 #' }
 #' }
-#' @export
-pp_mixture <- function(x, ...) UseMethod("pp_mixture")
-
-#' @rdname pp_mixture
+#' @seealso [frmtmb::pp_mixture()], the same array on a fit, at the
+#'   estimates.
 #' @exportS3Method brms::pp_mixture
 #' @export
 pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
@@ -2488,6 +2486,12 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
     frm_stop("pp_mixture(resp = \"", resp, "\") names no response of this ",
              "model; it has ",
              paste(names(x$fit$spec$responses), collapse = ", "),
+             call. = FALSE)
+  }
+  rsp <- x$fit$spec$responses[[resp %||% 1L]]
+  if (is.null(rsp$family[["mix"]])) {
+    # brms's words, as frmtmb::pp_mixture() gives them on a fit
+    frm_stop("Method 'pp_mixture' can only be applied to mixture models.",
              call. = FALSE)
   }
   check_flag(log, "log")
@@ -2511,7 +2515,13 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
   }
   if (log) out <- log(out)
   if (!summary) return(out)
-  draws_summarize_margin(out, probs, robust)
+  st <- draws_summarize_margin(out, probs, robust)
+  # brms's names for the summary, which frmtmb::pp_mixture() on a fit
+  # gives too: the rows numbered and the components "P(K = k | Y)". A
+  # group-level mixture keeps its group names on the rows
+  dimnames(st)[[1L]] <- dimnames(st)[[1L]] %||% seq_len(dim(st)[1L])
+  dimnames(st)[[3L]] <- paste0("P(K = ", seq_len(dim(st)[3L]), " | Y)")
+  st
 }
 
 #' brms's `posterior_summary()` over the first margin of a
@@ -2602,10 +2612,6 @@ draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
 NULL
 
 #' @rdname frmtmb-draws-refusals
-#' @export
-stancode <- function(object, ...) UseMethod("stancode")
-
-#' @rdname frmtmb-draws-refusals
 #' @exportS3Method brms::stancode
 #' @export
 stancode.frmtmb_draws <- function(object, ...) {
@@ -2616,10 +2622,6 @@ stancode.frmtmb_draws <- function(object, ...) {
            "evaluator and `ds$fit$frame` for everything baked into it",
            call. = FALSE)
 }
-
-#' @rdname frmtmb-draws-refusals
-#' @export
-standata <- function(object, ...) UseMethod("standata")
 
 #' @rdname frmtmb-draws-refusals
 #' @exportS3Method brms::standata
@@ -2645,13 +2647,91 @@ expose_functions.frmtmb_draws <- function(x, ...) {
 }
 
 
-#' @rdname frmtmb-draws-refusals
+#' Trace and histogram plots of draws
+#'
+#' brms's `plot()` of a fit: for each selected parameter a histogram and
+#' a trace of its draws, `nvariables` parameters to a page, drawn with
+#' `bayesplot::mcmc_combo()`. The arguments are brms's, in brms's order
+#' and with brms's defaults. Without `pars` or `variable` the parameters
+#' are the model's outer parameters (no group-level coefficients), as
+#' brms leaves out its `r_` draws.
+#'
+#' @param x A `frmtmb_draws` from [frm_sample()].
+#' @param pars,variable,regex,fixed Which parameters, by brms's rule:
+#'   `variable` is exact names unless `regex = TRUE`; `pars` is a
+#'   regular expression unless `fixed = TRUE`, and wins when both are
+#'   given.
+#' @param combo The two bayesplot panel types, as in brms.
+#' @param nvariables Parameters per page.
+#' @param N brms's deprecated alias of `nvariables`, with brms's warning.
+#' @param bins Histogram bins.
+#' @param theme A ggplot2 theme for the panels.
+#' @param plot If `FALSE`, return the pages without drawing them.
+#' @param ask Whether to ask before each page after the first.
+#' @param newpage Whether the first page starts a new page.
+#' @param ... Passed to `bayesplot::mcmc_combo()`.
+#' @return The pages, a list of bayesplot grids, invisibly.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     requireNamespace("bayesplot", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(40))
+#'   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+#'   ds <- frm_sample(bf(y ~ x), family = gaussian(), data = dd,
+#'                    chains = 1, iter = 400, refresh = 0)
+#'   plot(ds, variable = "^b_", regex = TRUE, ask = FALSE)
+#' }
+#' }
 #' @export
-plot.frmtmb_draws <- function(x, ...) {
-  frm_stop("plot() has no display for frmtmb draws: brms's default panel ",
-           "is the trace-and-density view, which mcmc_plot(x) renders ",
-           "here (mcmc_plot(x, type = \"trace\") for the traces alone)",
-           call. = FALSE)
+plot.frmtmb_draws <- function(x, pars = NA, combo = c("hist", "trace"),
+                              nvariables = 5, N = NULL, variable = NULL,
+                              regex = FALSE, fixed = FALSE, bins = 30,
+                              theme = NULL, plot = TRUE, ask = TRUE,
+                              newpage = TRUE, ...) {
+  if (!is.null(N)) {
+    # brms's use_alias(): the alias is honored, with this warning
+    frm_warning("Argument 'N' is deprecated. Please use argument ",
+                "'nvariables' instead.", call. = FALSE)
+    nvariables <- N
+  }
+  if (!is.numeric(nvariables) || length(nvariables) != 1L ||
+        !is.finite(nvariables) || nvariables < 1 ||
+        nvariables != round(nvariables)) {
+    # brms's words
+    frm_stop("Argument 'nvariables' must be a positive integer.",
+             call. = FALSE)
+  }
+  check_flag(plot, "plot")
+  check_flag(ask, "ask")
+  check_flag(newpage, "newpage")
+  sel <- draws_select_variables(x, pars, variable, regex, fixed, "plot()")
+  keep <- sel %||% draws_outer_cols(x)
+  if (!length(keep)) {
+    # brms's words
+    frm_stop("No valid variables selected.", call. = FALSE)
+  }
+  bp <- draws_bayesplot_ns("plot()")
+  a <- draws_raw_array(x)[, , keep, drop = FALSE]
+  if (plot) {
+    default_ask <- grDevices::devAskNewPage()
+    on.exit(grDevices::devAskNewPage(default_ask), add = TRUE)
+    grDevices::devAskNewPage(ask = FALSE)
+  }
+  n_pages <- ceiling(length(keep) / nvariables)
+  pages <- vector("list", n_pages)
+  for (i in seq_len(n_pages)) {
+    sub <- ((i - 1) * nvariables + 1):min(i * nvariables, length(keep))
+    pages[[i]] <- bp$mcmc_combo(a[, , sub, drop = FALSE], combo = combo,
+                                bins = bins, gg_theme = theme, ...)
+    if (plot) {
+      plot(pages[[i]], newpage = newpage || i > 1)
+      if (i == 1) grDevices::devAskNewPage(ask = ask)
+    }
+  }
+  invisible(pages)
 }
 
 #' @rdname frmtmb-draws-refusals

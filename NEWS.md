@@ -1,3 +1,102 @@
+# frmtmb (development version)
+
+brms post-processing calls that a ported script meets on a
+maximum-likelihood fit now answer or refuse by name.
+`dev/surface-findings.md` has the measurements.
+
+## Breaking changes
+
+* **`stancode()`, `standata()` and `pp_mixture()` are frmtmb's
+  generics**, with methods for a fit; they were frmtmb.sample's, with
+  methods for draws only. `stancode(fit)` and `standata(fit)` stop with
+  the reason and name `build_objective()` and `fit$frame`. Before, they
+  said "no applicable method", and with brms loaded they reached
+  brms's default method, which said "Data must be specified using the
+  'data' argument" about a fit that has data. frmtmb.sample re-exports
+  the three generics and needs this version.
+
+* **The pooled table of `frm_multiple()` names its rows as brms does**:
+  `Intercept`, not `(Intercept)`, as `fixef()` of each fit names them.
+  A distributional parameter without a formula, pooled on its link
+  scale, is `sigma_Intercept`.
+
+* **`update()` drops a stored prior the updated model cannot take**, as
+  brms's `update()` does, and says which in a message, where brms is
+  silent. Updating `brms_overview`'s `fit2`, which removes the last
+  correlation, stopped at the class-wide `lkj(2)` prior; it now fits
+  without it. A prior passed to `update()` itself replaces the stored
+  one, where brms merges the two, and is checked as `frm()` checks it.
+
+## New features
+
+* **`pp_mixture()` on a mixture fit**, ordinal mixtures included: the
+  component probabilities at the estimates in brms's
+  observations-by-statistics-by-components array, with components
+  named `P(K = k | Y)`. The quantile columns are a Wald interval on the
+  logit, and `Est.Error` is the standard deviation of that same
+  logit-normal law, integrated numerically: the delta-method error of
+  the probability itself understates the spread near 0 and 1 by orders
+  of magnitude. On a 300-row two-gaussian mixture against brms 2.23.0's
+  `pp_mixture()` (4 chains of 1500 draws), `Est.Error` was a median
+  1.11 of brms's posterior SD over all rows (the delta method's was
+  0.36), 0.84 to 1.27 by bin for probabilities between 0.001 and 0.999,
+  and up to 4.8 times it within 0.001 of an edge; the interval was a
+  median 1.04 of brms's width, and every estimate was inside brms's
+  95% interval. brms's draws arguments are refused by name.
+
+* **`fixef()`, `summary()` and `conditional_effects()` of a
+  `frm_multiple()` result** pool the imputations by Rubin's rules, where
+  brms's `brm_multiple()` combines their draws. `fixef()` has brms's
+  rows, ordinal thresholds included, and a t interval on the
+  Barnard-Rubin degrees of freedom. Its estimates agree with
+  `mice::pool()` of `lm()` on `nhanes` to 4.1e-6; its standard errors
+  are 0.93 of mice's, because each imputation's variance is the
+  maximum-likelihood one, and its complete-data degrees of freedom are
+  `df.residual()` of the fit, which counts `sigma` (20 there, where
+  `lm()` has 21), as `anova()` of a `frm_multiple()` result already
+  takes them. `summary()` prints brms's blocks with
+  `df` and `fmi` columns. `conditional_effects()` pools every grid
+  point of the first imputation's grid on the scale its Wald band is
+  symmetric on; `method = "predict"` and the bootstrap and profile
+  bands are refused by name.
+
+* **`add_criterion()`** exists, with brms's criterion names. On a fit
+  it refuses each criterion by name: every one is a posterior quantity,
+  and `AIC()` and `BIC()` are the maximum-likelihood comparison. On
+  draws, frmtmb.sample's method stores it as brms does.
+
+## Bug fixes
+
+* **`plot()` of a fit refuses brms's `plot.brmsfit()` arguments by
+  name** (`N`, `nvariables`, `variable`, `regex`, `pars`, `fixed`,
+  `combo`, `bins`, `theme`, `plot`, `newpage`), with the reason and
+  `plot(frm_sample(fit), ...)` for brms's display. It suggested `x`
+  for `N`.
+
+* **`summary(fit, waic = TRUE)` is refused by name with the reason.**
+  brms 2.23.0 ignores the argument.
+
+* **`fitted()` on an ordinal fit whose `disc` predictor has no fixed
+  column** (`disc ~ 0 + gp(x, k = 6)`, `disc ~ 0 + (1 | g)`) stopped
+  with "requires numeric/complex matrix/vector arguments", in sample
+  and on new data.
+
+* **`frm_sample(fit)` on an exact `y ~ gp(x)` fit moves.** A one-scale
+  dense block (`gp()`, `ou()`, `homcs()`, `homtoep()`, the spatial
+  structures and `gr(cov =)` with one coefficient) whose log sd passed
+  about -372 had the zero matrix as its covariance, and its field's
+  log density was `+Inf`. The sampler's first long step from the mode
+  reached such a point and stayed there: acceptance 0, step size NaN,
+  every transition divergent. The variance is now floored at 1e-300,
+  which is the variance itself, bit for bit, above 9e-285, so no fit
+  changes.
+
+* **`(cs(1) | g)` with brms attached after frmtmb** got the internal
+  "variable lengths differ (found for '.frm_cs(1)')"; it gets the
+  refusal it gets without brms. The refusal of
+  `conditional_effects(method = "predict")` on `categorical()` names
+  that family, where it said "ordinal family".
+
 # frmtmb 0.68.1
 
 The Ubuntu checks of 0.68.0 failed where the Windows and macOS ones

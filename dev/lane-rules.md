@@ -226,8 +226,9 @@ Your `.libPaths()` therefore has two entries, your own library first:
   from the checkout in its workflow and listed in `paths:`.
   `tests/testthat/test-ci-siblings.R` asserts both.
 - **You cannot `local_mocked_bindings()` a generic frmtmb or
-  frmtmb.sample binds to its owner.** 56 exported names at 0.67.0,
-  29 in frmtmb and 27 in frmtmb.sample (55 at 0.66.0, counted with
+  frmtmb.sample binds to its owner.** 57 exported names after lane
+  surface (2026-10-07), 33 in frmtmb and 24 in frmtmb.sample (56 at
+  0.67.0 and 0.68.1, 29 and 27; 55 at 0.66.0; counted with
   `bindingIsActive()` over each namespace's exports), are ACTIVE
   bindings installed by `frm_install_generics()`. Assigning to an
   active binding CALLS its function with the value, and that function

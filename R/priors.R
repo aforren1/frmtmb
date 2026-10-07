@@ -2431,6 +2431,55 @@ prior_spec_slot <- function(s) {
         s$resp %||% "", sp$dpar, s$nlpar %||% "", sep = "\r")
 }
 
+#' Drop the specifications of a stored prior that the updated model
+#' cannot take, as brms's `update()` drops them.
+#'
+#' brms's `update.brmsfit()` passes the stored prior back to `brm()`
+#' marked `allow_invalid_prior`, and a specification that matches no
+#' parameter of the new model is then dropped with no message: on
+#' `brms_overview`'s fit2, which removes the last correlation, brms
+#' recompiles without its class-wide `lkj(2)` and samples. frmtmb's
+#' `update()` refused the same call, because frm() refuses such a
+#' prior when it is written directly, as brms does. `update()` sets the
+#' same mark on the prior it carries over, and this drops what does not
+#' resolve on the new model. It says what it dropped, where brms is
+#' silent: a refusal is replaced by a drop, and the drop must not be
+#' less diagnostic than the refusal was, so the user still reads which
+#' of their specifications is gone.
+#'
+#' A specification is kept exactly when it resolves alone on the new
+#' model, which is the test `resp_missing_refusal()` uses. A prior the
+#' user passes to `update()` itself is not marked, and is checked as
+#' frm() checks any prior.
+#'
+#' @noRd
+prior_drop_unmatched <- function(prior, spec, frame) {
+  if (!isTRUE(attr(prior, "allow_invalid_prior"))) return(prior)
+  attr(prior, "allow_invalid_prior") <- NULL
+  if (!inherits(prior, "frmtmb_priorlist")) return(prior)
+  design <- list(spec = spec, frame = frame)
+  specs <- unclass(prior)
+  ok <- vapply(specs, function(s) {
+    one <- structure(list(s), class = "frmtmb_priorlist")
+    !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
+              "error")
+  }, NA)
+  if (all(ok)) return(prior)
+  lab <- vapply(specs[!ok], function(s) {
+    paste0(s[["prior"]] %||% prior_dist_string(s[["dist"]]), " on ",
+           prior_slot_label(s))
+  }, "")
+  one <- sum(!ok) == 1L
+  frm_message("update() drops ",
+              if (one) "the prior specification" else
+                paste(sum(!ok), "prior specifications"),
+              " of the original fit that ", if (one) "matches" else "match",
+              " no parameter of the updated model, as brms drops ",
+              if (one) "it" else "them", ": ", paste(lab, collapse = "; "))
+  if (!any(ok)) return(NULL)
+  structure(specs[ok], class = class(prior))
+}
+
 #' Refuse two specifications for the same slot
 #'
 #' brms refuses them, whether the two are identical, carry different

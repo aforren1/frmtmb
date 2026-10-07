@@ -15,7 +15,12 @@
 interactive-device rule.}
 
 \item{...}{Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.}
+error naming it, rather than silently changing nothing. brms's
+\code{plot.brmsfit()} arguments (\code{N}, \code{nvariables}, \code{variable}, \code{regex},
+\code{pars}, \code{fixed}, \code{combo}, \code{bins}, \code{theme}, \code{plot}, \code{newpage}) are
+refused by name with the reason: they choose and lay out the
+per-parameter panels of posterior draws, and a maximum-likelihood
+fit has no draws and no such panels.}
 }
 \value{
 \code{x}, invisibly. Called for the plots it draws.
@@ -32,6 +37,19 @@ so panel 1 uses the expected category index \verb{sum_k k * P(y = k)} -
 the same scalar the Pearson residual is taken against - and labels
 the axis accordingly.
 }
+\section{brms's display}{
+
+brms's \code{plot()} of a fit draws a histogram and a trace of the
+posterior draws of each parameter, \code{nvariables} (or \code{N}) parameters
+to a page, selected with \code{variable} and \code{regex}. A
+maximum-likelihood fit has one estimate per parameter and no chains,
+so this method draws the residual diagnostics a frequentist fit is
+read with, and refuses brms's arguments by name. For brms's display,
+sample and plot the draws:
+\code{plot(frmtmb.sample::frm_sample(fit), variable = "^b_", regex = TRUE)}.
+For one parameter's likelihood, \code{plot(profile(fit, parm))}.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))

@@ -25,7 +25,7 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1)
 Imports:
-    frmtmb (>= 0.68.0),
+    frmtmb (>= 0.68.1.9000),
     graphics,
     RTMB (>= 1.9),
     stats,

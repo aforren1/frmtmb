@@ -2129,6 +2129,22 @@ frm_linpred <- function(object, newdata = NULL,
   out
 }
 
+#' The fixed part `X b` of one linear predictor.
+#'
+#' A predictor with no fixed column, `disc ~ 0 + gp(x)` or
+#' `disc ~ 0 + (1 | g)`, has a zero-column design, and its coefficient
+#' slot may not exist at all: `betad` is absent from the estimates when
+#' no `disc` or `sigma` column is estimated. `X %*% NULL` stopped
+#' fitted() there with "requires numeric/complex matrix/vector
+#' arguments", so the empty design is a zero vector of the design's
+#' rows, as `build_objective()` forms it on the tape.
+#'
+#' @noRd
+lp_fixed_part <- function(X, est, lp) {
+  if (!ncol(X)) return(numeric(nrow(X)))
+  drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+}
+
 #' eta and the design pieces of one linear predictor, in sample or on
 #' newdata. Shared by `predict()` and by the joint delta method for the
 #' expected response, so both see exactly the same eta.
@@ -2157,7 +2173,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     X <- patch_mo_cols(object, lp, lp[["X"]])
     off <- lp[["offset"]]
     n <- nrow(X)   # a subset() response has fewer rows than the frame
-    eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+    eta <- lp_fixed_part(X, est, lp)
     if (!is.null(lp[["Z"]])) {
       cvec <- coef_b(object)
       if (use_re) {
@@ -2180,7 +2196,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     sm_parts <- pd$sm_parts
     nonest <- pd$nonest
     n <- nrow(X)
-    eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+    eta <- lp_fixed_part(X, est, lp)
     cvec <- coef_b(object)
     if (use_re && length(re_parts)) {
       eta <- eta + re_eta(re_parts, cvec, n)

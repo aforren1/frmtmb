@@ -25,16 +25,18 @@
 # log_lik is NOT here: frmtmb defines that generic and the fit refusal,
 # and this package re-exports it (R/reexports.R), the way it does loo().
 # Nor is parnames: frmtmb defines it for a fit, and this package
-# re-exports it.
+# re-exports it. stancode, standata and pp_mixture moved to frmtmb the
+# same way when they gained methods for a fit, and add_criterion was
+# defined there.
 own_generics <- c(
   "as.mcmc", "bayes_factor", "bridge_sampler", "kfold",
   "log_posterior", "loo_moment_match", "loo_subsample", "mcmc_plot",
   "neff_ratio", "nsamples", "nuts_params", "post_prob",
   "posterior_average",
   "posterior_epred", "posterior_interval", "posterior_linpred",
-  "posterior_predict", "posterior_samples", "pp_mixture",
+  "posterior_predict", "posterior_samples",
   "predictive_error", "predictive_interval", "psis", "reloo",
-  "restructure", "rhat", "stancode", "standata")
+  "restructure", "rhat")
 
 # The owner table, restated for the same reason; a block below asserts
 # it is the package's. The first owner of a name is brms's choice where
@@ -50,9 +52,8 @@ owner_table <- list(
   log_posterior = "bayesplot", neff_ratio = "bayesplot",
   nuts_params = "bayesplot", rhat = c("posterior", "bayesplot"),
   mcmc_plot = "brms", posterior_average = "brms",
-  posterior_samples = c("brms", "gratia"), pp_mixture = "brms",
-  reloo = "brms", restructure = "brms", stancode = "brms",
-  standata = "brms")
+  posterior_samples = c("brms", "gratia"),
+  reloo = "brms", restructure = "brms")
 
 all_owners <- c("posterior", "loo", "rstantools", "bayesplot", "coda",
                 "bridgesampling", "gratia", "brms")

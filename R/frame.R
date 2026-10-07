@@ -494,7 +494,14 @@ check_cs_in_bar <- function(resp) {
   for (dp in resp$dpars) {
     for (re in dp[["re"]] %||% list()) {
       lhs <- re$bar[[2L]]
-      if (!calls_function(lhs, "cs")) next
+      # with a function named cs() on the search path (brms's, attached
+      # after frmtmb), parse_linpred() protects the call as .frm_cs()
+      # before it gets here, and both spellings are the same term
+      if (!calls_function(lhs, "cs") && !calls_function(lhs, ".frm_cs")) {
+        next
+      }
+      re$bar <- str2lang(gsub(".frm_cs(", "cs(", deparse1(re$bar),
+                              fixed = TRUE))
       if (!cs_ok) {
         frm_stop("Category specific effects are not supported for this ",
                  "family. cs() needs an ordinal family; the group-level ",
