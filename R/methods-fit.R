@@ -292,6 +292,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          cor_pars = summary_cor_pars_frame(object, prob),
          random = summary_random_list(object, prob),
          gp = summary_gp_frame(object, prob),
+         mo = summary_mo_frame(object, prob),
          # the FLAG is stored beside the value: a plain ML fit has no
          # priors, and a summary asked for them still says so rather
          # than dropping the section
@@ -612,6 +613,60 @@ summary_random_list <- function(object, prob) {
   if (!length(out)) NULL else out
 }
 
+#' brms's "Monotonic Simplex Parameters": every `mo()` simplex's
+#' weights, under the row names brms's summary gives them
+#' (`moincome1[1]`, `sigma_moincome1[1]`), with the delta-method
+#' standard error from the outer covariance and a Wald interval held
+#' inside `[0, 1]`. The `zeta` rows of `confint()` and `vcov()` are the
+#' coordinates of the fit's chart (`mo_simplex()`), which have no
+#' reading of their own. `NULL` without `mo()` terms.
+#'
+#' A weight at a face of the simplex (below `mo_face_tol`) gets `NA`
+#' for its standard error and interval, and the frame's `face`
+#' attribute names it. The fit's chart folds there (`w_j = u_j^2` at
+#' `u_j = 0`), so the delta method gives exactly 0 and printed the
+#' interval `[0, 0]`, where brms reports a posterior interval such as
+#' (0.01, 0.81) (the review's re-check, n1). A weight within
+#' `mo_face_tol` of 1 is treated the same way: the simplex is then at a
+#' vertex, the weight is 1 minus weights at 0, and its delta-method
+#' error is as degenerate (about 2e-4 and an interval of about `[1, 1]`
+#' on the review's `ls ~ mo(income) * age`, final check c1).
+#'
+#' @noRd
+summary_mo_frame <- function(object, prob) {
+  terms <- mo_frame_terms(object)
+  if (!length(terms)) return(NULL)
+  om <- outer_par_map(object)
+  V <- tryCatch(suppressWarnings(sdr_of(object)$cov.fixed),
+                error = function(e) NULL)
+  q <- stats::qnorm(1 - (1 - prob) / 2)
+  out <- lapply(terms, function(tm) {
+    z <- as.numeric(object$estimates[[tm$zeta]])
+    w <- mo_simplex(z)
+    pos <- which(om$comp == tm$zeta)
+    se <- rep(NA_real_, tm$D)
+    if (!is.null(V) && length(pos) == length(z) && nrow(V) >= max(pos)) {
+      J <- RTMB::MakeTape(function(x) mo_simplex(x), z)$jacobian(z)
+      Vz <- V[pos, pos, drop = FALSE]
+      se <- sqrt(pmax(0, diag(J %*% Vz %*% t(J))))
+    }
+    # a weight at 1 is the complement of weights at 0: a vertex
+    face <- w < mo_face_tol | w > 1 - mo_face_tol
+    se[face] <- NA_real_
+    data.frame(Estimate = w, `Est.Error` = se,
+               lo = pmax(0, w - q * se), hi = pmin(1, w + q * se),
+               face = face,
+               row.names = sub("^simo_", "", tm$names),
+               check.names = FALSE)
+  })
+  out <- do.call(rbind, out)
+  face <- rownames(out)[out$face]
+  out$face <- NULL
+  names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob))
+  attr(out, "face") <- face
+  out
+}
+
 #' brms's `$gp`: each Gaussian process's standard deviation and length
 #' scale, under brms's names `sdgp(<prefix>gp<vars>)` and
 #' `lscale(<prefix>gp<vars>)`.
@@ -761,6 +816,19 @@ print.summary.frmtmb_fit <- function(x, ...) {
   }
   cat("\nRegression Coefficients:\n")
   print_summary_block(x$fixed)
+  if (NROW(x[["mo"]])) {
+    cat("\nMonotonic Simplex Parameters:\n")
+    print_summary_block(x[["mo"]])
+    face <- attr(x[["mo"]], "face")
+    if (length(face)) {
+      cat(strwrap(paste0(
+        "A weight at 0 or 1 (", paste(face, collapse = ", "), ") is on ",
+        "the boundary of the simplex, where the delta method has no ",
+        "standard error or interval to give; frmtmb.sample's ",
+        "frm_sample() gives a posterior one."),
+        width = max(40L, getOption("width", 80L)) - 2L), sep = "\n")
+    }
+  }
   if (NROW(x$spec_pars)) {
     cat("\nFurther Distributional Parameters:\n")
     print_summary_block(x$spec_pars)

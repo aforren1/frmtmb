@@ -32,7 +32,7 @@ test_that("a non-finite gradient at the optimum warns, naming it", {
                  "is not finite", fixed = TRUE)
 })
 
-test_that("the three-component mixture the review found now warns", {
+test_that("the three-component mixture the review found ends finite", {
   # the data of dev/ordmix-rev-probit-sat.R: the unused draws keep the
   # random stream where the review had it
   set.seed(20261005 + 31)
@@ -48,11 +48,17 @@ test_that("the three-component mixture the review found now warns", {
   lat <- c(1.5, -0.8, 0.3)[cls3] * x + c(1.5, -1.5, 0)[cls3] + rlogis(n)
   d <- data.frame(y = as.integer(cut(lat, c(-Inf, -1.5, 0, 1.5, Inf))),
                   x = x)
+  # On 0.68.1 the fit ended where the probit's log-odds had underflowed,
+  # its gradient infinite, which the warning above was added for. With
+  # the probit's logs read from pnorm(log.p = TRUE) the run went on to
+  # sratio("cloglog")'s far tail, where the cloglog log-odds lost its
+  # derivative below eta = -708, and died there (lane optima). Both
+  # tails hold now: the degenerate first component is reported as
+  # such, at a point with a finite gradient.
   fit <- allow_warnings(
     frm(bf(y ~ x), family = mixture(cumulative("probit"), sratio("cloglog"),
                                     acat()), data = d),
-    c("gradient at the reported optimum is not finite",
-      "degenerate boundary"),
-    require = "gradient at the reported optimum is not finite")
-  expect_false(all(is.finite(fit$obj$gr(fit$opt$par))))
+    c("mixture(cumulative, sratio, acat)", "Large maximum absolute gradient"),
+    require = "mixture(cumulative, sratio, acat)")
+  expect_true(all(is.finite(fit$obj$gr(fit$opt$par))))
 })

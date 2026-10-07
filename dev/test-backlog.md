@@ -1999,6 +1999,45 @@ emulator" is `dev/cifix-openblas.sh`, R 4.6.1 with OpenBLAS 0.3.26.
   noise (`dev/cifixrev-krigmem.R`). Remedy: scale each column block
   after it is symmetrized.
 
+## Filed by lane optima after punch round 1, 2026-10-07
+
+`dev/optima-findings.md` and the review `dev/reviews/2026-10-07-optima.md`.
+
+### Open - medium
+
+- **cox()'s baseline simplex (`sbhaz_raw`) is a softmax and meets the
+  plateau `mo()` met**: weights of 1.1e-8, 8.3e-9 and 5.9e-8 on seeds
+  2, 5 and 6 of the review's `dev/optima-rev-cox1.R`. The argument of
+  `mo_simplex()` applies, but the change is not local: the baseline is
+  read by `cox_baseline()`, the predictions and the sampler, which
+  would need the softmax-and-Dirichlet treatment frmtmb.sample now gives
+  a `mo()` simplex (brms puts `dirichlet(1)` on `sbhaz`). Review m9.
+- **`escape_stationary()`'s sibling paths**: the objective's state is
+  now settled after an escape and after `mo_search()`
+  (`obj_settle()`); any other post-fit refit that keeps a run other
+  than the last must call it too.
+
+### Open - low
+
+- **`mo()` seed 194** of `dev/optima-mo-study.R` stays 0.0489 below the
+  exact maximum, at the other sign's cone, which 0.68.1 found: the
+  search's vertex start (chosen from the gradient at `b = 0` with the
+  other parameters held) did not lead into that cone's optimum there.
+  A start at each vertex would reach it at D times the cost. Review m8.
+- **A `simo` prior row is refused by `frm()` and `frm_sample()`**: brms
+  accepts `prior(dirichlet(c(2, 1, 1)), class = simo, coef =
+  moincome1)`. `set_prior()` has no Dirichlet density; the sampler's
+  `mo_simplex_nlp()` is where a concentration vector would go.
+- **`as_tmbstan(fit)` on every `mo()` fit**, ML or MAP, samples the
+  fit's own tape, whose simplex coordinates have no density: on a
+  weakly identified simplex the draws collapse to the barycenter (sd
+  1e-17, coordinates to 7e17; the review's re-check). By contract the
+  route adds nothing; since punch round 2 it says so in a message and
+  `?as_tmbstan` names `frm_sample()`. (`check_laplace()` retapes like
+  `frm_sample()` since punch round 2, a MAP fit with its own prior.)
+- **`mo(x) * f` with a factor and `mo()` in group-level terms**, both of
+  which brms fits, are refused (pre-existing). Review m11.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

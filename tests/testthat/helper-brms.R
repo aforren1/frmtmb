@@ -561,8 +561,8 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
         stop("brms declares ", nm, " but frmtmb's mu has ",
              length(mo), " monotonic term(s)")
       }
-      s <- exp(c(0, fit$estimates[[mo[[j]][["zeta"]]]]))
-      out[[nm]] <- s / sum(s)
+      # the simplex through the package's own map (mo_simplex())
+      out[[nm]] <- frmtmb:::mo_simplex(fit$estimates[[mo[[j]][["zeta"]]]])
     } else if (grepl("^(sd|z|L)_\\d+$", nm)) {
       i <- as.integer(sub("^[a-zA-Z]+_", "", nm))
       if (is.null(rtab)) {

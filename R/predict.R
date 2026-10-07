@@ -250,8 +250,7 @@ coef_b <- function(fit, b = fit$estimates[["b"]]) {
 #'
 #' @noRd
 mo_col_values <- function(fit, mi, codes = mi$codes) {
-  zeta <- exp(c(0, fit$estimates[[mi$zeta]]))
-  zeta <- zeta / sum(zeta)
+  zeta <- mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]])
   cz0 <- c(0, cumsum(zeta))
   mi$D * cz0[codes + 1L]
 }

@@ -186,8 +186,8 @@ test_that("mo() codes match brms Xmo and the simplex dimension matches Jmo", {
   expect_identical(mo$D, as.integer(sd$Jmo[1]))
 
   # DIVERGENCE (convention): brms samples the simplex itself, so it has
-  # Jmo free-ish entries under a Dirichlet; we hold the D - 1 free
-  # softmax coordinates and rebuild the simplex, which is the same
+  # Jmo free-ish entries under a Dirichlet; we hold D - 1 free
+  # coordinates (mo_simplex()) and rebuild the simplex, which is the same
   # manifold with one fewer stored number.
   expect_length(fr$par_template[[mo$zeta]], as.integer(sd$Jmo[1]) - 1L)
 
@@ -561,8 +561,7 @@ test_that("mo() ML matches brms's monotonic likelihood (vignette model)", {
 
   fit <- frm(bf(y ~ mo(inc) + z) + gaussian(), data = dm)
   fe <- fixef_by_dpar(fit)$mu
-  simplex <- exp(c(0, fit$estimates$zeta1))
-  simplex <- simplex / sum(simplex)
+  simplex <- frmtmb:::mo_simplex(fit$estimates$zeta1)
   # brms centers X but not Xmo, so only the intercept needs translating
   bpars <- list(
     b = array(fe[["z"]], 1),

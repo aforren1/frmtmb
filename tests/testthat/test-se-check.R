@@ -15,11 +15,14 @@ se_mo_data <- function(seed) {
 
 se_lost_phrase <- "Standard errors are not available"
 
-test_that("a mo() simplex weight at 0 no longer takes every SE with it", {
-  # seed 7: the interaction's simplex has a weight at 0 (zeta2_1 near
-  # -46), the outer Hessian's reciprocal condition number is 3.7e-25,
-  # and sdreport()'s solve() returned NaN for all nine standard errors
-  # with optimizer code 0 and no warning
+test_that("a mo() simplex on its boundary keeps a finite Hessian", {
+  # seed 7: the interaction's simplex has a weight at 0. On the softmax
+  # coordinates of 0.68.1 that weight sat at a coordinate near -46, the
+  # outer Hessian's reciprocal condition number was 3.7e-25, solve()
+  # refused it, and the SE check held the coordinate fixed to get the
+  # rest. The simplex chart of mo_simplex() reaches the face at a
+  # finite coordinate with a finite curvature (lane optima), so the
+  # plain inverse exists and is what the fit reports.
   d <- se_mo_data(7)
   w <- character()
   fit <- withCallingHandlers(frm(ls ~ mo(income) * age, data = d),
@@ -28,29 +31,27 @@ test_that("a mo() simplex weight at 0 no longer takes every SE with it", {
                                invokeRestart("muffleWarning")
                              })
   expect_identical(fit$opt$convergence, 0L)
-  # the inverse is now finite, so there is nothing to warn about
   expect_length(w, 0L)
-  se <- fixef(fit)[, "Est.Error"]
-  expect_true(all(is.finite(se)))
-  expect_true(all(is.finite(vcov(fit))))
-  # the reference: the saturated coordinate held, the exact Hessian
-  # inverted over the rest
-  nm <- frmtmb:::outer_par_names(fit)
   H <- fit$obj$he(fit$opt$par)
-  keep <- nm != "zeta2_1"
-  ref <- sqrt(diag(solve(H[keep, keep])))[seq_len(4L)]
-  expect_equal(unname(se), unname(ref), tolerance = 1e-4)
+  V <- tryCatch(solve(H), error = function(e) NULL)
+  expect_false(is.null(V))
+  expect_true(all(is.finite(V)) && all(diag(V) > 0))
+  # the fixture still has its weight at the face
+  s <- frmtmb:::mo_simplex(fit$estimates$zeta2)
+  expect_lt(min(s) / max(s), 1e-8)
+  se <- fixef(fit)[, "Est.Error"]
+  expect_equal(unname(se), sqrt(diag(V))[seq_len(4L)], tolerance = 1e-4)
   # the vignette's next call printed "need finite 'ylim' values"
   ce <- conditional_effects(fit, "income:age")
   expect_true(all(is.finite(ce[[1L]]$se__)))
 })
 
 test_that("a lost simplex SE warns at fit time and keeps the rest", {
-  # seed 71: zeta2_2 at -1293, where its row of the Hessian is exactly
-  # zero; no inverse of the whole matrix exists
-  d <- se_mo_data(71)
+  # helper-mo-flat.R: the simplex coordinate does not enter the
+  # likelihood, so its row of the Hessian is exactly zero and no
+  # inverse of the whole matrix exists
   w <- character()
-  fit <- withCallingHandlers(frm(ls ~ mo(income) * age, data = d),
+  fit <- withCallingHandlers(frm(ls ~ mo(inc) + age, data = mo_flat_data()),
                              warning = function(x) {
                                w <<- c(w, conditionMessage(x))
                                invokeRestart("muffleWarning")
@@ -58,21 +59,21 @@ test_that("a lost simplex SE warns at fit time and keeps the rest", {
   expect_identical(fit$opt$convergence, 0L)
   expect_length(w, 1L)
   expect_match(w, se_lost_phrase, fixed = TRUE)
-  expect_match(w, "1 of 9 parameters", fixed = TRUE)
-  expect_match(w, "zeta2_2 (simplex of moincome:age)", fixed = TRUE)
+  expect_match(w, "1 of 5 parameters", fixed = TRUE)
+  expect_match(w, "zeta1_1 (simplex of moinc)", fixed = TRUE)
   expect_match(w, "flat", fixed = TRUE)
   expect_true(all(is.finite(fixef(fit)[, "Est.Error"])))
   ci <- confint(fit)
-  expect_true(is.nan(ci["zeta2_2", "lwr"]))
-  expect_true(all(is.finite(ci[rownames(ci) != "zeta2_2", "lwr"])))
+  expect_true(is.nan(ci["zeta1_1", "lwr"]))
+  expect_true(all(is.finite(ci[rownames(ci) != "zeta1_1", "lwr"])))
   out <- capture.output(print(summary(fit)))
   expect_true(any(grepl("without a standard error", out, fixed = TRUE)))
-  expect_true(any(grepl("zeta2_2", out, fixed = TRUE)))
+  expect_true(any(grepl("zeta1_1", out, fixed = TRUE)))
   # said once: vcov() does not repeat it
   expect_silent(vcov(fit))
   # a prediction does not read the lost weight's direction, so it
   # keeps its standard error
-  ce <- conditional_effects(fit, "income:age")
+  ce <- conditional_effects(fit, "inc:age")
   expect_true(all(is.finite(ce[[1L]]$se__)))
 })
 
@@ -167,18 +168,18 @@ test_that("a healthy fit is untouched and never warns", {
 })
 
 test_that("check_se = 'ignore' and 'stop' do what they say", {
-  d <- se_mo_data(71)
-  expect_silent(frm(ls ~ mo(income) * age, data = d,
+  d <- mo_flat_data()
+  expect_silent(frm(ls ~ mo(inc) + age, data = d,
                     control = frmtmb_control(check_se = "ignore")))
-  expect_error(frm(ls ~ mo(income) * age, data = d,
+  expect_error(frm(ls ~ mo(inc) + age, data = d,
                    control = frmtmb_control(check_se = "stop")),
                se_lost_phrase, fixed = TRUE)
 })
 
 test_that("se = TRUE says it once, and a fit that stopped short not at all", {
-  d <- se_mo_data(71)
+  d <- mo_flat_data()
   w <- character()
-  withCallingHandlers(frm(ls ~ mo(income) * age, data = d, se = TRUE),
+  withCallingHandlers(frm(ls ~ mo(inc) + age, data = d, se = TRUE),
                       warning = function(x) {
                         w <<- c(w, conditionMessage(x))
                         invokeRestart("muffleWarning")
@@ -189,7 +190,7 @@ test_that("se = TRUE says it once, and a fit that stopped short not at all", {
   # is the verdict, and the curvature there is not worth a second one
   w <- character()
   short <- withCallingHandlers(
-    frm(ls ~ mo(income) * age, data = d,
+    frm(ls ~ mo(inc) + age, data = d,
         control = frmtmb_control(optCtrl = list(iter.max = 3,
                                                 eval.max = 5),
                                  restarts = 0)),
@@ -293,8 +294,8 @@ test_that("a prediction along a lost direction gets NaN and one warning", {
   expect_length(r$warnings, 1L)
   # the absent case: a lost simplex coordinate the prediction does not
   # read (its gradient is exactly zero) keeps every band
-  fm <- suppressWarnings(frm(ls ~ mo(income) * age, data = se_mo_data(71)))
-  r <- se_capture(conditional_effects(fm, "income:age"))
+  fm <- suppressWarnings(frm(ls ~ mo(inc) + age, data = mo_flat_data()))
+  r <- se_capture(conditional_effects(fm, "inc:age"))
   expect_true(all(is.finite(r$value[[1L]]$se__)))
   expect_false(any(grepl("predictions move", r$warnings, fixed = TRUE)))
 })
@@ -486,18 +487,21 @@ test_that("a lost group sd does not take the other variance components", {
   expect_true(all(is.finite(r$value[[1L]]$se__)))
 })
 
-test_that("a kept parameter's small loading does not take its predictions", {
-  # m1 follow-up: on mo() seed 12 the confirmed concave direction of
-  # zeta2_2 loads 0.022 on zeta1_2, which keeps its SE; the whole vector
-  # in the null basis took every conditional_effects() band, and the
-  # plot stopped on "need finite 'ylim' values"
-  fm <- suppressWarnings(frm(ls ~ mo(income) * age, data = se_mo_data(12)))
-  expect_identical(unname(sdr_of(fm)$se_lost), "concave")
-  r <- se_capture(conditional_effects(fm, "income"))
+test_that("a lost simplex coordinate does not take the other predictions", {
+  # m1 follow-up: on mo() seed 12 a concave direction of zeta2_2 loaded
+  # 0.022 on zeta1_2, which kept its SE; the whole vector in the null
+  # basis took every conditional_effects() band, and the plot stopped
+  # on "need finite 'ylim' values". That fit stood on a softmax plateau
+  # short of the maximum, which the simplex chart of lane optima no
+  # longer gives (dev/optima-findings.md), so the fixture is now two
+  # exactly flat coordinates, one per term (helper-mo-flat.R).
+  fm <- suppressWarnings(frm(ls ~ mo(inc) * age, data = mo_flat_data()))
+  expect_identical(unname(sdr_of(fm)$se_lost), c("flat", "flat"))
+  r <- se_capture(conditional_effects(fm, "age"))
   expect_true(all(is.finite(r$value[[1L]]$se__)))
   expect_length(r$warnings, 0L)
   # a display along the lost direction draws its line without a band
-  ce <- suppressWarnings(conditional_effects(fm, "income:age"))
+  ce <- suppressWarnings(conditional_effects(fm, "inc:age"))
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
   expect_no_error(plot(ce, ask = FALSE))

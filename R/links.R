@@ -235,9 +235,23 @@ frmtmb_links <- list(
     # small-mu end. cloglog saturates far earlier than the logit - at
     # eta = 4 the round trip already gives mu = 1 - so this matters at
     # single-digit linear predictors.
+    #
+    # Below eta = -40 the log-odds is eta itself to double precision
+    # (the rest is exp(eta) / 2, under 2.2e-18), and that is what is
+    # used there, read at -40 and continued with slope one. The exact
+    # form's derivative is 1 / t times t on the tape, and 1 / t
+    # overflows once t = exp(eta) is subnormal: the derivative was NaN
+    # below eta = -708 and the value -Inf below -745, where a degenerate
+    # ordinal mixture component went (dev/optima-mix3.R,
+    # dev/optima-cloglog.R). The clamp is exact above -40, where this
+    # is the plain form in value; its derivative is not, by an ulp: the
+    # tape's adjoint adds f'(e) + 1 - 1, so a fit's estimates move by
+    # up to 3.6e-12 relative (the review's dev/optima-rev-links.R).
     logit_eta = function(eta) {
-      t <- exp(eta)
-      log(-expm1(-t)) + t
+      lo <- -40
+      e <- eta + 0.5 * ((lo - eta) + abs(lo - eta))
+      t <- exp(e)
+      log(-expm1(-t)) + t + (eta - e)
     }
   ),
   # The standard normal CDF: probit regression, and signal detection
@@ -251,11 +265,32 @@ frmtmb_links <- list(
     mu_eta  = function(eta) exp(-0.5 * eta^2) / sqrt(2 * pi),
     # 1 - pnorm(eta) rounds to zero once pnorm(eta) rounds to one, and
     # the plain log(1 - mu) is past 1e-8 relative accuracy by eta = 6.4.
-    # A difference of two pnorm logs cannot cancel, and holds until
-    # pnorm itself underflows at |eta| = 38.2 - which is also where the
-    # plain log(mu) gives out, so the other tail loses nothing.
+    # A difference of two pnorm logs cannot cancel. Taking the logs from
+    # pnorm(log.p = TRUE) rather than log(pnorm()) keeps both tails: the
+    # latter underflowed at |eta| = 38.2 to an infinite log-odds and a
+    # NaN ordinal density, and its derivative was already NaN on 24 of
+    # 2001 points of [-38, 38]. Against Rmpfr at 256 bits this form is
+    # within 7e-16 relative in value on [-200, 200] and 3.6e-12 in
+    # derivative, where log(pnorm()) erred by up to 4.3e-12 in value
+    # inside its range (dev/optima-probit.R).
+    #
+    # Past |eta| = 1000 the pnorm() logs are read at +-1000 and the rest
+    # continues as the leading term of the tail, +-(eta^2 - 1000^2) / 2,
+    # because RTMB's derivative of pnorm(log.p = TRUE) degrades smoothly
+    # from about 1e3: 4.8e-11 relative there, 1.3e-9 at 1e4, 2e-5 at
+    # 1e6, 1.5e-3 at 9.4e6, exactly 0 from 1e9 on, and NaN on 137 of
+    # 2001 points near 4.46e9, which a degenerate mixture component
+    # reached and died on (the review's dev/optima-rev-links.R;
+    # dev/optima-pnorm-scan.R). The clamps are exact inside
+    # [-1000, 1000], where this is the plain difference of logs in
+    # value. A probit fit's estimates move by up to 9e-10 relative from
+    # the log(pnorm()) form, through its error of up to 4.3e-12.
     logit_eta = function(eta) {
-      log(RTMB::pnorm(eta)) - log(RTMB::pnorm(-eta))
+      cap <- 1000
+      e <- eta - 0.5 * ((eta - cap) + abs(eta - cap))
+      e <- e + 0.5 * ((-cap - e) + abs(-cap - e))
+      RTMB::pnorm(e, log.p = TRUE) - RTMB::pnorm(-e, log.p = TRUE) +
+        0.5 * (eta - e) * (eta + e) * e / cap
     }
   ),
   # brms's probit_approx. Its Stan program uses Phi_approx(), which is
@@ -310,9 +345,17 @@ frmtmb_links <- list(
     },
     # mu / (1 - mu) is the softplus exactly, so the log-odds is its log.
     # The plain round trip loses the upper tail at eta = 3.2e10, where
-    # y / (1 + y) rounds to one; both paths end together at eta = -745,
-    # where the softplus itself underflows.
-    logit_eta = function(eta) log(RTMB::logspace_add(0 * eta, eta))
+    # y / (1 + y) rounds to one. Below eta = -40 the log-odds is eta to
+    # double precision and is used as such, read at -40 with slope one,
+    # as for the cloglog: the log of the softplus lost its derivative
+    # below -708 and its value below -745, where the softplus underflows
+    # (dev/optima-cloglog.R). Exact above -40 in value; the derivative
+    # moves by an ulp, as the cloglog's does.
+    logit_eta = function(eta) {
+      lo <- -40
+      e <- eta + 0.5 * ((lo - eta) + abs(lo - eta))
+      log(RTMB::logspace_add(0 * e, e)) + (eta - e)
+    }
   ),
   inverse = list(
     name    = "inverse",

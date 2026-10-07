@@ -204,8 +204,8 @@ parameters", with a reason for each:
   ordinal model runs off toward infinity, and the optimizer stops
   where its tolerances do.
 * **The likelihood is flat along it.** A standard deviation at 0 does
-  this. So does a `mo()` simplex weight at 0, because the simplex
-  coordinate has gone to minus infinity. Two parameters that enter
+  this. So does a `mo()` simplex whose steps the data read only as a
+  sum, when a category in between has no rows. Two parameters that enter
   only through their sum do it too, and so does a nonlinear term
   evaluated outside its own support; see the nonlinear section of
   `vignette("frmtmb")`.

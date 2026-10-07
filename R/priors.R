@@ -967,7 +967,7 @@ brms_prior_class_refusal <- function(cls) {
   switch(cls,
     simo = paste0(
       "brms's \"simo\" is the Dirichlet on a mo() simplex. frmtmb holds ",
-      "that simplex as its free softmax coordinates and puts no density ",
+      "that simplex as its free coordinates and puts no density ",
       "on it at all, so there is no slot to carry the row into and no ",
       "class that would rename it: drop the row. A flat simo row from ",
       "get_prior() is dropped for you, and only an explicit one reaches ",

@@ -101,7 +101,7 @@ test_that("the simplex and group-level rules round-trip", {
                                          data = sdat, chains = 0))
   pars <- stan_pars_from_fit(fit, sdat, code)
   expect_par_roundtrip(sf, pars)
-  # the simplex is frmtmb's zeta through a softmax with a fixed zero
+  # the simplex is frmtmb's zeta through mo_simplex()
   expect_lt(abs(sum(pars[["simo_1"]]) - 1), 1e-12)
   expect_length(pars[["simo_1"]], sdat$Jmo[[1]])
   # sigma has no linear predictor, so brms declares it on the natural

@@ -43,6 +43,19 @@ of them explicitly (\code{frm_sample(.diagnostic = TRUE)}) rather than
 inheriting whatever the default is: a prior nothing in the fit ever
 saw would change the very thing being measured.
 
+One density is added, on a model with \code{mo()} terms, and it adds
+nothing to the comparison: each simplex is sampled in softmax
+coordinates under \code{dirichlet(1)}, the flat density on the simplex, so
+that the posterior of the weights is the likelihood the fit maximized
+(times a MAP fit's own prior). With no density at all the sampled
+coordinates would be the prior, which in softmax coordinates is
+\code{1 / prod(w)} and in the fit's own coordinates is not integrable. The
+simplex is compared on the weight scale: its rows are brms's \code{simo_}
+weights, with \code{ml} and \code{wald_se} the weights and delta-method errors
+\code{summary()} reports. A weight at 0 or 1 (a face or a vertex of the
+simplex) has no Wald error (\code{NA}) and is reported in a message rather
+than flagged.
+
 That is also why it samples CENTERED on an ordinary fit.
 \code{frm_sample()}'s non-centered
 parameterization (see Reparameterization there) is offered only for

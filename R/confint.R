@@ -1102,9 +1102,10 @@ flat_pars <- function(fit) {
 #' Does this fit carry nonlinear parameters at all?
 #'
 #' `diagnose_flat()` measures flatness and nothing else, so it finds
-#' flat directions in models that have no nonlinear term: a saturated
-#' `mo()` simplex is one (its softmax sits in a corner, and moving the
-#' last `zeta` leaves the objective unchanged to fifteen digits). The
+#' flat directions in models that have no nonlinear term: a `mo()`
+#' simplex is one when a category no row is in splits two steps that
+#' the likelihood reads only as their sum (moving its `zeta` leaves the
+#' objective unchanged to the last bit). The
 #' nonlinear EXPLANATION must therefore be gated on the model the
 #' explanation is about, or the report asserts a cause it never
 #' measured - which is the defect the flat-direction check was added to

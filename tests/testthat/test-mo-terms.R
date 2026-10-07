@@ -15,7 +15,7 @@ test_that("an mo() variable in two terms gets two simplexes, one term one", {
   fit_int <- frm(bf(y ~ mo(inc) * z) + gaussian(), data = dd)
   expect_identical(zeta_names(fit_int), c("zeta1", "zeta2"))
   # inc runs 0..3, so D = 3 and the simplex is held as 2 free
-  # softmax coordinates
+  # coordinates (mo_simplex())
   expect_length(fit_int$frame$par_template[["zeta1"]], 2L)
   expect_length(fit_int$frame$par_template[["zeta2"]], 2L)
 
@@ -185,8 +185,7 @@ test_that("the tier translates an ordinal fit, whose zetas start at 2", {
 
   expect_true(all(c("simo_1", "simo_2") %in% names(pars)))
   simplex <- function(z) {
-    v <- exp(c(0, fit$estimates[[z]]))
-    v / sum(v)
+    frmtmb:::mo_simplex(fit$estimates[[z]])
   }
   expect_equal(pars[["simo_1"]], simplex("zeta2"))
   expect_equal(pars[["simo_2"]], simplex("zeta3"))

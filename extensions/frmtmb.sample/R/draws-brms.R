@@ -105,7 +105,9 @@ draws_natural_cols <- function(fit) {
               linkinv = c(attr(tab, "linkinv")[i], gpn$linkinv),
               linkfun = c(attr(tab, "linkfun")[i], gpn$linkfun),
               simplex = smp, equated = equated,
-              ordinal = draws_ordinal_cols(fit))
+              # a mo() simplex is renamed and mapped as an ordinal block
+              # is: its chart columns become brms's simo_ weights
+              ordinal = c(draws_ordinal_cols(fit), draws_mo_cols(fit)))
   # the columns added after the sampled ones: a mixture's last weight,
   # an equated dpar, and the thresholds and delta an ordinal block
   # reports beyond its internal parameters
@@ -259,8 +261,14 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
     m[, j] <- v[, seq_len(R), drop = FALSE]
     colnames(m)[j] <- o$names[seq_len(R)]
     if (length(o$names) > R) {
-      # before lp__, which brms and the sampler both keep last
-      at <- match("lp__", colnames(m), nomatch = ncol(m) + 1L) - 1L
+      # before lp__, which brms and the sampler both keep last; a mo()
+      # simplex's last weight right after its others, as brms orders a
+      # simplex's entries term by term (the inverse finds it by name)
+      at <- if (isTRUE(o$adjacent) && R > 0L) {
+        max(j[seq_len(R)])
+      } else {
+        match("lp__", colnames(m), nomatch = ncol(m) + 1L) - 1L
+      }
       nm_all <- append(colnames(m), o$names[seq_along(o$names) > R],
                        after = at)
       m <- cbind(m[, seq_len(at), drop = FALSE],

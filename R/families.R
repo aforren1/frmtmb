@@ -4223,7 +4223,7 @@ cs_target_family <- function(fam, dpar) {
 ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1, cs = NULL,
                                   gap_floor = FALSE) {
   if (!is.null(cs)) return(ord_cumulative_logpmf_cs(y, eta, tau, cs, lk,
-                                                    disc))
+                                                    disc, gap_floor))
   Fcdf <- lk$linkinv
   # Any link carrying `logit_eta` has an exact log-space difference
   # (see below), because that field turns its CDF into a logistic one.
@@ -4280,6 +4280,10 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1, cs = NULL,
 #' mixture so that a plain fit keeps its gradient, and so its
 #' optimizer path, bit for bit.
 #'
+#' Only for `a >= b`: the minimum form loses `cap` to rounding once
+#' `b - a` is positive and returns `log(0)`, so a crossed `cs()` pair
+#' must not reach it (`ord_cumulative_logpmf_cs()` keeps them apart).
+#'
 #' @noRd
 ord_log_interior <- function(a, b, gap_floor = FALSE) {
   if (!gap_floor) {
@@ -4290,6 +4294,21 @@ ord_log_interior <- function(a, b, gap_floor = FALSE) {
   z <- 0.5 * (z + cap - abs(cap - z))
   -b + RTMB::logspace_sub(0 * z, z) + log_inv_logit(a) + log_inv_logit(b)
 }
+
+#' Zero, with a zero derivative, where `g > 0`; NaN where `g = 0`; and
+#' `-Inf` where `g < 0`, which only ever meets a log-density that is
+#' already NaN there.
+#'
+#' Added to a log-density, it makes the point where a category's gap
+#' has closed undefined, as the points past it already are, so the
+#' optimizer maps both to `+Inf` and never asks for a gradient there.
+#' Spelled as a difference of two logs of the same value because the
+#' tape folds `0 * x` and `x - x` to a constant and loses the NaN, and
+#' with `abs()` in the second log so that plain numeric evaluation
+#' warns about nothing (dev/optima-guard-check.R).
+#'
+#' @noRd
+ord_touch_nan <- function(g) log(g + abs(g)) - log(2 * abs(g))
 
 #' A category probability held at `1e-300` or above when `on`: the
 #' plain-difference form of `ord_log_interior()`, for a link with no
@@ -4313,8 +4332,26 @@ ord_gap_floor <- function(p, on) {
 #' category. Each category is formed on its own rows instead; the row
 #' sets are data, so the loop over categories is resolved at tape time.
 #'
+#' A crossing stays undefined in an ordinal mixture too, which sets
+#' `gap_floor`: the floor of `ord_log_interior()` there would let a
+#' component cross its thresholds on the rows another component
+#' carries, and a crossed row's other categories then read
+#' probabilities summing past one. Measured, that raised the
+#' log-likelihood of `mixture(cumulative(), sratio())` with `cs(z)` by
+#' up to 115 units on degenerate components (dev/optima-findings.md).
+#' What a mixture needs instead is the TOUCH made undefined as well: at
+#' thresholds that are the same double the component's log-probability
+#' is `-Inf`, the mixture's value stays finite through the other
+#' component, and its gradient is NaN. nlminb's line search, backing
+#' off the undefined crossed side, converges onto that boundary and
+#' then asks for the gradient there ("NA/NaN gradient evaluation", 1 of
+#' 20 data sets of dev/optima-csmix.R once `nlminb_best_par()` was in).
+#' `ord_touch_nan()` makes the touch NaN, which the optimizer
+#' maps to `+Inf` like the crossing.
+#'
 #' @noRd
-ord_cumulative_logpmf_cs <- function(y, eta, tau, cs, lk, disc = 1) {
+ord_cumulative_logpmf_cs <- function(y, eta, tau, cs, lk, disc = 1,
+                                     gap_floor = FALSE) {
   "[<-" <- RTMB::ADoverload("[<-")
   n <- length(y)
   if (length(eta) < n) eta <- eta + numeric(n)
@@ -4331,7 +4368,10 @@ ord_cumulative_logpmf_cs <- function(y, eta, tau, cs, lk, disc = 1) {
     up <- if (k <= K1) dk * (tau[k] - cs[rows, k] - e)
     lo <- if (k >= 2L) dk * (tau[k - 1L] - cs[rows, k - 1L] - e)
     out[rows] <- if (is.null(q)) {
-      log((if (k <= K1) Fcdf(up) else 1) - (if (k >= 2L) Fcdf(lo) else 0))
+      p <- (if (k <= K1) Fcdf(up) else 1) - (if (k >= 2L) Fcdf(lo) else 0)
+      if (gap_floor && k >= 2L && k <= K1) {
+        log(p) + ord_touch_nan(p)
+      } else log(p)
     } else if (k == 1L) {
       log_inv_logit(q(up))
     } else if (k == K1 + 1L) {
@@ -4339,7 +4379,8 @@ ord_cumulative_logpmf_cs <- function(y, eta, tau, cs, lk, disc = 1) {
     } else {
       a <- q(up)
       b <- q(lo)
-      RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b)
+      v <- RTMB::logspace_sub(-b, -a) + log_inv_logit(a) + log_inv_logit(b)
+      if (gap_floor) v + ord_touch_nan(a - b) else v
     }
   }
   out

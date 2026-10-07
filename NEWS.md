@@ -1,3 +1,82 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A `mo()` fit reaches the maximum likelihood.** The simplex of a
+  monotonic term was held as softmax coordinates, which put a step of
+  0 at an infinite coordinate. A fit whose step ran toward 0 stopped
+  on that plateau with code 0, wherever the likelihood still rose, or
+  at the local maximum of the coefficient's other sign. On
+  brms_monotonic's own `ls ~ mo(income) * age`, 84 of 200 data sets
+  ended more than 1e-6 below the exact maximum, 53 by more than 0.01
+  and up to 1.95, and 18 had standard errors that were not finite.
+  Now 199 of 200 reach it to 1e-6 (the other is 0.049 below), every
+  standard error is finite, and no fit warns. The simplex is held as
+  the coordinates of stereographic projection onto the unit sphere,
+  whose squared components are the simplex: `zeta = 0` is still the
+  uniform simplex, and every face is at a finite coordinate, where a
+  step of 0 keeps a finite curvature. After the fit, a term whose
+  simplex is on a face is refitted with its coefficient held at the
+  other sign, and the better fit is kept; `fit$opt$mo_search` records
+  the refits and `frmtmb_control(mo_search = FALSE)` turns them off.
+  The search costs objective evaluations, and the factor grows with
+  the model, since each refit is of the whole model: 2.4 times
+  0.68.1's over the 200 interaction fits, 1.3 times on the plain
+  `ls ~ mo(income)` (which reached the maximum before and does now),
+  and 3.3 to 3.8 times on a model of 5000 rows with a random intercept
+  over 100 groups. The `zeta<j>` values that `confint()`, `vcov()` and
+  `start` read are these coordinates, which have no reading of their
+  own; `summary()` now reports the simplex itself, as brms does, under
+  "Monotonic Simplex Parameters" (`moincome1[1]`, ...), with
+  delta-method standard errors; a weight at 0 or 1 has none there (the
+  chart folds at the face, and the delta method would give an interval
+  of [0, 0] or about [1, 1]), and a line under the table says so.
+  `dev/optima-findings.md` has the measurements.
+
+* **The probit, cloglog and softit links keep their log-odds in the
+  far tails.** The probit's was `log(pnorm(eta)) - log(pnorm(-eta))`,
+  infinite past `|eta| = 38.2` and with a NaN derivative on 24 of 2001
+  points inside it; an ordinal probit's density was then NaN. It now
+  reads both logs from `pnorm(log.p = TRUE)`: within 7e-16 of Rmpfr
+  in value on `[-200, 200]` and 3.6e-12 in derivative. The old form
+  erred by up to 4.3e-12 where it was finite, and probit fits move
+  with it: estimates by up to 9e-10 relative, log-likelihoods by up
+  to 3.4e-13. Past `|eta| = 1000`, where RTMB's derivative of
+  `pnorm(log.p = TRUE)` degrades, it continues as the tail's leading
+  term. The cloglog's and softit's log-odds lost their derivative
+  below `eta = -708` and their value below -745; below -40 they are
+  `eta` itself, which they equal there to double precision. Above
+  -40 both are unchanged in value, and their fits move by an ulp of
+  the derivative: estimates by up to 3.6e-12 relative.
+
+## Bug fixes
+
+* `frm()` read its estimates, and started its restart, from the trial
+  point nlminb had rejected when nlminb stopped on one ("false
+  convergence (8)"), while `logLik()` reported the best point. The
+  best point the optimizer evaluated is now the fit's.
+
+* A fit whose family declares a stationary point (`skew_normal()`)
+  and that has random effects reported the random effects' modes of
+  the last escape it tried, not of the optimum it kept. On
+  `skew_normal()` with `(1 | g)`, seeds 1 to 40, the escape ran on 14
+  fits and on 5 `ranef()` was off by 0.002 to 0.143.
+
+* `cs()` on a cumulative component of an ordinal mixture no longer
+  stops with "NA/NaN gradient evaluation". `mixture(cumulative(),
+  sratio())` with `cs(z)` died on 7 of 20 data sets and
+  `mixture(cumulative(), cumulative())` on 4 of 20; both now finish on
+  all 20. Two causes: the rejected trial point above, and two
+  thresholds of one row that the line search had brought to the same
+  double, where the component's density was `-Inf`, the mixture's
+  finite and its gradient NaN. That touch is now as undefined as the
+  crossing past it. Most of these fits still report non-convergence,
+  correctly: their optimum is where a row's category closes in one
+  component, and the gradient there does not vanish. On the 18 of 20
+  `mixture(cumulative(), sratio())` fits that stop with "false
+  convergence (8)", some row's two thresholds are within 2.3e-13 of
+  each other.
+
 # frmtmb 0.68.1
 
 The Ubuntu checks of 0.68.0 failed where the Windows and macOS ones

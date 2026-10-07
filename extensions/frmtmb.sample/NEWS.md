@@ -1,3 +1,53 @@
+# frmtmb.sample (development version)
+
+Needs frmtmb 0.68.1.9000 (the development version) or later: it
+holds a `mo()` simplex in the coordinates of `mo_simplex()` and exports
+`mo_simplex()`, `mo_coords()`, `mo_chart_frame()`, `mo_frame_terms()`
+and `summary_mo_frame()` (lane optima).
+
+## Breaking changes
+
+* **`frm_sample()` puts brms's default `dirichlet(1)` on every `mo()`
+  simplex and reports brms's `simo_` weights.** The sampler put no
+  density on a simplex, so the fit's coordinates were the prior. In
+  frmtmb's old softmax coordinates that prior is `1 / prod(w)`, and a
+  weakly identified simplex sat at a vertex (44 divergences); in the
+  coordinates frmtmb now fits in it is not integrable at the
+  barycenter, and the draws sat there with sd 0. The simplex is now
+  sampled in softmax coordinates under `dirichlet(1)`, which is the
+  flat density on the simplex (so `prior = "flat"` keeps it), and the
+  draws carry the weights as `simo_<term>1[k]`, brms's names, in place
+  of the `zeta<j>_k` coordinates. Against brms 2.23.0 on a weakly
+  identified simplex and on brms_monotonic's `fit1` (4 chains of 2000
+  each side), every weight's mean and sd agree within 1.7 Monte Carlo
+  standard errors, with 0 divergences and R-hat at most 1.0033.
+  Models without `mo()` terms sample exactly as before. A `simo` row in
+  `prior =` is still refused: `set_prior()` has no Dirichlet density.
+
+* With more than one `mo()` term, each term's weights are adjacent
+  columns, term by term, as brms orders them.
+
+* `check_laplace()` on a `mo()` fit compares each simplex on the
+  weight scale: the ML weights and their delta-method errors (as
+  `summary()` gives them) against the posterior of the `simo_`
+  weights. The coordinates are not comparable, since the fit's sheet
+  and the draws' need not be the same. The simplex is sampled under
+  `dirichlet(1)` there too, the flat density on the simplex, under
+  which the weights' posterior is the fit's likelihood; a MAP fit
+  keeps its own prior. A weight at 0 or 1 is reported in a message,
+  with no Wald error.
+
+* `as_tmbstan()` says in a message, on a fit with `mo()` terms, that
+  the simplex has no density on that route (it is sampled flat in the
+  fit's own coordinates, which a weakly identified simplex collapses
+  in) and that `frm_sample()` samples it under `dirichlet(1)`.
+
+## Bug fixes
+
+* `check_laplace()` stopped with "length(ml) == length(keep) is not
+  TRUE" on every `mo()` fit once the draws carried the simplex's D
+  weights (the development version only).
+
 # frmtmb.sample 0.16.0
 
 Needs frmtmb 0.68.0: for `ord_thres_linpred()`; for

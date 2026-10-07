@@ -6,9 +6,11 @@
 # then fills EVERY standard error with NaN. On `ls ~ mo(income) * age`
 # (brms_monotonic's own data code, dev/nanse-mo-sweep.R) that happened
 # on 72 of 200 data sets, 55 of them with optimizer code 0 and no
-# warning: the interaction's simplex sits with a weight at 0, its
-# softmax coordinate has run to -20 or beyond, and the likelihood is
-# flat along that one coordinate to 1e-20. The rest of the matrix is
+# warning: the interaction's simplex sat with a weight at 0, its
+# softmax coordinate had run to -20 or beyond, and the likelihood was
+# flat along that one coordinate to 1e-20 (frmtmb 0.68.1; lane optima
+# moved the simplex to a chart that reaches a face at a finite
+# coordinate, dev/optima-findings.md). The rest of the matrix is
 # well conditioned. rcond() separated the two outcomes exactly: at most
 # 1.54e-16 on every all-NaN fit, at least 2.68e-16 on every finite one.
 
@@ -377,8 +379,10 @@ se_line_probe <- function(fit, p, free, dir_free, lambda) {
 #' A direction of the unit-diagonal Hessian with an eigenvalue at most
 #' this fraction of the largest is one the likelihood does not curve
 #' along. Only read after both inverses have failed. Exact ridges give
-#' 1e-16 to 2e-16 there and a mo() simplex weight at 0 gives an exactly
-#' zero diagonal or a decoupled row, so the value is not delicate; it
+#' 1e-16 to 2e-16 there and a mo() simplex coordinate the likelihood
+#' does not read gives an exactly zero diagonal or a decoupled row (a
+#' softmax weight run to 0 did too, before lane optima), so the value is
+#' not delicate; it
 #' is the threshold nl_flat_message() uses for the same question. Its
 #' square root is the smallest projection onto a flat subspace that
 #' takes a parameter's standard error.
@@ -765,9 +769,9 @@ se_lost_clauses <- function(fit, lost) {
                           "where its tolerances did"),
       flat = paste0("the likelihood is flat along ", it, " at the ",
                     "estimates, so the data do not determine ", it,
-                    " there (a standard deviation or a mo() simplex weight ",
-                    "at 0 does this, and so do parameters that enter only ",
-                    "through a combination)",
+                    " there (a standard deviation at 0 does this, and so do ",
+                    "a mo() simplex split by a category no row is in and ",
+                    "parameters that enter only through a combination)",
                     # flat_par_note()'s remedy, for the model it is about
                     if (fit_has_nlpars(fit)) {
                       paste0(". A nonlinear term that has left its own ",
@@ -825,10 +829,10 @@ se_lost_message <- function(fit, lost) {
 #' along one of them has no finite standard error, and the covariance
 #' would otherwise give it a finite and too small one (lane nanse
 #' review, B2). The component is a cosine in the optimizer's units, so
-#' it does not depend on how a coefficient is scaled; a prediction from a
-#' saturated simplex weight has an exactly zero component and keeps its
-#' band. This is predict()'s `alias_null` estimability test, for the
-#' directions the Hessian lost rather than the design.
+#' it does not depend on how a coefficient is scaled; a prediction that
+#' does not read a lost simplex coordinate has an exactly zero component
+#' and keeps its band. This is predict()'s `alias_null` estimability
+#' test, for the directions the Hessian lost rather than the design.
 #'
 #' @noRd
 jc_nonest <- function(jc, G, pos) {
