@@ -16,8 +16,10 @@ jobs:
         config:
           - {os: windows-latest, r: 'release'}
           - {os: macos-latest,   r: 'release'}
-          - {os: ubuntu-latest,  r: 'release'}
-          - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
+          # Pinned 2026-10-06: ubuntu-latest becomes Ubuntu 26.04 between
+          # 2026-10-19 and 2026-11-19. Move with ubuntu-next.yaml (see there).
+          - {os: ubuntu-24.04,  r: 'release'}
+          - {os: ubuntu-24.04,  r: 'devel', http-user-agent: 'release'}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes

@@ -8,6 +8,7 @@ epilepsy <- brms::epilepsy
 inhaler <- brms::inhaler
 
 test_that("default_prior finds all classes for which priors can be specified", {
+  withr::local_seed(4L)
   brms_port("priors:5", "divergence",
     paste0(
       "frmtmb lists 5 class theta rows (its covariance parameters) ",
@@ -38,6 +39,7 @@ test_that("default_prior finds all classes for which priors can be specified", {
 })
 
 test_that("set_prior allows arguments to be vectors", {
+  withr::local_seed(25L)
   brms_setup("priors:26",
     bprior <- set_prior("normal(0, 2)", class = c("b", "sd"))
   )
@@ -60,6 +62,7 @@ test_that("set_prior allows arguments to be vectors", {
 })
 
 test_that("print for class brmsprior works correctly", {
+  withr::local_seed(32L)
   brms_port("priors:33", "pass",
     "",
     expect_output(print(set_prior("normal(0,1)")), fixed = TRUE,
@@ -85,6 +88,7 @@ test_that("print for class brmsprior works correctly", {
 })
 
 test_that("default_prior returns correct nlpar names for random effects pars", {
+  withr::local_seed(43L)
   brms_setup("priors:45",
     dat <- data.frame(y = rnorm(10), x = rnorm(10), g = rep(1:2, 5))
   )
@@ -101,6 +105,7 @@ test_that("default_prior returns correct nlpar names for random effects pars", {
 })
 
 test_that("default_prior returns correct fixed effect names for GAMMs", {
+  withr::local_seed(51L)
   brms_setup("priors:52",
     dat <- data.frame(y = rnorm(10), x = rnorm(10),
                       z = rnorm(10), g = rep(1:2, 5))
@@ -125,6 +130,7 @@ test_that("default_prior returns correct fixed effect names for GAMMs", {
 })
 
 test_that("default_prior returns correct prior names for auxiliary parameters", {
+  withr::local_seed(63L)
   brms_setup("priors:64",
     dat <- data.frame(y = rnorm(10), x = rnorm(10),
                       z = rnorm(10), g = rep(1:2, 5))
@@ -160,6 +166,7 @@ test_that("default_prior returns correct prior names for auxiliary parameters", 
 })
 
 test_that("default_prior returns correct priors for multivariate models", {
+  withr::local_seed(77L)
   brms_setup("priors:78",
     dat <- data.frame(y1 = rnorm(10), y2 = c(1, rep(1:3, 3)),
                       x = rnorm(10), g = rep(1:2, 5))
@@ -211,6 +218,7 @@ test_that("default_prior returns correct priors for multivariate models", {
 })
 
 test_that("default_prior returns correct priors for categorical models", {
+  withr::local_seed(97L)
   brms_setup("priors:99",
     dat <- data.frame(y2 = c(1, rep(1:3, 3)), x = rnorm(10), g = rep(1:2, 5))
   )
@@ -225,6 +233,7 @@ test_that("default_prior returns correct priors for categorical models", {
 })
 
 test_that("set_prior alias functions produce equivalent results", {
+  withr::local_seed(104L)
   brms_port("priors:105", "pass",
     "",
     expect_equal(set_prior("normal(0, 1)", class = "sd"),
@@ -248,6 +257,7 @@ test_that("set_prior alias functions produce equivalent results", {
 })
 
 test_that("external interface of validate_prior works correctly", {
+  withr::local_seed(115L)
   brms_setup("priors:116",
     prior1 <- prior(normal(0,10), class = b) +
       prior(cauchy(0,2), class = sd)
@@ -271,6 +281,7 @@ test_that("external interface of validate_prior works correctly", {
 })
 
 test_that("as.brmsprior works correctly", {
+  withr::local_seed(133L)
   brms_setup("priors:134",
     dat <- data.frame(prior = "normal(0,1)", x = "test", coef = c("a", "b"))
   )
@@ -300,6 +311,7 @@ test_that("as.brmsprior works correctly", {
 })
 
 test_that("prior tags are correctly applied", {
+  withr::local_seed(143L)
   brms_setup("priors:145",
     prior1 <- prior(normal(0, 1), class = sd, tag = "prior_tag1")
   )

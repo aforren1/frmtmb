@@ -28,6 +28,7 @@ fit3 <- brms_fixture_draws(3)
 fit5 <- brms_fixture_draws(5)
 
 test_that("as_draws and friends have resonable outputs", {
+  withr::local_seed(30L)
   brms_setup("brmsfit-methods:31",
     draws <- as_draws(fit1, variable = "b_Intercept")
   )
@@ -105,6 +106,7 @@ test_that("as_draws and friends have resonable outputs", {
 })
 
 test_that("as.data.frame has reasonable ouputs", {
+  withr::local_seed(58L)
   brms_setup("brmsfit-methods:59",
     draws <- as.data.frame(fit1)
   )
@@ -149,6 +151,7 @@ test_that("as.data.frame has reasonable ouputs", {
 })
 
 test_that("as.matrix has reasonable ouputs", {
+  withr::local_seed(80L)
   brms_setup("brmsfit-methods:81",
     draws <- as.matrix(fit1, iteration = 1:10)
   )
@@ -163,6 +166,7 @@ test_that("as.matrix has reasonable ouputs", {
 })
 
 test_that("as.array has reasonable ouputs", {
+  withr::local_seed(86L)
   brms_setup("brmsfit-methods:87",
     draws <- as.array(fit1)
   )
@@ -199,6 +203,7 @@ test_that("as.array has reasonable ouputs", {
 })
 
 test_that("as.mcmc has reasonable ouputs", {
+  withr::local_seed(99L)
   brms_setup("brmsfit-methods:100",
     chains <- fit1$fit@sim$chains
   )
@@ -231,6 +236,7 @@ test_that("as.mcmc has reasonable ouputs", {
 })
 
 test_that("ndraws and friends have reasonable ouputs", {
+  withr::local_seed(577L)
   brms_port("brmsfit-methods:578", "pass",
     "",
     expect_equal(ndraws(fit1), 25)
@@ -246,6 +252,7 @@ test_that("ndraws and friends have reasonable ouputs", {
 })
 
 test_that("nsamples has reasonable ouputs", {
+  withr::local_seed(592L)
   brms_port("brmsfit-methods:593", "pass",
     "",
     expect_equal(SW(nsamples(fit1)), 25)
@@ -261,6 +268,7 @@ test_that("nsamples has reasonable ouputs", {
 })
 
 test_that("pairs has reasonable outputs", {
+  withr::local_seed(598L)
   brms_port("brmsfit-methods:599", "pass",
     "",
     expect_s3_class(SW(pairs(fit1, variable = variables(fit1)[1:3])),
@@ -269,6 +277,7 @@ test_that("pairs has reasonable outputs", {
 })
 
 test_that("posterior_average has reasonable outputs", {
+  withr::local_seed(616L)
   brms_setup("brmsfit-methods:617",
     pnames <- c("b_Age", "nu")
   )
@@ -307,6 +316,7 @@ test_that("posterior_average has reasonable outputs", {
 })
 
 test_that("posterior_samples has reasonable outputs", {
+  withr::local_seed(631L)
   brms_setup("brmsfit-methods:632",
     draws <- SW(posterior_samples(fit1))
   )
@@ -334,6 +344,7 @@ test_that("posterior_samples has reasonable outputs", {
 })
 
 test_that("posterior_summary has reasonable outputs", {
+  withr::local_seed(644L)
   brms_setup("brmsfit-methods:645",
     draws <- posterior_summary(fit1, variable = "^b_", regex = TRUE)
   )
@@ -344,6 +355,7 @@ test_that("posterior_summary has reasonable outputs", {
 })
 
 test_that("posterior_interval has reasonable outputs", {
+  withr::local_seed(649L)
   brms_port("brmsfit-methods:650", "pass",
     "",
     expect_equal(dim(posterior_interval(fit1)),
@@ -352,6 +364,7 @@ test_that("posterior_interval has reasonable outputs", {
 })
 
 test_that("posterior_predict has reasonable outputs", {
+  withr::local_seed(654L)
   brms_port("brmsfit-methods:655", "pass",
     "",
     expect_equal(dim(posterior_predict(fit1)),
@@ -360,6 +373,7 @@ test_that("posterior_predict has reasonable outputs", {
 })
 
 test_that("posterior_linpred has reasonable outputs", {
+  withr::local_seed(659L)
   brms_port("brmsfit-methods:660", "pass",
     "",
     expect_equal(dim(posterior_linpred(fit1)),
@@ -368,6 +382,7 @@ test_that("posterior_linpred has reasonable outputs", {
 })
 
 test_that("posterior_epred has reasonable outputs", {
+  withr::local_seed(707L)
   brms_port("brmsfit-methods:708", "pass",
     "",
     expect_equal(dim(posterior_epred(fit1)), c(ndraws(fit1), nobs(fit1)))
@@ -387,6 +402,7 @@ test_that("posterior_epred has reasonable outputs", {
 })
 
 test_that("pp_mixture has reasonable outputs", {
+  withr::local_seed(717L)
   brms_port("brmsfit-methods:718", "pass",
     "",
     expect_equal(dim(pp_mixture(fit5)), c(nobs(fit5), 4, 2))
@@ -403,6 +419,7 @@ test_that("pp_mixture has reasonable outputs", {
 })
 
 test_that("predictive_error has reasonable outputs", {
+  withr::local_seed(778L)
   brms_port("brmsfit-methods:779", "pass",
     "",
     expect_equal(dim(predictive_error(fit1)),
@@ -411,6 +428,7 @@ test_that("predictive_error has reasonable outputs", {
 })
 
 test_that("prior_draws has reasonable outputs", {
+  withr::local_seed(787L)
   brms_setup("brmsfit-methods:788",
     prs1 <- prior_draws(fit1)
   )

@@ -140,13 +140,16 @@ test_that("the warning is brms's: per cs() predictor on the ordered families", {
                             data = d)), 1L)
   # once per cumulative() component of a mixture, as brms warns (two for
   # mixture(cumulative, cumulative), one beside sratio;
-  # dev/rel068-cs-brms.R)
+  # dev/rel068-cs-brms.R). The frame gives the warning, so the frame is
+  # all these build: a cs() mixture's FIT stops on a NaN gradient on
+  # some BLAS builds and not others (OpenBLAS 0.3.26 here,
+  # dev/ciharden-findings.md), which says nothing about the warning
   expect_identical(seen(frm(y ~ cs(x), family = mixture(cumulative(),
                                                         sratio()),
-                            data = d)), 1L)
+                            data = d, dry_run = "frame")), 1L)
   expect_identical(seen(frm(y ~ cs(x), family = mixture(cumulative(),
                                                         cumulative()),
-                            data = d)), 2L)
+                            data = d, dry_run = "frame")), 2L)
   # absent: cs() on sratio(), and cumulative() without cs()
   expect_identical(seen(frm(y ~ cs(x), family = sratio(), data = d)), 0L)
   expect_identical(seen(frm(y ~ x, family = cumulative(), data = d)), 0L)

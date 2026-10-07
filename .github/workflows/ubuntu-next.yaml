@@ -1,0 +1,214 @@
+# The next Ubuntu runner image, checked before it becomes the default.
+#
+# GitHub moves the ubuntu-latest label from Ubuntu 24.04 to Ubuntu 26.04
+# between 2026-10-19 and 2026-11-19 (GitHub changelog, 2026-09-17). The
+# new image brings a newer compiler and, through apt, OpenBLAS 0.3.32 in
+# place of 0.3.26, and this package's Linux failures so far have been
+# OpenBLAS rounding (dev/cifix-findings.md, dev/ciharden-findings.md).
+# So every other workflow is pinned to ubuntu-24.04, and the move is
+# made on purpose: when this workflow is green on ubuntu-26.04, change
+# the pins (search the workflows for "Pinned 2026-10-06") to
+# ubuntu-26.04, and add the next image here.
+#
+# Weekly and on demand, not on push: it reports, it does not gate. Two
+# jobs run on both images, so a difference between the two columns is
+# the image and not the job:
+#   ubuntu-next  the core check, with the same steps as R-CMD-check.yaml
+#   stan-next    the two Stan tiers, with the same steps as
+#                brms-likelihood.yaml; rstan compiles every model with
+#                the runner's g++, which is where a newer compiler can
+#                break something the core check never builds
+# (user decision of 2026-10-07, dev/ciharden-findings.md).
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+name: ubuntu-next
+
+jobs:
+  ubuntu-next:
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} (release)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+      # which BLAS, LAPACK and compiler the check ran with, so that a
+      # failure on one image can be reproduced with
+      # dev/ciharden-openblas.sh <version> lapack
+      - name: Record the numerical libraries
+        run: |
+          print(sessionInfo())
+          print(extSoftVersion())
+          print(La_library())
+          print(La_version())
+          cat(system("gcc --version", intern = TRUE)[1], "\n")
+        shell: Rscript {0}
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+
+  # brms-likelihood.yaml's job, step for step, on both images. Kept a
+  # copy rather than a shared action so that the push-triggered job is
+  # not touched; when the pins move, this job and that one move
+  # together. Differences from it: the matrix, the version record, and
+  # the image in the compiled-model cache key.
+  stan-next:
+    runs-on: ${{ matrix.os }}
+    name: Stan tiers, ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    # the push job's budget: 25 programs from an empty cache
+    timeout-minutes: 90
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      NOT_CRAN: "true"
+      FRMTMB_BRMS_FIT_TESTS: "true"
+      FRMTMB_STAN_CACHE: ${{ github.workspace }}/dev/stan-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        id: deps
+        with:
+          extra-packages: |
+            any::BH
+            any::RcppEigen
+            any::rstan
+            any::brms
+            any::testthat
+            any::pkgload
+            any::lme4
+            any::MASS
+          needs: check
+      # A compiled model is a shared object linked against the image's
+      # C++ runtime: one built on 26.04 need not load on 24.04. So the
+      # image is part of the key AND of the restore prefix, and the two
+      # columns never share a program. The "next" in the prefix keeps
+      # these caches apart from brms-likelihood.yaml's, whose prefix is
+      # brms-stan-<rstan version>-.
+      - name: Write the compiled-model cache key
+        id: stankey
+        run: |
+          v <- as.character(packageVersion("rstan"))
+          vb <- as.character(packageVersion("brms"))
+          h <- tools::md5sum(c("tests/testthat/test-brms-likelihood.R",
+                               "tests/testthat/helper-brms.R",
+                               "tests/testthat/test-brms-methods.R",
+                               "tests/testthat/helper-brms-methods.R"))
+          dir.create("dev", showWarnings = FALSE)
+          writeLines(c(paste0("rstan ", v), paste0("brms ", vb),
+                       paste0(names(h), " ", h)),
+                     "dev/stan-cache-key.txt")
+          cat("prefix=brms-stan-next-", Sys.getenv("IMAGE"), "-", v, "-\n",
+              sep = "", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+        shell: Rscript {0}
+        env:
+          IMAGE: ${{ matrix.os }}
+      - uses: actions/cache@v4
+        with:
+          path: dev/stan-cache
+          key: ${{ steps.stankey.outputs.prefix }}${{ hashFiles('dev/stan-cache-key.txt') }}
+          restore-keys: ${{ steps.stankey.outputs.prefix }}
+      # the same C++17 override as brms-likelihood.yaml, for its reason
+      # (rstan's cpp14 plugin lands after -std=gnu++17 otherwise)
+      - name: Force C++17 for rstan's generated models
+        run: |
+          mkdir -p ~/.R
+          echo 'CXX17FLAGS = -O2 -Wall -std=gnu++17' >> ~/.R/Makevars
+        shell: bash
+      # what the Stan programs are compiled and run with, so a failure on
+      # one image can be told apart from a new brms or rstan
+      - name: Record the compiler, BLAS and Stan versions
+        run: |
+          cat(system("g++ --version", intern = TRUE)[1], "\n")
+          cat(system2(file.path(R.home("bin"), "R"),
+                      c("CMD", "config", "CXX17"), stdout = TRUE), "\n")
+          print(extSoftVersion())
+          print(La_library())
+          print(La_version())
+          for (p in c("rstan", "StanHeaders", "brms", "RcppEigen", "BH")) {
+            cat(p, as.character(packageVersion(p)), "\n")
+          }
+          cat("Stan (rstan):", rstan::stan_version(), "\n")
+        shell: Rscript {0}
+      - name: Run the brms log-density identity tier
+        run: |
+          stopifnot(
+            requireNamespace("rstan", quietly = TRUE),
+            requireNamespace("brms", quietly = TRUE),
+            requireNamespace("lme4", quietly = TRUE),
+            identical(Sys.getenv("FRMTMB_BRMS_FIT_TESTS"), "true"),
+            identical(Sys.getenv("NOT_CRAN"), "true")
+          )
+          pkgload::load_all(".", quiet = TRUE)
+          res <- testthat::test_file(
+            "tests/testthat/test-brms-likelihood.R",
+            package = "frmtmb",
+            reporter = testthat::MultiReporter$new(list(
+              testthat::ProgressReporter$new(),
+              testthat::CheckReporter$new()
+            ))
+          )
+          df <- as.data.frame(res)
+          if (sum(df$failed) > 0 || any(df$error)) {
+            stop("the brms log-density identity tier failed")
+          }
+          if (any(df$skipped)) {
+            stop("a test skipped with the gate set: ",
+                 paste(df$test[df$skipped], collapse = "; "))
+          }
+        shell: Rscript {0}
+      # a separate process, as in brms-likelihood.yaml: a program compiled
+      # earlier in the same session will not reload from its own RDS
+      - name: Run the brms post-fit method tier
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: |
+          stopifnot(
+            requireNamespace("rstan", quietly = TRUE),
+            requireNamespace("brms", quietly = TRUE),
+            requireNamespace("lme4", quietly = TRUE),
+            requireNamespace("MASS", quietly = TRUE),
+            identical(Sys.getenv("FRMTMB_BRMS_FIT_TESTS"), "true"),
+            identical(Sys.getenv("NOT_CRAN"), "true")
+          )
+          pkgload::load_all(".", quiet = TRUE)
+          res <- testthat::test_file(
+            "tests/testthat/test-brms-methods.R",
+            package = "frmtmb",
+            reporter = testthat::MultiReporter$new(list(
+              testthat::ProgressReporter$new(),
+              testthat::CheckReporter$new()
+            ))
+          )
+          df <- as.data.frame(res)
+          if (sum(df$failed) > 0 || any(df$error)) {
+            stop("the brms post-fit method tier failed")
+          }
+          if (any(df$skipped)) {
+            stop("a test skipped with the gate set: ",
+                 paste(df$test[df$skipped], collapse = "; "))
+          }
+        shell: Rscript {0}

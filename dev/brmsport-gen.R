@@ -162,7 +162,12 @@ for (b in blocks) {
                  both = c("frmtmb", "frmtmb.sample"))
   for (pkg in pkgs) {
     key <- paste(pkg, cfg$topic)
-    body <- c(sprintf("test_that(%s, {", q(b$label)))
+    # brms's tests draw their data unseeded, so a recorded message that
+    # prints data moved at every run (standata:310, :315, :316 at
+    # 0.68.0). Each block runs under its own seed, the line of its
+    # test_that() in brms's file, and leaves the caller's RNG as it was.
+    body <- c(sprintf("test_that(%s, {", q(b$label)),
+              sprintf("  withr::local_seed(%dL)", b$line))
     for (j in seq_along(b$stmts)) {
       s <- b$stmts[[j]]
       id <- sprintf("%s:%d", topic_of(b$file), b$lines[j])

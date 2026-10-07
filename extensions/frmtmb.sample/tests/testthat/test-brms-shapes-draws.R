@@ -10,8 +10,13 @@
 # The chains here are short on purpose: these tests are about the SHAPE
 # of what the draws methods return, and rstan says the effective sample
 # size is low, which is true and beside the point.
+# What a short single chain may warn. The R-hat of one chain of 100
+# draws (split in two) is noise: it was 1.07 with OpenBLAS 0.3.26 here
+# and 1.11 on the Ubuntu runner for one test's chain, and under 1.05,
+# so silent, with the reference BLAS (dev/ciharden-findings.md)
 short_chain <- c("Bulk Effective Samples Size",
-                 "Tail Effective Samples Size")
+                 "Tail Effective Samples Size",
+                 "The largest R-hat is")
 
 shapes_draws <- local({
   cache <- new.env(parent = emptyenv())
@@ -103,7 +108,10 @@ test_that("posterior_samples() is brms's, with brms's warning", {
   skip_on_cran()
   skip_sampler()
   ds <- shapes_draws()
-  expect_warning(d <- posterior_samples(ds), "deprecated")
+  # The Ubuntu runner's brms warned twice here (check-frmtmb.sample on
+  # d24f7b86), and expect_warning() absorbs only the first
+  d <- allow_warnings(posterior_samples(ds), "is deprecated",
+                      require = "is deprecated")
   expect_true(is.data.frame(d))
   expect_equal(dim(d), c(ndraws(ds), length(variables(ds))))
   expect_equal(names(d), variables(ds))
@@ -112,6 +120,38 @@ test_that("posterior_samples() is brms's, with brms's warning", {
   expect_equal(names(b), grep("^b_", variables(ds), value = TRUE))
   expect_true(is.matrix(suppressWarnings(
     posterior_samples(ds, as.matrix = TRUE))))
+})
+
+test_that("posterior_samples() warns once, through brms's generic too", {
+  # brms's generic warns before it dispatches, and the method warned
+  # again: two warnings for one call wherever brms was loaded, which is
+  # how the Ubuntu check (all files in one process) saw one escape
+  skip_if_not_installed("brms")
+  set.seed(20261006)
+  dd <- data.frame(x = rnorm(30))
+  dd$y <- rnorm(30, 1 + 0.5 * dd$x)
+  fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+  tpl <- fit$frame$par_template
+  est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))
+  M <- matrix(rep(est, each = 6) + stats::rnorm(6 * length(est), 0, 0.05),
+              6, dimnames = list(NULL, frmtmb::brms_par_labels(fit)))
+  ds <- structure(list(stanfit = NULL,
+                       draws = cbind(frmtmb.sample:::draws_to_natural(M, fit),
+                                     lp__ = 0),
+                       fit = fit), class = "frmtmb_draws")
+  count <- function(expr) {
+    n <- 0L
+    withCallingHandlers(expr, warning = function(w) {
+      if (grepl("is deprecated", conditionMessage(w), fixed = TRUE)) {
+        n <<- n + 1L
+      }
+      invokeRestart("muffleWarning")
+    })
+    n
+  }
+  expect_identical(count(brms::posterior_samples(ds)), 1L)
+  expect_identical(count(
+    frmtmb.sample:::posterior_samples.frmtmb_draws(ds)), 1L)
 })
 
 test_that("posterior_samples(pars = ) orders the coefficients as brms", {

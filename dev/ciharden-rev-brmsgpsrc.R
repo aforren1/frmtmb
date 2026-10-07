@@ -1,0 +1,5 @@
+.libPaths("C:/Users/adf44/AppData/Local/R/win-library/4.6")
+ns <- asNamespace("brms")
+print(get(".data_gp", ns))
+print(get(".prepare_predictions_gp", ns))
+print(get(".predictor_gp_new", ns))

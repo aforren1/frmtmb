@@ -319,10 +319,29 @@ test_that("Malingering_2 matches its Stan program", {
     frm(bf(k | trials(n) ~ 1),
         family = mixture(beta_binomial, beta_binomial), data = d,
         start = bcm_mix_start(c(0.55, 0.95), phi = c(15, 15), theta = 0)))
+  # phi2 runs toward the binomial limit (the test above), and where the
+  # flat surface lets nlminb stop is rounding: 7.19e8 with the reference
+  # BLAS, 2.13e9 with OpenBLAS. Each beta-binomial term there is a
+  # difference of log-gamma values of size phi2 log(phi2), which Stan
+  # and frmtmb round differently, so the two densities agree to a few
+  # eps of the size of those terms and no better: 0.080 and 0.152 of it
+  # measured (dev/ciharden-bcmmal.R), where 1e-6 of the density was
+  # 5.9e-5 against a disagreement of 1.3e-4 with OpenBLAS
+  p <- bcm_betamix_pars(fit)
+  size <- function(mu, phi) {
+    a <- mu * phi
+    b <- (1 - mu) * phi
+    sum(abs(lgamma(d$k + a)) + abs(lgamma(45 - d$k + b)) +
+          abs(lgamma(a + b + 45)) + abs(lgamma(a)) + abs(lgamma(b)) +
+          abs(lgamma(a + b)))
+  }
+  terms <- size(p$mu1, p$phi1) + size(p$mu2, p$phi2)
+  tol <- max(1e-6, 4 * .Machine$double.eps * terms /
+               max(1, abs(frm_joint_lp(fit))))
   stan_lp_check(
     bcm_betamix_code(),
     data = list(p = nrow(d), k = as.integer(d$k), n = 45L),
-    fit = fit, pars = bcm_betamix_pars, const = 0)
+    fit = fit, pars = bcm_betamix_pars, const = 0, tol = tol)
 })
 
 bcm_cheating_data <- function() {

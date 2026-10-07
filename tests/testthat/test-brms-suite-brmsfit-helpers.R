@@ -7,6 +7,7 @@ skip_unless_brms_suite()
 epilepsy <- brms::epilepsy
 
 test_that("probit and probit_approx produce similar results", {
+  withr::local_seed(16L)
   brms_port_not_run("brmsfit-helpers:17", "cannot transfer",
     paste0(
       "compares brms:::inv_link() with itself on two link names; ",
@@ -19,6 +20,7 @@ test_that("probit and probit_approx produce similar results", {
 })
 
 test_that("make_conditions works correctly", {
+  withr::local_seed(92L)
   brms_setup("brmsfit-helpers:93",
     conds <- make_conditions(epilepsy, c("zBase", "zAge"))
   )

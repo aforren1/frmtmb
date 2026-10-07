@@ -1,3 +1,12 @@
+# frmtmb (development version)
+
+## Bug fixes
+
+* The kriging covariance of a `gp()` term no longer holds extra
+  `n x n` copies of the prediction grid: `gp(x, by = <numeric>)` held
+  two more, and every exact `gp()` one more for writing its diagonal.
+  It is the same matrix to the bit.
+
 # frmtmb 0.68.1
 
 The Ubuntu checks of 0.68.0 failed where the Windows and macOS ones

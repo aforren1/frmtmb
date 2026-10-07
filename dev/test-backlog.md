@@ -1999,6 +1999,27 @@ emulator" is `dev/cifix-openblas.sh`, R 4.6.1 with OpenBLAS 0.3.26.
   noise (`dev/cifixrev-krigmem.R`). Remedy: scale each column block
   after it is symmetrized.
 
+## Filed by lane ciharden (review of 2026-10-07)
+
+### Open - low
+
+- **A mixture precision with an infinite MLE fits with no warning.**
+  `test-bcm-latent-mixtures.R`'s Malingering_2 fit,
+  `mixture(beta_binomial, beta_binomial)` on `bcm_malingering_data()`:
+  component 2's phi runs to the binomial limit, and nlminb stops where
+  the flat ridge lets it, phi2 7.19e8 with the reference BLAS and
+  2.13e9 with OpenBLAS 0.3.32. With the reference BLAS the fit gives
+  no warning at all; with OpenBLAS only "Optimizer did not report
+  convergence: false convergence (8)"
+  (`dev/ciharden-rev-bcmmal.R`, log `dev/ciharden-rev-log/bcmmal.txt`).
+  The 0.68.0 flat-direction warning does not fire on a parameter that
+  runs to infinity, so the user is told nothing that the precision is
+  unidentified. Lane setier's boundary and standard-error work
+  (`allow_boundary()`, the SE check) may cover it; check there before
+  starting it. The test itself is not at risk: it compares the fit
+  with the binomial limit, and its Stan identity bound follows the size
+  of the terms at the stopping point (`dev/ciharden-findings.md`).
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

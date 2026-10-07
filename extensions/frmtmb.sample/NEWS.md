@@ -1,3 +1,17 @@
+# frmtmb.sample (development version)
+
+## Bug fixes
+
+* `posterior_samples()` on draws warns once that it is deprecated.
+  While brms was loaded it warned twice, once from brms's generic and
+  once from the method.
+
+* The compatibility pre-flight of `frm_sample()` no longer loads R's
+  base-priority packages to ask whether a name is one of their
+  functions; it reads them without loading. On a headless Linux
+  machine, loading tcltk warned "no DISPLAY variable so Tk is not
+  available" into an unrelated call.
+
 # frmtmb.sample 0.16.0
 
 Needs frmtmb 0.68.0: for `ord_thres_linpred()`; for

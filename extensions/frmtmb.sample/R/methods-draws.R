@@ -2746,8 +2746,14 @@ posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   check_flag(add_chain, "add_chain")
   check_flag(as.matrix, "as.matrix")
   check_flag(as.array, "as.array")
-  frm_warning("Method 'posterior_samples' is deprecated. Please see ",
-              "?as_draws for recommended alternatives.", call. = FALSE)
+  # brms's generic gives this warning itself before it dispatches here,
+  # and it is the generic a call reaches whenever brms is loaded
+  # (R/generic-owners.R); a second one from here said it twice, and the
+  # Ubuntu check of frmtmb.sample let the second escape a test
+  if (!ps_via_brms_generic()) {
+    frm_warning("Method 'posterior_samples' is deprecated. Please see ",
+                "?as_draws for recommended alternatives.", call. = FALSE)
+  }
   if (as.matrix && as.array) {
     frm_stop("posterior_samples(): 'as.matrix' and 'as.array' cannot both ",
              "be TRUE", call. = FALSE)
@@ -2775,6 +2781,24 @@ posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
     out$iter <- rep(seq_len(ni), nc)
   }
   out
+}
+
+#' Was `posterior_samples.frmtmb_draws()` dispatched by brms's generic?
+#'
+#' brms's generic warns that the method is deprecated and then calls
+#' `UseMethod()`; the generic's frame is the one just above the method's.
+#' frmtmb.sample's own generic and gratia's are a bare `UseMethod()`,
+#' and a direct call of the method has no generic above it, so those
+#' warn from the method. brms is never loaded to find out.
+#'
+#' @noRd
+ps_via_brms_generic <- function() {
+  if (!isNamespaceLoaded("brms")) return(FALSE)
+  g <- get0("posterior_samples", envir = asNamespace("brms"),
+            inherits = FALSE)
+  # sys.function(-2L): -1 would be the method, the caller of this one
+  f <- tryCatch(sys.function(-2L), error = function(e) NULL)
+  is.function(g) && identical(f, g)
 }
 
 #' The variables `posterior_samples(pars = )` selects, in brms's order.

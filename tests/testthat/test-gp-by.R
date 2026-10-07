@@ -114,6 +114,29 @@ test_that("a numeric by multiplies one GP, and cmc = FALSE fits contrasts", {
                     "lscale_gpxfIntercept") %in% variables(fc)))
 })
 
+test_that("a numeric by scales the kriging covariance entry by entry", {
+  # gp_krig_cov() scales by w w' one column block at a time, where
+  # `S * outer(w, w)` held two more n x n (dev/ciharden-findings.md).
+  # It must be that matrix to the bit, symmetric, with extra_var on its
+  # diagonal. 850 rows make two blocks of 2^19 / 850 = 616 columns, and
+  # the repeated rows take the expansion over distinct positions.
+  d <- gpby_data()
+  fw <- frm(bf(y ~ gp(x, by = w)), data = d)
+  set.seed(3)
+  xs <- seq(-0.5, 6.5, length.out = 800) + 1e-3
+  nd <- data.frame(x = c(xs, xs[1:50]), w = stats::runif(850, 0.5, 2))
+  ed <- lp_eta_design(fw, fw$frame$linpreds[["y.mu"]], nd, FALSE, FALSE)
+  sp <- Filter(function(s) !is.null(s$krig), ed$sm_parts)[[1L]]
+  kg <- sp$krig
+  expect_length(kg$rows, 850L)
+  S <- gp_krig_cov(kg)
+  k1 <- kg
+  k1$w <- rep(1, length(kg$w))
+  expect_identical(S, gp_krig_cov(k1) * outer(kg$w, kg$w))
+  expect_identical(S, t(S))
+  expect_identical(diag(S), sp$extra_var[kg$rows])
+})
+
 test_that("gr = FALSE keeps one latent per row, the same model", {
   # distinct positions, so the two parameterizations are one density
   d <- gpby_data()

@@ -17,6 +17,28 @@ pf_data <- function(seed = 4, n = 40L, ng = 5L) {
 
 ## ---- what the pre-flight can see -------------------------------------
 
+test_that("the base-function test reads packages without loading them", {
+  # It loaded all fourteen base-priority namespaces for a name in none
+  # of them, tcltk among them, whose load on a headless Linux runner
+  # warns "no DISPLAY variable so Tk is not available" (check-frmtmb.sample
+  # on d24f7b86). First in the file, before any other test asks a name.
+  skip_if(isNamespaceLoaded("tcltk"), "something else loaded tcltk")
+  brf <- frmtmb.sample:::base_r_function
+  expect_false(brf("frmtmb_ciharden_no_such_function"))
+  expect_false(isNamespaceLoaded("tcltk"))
+  # a function of a package nobody loaded is still found
+  fns <- c(stats4 = "mle", splines = "interpSpline", compiler = "cmpfun",
+           tools = "file_ext", tcltk = "tclVar")
+  unl <- names(fns)[!vapply(names(fns), isNamespaceLoaded, NA)]
+  skip_if(!length(unl), "every package of the probe is loaded")
+  expect_true(brf(fns[[unl[1]]]))
+  # and finding it did not load that package either: reading the value
+  # would have (the review's m1, dev/ciharden-rev-lazyload.R)
+  expect_false(isNamespaceLoaded(unl[1]))
+  # and a name that is an object but not a function is not one
+  expect_false(brf(".Machine"))
+})
+
 test_that("formula_calls() finds a call wherever a model writes one", {
   f <- function(...) frmtmb.sample:::formula_calls(...)$other
   expect_true("s" %in% f(bf(y ~ s(x) + (1 | g))))

@@ -54,3 +54,22 @@ test_that("sigma along a lost direction is NaN with one warning, ML and REML", {
     expect_identical(m$n, 0L, info = lab)
   }
 })
+
+test_that("frm_joint_cov() shows the lost parameters as NaN", {
+  # Moved here from test-se-check.R, whose smooth fit loses its sds
+  # with some BLAS builds and not others (dev/ciharden-findings.md);
+  # this fit loses two by construction, on every platform
+  o <- olre_fit(FALSE)
+  lost <- sdr_of(o$fit)$se_lost
+  expect_length(lost, 2L)
+  jc <- frm_joint_cov(o$fit)
+  bad <- jc$lost_pos
+  expect_length(bad, length(lost))
+  # one a fixed coefficient (sigma's) and one an outer parameter (the
+  # id sd), so the positions are read from the joint layout, not
+  # matched by name
+  expect_setequal(jc$names[bad], c("betad", "theta"))
+  expect_true(all(is.nan(jc$V[bad, ])))
+  expect_true(all(is.nan(jc$V[, bad])))
+  expect_true(all(is.finite(jc$V[-bad, -bad])))
+})

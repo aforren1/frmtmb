@@ -6,6 +6,7 @@
 skip_unless_brms_suite()
 
 test_that("brmsformula validates formulas of non-linear parameters", {
+  withr::local_seed(3L)
   brms_port("brmsformula:4", "pass",
     "",
     expect_error(bf(y ~ a, ~ 1, a ~ 1),
@@ -24,6 +25,7 @@ test_that("brmsformula validates formulas of non-linear parameters", {
 })
 
 test_that("brmsformula validates formulas of auxiliary parameters", {
+  withr::local_seed(12L)
   brms_port("brmsformula:13", "pass",
     "",
     expect_error(bf(y ~ a, ~ 1, sigma ~ 1),
@@ -32,6 +34,7 @@ test_that("brmsformula validates formulas of auxiliary parameters", {
 })
 
 test_that("brmsformula detects use if '~~'", {
+  withr::local_seed(17L)
   brms_port("brmsformula:19", "pass",
     "",
     expect_error(bf(y~~x), "~~")
@@ -39,6 +42,7 @@ test_that("brmsformula detects use if '~~'", {
 })
 
 test_that("brmsformula does not change a 'brmsformula' object", {
+  withr::local_seed(22L)
   brms_setup("brmsformula:23",
     form <- bf(y ~ a, sigma ~ 1)
   )
@@ -56,6 +60,7 @@ test_that("brmsformula does not change a 'brmsformula' object", {
 })
 
 test_that("brmsformula detects auxiliary parameter equations", {
+  withr::local_seed(29L)
   brms_port("brmsformula:30", "pass",
     "",
     expect_error(bf(y~x, sigma1 = "sigmaa2"),
@@ -84,6 +89,7 @@ test_that("brmsformula detects auxiliary parameter equations", {
 })
 
 test_that("update_adterms works correctly", {
+  withr::local_seed(42L)
   brms_setup("brmsformula:43",
     form <- y | trials(size) ~ x
   )

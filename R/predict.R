@@ -2382,7 +2382,8 @@ lp_extra_var <- function(object, ed, use_re) {
 #' round 1, m5): `outer()` alone makes three. It is filled instead in
 #' column blocks of about 4 MB, the upper triangle computed and mirrored,
 #' so the result is the only `n x n` beside the one over the distinct
-#' positions, when rows repeat one, and is symmetric as stored. The
+#' positions, when rows repeat one, and is symmetric as stored; a
+#' numeric `by` scales it in the same blocks. The
 #' kriging term is `A A'` with `A = Ks R^-1`, `R' R = K`.
 #'
 #' @noRd
@@ -2426,9 +2427,24 @@ gp_krig_cov <- function(krig) {
     S[r, cc] <- B
     S[cc, r] <- t(B)
   }
-  diag(S) <- sd2 * pmax((1 + gp_nugget) - krig$rs[u], 0)
+  # written by index, because `diag<-` is a closure that copies S whole
+  # (dev/ciharden-krigmem.R counts the n x n allocations)
+  S[cbind(seq_len(n), seq_len(n))] <- sd2 * pmax((1 + gp_nugget) -
+                                                   krig$rs[u], 0)
   if (n < length(idx)) S <- S[idx, idx, drop = FALSE]
-  if (scaled) S <- S * outer(w, w)
+  if (scaled) {
+    # gp(x, by = <numeric>), scaled a column block at a time, because
+    # `S * outer(w, w)` holds two more n x n beside S. Each entry is
+    # S[i, j] * (w[i] * w[j]) as before, and a product of two doubles
+    # does not depend on their order, so S stays symmetric to the bit
+    # and its diagonal stays `extra_var`'s `w^2 * v`
+    m <- length(w)
+    step <- max(1L, floor(2^19 / m))
+    for (c0 in seq(1L, m, by = step)) {
+      cc <- c0:min(m, c0 + step - 1L)
+      S[, cc] <- S[, cc, drop = FALSE] * outer(w, w[cc])
+    }
+  }
   S
 }
 

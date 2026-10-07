@@ -377,10 +377,22 @@ model_family_names <- function(x, family = NULL) {
 #' test would not be. `inherits = FALSE`, so a user's own masking
 #' definition cannot flip it either way.
 #'
-#' Memoized, because a name that matches nothing loads all fourteen
-#' namespaces to find that out, and this now runs on a path deliberately
-#' cleared of package loading. The answer cannot change within a
+#' Memoized, because a name that matches nothing reads all fourteen
+#' packages to find that out. The answer cannot change within a
 #' session: base-priority packages ship with R and are not replaced.
+#'
+#' A package whose namespace is not loaded is not loaded to answer:
+#' this runs on a path deliberately cleared of package loading, and
+#' loading tcltk on a headless Linux machine warns "no DISPLAY variable
+#' so Tk is not available" into a call that has nothing to do with Tk.
+#' That warning escaped the Ubuntu check of frmtmb.sample on d24f7b86.
+#' Such a package is read from its lazy-load database
+#' (`base_r_objects()`) and decided by `exists()` alone: reading the
+#' value would unserialize a closure whose environment is the package
+#' namespace, and R resolves that reference by loading the package
+#' (`tclVar` loads tcltk, `mle` loads stats4). The cost is that a
+#' non-function object of such a package counts as a function; none of
+#' the registry's call-shaped names is one (`dev/ciharden-regexists.R`).
 #'
 #' @noRd
 base_r_function <- local({
@@ -392,15 +404,41 @@ base_r_function <- local({
               "parallel", "compiler", "datasets", "tcltk")
     ans <- FALSE
     for (p in pkgs) {
-      ns <- tryCatch(asNamespace(p), error = function(e) NULL)
+      ns <- base_r_objects(p)
       if (!is.null(ns) && exists(nm, ns, inherits = FALSE) &&
-            is.function(get(nm, ns))) {
+            (!isNamespace(ns) || is.function(get(nm, ns)))) {
         ans <- TRUE
         break
       }
     }
     seen[[nm]] <- ans
     ans
+  }
+})
+
+#' The objects of a base-priority package without loading it: its
+#' namespace when that is loaded, otherwise its lazy-load database read
+#' into an environment of promises, which runs no `.onLoad()` as long as
+#' no promise is forced (`base_r_function()` only asks `exists()`). NULL
+#' when the package has no database, as `datasets` has none of code.
+#'
+#' @noRd
+base_r_objects <- local({
+  dbs <- new.env(parent = emptyenv())
+  function(p) {
+    if (isNamespaceLoaded(p)) return(asNamespace(p))
+    if (!is.null(dbs[[p]])) return(dbs[[p]])
+    dir <- find.package(p, lib.loc = .Library, quiet = TRUE)
+    base <- file.path(dir, "R", p)
+    if (!length(dir) || !file.exists(paste0(base, ".rdx"))) return(NULL)
+    e <- new.env(parent = emptyenv())
+    ok <- tryCatch({
+      lazyLoad(base, envir = e)
+      TRUE
+    }, error = function(err) FALSE)
+    if (!ok) return(NULL)
+    dbs[[p]] <- e
+    e
   }
 })
 

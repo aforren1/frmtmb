@@ -568,17 +568,10 @@ test_that("a fit with random effects and a lost sd gets a covariance", {
   # and frm_linpred() reports that variance, not the kriging part alone
   se <- frm_linpred(fit, newdata = nd, se.fit = TRUE)$se.fit
   expect_equal(se^2, q + lb$extra_var, tolerance = 1e-10)
-  # The rest depends on this platform's fit having lost the sds, which
-  # it does on Windows with the reference BLAS and with OpenBLAS 0.3.26;
-  # a run where it did not has asserted the bound above and stops here.
-  lost <- sdr_of(fit)$se_lost
-  skip_if(!length(lost), "this fit kept every standard error here")
-  # frm_joint_cov() shows a lost parameter as vcov() does, NaN, and the
-  # covariance of everything else is finite
-  jc <- frm_joint_cov(fit)
-  bad <- jc$lost_pos
-  expect_length(bad, length(lost))
-  expect_true(all(jc$names[bad] == "theta"))
-  expect_true(all(is.nan(jc$V[bad, ])))
-  expect_true(all(is.finite(jc$V[-bad, -bad])))
+  # Whether this fit loses the sds at all is rounding: it does with the
+  # reference BLAS and OpenBLAS 0.3.26 as BLAS, and keeps them with
+  # OpenBLAS as LAPACK too, as on the Ubuntu runners
+  # (dev/ciharden-findings.md). What a lost sd does to frm_joint_cov()
+  # is asserted on a fit that loses its sds by construction, in
+  # test-se-lost-re-predict.R.
 })
