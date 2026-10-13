@@ -143,6 +143,41 @@ test_that("nlminb's result is the best point it evaluated", {
   expect_identical(obj$fn(r$par), r$objective)
 })
 
+test_that("a finite trial PORT rejected is not reported either", {
+  # PORT also stops on a finite trial it rejected, with `objective` the
+  # best value: fn(par) was 2 ulps above it on the ubuntu runners
+  # (seed 12), and 1 to 9 ulps above it in 10 of 100 runs here with
+  # each BLAS (dev/ci691-port-probe.R). From the default start on Windows with
+  # 0.69.0, seeds 1, 9 and 13 end that way with the reference BLAS and
+  # seed 13 with OpenBLAS; which seeds do depends on the platform's
+  # rounding, so the property is asked of all three.
+  for (s in c(1, 9, 13)) {
+    u <- suppressWarnings(frm(bf(y ~ x + cs(z)),
+                              family = mixture(cumulative(), sratio()),
+                              data = optima_csmix_data(s),
+                              dry_run = "objective"))
+    obj <- u$obj
+    r <- suppressWarnings(frmtmb:::run_optimizer(
+      "nlminb", obj$par, obj$fn, obj$gr, -Inf, Inf,
+      list(eval.max = 1000, iter.max = 1000)))
+    expect_identical(obj$fn(r$par), r$objective, info = paste("seed", s))
+  }
+  # the rule itself, on a made-up run: the last trial is `par`, finite,
+  # and above the reported objective, so the best point replaces it
+  fnw <- frmtmb:::nlminb_trial_fn(function(p) sum((p - 1)^2))
+  fnw$fn(c(a = 2))
+  fnw$fn(c(a = 1.5))
+  fnw$fn(c(a = 1.75))
+  res <- list(par = c(a = 1.75), objective = 0.25)
+  out <- frmtmb:::nlminb_best_par(res, fnw)
+  expect_identical(out$par, c(a = 1.5))
+  expect_identical(out$objective, 0.25)
+  expect_true(out$rejected_last)
+  # and a run that ended on the point it reports is left alone
+  res <- list(par = c(a = 1.75), objective = 0.5625)
+  expect_identical(frmtmb:::nlminb_best_par(res, fnw), res)
+})
+
 # ---- cs() on an ordinal mixture --------------------------------------
 
 test_that("a cs() ordinal mixture at its crossing wall warns, not errors", {
@@ -151,7 +186,9 @@ test_that("a cs() ordinal mixture at its crossing wall warns, not errors", {
   # thresholds that are the same double, where the objective is finite
   # and its gradient NaN. Both died with "NA/NaN gradient evaluation" on
   # 0.68.1. The optimum is on the wall where one row's category closes,
-  # so the optimizer's own non-convergence is the honest report.
+  # so the optimizer's own non-convergence is the honest report. The
+  # identity below also needs a finite rejected trial replaced, which
+  # is how seed 12 failed it on the ubuntu runners.
   for (s in c(3, 12)) {
     fit <- allow_warnings(
       frm(bf(y ~ x + cs(z)), family = mixture(cumulative(), sratio()),

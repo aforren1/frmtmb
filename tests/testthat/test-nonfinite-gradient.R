@@ -54,11 +54,16 @@ test_that("the three-component mixture the review found ends finite", {
   # sratio("cloglog")'s far tail, where the cloglog log-odds lost its
   # derivative below eta = -708, and died there (lane optima). Both
   # tails hold now: the degenerate first component is reported as
-  # such, at a point with a finite gradient.
+  # such, at a point with a finite gradient. A degenerate component
+  # leaves the Hessian singular, so nlminb may also say "singular
+  # convergence (7)": the ubuntu runners did, and so did 3 and 2 of 16
+  # copies of these data with x moved by a few ulps, one count per BLAS,
+  # each with a finite gradient (dev/ci691-mix3-probe.R).
   fit <- allow_warnings(
     frm(bf(y ~ x), family = mixture(cumulative("probit"), sratio("cloglog"),
                                     acat()), data = d),
-    c("mixture(cumulative, sratio, acat)", "Large maximum absolute gradient"),
+    c("mixture(cumulative, sratio, acat)", "Large maximum absolute gradient",
+      "did not report convergence"),
     require = "mixture(cumulative, sratio, acat)")
   expect_true(all(is.finite(fit$obj$gr(fit$opt$par))))
 })

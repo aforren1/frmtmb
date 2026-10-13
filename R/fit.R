@@ -2217,15 +2217,24 @@ nlminb_trial_fn <- function(fn, tally = NULL) {
 #' frm()'s restart starts from it: on a cs() ordinal mixture whose
 #' thresholds crossed at the last trial the restart's first gradient
 #' was NaN and the fit died with "NA/NaN gradient evaluation" (7 of 20
-#' seeds, dev/optima-csmix.R). The best finite point replaces `par`
-#' only when `par` is the rejected last trial, so a run that ended on a
-#' finite point is returned as it was.
+#' seeds, dev/optima-csmix.R).
+#'
+#' PORT also stops on a FINITE trial it rejected: on that mixture, 10
+#' of 100 runs (seeds 1 to 20, starts a few ulps apart) returned a
+#' `par` whose objective was 1 to 9 ulps above the reported one
+#' (dev/ci691-port-probe.R). The ubuntu runners met it on seed 12, where
+#' `fn(par)` was 374.16747089090501 against an `objective` of
+#' 374.16747089090489. So the best finite point replaces `par` whenever
+#' `par` is the last trial and that trial's value is not the reported
+#' objective; a run that ended on the point it reports is returned as
+#' it was.
 #'
 #' @noRd
 nlminb_best_par <- function(res, fnw) {
   last <- fnw$last()
   best <- fnw$best()
-  if (is.null(last$par) || is.null(best$par) || is.finite(last$val) ||
+  if (is.null(last$par) || is.null(best$par) ||
+        identical(last$val, as.numeric(res$objective)) ||
         !identical(unname(as.numeric(res$par)),
                    unname(as.numeric(last$par)))) {
     return(res)

@@ -1,3 +1,25 @@
+# frmtmb 0.69.1
+
+The Ubuntu and macOS checks of 0.69.0 failed where the Windows ones
+passed. `dev/ci691-findings.md` has the causes and the numbers.
+
+## Bug fixes
+
+* An nlminb fit reports the objective at its own estimates. When PORT
+  stopped on a finite trial point it had rejected, `fit$opt$par` was
+  that trial and `fit$opt$objective` the best value, at another point.
+  0.69.0 repaired this only when the trial's objective was not finite.
+  On a `cs()` ordinal mixture the two values differed by 1 to 9 ulps
+  in 10 of 100 runs; the estimates now come from the best point
+  evaluated, as they already did after a non-finite trial.
+
+* Three tests asked for an outcome that rounding decides: the standard
+  errors of an `xbeta()` fit whose Hessian sits at the standard-error
+  check's flat threshold, the convergence code of a degenerate
+  three-component ordinal mixture, and a list of lost standard errors
+  that can be empty. They now ask for the properties that hold on
+  every platform.
+
 # frmtmb 0.69.0
 
 Four lanes, each with an adversarial review and punch rounds:

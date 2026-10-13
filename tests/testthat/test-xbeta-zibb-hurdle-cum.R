@@ -286,29 +286,48 @@ test_that("xbeta fits a precise response, with its ends", {
     d <- data.frame(y = pmin(pmax(1.1 * z - 0.05, 0), 1))
     expect_gt(sum(d$y == 0), 0)
     # nlminb may call this false convergence at a precision in the
-    # thousands; the gradient check below is what says it is the optimum
+    # thousands; the optimality check below is what says it is the
+    # optimum. At phi 2e4 mu, phi and kappa lie on a curved ridge along
+    # which the log-likelihood falls by only 0.006 from its maximum to
+    # the normal limit kappa = Inf (dev/ci691-xbeta-profile.R), and the
+    # unit-diagonal Hessian's smallest eigenvalue is 1.8e-10 to 3.2e-9
+    # of its largest, astride the SE check's 1e-9
+    # (dev/ci691-xbeta-ratio.R). Whether nlminb reports convergence and
+    # on which side the ratio falls is rounding: starts a few ulps apart
+    # gave the SE warning in 8 and 9 of 25 fits
+    # (dev/ci691-xbeta-cert.R), and the ubuntu and macOS runners gave it
+    # from the default start.
     fit <- allow_warnings(frm(y ~ 1, family = xbeta(), data = d),
-                          "false convergence")
+                          c("false convergence",
+                            "Standard errors are not available"))
     dp <- frmtmb:::eval_dpars(fit)[[1]]
     ll <- as.numeric(stats::logLik(fit))
     r <- ref(d$y, dp$mu[1], dp$phi[1], dp$kappa[1])
     expect_lt(abs(ll - r), 1e-8 * abs(r), label = paste("phi", phi))
-    expect_true(all(is.finite(sqrt(diag(vcov(fit))))))
-    # the estimate is the reference's own optimum: its gradient there,
-    # by central differences on the link scale, is small against the
-    # curvature the fit reports
+    se <- sqrt(diag(vcov(fit, full = TRUE)))
+    lost <- as.character(names(frmtmb:::sdr_of(fit)$se_lost))
+    if (phi == 1e4) {
+      # 1.4e-6 of the largest, far from the threshold: always kept
+      expect_true(all(is.finite(se)))
+    } else {
+      # a standard error is shown, or the check names it as lost
+      expect_setequal(names(se)[!is.finite(se)], lost)
+    }
+    # the estimate is the reference's own optimum: the log-likelihood
+    # its gradient (central differences on the link scale) and the
+    # fit's own curvature predict a Newton step would still gain,
+    # g' H^-1 g / 2, is below the tolerance frm() converges to. The
+    # gradient times each standard error, which this asked before, was
+    # up to 0.25 on this ridge at points within 4.2e-4 of the maximum
     est <- c(stats::qlogis(dp$mu[1]), log(dp$phi[1]), log(dp$kappa[1]))
     g <- vapply(1:3, function(j) {
       h <- replace(numeric(3), j, 1e-5)
       f <- function(p) ref(d$y, stats::plogis(p[1]), exp(p[2]), exp(p[3]))
       (f(est + h) - f(est - h)) / 2e-5
     }, 0)
-    se <- sqrt(diag(vcov(fit, full = TRUE)))[c("(Intercept)",
-                                               "phi_(Intercept)",
-                                               "kappa_(Intercept)")]
-    # a unit of gradient times a standard error is a move of that many
-    # standard errors in log-likelihood: well under one
-    expect_lt(max(abs(g) * se), 1e-2, label = paste("phi", phi))
+    H <- fit$obj$he(fit$opt$par)
+    gain <- abs(sum(g * solve(H, g))) / 2
+    expect_lt(gain, fit$control$grad_tol, label = paste("phi", phi))
   }
   # kappa held at a constant sends the boundary rows through the
   # incomplete beta near its switch at phi 2e5, where the round-1 build

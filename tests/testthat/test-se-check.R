@@ -541,8 +541,10 @@ test_that("an identified remainder keeps its SEs after a flat row goes", {
                     g2 = factor(rep(1:6, length.out = n)))
     d$y <- 1 + 0.5 * d$x + rnorm(40, 0, 0.5)[d$f] + rnorm(n)
     fit <- suppressWarnings(frm(y ~ x + f + (1 + x | g2), data = d))
-    # 45 outer parameters: the check waited, and reports here
-    lost <- names(suppressWarnings(sdr_of(fit))$se_lost)
+    # 45 outer parameters: the check waited, and reports here. Whatever
+    # it removes is a theta; on ubuntu 26.04 (OpenBLAS 0.3.32) it
+    # removed nothing, `se_lost` was NULL, and startsWith() stopped
+    lost <- as.character(names(suppressWarnings(sdr_of(fit))$se_lost))
     expect_true(all(startsWith(lost, "theta_")), info = paste("seed", s))
     m <- suppressMessages(suppressWarnings(
       lme4::lmer(y ~ x + f + (1 + x | g2), data = d, REML = FALSE)))
