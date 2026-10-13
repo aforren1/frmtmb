@@ -54,8 +54,24 @@ The prior of the original fit is carried over. As in brms, a
 specification in it that matches no parameter of the updated model,
 such as a class \code{"cor"} prior after the update removes the last
 correlation, is dropped. brms drops it silently; frmtmb says which
-it dropped, in a message. A \code{prior} given to \code{update()} replaces the
-stored one and is checked as \code{\link[=frm]{frm()}} checks it.
+it dropped, in a message. A \code{prior} given to \code{update()} is merged
+with the stored one, as brms merges them: each of its specifications
+replaces the stored one for the same slot (class, \code{coef}, \code{group},
+\code{resp}, \code{dpar} and \code{nlpar}), and the stored specifications for every
+other slot stay. This holds for every spelling \code{\link[=frm]{frm()}} takes: a
+\code{\link[=set_prior]{set_prior()}} specification, a \code{brmsprior} from brms's \code{prior()}, and
+a table from \code{\link[=default_prior]{default_prior()}} or brms's \code{get_prior()}. As in brms,
+every row of a table takes its slot, a row with an empty prior too:
+that slot goes back to its default (flat), so a table from
+\code{\link[=default_prior]{default_prior()}} with one row edited resets every other slot it
+lists. To keep the stored rows, give only the rows you change.
+\code{prior = NULL}, or a prior with no rows, keeps the stored prior, as
+in brms. A named list of prior objects merges by name with a stored
+named list; it cannot merge with specifications, so that combination
+is an error.
+The specifications given to \code{update()} are checked as \code{\link[=frm]{frm()}} checks
+a prior, so one that matches no parameter is an error; brms drops it
+with no message.
 }
 \examples{
 set.seed(3)

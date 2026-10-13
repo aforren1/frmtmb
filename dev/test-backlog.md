@@ -2329,6 +2329,45 @@ item. Each item this round closed is marked in place above with
   probit continues as the tail's leading term past `|eta| = 1000`.
   Lane optima.
 
+## Filed by lane moparity after punch round 1, 2026-10-07
+
+### Open - medium
+
+- **m6. A chain started at the ML mode can stick.** `frm_sample(fit)`
+  starts chain 1 exactly at the mode (`init = "last.par.best"`) and
+  jitters chains 2 to 4 (`mode_inits()`). On lane surface's exact
+  `y ~ gp(x)` (data seed 5, 4 chains of 1000, sampler seed 1), chain 1
+  had 326 divergences and mean sigma 0.256, where the jittered chains
+  had 24 to 38 and 0.290 to 0.293, and every `init = "random"` chain
+  had 9 to 27 (`dev/moparity-gp-init.R`,
+  `dev/moparity-log/gp-init.txt`). Over four data seeds the stuck
+  chain is 1 of 4 data sets, with max R-hat 1.22 and bulk ESS 13
+  (`dev/moparity-rev-gp-init.R`, review log `gp-init-lane-5.txt`).
+  Policy question for the sampler lane, for every model: jitter
+  chain 1 too, or start it from a short Laplace draw.
+- **m10. The delta method of `predict()` ignores a `mo()` simplex.**
+  `lp_delta_A()` (R/predict.R) has columns for `beta` and `b` only, so
+  the uncertainty of the simplex coordinates `zeta<j>` does not enter
+  `se.fit` of a `mo()` model, with or without group-level `mo()`
+  terms. Also on 0.69.0. The Jacobian of the linear predictor in
+  `zeta` is `b * D * d(cumsum(w))/d(zeta)` per row, on the fit's
+  chart. Review of lane moparity, m10.
+- The exact `gp()` mixing item above (lane surface) is addressed by
+  the non-centered field of lane moparity, item 7; the centered field
+  remains with `reparameterize = FALSE`.
+- **r2. Read every `||` term as brms does.** A `||` term with `mo()`
+  is one `diag()` block over the whole term, coded as brms codes it
+  (lane moparity, m7); a `||` term without `mo()` keeps lme4's
+  piecewise expansion, so a factor in it gets a column per level.
+  Adding `mo(x)` to a `||` term therefore changes how a factor in the
+  same term is coded. `(1 + z + f || g)` has 5 sds in frmtmb and 4 in
+  brms (`Intercept`, `z`, `fb`, `fc`); logLik -661.518 against
+  -661.983 for brms's columns written out (review of lane moparity,
+  `dev/moparity-rev2-dblbar.R`). For numeric terms the two readings
+  have the same likelihood. Changing it reverses a NEWS-documented
+  choice ("(f || g) with a factor now yields independent per-level
+  effects") and is a core parsing change: its own lane.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

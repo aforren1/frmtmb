@@ -788,6 +788,16 @@ calls_function <- function(e, nm) {
   FALSE
 }
 
+#' The names of `nms` that `e` calls, in the order of `nms`. Every
+#' special is found this way rather than with `all.names()`, which made a
+#' column named `mo` or `ar` read as the special (`y ~ mo * z` was
+#' refused as a crossed `mo()` term).
+#'
+#' @noRd
+called_functions <- function(e, nms) {
+  nms[vapply(nms, function(f) calls_function(e, f), NA)]
+}
+
 #' The specials brms requires to be a whole term, read off brms 2.23.0's
 #' `regex_sp()` for the types its `find_terms()` checks with
 #' `complete = TRUE`: `cs` (`terms_cs`), `sm` (`terms_sm`), `gp`
@@ -885,6 +895,132 @@ cs_term_labels <- function(tm) {
     lapply(labs, str2lang)
     labs
   }, error = function(e) NULL)
+}
+
+#' The two refusals the `mo()` term readers share, one template each.
+#'
+#' @noRd
+stop_mo_one_variable <- function() {
+  frm_stop("mo() takes exactly one variable", call. = FALSE)
+}
+
+#' @noRd
+stop_mo_crossed <- function(tm) {
+  frm_stop("mo()/mi() cannot interact with another mo()/mi() term: ",
+           deparse1(tm), call. = FALSE)
+}
+
+#' The factors of one interaction label, `a:b:c` -> `list(a, b, c)`.
+#'
+#' @noRd
+colon_factors <- function(e) {
+  if (is.call(e) && identical(e[[1L]], as.name(":"))) {
+    return(c(colon_factors(e[[2L]]), colon_factors(e[[3L]])))
+  }
+  list(e)
+}
+
+#' The `mo()` entries and the other terms of one interaction term with a
+#' `mo()` call in it (`mo(x):z`, `mo(x) * f`, `mo(x) * z * w`).
+#'
+#' brms reads such a term through `terms()`: every label with a `mo()`
+#' factor is one special term, the other labels are ordinary terms, and
+#' the other factors of a special label are the covariates its column
+#' is multiplied by (`brms:::sp_model_matrix()`). Each entry keeps its
+#' factors in the order `terms()` of the whole formula gives them
+#' (`var_order`), because that is the order of brms's name: `z +
+#' mo(x):z` is `z:mox`, `mo(x) * z` is `mox:z`.
+#'
+#' @noRd
+mo_term_entries <- function(tm, var_order) {
+  labs <- cs_term_labels(tm)
+  if (is.null(labs)) {
+    frm_stop("Cannot expand the term ", deparse1(tm), call. = FALSE)
+  }
+  mo <- list()
+  rest <- list()
+  for (lab in labs) {
+    e <- str2lang(lab)
+    fac <- colon_factors(e)
+    is_mo <- vapply(fac, function(f) {
+      is.call(f) && identical(f[[1L]], as.name("mo"))
+    }, NA)
+    nested <- !is_mo & vapply(fac, calls_function, NA, "mo")
+    if (any(nested)) {
+      frm_stop("mo() is only supported as a term of its own, a factor of ",
+               "an interaction, or on the left of a group-level bar: ",
+               deparse1(tm), call. = FALSE)
+    }
+    if (sum(is_mo) > 1L) stop_mo_crossed(tm)
+    if (!any(is_mo)) {
+      rest[[length(rest) + 1L]] <- e
+      next
+    }
+    m <- fac[[which(is_mo)]]
+    if (length(m) != 2L) {
+      stop_mo_one_variable()
+    }
+    keys <- vapply(fac, deparse1, "")
+    pos <- match(keys, var_order)
+    ord <- order(ifelse(is.na(pos), .Machine$integer.max, pos),
+                 seq_along(keys))
+    others <- fac[!is_mo]
+    mo[[length(mo) + 1L]] <- list(
+      expr = m[[2L]],
+      mult = if (length(others)) {
+        Reduce(function(a, b) call(":", a, b), others)
+      },
+      factors = keys[ord])
+  }
+  list(mo = mo, rest = rest)
+}
+
+#' A group-level term with `mo()` calls on the left of its bar, each
+#' replaced by a placeholder symbol: `(1 + mo(x) | g)` becomes
+#' `(1 + .frm_mo1 | g)`. The frame gives the placeholder a column of
+#' ones (and newdata the same), and the objective multiplies the
+#' column by the population-level term's monotonic transform, so the
+#' group-level coefficient varies the coefficient of that term on its
+#' own simplex, as brms's `(bsp[1] + r_1_2[J_1[n]]) * mo(simo_1, .)`
+#' does. `map` holds the placeholders made so far, by name, each with
+#' its `mo()` call (`key`) and that call's variable (`expr`).
+#'
+#' @noRd
+mo_bar_rewrite <- function(tm, map) {
+  rew <- function(e, in_lhs) {
+    if (!is.call(e)) return(e)
+    if (identical(e[[1L]], as.name("mo"))) {
+      if (!in_lhs) {
+        frm_stop("mo() can be a group-level term but not a grouping ",
+                 "factor: ", deparse1(tm), call. = FALSE)
+      }
+      if (length(e) != 2L) {
+        stop_mo_one_variable()
+      }
+      key <- deparse1(e)
+      hit <- which(vapply(map, `[[`, "", "key") == key)
+      nm <- if (length(hit)) names(map)[hit[1L]] else {
+        nm <- paste0(".frm_mo", length(map) + 1L)
+        map[[nm]] <<- list(key = key, expr = e[[2L]])
+        nm
+      }
+      return(as.name(nm))
+    }
+    if (identical(e[[1L]], as.name("|"))) {
+      e[[2L]] <- rew(e[[2L]], TRUE)
+      e[[3L]] <- rew(e[[3L]], FALSE)
+      return(e)
+    }
+    for (i in seq_along(e)[-1L]) {
+      ei <- e[[i]]
+      if (!(is.symbol(ei) && !nzchar(as.character(ei)))) {
+        e[[i]] <- rew(ei, in_lhs)
+      }
+    }
+    e
+  }
+  term <- rew(tm, FALSE)
+  list(term = term, map = map)
 }
 
 # brms mm() arguments that describe something other than the membership
@@ -1083,7 +1219,7 @@ split_mmc_lhs <- function(lhs, n_members, label) {
       }
       mmc[[length(mmc) + 1L]] <- list(exprs = args, label = deparse1(tm))
     } else {
-      if ("mmc" %in% all.names(tm)) {
+      if (calls_function(tm, "mmc")) {
         frm_stop("mmc() must be a term of its own on the left of the bar, ",
                  "not part of ", deparse1(tm),
                  "; write (mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
@@ -1186,6 +1322,14 @@ slash_nested_bars <- function(rest, sf, specials, env) {
 #' one-column piece has no correlation to lose, so `diag` and `us`
 #' coincide there and numeric double bars are bit-identical to before.
 #'
+#' A `||` term with `mo()` on the left is instead ONE `diag()` block over
+#' the whole term, which is brms's reading of `||`. lme4's pieces code
+#' `mo(x):f` apart from `mo(x)`, so the factor got every level
+#' (`mox:fa`, `mox:fb`) where the population-level term has `mox` and
+#' `mox:fb`, and the term was refused for a population-level term it
+#' had. Coded whole, the term has the columns brms gives it
+#' (`Intercept`, `fb`, `mox`, `mox:fb` for `(mo(x) * f || g)`).
+#'
 #' @noRd
 expand_double_verts <- function(form) {
   raw <- split_plus(reformulas::RHSForm(form))
@@ -1194,6 +1338,11 @@ expand_double_verts <- function(form) {
     inner <- strip_parens(tm)
     if (!(is.call(inner) && identical(inner[[1]], as.name("||")))) {
       out[[length(out) + 1L]] <- tm
+      next
+    }
+    if (calls_function(inner[[2L]], "mo")) {
+      out[[length(out) + 1L]] <- call("diag",
+                                      call("|", inner[[2L]], inner[[3L]]))
       next
     }
     ex <- reformulas::expandDoubleVerts(
@@ -1317,6 +1466,15 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(rhs_form) <- env
   rhs_form <- drop_twin_bar_terms(rhs_form)
   rhs_form <- expand_double_verts(rhs_form)
+  # terms()'s order of the variables, which orders the factors of an
+  # interaction label as brms names it: `z + mo(x):z` is brms's `z:mox`
+  mo_var_order <- tryCatch(
+    vapply(as.list(attr(stats::terms(rhs_form), "variables"))[-1L],
+           deparse1, ""),
+    error = function(e) character(0))
+  # the `mo()` calls that group-level terms read, by placeholder name
+  # (mo_bar_rewrite())
+  mo_re_map <- list()
 
   # Pull smooth terms out at the top level before splitForm sees them
   # (splitForm strips s()/t2() regardless of its specials argument).
@@ -1332,7 +1490,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # specific refusal in the loop below
     crossed_ac <- is.call(tm) &&
       as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
-      any(autocor_structs %in% all.names(tm))
+      length(called_functions(tm, autocor_structs)) > 0L
     bad <- if (!crossed_ac) special_term_refusal(tm)
     if (!is.null(bad)) frm_stop(bad, call. = FALSE)
     if ("|" %in% all.names(tm) ||
@@ -1403,11 +1561,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # with a message that points nowhere near the mistake
     if (is.call(tm) &&
         as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
-        any(autocor_structs %in% all.names(tm))) {
+        length(called_functions(tm, autocor_structs)) > 0L) {
       frm_stop("An autocorrelation term cannot be crossed with '",
                as.character(tm[[1]])[1], "': ", deparse1(tm),
                ". Write it as a separate term: y ~ ... + ",
-               intersect(autocor_structs, all.names(tm))[1L], "(...)",
+               called_functions(tm, autocor_structs)[1L], "(...)",
                call. = FALSE)
     }
     if (calls_function(tm, "me")) {
@@ -1430,9 +1588,20 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       smooth[[length(smooth) + 1L]] <- smsp
     } else if (is.call(tm) && identical(tm[[1]], as.name("mo"))) {
       if (length(tm) != 2L) {
-        frm_stop("mo() takes exactly one variable", call. = FALSE)
+        stop_mo_one_variable()
       }
-      mo[[length(mo) + 1L]] <- list(expr = tm[[2]], mult = NULL)
+      mo[[length(mo) + 1L]] <- list(expr = tm[[2]], mult = NULL,
+                                    factors = deparse1(tm))
+    } else if (is.call(tm) &&
+               as.character(tm[[1]])[1] %in% c(":", "*") &&
+               calls_function(tm, "mo") && !calls_function(tm, "mi") &&
+               !("|" %in% all.names(tm))) {
+      # mo(x):z, mo(x) * f, mo(x) * z * w: the term's labels as terms()
+      # expands them, each a mo() column times what its other factors
+      # code, as brms's sp terms are (mo_term_entries())
+      me <- mo_term_entries(tm, mo_var_order)
+      mo <- c(mo, me$mo)
+      rest <- c(rest, me$rest)
     } else if (is.call(tm) && identical(tm[[1]], as.name("mi"))) {
       # the interaction branch below reads the call with its own
       # message, because there the offending mi() sits inside a `:`
@@ -1443,7 +1612,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     } else if (is.call(tm) &&
                (identical(tm[[1]], as.name(":")) ||
                   identical(tm[[1]], as.name("*"))) &&
-               any(c("mo", "mi") %in% all.names(tm))) {
+               length(called_functions(tm, c("mo", "mi"))) > 0L) {
       # mo(x):z / mo(x)*z (and mi versions): the special call on one
       # side, a plain multiplier term on the other. `*` also emits the
       # main effect, appended AFTER the interaction it implies; the
@@ -1460,10 +1629,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       }
       sp <- sides[[which(is_sp)]]
       other <- sides[[which(!is_sp)]]
-      if (any(c("mo", "mi") %in% all.names(other))) {
-        frm_stop("mo()/mi() cannot interact with another mo()/mi() term: ",
-                 deparse1(tm), call. = FALSE)
-      }
+      if (length(called_functions(other, c("mo", "mi")))) stop_mo_crossed(tm)
       spn <- as.character(sp[[1]])[1]
       if (spn == "mo") {
         entry <- list(expr = sp[[2]], mult = other)
@@ -1509,11 +1675,20 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                  "residual correlation terms are ar(), ma(), arma(), ",
                  "cosy(), unstr() and car()", call. = FALSE)
       }
+      # a group-level mo() term, (mo(x) | g): the mo() calls on the
+      # left of the bar become placeholder columns (mo_bar_rewrite())
+      if (calls_function(tm, "mo") && "|" %in% all.names(tm) &&
+            !calls_function(tm, "mi")) {
+        mb <- mo_bar_rewrite(tm, mo_re_map)
+        tm <- mb$term
+        mo_re_map <- mb$map
+      }
       for (sp_nm in c("mo", "mi")) {
-        if (sp_nm %in% all.names(tm)) {
+        if (calls_function(tm, sp_nm)) {
           frm_stop(sp_nm, "() is only supported as a standalone additive ",
-                   "term or a two-way ':'/'*' interaction: ",
-                   deparse1(tm), call. = FALSE)
+                   "term, an interaction (':'/'*')",
+                   if (sp_nm == "mo") ", or on the left of a group-level bar",
+                   ": ", deparse1(tm), call. = FALSE)
         }
       }
       # mm()/mmc() outside a bar term would reach model.matrix() and
@@ -1745,6 +1920,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
               miterms = miterms, meterms = meterms, csterms = csterms,
               gpterms = gpterms, carterms = carterms,
               spdeterms = spdeterms, acterms = acterms, rhs = rhs_form)
+  if (length(mo_re_map)) out$mo_re <- mo_re_map
   if (!is.null(rsv[["fixed"]])) {
     out$center <- FALSE
     out$rsv_intercept <- rsv$pos
@@ -2061,7 +2237,7 @@ parse_one_response <- function(bform) {
       # A nonlinear body is arbitrary R code, so an ar() written there
       # is EVALUATED, not parsed, and fails deep inside the objective
       # with a message about the body. Say what is wrong instead.
-      ac_in_body <- intersect(autocor_structs, all.names(b))
+      ac_in_body <- called_functions(b, autocor_structs)
       if (length(ac_in_body)) {
         frm_stop("Residual correlation terms are not supported in a ",
                  "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],

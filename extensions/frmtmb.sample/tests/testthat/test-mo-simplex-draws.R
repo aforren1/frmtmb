@@ -194,3 +194,94 @@ test_that("as_tmbstan() says a mo() simplex has no density there", {
     })
   expect_true(any(grepl("has no density on this route", msg, fixed = TRUE)))
 })
+
+# A simo prior on the sampler (dev/moparity-findings.md, item 2). On
+# 0.69.0 (rellib-r7) frm_sample() refused a class = "simo" row, as
+# frm() did. dev/moparity-dir-sample.R compares the draws with brms
+# 2.23.0's under the same prior.
+test_that("a simo prior replaces dirichlet(1) on its simplex", {
+  skip_on_cran()
+  skip_sampler()
+  # the weak data barely move the simplex, so the posterior is close to
+  # the prior: dirichlet(c(5, 1, 1)) has mean (5/7, 1/7, 1/7)
+  fit <- frm(y ~ mo(x), data = mo_weak_data())
+  pr <- set_prior("dirichlet(c(5, 1, 1))", class = "simo", coef = "mox1")
+  ds <- allow_warnings(suppressMessages(frm_sample(
+    fit, chains = 2, iter = 600, seed = 1, refresh = 0, prior = pr)),
+    "Effective Samples Size")
+  W <- as.matrix(ds, variable = paste0("simo_mox1[", 1:3, "]"))
+  a <- c(5, 1, 1)
+  pm <- a / sum(a)
+  psd <- sqrt(pm * (1 - pm) / (sum(a) + 1))
+  expect_true(all(abs(colMeans(W) - pm) < 0.35 * psd))
+  expect_true(all(apply(W, 2L, stats::sd) > 0.6 * psd))
+  expect_true(all(apply(W, 2L, stats::sd) < 1.5 * psd))
+  # the inverse: without the row the simplex is spread as dirichlet(1)
+  ds0 <- allow_warnings(suppressMessages(frm_sample(
+    fit, chains = 2, iter = 600, seed = 1, refresh = 0)),
+    "Effective Samples Size")
+  W0 <- as.matrix(ds0, variable = paste0("simo_mox1[", 1:3, "]"))
+  expect_gt(abs(mean(W0[, 1]) - pm[1]), 2 * psd[1])
+})
+
+test_that("a simo prior is read in the sampler's chart, and only once", {
+  fit <- frm(y ~ mo(x), data = mo_weak_data())
+  pr <- set_prior("dirichlet(c(5, 1, 1))", class = "simo", coef = "mox1")
+  ent <- frmtmb::resolve_prior_input(fit, pr)$entries
+  expect_null(ent[[1L]]$dist$chart)
+  se <- frmtmb.sample:::mo_sample_entries(ent)
+  expect_identical(se[[1L]]$dist$chart, "softmax")
+  # the default dirichlet(1) steps aside for the simplex the row names
+  expect_null(frmtmb.sample:::mo_simplex_nlp(fit, se))
+  expect_type(frmtmb.sample:::mo_simplex_nlp(fit, list()), "closure")
+})
+
+test_that("as_tmbstan() leaves a MAP fit's priored simplex out", {
+  skip_on_cran()
+  skip_sampler()
+  pr <- set_prior("dirichlet(c(2, 2, 2))", class = "simo",
+                  coef = "moincome1")
+  fit <- frm(ls ~ mo(income), data = mo_strong_data(), prior = pr)
+  msg <- character()
+  withCallingHandlers(
+    suppressWarnings(as_tmbstan(fit, chains = 1, iter = 100, seed = 1,
+                                refresh = 0)),
+    message = function(m) {
+      msg <<- c(msg, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_false(any(grepl("has no density on this route", msg, fixed = TRUE)))
+})
+
+# The default prior note names only the simplexes that get brms's
+# dirichlet(1) (punch round 1, m4). Seen to fail on the lane build
+# before the fix: the note listed simo_mox11, the simplex the user's
+# row priors, as taking dirichlet(1).
+test_that("the default prior note leaves out a simplex with its own row", {
+  skip_on_cran()
+  skip_sampler()
+  set.seed(2)
+  d <- data.frame(x1 = sample(0:3, 150, TRUE), x2 = sample(0:2, 150, TRUE))
+  d$y <- 0.5 * d$x1 - 0.4 * d$x2 + rnorm(150)
+  fit <- frm(y ~ mo(x1) + mo(x2), data = d)
+  notes <- function(pr) {
+    msg <- character()
+    withCallingHandlers(
+      frm_sample(fit, chains = 1, iter = 100, seed = 1, refresh = 0,
+                 prior = pr),
+      message = function(m) {
+        msg <<- c(msg, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) invokeRestart("muffleWarning"))
+    grep("simo: dirichlet(1)", msg, fixed = TRUE, value = TRUE)
+  }
+  one <- notes(set_prior("dirichlet(2)", class = "simo", coef = "mox11"))
+  expect_length(one, 1L)
+  expect_false(grepl("simo_mox11", one, fixed = TRUE))
+  expect_true(grepl("simo_mox21", one, fixed = TRUE))
+  # the absent case: a row on every simplex leaves no note at all
+  both <- notes(c(set_prior("dirichlet(2)", class = "simo", coef = "mox11"),
+                  set_prior("dirichlet(2)", class = "simo", coef = "mox21")))
+  expect_length(both, 0L)
+})

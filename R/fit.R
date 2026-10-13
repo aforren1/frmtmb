@@ -331,15 +331,51 @@
 #' its baseline hazard, and in both the first monotonic simplex is
 #' `zeta2`. Read the terms in order rather than parsing the number.
 #'
-#' frmtmb has no prior class for a simplex; brms's flat `dirichlet(1)`
-#' is the one prior it cannot be told to drop, and it contributes only a
-#' constant, so the two log-densities agree up to `lgamma(D)` per
-#' simplex.
+#' With no prior, a fit applies no density to a simplex; brms's flat
+#' `dirichlet(1)` contributes only a constant, so the two log-densities
+#' agree up to `lgamma(D)` per simplex. A `simo` prior row,
+#' `set_prior("dirichlet(c(2, 1, 1))", class = "simo", coef = "mox1")`,
+#' makes the fit a MAP fit under that Dirichlet: brms's spelling, with
+#' the coef [get_prior()] lists for each simplex. Like every prior of a
+#' MAP fit it is the density of the coordinates, so it carries the
+#' chart's Jacobian, `prod |u_k|` times the projection's conformal
+#' factor. In plain terms: the MAP fit under `dirichlet(a)` has the mode
+#' of `dirichlet(a + 1/2)` on the weights, pulled further toward the
+#' uniform simplex by the conformal factor. Thus `dirichlet(1)` is not
+#' the absence of a prior: it moves the mode at least as much as
+#' `dirichlet(1.5)` on the weights does. Only a fit with no `simo` row
+#' applies no density to the simplex. The pull is large where the data
+#' say little: with 60 rows, the weights of a `dirichlet(1)` MAP fit
+#' were 0.30, 0.38 and 0.32 where the maximum likelihood weights were
+#' 0.05, 0.73 and 0.22; with 400 rows they moved by 0.003 at most. To
+#' pull less, give no `simo` row. A concentration below 1/2 has no
+#' maximum in these coordinates and is refused; frmtmb.sample's
+#' `frm_sample()` samples any.
 #'
-#' `mo()` may be crossed with a single numeric multiplier and no more:
-#' `mo(x) * z` and `mo(x):z` are fitted, `mo(x) * f` for a factor `f` is
-#' refused (the simplex carries one coefficient and a contrast expansion
-#' has no column to go in), and `mo(x):mo(w)` is refused outright.
+#' An interaction codes the columns brms's special-term model matrix
+#' codes, each with its own simplex and coefficient: `mo(x) * f` with a
+#' factor `f` of levels `a`, `b`, `c` fits `mox`, `mox:fb` and `mox:fc`,
+#' and `mo(x):f` fits `mox:fa`, `mox:fb` and `mox:fc`. The other factors
+#' of a label may be several, `mo(x) * z * w`, and are named as brms
+#' names them, in the order `model.matrix()` reads the special terms
+#' alone: `mo(x) * z` and `z * mo(x)` give `mox:z`, and `z + mo(x):z`
+#' gives `z:mox`. `mo(x):mo(w)` is refused. brms 2.23.0 builds the same
+#' columns but multiplies every one by the first covariate in its Stan
+#' code, and stops on a factor of three or more levels crossed with the
+#' main term (brms#1828); frmtmb fits the model brms 2.22.0 fits and
+#' brms's Stan data describe.
+#'
+#' A group-level term may vary a monotonic coefficient, as in brms:
+#' `y ~ mo(x) + (mo(x) | g)` adds `r_g[, mox]` to `bsp_mox` and
+#' multiplies the sum by the same transform, `(b + r_g) * D *
+#' sum(zeta[1:k])`, so the group-level term has no simplex of its own.
+#' The population-level column it varies is required, and refused
+#' without it, where brms 2.23.0 drops the term silently. It is
+#' available in a plain `(... | g)` or `(... || g)` term. A `||` term
+#' with `mo()` is one block with no correlations, coded whole as brms
+#' codes it: `(mo(x) * f || g)` has the columns `Intercept`, `fb`, `fc`,
+#' `mox`, `mox:fb` and `mox:fc`. A `||` term without `mo()` is expanded
+#' as lme4 expands it, one block per term.
 #'
 #' @section Category-specific effects, cs():
 #' `cs(x)` gives a predictor one coefficient per category boundary
@@ -1080,6 +1116,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # terms, so logLik/AIC are penalized quantities - documented
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     prior_entries <- ri$entries
+    check_map_dirichlet(ri$entries)
     if (length(ri$entries)) {
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
@@ -1159,6 +1196,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (!length(scalar_iid) || !all(scalar_iid)) {
       frm_stop("quadrature = TRUE currently supports scalar random ",
                "intercepts only (every block must be a dim-1 us/diag term)",
+               call. = FALSE)
+    }
+    # a group-level mo() column moves with its simplex, which the
+    # quadrature rule's fixed design does not; such a block can be a
+    # dim-1 us term, so the message above would name the wrong reason
+    if (frame_has_mo_re(frame)) {
+      frm_stop("quadrature = TRUE does not support group-level mo() ",
+               "terms: the design of such a term changes with the mo() ",
+               "simplex, and the quadrature rule needs a fixed design. ",
+               "Fit with the Laplace approximation (quadrature = FALSE)",
                call. = FALSE)
     }
     if (REML) {
@@ -1915,8 +1962,11 @@ sdr_of <- function(fit) {
 #'   grows with the model: with it the fit took 2.0 times the objective
 #'   evaluations it took without it on that model, and 3.3 to 3.8 times
 #'   those of frmtmb 0.68.1 on a model of 5000 rows with a random
-#'   intercept over 100 groups. `FALSE` turns it off. A model without
-#'   `mo()` terms is not affected.
+#'   intercept over 100 groups. A `cox()` baseline weight at 0 is
+#'   checked the same way, at one objective value per such weight, and
+#'   the model refitted from off the boundary when the likelihood rises
+#'   from it. `FALSE` turns both off. A model without `mo()` terms or a
+#'   `cox()` family is not affected.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -2784,6 +2834,17 @@ mo_search_terms <- function(obj, frame) {
       out[[length(out) + 1L]] <- list(z = z, b = b, D = mi[["D"]])
     }
   }
+  # a cox() baseline is a simplex in the same chart, with no
+  # coefficient of its own (cox_face_leave())
+  multi <- length(frame[["spec"]]$responses %||% list()) > 1L
+  for (r in names(frame[["aterm_values"]])) {
+    Zb <- frame[["aterm_values"]][[r]][["Zbhaz"]]
+    if (is.null(Zb)) next
+    z <- which(pn == extra_tpl_name(frame, if (multi) r, "sbhaz_raw"))
+    if (length(z) != ncol(Zb) - 1L) next
+    out[[length(out) + 1L]] <- list(z = z, b = NA_integer_, D = ncol(Zb),
+                                    cox = TRUE)
+  }
   out
 }
 
@@ -2816,6 +2877,12 @@ mo_search_terms <- function(obj, frame) {
 #'    simplex with a nonzero coefficient is a stationary point of the
 #'    unconstrained increments, which a concave likelihood has once, so
 #'    it is not searched.
+#'
+#' 3. A `cox()` baseline is a simplex in the same chart with no
+#'    coefficient, so only the first step and this one apply to it: a
+#'    weight at a face the likelihood rises from is a saddle nlminb can
+#'    stop on, and the fit is refitted from off the faces
+#'    (`cox_face_leave()`).
 #'
 #' The better optimum is kept. Silent, like `escape_stationary()`;
 #' `verbose = TRUE` reports it and the result carries `mo_search` so
@@ -2902,7 +2969,21 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
     o <- refit(pmin(pmax(o$par, lower), upper))
     if (better(o)) best <- o
   }
-  if (!runs) return(opt)
+  # 3. a cox() baseline weight left at a face the likelihood rises from
+  probed <- FALSE
+  for (tm in terms) {
+    if (!isTRUE(tm$cox)) next
+    probed <- TRUE
+    p <- cox_face_leave(obj, best, tm)
+    if (is.null(p)) next
+    o <- refit(pmin(pmax(p, lower), upper))
+    if (better(o)) best <- o
+  }
+  if (!runs) {
+    # the probes moved the objective's state; put it back
+    if (probed) obj_state_restore(obj, saved)
+    return(opt)
+  }
   obj_settle(obj, opt, best, saved)
   gain <- opt$objective - best$objective
   best$mo_search <- c(runs = runs, gain = gain)
@@ -2921,6 +3002,38 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
                     format(gain, digits = 3)))
   }
   best
+}
+
+#' A start off the faces for a `cox()` baseline the fit left at a face
+#' the likelihood rises from, or `NULL` when it left none.
+#'
+#' The likelihood is concave in the baseline weights at fixed
+#' coefficients, so a face is either the maximum or a direction it
+#' rises in. On the chart a face is the fold `u_j = 0`, where the
+#' gradient in `u_j` is zero either way: a face to leave is a saddle,
+#' and nlminb can stop on one. Seed 22 of dev/moparity-cox-study.R did,
+#' 0.0215 below the maximum with three standard errors lost
+#' (dev/moparity-findings.md, item 4). A small step along each face's
+#' own direction, `(1 - d) w + d e_j`, tells the two apart in one
+#' objective value each; a face to leave sends the refit from the
+#' simplex mixed a tenth of the way to the barycenter.
+#'
+#' @noRd
+cox_face_leave <- function(obj, best, tm) {
+  w <- mo_simplex(best$par[tm$z])
+  face <- which(w < mo_face_tol)
+  if (!length(face)) return(NULL)
+  d <- 1e-3
+  rises <- vapply(face, function(j) {
+    p <- best$par
+    p[tm$z] <- mo_coords((1 - d) * w + d * replace(numeric(tm$D), j, 1))
+    f <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+    is.finite(f) && f < best$objective - 1e-10 * max(1, abs(best$objective))
+  }, NA)
+  if (!any(rises)) return(NULL)
+  p <- best$par
+  p[tm$z] <- mo_coords(0.9 * w + 0.1 / tm$D)
+  p
 }
 
 #' A simplex weight below this is on the simplex's boundary for

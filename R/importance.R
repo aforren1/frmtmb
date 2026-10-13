@@ -78,6 +78,12 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
              "reweights the Laplace Gaussian and takes any block ",
              "dimension. Keep one", call. = FALSE)
   }
+  if (frame_has_mo_re(frame)) {
+    frm_stop("`importance` cannot be combined with a group-level mo() ",
+             "term: the correction forms Z u once, off the tape, and that ",
+             "term's column moves with its simplex. Fit with importance = 0",
+             call. = FALSE)
+  }
   if (REML) {
     frm_stop("`importance` cannot be combined with REML = TRUE. The ",
              "correction reweights the integral over the random effects ",

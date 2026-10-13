@@ -1,3 +1,106 @@
+# frmtmb (development version)
+
+Lane `moparity`: brms features that were refused or diverged.
+`dev/moparity-findings.md` has the validation, the numbers and the
+scripts.
+
+## Breaking changes
+
+* **A factor, character or logical multiplier of `mo()` is coded as
+  brms codes it**, where it was refused. `mo(x) * f` with `f` of levels
+  `a`, `b`, `c` fits `mox`, `mox:fb` and `mox:fc`, each with its own
+  simplex and coefficient, and `mo(x):f` fits `mox:fa`, `mox:fb` and
+  `mox:fc`: the columns of brms's special-term model matrix. A logical
+  multiplier is `mox:xTRUE`, as in brms, where it was `mox:x`. A
+  label's factors are named as brms names them, in the order
+  `model.matrix()` reads the special terms alone, so `z + mo(x):z` is
+  `z:mox` (it was `mox:z`) while `z * mo(x)` stays `mox:z`, and
+  `mo(x) * z * w` fits, with `mox:z:w`, where it was refused. brms
+  2.23.0 writes wrong Stan code for these terms
+  (every column multiplied by the first covariate) and stops on a
+  factor of three or more levels crossed with the main term
+  (brms#1828); frmtmb fits the model brms 2.22.0 fits. Against brms's
+  compiled program for the same model written with numeric indicators,
+  the log density agrees with frmtmb's at its estimates (to 1e-6
+  relative, after brms's flat Dirichlet constants), with brms's
+  gradient below 1e-3 there.
+
+* **`update(prior = )` merges the new prior into the stored one**, as
+  brms's `update()` does: a new specification replaces the stored one
+  for its slot (class, `coef`, `group`, `resp`, `dpar`, `nlpar`), and
+  the stored specifications for every other slot stay. It replaced the
+  stored prior, so a stored `normal(0, 0.05)` on `b_x` was lost by
+  `update(fit, prior = <a sigma prior>)`. The same holds for a
+  `brmsprior` and for a table from `default_prior()` or brms's
+  `get_prior()`, where every row takes its slot, as in brms: a row
+  with an empty prior returns its slot to the default (flat), so an
+  unedited row of a whole table resets the stored prior of its slot.
+  `prior = NULL`, or a prior with no rows, keeps the stored prior, as
+  in brms. A stored specification the updated model
+  cannot take is still dropped with a message; a NEW one is still
+  checked as `frm()` checks it, where brms drops it silently.
+
+* **`cox()` holds its baseline simplex in the chart of a `mo()`
+  simplex**, not a softmax, and `frmtmb_control(mo_search = )` checks a
+  weight at 0 too. Of 200 fits of a right-censored model, 5 stopped at
+  "singular convergence (7)" with weights near 1e-50 and a warning, and
+  one 1.86e-4 below the maximum; now 200 of 200 are within 1.8e-8 of
+  the maximum, at code 0, with no warning, for 1.05 times the
+  objective evaluations. The `sbhaz_raw` coordinates have other values;
+  `cox_baseline()` reads the weights as before.
+
+## New features
+
+* **A group-level term can vary a monotonic coefficient**, as in brms:
+  `y ~ mo(x) + (mo(x) | g)` adds `r_g[, mox]` to `bsp_mox` and
+  multiplies the sum by the term's transform, on its simplex. The
+  population-level column is required; brms 2.23.0 drops `(mo(x) | g)`
+  without one silently, and frmtmb refuses it in brms's words. It is
+  available in `(... | g)` and `(... || g)` terms, with predictions,
+  `ranef()`, `VarCorr()`, `conditional_effects()` and frmtmb.sample's
+  draws. The joint log density agrees with brms's compiled program's at
+  frmtmb's estimates and conditional modes. A `||` term with `mo()` is
+  one `diag()` block over the whole term, coded as brms codes it:
+  `(mo(x) * f || g)` has `Intercept`, `fb`, `fc`, `mox`, `mox:fb` and
+  `mox:fc`. A `||` term without `mo()` keeps lme4's expansion, so
+  `(f || g)` still has a column for every level of `f`.
+
+* **`set_prior("dirichlet(alpha)", class = "simo", coef = "mox1")`**
+  puts brms's Dirichlet on one `mo()` simplex, and class `"sbhaz"` on a
+  `cox()` baseline; `prior_dirichlet()` is the object. brms's rules
+  come with it: a coef per simplex, the length of `alpha` checked, no
+  bounds, and only `dirichlet()` on these classes. `get_prior()` lists a
+  `simo` row per simplex and a `sbhaz` row per `cox()` response, as
+  brms does. On a MAP fit the density is that of the simplex's
+  coordinates, with the chart's Jacobian: the mode under
+  `dirichlet(a)` is the mode of `dirichlet(a + 1/2)` on the weights,
+  pulled further toward the uniform simplex, so `dirichlet(1)` is not
+  the absence of a prior (`?frm`, "Monotonic effects"). A concentration
+  below 1/2 has no maximum there and is refused.
+
+## Bug fixes
+
+* **A random-effect block with a scale per coefficient no longer has a
+  `+Inf` or `NaN` log density where a log sd underflows**: `us` and
+  `us_t` with two or more coefficients, `cs`, `toep`, `ar1`, `hetar1`,
+  and `gr(cov =)` and `gr(prec =)` with correlated slopes. Their
+  standard deviations are floored at 1e-150 (`sd_floored()`), the
+  square root of the variance floor of 0.69.0, which is below half an
+  ulp of any sd of 1.1e-134 or more: above that the objective and its
+  gradient are unchanged bit for bit. Over every test of the eight
+  packages, one optimizer stepped a floored log sd below that (to
+  -4318): a separated bernoulli fit with `(1 + x | g)` under
+  `frmtmb_control(autoscale = TRUE)`, whose pre-fit stopped on "NA/NaN
+  gradient evaluation" and now returns a fit with the pre-fit's and the
+  separation's warnings. A sampler's proposal below the floor meets a
+  finite density or `-Inf`, so a chain that proposed there takes
+  another path.
+
+* **`parnames()` warns once whichever generic dispatched it.** The
+  method decided from what the `parnames` binding resolved to, so
+  frmtmb's own generic, captured before brms loaded and called after,
+  gave no warning.
+
 # frmtmb 0.69.0
 
 Four lanes, each with an adversarial review and punch rounds:

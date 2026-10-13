@@ -491,3 +491,44 @@ test_that("parnames() on a fit warns once with brms loaded", {
   expect_match(out, "CHILDOK", fixed = TRUE)
   expect_equal(parse_field(out, "NWARN"), "1")
 })
+
+test_that("parnames() on a fit warns once whichever generic dispatched", {
+  # The method decided from what the `parnames` binding resolves to, not
+  # from the generic that dispatched (dev/moparity-findings.md, item 6).
+  # Seen on 0.69.0 (rellib-r7, dev/moparity-parnames.R): frmtmb's own
+  # generic, captured before brms loaded and called after, gave no
+  # warning at all, because the binding then named brms's generic.
+  skip_on_cran()
+  skip_if_not_installed("brms")
+  fit_src <- c(
+    "set.seed(1); d <- data.frame(x = rnorm(40)); d$y <- rnorm(40, d$x)",
+    "fit <- frmtmb::frm(frmtmb::bf(y ~ x), family = gaussian(), data = d)")
+  count <- function(call) c(
+    "n <- 0L",
+    sprintf("p <- withCallingHandlers(%s, warning = function(w) {", call),
+    "  n <<- n + 1L; invokeRestart('muffleWarning') })",
+    "cat('NWARN:', n, '\\n')",
+    "cat('SAME:', identical(p, variables(fit)), '\\n')",
+    "cat('CHILDOK\\n')")
+  cases <- list(
+    saved = c("suppressMessages(library(frmtmb))", "pn <- frmtmb::parnames",
+              "invisible(loadNamespace('brms'))", fit_src, count("pn(fit)")),
+    brms_ns = c("suppressMessages(library(frmtmb))", fit_src,
+                count("brms::parnames(fit)")),
+    # brms's generic captured, brms unloaded, then called: it warns,
+    # and the method knows it by its namespace without brms loaded
+    unloaded = c("suppressMessages(library(frmtmb))", fit_src,
+                 "pb <- brms::parnames",
+                 "invisible(unloadNamespace('brms'))",
+                 "cat('LOADED:', isNamespaceLoaded('brms'), '\\n')",
+                 count("pb(fit)")),
+    brms_first = c("suppressMessages(library(brms))",
+                   "suppressMessages(library(frmtmb))", fit_src,
+                   count("frmtmb::parnames(fit)")))
+  for (nm in names(cases)) {
+    out <- run_child(cases[[nm]])
+    expect_match(out, "CHILDOK", fixed = TRUE, info = nm)
+    expect_equal(parse_field(out, "NWARN"), "1", info = nm)
+    expect_equal(parse_field(out, "SAME"), "TRUE", info = nm)
+  }
+})

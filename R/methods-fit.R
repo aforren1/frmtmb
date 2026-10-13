@@ -642,8 +642,7 @@ summary_random_list <- function(object, prob) {
 #' on the review's `ls ~ mo(income) * age`, final check c1).
 #'
 #' @noRd
-summary_mo_frame <- function(object, prob) {
-  terms <- mo_frame_terms(object)
+summary_mo_frame <- function(object, prob, terms = mo_frame_terms(object)) {
   if (!length(terms)) return(NULL)
   om <- outer_par_map(object)
   V <- tryCatch(suppressWarnings(sdr_of(object)$cov.fixed),
@@ -670,9 +669,12 @@ summary_mo_frame <- function(object, prob) {
   })
   out <- do.call(rbind, out)
   face <- rownames(out)[out$face]
+  # the draws' names of the same rows (simo_..., sbhaz[k])
+  face_full <- unlist(lapply(terms, `[[`, "names"))[out$face]
   out$face <- NULL
   names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob))
   attr(out, "face") <- face
+  attr(out, "face_full") <- face_full
   out
 }
 

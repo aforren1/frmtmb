@@ -1529,7 +1529,7 @@ sep_certificate <- function(fit, lp, rspec) {
   eta <- xb
   b <- fit$estimates[["b"]]
   if (!is.null(lp[["Z"]]) && length(b)) {
-    eta <- eta + as.numeric(lp[["Z"]] %*% expand_b(fit$frame, b,
+    eta <- eta + as.numeric(lp_Z(fit, lp) %*% expand_b(fit$frame, b,
                                                    fit$estimates[["theta"]]))
   }
   if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]

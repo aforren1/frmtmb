@@ -59,7 +59,7 @@ test_that("random-effect terms cannot be crossed with '*' or ':' (lme4#196)", {
   )
 })
 
-test_that("mo()/mi() interaction multipliers must be numeric (brms#1828)", {
+test_that("mo() codes a factor or character multiplier as brms does", {
   set.seed(123)
   lev <- c("a1", "a2", "a3", "a4")
   income <- factor(sample(lev, 120, TRUE), levels = lev, ordered = TRUE)
@@ -72,13 +72,19 @@ test_that("mo()/mi() interaction multipliers must be numeric (brms#1828)", {
   dat$xf <- factor(dat$xc)
   dat$xl <- dat$xc == "a"
 
-  # a character multiplier used to pass the type gate (as.numeric() on a
+  # A character multiplier once passed the type gate (as.numeric() on a
   # character vector is still numeric, just all NA) and only surfaced as
-  # "NA/NaN gradient evaluation" from the optimizer
-  expect_error(frm(bf(ls ~ mo(income) * xc) + gaussian(), data = dat),
-               "numeric multipliers only")
-  expect_error(frm(bf(ls ~ mo(income) * xf) + gaussian(), data = dat),
-               "numeric multipliers only")
+  # "NA/NaN gradient evaluation" from the optimizer; it was then refused
+  # with a factor one. Both are now coded as brms's sp model matrix
+  # codes them (dev/moparity-findings.md, item 1), with brms 2.23.0's
+  # names (dev/moparity-brms-lgl.R): moincome:xcb, moincome:xlTRUE
+  fit_c <- frm(bf(ls ~ mo(income) * xc) + gaussian(), data = dat)
+  expect_true("moincome:xcb" %in% names(fixef_by_dpar(fit_c)$mu))
+  fit_f <- frm(bf(ls ~ mo(income) * xf) + gaussian(), data = dat)
+  expect_identical(sub("xf", "xc", names(fixef_by_dpar(fit_f)$mu)),
+                   names(fixef_by_dpar(fit_c)$mu))
+  expect_equal(as.numeric(logLik(fit_f)), as.numeric(logLik(fit_c)),
+               tolerance = 1e-10)
 
   # numeric and logical multipliers keep working
   fit <- frm(bf(ls ~ mo(income) * z) + gaussian(), data = dat)
@@ -87,7 +93,7 @@ test_that("mo()/mi() interaction multipliers must be numeric (brms#1828)", {
   # the check names (lane setier); the coefficient names are the point
   fit_l <- allow_warnings(frm(bf(ls ~ mo(income) * xl) + gaussian(),
                               data = dat), "Standard errors are not available")
-  expect_true("moincome:xl" %in% names(fixef_by_dpar(fit_l)$mu))
+  expect_true("moincome:xlTRUE" %in% names(fixef_by_dpar(fit_l)$mu))
 })
 
 test_that("anova() rejects fits with different numbers of observations (lme4#622)", {

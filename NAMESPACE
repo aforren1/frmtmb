@@ -240,6 +240,7 @@ export(build_objective, row_lpdf, with_cs_offsets,
   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
   subset_newdata, mo_simplex, mo_coords, mo_chart_frame, mo_frame_terms,
+  simplex_frame_terms,
   summary_mo_frame)
 export(categorical)
 export(check_custom_family)
@@ -340,6 +341,7 @@ export(pp_mixture)
 export(prior)
 export(prior_)
 export(prior_beta)
+export(prior_dirichlet)
 export(prior_gamma)
 export(prior_inv_gamma)
 export(prior_lkj)

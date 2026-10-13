@@ -1,3 +1,54 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb of this round: it reads `simplex_frame_terms()` and the
+Dirichlet prior entries frmtmb now resolves, and a `cox()` fit's
+baseline through `mo_chart_frame()`.
+
+## Breaking changes
+
+* **A `cox()` baseline is sampled as brms samples it**: in softmax
+  coordinates under brms's default `dirichlet(1)` (class `sbhaz`), and
+  the draws carry the weights as `sbhaz[k]`, brms's names, in place of
+  the `sbhaz_raw_k` coordinates. With no density on the coordinates two
+  of them ran to -3e11 and -9e12 on a right-censored model, with 239
+  divergences and R-hat 3.07; now the weights' means and sds agree
+  with brms 2.23.0's within 2.1 Monte Carlo standard errors on two data
+  sets, with 0 divergences (`dev/moparity-cox-sample.R`).
+
+* **An exact `gp()` field is sampled non-centered**, as brms's
+  `sdgp * L zgp`, when its sd and length scales have priors (the
+  defaults do). The centered field is a funnel: on lane surface's
+  `y ~ gp(x)` the formula route ran 1286 of 2000 transitions into the
+  maximum tree depth with R-hat 1.52 and a bulk ESS of 7; non-centered,
+  none, R-hat at most 1.016, bulk ESS 312 or more, in a third of the
+  time. The factor is a Cholesky factorization of the kernel on the
+  tape, `n^3 / 3` per gradient for `n` positions.
+  `reparameterize = FALSE` keeps the centered field.
+
+## New features
+
+* **A `simo` or `sbhaz` prior row replaces `dirichlet(1)` on its
+  simplex**, with the softmax's Jacobian. With `dirichlet(c(5, 1, 1))`
+  the draws of `simo_` agree with brms 2.23.0's on a weakly and a
+  strongly identified simplex: the means within 1.71 Monte Carlo
+  standard errors and the sds within 2.51 (`dev/moparity-dir-sample.R`).
+
+* **`mo()` crossed with a factor and group-level `mo()` terms sample**,
+  with brms's names (`simo_mox:fb1[k]`, `bsp_mox:fb`, `r_g[, mox]`). On
+  `mo(x) * f2`, with a two-level `f2`, and on `mo(x) + (mo(x) | g)` the
+  means and sds agree with brms 2.23.0's within 2.12 Monte Carlo
+  standard errors (`dev/moparity-dir-sample.R`).
+
+* **`as_tmbstan()` names only the simplexes with no density on the
+  fit's tape**: a MAP fit with a `simo` row has its Dirichlet there.
+  The function still samples the fit's own tape, as documented; it
+  adds no prior.
+
+## Bug fixes
+
+* **`parnames()` on draws warns once whichever generic dispatched it**,
+  as on a fit.
+
 # frmtmb.sample 0.17.0
 
 Needs frmtmb 0.69.0: it imports and re-exports frmtmb's `stancode()`,

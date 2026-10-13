@@ -11,7 +11,8 @@
 #' `set_prior("normal(0, 5)", class = "b")`. Combine several with `+` or
 #' `c()`. Distributions: `normal(mu, sd)`, `student_t(df, mu, sd)`,
 #' `cauchy(mu, sd)`, `exponential(rate)`, `logistic(mu, s)`,
-#' `gamma(shape, rate)`, `lkj(eta)`; an empty string sets bounds only.
+#' `gamma(shape, rate)`, `lkj(eta)`, `dirichlet(alpha)`; an empty string
+#' sets bounds only.
 #'
 #' Classes and their scales:
 #' - `"b"`: population-level coefficients of `dpar` (default: the
@@ -56,6 +57,17 @@
 #'   ordinal family with `threshold = "equidistant"`, brms's class of
 #'   the same name, on its own scale; `group` selects the vector of one
 #'   level of `thres(gr = )`. See Ordinal thresholds.
+#' - `"simo"`: the simplex of one `mo()` term, `dirichlet(alpha)` only,
+#'   addressed by brms's coef: the term's label with `1` appended
+#'   (`"mox1"`, `"mox:fb1"`, as [get_prior()] lists them), and by `dpar`
+#'   for a term outside the location parameter. `alpha` is one number
+#'   or one per weight. On a MAP fit the density carries the Jacobian of
+#'   the coordinates the simplex is held in, so the mode under
+#'   `dirichlet(a)` is the mode of `dirichlet(a + 1/2)` on the weights,
+#'   pulled further toward the uniform simplex; see "Monotonic effects"
+#'   in [frm()].
+#' - `"sbhaz"`: the baseline-hazard simplex of a [cox()] response,
+#'   `dirichlet(alpha)` only, brms's class of the same name; no `coef`.
 #' - `"theta"`: raw internal covariance parameters (escape hatch).
 #'   `coef` names one by its internal name and spans all three
 #'   covariance components: `"theta_2"` for a random-effect block,
@@ -321,7 +333,9 @@
 #'   log-Jacobian, which is the change of variables class `"sd"`
 #'   performs. A bound travels with it, so `lb = 0` on a log-linked
 #'   dispersion becomes no constraint rather than a floor of 1.
-#' - `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`,
+#' - `simo` and `sbhaz` keep their meaning too: a `dirichlet()` on a
+#'   `mo()` simplex and on a `cox()` baseline.
+#' - `theta`/`theta1`/`theta2`, `sds`, `sdgp`, `lscale`,
 #'   `sdcar`, `car`, `meanme`, `sdme` and `corme` are refused by name,
 #'   each saying where frmtmb keeps that quantity instead, or that it
 #'   has no prior slot. A refusal is deliberate: translating
@@ -385,10 +399,12 @@
 #'   bounds only.
 #' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, one
 #'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
-#'   `"cortime"` and `"rescor"`, or a distributional parameter's own
+#'   `"cortime"` and `"rescor"`, the simplex classes `"simo"` and
+#'   `"sbhaz"`, or a distributional parameter's own
 #'   name (`"sigma"`, `"shape"`, ...). See A distributional parameter's
 #'   own class.
-#' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`).
+#' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
+#'   or name the simplex of class `"simo"`.
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
 #' @param resp Response of a multivariate model. Required there for
 #'   every class except `"cor"`, `"rescor"` and `"theta"`; refused on a
@@ -411,12 +427,13 @@
 #'   the vocabulary is a property of the model rather than of the
 #'   package: a name that is neither one of frmtmb's own classes nor a
 #'   usable parameter name errors here and lists the permitted values,
-#'   a name frmtmb refuses on principle (`sds`, `simo`, `car`, ...)
+#'   a name frmtmb refuses on principle (`sds`, `car`, ...)
 #'   errors here saying where that quantity lives, and any other name
 #'   is read as a distributional parameter's and checked against the
 #'   model's own parameters when the prior is resolved, which is where
-#'   they can be listed. The one distribution that belongs to a single
-#'   class, `lkj()`, is checked against it in both directions.
+#'   they can be listed. The two distributions that belong to some classes
+#'   only, `lkj()` and `dirichlet()`, are checked against them in both
+#'   directions.
 #'
 #' @examples
 #' set.seed(1)
@@ -561,6 +578,42 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
              "parameter (\"theta_1\", \"thetaac_1\", \"thetar_1\")",
              call. = FALSE)
   }
+  # brms's rules for a simplex, with its words: the Dirichlet and the
+  # simplex classes go together, a simo row names one simplex, and a
+  # simplex takes no bound (dev/moparity-brms-simo.R). sbhaz is a cox()
+  # baseline, one per response, so it takes no coef
+  is_dir <- identical(dist$kind, "dirichlet")
+  simplex_classes <- c("simo", "sbhaz")
+  if (is_dir && !class %in% simplex_classes) {
+    frm_stop("dirichlet() is the density of a simplex; it belongs to ",
+             "class = \"simo\" (a mo() simplex) or class = \"sbhaz\" (a ",
+             "cox() baseline), not class = \"", class, "\"", call. = FALSE)
+  }
+  if (class %in% simplex_classes) {
+    if (!is_dir) {
+      frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
+               "parameters: class = \"", class, "\" takes dirichlet(alpha), ",
+               "e.g. set_prior(\"dirichlet(c(2, 1, 1))\", class = \"simo\", ",
+               "coef = \"mox1\")", call. = FALSE)
+    }
+    if (!is.na(lb) || !is.na(ub)) {
+      frm_stop("class = \"", class, "\" takes no lb/ub: a simplex is ",
+               "bounded by its own constraint", call. = FALSE)
+    }
+    if (identical(class, "sbhaz") && (nzchar(coef) || nzchar(group))) {
+      frm_stop("class = \"sbhaz\" is the whole baseline simplex of a cox() ",
+               "response, so coef and group name nothing it can narrow to",
+               call. = FALSE)
+    }
+  }
+  if (identical(class, "simo")) {
+    if (!nzchar(coef)) {
+      frm_stop("class = \"simo\" addresses one simplex, named by its coef ",
+               "as get_prior() lists it (\"mox1\" for mo(x), \"mox:z1\" ",
+               "for mo(x):z); brms refuses a row without one too",
+               call. = FALSE)
+    }
+  }
   # a nonlinear parameter is addressed by nlpar and a distributional
   # one by dpar; frmtmb's frame gives each its own linear predictor, so
   # naming both at once says one thing twice and could say two
@@ -614,7 +667,7 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' @noRd
 frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
                           "theta", "ar", "ma", "cosy", "cortime", "rescor",
-                          "delta")
+                          "delta", "simo", "sbhaz")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
 #' distributional parameter's name.
@@ -936,7 +989,7 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' @noRd
 brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
                                "cor", "ar", "ma", "cosy", "cortime",
-                               "rescor", "delta")
+                               "rescor", "delta", "simo", "sbhaz")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -965,13 +1018,6 @@ brms_prior_class_refusal <- function(cls) {
                   "row applies nothing in brms either. "))
   }
   switch(cls,
-    simo = paste0(
-      "brms's \"simo\" is the Dirichlet on a mo() simplex. frmtmb holds ",
-      "that simplex as its free coordinates and puts no density ",
-      "on it at all, so there is no slot to carry the row into and no ",
-      "class that would rename it: drop the row. A flat simo row from ",
-      "get_prior() is dropped for you, and only an explicit one reaches ",
-      "here. "),
     meanme = paste0(
       "brms's \"meanme\" is the mean of a me() term's latent values. ",
       "frmtmb estimates it by maximum likelihood and has no prior slot ",
@@ -1053,6 +1099,11 @@ parse_prior_dist <- function(prior) {
              "prior object, not ", arg_desc(prior), call. = FALSE)
   }
   if (prior == "") return(NULL)
+  # brms's Dirichlet takes a vector, dirichlet(c(2, 1, 1)), whose
+  # parentheses the one-call pattern below cannot read
+  if (grepl("^\\s*dirichlet\\s*[(]", prior)) {
+    return(prior_dirichlet(parse_dirichlet_arg(prior)))
+  }
   # the NAME is matched case-insensitively and may carry digits, so that
   # brms's shrinkage priors reach the unsupported-density message below
   # rather than the generic parse failure. R2D2() is the one that needs
@@ -1098,7 +1149,8 @@ parse_prior_dist <- function(prior) {
     beta = prior_beta(pars[1], pars[2]),
     frm_stop("Unsupported prior distribution '", kind,
              "' (supported: normal, student_t, cauchy, exponential, ",
-             "logistic, gamma, inv_gamma, beta, lkj)", call. = FALSE)
+             "logistic, gamma, inv_gamma, beta, lkj, dirichlet)",
+             call. = FALSE)
   )
 }
 
@@ -1230,6 +1282,12 @@ prior_row_lines <- function(df) {
 #' @noRd
 prior_dist_string <- function(dist) {
   if (is.null(dist)) return("")
+  if (identical(dist$kind, "dirichlet")) {
+    a <- dist$alpha
+    return(paste0("dirichlet(", if (length(a) == 1L) format(a) else {
+      paste0("c(", paste(format(a), collapse = ", "), ")")
+    }, ")"))
+  }
   kind <- if (identical(dist$kind, "t")) "student_t" else dist$kind
   paste0(kind, "(", paste(unlist(dist[-1L]), collapse = ", "), ")")
 }
@@ -1795,7 +1853,7 @@ prior_table <- function(spec, frame, route) {
     list()
   }
   add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
-                  resp = "", lb = NA_real_) {
+                  resp = "", lb = NA_real_, dflt = NULL) {
     # a default speaks for a CLASS, not for one coefficient of it: brms
     # reports the class row and leaves the per-coefficient rows flat, and
     # a per-coefficient row here would claim a default nothing applies.
@@ -1810,12 +1868,14 @@ prior_table <- function(spec, frame, route) {
     # brms's column order, so a table read by position lines up with
     # the one brms returns
     rows[[length(rows) + 1L]] <<- data.frame(
-      prior = d %||% "(flat)", class = class, coef = coef, group = group,
+      prior = d %||% dflt %||% "(flat)", class = class, coef = coef,
+      group = group,
       resp = resp, dpar = dpar, nlpar = nlpar, lb = lb,
       ub = NA_real_, source = "default"
     )
   }
 
+  simo_rows <- list()
   for (lp in frame[["linpreds"]]) {
     # an equated dpar has no parameter of its own; its target's row is
     # the one brms lists
@@ -1831,6 +1891,14 @@ prior_table <- function(spec, frame, route) {
       lp[["dpar"]]
     } else {
       ""
+    }
+    # one simo row per mo() simplex, as brms lists them; added after the
+    # other classes, where brms's table puts them
+    for (mi in lp[["mo"]] %||% list()) {
+      simo_rows[[length(simo_rows) + 1L]] <- list(
+        coef = paste0(mi$label, "1"),
+        dpar = if (nzchar(nl_lab)) "" else dpar_lab, nlpar = nl_lab,
+        resp = resp_lab)
     }
     cn <- colnames(lp[["X"]])
     # a nonlinear parameter's sub-formula is not centered, so its whole
@@ -2012,6 +2080,19 @@ prior_table <- function(spec, frame, route) {
     }
   }
   if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
+  # brms's default on a simplex is dirichlet(1), the flat density on it;
+  # frm() applies no density there, and frm_sample() applies brms's
+  for (sr in simo_rows) {
+    add("simo", coef = sr$coef, dpar = sr$dpar, nlpar = sr$nlpar,
+        resp = sr$resp,
+        dflt = if (identical(route, "sample")) "dirichlet(1)")
+  }
+  # and on a cox() baseline, brms's class sbhaz, one row per response
+  for (r in names(frame[["aterm_values"]])) {
+    if (is.null(frame[["aterm_values"]][[r]][["Zbhaz"]])) next
+    add("sbhaz", resp = if (multi) r else "",
+        dflt = if (identical(route, "sample")) "dirichlet(1)")
+  }
 
   # class "theta" is the raw internal escape hatch, and it spans all
   # three covariance components: the residual-correlation ones carry no
@@ -2448,14 +2529,17 @@ prior_spec_slot <- function(s) {
 #' of their specifications is gone.
 #'
 #' A specification is kept exactly when it resolves alone on the new
-#' model, which is the test `resp_missing_refusal()` uses. A prior the
-#' user passes to `update()` itself is not marked, and is checked as
-#' frm() checks any prior.
+#' model, which is the test `resp_missing_refusal()` uses. The
+#' specifications the user passes to `update()` itself are marked
+#' `update_strict` (`update_merge_prior()`), are never dropped, and are
+#' checked as frm() checks any prior.
 #'
 #' @noRd
 prior_drop_unmatched <- function(prior, spec, frame) {
   if (!isTRUE(attr(prior, "allow_invalid_prior"))) return(prior)
   attr(prior, "allow_invalid_prior") <- NULL
+  strict <- attr(prior, "update_strict")
+  attr(prior, "update_strict") <- NULL
   if (!inherits(prior, "frmtmb_priorlist")) return(prior)
   design <- list(spec = spec, frame = frame)
   specs <- unclass(prior)
@@ -2464,6 +2548,7 @@ prior_drop_unmatched <- function(prior, spec, frame) {
     !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
               "error")
   }, NA)
+  if (length(strict) == length(ok)) ok[strict] <- TRUE
   if (all(ok)) return(prior)
   lab <- vapply(specs[!ok], function(s) {
     paste0(s[["prior"]] %||% prior_dist_string(s[["dist"]]), " on ",
@@ -3414,6 +3499,22 @@ resolve_priorlist <- function(fit, pl) {
       resolve_ac_class(s)
     } else if (s$class == "rescor") {
       resolve_rescor(s)
+    } else if (s$class %in% c("simo", "sbhaz")) {
+      # one joint density over the simplex's chart coordinates, in the
+      # chart the frame reads them in (dirichlet_logdens())
+      tgts <- if (identical(s$class, "simo")) {
+        simo_targets(fit, s)
+      } else {
+        sbhaz_targets(fit, s)
+      }
+      for (tm in tgts) {
+        idx <- seq_len(tm$D - 1L)
+        claim(tm$zeta, idx)
+        assigned[[nm_of(tm$zeta, idx)]] <-
+          list(comp = tm$zeta, idx = idx,
+               dist = dirichlet_dist(s$dist$alpha, tm$D, tm$chart),
+               scale = "internal", lb = NA, ub = NA)
+      }
     } else if (s$class == "delta") {
       for (e in ordinal_delta_entry(s)) {
         key <- nm_of(e$comp, e$idx)
@@ -3434,6 +3535,87 @@ resolve_priorlist <- function(fit, pl) {
     }
   }
   list(entries = unname(assigned), lower = lower, upper = upper)
+}
+
+#' The `mo()` simplexes a class `"simo"` specification names: brms's
+#' coef, the term's label with `1` appended (`mox1`, `mox:fb1`), in the
+#' linear predictor its `dpar` (or `nlpar`) and `resp` select, `mu`'s
+#' when it names none. A coef that names no simplex is refused with the
+#' ones the model has, and a concentration vector of the wrong length
+#' with brms's words.
+#'
+#' @noRd
+simo_targets <- function(fit, s) {
+  out <- list()
+  have <- character(0)
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!length(lp[["mo"]])) next
+    rspec <- fit$spec$responses[[lp[["resp"]]]]
+    dp <- if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) {
+      lp[["dpar"]]
+    } else {
+      lp_prior_dpar(rspec, lp[["dpar"]])
+    }
+    for (mi in lp[["mo"]]) {
+      cf <- paste0(mi$label, "1")
+      have <- c(have, paste0(cf, if (nzchar(dp)) paste0(" (dpar ", dp, ")")))
+      if (nzchar(s$resp %||% "") && !identical(lp[["resp"]], s$resp)) next
+      want <- if (nzchar(s$nlpar %||% "")) s$nlpar else s$dpar %||% ""
+      if (!identical(dp, want) || !identical(cf, s$coef)) next
+      a <- s$dist$alpha
+      if (length(a) != 1L && length(a) != mi$D) {
+        frm_stop("Invalid Dirichlet prior. Expected input of length ",
+                 mi$D, " for simo coef \"", cf, "\", the ", mi$D,
+                 " weights of ", mi$label, "; got ", length(a),
+                 call. = FALSE)
+      }
+      out[[length(out) + 1L]] <- list(zeta = mi$zeta, D = mi$D,
+                                      chart = mi[["chart"]])
+    }
+  }
+  if (!length(out)) {
+    frm_stop("No mo() simplex matches ", spec_target(s), ". ",
+             if (length(have)) {
+               paste0("This model's simplexes are coef ",
+                      paste0("\"", have, "\"", collapse = ", "))
+             } else {
+               "This model has no mo() term"
+             }, call. = FALSE)
+  }
+  out
+}
+
+#' The `cox()` baseline simplexes a class `"sbhaz"` specification names:
+#' one per `cox()` response, narrowed by `resp`, in the chart the
+#' response's family reads it in (`bhaz_chart`). brms's
+#' `dirichlet(con_sbhaz)`, its default `dirichlet(1)`.
+#'
+#' @noRd
+sbhaz_targets <- function(fit, s) {
+  out <- list()
+  frame <- fit$frame
+  multi <- length(fit$spec$responses) > 1L
+  for (r in names(frame[["aterm_values"]])) {
+    av <- frame[["aterm_values"]][[r]]
+    if (is.null(av[["Zbhaz"]])) next
+    if (nzchar(s$resp %||% "") && !identical(r, s$resp)) next
+    D <- ncol(av[["Zbhaz"]])
+    a <- s$dist$alpha
+    if (length(a) != 1L && length(a) != D) {
+      frm_stop("Invalid Dirichlet prior. Expected input of length ", D,
+               " for class \"sbhaz\", the ", D, " baseline weights of ",
+               "cox(); got ", length(a), call. = FALSE)
+    }
+    out[[length(out) + 1L]] <- list(
+      zeta = extra_tpl_name(frame, if (multi) r, "sbhaz_raw"), D = D,
+      chart = av[["bhaz_chart"]])
+  }
+  if (!length(out)) {
+    frm_stop("No cox() baseline matches ", spec_target(s), ": class ",
+             "\"sbhaz\" is the baseline-hazard simplex of a cox() family",
+             call. = FALSE)
+  }
+  out
 }
 
 #' brms's centering offset for one linear predictor's intercept, or
@@ -3807,7 +3989,9 @@ prior_base_logdens <- function(x, dist) {
     # a JOINT density over a whole correlation, so `x` is the block's
     # correlation segment and the value is one number, not one per
     # element (see lkj_logdens)
-    lkj = lkj_logdens(x, dist)
+    lkj = lkj_logdens(x, dist),
+    # a JOINT density over a mo() simplex's chart coordinates, one number
+    dirichlet = dirichlet_logdens(x, dist)
   )
 }
 
@@ -3936,6 +4120,139 @@ prior_lkj <- function(eta = 1) {
              "is uniform over correlation matrices", call. = FALSE)
   }
   structure(list(kind = "lkj", eta = eta), class = "frmtmb_prior")
+}
+
+#' @param alpha Dirichlet concentrations, positive: one number for every
+#'   weight of the simplex, or one per weight. brms's
+#'   `dirichlet(alpha)`, the density of a `mo()` simplex (class
+#'   `"simo"`); `alpha = 1` is uniform on the simplex.
+#' @rdname frmtmb-priors
+#' @export
+prior_dirichlet <- function(alpha = 1) {
+  if (!is.numeric(alpha) || !length(alpha) || anyNA(alpha) ||
+        any(!is.finite(alpha)) || any(alpha <= 0)) {
+    frm_stop("prior_dirichlet(alpha =) takes finite positive ",
+             "concentrations, one for every weight or one per weight; ",
+             "alpha = 1 is uniform on the simplex", call. = FALSE)
+  }
+  structure(list(kind = "dirichlet", alpha = as.numeric(alpha)),
+            class = "frmtmb_prior")
+}
+
+#' The concentrations of a `"dirichlet(...)"` string: a number or a
+#' vector written with `c()`, as brms takes them. The argument is read
+#' as a number, never evaluated as R code.
+#'
+#' @noRd
+parse_dirichlet_arg <- function(prior) {
+  inner <- sub("^\\s*dirichlet\\s*[(](.*)[)]\\s*$", "\\1", prior)
+  inner <- sub("^\\s*c\\s*[(](.*)[)]\\s*$", "\\1", inner)
+  vals <- suppressWarnings(as.numeric(strsplit(inner, ",",
+                                               fixed = TRUE)[[1L]]))
+  if (identical(inner, prior) || !length(vals) || anyNA(vals)) {
+    frm_stop("Cannot parse prior '", prior, "'; a Dirichlet is written ",
+             "\"dirichlet(1)\" or \"dirichlet(c(2, 1, 1))\"", call. = FALSE)
+  }
+  vals
+}
+
+# ------------------------------------------------- the Dirichlet ------
+#
+# brms puts `dirichlet(alpha)` on the weights `w` of a mo() simplex,
+#   log p(w) = lgamma(sum a) - sum lgamma(a) + sum (a_k - 1) log w_k,
+# a density on the D - 1 free weights. frmtmb holds the simplex in a
+# chart of D - 1 coordinates `z` (mo_simplex()), so the prior on `z` is
+# that density times the Jacobian of the chart, and each chart has its
+# own:
+#
+# SOFTMAX (frmtmb.sample's sampler): w = exp(c(0, z)) / sum(.). The
+#   Jacobian of z -> (w_2, ..., w_D) is prod(w), so
+#     log p(z) = lgamma(sum a) - sum lgamma(a) + sum a_k log w_k,
+#   which at a = 1 is mo_simplex_nlp()'s lgamma(D) + sum(log w).
+#
+# STEREOGRAPHIC (the fit's chart): z is the stereographic projection of
+#   a point u of the unit sphere in R^D from the pole -(1, ..., 1) /
+#   sqrt(D), and w = u^2. The projection is conformal with factor
+#   2 / (1 + |z|^2), so the sphere's surface element is
+#   (2 / (1 + |z|^2))^(D - 1) dz. On one orthant of the sphere, the
+#   map u -> w has dw = 2^(D - 1) prod |u_k| dS: the uniform density on
+#   the sphere carried to the simplex is Dirichlet(1/2, ..., 1/2), whose
+#   normalizer pi^(D/2) / Gamma(D/2) against the sphere's area
+#   2 pi^(D/2) / Gamma(D/2) over 2^D orthants gives the constant. The
+#   chart covers the sphere once and the simplex 2^D times, one sheet
+#   per orthant, so the density on z that integrates to one is
+#     log p(z) = log p(w) + sum log|u_k| + (D - 1) log 4
+#                - (D - 1) log(1 + |z|^2) - D log 2
+#              = C + sum (2 a_k - 1) log|u_k| - (D - 1) log(1 + |z|^2)
+#                + (D - 2) log 2.
+#   A weight at a face is u_k = 0, so with a_k < 1/2 the density is
+#   unbounded there and a MAP fit has no maximum; frm() refuses it.
+#   dev/moparity-dirichlet-jac.R checks both Jacobians against finite
+#   differences and the normalization by integration.
+
+#' Refuse a MAP fit whose Dirichlet has no maximum in the fit's chart.
+#'
+#' In the stereographic chart a weight's factor is `|u_k|^(2 a_k - 1)`
+#' (see above), unbounded at the face `u_k = 0` when `a_k < 1/2`: the
+#' posterior density of the coordinates has no mode, and the optimizer
+#' would run to the face and report the infinite density's location as
+#' an estimate. frmtmb.sample's `frm_sample()` samples the same prior
+#' in softmax coordinates, where it is proper and bounded.
+#'
+#' @noRd
+check_map_dirichlet <- function(entries) {
+  for (e in entries) {
+    d <- e$dist
+    if (!identical(d$kind, "dirichlet") || !is.null(d$chart)) next
+    if (any(d$alpha < 0.5)) {
+      frm_stop("A dirichlet() prior with a concentration below 1/2 (",
+               prior_dist_string(d), ") has no maximum: its density is ",
+               "unbounded where a weight is 0, so a MAP fit has no ",
+               "estimate to report. Use concentrations of 1/2 or more, ",
+               "or sample the posterior with frmtmb.sample's frm_sample()",
+               call. = FALSE)
+    }
+  }
+  invisible(entries)
+}
+
+#' The resolved Dirichlet the objective evaluates on one simplex's
+#' coordinates: the concentrations, recycled to the simplex's `D`
+#' weights, and the chart the coordinates are in.
+#'
+#' @noRd
+dirichlet_dist <- function(alpha, D, chart = NULL) {
+  a <- if (length(alpha) == 1L) rep(alpha, D) else alpha
+  structure(list(kind = "dirichlet", alpha = a, D = D, chart = chart,
+                 lognorm = lgamma(sum(a)) - sum(lgamma(a))),
+            class = "frmtmb_prior")
+}
+
+#' The Dirichlet log density of one simplex's chart coordinates `z`,
+#' Jacobian included (AD-safe). One number for the whole simplex.
+#'
+#' @noRd
+dirichlet_logdens <- function(z, dist) {
+  "c" <- RTMB::ADoverload("c")
+  a <- dist$alpha
+  D <- dist$D
+  if (identical(dist$chart, "softmax")) {
+    v <- c(0, z)
+    lse <- v[1L]
+    for (k in seq_along(v)[-1L]) lse <- RTMB::logspace_add(lse, v[k])
+    # log w = v - lse, computed without forming w
+    return(dist$lognorm + sum(a * (v - lse)))
+  }
+  P <- -1 / sqrt(D)
+  r2 <- sum(z * z)
+  u <- (2 * as.vector(mo_sphere_basis(D) %*% z) + (r2 - 1) * P) / (r2 + 1)
+  out <- dist$lognorm - (D - 1) * log(1 + r2) + (D - 2) * log(2)
+  # a_k = 1/2 has no factor in u_k, and writing 0 * log(0) at a face
+  # would be NaN; `a` is a constant, so this is settled at tape build
+  for (k in which(2 * a - 1 != 0)) {
+    out <- out + (2 * a[k] - 1) * log(abs(u[k]))
+  }
+  out
 }
 
 # ------------------------------------------------- the LKJ prior ------
@@ -4279,6 +4596,14 @@ resolve_priors <- function(fit, prior) {
       frm_stop("prior_lkj() addresses a block's whole correlation, so it ",
                "cannot be given by parameter name; write ",
                "set_prior(\"lkj(", format(pr$eta), ")\", class = \"cor\")",
+               call. = FALSE)
+    }
+    if (identical(pr$kind, "dirichlet")) {
+      # the same reason: a density over a whole simplex, in its chart
+      frm_stop("prior_dirichlet() addresses a whole mo() simplex, so it ",
+               "cannot be given by parameter name; write ",
+               "set_prior(\"", prior_dist_string(pr), "\", class = ",
+               "\"simo\", coef = ...) with the coef get_prior() lists",
                call. = FALSE)
     }
     if (nm %in% names(comp_names)) {

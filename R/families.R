@@ -7727,28 +7727,30 @@ ispline_design <- function(x, sp) {
 #' cumulative baseline hazard `Zcbhaz %*% s` over the SAME simplex `s`,
 #' with `Zcbhaz` the I-spline integral of the M-spline `Zbhaz`. The
 #' simplex is what identifies the baseline against the intercept, and it
-#' rides in the parameter vector as `K - 1` unconstrained values through
-#' a softmax with the first component pinned at zero.
+#' rides in the parameter vector as `K - 1` free coordinates of the
+#' chart `mo_simplex()` reads a `mo()` simplex in.
 #'
 #' @noRd
 fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
   df <- as.integer(df)
   degree <- as.integer(degree)
   intercept <- isTRUE(intercept)
-  # the simplex from its K-1 free coordinates; softmax with the first
-  # component pinned at zero covers the whole open simplex
-  sbhaz <- function(raw) {
-    "c" <- RTMB::ADoverload("c")   # base c() strips the advector class
-    e <- exp(c(0, raw))
-    e / sum(e)
-  }
+  # The simplex from its K-1 free coordinates, in the chart a mo()
+  # simplex uses: a weight of 0 is at a finite point there, where the
+  # softmax this used put it at an infinite coordinate and fits stopped
+  # on the plateau toward it (weights of 1.1e-8, 8.3e-9 and 5.9e-8 on
+  # seeds 2, 5 and 6 of dev/optima-rev-cox1.R; dev/moparity-findings.md,
+  # item 4). `chart` is the response's `bhaz_chart` addition term, which
+  # frmtmb.sample's sampler sets to "softmax" on its own copy of the
+  # frame (mo_chart_frame()).
+  sbhaz <- function(raw, chart = NULL) mo_simplex(raw, chart)
   fam <- frmtmb_family(
     "cox",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
     links = list(mu = mu_link(link, "cox")),
     lpdf = function(y, dpars, aterms, extra) {
-      s <- sbhaz(extra$sbhaz_raw)
+      s <- sbhaz(extra$sbhaz_raw, aterms[["bhaz_chart"]])
       bhaz <- as.vector(aterms[["Zbhaz"]] %*% s)
       cbhaz <- as.vector(aterms[["Zcbhaz"]] %*% s)
       # log h(t) + log S(t), with h(t) = h0(t) * mu and mu = exp(eta)
@@ -7759,13 +7761,13 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
       # row asks about is plain data, so its I-spline row block was
       # built once at frame assembly and is looked up by value here.
       cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
-                           sbhaz(extra$sbhaz_raw))
+                           sbhaz(extra$sbhaz_raw, aterms[["bhaz_chart"]]))
       1 - exp(-cbhaz * dpars[["mu"]])
     },
     lccdf = function(q, dpars, aterms, extra) {
       # log S = -H0(t) * mu, the cumulative hazard itself
       cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
-                           sbhaz(extra$sbhaz_raw))
+                           sbhaz(extra$sbhaz_raw, aterms[["bhaz_chart"]]))
       -cbhaz * dpars[["mu"]]
     },
     valid_y = function(y, aterms) {
@@ -8381,8 +8383,9 @@ as_frmtmb_family <- function(x) {
 #' I-spline integral of the same basis over the same weights, which
 #' makes it monotone by construction. The weights `s` form a simplex -
 #' that is what identifies the baseline against the intercept - and are
-#' estimated as `sbhaz_raw`, their `Kbhaz - 1` free softmax
-#' coordinates; [cox_baseline()] returns the simplex itself. The
+#' estimated as `sbhaz_raw`, their `Kbhaz - 1` free coordinates in the
+#' chart a `mo()` simplex uses (see "Monotonic effects" in [frm()]);
+#' [cox_baseline()] returns the simplex itself. The
 #' default basis is brms's: `df = 5` cubic M-splines with an intercept,
 #' internal knots on response quantiles and boundary knots just outside
 #' the observed range.
@@ -8404,15 +8407,16 @@ as_frmtmb_family <- function(x) {
 #' not available.
 #'
 #' Maximum likelihood often puts one or more baseline weights ON the
-#' simplex boundary, at exactly zero. Their softmax coordinates then run
-#' off to minus infinity along a flat ridge, the Hessian is singular in
-#' those directions, and the optimizer reports singular convergence even
-#' though the gradient is zero and the regression coefficients are at
-#' their optimum - [diagnose()] names `sbhaz_raw` as the culprit. This
-#' is what an unpenalized flexible baseline does; brms does not meet it
-#' because its Dirichlet prior keeps the weights interior. Lower `df`
-#' until the baseline is one the data supports, and read
-#' [cox_baseline()] to see which weights collapsed.
+#' simplex boundary, at exactly zero: an unpenalized flexible baseline
+#' does that. A weight of zero is a finite point of the chart, which the
+#' fit reaches with a finite Hessian, and a zero weight the likelihood
+#' rises from is a saddle the fit is moved off
+#' (`frmtmb_control(mo_search = )`). brms keeps the weights interior
+#' with its `dirichlet(1)` prior on `sbhaz`; frmtmb.sample's
+#' `frm_sample()` samples the baseline under the same prior, and
+#' `set_prior("dirichlet(...)", class = "sbhaz")` puts another one on
+#' it. Lower `df` until the baseline is one the data supports, and read
+#' [cox_baseline()] to see which weights are at zero.
 #'
 #' @section Quantile regression inference:
 #' `asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
