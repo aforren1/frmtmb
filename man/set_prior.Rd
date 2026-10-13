@@ -23,11 +23,13 @@ bounds only.}
 
 \item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"cor"}, \code{"theta"}, one
 of the residual-structure classes \code{"ar"}, \code{"ma"}, \code{"cosy"},
-\code{"cortime"} and \code{"rescor"}, or a distributional parameter's own
+\code{"cortime"} and \code{"rescor"}, the simplex classes \code{"simo"} and
+\code{"sbhaz"}, or a distributional parameter's own
 name (\code{"sigma"}, \code{"shape"}, ...). See A distributional parameter's
 own class.}
 
-\item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}).}
+\item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}),
+or name the simplex of class \code{"simo"}.}
 
 \item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
 
@@ -52,7 +54,8 @@ Builds prior specifications with brms spelling:
 \code{set_prior("normal(0, 5)", class = "b")}. Combine several with \code{+} or
 \code{c()}. Distributions: \code{normal(mu, sd)}, \code{student_t(df, mu, sd)},
 \code{cauchy(mu, sd)}, \code{exponential(rate)}, \code{logistic(mu, s)},
-\code{gamma(shape, rate)}, \code{lkj(eta)}; an empty string sets bounds only.
+\code{gamma(shape, rate)}, \code{lkj(eta)}, \code{dirichlet(alpha)}; an empty string
+sets bounds only.
 }
 \details{
 Classes and their scales:
@@ -99,6 +102,17 @@ only, as brms spells it, and no \code{resp}.
 ordinal family with \code{threshold = "equidistant"}, brms's class of
 the same name, on its own scale; \code{group} selects the vector of one
 level of \code{thres(gr = )}. See Ordinal thresholds.
+\item \code{"simo"}: the simplex of one \code{mo()} term, \code{dirichlet(alpha)} only,
+addressed by brms's coef: the term's label with \code{1} appended
+(\code{"mox1"}, \code{"mox:fb1"}, as \code{\link[=get_prior]{get_prior()}} lists them), and by \code{dpar}
+for a term outside the location parameter. \code{alpha} is one number
+or one per weight. On a MAP fit the density carries the Jacobian of
+the coordinates the simplex is held in, so the mode under
+\code{dirichlet(a)} is the mode of \code{dirichlet(a + 1/2)} on the weights,
+pulled further toward the uniform simplex; see "Monotonic effects"
+in \code{\link[=frm]{frm()}}.
+\item \code{"sbhaz"}: the baseline-hazard simplex of a \code{\link[=cox]{cox()}} response,
+\code{dirichlet(alpha)} only, brms's class of the same name; no \code{coef}.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
 \code{coef} names one by its internal name and spans all three
 covariance components: \code{"theta_2"} for a random-effect block,
@@ -379,7 +393,9 @@ ITSELF, through the dpar's inverse link with that map's
 log-Jacobian, which is the change of variables class \code{"sd"}
 performs. A bound travels with it, so \code{lb = 0} on a log-linked
 dispersion becomes no constraint rather than a floor of 1.
-\item \code{theta}/\code{theta1}/\code{theta2}, \code{simo}, \code{sds}, \code{sdgp}, \code{lscale},
+\item \code{simo} and \code{sbhaz} keep their meaning too: a \code{dirichlet()} on a
+\code{mo()} simplex and on a \code{cox()} baseline.
+\item \code{theta}/\code{theta1}/\code{theta2}, \code{sds}, \code{sdgp}, \code{lscale},
 \code{sdcar}, \code{car}, \code{meanme}, \code{sdme} and \code{corme} are refused by name,
 each saying where frmtmb keeps that quantity instead, or that it
 has no prior slot. A refusal is deliberate: translating

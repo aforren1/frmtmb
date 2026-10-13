@@ -9,6 +9,7 @@
 \alias{prior_inv_gamma}
 \alias{prior_beta}
 \alias{prior_lkj}
+\alias{prior_dirichlet}
 \title{Prior objects, addressed by internal parameter name}
 \usage{
 prior_normal(location = 0, scale = 1)
@@ -24,6 +25,8 @@ prior_inv_gamma(shape = 1, scale = 1)
 prior_beta(shape1 = 1, shape2 = 1)
 
 prior_lkj(eta = 1)
+
+prior_dirichlet(alpha = 1)
 }
 \arguments{
 \item{location, scale, df}{Prior parameters. \code{scale} is also the
@@ -44,6 +47,11 @@ lives there: brms's default on a zero-inflation \code{zi} or a hurdle
 \item{eta}{LKJ shape. \code{1} is uniform over correlation matrices,
 larger values concentrate toward the identity, and \verb{0 < eta < 1}
 pushes toward the boundary.}
+
+\item{alpha}{Dirichlet concentrations, positive: one number for every
+weight of the simplex, or one per weight. brms's
+\code{dirichlet(alpha)}, the density of a \code{mo()} simplex (class
+\code{"simo"}); \code{alpha = 1} is uniform on the simplex.}
 }
 \value{
 A \code{frmtmb_prior} object.

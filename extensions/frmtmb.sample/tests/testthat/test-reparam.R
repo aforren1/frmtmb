@@ -108,7 +108,7 @@ test_that("a block is eligible when its factor consumes all its theta", {
     frmtmb::ncp_eligible(list(covstruct = cs, dim = d, n_levels = 3L))
   }
   # every parameter is a standard deviation: nothing to expose
-  for (cs in c("diag", "homdiag", "smooth", "equalto", "hsgp")) {
+  for (cs in c("diag", "homdiag", "smooth", "equalto", "hsgp", "gp")) {
     expect_true(el(cs), info = cs)
   }
   expect_true(el("us", 1L))
@@ -123,7 +123,7 @@ test_that("a block is eligible when its factor consumes all its theta", {
                  1L, info = cs)
   }
   # no factor at all
-  for (cs in c("us_t", "diag_t", "car", "spde", "gr_prec", "gp", "ou",
+  for (cs in c("us_t", "diag_t", "car", "spde", "gr_prec", "ou",
                "exp", "gau", "mat", "toep", "homtoep", "rr")) {
     expect_false(el(cs), info = cs)
   }
@@ -591,13 +591,26 @@ rp_cor_case <- local({
   function() {
     skip_sampler()
     if (is.null(cache)) {
+      # 30 groups and sds 0.8 and 0.6, so that the CENTERED chain mixes
+      # and its Monte Carlo error can be estimated from the chain: on
+      # the 12 groups and sds 0.7 and 0.4 used before, a centered chain
+      # of 1000 stuck (ESS 1 to 2 on some seeds) and no gate on its
+      # draws was sound. The effects correlate (0.6), so that a wrong
+      # factor shows: with uncorrelated effects the factor is nearly
+      # diagonal, and a transposed one (b = L' z) passed the gate on 11
+      # of 12 seeds; at 0.6 it fails on 12 of 12 (review of lane
+      # moparity, r1). Over 24 seeds on 0.69.0 and on this build the
+      # smallest centered ESS was 45 and the largest |z| 3.6
+      # (dev/moparity-rp-gate.R, dev/moparity-findings.md, punch
+      # round 2)
       set.seed(31)
-      ng <- 12L
-      dd <- data.frame(x = stats::rnorm(120),
-                       g = factor(rep(seq_len(ng), length.out = 120)))
+      ng <- 30L
+      dd <- data.frame(x = stats::rnorm(240),
+                       g = factor(rep(seq_len(ng), length.out = 240)))
       u <- matrix(stats::rnorm(2 * ng), 2)
-      dd$y <- stats::rnorm(120, 1 + 0.5 * dd$x + 0.7 * u[1, dd$g] +
-                             0.4 * u[2, dd$g] * dd$x, 1)
+      u[2, ] <- 0.6 * u[1, ] + 0.8 * u[2, ]
+      dd$y <- stats::rnorm(240, 1 + 0.5 * dd$x + 0.8 * u[1, dd$g] +
+                             0.6 * u[2, dd$g] * dd$x, 1)
       mk <- function(ncp) {
         suppressWarnings(suppressMessages(
           frm_sample(bf(y ~ x + (x | g)), family = gaussian(), data = dd,
@@ -643,27 +656,30 @@ test_that("log_lik() row sums hold on a correlated non-centered run", {
 
 test_that("the two routes agree on the correlated model as well", {
   skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
+  skip_if_not_installed("posterior")
   cs <- rp_cor_case()
-  # two different chains by construction, so agreement is judged in the
-  # chains' OWN Monte Carlo spread (the house pattern): a wiring bug
-  # moves an estimate by O(1) while the spread stays small
-  keep <- setdiff(colnames(cs$cen$draws),
-                  c("lp__", grep("^b\\[", colnames(cs$cen$draws),
-                                 value = TRUE)))
-  for (nm in keep) {
+  # two different chains by construction, so each mean and sd is
+  # compared in units of the two chains' own Monte Carlo standard
+  # errors, from each chain's ESS. A wiring bug moves an estimate by a
+  # sizable part of a posterior sd, which is about 9.5 such units here
+  # at the median ESS. Over 24 sampler seeds on 0.69.0 and on this
+  # build (132 statistics each), the largest |z| was 3.6
+  # (dev/moparity-rp-gate.R); a normal z passes 5 with probability
+  # 5.7e-7
+  z_lim <- 5
+  # posterior caps an ESS above N log10(N) (an antithetic chain), which
+  # can only make the MCSE larger and the gate looser
+  mcse <- function(f, v) allow_warnings(f(v), "ESS has been capped")
+  for (nm in setdiff(colnames(cs$cen$draws), "lp__")) {
     a <- cs$cen$draws[, nm]
     b <- cs$ncp$draws[, nm]
-    n_eff <- 50   # deliberately pessimistic, so the gate is about bias
-    mcse <- sqrt(stats::var(a) / n_eff + stats::var(b) / n_eff)
-    expect_lt(abs(mean(a) - mean(b)), 6 * mcse + 1e-8, label = nm)
-    expect_lt(abs(stats::sd(a) - stats::sd(b)),
-              0.5 * max(stats::sd(a), stats::sd(b)) + 1e-8, label = nm)
-  }
-  for (nm in grep("^b\\[", colnames(cs$cen$draws), value = TRUE)) {
-    a <- cs$cen$draws[, nm]
-    b <- cs$ncp$draws[, nm]
-    expect_lt(abs(mean(a) - mean(b)),
-              0.5 * max(stats::sd(a), stats::sd(b)) + 1e-8)
+    z_mean <- (mean(a) - mean(b)) /
+      sqrt(mcse(posterior::mcse_mean, a)^2 +
+             mcse(posterior::mcse_mean, b)^2)
+    z_sd <- (stats::sd(a) - stats::sd(b)) /
+      sqrt(mcse(posterior::mcse_sd, a)^2 + mcse(posterior::mcse_sd, b)^2)
+    expect_lt(abs(z_mean), z_lim, label = paste(nm, "mean"))
+    expect_lt(abs(z_sd), z_lim, label = paste(nm, "sd"))
   }
 })
 
@@ -833,4 +849,57 @@ test_that("smooth and diag blocks non-center through the sampler", {
   }
   # and the surface still works with two blocks of different structures
   expect_true(is.matrix(posterior_epred(ds, ndraws = 5)))
+})
+
+## ---- an exact gp() field (dev/moparity-findings.md, item 7) ----------
+
+test_that("an exact gp() field non-centers as brms's sdgp * L zgp", {
+  # On 0.69.0 (rellib-r7) a gp block had no factor and was sampled
+  # centered: on lane surface's y ~ gp(x) the formula route ran 1286 of
+  # 2000 transitions into the maximum tree depth, with R-hat 1.52 on
+  # b_Intercept (dev/moparity-gp-ncp.R)
+  set.seed(5)
+  n <- 60
+  d9 <- data.frame(x = round(stats::runif(n, 0, 6), 1))
+  d9$y <- 0.5 + sin(d9$x) + stats::rnorm(n, 0, 0.3)
+  fit <- frm(bf(y ~ gp(x)), family = gaussian(), data = d9)
+  bk <- fit$frame$re_blocks[[1L]]
+  expect_identical(bk$covstruct, "gp")
+  expect_true(frmtmb::ncp_eligible(bk))
+  th <- fit$estimates$theta[bk$theta_idx]
+  L <- frmtmb:::ncp_block_chol(bk, th)
+  V <- frmtmb:::covstruct_registry$gp$vcov(th, bk)
+  expect_equal(L %*% t(L), unname(as.matrix(V)),
+               tolerance = 1e-10 * max(abs(V)))
+  z <- stats::rnorm(bk$dim)
+  b <- frmtmb::ncp_scale_b(bk, z, th)
+  expect_equal(frmtmb::ncp_unscale_b(bk, b, th), z,
+               tolerance = 1e-8 * max(abs(z)))
+  # the non-centered objective is the centered one plus log |L|
+  frn <- fit$frame
+  frn$ncp_blocks <- 1L
+  f_c <- frmtmb::build_objective(fit$frame)
+  f_n <- frmtmb::build_objective(frn)
+  p <- fit$estimates
+  pz <- p
+  pz$b <- frmtmb::ncp_unscale_b(bk, p$b, th)
+  jac <- sum(log(diag(L)))
+  expect_equal(f_c(p) - f_n(pz), jac, tolerance = 1e-8 * abs(jac))
+  # and on the tape, where the factor is taken by RTMB's chol()
+  obj_n <- RTMB::MakeADFun(f_n, pz, silent = TRUE)
+  expect_equal(obj_n$fn(obj_n$par), f_n(pz), tolerance = 1e-10 *
+                 abs(f_n(pz)))
+  g <- obj_n$gr(obj_n$par)
+  k <- which(names(obj_n$par) == "theta")[2L]
+  fd_at <- function(h) {
+    e <- replace(numeric(length(obj_n$par)), k, h)
+    (obj_n$fn(obj_n$par + e) - obj_n$fn(obj_n$par - e)) / (2 * h)
+  }
+  fd <- fd_at(1e-5)
+  # the difference's own error, measured: a step half as long changes
+  # it by about its truncation error, and the rounding of fn bounds the
+  # rest
+  fd_err <- abs(fd - fd_at(5e-6)) +
+    .Machine$double.eps * abs(obj_n$fn(obj_n$par)) / 5e-6
+  expect_lt(abs(g[k] - fd), 10 * fd_err)
 })

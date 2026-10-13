@@ -32,6 +32,34 @@ ac_pars <- function(fit) {
   unname(autocor_natural(fit$estimates$thetaac[ac$theta_idx], ac))
 }
 
+# The standard errors of ac_pars(), by the delta method through the
+# outer Hessian: the yardstick for agreement with gls(). Both optimizers
+# stop where their own tests are met, and nlminb's relative function
+# test can leave these parameters 1e-6 from gls()'s at objectives equal
+# to 1e-10 relative (dev/optrap-findings.md), so agreement is asked
+# within 1e-3 of the fit's own standard error.
+ac_se <- function(fit) {
+  ac <- fit$frame$autocor[[1L]]
+  j <- which(names(fit$opt$par) == "thetaac")[ac$theta_idx]
+  V <- solve(stats::optimHess(fit$opt$par, fit$obj$fn, fit$obj$gr))
+  th <- fit$estimates$thetaac[ac$theta_idx]
+  J <- vapply(seq_along(th), function(k) {
+    h <- 1e-6 * max(1, abs(th[k]))
+    up <- th
+    dn <- th
+    up[k] <- up[k] + h
+    dn[k] <- dn[k] - h
+    unname(autocor_natural(up, ac) - autocor_natural(dn, ac)) / (2 * h)
+  }, numeric(length(th)))
+  J <- matrix(J, nrow = length(th))
+  sqrt(diag(J %*% V[j, j, drop = FALSE] %*% t(J)))
+}
+
+# |frmtmb - gls| within 1e-3 of frmtmb's standard error
+expect_within_se <- function(x, y, se) {
+  expect_lt(max(abs(unname(x) - unname(y)) / se), 1e-3)
+}
+
 # ------------------------------------------------------------ gls agreement
 
 test_that("ar(p = 1) reproduces gls(corAR1) under ML and REML", {
@@ -45,13 +73,13 @@ test_that("ar(p = 1) reproduces gls(corAR1) under ML and REML", {
                    method = m, control = gls_ctl())
     expect_equal(as.numeric(logLik(f)), as.numeric(logLik(g)),
                  tolerance = 1e-9)
-    expect_equal(unname(f$estimates$beta), unname(coef(g)),
-                 tolerance = 1e-6)
-    expect_equal(sigma(f), g$sigma, tolerance = 1e-6)
-    expect_equal(ac_pars(f),
-                 unname(coef(g$modelStruct$corStruct,
-                             unconstrained = FALSE)),
-                 tolerance = 1e-6)
+    co <- summary(f)$coefficients
+    expect_within_se(f$estimates$beta, coef(g), co$mu[, "Std. Error"])
+    expect_within_se(log(sigma(f)), log(g$sigma),
+                     co$sigma[, "Std. Error"])
+    expect_within_se(ac_pars(f),
+                     coef(g$modelStruct$corStruct, unconstrained = FALSE),
+                     ac_se(f))
   }
 })
 
@@ -86,10 +114,9 @@ test_that("ma(q = 1) and arma(1, 1) reproduce gls(corARMA)", {
                    method = m, control = gls_ctl())
     expect_equal(as.numeric(logLik(f)), as.numeric(logLik(g)),
                  tolerance = 1e-9)
-    expect_equal(ac_pars(f),
-                 unname(coef(g$modelStruct$corStruct,
-                             unconstrained = FALSE)),
-                 tolerance = 1e-6)
+    expect_within_se(ac_pars(f),
+                     coef(g$modelStruct$corStruct, unconstrained = FALSE),
+                     ac_se(f))
   }
   d4 <- ac_sim(seed = 33, ar = 0.6, ma = 0.4)
   for (m in c("ML", "REML")) {
@@ -125,10 +152,9 @@ test_that("cosy() and unstr() reproduce gls(corCompSymm / corSymm)", {
                    method = m, control = gls_ctl())
     expect_equal(as.numeric(logLik(f)), as.numeric(logLik(g)),
                  tolerance = 1e-9)
-    expect_equal(ac_pars(f),
-                 unname(coef(g$modelStruct$corStruct,
-                             unconstrained = FALSE)),
-                 tolerance = 1e-6)
+    expect_within_se(ac_pars(f),
+                     coef(g$modelStruct$corStruct, unconstrained = FALSE),
+                     ac_se(f))
   }
   for (m in c("ML", "REML")) {
     f <- suppressWarnings(

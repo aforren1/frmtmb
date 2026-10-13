@@ -38,7 +38,11 @@ simplex's faces and have one point at infinity: on a weakly
 identified simplex the draws collapse there (to the uniform simplex,
 with coordinates near 1e18). The function says so in a message on a
 fit with \code{mo()} terms; \code{\link[=frm_sample]{frm_sample()}} samples the simplex under
-brms's \code{dirichlet(1)} instead.
+brms's \code{dirichlet(1)} instead. A MAP fit whose prior has a \code{simo} row
+has that Dirichlet on its tape, with the Jacobian of its own
+coordinates, so that simplex has a proper density here and the
+message leaves it out; the coordinates still fold at the faces, which
+keeps a chain on one of their equivalent sheets.
 \code{control} means here what it means in \code{\link[=frm_sample]{frm_sample()}} and in brms,
 the sampler's own list, because everything reaches
 \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} unchanged.

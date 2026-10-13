@@ -2364,8 +2364,24 @@ update_pool_pars <- function(out, old, new) {
 #' specification in it that matches no parameter of the updated model,
 #' such as a class `"cor"` prior after the update removes the last
 #' correlation, is dropped. brms drops it silently; frmtmb says which
-#' it dropped, in a message. A `prior` given to `update()` replaces the
-#' stored one and is checked as [frm()] checks it.
+#' it dropped, in a message. A `prior` given to `update()` is merged
+#' with the stored one, as brms merges them: each of its specifications
+#' replaces the stored one for the same slot (class, `coef`, `group`,
+#' `resp`, `dpar` and `nlpar`), and the stored specifications for every
+#' other slot stay. This holds for every spelling [frm()] takes: a
+#' [set_prior()] specification, a `brmsprior` from brms's `prior()`, and
+#' a table from [default_prior()] or brms's `get_prior()`. As in brms,
+#' every row of a table takes its slot, a row with an empty prior too:
+#' that slot goes back to its default (flat), so a table from
+#' [default_prior()] with one row edited resets every other slot it
+#' lists. To keep the stored rows, give only the rows you change.
+#' `prior = NULL`, or a prior with no rows, keeps the stored prior, as
+#' in brms. A named list of prior objects merges by name with a stored
+#' named list; it cannot merge with specifications, so that combination
+#' is an error.
+#' The specifications given to `update()` are checked as [frm()] checks
+#' a prior, so one that matches no parameter is an error; brms drops it
+#' with no message.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param formula. A complete formula or [bf()], or a delta such as
@@ -2455,12 +2471,114 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
   # the stored prior goes in by value, marked as brms's update() marks
   # it, so frm() drops a specification the new formula leaves without a
   # parameter (prior_drop_unmatched()); a prior given to this call is
-  # checked like any other
-  if (!("prior" %in% names(extras)) &&
-        inherits(object$prior, "frmtmb_priorlist")) {
+  # merged into it and checked like any other
+  if ("prior" %in% names(extras)) {
+    newp <- eval(extras[["prior"]], parent.frame())
+    cl["prior"] <- list(update_merge_prior(object$prior, newp))
+  } else if (inherits(object$prior, "frmtmb_priorlist")) {
     cl$prior <- structure(object$prior, allow_invalid_prior = TRUE)
   }
   eval(cl, parent.frame())
+}
+
+#' The prior an `update(prior = )` refits with: brms's merge.
+#'
+#' brms's `update.brmsfit()` binds the new prior to the stored user
+#' specifications and drops a stored one whose slot the new prior
+#' fills, so a new specification wins its slot and the others stay; on
+#' brms 2.23.0 a stored `normal(0, 0.05)` on `b_x` stays through
+#' `update(fit, prior = prior(exponential(2), class = sigma))`
+#' (dev/moparity-brms-update.R). Only the stored rows are marked as
+#' droppable (`prior_drop_unmatched()`): brms also drops a NEW row that
+#' matches nothing, silently, where frm() refuses the same row written
+#' directly, and a row the user just wrote is checked as they wrote it.
+#'
+#' A row of a prior table (a `brmsprior` or a [default_prior()] table)
+#' takes its slot even when its prior is empty: brms binds the new rows
+#' ahead of the stored ones and drops the stored row of each slot a new
+#' row names (update.R lines 150 to 155), so `""` returns the slot to
+#' its default. On a stored `normal(0, 0.05)` on `b_x`, a one-row table
+#' `b x` with prior `""` gives a flat `b_x` in brms 2.23.0
+#' (dev/moparity-rev2-brms-update.R). A prior with no rows (`NULL`,
+#' `empty_prior()`) keeps the stored prior.
+#'
+#' @noRd
+update_merge_prior <- function(old, new) {
+  # the slots of a table's rows are read before the translation, which
+  # skips a row with no prior and would lose the slot it names
+  row_slots <- if (inherits(new, c("brmsprior", "frmtmb_prior_rows"))) {
+    prior_table_slots(new)
+  } else {
+    character(0)
+  }
+  # every spelling is read as frm() reads it: a brmsprior or a prior
+  # table left untranslated here REPLACED the stored prior, while the
+  # set_prior() spelling of the same rows merged
+  old <- as_priorlist(old)
+  new <- as_priorlist(new)
+  stored <- inherits(old, "frmtmb_priorlist") && length(old) > 0L
+  # brms reads a prior with no rows as "keep the stored one"
+  if (is.null(new) && !length(row_slots)) {
+    if (stored) return(structure(old, allow_invalid_prior = TRUE))
+    return(old)
+  }
+  if (!length(old)) return(new)
+  if (stored && (is.null(new) || inherits(new, "frmtmb_priorlist"))) {
+    if (!is.null(new)) check_prior_slots(new)
+    taken <- c(row_slots, vapply(unclass(new %||% list()),
+                                 prior_spec_slot, ""))
+    keep <- !vapply(unclass(old), prior_spec_slot, "") %in% taken
+    if (!any(keep)) return(new)
+    return(structure(c(unclass(new %||% list()), unclass(old)[keep]),
+                     class = "frmtmb_priorlist",
+                     allow_invalid_prior = TRUE,
+                     update_strict = c(rep(TRUE, length(new)),
+                                       rep(FALSE, sum(keep)))))
+  }
+  if (is_named_prior_list(old) && is_named_prior_list(new)) {
+    return(c(new, old[!names(old) %in% names(new)]))
+  }
+  # anything else is not a prior frm() takes, and frm() says so in its
+  # own words
+  if (!is.null(new) && !is_named_prior_list(new) &&
+        !inherits(new, "frmtmb_priorlist")) {
+    return(new)
+  }
+  frm_stop("update(prior = ) merges the new prior into the stored one, ",
+           "but one of them is a named list of prior objects and the ",
+           "other is prior specifications (set_prior() or a prior ",
+           "table), and one prior cannot mix the two. Give the whole ",
+           "prior in one spelling with frm()", call. = FALSE)
+}
+
+#' The slot of every row of a prior table, `prior_spec_slot()`'s key,
+#' empty rows included. A row is read as written: its class and `dpar`
+#' are the spelling `spec_spelling()` gives a specification, so `class
+#' = "sigma"` is the slot `set_prior(class = "sigma")` fills.
+#'
+#' @noRd
+prior_table_slots <- function(x) {
+  x <- as.data.frame(x, stringsAsFactors = FALSE)
+  cell <- function(nm, i) {
+    v <- if (nm %in% names(x)) x[[nm]][[i]] else ""
+    if (is.null(v) || is.na(v)) "" else as.character(v)
+  }
+  vapply(seq_len(nrow(x)), function(i) {
+    cls <- cell("class", i)
+    prior_spec_slot(list(class = if (nzchar(cls)) cls else "b",
+                         coef = cell("coef", i),
+                         group = cell("group", i), resp = cell("resp", i),
+                         dpar = cell("dpar", i), nlpar = cell("nlpar", i)))
+  }, "")
+}
+
+#' A prior in the legacy spelling, `list(x = prior_normal(0, 1))`.
+#'
+#' @noRd
+is_named_prior_list <- function(x) {
+  is.list(x) && !inherits(x, "frmtmb_priorlist") && length(x) > 0L &&
+    !is.null(names(x)) && all(nzchar(names(x))) &&
+    all(vapply(x, inherits, NA, "frmtmb_prior"))
 }
 
 #' Likelihood profiles
@@ -2615,7 +2733,8 @@ hyp_par_cov <- function(fit) {
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par), Vp = Vp,
          jc = if (!is.null(sdr$se_null)) {
-           list(null = sdr$se_null, units = fit$par_units,
+           list(null = sdr$se_null, flat = sdr$se_null_flat,
+                units = fit$par_units,
                 boundary = se_null_boundary(fit, sdr))
          })
   } else {
@@ -2656,9 +2775,7 @@ hyp_prop_var <- function(pc, G) {
   warn <- bad
   bcol <- pc$jc$boundary
   if (on && any(bad) && any(bcol)) {
-    jw <- pc$jc
-    jw$null <- jw$null[, !bcol, drop = FALSE]
-    warn <- bad & jc_nonest(jw, G, pc$outer_pos)
+    warn <- bad & jc_nonest(jc_drop_boundary(pc$jc), G, pc$outer_pos)
   }
   v[bad] <- NaN
   attr(v, "lost") <- bad
@@ -2667,7 +2784,10 @@ hyp_prop_var <- function(pc, G) {
 }
 
 #' Which columns of the null basis of `sdr` (sdr_rescue()) span only
-#' variance components at their boundary.
+#' variance components at their boundary. A flat subspace
+#' (`sdr$se_null_flat`) keeps the small loadings of parameters that keep
+#' their standard error, so it is judged by the parameters it names:
+#' those whose projection onto it is above its threshold (se_tier3()).
 #'
 #' @noRd
 se_null_boundary <- function(fit, sdr) {
@@ -2675,7 +2795,17 @@ se_null_boundary <- function(fit, sdr) {
   lost <- sdr$se_lost
   if (!NCOL(N) || !any(lost == "boundary")) return(logical(NCOL(N)))
   bpos <- match(names(lost)[lost == "boundary"], outer_par_names(fit))
-  apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% bpos))
+  out <- apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% bpos))
+  fl <- sdr$se_null_flat
+  fc <- intersect(fl$cols %||% integer(0), seq_len(NCOL(N)))
+  if (length(fc)) {
+    sc <- fl$scale
+    sc[!is.finite(sc)] <- 0
+    pr <- sqrt(rowSums((N[, fc, drop = FALSE] * sc)^2))
+    on <- which(pr > fl$tol)
+    out[fc] <- length(on) > 0L && all(on %in% bpos)
+  }
+  out
 }
 
 #' Named list of every variable a hypothesis can name, under brms's
@@ -3460,25 +3590,35 @@ parnames <- function(x, ...) UseMethod("parnames")
 #' @export
 parnames.frmtmb_fit <- function(x, ...) {
   frm_check_dots(...)
-  if (!parnames_owner_warned()) {
+  if (!via_brms_generic("parnames")) {
     frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
                 call. = FALSE)
   }
   variables(x)
 }
 
-#' Whether the `parnames()` generic a call reached has warned already.
-#' brms's generic gives the deprecation warning itself before it
-#' dispatches, and while brms is loaded the `parnames` binding resolves
-#' to it (`frm_install_generics()`), so the method warns only when the
-#' generic is frmtmb's own. frmtmb.sample's method for draws asks the
-#' same question.
+#' Was the calling method dispatched by brms's generic `name`?
+#'
+#' brms's `parnames()` gives the deprecation warning itself before it
+#' dispatches, so a method it reached must not warn again; frmtmb's own
+#' generic is a bare `UseMethod()`, after which the method warns. The
+#' answer is read from the frame that dispatched, not from what the
+#' `parnames` binding resolves to now: a generic captured before brms
+#' loaded is frmtmb's own while the binding is brms's, and that call
+#' gave no warning at all (dev/moparity-findings.md, item 6). The
+#' dispatcher is recognized by the namespace it was defined in, which a
+#' captured generic keeps after brms is unloaded; brms is never loaded
+#' to find out. frmtmb.sample's methods for draws ask the same
+#' question.
 #'
 #' @noRd
-parnames_owner_warned <- function() {
-  g <- tryCatch(get("parnames", envir = asNamespace("frmtmb")),
-                error = function(e) NULL)
-  is.function(g) && !identical(environment(g), asNamespace("frmtmb"))
+via_brms_generic <- function(name) {
+  # -1 is the method that called this helper, -2 what dispatched it
+  f <- tryCatch(sys.function(-2L), error = function(e) NULL)
+  if (!is.function(f)) return(FALSE)
+  env <- environment(f)
+  isNamespace(env) && identical(unname(getNamespaceName(env)), "brms") &&
+    identical(f, get0(name, envir = env, inherits = FALSE))
 }
 
 #' The `Hypothesis` label brms writes for one hypothesis string:

@@ -411,8 +411,11 @@ test_that("a flat ridge warns on curvature the gradient does not show", {
   x1 <- rnorm(n)
   dd <- data.frame(x1 = x1, x2 = x1 + rnorm(n, 0, 1e-5))
   dd$y <- rnorm(n, 1 + 2 * dd$x1, 1)
+  # nlminb's own stop, its default tolerance stated: an optCtrl that sets
+  # one leaves the fit where nlminb stopped (newton_polish())
   r <- grad_warned(frm(bf(y ~ x1 + x2), family = gaussian(), data = dd,
-                       control = frmtmb_control(restarts = 0)))
+                       control = frmtmb_control(
+                         restarts = 0, optCtrl = list(rel.tol = 1e-10))))
   expect_true(r$grad)
   # and it warns about the CURVATURE, not the gradient's size
   expect_true(any(grepl("in log-likelihood", r$warnings, fixed = TRUE)))
@@ -423,6 +426,12 @@ test_that("a flat ridge warns on curvature the gradient does not show", {
   # what the second stage measures and the first cannot see
   expect_lt(d$max_grad / tol, 100)
   expect_gt(d$grad_headroom / tol, 100)
+  # by default the Newton steps take the headroom, and the fit is silent
+  r0 <- grad_warned(frm(bf(y ~ x1 + x2), family = gaussian(), data = dd,
+                        control = frmtmb_control(restarts = 0)))
+  expect_false(r0$grad)
+  expect_gt(as.numeric(logLik(r0$fit)) - as.numeric(logLik(r$fit)),
+            0.5 * d$grad_headroom)
 })
 
 # --- grad_tol still drives both readings ------------------------------

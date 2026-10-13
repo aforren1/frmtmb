@@ -56,11 +56,18 @@ us_theta_cor <- function(C) {
 }
 
 #' Unstructured d x d covariance from its theta segment (AD-safe).
+#' `floored = TRUE` reads the standard deviations through `sd_floored()`,
+#' as the random-effect blocks do; a family's residual covariance keeps
+#' `exp()`.
 #'
 #' @noRd
-us_sigma <- function(theta, d) {
+us_sigma <- function(theta, d, floored = FALSE) {
   if (d == 1L) return(RTMB::matrix(exp(2 * theta[1]), 1, 1))
-  sdv <- exp(theta[seq_len(d)])
+  sdv <- if (floored) {
+    sd_floored(theta[seq_len(d)])
+  } else {
+    exp(theta[seq_len(d)])
+  }
   C <- us_chol_cor(theta[-seq_len(d)], d)
   C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
 }
@@ -421,7 +428,7 @@ covstruct_registry <- list(
       if (d == 1L) {
         return(sum(RTMB::dnorm(b, 0, exp(theta), log = TRUE)))
       }
-      sdv <- exp(theta[seq_len(d)])
+      sdv <- sd_floored(theta[seq_len(d)])
       C <- us_chol_cor(theta[-seq_len(d)], d)
       # RTMB::matrix, not base::matrix: base strips the advector class.
       Sigma <- C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
@@ -472,7 +479,7 @@ covstruct_registry <- list(
     nll = function(b, theta, blk) {
       d <- blk[["dim"]]
       if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk[["dist_nu"]]))
-      W <- us_chol_L(theta[-seq_len(d)], d) * exp(theta[seq_len(d)])
+      W <- us_chol_L(theta[-seq_len(d)], d) * sd_floored(theta[seq_len(d)])
       student_lpdf(b, W, blk[["dist_nu"]], d, blk[["n_levels"]])
     },
     vcov = function(theta, blk) {
@@ -534,7 +541,7 @@ covstruct_registry <- list(
     npar = function(dim) 2L,
     sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
-      ar1_lpdf(b, exp(theta[1]), theta[2], blk[["dim"]])
+      ar1_lpdf(b, sd_floored(theta[1]), theta[2], blk[["dim"]])
     },
     vcov = function(theta, blk) {
       d <- blk[["dim"]]
@@ -552,7 +559,7 @@ covstruct_registry <- list(
     sd_idx = function(dim) seq_len(dim),
     nll = function(b, theta, blk) {
       d <- blk[["dim"]]
-      sdv <- exp(theta[seq_len(d)])
+      sdv <- sd_floored(theta[seq_len(d)])
       a <- 1 / (d - 1)
       rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
       C <- diag(d) * (1 - rho) + rho
@@ -596,6 +603,28 @@ covstruct_registry <- list(
 #' @noRd
 sd2_floored <- function(log_sd) exp(2 * log_sd) + 1e-300
 
+#' The standard deviations of a block with several scales, from their
+#' log sds, with a floor where `exp()` underflows.
+#'
+#' `sd2_floored()` serves a block whose covariance is one variance
+#' times a correlation. A block with a scale per coefficient (`us` and
+#' `us_t` with two or more coefficients, `cs`, `toep`, `hetar1`,
+#' `gr(cov =)` and `gr(prec =)` with correlated slopes) builds its
+#' covariance from the standard deviations themselves, and so does
+#' `ar1` through its standardized values. Where one log sd fell below
+#' about -745, the covariance had a zero row: `dmvnorm()` gave `+Inf`
+#' (`us`, `cs`, `toep`, `gr(cov =)`), the AR(1) density `NaN`
+#' (`Inf - Inf`), and the solves of `us_t` and `gr(prec =)` stopped
+#' (dev/moparity-findings.md, item 5).
+#'
+#' `1e-150` is the square root of `sd2_floored()`'s floor, so a floored
+#' variance is the same `1e-300`. It is below half an ulp of any sd of
+#' 1.1e-134 or more (log sd -308.45), so there the sum is the sd itself,
+#' bit for bit, and so are the objective and its gradient.
+#'
+#' @noRd
+sd_floored <- function(log_sd) exp(log_sd) + 1e-150
+
 # Continuous-position AR / exponential covariance over num_factor()
 # levels: Sigma_ij = sd^2 * exp(-rate * |t_i - t_j|). theta = (log sd,
 # log rate); blk$aux_D holds the distance matrix.
@@ -625,7 +654,7 @@ covstruct_registry[["toep"]] <- list(
   nll = function(b, theta, blk) {
     "[<-" <- RTMB::ADoverload("[<-")
     d <- blk[["dim"]]
-    sdv <- exp(theta[seq_len(d)])
+    sdv <- sd_floored(theta[seq_len(d)])
     phi <- theta[d + seq_len(d - 1L)]
     cvec <- rep(phi[1], d)
     cvec[1] <- 1
@@ -657,7 +686,7 @@ covstruct_registry[["hetar1"]] <- list(
   sd_idx = function(dim) seq_len(dim),
   nll = function(b, theta, blk) {
     d <- blk[["dim"]]
-    ar1_lpdf(b, exp(theta[seq_len(d)]), theta[d + 1L], d)
+    ar1_lpdf(b, sd_floored(theta[seq_len(d)]), theta[d + 1L], d)
   },
   vcov = function(theta, blk) {
     d <- blk[["dim"]]
@@ -800,7 +829,7 @@ covstruct_registry[["gr_cov"]] <- list(
       Sigma <- sd2_floored(theta[1]) * blk[["aux_A"]]
       return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
     }
-    S <- us_sigma(theta, blk[["dim"]])
+    S <- us_sigma(theta, blk[["dim"]], floored = TRUE)
     D <- blk[["dim"]] * blk[["n_levels"]]
     K <- RTMB::matrix(as.vector(blk[["aux_A"]])[blk[["aux_kron"]]$ia] *
                         as.vector(S)[blk[["aux_kron"]]$is], D, D)
@@ -847,7 +876,7 @@ covstruct_registry[["gr_prec"]] <- list(
       return(sum(RTMB::dgmrf(b, 0, Qs, log = TRUE)))
     }
     # RTMB::solve, not base's: the S4 advector method is not imported
-    Sinv <- RTMB::solve(us_sigma(theta, blk[["dim"]]))
+    Sinv <- RTMB::solve(us_sigma(theta, blk[["dim"]], floored = TRUE))
     # no zero to start from: an AD-weighted sparse matrix has no
     # additive identity, so the first term seeds the sum
     Qs <- NULL
@@ -2083,10 +2112,11 @@ block_cor_prior <- function(bk) {
 #   gr_prec       the density is a sparse PRECISION. The factor of its
 #                 inverse is dense, so a solve per leapfrog step would
 #                 cost more than the funnel does.
-#   gp            a dense kernel over the observed positions: a full
-#                 n x n factorization per gradient, on the tape.
 #   ou, exp, gau,
-#   mat           the same, over a spatial field's positions.
+#   mat           a dense covariance over a spatial field's positions: a
+#                 full n x n factorization per gradient, on the tape.
+#                 An exact gp() pays that cost (see its chol_L below):
+#                 its centered field did not mix.
 #   toep, homtoep the banded parameterization does not guarantee a
 #                 positive definite matrix (glmmTMB's does not either),
 #                 so no factor exists over the whole parameter space and
@@ -2203,6 +2233,18 @@ covstruct_registry[["gr_cov"]]$chol_A <- function(blk) {
   t(chol(as.matrix(blk[["aux_A"]])))
 }
 
+# An exact gp(): the field over its distinct positions has covariance
+# sd^2 K(lscale), K the kernel with gp_nugget on its diagonal, so its
+# factor is sd times the Cholesky factor of K, taken on the tape. brms
+# samples the same field as sdgp * L zgp with standard normal zgp. The
+# factorization is n^3 / 3 per gradient for n positions, which is what
+# the centered field avoided; the centered field is a funnel the sampler
+# does not mix in (on lane surface's y ~ gp(x), 4 chains of 1000: 1286
+# of 2000 transitions at the maximum tree depth, R-hat 1.52, bulk ESS
+# 7; dev/moparity-log/gp-cmp.txt, dev/moparity-findings.md, item 7).
+covstruct_registry[["gp"]]$chol_L <- function(theta, blk) {
+  t(chol(gp_corr(theta, blk))) * exp(theta[1])
+}
 # WHICH BLOCKS ARE NON-CENTERED, and why it is not all of them.
 #
 # The funnel is made by the SCALE: `b | sd ~ N(0, sd^2 C)` narrows as
@@ -2255,6 +2297,10 @@ ncp_mode <- function(bk) {
     # they enter the block's standard deviations, so the factor is
     # diagonal and the whole of it comes out
     hsgp = n_sd,
+    # an exact gp()'s length scales enter its factor too, through the
+    # kernel, and class lscale reaches them, as it reaches hsgp's,
+    # so the whole of it comes out
+    gp = n_sd,
     tryCatch(reg$npar(bk[["dim"]]), error = function(e) NA_integer_)
   )
   # every parameter the block has must be one the factor consumes and

@@ -373,15 +373,50 @@ an ordinal fit spends slot 1 on its thresholds and a \code{cox()} fit on
 its baseline hazard, and in both the first monotonic simplex is
 \code{zeta2}. Read the terms in order rather than parsing the number.
 
-frmtmb has no prior class for a simplex; brms's flat \code{dirichlet(1)}
-is the one prior it cannot be told to drop, and it contributes only a
-constant, so the two log-densities agree up to \code{lgamma(D)} per
-simplex.
+With no prior, a fit applies no density to a simplex; brms's flat
+\code{dirichlet(1)} contributes only a constant, so the two log-densities
+agree up to \code{lgamma(D)} per simplex. A \code{simo} prior row,
+\code{set_prior("dirichlet(c(2, 1, 1))", class = "simo", coef = "mox1")},
+makes the fit a MAP fit under that Dirichlet: brms's spelling, with
+the coef \code{\link[=get_prior]{get_prior()}} lists for each simplex. Like every prior of a
+MAP fit it is the density of the coordinates, so it carries the
+chart's Jacobian, \verb{prod |u_k|} times the projection's conformal
+factor. In plain terms: the MAP fit under \code{dirichlet(a)} has the mode
+of \code{dirichlet(a + 1/2)} on the weights, pulled further toward the
+uniform simplex by the conformal factor. Thus \code{dirichlet(1)} is not
+the absence of a prior: it moves the mode at least as much as
+\code{dirichlet(1.5)} on the weights does. Only a fit with no \code{simo} row
+applies no density to the simplex. The pull is large where the data
+say little: with 60 rows, the weights of a \code{dirichlet(1)} MAP fit
+were 0.30, 0.38 and 0.32 where the maximum likelihood weights were
+0.05, 0.73 and 0.22; with 400 rows they moved by 0.003 at most. To
+pull less, give no \code{simo} row. A concentration below 1/2 has no
+maximum in these coordinates and is refused; frmtmb.sample's
+\code{frm_sample()} samples any.
 
-\code{mo()} may be crossed with a single numeric multiplier and no more:
-\code{mo(x) * z} and \code{mo(x):z} are fitted, \code{mo(x) * f} for a factor \code{f} is
-refused (the simplex carries one coefficient and a contrast expansion
-has no column to go in), and \code{mo(x):mo(w)} is refused outright.
+An interaction codes the columns brms's special-term model matrix
+codes, each with its own simplex and coefficient: \code{mo(x) * f} with a
+factor \code{f} of levels \code{a}, \code{b}, \code{c} fits \code{mox}, \code{mox:fb} and \code{mox:fc},
+and \code{mo(x):f} fits \code{mox:fa}, \code{mox:fb} and \code{mox:fc}. The other factors
+of a label may be several, \code{mo(x) * z * w}, and are named as brms
+names them, in the order \code{model.matrix()} reads the special terms
+alone: \code{mo(x) * z} and \code{z * mo(x)} give \code{mox:z}, and \code{z + mo(x):z}
+gives \code{z:mox}. \code{mo(x):mo(w)} is refused. brms 2.23.0 builds the same
+columns but multiplies every one by the first covariate in its Stan
+code, and stops on a factor of three or more levels crossed with the
+main term (brms#1828); frmtmb fits the model brms 2.22.0 fits and
+brms's Stan data describe.
+
+A group-level term may vary a monotonic coefficient, as in brms:
+\code{y ~ mo(x) + (mo(x) | g)} adds \code{r_g[, mox]} to \code{bsp_mox} and
+multiplies the sum by the same transform, \code{(b + r_g) * D * sum(zeta[1:k])}, so the group-level term has no simplex of its own.
+The population-level column it varies is required, and refused
+without it, where brms 2.23.0 drops the term silently. It is
+available in a plain \code{(... | g)} or \code{(... || g)} term. A \code{||} term
+with \code{mo()} is one block with no correlations, coded whole as brms
+codes it: \code{(mo(x) * f || g)} has the columns \code{Intercept}, \code{fb}, \code{fc},
+\code{mox}, \code{mox:fb} and \code{mox:fc}. A \code{||} term without \code{mo()} is expanded
+as lme4 expands it, one block per term.
 }
 
 \section{Category-specific effects, cs()}{

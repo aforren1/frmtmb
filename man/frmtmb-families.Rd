@@ -381,8 +381,9 @@ fits: the baseline hazard is an M-spline in time,
 I-spline integral of the same basis over the same weights, which
 makes it monotone by construction. The weights \code{s} form a simplex -
 that is what identifies the baseline against the intercept - and are
-estimated as \code{sbhaz_raw}, their \code{Kbhaz - 1} free softmax
-coordinates; \code{\link[=cox_baseline]{cox_baseline()}} returns the simplex itself. The
+estimated as \code{sbhaz_raw}, their \code{Kbhaz - 1} free coordinates in the
+chart a \code{mo()} simplex uses (see "Monotonic effects" in \code{\link[=frm]{frm()}});
+\code{\link[=cox_baseline]{cox_baseline()}} returns the simplex itself. The
 default basis is brms's: \code{df = 5} cubic M-splines with an intercept,
 internal knots on response quantiles and boundary knots just outside
 the observed range.
@@ -404,15 +405,16 @@ mean, so \code{fitted()} and \code{frm_linpred(type = "response")} are refused;
 not available.
 
 Maximum likelihood often puts one or more baseline weights ON the
-simplex boundary, at exactly zero. Their softmax coordinates then run
-off to minus infinity along a flat ridge, the Hessian is singular in
-those directions, and the optimizer reports singular convergence even
-though the gradient is zero and the regression coefficients are at
-their optimum - \code{\link[=diagnose]{diagnose()}} names \code{sbhaz_raw} as the culprit. This
-is what an unpenalized flexible baseline does; brms does not meet it
-because its Dirichlet prior keeps the weights interior. Lower \code{df}
-until the baseline is one the data supports, and read
-\code{\link[=cox_baseline]{cox_baseline()}} to see which weights collapsed.
+simplex boundary, at exactly zero: an unpenalized flexible baseline
+does that. A weight of zero is a finite point of the chart, which the
+fit reaches with a finite Hessian, and a zero weight the likelihood
+rises from is a saddle the fit is moved off
+(\code{frmtmb_control(mo_search = )}). brms keeps the weights interior
+with its \code{dirichlet(1)} prior on \code{sbhaz}; frmtmb.sample's
+\code{frm_sample()} samples the baseline under the same prior, and
+\code{set_prior("dirichlet(...)", class = "sbhaz")} puts another one on
+it. Lower \code{df} until the baseline is one the data supports, and read
+\code{\link[=cox_baseline]{cox_baseline()}} to see which weights are at zero.
 }
 
 \section{Quantile regression inference}{

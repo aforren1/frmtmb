@@ -148,7 +148,10 @@ dpar_frame_rhs <- function(dp) {
   for (rt in dp[["re"]] %||% list()) {
     for (v in by_term_vars(rt)) parts <- c(parts, list(as.name(v)))
     if (is.null(rt$mm)) {
-      parts <- c(parts, list(rt$bar[[2]], rt$bar[[3]]))
+      # a group-level mo() term's placeholder is not data; the variable
+      # its mo() reads is
+      lhs <- mo_ph_unwrite(rt$bar[[2]], dp[["mo_re"]], arg = TRUE)
+      parts <- c(parts, list(lhs, rt$bar[[3]]))
       next
     }
     # mm(g1, g2) is not a model-frame variable: the member factors are,
@@ -169,6 +172,7 @@ dpar_frame_rhs <- function(dp) {
   for (ent in dp[["mo"]] %||% list()) {
     for (v in all.vars(ent$expr)) parts <- c(parts, list(as.name(v)))
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
+    for (v in all.vars(ent$mult)) parts <- c(parts, list(as.name(v)))
   }
   for (ent in dp[["miterms"]] %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
@@ -197,12 +201,13 @@ dpar_frame_rhs <- function(dp) {
   out
 }
 
-#' mo()/mi() interaction multipliers scale a single coefficient, so they
-#' have to be one numeric column; a factor or character multiplier would
-#' need contrast expansion, which the simplex/latent machinery has no
+#' mi() and me() interaction multipliers scale a single coefficient, so
+#' they have to be one numeric column; a factor or character multiplier
+#' would need contrast expansion, which the latent machinery has no
 #' column for. Reject those up front: as.numeric() on a character vector
 #' yields all-NA and the failure only surfaces as "NA/NaN gradient
-#' evaluation" from the optimizer. `[brms#1828]`
+#' evaluation" from the optimizer. A mo() multiplier is coded as brms
+#' codes it instead (mo_sp_design()).
 #'
 #' @noRd
 check_special_mult <- function(mult, expr, fn) {
@@ -248,6 +253,199 @@ mo_interaction_order <- function(mult) {
     } else 1L
   }
   1L + count(mult)
+}
+
+#' The columns each `mo()` term of one linear predictor codes, brms's
+#' sp model matrix (`brms:::sp_model_matrix()`).
+#'
+#' brms replaces each `mo()` call of the special terms by a column of
+#' ones and takes `model.matrix()` of the result, so a term's columns
+#' are the columns its other factors code, each with its own simplex and
+#' coefficient: `mo(x):z` is one column `z`, `mo(x) * f` with a factor
+#' `f` of levels a, b, c gives `mox` and the contrasts `mox:fb` and
+#' `mox:fc`, and `mo(x):f` without the main term codes every level,
+#' `mox:fa`, `mox:fb`, `mox:fc`, which is `model.matrix()`'s own rule for
+#' a factor whose margin is not in the formula. One formula holds every
+#' term, so that rule sees the main terms. The names put the factors in
+#' the order of brms's name (`mo_term_entries()`).
+#'
+#' brms 2.23.0 itself is wrong here (brms#1828, acknowledged): its Stan
+#' code multiplies EVERY column by the first covariate `Csp_1`, and with
+#' a factor of three or more levels it stops on "replacement has 2 rows,
+#' data has 3" (dev/moparity-brms-code.R). This is the model brms
+#' 2.22.0 fits and the one its Stan data describe.
+#'
+#' Returns one element per entry: `labels`, `mult` (the column values,
+#' `NULL` for a main term) and `mm_col` (the model-matrix column a
+#' newdata row is rebuilt from), and attribute `"mm"`, what that
+#' rebuilding needs.
+#'
+#' @noRd
+mo_sp_design <- function(ents, mf, env) {
+  vkeys <- vapply(ents, function(e) deparse1(e$expr), "")
+  mo_keys <- vapply(ents, function(e) {
+    deparse1(as.call(list(as.name("mo"), e$expr)))
+  }, "")
+  mo_nm <- paste0("mo", vkeys)
+  has_mult <- vapply(ents, function(e) !is.null(e$mult), NA)
+  out <- lapply(seq_along(ents), function(i) {
+    list(labels = mo_nm[i], mult = list(NULL), mm_col = NA_character_)
+  })
+  if (!any(has_mult)) return(out)
+  ukeys <- unique(vkeys)
+  dummies <- paste0(".frm_mod", seq_along(ukeys))
+  dum <- dummies[match(vkeys, ukeys)]
+  facs <- lapply(seq_along(ents), function(i) {
+    f <- ents[[i]]$factors %||%
+      c(mo_keys[i], if (has_mult[i]) {
+        vapply(colon_factors(ents[[i]]$mult), deparse1, "")
+      })
+    f[f == mo_keys[i]] <- dum[i]
+    f
+  })
+  fo <- stats::as.formula(paste("~", paste(vapply(facs, paste, "",
+                                                  collapse = ":"),
+                                           collapse = " + ")), env = env)
+  md <- as.data.frame(mf)
+  for (d in dummies) md[[d]] <- rep(1, nrow(md))
+  tt <- stats::terms(fo)
+  mfr <- stats::model.frame(tt, md, na.action = stats::na.pass)
+  mm <- stats::model.matrix(tt, mfr)
+  asgn <- attr(mm, "assign")
+  fmat <- attr(tt, "factors")
+  for (i in which(has_mult)) {
+    j <- which(vapply(seq_len(ncol(fmat)), function(k) {
+      setequal(rownames(fmat)[fmat[, k] > 0], facs[[i]])
+    }, NA))
+    cols <- which(asgn == j[1L])
+    raw <- colnames(mm)[cols]
+    # model.matrix() names a column's factors in the order the formula
+    # first reads its variables, which is how brms's names arise: the
+    # special terms alone, in terms() order, so `z * mo(x)` is mox:z and
+    # `z + mo(x):z` is z:mox (dev/moparity-brms-names.R)
+    labs <- vapply(raw, function(cn) {
+      pieces <- strsplit(cn, ":", fixed = TRUE)[[1L]]
+      pieces[pieces == dum[i]] <- mo_nm[i]
+      paste(pieces, collapse = ":")
+    }, "")
+    out[[i]] <- list(labels = unname(labs),
+                     mult = lapply(cols, function(k) unname(mm[, k])),
+                     mm_col = raw)
+  }
+  attr(out, "mm") <- list(terms = stats::delete.response(stats::terms(mfr)),
+                          xlev = stats::.getXlevels(tt, mfr),
+                          contrasts = attr(mm, "contrasts"),
+                          dummies = dummies)
+  out
+}
+
+#' The `mo()` multipliers of one linear predictor on new data, by
+#' model-matrix column (`mo_sp_design()`'s `"mm"`), or `NULL` when the
+#' predictor has none.
+#'
+#' @noRd
+mo_sp_newdata <- function(lp, newdata) {
+  spec <- lp[["mo_mm"]]
+  if (is.null(spec)) return(NULL)
+  nd <- as.data.frame(newdata)
+  for (d in spec$dummies) nd[[d]] <- rep(1, nrow(nd))
+  mf2 <- stats::model.frame(spec$terms, nd, na.action = stats::na.pass,
+                            xlev = spec$xlev)
+  mm <- stats::model.matrix(spec$terms, mf2, contrasts.arg = spec$contrasts)
+  if (anyNA(mm)) {
+    frm_stop("A mo() interaction's multiplier has missing values in ",
+             "newdata", call. = FALSE)
+  }
+  mm
+}
+
+#' A placeholder of `mo_bar_rewrite()` in a group-level term, back as
+#' the `mo()` call it stands for, or, with `arg = TRUE`, as the variable
+#' that call reads.
+#'
+#' @noRd
+mo_ph_unwrite <- function(e, map, arg = FALSE) {
+  if (!length(map) || is.null(e)) return(e)
+  sub <- lapply(map, function(m) {
+    if (arg) m$expr else as.call(list(as.name("mo"), m$expr))
+  })
+  do.call(substitute, list(e, sub))
+}
+
+#' Column names of a group-level term with its placeholders named as
+#' brms names them: `.frm_mo1` is `mox`, `.frm_mo1:z` is `mox:z`.
+#'
+#' @noRd
+mo_ph_rename <- function(cn, map) {
+  if (!length(map)) return(cn)
+  vapply(cn, function(x) {
+    p <- strsplit(x, ":", fixed = TRUE)[[1L]]
+    hit <- p %in% names(map)
+    p[hit] <- vapply(p[hit], function(ph) {
+      paste0("mo", deparse1(map[[ph]]$expr))
+    }, "")
+    paste(p, collapse = ":")
+  }, "", USE.NAMES = FALSE)
+}
+
+#' Whether any linear predictor of a frame has a group-level `mo()`
+#' column.
+#'
+#' @noRd
+frame_has_mo_re <- function(frame) {
+  any(vapply(frame[["linpreds"]], function(lp) {
+    length(lp[["Z_mo"]]) > 0L
+  }, NA))
+}
+
+#' The position in `lp$mo` of the population-level `mo()` column a
+#' group-level column named `name` varies, `NA` when there is none.
+#' Matched as a set of factors, so `(mo(x):z | g)` finds the `z:mox` of
+#' `z + mo(x):z`.
+#'
+#' @noRd
+mo_re_index <- function(lp, name) {
+  key <- function(s) {
+    vapply(strsplit(s, ":", fixed = TRUE), function(p) {
+      paste(sort(p), collapse = ":")
+    }, "")
+  }
+  match(key(name), key(vapply(lp[["mo"]] %||% list(), `[[`, "", "label")))
+}
+
+#' The coefficient columns of every group-level `mo()` term of one
+#' linear predictor, each with the population-level `mo()` column whose
+#' coefficient it varies (its position in `lp$mo`).
+#'
+#' brms requires that column ("Special group-level terms require
+#' corresponding population-level terms") and reads the group-level
+#' coefficient as a deviation of that column's `bsp` on that column's
+#' simplex (`mo_re_index()`). A `(mo(x) | g)` with no population-level
+#' `mo(x)` is refused: brms 2.23.0 writes Stan code that reads no
+#' simplex and drops the term without a word (dev/moparity-brms-code.R).
+#'
+#' @noRd
+mo_re_link <- function(lp, components, re_blocks, comp_block, comp_offset) {
+  out <- list()
+  for (ci in lp[["comp_ids"]]) {
+    cp <- components[[ci]]
+    if (is.null(cp[["mo_re"]])) next
+    bk <- re_blocks[[comp_block[ci]]]
+    for (cf in cp$mo_re$cf) {
+      k <- mo_re_index(lp, cp$cnms[cf])
+      if (is.na(k)) {
+        frm_stop("Special group-level terms require corresponding ",
+                 "population-level terms: ", cp$cnms[cf], " in ",
+                 cp$label, " varies the coefficient of a mo() column the ",
+                 "formula does not have. Add the population-level term, ",
+                 "e.g. y ~ mo(x) + (mo(x) | g)", call. = FALSE)
+      }
+      cols <- bk[["c_idx"]][(seq_len(bk[["n_levels"]]) - 1L) * bk[["dim"]] +
+                              comp_offset[ci] + cf]
+      out[[length(out) + 1L]] <- list(cols = cols, mo = k)
+    }
+  }
+  out
 }
 
 #' ar1()/hetar1() correlate two levels by their POSITION in the ordering
@@ -2931,6 +3129,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               }
             }
           }
+          # a group-level mo() term reads a placeholder column of ones,
+          # which the objective scales by the term's monotonic transform
+          # (mo_bar_rewrite())
+          for (ph in names(dp[["mo_re"]])) mf[[ph]] <- rep(1, nrow(mf))
           grp <- resolve_group_calls(rt_bars, mf, resp$formula_env)
           rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
                                      reorder.terms = FALSE)
@@ -2939,6 +3141,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         dup_cps <- list()
         for (k in seq_along(bars)) {
           cs_name <- dp[["re"]][[k]]$covstruct
+          k_mo <- intersect(names(dp[["mo_re"]]), all.vars(bars[[k]][[2]]))
+          if (length(k_mo) &&
+                (is_mm[k] || !cs_name %in% c("us", "diag") ||
+                   !is.null(dp[["re"]][[k]]$dist_nu) ||
+                   !is.null(dp[["re"]][[k]]$cov_expr) ||
+                   !is.null(dp[["re"]][[k]]$by))) {
+            # each of these reads its design in a way of its own (member
+            # weights, a level structure, a by-level split) that the
+            # monotonic scaling of a column has not been built into
+            frm_stop("A group-level mo() term is supported in a plain ",
+                     "(... | g) or (... || g) term; ",
+                     deparse1(mo_ph_unwrite(dp[["re"]][[k]]$written %||%
+                                              bars[[k]], dp[["mo_re"]])),
+                     " uses a structure, gr() option or mm() grouping it ",
+                     "is not built for", call. = FALSE)
+          }
           if (is_mm[k]) {
             mms <- dp[["re"]][[k]]$mm
             # cmc = FALSE rides on the spec, which the component keeps,
@@ -3081,8 +3299,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             aux_Qk = aux_Qk,
             group_name = names(rt$flist)[fassign[kk]],
-            label = paste0(dp_prefix, deparse1(bars[[k]]))
+            label = paste0(dp_prefix,
+                           deparse1(mo_ph_unwrite(bars[[k]], dp[["mo_re"]])))
           )
+          if (length(k_mo)) {
+            # the placeholder columns take brms's names (mox, mox:z),
+            # which the population-level column they vary must carry
+            # (mo_re_link(), phase 3)
+            cp <- components[[length(components)]]
+            rn <- mo_ph_rename(cp$cnms, dp[["mo_re"]])
+            cp$mo_re <- list(cf = which(rn != cp$cnms),
+                             raw = cp$cnms[rn != cp$cnms])
+            cp$cnms <- rn
+            components[[length(components)]] <- cp
+          }
           if (cmc_re[k]) {
             # cmc = FALSE: a prediction rebuilds the term with the
             # intercept and drops it, as the fit did
@@ -3412,7 +3642,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # special term, or no prior or parameter map could line the two
       # up. It is the POSITION that carries that, not the zeta number,
       # which starts past whatever the family already put in `extras`.
-      for (ent in mo_terms_in_brms_order(dp[["mo"]] %||% list())) {
+      mo_ents <- mo_terms_in_brms_order(dp[["mo"]] %||% list())
+      # the columns each term codes: one for mo(x) and mo(x):z, one per
+      # coded column of a factor or a multi-column multiplier (brms's sp
+      # model matrix, mo_sp_design())
+      mo_sp <- mo_sp_design(mo_ents, mf, resp$formula_env)
+      for (ei in seq_along(mo_ents)) {
+        ent <- mo_ents[[ei]]
         mexpr <- ent$expr
         v <- eval(mexpr, mf, resp$formula_env)
         if (is.factor(v)) {
@@ -3435,28 +3671,24 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (D_mo < 2L) {
           frm_stop("mo() needs at least 3 ordered categories", call. = FALSE)
         }
-        vkey <- deparse1(mexpr)
-        # one simplex per term occurrence, never shared between a main
-        # effect and an interaction on the same variable: the two terms
-        # describe different shapes and brms fits them separately
-        zname <- paste0("zeta", length(extras) + 1L)
-        extras[[zname]] <- numeric(D_mo - 1L)
-        mult <- NULL
-        if (!is.null(ent$mult)) {
-          mult <- check_special_mult(eval(ent$mult, mf, resp$formula_env),
-                                     ent$mult, "mo")
+        sp <- mo_sp[[ei]]
+        for (cj in seq_along(sp$labels)) {
+          # one simplex per COLUMN, never shared between a main effect
+          # and an interaction on the same variable, nor between the
+          # levels of a factor it is crossed with: brms fits each column
+          # of its sp model matrix with its own simplex and coefficient
+          zname <- paste0("zeta", length(extras) + 1L)
+          extras[[zname]] <- numeric(D_mo - 1L)
+          lab <- sp$labels[[cj]]
+          X <- cbind(X, matrix(0, nrow(X), 1,
+                               dimnames = list(NULL, lab)))
+          mo_info[[length(mo_info) + 1L]] <- list(
+            expr = mexpr, codes = codes, D = D_mo, levels = mo_levels,
+            zeta = zname, col = ncol(X), label = lab,
+            mult = sp$mult[[cj]], mult_expr = ent$mult,
+            mm_col = sp$mm_col[[cj]]
+          )
         }
-        lab <- paste0("mo", vkey,
-                      if (!is.null(ent$mult)) {
-                        paste0(":", deparse1(ent$mult))
-                      } else "")
-        X <- cbind(X, matrix(0, nrow(X), 1,
-                             dimnames = list(NULL, lab)))
-        mo_info[[length(mo_info) + 1L]] <- list(
-          expr = mexpr, codes = codes, D = D_mo, levels = mo_levels,
-          zeta = zname, col = ncol(X), label = lab,
-          mult = mult, mult_expr = ent$mult
-        )
       }
 
       # mi(x) predictor terms: one coefficient (zero placeholder column,
@@ -3644,6 +3876,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         smooths = sm_info,
         gps = gp_info,
         mo = mo_info,
+        # what a newdata row's mo() multipliers are rebuilt from
+        mo_mm = attr(mo_sp, "mm"),
         mi = mi_info,
         me = me_info,
         cs = cs_info,
@@ -3858,6 +4092,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (isTRUE(cps[[k]][["cmc_intercept"]])) {
           out[["cmc_intercept"]] <- TRUE
         }
+        # its group-level mo() columns, which a prediction scales too
+        if (!is.null(cps[[k]][["mo_re"]])) {
+          out[["mo_re"]] <- cps[[k]][["mo_re"]]
+        }
         out
       })
     )
@@ -3888,6 +4126,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       lp[["Z"]] <- Matrix::sparseMatrix(
         i = ii, j = jj, x = xx,
         dims = c(nrow(components[[lp[["comp_ids"]][1L]]]$Zlocal), n_c))
+      lp[["Z_mo"]] <- mo_re_link(lp, components, re_blocks, comp_block,
+                                 comp_offset)
     }
     if (length(lp[["smooths"]])) {
       lp[["smooths"]] <- lapply(lp[["smooths"]], function(si) {

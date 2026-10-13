@@ -9,7 +9,7 @@
 # Usage: Rscript dev/ciharden-run1.R <lib dir or "base"> <package> <file>
 local({
 # ROUND_BASE lets a later round rerun the scan against its own base
-base <- Sys.getenv("ROUND_BASE", "C:/Users/adf44/source/r/rellib-r7")
+base <- Sys.getenv("ROUND_BASE", "C:/Users/adf44/source/r/rellib-r8")
 user <- "C:/Users/adf44/AppData/Local/R/win-library/4.6"
 a <- commandArgs(trailingOnly = TRUE)
 .libPaths(c(if (!identical(a[1], "base")) a[1], base, user))

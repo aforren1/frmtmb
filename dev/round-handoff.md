@@ -3,11 +3,116 @@
 Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
 0.64.0 brms-parity release, 2026-09-29 at the 0.65.0 and 0.66.0
 releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
-0.68.0 release and 2026-10-07 at the 0.69.0 release. Read this, then
+0.68.0 release, 2026-10-07 at the 0.69.0 release and 2026-10-13 at the
+0.70.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.70.0 round, 2026-10-07 to 2026-10-13
+
+`dev/round-20261013.md` is this round's record, with the verification
+of the release tree under the reference BLAS and under OpenBLAS 0.3.26
+(BLAS and LAPACK, 4 threads, the ubuntu-24.04 runners' configuration)
+and 0.3.32. Each lane has `dev/<lane>-findings.md` and
+`dev/reviews/2026-10-08-<lane>.md`. Three lanes off `48c1e6c9`
+(0.69.0), merged on top of `2884ccbd` (0.69.1), in this order:
+
+- `moparity`: brms features that were refused or diverged: `mo(x) * f`
+  and `(mo(x) | g)`, Dirichlet priors on `simo` and `sbhaz`,
+  `update(prior =)` merging by slot, the `cox()` baseline in the
+  `mo()` chart, floors for the dense blocks with several scales,
+  `parnames()`, and frmtmb.sample's `cox()` baseline and non-centered
+  exact `gp()`.
+- `optrap`: fits that stopped short of the maximum: a unit for the
+  identity-link `mu` of ten location-scale families, the restart that
+  raises, `obj_settle()` on every discarded run, `newton_polish()`
+  for fits without random effects, the `mo()` search.
+- `seflags`: which SEs a fit reports: an exact design alias, the
+  prediction test in the unit-diagonal metric, the sd boundary verdict,
+  curved ridges, the degree-7 polynomial, an ill-conditioned design
+  named as one (scoped down in punch round 2c: such a direction keeps
+  0.69.0's NaN).
+
+Versions: frmtmb **0.70.0** (minor, breaking); frmtmb.sample
+**0.18.0** (minor, breaking), floor frmtmb 0.70.0 (it reads
+`simplex_frame_terms()`); frmtmb.eam **0.11.3** (patch), floor frmtmb
+0.70.0 (`test-defects.R` requires the prediction warning only 0.70.0
+gives; rstan added to Suggests). The other five extensions keep their
+versions and floors: no lane changed a file of theirs. The release
+library is `C:/Users/adf44/source/r/rellib-r8`; `rellib-r7` keeps
+0.69.1. In brms's own ported suite, bin 1 passes 389 of 494 (390 at
+0.69.0): `brmsfit-methods:326` held at 0.69.0 by luck.
+
+### Decisions the user made in this round
+
+- **`mo(x) * f` and `(mo(x) | g)` follow brms 2.22.0's
+  parameterization**, because brms 2.23.0 writes wrong Stan code for
+  these terms (every column multiplied by the first covariate) and
+  stops on a factor of three or more levels crossed with the main term
+  (brms#1828). frmtmb fits the model brms 2.22.0 fits.
+- **A Dirichlet prior on a MAP fit is a density on the simplex's
+  unconstrained coordinates with the chart's Jacobian**, frmtmb's
+  convention for every constrained parameter: the mode under
+  `dirichlet(a)` is the mode of `dirichlet(a + 1/2)` on the weights,
+  so `dirichlet(1)` is not the absence of a prior, and a concentration
+  below 1/2 is refused (`?frm`, "Monotonic effects").
+- **`update(prior =)` merges the new prior into the stored one by
+  slot, as brms does**, and a row of a prior table with an empty prior
+  returns its slot to the default, as in brms; `prior = NULL` or a
+  zero-row prior keeps the stored one. A new specification is still
+  checked as `frm()` checks it, where brms drops it silently.
+- **Response units and `newton_polish()`**: the identity-link `mu` of
+  ten location-scale families gets a unit (the MAD of the
+  least-squares residuals, rounded to a power of two), and a fit
+  without random effects takes Newton steps on the exact Hessian while
+  it is positive definite and a step predicts a gain above 1e-6; a
+  step is kept only if it gains at least 0.1 of its prediction, the
+  steps are undone if they end where the Hessian does not factor, and
+  a fit with random effects takes them too when its fixed design is
+  near collinear (`predictor_design_kappa() > 1e5`). The last three
+  are lane optrap's consolidation fixes of two defects the merged
+  build showed (below).
+  BREAKING: starting values and the optimizer's units change for those
+  families.
+- **An ill-conditioned design keeps 0.69.0's NaN**, with a message
+  that names the design as ill-conditioned (and, where it applies,
+  that the optimizer stopped short, with the Newton gain). Lane
+  seflags' attempt to report accurate SEs there (punch round 2b) gave
+  wrong finite numbers through emmeans, marginaleffects, `vcov()` read
+  whole and the ordinal category route; "Accurate SEs on
+  ill-conditioned designs" is its own lane (`dev/test-backlog.md`,
+  Open, high). The coordinator chose the scope-down on the review's
+  recommendation; the user did not pick it explicitly.
+- **0.69.1 was committed straight to main** (`2884ccbd`, lane ci691,
+  without a separate review round), and this round was consolidated on
+  top of it as 0.70.0.
+
+### What the 0.70.0 round is evidence for
+
+**Each lane was right, and two of their unions were not, until lane
+optrap fixed both before the release.** Every
+reviewer's own reruns reproduce on the merged build, row for row (the
+moparity attacks, the `cox()` study bit for bit, optrap's scale,
+`mo()`, high-R^2 and wide studies, seflags' routes and false-alarm
+battery). But the reruns on the merged build found defects that no
+lane's own runs could show: lane optrap's unit makes raw polynomials
+with `(1 | g)` stop short in silence at degree 6, and lane seflags'
+correct degree-7 SEs removed the false "flat" warning that had covered
+the same shortfall at degree 7; and lane optrap's `newton_polish()`
+accepts a step whose actual gain is a tiny fraction of the predicted
+one, which on a near-Poisson negative binomial runs the shape toward
+its infinite MLE and leaves every SE NaN behind a large-gradient
+warning. Lane seflags' false-alarm battery, run against the merged
+build, found the second; the optrap review's polynomial probe, rerun
+with an exact profile maximum, found the first. Lane optrap fixed both
+in its consolidation fixes (a 0.1 gain gate with an undo, and Newton
+steps on near-collinear random-effect fits), and the release tree took
+them by a rerun of `dev/rel070-merge.sh`, then was verified again
+(`dev/round-20261013.md`, "Found at the consolidation, fixed"). Run
+each review's batteries on the merged build, not only the suites, and
+keep the merge a script, so a lane's fix after the merge is one rerun.
 
 ## The 0.69.0 round, 2026-10-06 to 2026-10-07
 

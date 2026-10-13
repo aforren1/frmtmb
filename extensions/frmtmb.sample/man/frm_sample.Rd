@@ -230,7 +230,10 @@ non-centers
 and the CORRELATED blocks \code{(x | g)}, \code{cs()}, \code{ar1()} and \code{hetar1()}.
 A \verb{k =} Hilbert-space \code{gp()} block non-centers too, since its
 factor is diagonal and the defaults prior its sd and its length
-scales (brms's classes \code{"sdgp"} and \code{"lscale"}).
+scales (brms's classes \code{"sdgp"} and \code{"lscale"}), and so does an exact
+\code{gp()} field, as brms's \verb{sdgp * L zgp}: its factor is the Cholesky
+factor of the kernel over the field's distinct positions, taken on the
+tape at a cost of \code{n^3 / 3} per gradient for \code{n} positions.
 \code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
 factors. What stays centered is a run whose variance parameters are
@@ -262,7 +265,7 @@ like any other block.
 linear factor.
 \item \code{car()}, \code{spde()} and \code{gr(prec = )}: sparse precisions whose factor
 is dense.
-\item The exact \code{gp()} and the spatial covariances (\code{ou}, \code{exp}, \code{gau},
+\item The spatial covariances (\code{ou}, \code{exp}, \code{gau},
 \code{mat}): a full factorization per gradient evaluation.
 \item \code{toep()}: not positive definite everywhere in its parameterization,
 so \verb{b = L z} is not a bijection there.
@@ -372,8 +375,8 @@ which \code{prior = "flat"} therefore keeps; the fit's own coordinates
 (see "Monotonic effects" in \code{\link[frmtmb:frm]{frmtmb::frm()}}) have folds at the faces
 that wall a density off into separate sheets. The draws carry brms's
 names, \verb{simo_<term>1[k]}, one column per weight. A \code{simo} row in
-\verb{prior =} is refused: there is no Dirichlet density in
-\code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}.
+\verb{prior =}, \code{set_prior("dirichlet(c(5, 1, 1))", class = "simo", coef = "mox1")}, replaces \code{dirichlet(1)} on that simplex, as in brms,
+with the softmax's Jacobian applied.
 
 The \code{disc} default is brms's for every \code{link_disc} but the identity,
 where brms uses \code{lognormal(0, 1)}, which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} does

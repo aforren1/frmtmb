@@ -76,7 +76,7 @@ assert	frmtmb	brmsfit-methods:317	divergence	FALSE	TRUE	STALE: reads 'fi', whose
 setup	frmtmb	brmsfit-methods:320		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:324		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:325	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:326	cannot transfer	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:326	cannot transfer	FALSE	FALSE	Expected `all(fi > 0)` to be TRUE. Differences: `actual`:   <NA> `expected`: TRUE 		FALSE
 setup	frmtmb	brmsfit-methods:327		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:328	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:329	pass	TRUE	FALSE			TRUE

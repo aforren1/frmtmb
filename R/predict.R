@@ -14,6 +14,7 @@ get_joint_cov <- function(fit) {
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   Q <- joint_precision(fit)
   null <- NULL
+  flat <- NULL
   units <- NULL
   lost_pos <- integer(0)
   if (is.null(Q)) {
@@ -26,6 +27,7 @@ get_joint_cov <- function(fit) {
     V <- sdr$cov_fixed_prop %||% sdr$cov.fixed
     rn <- rownames(sdr$cov.fixed)
     null <- sdr$se_null
+    flat <- sdr$se_null_flat
     if (!is.null(null)) units <- fit$par_units
     lost_pos <- match(names(sdr$se_lost), outer_par_names(fit))
   } else {
@@ -33,6 +35,7 @@ get_joint_cov <- function(fit) {
     if (!is.null(rep)) {
       V <- rep$V
       null <- rep$null
+      flat <- rep$flat
       units <- rep$units
       lost_pos <- rep$lost_pos
     } else {
@@ -43,13 +46,14 @@ get_joint_cov <- function(fit) {
     }
     rn <- rownames(Q)
   }
-  cache$Vjoint <- list(V = V, names = rn, null = null, units = units,
-                       lost_pos = lost_pos[!is.na(lost_pos)])
+  cache$Vjoint <- list(V = V, names = rn, null = null, flat = flat,
+                       units = units, lost_pos = lost_pos[!is.na(lost_pos)])
   cache$Vjoint
 }
 
 #' The joint covariance of a fit with random effects whose outer Hessian
-#' lost standard errors (sdr_rescue()), or `NULL` when nothing was lost.
+#' lost standard errors or was repaired otherwise (sdr_rescue()), or
+#' `NULL` when the check kept sdreport()'s own inverse.
 #'
 #' The joint precision `Q` that sdreport() returns is built so that its
 #' inverse carries the inverse outer Hessian `H^-1` as the covariance of
@@ -84,7 +88,11 @@ get_joint_cov <- function(fit) {
 #' @noRd
 joint_cov_repair <- function(fit, Q, sdr) {
   Vf <- sdr$cov_fixed_prop
-  if (is.null(Vf) || !length(sdr$se_lost)) return(NULL)
+  # with nothing lost the repaired covariance still differs from the
+  # inverse of the outer Hessian when a span was re-measured
+  # (se_span_remeasure()): a degree-7 polynomial with (1 | g) on optrap's
+  # units gave a prediction SE of 0 from solve(Q) (punch round 2)
+  if (is.null(Vf)) return(NULL)
   p <- nrow(Q)
   r <- fit$obj$env$random
   f <- setdiff(seq_len(p), r)
@@ -109,7 +117,19 @@ joint_cov_repair <- function(fit, Q, sdr) {
   }
   units <- rep(1, p)
   units[f] <- fit$par_units %||% 1
-  list(V = V, null = null, units = units,
+  # the flat subspace's scaling, moved to the joint positions as `null`
+  flat <- sdr$se_null_flat
+  if (!is.null(flat)) {
+    sc <- rep(NA_real_, p)
+    sc[f] <- flat$scale
+    flat$scale <- sc
+    if (length(flat$dscale)) {
+      ds <- rep(NA_real_, p)
+      ds[f] <- flat$dscale
+      flat$dscale <- ds
+    }
+  }
+  list(V = V, null = null, flat = flat, units = units,
        lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
 }
 
@@ -253,6 +273,24 @@ mo_col_values <- function(fit, mi, codes = mi$codes) {
   zeta <- mo_simplex(fit$estimates[[mi$zeta]], mi[["chart"]])
   cz0 <- c(0, cumsum(zeta))
   mi$D * cz0[codes + 1L]
+}
+
+#' The random-effect design of one linear predictor at the estimates:
+#' `lp$Z`, with each group-level `mo()` column scaled by its term's
+#' transform (`mo_re_zterm()` is the same on the tape). Every numeric
+#' reader of the design as a design (eta, a delta-method Jacobian)
+#' takes it from here; a reader of its pattern alone may take `lp$Z`.
+#'
+#' @noRd
+lp_Z <- function(fit, lp) {
+  Z <- lp[["Z"]]
+  if (is.null(Z) || !length(lp[["Z_mo"]])) return(Z)
+  for (zm in lp[["Z_mo"]]) {
+    m <- mo_col_values(fit, lp[["mo"]][[zm$mo]])
+    Z[, zm$cols] <- Matrix::Diagonal(x = m) %*%
+      Z[, zm$cols, drop = FALSE]
+  }
+  Z
 }
 
 #' Category codes of a `mo()` variable in new data, validated against the
@@ -740,9 +778,17 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     }
     m
   }
+  mo_mm_nd <- NULL
   for (mi in lp[["mo"]] %||% list()) {
-    v <- mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata)) *
+    m <- if (is.na(mi[["mm_col"]] %||% NA_character_)) {
       nd_mult(mi$mult_expr)
+    } else {
+      # a column of brms's sp model matrix, rebuilt on the new rows with
+      # the fitted levels and contrasts (mo_sp_design())
+      if (is.null(mo_mm_nd)) mo_mm_nd <- mo_sp_newdata(lp, newdata)
+      unname(mo_mm_nd[, mi[["mm_col"]]])
+    }
+    v <- mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata)) * m
     X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mi$label)))
   }
   for (mt in lp[["mi"]] %||% list()) {
@@ -796,6 +842,13 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
                                             env = env))
       tt2 <- patch_predvars(tt2, fit$frame[["predvar_map"]])
+      # a group-level mo() term's placeholder columns, as in the fit
+      for (ph in comp$mo_re$raw) {
+        for (v in intersect(strsplit(ph, ":", fixed = TRUE)[[1L]],
+                            all.vars(comp$bar[[2]]))) {
+          newdata[[v]] <- rep(1, nrow(newdata))
+        }
+      }
       newdata <- check_newdata_frame(tt2, newdata,
                                      xlev_for(lp[["xlevels"]], tt2))
       mf2 <- stats::model.frame(tt2, newdata, na.action = stats::na.pass,
@@ -806,6 +859,17 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       mm <- stats::model.matrix(tt2, mf2)
       if (isTRUE(comp[["cmc_intercept"]])) {
         mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
+      }
+      if (length(comp$mo_re$cf)) {
+        hit <- match(colnames(mm), comp$mo_re$raw)
+        colnames(mm)[!is.na(hit)] <- comp$cnms[comp$mo_re$cf[hit[!is.na(hit)]]]
+        # the placeholder column scaled by the term's transform at the
+        # new rows' categories (lp_Z() in sample)
+        for (cf in comp$mo_re$cf) {
+          mi <- lp[["mo"]][[mo_re_index(lp, comp$cnms[cf])]]
+          mm[, cf] <- mm[, cf] *
+            mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata))
+        }
       }
       if (!identical(colnames(mm), comp$cnms)) {
         frm_stop("Random-effect design for `", comp$label, "` does not match ",
@@ -1074,7 +1138,7 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
     # ends in "evaluation nested too deeply", on every model with a
     # block rather than only on unusual ones
     if (!is.null(lp[["Z"]]) && !is.null(b)) {
-      eta <- eta + as.numeric(lp[["Z"]] %*% b)
+      eta <- eta + as.numeric(lp_Z(fit, lp) %*% b)
     }
     if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
     out[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
@@ -2176,7 +2240,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     if (!is.null(lp[["Z"]])) {
       cvec <- coef_b(object)
       if (use_re) {
-        eta <- eta + as.numeric(lp[["Z"]] %*% cvec)
+        eta <- eta + as.numeric(lp_Z(object, lp) %*% cvec)
       } else if (length(sm_blocks)) {
         # population-level: drop the group-level blocks, keep every
         # smooth, gp() and hsgp() curve (sm_blocks is all of them)
@@ -2316,7 +2380,7 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
     }
     if (is.null(newdata)) {
       if (use_re && !is.null(lp[["Z"]])) {
-        upd <- add_b_cols(A, coef_pos, lp[["Z"]], b_pos, th_pos)
+        upd <- add_b_cols(A, coef_pos, lp_Z(object, lp), b_pos, th_pos)
         A <- upd$A
         coef_pos <- upd$coef_pos
       } else if (!use_re && length(ed[["sm_blocks"]]) && !is.null(lp[["Z"]])) {

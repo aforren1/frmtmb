@@ -214,8 +214,11 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
     if (is.null(E) || !all(dim(E) == np)) E <- matrix(0, np, np)
     E[!is.finite(E)] <- 0
   }
-  an <- se_tier3(fit, H, E, p, exact, held, edge)
-  if (!length(an$lost) && !is.null(tier1) && !replaced) tier1 else an
+  # the covariance tier 3 builds is not needed where tier 1 stands
+  lazy <- !is.null(tier1) && !replaced
+  an <- se_tier3(fit, H, E, p, exact, held, edge, lazy = lazy)
+  # a re-measured span is not the Hessian sdreport() inverted
+  if (!length(an$lost) && lazy && !isTRUE(an$remeasured)) tier1 else an
 }
 
 #' Could se_tier3() remove a parameter from this Hessian? Asked before
@@ -224,9 +227,10 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
 #'
 #' - a row no larger than the Hessian's noise (tier 3's empty-row rule,
 #'   the same floors, in the optimizer's units);
-#' - a unit-diagonal eigenvalue at or below `se_flat_tol` of the largest.
-#'   Tier 3 inverts a remainder whose smallest eigenvalue is above that
-#'   as it is, so nothing else can make it remove a direction.
+#' - a unit-diagonal eigenvalue at or below `se_ridge_screen` of the
+#'   largest. Tier 3 removes a direction only at or below `se_flat_tol`,
+#'   or below `se_ridge_screen` when its curvature corrected for a
+#'   curved ridge is (se_ridge_curvature()).
 #'
 #' Two more of tier 3's reasons send it there too, so that they do not
 #' depend on an unrelated eigenvalue: a parameter a bound holds (`held`;
@@ -250,7 +254,14 @@ se_tier3_could_act <- function(fit, H, E, exact, held = logical(0),
   D <- sqrt(abs(diag(H)))
   if (!all(D > 0)) return(TRUE)
   ev <- eigen(H / outer(D, D), symmetric = TRUE, only.values = TRUE)$values
-  min(ev) <= se_flat_tol * max(abs(ev))
+  # se_ridge_screen, not se_flat_tol: a curved ridge's eigenvalue sits
+  # above the second (se_ridge_curvature()). A model all of whose outer
+  # parameters are linear coefficients has no curved ridge to look for
+  # (se_linear_pars()); a 2051-coefficient bernoulli fit paid a full
+  # decomposition for nothing (dev/seflags-bigp.R)
+  lin <- tryCatch(se_linear_pars(fit), error = function(e) logical(0))
+  scr <- if (length(lin) == np && all(lin)) se_flat_tol else se_ridge_screen
+  min(ev) <= scr * max(abs(ev))
 }
 
 #' The parameters a bound holds (grad_bound_active()), read only when the
@@ -298,8 +309,7 @@ se_edge_sd <- function(fit, H) {
     j <- thpos[k]
     hd <- abs(H[j, j]) * u[j]^2
     if (!is.finite(hd) || hd > se_edge_screen) next
-    out[j] <- se_at_edge(fit, om$names[j], -1) &&
-      se_sd_gain_up(fit, k) <= se_edge_tol
+    out[j] <- se_at_edge(fit, om$names[j], -1) && se_sd_at_zero(fit, k)
   }
   # the one correlation of a block whose sd is at zero is undefined
   # there, however much curvature is left in it: on the gr(g, by = f)
@@ -315,6 +325,22 @@ se_edge_sd <- function(fit, H) {
     }
   }
   out
+}
+
+#' Is a log standard deviation that the likelihood ignores below its
+#' estimate (se_at_edge()) at zero? Only if the likelihood reads it at
+#' all: a larger value must change the log-likelihood, by a loss (a gain
+#' is a fit that stopped short, se_sd_gain_up()). An sd the likelihood
+#' does not depend on is flat in both directions and has no edge: on
+#' test-diagnostics-ux.R's flat peak (an nl bump that is zero on every
+#' row) the sd of `pk`'s group effect sat at 0.22, the objective did not
+#' move at any value of it, and 0.69.0 called it "at zero" (0.69.0
+#' review, item 6).
+#'
+#' @noRd
+se_sd_at_zero <- function(fit, k) {
+  g <- se_sd_gain_up(fit, k)
+  g <= se_edge_tol && isTRUE(attr(g, "moved") > se_edge_tol)
 }
 
 #' The curvature above which se_edge_sd() does not ask: 25 times the
@@ -344,14 +370,26 @@ se_edge_screen <- 0.1
 #'   `se_dir_mult` times that direction's own noise `||Es v||`) is
 #'   removed: flat when its eigenvalue is within the threshold of zero,
 #'   negative below that.
-#' - A flat direction is one the data do not determine. A
-#'   parameter loses its standard error to it when its unit vector has a
-#'   projection onto the flat subspace above `tau`, the larger of
-#'   sqrt(`se_flat_tol`) and the bound that the matrix's noise puts on an
-#'   eigenvector's error (`se_noise_mult` times the noise norm over the
-#'   eigenvalue gap). That has no dilution: a flat direction shared by
-#'   120 coefficients loads 0.065 on each, far above tau, and every one
-#'   of them is named.
+#' - A removed direction that no objective evaluation has asked about
+#'   (an eigenvalue below the Hessian's digits) is measured again with
+#'   the confirmed small directions next to it by second differences of
+#'   the objective (se_span_remeasure()); what the objective confirms is
+#'   kept, at the curvature it measured.
+#' - A flat direction is one the data do not determine. The part of the
+#'   flat subspace that a linear predictor's design makes exactly flat
+#'   (se_design_null()) is known exactly: every parameter it moves is
+#'   named, and a prediction is tested against it to rounding. For the
+#'   rest, a parameter loses its standard error when its unit vector has
+#'   a projection onto it above `tau`, the larger of sqrt(`se_flat_tol`)
+#'   and the bound that the matrix's noise puts on the subspace's error
+#'   (`se_noise_mult` times the norm of the noise along the removed
+#'   directions over the eigenvalue gap), or above `se_dominant` of the
+#'   largest projection where that is lower. That has no dilution: a
+#'   flat direction shared by 120 coefficients loads 0.065 on each, far
+#'   above tau, and every one of them is named. Where tau is the
+#'   threshold, a prediction is judged against the same subspace with
+#'   it (jc_nonest()); where the cap is, tau bounds nothing, and a
+#'   prediction that reads a named parameter gets no standard error.
 #' - A negative direction is named by its dominant parameters
 #'   (loading at least `se_dominant` of the largest). It is `"concave"`
 #'   when a step along it raises the log-likelihood by more than
@@ -363,11 +401,16 @@ se_edge_screen <- 0.1
 #'   lme4's 0.1009 (lane nanse review, B1).
 #'
 #' The covariance kept for propagation is the pseudo-inverse over the
-#' kept directions, zero in the rows of a removed parameter.
+#' kept directions, zero in the rows of a removed parameter. `flat`
+#' describes the flat subspace's columns of `null` for jc_nonest():
+#' `list(cols, scale, tol)`, `scale` the unit-diagonal scaling of each
+#' outer parameter (NA outside the decomposed block), or NULL. With
+#' `lazy`, a covariance that loses nothing is not built (its caller
+#' keeps sdreport()'s inverse then).
 #'
 #' @noRd
 se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
-                     edge = logical(0)) {
+                     edge = logical(0), lazy = FALSE) {
   np <- NROW(H)
   nm <- outer_par_names(fit)
   why <- character(np)
@@ -409,6 +452,8 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   null <- diag(1, np)[, out_rows, drop = FALSE]
   free <- which(why == "")
   ev <- numeric(0)
+  remeasured <- FALSE
+  flat <- NULL
   if (length(free)) {
     Hf <- H[free, free, drop = FALSE]
     Df <- sqrt(abs(diag(Hf)))
@@ -416,14 +461,22 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     ev <- e$values
     big <- max(abs(ev))
     Es <- E[free, free, drop = FALSE] / outer(Df, Df)
-    enorm <- sqrt(sum(Es^2))
     # each direction against its own noise, ||Es v_k||, which bounds how
     # far the noise can move that eigenvalue. The norm of the whole
     # block's noise did not: on (1 + x | g2) with no g2 variation and a
     # 40-level factor it was 0.033, above the identified intercept-
     # against-contrasts eigenvalue of 0.022 whose own noise is 0.0012,
     # and the intercept and 39 contrasts lost SEs lme4 reports (RB4)
-    nk <- sqrt(colSums((Es %*% e$vectors)^2))
+    # Computed only where it can decide anything: ||Es v|| is at most
+    # ||Es||_F, so a direction whose eigenvalue is above three times that
+    # and above se_ridge_screen of the largest is kept whatever its own
+    # noise, and its product costs as much as the decomposition (13.5 s
+    # of 46 on a 2051-coefficient bernoulli fit, dev/seflags-bigprof.R)
+    nk <- rep(sqrt(sum(Es^2)), length(ev))
+    ask <- which(ev <= max(se_ridge_screen * big, se_dir_mult * nk[1L]))
+    if (length(ask)) {
+      nk[ask] <- sqrt(colSums((Es %*% e$vectors[, ask, drop = FALSE])^2))
+    }
     thr <- pmax(se_flat_tol * big, se_dir_mult * nk)
     # once the empty, bound and non-finite rows are out, a positive
     # definite remainder is inverted as it is
@@ -445,11 +498,114 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     for (k in try_k) {
       keep[k] <- se_curvature_real(fit, p, free, e$vectors[, k] / Df, ev[k])
     }
-    rem <- which(!keep)
+    # A small eigenvalue above that can still sit on a ridge the
+    # likelihood is flat along: off the ridge's floor by the optimizer's
+    # tolerance, the curvature across a curved ridge leaks into the
+    # Hessian along it (c0k at 1.3e-5, a + exp(b) at up to 8.7e-7,
+    # dev/seflags-spectrum.R). The curvature measured on the ridge's
+    # floor tells them apart (se_ridge_curvature()); where it is no
+    # larger than the threshold above, the step test decides, at the
+    # step that curvature calls for. Only a direction that loads on a
+    # parameter outside a primary linear predictor can be such a ridge
+    # (se_linear_pars()); the others are not asked, which spared a
+    # calendar-year covariate on 1e5 rows 8 gradients of the Laplace
+    # objective (0.69.0 review of lane seflags, cost).
+    nonlin <- !se_linear_pars(fit)[free]
+    ridge_k <- setdiff(which(keep & ev <= se_ridge_screen * big), try_k)
+    ridge_k <- ridge_k[vapply(ridge_k, function(k) {
+      sqrt(sum(e$vectors[nonlin, k]^2)) > se_ridge_nonlin
+    }, NA)]
+    for (k in ridge_k[order(ev[ridge_k])]) {
+      c0 <- se_ridge_curvature(fit, p, free, e, Df, k, keep)
+      if (!is.finite(c0) || c0 > thr[k]) next
+      keep[k] <- c0 > 100 * .Machine$double.eps * big &&
+        se_curvature_real(fit, p, free, e$vectors[, k] / Df, c0)
+    }
+    # Directions along which a linear predictor's design is exactly
+    # flat (se_design_null()), in this block's metric. They are named
+    # and tested exactly below, and a removed direction that lies in
+    # them needs no measurement. Asked only when a direction was
+    # removed, since it decomposes the designs.
+    Nd <- if (any(!keep)) {
+      tryCatch(se_design_null(fit), error = function(e) NULL)
+    }
+    Qd <- NULL
+    if (NCOL(Nd)) {
+      Qs <- Nd[free, , drop = FALSE] * Df
+      if (any(Qs != 0)) Qd <- qr.Q(qr(Qs))
+    }
+    in_design <- function(k) {
+      !is.null(Qd) && sum(crossprod(Qd, e$vectors[, k])^2) > 0.99
+    }
+    # A removed direction the objective was never asked about (its
+    # eigenvalue is below the digits the Hessian has, or within its
+    # noise of zero and not positive) may be real curvature the
+    # finite-difference Hessian cannot resolve, and the kept directions
+    # next to it may be mixed with it. The Hessian on their span is
+    # measured again by second differences of the objective
+    # (se_span_remeasure()): on a degree-7 raw polynomial with (1 | g)
+    # the directions at 8.9e-15 and 1.37e-11 of the largest are real,
+    # and the standard errors come within 10 percent of lmer()'s, where
+    # 0.69.0 kept five at 0.05 to 0.12 times lmer()'s (setier review m7;
+    # 0.69.0 review of lane seflags, B2). A direction the step test
+    # confirmed is never removed on the Hessian's word.
+    rescued <- try_k[keep[try_k]]
+    unmeas <- which(!keep & ev <= 100 * .Machine$double.eps * big &
+                      ev >= -thr)
+    unmeas <- unmeas[!vapply(unmeas, in_design, NA)]
+    S <- c(unmeas, rescued)
+    if (length(unmeas) && length(S) <= se_span_max) {
+      sp <- se_span_remeasure(fit, p, free, e, Df, S)
+      if (!is.null(sp)) {
+        remeasured <- TRUE
+        e$vectors[, S] <- sp$vectors
+        ev[S] <- e$values[S] <- sp$values
+        keep[S] <- sp$confirmed
+        nk[S] <- sqrt(colSums((Es %*% sp$vectors)^2))
+        # what the objective measured is not the Hessian's noise
+        thr[S] <- se_flat_tol * big
+        thr[S[sp$confirmed]] <- 0
+      }
+    }
+    # A curvature the objective confirms below machine epsilon of the
+    # largest cannot be held beside the others in one double-precision
+    # covariance. Its own measurement is accurate (punch round 2b: kept
+    # beside the covariance, the SEs were 1.000 to 1.020 times exact on
+    # the routes that added it), but every consumer that reads the
+    # matrix whole (emmeans, marginaleffects, vcov() itself, an ordinal
+    # fit's category route) then got 0.3 to 255929 times the true SE in
+    # silence (final check after punch round 2b, B6 and B7). So, as in
+    # 0.69.0, the parameters it carries get no SE, and neither does a
+    # prediction that reads them. The design is identified, so the
+    # reason is "illcond", not "flat": a parameter whose variance such
+    # a direction carries more than `se_ill_share` of. Accurate SEs on
+    # such designs are filed (dev/test-backlog.md).
+    ill <- which(keep & ev < .Machine$double.eps * big)
+    ill_on <- logical(length(free))
+    if (length(ill)) {
+      kk <- which(keep)
+      vt <- drop(e$vectors[, kk, drop = FALSE]^2 %*% (1 / ev[kk]))
+      vi <- drop(e$vectors[, ill, drop = FALSE]^2 %*% (1 / ev[ill]))
+      # a loading below sqrt(se_flat_tol) is at the precision of the
+      # directions themselves, and divided by a curvature this small any
+      # noise is a large share: on the degree-8 polynomial the share
+      # alone took sigma's SE, though a gaussian model's sigma has no
+      # loading on its coefficients' directions
+      ld <- sqrt(rowSums(e$vectors[, ill, drop = FALSE]^2))
+      ill_on <- vi > se_ill_share * vt & ld > sqrt(se_flat_tol)
+      keep[ill] <- FALSE
+    }
+    rem <- setdiff(which(!keep), ill)
     gap <- if (any(keep) && length(rem)) {
       min(ev[keep]) - max(ev[rem])
     } else big
-    tau <- max(sqrt(se_flat_tol), se_noise_mult * enorm / max(gap, 1e-300))
+    # The removed subspace's own noise, ||Es V_rem||, over the gap bounds
+    # its angle to the true one (Davis and Kahan's sin-theta theorem in
+    # its residual form). The norm of the whole block's noise bounds it
+    # no better and is ruled by the largest directions: on the degree-7
+    # polynomial it was 6.5e-8 against 3.4e-12 on the two smallest.
+    tau <- max(sqrt(se_flat_tol),
+               se_noise_mult * sqrt(sum(nk[rem]^2)) / max(gap, 1e-300))
     neg <- rem[ev[rem] < -thr[rem]]
     flat_k <- setdiff(rem, neg)
     conc <- vapply(neg, function(k) {
@@ -465,30 +621,130 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
       on <- dominant(k) & mark == ""
       mark[on] <- if (conc[match(k, neg)]) "concave" else "flat"
     }
-    if (length(flat_k)) {
-      proj <- sqrt(rowSums(e$vectors[, flat_k, drop = FALSE]^2))
-      on <- proj > tau | Reduce(`|`, lapply(flat_k, dominant))
-      mark[on & mark == ""] <- "flat"
+    # The flat subspace splits in two: the part a design makes exactly
+    # flat, known exactly, and the rest, known only to the Hessian's
+    # precision.
+    Fr <- e$vectors[, flat_k, drop = FALSE]
+    dq <- NULL
+    if (length(flat_k) && !is.null(Qd)) {
+      dq <- Qd[, colSums(crossprod(Fr, Qd)^2) > 0.5, drop = FALSE]
+      if (NCOL(dq)) {
+        Fr <- Fr - dq %*% crossprod(dq, Fr)
+        sv <- svd(Fr)
+        Fr <- sv$u[, sv$d > 0.5, drop = FALSE]
+      }
     }
+    if (NCOL(dq)) {
+      # every parameter the exact direction moves, by its exact loading
+      pd <- sqrt(rowSums(dq^2))
+      mark[pd > se_pred_tol * max(pd) & mark == ""] <- "flat"
+      Nx <- matrix(0, np, NCOL(dq))
+      Nx[free, ] <- dq / Df
+      null <- cbind(null, Nx)
+    }
+    flat_tol <- NA_real_
+    if (NCOL(Fr)) {
+      # one threshold for a parameter and for a prediction (jc_nonest())
+      # where tau bounds the subspace's error; where it says nothing
+      # (above half the largest projection), the parameters that carry
+      # the direction are named and a prediction that reads any of them
+      # gets none, as in 0.69.0: the cap is a rule for naming
+      # parameters, not an error bound, and a hypothesis 0.12 off an
+      # exact alias passed under it (0.69.0 review of lane seflags, B1)
+      proj <- sqrt(rowSums(Fr^2))
+      flat_tol <- min(tau, se_dominant * max(proj))
+      mark[proj > flat_tol & mark == ""] <- "flat"
+    }
+    mark[ill_on & mark == ""] <- "illcond"
     why[free[mark != ""]] <- mark[mark != ""]
-    if (length(rem)) {
-      # a removed direction stands for the parameters it named; the
-      # small loading of a parameter that keeps its standard error is
-      # not part of it, or every prediction through that parameter would
-      # lose its band (mo() seed 12: zeta1_2 at 0.022 on zeta2_2's
-      # concave direction took every conditional_effects() band)
-      Vr <- e$vectors[, rem, drop = FALSE]
+    capped <- NCOL(Fr) > 0L && tau > flat_tol
+    # An "illcond" parameter is lost as a row is: a prediction that
+    # reads it at all gets no SE. Its direction alone would not do:
+    # inside the data's range a prediction's cosine with it is 1e-10,
+    # far below se_pred_tol, and yet the direction carries most of its
+    # variance (punch round 2, B4)
+    ic <- free[mark == "illcond"]
+    if (length(ic)) null <- cbind(null, diag(1, np)[, ic, drop = FALSE])
+    if (length(neg) || capped) {
+      # a downward direction (or a flat one whose error is not bounded)
+      # stands for the parameters it named; the small loading of a
+      # parameter that keeps its standard error is not part of it, or
+      # every prediction through that parameter would lose its band
+      # (mo() seed 12: zeta1_2 at 0.022 on zeta2_2's concave direction
+      # took every conditional_effects() band)
+      Vr <- cbind(e$vectors[, neg, drop = FALSE], if (capped) Fr)
       Vr[mark == "", ] <- 0
       Vr <- Vr[, colSums(Vr^2) > 0, drop = FALSE]
       Nk <- matrix(0, np, NCOL(Vr))
       Nk[free, ] <- Vr / Df
       null <- cbind(null, Nk)
     }
-    if (any(keep)) {
+    if (NCOL(Fr) && !capped) {
+      # A flat direction is kept whole, with the loadings of parameters
+      # that keep their standard error: the likelihood is flat along the
+      # whole of it and not along a part (0.69.0 review, B1).
+      # jc_nonest() reads it as a subspace in this metric with the
+      # threshold that decided the parameters, which tau makes an error
+      # bound here.
+      Nf <- matrix(0, np, NCOL(Fr))
+      Nf[free, ] <- Fr / Df
+      sc <- rep(NA_real_, np)
+      sc[free] <- Df
+      flat <- list(cols = NCOL(null) + seq_len(NCOL(Fr)), scale = sc,
+                   tol = flat_tol)
+      null <- cbind(null, Nf)
+    }
+    # `lazy`: the caller keeps its own inverse unless something is lost,
+    # and this product costs as much as the decomposition
+    if (any(keep) && !(lazy && all(why == "") && !remeasured)) {
       U <- e$vectors[, keep, drop = FALSE]
       Vf <- U %*% (t(U) / ev[keep])
+      if (NCOL(dq)) {
+        # the exact directions replace the measured ones they stand for:
+        # the inverse on the complement of everything removed
+        Rm <- cbind(dq, Fr, e$vectors[, c(neg, ill), drop = FALSE])
+        qm <- qr(Rm)
+        C <- qr.Q(qm, complete = TRUE)[, -seq_len(qm$rank), drop = FALSE]
+        if (NCOL(C)) {
+          A <- e$vectors %*% (ev * t(e$vectors))
+          Ac <- crossprod(C, A %*% C)
+          Vc <- tryCatch(solve((Ac + t(Ac)) / 2), error = function(e) NULL)
+          if (!is.null(Vc) && all(is.finite(Vc))) Vf <- C %*% Vc %*% t(C)
+        }
+      }
       V[free, free] <- Vf / outer(Df, Df)
+      if (length(ill)) {
+        # The optimizer's gradient test cannot see how far short it
+        # stopped where the curvature is this small: on degree-8 fits
+        # at code 0 a Newton step gains up to 4.5 of log-likelihood,
+        # along the ill-conditioned direction and the weak ones beside
+        # it, and the gain stated was 0.97 to 1.09 times the true
+        # shortfall on every such fit (dev/seflags-p2b-gain.R; final
+        # check after punch round 2b, dev/seflags-rev4-gain.R). The
+        # message says so (se_lost_clauses()). g' V g / 2 over the kept
+        # covariance and the direction, which is what a Newton step
+        # gains; only the message reads it
+        g <- tryCatch(se_quiet(as.numeric(fit$obj$gr(p))),
+                      error = function(e) NULL)
+        if (length(g) == np && all(is.finite(g)) &&
+              is.environment(fit$cache)) {
+          di <- e$vectors[, ill, drop = FALSE] / Df
+          fit$cache$se_ill_gain <- (sum(g * (V %*% g)) +
+                                      sum(drop(g[free] %*% di)^2 /
+                                            ev[ill])) / 2
+        }
+      }
     }
+    # What jc_nonest() reads besides `null`: the flat subspace's columns
+    # (when tau bounds it) and the unit-diagonal scaling of every outer
+    # parameter, in which it measures every cosine, so that a verdict
+    # does not depend on the optimizer's units (punch round 2, m5)
+    dsc <- sqrt(abs(diag(H)))
+    flat <- c(flat %||% list(cols = integer(0), scale = {
+      sc <- rep(NA_real_, np)
+      sc[free] <- Df
+      sc
+    }, tol = NA_real_), list(dscale = dsc))
   }
   lost <- why != ""
   shown <- V
@@ -496,7 +752,7 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   shown[, lost] <- NaN
   # `ev` is kept for diagnosis: the spectrum the verdicts were read from
   list(V = V, shown = shown, lost = stats::setNames(why[lost], nm[lost]),
-       null = null, tier = 3L, ev = ev)
+       null = null, flat = flat, tier = 3L, ev = ev, remeasured = remeasured)
 }
 
 #' The noise of the finite-difference outer Hessian of a fit with random
@@ -561,7 +817,7 @@ se_curvature_real <- function(fit, p, free, dir_free, lambda) {
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   d <- numeric(length(p))
   d[free] <- dir_free * sqrt(4 * tol / lambda)
-  f <- function(x) tryCatch(obj$fn(x), error = function(e) NA_real_)
+  f <- function(x) tryCatch(se_quiet(obj$fn(x)), error = function(e) NA_real_)
   f0 <- f(p)
   full <- f(p + d) + f(p - d) - 2 * f0
   half <- f(p + d / 2) + f(p - d / 2) - 2 * f0
@@ -569,6 +825,362 @@ se_curvature_real <- function(fit, p, free, dir_free, lambda) {
   all(is.finite(c(full, half, r))) && full >= 2 * tol &&
     r > se_quad_lo && r < se_quad_hi
 }
+
+#' The curvature of the likelihood along the small eigenvector `k` of
+#' the unit-diagonal Hessian `e` over `free`, corrected for a curved
+#' ridge: the Hessian along the direction, measured again where the
+#' other directions are stationary and extrapolated to a step of zero.
+#'
+#' At a point on a ridge the likelihood is flat along, the curvature
+#' along the ridge is zero. A fit stops within the optimizer's tolerance
+#' of the ridge, and there the gradient across a curved ridge leaks into
+#' the Hessian along it: `a + exp(b)` showed eigenvalues up to 8.7e-7 and
+#' c0k up to 1.3e-5 (dev/seflags-spectrum.R), which no threshold on the
+#' eigenvalue tells from real curvature. Two corrections take the leak
+#' out. Newton steps on the other directions (those kept with a larger
+#' eigenvalue, the Hessian held) move the estimate onto the ridge's
+#' floor. The curvature along the direction is then read from central
+#' differences of the gradient at 0.001 and 0.01 unit-diagonal steps; a
+#' straight line leaves a curved ridge, so that curvature grows as the
+#' square of the step there and not on real curvature, and the two
+#' differences are extrapolated to a step of zero. On `a + exp(b)` seed 4
+#' the eigenvalue 8.7e-7 becomes about 1e-11, while a raw polynomial of
+#' degree 5 and a poisson pair at a correlation of 1 - 5e-9 keep theirs
+#' (5.4e-11 to 7.1e-11 and 4.0e-9 to 5.6e-9, unchanged to three digits;
+#' dev/seflags-ridgecurv.R).
+#'
+#' Returns the corrected curvature, NA when a gradient is not finite.
+#'
+#' @noRd
+se_ridge_curvature <- function(fit, p, free, e, Df, k, keep) {
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  vk <- e$vectors[, k]
+  oth <- which(keep & seq_along(keep) != k & e$values > e$values[k])
+  U <- e$vectors[, oth, drop = FALSE]
+  lo <- e$values[oth]
+  # the gradient in the unit-diagonal coordinates
+  g <- function(x) {
+    r <- tryCatch(se_quiet(as.numeric(obj$gr(x)))[free] / Df,
+                  error = function(e) NULL)
+    if (length(r) == length(free) && all(is.finite(r))) r
+  }
+  crit <- function(gs) sum(drop(crossprod(U, gs))^2 / lo)
+  x <- p
+  gx <- g(x)
+  if (is.null(gx)) return(NA_real_)
+  if (length(oth)) {
+    cx <- crit(gx)
+    for (it in seq_len(se_ridge_iter)) {
+      y <- x
+      y[free] <- x[free] - drop(U %*% (drop(crossprod(U, gx)) / lo)) / Df
+      gy <- g(y)
+      if (is.null(gy)) break
+      cy <- crit(gy)
+      if (!(cy < cx)) break
+      x <- y
+      gx <- gy
+      cx <- cy
+    }
+  }
+  curv <- function(h) {
+    d <- numeric(length(p))
+    d[free] <- h * vk / Df
+    gp <- g(x + d)
+    gm <- g(x - d)
+    if (is.null(gp) || is.null(gm)) return(NA_real_)
+    sum((gp - gm) * vk) / (2 * h)
+  }
+  c1 <- curv(se_ridge_step)
+  c2 <- curv(10 * se_ridge_step)
+  # On a ridge the polish takes most of the eigenvalue away at the small
+  # step (2.5e-9 against 8.7e-7 on a + exp(b) seed 4; 1.7e-8 against
+  # 7.2e-8 on a mo() simplex with an unobserved category, seed 3 with
+  # age). Where it does not, the direction curves as the eigenvalue
+  # says, and a likelihood that changes its shape within the larger step
+  # must not be extrapolated: frmtmb.eam's LBA fit with a wall 0.3 units
+  # along its smallest direction (eigenvalue 0.0020) read 0.0020 and
+  # 0.0024 at these steps and 5.2 at ten times the larger one
+  if (!is.finite(c1) || c1 > se_ridge_shrink * e$values[k]) return(c1)
+  (100 * c1 - c2) / 99
+}
+
+#' The fraction of the eigenvalue below which se_ridge_curvature()
+#' reads the small step's curvature as a ridge's.
+#'
+#' @noRd
+se_ridge_shrink <- 0.5
+
+#' The fraction of the largest at or below which se_tier3() corrects a
+#' kept eigenvalue for a curved ridge (se_ridge_curvature()). The curved
+#' ridges of the attack set stop at 1.4e-5 (dev/seflags-spectrum.R).
+#'
+#' @noRd
+se_ridge_screen <- 1e-3
+
+#' The loading on parameters outside the primary linear predictors
+#' (se_linear_pars()) below which se_tier3() does not ask
+#' se_ridge_curvature() about a direction (the norm of the direction's
+#' unit-diagonal loadings on them).
+#'
+#' @noRd
+se_ridge_nonlin <- 0.1
+
+#' The Newton steps se_ridge_curvature() takes at most, and its smaller
+#' gradient step in unit-diagonal units (the larger is ten times it).
+#'
+#' @noRd
+se_ridge_iter <- 20L
+
+#' @noRd
+se_ridge_step <- 0.001
+
+#' The outer positions of a linear predictor's coefficients, or `NULL`
+#' when they are not outer parameters (beta under REML or profiling, a
+#' nonlinear body without coefficients of its own).
+#'
+#' @noRd
+se_lp_outer_pos <- function(fit, lp, om = outer_par_map(fit)) {
+  idx <- lp[["idx"]]
+  par <- lp[["par"]]
+  if (!length(idx) || !is.null(lp[["nl_body"]]) ||
+        !par %in% c("beta", "betad")) {
+    return(NULL)
+  }
+  pos <- which(om$comp == par)
+  if (par == "betad" && length(fx <- fit$frame[["betad_fixed_idx"]])) {
+    idx <- match(idx, setdiff(seq_len(max(c(idx, fx))), fx))
+  }
+  if (anyNA(idx) || max(idx) > length(pos)) return(NULL)
+  pos[idx]
+}
+
+#' Which outer parameters enter the likelihood linearly: the
+#' coefficients of a family's primary linear predictor that is not a
+#' nonlinear parameter. Along a direction of those alone the likelihood
+#' of a generalized linear model is concave, so there is no curved
+#' ridge for se_ridge_curvature() to find (0.69.0 review of lane
+#' seflags, cost).
+#'
+#' @noRd
+se_linear_pars <- function(fit) {
+  om <- outer_par_map(fit)
+  out <- logical(length(om$names))
+  lps <- fit$frame[["linpreds"]] %||% list()
+  nlp <- list()
+  for (lp in lps) {
+    if (!is.null(lp[["nl_body"]])) {
+      nlp[[lp[["resp"]]]] <- c(nlp[[lp[["resp"]]]], lp[["nl_pars"]] %||%
+                                 character(0))
+    }
+  }
+  for (lp in lps) {
+    fam <- fit$spec$responses[[lp[["resp"]]]]$family
+    prim <- fam[["primary_dpars"]] %||% "mu"
+    if (!lp[["dpar"]] %in% prim || lp[["dpar"]] %in% nlp[[lp[["resp"]]]]) {
+      next
+    }
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    out[pos] <- TRUE
+  }
+  out
+}
+
+#' An orthonormal basis, in the outer parameters' natural units, of the
+#' directions along which some linear predictor's coefficients change
+#' and its fixed design does not: `X d = 0` exactly. The frame drops
+#' such columns before the fit, but a smooth's fixed columns join the
+#' design after that check: brms's example fit 1 has `s(Age).fx1 =
+#' -0.0464 + 0.1900 Age` to 1.3e-16. Along these directions the
+#' likelihood is exactly flat, so they need no Hessian at all, and a
+#' prediction is estimable when it is orthogonal to them to rounding.
+#' The rank uses the frame's own test (`qr()` with its default
+#' tolerance). A design whose QR would cost more than `se_design_flops`
+#' is not decomposed; its alias is then judged by the Hessian alone.
+#'
+#' Returns a matrix with one column per direction (none: zero columns).
+#'
+#' @noRd
+se_design_null <- function(fit) {
+  om <- outer_par_map(fit)
+  np <- length(om$names)
+  out <- matrix(0, np, 0L)
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    X <- lp[["X"]]
+    if (is.null(X) || NCOL(X) < 2L ||
+          as.numeric(NROW(X)) * NCOL(X)^2 > se_design_flops) {
+      next
+    }
+    pos <- tryCatch(se_lp_outer_pos(fit, lp, om), error = function(e) NULL)
+    if (length(pos) != NCOL(X)) next
+    X <- tryCatch(as.matrix(patch_mo_cols(fit, lp, X)),
+                  error = function(e) NULL)
+    if (is.null(X) || !all(is.finite(X))) next
+    qx <- qr(X)
+    r <- qx$rank
+    p <- NCOL(X)
+    if (r >= p) next
+    R <- qr.R(qx)
+    Z <- rbind(-backsolve(R[seq_len(r), seq_len(r), drop = FALSE],
+                          R[seq_len(r), (r + 1L):p, drop = FALSE]),
+               diag(1, p - r))
+    N <- matrix(0, p, p - r)
+    N[qx$pivot, ] <- Z
+    M <- matrix(0, np, p - r)
+    M[pos, ] <- N
+    out <- cbind(out, M)
+  }
+  if (NCOL(out)) out <- qr.Q(qr(out))
+  out
+}
+
+#' Evaluate a probe of the objective with its warnings muffled. A probe
+#' steps far from the estimate on purpose, and what the model's own
+#' code says there (an ODE solver's "Excessive precision requested" on
+#' frmtmb.ode's test-ode-nlf.R, where a ridge is followed to steps of
+#' 4^20) is not about the fit.
+#'
+#' @noRd
+se_quiet <- function(expr) {
+  withCallingHandlers(expr, warning = function(w) {
+    invokeRestart("muffleWarning")
+  })
+}
+
+#' The curvature of the objective along `d` (natural units, unit length
+#' in the unit-diagonal metric) measured by symmetric second differences
+#' of the objective itself, at a step that grows by 4 until the change
+#' reaches 4 `grad_tol`: the step test's own evaluation, without an
+#' eigenvalue to size it. Returns the curvature when the change is
+#' quadratic there (full over half step between `se_quad_lo` and
+#' `se_quad_hi`), 0 when the objective does not move by 4 `grad_tol`
+#' within a step of 4^20 (flat), and NA when a step leaves the domain or
+#' the change is not quadratic (a straight step off a curved ridge),
+#' neither of which confirms curvature.
+#'
+#' @noRd
+se_obj_curv <- function(fit, p, d) {
+  tol <- fit$control$grad_tol %||% 1e-3
+  obj <- fit$obj
+  f <- function(x) tryCatch(se_quiet(obj$fn(x)), error = function(e) NA_real_)
+  f0 <- f(p)
+  if (!is.finite(f0)) return(NA_real_)
+  s <- 1
+  for (it in 0:20) {
+    full <- f(p + s * d) + f(p - s * d) - 2 * f0
+    if (!is.finite(full)) return(NA_real_)
+    if (full >= 4 * tol) {
+      half <- f(p + s * d / 2) + f(p - s * d / 2) - 2 * f0
+      r <- full / half
+      ok <- is.finite(r) && r > se_quad_lo && r < se_quad_hi
+      return(if (ok) structure(full / s^2, step = s) else NA_real_)
+    }
+    s <- 4 * s
+  }
+  0
+}
+
+#' Re-measure the unit-diagonal Hessian on the span of the directions
+#' `S` of `e` by symmetric second differences of the objective
+#' (se_obj_curv(), cross terms from the sums of pairs), so that a
+#' direction the finite-difference Hessian could not resolve from its
+#' neighbours is resolved by the objective. On a degree-7 raw
+#' polynomial with (1 | g) the two smallest eigenvalues re-measure as
+#' 1.37e-11 and 8.09e-15, and the standard errors come within 9 percent
+#' of lmer()'s (0.69.0 review of lane seflags, dev/seflags-rev-deg7fix.R).
+#'
+#' Returns `list(values, vectors, confirmed)` for the span (vectors as
+#' columns of the free block, unit length), or NULL when a measurement
+#' is not confirmed.
+#'
+#' @noRd
+se_span_remeasure <- function(fit, p, free, e, Df, S) {
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  m <- length(S)
+  V <- e$vectors[, S, drop = FALSE]
+  nat <- function(v) {
+    d <- numeric(length(p))
+    d[free] <- v / Df
+    d
+  }
+  B <- matrix(0, m, m)
+  for (i in seq_len(m)) {
+    B[i, i] <- se_obj_curv(fit, p, nat(V[, i]))
+    if (!is.finite(B[i, i])) return(NULL)
+  }
+  for (i in seq_len(m)) for (j in seq_len(m)) {
+    if (i >= j || B[i, i] == 0 || B[j, j] == 0) next
+    # the curvature along u_i + u_j, a vector of length sqrt(2)
+    cij <- se_obj_curv(fit, p, nat((V[, i] + V[, j]) / sqrt(2)))
+    if (!is.finite(cij)) return(NULL)
+    B[i, j] <- B[j, i] <- (2 * cij - B[i, i] - B[j, j]) / 2
+  }
+  eb <- eigen(B, symmetric = TRUE)
+  W <- V %*% eb$vectors
+  # A flat direction measured with an error keeps the curvature of the
+  # directions it is mixed with, by the square of the mixing: the alias
+  # a_(Intercept) + b_(Intercept) of an nl `a + b` with (1 | g) read
+  # 1.95e-19 mixed with a + b (curvature 2), and 1.7e-23 after the span
+  # was re-measured, still mixed with a near-collinear pair at 6e-8
+  # (punch round 1, dev/seflags-rev-join.R seed 2). The Hessian times
+  # the direction, from central differences of the gradient at the same
+  # step, shows the mixing: its part along another direction u_j with a
+  # positive curvature lambda_j (in the span or outside it) accounts for
+  # (u_j' H w)^2 / lambda_j of the curvature. A direction is confirmed
+  # when most of its curvature remains after that.
+  out <- setdiff(which(e$values > 0), S)
+  g <- function(x) {
+    r <- tryCatch(se_quiet(as.numeric(obj$gr(x)))[free] / Df,
+                  error = function(e) NULL)
+    if (length(r) == length(free) && all(is.finite(r))) r
+  }
+  conf <- vapply(seq_len(m), function(k) {
+    if (eb$values[k] <= 0) return(FALSE)
+    c0 <- se_obj_curv(fit, p, nat(W[, k]))
+    if (!is.finite(c0) || c0 <= 0) return(FALSE)
+    inn <- setdiff(which(eb$values > 0), k)
+    U <- cbind(e$vectors[, out, drop = FALSE], W[, inn, drop = FALSE])
+    lam <- c(e$values[out], eb$values[inn])
+    if (!NCOL(U)) return(TRUE)
+    s <- attr(c0, "step")
+    gp <- g(p + s * nat(W[, k]))
+    gm <- g(p - s * nat(W[, k]))
+    if (is.null(gp) || is.null(gm)) return(FALSE)
+    hw <- (gp - gm) / (2 * s)
+    mix <- sum(crossprod(U, hw)^2 / lam)
+    c0 - mix > se_span_keep * c0
+  }, NA)
+  list(values = eb$values, vectors = W, confirmed = conf)
+}
+
+#' The share of a re-measured curvature that must remain once the
+#' mixing with the other directions is taken out
+#' (se_span_remeasure()).
+#'
+#' @noRd
+se_span_keep <- 0.5
+
+#' The share of a parameter's variance above which a direction too
+#' weakly curved for double precision (below machine epsilon of the
+#' largest curvature) takes its standard error (se_tier3(), "illcond").
+#'
+#' @noRd
+se_ill_share <- 0.01
+
+#' The most directions se_span_remeasure() re-measures at once; each
+#' pair costs a measurement.
+#'
+#' @noRd
+se_span_max <- 4L
+
+#' The most work, in rows times columns squared, se_design_null() spends
+#' on one design's QR decomposition (about a second).
+#'
+#' @noRd
+se_design_flops <- 1e10
 
 #' The band of full-step over half-step second difference that
 #' se_curvature_real() takes as quadratic (4 exactly); the fourth power
@@ -749,6 +1361,7 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
   dimnames(sdr$cov_fixed_prop) <- dn
   sdr$se_lost <- se_relabel(fit, an$lost)
   sdr$se_null <- an$null
+  sdr$se_null_flat <- an$flat
   sdr
 }
 
@@ -1024,7 +1637,12 @@ se_boundary_names <- function(fit, lost) {
     short <- edge[edge %in% sd_i][vapply(edge[edge %in% sd_i], function(j) {
       se_sd_gain_up(fit, j) > se_edge_tol
     }, NA)]
-    edge <- setdiff(edge, short)
+    # and one the likelihood does not read at any value is flat, with no
+    # edge to be at (se_sd_at_zero())
+    unread <- edge[edge %in% sd_i][vapply(edge[edge %in% sd_i], function(j) {
+      !isTRUE(attr(se_sd_gain_up(fit, j), "moved") > se_edge_tol)
+    }, NA)]
+    edge <- setdiff(edge, c(short, unread))
     k <- stats::setNames(ifelse(edge %in% sd_i, "zero", "limit"),
                          thn[edge])
     if (any(edge %in% sd_i)) {
@@ -1077,14 +1695,33 @@ se_boundary_names <- function(fit, lost) {
 #' which is why the grid starts low and the threshold is not `grad_tol`
 #' (dev/setier-trapdbg.R).
 #'
+#' Attribute `moved` is the largest change of the log-likelihood over
+#' the same values, either sign: 0 when none was asked, so a caller that
+#' needs the likelihood to read the sd (se_sd_at_zero()) refuses then.
+#' The answer is kept per sd in the fit's cache, since se_edge_sd() and
+#' se_boundary_names() both ask it of the same point.
+#'
 #' @noRd
 se_sd_gain_up <- function(fit, k) {
+  key <- paste0("sd_up_", k)
+  hit <- if (is.environment(fit$cache)) fit$cache$se_sd_up[[key]]
+  if (!is.null(hit) && identical(hit$par, fit$opt$par)) return(hit$value)
+  out <- se_sd_gain_up0(fit, k)
+  if (is.environment(fit$cache)) {
+    fit$cache$se_sd_up[[key]] <- list(par = fit$opt$par, value = out)
+  }
+  out
+}
+
+#' @noRd
+se_sd_gain_up0 <- function(fit, k) {
+  none <- structure(0, moved = 0)
   th <- fit$estimates[["theta"]]
   om <- outer_par_map(fit)
   thpos <- which(om$comp == "theta")
   p <- fit$opt$par
   if (length(thpos) != length(th) || length(om$names) != length(p)) {
-    return(0)
+    return(none)
   }
   scale <- 1
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
@@ -1106,21 +1743,35 @@ se_sd_gain_up <- function(fit, k) {
   # exp(-11.2) moved up by 2 lowered it by 0.009 and moved to 0.01 by
   # 17, where the Laplace objective rose by 0.0015 (dev/setier-quadup.R),
   # so the question is not asked there
-  if (isTRUE(fit$quadrature)) return(0)
-  if (!length(up)) return(0)
+  if (isTRUE(fit$quadrature)) return(none)
   obj <- fit$obj
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   f0 <- tryCatch(obj$fn(p), error = function(e) NA_real_)
-  if (!is.finite(f0)) return(0)
-  gain <- vapply(up, function(v) {
+  if (!is.finite(f0)) return(none)
+  at <- function(v) {
     q <- p
     q[thpos[k]] <- v
-    f0 - tryCatch(obj$fn(q), error = function(e) NA_real_)
-  }, 0)
+    f0 - tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
+  }
+  gain <- vapply(up, at, 0)
   gain <- gain[is.finite(gain)]
-  if (length(gain)) max(0, gain) else 0
+  # Whether the likelihood reads the sd at all is asked beyond the
+  # grid too: a group effect off the response's scale (an nl term
+  # times 1e-4) moved the objective by less than 1e-6 over the grid and
+  # by 6.5 to 40 at the log sd + 10 (0.69.0 review of lane seflags,
+  # B3, dev/seflags-rev-sd2.R), where an sd the likelihood ignores
+  # (test-diagnostics-ux.R's flat peak) moves it by nothing
+  far <- at(p[thpos[k]] + se_sd_far)
+  moved <- max(abs(c(gain, far[is.finite(far)], 0)))
+  structure(if (length(gain)) max(0, gain) else 0, moved = moved)
 }
+
+#' How far up, on the log scale, se_sd_gain_up() asks whether the
+#' likelihood reads a standard deviation at all.
+#'
+#' @noRd
+se_sd_far <- 10
 
 #' Is a block of hyperparameters flat along its own flattest direction?
 #' The block's rows of the outer Hessian the check kept
@@ -1529,7 +2180,7 @@ sep_certificate <- function(fit, lp, rspec) {
   eta <- xb
   b <- fit$estimates[["b"]]
   if (!is.null(lp[["Z"]]) && length(b)) {
-    eta <- eta + as.numeric(lp[["Z"]] %*% expand_b(fit$frame, b,
+    eta <- eta + as.numeric(lp_Z(fit, lp) %*% expand_b(fit$frame, b,
                                                    fit$estimates[["theta"]]))
   }
   if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
@@ -1680,7 +2331,11 @@ se_lost_clauses <- function(fit, lost) {
                             "the estimates run",
                           " off toward infinity and the optimizer stopped ",
                           "where its tolerances did"),
-      flat = paste0("the likelihood is flat along ", it, " at the ",
+      # "or too nearly flat": a curved ridge the profile bends along
+      # slightly is named on a corrected curvature, not on zero (lane
+      # ci691, dev/ci691-findings.md "Found, not fixed")
+      flat = paste0("the likelihood is flat along ", it, ", or too nearly ",
+                    "flat for its curvature to be measured, at the ",
                     "estimates, so the data do not determine ", it,
                     " there (a standard deviation at 0 does this, and so do ",
                     "a mo() simplex split by a category no row is in and ",
@@ -1691,6 +2346,17 @@ se_lost_clauses <- function(fit, lost) {
                              "support does this too; give it a starting ",
                              "value that puts it back (see par_template())")
                     }),
+      # the data do determine them: the design is ill-conditioned, and
+      # the remedy is the design's (punch round 2c)
+      illcond = paste0("the design is ill-conditioned: the likelihood ",
+                       "curves along ", it, " by less than machine ",
+                       "precision of its largest curvature, so one ",
+                       "double-precision covariance cannot hold ",
+                       if (one) "its standard error" else
+                         "their standard errors",
+                       " beside the others. Centering the covariate, or ",
+                       "poly() for its powers, removes this",
+                       ill_short_clause(fit)),
       concave = paste0("a step along ", it, " raises the log-likelihood, ",
                        "so the estimates are not a maximum in that ",
                        "direction and other starting values may reach a ",
@@ -1700,7 +2366,7 @@ se_lost_clauses <- function(fit, lost) {
   }
   out <- character(0)
   for (r in c("bound", "boundary", "separation", "short", "flat",
-              "concave", "nonfinite")) {
+              "illcond", "concave", "nonfinite")) {
     n <- names(lost)[lost == r]
     if (!length(n)) next
     lab <- if (r == "boundary") se_boundary_labels(fit, n) else {
@@ -1711,6 +2377,29 @@ se_lost_clauses <- function(fit, lost) {
   }
   out
 }
+
+#' The clause the "illcond" reason adds when a Newton step gains more
+#' than `se_ill_gain` of log-likelihood (se_tier3() keeps the gain in
+#' `fit$cache$se_ill_gain`): the optimizer's gradient test cannot see
+#' that shortfall where the curvature is this small.
+#'
+#' @noRd
+ill_short_clause <- function(fit) {
+  gain <- if (is.environment(fit$cache)) fit$cache$se_ill_gain
+  if (!isTRUE(is.finite(gain) && gain > se_ill_gain)) return("")
+  paste0(". The optimizer also stopped short of the maximum, where its ",
+         "gradient test cannot see: a Newton step raises the ",
+         "log-likelihood by ", format(signif(gain, 2)),
+         ", so the estimates are not at the maximum")
+}
+
+#' The log-likelihood gain of a Newton step on an ill-conditioned fit
+#' above which its message says the estimates are not at the maximum:
+#' there they are a tenth of a standard error from it (the gain is half
+#' the squared distance in standard errors).
+#'
+#' @noRd
+se_ill_gain <- 0.005
 
 #' The warning.
 #'
@@ -1745,33 +2434,87 @@ se_lost_message <- function(fit, lost) {
 #' `G` (rows, over the joint-covariance positions `pos`) has a component
 #' along one of them has no finite standard error, and the covariance
 #' would otherwise give it a finite and too small one (lane nanse
-#' review, B2). The component is a cosine in the optimizer's units, so
-#' it does not depend on how a coefficient is scaled; a prediction that
-#' does not read a lost simplex coordinate has an exactly zero component
-#' and keeps its band. This is predict()'s `alias_null` estimability
-#' test, for the directions the Hessian lost rather than the design.
+#' review, B2). The component is a cosine in the unit-diagonal metric
+#' of the outer Hessian where se_tier3() recorded its scaling
+#' (`jc$flat$dscale`), so it depends neither on how a coefficient is
+#' scaled nor on the optimizer's units (else in the optimizer's units);
+#' a prediction that does not read a lost simplex coordinate has an
+#' exactly zero component and keeps its band. This is predict()'s
+#' `alias_null` estimability test, for the directions the Hessian lost
+#' and for a design alias the frame's own check did not see (a smooth's
+#' fixed column), which se_tier3() passes as exact columns.
+#'
+#' The columns of a flat subspace (`jc$flat`, se_tier3()) are read as
+#' one subspace, in the unit-diagonal metric of the Hessian it came
+#' from, against the threshold that decided which parameters lost their
+#' standard error there, which se_tier3() passes only where it is the
+#' noise bound tau: a prediction is estimable when its projection
+#' onto the subspace is at most `tol` of its norm. That threshold bounds
+#' how far the measured subspace can be from the true one, so an
+#' estimable prediction stays below it, and a prediction of a single
+#' parameter gets that parameter's verdict.
 #'
 #' @noRd
 jc_nonest <- function(jc, G, pos) {
   N <- jc$null
   n <- NROW(G)
+  fl <- jc$flat
   if (is.null(N) || !NCOL(N) || !n || !length(pos)) return(rep(FALSE, n))
-  u <- jc$units %||% rep(1, NROW(N))
-  Nq <- N / u
-  Gq <- as.matrix(G) * rep(u[pos], each = n)
-  num <- abs(Gq %*% Nq[pos, , drop = FALSE])
-  den <- outer(sqrt(rowSums(Gq^2)), sqrt(colSums(Nq^2)))
-  rowSums(num > se_pred_tol * den, na.rm = TRUE) > 0
+  G <- as.matrix(G)
+  bad <- rep(FALSE, n)
+  fc <- intersect(fl$cols %||% integer(0), seq_len(NCOL(N)))
+  oc <- setdiff(seq_len(NCOL(N)), fc)
+  if (length(oc)) {
+    # cosines in the unit-diagonal metric where the check recorded it,
+    # else in the optimizer's units
+    s <- if (length(fl$dscale) == NROW(N)) fl$dscale else {
+      1 / (jc$units %||% rep(1, NROW(N)))
+    }
+    s[!is.finite(s) | !(s > 0)] <- 1
+    Nq <- N[, oc, drop = FALSE] * s
+    Gq <- G / rep(s[pos], each = n)
+    num <- abs(Gq %*% Nq[pos, , drop = FALSE])
+    den <- outer(sqrt(rowSums(Gq^2)), sqrt(colSums(Nq^2)))
+    bad <- rowSums(num > se_pred_tol * den, na.rm = TRUE) > 0
+  }
+  if (length(fc)) {
+    r <- which(is.finite(fl$scale) & fl$scale > 0)
+    j <- match(r, pos)
+    r <- r[!is.na(j)]
+    j <- j[!is.na(j)]
+    if (length(r)) {
+      Gs <- G[, j, drop = FALSE] / rep(fl$scale[r], each = n)
+      Bs <- N[r, fc, drop = FALSE] * fl$scale[r]
+      num <- sqrt(rowSums((Gs %*% Bs)^2))
+      bad <- bad | (num > fl$tol * sqrt(rowSums(Gs^2))) %in% TRUE
+    }
+  }
+  bad
+}
+
+#' `jc` without the null columns that span only variance components at
+#' their boundary (`jc$boundary`), which the fit's boundary message
+#' named; a flat subspace keeps the columns that remain.
+#'
+#' @noRd
+jc_drop_boundary <- function(jc) {
+  b <- jc$boundary
+  if (!any(b)) return(jc)
+  keep <- which(!b)
+  if (!is.null(jc$flat)) {
+    fc <- match(jc$flat$cols, keep)
+    jc$flat$cols <- fc[!is.na(fc)]
+  }
+  jc$null <- jc$null[, keep, drop = FALSE]
+  jc
 }
 
 #' The cosine above which a prediction counts as moving along a lost
-#' direction. Without random effects the directions come from an exact
-#' AD Hessian, so they are accurate to rounding and the test can be
-#' tight. With random effects (joint_cov_repair()) they come from a
-#' finite-difference Hessian, but se_tier3() zeroes every loading of a
-#' parameter that keeps its standard error, so a prediction that loads
-#' no lost parameter has a component of exactly zero and the threshold
-#' does not decide it.
+#' parameter's own row or a downward direction. se_tier3() zeroes every
+#' loading of a downward direction on a parameter that keeps its
+#' standard error, so a prediction that loads no lost parameter has a
+#' component of exactly zero there and the threshold does not decide
+#' it. A flat subspace has its own threshold (jc_nonest()).
 #'
 #' @noRd
 se_pred_tol <- 1e-6

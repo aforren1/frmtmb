@@ -1,6 +1,6 @@
 Package: frmtmb.eam
 Title: Evidence Accumulation Models for 'frmtmb'
-Version: 0.11.2
+Version: 0.11.3
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -40,7 +40,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.66.0)
+    frmtmb (>= 0.70.0)
 Imports:
     RTMB (>= 1.9),
     stats
@@ -51,6 +51,7 @@ Suggests:
     numDeriv,
     rmarkdown,
     Rmpfr,
+    rstan,
     rtdists,
     RWiener,
     statmod,

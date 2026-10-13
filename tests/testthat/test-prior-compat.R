@@ -457,9 +457,15 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
   expect_error(frmtmb:::as_priorlist(brms::prior(beta(1, 1),
                                                  class = "car")),
                "class = \"theta\"", fixed = TRUE)
+  # simo is brms's class here too (dev/moparity-findings.md, item 2):
+  # a row with its coef carries over, and a class-wide one is refused,
+  # as brms refuses it
+  ps <- frmtmb:::as_priorlist(brms::prior(dirichlet(1), class = "simo",
+                                          coef = "mox1"))
+  expect_identical(unclass(ps)[[1L]]$dist$alpha, 1)
   expect_error(frmtmb:::as_priorlist(brms::prior(dirichlet(1),
                                                  class = "simo")),
-               "simo")
+               "addresses one simplex")
   # a tag names a prior inside a Stan program
   expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
                                                  class = "b",
@@ -773,12 +779,10 @@ test_that("a distributional class is refused by the same name on both routes", {
   # target that does not exist. Both paths now give the same sentence.
   expect_error(set_prior("student_t(3, 0, 1)", class = "sds"),
                "class = \"sd\" with group", fixed = TRUE)
-  # the density gate runs first here, so the class is asked about with
-  # a density set_prior() knows; brms's own dirichlet row is refused on
-  # the translated route by the density instead, and either way the
-  # call stops
+  # simo is a class now (dev/moparity-findings.md, item 2), and any
+  # density but dirichlet() on it is refused in brms's words
   expect_error(set_prior("normal(0, 1)", class = "simo"),
-               "Dirichlet on a mo() simplex", fixed = TRUE)
+               "only valid prior for simplex parameters", fixed = TRUE)
   expect_error(set_prior("normal(0, 1)", class = "theta2"),
                "mixture proportion", fixed = TRUE)
   expect_error(set_prior("normal(0, 1)", class = "car"),

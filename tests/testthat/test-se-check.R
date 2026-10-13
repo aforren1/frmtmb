@@ -159,9 +159,14 @@ test_that("a bound-held parameter loses its SE and the others keep theirs", {
 
 test_that("a healthy fit is untouched and never warns", {
   # the guard's absent case: sdreport()'s own inverse is usable, so the
-  # covariance is exactly sdreport()'s
+  # covariance is exactly sdreport()'s. On a response near unit spread:
+  # a response in other units has its coefficients' unit
+  # (predictor_units()), and the covariance is then the inverse of the
+  # Hessian taken in that unit (autoscale_sdreport()), not sdreport()'s
   d <- se_mo_data(7)
+  d$ls <- d$ls / 16
   expect_silent(fit <- frm(ls ~ mo(income), data = d))
+  expect_null(fit$par_units)
   V <- vcov(fit, full = TRUE)
   ref <- RTMB::sdreport(fit$obj)$cov.fixed
   expect_identical(unname(V), unname(ref))

@@ -231,10 +231,12 @@ mo_coords <- function(w, chart = NULL, floor = 1e-8) {
   as.numeric(crossprod(mo_sphere_basis(D), u)) / (1 + sum(u) / sqrt(D))
 }
 
-#' A copy of `frame` whose `mo()` simplexes read their coordinates in
-#' `chart` (see `mo_simplex()`). The objective built from it is the
-#' same model in other coordinates; `mo_frame_terms()` lists where the
-#' coordinates sit.
+#' A copy of `frame` whose simplexes read their coordinates in `chart`
+#' (see `mo_simplex()`): every `mo()` simplex, and the baseline of a
+#' `cox()` response, which its family reads from the response's
+#' addition terms (`bhaz_chart`). The objective built from it is the
+#' same model in other coordinates; `simplex_frame_terms()` lists where
+#' the coordinates sit.
 #'
 #' @noRd
 mo_chart_frame <- function(frame, chart = "softmax") {
@@ -244,7 +246,35 @@ mo_chart_frame <- function(frame, chart = "softmax") {
     for (j in seq_along(mos)) mos[[j]][["chart"]] <- chart
     frame[["linpreds"]][[k]][["mo"]] <- mos
   }
+  for (r in names(frame[["aterm_values"]])) {
+    if (!is.null(frame[["aterm_values"]][[r]][["Zbhaz"]])) {
+      frame[["aterm_values"]][[r]][["bhaz_chart"]] <- chart
+    }
+  }
   frame
+}
+
+#' Every simplex of a fit's frame, in the shape `mo_frame_terms()` gives
+#' a `mo()` term: the `mo()` simplexes, then the baseline-hazard simplex
+#' of each `cox()` response, under brms's name for it, `sbhaz[k]`
+#' (`sbhaz_<resp>[k]` in a multivariate model). The sampler reads every
+#' one in softmax coordinates under brms's default `dirichlet(1)`.
+#'
+#' @noRd
+simplex_frame_terms <- function(fit) {
+  out <- mo_frame_terms(fit)
+  multi <- length(fit$spec$responses) > 1L
+  for (r in names(fit$frame[["aterm_values"]])) {
+    Zb <- fit$frame[["aterm_values"]][[r]][["Zbhaz"]]
+    if (is.null(Zb)) next
+    D <- ncol(Zb)
+    out[[length(out) + 1L]] <- list(
+      zeta = extra_tpl_name(fit$frame, if (multi) r, "sbhaz_raw"), D = D,
+      names = paste0("sbhaz", if (multi) paste0("_", r), "[", seq_len(D),
+                     "]"),
+      kind = "cox")
+  }
+  out
 }
 
 #' Every `mo()` term of a frame: its simplex component, `D`, and the
@@ -264,6 +294,38 @@ mo_frame_terms <- function(fit) {
       out[[length(out) + 1L]] <- list(zeta = mi[["zeta"]], D = mi[["D"]],
                                       names = nm)
     }
+  }
+  out
+}
+
+#' The values `D * cumsum(w)[code + 1]` of one `mo()` term at the
+#' coordinates `z`, with no multiplier: the transform a population-level
+#' coefficient and the group-level ones that vary it multiply.
+#'
+#' @noRd
+mo_transform <- function(mi, z) {
+  "c" <- RTMB::ADoverload("c")
+  w <- mo_simplex(z, mi[["chart"]])
+  cz0 <- c(0, cumsum(w))
+  mi$D * cz0[mi$codes + 1L]
+}
+
+#' What the group-level `mo()` columns add to `Z b` (AD-safe).
+#'
+#' `lp$Z` holds such a column as its placeholder value (1, or the
+#' multiplier of an interaction), so `Z b` counts the column's effect
+#' once per row; the effect is the coefficient times the transform, so
+#' this adds it times the transform less one. Kept apart from `Z b`, so
+#' the tape of a model without such a term does not change.
+#'
+#' @noRd
+mo_re_zterm <- function(lp, pars, bvec) {
+  out <- 0
+  for (zm in lp[["Z_mo"]]) {
+    mi <- lp[["mo"]][[zm$mo]]
+    m <- mo_transform(mi, pars[[mi$zeta]])
+    out <- out + as.vector(lp[["Z"]][, zm$cols, drop = FALSE] %*%
+                             bvec[zm$cols]) * (m - 1)
   }
   out
 }
@@ -485,10 +547,10 @@ build_objective <- function(frame) {
         dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
         next
       }
-      eta <- lp_eta_fixed(
-        lp, pars, n, mivals, y,
-        zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec),
-        mevals = mevals)
+      zterm <- if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec)
+      if (length(lp[["Z_mo"]])) zterm <- zterm + mo_re_zterm(lp, pars, bvec)
+      eta <- lp_eta_fixed(lp, pars, n, mivals, y, zterm = zterm,
+                          mevals = mevals)
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
       # the sequential ordinal lpdfs through dpars$.cs (an ordinal
       # mixture's component k through `.cs_mu<k>`, cs_slot())

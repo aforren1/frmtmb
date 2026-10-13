@@ -426,8 +426,19 @@ test_that("fitted has reasonable outputs", {
     "",
     expect_equal(dim(fi), c(nobs(fit1), 4))
   )
-  brms_port("brmsfit-methods:326", "pass",
-    "",
+  brms_port("brmsfit-methods:326", "cannot transfer",
+    paste0(
+      "fitted(fit1, dpar = 'sigma') is brms's four-column summary, ",
+      "and FIXTURE 1 DOES NOT CONVERGE (nlminb false convergence ",
+      "(8), an sd at -723 to -1253 on the log scale, an objective ",
+      "unbounded within reach), so its sigma coefficients' ",
+      "variances are negative, the Est.Error and the two Q columns ",
+      "are NaN and all(fi > 0) is NA rather than TRUE. The ",
+      "Estimate column is positive, which is what the assertion is ",
+      "about; brms's fixture converged. It held at 0.69.0 by the ",
+      "luck of the stop point (34 of 41 jittered starts; lane ",
+      "optrap's review, item 6). A converged stand-in would ",
+      "transfer it (dev/brmsport-findings.md section 3)"),
     expect_true(all(fi > 0))
   )
   brms_setup("brmsfit-methods:327",

@@ -1,3 +1,266 @@
+# frmtmb 0.70.0
+
+Three lanes, each with an adversarial review and punch rounds:
+`moparity` (brms features that were refused or diverged: `mo()`
+crossed with a factor and in group-level terms, Dirichlet priors on a
+simplex, `update(prior =)` merging as brms merges, the `cox()`
+baseline), `optrap` (fits that stopped short of the maximum because of
+the response's units, a restart that raised, or a badly conditioned
+design) and `seflags` (which standard errors a fit reports: an exact
+design alias, curved ridges, an sd the likelihood does not read, raw
+polynomials). Each lane's `dev/<lane>-findings.md` has the validation,
+the numbers and the scripts, and `dev/reviews/2026-10-08-<lane>.md`
+has the review; `dev/round-20261013.md` is the round's record.
+In brms's own ported suite, bin 1 passes 389 of 494 assertions (390 at
+0.69.0): `brmsfit-methods:326` asks a fixture that does not converge
+for finite standard errors, and it held at 0.69.0 by the luck of where
+the optimizer stopped.
+
+## Breaking changes
+
+* **A factor, character or logical multiplier of `mo()` is coded as
+  brms codes it**, where it was refused. `mo(x) * f` with `f` of levels
+  `a`, `b`, `c` fits `mox`, `mox:fb` and `mox:fc`, each with its own
+  simplex and coefficient, and `mo(x):f` fits `mox:fa`, `mox:fb` and
+  `mox:fc`: the columns of brms's special-term model matrix. A logical
+  multiplier is `mox:xTRUE`, as in brms, where it was `mox:x`. A
+  label's factors are named as brms names them, in the order
+  `model.matrix()` reads the special terms alone, so `z + mo(x):z` is
+  `z:mox` (it was `mox:z`) while `z * mo(x)` stays `mox:z`, and
+  `mo(x) * z * w` fits, with `mox:z:w`, where it was refused. brms
+  2.23.0 writes wrong Stan code for these terms
+  (every column multiplied by the first covariate) and stops on a
+  factor of three or more levels crossed with the main term
+  (brms#1828); frmtmb fits the model brms 2.22.0 fits. Against brms's
+  compiled program for the same model written with numeric indicators,
+  the log density agrees with frmtmb's at its estimates (to 1e-6
+  relative, after brms's flat Dirichlet constants), with brms's
+  gradient below 1e-3 there.
+
+* **`update(prior = )` merges the new prior into the stored one**, as
+  brms's `update()` does: a new specification replaces the stored one
+  for its slot (class, `coef`, `group`, `resp`, `dpar`, `nlpar`), and
+  the stored specifications for every other slot stay. It replaced the
+  stored prior, so a stored `normal(0, 0.05)` on `b_x` was lost by
+  `update(fit, prior = <a sigma prior>)`. The same holds for a
+  `brmsprior` and for a table from `default_prior()` or brms's
+  `get_prior()`, where every row takes its slot, as in brms: a row
+  with an empty prior returns its slot to the default (flat), so an
+  unedited row of a whole table resets the stored prior of its slot.
+  `prior = NULL`, or a prior with no rows, keeps the stored prior, as
+  in brms. A stored specification the updated model
+  cannot take is still dropped with a message; a NEW one is still
+  checked as `frm()` checks it, where brms drops it silently.
+
+* **`cox()` holds its baseline simplex in the chart of a `mo()`
+  simplex**, not a softmax, and `frmtmb_control(mo_search = )` checks a
+  weight at 0 too. Of 200 fits of a right-censored model, 5 stopped at
+  "singular convergence (7)" with weights near 1e-50 and a warning, and
+  one 1.86e-4 below the maximum; now 200 of 200 are within 1.8e-8 of
+  the maximum, at code 0, with no warning, for 1.05 times the
+  objective evaluations. The `sbhaz_raw` coordinates have other values;
+  `cox_baseline()` reads the weights as before.
+
+* **A gaussian, student, lognormal or other location-scale fit reaches
+  the maximum likelihood whatever the units of its response, and the
+  fit of `y * k` is the fit of `y` scaled, to about 1e-7 in the
+  log-likelihood.** The identity-link `mu` of these families now has a
+  unit: the spread (the MAD) of the response after the fixed-effect
+  design is taken out by least squares, on evenly spaced rows for a
+  design of more than 5e6 cells, rounded to a power of two. The standard
+  deviations of its random-effect terms start at that unit (they
+  started at 1 in the response's units), nlminb steps its coefficients
+  in the unit over each column's spread, and the inner solver's
+  gradient tolerance is divided by it. `par_template()` shows the new
+  starts. Before, with `y` in units 1e3 times larger, 20 of 40
+  random-intercept fits stopped short of lme4's maximum at optimizer
+  code 0 and without a warning, by up to 0.67 log-likelihood units;
+  with `y` in units 1e6 times larger, 40 of 40 sleepstudy-like
+  random-slope fits, by up to 127, and 10 of 10 plain `y ~ x` fits, by
+  up to 23. Now every one of these fits over units from 1e-6 to 1e6 is
+  within 2.1e-7 of lme4's or `lm()`'s maximum, at code 0. A response
+  whose residual spread is between 0.71 and 1.41 has a unit of 1 and
+  fits as before. Where it has a unit, the estimates agree with
+  `lm()` and lme4 to about 1e-5 of a standard error (at most 8.5e-5
+  over 160 `y ~ x + z` fits; before, 2e-7 to 1.2e-5 at moderate units
+  and 2.8 standard errors with `y` in units 1e6 times larger), because
+  nlminb's stopping tests now read steps in the unit. Mixtures,
+  extension families and a `sigma` held at a constant (`se()`) keep
+  their starts.
+
+* **An alias in a linear predictor's design is tested
+  exactly.** A smooth's fixed column joins the design after the check
+  that drops aliased columns; on brms's example fit 1 it is exactly
+  `-0.046 + 0.190 * Age`. The standard-error check found the alias
+  only to the precision of the Hessian, so under OpenBLAS's LAPACK all
+  five predictions of `fitted(newdata)` got `NaN` and a warning though
+  they are estimable, and a hypothesis 12 percent off the alias got a
+  finite standard error with no warning. The check now takes such an
+  alias from the design itself: every coefficient it moves (on fit 1
+  the intercept too) has `NaN` as its standard error, and a
+  prediction or hypothesis has one exactly when it does not move along
+  the alias. The prediction test reads every direction in the
+  unit-diagonal metric of the Hessian, so its verdict does not depend
+  on the units the optimizer works in. On a mixture whose mixing weight
+  has run to zero, a prediction that reads the vanished component's
+  flat parameters now gets `NaN` and the warning.
+
+* **Curved ridges lose their standard errors.** A fit that
+  stops within its tolerance of a ridge along which the likelihood is
+  flat on a curve (`a + exp(b)`, `a * b`, `c0 + exp(a)^k` with a group
+  effect, a `mo()` simplex with an unobserved category, two group
+  terms on the same factor) has a small eigenvalue along the ridge
+  that is not curvature of the likelihood, and the check kept every
+  standard error with no warning: on 9 of 20 seeded `a + exp(b)` fits,
+  20 of 20 with `(1 | g)` and 16 of 18 c0k fits. The check now
+  measures the curvature again on the ridge's floor, takes out the
+  part that comes from the step leaving a curved ridge, and removes
+  the direction when what is left is flat. Only a direction that
+  involves a parameter outside a family's primary linear predictors is
+  asked, since a generalized linear model has no curved ridge in its
+  coefficients.
+
+## New features
+
+* **A group-level term can vary a monotonic coefficient**, as in brms:
+  `y ~ mo(x) + (mo(x) | g)` adds `r_g[, mox]` to `bsp_mox` and
+  multiplies the sum by the term's transform, on its simplex. The
+  population-level column is required; brms 2.23.0 drops `(mo(x) | g)`
+  without one silently, and frmtmb refuses it in brms's words. It is
+  available in `(... | g)` and `(... || g)` terms, with predictions,
+  `ranef()`, `VarCorr()`, `conditional_effects()` and frmtmb.sample's
+  draws. The joint log density agrees with brms's compiled program's at
+  frmtmb's estimates and conditional modes. A `||` term with `mo()` is
+  one `diag()` block over the whole term, coded as brms codes it:
+  `(mo(x) * f || g)` has `Intercept`, `fb`, `fc`, `mox`, `mox:fb` and
+  `mox:fc`. A `||` term without `mo()` keeps lme4's expansion, so
+  `(f || g)` still has a column for every level of `f`.
+
+* **`set_prior("dirichlet(alpha)", class = "simo", coef = "mox1")`**
+  puts brms's Dirichlet on one `mo()` simplex, and class `"sbhaz"` on a
+  `cox()` baseline; `prior_dirichlet()` is the object. brms's rules
+  come with it: a coef per simplex, the length of `alpha` checked, no
+  bounds, and only `dirichlet()` on these classes. `get_prior()` lists a
+  `simo` row per simplex and a `sbhaz` row per `cox()` response, as
+  brms does. On a MAP fit the density is that of the simplex's
+  coordinates, with the chart's Jacobian: the mode under
+  `dirichlet(a)` is the mode of `dirichlet(a + 1/2)` on the weights,
+  pulled further toward the uniform simplex, so `dirichlet(1)` is not
+  the absence of a prior (`?frm`, "Monotonic effects"). A concentration
+  below 1/2 has no maximum there and is refused.
+
+## Bug fixes
+
+* **A random-effect block with a scale per coefficient no longer has a
+  `+Inf` or `NaN` log density where a log sd underflows**: `us` and
+  `us_t` with two or more coefficients, `cs`, `toep`, `ar1`, `hetar1`,
+  and `gr(cov =)` and `gr(prec =)` with correlated slopes. Their
+  standard deviations are floored at 1e-150 (`sd_floored()`), the
+  square root of the variance floor of 0.69.0, which is below half an
+  ulp of any sd of 1.1e-134 or more: above that the objective and its
+  gradient are unchanged bit for bit. Over every test of the eight
+  packages, one optimizer stepped a floored log sd below that (to
+  -4318): a separated bernoulli fit with `(1 + x | g)` under
+  `frmtmb_control(autoscale = TRUE)`, whose pre-fit stopped on "NA/NaN
+  gradient evaluation" and now returns a fit with the pre-fit's and the
+  separation's warnings. A sampler's proposal below the floor meets a
+  finite density or `-Inf`, so a chain that proposed there takes
+  another path.
+
+* **`parnames()` warns once whichever generic dispatched it.** The
+  method decided from what the `parnames` binding resolved to, so
+  frmtmb's own generic, captured before brms loaded and called after,
+  gave no warning.
+
+* A fit could stop well short of its maximum
+  at optimizer code 0 and without a warning when its design is badly
+  conditioned: on raw polynomials of degree 6 with x on [1, 2], 3 of
+  20 fits ended up to 0.022 log-likelihood units below `lm()`'s
+  maximum, and with the response 16 times larger 19 of 20, by up to
+  1.9. With `(1 | g)`, at degree 6, 5 of 20 stopped up to 0.023 short,
+  4 of them in silence. Such a fit now takes Newton steps from where
+  the optimizer stopped: on the exact Hessian without random effects,
+  and with them, on a near-collinear fixed design only, on the
+  Hessian of the Laplace objective by differences of its gradient. A
+  step is taken while the Hessian is positive definite and the step
+  predicts a gain above 1e-6, kept only if it gains at least a tenth
+  of that, and the steps are undone if they end where the Hessian is
+  not positive definite. None of these fits stops short now, with or
+  without the group term. A fit already at its maximum is not changed,
+  and neither is a fit whose `optCtrl` sets one of the optimizer's
+  tolerances or whose optimizer is a function.
+
+* A restart that raised ("NA/NaN gradient evaluation") ended the whole
+  fit although the run before it had a finite optimum. The fallback
+  restarted from the lowest objective the tape had recorded, and a
+  REML likelihood without a bound records that where the objective,
+  solved from another inner start, is NaN (fuzz seed 20379118 under
+  OpenBLAS's LAPACK). That point is no longer taken, a restart that
+  raises keeps the run before it, and the objective is left at that
+  run's optimum.
+
+* A restart that ended worse than the run it started from left the
+  objective at its own last point, where `ranef()` and `sdreport()`
+  read it. Every run the optimizer discards now leaves the objective
+  at the kept optimum, and so does the `mo()` search when it refits
+  nothing.
+
+* A `mo()` fit could stop below its maximum in the other sign's cone
+  without a warning: the search for that cone started from one vertex,
+  at the coefficient's own value, which is near 0 for a fit in the
+  wrong cone, and it was skipped for an interior simplex whose
+  coefficient is near 0. It now starts at least one of the
+  coefficient's units from 0, moves to the next vertex while the
+  coefficient ends on its bound, and searches both cones when the
+  coefficient is within 1e-3 of its unit of 0. On brms_monotonic's
+  `ls ~ mo(income) * age`, 199 of 200 fits reached the exact maximum,
+  and 194 of a further 200 (up to 0.45 short); now 400 of 400, at 1.2
+  to 1.4 times the objective evaluations.
+
+* **A group standard deviation that the likelihood does not read is
+  "flat", not "at zero".** The boundary message said that the sd of a
+  group effect on a nonlinear parameter that enters no row was at
+  zero, while it was 0.22. A boundary verdict now needs the likelihood
+  to change when the sd moves up from its estimate, as far as 10 units
+  on the log scale, so an sd that the likelihood reads only far above
+  its estimate is still at its boundary.
+
+* **Standard errors of a raw polynomial that the Hessian cannot
+  resolve come from the likelihood itself.** On a degree-7 raw
+  polynomial with `(1 | g)` the check named three coefficients and
+  kept the other five with standard errors 8 to 18 times smaller than
+  `lmer()`'s, built without the two smallest directions of the
+  Hessian, whose finite-difference noise (3e-12) is above one of them
+  (8.9e-15 of the largest). A direction that the Hessian has no digits
+  for is now measured again, with the confirmed small directions next
+  to it, by second differences of the objective; all eight standard
+  errors are now within 0.5 percent of the exact ones from a QR of the
+  whitened design (`lmer()`'s own are 9 percent below them). A
+  direction the objective cannot confirm is still flat.
+
+* **An ill-conditioned design is named as one.** On a degree-8 raw
+  polynomial the smallest curvature is below machine epsilon of the
+  largest, and 0.69.0 said that the data do not determine six of the
+  nine coefficients and kept three. One double-precision covariance
+  cannot hold that curvature beside the others, so the coefficients it
+  carries still have no standard error, and neither does a prediction
+  that reads them. The warning now says that the design is
+  ill-conditioned and that centering the covariate or `poly()` removes
+  this, and, when it applies, that the optimizer stopped short of the
+  maximum, with the log-likelihood a Newton step would gain (up to 4.5
+  on these fits). Terms beside the polynomial that do not read those
+  coefficients (a covariate, a factor, sigma) keep their standard
+  errors.
+
+## Extension API
+
+* **The sampling API exports `simplex_frame_terms()`**
+  (`?frmtmb-sampling-api`): every simplex of a fit's frame in the
+  shape `mo_frame_terms()` gives a `mo()` term, the `mo()` simplexes
+  and then each `cox()` baseline under brms's name `sbhaz[k]`.
+  `mo_chart_frame()` now sets a `cox()` baseline's chart too.
+  frmtmb.sample 0.18.0 samples every simplex through them.
+
 # frmtmb 0.69.1
 
 The Ubuntu and macOS checks of 0.69.0 failed where the Windows ones

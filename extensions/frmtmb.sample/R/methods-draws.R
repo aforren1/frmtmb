@@ -2830,7 +2830,7 @@ posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   # and it is the generic a call reaches whenever brms is loaded
   # (R/generic-owners.R); a second one from here said it twice, and the
   # Ubuntu check of frmtmb.sample let the second escape a test
-  if (!ps_via_brms_generic()) {
+  if (!via_brms_generic("posterior_samples")) {
     frm_warning("Method 'posterior_samples' is deprecated. Please see ",
                 "?as_draws for recommended alternatives.", call. = FALSE)
   }
@@ -2863,22 +2863,26 @@ posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
   out
 }
 
-#' Was `posterior_samples.frmtmb_draws()` dispatched by brms's generic?
+#' Was the calling method dispatched by brms's generic `name`?
 #'
-#' brms's generic warns that the method is deprecated and then calls
-#' `UseMethod()`; the generic's frame is the one just above the method's.
-#' frmtmb.sample's own generic and gratia's are a bare `UseMethod()`,
-#' and a direct call of the method has no generic above it, so those
-#' warn from the method. brms is never loaded to find out.
+#' brms's `posterior_samples()` and `parnames()` warn that the method is
+#' deprecated and then call `UseMethod()`; the generic's frame is the
+#' one just above the method's. frmtmb's and frmtmb.sample's own
+#' generics and gratia's are a bare `UseMethod()`, and a direct call of
+#' the method has no generic above it, so those warn from the method.
+#' brms is never loaded to find out: the dispatcher is recognized by the
+#' namespace it was defined in, which a captured generic keeps after
+#' brms is unloaded. core's `parnames.frmtmb_fit()` asks the same
+#' question of its own frame.
 #'
 #' @noRd
-ps_via_brms_generic <- function() {
-  if (!isNamespaceLoaded("brms")) return(FALSE)
-  g <- get0("posterior_samples", envir = asNamespace("brms"),
-            inherits = FALSE)
+via_brms_generic <- function(name) {
   # sys.function(-2L): -1 would be the method, the caller of this one
   f <- tryCatch(sys.function(-2L), error = function(e) NULL)
-  is.function(g) && identical(f, g)
+  if (!is.function(f)) return(FALSE)
+  env <- environment(f)
+  isNamespace(env) && identical(unname(getNamespaceName(env)), "brms") &&
+    identical(f, get0(name, envir = env, inherits = FALSE))
 }
 
 #' The variables `posterior_samples(pars = )` selects, in brms's order.
@@ -2971,12 +2975,10 @@ nsamples_saved <- function(object) {
 #' @export
 parnames.frmtmb_draws <- function(x, ...) {
   frm_check_dots(...)
-  # brms's generic warns before it dispatches, and while brms is loaded
-  # frmtmb's `parnames` binding IS brms's generic: warn only when it is
-  # frmtmb's own, so a call warns once
-  g <- tryCatch(get("parnames", envir = asNamespace("frmtmb")),
-                error = function(e) NULL)
-  if (!is.function(g) || identical(environment(g), asNamespace("frmtmb"))) {
+  # brms's generic warns before it dispatches; which generic dispatched
+  # is asked of the frame, since the `parnames` binding can name brms's
+  # while frmtmb's own generic made the call
+  if (!via_brms_generic("parnames")) {
     frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
                 call. = FALSE)
   }

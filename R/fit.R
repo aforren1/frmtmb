@@ -331,15 +331,51 @@
 #' its baseline hazard, and in both the first monotonic simplex is
 #' `zeta2`. Read the terms in order rather than parsing the number.
 #'
-#' frmtmb has no prior class for a simplex; brms's flat `dirichlet(1)`
-#' is the one prior it cannot be told to drop, and it contributes only a
-#' constant, so the two log-densities agree up to `lgamma(D)` per
-#' simplex.
+#' With no prior, a fit applies no density to a simplex; brms's flat
+#' `dirichlet(1)` contributes only a constant, so the two log-densities
+#' agree up to `lgamma(D)` per simplex. A `simo` prior row,
+#' `set_prior("dirichlet(c(2, 1, 1))", class = "simo", coef = "mox1")`,
+#' makes the fit a MAP fit under that Dirichlet: brms's spelling, with
+#' the coef [get_prior()] lists for each simplex. Like every prior of a
+#' MAP fit it is the density of the coordinates, so it carries the
+#' chart's Jacobian, `prod |u_k|` times the projection's conformal
+#' factor. In plain terms: the MAP fit under `dirichlet(a)` has the mode
+#' of `dirichlet(a + 1/2)` on the weights, pulled further toward the
+#' uniform simplex by the conformal factor. Thus `dirichlet(1)` is not
+#' the absence of a prior: it moves the mode at least as much as
+#' `dirichlet(1.5)` on the weights does. Only a fit with no `simo` row
+#' applies no density to the simplex. The pull is large where the data
+#' say little: with 60 rows, the weights of a `dirichlet(1)` MAP fit
+#' were 0.30, 0.38 and 0.32 where the maximum likelihood weights were
+#' 0.05, 0.73 and 0.22; with 400 rows they moved by 0.003 at most. To
+#' pull less, give no `simo` row. A concentration below 1/2 has no
+#' maximum in these coordinates and is refused; frmtmb.sample's
+#' `frm_sample()` samples any.
 #'
-#' `mo()` may be crossed with a single numeric multiplier and no more:
-#' `mo(x) * z` and `mo(x):z` are fitted, `mo(x) * f` for a factor `f` is
-#' refused (the simplex carries one coefficient and a contrast expansion
-#' has no column to go in), and `mo(x):mo(w)` is refused outright.
+#' An interaction codes the columns brms's special-term model matrix
+#' codes, each with its own simplex and coefficient: `mo(x) * f` with a
+#' factor `f` of levels `a`, `b`, `c` fits `mox`, `mox:fb` and `mox:fc`,
+#' and `mo(x):f` fits `mox:fa`, `mox:fb` and `mox:fc`. The other factors
+#' of a label may be several, `mo(x) * z * w`, and are named as brms
+#' names them, in the order `model.matrix()` reads the special terms
+#' alone: `mo(x) * z` and `z * mo(x)` give `mox:z`, and `z + mo(x):z`
+#' gives `z:mox`. `mo(x):mo(w)` is refused. brms 2.23.0 builds the same
+#' columns but multiplies every one by the first covariate in its Stan
+#' code, and stops on a factor of three or more levels crossed with the
+#' main term (brms#1828); frmtmb fits the model brms 2.22.0 fits and
+#' brms's Stan data describe.
+#'
+#' A group-level term may vary a monotonic coefficient, as in brms:
+#' `y ~ mo(x) + (mo(x) | g)` adds `r_g[, mox]` to `bsp_mox` and
+#' multiplies the sum by the same transform, `(b + r_g) * D *
+#' sum(zeta[1:k])`, so the group-level term has no simplex of its own.
+#' The population-level column it varies is required, and refused
+#' without it, where brms 2.23.0 drops the term silently. It is
+#' available in a plain `(... | g)` or `(... || g)` term. A `||` term
+#' with `mo()` is one block with no correlations, coded whole as brms
+#' codes it: `(mo(x) * f || g)` has the columns `Intercept`, `fb`, `fc`,
+#' `mox`, `mox:fb` and `mox:fc`. A `||` term without `mo()` is expanded
+#' as lme4 expands it, one block per term.
 #'
 #' @section Category-specific effects, cs():
 #' `cs(x)` gives a predictor one coefficient per category boundary
@@ -1080,6 +1116,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # terms, so logLik/AIC are penalized quantities - documented
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     prior_entries <- ri$entries
+    check_map_dirichlet(ri$entries)
     if (length(ri$entries)) {
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
@@ -1161,6 +1198,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                "intercepts only (every block must be a dim-1 us/diag term)",
                call. = FALSE)
     }
+    # a group-level mo() column moves with its simplex, which the
+    # quadrature rule's fixed design does not; such a block can be a
+    # dim-1 us term, so the message above would name the wrong reason
+    if (frame_has_mo_re(frame)) {
+      frm_stop("quadrature = TRUE does not support group-level mo() ",
+               "terms: the design of such a term changes with the mo() ",
+               "simplex, and the quadrature rule needs a fixed design. ",
+               "Fit with the Laplace approximation (quadrature = FALSE)",
+               call. = FALSE)
+    }
     if (REML) {
       frm_stop("quadrature = TRUE cannot be combined with REML = TRUE",
                call. = FALSE)
@@ -1226,13 +1273,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # same reason: its proposal IS the Laplace Gaussian, so the Laplace
   # tape has to exist to supply the conditional modes and their
   # Hessian, both while fitting and afterwards for ranef().
+  p_units <- predictor_units(frame)
+  inner_ctl <- predictor_inner_control(p_units)
   lap_obj <- if (is.null(integrate) && n_imp == 0L) NULL else {
     RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
-                    silent = TRUE)
+                    silent = TRUE, inner.control = inner_ctl)
   }
   obj <- if (is.null(lap_obj)) {
     RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
-                    profile = profile_arg, silent = TRUE)
+                    profile = profile_arg, silent = TRUE,
+                    inner.control = inner_ctl)
   } else lap_obj
   if (vb) {
     vb_stage("tape", t0,
@@ -1268,6 +1318,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   su <- smooth_fx_units(frame, names(obj$par))
   if (!is.null(su)) par_units <- (par_units %||% 1) * su
+  # and a coefficient in the response's units is in them, for the
+  # optimizer's steps and for the Hessian the standard errors come from,
+  # so the fit of y * c is the fit of y scaled (predictor_units()). A
+  # build of lane optrap that stepped in them but kept the Hessian in
+  # raw units called (Intercept) and x flat, with the response 1e6
+  # times larger, on fits that had reached lme4's maximum: their rows
+  # fell under the standard-error check's floor
+  ru <- predictor_par_units(frame, names(obj$par), p_units,
+                            scaled = if (!is.null(par_units)) par_units != 1)
+  if (!is.null(ru)) par_units <- (par_units %||% 1) * ru
   # the optimizer trace rides on the optimizer's own control list, so
   # keep it out of the control stored on the fit (refit and friends
   # reuse that list and must not inherit a trace)
@@ -1329,6 +1389,19 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (!isFALSE(ctl_opt$mo_search)) {
       opt <- mo_search(obj, opt, frame, ctl_opt, bounds, par_units,
                        verbose = vb, tally = tally)
+    }
+    if (is.null(integrate)) {
+      # with random effects the Hessian costs 2 p inner solves, so only
+      # a near-collinear fixed design pays for it (newton_polish())
+      ill <- length(obj$env$random) > 0L && length(opt$par) <= 100L &&
+        isTRUE(opt$convergence == 0) &&
+        predictor_design_kappa(frame) > 1e5
+      opt <- newton_polish(obj, opt, bounds, par_units, ctl_opt, ill = ill)
+      if (vb && !is.null(opt$polish)) {
+        vb_say("Newton steps from the stop: ", opt$polish[["steps"]],
+               ", gained ", format(opt$polish[["gain"]], digits = 3),
+               " in log-likelihood")
+      }
     }
   }
 
@@ -1573,10 +1646,13 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   # One build-and-optimize pass. Returns the fit, or - when the tape
   # broke mid-optimization - the best point it reached, so the caller
   # can recalibrate there.
+  inner_ctl <- predictor_inner_control(
+    if (is.null(frame)) numeric(0) else predictor_units(frame))
   attempt <- function(tpl) {
     if (vb) t0 <- vb_now()
     o <- RTMB::MakeADFun(nll, tpl, random = random, map = map,
-                         integrate = integrate, silent = TRUE)
+                         integrate = integrate, silent = TRUE,
+                         inner.control = inner_ctl)
     f0 <- try(o$fn(o$par), silent = TRUE)
     if (inherits(f0, "try-error") || !is.finite(f0)) return(NULL)
     if (vb) vb_stage("quadrature tape", t0)
@@ -1915,8 +1991,11 @@ sdr_of <- function(fit) {
 #'   grows with the model: with it the fit took 2.0 times the objective
 #'   evaluations it took without it on that model, and 3.3 to 3.8 times
 #'   those of frmtmb 0.68.1 on a model of 5000 rows with a random
-#'   intercept over 100 groups. `FALSE` turns it off. A model without
-#'   `mo()` terms is not affected.
+#'   intercept over 100 groups. A `cox()` baseline weight at 0 is
+#'   checked the same way, at one objective value per such weight, and
+#'   the model refitted from off the boundary when the likelihood rises
+#'   from it. `FALSE` turns both off. A model without `mo()` terms or a
+#'   `cox()` family is not affected.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -2374,7 +2453,8 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
   if (isTRUE(control$profile)) {
     plain <- tryCatch({
       o <- RTMB::MakeADFun(nll, template, random = random, map = map,
-                           silent = TRUE)
+                           silent = TRUE, inner.control =
+                             predictor_inner_control(predictor_units(frame)))
       # bounds and units are resolved for the profiled parameterization,
       # which has no beta in it; this fit only supplies a starting point
       # and the real optimization below applies both
@@ -2401,24 +2481,40 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
 #' where it started: a second failure is an objective that is genuinely
 #' undefined nearby, not an unlucky step.
 #'
+#' The best point is the lowest objective the tape has seen, which is not
+#' always a point the optimizer can start from. A REML likelihood with
+#' no bound runs toward minus infinity, and the lowest value seen can be
+#' where its gradient is not finite, or where the objective itself is
+#' NaN once the inner problem is solved from another start (fuzz seed
+#' 20379118 under OpenBLAS's LAPACK, dev/optrap-findings.md). A start
+#' whose objective or gradient is not finite only raises again, so the
+#' original error stands and the caller keeps what it had.
+#'
+#' `fn` and `gr` are the caller's, so that the evaluations are counted.
+#'
 #' @noRd
 optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
-                                par_units, verbose = 0L, tally = NULL) {
+                                par_units, verbose = 0L, tally = NULL,
+                                fn = obj$fn, gr = obj$gr) {
   pb <- obj$env$last.par.best
   # last.par.best spans the joint vector when the model has random
   # effects (profiled parameters included); lfixed() selects the outer
   # block the optimizer actually iterates on
   p0 <- if (is.null(pb)) NULL else pb[obj$env$lfixed()]
-  if (is.null(p0) || length(p0) != length(par) || anyNA(p0) ||
-      isTRUE(all.equal(unname(as.numeric(p0)), unname(as.numeric(par))))) {
-    stop(e)
+  usable <- !(is.null(p0) || length(p0) != length(par) || anyNA(p0) ||
+                isTRUE(all.equal(unname(as.numeric(p0)),
+                                 unname(as.numeric(par)))))
+  if (usable) {
+    p0 <- stats::setNames(as.numeric(p0), names(par))
+    usable <- tryCatch(is.finite(fn(p0)) && all(is.finite(gr(p0))),
+                       error = function(e2) FALSE)
   }
+  if (!isTRUE(usable)) stop(e)
   if (verbose) {
     vb_say("optimizer failed (", conditionMessage(e),
            "); restarting from the best point it reached")
   }
-  run_optimizer(optimizer, stats::setNames(as.numeric(p0), names(par)),
-                obj$fn, obj$gr, bounds$lower, bounds$upper,
+  run_optimizer(optimizer, p0, fn, gr, bounds$lower, bounds$upper,
                 control$optCtrl, par_units, tally)
 }
 
@@ -2433,6 +2529,13 @@ optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
 #' `opt` maps few or no trials, so its own count would erase the ones
 #' that got the fit there. `tally` lets a caller that retries a failed
 #' call (fit_assembled()'s recovery starts) keep counting across calls.
+#'
+#' A restart is a second chance, not a requirement: when it raises, or
+#' ends worse than the run it started from, the run before it is kept
+#' and the objective's state is put back at that run's optimum
+#' (`obj_settle()`). A restart that raised used to take the whole fit
+#' with it although the first run had a finite optimum (fuzz seed
+#' 20379118, dev/optrap-findings.md).
 #'
 #' @noRd
 optimize_obj <- function(obj, control,
@@ -2472,10 +2575,11 @@ optimize_obj <- function(obj, control,
     tryCatch(run_optimizer(optimizer, par, fn_c, gr_c,
                            bounds$lower, bounds$upper, control$optCtrl,
                            par_units, tally),
-             error = function(e) optimizer_from_best(obj, par, e, optimizer,
-                                                     bounds, control,
-                                                     par_units, verbose,
-                                                     tally))
+             error = function(e) {
+               optimizer_from_best(obj, par, e, optimizer, bounds,
+                                   control, par_units, verbose, tally,
+                                   fn = fn_c, gr = gr_c)
+             })
   }
   if (verbose) t0 <- vb_now()
   opt <- run(start_par)
@@ -2484,13 +2588,25 @@ optimize_obj <- function(obj, control,
     g <- max(abs(obj$gr(opt$par) * (par_units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
     if (verbose) t0 <- vb_now()
-    opt2 <- run(opt$par)
+    saved <- obj_state_save(obj)
+    opt2 <- tryCatch(run(opt$par), error = function(e) e)
     if (verbose) {
       vb_stage(paste0("restart ", i), t0,
-               paste0(vb_opt_detail(opt2), ", from max|grad| ",
-                      format(g, digits = 3)))
+               if (inherits(opt2, "error")) {
+                 paste0("failed (", conditionMessage(opt2),
+                        "); kept the run before it")
+               } else {
+                 paste0(vb_opt_detail(opt2), ", from max|grad| ",
+                        format(g, digits = 3))
+               })
     }
-    if (opt2$objective <= opt$objective) opt <- opt2
+    if (!inherits(opt2, "error") &&
+          isTRUE(opt2$objective <= opt$objective)) {
+      opt <- opt2
+      next
+    }
+    obj_settle(obj, opt, opt, saved)
+    if (inherits(opt2, "error")) break
   }
   # only the nlminb path maps trials; optim and a custom optimizer have
   # no count to report, and NULL says so where 0 would claim a measurement
@@ -2761,16 +2877,180 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
 #' is evaluated at the kept point, which makes that point the last one,
 #' and it is made the best one too.
 #'
+#' The saved state is the kept optimum's only if the run that reached it
+#' ended there, and a run need not: its lowest objective can be a point
+#' where the gradient is not finite. So a restored state whose last or
+#' best point is not the kept one is settled by evaluation as well.
+#'
 #' @noRd
 obj_settle <- function(obj, opt, best, saved) {
   if (identical(best, opt)) {
     obj_state_restore(obj, saved)
-  } else {
-    v <- obj$fn(best$par)
-    obj$env$last.par.best <- obj$env$last.par
-    obj$env$value.best <- v
+    if (obj_state_at(obj, best$par)) return(invisible(NULL))
   }
+  v <- obj$fn(best$par)
+  obj$env$last.par.best <- obj$env$last.par
+  obj$env$value.best <- v
   invisible(NULL)
+}
+
+#' Whether the objective's last and best points are both `par`, in the
+#' outer coordinates the optimizer iterates on.
+#'
+#' @noRd
+obj_state_at <- function(obj, par) {
+  env <- obj$env
+  lf <- tryCatch(env$lfixed(), error = function(e) NULL)
+  at <- function(p) {
+    !is.null(p) && !is.null(lf) && length(p[lf]) == length(par) &&
+      identical(unname(as.numeric(p[lf])), unname(as.numeric(par)))
+  }
+  at(env$last.par) && at(env$last.par.best)
+}
+
+#' Newton steps from where nlminb reported convergence: on the exact
+#' Hessian for a fit without random effects, and for a fit with them on
+#' the outer parameters of the Laplace objective when a fixed design is
+#' near collinear (`ill`, predictor_design_kappa()).
+#'
+#' nlminb's relative function test can pass far from the maximum along
+#' a direction the Hessian barely curves: on raw polynomials of degree
+#' 6 with x on [1, 2] (condition number near 3e14), 19 of 20 fits
+#' stopped at code 0 and in silence up to 2 log-likelihood units below
+#' lm()'s maximum, 0.5 to 1 standard errors away in every coefficient,
+#' where one Newton step predicted the shortfall to 1 percent
+#' (dev/optrap-p1-polish2.R). How often depends on the response's
+#' scale: rellib-r7 stopped short on 3, 19 and 19 of 20 with y times 1,
+#' 4 and 16 (dev/optrap-p1-polystudy.R). Without random effects TMB
+#' gives the exact Hessian of the objective, and these steps then leave
+#' none short (dev/optrap-p1-polish.R).
+#'
+#' A step is taken only while it predicts a gain above 1e-6, so a fit
+#' at its maximum to the optimizer's tolerance is left as it is, bit for
+#' bit, and kept only if the objective falls and every parameter stays
+#' strictly inside its bounds. At most five steps, and only for up to
+#' 100 parameters, where the Hessian costs at most 100 gradient sweeps.
+#' A fit whose `optCtrl` sets one of the optimizer's tolerances (nlminb's
+#' `rel.tol`, `x.tol`, `abs.tol`, `xf.tol`; optim's `reltol`, `abstol`,
+#' and L-BFGS-B's `factr`, `pgtol`), or whose optimizer is a function of
+#' the caller's, is left where it stopped: that caller chose the stopping
+#' rule.
+#'
+#' A step needs a Cholesky factor of the Hessian in natural units, so it
+#' only goes where the quadratic model has a minimum. Without the check a
+#' saddle (`x^2 - y^2 + 0.1 y` from (1, 0.1)) was stepped to its
+#' stationary point, because the objective fell on the way (the review
+#' of lane optrap, r3). And a step is kept only when it gains at least a
+#' tenth of what it predicted: on negative binomial data at the Poisson
+#' limit, where the shape's maximum is at infinity, a step predicted
+#' above 1e-6 gained 3e-8 and took the log shape from 20 to 67, where
+#' the Hessian is indefinite and every standard error was lost (the
+#' 0.70.0 consolidation, dev/rel070-polishgate.R in its tree; 3 of 200
+#' seeds lost the coefficients' SEs). A quarter, the integration's
+#' candidate, refused the first step on a degree-7 raw polynomial, which
+#' gains 0.2 of its prediction because the log sigma direction is not
+#' quadratic, and left that fit 1.16 short in silence; the steps after it
+#' gain 1.00 to 1.06 of theirs (dev/optrap-c3-trace17.R).
+#'
+#' With random effects TMB has no Hessian of the Laplace objective; it
+#' is taken by central differences of the exact gradient
+#' (stats::optimHess(), as sdreport() takes it), in natural units. That
+#' costs `2 p` gradients, each with an inner solve, so it runs only
+#' where nlminb is known to stop short in silence: a near-collinear
+#' fixed design. Raw polynomials with (1 | g), x on [1, 2]: at degree 6,
+#' 13 of 20 stopped up to 1.1 short at code 0 with no warning, at degree
+#' 7 20 of 20 up to 3.1; with these steps 0 of 40
+#' (dev/optrap-c3-repolish.R, dev/optrap-findings.md).
+#'
+#' Steps are undone when they end where the Hessian has no Cholesky
+#' factor: there the convergence check calls the curvature unusable or
+#' the standard-error check calls a direction flat. On lane seflags' B5
+#' design without random effects (degree 8, seeds 4 and 5) the steps
+#' gained what they predicted, ended there, and every SE was lost
+#' (dev/optrap-c3-b5.R); on the negative binomial data two fits gained
+#' 2e-6 and gained an SE warning on the shape, which 0.69.1 did not give
+#' (dev/optrap-c3-gate.R). The end point's gradient is no test: at the
+#' maximum of a degree-6 raw polynomial it is 1.6e-3 to 2.9e-3 in
+#' natural units, above `grad_tol`, with no headroom left.
+#'
+#' @noRd
+newton_polish <- function(obj, opt, bounds, par_units = NULL,
+                          control = NULL, ill = FALSE) {
+  p <- opt$par
+  np <- length(p)
+  tols <- c("rel.tol", "x.tol", "abs.tol", "xf.tol", "reltol",
+            "abstol", "factr", "pgtol")
+  re <- length(obj$env$random) > 0L
+  if (!np || np > 100L || (re && !isTRUE(ill)) ||
+        !isTRUE(opt$convergence == 0) || !is.finite(opt$objective) ||
+        any(names(control$optCtrl) %in% tols) ||
+        is.function(control$optimizer)) {
+    return(opt)
+  }
+  lower <- rep_len(bounds$lower %||% -Inf, np)
+  upper <- rep_len(bounds$upper %||% Inf, np)
+  u <- rep_len(par_units %||% 1, np)
+  v <- opt$objective
+  saved <- obj_state_save(obj)
+  moved <- FALSE
+  steps <- 0L
+  hess_at <- function(p) {
+    H <- tryCatch(if (re) {
+      stats::optimHess(p, obj$fn, obj$gr, control = list(parscale = u))
+    } else {
+      obj$he(p)
+    }, error = function(e) NULL)
+    if (is.null(H) || !identical(dim(H), c(np, np)) || !all(is.finite(H))) {
+      return(NULL)
+    }
+    H
+  }
+  chol_at <- function(H) {
+    if (is.null(H)) return(NULL)
+    Hs <- H * outer(u, u)
+    tryCatch(chol((Hs + t(Hs)) / 2), error = function(e) NULL)
+  }
+  end_ok <- TRUE
+  for (it in 1:5) {
+    g <- tryCatch(drop(obj$gr(p)), error = function(e) NULL)
+    if (is.null(g) || length(g) != np || !all(is.finite(g))) {
+      end_ok <- FALSE
+      break
+    }
+    # in natural units, where the Hessian is closest to unit diagonal
+    gs <- g * u
+    R <- chol_at(hess_at(p))
+    end_ok <- !is.null(R)
+    if (is.null(R)) break
+    st <- -drop(backsolve(R, forwardsolve(t(R), gs)))
+    if (!all(is.finite(st))) break
+    gain <- -sum(gs * st) / 2
+    if (!is.finite(gain) || gain <= 1e-6) break
+    q <- p + st * u
+    if (any(q <= lower) || any(q >= upper)) break
+    vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+    if (!is.finite(vq) || vq >= v || v - vq < 0.1 * gain) break
+    p <- q
+    v <- vq
+    moved <- TRUE
+    steps <- steps + 1L
+    end_ok <- NA
+  }
+  # the loop leaves end_ok NA when its last step was taken and the
+  # Hessian there not yet read
+  if (moved && is.na(end_ok)) end_ok <- !is.null(chol_at(hess_at(p)))
+  if (moved && !isTRUE(end_ok)) moved <- FALSE
+  if (!moved) {
+    # the probes above moved the objective's state; put it back
+    obj_state_restore(obj, saved)
+    return(opt)
+  }
+  out <- opt
+  out$par <- stats::setNames(p, names(opt$par))
+  out$objective <- v
+  out$polish <- c(steps = steps, gain = opt$objective - v)
+  obj_settle(obj, opt, out, saved)
+  out
 }
 
 #' Where each `mo()` term's simplex coordinates and scale coefficient
@@ -2793,15 +3073,27 @@ mo_search_terms <- function(obj, frame) {
       out[[length(out) + 1L]] <- list(z = z, b = b, D = mi[["D"]])
     }
   }
+  # a cox() baseline is a simplex in the same chart, with no
+  # coefficient of its own (cox_face_leave())
+  multi <- length(frame[["spec"]]$responses %||% list()) > 1L
+  for (r in names(frame[["aterm_values"]])) {
+    Zb <- frame[["aterm_values"]][[r]][["Zbhaz"]]
+    if (is.null(Zb)) next
+    z <- which(pn == extra_tpl_name(frame, if (multi) r, "sbhaz_raw"))
+    if (length(z) != ncol(Zb) - 1L) next
+    out[[length(out) + 1L]] <- list(z = z, b = NA_integer_, D = ncol(Zb),
+                                    cox = TRUE)
+  }
   out
 }
 
 #' Bring a `mo()` fit to the maximum the simplex parameterization alone
 #' does not reach.
 #'
-#' `mo_simplex()` has no plateau at the faces, but two things remain,
-#' and both are measured on brms_monotonic's `ls ~ mo(income) * age`
-#' against its exact maximum (dev/optima-findings.md):
+#' `mo_simplex()` has no plateau at the faces, but two things remain for
+#' a `mo()` term, both measured on brms_monotonic's `ls ~ mo(income) *
+#' age` against its exact maximum (dev/optima-findings.md), and a third
+#' for a `cox()` baseline:
 #'
 #' 1. The chart's one point at infinity. When the scale coefficient is
 #'    near 0 the simplex barely moves the likelihood, the optimizer can
@@ -2819,14 +3111,24 @@ mo_search_terms <- function(obj, frame) {
 #'    more than 0.01 below the maximum in the wrong cone.
 #'    When a simplex is on its boundary (a weight below `mo_face_tol`)
 #'    the fit may be one of them, so the other cone is searched: the
-#'    coefficient's sign is held by a bound, the simplex starts near
+#'    coefficient's sign is held by a bound, the search starts near
 #'    the vertex along which the gradient at `b = 0` favors that sign
-#'    most, and the result is refitted without the bound. An interior
-#'    simplex with a nonzero coefficient is a stationary point of the
-#'    unconstrained increments, which a concave likelihood has once, so
-#'    it is not searched.
+#'    most, at least one of the coefficient's units from 0, then near
+#'    the next vertex while the coefficient ends on its bound, and the
+#'    result is refitted without the bound. An interior simplex with a
+#'    nonzero coefficient is a stationary point of the unconstrained
+#'    increments, which a concave likelihood has once, so it is not
+#'    searched, unless the coefficient is within 1e-3 of its unit of 0,
+#'    where the simplex barely moves the likelihood and both cones are.
 #'
-#' The better optimum is kept. Silent, like `escape_stationary()`;
+#' 3. A `cox()` baseline is a simplex in the same chart with no
+#'    coefficient, so only the first step and this one apply to it: a
+#'    weight at a face the likelihood rises from is a saddle nlminb can
+#'    stop on, and the fit is refitted from off the faces
+#'    (`cox_face_leave()`).
+#'
+#' The better optimum is kept, and the objective is left at it
+#' (`obj_settle()`). Silent, like `escape_stationary()`;
 #' `verbose = TRUE` reports it and the result carries `mo_search` so
 #' the cost stays measurable.
 #'
@@ -2880,39 +3182,80 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
       best <- o
     }
   }
-  # 2. the other sign's cone
+  # 2. the other sign's cone, and both when the coefficient is near 0
   for (tm in terms) {
     if (is.na(tm$b)) next
     b <- best$par[tm$b]
     w <- mo_simplex(best$par[tm$z])
-    if (b == 0 || min(w) >= mo_face_tol) next
+    unit_b <- if (is.null(par_units)) 0 else par_units[tm$b]
+    # A coefficient within 1e-3 of its natural unit of 0 leaves the
+    # simplex almost no say, so the fit can stop at any interior simplex
+    # and neither cone has been searched: seed 80 of dev/optima-mo-study.R
+    # stopped so at b = 6e-5, 0.0188 short of its maximum at a vertex
+    # (dev/optrap-findings.md)
+    near0 <- abs(b) < 1e-3 * unit_b
+    if (b == 0 || (min(w) >= mo_face_tol && !near0)) next
     s <- sign(b)
-    lo <- lower
-    up <- upper
-    if (s > 0) up[tm$b] <- min(up[tm$b], 0) else lo[tm$b] <- max(lo[tm$b], 0)
-    if (-b < lo[tm$b] || -b > up[tm$b]) next
     vertex <- function(k, mix = 0) {
       v <- (1 - mix) * replace(numeric(tm$D), k, 1) + mix / tm$D
       mo_coords(v)
     }
-    p0 <- best$par
-    p0[tm$b] <- 0
-    score <- vapply(seq_len(tm$D), function(k) {
-      p0[tm$z] <- vertex(k)
-      g <- tryCatch(obj$gr(p0)[tm$b], error = function(e) NA_real_)
-      if (is.finite(g)) s * g else -Inf
-    }, 0)
-    p <- best$par
-    p[tm$b] <- -b
-    p[tm$z] <- vertex(which.max(score), mix = 0.1)
-    o <- refit(pmin(pmax(p, lo), up), lo, up, ctl_held)
-    # the other cone's optimum is no better: nothing to release
-    if (!better(o)) next
-    o <- refit(pmin(pmax(o$par, lower), upper))
+    for (to in if (near0) c(-s, s) else -s) {
+      lo <- lower
+      up <- upper
+      if (to < 0) up[tm$b] <- min(up[tm$b], 0) else lo[tm$b] <- max(lo[tm$b], 0)
+      # The coefficient starts at least one of its natural units from 0.
+      # A fit in the wrong cone has a b near 0, and from -b the bounded
+      # refit could run b onto its bound, where the simplex no longer
+      # matters, and stop there: seed 37 of dev/optima-mo-study.R, on a
+      # build of lane optrap that started at -b, stopped from b = 0.014
+      # and reached the maximum from 0.043 and 0.14
+      # (dev/optrap-findings.md).
+      b0 <- to * max(abs(b), unit_b)
+      if (b0 < lo[tm$b] || b0 > up[tm$b]) next
+      p0 <- best$par
+      p0[tm$b] <- 0
+      score <- vapply(seq_len(tm$D), function(k) {
+        p0[tm$z] <- vertex(k)
+        g <- tryCatch(obj$gr(p0)[tm$b], error = function(e) NA_real_)
+        if (is.finite(g)) -to * g else -Inf
+      }, 0)
+      # A search whose b ends on that bound found no maximum inside the
+      # cone from its vertex, so the next vertex by score is tried: seeds
+      # 184 and 194 reach their maxima from the second, after the first
+      # ran b onto the bound (seed 194 stayed 0.0489 short on 0.69.0).
+      o <- NULL
+      for (k in order(score, decreasing = TRUE)) {
+        p <- best$par
+        p[tm$b] <- b0
+        p[tm$z] <- vertex(k, mix = 0.1)
+        ok <- refit(pmin(pmax(p, lo), up), lo, up, ctl_held)
+        if (is.null(ok) || !all(is.finite(ok$par)) ||
+              !is.finite(ok$objective)) {
+          next
+        }
+        if (is.null(o) || ok$objective < o$objective) o <- ok
+        if (ok$par[tm$b] != 0) break
+      }
+      # that cone's optimum is no better: nothing to release
+      if (!better(o)) next
+      o <- refit(pmin(pmax(o$par, lower), upper))
+      if (better(o)) best <- o
+    }
+  }
+  # 3. a cox() baseline weight left at a face the likelihood rises from
+  for (tm in terms) {
+    if (!isTRUE(tm$cox)) next
+    p <- cox_face_leave(obj, best, tm)
+    if (is.null(p)) next
+    o <- refit(pmin(pmax(p, lower), upper))
     if (better(o)) best <- o
   }
-  if (!runs) return(opt)
+  # settled whether or not anything was refitted: the run that reached
+  # `opt` need not have ended at it, and the cox() probes above move
+  # the objective's state (obj_settle())
   obj_settle(obj, opt, best, saved)
+  if (!runs) return(opt)
   gain <- opt$objective - best$objective
   best$mo_search <- c(runs = runs, gain = gain)
   # a search run replaces `opt`, whose escape record would go with it
@@ -2930,6 +3273,38 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
                     format(gain, digits = 3)))
   }
   best
+}
+
+#' A start off the faces for a `cox()` baseline the fit left at a face
+#' the likelihood rises from, or `NULL` when it left none.
+#'
+#' The likelihood is concave in the baseline weights at fixed
+#' coefficients, so a face is either the maximum or a direction it
+#' rises in. On the chart a face is the fold `u_j = 0`, where the
+#' gradient in `u_j` is zero either way: a face to leave is a saddle,
+#' and nlminb can stop on one. Seed 22 of dev/moparity-cox-study.R did,
+#' 0.0215 below the maximum with three standard errors lost
+#' (dev/moparity-findings.md, item 4). A small step along each face's
+#' own direction, `(1 - d) w + d e_j`, tells the two apart in one
+#' objective value each; a face to leave sends the refit from the
+#' simplex mixed a tenth of the way to the barycenter.
+#'
+#' @noRd
+cox_face_leave <- function(obj, best, tm) {
+  w <- mo_simplex(best$par[tm$z])
+  face <- which(w < mo_face_tol)
+  if (!length(face)) return(NULL)
+  d <- 1e-3
+  rises <- vapply(face, function(j) {
+    p <- best$par
+    p[tm$z] <- mo_coords((1 - d) * w + d * replace(numeric(tm$D), j, 1))
+    f <- tryCatch(obj$fn(p), error = function(e) NA_real_)
+    is.finite(f) && f < best$objective - 1e-10 * max(1, abs(best$objective))
+  }, NA)
+  if (!any(rises)) return(NULL)
+  p <- best$par
+  p[tm$z] <- mo_coords(0.9 * w + 0.1 / tm$D)
+  p
 }
 
 #' A simplex weight below this is on the simplex's boundary for
@@ -3375,6 +3750,8 @@ make_start <- function(frame, start, prior_entries = NULL,
     sp <- resp$family[["post"]][["start_spread"]]
     if (is.function(sp)) tpl <- sp(frame, resp$resp_name, tpl)
   }
+  # the group sds in the response's units; see predictor_units()
+  tpl <- unit_theta_start(frame, tpl)
   claimed <- integer(0)
   if (!is.null(start)) {
     nl_named <- unique(unlist(lapply(frame[["spec"]]$responses,

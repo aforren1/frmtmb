@@ -2099,6 +2099,8 @@ item. Each item this round closed is marked in place above with
   (setier review, RB2 and RQ1). Remedy to try: start a group sd scaled
   to the response, or an escape that tries the sd at a fraction of the
   residual sd as `se_sd_gain_up()` does. Lane setier.
+  CLOSED at 0.70.0 (lane optrap): the identity-link mu of ten location-scale
+  families has a unit, the residual MAD; 0 of 40 short at 1e-3, 1 and 1e3.
 - **A prediction along a lost direction is flagged when it is
   estimable** (the consolidation review, B1 and m4). On the ported
   fixture 1 (`data-helpers:7`), where the fit converges under OpenBLAS
@@ -2121,6 +2123,9 @@ item. Each item this round closed is marked in place above with
   Repro: `dev/relrev069-dh7diag.R` under
   `dev/ciharden-openblas.sh 0.3.26 lapack`; `dev/rel069-dh7.R`. The
   test must not be loosened to allow the warning. Consolidation.
+  CLOSED at 0.70.0 (lane seflags): the design alias is taken from the design
+  (se_design_null()); the prediction test reads the unit-diagonal metric.
+  data-helpers:7 holds under OpenBLAS LAPACK.
 - **A restart that raises discards a finite first run** (the
   consolidation review, item 3a and m2). In `optimize_obj()`, when the
   restart from a first run's optimum raises "NA/NaN gradient
@@ -2143,6 +2148,8 @@ item. Each item this round closed is marked in place above with
   against 31, 52, 52 under the reference BLAS, 0.3.26 and 0.3.32). It
   needs a test seen to fail and a run with OpenBLAS LAPACK.
   Consolidation.
+  CLOSED at 0.70.0 (lane optrap): a restart that raises keeps the run before
+  it; fuzz seed 20379118 fits under OpenBLAS LAPACK.
 - **A boundary message on an sd the likelihood does not read** (the
   consolidation review, item 6 and m3). On `test-diagnostics-ux.R` fit
   58 ("a theta in the flat set ...") the message says
@@ -2155,6 +2162,8 @@ item. Each item this round closed is marked in place above with
   near zero on the scale `se_sd_gain_up()` uses (below its smallest
   probe, 0.01 of the residual sd, or of 1 on the link scale) before a
   boundary verdict, and report it as "flat" otherwise. Lane setier.
+  CLOSED at 0.70.0 (lane seflags): a boundary verdict needs the likelihood to
+  change when the sd moves up, as far as +10 on the log scale.
 
 ### Open - medium
 
@@ -2170,6 +2179,8 @@ item. Each item this round closed is marked in place above with
   tests pass either way. Likely `dev/rtmb-pitfalls.md` item 21 (P and
   E cores). Repro: `dev/setier-idk-test.R`, ten at once;
   `dev/setier-idk.R <lib>`. Lane setier.
+  CLOSED for the test at 0.70.0 (lane optrap): the test no longer depends on
+  which point it reaches; the two points by core type remain.
 - **cox()'s baseline simplex (`sbhaz_raw`) is a softmax and meets the
   plateau `mo()` met**: weights of 1.1e-8, 8.3e-9 and 5.9e-8 on seeds
   2, 5 and 6 of `dev/optima-rev-cox1.R`. The argument of
@@ -2178,10 +2189,15 @@ item. Each item this round closed is marked in place above with
   would need the softmax-and-Dirichlet treatment frmtmb.sample now
   gives a `mo()` simplex (brms puts `dirichlet(1)` on `sbhaz`). Lane
   optima, review m9.
+  CLOSED at 0.70.0 (lane moparity): the baseline is in the mo() chart,
+  searched at its faces (cox_face_leave()); frmtmb.sample samples it in
+  softmax coordinates under dirichlet(1).
 - **`escape_stationary()`'s sibling paths**: the objective's state is
   settled after an escape and after `mo_search()` (`obj_settle()`);
   any other post-fit refit that keeps a run other than the last must
   call it too. Lane optima.
+  CLOSED at 0.70.0 (lane optrap): every run the optimizer discards leaves the
+  objective at the kept optimum (obj_settle()).
 - **A dense block with several scales still has a `+Inf` or `NaN` log
   density where a log sd underflows.** Lane surface floored the
   variance of the six one-scale dense structures (`sd2_floored()`), but
@@ -2195,6 +2211,8 @@ item. Each item this round closed is marked in place above with
   seeds of `(1 + x | g)` never went below theta -15.3
   (`dev/surface-rev-ussweep.R`). The remedy is the same floor per
   scale, or a log-scale density. Lane surface, review m4.
+  CLOSED at 0.70.0 (lane moparity): sd_floored() on us, us_t, cs, toep, ar1,
+  hetar1 and gr(cov =, prec =).
 - **A degree-7 raw polynomial with `(1 | g)` keeps standard errors far
   from lmer()'s.** Seed 7 (`dev/setier-rev-deg7.R`) loses x3 to x5 and
   keeps five SEs up to 0.946 relative from lmer()'s (before lane
@@ -2203,6 +2221,8 @@ item. Each item this round closed is marked in place above with
   explodes when the eigenvalue gap is 1.4e-11, so only dominant
   loadings are named. Pre-existing. Setier review, m7 and the final
   check.
+  CLOSED at 0.70.0 (lane seflags): all eight SEs within 0.5 percent of the QR
+  reference (second differences of the objective).
 - **Curved ridges with an eigenvalue above 1e-9 keep silent finite
   standard errors**, on 0.68.1 and 0.69.0 alike: `a + exp(b)` on 9 of
   20 fits, the same ridge with `(1 | g)` on 20 of 20, c0k on 16 of 18
@@ -2211,6 +2231,8 @@ item. Each item this round closed is marked in place above with
   `dev/setier-rev-c0k-sweep.R`). The curvature probe never sees them,
   because their eigenvalues are above the threshold that sends a
   direction to it. Pre-existing. Setier review, m8.
+  CLOSED at 0.70.0 (lane seflags): the curvature is measured again on the
+  ridge's floor.
 
 ### Open - low
 
@@ -2246,6 +2268,9 @@ item. Each item this round closed is marked in place above with
   prediction against the lost directions before the loadings of kept
   parameters are zeroed, or scale `se_pred_tol` to the basis's own
   precision.
+  CLOSED at 0.70.0: the fuzz spec (lane optrap, the restart) and
+  data-helpers:7 (lane seflags, the alias); see dev/round-20261013.md for the
+  release build under OpenBLAS 0.3.26 and 0.3.32 with LAPACK.
 - **A mixture precision with an infinite MLE fits with no warning.**
   `test-bcm-latent-mixtures.R`'s Malingering_2 fit,
   `mixture(beta_binomial, beta_binomial)` on `bcm_malingering_data()`:
@@ -2263,32 +2288,46 @@ item. Each item this round closed is marked in place above with
   discarded by `update(fit, prior = <a sigma prior>)` (b_x 0.236 to
   0.766; merged 0.236). frmtmb could merge and still check the new
   rows strictly. Lane surface, review m1.
+  CLOSED at 0.70.0 (lane moparity): merged by slot as brms; an empty table
+  row resets its slot.
 - **`mo()` seed 194** of `dev/optima-mo-study.R` stays 0.0489 below
   the exact maximum, at the other sign's cone, which 0.68.1 found: the
   search's vertex start (chosen from the gradient at `b = 0` with the
   other parameters held) did not lead into that cone's optimum there.
   A start at each vertex would reach it at D times the cost. Lane
   optima, review m8.
+  CLOSED at 0.70.0 (lane optrap): the search tries the next vertex while the
+  coefficient ends on its bound; 400 of 400 at the maximum.
 - **A `simo` prior row is refused by `frm()` and `frm_sample()`**:
   brms accepts `prior(dirichlet(c(2, 1, 1)), class = simo, coef =
   moincome1)`. `set_prior()` has no Dirichlet density; the sampler's
   `mo_simplex_nlp()` is where a concentration vector would go. Lane
   optima.
+  CLOSED at 0.70.0 (lane moparity): prior_dirichlet(), classes simo and
+  sbhaz, in frm() (MAP) and frm_sample().
 - **`as_tmbstan(fit)` on every `mo()` fit**, ML or MAP, samples the
   fit's own tape, whose simplex coordinates have no density: on a
   weakly identified simplex the draws collapse to the barycenter (sd
   1e-17, coordinates to 7e17). By contract the route adds nothing; it
   says so in a message and `?as_tmbstan` names `frm_sample()`. Lane
   optima.
+  CLOSED at 0.70.0 (lane moparity): contract kept; the message names only the
+  simplexes with no density on the tape.
 - **`mo(x) * f` with a factor and `mo()` in group-level terms**, both
   of which brms fits, are refused (pre-existing). Lane optima, review
   m11.
+  CLOSED at 0.70.0 (lane moparity), in brms 2.22.0's parameterization (brms
+  2.23.0 is broken here, brms#1828).
 - **The SE check misses an exactly flat simplex direction that is not
   along a coordinate**: with four categories and the third unobserved
   (`dev/optima-segap.R`), the flat direction warned on 6 of 9 fits and
   was silent on 3 on lane optima's build. Lane setier's tier-3-first
   rule may cover it; rerun the script on 0.69.0 before starting. Lane
   optima.
+  NOT CLOSED at 0.70.0: much reduced, a residue remains (the consolidation
+  review, m1; dev/relrev070-segap.R, 40 seeds by 4 designs): fits silent with
+  every zeta SE finite, 64 of 160 on 0.69.1, 8 of 160 on the release under
+  either BLAS (lane seflags). See "Filed at the 0.70.0 release", Open - low.
 - **The `cs()` ordinal-mixture wall has no message naming its cause**:
   most `mixture(cumulative(), sratio())` fits with `cs(z)` stop with
   "false convergence (8)" where a row's category closes in one
@@ -2311,6 +2350,8 @@ item. Each item this round closed is marked in place above with
   binding does not name can still warn twice or not at all. Not
   measured to happen; `posterior_samples()` asks the dispatching frame
   instead, and the two could share that test. Lane ciharden.
+  CLOSED at 0.70.0 (lane moparity): decided from the dispatching frame; 26 of
+  26 load orders and routes warn once.
 - **`logitnormal_sd()` at extreme inputs** (`pp_mixture()`'s
   `Est.Error`): at p = 1e-30 with logit SD 10 the single `integrate()`
   misses the logistic's transition, 2.21e-6 against 1.41e-6 (relative
@@ -2321,6 +2362,8 @@ item. Each item this round closed is marked in place above with
   transitions over the tree depth): the field is sampled centered, a
   funnel, where brms samples the standardized `zgp`. Confirms gpby r4
   (above). Lane surface.
+  CLOSED at 0.70.0 (lane moparity): the field is sampled non-centered when
+  its sd and length scales have priors.
 
 ### Upstream, listed in `dev/upstream-bugs.md` for the user to file
 
@@ -2328,6 +2371,381 @@ item. Each item this round closed is marked in place above with
   9.4e6 and NaN near 4.46e9 (`dev/optima-pnorm-scan.R`); frmtmb's
   probit continues as the tail's leading term past `|eta| = 1000`.
   Lane optima.
+
+## Filed at the 0.70.0 release (2026-10-13)
+
+What the three lanes of the round opened 2026-10-07 (`moparity`,
+`optrap`, `seflags`) found and did not fix, and what their reviews and
+the consolidation listed. Each item names its lane and the record with
+the measurement: `dev/<lane>-findings.md` and
+`dev/reviews/2026-10-08-<lane>.md`. `dev/round-20261013.md` is the
+round's record. Lanes moparity and seflags added their own sections;
+they follow this one as the lanes wrote them, one heading level down.
+Lane optrap added none; its filings are below. Each item this round
+closed is marked in place above with "CLOSED at 0.70.0".
+
+### Closed by this round (were open at 0.69.1)
+
+- The gaussian random-intercept fit short of the maximum at units
+  1e3; the restart that raised and discarded a finite first run (fuzz
+  seed 20379118 under OpenBLAS LAPACK); the objective's state after a
+  discarded run (`obj_settle()` on every path); `mo()` seed 194; the
+  test of `test-id-kron.R`, which no longer depends on which of its two
+  points a core type reaches (optrap).
+- The estimable predictions flagged on fixture 1 (`data-helpers:7`)
+  under OpenBLAS LAPACK; the boundary message on an sd the likelihood
+  does not read; curved ridges above 1e-9; the degree-7 raw polynomial
+  with `(1 | g)` (seflags). The flat simplex direction off the
+  coordinates is much reduced but not closed (Open - low, below).
+- `mo(x) * f` and `(mo(x) | g)`; `simo` and `sbhaz` Dirichlet priors;
+  `update(prior =)` merging as brms; the `cox()` baseline's plateau;
+  the dense blocks' `+Inf` and `NaN` log density at an underflowed log
+  sd; `parnames()` deciding from the binding; the exact `gp()` field
+  sampled centered; `as_tmbstan()`'s message on `mo()` fits
+  (moparity).
+
+### Open - high
+
+- **The wide high-R^2 design, seed 1, stops 9107.66 below lmer at
+  code 0 with no warning**, on 0.69.0 and on 0.70.0 alike
+  (`dev/optrap-p2-wide1.R`, `p2/wide1-r7.txt`; n 101000, 50 columns).
+  3 iterations, 9 evaluations; the group sd ends at 6.5e-16 against
+  lmer's 0.486 and sigma at 1.11 against 0.999. The start is the
+  cause: sigma at `log(sd(y))` = 9.21 and every slope at 0, so the
+  first steps put the group sd at the boundary, where the log-scale
+  gradient vanishes. The response units do not catch it (the residual
+  spread is 1, no unit), and `newton_polish()` does not run (the
+  design is not near collinear, so its random-effect steps do not
+  apply). Measured candidate (`dev/optrap-p2-wide1-starts.R`): sigma
+  started at the residual MAD and the mu coefficients at least squares
+  reach lmer at code 0 (-1.3e-8, 9 iterations). That changes the
+  starting values of every location-scale fit whose response is far
+  from its residual spread, across ten families' sigma conventions, so
+  it needs its own fit diff over the suites: its own round. Lane
+  optrap, punch round 2; its review's consolidation item 2.
+- **Accurate SEs on ill-conditioned designs** is its own lane: see
+  lane seflags' section below ("Open - high priority"). 0.70.0 keeps
+  0.69.0's NaN for the coefficients an ill-conditioned direction
+  carries, with a message that names the design, after the punch
+  round 2b attempt gave wrong finite SEs through emmeans,
+  marginaleffects, `vcov()` read whole and the ordinal category route
+  (review B6 and B7).
+
+### Found at the consolidation (the merged build), fixed before the release
+
+Two lanes can each be right and their union wrong. The reruns of the
+three reviews on the first merged build found these three
+(`dev/round-20261013.md`, "The reruns the reviewers asked for" and
+"Found at the consolidation, fixed"); lane optrap fixed them in its
+consolidation fixes (`dev/optrap-findings.md`, "Consolidation fixes",
+install 32), and the release tree took the fixes by a rerun of
+`dev/rel070-merge.sh`.
+
+- **`newton_polish()` accepted a step whose actual gain was a tiny
+  fraction of the predicted one.** CLOSED at 0.70.0 (lane optrap,
+  consolidation fixes). On the false-alarm battery's
+  `negbin_large_shape` (negative binomial data near the Poisson limit,
+  where the shape's MLE is infinite), seed 2 under the reference BLAS:
+  the Hessian's eigenvalues were 700.7, 310.6 and 9.9e-7, the actual
+  gain 2.965e-8 of a prediction above 1e-6, and the step took the log
+  shape from 19.98 to 66.76, where the gradient is 565; every SE was
+  NaN, `b_Intercept` and `b_x` included, behind a large-gradient
+  warning (`dev/rel070-seflags-attrib.R`). Over 200 seeds
+  (`dev/rel070-polishgate.R negbin`): 0.69.1 warned on 66 and lost no
+  coefficient SE; the first merged build polished 11, warned on 74 and
+  lost both coefficient SEs on 3. The fix: a step is kept only if it
+  gains at least 0.1 of its prediction (the consolidation's candidate
+  0.25 refused a needed first step of a degree-7 raw polynomial, seed
+  17, whose actual gain is 0.203 of the prediction), and steps that
+  end where the Hessian has no Cholesky factor are undone.
+- **Raw polynomials with `(1 | g)` stopped short of the maximum in
+  silence.** CLOSED at 0.70.0 (lane optrap, consolidation fixes). On
+  the first merged build, against an exact profile maximum
+  (`dev/rel070-optrap-diag-repoly.R`, 20 seeds per degree): degree 6,
+  13 of 20 short (to 1.1), all silent (0.69.1: 5, to 0.0229, 4
+  silent); degree 7, 20 of 20 short (to 3.1), all silent, where 0.69.1
+  warned through the SE check's false "flat" verdict, which lane
+  seflags removed. The cause is lane optrap's coefficient units (the
+  lane's ablations: without them these fits are 0.69.1's). The fix:
+  Newton steps on fits with random effects too, on a Hessian by
+  central differences of the exact gradient (`stats::optimHess()` in
+  natural units), when the fixed design is near collinear
+  (`predictor_design_kappa(frame) > 1e5`: 3e5 at degree 5, 4e6 at
+  degree 6, 3.4 for sleepstudy), so other fits pay one QR of their
+  design and are otherwise unchanged.
+- **The polish could end where the convergence check rejects the
+  gradient, so the SE check did not run** (medium). CLOSED at 0.70.0
+  (lane optrap, consolidation fixes): on seflags' B5 design without
+  random effects (degree 8, seeds 4 and 5) every SE was NaN, z, wb and
+  sigma included; the steps ended where the Hessian does not factor
+  and are now undone, so the fit is lane seflags' again.
+- Not a defect, recorded: ported fixture 1 under OpenBLAS LAPACK stops
+  at code 1 (lane optrap's unit 4 on the mu of `count`), so seflags'
+  B1 premise there no longer arises; with `predictor_units()` off it is
+  code 0 with seflags' lost set (`dev/rel070-seflags-fx1.R`). The B1
+  constructions that hold under both BLAS (`b1ref`) keep their test.
+
+### Open - medium
+
+- **A group sd 1000 times the residual sd gives "false convergence"
+  at lmer's maximum** on 2 of 20 fits (seeds 6 and 14, unit 1020;
+  `re1000-lane.txt` of the review), where 0.69.0 gives 0. The MAD of
+  the residuals holds the group variance (unit 1024), so the group sd
+  starts right, but sigma starts at the family's own `sd(y)`, 1000
+  times its value. The warning is right about the optimizer and wrong
+  about the fit. The sigma start of the item above would remove it.
+  Lane optrap, review r2.
+- **The convergence-warning policy**: the SE check does not run on a
+  fit with a convergence warning, so on a ridge the reported
+  uncertainty flips with rounding (lane ci691; lane seflags' section
+  below, "Pre-existing"). It covered seflags' B5 seeds 4 and 5
+  without random effects on the review's merge build (fixed above, by
+  undoing the polish). A policy decision for the user before a lane.
+- **The ported row `brmsfit-methods:326` fails again**: fixture 1
+  (student, `mo()`, `s()`, `arma`, `sigma ~ Trt`) stops at "false
+  convergence (8)" with an sd at -723 to -1253 on the log scale, on an
+  objective that is unbounded within reach (from one of 41 jittered
+  starts lane optrap ran it to -1308.3, `dev/optrap-rev-fix1.R`). At
+  the stop the sigma coefficients' `sdreport()` variances are
+  negative, so `fitted(fit1, dpar = "sigma")` has NaN errors. 0.69.0's
+  pass was luck of the stop point: with 40 jittered starts (sd 0.3) the
+  row holds from 34 of 41 on rellib-r7 and fails from the other 7, and
+  lane optrap's unit (8 on this fixture) changes which stop the default
+  start reaches (`dev/optrap-fix1.R`; optrap review, item 6 and
+  consolidation item 1). The ledger records it as cannot transfer
+  again (fixture). The remedy is the fixture's degeneracy, not the
+  test.
+
+### Open - low
+
+- **A residue of the exactly flat simplex direction off the
+  coordinates** (the consolidation review, m1; reopens the 0.69.0 item
+  above). Over 40 seeds of four designs (`dev/relrev070-segap.R`, the
+  review's `segap/` logs), the fits that are silent with every zeta SE
+  finite: 64 of 160 on 0.69.1, 7 with lane seflags alone, 71 with lane
+  optrap alone, 8 on the release under either BLAS (`ls ~ mo(inc)` 2,
+  `ls ~ mo(inc) + age` 2, `ls ~ mo(inc) * age` 0, `y ~ mo(x2)` with n
+  300 4). The release names the direction on 148 (reference) and 149
+  (OpenBLAS) of 160; the others warn otherwise. A silent fit reports,
+  for example, zeta SEs 547.9 and 949.0 (seed 10 of `y ~ mo(x2)`) on a
+  direction the likelihood does not read. Pre-existing and much
+  reduced; every fit is at its maximum. Lane seflags' ground.
+- **The least-squares subsample of the unit reads evenly spaced
+  rows**, so on rows sorted by a covariate with strong
+  heteroscedasticity (sd `exp(1.5 x)`) and a subsample of 100 rows the
+  unit is more than one power of two off on 8 of 20 seeds (2 of 20
+  unsorted; `dev/optrap-rev3-sub2.R`). At the cap's real sizes (5e6 /
+  p rows, 5e4 or more for up to 100 columns) neither arm moves, and
+  the worst seed's fit with the subsample's unit still ends within
+  4.4e-10 of `lm()`. Harmless; a seeded random subsample would remove
+  the dependence on row order. Lane optrap, review c3.
+- **`y + 1e9`**: a response with a huge offset gets no unit from its
+  residual spread and fits as before (lane optrap, m4).
+- **Mixture components get no unit** (lane optrap, m3, measured).
+- **huber()'s Laplace objective is discontinuous** and stops on either
+  side of a jump, on every build (lane optrap, m6).
+- **Raw polynomials of degree 8 and up** are singular in double
+  precision; Newton steps cannot help, and every such fit is warned
+  (lane optrap; see seflags' ill-conditioned item). At degree 7
+  without a group term 1 of 20 stays 4.0e-4 short in silence (lane
+  optrap's consolidation fixes, seed 4).
+- **The one-level group with a bound** (`y ~ x + (1 | g1)`, g1 one
+  level, `ub = 0.1` on x): nlminb zigzags to its evaluation limit on 5
+  of 40 seeds on optrap's round-0 build, 0 of 40 on rellib-r7; with the
+  residual unit the test's own data have unit 1 (lane optrap, round 0
+  and punch round 1). The model is degenerate and frmtmb warns so.
+- **fit_loss2 and F11 seed 8** stay short (0.032, 0.1418), as lane
+  optima filed; their causes are not the response's units or the
+  restart (lane optrap).
+- **The objective keeps the constant `n log u`**, so the invariance of
+  a fit to the response's units is 1e-7 in the log-likelihood rather
+  than exact; removing it made relative convergence stricter and broke
+  converged `mo()` fits (lane optrap).
+- **`frmtmb.eam` `test-defects.R:92`'s mixing weight at 6e-11** is
+  called "flat", where "a mixing parameter at its limit", in the
+  boundary message that exists, explains the fit better (lane
+  seflags' section below; review consolidation list).
+- **Read every `||` term as brms does** (moparity's r2, in its section
+  below). A core parsing change; its own lane.
+
+### Filed by lane moparity after punch round 1, 2026-10-07
+
+#### Open - medium
+
+- **m6. A chain started at the ML mode can stick.** `frm_sample(fit)`
+  starts chain 1 exactly at the mode (`init = "last.par.best"`) and
+  jitters chains 2 to 4 (`mode_inits()`). On lane surface's exact
+  `y ~ gp(x)` (data seed 5, 4 chains of 1000, sampler seed 1), chain 1
+  had 326 divergences and mean sigma 0.256, where the jittered chains
+  had 24 to 38 and 0.290 to 0.293, and every `init = "random"` chain
+  had 9 to 27 (`dev/moparity-gp-init.R`,
+  `dev/moparity-log/gp-init.txt`). Over four data seeds the stuck
+  chain is 1 of 4 data sets, with max R-hat 1.22 and bulk ESS 13
+  (`dev/moparity-rev-gp-init.R`, review log `gp-init-lane-5.txt`).
+  Policy question for the sampler lane, for every model: jitter
+  chain 1 too, or start it from a short Laplace draw.
+- **m10. The delta method of `predict()` ignores a `mo()` simplex.**
+  `lp_delta_A()` (R/predict.R) has columns for `beta` and `b` only, so
+  the uncertainty of the simplex coordinates `zeta<j>` does not enter
+  `se.fit` of a `mo()` model, with or without group-level `mo()`
+  terms. Also on 0.69.0. The Jacobian of the linear predictor in
+  `zeta` is `b * D * d(cumsum(w))/d(zeta)` per row, on the fit's
+  chart. Review of lane moparity, m10.
+- The exact `gp()` mixing item above (lane surface) is addressed by
+  the non-centered field of lane moparity, item 7; the centered field
+  remains with `reparameterize = FALSE`.
+- **r2. Read every `||` term as brms does.** A `||` term with `mo()`
+  is one `diag()` block over the whole term, coded as brms codes it
+  (lane moparity, m7); a `||` term without `mo()` keeps lme4's
+  piecewise expansion, so a factor in it gets a column per level.
+  Adding `mo(x)` to a `||` term therefore changes how a factor in the
+  same term is coded. `(1 + z + f || g)` has 5 sds in frmtmb and 4 in
+  brms (`Intercept`, `z`, `fb`, `fc`); logLik -661.518 against
+  -661.983 for brms's columns written out (review of lane moparity,
+  `dev/moparity-rev2-dblbar.R`). For numeric terms the two readings
+  have the same likelihood. Changing it reverses a NEWS-documented
+  choice ("(f || g) with a factor now yields independent per-level
+  effects") and is a core parsing change: its own lane.
+
+### Filed by lane seflags (round opened 2026-10-07)
+
+Lane seflags closed the SE items of "Filed at the 0.69.0 release"
+above that name it (the estimable prediction flagged, the boundary
+message on an unread sd, the curved ridges, the degree-7 polynomial,
+the simplex face off the coordinates); the consolidation marks them.
+`dev/seflags-findings.md` and `dev/reviews/2026-10-08-seflags.md` have
+the measurements.
+
+#### Open - high priority (lane seflags)
+
+- **Accurate SEs on ill-conditioned designs.** A degree-8 raw
+  polynomial on [1, 2] (with and without `(1 | g)`; with a covariate z
+  and a two-level factor w beside it, the "B5 design") has a smallest
+  unit-diagonal curvature of about 1e-17 of the largest, below machine
+  epsilon. The objective measures it accurately (`se_span_remeasure()`:
+  the same to 0.03 percent at 0.25 to 2 times the step on 73
+  directions), so the data do determine those coefficients. Since
+  punch round 2c the coefficients it carries are "illcond" with no SE,
+  as 0.69.0 gave (as "flat"), and so is every prediction that reads
+  them; the terms beside them (z, w, sigma, the sd) keep theirs.
+  - Measured in punch round 2b: the direction kept beside the
+    covariance, `ill = list(D, lam)`, with `(g . d)^2 / lambda` added
+    on every route that knew of it, gave the coefficient SEs 0.98 to
+    1.05 times the exact ones (QR of the whitened design; the excess is
+    where the optimizer stopped short), `fitted(newdata)` rows 1.000 to
+    1.020, and `frm_linpred()`, `frm_lp_basis()` with `extra_var` and
+    `extra_cov`, `hypothesis()`, `conditional_effects()`,
+    frmtmb.spline's curves, `VarCorr()`, `ranef(condVar = TRUE)` and
+    `fit_fd_se()` 1.000 to 1.016 (`dev/seflags-p2b-paths.R`,
+    `dev/seflags-rev4-routes.R`). Folded into one matrix, the rows were
+    0 to 1.47 times exact: one double-precision matrix cannot hold a
+    variance 1e17 times another.
+  - What it must also cover (final check after punch round 2b, B6 and
+    B7, `dev/seflags-rev4-whole.R`, `dev/seflags-rev4-cum.R`): every
+    consumer that reads the covariance whole got wrong numbers in
+    silence where 0.69.0 gave NaN. emmeans' design route
+    (`emm_basis_design()`, `vcov_estimated()`): 0.57 to 1.30.
+    marginaleffects through `get_vcov()`: `predictions()` 0.71 to 3.04,
+    `slopes()` 0.31 to 1690, `comparisons()` 0.86 to 2.94. A caller's
+    own `A vcov() A'` or `frm_joint_cov()`: 0.62 to 1.35.
+    `vcov_cluster()` (its bread is the whole `vcov()`):
+    `hypothesis(vcov = vcov_cluster(fit))` 226 to 3587. Influence
+    measures (`cooks.distance()`, `dfbetas()` through
+    `interop_vcov()`): not measured. The ordinal and finite-difference
+    category route (`ord_prob_se()`, `fit_fd_se()`): cumulative seed 9
+    at its maximum gave `P(y = 1)` SEs 15925 to 255929 times the
+    `poly()` fit's.
+  - A route can come back only where it is shown accurate on these
+    designs (the `poly(x, 8)` fit of the same likelihood is the
+    reference); elsewhere NaN with the warning, as now.
+
+#### Regression sources (tests exist; keep these constructions)
+
+- The review's B1 to B3, each a test in `test-se-flags.R`: a
+  hypothesis off a design alias beside an identified pair
+  (`dev/seflags-b1ref.R`, `dev/seflags-rev-pred3.R` under OpenBLAS
+  LAPACK on fixture 1); the identified pair beside an alias and the nl
+  `a + b` alias (`dev/seflags-rev-join.R`); an sd read only far above
+  its estimate (`dev/seflags-rev-sd2.R`). Fixture 1's theta_1 and
+  theta_2 under OpenBLAS LAPACK (`dev/seflags-rev-fx1theta.R`) have no
+  test, since the fixture stops at code 1 with the reference BLAS.
+
+#### Open - low (lane seflags)
+
+- **A mixture precision with an infinite MLE fits with no warning**
+  (Malingering_2, `dev/seflags-bcmmal.R`): log phi2 at 20.4 with a
+  decoupled row (unit-diagonal eigenvalues 0.98 to 1.01) and an
+  objective rounding of about 1e-3 there; needs a limit test per family
+  precision.
+- **The cs() ordinal-mixture wall has no message naming its cause.**
+- **`mo(inc) * age` with the interaction's simplex at a face**
+  (`dev/seflags-segapface.R`, seeds 2, 3, 5 of 6): the flat split along
+  the face is not named; its SE is 1846 on a weight in [0, 1].
+- **c0k seeds 1 and 7 (and 17 under OpenBLAS) keep one ridge
+  parameter's SE** (2.88, 17.8, 3.3) under the cap of half the largest
+  projection, warned for the other two.
+- **`s(x) + s(x2)` with x2 = x** is named under OpenBLAS LAPACK and not
+  under the reference BLAS (`dev/setier-rev-smooth2.R`).
+- **A downward direction the line probe does not confirm keeps
+  0.69.0's zeroed loadings** (review m1; c0k seeds 3 and 7, largest
+  zeroed loading 0). Such a direction comes from a finite-difference
+  row of a near-zero sd, whose eigenvector is noise; the flat path
+  would read that noise as a subspace.
+
+#### Pre-existing, found by the review of lane seflags
+
+- **`y ~ 1e4 x + 5e4 + s(x) + (1 | g)`, seed 1** (re-check m7): code
+  0 with the large-gradient warning, nothing lost, and
+  `hypothesis(b_xk = 0)` NaN with no warning (`dev/seflags-rev2-alias.R`).
+- **`bf(y ~ a + b, a ~ 1 + x + (1 | g), b ~ 1 + x)`**: `fitted(newdata,
+  re_formula = NA)` gives an NA Est.Error for mu, which is estimable,
+  with no warning (re-check m7).
+- **The SE check does not run on a fit with a convergence warning**
+  (lane ci691, `dev/ci691-findings.md`): on a ridge, a fit nlminb calls
+  false convergence shows the standard errors unchecked while a
+  converged fit a few ulps away shows none, so the reported
+  uncertainty flips with rounding. Degree 8 with (1 | g), seed 4, is
+  one (code 0 with the large-gradient warning;
+  `dev/seflags-rev2-illpred.R`): coefficient SEs NaN, nothing
+  named, `fitted()` finite at 0.37 of the exact SE at x = 2.5, silent.
+  Running the check there is a policy change (the convergence warning
+  is meant to explain the fit), so it is filed, not changed.
+- **Gaussian linear predictors could take their SEs from a QR of the
+  whitened design** (re-check m6): accurate where the Hessian is not.
+  Not built. See "Accurate SEs on ill-conditioned designs" (Open -
+  high, below).
+- **The optimizer stops short along an ill-conditioned direction**
+  (punch round 2b): on degree-8 raw polynomials at code 0, a Newton
+  step along the direction gains 0.0009 to 4.5 of log-likelihood
+  (`dev/seflags-p2b-scan.R`), which the gradient test cannot see at a
+  curvature of 1e-17. Three Newton steps along it reach the maximum,
+  and the SEs there are exact (`dev/seflags-p2b-span2.R`, seed 7: gain
+  3.63, SE / exact 1.036 to 1.000). The "illcond" reason now says
+  when the gain is above 0.005 (the stated gain was 0.97 to 1.09 times
+  the true shortfall on every such fit, `dev/seflags-rev4-gain.R`).
+  Polishing the estimates is an optimizer change (lane optrap's
+  ground), so it is filed.
+- **A mixing weight at its limit could be named "boundary"** (final
+  check after punch round 2, frmtmb.eam `test-defects.R:92`): the mixing
+  logit at -23.44 is called "flat", and "a mixing parameter at its
+  limit", in the boundary message that exists, explains the fit better.
+- **frmtmb.eam's R CMD check warns "'::' or ':::' import not declared
+  from: 'rstan'"**: its `test-sampling.R` calls `rstan::` and rstan is
+  not in Suggests (since 5f39a6f5, 0.69.0). Seen by lane seflags'
+  check of frmtmb.eam in punch round 2; add rstan to Suggests.
+
+- **`y ~ year + z + (1 | g)`, bernoulli, n = 1e5, 500 groups, year
+  2000 to 2020** loses theta_1 as "flat" though its sd (0.680) matches
+  glmer(); with year centered nothing is lost
+  (`dev/seflags-rev-year.R`). A false alarm on an ordinary design.
+- **n = 2e4 `s(x, k = 100) + (1 | g)` gaussian** dies with "NA/NaN
+  gradient evaluation" (`dev/seflags-rev-cost.R smooth_big`; an
+  optimizer path).
+- **logistic_early seed 19** (`dev/seflags-rev-falarm.R`): code 0 and a
+  reported SE 37 percent off the exact AD Hessian's inverse.
+- **The degree-7 raw polynomial with (1 | g) under REML** stops at
+  code 1 with a gradient of 4.58 at sigma, and its ML fit stops 0.391
+  below lmer()'s log-likelihood (both optimizer paths).
 
 ## Reference
 

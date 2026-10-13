@@ -1,0 +1,12 @@
+frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-moparity/extensions/frmtmb.sample/tests/testthat/test-reparam.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-generic-collision.R
+frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-moparity/extensions/frmtmb.sample/tests/testthat/test-generic-collision.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-prior-compat.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-open-issues.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-mo-terms.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-message-uniqueness.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-cox-chart.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-mo-factor-re.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-moparity/tests/testthat/test-dirichlet-prior.R
+frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-moparity/extensions/frmtmb.sample/tests/testthat/test-mo-simplex-draws.R
+frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-moparity/extensions/frmtmb.sample/tests/testthat/test-cox-draws.R

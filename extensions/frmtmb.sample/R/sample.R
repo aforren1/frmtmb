@@ -643,8 +643,9 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
 #' @noRd
 prior_augmented_obj <- function(fit, entries) {
   nll <- build_objective(mo_sample_frame(fit))
+  entries <- mo_sample_entries(entries)
   nlp <- neg_log_prior_fn(entries)
-  snlp <- mo_simplex_nlp(fit)
+  snlp <- mo_simplex_nlp(fit, entries)
   tpl <- fit$frame[["par_template"]]
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(tpl[["b"]])) "b",
@@ -680,7 +681,7 @@ prior_augmented_obj <- function(fit, entries) {
 #'
 #' @noRd
 mo_sample_frame <- function(fit) {
-  if (!length(mo_frame_terms(fit))) return(fit$frame)
+  if (!length(simplex_frame_terms(fit))) return(fit$frame)
   mo_chart_frame(fit$frame, "softmax")
 }
 
@@ -690,10 +691,39 @@ mo_sample_frame <- function(fit) {
 #'
 #' @noRd
 mo_sample_pars <- function(fit, pars) {
-  for (tm in mo_frame_terms(fit)) {
+  for (tm in simplex_frame_terms(fit)) {
     pars[[tm$zeta]] <- mo_coords(mo_simplex(pars[[tm$zeta]]), "softmax")
   }
   pars
+}
+
+#' The `mo()` simplexes (their `zeta` components) a fit's own prior puts
+#' a density on: a MAP fit with a `simo` row. Empty for an ML fit.
+#'
+#' @noRd
+mo_fit_priored <- function(fit) {
+  if (is.null(fit$prior) || !length(simplex_frame_terms(fit))) {
+    return(character(0))
+  }
+  ent <- tryCatch(resolve_prior_input(fit, fit$prior)$entries,
+                  error = function(e) list())
+  unlist(lapply(ent, function(e) {
+    if (identical(e$dist$kind, "dirichlet")) e$comp
+  }))
+}
+
+#' Resolved prior entries for the sampler's tape: a Dirichlet on a `mo()`
+#' simplex (class `"simo"`) is read in the softmax chart the sampler
+#' retapes the simplex in (`mo_sample_frame()`), with that chart's
+#' Jacobian (frmtmb's `dirichlet_logdens()`), where the fit's entry was
+#' resolved in the fit's own chart.
+#'
+#' @noRd
+mo_sample_entries <- function(entries) {
+  lapply(entries, function(e) {
+    if (identical(e$dist$kind, "dirichlet")) e$dist$chart <- "softmax"
+    e
+  })
 }
 
 #' brms's default prior on a `mo()` simplex, `dirichlet(1)`, the uniform
@@ -708,9 +738,17 @@ mo_sample_pars <- function(fit, pars) {
 #' every face (the softmax arm of dev/optima-rev-sample2-arm.R: every
 #' draw at a vertex, 44 divergences).
 #'
+#' A simplex with a `simo` prior of its own (a resolved Dirichlet entry,
+#' `mo_sample_entries()`) takes that density instead, so it is left out
+#' here rather than given two.
+#'
 #' @noRd
-mo_simplex_nlp <- function(fit) {
-  terms <- mo_frame_terms(fit)
+mo_simplex_nlp <- function(fit, entries = list()) {
+  priored <- unlist(lapply(entries, function(e) {
+    if (identical(e$dist$kind, "dirichlet")) e$comp
+  }))
+  terms <- Filter(function(tm) !tm$zeta %in% priored,
+                  simplex_frame_terms(fit))
   if (!length(terms)) return(NULL)
   function(pars) {
     "c" <- RTMB::ADoverload("c")
@@ -733,7 +771,7 @@ mo_simplex_nlp <- function(fit) {
 #'
 #' @noRd
 mo_draws_to_chart <- function(m, fit, laplace) {
-  terms <- mo_frame_terms(fit)
+  terms <- simplex_frame_terms(fit)
   if (!length(terms)) return(m)
   pidx <- draws_par_index(fit, laplace = laplace)
   for (tm in terms) {
@@ -754,7 +792,7 @@ mo_draws_to_chart <- function(m, fit, laplace) {
 #'
 #' @noRd
 draws_mo_cols <- function(fit) {
-  lapply(mo_frame_terms(fit), function(tm) {
+  lapply(simplex_frame_terms(fit), function(tm) {
     list(internal = paste0(tm$zeta, "_", seq_len(tm$D - 1L)),
          names = tm$names,
          map = function(r) mo_simplex(r),
@@ -782,7 +820,6 @@ ncp_reasons <- c(
   car = "sparse CAR precision; its factor is dense",
   spde = "sparse SPDE precision; its factor is dense",
   gr_prec = "sparse precision from gr(prec = ); its factor is dense",
-  gp = "dense kernel over the observed positions",
   ou = "dense covariance over the field's positions",
   exp = "dense covariance over the field's positions",
   gau = "dense covariance over the field's positions",
@@ -937,13 +974,14 @@ ncp_objective <- function(fit, idx, entries) {
   frame <- mo_sample_frame(fit)
   frame[["ncp_blocks"]] <- idx
   nll <- build_objective(frame)
+  entries <- mo_sample_entries(entries)
   fn <- if (length(entries)) {
     nlp <- neg_log_prior_fn(entries)
     function(pars) nll(pars) + nlp(pars)
   } else {
     nll
   }
-  snlp <- mo_simplex_nlp(fit)
+  snlp <- mo_simplex_nlp(fit, entries)
   if (!is.null(snlp)) {
     fn0 <- fn
     fn <- function(pars) fn0(pars) + snlp(pars)
@@ -1494,9 +1532,12 @@ default_priors_for <- function(fit) {
 #' What this model has that brms would prior and frmtmb deliberately
 #' leaves flat. Every such slot is named out loud in the disclosure
 #' message, so a family that gets no defaults never passes in silence.
+#' `user_pl` is the prior the run applies besides the defaults: a
+#' simplex with a Dirichlet row of its own there does not get brms's
+#' default, so the note leaves it out.
 #'
 #' @noRd
-default_prior_notes <- function(fit) {
+default_prior_notes <- function(fit, user_pl = NULL) {
   multi <- length(fit$spec$responses) > 1L
   notes <- character(0)
   for (rspec in fit$spec$responses) {
@@ -1551,14 +1592,32 @@ default_prior_notes <- function(fit) {
                              paste(ungated, collapse = ", "),
                              " (no LKJ density fits its parameters)"))
   }
-  mo <- mo_frame_terms(fit)
+  # the simplexes the user's own rows prior take that density instead
+  # (mo_simplex_nlp()), so naming them here misreported the run
+  own <- if (!is.null(user_pl)) {
+    ent <- tryCatch(resolve_prior_input(fit, user_pl)$entries,
+                    error = function(e) list())
+    unlist(lapply(ent, function(e) {
+      if (identical(e$dist$kind, "dirichlet")) e$comp
+    }))
+  }
+  mo <- Filter(function(t) !t$zeta %in% own, mo_frame_terms(fit))
   if (length(mo)) {
     notes <- c(notes, paste0(
-      "simo: dirichlet(1), brms's default, on every mo() simplex (",
+      "simo: dirichlet(1), brms's default, on each mo() simplex without ",
+      "a simo row of its own (",
       paste(sub("[[]1[]]$", "", vapply(mo, function(t) t$names[1L], "")),
             collapse = ", "),
       "); it is the flat density on the simplex, and prior = \"flat\" ",
       "keeps it"))
+  }
+  if (any(vapply(simplex_frame_terms(fit), function(t) {
+    identical(t$kind, "cox") && !t$zeta %in% own
+  }, NA))) {
+    notes <- c(notes, paste0(
+      "sbhaz: dirichlet(1), brms's default, on the cox() baseline ",
+      "simplex; it is the flat density on the simplex, and prior = ",
+      "\"flat\" keeps it"))
   }
   notes
 }
@@ -1792,7 +1851,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   # slots frmtmb cannot prior must say so rather than look flat by
   # accident
   if (defaults) {
-    announce_default_priors(defs, default_prior_notes(fit))
+    announce_default_priors(defs, default_prior_notes(fit, user_pl))
   }
   eff <- if (is.null(defs)) user_pl else if (is.null(user_pl)) {
     defs
@@ -1905,7 +1964,10 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and `hetar1()`.
 #' A `k =` Hilbert-space `gp()` block non-centers too, since its
 #' factor is diagonal and the defaults prior its sd and its length
-#' scales (brms's classes `"sdgp"` and `"lscale"`).
+#' scales (brms's classes `"sdgp"` and `"lscale"`), and so does an exact
+#' `gp()` field, as brms's `sdgp * L zgp`: its factor is the Cholesky
+#' factor of the kernel over the field's distinct positions, taken on the
+#' tape at a cost of `n^3 / 3` per gradient for `n` positions.
 #' `rr()` is already non-centered by
 #' construction, since its own coefficients are the standard normal
 #' factors. What stays centered is a run whose variance parameters are
@@ -1937,7 +1999,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   linear factor.
 #' - `car()`, `spde()` and `gr(prec = )`: sparse precisions whose factor
 #'   is dense.
-#' - The exact `gp()` and the spatial covariances (`ou`, `exp`, `gau`,
+#' - The spatial covariances (`ou`, `exp`, `gau`,
 #'   `mat`): a full factorization per gradient evaluation.
 #' - `toep()`: not positive definite everywhere in its parameterization,
 #'   so `b = L z` is not a bijection there.
@@ -2042,8 +2104,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' (see "Monotonic effects" in [frmtmb::frm()]) have folds at the faces
 #' that wall a density off into separate sheets. The draws carry brms's
 #' names, `simo_<term>1[k]`, one column per weight. A `simo` row in
-#' `prior =` is refused: there is no Dirichlet density in
-#' [frmtmb::set_prior()].
+#' `prior =`, `set_prior("dirichlet(c(5, 1, 1))", class = "simo",
+#' coef = "mox1")`, replaces `dirichlet(1)` on that simplex, as in brms,
+#' with the softmax's Jacobian applied.
 #'
 #' The `disc` default is brms's for every `link_disc` but the identity,
 #' where brms uses `lognormal(0, 1)`, which [frmtmb::set_prior()] does
@@ -2459,7 +2522,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     # weaker thing - no prior ADDED to the density the fit maximized -
     # which is fit$obj as it stands
     obj <- prior_augmented_obj(fit, list())
-  } else if (length(mo_frame_terms(fit))) {
+  } else if (length(simplex_frame_terms(fit))) {
     # fit$obj reads a mo() simplex in the maximum-likelihood chart, which
     # has no density a sampler can use; the retape samples the softmax
     # under dirichlet(1). A MAP fit under `.diagnostic` (check_laplace())
@@ -2473,7 +2536,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   }
   # the sampled simplex coordinates are softmax ones exactly when the
   # objective was retaped (mo_sample_frame())
-  mo_soft <- length(mo_frame_terms(fit)) && !identical(obj, fit$obj)
+  mo_soft <- length(simplex_frame_terms(fit)) && !identical(obj, fit$obj)
   if (laplace && "beta" %in% names(obj$env$par)[obj$env$random]) {
     # a REML fit's own objective integrates the coefficients out too.
     # The prior-carrying routes rebuild it without that, but sampled as
@@ -2737,7 +2800,7 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   # dev/optima-rev2-laplace.R). The ML weights and their delta-method
   # errors are summary()'s (summary_mo_frame()); the draws are the
   # simo_ columns. The coordinates leave both sides.
-  mo_terms <- mo_frame_terms(fit)
+  mo_terms <- simplex_frame_terms(fit)
   mo_tab <- NULL
   if (length(mo_terms)) {
     in_mo <- names(ml) %in% vapply(mo_terms, `[[`, "", "zeta")
@@ -2745,7 +2808,7 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
     se <- se[!in_mo]
     mo_names <- unlist(lapply(mo_terms, `[[`, "names"))
     keep <- setdiff(keep, mo_names)
-    mo_tab <- summary_mo_frame(fit, 0.95)
+    mo_tab <- summary_mo_frame(fit, 0.95, mo_terms)
   }
   stopifnot(length(ml) == length(keep))
   post_mean <- colMeans(m[, keep, drop = FALSE])
@@ -2791,9 +2854,8 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
     out$sd_ratio < 2 / 3
   # a weight at 0 or 1 has no Wald error (summary_mo_frame()), and no
   # Wald interval to judge: it is a boundary estimate, named as such
-  # paste0() of a prefix and nothing is the prefix, not nothing
-  face <- attr(mo_tab, "face") %||% character(0)
-  if (length(face)) face <- paste0("simo_", face)
+  # (its draws' name: simo_ for a mo() simplex, sbhaz for a baseline)
+  face <- attr(mo_tab, "face_full") %||% character(0)
   flagged <- flagged %in% TRUE & !out$parameter %in% face
   if (any(flagged)) {
     frm_message("Laplace/Wald approximation questionable for: ",
@@ -2826,7 +2888,11 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' identified simplex the draws collapse there (to the uniform simplex,
 #' with coordinates near 1e18). The function says so in a message on a
 #' fit with `mo()` terms; [frm_sample()] samples the simplex under
-#' brms's `dirichlet(1)` instead.
+#' brms's `dirichlet(1)` instead. A MAP fit whose prior has a `simo` row
+#' has that Dirichlet on its tape, with the Jacobian of its own
+#' coordinates, so that simplex has a proper density here and the
+#' message leaves it out; the coordinates still fold at the faces, which
+#' keeps a chain on one of their equivalent sheets.
 #' `control` means here what it means in [frm_sample()] and in brms,
 #' the sampler's own list, because everything reaches
 #' [tmbstan::tmbstan()] unchanged.
@@ -2893,10 +2959,14 @@ as_tmbstan <- function(fit, ...) {
     frm_stop("as_tmbstan() needs the 'tmbstan' package", call. = FALSE)
   }
   check_tmbstan_build("as_tmbstan()")
-  mo <- mo_frame_terms(fit)
-  if (length(mo)) {
-    frm_message("as_tmbstan(): the mo() simplex ",
-                paste(sub("[[]1[]]$", "", vapply(mo, function(t) {
+  # a MAP fit's simo prior is on its tape, in the fit's own chart, and
+  # gives that simplex a proper density there; only the others are flat
+  mo <- simplex_frame_terms(fit)
+  priored <- mo_fit_priored(fit)
+  flat <- Filter(function(t) !t$zeta %in% priored, mo)
+  if (length(flat)) {
+    frm_message("as_tmbstan(): the simplex ",
+                paste(sub("[[]1[]]$", "", vapply(flat, function(t) {
                   t$names[1L]
                 }, "")), collapse = ", "),
                 " has no density on this route and is sampled flat in ",

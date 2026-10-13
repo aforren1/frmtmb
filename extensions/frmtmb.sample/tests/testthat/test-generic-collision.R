@@ -531,3 +531,43 @@ test_that("parnames() on draws warns once with brms loaded", {
   expect_equal(parse_field(out, "NWARN"), "1")
   expect_equal(parse_field(out, "SAME"), "TRUE")
 })
+
+test_that("parnames() on draws warns once whichever generic dispatched", {
+  # The draws half of dev/moparity-findings.md, item 6: frmtmb's own
+  # generic captured before brms loaded gave no warning on 0.69.0.
+  skip_on_cran()
+  skip_if_not_installed("brms")
+  draws_src <- c(
+    "suppressMessages(library(frmtmb.sample))",
+    "set.seed(1); d <- data.frame(x = rnorm(40)); d$y <- rnorm(40, d$x)",
+    "fit <- frmtmb::frm(frmtmb::bf(y ~ x), family = gaussian(), data = d)",
+    "tpl <- fit$frame$par_template",
+    "est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))",
+    "M <- matrix(rep(est, each = 3), 3,",
+    "  dimnames = list(NULL, frmtmb::brms_par_labels(fit)))",
+    "ds <- structure(list(stanfit = NULL, draws = cbind(",
+    "  frmtmb.sample:::draws_to_natural(M, fit), lp__ = 0), fit = fit),",
+    "  class = 'frmtmb_draws')")
+  count <- function(call) c(
+    "n <- 0L",
+    sprintf("p <- withCallingHandlers(%s, warning = function(w) {", call),
+    "  n <<- n + 1L; invokeRestart('muffleWarning') })",
+    "cat('NWARN:', n, '\\n')",
+    "cat('SAME:', identical(p, variables(ds)), '\\n')",
+    "cat('CHILDOK\\n')")
+  cases <- list(
+    # frmtmb.sample loads first, so its method is in frmtmb's own
+    # generic's table, which is the one captured
+    saved = c(draws_src, "pn <- frmtmb::parnames",
+              "invisible(loadNamespace('brms'))", count("pn(ds)")),
+    brms_ns = c(draws_src, count("brms::parnames(ds)")),
+    # brms's generic captured, brms unloaded, then called
+    unloaded = c(draws_src, "pb <- brms::parnames",
+                 "invisible(unloadNamespace('brms'))", count("pb(ds)")))
+  for (nm in names(cases)) {
+    out <- run_child(cases[[nm]])
+    expect_match(out, "CHILDOK", fixed = TRUE, info = nm)
+    expect_equal(parse_field(out, "NWARN"), "1", info = nm)
+    expect_equal(parse_field(out, "SAME"), "TRUE", info = nm)
+  }
+})
