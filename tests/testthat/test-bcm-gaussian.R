@@ -190,10 +190,17 @@ bcm_iq_data <- function() {
 test_that("IQ is one mean per person with a common sigma", {
   d <- bcm_iq_data()
   fit <- frm(y ~ 0 + person, data = d)
-  expect_equal(unname(fixef_by_dpar(fit)$mu), c(95, 110, 155), tolerance = 1e-6)
-  expect_equal(unname(exp(fixef_by_dpar(fit)$sigma)),
-               sqrt(mean((d$y - rep(c(95, 110, 155), each = 3))^2)),
-               tolerance = 1e-6)
+  # within 1e-3 of each estimate's own standard error of the exact
+  # maximum: nlminb stops where its relative function test is met, and
+  # where that is depends on the response's unit (predictor_units()); on
+  # one build it left log sigma 4.8e-5 of its standard error away, on
+  # another 1.3e-7 (dev/optrap-findings.md, punch round 1)
+  co <- summary(fit)$coefficients
+  expect_lt(max(abs(unname(fixef_by_dpar(fit)$mu) - c(95, 110, 155)) /
+                  co$mu[, "Std. Error"]), 1e-3)
+  sig <- sqrt(mean((d$y - rep(c(95, 110, 155), each = 3))^2))
+  expect_lt(abs(unname(fixef_by_dpar(fit)$sigma) - log(sig)) /
+              co$sigma[, "Std. Error"], 1e-3)
 })
 
 test_that("IQ matches its Stan program", {

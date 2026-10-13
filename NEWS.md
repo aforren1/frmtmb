@@ -1,3 +1,81 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A gaussian, student, lognormal or other location-scale fit reaches
+  the maximum likelihood whatever the units of its response, and the
+  fit of `y * k` is the fit of `y` scaled, to about 1e-7 in the
+  log-likelihood.** The identity-link `mu` of these families now has a
+  unit: the spread (the MAD) of the response after the fixed-effect
+  design is taken out by least squares, on evenly spaced rows for a
+  design of more than 5e6 cells, rounded to a power of two. The standard
+  deviations of its random-effect terms start at that unit (they
+  started at 1 in the response's units), nlminb steps its coefficients
+  in the unit over each column's spread, and the inner solver's
+  gradient tolerance is divided by it. `par_template()` shows the new
+  starts. Before, with `y` in units 1e3 times larger, 20 of 40
+  random-intercept fits stopped short of lme4's maximum at optimizer
+  code 0 and without a warning, by up to 0.67 log-likelihood units;
+  with `y` in units 1e6 times larger, 40 of 40 sleepstudy-like
+  random-slope fits, by up to 127, and 10 of 10 plain `y ~ x` fits, by
+  up to 23. Now every one of these fits over units from 1e-6 to 1e6 is
+  within 2.1e-7 of lme4's or `lm()`'s maximum, at code 0. A response
+  whose residual spread is between 0.71 and 1.41 has a unit of 1 and
+  fits as before. Where it has a unit, the estimates agree with
+  `lm()` and lme4 to about 1e-5 of a standard error (at most 8.5e-5
+  over 160 `y ~ x + z` fits; before, 2e-7 to 1.2e-5 at moderate units
+  and 2.8 standard errors with `y` in units 1e6 times larger), because
+  nlminb's stopping tests now read steps in the unit. Mixtures,
+  extension families and a `sigma` held at a constant (`se()`) keep
+  their starts.
+
+## Bug fixes
+
+* A fit could stop well short of its maximum
+  at optimizer code 0 and without a warning when its design is badly
+  conditioned: on raw polynomials of degree 6 with x on [1, 2], 3 of
+  20 fits ended up to 0.022 log-likelihood units below `lm()`'s
+  maximum, and with the response 16 times larger 19 of 20, by up to
+  1.9. With `(1 | g)`, at degree 6, 5 of 20 stopped up to 0.023 short,
+  4 of them in silence. Such a fit now takes Newton steps from where
+  the optimizer stopped: on the exact Hessian without random effects,
+  and with them, on a near-collinear fixed design only, on the
+  Hessian of the Laplace objective by differences of its gradient. A
+  step is taken while the Hessian is positive definite and the step
+  predicts a gain above 1e-6, kept only if it gains at least a tenth
+  of that, and the steps are undone if they end where the Hessian is
+  not positive definite. None of these fits stops short now, with or
+  without the group term. A fit already at its maximum is not changed,
+  and neither is a fit whose `optCtrl` sets one of the optimizer's
+  tolerances or whose optimizer is a function.
+
+* A restart that raised ("NA/NaN gradient evaluation") ended the whole
+  fit although the run before it had a finite optimum. The fallback
+  restarted from the lowest objective the tape had recorded, and a
+  REML likelihood without a bound records that where the objective,
+  solved from another inner start, is NaN (fuzz seed 20379118 under
+  OpenBLAS's LAPACK). That point is no longer taken, a restart that
+  raises keeps the run before it, and the objective is left at that
+  run's optimum.
+
+* A restart that ended worse than the run it started from left the
+  objective at its own last point, where `ranef()` and `sdreport()`
+  read it. Every run the optimizer discards now leaves the objective
+  at the kept optimum, and so does the `mo()` search when it refits
+  nothing.
+
+* A `mo()` fit could stop below its maximum in the other sign's cone
+  without a warning: the search for that cone started from one vertex,
+  at the coefficient's own value, which is near 0 for a fit in the
+  wrong cone, and it was skipped for an interior simplex whose
+  coefficient is near 0. It now starts at least one of the
+  coefficient's units from 0, moves to the next vertex while the
+  coefficient ends on its bound, and searches both cones when the
+  coefficient is within 1e-3 of its unit of 0. On brms_monotonic's
+  `ls ~ mo(income) * age`, 199 of 200 fits reached the exact maximum,
+  and 194 of a further 200 (up to 0.45 short); now 400 of 400, at 1.2
+  to 1.4 times the objective evaluations.
+
 # frmtmb 0.69.0
 
 Four lanes, each with an adversarial review and punch rounds:

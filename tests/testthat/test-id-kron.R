@@ -190,13 +190,26 @@ test_that("merging across dpars of one response takes the same path", {
   skip_on_cran()
   d <- kron_traits()
   # the sigma component is weakly identified on one row per animal, so
-  # the merged correlation runs to the boundary and the optimizer says
-  # so; the block structure is what this test is about
-  f <- suppressWarnings(
-    frm(bf(y1 ~ 1 + (1 | q | gr(id, cov = A)),
-           sigma ~ 1 + (1 | q | gr(id, cov = A))) + gaussian(),
-        data = d$wide, data2 = list(A = d$A),
-        control = frmtmb_control(check_olre = "ignore")))
+  # the merged correlation runs to its limit along a flat ridge, and
+  # where nlminb stops on it follows the core type the process starts
+  # on (dev/rtmb-pitfalls.md item 21): pinned to P cores, 6 of 6 runs
+  # stop where the standard-error check calls the correlation a
+  # boundary (a message); pinned to E cores, 6 of 6 stop a little
+  # further along, where "singular convergence (7)" stands (a warning),
+  # from the same start to the bit (dev/optrap-findings.md). The fit
+  # says so once, either way; the block structure is what this test is
+  # about.
+  said <- character(0)
+  f <- allow_boundary(allow_warnings(
+    withCallingHandlers(
+      frm(bf(y1 ~ 1 + (1 | q | gr(id, cov = A)),
+             sigma ~ 1 + (1 | q | gr(id, cov = A))) + gaussian(),
+          data = d$wide, data2 = list(A = d$A),
+          control = frmtmb_control(check_olre = "ignore")),
+      frmtmb_boundary_fit = function(m) said <<- c(said, "boundary"),
+      warning = function(w) said <<- c(said, conditionMessage(w))),
+    "Optimizer did not report convergence: singular convergence"))
+  expect_length(said, 1L)
   bk <- f$frame$re_blocks[[1]]
   expect_length(f$frame$re_blocks, 1L)
   expect_equal(bk$covstruct, "gr_cov")

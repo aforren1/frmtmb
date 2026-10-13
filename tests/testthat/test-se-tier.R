@@ -88,11 +88,17 @@ test_that("check_se decides the boundary message too", {
 test_that("a healthy fit with random effects is untouched and silent", {
   skip_if_not_installed("lme4")
   # the guard's absent case: no empty row and no flat direction, so the
-  # covariance is sdreport()'s own, bit for bit, and nothing is said
-  r <- tier_conds(frm(Reaction ~ Days + (Days | Subject),
-                      data = lme4::sleepstudy))
+  # covariance is sdreport()'s own, bit for bit, and nothing is said.
+  # Reaction in units of 32 ms has a residual spread near 1 (its MAD is
+  # 40.7 ms), so its coefficients are in raw units (predictor_units());
+  # in ms they would be in units of 32, and the covariance the inverse of
+  # the Hessian in those units (autoscale_sdreport()), not sdreport()'s
+  ss <- lme4::sleepstudy
+  ss$Reaction <- ss$Reaction / 32
+  r <- tier_conds(frm(Reaction ~ Days + (Days | Subject), data = ss))
   expect_length(r$warnings, 0L)
   expect_length(r$messages, 0L)
+  expect_null(r$value$par_units)
   expect_length(sdr_of(r$value)$se_lost, 0L)
   ref <- RTMB::sdreport(r$value$obj)$cov.fixed
   expect_identical(unname(vcov(r$value, full = TRUE)), unname(ref))
@@ -426,11 +432,15 @@ test_that("an sd the fit left near zero short of the maximum is no boundary", {
   # RB2: with the response in units of 1e-3, seed 36, nlminb stopped with
   # "false convergence (8)" at an sd of 1.7e-12 times sigma, 0.825 below
   # lme4's log-likelihood at 0.33; the convergence warning was replaced
-  # by "is at zero" (dev/setier-rev2-trap.R)
+  # by "is at zero" (dev/setier-rev2-trap.R). The default start reaches
+  # lme4's maximum at any units since lane optrap, so the fit is left
+  # short here by its start: from a group sd of exp(-20) it stops at
+  # 2.1e-9, 0.825 short, at code 0 (dev/optrap-rb2.R)
   set.seed(36)
   d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
-  d$y <- (1 + 0.5 * d$x + rnorm(100)) * 1e-3
-  r <- tier_conds(frm(y ~ x + (1 | g), data = d))
+  d$y <- 1 + 0.5 * d$x + rnorm(100)
+  r <- tier_conds(frm(y ~ x + (1 | g), data = d,
+                      start = list(theta = -20)))
   bm <- Filter(function(x) inherits(x, "frmtmb_boundary_fit"), r$messages)
   expect_length(bm, 0L)
   expect_true(any(grepl("did not report convergence|stopped short",
@@ -438,8 +448,9 @@ test_that("an sd the fit left near zero short of the maximum is no boundary", {
   # seed 19, code 0, 0.666 short: the SE warning says why
   set.seed(19)
   d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
-  d$y <- (1 + 0.5 * d$x + rnorm(100)) * 1e-3
-  r <- tier_conds(frm(y ~ x + (1 | g), data = d))
+  d$y <- 1 + 0.5 * d$x + rnorm(100)
+  r <- tier_conds(frm(y ~ x + (1 | g), data = d,
+                      start = list(theta = -20)))
   expect_length(Filter(function(x) inherits(x, "frmtmb_boundary_fit"),
                        r$messages), 0L)
   expect_true(any(grepl("stopped short of the maximum", r$warnings,
@@ -449,11 +460,14 @@ test_that("an sd the fit left near zero short of the maximum is no boundary", {
 test_that("under quadrature no sd is called a boundary", {
   # final check RQ1: the upward check cannot run on a quadrature
   # objective, and seed 36 at x1e-3 refitted with quadrature = TRUE,
-  # 0.825 below lme4's log-likelihood, was told "is at zero"
+  # 0.825 below lme4's log-likelihood, was told "is at zero". Since
+  # lane optrap that fit reaches the maximum; the start of a group sd at
+  # exp(-20) leaves it 0.825 short again (dev/optrap-rq1.R)
   set.seed(36)
   d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
-  d$y <- (1 + 0.5 * d$x + rnorm(100)) * 1e-3
-  r <- tier_conds(frm(y ~ x + (1 | g), data = d, quadrature = TRUE))
+  d$y <- 1 + 0.5 * d$x + rnorm(100)
+  r <- tier_conds(frm(y ~ x + (1 | g), data = d, quadrature = TRUE,
+                      start = list(theta = -20)))
   bm <- Filter(function(x) inherits(x, "frmtmb_boundary_fit"), r$messages)
   expect_length(bm, 0L)
   expect_false(any(sdr_of(r$value)$se_lost %in% c("boundary", "short")))

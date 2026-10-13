@@ -573,3 +573,392 @@ smooth_fx_units <- function(frame, par_names) {
   if (length(out) != length(par_names)) return(NULL)
   out
 }
+
+#' The unit of each linear predictor that is on the response's scale,
+#' as a named vector over `frame$linpreds` keys; empty when none is.
+#'
+#' The `mu` of a location-scale family (`predictor_unit_families`) with
+#' the identity link is in the units of the response, and its `sigma` is
+#' the spread of what that `mu` leaves unexplained, in the same units.
+#' The unit is that spread, measured before the fit as the sd of the
+#' response (`log y` for the lognormal families) with `mu`'s fixed
+#' design taken out (predictor_resid_sd()). It scales with the response
+#' by construction. Every other predictor (a log or logit link, a
+#' nonlinear parameter, a family with no `sigma`) is in units the
+#' response's scale does not reach, and keeps 1.
+#'
+#' A mixture's components and an extension's family are left out. Their
+#' likelihoods have several local maxima, and which one a fit reaches
+#' follows its start and its path: with every `mu` with a `sigma` given
+#' a unit, 68 fits of the eight suites ended at a lower maximum and 38
+#' at a higher one, among them a `mixture(gaussian, gaussian)` that ran
+#' a component's sigma to 0 (111 log-likelihood units lower) and
+#' frmtmb.latent's hidden Markov models, which reached the optimum
+#' `hmm_starts()` is tested to escape from (dev/optrap-findings.md).
+#'
+#' Without it a fit was not invariant to the units of the response. On
+#' `y ~ x + (1 | g)` (20 groups of 5) with `y` in units 1e3 times
+#' larger, 20 of 40 fits stopped short of lme4's maximum, by up to 0.67
+#' log-likelihood units at optimizer code 0, and 4 of 40 (up to 0.82)
+#' with `y` 1e3 times smaller (dev/optrap-findings.md). The group sd
+#' started at 1 in the response's units, 1e-3 or 1e3 times the residual
+#' sd, and nlminb stepped the mu coefficients in absolute units. Either
+#' cure alone left 22 or 24 of the 40 short at 1e3 (dev/optrap-scale.R
+#' with `OPTRAP_ABLATE`); both together left none: the sds start at the
+#' unit (`unit_theta_start()`) and the mu coefficients are stepped in it
+#' (`predictor_par_units()`).
+#'
+#' The unit is a power of two, so a residual spread between 0.71 and
+#' 1.41 gives a unit of exactly 1 and the fit is the one 0.69.0 made,
+#' and two data sets whose residuals spread alike get the same unit. It
+#' does not make the fit of `y * 2^k` bitwise the scaled fit of `y`:
+#' the log-scale parameters shift by `k log 2` and the objective by
+#' `n k log 2`, neither exactly (13 of 30 fits followed the same path
+#' to 1 ulp, 17 another; dev/optrap-rev-pow2.R).
+#'
+#' @noRd
+predictor_units <- function(frame) {
+  out <- numeric(0)
+  for (key in names(frame[["linpreds"]])) {
+    u <- predictor_unit_of(frame, frame[["linpreds"]][[key]])
+    if (is.finite(u) && u > 0 && u != 1) out[[key]] <- u
+  }
+  out
+}
+
+#' The location-scale families whose `sigma` starts on the scale of
+#' their identity-link `mu` (predictor_units()).
+#'
+#' huber() stays in although its fits stop short as often at unit 1 as
+#' with a unit: its `k` is in units of sigma, so the unit does not
+#' change it, and its Laplace objective jumps where a residual crosses
+#' `k` (the inner Hessian is a step function), so a fit can stop on
+#' either side of a jump. Without the unit, at y x 1e3 and 1e6 the fits
+#' are 17 and 20 of 20 short, by up to 12.4; with it 11 and 10, by up to
+#' 0.36 (dev/optrap-findings.md, punch round 1).
+#'
+#' @noRd
+predictor_unit_families <- c("gaussian", "student", "lognormal",
+                             "shifted_lognormal", "hurdle_lognormal",
+                             "skew_normal", "exgaussian", "asym_laplace",
+                             "zero_inflated_asym_laplace", "huber")
+
+#' One linear predictor's unit for predictor_units(), or 1.
+#'
+#' @noRd
+predictor_unit_of <- function(frame, lp) {
+  if (!is.null(lp[["constant"]]) || !is.null(lp[["equate"]]) ||
+        !is.null(lp[["nl_body"]])) return(1)
+  if (!identical(lp[["link"]]$name %||% "", "identity")) return(1)
+  # Not a mixture component's mu<k>: a unit there fixed the review's
+  # mixture scale case (0 short at every scale) but broke four files of
+  # the mixture suite. A random intercept started at the residual
+  # spread, which holds the components' separation, put test-v18's
+  # group-level mixture in a multimodal inner problem (false
+  # convergence, 111 lower); the rest were the precision of the stop
+  # (dev/optrap-findings.md, punch round 1)
+  if (!identical(lp[["dpar"]], "mu")) return(1)
+  fam <- frame[["spec"]]$responses[[lp[["resp"]]]]$family
+  fname <- fam[["family"]]
+  if (!is.character(fname) || length(fname) != 1L ||
+        !fname %in% predictor_unit_families) return(1)
+  # The unit is the scale of an estimated sigma. A sigma held at a
+  # constant (se(), or `sigma = 2` in the formula) gives the residual
+  # scale itself, and the student fuzz specs with se() that stopped
+  # without converging stopped elsewhere with a unit, 64.7 higher on one
+  # (test-fuzz.R, dev/optrap-findings.md)
+  sig <- Filter(function(l) {
+    identical(l[["resp"]], lp[["resp"]]) && identical(l[["dpar"]], "sigma")
+  }, frame[["linpreds"]])
+  if (length(sig) != 1L || !is.null(sig[[1L]][["constant"]]) ||
+        !is.null(sig[[1L]][["equate"]])) return(1)
+  y <- frame[["y"]][[lp[["resp"]]]]
+  if (!is.numeric(y) || !is.null(dim(y))) return(1)
+  # mu on the scale it is in: log y for the lognormal families, with
+  # the shift the shifted lognormal's own start uses, and only the
+  # positive rows of a hurdle
+  z <- switch(fname,
+    lognormal = log(y),
+    shifted_lognormal = log(y - min(y) / 2),
+    hurdle_lognormal = ifelse(y > 0, log(y), NA_real_),
+    y)
+  ok <- is.finite(z)
+  # a row of weight 0 is not data, so it does not set the unit either:
+  # zero weights and the subset they leave fit the same model, and with
+  # the unit of the full response the two took different paths
+  # (test-open-issues.R, lme4#880)
+  w <- frame[["aterm_values"]][[lp[["resp"]]]][["weights"]]
+  if (is.numeric(w) && length(w) == length(y)) ok <- ok & w > 0
+  raw <- tryCatch(predictor_resid_sd(lp, z, ok), error = function(e) NA)
+  if (!is.finite(raw) || raw <= 0) return(1)
+  u <- 2^round(log2(raw))
+  if (is.finite(u) && u > 0) u else 1
+}
+
+#' The spread of `z[ok]` with the predictor's fixed design (and offset)
+#' taken out by least squares, for predictor_unit_of().
+#'
+#' The unit is the spread of what the model leaves to sigma and the
+#' random effects, not of the response: `y = 1 + k x + b_g + e` has
+#' `sd(y)` near `k`, and a unit that large left fits at lme4's maximum
+#' at "false convergence (8)" with a warning (k = 1e4: 33 of 40;
+#' dev/optrap-rev-r2b.R, the review of lane optrap, B1). Grouping
+#' structure is not taken out; its variance stays in the residual,
+#' which is the scale the group sds start at.
+#'
+#' The spread is the MAD of the residuals (`stats::mad()`, the sd for
+#' normal residuals), so a few outliers do not set it: on student fits
+#' of t(1) data the residuals' sd gave a unit of 64 against a scale
+#' near 1, and one seed stopped 29.8 and 39.6 short (the review's
+#' dev/optrap-rev2-mad.R). Where half the residuals or more are equal,
+#' the MAD is 0 and the sd is taken.
+#'
+#' A design with more than `cells` entries (`n * p`) is fitted on
+#' evenly spaced rows up to that size: a spread from a few 1e5 rows is
+#' within a percent, far inside the power of two it is rounded to.
+#' Skipping the least squares there gave the raw spread of `y`, the rule
+#' of B1, and a fit 101000 by 50 then ran to its evaluation limit about
+#' 8.5e3 log-likelihood units short (dev/optrap-rev2-b1.R wide).
+#'
+#' A residual below 1e-10 of the response's magnitude is the rounding
+#' of an exact fit, not a scale, and gives `NA` (no unit): test-
+#' edgecases.R's constant response left residuals near 1e-16, a unit of
+#' 2^-53, and a fit that stopped at code 0 where 0.69.0's ran on, both
+#' toward a sigma of 0 (dev/optrap-findings.md, punch round 1). So does
+#' a design whose rows do not match the response's.
+#'
+#' @noRd
+predictor_resid_sd <- function(lp, z, ok,
+                               cells = getOption("frmtmb.unit_ls_cells",
+                                                 5e6)) {
+  rows <- which(ok)
+  if (length(rows) < 2L) return(NA_real_)
+  z <- z[rows]
+  mag <- max(abs(z))
+  X <- if (is.null(lp[["constant"]])) lp[["X"]]
+  off <- lp[["offset"]]
+  if (is.numeric(off) && length(off) == length(ok) && all(is.finite(off))) {
+    z <- z - off[rows]
+  }
+  if (design_ok(X)) {
+    if (nrow(X) != length(ok)) return(NA_real_)
+    p <- ncol(X)
+    m <- max(2L, floor(cells / p))
+    keep <- if (length(rows) > m) {
+      unique(round(seq(1, length(rows), length.out = m)))
+    } else {
+      seq_along(rows)
+    }
+    Xk <- as.matrix(X[rows[keep], , drop = FALSE])
+    z <- as.numeric(base::qr.resid(base::qr(Xk), z[keep]))
+  }
+  s <- stats::mad(z)
+  if (!is.finite(s) || !(s > 1e-10 * mag)) s <- stats::sd(z)
+  if (!is.finite(s) || !(s > 1e-10 * mag)) NA_real_ else s
+}
+
+#' The largest condition number among the fixed designs of a frame, each
+#' with its columns scaled to unit length and its exactly aliased columns
+#' left out (the QR's rank), estimated from the R factor (base::rcond()),
+#' on evenly spaced rows up to `cells` as in predictor_resid_sd(). For
+#' newton_polish(): raw polynomials on x in [1, 2] give 3e5 at degree 5
+#' and 4e6 at degree 6, where nlminb stopped short in silence; sleepstudy
+#' gives 3.4. 1 for a frame with no design.
+#'
+#' @noRd
+predictor_design_kappa <- function(frame,
+                                   cells = getOption("frmtmb.unit_ls_cells",
+                                                     5e6)) {
+  out <- 1
+  for (lp in frame[["linpreds"]] %||% list()) {
+    X <- if (is.null(lp[["constant"]])) lp[["X"]]
+    if (!design_ok(X) || ncol(X) < 2L) next
+    k <- tryCatch({
+      p <- ncol(X)
+      n <- nrow(X)
+      m <- max(2L, floor(cells / p))
+      rows <- if (n > m) unique(round(seq(1, n, length.out = m))) else
+        seq_len(n)
+      Xk <- as.matrix(X[rows, , drop = FALSE])
+      nrm <- sqrt(colSums(Xk^2))
+      Xk <- Xk[, nrm > 0, drop = FALSE] / rep(nrm[nrm > 0], each = nrow(Xk))
+      q <- base::qr(Xk)
+      if (q$rank < 2L) 1 else {
+        R <- qr.R(q)[seq_len(q$rank), seq_len(q$rank), drop = FALSE]
+        1 / base::rcond(R, triangular = TRUE)
+      }
+    }, error = function(e) 1)
+    if (is.finite(k) && k > out) out <- k
+  }
+  out
+}
+
+#' Start every random-effect standard deviation on the scale of the
+#' predictor its column enters (`predictor_units()`), so that a group
+#' sd starts at the response's spread as lme4's relative-covariance
+#' start does, whatever the response's units. A structure whose sds are
+#' shared across columns is moved only when all of its columns agree;
+#' an entry the frame maps to a constant is never moved.
+#'
+#' @noRd
+unit_theta_start <- function(frame, tpl, units = predictor_units(frame)) {
+  if (!length(units) || !length(tpl[["theta"]])) return(tpl)
+  mapped <- frame[["map"]][["theta"]]
+  for (bk in frame[["re_blocks"]]) {
+    sdi <- tryCatch(as.integer(block_sd_idx(bk)),
+                    error = function(e) integer(0))
+    D <- bk[["dim"]] %||% 0L
+    if (!length(sdi) || !D) next
+    col_u <- rep(1, D)
+    for (cp in bk[["components"]] %||% list()) {
+      u <- units[cp[["lp_key"]] %||% ""]
+      if (is.null(cp[["offset"]]) || is.null(cp[["dim"]]) ||
+            is.na(u)) next
+      cols <- cp[["offset"]] + seq_len(cp[["dim"]])
+      col_u[cols[cols <= D]] <- u
+    }
+    shift <- if (length(sdi) == D) log(col_u) else
+      if (all(col_u == col_u[1L])) rep(log(col_u[1L]), length(sdi)) else
+        rep(0, length(sdi))
+    pos <- bk[["theta_idx"]][sdi]
+    keep <- shift != 0 & !is.na(pos)
+    if (!is.null(mapped)) keep <- keep & !is.na(mapped[pos])
+    tpl[["theta"]][pos[keep]] <- tpl[["theta"]][pos[keep]] + shift[keep]
+  }
+  tpl
+}
+
+#' The natural units of the coefficients of each predictor on the
+#' response's scale (`predictor_units()`), aligned with
+#' `names(obj$par)`; `NULL` when every unit is 1. A coefficient moves
+#' the predictor by its column's spread per unit, so its natural unit is
+#' the response's unit over that spread: `u / sd(x_j)` (each to a power
+#' of two) for a numeric column with more than two values, `u` for the
+#' intercept and a binary column, and for a `mo()` coefficient
+#' `u / sd(codes * mult)`, the spread of the term at equal weights.
+#' `scaled` marks coefficients that
+#' already carry their column's unit (autoscale_units(),
+#' smooth_fx_units()); those get `u` alone.
+#'
+#' Multiplied into `par_units`, so nlminb steps these coefficients in
+#' their natural units and the standard-error check reads their Hessian
+#' in them. The response's unit alone was too coarse for a large
+#' column: on `ls ~ mo(income) * age` (age near 40, unit 16) the
+#' interaction's coefficient, whose maximum is near 0.03, was stepped in
+#' units of 16, and 6 of the 200 fits of dev/optima-mo-study.R ended in
+#' the wrong sign's cone, up to 0.95 short (dev/optrap-findings.md).
+#'
+#' @noRd
+predictor_par_units <- function(frame, par_names,
+                                units = predictor_units(frame),
+                                scaled = NULL) {
+  if (!length(units)) return(NULL)
+  unit <- lapply(frame[["par_template"]], function(v) rep(1, length(v)))
+  for (key in names(units)) {
+    lp <- frame[["linpreds"]][[key]]
+    if (is.null(unit[[lp[["par"]]]])) next
+    s <- predictor_col_spread(lp)
+    if (length(s) != length(lp[["idx"]])) s <- rep(1, length(lp[["idx"]]))
+    unit[[lp[["par"]]]][lp[["idx"]]] <- units[[key]] / s
+  }
+  out <- numeric(0)
+  for (cp in unique(par_names)) {
+    u <- unit[[cp]]
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      u <- u[-frame[["betad_fixed_idx"]]]
+    }
+    out <- c(out, u)
+  }
+  if (length(out) != length(par_names) || all(out == 1)) return(NULL)
+  # a coefficient already in its column's units keeps that and gains
+  # the response's unit only
+  if (length(scaled) == length(out)) {
+    resp_only <- predictor_par_units_resp(frame, par_names, units)
+    out[scaled] <- resp_only[scaled]
+  }
+  out
+}
+
+#' The response's unit alone per coefficient (no column spread), aligned
+#' like predictor_par_units().
+#'
+#' @noRd
+predictor_par_units_resp <- function(frame, par_names, units) {
+  unit <- lapply(frame[["par_template"]], function(v) rep(1, length(v)))
+  for (key in names(units)) {
+    lp <- frame[["linpreds"]][[key]]
+    if (is.null(unit[[lp[["par"]]]])) next
+    unit[[lp[["par"]]]][lp[["idx"]]] <- units[[key]]
+  }
+  out <- numeric(0)
+  for (cp in unique(par_names)) {
+    u <- unit[[cp]]
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      u <- u[-frame[["betad_fixed_idx"]]]
+    }
+    out <- c(out, u)
+  }
+  out
+}
+
+#' The spread of each column of a linear predictor's design, for
+#' predictor_par_units(): the sample sd of a numeric column with more
+#' than two values, of `codes * mult` for a `mo()` placeholder, and 1
+#' for the intercept, a binary column and any other placeholder.
+#'
+#' @noRd
+predictor_col_spread <- function(lp) {
+  X <- lp[["X"]]
+  if (is.null(X)) return(numeric(0))
+  k <- ncol(X)
+  s <- rep(1, k)
+  cn <- colnames(X)
+  mos <- lp[["mo"]] %||% list()
+  mo_cols <- vapply(mos, function(m) as.integer(m[["col"]]), 0L)
+  for (j in seq_len(k)) {
+    if (identical(cn[j], "(Intercept)")) next
+    m <- match(j, mo_cols)
+    xj <- if (!is.na(m)) {
+      tryCatch(suppressWarnings(as.numeric(mos[[m]][["codes"]]) *
+                                  as.numeric(mos[[m]][["mult"]] %||% 1)),
+               error = function(e) NA_real_)
+    } else {
+      as.numeric(X[, j])
+    }
+    # a placeholder whose codes or multiplier do not line up with the
+    # rows (a structure this function does not know) keeps spread 1,
+    # the step 0.69.0 took, rather than a spread of recycled values
+    if (length(xj) != nrow(X) || anyNA(xj)) next
+    if (length(unique(xj)) <= 2L) next
+    sj <- stats::sd(xj)
+    # a power of two, as the response's unit is, so that two data sets
+    # whose columns spread alike step their coefficients alike
+    if (is.finite(sj) && sj > 0) s[j] <- 2^round(log2(sj))
+  }
+  s
+}
+
+#' The inner (random-effect) solver's control for a fit whose response
+#' units are `units` (`predictor_units()`).
+#'
+#' TMB's inner Newton solver returns without a step once the largest
+#' absolute gradient in the random effects is below `grad.tol`, 1e-8 by
+#' default, and it starts from the last solution. That gradient is per
+#' unit of a random effect, so with random effects in units `u` it is
+#' `1/u` as large for the same relative error: at `u = 2^20` a mode can
+#' be left of the order of 1e3 units (in an sd near 1e6) from where it
+#' belongs, an error of the order of 1e-5 in the Laplace objective.
+#' Without this, with the response in units 1e6 times larger, 6 of 40
+#' ri20 fits and 3 of 40 sleepstudy-like fits ended at a nonzero code,
+#' up to 2.6e-6 short of lme4 (dev/optrap-scale.R with
+#' `OPTRAP_ABLATE=inner`; dev/optrap-findings.md). The tolerance is
+#' divided by the largest unit, which leaves it at TMB's default when no
+#' unit is above 1.
+#' `maxit` is TMB's default, which an `inner.control` list replaces.
+#'
+#' @noRd
+predictor_inner_control <- function(units) {
+  u <- max(c(1, units))
+  if (u == 1) return(list(maxit = 1000))
+  list(maxit = 1000, grad.tol = 1e-8 / u)
+}
