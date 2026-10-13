@@ -14,6 +14,7 @@ get_joint_cov <- function(fit) {
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
   Q <- joint_precision(fit)
   null <- NULL
+  flat <- NULL
   units <- NULL
   lost_pos <- integer(0)
   if (is.null(Q)) {
@@ -26,6 +27,7 @@ get_joint_cov <- function(fit) {
     V <- sdr$cov_fixed_prop %||% sdr$cov.fixed
     rn <- rownames(sdr$cov.fixed)
     null <- sdr$se_null
+    flat <- sdr$se_null_flat
     if (!is.null(null)) units <- fit$par_units
     lost_pos <- match(names(sdr$se_lost), outer_par_names(fit))
   } else {
@@ -33,6 +35,7 @@ get_joint_cov <- function(fit) {
     if (!is.null(rep)) {
       V <- rep$V
       null <- rep$null
+      flat <- rep$flat
       units <- rep$units
       lost_pos <- rep$lost_pos
     } else {
@@ -43,13 +46,14 @@ get_joint_cov <- function(fit) {
     }
     rn <- rownames(Q)
   }
-  cache$Vjoint <- list(V = V, names = rn, null = null, units = units,
-                       lost_pos = lost_pos[!is.na(lost_pos)])
+  cache$Vjoint <- list(V = V, names = rn, null = null, flat = flat,
+                       units = units, lost_pos = lost_pos[!is.na(lost_pos)])
   cache$Vjoint
 }
 
 #' The joint covariance of a fit with random effects whose outer Hessian
-#' lost standard errors (sdr_rescue()), or `NULL` when nothing was lost.
+#' lost standard errors or was repaired otherwise (sdr_rescue()), or
+#' `NULL` when the check kept sdreport()'s own inverse.
 #'
 #' The joint precision `Q` that sdreport() returns is built so that its
 #' inverse carries the inverse outer Hessian `H^-1` as the covariance of
@@ -84,7 +88,11 @@ get_joint_cov <- function(fit) {
 #' @noRd
 joint_cov_repair <- function(fit, Q, sdr) {
   Vf <- sdr$cov_fixed_prop
-  if (is.null(Vf) || !length(sdr$se_lost)) return(NULL)
+  # with nothing lost the repaired covariance still differs from the
+  # inverse of the outer Hessian when a span was re-measured
+  # (se_span_remeasure()): a degree-7 polynomial with (1 | g) on optrap's
+  # units gave a prediction SE of 0 from solve(Q) (punch round 2)
+  if (is.null(Vf)) return(NULL)
   p <- nrow(Q)
   r <- fit$obj$env$random
   f <- setdiff(seq_len(p), r)
@@ -109,7 +117,19 @@ joint_cov_repair <- function(fit, Q, sdr) {
   }
   units <- rep(1, p)
   units[f] <- fit$par_units %||% 1
-  list(V = V, null = null, units = units,
+  # the flat subspace's scaling, moved to the joint positions as `null`
+  flat <- sdr$se_null_flat
+  if (!is.null(flat)) {
+    sc <- rep(NA_real_, p)
+    sc[f] <- flat$scale
+    flat$scale <- sc
+    if (length(flat$dscale)) {
+      ds <- rep(NA_real_, p)
+      ds[f] <- flat$dscale
+      flat$dscale <- ds
+    }
+  }
+  list(V = V, null = null, flat = flat, units = units,
        lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
 }
 

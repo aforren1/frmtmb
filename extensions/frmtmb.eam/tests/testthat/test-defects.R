@@ -88,9 +88,17 @@ test_that("max_ndt above min(rt) is refused alone and allowed in a mixture", {
   expect_gt(ndt, min(dat$rt))
 
   # every row still has a likelihood, because the contaminant carries
-  # the ones the Wiener component gives zero
-  expect_true(all(is.finite(stats::residuals(fit,
-                                             type = "response")[, "Estimate"])))
+  # the ones the Wiener component gives zero. Their standard errors are
+  # NaN, with the prediction warning: the mixing weight sits at 6e-11
+  # and the Wiener parameters are flat, so every row moves along a
+  # direction the fit does not determine, at a cosine of up to 8.3e-5
+  # in the Hessian's unit-diagonal metric, which frmtmb's prediction
+  # test reads since lane seflags' punch round 2 (in the optimizer's
+  # units it was 3.8e-12; dev/seflags-eamdbg.R in frmtmb's tree)
+  res <- allow_warnings(stats::residuals(fit, type = "response"),
+                        "predictions move along",
+                        require = "predictions move along")
+  expect_true(all(is.finite(res[, "Estimate"])))
 })
 
 test_that("an unreachable row is a clean zero, not a NaN gradient", {

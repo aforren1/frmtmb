@@ -2615,7 +2615,8 @@ hyp_par_cov <- function(fit) {
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par), Vp = Vp,
          jc = if (!is.null(sdr$se_null)) {
-           list(null = sdr$se_null, units = fit$par_units,
+           list(null = sdr$se_null, flat = sdr$se_null_flat,
+                units = fit$par_units,
                 boundary = se_null_boundary(fit, sdr))
          })
   } else {
@@ -2656,9 +2657,7 @@ hyp_prop_var <- function(pc, G) {
   warn <- bad
   bcol <- pc$jc$boundary
   if (on && any(bad) && any(bcol)) {
-    jw <- pc$jc
-    jw$null <- jw$null[, !bcol, drop = FALSE]
-    warn <- bad & jc_nonest(jw, G, pc$outer_pos)
+    warn <- bad & jc_nonest(jc_drop_boundary(pc$jc), G, pc$outer_pos)
   }
   v[bad] <- NaN
   attr(v, "lost") <- bad
@@ -2667,7 +2666,10 @@ hyp_prop_var <- function(pc, G) {
 }
 
 #' Which columns of the null basis of `sdr` (sdr_rescue()) span only
-#' variance components at their boundary.
+#' variance components at their boundary. A flat subspace
+#' (`sdr$se_null_flat`) keeps the small loadings of parameters that keep
+#' their standard error, so it is judged by the parameters it names:
+#' those whose projection onto it is above its threshold (se_tier3()).
 #'
 #' @noRd
 se_null_boundary <- function(fit, sdr) {
@@ -2675,7 +2677,17 @@ se_null_boundary <- function(fit, sdr) {
   lost <- sdr$se_lost
   if (!NCOL(N) || !any(lost == "boundary")) return(logical(NCOL(N)))
   bpos <- match(names(lost)[lost == "boundary"], outer_par_names(fit))
-  apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% bpos))
+  out <- apply(N != 0, 2L, function(nz) any(nz) && all(which(nz) %in% bpos))
+  fl <- sdr$se_null_flat
+  fc <- intersect(fl$cols %||% integer(0), seq_len(NCOL(N)))
+  if (length(fc)) {
+    sc <- fl$scale
+    sc[!is.finite(sc)] <- 0
+    pr <- sqrt(rowSums((N[, fc, drop = FALSE] * sc)^2))
+    on <- which(pr > fl$tol)
+    out[fc] <- length(on) > 0L && all(on %in% bpos)
+  }
+  out
 }
 
 #' Named list of every variable a hypothesis can name, under brms's

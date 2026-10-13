@@ -1,3 +1,74 @@
+# frmtmb (development version)
+
+## Bug fixes
+
+* **BREAKING: an alias in a linear predictor's design is tested
+  exactly.** A smooth's fixed column joins the design after the check
+  that drops aliased columns; on brms's example fit 1 it is exactly
+  `-0.046 + 0.190 * Age`. The standard-error check found the alias
+  only to the precision of the Hessian, so under OpenBLAS's LAPACK all
+  five predictions of `fitted(newdata)` got `NaN` and a warning though
+  they are estimable, and a hypothesis 12 percent off the alias got a
+  finite standard error with no warning. The check now takes such an
+  alias from the design itself: every coefficient it moves (on fit 1
+  the intercept too) has `NaN` as its standard error, and a
+  prediction or hypothesis has one exactly when it does not move along
+  the alias. The prediction test reads every direction in the
+  unit-diagonal metric of the Hessian, so its verdict does not depend
+  on the units the optimizer works in. On a mixture whose mixing weight
+  has run to zero, a prediction that reads the vanished component's
+  flat parameters now gets `NaN` and the warning.
+
+* **A group standard deviation that the likelihood does not read is
+  "flat", not "at zero".** The boundary message said that the sd of a
+  group effect on a nonlinear parameter that enters no row was at
+  zero, while it was 0.22. A boundary verdict now needs the likelihood
+  to change when the sd moves up from its estimate, as far as 10 units
+  on the log scale, so an sd that the likelihood reads only far above
+  its estimate is still at its boundary.
+
+* **BREAKING: curved ridges lose their standard errors.** A fit that
+  stops within its tolerance of a ridge along which the likelihood is
+  flat on a curve (`a + exp(b)`, `a * b`, `c0 + exp(a)^k` with a group
+  effect, a `mo()` simplex with an unobserved category, two group
+  terms on the same factor) has a small eigenvalue along the ridge
+  that is not curvature of the likelihood, and the check kept every
+  standard error with no warning: on 9 of 20 seeded `a + exp(b)` fits,
+  20 of 20 with `(1 | g)` and 16 of 18 c0k fits. The check now
+  measures the curvature again on the ridge's floor, takes out the
+  part that comes from the step leaving a curved ridge, and removes
+  the direction when what is left is flat. Only a direction that
+  involves a parameter outside a family's primary linear predictors is
+  asked, since a generalized linear model has no curved ridge in its
+  coefficients.
+
+* **Standard errors of a raw polynomial that the Hessian cannot
+  resolve come from the likelihood itself.** On a degree-7 raw
+  polynomial with `(1 | g)` the check named three coefficients and
+  kept the other five with standard errors 8 to 18 times smaller than
+  `lmer()`'s, built without the two smallest directions of the
+  Hessian, whose finite-difference noise (3e-12) is above one of them
+  (8.9e-15 of the largest). A direction that the Hessian has no digits
+  for is now measured again, with the confirmed small directions next
+  to it, by second differences of the objective; all eight standard
+  errors are now within 0.5 percent of the exact ones from a QR of the
+  whitened design (`lmer()`'s own are 9 percent below them). A
+  direction the objective cannot confirm is still flat.
+
+* **An ill-conditioned design is named as one.** On a degree-8 raw
+  polynomial the smallest curvature is below machine epsilon of the
+  largest, and 0.69.0 said that the data do not determine six of the
+  nine coefficients and kept three. One double-precision covariance
+  cannot hold that curvature beside the others, so the coefficients it
+  carries still have no standard error, and neither does a prediction
+  that reads them. The warning now says that the design is
+  ill-conditioned and that centering the covariate or `poly()` removes
+  this, and, when it applies, that the optimizer stopped short of the
+  maximum, with the log-likelihood a Newton step would gain (up to 4.5
+  on these fits). Terms beside the polynomial that do not read those
+  coefficients (a covariate, a factor, sigma) keep their standard
+  errors.
+
 # frmtmb 0.69.0
 
 Four lanes, each with an adversarial review and punch rounds:

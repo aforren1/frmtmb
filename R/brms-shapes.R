@@ -436,7 +436,8 @@ fit_draw_space <- function(fit) {
           all(dim(Vp) == dim(V))) {
       dimnames(Vp) <- dimnames(V)
       return(list(map = map, V = Vp,
-                  jc = list(null = sdr$se_null, units = fit$par_units,
+                  jc = list(null = sdr$se_null, flat = sdr$se_null_flat,
+                            units = fit$par_units,
                             boundary = se_null_boundary(fit, sdr)),
                   boundary_only = all(sdr$se_lost == "boundary")))
     }
@@ -647,9 +648,7 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
     se[bad] <- NaN
     warn <- bad
     if (any(bad) && any(jc$boundary)) {
-      jw <- jc
-      jw$null <- jw$null[, !jc$boundary, drop = FALSE]
-      warn <- bad & jc_nonest(jw, J, seq_len(p))
+      warn <- bad & jc_nonest(jc_drop_boundary(jc), J, seq_len(p))
     }
     se_pred_warn(warn)
   }

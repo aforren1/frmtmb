@@ -2329,6 +2329,146 @@ item. Each item this round closed is marked in place above with
   probit continues as the tail's leading term past `|eta| = 1000`.
   Lane optima.
 
+## Filed by lane seflags (round opened 2026-10-07)
+
+Lane seflags closed the SE items of "Filed at the 0.69.0 release"
+above that name it (the estimable prediction flagged, the boundary
+message on an unread sd, the curved ridges, the degree-7 polynomial,
+the simplex face off the coordinates); the consolidation marks them.
+`dev/seflags-findings.md` and `dev/reviews/2026-10-08-seflags.md` have
+the measurements.
+
+### Open - high priority (lane seflags)
+
+- **Accurate SEs on ill-conditioned designs.** A degree-8 raw
+  polynomial on [1, 2] (with and without `(1 | g)`; with a covariate z
+  and a two-level factor w beside it, the "B5 design") has a smallest
+  unit-diagonal curvature of about 1e-17 of the largest, below machine
+  epsilon. The objective measures it accurately (`se_span_remeasure()`:
+  the same to 0.03 percent at 0.25 to 2 times the step on 73
+  directions), so the data do determine those coefficients. Since
+  punch round 2c the coefficients it carries are "illcond" with no SE,
+  as 0.69.0 gave (as "flat"), and so is every prediction that reads
+  them; the terms beside them (z, w, sigma, the sd) keep theirs.
+  - Measured in punch round 2b: the direction kept beside the
+    covariance, `ill = list(D, lam)`, with `(g . d)^2 / lambda` added
+    on every route that knew of it, gave the coefficient SEs 0.98 to
+    1.05 times the exact ones (QR of the whitened design; the excess is
+    where the optimizer stopped short), `fitted(newdata)` rows 1.000 to
+    1.020, and `frm_linpred()`, `frm_lp_basis()` with `extra_var` and
+    `extra_cov`, `hypothesis()`, `conditional_effects()`,
+    frmtmb.spline's curves, `VarCorr()`, `ranef(condVar = TRUE)` and
+    `fit_fd_se()` 1.000 to 1.016 (`dev/seflags-p2b-paths.R`,
+    `dev/seflags-rev4-routes.R`). Folded into one matrix, the rows were
+    0 to 1.47 times exact: one double-precision matrix cannot hold a
+    variance 1e17 times another.
+  - What it must also cover (final check after punch round 2b, B6 and
+    B7, `dev/seflags-rev4-whole.R`, `dev/seflags-rev4-cum.R`): every
+    consumer that reads the covariance whole got wrong numbers in
+    silence where 0.69.0 gave NaN. emmeans' design route
+    (`emm_basis_design()`, `vcov_estimated()`): 0.57 to 1.30.
+    marginaleffects through `get_vcov()`: `predictions()` 0.71 to 3.04,
+    `slopes()` 0.31 to 1690, `comparisons()` 0.86 to 2.94. A caller's
+    own `A vcov() A'` or `frm_joint_cov()`: 0.62 to 1.35.
+    `vcov_cluster()` (its bread is the whole `vcov()`):
+    `hypothesis(vcov = vcov_cluster(fit))` 226 to 3587. Influence
+    measures (`cooks.distance()`, `dfbetas()` through
+    `interop_vcov()`): not measured. The ordinal and finite-difference
+    category route (`ord_prob_se()`, `fit_fd_se()`): cumulative seed 9
+    at its maximum gave `P(y = 1)` SEs 15925 to 255929 times the
+    `poly()` fit's.
+  - A route can come back only where it is shown accurate on these
+    designs (the `poly(x, 8)` fit of the same likelihood is the
+    reference); elsewhere NaN with the warning, as now.
+
+### Regression sources (tests exist; keep these constructions)
+
+- The review's B1 to B3, each a test in `test-se-flags.R`: a
+  hypothesis off a design alias beside an identified pair
+  (`dev/seflags-b1ref.R`, `dev/seflags-rev-pred3.R` under OpenBLAS
+  LAPACK on fixture 1); the identified pair beside an alias and the nl
+  `a + b` alias (`dev/seflags-rev-join.R`); an sd read only far above
+  its estimate (`dev/seflags-rev-sd2.R`). Fixture 1's theta_1 and
+  theta_2 under OpenBLAS LAPACK (`dev/seflags-rev-fx1theta.R`) have no
+  test, since the fixture stops at code 1 with the reference BLAS.
+
+### Open - low (lane seflags)
+
+- **A mixture precision with an infinite MLE fits with no warning**
+  (Malingering_2, `dev/seflags-bcmmal.R`): log phi2 at 20.4 with a
+  decoupled row (unit-diagonal eigenvalues 0.98 to 1.01) and an
+  objective rounding of about 1e-3 there; needs a limit test per family
+  precision.
+- **The cs() ordinal-mixture wall has no message naming its cause.**
+- **`mo(inc) * age` with the interaction's simplex at a face**
+  (`dev/seflags-segapface.R`, seeds 2, 3, 5 of 6): the flat split along
+  the face is not named; its SE is 1846 on a weight in [0, 1].
+- **c0k seeds 1 and 7 (and 17 under OpenBLAS) keep one ridge
+  parameter's SE** (2.88, 17.8, 3.3) under the cap of half the largest
+  projection, warned for the other two.
+- **`s(x) + s(x2)` with x2 = x** is named under OpenBLAS LAPACK and not
+  under the reference BLAS (`dev/setier-rev-smooth2.R`).
+- **A downward direction the line probe does not confirm keeps
+  0.69.0's zeroed loadings** (review m1; c0k seeds 3 and 7, largest
+  zeroed loading 0). Such a direction comes from a finite-difference
+  row of a near-zero sd, whose eigenvector is noise; the flat path
+  would read that noise as a subspace.
+
+### Pre-existing, found by the review of lane seflags
+
+- **`y ~ 1e4 x + 5e4 + s(x) + (1 | g)`, seed 1** (re-check m7): code
+  0 with the large-gradient warning, nothing lost, and
+  `hypothesis(b_xk = 0)` NaN with no warning (`dev/seflags-rev2-alias.R`).
+- **`bf(y ~ a + b, a ~ 1 + x + (1 | g), b ~ 1 + x)`**: `fitted(newdata,
+  re_formula = NA)` gives an NA Est.Error for mu, which is estimable,
+  with no warning (re-check m7).
+- **The SE check does not run on a fit with a convergence warning**
+  (lane ci691, `dev/ci691-findings.md`): on a ridge, a fit nlminb calls
+  false convergence shows the standard errors unchecked while a
+  converged fit a few ulps away shows none, so the reported
+  uncertainty flips with rounding. Degree 8 with (1 | g), seed 4, is
+  one (code 0 with the large-gradient warning;
+  `dev/seflags-rev2-illpred.R`): coefficient SEs NaN, nothing
+  named, `fitted()` finite at 0.37 of the exact SE at x = 2.5, silent.
+  Running the check there is a policy change (the convergence warning
+  is meant to explain the fit), so it is filed, not changed.
+- **Gaussian linear predictors could take their SEs from a QR of the
+  whitened design** (re-check m6): accurate where the Hessian is not.
+  Not built. See "Accurate SEs on ill-conditioned designs" (Open -
+  high, below).
+- **The optimizer stops short along an ill-conditioned direction**
+  (punch round 2b): on degree-8 raw polynomials at code 0, a Newton
+  step along the direction gains 0.0009 to 4.5 of log-likelihood
+  (`dev/seflags-p2b-scan.R`), which the gradient test cannot see at a
+  curvature of 1e-17. Three Newton steps along it reach the maximum,
+  and the SEs there are exact (`dev/seflags-p2b-span2.R`, seed 7: gain
+  3.63, SE / exact 1.036 to 1.000). The "illcond" reason now says
+  when the gain is above 0.005 (the stated gain was 0.97 to 1.09 times
+  the true shortfall on every such fit, `dev/seflags-rev4-gain.R`).
+  Polishing the estimates is an optimizer change (lane optrap's
+  ground), so it is filed.
+- **A mixing weight at its limit could be named "boundary"** (final
+  check after punch round 2, frmtmb.eam `test-defects.R:92`): the mixing
+  logit at -23.44 is called "flat", and "a mixing parameter at its
+  limit", in the boundary message that exists, explains the fit better.
+- **frmtmb.eam's R CMD check warns "'::' or ':::' import not declared
+  from: 'rstan'"**: its `test-sampling.R` calls `rstan::` and rstan is
+  not in Suggests (since 5f39a6f5, 0.69.0). Seen by lane seflags'
+  check of frmtmb.eam in punch round 2; add rstan to Suggests.
+
+- **`y ~ year + z + (1 | g)`, bernoulli, n = 1e5, 500 groups, year
+  2000 to 2020** loses theta_1 as "flat" though its sd (0.680) matches
+  glmer(); with year centered nothing is lost
+  (`dev/seflags-rev-year.R`). A false alarm on an ordinary design.
+- **n = 2e4 `s(x, k = 100) + (1 | g)` gaussian** dies with "NA/NaN
+  gradient evaluation" (`dev/seflags-rev-cost.R smooth_big`; an
+  optimizer path).
+- **logistic_early seed 19** (`dev/seflags-rev-falarm.R`): code 0 and a
+  reported SE 37 percent off the exact AD Hessian's inverse.
+- **The degree-7 raw polynomial with (1 | g) under REML** stops at
+  code 1 with a gradient of 4.58 at sigma, and its ML fit stops 0.391
+  below lmer()'s log-likelihood (both optimizer paths).
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:
