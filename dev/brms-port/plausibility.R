@@ -22,26 +22,31 @@ source(file.path(HERE, "env.R"))
 VIGS <- c("brms_overview", "brms_multilevel", "brms_distreg", "brms_nonlinear",
           "brms_phylogenetics", "brms_monotonic", "brms_multivariate",
           "brms_missings", "brms_customfamilies")
-rd <- function(d) {
+# The brms fits do not depend on the frmtmb build, so a re-measure of
+# several builds fits them once: PORT_BRMS names the directory holding
+# brms/ and brms-vig/ (dev/remeasure-run.sh), PORT_OUT by default.
+PORT_BRMS <- Sys.getenv("PORT_BRMS", unset = PORT_OUT)
+rd <- function(d, root = PORT_OUT) {
   out <- list()
   for (v in VIGS) {
-    f <- file.path(PORT_OUT, d, paste0(v, ".rds"))
+    f <- file.path(root, d, paste0(v, ".rds"))
     if (file.exists(f)) out <- c(out, readRDS(f))
   }
   out
 }
 FR <- rd("results-spell")
-BR <- rd("brms")
+BR <- rd("brms", PORT_BRMS)
 # A fit refitted at the vignette's own budget (brms-fit.R with iter 0)
 # replaces the cheap-budget fit of the same id.
-BV <- rd("brms-vig")
+BV <- rd("brms-vig", PORT_BRMS)
 for (id in names(BV)) {
   if (identical(BV[[id]]$status, "OK") && !is.null(BV[[id]]$fit)) {
     BR[[id]] <- BV[[id]]
     BR[[id]]$budget <- "vignette"
   }
 }
-hdr <- readLines(file.path(PORT_OUT, "brms", paste0(VIGS[1], ".log")), n = 1)
+hdr <- readLines(file.path(PORT_BRMS, "brms", paste0(VIGS[1], ".log")),
+                 n = 1)
 cat("## provenance\n\nfrmtmb:", sub("^# ", "", readLines(file.path(
   PORT_OUT, "results-spell", paste0(VIGS[1], ".log")), n = 1)), "\n")
 cat("brms:  ", sub("^# ", "", hdr), "\n")
@@ -177,6 +182,17 @@ for (i in seq_len(nrow(S))) {
               if (grepl("^sd_residual", S$name[i])) "residual SD" else
                 if (S$frmtmb[i] < S$brms_sd[i])
                   "within one posterior SD of zero" else "group-level SD"))
+}
+
+# The worst rows by name, so a change between builds is read row by row
+# and not only through a median.
+W <- do.call(rbind, lapply(ok2, function(id) cbind(id = id, detail[[id]]$fx)))
+W <- W[order(-abs(W$z)), ][seq_len(min(10L, nrow(W))), ]
+cat("the 10 largest abs z over the coefficients where both converged:\n")
+for (i in seq_len(nrow(W))) {
+  cat(sprintf("  %-24s %-26s frmtmb %10s  brms %10s (sd %s)  z %s\n",
+              W$id[i], W$name[i], f3(W$frmtmb[i]), f3(W$brms[i]),
+              f3(W$brms_sd[i]), f3(W$z[i])))
 }
 
 cat("\n## detail: every coefficient with abs z > 1, and every sd\n")

@@ -1,0 +1,8 @@
+tag	version	source
+v034	0.34.0	dev/brms-port/results-merged.rds (tracked)
+v065	0.65.0	rebuilt from the dev/vigport-findings.md history block
+v066	0.66.0	rebuilt from the dev/vigport-findings.md history block
+v067	0.67.0	fresh run from C:/Users/adf44/source/r/wt-remeasure-lib dev/remeasure-run.sh
+r6	0.68.1	fresh run from C:/Users/adf44/source/r/rellib-r6 dev/remeasure-run.sh
+r7	0.69.1	fresh run from C:/Users/adf44/source/r/rellib-r7 dev/remeasure-run.sh
+r8	0.70.0	fresh run from C:/Users/adf44/source/r/rellib-r8 dev/remeasure-run.sh

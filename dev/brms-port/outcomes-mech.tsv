@@ -1,0 +1,251 @@
+id	vignette	kind	src	v034.raw	v034.spell	v034.class	v065.raw	v066.raw	v067.raw	v067.spell	v067.class	r6.raw	r6.spell	r6.class	r7.raw	r7.spell	r7.class	r8.raw	r8.spell	r8.class
+brms_overview.1.1	brms_overview	other	devtools::install_github("paul-buerkner/brms")	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP			SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP	SETUP-SKIP
+brms_overview.2.1	brms_overview	other	library("brms")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.2.2	brms_overview	other	data("kidney")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.2.3	brms_overview	other	head(kidney, n = 3)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.3.1	brms_overview	model	fit1 <- frm(formula = time | cens(censored) ~ age * sex + disease +  (1 + age | patient), data = kid	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.4.1	brms_overview	other	prior <- c(set_prior("normal(0,10)", class = "b", coef = "age"), set_prior("cauchy(1,2)", class = "b	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY			BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY
+brms_overview.5.1	brms_overview	post	summary(fit1, waic = TRUE)	OK	OK	CLEAN	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_overview.6.1	brms_overview	post	hypothesis(fit1, "Intercept - age > 0", class = "sd", group = "patient")	ERROR	OK	SPELLING: explicit	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.7.1	brms_overview	model	fit2 <- update(fit1, formula. = ~ . - (1 + age|patient) + (1|patient))	ERROR	OK	SPELLING: explicit	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.8.1	brms_overview	post	LOO(fit1, fit2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_overview.9.1	brms_overview	other	data("inhaler")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.9.2	brms_overview	other	head(inhaler, n = 1)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.10.1	brms_overview	model	fit3 <- frm(formula = rating ~ treat + period + carry + (1 |  subject), data = inhaler, family = cum	ERROR	OK	SPELLING: family-call	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_overview.11.1	brms_overview	model	fit4 <- frm(formula = rating ~ period + carry + cs(treat) + (1 |  subject), data = inhaler, family =	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_overview.12.1	brms_overview	post	summary(fit4, waic = TRUE)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_multilevel.1.1	brms_multilevel	other	zinb <- read.csv("http://stats.idre.ucla.edu/stat/data/fish.csv")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.1.2	brms_multilevel	other	zinb$camper <- factor(zinb$camper, labels = c("no", "yes"))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.1.3	brms_multilevel	other	head(zinb)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.2.1	brms_multilevel	model	fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb,  family = zero_inflated_poisson("log	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.3.1	brms_multilevel	post	summary(fit_zinb1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.4.1	brms_multilevel	post	conditional_effects(fit_zinb1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.5.1	brms_multilevel	model	fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ child),  data = zinb, family = zero_infla	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.6.1	brms_multilevel	post	summary(fit_zinb2)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.7.1	brms_multilevel	post	LOO(fit_zinb1, fit_zinb2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multilevel.8.1	brms_multilevel	other	data("rent99", package = "gamlss.data")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.8.2	brms_multilevel	other	head(rent99)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.9.1	brms_multilevel	model	fit_rent1 <- frm(rentsqm ~ t2(area, yearc) + (1 | district),  data = rent99)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.10.1	brms_multilevel	post	summary(fit_rent1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.11.1	brms_multilevel	post	conditional_effects(fit_rent1, surface = TRUE)	ERROR	ERROR	FAIL	NOT-OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.12.1	brms_multilevel	other	bform <- bf(rentsqm ~ t2(area, yearc) + (1|ID1|district), sigma ~ t2(area, yearc) + (1|ID1|district)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.12.2	brms_multilevel	model	fit_rent2 <- frm(bform, data = rent99)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.13.1	brms_multilevel	post	conditional_smooths(fit_rent2)	ERROR	ERROR	FAIL	NOT-OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.14.1	brms_multilevel	other	url <- paste0("https://raw.githubusercontent.com/mages/", "diesunddas/master/Data/ClarkTriangle.csv"	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.14.2	brms_multilevel	other	loss <- read.csv(url)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.14.3	brms_multilevel	other	head(loss)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.15.1	brms_multilevel	other	nlform <- bf(cum ~ ult * (1 - exp(-(dev / theta)^omega)), ult ~ 1 + (1|AY), omega ~ 1, theta ~ 1, nl	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.15.2	brms_multilevel	other	nlprior <- c(prior(normal(5000, 1000), nlpar = "ult"), prior(normal(1, 2), nlpar = "omega"), prior(n	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY			BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY
+brms_multilevel.15.3	brms_multilevel	model	fit_loss1 <- frm(formula = nlform, data = loss, family = gaussian())	ERROR	OK	SPELLING: explicit	NOT-OK	NOT-OK	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit
+brms_multilevel.16.1	brms_multilevel	post	summary(fit_loss1)	ERROR	OK	SPELLING: upstream	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_multilevel.17.1	brms_multilevel	post	conditional_effects(fit_loss1)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_multilevel.18.1	brms_multilevel	other	conditions <- data.frame(AY = unique(loss$AY))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.18.2	brms_multilevel	other	rownames(conditions) <- unique(loss$AY)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.18.3	brms_multilevel	post	me_year <- conditional_effects(fit_loss1, conditions = conditions, re_formula = NULL, method = "pred	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_multilevel.18.4	brms_multilevel	post	plot(me_year, ncol = 5, points = TRUE)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_multilevel.19.1	brms_multilevel	other	nlform2 <- bf(cum ~ ult * (1 - exp(-(dev / theta)^omega)), ult ~ 1 + (1|ID1|AY), omega ~ 1 + (1|ID1|	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.19.2	brms_multilevel	model	fit_loss2 <- update(fit_loss1, formula = nlform2)	ERROR	OK	SPELLING: explicit	NOT-OK	NOT-OK	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit
+brms_multilevel.20.1	brms_multilevel	post	LOO(fit_loss1, fit_loss2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multilevel.21.1	brms_multilevel	other	data_mm <- sim_multi_mem(nschools = 10, nstudents = 1000, change = 0.1)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.21.2	brms_multilevel	other	head(data_mm)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.22.1	brms_multilevel	other	data_mm[101:106, ]	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.23.1	brms_multilevel	model	fit_mm <- frm(y ~ 1 + (1 | mm(s1, s2)), data = data_mm)	ERROR	ERROR	FAIL	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.24.1	brms_multilevel	post	summary(fit_mm)	ERROR	ERROR	CASCADE	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.25.1	brms_multilevel	other	data_mm[1:100, "w1"] <- runif(100, 0, 1)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.25.2	brms_multilevel	other	data_mm[1:100, "w2"] <- 1 - data_mm[1:100, "w1"]	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.25.3	brms_multilevel	other	head(data_mm)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multilevel.26.1	brms_multilevel	model	fit_mm2 <- frm(y ~ 1 + (1 | mm(s1, s2, weights = cbind(w1, w2))),  data = data_mm)	ERROR	ERROR	FAIL	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.1.1	brms_distreg	other	group <- rep(c("treat", "placebo"), each = 30)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.1.2	brms_distreg	other	symptom_post <- c(rnorm(30, mean = 1, sd = 2), rnorm(30, mean = 0, sd = 1))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.1.3	brms_distreg	other	dat1 <- data.frame(group, symptom_post)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.1.4	brms_distreg	other	head(dat1)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.2.1	brms_distreg	model	fit1 <- frm(bf(symptom_post ~ group, sigma ~ group), data = dat1,  family = gaussian())	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.3.1	brms_distreg	post	summary(fit1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.3.2	brms_distreg	post	plot(fit1, N = 2, ask = FALSE)	OK	OK	CLEAN	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_distreg.3.3	brms_distreg	post	plot(conditional_effects(fit1), points = TRUE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.4.1	brms_distreg	other	hyp <- c("exp(sigma_Intercept) = 0", "exp(sigma_Intercept + sigma_grouptreat) = 0")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.4.2	brms_distreg	post	hypothesis(fit1, hyp)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.5.1	brms_distreg	other	hyp <- "exp(sigma_Intercept + sigma_grouptreat) > exp(sigma_Intercept)"	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.5.2	brms_distreg	post	(hyp <- hypothesis(fit1, hyp))	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.5.3	brms_distreg	post	plot(hyp, chars = NULL)	ERROR	OK	SPELLING: upstream	NOT-OK	NOT-OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.6.1	brms_distreg	other	zinb <- read.csv("https://paul-buerkner.github.io/data/fish.csv")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.6.2	brms_distreg	other	head(zinb)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.7.1	brms_distreg	model	fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb,  family = zero_inflated_poisson())	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.8.1	brms_distreg	post	summary(fit_zinb1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.8.2	brms_distreg	post	plot(conditional_effects(fit_zinb1), ask = FALSE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.9.1	brms_distreg	model	fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ child),  data = zinb, family = zero_infla	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.10.1	brms_distreg	post	summary(fit_zinb2)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.10.2	brms_distreg	post	plot(conditional_effects(fit_zinb2), ask = FALSE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.11.1	brms_distreg	other	dat_smooth <- mgcv::gamSim(eg = 6, n = 200, scale = 2, verbose = FALSE)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.11.2	brms_distreg	other	head(dat_smooth[, 1:6])	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.12.1	brms_distreg	model	fit_smooth1 <- frm(bf(y ~ s(x1) + s(x2) + (1 | fac), sigma ~  s(x0) + (1 | fac)), data = dat_smooth,	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.13.1	brms_distreg	post	summary(fit_smooth1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_distreg.13.2	brms_distreg	post	plot(conditional_effects(fit_smooth1), points = TRUE, ask = FALSE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.1.1	brms_nonlinear	other	b <- c(2, 0.75)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.1.2	brms_nonlinear	other	x <- rnorm(100)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.1.3	brms_nonlinear	other	y <- rnorm(100, mean = b[1] * exp(b[2] * x))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.1.4	brms_nonlinear	other	dat1 <- data.frame(x, y)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.2.1	brms_nonlinear	other	prior1 <- prior(normal(1, 2), nlpar = "b1") + prior(normal(0, 2), nlpar = "b2")	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY			BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY
+brms_nonlinear.2.2	brms_nonlinear	model	fit1 <- frm(bf(y ~ b1 * exp(b2 * x), b1 + b2 ~ 1, nl = TRUE),  data = dat1)	ERROR	OK	SPELLING: explicit	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.3.1	brms_nonlinear	post	summary(fit1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.3.2	brms_nonlinear	post	plot(fit1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.3.3	brms_nonlinear	post	plot(conditional_effects(fit1), points = TRUE)	ERROR	ERROR	FAIL	NOT-OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.4.1	brms_nonlinear	model	fit2 <- frm(y ~ x, data = dat1)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.5.1	brms_nonlinear	post	summary(fit2)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.6.1	brms_nonlinear	post	pp_check(fit1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.6.2	brms_nonlinear	post	pp_check(fit2)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.7.1	brms_nonlinear	post	loo(fit1, fit2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_nonlinear.8.1	brms_nonlinear	other	data(loss)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.8.2	brms_nonlinear	other	head(loss)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.9.1	brms_nonlinear	model	fit_loss <- frm(bf(cum ~ ult * (1 - exp(-(dev/theta)^omega)),  ult ~ 1 + (1 | AY), omega ~ 1, theta 	ERROR	OK	SPELLING: explicit	NOT-OK	NOT-OK	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit	ERROR	OK	SPELLING: explicit
+brms_nonlinear.10.1	brms_nonlinear	post	summary(fit_loss)	ERROR	OK	SPELLING: upstream	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_nonlinear.10.2	brms_nonlinear	post	plot(fit_loss, N = 3, ask = FALSE)	ERROR	OK	SPELLING: upstream	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_nonlinear.10.3	brms_nonlinear	post	conditional_effects(fit_loss)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_nonlinear.11.1	brms_nonlinear	other	conditions <- data.frame(AY = unique(loss$AY))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.11.2	brms_nonlinear	other	rownames(conditions) <- unique(loss$AY)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.11.3	brms_nonlinear	post	me_loss <- conditional_effects( fit_loss, conditions = conditions, re_formula = NULL, method = "pred	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_nonlinear.11.4	brms_nonlinear	post	plot(me_loss, ncol = 5, points = TRUE)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream	ERROR	OK	SPELLING: upstream
+brms_nonlinear.12.1	brms_nonlinear	other	inv_logit <- function(x) 1 / (1 + exp(-x))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.12.2	brms_nonlinear	other	ability <- rnorm(300)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.12.3	brms_nonlinear	other	p <- 0.33 + 0.67 * inv_logit(ability)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.12.4	brms_nonlinear	other	answer <- ifelse(runif(300, 0, 1) < p, 1, 0)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.12.5	brms_nonlinear	other	dat_ir <- data.frame(ability, answer)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.13.1	brms_nonlinear	model	fit_ir1 <- frm(answer ~ ability, data = dat_ir, family = bernoulli())	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.14.1	brms_nonlinear	post	summary(fit_ir1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.14.2	brms_nonlinear	post	plot(conditional_effects(fit_ir1), points = TRUE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.15.1	brms_nonlinear	model	fit_ir2 <- frm(bf(answer ~ 0.33 + 0.67 * inv_logit(eta), eta ~  ability, nl = TRUE), data = dat_ir, 	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.16.1	brms_nonlinear	post	summary(fit_ir2)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.16.2	brms_nonlinear	post	plot(conditional_effects(fit_ir2), points = TRUE)	ERROR	ERROR	FAIL	NOT-OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.17.1	brms_nonlinear	post	loo(fit_ir1, fit_ir2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_nonlinear.18.1	brms_nonlinear	model	fit_ir3 <- frm(bf(answer ~ guess + (1 - guess) * inv_logit(eta),  eta ~ 0 + ability, guess ~ 1, nl =	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.19.1	brms_nonlinear	post	summary(fit_ir3)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.19.2	brms_nonlinear	post	plot(fit_ir3)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_nonlinear.19.3	brms_nonlinear	post	plot(conditional_effects(fit_ir3), points = TRUE)	ERROR	ERROR	FAIL	NOT-OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.1.1	brms_phylogenetics	other	phylo <- ape::read.nexus("https://paul-buerkner.github.io/data/phylo.nex")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.1.2	brms_phylogenetics	other	data_simple <- read.table( "https://paul-buerkner.github.io/data/data_simple.txt", header = TRUE )	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.1.3	brms_phylogenetics	other	head(data_simple)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.2.1	brms_phylogenetics	other	A <- ape::vcv.phylo(phylo)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.3.1	brms_phylogenetics	model	model_simple <- frm(phen ~ cofactor + (1 | gr(phylo, cov = A)),  data = data_simple, family = gaussi	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.4.1	brms_phylogenetics	post	summary(model_simple)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.4.2	brms_phylogenetics	post	plot(model_simple, N = 2, ask = FALSE)	OK	OK	CLEAN	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_phylogenetics.4.3	brms_phylogenetics	post	plot(conditional_effects(model_simple), points = TRUE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.5.1	brms_phylogenetics	other	hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sigma^2) = 0"	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.5.2	brms_phylogenetics	post	(hyp <- hypothesis(model_simple, hyp, class = NULL))	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.5.3	brms_phylogenetics	post	plot(hyp)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.6.1	brms_phylogenetics	other	data_repeat <- read.table( "https://paul-buerkner.github.io/data/data_repeat.txt", header = TRUE )	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.6.2	brms_phylogenetics	other	data_repeat$spec_mean_cf <- with(data_repeat, sapply(split(cofactor, phylo), mean)[phylo])	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.6.3	brms_phylogenetics	other	head(data_repeat)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.7.1	brms_phylogenetics	model	model_repeat1 <- frm(phen ~ spec_mean_cf + (1 | gr(phylo, cov = A)) +  (1 | species), data = data_re	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.8.1	brms_phylogenetics	post	summary(model_repeat1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.9.1	brms_phylogenetics	other	hyp <- paste( "sd_phylo__Intercept^2 /", "(sd_phylo__Intercept^2 + sd_species__Intercept^2 + sigma^2	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.9.2	brms_phylogenetics	post	(hyp <- hypothesis(model_repeat1, hyp, class = NULL))	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.9.3	brms_phylogenetics	post	plot(hyp)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.10.1	brms_phylogenetics	other	data_repeat$within_spec_cf <- data_repeat$cofactor - data_repeat$spec_mean_cf	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.11.1	brms_phylogenetics	model	model_repeat2 <- update(model_repeat1, formula = ~. + within_spec_cf,  newdata = data_repeat)	ERROR	OK	SPELLING: explicit	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.12.1	brms_phylogenetics	post	summary(model_repeat2)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.13.1	brms_phylogenetics	other	hyp <- paste( "sd_phylo__Intercept^2 /", "(sd_phylo__Intercept^2 + sd_species__Intercept^2 + sigma^2	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.13.2	brms_phylogenetics	post	(hyp <- hypothesis(model_repeat2, hyp, class = NULL))	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.14.1	brms_phylogenetics	other	data_fisher <- read.table( "https://paul-buerkner.github.io/data/data_effect.txt", header = TRUE )	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.14.2	brms_phylogenetics	other	data_fisher$obs <- 1:nrow(data_fisher)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.14.3	brms_phylogenetics	other	head(data_fisher)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.15.1	brms_phylogenetics	model	model_fisher <- frm(Zr | se(sqrt(1/(N - 3))) ~ 1 + (1 | gr(phylo,  cov = A)) + (1 | obs), data = dat	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.16.1	brms_phylogenetics	post	summary(model_fisher)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.16.2	brms_phylogenetics	post	plot(model_fisher)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.17.1	brms_phylogenetics	other	data_pois <- read.table( "https://paul-buerkner.github.io/data/data_pois.txt", header = TRUE )	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.17.2	brms_phylogenetics	other	data_pois$obs <- 1:nrow(data_pois)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.17.3	brms_phylogenetics	other	head(data_pois)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.18.1	brms_phylogenetics	model	model_pois <- frm(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)) +  (1 | obs), data = data_pois, fa	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.19.1	brms_phylogenetics	post	summary(model_pois)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.19.2	brms_phylogenetics	post	plot(conditional_effects(model_pois), points = TRUE)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.20.1	brms_phylogenetics	model	model_normal <- frm(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)),  data = data_pois, family = gau	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.21.1	brms_phylogenetics	post	summary(model_normal)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.22.1	brms_phylogenetics	post	pp_check(model_pois)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.22.2	brms_phylogenetics	post	pp_check(model_normal)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_phylogenetics.23.1	brms_phylogenetics	post	loo(model_pois, model_normal)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_monotonic.1.1	brms_monotonic	other	income_options <- c("below_20", "20_to_40", "40_to_100", "greater_100")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.1.2	brms_monotonic	other	income <- factor(sample(income_options, 100, TRUE), levels = income_options, ordered = TRUE)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.1.3	brms_monotonic	other	mean_ls <- c(30, 60, 70, 75)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.1.4	brms_monotonic	other	ls <- mean_ls[income] + rnorm(100, sd = 7)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.1.5	brms_monotonic	other	dat <- data.frame(income, ls)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.2.1	brms_monotonic	model	fit1 <- frm(ls ~ mo(income), data = dat)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.3.1	brms_monotonic	post	summary(fit1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.3.2	brms_monotonic	post	plot(fit1, variable = "simo", regex = TRUE)	ERROR	OK	SPELLING: upstream	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_monotonic.3.3	brms_monotonic	post	plot(conditional_effects(fit1))	ERROR	ERROR	FAIL	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.4.1	brms_monotonic	other	dat$income_num <- as.numeric(dat$income)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.4.2	brms_monotonic	model	fit2 <- frm(ls ~ income_num, data = dat)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.5.1	brms_monotonic	post	summary(fit2)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.6.1	brms_monotonic	other	contrasts(dat$income) <- contr.treatment(4)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.6.2	brms_monotonic	model	fit3 <- frm(ls ~ income, data = dat)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.7.1	brms_monotonic	post	summary(fit3)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.8.1	brms_monotonic	post	loo(fit1, fit2, fit3)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_monotonic.9.1	brms_monotonic	other	prior4 <- prior(dirichlet(c(2, 1, 1)), class = "simo", coef = "moincome1")	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY			BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY	BRMS-ONLY
+brms_monotonic.9.2	brms_monotonic	model	fit4 <- frm(ls ~ mo(income), data = dat)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.10.1	brms_monotonic	post	summary(fit4)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.11.1	brms_monotonic	post	plot(fit4, variable = "prior_simo", regex = TRUE, N = 3)	ERROR	OK	SPELLING: upstream	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_monotonic.12.1	brms_monotonic	other	dat$age <- rnorm(100, mean = 40, sd = 10)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.13.1	brms_monotonic	model	fit5 <- frm(ls ~ mo(income) * age, data = dat)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.14.1	brms_monotonic	post	summary(fit5)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.14.2	brms_monotonic	post	conditional_effects(fit5, "income:age")	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.15.1	brms_monotonic	other	dat$city <- rep(1:10, each = 10)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.15.2	brms_monotonic	other	var_city <- rnorm(10, sd = 10)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.15.3	brms_monotonic	other	dat$ls <- dat$ls + var_city[dat$city]	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_monotonic.16.1	brms_monotonic	model	fit6 <- frm(ls ~ mo(income) * age + (mo(income) | city), data = dat)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	OK	OK	CLEAN
+brms_monotonic.17.1	brms_monotonic	post	summary(fit6)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	OK	OK	CLEAN
+brms_multivariate.1.1	brms_multivariate	other	data("BTdata", package = "MCMCglmm")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.1.2	brms_multivariate	other	head(BTdata)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.2.1	brms_multivariate	other	bform1 <-  bf(mvbind(tarsus, back) ~ sex + hatchdate + (1|p|fosternest) + (1|q|dam)) + set_rescor(TR	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.2.2	brms_multivariate	model	fit1 <- frm(bform1, data = BTdata)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.3.1	brms_multivariate	post	fit1 <- add_criterion(fit1, "loo")	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.3.2	brms_multivariate	post	summary(fit1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.4.1	brms_multivariate	post	pp_check(fit1, resp = "tarsus")	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.4.2	brms_multivariate	post	pp_check(fit1, resp = "back")	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.5.1	brms_multivariate	post	bayes_R2(fit1)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.6.1	brms_multivariate	other	bf_tarsus <- bf(tarsus ~ sex + (1|p|fosternest) + (1|q|dam))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.6.2	brms_multivariate	other	bf_back <- bf(back ~ hatchdate + (1|p|fosternest) + (1|q|dam))	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.6.3	brms_multivariate	model	fit2 <- frm(bf_tarsus + bf_back + set_rescor(TRUE), data = BTdata)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.7.1	brms_multivariate	post	fit2 <- add_criterion(fit2, "loo")	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.7.2	brms_multivariate	post	summary(fit2)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.8.1	brms_multivariate	post	loo(fit1, fit2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.9.1	brms_multivariate	other	bf_tarsus <- bf(tarsus ~ sex + (1|p|fosternest) + (1|q|dam)) + lf(sigma ~ 0 + sex) + skew_normal()	ERROR	OK	SPELLING: explicit			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.9.2	brms_multivariate	other	bf_back <- bf(back ~ s(hatchdate) + (1|p|fosternest) + (1|q|dam)) + gaussian()	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.9.3	brms_multivariate	model	fit3 <- frm(bf_tarsus + bf_back + set_rescor(FALSE), data = BTdata)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.10.1	brms_multivariate	post	fit3 <- add_criterion(fit3, "loo")	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_multivariate.10.2	brms_multivariate	post	summary(fit3)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_multivariate.11.1	brms_multivariate	post	conditional_effects(fit3, "hatchdate", resp = "back")	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.1.1	brms_missings	other	data("nhanes", package = "mice")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.1.2	brms_missings	other	head(nhanes)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.2.1	brms_missings	other	library(mice)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.2.2	brms_missings	other	m <- 5	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.2.3	brms_missings	other	imp <- mice(nhanes, m = m, print = FALSE)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.3.1	brms_missings	model	fit_imp1 <- frm_multiple(bmi ~ age * chl, data = imp)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.4.1	brms_missings	post	summary(fit_imp1)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.5.1	brms_missings	post	plot(fit_imp1, variable = "^b", regex = TRUE)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_missings.6.1	brms_missings	other	library(posterior)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.6.2	brms_missings	post	draws <- as_draws_array(fit_imp1)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_missings.6.3	brms_missings	post	nc <- nchains(fit_imp1) / m	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_missings.6.4	brms_missings	other	draws_per_dat <- lapply(1:m,  \(i) subset_draws(draws, chain = ((i-1)*nc+1):(i*nc)) )	ERROR	ERROR	CASCADE			ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_missings.6.5	brms_missings	other	lapply(draws_per_dat, summarise_draws, default_convergence_measures())	ERROR	ERROR	CASCADE			ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_missings.7.1	brms_missings	post	conditional_effects(fit_imp1, "age:chl")	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.8.1	brms_missings	other	bform <- bf(bmi | mi() ~ age * mi(chl)) + bf(chl | mi() ~ age) + set_rescor(FALSE)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.8.2	brms_missings	model	fit_imp2 <- frm(bform, data = nhanes)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.9.1	brms_missings	post	summary(fit_imp2)	ERROR	OK	SPELLING: upstream	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.9.2	brms_missings	post	conditional_effects(fit_imp2, "age:chl", resp = "bmi")	ERROR	ERROR	FAIL	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.10.1	brms_missings	other	nhanes$se <- rexp(nrow(nhanes), 2)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.11.1	brms_missings	other	bform <- bf(bmi | mi() ~ age * mi(chl)) + bf(chl | mi(se) ~ age) + set_rescor(FALSE)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_missings.11.2	brms_missings	model	fit_imp3 <- frm(bform, data = nhanes)	ERROR	OK	SPELLING: default-family	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.1.1	brms_customfamilies	other	data("cbpp", package = "lme4")	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.1.2	brms_customfamilies	other	head(cbpp)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.2.1	brms_customfamilies	model	fit1 <- frm(incidence | trials(size) ~ period + (1 | herd), data = cbpp,  family = binomial())	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.3.1	brms_customfamilies	post	summary(fit1)	OK	OK	CLEAN	OK	OK	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.4.1	brms_customfamilies	other	beta_binomial2 <- custom_family( "beta_binomial2", dpars = c("mu", "phi"), links = c("logit", "log")	ERROR	ERROR	FAIL			ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_customfamilies.5.1	brms_customfamilies	other	stan_funs <- " real beta_binomial2_lpmf(int y, real mu, real phi, int T) { return beta_binomial_lpmf	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.6.1	brms_customfamilies	other	stanvars <- stanvar(scode = stan_funs, block = "functions")	ERROR	ERROR	FAIL			ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_customfamilies.7.1	brms_customfamilies	model	fit2 <- frm(incidence | vint(size) ~ period + (1 | herd), data = cbpp,  family = beta_binomial2)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_customfamilies.8.1	brms_customfamilies	post	summary(fit2)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_customfamilies.9.1	brms_customfamilies	post	expose_functions(fit2, vectorize = TRUE)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_customfamilies.10.1	brms_customfamilies	other	log_lik_beta_binomial2 <- function(i, prep) { mu <- brms::get_dpar(prep, "mu", i = i) phi <- brms::g	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.11.1	brms_customfamilies	post	loo(fit1, fit2)	ERROR	ERROR	FAIL	NOT-OK	NOT-OK	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL	ERROR	ERROR	FAIL
+brms_customfamilies.12.1	brms_customfamilies	other	posterior_predict_beta_binomial2 <- function(i, prep, ...) { mu <- brms::get_dpar(prep, "mu", i = i)	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.13.1	brms_customfamilies	post	pp_check(fit2)	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
+brms_customfamilies.14.1	brms_customfamilies	other	posterior_epred_beta_binomial2 <- function(prep) { mu <- brms::get_dpar(prep, "mu") trials <- prep$d	OK	OK	CLEAN			OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN	OK	OK	CLEAN
+brms_customfamilies.15.1	brms_customfamilies	post	conditional_effects(fit2, conditions = data.frame(size = 1))	ERROR	ERROR	CASCADE	NOT-OK	NOT-OK	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE	ERROR	ERROR	CASCADE
