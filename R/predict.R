@@ -4443,6 +4443,9 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
 residuals_one <- function(object, type, written, osa_method, resp, newdata,
                           allow_new_levels, probs, ...) {
   fam <- object$spec$responses[[resp]]$family
+  # before the polytomous refusal below, whose pointers are for an
+  # ordinal fit, and before newdata, which has no route either
+  if (fam_is_simplex(fam)) simplex_residuals_refusal(fam)
   if (type %in% c("response", "pearson")) {
     # brms refuses its two residual types for every polytomous family
     # (brms 2.23.0 .predictive_error(), dev/correct-log/brms-resid.txt).
@@ -4591,6 +4594,10 @@ residual_values <- function(object, type = c("response", "pearson",
              "on. Compare fitted(fit) (the n x K category probabilities) ",
              "against the observed categories instead", call. = FALSE)
   }
+  # brms defines no residual of any type for a composition; a deviance
+  # needs a saturated fit and an osa residual a scalar CDF, and a row
+  # on the simplex has neither
+  if (fam_is_simplex(fam)) simplex_residuals_refusal(fam)
   st <- fam_structure(fam)
   if (!is.null(st)) {
     # Both of these need a PER-ROW likelihood: one-step prediction needs

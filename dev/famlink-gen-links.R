@@ -7,8 +7,7 @@
 # installed brms and fails if the committed file has drifted.
 #
 # Run: Rscript dev/famlink-gen-links.R
-.libPaths(c("C:/Users/adf44/source/r/pinlib",
-            "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+.libPaths("C:/Users/adf44/AppData/Local/R/win-library/4.6")
 stopifnot(requireNamespace("brms", quietly = TRUE))
 ver <- format(utils::packageVersion("brms"))
 
@@ -40,7 +39,9 @@ src <- c(
   asym_laplace = "asym_laplace",
   zero_inflated_asym_laplace = "zero_inflated_asym_laplace",
   huber = "gaussian", sratio = "sratio", cratio = "cratio", acat = "acat",
-  von_mises = "von_mises", cox = "cox", categorical = "categorical"
+  von_mises = "von_mises", cox = "cox", categorical = "categorical",
+  dirichlet = "dirichlet", dirichlet2 = "dirichlet2",
+  logistic_normal = "logistic_normal"
 )
 analog <- c("nbinom1", "tweedie", "huber")
 

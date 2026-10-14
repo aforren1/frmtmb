@@ -187,7 +187,11 @@ test_that("link and link_<dpar> agree with links on every registry family", {
     # read from links, never stored on the list
     expect_false(any(grepl("^link($|fun$|inv$|_)", names(x))), label = nm)
     main <- x$ord_link %||% x$links$mu
-    if (!identical(x$type, "categorical") && nm != "multinomial") {
+    if (!is.null(x$joint_link)) {
+      # a simplex family's categories share the link it names, which
+      # is brms's $link; their own links are where the softmax starts
+      expect_identical(f$link, x$joint_link, label = nm)
+    } else if (!identical(x$type, "categorical") && nm != "multinomial") {
       expect_identical(f$link, main$name, label = nm)
       expect_identical(f$linkinv, main$linkinv, label = nm)
     }

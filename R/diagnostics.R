@@ -29,6 +29,10 @@
 #' counts with the simulated ones), or read the per-category
 #' probabilities through `conditional_effects()`.
 #'
+#' A composition (the [dirichlet()] and [logistic_normal()] families) is
+#' refused for the same reason: a row of proportions has no scalar
+#' distribution function to evaluate.
+#'
 #' @param fit A `frmtmb_fit` (univariate; the family needs a simulator).
 #' @param nsim Number of simulated response vectors.
 #' @param re_formula Passed to [simulate.frmtmb_fit()]: `NULL` (default)
@@ -70,7 +74,18 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
              "compare observed and simulated category counts",
              call. = FALSE)
   }
-  ordinal <- identical(rspec$family[["type"]], "ordinal")
+  # A row of proportions has no scalar predictive CDF either: the draws
+  # are compositions, and a rank of one row among them is not defined
+  if (fam_is_simplex(rspec$family)) {
+    frm_stop("dharma_residuals() has no meaning for the '",
+             rspec$family[["family"]], "' family: a scaled quantile ",
+             "residual is the predictive distribution function evaluated ",
+             "at the observation, and a row of proportions has no such ",
+             "function. Compare predict(fit), a summary of simulated ",
+             "compositions, with the observed proportions instead",
+             call. = FALSE)
+  }
+  ordinal <-identical(rspec$family[["type"]], "ordinal")
   # DHARMa works in fitted-row space, so the na.exclude padding
   # simulate() adds has to come back off
   sims <- na_unpad(fit, simulate(fit, nsim = nsim, seed = seed,

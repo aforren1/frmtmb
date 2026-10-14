@@ -431,7 +431,12 @@ resolve_par_index <- function(fit, parm, what) {
 #' Confidence intervals for frmtmb fits
 #'
 #' Covariance parameters (`theta_*`) are reported on their internal
-#' (unconstrained) scale.
+#' (unconstrained) scale. So are the residual correlations of
+#' `set_rescor(TRUE)` (`thetar_*`) and the correlations of a
+#' [logistic_normal()] response (`lncor_raw_*`), which are coordinates of
+#' a row-normalized Cholesky factor, not correlations. Their
+#' natural-scale values and intervals are in [summary()] (`lncor(b,c)`)
+#' and [hypothesis()] (`lncor__b__c`).
 #'
 #' An ordinal fit's thresholds and `cs()` coefficients are internal
 #' parameters too, and each row is named by what it is. Where the
@@ -2661,6 +2666,13 @@ hyp_vals_only <- function(fit) {
     vals <- c(vals, v)
     comp <- c(comp, rep(cp, length(v)))
   }
+  # a logistic-normal fit's correlation chart, which brms reports as
+  # lncor__b__c variables
+  for (cp in simplex_extra_comps(fit)) {
+    v <- est[[cp]]
+    vals <- c(vals, v)
+    comp <- c(comp, rep(cp, length(v)))
+  }
   list(vals = vals, comp = comp)
 }
 
@@ -2718,7 +2730,7 @@ ord_threshold_values <- function(fam, raw) {
 #' @noRd
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
-             ord_extra_comps(fit), me_comps(fit))
+             ord_extra_comps(fit), me_comps(fit), simplex_extra_comps(fit))
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -2819,6 +2831,8 @@ se_null_boundary <- function(fit, sdr) {
 #' - the residual autocorrelation parameters, `ar[1]`, `cosy`;
 #' - the residual correlations of a multivariate model,
 #'   `rescor__<resp1>__<resp2>`;
+#' - the correlations of a logistic_normal() response,
+#'   `lncor__<cat1>__<cat2>`;
 #' - the hyperparameters of the `me()` terms, `meanme_<coef>`,
 #'   `sdme_<coef>` and `corme__<coef1>__<coef2>`.
 #'
@@ -2921,6 +2935,7 @@ hyp_env_vals <- function(fit, vals, comp) {
       }
     }
   }
+  lncor_put(fit, vals, comp, put)
   me_put_hyper(fit, vals, comp, put)
   env
 }

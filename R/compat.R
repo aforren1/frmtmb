@@ -834,7 +834,8 @@ compat_features_build <- function(extra = NULL) {
             "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "hurdle_cumulative",
-            "sratio", "cratio", "acat", "categorical", "von_mises", "cox")
+            "sratio", "cratio", "acat", "categorical", "von_mises", "cox",
+            "dirichlet", "dirichlet2", "logistic_normal")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -927,7 +928,10 @@ frmtmb_compat_groups_lst <- list(
                  "zero_one_inflated_beta", "hurdle_poisson",
                  "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal",
                  "hurdle_cumulative"),
-  matrix_response = c("multinomial"),
+  matrix_response = c("multinomial", "dirichlet", "dirichlet2",
+                      "logistic_normal"),
+  # brms's simplex families: a row of proportions over categories
+  simplex = c("dirichlet", "dirichlet2", "logistic_normal"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial",
                       "zero_inflated_beta_binomial", "multinomial"),
@@ -1289,6 +1293,10 @@ compat_hand_rules_tbl <- function() {
     "Refused: mixture_mvn() has no CDF.")
   r("cens()", "cox", "works",
     "The reason the family exists. An event contributes the density log h0(t) + eta - H0(t) exp(eta) and a censored row the survivor function, which is what cox()'s log-density and log-CDF already are, so right, left and interval censoring all run through the ordinary cens() machinery. Verified against a hand-rolled M-spline PH likelihood exactly and against survival::coxph() to 2e-2 on the log hazard ratio.")
+  r("cens()", "group:simplex", "refused",
+    "Refused: a row of proportions has no scalar CDF, and brms takes only weights(), subset() and index() on these families.")
+  r("trunc()", "group:simplex", "refused",
+    "Refused for the same reason: no scalar CDF, no truncation window.")
   r("cens()", "categorical", "refused",
     "Refused: a nominal response carries no order, so it has no CDF for a censored row to contribute.")
   r("trunc()", "categorical", "refused",
@@ -1796,6 +1804,16 @@ compat_hand_rules_tbl <- function() {
     "Draws come back as an n x K count matrix carrying the response's column names; needs trials().")
   r("simulate", "categorical", "works",
     "Draws come back as an UNORDERED factor carrying the response's own levels: the categories have no order, so restoring them as an ordered factor would claim one the model never used.")
+  r("simulate", "group:simplex", "works",
+    "Draws come back as an n x K matrix of proportions, rows on the simplex, columns named by the response's categories: Dirichlet draws by gamma normalization, logistic-normal draws by a multivariate normal draw on the log-ratio scale, as brms's posterior_predict() draws them.")
+  r("residuals", "group:simplex", "refused",
+    "Refused for every type, as brms refuses predictive errors for every polytomous family: a row of proportions has no scalar residual. Compare predict(fit) with the observed proportions.")
+  r("residuals_osa", "group:simplex", "refused",
+    "Refused with residuals() as a whole: a one-step-ahead residual is a scalar CDF value, and a composition has none.")
+  r("fitted", "group:simplex", "conditional",
+    "dirichlet() and brmsfamily(\"dirichlet2\") return brms's n x 4 x K array of category means, layers named P(Y = k), with delta-method standard errors. logistic_normal() is refused in brms's words: its mean has no closed form.")
+  r("predict", "group:simplex", "conditional",
+    "Returns brms's n x 4 x K summary of simulated compositions, layers named by category. type = \"response\" in frm_linpred() is the category means of fitted(), and refused for logistic_normal(); frm_linpred(dpar = \"mu<k>\") gives one category's predictor.")
   r("simulate", "von_mises", "works",
     "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
   r("simulate", "cox", "refused",

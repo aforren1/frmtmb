@@ -49,7 +49,10 @@ brms_mu_link_source <- c(
   acat = "acat",
   von_mises = "von_mises",
   cox = "cox",
-  categorical = "categorical"
+  categorical = "categorical",
+  dirichlet = "dirichlet",
+  dirichlet2 = "dirichlet2",
+  logistic_normal = "logistic_normal"
 )
 
 brms_mu_link_analogs <- c("nbinom1", "tweedie", "huber")
@@ -120,10 +123,14 @@ brms_mu_links <- list(
       "softit"),
   von_mises = c("tan_half", "identity"),
   cox = c("log", "identity", "softplus", "squareplus"),
-  categorical = c("logit")
+  categorical = c("logit"),
+  dirichlet = c("logit"),
+  dirichlet2 = c("log", "softplus", "squareplus", "identity", "logm1"),
+  logistic_normal = c("identity")
 )
 
 # The families brms:::no_mixture() bars as mixture components, by
 # frmtmb family name. The analogs above take no verdict.
 brms_no_mixture <- c("multinomial", "hurdle_gamma", "hurdle_lognormal",
-  "zero_inflated_beta", "zero_one_inflated_beta", "categorical")
+  "zero_inflated_beta", "zero_one_inflated_beta", "categorical",
+  "dirichlet", "dirichlet2", "logistic_normal")

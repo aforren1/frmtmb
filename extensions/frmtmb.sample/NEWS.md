@@ -1,3 +1,18 @@
+# frmtmb.sample (development version)
+
+## New features
+
+* **The draws of core's `dirichlet()` and `logistic_normal()` fits take
+  brms's shapes.** `posterior_epred()` on a `dirichlet()` fit is the
+  `draws x observations x categories` array of category means.
+  `posterior_predict()` draws rows on the simplex for both families,
+  with layers named by category, as brms's are.
+* The correlations of a `logistic_normal()` fit are the draws column
+  `lncor__b__c`, brms's name. They take brms's `lkj(1)` default, and
+  each `sigma<k>` takes the default that brms gives `sigma`.
+* As in brms, `posterior_epred()` refuses `logistic_normal()`.
+  `pp_check()` and `predictive_error()` refuse both families.
+
 # frmtmb.sample 0.18.0
 
 Needs frmtmb 0.70.0: it reads `simplex_frame_terms()` and the

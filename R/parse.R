@@ -2388,8 +2388,13 @@ parse_one_response <- function(bform) {
     }
   }
   extra <- c(names(pforms), names(pfix), nl_dpars)
-  allowed <- c(setdiff(fam[["dpars"]], primaries[1L]), nlpars,
-               intersect(nl_dpars, primaries))
+  # With several location predictors the main formula is only their
+  # default, and brms lets any of them take its own, the first included:
+  # bf(Y ~ x, mub ~ z) on a dirichlet() response whose first predicted
+  # category is b. One location dpar IS the main formula.
+  allowed <- c(if (length(primaries) > 1L) fam[["dpars"]] else {
+    setdiff(fam[["dpars"]], primaries[1L])
+  }, nlpars, intersect(nl_dpars, primaries))
   unknown <- setdiff(extra, allowed)
   if (length(unknown)) {
     frm_stop("dpar(s) not available for family '", fam[["family"]], "': ",
@@ -2397,6 +2402,29 @@ parse_one_response <- function(bform) {
              " (available: ", paste(allowed, collapse = ", "), ")",
              call. = FALSE,
              package = frm_family_package(fam))
+  }
+  # A location of such a family is always built from a formula, the main
+  # one or its own, so a constant written for it was silently replaced by
+  # an estimate: brms 2.23.0 does the same with bf(y ~ x, mu1 = 0) on a
+  # mixture. A value the user wrote is refused rather than ignored.
+  # Equating one (mu2 = "mu1") is refused further on in brms's words.
+  if (length(primaries) > 1L) {
+    held <- Filter(function(dp) !is.character(pfix[[dp]]),
+                   intersect(names(pfix), primaries))
+    if (length(held)) {
+      frm_stop("A location parameter of family '", fam[["family"]],
+               "' cannot be held at a value: ",
+               paste0(held, " = ", vapply(held, function(dp) {
+                 format(pfix[[dp]])
+               }, ""), collapse = ", "),
+               ". Each location of this family is built from the main ",
+               "formula or from a formula of its own, so the value would ",
+               "be ignored. Write a formula for it instead, as ", held[[1L]],
+               " ~ 1, which estimates it. To hold it at a known value, ",
+               "write an offset-only formula, as ", held[[1L]],
+               " ~ 0 + offset(o) with o a data column holding the value",
+               call. = FALSE, package = frm_family_package(fam))
+    }
   }
 
   # mu keeps a design of its own unless a body took its place

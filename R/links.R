@@ -83,7 +83,9 @@
 #' | `von_mises` | `tan_half`, `identity` |
 #' | `cumulative`, `hurdle_cumulative`, `acat` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
 #' | `sratio`, `cratio` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` |
-#' | `categorical`, `multinomial` | `logit` |
+#' | `categorical`, `multinomial`, `dirichlet` | `logit` |
+#' | `logistic_normal` | `identity` |
+#' | `dirichlet2`, through `brmsfamily()` | `log`, `softplus`, `squareplus`, `identity`, `logm1` |
 #'
 #' An ordinal family's `link` names the cumulative distribution
 #' function the thresholds are read through, not a link on a mean, so

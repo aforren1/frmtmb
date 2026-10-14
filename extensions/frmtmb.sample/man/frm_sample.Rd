@@ -362,8 +362,10 @@ priors, read off \code{brms::default_prior()} on matched models. Write
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
    \code{cor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{rescor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
+   \code{lncor} (a \code{logistic_normal()} response) \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
+   \verb{sigma<k>} of \code{logistic_normal()} \tab as \code{sigma}, with \code{s = 2.5} \tab natural or log \cr
    \code{Intercept} of an ordinal family's \code{disc} \tab \code{normal(0, 1)} \tab link \cr
    \code{simo} (a \code{mo()} simplex) \tab \code{dirichlet(1)} \tab the simplex \cr
 }
@@ -438,8 +440,8 @@ column and which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}'s class voc
 (\code{b}/\code{Intercept}/\code{sd}/\code{theta}) cannot address. An ordinal model
 still gets its \code{sd} defaults, and the message names the gap.
 \item The \code{shape}, \code{phi} and \code{nu} dispersion parameters stay flat: brms
-gives them gamma and inverse-gamma defaults, which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}
-does not carry.
+gives them gamma and inverse-gamma defaults. A user's prior writes
+one, as \code{set_prior("gamma(0.01, 0.01)", class = "phi")}.
 \item NONLINEAR parameters stay flat, which is what brms does: their
 coefficients are class \code{b}, and the response's median and mad say
 nothing about a rate or a shape sitting inside a nonlinear body.

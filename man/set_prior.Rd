@@ -98,6 +98,9 @@ one response with \code{resp}. See Residual correlation below.
 \item \code{"rescor"}: the residual correlation BETWEEN responses of a
 multivariate model (\code{set_rescor(TRUE)}), as a whole. \code{lkj(eta)}
 only, as brms spells it, and no \code{resp}.
+\item \code{"lncor"}: the correlation matrix of the log ratios of a
+\code{\link[=logistic_normal]{logistic_normal()}} response with three or more categories, as a
+whole, brms's class of the same name. \code{lkj(eta)} only.
 \item \code{"delta"}: the distance between neighboring thresholds of an
 ordinal family with \code{threshold = "equidistant"}, brms's class of
 the same name, on its own scale; \code{group} selects the vector of one

@@ -1269,6 +1269,13 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
                                       collapse = ", "), call. = FALSE)
   }
   resp <- rspec$resp_name
+  if (!is.null(rspec$family[["simplex"]])) {
+    # brms 2.23.0's sentence for its simplex families, whatever the type
+    frm_stop("'pp_check' is not implemented for this family. The '",
+             rspec$family[["family"]], "' response is a row of proportions, ",
+             "and bayesplot's checks compare one number per observation, ",
+             "as in brms", call. = FALSE)
+  }
   data <- newdata %||% fit$frame[["data_frame"]]
   fargs <- names(formals(fun))
   if (any(c("lw", "psis_object") %in% fargs) &&
@@ -1899,14 +1906,17 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   # brms refuses a predictive error, and so residuals(), for every
   # polytomous family whatever the method (its is_polytomous(); brms
   # 2.23.0, dev/correct-log/brms-resid.txt). The same families as
-  # frmtmb's residuals() refuses: a category or counts over categories
+  # frmtmb's residuals() refuses: a category, or counts or proportions
+  # over categories (brms's simplex families are polytomous too)
   fam <- fit$spec$responses[[resp]]$family
   if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
-        identical(fam[["family"]], "multinomial")) {
+        identical(fam[["family"]], "multinomial") ||
+        !is.null(fam[["simplex"]])) {
     frm_stop("predictive_error() and residuals() are not defined for the ",
              "'", fam[["family"]], "' family, as in brms: the response is ",
-             "a category or a set of counts over categories, so y - yrep ",
-             "has no scale to be read on", call. = FALSE)
+             "a category, or a set of counts or proportions over ",
+             "categories, so y - yrep has no scale to be read on",
+             call. = FALSE)
   }
   y <- draws_response_values(fit, resp, newdata, "predictive_error()")
   if (is.matrix(y)) {

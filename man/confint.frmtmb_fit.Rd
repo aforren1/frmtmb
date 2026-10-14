@@ -66,7 +66,12 @@ A matrix with columns \code{lwr}, \code{upr}, \code{est}.
 }
 \description{
 Covariance parameters (\verb{theta_*}) are reported on their internal
-(unconstrained) scale.
+(unconstrained) scale. So are the residual correlations of
+\code{set_rescor(TRUE)} (\verb{thetar_*}) and the correlations of a
+\code{\link[=logistic_normal]{logistic_normal()}} response (\verb{lncor_raw_*}), which are coordinates of
+a row-normalized Cholesky factor, not correlations. Their
+natural-scale values and intervals are in \code{\link[=summary]{summary()}} (\code{lncor(b,c)})
+and \code{\link[=hypothesis]{hypothesis()}} (\code{lncor__b__c}).
 }
 \details{
 An ordinal fit's thresholds and \code{cs()} coefficients are internal

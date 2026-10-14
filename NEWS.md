@@ -1,3 +1,67 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A constant on a location of a family with several locations is
+  refused.** This covers `categorical()`, `multinomial()`, `mixture()`
+  and the new simplex families. It also covers the extension families
+  with several locations: frmtmb.eam's `lba()` and `rdm()` (`v<k>`),
+  and frmtmb.latent's `hmm()` (`mu<k>`) and `lca()` (`theta<k>`).
+  `bf(f ~ x, muc = 0)` and `bf(y ~ x, mu2 = 0)` used to fit, and the
+  location was estimated anyway. The constant had no effect, so the
+  fit was not the model the user wrote. brms 2.23.0 ignores the
+  constant the same way.
+* The refusal gives two routes. `muc ~ 1` estimates the location.
+  `muc ~ 0 + offset(o)`, with `o` a data column, holds it at a known
+  value.
+
+## New features
+
+* **`dirichlet()` and `logistic_normal()`, brms's simplex families.**
+  The response is an `n x K` matrix of proportions. Write it as
+  `cbind(y1, y2, y3)` or as a matrix column of the data. Each row must
+  sum to one, and the column names are the categories.
+* The first category is the reference unless `refcat` names another,
+  as in brms. Each other category `k` gets its own predictor `mu<k>`.
+  The main formula applies to every category. `bf(Y ~ x, muc ~ z)`
+  gives one category its own formula. `(1 | ID | g)` correlates the
+  group effects across categories.
+* `dirichlet()` has the precision `phi`. `logistic_normal()` has one
+  `sigma<k>` per category, and each takes a formula. It also has one
+  correlation matrix, `lncor`. The summary reports it as `lncor(b,c)`,
+  and the new prior class `"lncor"` takes an `lkj()` prior.
+* The log densities agree with brms 2.23.0's Stan functions to a
+  relative 1.5e-11 on 7200 grid points. brms's Stan program at
+  frmtmb's estimates gives the same log density to 6e-13 on six
+  models. 500 simulated fits recover their parameters with no warning
+  (`dev/famsimplex-findings.md`).
+* **`brmsfamily("dirichlet2")`** reaches brms's unexported Dirichlet
+  family, as in brms. It has one log-link predictor per category for
+  that category's concentration.
+* `fitted()` on a `dirichlet()` fit returns brms's `n x 4 x K` array of
+  category means, with layers named `P(Y = k)`. `predict()`,
+  `simulate()`, `posterior_predict()` and `log_lik()` work on both
+  families. Their draws are rows on the simplex.
+* `conditional_effects()` draws one curve per category, with a Wald
+  band from `fitted()`. As in brms, `fitted()`, `conditional_effects()`
+  and `posterior_epred()` refuse `logistic_normal()`, whose mean has no
+  closed form. `residuals()`, `dharma_residuals()` and `pp_check()`
+  refuse both families.
+* The response check holds each row to 1.5e-8 of one. brms tests the
+  MEAN departure over the rows, so one row off the simplex passes there
+  in a large data set. `dirichlet()` then fails at sampling, and
+  `logistic_normal()` fits a row that is not a composition.
+
+## Bug fixes
+
+* **A family with several locations takes a formula for the first one
+  too.** `bf(f ~ x, mub ~ z)` on a `categorical()` response was
+  refused when `b` is the first predicted level. So was
+  `bf(y ~ 1, mu1 ~ x, mu2 ~ x)` on a `mixture()`. brms 2.23.0 builds
+  the mixture form and the same first-category formula on
+  `dirichlet()`. On `categorical()`, brms stops with an internal error.
+* A brms family object passed as `family =` keeps its `refcat`.
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

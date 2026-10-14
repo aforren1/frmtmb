@@ -1,0 +1,7 @@
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-simplex-families.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-parse.R
+frmtmb.eam /c/Users/adf44/source/r/frmtmb-wt-famsimplex/extensions/frmtmb.eam/tests/testthat/test-lba.R
+frmtmb.eam /c/Users/adf44/source/r/frmtmb-wt-famsimplex/extensions/frmtmb.eam/tests/testthat/test-rdm-gng.R
+frmtmb.latent /c/Users/adf44/source/r/frmtmb-wt-famsimplex/extensions/frmtmb.latent/tests/testthat/test-hmm.R
+frmtmb.latent /c/Users/adf44/source/r/frmtmb-wt-famsimplex/extensions/frmtmb.latent/tests/testthat/test-hmm-starts.R
+frmtmb.latent /c/Users/adf44/source/r/frmtmb-wt-famsimplex/extensions/frmtmb.latent/tests/testthat/test-lca.R

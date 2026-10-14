@@ -614,20 +614,23 @@ family_link_secondary <- function(x) {
 }
 
 #' brms's `is_polytomous()`, for the families this package has: the
-#' response is a category (ordinal, categorical) or a vector of counts
-#' over categories (multinomial). brms refuses a predictive error and
+#' response is a category (ordinal, categorical), a vector of counts
+#' over categories (multinomial) or a composition over them (the simplex
+#' families). brms refuses a predictive error and
 #' `pp_check(type = "error_binned")` for every one of them.
 #'
 #' @noRd
 fam_is_polytomous <- function(fam) {
   isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
-    identical(fam[["family"]], "multinomial")
+    identical(fam[["family"]], "multinomial") ||
+    !is.null(fam[["simplex"]])
 }
 
 #' @noRd
 family_joint_link <- function(x) {
   identical(.subset2(x, "type"), "categorical") ||
-    identical(.subset2(x, "family"), "multinomial")
+    identical(.subset2(x, "family"), "multinomial") ||
+    !is.null(.subset2(x, "joint_link"))
 }
 
 #' The value of one of brms's link fields, read from `links`.
@@ -654,7 +657,8 @@ family_link_view <- function(x, name) {
   main <- if (!is.null(ol)) {
     ol
   } else if (family_joint_link(x)) {
-    "logit"
+    # a simplex family names its own: logistic_normal()'s is identity
+    .subset2(x, "joint_link") %||% "logit"
   } else if ("mu" %in% .subset2(x, "dpars")) {
     # NULL when the object has lost its links: reported as NA, not as a
     # link the family does not carry
@@ -5365,10 +5369,11 @@ mixture_check_components <- function(comps) {
   barred <- types == "categorical" | fams %in% brms_no_mixture
   if (any(barred)) {
     frm_stop("Some of the families are not allowed in mixture models: ",
-             paste(unique(fams[barred]), collapse = ", "), ". A categorical ",
-             "or multinomial response is not a value the other components ",
-             "can share, and a continuous hurdle or a zero-inflated or ",
-             "zero-one-inflated beta puts a probability mass at zero ",
+             paste(unique(fams[barred]), collapse = ", "), ". A categorical, ",
+             "multinomial or simplex response is not a value the other ",
+             "components can share, and a continuous hurdle or a ",
+             "zero-inflated or zero-one-inflated beta puts a probability ",
+             "mass at zero ",
              "(or one) beside a density",
              call. = FALSE)
   }
@@ -8029,7 +8034,12 @@ family_registry <- list(
   acat                      = fam_acat,
   von_mises                 = fam_von_mises,
   cox                       = fam_cox,
-  categorical               = fam_categorical_deferred
+  categorical               = fam_categorical_deferred,
+  # the simplex families (R/families-simplex.R); dirichlet2 has no
+  # constructor, as in brms, and is reached through brmsfamily()
+  dirichlet                 = fam_dirichlet_deferred,
+  dirichlet2                = fam_dirichlet2_deferred,
+  logistic_normal           = fam_logistic_normal_deferred
 )
 
 # An unknown value errors and names the supported families.
@@ -8116,7 +8126,8 @@ family_from_name <- function(family, link = NULL, args = list(),
 #' An argument the family does not have is refused by name. brms
 #' ignores it, so `brmsfamily("poisson", link_sigma = "log")` builds a
 #' poisson family there. `threshold` is an argument of the ordinal
-#' families alone, and `refcat` of none.
+#' families alone, and `refcat` of `"dirichlet"` and
+#' `"logistic_normal"`.
 #'
 #' @param family Family name, as a single string.
 #' @param link The link for the mean, quoted or not. `NULL` gives the
@@ -8187,7 +8198,10 @@ as_frmtmb_family <- function(x) {
     ctor <- family_ctor(x[["family"]])
     # a brms family object also carries link_<dpar>; carry the ones the
     # constructor takes rather than silently dropping them
-    extra <- intersect(grep("^link_", names(x), value = TRUE),
+    # and its refcat, which a simplex family reads; brms stores none when
+    # the first category is the reference
+    extra <- intersect(c(grep("^link_", names(x), value = TRUE),
+                         if (!is.null(x[["refcat"]])) "refcat"),
                        names(formals(ctor)))
     return(do.call(ctor, c(list(link = x[["link"]]), unclass(x)[extra])))
   }
@@ -9024,6 +9038,11 @@ family_link_str <- function(fam, shown = character(0)) {
     # reports mu1 = logit
     k <- if (!is.null(mx)) match(d, paste0("mu", seq_len(mx$K))) else NA
     if (!is.na(k)) return(mx$comps[[k]][["ord_link"]][["name"]] %||% "?")
+    # a simplex family's category predictors report the joint link they
+    # enter through, as brms reports mub = logit on a dirichlet fit
+    if (!is.null(fam[["joint_link"]]) && d %in% fam[["primary_dpars"]]) {
+      return(fam[["joint_link"]])
+    }
     l <- lk[[d]]
     if (is.null(l)) NA_character_ else (l[["name"]] %||% NA_character_)
   }, character(1))

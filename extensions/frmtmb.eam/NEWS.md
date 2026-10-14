@@ -1,3 +1,14 @@
+# frmtmb.eam (development version)
+
+## Breaking changes
+
+* **A constant on a drift rate of `lba()` or `rdm()` is refused**, by
+  the next frmtmb. `bf(rt | vint(choice) ~ 1, v3 = 0.8)` on `lba(3)`
+  used to fit, and `v3` was estimated anyway: the constant had no
+  effect. The refusal says to write `v3 ~ 1` to estimate it, or
+  `v3 ~ 0 + offset(o)` to hold it at a known value. This package's
+  code is unchanged.
+
 # frmtmb.eam 0.11.3
 
 Needs frmtmb 0.70.0. No change to the package's code.

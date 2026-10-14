@@ -1,3 +1,15 @@
+# frmtmb.latent (development version)
+
+## Breaking changes
+
+* **A constant on a location of `hmm()` or `lca()` is refused**, by
+  the next frmtmb. `bf(y ~ x, mu2 = 3)` on `hmm(2)` and
+  `bf(Y ~ 1, theta2 = 0.5)` on `lca(3)` used to fit, and the location
+  was estimated anyway: the constant had no effect. The refusal says
+  to write a formula that estimates it, or an offset-only formula
+  (`mu2 ~ 0 + offset(o)`) that holds it at a known value. This
+  package's code is unchanged.
+
 # frmtmb.latent 0.6.0
 
 * `frm_compat()` records `autoscale` as working for `hmm()` and `lca()`,

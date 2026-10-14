@@ -523,6 +523,16 @@ summary_spec_frame <- function(object, prob) {
       nm <- c(nm, s$names[k])
     }
   }
+  # a logistic-normal fit's correlations, which brms lists here as
+  # lncor(b,c)
+  ln <- lncor_summary_rows(object, q)
+  if (!is.null(ln)) {
+    est <- c(est, ln$est)
+    err <- c(err, ln$err)
+    lo <- c(lo, ln$lo)
+    hi <- c(hi, ln$hi)
+    nm <- c(nm, ln$nm)
+  }
   if (!length(nm)) return(summary_empty_block(prob))
   out <- data.frame(Estimate = est, `Est.Error` = err, lo = lo, hi = hi,
                     check.names = FALSE)

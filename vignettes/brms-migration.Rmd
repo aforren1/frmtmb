@@ -48,6 +48,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
 | `categorical()` on a numeric response | same | the distinct values are the categories, in numeric order: `11:13` is three categories with `11` the reference |
+| `dirichlet()`, `logistic_normal()`, `brmsfamily("dirichlet2")` | same | the response is `cbind(y1, y2, y3)` or a matrix column, `refcat` as in brms; every row is held to 1.5e-8 of one, where brms holds the mean over rows; `lncor` takes class `"lncor"` |
 | `mixture(..., order = "none")` | same | brms's `order = "mu"`, which orders the components' intercepts for a sampler, is refused, except on ordinal components, where it gives them one shared threshold vector, as in brms |
 
 ### Links

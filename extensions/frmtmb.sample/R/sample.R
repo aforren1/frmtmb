@@ -1164,7 +1164,9 @@ sample_assemble <- function(formula, data, family, data2, start,
 #                   onto frmtmb's own correlation parameters with the
 #                   Jacobian of that map (see R/priors.R)
 #   rescor          lkj(1) on the residual correlation of
-#                   set_rescor(TRUE)
+#                   set_rescor(TRUE), and on a logistic_normal()
+#                   response's lncor; its sigma<k> take the sigma rows
+#                   below with s = 2.5
 #   sigma           student_t(3, 0, s) on the natural scale, when sigma
 #                   is intercept-only; student_t(3, 0, 2.5) on the LOG
 #                   scale when sigma carries its own predictor (brms
@@ -1202,7 +1204,8 @@ sample_assemble <- function(formula, data, family, data2, start,
 # priors them as its Intercept class; frmtmb keeps them in the `thres`
 # extra-parameter vector, which set_prior() cannot address), the
 # shape/phi/nu-style dispersion parameters (brms uses gamma and
-# inverse-gamma densities that set_prior() does not carry), and
+# inverse-gamma defaults, which a user's set_prior() can write and
+# the defaults here do not yet), and
 # NONLINEAR parameters (class "b" in brms, which brms leaves flat).
 
 # Families whose response is on the log scale inside the density even
@@ -1483,6 +1486,17 @@ default_priors_for <- function(fit) {
         add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma",
                       resp = rs))
       }
+    } else if (lp[["dpar"]] %in% rspec$family[["simplex"]][["sigma"]] &&
+                 identical(lp[["link"]]$name, "log")) {
+      # a logistic_normal() category's sigma<k>, which brms priors as it
+      # priors sigma; its response is a composition, so the scale is
+      # brms's untransformed 2.5 (default_prior_scale())
+      if (ncol(lp[["X"]]) == 1L && is.null(lp[["Z"]])) {
+        add(natural_dpar_prior(st(0, ps$scale), lp[["dpar"]], resp = rs))
+      } else {
+        add(set_prior(st(0, 2.5), class = "Intercept", dpar = lp[["dpar"]],
+                      resp = rs))
+      }
     } else if (ord_disc_dpar(rspec, lp[["dpar"]]) &&
                  !identical(lp[["link"]]$name, "identity")) {
       # an ordinal discrimination: brms's def_dpar_prior() puts
@@ -1525,6 +1539,10 @@ default_priors_for <- function(fit) {
   # brms's lkj(1) on the residual correlation of set_rescor(TRUE)
   if (length(fit$frame[["par_template"]][["thetar"]] %||% numeric(0))) {
     add(set_prior("lkj(1)", class = "rescor"))
+  }
+  # and on a logistic_normal() response's correlations, class lncor
+  if (length(fit$frame[["par_template"]][["lncor_raw"]] %||% numeric(0))) {
+    add(set_prior("lkj(1)", class = "lncor"))
   }
   pl
 }
@@ -2093,8 +2111,10 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
 #' | `cor` | `lkj(1)` | correlation matrix, Jacobian applied |
 #' | `rescor` | `lkj(1)` | correlation matrix, Jacobian applied |
+#' | `lncor` (a `logistic_normal()` response) | `lkj(1)` | correlation matrix, Jacobian applied |
 #' | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 #' | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
+#' | `sigma<k>` of `logistic_normal()` | as `sigma`, with `s = 2.5` | natural or log |
 #' | `Intercept` of an ordinal family's `disc` | `normal(0, 1)` | link |
 #' | `simo` (a `mo()` simplex) | `dirichlet(1)` | the simplex |
 #'
@@ -2167,8 +2187,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   (`b`/`Intercept`/`sd`/`theta`) cannot address. An ordinal model
 #'   still gets its `sd` defaults, and the message names the gap.
 #' - The `shape`, `phi` and `nu` dispersion parameters stay flat: brms
-#'   gives them gamma and inverse-gamma defaults, which [frmtmb::set_prior()]
-#'   does not carry.
+#'   gives them gamma and inverse-gamma defaults. A user's prior writes
+#'   one, as `set_prior("gamma(0.01, 0.01)", class = "phi")`.
 #' - NONLINEAR parameters stay flat, which is what brms does: their
 #'   coefficients are class `b`, and the response's median and mad say
 #'   nothing about a rate or a shape sitting inside a nonlinear body.

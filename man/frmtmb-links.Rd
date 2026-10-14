@@ -97,7 +97,9 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{von_mises} \tab \code{tan_half}, \code{identity} \cr
    \code{cumulative}, \code{hurdle_cumulative}, \code{acat} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit} \cr
    \code{sratio}, \code{cratio} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit} \cr
-   \code{categorical}, \code{multinomial} \tab \code{logit} \cr
+   \code{categorical}, \code{multinomial}, \code{dirichlet} \tab \code{logit} \cr
+   \code{logistic_normal} \tab \code{identity} \cr
+   \code{dirichlet2}, through \code{brmsfamily()} \tab \code{log}, \code{softplus}, \code{squareplus}, \code{identity}, \code{logm1} \cr
 }
 
 
