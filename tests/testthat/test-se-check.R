@@ -269,8 +269,14 @@ test_that("a small loading on a downward direction keeps its SE", {
   u <- cbind(stats::rnorm(16, 0, 0.7), stats::rnorm(16, 0, 0.4))
   dd$y <- stats::rnorm(160, 1 + 0.5 * dd$x + u[dd$g, 1] +
                          u[dd$g, 2] * dd$x, 1)
+  # the stop described above is the one from 0.70.0's start, given here;
+  # from the least-squares start the fit runs on to the boundary
+  # (objective 1.4e-4 lower, the correlation at its end, "singular
+  # convergence (7)"; dev/optstart-grby.R)
   r <- se_capture(frm(bf(y ~ x + (1 + x | gr(g, by = f))),
-                      family = gaussian(), data = dd))
+                      family = gaussian(), data = dd,
+                      start = list(beta = c(mean(dd$y), 0),
+                                   betad = log(stats::sd(dd$y)))))
   hit <- grep(se_lost_phrase, r$warnings, fixed = TRUE, value = TRUE)
   expect_length(hit, 1L)
   expect_match(hit, "theta_2, theta_3: the likelihood is flat", fixed = TRUE)

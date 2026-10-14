@@ -61,8 +61,10 @@ test_that("a fit driven onto the stationary point is refit off it", {
   # the start the family used before: the sign of the RAW skew
   m3 <- sn_skew(dd$y)
   bad <- c(log(stats::sd(dd$y)), 2 * sign(m3) + 0.5 * m3)
+  # mu at the family's old start too: from least squares the fit leaves
+  # the stationary point without the refit
   fit <- frm(sn_form(), family = skew_normal(), data = dd,
-             start = list(betad = bad))
+             start = list(beta = c(mean(dd$y), 0), betad = bad))
   esc <- fit$opt[["stationary_escape"]]
   expect_false(is.null(esc))
   expect_identical(unname(esc[["starts"]]), 2)
@@ -272,7 +274,10 @@ test_that("a sparse() design still gets its initializer", {
                 dry_run = "objective")
   expect_equal(unname(dense$estimates$beta[1]),
                unname(sparse$estimates$beta[1]), tolerance = 1e-12)
-  expect_equal(unname(dense$estimates$beta[1]), mean(dd$y),
+  # a gaussian mu with a factor starts at least squares, the first
+  # level's mean
+  expect_equal(unname(dense$estimates$beta[1]),
+               mean(dd$y[dd$g == levels(dd$g)[1]]),
                tolerance = 1e-12)
   # and the predictor helpers take a Matrix without converting callers
   X <- Matrix::sparse.model.matrix(~ g, dd)

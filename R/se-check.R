@@ -59,8 +59,29 @@ fit_outer_hessian <- function(fit) {
 #' comes from the inner solve. Whether to build it at fit time at all is
 #' se_check_at_fit()'s decision, made before the first gradient.
 #'
+#' A step of 0.001 is right only in coordinates where the objective
+#' rises by a small amount over it, and `par` is in whatever coordinates
+#' the caller chose (natural units, where `par_units` are in play). The
+#' rise along coordinate `i`, `tau = 0.5 * H[i, i] * 0.001^2`, does not
+#' depend on the coordinates. Where the matrix has no Cholesky factor
+#' and some columns rose by more than `tau_band`, those columns are
+#' taken again with the step that gives a rise of `tau_step`, and the
+#' retaken matrix is kept when it factors and its smallest eigenvalue is
+#' above its own noise (the spectral norm of its `E`). With the
+#' response units of 0.70.0 on brms_missings' fit_imp2 the steps of
+#' `bmi_michl` and `bmi_michl:age` rose by about 0.03 and 0.09 and the
+#' Hessian was indefinite, so every standard error was NaN (lane
+#' remeasure, R1);
+#' retaken, the standard errors agree with a Richardson Jacobian of the
+#' gradient to 5e-7 whatever the units (dev/optstart-r1-steps.R). A
+#' matrix that factors is the old Hessian bit for bit, and so is one the
+#' retake does not make factor: a flat or curved ridge stays the
+#' standard-error check's to judge. Retaking every column whose rise is
+#' above the band moved the check's verdict on test-se-tier.R's curved
+#' ridge (dev/optstart-sediag.R).
+#'
 #' @noRd
-fd_hessian <- function(par, gr) {
+fd_hessian <- function(par, gr, tau_band = 1e-2, tau_step = 1e-4) {
   n <- length(par)
   eps <- 0.001
   dpar <- par
@@ -72,6 +93,33 @@ fd_hessian <- function(par, gr) {
     df2 <- as.numeric(gr(dpar))
     H[, i] <- (1 * (df1 - df2)) / (2 * eps * 1 * 1)
     dpar[i] <- dpar[i] + eps
+  }
+  factors <- function(M) {
+    all(is.finite(M)) &&
+      !inherits(try(chol(0.5 * (M + t(M))), silent = TRUE), "try-error")
+  }
+  d <- diag(H)
+  redo <- which(is.finite(d) & d > 0 & 0.5 * d * eps^2 > tau_band)
+  if (length(redo) && !factors(H)) {
+    H2 <- H
+    for (i in redo) {
+      h <- sqrt(2 * tau_step / d[i])
+      dpar[i] <- par[i] + h
+      df1 <- as.numeric(gr(dpar))
+      dpar[i] <- par[i] - h
+      df2 <- as.numeric(gr(dpar))
+      H2[, i] <- (df1 - df2) / (2 * h)
+      dpar[i] <- par[i]
+    }
+    # a retake of a matrix that is singular by construction can factor by
+    # its noise alone: on test-se-tier.R's curved ridge the retake's
+    # smallest eigenvalue was 1.5e-6 against a noise of 1.1e-3, and on
+    # R1's oversized steps 1.03 against 0.02 (dev/optstart-retake.R)
+    if (factors(H2)) {
+      lmin <- min(eigen(0.5 * (H2 + t(H2)), symmetric = TRUE,
+                        only.values = TRUE)$values)
+      if (lmin > norm(abs(H2 - t(H2)) / 2, "2")) H <- H2
+    }
   }
   E <- abs(H - t(H)) / 2
   H <- 0.5 * (H + t(H))

@@ -261,7 +261,11 @@ test_that("a gaussian GLM at n = 50000 trips the trip-wire and is clean", {
   n <- 50000
   dd <- data.frame(x = rnorm(n))
   dd$y <- rnorm(n, 1 + 2 * dd$x, 2)
-  r <- grad_warned(frm(bf(y ~ x), family = gaussian(), data = dd))
+  # from 0.70.0's start: least squares is the closed form here, and
+  # its gradient never reaches the second stage
+  r <- grad_warned(frm(bf(y ~ x), family = gaussian(), data = dd,
+                       start = list(beta = c(mean(dd$y), 0),
+                                    betad = log(stats::sd(dd$y)))))
   expect_false(r$grad)
   d <- diagnose(r$fit, quiet = TRUE)
   tol <- r$fit$control$grad_tol
@@ -380,7 +384,11 @@ test_that("a fit stopped at its iteration cap still warns", {
   r <- grad_warned(frm(
     bf(y ~ x + z), family = gaussian(), data = dd,
     control = frmtmb_control(restarts = 0,
-                             optCtrl = list(iter.max = 3, eval.max = 9))))
+                             optCtrl = list(iter.max = 3, eval.max = 9)),
+    # from 0.70.0's start: least squares starts at the maximum, and
+    # three iterations then leave nothing on the table
+    start = list(beta = c(mean(dd$y), 0, 0),
+                 betad = log(stats::sd(dd$y)))))
   expect_true(r$grad)
   ref <- frm(bf(y ~ x + z), family = gaussian(), data = dd)
   short <- as.numeric(logLik(ref)) - as.numeric(logLik(r$fit))
@@ -444,7 +452,11 @@ test_that("grad_tol tightens and loosens the whole verdict", {
   clean <- grad_warned(frm(bf(y ~ x), family = gaussian(), data = dd))
   expect_false(clean$grad)
   # a tolerance under the fit's own headroom brings the warning back
+  # from 0.70.0's start, whose stop has headroom above 1e-14; the
+  # least-squares start is the closed form, which has none
   tight <- grad_warned(frm(bf(y ~ x), family = gaussian(), data = dd,
+                           start = list(beta = c(mean(dd$y), 0),
+                                        betad = log(stats::sd(dd$y))),
                            control = frmtmb_control(grad_tol = 1e-14)))
   expect_true(tight$grad)
 

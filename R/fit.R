@@ -72,7 +72,9 @@
 #'   parameter component (`beta`, `betad`, `theta`, ...).
 #'   [par_template()] returns that list already filled with the
 #'   defaults, for a fitted model or for a formula and data alone; edit
-#'   it and pass it back.
+#'   it and pass it back. Its section "The default starting values"
+#'   tells how the defaults are set; the entries you do not name in
+#'   `start` keep those defaults.
 #'
 #'   A component is read by NAME when its vector has names, so
 #'   `start = list(beta = c("(Intercept)" = 5000))` moves that one
@@ -2600,9 +2602,11 @@ optimize_obj <- function(obj, control,
                         format(g, digits = 3))
                })
     }
-    if (!inherits(opt2, "error") &&
-          isTRUE(opt2$objective <= opt$objective)) {
-      opt <- opt2
+    kept <- if (!inherits(opt2, "error")) {
+      restart_result(opt, opt2, control, par_units)
+    }
+    if (!is.null(kept)) {
+      opt <- kept
       next
     }
     obj_settle(obj, opt, opt, saved)
@@ -2613,6 +2617,90 @@ optimize_obj <- function(obj, control,
   if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n
   opt$evals <- tally$evals
   opt
+}
+
+#' What a restart's result `opt2` leaves of the run `opt` it started
+#' from: `opt2`, `opt2` relabeled with `opt`'s convergence code and
+#' message, or `NULL` (keep `opt`).
+#'
+#' A restart that ends higher is dropped, and one that ends no higher is
+#' kept. It is relabeled only where all of these hold: the run converged
+#' and the restart did not; the restart lowered the objective by no more
+#' than the optimizer's relative function tolerance
+#' (restart_rel_tol()); and it moved no coordinate by more than the
+#' optimizer's relative step tolerance (`x.tol`, 1.5e-8 by default) of
+#' that coordinate's size or its natural unit (`par_units`). Such a
+#' restart ended where the converged run ended, so the run's code
+#' describes the point; its own stop, usually "false convergence (8)",
+#' says only that it could not move. The relabeled result carries the
+#' run's code, message, iterations and evaluations, so it describes the
+#' run, with the restart's point (within the two tolerances of the
+#' run's). The restart's own code, message, iterations and evaluations
+#' are kept in `opt2$restart`, which diagnose() shows. A restart that moved
+#' or gained more keeps its own code: it is a different stop, and the
+#' run's code says nothing about it.
+#'
+#' On a group sd 1000 times the residual sd (20 groups of 5,
+#' dev/optrap-rev2-b1.R re1000) the first run stopped at lme4's maximum
+#' at relative convergence, its gradient in natural units (0.0021) was
+#' above `grad_tol`, and the restart stopped in one iteration at "false
+#' convergence (8)" at the same objective and the same point, and warned:
+#' 2 of 20 fits on 0.70.0, and a different 1 of 20 with the
+#' least-squares start (dev/optstart-findings.md). Every relabel on the
+#' suites and the review's batteries moved by exactly 0. Keeping the
+#' run's point instead of the restart's (the first version of this rule)
+#' left test-bcm-simple.R's SIMPLE_1 with a gradient of 0.0025 under
+#' OpenBLAS 0.3.26, above that test's bound.
+#'
+#' @noRd
+restart_result <- function(opt, opt2, control = list(), par_units = NULL) {
+  if (!isTRUE(opt2$objective <= opt$objective)) return(NULL)
+  if (!isTRUE(opt$convergence == 0) || isTRUE(opt2$convergence == 0)) {
+    return(opt2)
+  }
+  ctl <- control$optCtrl %||% list()
+  rt <- restart_rel_tol(control$optimizer %||% "nlminb", ctl)
+  gained <- opt$objective - opt2$objective
+  xt <- ctl[["x.tol"]]
+  if (!(is.numeric(xt) && length(xt) == 1L && is.finite(xt))) xt <- 1.5e-8
+  p1 <- as.numeric(opt$par)
+  p2 <- as.numeric(opt2$par)
+  u <- if (length(par_units) == length(p1)) par_units else rep(1, length(p1))
+  still <- length(p2) == length(p1) && all(is.finite(p2)) &&
+    all(abs(p2 - p1) <= xt * pmax(abs(p1), u))
+  if (gained <= rt * max(1, abs(opt$objective)) && still) {
+    opt2$restart <- list(convergence = opt2$convergence,
+                         message = opt2$message,
+                         iterations = opt2$iterations,
+                         evaluations = opt2$evaluations)
+    opt2$convergence <- opt$convergence
+    opt2$message <- opt$message
+    opt2$iterations <- opt$iterations
+    opt2$evaluations <- opt$evaluations
+  }
+  opt2
+}
+
+#' The relative function tolerance of the optimizer a fit ran, for
+#' restart_result(): nlminb's `rel.tol` (1e-10 by default); for
+#' `optimizer = "optim"`, L-BFGS-B's `factr` times machine epsilon (its
+#' default 1e7 gives 2.2e-9), or optim's `reltol` where only that is
+#' given; for an optimizer function, `rel.tol` or `reltol` as given, and
+#' nlminb's default otherwise.
+#'
+#' @noRd
+restart_rel_tol <- function(optimizer, ctl) {
+  num <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v)
+  if (identical(optimizer, "optim")) {
+    if (num(ctl[["factr"]])) return(ctl[["factr"]] * .Machine$double.eps)
+    if (num(ctl[["reltol"]])) return(ctl[["reltol"]])
+    return(1e7 * .Machine$double.eps)
+  }
+  if (num(ctl[["rel.tol"]])) return(ctl[["rel.tol"]])
+  if (!identical(optimizer, "nlminb") && num(ctl[["reltol"]])) {
+    return(ctl[["reltol"]])
+  }
+  1e-10
 }
 
 #' Where a linear predictor's coefficients sit in the outer parameter
@@ -3686,9 +3774,30 @@ make_start <- function(frame, start, prior_entries = NULL,
   tpl <- frame[["par_template"]]
   # computed at most once per response, and only for a family that asks
   resid_cache <- new.env(parent = emptyenv())
+  # mu at least squares and its scale at the residual spread, where that
+  # rule applies (start_ls_plan()); its residuals are the ones an
+  # initializer reads, so the design is solved once
+  ls_plan <- start_ls_plan(frame)
+  for (key in names(ls_plan)) resid_cache[[key]] <- ls_plan[[key]]$resid
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]])) next   # mapped; keep link(constant)
     if (!is.null(lp[["equate"]])) next     # its target sets the start
+    pl <- ls_plan[[as.character(lp[["resp"]])]]
+    if (!is.null(pl)) {
+      if (identical(lp[["dpar"]], "mu")) {
+        tpl[[lp[["par"]]]][lp[["idx"]]] <- pl$beta
+        next
+      }
+      v <- pl$scale[[lp[["dpar"]]]]
+      icpt <- match("(Intercept)", colnames(lp[["X"]]))
+      if (!is.null(v) && !is.na(icpt)) {
+        val <- lp[["link"]]$linkfun(v)
+        if (is.finite(val)) {
+          tpl[[lp[["par"]]]][lp[["idx"]][icpt]] <- val
+          next
+        }
+      }
+    }
     resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
     init_fn <- resp$family[["init_dpars"]][[lp[["dpar"]]]]
     if (is.null(init_fn)) next
@@ -3751,7 +3860,8 @@ make_start <- function(frame, start, prior_entries = NULL,
     if (is.function(sp)) tpl <- sp(frame, resp$resp_name, tpl)
   }
   # the group sds in the response's units; see predictor_units()
-  tpl <- unit_theta_start(frame, tpl)
+  tpl <- unit_theta_start(frame, tpl, predictor_units(
+    frame, unlist(lapply(unname(ls_plan), `[[`, "fits"), recursive = FALSE)))
   claimed <- integer(0)
   if (!is.null(start)) {
     nl_named <- unique(unlist(lapply(frame[["spec"]]$responses,

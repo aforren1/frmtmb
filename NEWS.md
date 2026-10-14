@@ -1,3 +1,112 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A location-scale fit starts `mu` at least squares and its scale at
+  the spread that `mu` leaves**. Before, `mu` started at an intercept
+  read off the response, and the scale started at the response's own
+  spread (`sd(y)` for gaussian()). Where a covariate explains most of
+  the response, that spread is far larger than the residual one, and a
+  fit could stop short in silence. For example, take `y = 1 + 1e4 z1 + b_g +
+  e` with n = 101000 and 50 columns. That fit stopped 9107.66
+  log-likelihood units below lme4 at code 0. Its group sd was at its
+  boundary.
+
+  Now the coefficients of `mu` start at a least-squares fit on its fixed
+  design. The fit is weighted when the response has `weights()`, is on
+  the link scale, and takes the offset out. The scale starts at that
+  fit's residuals, in the family's own convention:
+
+  - sigma: gaussian(), lognormal() and shifted_lognormal() and
+    hurdle_lognormal() (on the log scale), student() (from the median
+    absolute deviation at `nu = 4`), skew_normal(), asym_laplace(),
+    zero_inflated_asym_laplace() and huber();
+  - sigma and beta: exgaussian(), each at half the residual spread, as
+    the family's initializer gives each half of `sd(y)`;
+  - shape: Gamma(link = "log"), weibull() and negbinomial();
+  - precision: Beta().
+
+  The rule does not apply to a family with no scale or not in that
+  list. It does not apply to another link of `mu`, or to an
+  intercept-only or nonlinear `mu`. It does not apply to a `mu` with a
+  smooth or a `gp()` term. It does not apply to a design whose
+  condition number is above 1e5, or to a mixture. It does not apply to
+  a censored, truncated or `se()` response, or to a scale held at a
+  constant. There, `mu` and the scale start as before, bit for
+  bit. The group sds and the units can still differ from 0.70.0's,
+  because the units of an `mi()` response and of
+  zero_inflated_asym_laplace() changed (below). A `start` or a prior does
+  not turn the rule off. The entries `start` names are the user's, and
+  the others keep these defaults. The function par_template() shows the
+  start.
+
+  The change was measured on 550 fits of 11 families
+  (`dev/optstart-findings.md`). Fits short of the maximum went from 108
+  to 69. Warned fits went from 129 to 91. On high-R^2 and offset
+  designs, student(), skew_normal() and exgaussian() stopped short on 8
+  to 10 of 10 fits each. They stopped up to 1370 log-likelihood units
+  short. Now none of them stops short. Other changes that a user can
+  see:
+
+  - The `gr(g, by = f)` fixture of test-se-check.R now reaches its
+    boundary, 1.44e-4 higher. It warns "singular convergence (7)".
+    0.70.0 stopped short there, and warned that two standard errors are
+    not available.
+  - Fit a negative binomial to Poisson data, and the shape's maximum is
+    at infinity. Such a fit ends at "false convergence (8)" at the
+    maximum on 4 of 10 seeds. On 0.70.0 it did so on 2 of 10.
+  - A gaussian fit capped by `iter.max` no longer stops short: from the
+    least-squares start it is at its maximum already.
+  - exgaussian() with a group sd 30 times sigma still ends at a NaN
+    gradient on 5 of 10 fits. That is as on 0.70.0, and 4 of the 5
+    seeds are the same. From the true values, with the group effects started
+    at 0, the density fails on 10 of 10. From the true values and the
+    true group effects, it fails on 3 of 10.
+
+* **A restart from the optimum no longer turns a converged fit into a
+  warning**. Where the first run converged, the restart from it may
+  stop at a nonzero code without moving. The fit then keeps the first
+  run's code, iterations and evaluations, if two things hold. The
+  restart's gain is within the optimizer's relative function tolerance
+  of the objective. And no coordinate moved by more than a relative
+  step tolerance. The function tolerance is nlminb's `rel.tol`, or
+  L-BFGS-B's `factr` times machine epsilon for `optimizer = "optim"`.
+  The step tolerance is nlminb's `x.tol` (1.5e-8 by default); for
+  `optimizer = "optim"` it is 1.5e-8. The restart's own code, message,
+  iterations and evaluations are kept in `fit$opt$restart`, and
+  diagnose() shows them. Before, the restart's "false convergence (8)"
+  replaced the converged code and warned. This happened at lme4's maximum
+  on 2 of 20 fits with a group sd 1000 times the residual sd. It also
+  happened on brms_missings' `fit_imp2`.
+
+* The unit of zero_inflated_asym_laplace() is measured on its nonzero
+  rows. A weighted response's unit is measured on the residuals of the
+  weighted least-squares fit. An `mi()` response's unit leaves out its
+  imputed rows.
+
+## Bug fixes
+
+* **The standard errors of an `mi()` fit are right again**. This is
+  lane remeasure's R1. On brms_missings'
+  `bf(bmi | mi() ~ age * mi(chl)) + bf(chl | mi() ~ age)`, 0.70.0
+  reported "false convergence (8)" at 0.67.0's optimum, with every
+  standard error NaN. With `mi(se)` it withheld both residual-SD
+  standard errors as flat and gave the rest up to 35% too large. There
+  were two causes. First, the coefficient of a `mi()` or `me()` term
+  was stepped in the response's units. Its unit is the response's over
+  the spread of the variable the term stands for. Second, the response
+  units read an imputed value, stored as 0, as data. Now the standard
+  errors of both fits agree with a closed-form reference to 2.1e-6 and
+  6.0e-7 relative. In that reference each row's pair is bivariate
+  normal, with the missing values integrated out.
+
+* **A finite-difference outer Hessian that does not factor is retaken
+  along the coordinates whose step was too large**. A step is too large
+  when the objective rises by more than 1e-2 over it. Those columns are
+  taken again at the step that gives a rise of 1e-4. The retake is kept
+  when it factors and its smallest eigenvalue is above its own noise. A
+  Hessian that factors is unchanged, bit for bit.
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

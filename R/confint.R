@@ -1460,6 +1460,9 @@ diagnose <- function(fit, quiet = FALSE) {
   out <- list(
     convergence = fit$opt$convergence,
     message = fit$opt$message,
+    # a restart from the converged point that ended at a nonzero code
+    # without moving (restart_result()): the code above is the run's
+    restart = fit$opt$restart,
     # NULL for an optimizer that does not count them (optim, a custom one)
     nonfinite_trials = fit$opt$nonfinite_trials,
     max_grad =if (length(gr)) max(abs(gr)) else NA_real_,
@@ -1493,6 +1496,11 @@ diagnose <- function(fit, quiet = FALSE) {
   if (!quiet) {
     cat("Optimizer convergence code:", out$convergence,
         if (!is.null(out$message)) paste0("(", out$message, ")"), "\n")
+    if (!is.null(out$restart)) {
+      cat("  The restart from that point stopped at code ",
+          out$restart$convergence, " (", out$restart$message, ") ",
+          "without moving, so the run's code stands\n", sep = "")
+    }
     if (degenerate) {
       cat("No free parameters: the model is degenerate and the ",
           "likelihood was evaluated once\n", sep = "")

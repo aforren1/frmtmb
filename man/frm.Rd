@@ -82,7 +82,9 @@ are different and give different curves and smoothing parameters.}
 parameter component (\code{beta}, \code{betad}, \code{theta}, ...).
 \code{\link[=par_template]{par_template()}} returns that list already filled with the
 defaults, for a fitted model or for a formula and data alone; edit
-it and pass it back.
+it and pass it back. Its section "The default starting values"
+tells how the defaults are set; the entries you do not name in
+\code{start} keep those defaults.
 
 A component is read by NAME when its vector has names, so
 \code{start = list(beta = c("(Intercept)" = 5000))} moves that one
