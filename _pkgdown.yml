@@ -69,6 +69,7 @@ reference:
   - frmtmb-robust-dpars
   - latent_probs
   - frmtmb-families
+  - frmtmb-extreme-families
   - frmtmb-links
   - print.frmtmb_family
   - brmsfamily

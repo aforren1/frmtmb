@@ -1,3 +1,550 @@
+# frmtmb 0.71.0
+
+Seven lanes, each with an adversarial review and fix rounds:
+
+- `dblbar`: every `||` term read as brms reads it.
+- `famsimplex`: brms's simplex families, `dirichlet()` and
+  `logistic_normal()`.
+- `famuni`: `frechet()`, `gen_extreme_value()` and `discrete_weibull()`,
+  and frmtmb.eam's `wiener()` links.
+- `postfix`: the post-processing gaps of the brms port. These are
+  `frm_multiple()` methods, `pp_check(resp = )`, and the default-start
+  error of a nonlinear fit.
+- `optstart`: least-squares starting values for location-scale fits,
+  and a restart that neither gains nor moves.
+- `illse`: accurate standard errors on ill-conditioned designs.
+- `remeasure`: the vignette port and bin 2 of brms's suite, measured,
+  with no package code.
+
+Each lane's `dev/<lane>-findings.md` has the validation, the numbers
+and the scripts, and `dev/reviews/2026-10-13-<lane>.md` has the review.
+`dev/round-20261014.md` is the round's record.
+
+## Breaking changes
+
+* **Every `(x || g)` term is read as brms reads it.** It is
+  `(x | gr(g, cor = FALSE))`: one term, coded with the formula's own
+  contrasts. Each column has its own standard deviation, and there is
+  no correlation.
+
+* **A factor in a `||` term has the columns of the `|` term.**
+  `(1 + f || g)` with three levels of `f` now has `sd_g__Intercept`,
+  `sd_g__fb` and `sd_g__fc`. It had lme4's column for every level
+  (`fa`, `fb` and `fc` beside the intercept). That is one more standard
+  deviation than brms has, and a different model. `(1 + z + f || g)`
+  had 5 standard deviations and now has brms's 4. Fits of a factor in a
+  `||` term change. This reverses the earlier reading that `(f || g)`
+  gives a column per level. lme4 still expands `||` term by term
+  (lme4#818); frmtmb follows brms.
+
+* The random-effect design of 29 `||` spellings is brms 2.23.0's,
+  column for column (`standata()`). The `sd_` names are brms's, and
+  there is no `cor_`. The spellings cover numeric and factor terms,
+  interactions, `poly()`, `gr(by =)`, `g1:g2`, `g1/g2` and `mm()`. They
+  also cover `|ID|` terms beside `||` terms, `sigma`, nonlinear
+  parameters, `mo()`, `cmc = FALSE` and `mvbf()`. Their sd rows of
+  `default_prior()` are brms's too. The exception is the group label of
+  a nested or multi-membership term, which differs for `|` terms too.
+
+* **A `||` term is one block.** `(1 + x || g)` was two blocks, `1 | g`
+  and `0 + x | g`. It is now one block with independent standard
+  deviations, as in brms. So `ranef(fit)$g` and `VarCorr(fit)$g`
+  address it by the factor name. For gaussian group-level effects the
+  likelihood is the same. The estimates of a numeric `(1 + x || g)`
+  agree with the old fit to 1.5e-12 relative.
+
+* **A `||` term over `gr(g, dist = "student")` has one latent scale per
+  level, shared by all its columns, as in brms.** The old split gave
+  each piece its own scale, which is a different model. So these fits
+  change, numeric terms included. On one data set,
+  `(1 + x || gr(g, dist = "student"))` moved from logLik -538.612 to
+  -539.121.
+
+* **An uncorrelated block names no correlation.** brms has no `cor_`
+  parameter for such a block. frmtmb named one, fixed at zero, for each
+  pair of columns of a `diag()` or `homdiag()` block. It also did so
+  for the `diag_t` block of a `||` term over `gr(dist = "student")`.
+  `variables()`, `summary()`, `confint_varcorr()` and `hypothesis()`
+  list none now. This includes `hypothesis()` on frmtmb.sample's draws.
+
+* **A constant on a location of a family with several locations is
+  refused.** This covers `categorical()`, `multinomial()`, `mixture()`
+  and the new simplex families. It also covers the extension families
+  with several locations: frmtmb.eam's `lba()` and `rdm()` (`v<k>`),
+  and frmtmb.latent's `hmm()` (`mu<k>`) and `lca()` (`theta<k>`).
+  `bf(f ~ x, muc = 0)` and `bf(y ~ x, mu2 = 0)` used to fit, and the
+  location was estimated anyway. The constant had no effect, so the
+  fit was not the model the user wrote. brms 2.23.0 ignores the
+  constant the same way.
+
+* The refusal gives two routes. `muc ~ 1` estimates the location.
+  `muc ~ 0 + offset(o)`, with `o` a data column, holds it at a known
+  value.
+
+* **`fitted()` and `residuals()` of a fit accept brms's `ndraws`.** In
+  brms it sets how many posterior draws the summary averages. That is
+  the Monte Carlo error of the answer, not the quantity answered. A
+  maximum-likelihood fit answers that quantity at its estimate, with no
+  Monte Carlo error. So `ndraws` changes nothing, and a message says
+  so; it was refused. `draw_ids`, `sort`, `summary = FALSE` and
+  `robust = TRUE` ask for particular draws and stay refused. The setup
+  lines of brms's ported rows `brmsfit-methods:314` and `:317` now run
+  (`dev/postfix-findings.md`, item f).
+
+* **A location-scale fit starts `mu` at least squares and its scale at
+  the spread that `mu` leaves**. Before, `mu` started at an intercept
+  read off the response, and the scale started at the response's own
+  spread (`sd(y)` for gaussian()). Where a covariate explains most of
+  the response, that spread is far larger than the residual one, and a
+  fit could stop short in silence. For example, take `y = 1 + 1e4 z1 + b_g +
+  e` with n = 101000 and 50 columns. That fit stopped 9107.66
+  log-likelihood units below lme4 at code 0. Its group sd was at its
+  boundary.
+
+  Now the coefficients of `mu` start at a least-squares fit on its fixed
+  design. The fit is weighted when the response has `weights()`, is on
+  the link scale, and takes the offset out. The scale starts at that
+  fit's residuals, in the family's own convention:
+
+  - sigma: gaussian(), lognormal() and shifted_lognormal() and
+    hurdle_lognormal() (on the log scale), student() (from the median
+    absolute deviation at `nu = 4`), skew_normal(), asym_laplace(),
+    zero_inflated_asym_laplace() and huber();
+  - sigma and beta: exgaussian(), each at half the residual spread, as
+    the family's initializer gives each half of `sd(y)`;
+  - shape: Gamma(link = "log"), weibull() and negbinomial();
+  - precision: Beta().
+
+  The rule does not apply to a family with no scale or not in that
+  list. It does not apply to another link of `mu`, or to an
+  intercept-only or nonlinear `mu`. It does not apply to a `mu` with a
+  smooth or a `gp()` term. It does not apply to a design whose
+  condition number is above 1e5, or to a mixture. It does not apply to
+  a censored, truncated or `se()` response, or to a scale held at a
+  constant. There, `mu` and the scale start as before, bit for
+  bit. The group sds and the units can still differ from 0.70.0's,
+  because the units of an `mi()` response and of
+  zero_inflated_asym_laplace() changed (below). A `start` or a prior does
+  not turn the rule off. The entries `start` names are the user's, and
+  the others keep these defaults. The function par_template() shows the
+  start.
+
+  The change was measured on 550 fits of 11 families
+  (`dev/optstart-findings.md`). Fits short of the maximum went from 108
+  to 69. Warned fits went from 129 to 91. On high-R^2 and offset
+  designs, student(), skew_normal() and exgaussian() stopped short on 8
+  to 10 of 10 fits each. They stopped up to 1370 log-likelihood units
+  short. Now none of them stops short. Other changes that a user can
+  see:
+
+  - The `gr(g, by = f)` fixture of test-se-check.R now reaches its
+    boundary, 1.44e-4 higher. It warns "singular convergence (7)".
+    0.70.0 stopped short there, and warned that two standard errors are
+    not available.
+  - Fit a negative binomial to Poisson data, and the shape's maximum is
+    at infinity. Such a fit ends at "false convergence (8)" at the
+    maximum on 4 of 10 seeds. On 0.70.0 it did so on 2 of 10.
+  - A gaussian fit capped by `iter.max` no longer stops short: from the
+    least-squares start it is at its maximum already.
+  - exgaussian() with a group sd 30 times sigma still ends at a NaN
+    gradient on 5 of 10 fits. That is as on 0.70.0, and 4 of the 5
+    seeds are the same. From the true values, with the group effects started
+    at 0, the density fails on 10 of 10. From the true values and the
+    true group effects, it fails on 3 of 10.
+
+* **A restart from the optimum no longer turns a converged fit into a
+  warning**. Where the first run converged, the restart from it may
+  stop at a nonzero code without moving. The fit then keeps the first
+  run's code, iterations and evaluations, if two things hold. The
+  restart's gain is within the optimizer's relative function tolerance
+  of the objective. And no coordinate moved by more than a relative
+  step tolerance. The function tolerance is nlminb's `rel.tol`, or
+  L-BFGS-B's `factr` times machine epsilon for `optimizer = "optim"`.
+  The step tolerance is nlminb's `x.tol` (1.5e-8 by default); for
+  `optimizer = "optim"` it is 1.5e-8. The restart's own code, message,
+  iterations and evaluations are kept in `fit$opt$restart`, and
+  diagnose() shows them. Before, the restart's "false convergence (8)"
+  replaced the converged code and warned. This happened at lme4's maximum
+  on 2 of 20 fits with a group sd 1000 times the residual sd. It also
+  happened on brms_missings' `fit_imp2`.
+
+* The unit of zero_inflated_asym_laplace() is measured on its nonzero
+  rows. A weighted response's unit is measured on the residuals of the
+  weighted least-squares fit. An `mi()` response's unit leaves out its
+  imputed rows.
+
+* **Standard errors on an ill-conditioned fixed design.** A raw
+  polynomial of high degree, a covariate far from zero or a
+  near-collinear pair can make the outer Hessian too ill-conditioned.
+  Then it cannot be inverted in the coefficients' own coordinates.
+  frmtmb now takes the Hessian by differences of the gradient along new
+  coordinates. These are the columns of the inverse of each design's QR
+  factor. In these coordinates the Hessian is close to the identity.
+  The covariance is then mapped back exactly, as `lm()` does through
+  its QR. This applies when the Hessian has a condition number above
+  1e8 at unit diagonal. Its weak directions must also lie in the
+  coefficients of the linear predictors.
+  - The designs measured: raw polynomials of degree 5 to 8 on [1, 2].
+    The families are gaussian with and without `(1 | g)`, bernoulli,
+    poisson and cumulative. Every entry of `vcov(full = TRUE)` is within
+    2e-5 of the exact covariance at the fit's own point. That is on the
+    scale of the correlation, against a 256-bit reference. `fitted()`
+    standard errors agree with the exact ones to four digits. Where a
+    reference uses `poly()`, they agree with it to four digits too.
+  - On the same designs, 0.70.0 gave no standard error to the nine
+    coefficients of a degree-8 polynomial ("the design is
+    ill-conditioned"). With `(1 | g)` under bernoulli, poisson and
+    cumulative it lost three to six of them as "flat". At degrees 6 and
+    7 it was up to 20 percent off. It gave the category probabilities
+    of a cumulative fit standard errors up to 270000 times the true
+    ones. It gave no warning.
+  - These fits keep the verdicts of 0.70.0. A design that its QR finds
+    rank deficient is one; the frame drops such a column, as `lm()`
+    does at degree 9. A nonlinear formula is another. So are a fit that
+    stopped short of the maximum, and a fit with more than 100 outer
+    parameters.
+  - Some parameters outside the designs have almost no curvature. A
+    group standard deviation at zero is an example. The SE check judges
+    such a parameter as on 0.70.0: "boundary", "short of the maximum"
+    or "not finite". When the check removes it, the covariance of the
+    other parameters is taken in the design's coordinates. That
+    covariance is conditional on the removed parameter.
+  - The test set: raw polynomials of degree 5 to 8 with `(1 | g)` and
+    no group effect, 20 seeds each. The sd gets the verdict of 0.70.0
+    on 77 of the 80 fits. On the 16 degree-8 fits with the sd at zero, the
+    coefficients get the standard errors of `lm()` to 3e-5. 0.70.0 gave
+    those 16 fits no standard error for any coefficient.
+  - The extra cost is about two Hessians in the design's coordinates,
+    at 4 p gradients each. One is for a step from the stop. The other
+    is for the standard errors at the maximum. With n = 1e5 and 100
+    parameters, a fit took 1.45 to 1.66 times as long as on 0.70.0 in
+    two runs. With `(1 | g)` it took 1.47 to 1.52 times as long. On
+    0.70.0 these fits stopped short of the maximum. Now they reach it.
+
+* **Every route that propagates the covariance reads it through a
+  factor on such a fit.** No double-precision matrix can be multiplied
+  by a row of that design without losing every digit. At degree 8,
+  `a' V a` from the exact covariance rounded to double is 2.8 times the
+  true variance of a fitted value.
+  - These routes use the factor: `fitted()`, `predict()` and its
+    parameter draws, `frm_linpred()`, and the ordinal and categorical
+    category probabilities. So do `conditional_effects()`,
+    `conditional_smooths()`, `hypothesis()`, `VarCorr()` and the pooled
+    hypotheses of `frm_multiple()`. emmeans now takes the grid route on
+    these fits, which also uses it.
+  - `frm_lp_basis()` returns the factor as `V_root` and `V_rest`, with
+    `V = V_rest + V_root V_root'`. `frm_joint_cov()` returns it as
+    `root` and `Vrest`.
+  - `vcov_cluster()` forms the sandwich through the factor. It returns
+    the factor of the sandwich as the attribute `root`, and
+    `hypothesis(vcov = )` reads it. On a degree-8 fit with `(1 | g)`,
+    the sandwich from the whole bread was off by 2.3 to 12 on the scale
+    of the correlation. A fitted value's standard error through it was
+    0 to 1511 times the exact one. Through the factor every entry is
+    within 2e-5, and that standard error is within 1e-6.
+  - These routes read the whole matrix: a product that a caller forms
+    from `vcov()` or `vcov_cluster()`, car and lmtest. They are not
+    accurate on such a fit. `cooks.distance()` and the D1 and D2 tests
+    of `anova()` on `frm_multiple()` fits invert the whole matrix. They
+    can stop with an error.
+  - A product formed from the whole matrix can keep fewer than about
+    four digits. That happens at a condition number above 1e12. Then
+    `vcov()`, `vcov_cluster()` and `frm_joint_cov()` warn once per fit
+    (class `frmtmb_cov_products`). The warning names the routes that are
+    right.
+  - marginaleffects forms `J V J'` itself from `get_vcov()`, with `J`
+    from finite differences. On such a fit the cancellation in that
+    product multiplies the error of `J`. On a binomial with mixed
+    scales (condition number 4e11), `predictions()` standard errors
+    were 4.8 to 15.1 times the exact ones, with no warning. So
+    `get_vcov()` now returns NaN, with a warning, on every fit whose
+    covariance is held as a factor.
+  - ggeffects, modelbased and parameters read `insight::get_varcov()`.
+    It returns NaN, with a warning, where a product loses its digits.
+  - `hypothesis(vcov = )` can get a matrix that does not carry its
+    factor. Then each hypothesis that combines parameters gets NaN,
+    with a warning.
+
+* **Newton steps from the stop and the gradient verdict use the same
+  coordinates.** On these designs the natural Hessian has no Cholesky
+  factor. So a degree-8 fit stopped up to 1.2 below the maximum. Its
+  gradient warning measured the remaining headroom from a matrix with
+  no digits along the weakest direction. Both now use the design's
+  coordinates, and the degree-8 fits reach the maximum of `lm()`.
+  - A log standard deviation whose Hessian row is empty, such as a
+    group sd at zero, cannot show its headroom through the Hessian. So
+    the headroom asks the likelihood what larger values of that sd gain,
+    the rest held. That gain is added to the headroom of the other
+    parameters, and only then compared with `grad_tol`.
+
+* **The standard-error check judges a fit at its maximum whatever
+  nlminb's code.** It skipped every fit with a convergence warning. It
+  showed the standard errors of `sdreport()` unchecked. So on a ridge,
+  rounding decided whether a fit's standard errors were judged. Take
+  the xbeta fit of lane ci691 from 25 starts a few ulps apart. The 8
+  fits with code 0 lost all three standard errors as flat. The 17 fits
+  at "false convergence" showed finite ones.
+  - The "did not report convergence" warning now says what a Newton
+    step from the stop gains. Within `grad_tol`, the estimates are at
+    the maximum. The check judges them as it judges a converged fit,
+    with the same messages. 23 of the 25 xbeta fits now lose the three
+    standard errors. The two that keep them stopped where the curvature
+    is above the check's threshold, whatever their code.
+  - Above `grad_tol`, the warning says that the estimates and standard
+    errors are those of a point short of the maximum. The check does
+    not judge them, because a curvature verdict there is not about the
+    data.
+  - The eight test suites have 129 fits that nlminb did not call
+    converged. A restart from the stop showed 104 of them at the
+    maximum.
+  - Newton steps in the design's coordinates also start from such a
+    stop. Take `y ~ x` with x on [1e5, 1e5 + 1]. It stopped at "false
+    convergence" 157 below the log-likelihood of `lm()`. Now it reaches
+    it.
+
+## New features
+
+* `gr(g, cor = FALSE)` is read as in brms: it is the `||` term.
+  `mm(g1, g2, cor = FALSE)` is the `||` term over the membership
+  grouping. `cor = TRUE` is the default. Under `||`, a `cor` argument
+  is ignored, as brms ignores it. `gr(cor = )` and `mm(cor = )` were
+  refused.
+
+* **`dirichlet()` and `logistic_normal()`, brms's simplex families.**
+  The response is an `n x K` matrix of proportions. Write it as
+  `cbind(y1, y2, y3)` or as a matrix column of the data. Each row must
+  sum to one, and the column names are the categories.
+
+* The first category is the reference unless `refcat` names another,
+  as in brms. Each other category `k` gets its own predictor `mu<k>`.
+  The main formula applies to every category. `bf(Y ~ x, muc ~ z)`
+  gives one category its own formula. `(1 | ID | g)` correlates the
+  group effects across categories.
+
+* `dirichlet()` has the precision `phi`. `logistic_normal()` has one
+  `sigma<k>` per category, and each takes a formula. It also has one
+  correlation matrix, `lncor`. The summary reports it as `lncor(b,c)`,
+  and the new prior class `"lncor"` takes an `lkj()` prior.
+
+* The log densities agree with brms 2.23.0's Stan functions to a
+  relative 1.5e-11 on 7200 grid points. brms's Stan program at
+  frmtmb's estimates gives the same log density to 6e-13 on six
+  models. 500 simulated fits recover their parameters with no warning
+  (`dev/famsimplex-findings.md`).
+
+* **`brmsfamily("dirichlet2")`** reaches brms's unexported Dirichlet
+  family, as in brms. It has one log-link predictor per category for
+  that category's concentration.
+
+* `fitted()` on a `dirichlet()` fit returns brms's `n x 4 x K` array of
+  category means, with layers named `P(Y = k)`. `predict()`,
+  `simulate()`, `posterior_predict()` and `log_lik()` work on both
+  families. Their draws are rows on the simplex.
+
+* `conditional_effects()` draws one curve per category, with a Wald
+  band from `fitted()`. As in brms, `fitted()`, `conditional_effects()`
+  and `posterior_epred()` refuse `logistic_normal()`, whose mean has no
+  closed form. `residuals()`, `dharma_residuals()` and `pp_check()`
+  refuse both families.
+
+* The response check holds each row to 1.5e-8 of one. brms tests the
+  MEAN departure over the rows, so one row off the simplex passes there
+  in a large data set. `dirichlet()` then fails at sampling, and
+  `logistic_normal()` fits a row that is not a composition.
+
+* Three brms families that `frm()` refused: `frechet()`,
+  `gen_extreme_value()` and `discrete_weibull()`, with brms 2.23.0's
+  parameters, links, link options and defaults (see
+  `?frmtmb-extreme-families`). They take random effects, distributional
+  formulas, `weights()`, `cens()` and `trunc()`, and they can be
+  components of a `mixture()`, as in brms. `fitted()`, `predict()`,
+  `simulate()`, `residuals()` (including `type = "pearson"` and
+  `"osa"`), `conditional_effects()`, `pp_check()` and `default_prior()`
+  cover them. Their log densities agree with a 256-bit reference to
+  about 1e-13 on a grid that includes the far tails. They agree with
+  brms's Stan functions where those are accurate. brms's are not
+  everywhere. Its Frechet log survivor is off by up to 3.8e-3 and is
+  `-Inf` in the far right tail. Its GEV density loses digits near
+  `xi = 0`, 6.8e-8 at `xi = 1e-7` (`dev/famuni-findings.md`).
+
+  - `frechet()`: `mu` is the mean, as in brms, and the scale is
+    `mu / gamma(1 - 1 / nu)`. Under `link_nu = "identity"` a `nu` at or
+    below 1 has no likelihood.
+  - `gen_extreme_value()`: the support depends on the parameters, and
+    the density is 0 outside it, with a log that falls steeply rather
+    than a `NaN`. The optimizer is turned back, and in a `mixture()` a
+    component that does not reach a row adds nothing to it. brms's
+    density is `NaN` there. `xi = 0` is the Gumbel model, exactly, so
+    `bf(y ~ x, xi = 0)` fits one. `fitted()` returns `Inf` where the
+    mean is infinite (`xi >= 1`). brms's `posterior_epred()` returns
+    `NaN` at `xi = 0` and `xi = 1` and a finite, wrong number above 1.
+  - An `xi` without a formula takes the `log1p` link, which brms uses
+    for a predicted `xi`. brms scales such an `xi` into the support the
+    data leave. That is the same maximum, but its range reaches below
+    `xi = -1`, where the likelihood is unbounded. Under
+    `link_xi = "identity"`, `xi <= -1` has no likelihood, so every link
+    holds `xi` above -1. A fit that stops within 1e-3 of -1 with the
+    likelihood not stationary in `xi` there warns that its
+    log-likelihood is a supremum. A maximum inside that band gets a
+    message instead.
+  - `discrete_weibull()`: `fitted()` is the mean to about 1e-12, where
+    brms's `posterior_epred()` stops the series at the first term below
+    0.001. `cens()` follows frmtmb's inclusive discrete convention.
+    So right and interval censoring differ from brms, which reads a
+    right bound as `P(Y > y)`. Subtract one from those bounds to
+    reproduce a brms fit. Left censoring and `trunc()` agree with brms.
+
+* `family = "wiener"` (or a brms `wiener()` object) takes the family
+  from frmtmb.eam when that package is loaded. Otherwise it is refused
+  with a message that names frmtmb.eam. Before, it was refused as an
+  unsupported family, with a list of the core families. A brms object
+  keeps its links, so `brms::wiener()` fits brms's log link for `ndt`
+  (see `?frmtmb.eam::wiener`).
+
+* For frmtmb.sample, a sampling chart for a scalar GEV `xi`
+  (`gev_xi_chart_frame()` and its companions, `?frmtmb-gev-xi-chart`),
+  so that `frm_sample()` samples it through brms's `tmp_xi`.
+
+* **A `frm_multiple()` result has `vcov()`, `fitted()`, `coef()`,
+  `ranef()`, `VarCorr()`, `nobs()`, `formula()`, `family()` and an
+  emmeans basis.** Each pools the imputations by Rubin's rules, where
+  brms's `brm_multiple()` combines their draws. The test case is a
+  poisson model on 5 mice imputations, against `glm()` pooled by
+  `mice::pool()`. The largest relative differences are 1.4e-5 in
+  `fixef()`, 8.5e-6 in `vcov()` and 3.1e-5 in the pooled degrees of
+  freedom (`dev/postfix-validate.R`).
+
+* **`fitted()` of a `frm_multiple()` result pools on the link scale**,
+  as its `conditional_effects()` does, and transforms back. Its
+  interval therefore stays inside the response's range. On the poisson
+  case it agrees with `mice::pool.scalar()` of `glm()`'s linear
+  predictor to 7.5e-6. A category probability takes only its interval
+  from the logit scale. Its estimate is the mean of the imputations'
+  probabilities, so the categories sum to 1.
+
+* **`emmeans()` of a `frm_multiple()` result is emmeans's own pooling of
+  a `mice::mira`.** It agrees with that pooling of `glm()` fits to
+  4.4e-5 in the means and 4.3e-4 in the degrees of freedom.
+
+* **`ranef()` and `coef()` of a `frm_multiple()` result average the
+  modes and coefficients of each level.** `ranef(condVar = TRUE)` gives
+  Rubin's total variance. `VarCorr()` pools on the log and Fisher-z
+  scales of the pooled table, and its estimates match that table.
+  Before, `coef()`, `fitted()` and `residuals()` returned `NULL` in
+  silence (stats' default methods).
+
+* **`pp_check(resp = )` checks one response of a multivariate fit.** It
+  compares that response's observed values with its own simulated
+  replicates, on its own rows, as brms does. A `subset()` response uses
+  the rows of its subset. A missing, plural or unknown `resp` is
+  refused in brms 2.23.0's words. Every multivariate fit was refused.
+
+* The sampling API (`?frmtmb-sampling-api`) exports `ce_method()`,
+  `ce_predict_family_check()`, `ce_sim_one()` and `pp_check_resp()`.
+  `ce_plan_eval()` takes `one =`. frmtmb.sample reads them for
+  `conditional_effects(method = "predict")` and `pp_check(resp = )` on
+  draws.
+
+## Bug fixes
+
+* `(x | p || g)` and `(x || p | g)` are refused in brms's words. The
+  second was read as a grouping variable `p`. `(x | p | gr(g, cor =
+  FALSE))` is refused too; brms drops the key there without a word.
+
+* A known-covariance term with several columns and any structure other
+  than the default is refused. This covers `gr(g, cov = A)` and
+  `gr(g, prec = Q)`, and a factor in a `||` term over one of them. The
+  known-covariance block correlates the columns of a term within a
+  level, so such a term silently became a correlated block. A numeric
+  `(1 + x || gr(g, cov = A))` is unchanged. So is a one-column term in
+  any structure, such as `homdiag(0 + x | gr(g, cov = A))`.
+
+* The message about a duplicated group-level effect names a `||` term
+  as written, not as the `diag()` term it is rewritten to.
+
+* **A family with several locations takes a formula for the first one
+  too.** `bf(f ~ x, mub ~ z)` on a `categorical()` response was
+  refused when `b` is the first predicted level. So was
+  `bf(y ~ 1, mu1 ~ x, mu2 ~ x)` on a `mixture()`. brms 2.23.0 builds
+  the mixture form and the same first-category formula on
+  `dirichlet()`. On `categorical()`, brms stops with an internal error.
+
+* A brms family object passed as `family =` keeps its `refcat`.
+
+* **The pooled `conditional_effects()` of an ordinal `frm_multiple()`
+  result has categories that sum to 1.** Each estimate is the mean of
+  the imputations' probabilities; it was the inverse logit of their
+  mean logit. The band still comes from the logit scale.
+
+* **The error of a nonlinear fit that fails from its default start
+  names this model's nonlinear parameters.** It gives the two ways to
+  give starts: `start =` with the names of `par_template()`, or a
+  located prior. It says that frmtmb offers no start of its own,
+  because a searched start can converge at a local maximum with no
+  warning. Its example named `ult`, a parameter of another model.
+
+* **A `frm_multiple()` result refuses by name the methods that have no
+  Rubin's-rules meaning.** They are `predict()`, `residuals()`,
+  `pp_check()`, `logLik()` (and so `AIC()` and `BIC()`), `loo()`,
+  `waic()`, `update()` and `model.frame()`. Each says why, and names
+  `anova()` or one imputation's fit, `x$fits[[j]]`.
+
+* **`frm_multiple()` refuses imputations whose fits have different
+  coefficients, and names them.** It stopped inside `vapply()` with
+  "values must be length 4".
+
+* **`summary(fit, waic = FALSE)` is accepted.** It asks for nothing, and
+  brms 2.23.0 prints it as it prints `summary()`. The refusal of
+  `waic = TRUE` stays, with its reason.
+
+* **`frm(threshold = )` is refused by name.** The refusal names the
+  family argument the threshold structure belongs to, as
+  `family = sratio(threshold = "equidistant")`. It reads the family
+  from `family =` or from `bf() + family()`. brms before 2.0.0 read the
+  argument in `brm()`, and brms 2.23.0 refuses it too. It was R's
+  "unused argument".
+
+* **The standard errors of an `mi()` fit are right again**. This is
+  lane remeasure's R1. On brms_missings'
+  `bf(bmi | mi() ~ age * mi(chl)) + bf(chl | mi() ~ age)`, 0.70.0
+  reported "false convergence (8)" at 0.67.0's optimum, with every
+  standard error NaN. With `mi(se)` it withheld both residual-SD
+  standard errors as flat and gave the rest up to 35% too large. There
+  were two causes. First, the coefficient of a `mi()` or `me()` term
+  was stepped in the response's units. Its unit is the response's over
+  the spread of the variable the term stands for. Second, the response
+  units read an imputed value, stored as 0, as data. Now the standard
+  errors of both fits agree with a closed-form reference to 2.1e-6 and
+  6.0e-7 relative. In that reference each row's pair is bivariate
+  normal, with the missing values integrated out.
+
+* **A finite-difference outer Hessian that does not factor is retaken
+  along the coordinates whose step was too large**. A step is too large
+  when the objective rises by more than 1e-2 over it. Those columns are
+  taken again at the step that gives a rise of 1e-4. The retake is kept
+  when it factors and its smallest eigenvalue is above its own noise. A
+  Hessian that factors is unchanged, bit for bit.
+
+* **A `mo()` simplex split by a category that no row is in loses the
+  split's standard errors on every fit at its maximum.** The two steps
+  around such a category enter only as their sum. That is an exact flat
+  direction, curved in the simplex's chart. The SE check read it off
+  the Hessian. It missed it where the fit stopped a tolerance away from
+  the floor of that ridge. The 0.70.0 consolidation had four designs
+  and 160 fits. 8 of them kept zeta standard errors up to 949, with no
+  warning. The split is now taken from the data, as a design alias is.
+  None of the 160 fits is silent. 156 name the split. The other 4 stop
+  short of the maximum with a large-gradient warning, as on 0.70.0.
+
+## Documentation
+
+* `?brmsfamily` and `?frmtmb-families` ("Conway-Maxwell-Poisson
+  counts") say that the `mu` of `compois()`, which
+  `brmsfamily("com_poisson")` gives, is the mean of the count. brms
+  2.23.0 fits `mu` as the rate of the density, so the coefficients of
+  the two fits are on different scales unless `nu = 1`
+  (`dev/remeasure-findings.md`, R6).
+
 # frmtmb 0.70.1
 
 The macOS check of 0.70.0 failed where the Ubuntu and Windows ones

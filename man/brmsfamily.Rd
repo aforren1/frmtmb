@@ -50,7 +50,17 @@ as brms does.
 An argument the family does not have is refused by name. brms
 ignores it, so \code{brmsfamily("poisson", link_sigma = "log")} builds a
 poisson family there. \code{threshold} is an argument of the ordinal
-families alone, and \code{refcat} of none.
+families alone, and \code{refcat} of \code{"dirichlet"} and
+\code{"logistic_normal"}.
+
+\code{brmsfamily("com_poisson")} gives \code{\link[=compois]{compois()}}, whose \code{mu} is the
+MEAN of the count. brms 2.23.0 does not use the mean. Its Stan
+program fits \code{mu} as the rate \code{lambda} of the Conway-Maxwell-Poisson
+density, which is proportional to \verb{lambda^y / (y!)^nu}, and its
+\code{log_lik()} and \code{posterior_predict()} read \code{mu} as
+\code{lambda^(1 / nu)}. So the coefficients of a brms \code{com_poisson()} fit
+and of an frmtmb fit are on different scales. They agree only at
+\code{nu = 1} (brms's \code{shape}), where all three are the Poisson mean.
 }
 
 \examples{

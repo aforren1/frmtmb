@@ -1,0 +1,15 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-famsimplex-lib",
+            "C:/Users/adf44/source/r/rellib-r8",
+            "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+source("C:/Users/adf44/source/r/frmtmb-wt-famsimplex/dev/famsimplex-sim.R")
+sh <- function(lab, e) cat(sprintf("%-45s %s\n", lab, tryCatch(e, error = function(x) paste("ERROR:", conditionMessage(x)))))
+d2 <- fs_data_dirichlet2(seed = 15)
+dl <- fs_data_logistic_normal(seed = 13)
+sh("brms::brmsfamily('dirichlet2') object", format(logLik(frm(bf(Y ~ x), family = brms::brmsfamily("dirichlet2"), data = d2))))
+sh("frm family = 'dirichlet2' string", format(logLik(frm(bf(Y ~ x), family = "dirichlet2", data = d2))))
+sh("frm brmsfamily('dirichlet2')", format(logLik(frm(bf(Y ~ x), family = brmsfamily("dirichlet2"), data = d2))))
+sh("brms ln(refcat c, link_sigma softplus)", paste(rownames(summary(frm(bf(Y ~ x), family = brms::logistic_normal(refcat = "c", link_sigma = "softplus"), data = dl))$spec_pars), collapse = " "))
+sh("frm  ln(refcat c, link_sigma softplus)", paste(rownames(summary(frm(bf(Y ~ x), family = logistic_normal(refcat = "c", link_sigma = "softplus"), data = dl))$spec_pars), collapse = " "))
+sh("bf(Y ~ x) + dirichlet()", format(logLik(frm(bf(Y ~ x) + dirichlet(), data = d2))))
+sh("brms::dirichlet(link_phi='identity') link_phi", frm(bf(Y ~ x), family = brms::dirichlet(link_phi = "identity"), data = d2)$spec$responses[[1]]$family$links$phi$name)

@@ -26,7 +26,12 @@ A level's coefficients are drawn as
 freedom and scale matrix \verb{Sigma = W W'}. The mixing variable \code{u_j} is
 per LEVEL and shared across that level's coefficients, so a
 correlated or a \code{diag()} block is one multivariate t and not several
-independent univariate ones. brms builds it the same way.
+independent univariate ones. So is a \code{||} term, which is one \code{diag()}
+block. brms builds one term the same way. brms also shares one \code{u_j}
+across all the Student-t terms of a grouping factor, as in
+\code{(1 | gr(g, dist = "student")) + (0 + x | gr(g, dist = "student"))}.
+frmtmb gives each block its own \code{u_j}, so two such terms are a
+different model from brms's. Write them as one term to share it.
 
 \strong{\code{Sigma} is the SCALE, not the covariance.} The variance is
 \code{Sigma * nu / (nu - 2)}, so a standard deviation is

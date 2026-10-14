@@ -814,6 +814,15 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       }
     } else if (identical(nm, "Lrescor")) {
       out[[nm]] <- brms_lrescor(fit, sdat)
+    } else if (identical(nm, "Llncor")) {
+      # a logistic_normal() response's correlations: brms declares the
+      # Cholesky factor of the matrix frmtmb holds in its lncor_raw chart,
+      # with the categories in the same order on both sides
+      sx <- family(fit)[["simplex"]]
+      lmat <- t(chol(lncor_matrix(fit$estimates[["lncor_raw"]],
+                                  length(sx$pred))))
+      lmat[upper.tri(lmat)] <- 0
+      out[[nm]] <- unname(lmat)
     } else if (!is.null(brms_link_of(fit, brms_lp_parts(fit, nm)))) {
       # a dpar with no linear predictor: brms declares it on the natural
       # scale, frmtmb estimates it on the link scale. The link comes

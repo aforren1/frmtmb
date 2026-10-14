@@ -1,0 +1,81 @@
+id	pkg	verdict	class	reason
+brmsfit-methods:142	frmtmb.sample	cannot transfer	fixture	coef(fit4 draws)$subject is 8 x 4 x 7: brms's 8 coefficients less disc_Intercept, because fixture 4 drops disc ~ 1 (frmtmb's ordinal families have no disc). The other 7 names are brms's
+brmsfit-methods:442	frmtmb.sample	divergence	policy	LOO() is brms's deprecated spelling; frmtmb.sample refuses it by name and names loo()
+brmsfit-methods:443	frmtmb.sample	divergence	policy	LOO() is brms's deprecated spelling; frmtmb.sample refuses it by name and names loo()
+brmsfit-methods:469	frmtmb.sample	divergence	policy	loo() of draws refuses newdata by name, as log_lik() of draws does: draws are evaluated on the fitted objective's frame, and a frame rebuilt from newdata would rebuild a smooth's basis on it (lane postfix, item h). brms computes the elpd on newdata. The row held hollowly at 0.70.0, on a NULL newdata that loo() swallowed
+brmsfit-methods:471	frmtmb.sample	cannot transfer	upstream	loo 2.10.1's loo_compare() returns a data frame whose first column is the model name, so [2, 1] is a string and the range check is FALSE; brms 2.23.0's own fixture 6 gives the same string (dev/remeasure-bin2-probe1.R)
+brmsfit-methods:478	frmtmb.sample	divergence	policy	loo_subsample() on draws is refused by name: its point is a cheap approximation for data too large to evaluate, which a frmtmb model is not
+brmsfit-methods:479	frmtmb.sample	divergence	policy	loo_subsample() on draws is refused by name: its point is a cheap approximation for data too large to evaluate, which a frmtmb model is not
+brmsfit-methods:480	frmtmb.sample	divergence	policy	loo_subsample() on draws is refused by name: its point is a cheap approximation for data too large to evaluate, which a frmtmb model is not
+brmsfit-methods:487	frmtmb.sample	cannot transfer	absent	loo_R2() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:490	frmtmb.sample	cannot transfer	absent	loo_R2() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:497	frmtmb.sample	cannot transfer	absent	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:508	frmtmb.sample	cannot transfer	absent	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:511	frmtmb.sample	cannot transfer	absent	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:512	frmtmb.sample	cannot transfer	absent	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:519	frmtmb.sample	cannot transfer	absent	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:522	frmtmb.sample	cannot transfer	absent	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:523	frmtmb.sample	cannot transfer	absent	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:526	frmtmb.sample	cannot transfer	absent	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:533	frmtmb.sample	cannot transfer	absent	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:544	frmtmb.sample	cannot transfer	absent	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:547	frmtmb.sample	cannot transfer	absent	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:548	frmtmb.sample	cannot transfer	absent	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:555	frmtmb.sample	cannot transfer	absent	loo_predictive_interval() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:562	frmtmb.sample	cannot transfer	absent	loo_model_weights() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:563	frmtmb.sample	cannot transfer	absent	loo_model_weights() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:1005	frmtmb.sample	divergence	policy	WAIC() is brms's deprecated spelling; frmtmb.sample refuses it by name and names waic()
+brmsfit-methods:1021	frmtmb.sample	divergence	policy	reads waic1, the result of WAIC(), refused by name (brmsfit-methods:1005); compare_ic() is brms's deprecated comparison and frmtmb has none
+priors:130	frmtmb	divergence	policy	default_prior() describes frm(), which is flat in every slot (the policy of bin-1 priors:85); brms's student_t(3, -8, 2.5) is its sampling default for the intercept, shifted by the offset
+brmsfit-methods:119	frmtmb	divergence	no-draws	bayes_R2() is refused by name on a maximum-likelihood fit: it is computed per posterior draw
+brmsfit-methods:121	frmtmb	divergence	no-draws	bayes_R2() is refused by name on a maximum-likelihood fit: it is computed per posterior draw
+brmsfit-methods:123	frmtmb	divergence	no-draws	bayes_R2() is refused by name on a maximum-likelihood fit: it is computed per posterior draw
+brmsfit-methods:136	frmtmb	divergence	policy	coef() of a fit is levels x coefficients, lme4's shape, without brms's Est.Error and quantile layer, the policy of bin-1 brmsfit-methods:811; it also omits brms's sigma_Intercept and sigma_Trt1 columns (4 x 7 against 4 x 4 x 9)
+brmsfit-methods:138	frmtmb	divergence	no-draws	coef(summary = FALSE) is refused by name on a fit (D3)
+brmsfit-methods:140	frmtmb	divergence	policy	coef() of a nonlinear fit is nested by nonlinear parameter, coef(fit)$a and $b, each levels x coefficients (the policy of brmsfit-methods:136), so coef(fit2)$patient is NULL; brms has one patient array 10 x 4 x 4
+brmsfit-methods:142	frmtmb	divergence	policy	coef() of a fit is levels x coefficients (brmsfit-methods:136), 8 x 8 here; the fixture also drops disc ~ 1 (brmsfit-methods:142 on draws)
+brmsfit-methods:433	frmtmb	divergence	no-draws	log_lik() is refused by name on a fit: it is the pointwise likelihood at every posterior draw
+brmsfit-methods:435	frmtmb	divergence	no-draws	log_lik() is refused by name on a fit: it is the pointwise likelihood at every posterior draw
+brmsfit-methods:434	frmtmb	divergence	no-draws	ndraws() is refused by name on a fit; logLik() of a fit is stats' scalar log-likelihood
+brmsfit-methods:442	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:443	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:446	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:447	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:448	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:449	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:452	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:455	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:457	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:460	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:467	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:469	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:471	frmtmb	divergence	no-draws	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
+brmsfit-methods:478	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:479	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:480	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:487	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:490	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:497	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:508	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:511	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:512	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:519	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:522	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:523	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:526	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:533	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:544	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:547	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:548	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:555	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:562	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:563	frmtmb	divergence	no-draws	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:971	frmtmb	divergence	no-draws	VarCorr(summary = FALSE) is refused by name on a fit (D3)
+brmsfit-methods:1005	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1010	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1015	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1016	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1018	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1020	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1021	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws
+brmsfit-methods:1024	frmtmb	divergence	no-draws	waic(), WAIC() and add_criterion('waic') are refused by name on a maximum-likelihood fit: WAIC averages over posterior draws

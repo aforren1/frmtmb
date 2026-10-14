@@ -204,7 +204,8 @@ test_that("a group-level mo() term is brms's (bsp + r) * mo(simo, x)", {
 # was refused for "mox:fa", a population-level term it did not need.
 # brms reads `||` as one block with no correlations, coded whole
 # (Intercept, fb, fc, mox, mox:fb, mox:fc; dev/moparity-rev-dblbar.R),
-# and so does frmtmb when the term has mo().
+# and so does frmtmb, for this and every other || term
+# (test-double-bar.R).
 test_that("(mo(x) * f || g) is one uncorrelated block, coded whole", {
   dd <- mo_fac_data()
   fit <- allow_warnings(

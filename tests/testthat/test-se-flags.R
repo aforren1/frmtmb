@@ -247,8 +247,13 @@ test_that("a simplex face off the coordinates is found on every seed", {
   # steps of mo(inc) enter only as their sum, a flat direction that is
   # curved in the simplex chart; dev/optima-segap.R's seed 2 of
   # `ls ~ mo(inc)` and seed 3 of `ls ~ mo(inc) + age` kept every SE in
-  # silence
-  for (cs in list(list(ls ~ mo(inc), 2L), list(ls ~ mo(inc) + age, 3L))) {
+  # silence. Seeds 15 and 19 are the residue the 0.70.0 consolidation
+  # found (dev/relrev070-segap.R): there the Hessian curves by 3e-9 of
+  # its largest along the split, above se_flat_tol, and the ridge rule
+  # read 1.6 times its threshold; the split is now taken from the data
+  # (se_mo_null()), not from the Hessian
+  for (cs in list(list(ls ~ mo(inc), 2L), list(ls ~ mo(inc) + age, 3L),
+                  list(ls ~ mo(inc), 15L), list(ls ~ mo(inc) + age, 19L))) {
     set.seed(cs[[2]])
     inc <- sample(c(0L, 1L, 3L), 100, TRUE)
     d <- data.frame(inc, ls = c(30, 60, 70, 75)[inc + 1L] +
@@ -259,6 +264,25 @@ test_that("a simplex face off the coordinates is found on every seed", {
     expect_setequal(as.character(names(lost)), c("zeta1_1", "zeta1_2"))
     expect_length(grep(flags_lost_phrase, r$warnings, fixed = TRUE), 1L)
   }
+  # the consolidation's y ~ mo(x2), n 300 (dev/relrev070-interplay.R's
+  # generator, x2 never 2), seed 10: zeta SEs 547.9 and 949.0 in silence
+  set.seed(10)
+  n <- 300
+  dd <- data.frame(x = sample(0:3, n, TRUE),
+                   f = factor(sample(c("a", "b", "c"), n, TRUE)),
+                   g = factor(sample(paste0("g", 1:20), n, TRUE)),
+                   z = stats::rnorm(n), w = stats::rnorm(n))
+  eff <- c(0, 1, 1.5, 1.7)
+  bg <- stats::rnorm(20, 0, 0.5)
+  ag <- stats::rnorm(20, 0, 0.4)
+  dd$y <- 1 + ag[dd$g] +
+    (1 + (dd$f == "b") - (dd$f == "c") + bg[dd$g]) * eff[dd$x + 1] +
+    stats::rnorm(n, 0, 0.5)
+  dd$x2 <- ifelse(dd$x == 2, 3L, dd$x)
+  r <- flags_conds(frm(y ~ mo(x2), data = dd))
+  lost <- sdr_of(r$value)$se_lost
+  expect_setequal(as.character(names(lost)), c("zeta1_1", "zeta1_2"))
+  expect_length(grep(flags_lost_phrase, r$warnings, fixed = TRUE), 1L)
   # the absent case: every category observed keeps every SE in silence
   set.seed(2)
   inc <- sample(0:3, 100, TRUE)
@@ -299,18 +323,16 @@ test_that("a near-null direction next to a kept one keeps no shrunken SE", {
   expect_true(all(is.finite(vc[nm %in% c("sigma_(Intercept)", "theta_1")])))
 })
 
-test_that("a direction below double precision is ill-conditioned, not flat", {
+test_that("a direction below double precision is resolved, not lost", {
   # A degree-8 raw polynomial with (1 | g), seed 3: its smallest
   # curvature is below machine epsilon of the largest. 0.69.0 called six
-  # coefficients "flat" (the data do not determine them) and kept three.
-  # The objective measures that curvature accurately, but one
-  # double-precision covariance cannot hold it beside the others, and
-  # punch round 2b, which kept it beside the matrix, gave emmeans,
-  # marginaleffects and ordinal category SEs 0.3 to 255929 times the
-  # true ones in silence (B6, B7). So the coefficients it carries have
-  # no SE, nor does a prediction that reads them, and the reason says
-  # the design is ill-conditioned, with the remedy, and that the fit
-  # stopped short of the maximum (a Newton step gains 0.6 here)
+  # coefficients "flat" (the data do not determine them) and kept three;
+  # 0.70.0 called all nine "illcond" and gave them no SE. In the
+  # coordinates of the design's QR factor the Hessian is well
+  # conditioned, and the covariance mapped back is held as a factor that
+  # every prediction reads (lane illse, R/se-reparam.R). So nothing is
+  # lost and no SE warning is given; vcov(), which hands out the whole
+  # matrix, says once what a product formed from it loses
   set.seed(3)
   d <- data.frame(x = stats::runif(200, 1, 2), g = factor(rep(1:20, 10)))
   d$y <- sin(3 * d$x) + stats::rnorm(20, 0, 0.3)[d$g] +
@@ -323,39 +345,43 @@ test_that("a direction below double precision is ill-conditioned, not flat", {
     vcov(m)
     m
   })
-  lost <- sdr_of(r$value)$se_lost
-  expect_setequal(as.character(names(lost)),
-                  c("(Intercept)", paste0("x", 1:8)))
-  expect_true(all(lost == "illcond"))
-  w <- grep(flags_lost_phrase, r$warnings, fixed = TRUE, value = TRUE)
-  expect_length(w, 1L)
-  expect_match(w, "the design is ill-conditioned", fixed = TRUE)
-  expect_match(w, "poly()", fixed = TRUE)
-  expect_match(w, "stopped short of the maximum", fixed = TRUE)
-  expect_false(grepl("do not determine", w, fixed = TRUE))
-  # B4: the first punch build gave the row at x = 2.5 an SE 0.31 times
-  # the exact one, in silence; every row reads the lost coefficients
+  expect_length(sdr_of(r$value)$se_lost, 0L)
+  expect_length(grep(flags_lost_phrase, r$warnings, fixed = TRUE), 0L)
+  expect_length(r$warnings, 1L)
+  expect_match(r$warnings, "a product such as a' V a", fixed = TRUE)
+  # B4's rows, in and beyond the data's range: the exact prediction SE
+  # (whitened QR at the fit's sigma and sd) within 1 percent, as the
+  # degree-7 test below asks
   nd <- data.frame(x = c(1, 1.5, 2, 2.5), g = d$g[1])
   for (k in 1:8) nd[[paste0("x", k)]] <- nd$x^k
   p <- flags_conds(fitted(r$value, newdata = nd, re_formula = NA))
-  expect_true(all(is.nan(p$value[, "Est.Error"])))
-  expect_true(any(grepl("predictions move along", p$warnings,
-                        fixed = TRUE)))
+  expect_length(p$warnings, 0L)
+  fit <- r$value
+  on <- frmtmb:::outer_par_names(fit)
+  sg <- exp(fit$opt$par[grepl("^sigma", on)])
+  tg <- exp(fit$opt$par[on == "theta_1"])
+  X <- stats::model.matrix(~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8, d)
+  X0 <- stats::model.matrix(~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8, nd)
+  Z <- stats::model.matrix(~ 0 + g, d)
+  L <- chol(sg^2 * diag(nrow(X)) + tg^2 * Z %*% t(Z))
+  q <- qr(backsolve(L, X, transpose = TRUE), tol = 1e-30)
+  A <- backsolve(qr.R(q), t(X0[, q$pivot, drop = FALSE]), transpose = TRUE)
+  ref <- sqrt(colSums(A^2))
+  expect_true(all(abs(unname(p$value[, "Est.Error"]) / ref - 1) < 0.01))
 })
 
 test_that("terms beside an ill-conditioned polynomial keep their SEs", {
   # B5 of punch round 2: a variance-share rule took the SE of a
   # covariate z, a factor w and sigma beside a degree-8 raw polynomial,
-  # which fixef() still showed. They do not read the lost coefficients,
-  # so they keep their SEs: within 2 percent of the same likelihood
-  # with poly(x, 8), well conditioned and at its maximum, or within 3
-  # where the message says the fit stopped short of it (on a merge with
-  # lane optrap's units these fits stop 1.1 to 1.5 short and sigma's SE
-  # is 2.3 percent above the maximum's; dev/seflags-p2b-gain.R). Seeds 3
-  # and 10 are the review's; under OpenBLAS's LAPACK this lane's
-  # optimizer stops them at false convergence, which the SE check does
-  # not read (filed), so there the test asks only that the fit said so.
-  # Seed 4 converges on every build and asks both questions
+  # which fixef() still showed. Since lane illse nothing is lost on
+  # these fits (the polynomial's coefficients are resolved in the
+  # design's coordinates and the Newton steps reach the maximum), and
+  # every SE is within 2 percent of the same likelihood with poly(x, 8),
+  # well conditioned and at its maximum, or within 3 where a message
+  # says the fit stopped short of it. Seeds 3 and 10 are the review's;
+  # on a fit that stops at false convergence the SE check does not run
+  # (filed), so there the test asks only that the fit said so. Seed 4
+  # converges on every build and asks both questions
   b5 <- function(seed) {
     set.seed(seed)
     d <- data.frame(x = stats::runif(200, 1, 2), g = factor(rep(1:20, 10)),
@@ -372,11 +398,11 @@ test_that("terms beside an ill-conditioned polynomial keep their SEs", {
     })
     ref <- frm(y ~ poly(x, 8) + z + w + (1 | g), data = d)
     conv <- raw$value$opt$convergence == 0
-    expect_true(any(grepl(if (conv) "the design is ill-conditioned" else
-      "did not report convergence", raw$warnings, fixed = TRUE)))
     if (conv) {
-      lost <- sdr_of(raw$value)$se_lost
-      expect_false(any(c("z", "wb") %in% names(lost)))
+      expect_length(sdr_of(raw$value)$se_lost, 0L)
+    } else {
+      expect_true(any(grepl("did not report convergence", raw$warnings,
+                            fixed = TRUE)))
     }
     list(d = d, raw = raw$value, ref = ref, conv = conv,
          tol = if (any(grepl("stopped short", raw$warnings))) 0.03 else 0.02)

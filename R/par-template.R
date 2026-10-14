@@ -72,6 +72,23 @@ new_par_template <- function(tpl, frame, fitted) {
 #' reports. When you supply names BACK, the parentheses may be dropped:
 #' `"Intercept"` and `"(Intercept)"` address the same coefficient.
 #'
+#' @section The default starting values:
+#' For most location-scale families the coefficients of `mu` start at a
+#' least-squares fit on its fixed design, and the scale (`sigma`,
+#' `shape` or `phi`) starts at the spread of that fit's residuals. Thus
+#' a covariate that explains most of the response does not start the
+#' scale at the spread of the response. The families are gaussian(),
+#' student(), skew_normal(), exgaussian(), asym_laplace(),
+#' zero_inflated_asym_laplace(), huber(), lognormal(),
+#' shifted_lognormal() and hurdle_lognormal() with the identity link of
+#' `mu`, Gamma() and weibull() and negbinomial() with the log link, and
+#' Beta() with the logit link. Every other fit, and every fit with a
+#' nonlinear or intercept-only `mu`, a smooth or `gp()` term in `mu`, an
+#' ill-conditioned design, a censored, truncated or `se()` response, or a
+#' scale held at a constant, starts each intercept at the family's
+#' initializer. The entries you name in `start` replace these values.
+#' The random-effect standard deviations start at the response's unit.
+#'
 #' @section Two vocabularies, one model:
 #' This is the flat internal parameterization. [get_prior()] describes
 #' the same model in the structured `class`/`coef`/`group`/`dpar`/`nlpar`

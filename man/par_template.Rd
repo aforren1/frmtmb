@@ -78,6 +78,25 @@ reports. When you supply names BACK, the parentheses may be dropped:
 \code{"Intercept"} and \code{"(Intercept)"} address the same coefficient.
 }
 
+\section{The default starting values}{
+
+For most location-scale families the coefficients of \code{mu} start at a
+least-squares fit on its fixed design, and the scale (\code{sigma},
+\code{shape} or \code{phi}) starts at the spread of that fit's residuals. Thus
+a covariate that explains most of the response does not start the
+scale at the spread of the response. The families are gaussian(),
+student(), skew_normal(), exgaussian(), asym_laplace(),
+zero_inflated_asym_laplace(), huber(), lognormal(),
+shifted_lognormal() and hurdle_lognormal() with the identity link of
+\code{mu}, Gamma() and weibull() and negbinomial() with the log link, and
+Beta() with the logit link. Every other fit, and every fit with a
+nonlinear or intercept-only \code{mu}, a smooth or \code{gp()} term in \code{mu}, an
+ill-conditioned design, a censored, truncated or \code{se()} response, or a
+scale held at a constant, starts each intercept at the family's
+initializer. The entries you name in \code{start} replace these values.
+The random-effect standard deviations start at the response's unit.
+}
+
 \section{Two vocabularies, one model}{
 
 This is the flat internal parameterization. \code{\link[=get_prior]{get_prior()}} describes

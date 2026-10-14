@@ -1,0 +1,461 @@
+diff --git a/R/fit.R b/R/fit.R
+index c2242fba..d3c5d0e5 100644
+--- a/R/fit.R
++++ b/R/fit.R
+@@ -133,11 +133,20 @@
+ #'   from its brms priors with no `start` at all. Every other parameter
+ #'   keeps the start it always had.
+ #'
+-#'   Without such a prior a nonlinear model still needs `start`.
++#'   Without such a prior a nonlinear model is best given `start`.
+ #'   `frm()` optimizes rather than samples, so it evaluates the
+ #'   objective AT the starting values, and a nonlinear body is rarely
+-#'   defined at zero. [par_template()] shows the names and the values
+-#'   in force.
++#'   defined at zero. When the fit fails from its default start, and
++#'   every other restart fails too, `frm()` scans the intercepts of the
++#'   nonlinear parameters with every slope at zero. It tries one common
++#'   value of either sign over powers of ten, then each intercept alone
++#'   over a finer grid, and restarts from the lowest objective. The
++#'   restart stands only when it converges and loses no standard error;
++#'   a message then names the start. Otherwise the error of the default
++#'   start stands, and it names the scan's point as a candidate `start`.
++#'   A nonlinear likelihood can have more than one maximum, so `start`
++#'   or a prior is still the way to choose one.
++#'   [par_template()] shows the names and the values in force.
+ #'
+ #'   No start identifies a nonlinear model in which a combination of the
+ #'   nonlinear parameters' coefficients changes no fitted value, as when
+@@ -231,6 +240,13 @@
+ #'   grouping factor loses its unused levels either way, because a level
+ #'   without rows adds nothing to the Laplace likelihood, so [ranef()]
+ #'   lists the levels the data hold.
++#' @param threshold Refused. brms 1.x took the threshold structure of an
++#'   ordinal model as an argument of `brm()`, and the JSS overview
++#'   vignette still passes it there; brms 2.23.0 refuses it too
++#'   ("passing unknown arguments: threshold"). It is an argument of the
++#'   ordinal family, as in brms: `family = sratio(threshold =
++#'   "equidistant")`. The refusal names that spelling with the family of
++#'   the call.
+ #' @return An object of class `frmtmb_fit`. It is a list, and two of its
+ #'   elements are read directly often enough to name here. `fit$data2`
+ #'   is the `data2` list of known matrices. `fit$data` is the MODEL
+@@ -807,7 +823,11 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
+                 na.action = stats::na.omit,
+                 prior = NULL, quadrature = FALSE, importance = 0L,
+                 data2 = list(), dry_run = NULL, verbose = FALSE,
+-                drop_unused_levels = TRUE) {
++                drop_unused_levels = TRUE, threshold = NULL) {
++  if (!is.null(threshold)) {
++    frm_refuse_threshold(substitute(family), family, threshold,
++                         names(sys.call()), formula)
++  }
+   cl <- match.call()
+   # a brms prior object is translated at the boundary, so nothing
+   # downstream sees anything but a frmtmb_priorlist
+@@ -922,6 +942,63 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
+                 announce_start = TRUE)
+ }
+ 
++#' The refusal of `frm(threshold = )`, which names the family argument
++#' the threshold structure belongs to. brms 1.x read `threshold` from
++#' `brm()`, so a ported call (the JSS overview vignette's `fit3`) still
++#' passes it there, and brms 2.23.0 stops with "passing unknown
++#' arguments: threshold" on the same line. The family is named from the
++#' call where it can be, so the message gives the line to write.
++#'
++#' R matches a named argument to a formal by its prefix, so `thres = 1`
++#' (brms's `thres()` is a formula term, not an argument) reaches this
++#' formal too. A call that wrote such a prefix and never `threshold`
++#' gets the error R gave it before the formal existed. A prefix passed
++#' on through another function's dots (`frm_multiple(thres = 1)`) is not
++#' visible in this call, and is refused as `threshold`.
++#'
++#' @noRd
++frm_refuse_threshold <- function(fexpr, family, threshold, call_names,
++                                 formula = NULL) {
++  call_names <- call_names %||% character(0)
++  pref <- call_names[nzchar(call_names) & call_names != "threshold" &
++                       startsWith("threshold", call_names)]
++  if (!"threshold" %in% call_names && length(pref)) {
++    frm_stop("unused argument (", pref[1L], " = ", deparse1(threshold),
++             ")", call. = FALSE)
++  }
++  ord <- c("cumulative", "sratio", "cratio", "acat", "hurdle_cumulative")
++  nm <- if (is.character(family) && length(family) == 1L) {
++    family
++  } else if (is.list(family) && is.character(family[["family"]])) {
++    family[["family"]]
++  } else if (is.name(fexpr)) {
++    as.character(fexpr)
++  } else if (is.call(fexpr)) {
++    deparse1(fexpr[[1L]])
++  }
++  # bf(y ~ x) + cumulative() carries the family in the formula
++  if (is.null(nm) && is.list(formula) && is.list(formula[["family"]])) {
++    nm <- formula[["family"]][["family"]]
++  }
++  nm <- sub("^.*::", "", nm %||% "")
++  val <- if (is.character(threshold) && length(threshold) == 1L) {
++    threshold
++  } else {
++    "equidistant"
++  }
++  frm_stop("frm() has no `threshold` argument: the threshold structure is ",
++           "an argument of the ordinal family, as in brms 2.23.0, whose ",
++           "brm() refuses it too (\"passing unknown arguments: ",
++           "threshold\"); brms 1.x took it in brm(). Write family = ",
++           if (nm %in% ord) nm else "cumulative", "(threshold = \"", val,
++           "\")",
++           if (!nm %in% ord) {
++             paste0(", with the ordinal family of the model: ",
++                    paste0(ord, "()", collapse = ", "))
++           },
++           call. = FALSE)
++}
++
+ # --- verbose progress reporting --------------------------------------
+ # Stage lines go through message(): suppressMessages() silences them and
+ # they can never contaminate stdout results. Every call site is guarded
+@@ -1336,6 +1413,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
+     ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
+   }
+   imp <- NULL
++  # a restart from the scan of nonlinear intercepts, if one is taken:
++  # its point, and the error of the default start it replaces
++  nl_scan_state <- new.env(parent = emptyenv())
+   # shared by the first attempt, every recovery start and every
+   # stationary-point escape, so the trials a failed attempt mapped are
+   # still in the count the fit reports
+@@ -1358,16 +1438,32 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
+                                            ctl_opt, bounds, par_units,
+                                            prior_entries)
+                  for (lbl in names(rs)) {
++                   st <- rs[[lbl]]
++                   # the scan is computed only when every start before
++                   # it has failed (fit_recovery_starts())
++                   if (is.function(st)) st <- st()
++                   if (is.null(st)) next
+                    if (vb) {
+                      vb_say("optimizer failed (", conditionMessage(e),
+                             "); restarting from ", lbl)
+                    }
++                   scan <- attr(st, "nl_scan")
++                   attr(st, "nl_scan") <- NULL
++                   if (!is.null(scan)) nl_scan_state$scan <- scan
+                    op <- tryCatch(optimize_obj(obj, ctl_opt, bounds,
+                                                par_units, verbose = vb,
+-                                               start_par = rs[[lbl]],
++                                               start_par = st,
+                                                tally = tally),
+                                   error = function(e2) NULL)
+-                   if (!is.null(op)) return(op)
++                   if (!is.null(op)) {
++                     # judged once the fit is built (nl_scan_accept())
++                     if (!is.null(scan)) nl_scan_state$err <- e
++                     return(op)
++                   }
++                 }
++                 if (!is.null(nl_scan_state$scan)) {
++                   attr(e, "nl_scan_note") <- nl_scan_note(
++                     nl_scan_state$scan, "the fit from it failed too")
+                  }
+                  stop(e)
+                }))
+@@ -1465,6 +1561,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
+   # former, and the convergence check needs both (fit_outer_box()), as
+   # does the standard-error analysis nl_flat_message() asks for
+   fit$cache$bounds <- bounds
++  # a restart from the scan stands only when it is a clean maximum
++  if (!is.null(nl_scan_state$err)) {
++    nl_scan_accept(fit, nl_scan_state, spec, start, REML, control,
++                   quadrature, prior, announce_start)
++  }
+   # on the user's own call only: a refit, the autoscale pre-fit or a
+   # bootstrap replicate would repeat it
+   if (announce_start && is.null(imp) && is.null(integrate)) {
+@@ -2464,7 +2565,176 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
+     if (differs(plain)) out[["the Laplace optimum"]] <- plain
+   }
+   # a start outside the model's bounds is rejected by the optimizer
+-  lapply(out, function(p) pmin(pmax(p, bounds$lower), bounds$upper))
++  clamp <- function(p) pmin(pmax(p, bounds$lower), bounds$upper)
++  out <- lapply(out, clamp)
++  # Last, and only on demand: the scan's few hundred objective values
++  # move the tape's best point, which the inner problem starts from, so
++  # computed up front it changed the fits the starts above rescue (by
++  # ulps) and cost them its time (1.17 s against 3.39 s on the review's
++  # case, dev/postfix-rev-flat.R)
++  out[["the nonlinear intercepts at the best value of a scan"]] <- function() {
++    s <- nl_intercept_scan(obj, frame, start, prior_entries, placed)
++    if (differs(s)) clamp(s)
++  }
++  out
++}
++
++#' A start for a nonlinear model whose body is undefined at the default
++#' start, found by the objective itself.
++#'
++#' Every nonlinear coefficient starts at zero unless `start` or a prior
++#' places it, and a body is often outside the family's domain there:
++#' `count ~ a + b` on `Gamma("identity")` has a mean of exactly zero,
++#' where the density is not defined, so the objective and every
++#' gradient component are NaN and nlminb stops before its first step
++#' (ledger row brmsfit-methods:955). The intercepts of the nonlinear
++#' parameters are the coordinates that move the body's level without
++#' choosing between its covariates, so they move together, to one
++#' common value `c`, with every slope left at zero. `c` runs over a
++#' grid of signs and powers of ten, which assumes nothing about the
++#' units of the response or of the body, and the start is the value
++#' with the lowest finite objective. A coefficient that `start` or a
++#' prior placed keeps its place, and so does a model with no
++#' nonlinear intercept or no `beta` among the outer parameters (REML
++#' and `profile = TRUE` integrate it out). `NULL` when no grid value
++#' gives a finite objective. Only ever tried after the first attempt
++#' failed, so no fit that converged moves.
++#'
++#' @noRd
++nl_intercept_scan <- function(obj, frame, start, prior_entries, placed) {
++  if (!"beta" %in% names(obj$par)) return(NULL)
++  # the same nonlinear sub-formulas nl_beta_positions() reads
++  idx <- integer(0)
++  for (lp in frame[["linpreds"]]) {
++    if (!identical(lp[["par"]], "beta")) next
++    if (!is.null(lp[["nl_body"]]) || !is.null(lp[["constant"]])) next
++    nl <- frame[["spec"]]$responses[[lp[["resp"]]]]$nlpars %||% character(0)
++    if (!lp[["dpar"]] %in% nl) next
++    icpt <- match("(Intercept)", colnames(lp[["X"]]))
++    if (!is.na(icpt)) idx <- c(idx, as.integer(lp[["idx"]][icpt]))
++  }
++  claimed <- c(vapply(placed, function(p) p$idx, 1L),
++               if (!is.null(start[["beta"]])) {
++                 start_claimed_idx(frame[["par_template"]][["beta"]],
++                                   start[["beta"]], "beta")
++               })
++  idx <- setdiff(idx, claimed)
++  if (!length(idx)) return(NULL)
++  f <- function(p) {
++    tryCatch(as.numeric(obj$fn(p)), error = function(e) NA_real_)
++  }
++  tpl <- make_start(frame, start, prior_entries)
++  best <- NULL
++  best_val <- Inf
++  for (cv in as.vector(t(c(1, -1) %o% 10^(-2:3)))) {
++    tpl[["beta"]][idx] <- cv
++    p <- outer_from_template(tpl, obj, frame)
++    if (is.null(p)) return(NULL)
++    val <- f(p)
++    if (is.finite(val) && val < best_val) {
++      best <- p
++      best_val <- val
++    }
++  }
++  if (is.null(best)) return(NULL)
++  # One common value cannot give two intercepts two scales: the
++  # insurance-loss curve of brms_nonlinear wants ult near 5000, omega
++  # near 1 and theta near 50, and from the best common value nlminb
++  # stopped 101 log-likelihood units short of the maximum
++  # (dev/postfix-nlscan-loss.R). Two passes then move one intercept at
++  # a time over a finer grid, zero included, keeping each improvement.
++  grid <- c(0, as.vector(t(c(1, -1) %o% as.vector(c(1, 2, 5) %o%
++                                                    10^(-2:3)))))
++  pos <- which(names(obj$par) == "beta")[idx]
++  for (pass in 1:2) {
++    for (k in pos) {
++      for (cv in grid) {
++        p <- best
++        p[k] <- cv
++        val <- f(p)
++        if (is.finite(val) && val < best_val) {
++          best <- p
++          best_val <- val
++        }
++      }
++    }
++  }
++  attr(best, "nl_scan") <- stats::setNames(
++    best[pos], par_template_names(frame[["par_template"]][["beta"]],
++                                  "beta")[idx])
++  best
++}
++
++#' Whether a fit restarted from the scan of nonlinear intercepts stands.
++#'
++#' A scan finds a point where the body is defined, not the region of the
++#' maximum, and from a wrong region nlminb either stops short or
++#' converges where the model degenerates: on the review's sinusoid it
++#' reported code 0 at a straight line, 176 log-likelihood units below
++#' the maximum, and on a Michaelis-Menten curve it ran to negative
++#' parameters (dev/postfix-rev-nlscan.R). So the fit stands only when it
++#' converged (code 0) and the standard-error analysis loses nothing.
++#' Otherwise the default start's own error stands, as in frmtmb 0.70.0,
++#' and names the scan's point as a candidate `start`. A ridge the model
++#' has by construction (`a + b` with shared terms) loses its standard
++#' errors, so it is refused too: no start identifies it.
++#'
++#' @noRd
++nl_scan_accept <- function(fit, state, spec, start, REML, control,
++                           quadrature, prior, announce) {
++  conv <- fit$opt$convergence
++  why <- if (!isTRUE(conv == 0)) {
++    paste0("the fit from it did not converge (", fit$opt$message, ")")
++  } else {
++    an <- tryCatch(se_fit_analysis(fit, force = TRUE),
++                   error = function(e) NULL)
++    if (is.null(an)) {
++      "its fit could not be checked for standard errors"
++    } else if (length(an$lost)) {
++      paste0("its fit loses the standard errors of ",
++             paste(names(an$lost), collapse = ", "),
++             " (not a clean maximum)")
++    }
++  }
++  if (!is.null(why)) {
++    e <- state$err
++    attr(e, "nl_scan_note") <- nl_scan_note(state$scan, why)
++    fit_error_context(spec, start, REML, control, quadrature, prior,
++                      NULL, err = e)
++  }
++  fit$cache$nl_scan <- state$scan
++  if (announce) {
++    frm_message("The nonlinear fit failed from its default starting ",
++                "values (", conditionMessage(state$err), "). It was ",
++                "restarted from nonlinear intercepts a scan of the ",
++                "objective found: ", nl_scan_values(state$scan), ". The ",
++                "fit converged with every standard error. A nonlinear ",
++                "likelihood can have more than one maximum; give ",
++                "`start` or a prior to choose the region.")
++  }
++  invisible(NULL)
++}
++
++#' The scan's point, as `name = value` pairs.
++#'
++#' @noRd
++nl_scan_values <- function(scan) {
++  paste(paste0(names(scan), " = ", vapply(scan, format, "")),
++        collapse = ", ")
++}
++
++#' What the error of a refused or failed scan restart adds: the scan's
++#' point and why it was not kept, written as a `start` the caller can
++#' try.
++#'
++#' @noRd
++nl_scan_note <- function(scan, why) {
++  paste0(". A scan of the nonlinear intercepts found ",
++         nl_scan_values(scan), ", but ", why, ", so no fit is returned. ",
++         "A candidate to try: start = list(beta = c(",
++         paste(paste0("\"", names(scan), "\" = ",
++                      vapply(scan, format, "")), collapse = ", "),
++         "))")
+ }
+ 
+ #' Second chance after the optimizer aborts the whole fit.
+@@ -3493,47 +3763,55 @@ fit_numerical_error <- function(msg) {
+ #'
+ #' The condition carries a class of its own, `frmtmb_fit_error`, so the
+ #' autoscale pre-fit (an inner `fit_assembled()` that has already been
+-#' through here) is rethrown rather than wrapped a second time.
++#' through here) is rethrown rather than wrapped a second time. `err`,
++#' when given, is an error caught earlier, converted the same way
++#' without evaluating `expr` (nl_scan_accept() hands back the default
++#' start's own error).
+ #'
+ #' @noRd
+ fit_error_context <- function(spec, start, REML, control, quadrature,
+-                              prior, expr) {
++                              prior, expr, err = NULL) {
+   nl <- any(vapply(spec$responses,
+                    function(r) length(r$nlpars) > 0L, TRUE))
+   nl_start <- nl && is.null(start)
++  convert <- function(e) {
++    if (inherits(e, "frmtmb_fit_error")) stop(e)
++    emsg <- conditionMessage(e)
++    numerical <- fit_numerical_error(emsg)
++    msg <- if (nl_start && numerical) {
++      paste0("The nonlinear fit failed from its default starting ",
++             "values (", emsg, "). Nonlinear models ",
++             "need starting values in the right region: ",
++             "par_template(formula, data) names the parameters, and ",
++             "the names go straight back, e.g. ",
++             "start = list(beta = c(ult = 5000)). A normal() or ",
++             "student_t() prior on a nonlinear parameter places its ",
++             "start from the prior location instead")
++    } else if (numerical) {
++      paste0("The optimizer failed on this model (",
++             vb_fit_detail(spec, REML, control, quadrature, prior),
++             "): ", emsg,
++             ". The likelihood was undefined or unbounded somewhere ",
++             "the optimizer stepped. Refit with verbose = TRUE to see ",
++             "which stage broke, try another optimizer ",
++             "(frmtmb_control(optimizer = \"optim\")), or start the ",
++             "fit nearer the optimum with the `start` argument of ",
++             "frm()")
++    } else {
++      # the real message first, then only what is certainly true:
++      # which model it came from
++      paste0(emsg, " (raised while fitting: ",
++             vb_fit_detail(spec, REML, control, quadrature, prior),
++             ")")
++    }
++    # a scan of the nonlinear intercepts that did not stand says so,
++    # with its point as a candidate start (nl_scan_accept())
++    msg <- paste0(msg, attr(e, "nl_scan_note") %||% "")
++    frm_stop(msg, call. = FALSE, class = "frmtmb_fit_error")
++  }
++  if (!is.null(err)) convert(err)
+   withCallingHandlers(
+-    tryCatch(expr, error = function(e) {
+-      if (inherits(e, "frmtmb_fit_error")) stop(e)
+-      emsg <- conditionMessage(e)
+-      numerical <- fit_numerical_error(emsg)
+-      msg <- if (nl_start && numerical) {
+-        paste0("The nonlinear fit failed from its default starting ",
+-               "values (", emsg, "). Nonlinear models ",
+-               "need starting values in the right region: ",
+-               "par_template(formula, data) names the parameters, and ",
+-               "the names go straight back, e.g. ",
+-               "start = list(beta = c(ult = 5000)). A normal() or ",
+-               "student_t() prior on a nonlinear parameter places its ",
+-               "start from the prior location instead")
+-      } else if (numerical) {
+-        paste0("The optimizer failed on this model (",
+-               vb_fit_detail(spec, REML, control, quadrature, prior),
+-               "): ", emsg,
+-               ". The likelihood was undefined or unbounded somewhere ",
+-               "the optimizer stepped. Refit with verbose = TRUE to see ",
+-               "which stage broke, try another optimizer ",
+-               "(frmtmb_control(optimizer = \"optim\")), or start the ",
+-               "fit nearer the optimum with the `start` argument of ",
+-               "frm()")
+-      } else {
+-        # the real message first, then only what is certainly true:
+-        # which model it came from
+-        paste0(emsg, " (raised while fitting: ",
+-               vb_fit_detail(spec, REML, control, quadrature, prior),
+-               ")")
+-      }
+-      frm_stop(msg, call. = FALSE, class = "frmtmb_fit_error")
+-    }),
++    tryCatch(expr, error = convert),
+     warning = function(w) {
+       # nlminb's own "NA/NaN function evaluation" is the optimizer
+       # noticing the same undefined objective the error above names;
+@@ -4091,8 +4369,14 @@ check_convergence <- function(fit, control) {
+   if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
+     # a nonlinear model that started at zero is the likeliest cause, and
+     # `start` is the only lever, so name it here [brms#734]
+-    nl_hint <- if (any(vapply(fit$spec$responses,
+-                              function(r) length(r$nlpars) > 0L, TRUE))) {
++    nl_hint <- if (!is.null(fit$cache$nl_scan)) {
++      # restarted from the scan of nonlinear intercepts, not from zero
++      paste0(". This is a nonlinear model restarted from a scan of its ",
++             "nonlinear intercepts (", nl_scan_values(fit$cache$nl_scan),
++             "), which can sit in the wrong region; give `start` or a ",
++             "located prior (see par_template())")
++    } else if (any(vapply(fit$spec$responses,
++                          function(r) length(r$nlpars) > 0L, TRUE))) {
+       paste0(". This is a nonlinear model; unless `start` or a ",
+              "located prior placed them, the fit began at zero, which ",
+              "is rarely in the right region (see par_template())")

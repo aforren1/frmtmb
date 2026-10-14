@@ -343,11 +343,13 @@ test_that("diag() and || give uncorrelated multi-membership effects", {
             data = dd)
   expect_identical(fd$frame$re_blocks[[1L]]$covstruct, "diag")
   expect_length(fd$frame$re_blocks[[1L]]$theta_idx, 2L)
-  # (x || g) expands the way lme4 does, so it becomes two diag blocks
+  # (x || g) is that block, as brms's mm(cor = FALSE) is
   fb <- frm(bf(y ~ x + (1 + c1 || mm(g1, g2))) + gaussian(), data = dd)
-  expect_length(fb$frame$re_blocks, 2L)
-  expect_equal(as.numeric(logLik(fd)), as.numeric(logLik(fb)),
-               tolerance = 1e-6)
+  expect_length(fb$frame$re_blocks, 1L)
+  expect_identical(as.numeric(logLik(fd)), as.numeric(logLik(fb)))
+  fc <- frm(bf(y ~ x + (1 + c1 | mm(g1, g2, cor = FALSE))) + gaussian(),
+            data = dd)
+  expect_identical(fc$estimates, fb$estimates)
 })
 
 # --------------------------------------------------------- prediction
@@ -458,7 +460,11 @@ test_that("mm() refuses the arguments it does not implement", {
                           dry_run = "frame")
   expect_error(f(y ~ (1 | mm(g1))), "at least two membership")
   expect_error(f(y ~ (1 | mm(factor(g1), g2))), "bare column name")
-  expect_error(f(y ~ (1 | mm(g1, g2, cor = FALSE))), "is not supported")
+  expect_error(f(y ~ (1 | mm(g1, g2, id = "q"))), "is not supported")
+  # cor = is read in a plain bar term (test-double-bar.R), not inside
+  # a structure, where it would say what the structure already says
+  expect_error(f(y ~ diag(1 | mm(g1, g2, cor = FALSE))),
+               "is not supported")
   expect_error(f(y ~ (1 | mm(g1, g2, wieghts = w1))),
                "unknown argument")
   expect_error(f(y ~ (1 | mm(g1, g2, weights = cbind(w1, w2),

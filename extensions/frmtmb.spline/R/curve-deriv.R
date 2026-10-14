@@ -154,7 +154,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
             parts$C[lo, , drop = FALSE]) / e^2
     est <- (parts$eta[hi] - 2 * parts$eta[mid] + parts$eta[lo]) / e^2
   }
-  Sigma <- D %*% parts$V %*% t(D)
+  Sigma <- sp_quad(D, parts$V, parts$root, parts$rest)
   # the derivative of the variance that is not coefficient uncertainty,
   # a kriging residual's and a new level's, from its sources: the
   # stencil applied to their covariance divided its rounding by e^4 at

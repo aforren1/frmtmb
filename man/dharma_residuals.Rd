@@ -49,6 +49,10 @@ multinomial responses in its own vignette. Check a nominal fit with
 \code{\link[=pp_check]{pp_check()}} instead (\code{type = "bars"} compares the observed category
 counts with the simulated ones), or read the per-category
 probabilities through \code{conditional_effects()}.
+
+A composition (the \code{\link[=dirichlet]{dirichlet()}} and \code{\link[=logistic_normal]{logistic_normal()}} families) is
+refused for the same reason: a row of proportions has no scalar
+distribution function to evaluate.
 }
 
 \examples{

@@ -3,12 +3,91 @@
 Written 2026-09-24 at the 0.63.0 release, rewritten 2026-09-28 at the
 0.64.0 brms-parity release, 2026-09-29 at the 0.65.0 and 0.66.0
 releases, 2026-09-30 at the 0.67.0 release, 2026-10-06 at the
-0.68.0 release, 2026-10-07 at the 0.69.0 release and 2026-10-13 at the
-0.70.0 release. Read this, then
+0.68.0 release, 2026-10-07 at the 0.69.0 release, 2026-10-13 at the
+0.70.0 release and 2026-10-14 at the 0.71.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: the library has been lost EIGHT times, and the last three
 losses each followed processes being killed, not low disk.
+
+## The 0.71.0 round, 2026-10-13 to 2026-10-14
+
+`dev/round-20261014.md` is this round's record, with the verification
+of the release tree under the reference BLAS and under OpenBLAS 0.3.26
+and 0.3.32 (BLAS and LAPACK, 4 threads). Each lane has
+`dev/<lane>-findings.md` and `dev/reviews/2026-10-13-<lane>.md`. Seven
+lanes off `d2ef6312` (0.70.0), merged on top of `253b3ef7` (0.70.1,
+lane ci701), in this order:
+
+- `dblbar`: every `||` term as brms reads it, `(x | gr(g, cor =
+  FALSE))`, one block coded with the formula's contrasts;
+  `gr(cor = )`, `mm(cor = )`; refusals of multi-column structures over
+  `gr(cov/prec)`.
+- `famsimplex`: `dirichlet()`, `logistic_normal()`,
+  `brmsfamily("dirichlet2")`; a formula for the first location; a
+  constant on a location refused (core and the extension families).
+- `famuni`: `frechet()`, `gen_extreme_value()`, `discrete_weibull()`;
+  frmtmb.eam's `wiener()` links in brms's order; the GEV `tmp_xi`
+  chart for frmtmb.sample; `nan_unless_pos()` (`dev/rtmb-pitfalls.md`
+  item 22).
+- `postfix`: `frm_multiple()` methods by Rubin's rules,
+  `pp_check(resp = )`, draws' `loo()` and `waic()` in brms's order,
+  `conditional_effects(method = "predict")` on draws, the nonlinear
+  default-start error (the nonlinear scan was removed).
+- `optstart`: least-squares starts for location-scale fits,
+  `restart_result()`, `lp_design_kappa()`, `fd_hessian()`'s retake.
+- `illse`: accurate SEs on ill-conditioned designs through a factor of
+  the covariance; the SE check on fits with a convergence warning; the
+  flat simplex direction.
+- `remeasure`: the vignette port and bin 2 of brms's suite (dev only).
+
+Versions: frmtmb **0.71.0** (minor, breaking); frmtmb.sample **0.19.0**
+(minor), floor frmtmb 0.71.0 (the new sampling-API exports and the GEV
+chart); frmtmb.eam **0.12.0** (minor, breaking `wiener()` argument
+order), floor frmtmb 0.70.0 (measured: its suite passes on 0.70.0);
+frmtmb.latent **0.6.1** (patch, NEWS-only Breaking entry); frmtmb.spline
+**0.10.2** (patch, no new floor: the new version works on 0.70.0 and
+0.10.1 refuses loudly on the new core; update them together). The
+other three extensions keep their versions. The release library is
+`C:/Users/adf44/source/r/rellib-r9`; `rellib-r8` keeps 0.70.0. In
+brms's ported suite bins 1 and 2 pass 549 of 823 (66.7%, 534 at
+0.70.0), 549 of 709 (77.4%) without the decisions; bin 1 alone 391 of
+494 (389).
+
+### Decisions the user made in this round
+
+- **`com_poisson` keeps frmtmb's mean parameterization.** brms 2.23.0
+  fits `mu` as the COM-Poisson rate and post-processes another pmf
+  (brms-24 in `dev/upstream-bugs.md`); `?brmsfamily` and
+  `?frmtmb-families` say that frmtmb's `mu` is the mean.
+- **Upstream bugs are written into `dev/upstream-bugs.md` only**
+  (brms-24 to brms-27 this round); the user files them.
+
+### What the 0.71.0 round is evidence for
+
+**A trial merge with one lane is not a trial merge with the release.**
+Lane illse's review ran a trial merge with lane optstart and found
+`test-se-conv.R` failing; illse fixed that test. Its next test, added
+in its fix round 2, had the same exposure (a premise that depends on
+`frm()`'s default start) and failed 5 expectations on the seven-lane
+tree. And illse's tree was on 0.70.0, so no trial merge of it had met
+lane ci701's commit, with which `R/se-check.R` conflicted in four
+blocks. Both were resolved at the consolidation
+(`dev/round-20261014.md`, "Found at the consolidation"). A test that
+pins a stop short of the maximum should give every parameter its
+start, and the start must leave only the direction under test short.
+Check that by removing the fix: the consolidation's first rewrite of
+illse's test started every parameter at 0, so the intercept was short
+too, and the test passed with illse's fix stubbed out; the release
+review found it (`dev/reviews/2026-10-14-release.md`, 6a), and the
+test now starts at `lm()`'s maximum with `iter.max = 0` and fails
+without the fix (`dev/rel071-seconv3.R`). A test that fails on the
+old build is not yet shown to pin the change you mean.
+Attribute every difference a battery shows on the merged build
+by running the battery on each lane's build too: here every verdict
+difference of illse's false-alarm battery from 0.70.0 was lane
+optstart's (the merged build equals optstart alone on 820 of 820 fits
+under both BLAS), a battery optstart's own review never ran.
 
 ## The 0.70.0 round, 2026-10-07 to 2026-10-13
 

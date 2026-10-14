@@ -112,6 +112,10 @@
 \alias{ce_level_plan}
 \alias{ce_plan_eval}
 \alias{ce_plan_has_new}
+\alias{ce_method}
+\alias{ce_predict_family_check}
+\alias{ce_sim_one}
+\alias{pp_check_resp}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -457,6 +461,18 @@ construction is the same and the frames stay comparable.
 \code{ce_plan_has_new()} says whether a plan draws anything. They replace
 \code{ce_new_level_spec()}, \code{ce_boot_grids()} and \code{ce_draw_new_levels()},
 which placed one new group over every row and are removed.
+
+\code{method = "predict"} has three more. \code{ce_method()} resolves brms's
+method names (\code{"posterior_predict"} is \code{"predict"}),
+\code{ce_predict_family_check(rspec)} refuses a family that cannot draw a
+response row by row, and \code{ce_sim_one(fit, nd, resp, re_form, allow_new_levels)} draws one response per row of grid \code{nd} at the
+parameters of \code{fit}, so that one call per posterior draw gives the
+posterior predictive draws. \code{ce_plan_eval()} takes it through its
+\code{one} argument, a function of the fit and a grid, so that a
+simulated response reads the new-level draws of the plan.
+\code{pp_check_resp(fit, resp)} is the response \code{pp_check()} checks, with
+brms's refusals of a missing, plural or unknown \code{resp} on a
+multivariate model, so the fit and draws methods say the same.
 }
 
 \section{The two-dialect argument seam}{

@@ -24,12 +24,16 @@ grby_case <- local({
       u <- cbind(stats::rnorm(16, 0, 0.7), stats::rnorm(16, 0, 0.4))
       dd$y <- stats::rnorm(160, 1 + 0.5 * dd$x + u[dd$g, 1] +
                              u[dd$g, 2] * dd$x, 1)
-      # the maximum-likelihood point has no standard error for x and two
-      # by-group sds, and frm() says so; the draws are what is tested
+      # the maximum-likelihood point is at a boundary (a correlation at
+      # its end), and frm() says so: from the least-squares start of mu as
+      # "singular convergence (7)", from frmtmb 0.70.0's start, 1.4e-4
+      # short of it, as standard errors it cannot give. The draws are what
+      # is tested
       fit <- allow_warnings(
         frm(bf(y ~ x + (1 + x | gr(g, by = f))), family = gaussian(),
             data = dd),
-        "Standard errors are not available")
+        c("Standard errors are not available",
+          "Optimizer did not report convergence: singular convergence"))
       ds <- suppressWarnings(suppressMessages(
         frm_sample(fit, chains = 2, iter = 400, refresh = 0, seed = 3)))
       cache <<- list(dd = dd, fit = fit, ds = ds)

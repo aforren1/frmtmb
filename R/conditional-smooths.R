@@ -133,8 +133,7 @@ conditional_smooths.frmtmb_fit <- function(x, smooths = NULL,
     est <- as.vector(tm$A %*% cs_coef(x, tm))
     keep <- !is.na(pos)
     Ak <- tm$A[, keep, drop = FALSE]
-    V <- jc$V[pos[keep], pos[keep], drop = FALSE]
-    se <- sqrt(pmax(rowSums((Ak %*% V) * Ak), 0))
+    se <- sqrt(pmax(jc_rowvar(jc, Ak, pos[keep]), 0))
     lost_dir <- jc_nonest(jc, Ak, pos[keep])
     se[lost_dir] <- NaN
     se_pred_warn(lost_dir)

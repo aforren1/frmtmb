@@ -53,6 +53,9 @@
 #' - `"rescor"`: the residual correlation BETWEEN responses of a
 #'   multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)`
 #'   only, as brms spells it, and no `resp`.
+#' - `"lncor"`: the correlation matrix of the log ratios of a
+#'   [logistic_normal()] response with three or more categories, as a
+#'   whole, brms's class of the same name. `lkj(eta)` only.
 #' - `"delta"`: the distance between neighboring thresholds of an
 #'   ordinal family with `threshold = "equidistant"`, brms's class of
 #'   the same name, on its own scale; `group` selects the vector of one
@@ -554,7 +557,7 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # meaning on a single coefficient or standard deviation, and the
   # matrix-valued classes have no meaning without it: neither mistake
   # can produce a silently different model
-  lkj_classes <- c("cor", "cortime", "rescor")
+  lkj_classes <- c("cor", "cortime", "rescor", "lncor")
   is_lkj <- identical(dist$kind, "lkj")
   if (is_lkj && !class %in% lkj_classes) {
     frm_stop("lkj() is a density over a whole correlation matrix; it ",
@@ -667,7 +670,7 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
 #' @noRd
 frmtmb_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale", "cor",
                           "theta", "ar", "ma", "cosy", "cortime", "rescor",
-                          "delta", "simo", "sbhaz")
+                          "delta", "simo", "sbhaz", "lncor")
 
 #' Refuse a class name that is neither frmtmb's own nor usable as a
 #' distributional parameter's name.
@@ -989,7 +992,7 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
 #' @noRd
 brms_direct_prior_classes <- c("b", "Intercept", "sd", "sdgp", "lscale",
                                "cor", "ar", "ma", "cosy", "cortime",
-                               "rescor", "delta", "simo", "sbhaz")
+                               "rescor", "delta", "simo", "sbhaz", "lncor")
 
 #' Why a brms class cannot be carried over, or `NULL` when it can.
 #'
@@ -2080,6 +2083,11 @@ prior_table <- function(spec, frame, route) {
     }
   }
   if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
+  # a logistic_normal() response's correlations, brms's class lncor;
+  # frmtmb.sample supplies brms's lkj(1) default, as for rescor
+  if (length(frame[["par_template"]][["lncor_raw"]] %||% numeric(0))) {
+    add("lncor")
+  }
   # brms's default on a simplex is dirichlet(1), the flat density on it;
   # frm() applies no density there, and frm_sample() applies brms's
   for (sr in simo_rows) {
@@ -3112,6 +3120,27 @@ resolve_priorlist <- function(fit, pl) {
            scale = "internal", lb = NA, ub = NA)
   }
 
+  # A logistic_normal() response's correlations, held in the same chart
+  # as the residual correlations above, so the same LKJ density applies.
+  resolve_lncor <- function(s) {
+    bl <- lncor_blocks(fit)
+    if (!length(bl)) {
+      frm_stop("No logistic-normal correlation matches ", spec_target(s),
+               ". Class \"lncor\" is the correlation matrix of a ",
+               "logistic_normal() response with three or more categories, ",
+               "and this model has none", call. = FALSE)
+    }
+    for (b in bl) {
+      idx <- seq_along(fit$frame[["par_template"]][[b$comp]])
+      claim(b$comp, idx)
+      assigned[[nm_of(b$comp, idx)]] <<-
+        list(comp = b$comp, idx = idx,
+             dist = lkj_dist(s$dist$eta,
+                             list(kind = "chol", d = length(b$sx$pred))),
+             scale = "internal", lb = NA, ub = NA)
+    }
+  }
+
   # brms's class "Intercept" on an ordinal family names the THRESHOLDS:
   # its ordinal program declares them as the `Intercept` vector and puts
   # the default student_t there. frmtmb holds them in `tau_raw`, which
@@ -3499,6 +3528,8 @@ resolve_priorlist <- function(fit, pl) {
       resolve_ac_class(s)
     } else if (s$class == "rescor") {
       resolve_rescor(s)
+    } else if (s$class == "lncor") {
+      resolve_lncor(s)
     } else if (s$class %in% c("simo", "sbhaz")) {
       # one joint density over the simplex's chart coordinates, in the
       # chart the frame reads them in (dirichlet_logdens())

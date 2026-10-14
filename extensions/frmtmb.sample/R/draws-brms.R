@@ -107,7 +107,8 @@ draws_natural_cols <- function(fit) {
               simplex = smp, equated = equated,
               # a mo() simplex is renamed and mapped as an ordinal block
               # is: its chart columns become brms's simo_ weights
-              ordinal = c(draws_ordinal_cols(fit), draws_mo_cols(fit)))
+              ordinal = c(draws_ordinal_cols(fit), draws_mo_cols(fit),
+                          draws_lncor_cols(fit)))
   # the columns added after the sampled ones: a mixture's last weight,
   # an equated dpar, and the thresholds and delta an ordinal block
   # reports beyond its internal parameters
@@ -119,6 +120,54 @@ draws_natural_cols <- function(fit) {
   })))
   if (is.environment(cache)) cache$brms_natural_cols_v2 <- out
   out
+}
+
+#' A logistic_normal() fit's correlations, renamed and mapped as an
+#' ordinal block is: the sampler holds them in the chart of
+#' `lncor_raw`, and brms reports the correlations themselves as
+#' `lncor__b__c`, the upper triangle read column by column. Read off the
+#' family's own bookkeeping, so it needs nothing of core beyond
+#' `us_chol_cor()`.
+#'
+#' @noRd
+draws_lncor_cols <- function(fit) {
+  out <- list()
+  tpl <- fit$frame[["par_template"]]
+  for (rspec in fit$spec$responses) {
+    sx <- rspec$family[["simplex"]]
+    if (!identical(sx$kind, "logistic_normal")) next
+    D <- length(sx$pred)
+    m <- length(tpl[["lncor_raw"]])
+    if (D < 2L || !m) next
+    lab <- sub("^mu", "", sx$mu)
+    up <- which(upper.tri(diag(D)), arr.ind = TRUE)
+    up <- up[order(up[, "col"], up[, "row"]), , drop = FALSE]
+    out[[length(out) + 1L]] <- draws_lncor_block(D, up, lab)
+  }
+  out
+}
+
+#' One block of `draws_lncor_cols()`, its maps closed over its own
+#' dimension (see `draws_ordinal_block()` for why this is a function).
+#'
+#' @noRd
+draws_lncor_block <- function(D, up, lab) {
+  list(internal = paste0("lncor_raw_", seq_len(nrow(up))),
+       names = paste0("lncor__", lab[up[, "row"]], "__", lab[up[, "col"]]),
+       map = function(r) {
+         C <- us_chol_cor(as.numeric(r), D)
+         C[up]
+       },
+       inv = function(v) {
+         C <- diag(D)
+         C[up] <- v
+         C[up[, 2:1, drop = FALSE]] <- v
+         # the chart inverse: the row-normalized Cholesky factor's rows,
+         # each divided by its diagonal, read below the diagonal
+         L <- t(chol(C))
+         L <- L / diag(L)
+         L[lower.tri(L)]
+       })
 }
 
 #' An ordinal fit's thresholds and its `cs()` coefficients, under the

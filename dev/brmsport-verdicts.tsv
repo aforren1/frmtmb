@@ -96,8 +96,8 @@ brmsfit-methods:292	frmtmb	pass
 brmsfit-methods:293	frmtmb	pass	
 brmsfit-methods:301	frmtmb	pass	
 brmsfit-methods:305	frmtmb	pass	
-brmsfit-methods:314	frmtmb	defect	fitted() takes sample_new_levels = 'old_levels' now (lane ceplot); the call also asks ndraws, which a maximum-likelihood fit has no draws to thin, and the setup dies on it (D3's reason), so the assertion reads a stale object
-brmsfit-methods:317	frmtmb	divergence	fitted() takes sample_new_levels = 'gaussian' now, as brms's does; ndraws = 1 is refused by name, since fitted() on a maximum-likelihood fit is a Wald summary with no draws to thin (D3's reason). The setup dies on it, so the assertion reads a stale object
+brmsfit-methods:314	frmtmb	pass	
+brmsfit-methods:317	frmtmb	pass	
 brmsfit-methods:325	frmtmb	pass	
 brmsfit-methods:326	frmtmb	cannot transfer	fitted(fit1, dpar = 'sigma') is brms's four-column summary, and FIXTURE 1 DOES NOT CONVERGE (nlminb false convergence (8), an sd at -723 to -1253 on the log scale, an objective unbounded within reach), so its sigma coefficients' variances are negative, the Est.Error and the two Q columns are NaN and all(fi > 0) is NA rather than TRUE. The Estimate column is positive, which is what the assertion is about; brms's fixture converged. It held at 0.69.0 by the luck of the stop point (34 of 41 jittered starts; lane optrap's review, item 6). A converged stand-in would transfer it (dev/brmsport-findings.md section 3)
 brmsfit-methods:328	frmtmb	pass	

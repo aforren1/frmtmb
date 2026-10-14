@@ -1,0 +1,6 @@
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-simplex-families.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-parse.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-fuzz.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-drmtmb-agreement.R
+frmtmb /c/Users/adf44/source/r/frmtmb-wt-famsimplex/tests/testthat/test-simplex-brms.R
+frmtmb.sample /c/Users/adf44/source/r/frmtmb-wt-famsimplex/extensions/frmtmb.sample/tests/testthat/test-simplex-draws.R

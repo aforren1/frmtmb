@@ -5,16 +5,37 @@
 \title{The Wiener first-passage time family}
 \usage{
 wiener(
+  link = "identity",
+  link_bs = "log",
+  link_ndt = NULL,
+  link_bias = "logit",
   max_ndt = NULL,
   variability = character(0),
   nodes = c(sz = 7L, st = 21L),
   allow_unreachable = FALSE,
-  link = "identity",
   contaminant = FALSE,
   contaminant_range = NULL
 )
 }
 \arguments{
+\item{link}{Link for the drift rate \code{mu}: \code{"identity"} (the
+default), \code{"log"}, \code{"softplus"} or \code{"squareplus"}, the set brms
+allows. An unquoted name works too, as in brms: \code{wiener(log)}. The
+drift rate is signed, so a link other than the identity is a model
+in which the accumulator can only drift up.}
+
+\item{link_bs}{Link for the boundary separation \code{bs}: \code{"log"} (the
+default), \code{"identity"}, \code{"softplus"} or \code{"squareplus"}.}
+
+\item{link_ndt}{Link for the non-decision time \code{ndt}. \code{NULL}, the
+default, is the bounded link of "Non-decision time" above. Give
+\code{"log"}, brms's default, or \code{"identity"}, \code{"softplus"} or
+\code{"squareplus"}, for brms's own parameterization; see "Links, and
+the one difference from brms".}
+
+\item{link_bias}{Link for the start point \code{bias}: \code{"logit"} (the
+default) or \code{"identity"}.}
+
 \item{max_ndt}{Upper bound for the non-decision time, in the units of
 the response, applied to every row. \code{NULL}, the default, takes the
 fastest response of each row's \code{ndt_group()}, or of the whole data
@@ -38,9 +59,6 @@ the cut. See \code{vignette("ddm")} for the measurement.}
 \item{allow_unreachable}{Permit a \code{max_ndt} above the smallest
 response time. Only correct inside a mixture, where another
 component carries the rows the Wiener density cannot reach.}
-
-\item{link}{Link for the drift rate. Identity by default, and there
-is rarely a reason to change it: the drift rate is signed.}
 
 \item{contaminant}{Mix a uniform contaminant into the density, with
 its mixing proportion estimated as the distributional parameter
@@ -69,17 +87,21 @@ The parameterization is brms's \code{wiener} family, name for name:
 
 \describe{
 \item{\code{mu}}{Drift rate, the mean rate of evidence accumulation
-(brms and the literature also call it \code{v}). Identity link, so it
-is signed: positive drift favors the upper boundary.}
+(brms and the literature also call it \code{v}). Identity link by
+default, so it is signed: positive drift favors the upper
+boundary.}
 \item{\code{bs}}{Boundary separation, the distance between the two
-boundaries (\code{a}). Log link.}
+boundaries (\code{a}). Log link by default.}
 \item{\code{ndt}}{Non-decision time, the part of the response time spent
 encoding and moving rather than deciding (\code{t0} or \code{tau}). Bounded
-link; see Non-decision time below.}
+link by default; see Non-decision time below.}
 \item{\code{bias}}{Relative start point in (0, 1), the fraction of the
-boundary separation the accumulator starts at (\code{w}). Logit link.
-0.5 is unbiased.}
+boundary separation the accumulator starts at (\code{w}). Logit link
+by default. 0.5 is unbiased.}
 }
+
+Each of the four takes the links brms allows for it; see Links, and
+the one difference from brms.
 
 \code{variability} adds Ratcliff's three across-trial variability
 parameters to that set; see Across-trial variability below.
@@ -187,6 +209,9 @@ the model frame is assembled and is a property of the FITTED data,
 so a prediction on new rows is scaled by the bound the fit used
 rather than by one re-derived from the new rows. A group the fit
 never saw has no bound and is refused.
+
+Both are the default link. brms's own link, a log link with no bound,
+is \code{link_ndt = "log"}; see Links, and the one difference from brms.
 
 Past a linear predictor of about 37 the logit saturates in double
 precision. Nothing guards that, and nothing needs to: the density
@@ -303,6 +328,107 @@ the drawn values is 0.967. The population value comes back about
 The same 60 draws with \code{variability = "sv"} recover the same
 quantities to the same accuracy. What they add is in the next
 section.
+}
+
+\section{Links, and the one difference from brms}{
+
+Each parameter takes the links brms 2.23.0 allows for it, through the
+argument brms uses, in brms's order: \code{link} for \code{mu}, then \code{link_bs},
+\code{link_ndt} and \code{link_bias}. A positional call written for brms means
+the same thing here. A link outside brms's set is refused.
+
+The defaults are brms's, except for \code{ndt}. brms puts \code{ndt} on a log
+link. Without a formula on \code{ndt}, brms bounds it in its parameter
+block, \verb{real<lower=0,upper=min_Y> ndt}, and gives it a
+\code{uniform(0, min_Y)} prior. With a formula, brms has no bound: each
+row's density rejects a non-decision time at or above that row's
+response time. This package has no parameter block, so its default
+link carries the bound instead.
+
+\code{link_ndt = "log"} gives brms's parameterization. The coefficients of
+\code{ndt ~ ...} are then on brms's log scale, and a prior written for
+brms means the same thing here. A row whose response time is at or
+below its non-decision time has a log density of minus infinity, and
+the optimizer treats that as a rejected step. The start is half the
+fastest response, which every row can reach.
+
+Measured on 100 data sets of 30 trials and 100 of 400 (seeds
+20261101 to 20261200, \code{dev/famuni-wiener-ndtrep.R}): every fit
+converged under both links, and on this scalar \code{ndt}, where the two
+links are the same model, the two maxima agreed to 6e-10 in the
+log-likelihood and to 1.6e-05 standard errors in \code{ndt}. Against brms
+on one data set of 400 trials with \code{ndt ~ 1}, the maximum-likelihood
+estimates sat within 0.15 posterior standard deviations of brms's
+posterior medians, and the standard errors within 5 percent of the
+posterior standard deviations.
+
+Under \code{ndt ~ 1 + (1 | s)} the per-row rejection is a per-subject
+bound, which is the constraint \code{ndt_group()} gives the default link.
+Measured on 20 data sets of 20 subjects by 50 trials, with a
+between-subject standard deviation of 0.12 on the log non-decision
+time around 250 ms (seeds 20261101 to 20261120,
+\code{dev/famuni-wiener-ndtrep.R}): the log link converged on 20 of 20
+with no warning, \code{ndt_group()} on 20 of 20, and the one global bound
+on 12 of 20. The median per-subject root mean squared error of the
+non-decision time was 13.8 ms under the log link, 16.4 ms under
+\code{ndt_group()} and 24.4 ms under the global bound, and the log link
+had the smallest error on 20 of the 20 data sets. Its
+between-subject standard deviation came back at a median of 0.115,
+where \code{ndt_group()} put it at zero for the reason "What sd(ndt) does
+and does not tell you" gives.
+
+An unbounded \code{ndt} link cannot be combined with \code{max_ndt},
+\code{ndt_group()}, \code{variability}, \code{contaminant = TRUE} or
+\code{allow_unreachable = TRUE}. The first two set the bound that the
+link does not have. Each of the other three holds a row past the
+non-decision time at a small positive decision time, and without a
+bound every row can be held there at the same time, where the
+density of one point has no upper limit as \code{bs} goes to zero. A
+mixture with a lognormal reached a log-likelihood of +7713.9 on 400
+rows that way, with \code{ndt} at 1.8e+308 and \code{bs} at 7.05e-05
+(\code{dev/famuni-wiener-mix2.R}).
+
+Under an identity link nothing keeps \code{bs} above zero, \code{bias} inside
+(0, 1) or \code{ndt} above zero. The density is \code{NaN} outside those
+ranges, on the tape the optimizer evaluates as well as on doubles, and
+the optimizer treats it as a rejected step. On data with a bias of
+0.97 (seeds 20261101 to 20261105, n = 80), \code{link_bias = "identity"}
+fits reach the logit fits' maxima on all five.
+
+A brms family object is read with its links. \code{brms::wiener()} and
+\code{brms::brmsfamily("wiener")} carry brms's \code{link_ndt = "log"}, so
+\code{family = brms::wiener()} fits brms's log link for \code{ndt}, while
+\code{family = "wiener"} and this package's \code{wiener()} fit the bounded
+default. With both packages attached, a bare \code{wiener()} is the one
+attached last: brms's gives the log link, this package's the bounded
+one. On a scalar \code{ndt} the two are the same model with the same
+maximum; under \code{ndt ~ x} the coefficients are on different scales, and
+the log link refuses \code{max_ndt}, \code{ndt_group()}, \code{variability} and
+\code{contaminant = TRUE}. Write \code{frmtmb.eam::wiener()} to be sure which
+you have.
+}
+
+\section{Post-fit quantities against brms}{
+
+The log-likelihood of a row is the same quantity in both packages:
+the log density of its response time at the boundary it ended at. On
+50 posterior draws of a 400-row brms fit, this density and brms's
+\code{log_lik()} agree to 1.1e-14.
+
+\code{fitted()} and \code{simulate()} differ from brms on purpose. Both condition
+on the boundary each row ended at. brms's \code{posterior_predict()} draws
+the boundary as well and returns only the time, or, with
+\code{negative_rt = TRUE}, the time signed by the DRAWN boundary, so a row
+observed at the upper boundary gets draws at the lower one.
+\code{predict(negative_rt = TRUE)} is refused here. brms's
+\code{posterior_epred()} is the mean response time over both boundaries,
+from Grasman, Wagenmakers and van der Maas (2009). brms 2.23.0 passes
+that formula the relative start point \code{bias} where it takes the
+absolute one, \code{bias * bs}, so its value is correct only at \code{bs = 1}:
+at \code{bs = 2.5} it is wrong by up to 64 percent, and at a drift of
+exactly zero it is \code{NaN}. The formula with \code{bias * bs} agrees with
+this package's conditional means, weighted by the boundary
+probabilities, to 1.04e-15 relative (\code{dev/famuni-wiener-fit2.R}).
 }
 
 \section{Across-trial variability}{
@@ -603,6 +729,11 @@ fixef(fit)
 
 }
 \references{
+Grasman, R. P. P. P., Wagenmakers, E.-J. and van der Maas, H. L. J.
+(2009). On the mean and variance of response times under the
+diffusion model with an application to parameter estimation.
+\emph{Journal of Mathematical Psychology}, 53(2), 55-68.
+
 Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. \emph{Journal of
 Mathematical Psychology}, 53(4), 222-230.

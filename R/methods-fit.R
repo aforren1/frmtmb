@@ -156,6 +156,21 @@ brms_summary_args <- c(
                "waic(frmtmb.sample::frm_sample(fit))")
 )
 
+#' Old brms printed WAIC under `summary(waic = TRUE)`, so a ported call
+#' asks for a number that a maximum-likelihood summary does not have and
+#' that brms 2.23.0 drops in silence. `waic = FALSE` asks for nothing,
+#' and is accepted.
+#'
+#' @noRd
+summary_refuse_waic <- function(waic) {
+  check_flag(waic, "waic")
+  if (waic) {
+    frm_stop("summary() cannot honor `waic`: ",
+             brms_summary_args[["waic"]], call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 # brms's print() of a fit IS its summary, and the two used to disagree
 # here: print() showed the estimates alone while summary() showed the
 # table. One renderer, so a section can only be added once.
@@ -226,9 +241,10 @@ coef_block_key <- function(fit, lp) {
 #' @export
 summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
                                robust = FALSE, mc_se = FALSE, ...,
-                               vcov = NULL) {
+                               vcov = NULL, waic = FALSE) {
   frm_check_dots(..., .unsupported = c(brms_summary_args,
                                        brms_draws_summary_args["pars"]))
+  summary_refuse_waic(waic)
   check_flag(priors, "priors")
   check_flag(robust, "robust")
   check_flag(mc_se, "mc_se")
@@ -522,6 +538,16 @@ summary_spec_frame <- function(object, prob) {
       hi <- c(hi, NA_real_)
       nm <- c(nm, s$names[k])
     }
+  }
+  # a logistic-normal fit's correlations, which brms lists here as
+  # lncor(b,c)
+  ln <- lncor_summary_rows(object, q)
+  if (!is.null(ln)) {
+    est <- c(est, ln$est)
+    err <- c(err, ln$err)
+    lo <- c(lo, ln$lo)
+    hi <- c(hi, ln$hi)
+    nm <- c(nm, ln$nm)
   }
   if (!length(nm)) return(summary_empty_block(prob))
   out <- data.frame(Estimate = est, `Est.Error` = err, lo = lo, hi = hi,
@@ -1091,6 +1117,8 @@ vcov.frmtmb_fit <- function(object, correlation = FALSE, pars = NULL, ...,
   } else {
     vcov_cluster(object, cluster, type = type, full = full)
   }
+  # vcov_cluster() says it for its own matrix
+  if (is.null(cluster)) warn_cov_products(object, "vcov()")
   if (full) return(V)
   V <- vcov_brms_block(object, V, model_based = is.null(cluster))
   if (correlation) V <- stats::cov2cor(V)
@@ -1621,15 +1649,14 @@ fixef_by_dpar <- function(object) {
 #'   there, and names the labels, rather than returning the first block.
 #'   Positional indexing reaches every block either way.
 #'
-#'   Three ordinary spellings put more than one block on one factor, so
-#'   this is not a nonlinear-model corner: an uncorrelated slope
-#'   `(1 + x || g)`, which desugars to `1 | g` and `0 + x | g`; two bars
-#'   written out on the same factor, `(1 | g) + (0 + x | g)`, the same
-#'   two blocks; and a random effect on more than one distributional or
-#'   nonlinear parameter, such as `bf(y ~ x + (1 | g), sigma ~ (1 | g))`
-#'   (`1 | g` and `sigma: 1 | g`) or `(1 | id)` on three nonlinear
-#'   parameters. A CORRELATED slope `(1 + x | g)` is one block and is
-#'   addressed by the factor name as before.
+#'   Two ordinary spellings put more than one block on one factor, so
+#'   this is not a nonlinear-model corner: two bars written out on the
+#'   same factor, `(1 | g) + (0 + x | g)`; and a random effect on more
+#'   than one distributional or nonlinear parameter, such as
+#'   `bf(y ~ x + (1 | g), sigma ~ (1 | g))` (`1 | g` and
+#'   `sigma: 1 | g`) or `(1 | id)` on three nonlinear parameters. A
+#'   slope `(1 + x | g)` is one block, and so is an uncorrelated slope
+#'   `(1 + x || g)`, as in brms; each is addressed by the factor name.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -1686,7 +1713,12 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     # on a gr(g, by = f) fit its condsd ran from 0 to 99 times what the
     # repaired joint covariance gives the same b, which predictions read
     # (dev/reviews/2026-10-06-cifix.md, m6). One covariance, one answer.
-    if (!is.null(cvr) && length(sdr$se_lost)) {
+    # The same holds on a fit whose covariance is held as a factor
+    # (se_reparam_cov()): sdreport()'s inverse of the natural Hessian
+    # gave a degree-8 polynomial with (1 | g) NaN here
+    # (dev/illse-routes.R)
+    if (!is.null(cvr) &&
+          (length(sdr$se_lost) || !is.null(sdr$cov_fixed_root))) {
       jc <- tryCatch(get_joint_cov(object), error = function(e) NULL)
       bj <- if (!is.null(jc)) which(jc$names == "b")
       if (length(bj) == length(cvr)) cvr <- pmax(diag(jc$V)[bj], 0)
@@ -1977,8 +2009,7 @@ varcorr_layout <- function(fit) {
     g$bylev <- c(g$bylev, rep(if (is.null(by)) NA_integer_ else {
       match(by$level, by$levels)
     }, length(rn)))
-    g$cor <- g$cor || (bk[["dim"]] > 1L &&
-                         !bk[["covstruct"]] %in% c("diag", "homdiag"))
+    g$cor <- g$cor || block_has_cor(bk)
     groups[[key]] <- g
   }
   for (key in names(groups)) {

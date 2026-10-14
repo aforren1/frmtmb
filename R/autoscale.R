@@ -617,10 +617,10 @@ smooth_fx_units <- function(frame, par_names) {
 #' to 1 ulp, 17 another; dev/optrap-rev-pow2.R).
 #'
 #' @noRd
-predictor_units <- function(frame) {
+predictor_units <- function(frame, fits = NULL) {
   out <- numeric(0)
   for (key in names(frame[["linpreds"]])) {
-    u <- predictor_unit_of(frame, frame[["linpreds"]][[key]])
+    u <- predictor_unit_of(frame, frame[["linpreds"]][[key]], fits[[key]])
     if (is.finite(u) && u > 0 && u != 1) out[[key]] <- u
   }
   out
@@ -641,15 +641,41 @@ predictor_units <- function(frame) {
 predictor_unit_families <- c("gaussian", "student", "lognormal",
                              "shifted_lognormal", "hurdle_lognormal",
                              "skew_normal", "exgaussian", "asym_laplace",
-                             "zero_inflated_asym_laplace", "huber")
+                             "zero_inflated_asym_laplace", "huber",
+                             "gen_extreme_value")
 
 #' One linear predictor's unit for predictor_units(), or 1.
 #'
+#' `fit` is the least-squares fit of predictor_unit_input()'s response
+#' on this predictor (predictor_ls()), when make_start() has already
+#' made it for the starting values (start_ls_plan()), so that the
+#' design is solved once.
+#'
 #' @noRd
-predictor_unit_of <- function(frame, lp) {
+predictor_unit_of <- function(frame, lp, fit = NULL) {
+  inp <- predictor_unit_input(frame, lp)
+  if (is.null(inp)) return(1)
+  if (is.null(fit)) {
+    fit <- tryCatch(predictor_ls(lp, inp$z, inp$ok, inp$w),
+                    error = function(e) NULL)
+  }
+  raw <- tryCatch(predictor_resid_sd(lp, inp$z, inp$ok, fit = fit),
+                  error = function(e) NA)
+  if (!is.finite(raw) || raw <= 0) return(1)
+  u <- 2^round(log2(raw))
+  if (is.finite(u) && u > 0) u else 1
+}
+
+#' The response a predictor's unit is measured on, for
+#' predictor_unit_of(): `z` (the response on the scale of `mu`), the
+#' rows `ok` that set it and their weights `w` (`NULL` without
+#' weights); `NULL` when the predictor gets no unit.
+#'
+#' @noRd
+predictor_unit_input <- function(frame, lp) {
   if (!is.null(lp[["constant"]]) || !is.null(lp[["equate"]]) ||
-        !is.null(lp[["nl_body"]])) return(1)
-  if (!identical(lp[["link"]]$name %||% "", "identity")) return(1)
+        !is.null(lp[["nl_body"]])) return(NULL)
+  if (!identical(lp[["link"]]$name %||% "", "identity")) return(NULL)
   # Not a mixture component's mu<k>: a unit there fixed the review's
   # mixture scale case (0 short at every scale) but broke four files of
   # the mixture suite. A random intercept started at the residual
@@ -657,11 +683,11 @@ predictor_unit_of <- function(frame, lp) {
   # group-level mixture in a multimodal inner problem (false
   # convergence, 111 lower); the rest were the precision of the stop
   # (dev/optrap-findings.md, punch round 1)
-  if (!identical(lp[["dpar"]], "mu")) return(1)
+  if (!identical(lp[["dpar"]], "mu")) return(NULL)
   fam <- frame[["spec"]]$responses[[lp[["resp"]]]]$family
   fname <- fam[["family"]]
   if (!is.character(fname) || length(fname) != 1L ||
-        !fname %in% predictor_unit_families) return(1)
+        !fname %in% predictor_unit_families) return(NULL)
   # The unit is the scale of an estimated sigma. A sigma held at a
   # constant (se(), or `sigma = 2` in the formula) gives the residual
   # scale itself, and the student fuzz specs with se() that stopped
@@ -671,28 +697,39 @@ predictor_unit_of <- function(frame, lp) {
     identical(l[["resp"]], lp[["resp"]]) && identical(l[["dpar"]], "sigma")
   }, frame[["linpreds"]])
   if (length(sig) != 1L || !is.null(sig[[1L]][["constant"]]) ||
-        !is.null(sig[[1L]][["equate"]])) return(1)
+        !is.null(sig[[1L]][["equate"]])) return(NULL)
   y <- frame[["y"]][[lp[["resp"]]]]
-  if (!is.numeric(y) || !is.null(dim(y))) return(1)
-  # mu on the scale it is in: log y for the lognormal families, with
-  # the shift the shifted lognormal's own start uses, and only the
-  # positive rows of a hurdle
-  z <- switch(fname,
-    lognormal = log(y),
-    shifted_lognormal = log(y - min(y) / 2),
-    hurdle_lognormal = ifelse(y > 0, log(y), NA_real_),
-    y)
-  ok <- is.finite(z)
+  if (!is.numeric(y) || !is.null(dim(y))) return(NULL)
+  z <- predictor_scale_response(fname, y)
+  # an imputed value is not data (response_observed())
+  ok <- is.finite(z) & response_observed(frame, lp[["resp"]])
   # a row of weight 0 is not data, so it does not set the unit either:
   # zero weights and the subset they leave fit the same model, and with
   # the unit of the full response the two took different paths
   # (test-open-issues.R, lme4#880)
   w <- frame[["aterm_values"]][[lp[["resp"]]]][["weights"]]
-  if (is.numeric(w) && length(w) == length(y)) ok <- ok & w > 0
-  raw <- tryCatch(predictor_resid_sd(lp, z, ok), error = function(e) NA)
-  if (!is.finite(raw) || raw <= 0) return(1)
-  u <- 2^round(log2(raw))
-  if (is.finite(u) && u > 0) u else 1
+  if (is.numeric(w) && length(w) == length(y)) {
+    ok <- ok & w > 0
+  } else {
+    w <- NULL
+  }
+  list(z = z, ok = ok, w = w)
+}
+
+#' The response of a family with an identity-link `mu` on the scale that
+#' `mu` is in, `NA` on a row that does not inform `mu`: log y for the
+#' lognormal families, with the shift the shifted lognormal's own start
+#' uses, only the positive rows of a hurdle, and only the nonzero rows
+#' of a zero-inflated family, whose zeros the inflation explains.
+#'
+#' @noRd
+predictor_scale_response <- function(fname, y) {
+  switch(fname,
+    lognormal = log(y),
+    shifted_lognormal = log(y - min(y) / 2),
+    hurdle_lognormal = ifelse(y > 0, log(y), NA_real_),
+    zero_inflated_asym_laplace = ifelse(y != 0, y, NA_real_),
+    y)
 }
 
 #' The spread of `z[ok]` with the predictor's fixed design (and offset)
@@ -727,12 +764,44 @@ predictor_unit_of <- function(frame, lp) {
 #' toward a sigma of 0 (dev/optrap-findings.md, punch round 1). So does
 #' a design whose rows do not match the response's.
 #'
+#' With weights the least squares is weighted (predictor_ls()), the
+#' estimate of `mu`'s coefficients that the likelihood weights ask for,
+#' and the spread is of its residuals.
+#'
 #' @noRd
-predictor_resid_sd <- function(lp, z, ok,
+predictor_resid_sd <- function(lp, z, ok, w = NULL,
                                cells = getOption("frmtmb.unit_ls_cells",
-                                                 5e6)) {
+                                                 5e6),
+                               fit = predictor_ls(lp, z, ok, w, cells)) {
+  if (is.null(fit)) return(NA_real_)
+  z <- fit[["resid"]]
+  mag <- fit[["mag"]]
+  s <- stats::mad(z)
+  if (!is.finite(s) || !(s > 1e-10 * mag)) s <- stats::sd(z)
+  if (!is.finite(s) || !(s > 1e-10 * mag)) NA_real_ else s
+}
+
+#' The least-squares fit of `z[ok]` (less the predictor's offset) on the
+#' predictor's fixed design, for the unit (predictor_resid_sd()) and the
+#' starting values (start_ls_plan()), so that one solve serves both.
+#'
+#' A list: `rows`, the indices of the rows used; `keep`, the positions
+#' within `rows` the design was solved on (all of them up to `cells`
+#' design entries, evenly spaced ones above); `coef`, the coefficients
+#' (`NA` for an aliased column; `NULL` for a predictor without a design);
+#' `resid`, the residuals on the rows kept; `mag`, the largest `|z|`
+#' over `rows`. `NULL` when fewer than two rows are usable or the design
+#' does not match the response's rows.
+#'
+#' `w`, the likelihood weights, gives the weighted fit. Equal weights
+#' give the unweighted fit, so that a weight of 1 on every row changes
+#' nothing.
+#'
+#' @noRd
+predictor_ls <- function(lp, z, ok, w = NULL,
+                         cells = getOption("frmtmb.unit_ls_cells", 5e6)) {
   rows <- which(ok)
-  if (length(rows) < 2L) return(NA_real_)
+  if (length(rows) < 2L) return(NULL)
   z <- z[rows]
   mag <- max(abs(z))
   X <- if (is.null(lp[["constant"]])) lp[["X"]]
@@ -740,21 +809,34 @@ predictor_resid_sd <- function(lp, z, ok,
   if (is.numeric(off) && length(off) == length(ok) && all(is.finite(off))) {
     z <- z - off[rows]
   }
-  if (design_ok(X)) {
-    if (nrow(X) != length(ok)) return(NA_real_)
-    p <- ncol(X)
-    m <- max(2L, floor(cells / p))
-    keep <- if (length(rows) > m) {
-      unique(round(seq(1, length(rows), length.out = m)))
-    } else {
-      seq_along(rows)
-    }
-    Xk <- as.matrix(X[rows[keep], , drop = FALSE])
-    z <- as.numeric(base::qr.resid(base::qr(Xk), z[keep]))
+  out <- list(rows = rows, keep = seq_along(rows), coef = NULL, resid = z,
+              mag = mag)
+  if (!design_ok(X)) return(out)
+  if (nrow(X) != length(ok)) return(NULL)
+  p <- ncol(X)
+  m <- max(2L, floor(cells / p))
+  keep <- if (length(rows) > m) {
+    unique(round(seq(1, length(rows), length.out = m)))
+  } else {
+    seq_along(rows)
   }
-  s <- stats::mad(z)
-  if (!is.finite(s) || !(s > 1e-10 * mag)) s <- stats::sd(z)
-  if (!is.finite(s) || !(s > 1e-10 * mag)) NA_real_ else s
+  Xk <- as.matrix(X[rows[keep], , drop = FALSE])
+  zk <- z[keep]
+  wk <- if (is.numeric(w) && length(w) == length(ok)) w[rows[keep]]
+  if (is.null(wk) || all(wk == wk[1L])) {
+    q <- base::qr(Xk)
+    out$resid <- as.numeric(base::qr.resid(q, zk))
+    out$coef <- as.numeric(base::qr.coef(q, zk))
+  } else {
+    sw <- sqrt(wk)
+    q <- base::qr(Xk * sw)
+    out$coef <- as.numeric(base::qr.coef(q, zk * sw))
+    b <- out$coef
+    b[is.na(b)] <- 0
+    out$resid <- as.numeric(zk - Xk %*% b)
+  }
+  out$keep <- keep
+  out
 }
 
 #' The largest condition number among the fixed designs of a frame, each
@@ -771,26 +853,40 @@ predictor_design_kappa <- function(frame,
                                                      5e6)) {
   out <- 1
   for (lp in frame[["linpreds"]] %||% list()) {
-    X <- if (is.null(lp[["constant"]])) lp[["X"]]
-    if (!design_ok(X) || ncol(X) < 2L) next
-    k <- tryCatch({
-      p <- ncol(X)
-      n <- nrow(X)
-      m <- max(2L, floor(cells / p))
-      rows <- if (n > m) unique(round(seq(1, n, length.out = m))) else
-        seq_len(n)
-      Xk <- as.matrix(X[rows, , drop = FALSE])
-      nrm <- sqrt(colSums(Xk^2))
-      Xk <- Xk[, nrm > 0, drop = FALSE] / rep(nrm[nrm > 0], each = nrow(Xk))
-      q <- base::qr(Xk)
-      if (q$rank < 2L) 1 else {
-        R <- qr.R(q)[seq_len(q$rank), seq_len(q$rank), drop = FALSE]
-        1 / base::rcond(R, triangular = TRUE)
-      }
-    }, error = function(e) 1)
+    k <- lp_design_kappa(lp, cells)
     if (is.finite(k) && k > out) out <- k
   }
   out
+}
+
+#' One linear predictor's condition number for predictor_design_kappa(),
+#' or 1 for a predictor without a design of two columns or more. The
+#' least-squares start (start_ls_one()) reads the same number for `mu`,
+#' so the start and newton_polish() take the same side of their bound:
+#' an estimate of its own, from the start's QR, differed from this one
+#' by 2.8e-7 at 1e5 and put one design on both sides (the review of lane
+#' optstart, dev/optstart-rev-kappa.R).
+#'
+#' @noRd
+lp_design_kappa <- function(lp,
+                            cells = getOption("frmtmb.unit_ls_cells", 5e6)) {
+  X <- if (is.null(lp[["constant"]])) lp[["X"]]
+  if (!design_ok(X) || ncol(X) < 2L) return(1)
+  tryCatch({
+    p <- ncol(X)
+    n <- nrow(X)
+    m <- max(2L, floor(cells / p))
+    rows <- if (n > m) unique(round(seq(1, n, length.out = m))) else
+      seq_len(n)
+    Xk <- as.matrix(X[rows, , drop = FALSE])
+    nrm <- sqrt(colSums(Xk^2))
+    Xk <- Xk[, nrm > 0, drop = FALSE] / rep(nrm[nrm > 0], each = nrow(Xk))
+    q <- base::qr(Xk)
+    if (q$rank < 2L) 1 else {
+      R <- qr.R(q)[seq_len(q$rank), seq_len(q$rank), drop = FALSE]
+      1 / base::rcond(R, triangular = TRUE)
+    }
+  }, error = function(e) 1)
 }
 
 #' Start every random-effect standard deviation on the scale of the
@@ -857,7 +953,7 @@ predictor_par_units <- function(frame, par_names,
   for (key in names(units)) {
     lp <- frame[["linpreds"]][[key]]
     if (is.null(unit[[lp[["par"]]]])) next
-    s <- predictor_col_spread(lp)
+    s <- predictor_col_spread(lp, frame)
     if (length(s) != length(lp[["idx"]])) s <- rep(1, length(lp[["idx"]]))
     unit[[lp[["par"]]]][lp[["idx"]]] <- units[[key]] / s
   }
@@ -903,11 +999,25 @@ predictor_par_units_resp <- function(frame, par_names, units) {
 
 #' The spread of each column of a linear predictor's design, for
 #' predictor_par_units(): the sample sd of a numeric column with more
-#' than two values, of `codes * mult` for a `mo()` placeholder, and 1
-#' for the intercept, a binary column and any other placeholder.
+#' than two values, of `codes * mult` for a `mo()` placeholder, of the
+#' observed values times `mult` for a `mi()` placeholder and of the
+#' measured values times `mult` for an `me()` placeholder (`frame`
+#' supplies those two), and 1 for the intercept, a binary column and
+#' any other placeholder.
+#'
+#' A `mi()` or `me()` column is a zero placeholder in `X`, so it read as
+#' spread 1, and its coefficient got the response's unit itself where its
+#' natural unit is that over the spread of the variable: on brms_missings'
+#' `bmi | mi() ~ age * mi(chl)` (sd of chl 45) `bmi_michl` was stepped
+#' in units of 8 against a standard error of 0.034. The outer Hessian
+#' the standard errors come from is taken by finite differences in those
+#' units, and steps that large across the latent missing values gave a
+#' Hessian that was not positive definite: every standard error NaN at
+#' the optimum of 0.67.0, or the sigmas "flat" and the rest up to 35%
+#' too large (lane remeasure, R1; dev/optstart-findings.md).
 #'
 #' @noRd
-predictor_col_spread <- function(lp) {
+predictor_col_spread <- function(lp, frame = NULL) {
   X <- lp[["X"]]
   if (is.null(X)) return(numeric(0))
   k <- ncol(X)
@@ -915,20 +1025,39 @@ predictor_col_spread <- function(lp) {
   cn <- colnames(X)
   mos <- lp[["mo"]] %||% list()
   mo_cols <- vapply(mos, function(m) as.integer(m[["col"]]), 0L)
+  mis <- lp[["mi"]] %||% list()
+  mi_cols <- vapply(mis, function(m) as.integer(m[["col"]]), 0L)
+  mes <- lp[["me"]] %||% list()
+  me_cols <- vapply(mes, function(m) as.integer(m[["col"]]), 0L)
   for (j in seq_len(k)) {
     if (identical(cn[j], "(Intercept)")) next
     m <- match(j, mo_cols)
+    i <- match(j, mi_cols)
+    e <- match(j, me_cols)
     xj <- if (!is.na(m)) {
       tryCatch(suppressWarnings(as.numeric(mos[[m]][["codes"]]) *
                                   as.numeric(mos[[m]][["mult"]] %||% 1)),
                error = function(e) NA_real_)
+    } else if (!is.na(i)) {
+      placeholder_values(spread_mi_values(mis[[i]], frame), mis[[i]],
+                         nrow(X))
+    } else if (!is.na(e)) {
+      placeholder_values(spread_me_values(mes[[e]], frame), mes[[e]],
+                         nrow(X))
     } else {
       as.numeric(X[, j])
     }
     # a placeholder whose codes or multiplier do not line up with the
     # rows (a structure this function does not know) keeps spread 1,
     # the step 0.69.0 took, rather than a spread of recycled values
-    if (length(xj) != nrow(X) || anyNA(xj)) next
+    if (length(xj) != nrow(X)) next
+    # a mi() value is missing where it is imputed; the observed rows set
+    # its spread
+    if (!is.na(m) || is.na(i)) {
+      if (anyNA(xj)) next
+    } else {
+      xj <- xj[!is.na(xj)]
+    }
     if (length(unique(xj)) <= 2L) next
     sj <- stats::sd(xj)
     # a power of two, as the response's unit is, so that two data sets
@@ -936,6 +1065,61 @@ predictor_col_spread <- function(lp) {
     if (is.finite(sj) && sj > 0) s[j] <- 2^round(log2(sj))
   }
   s
+}
+
+#' The values a `mi()` placeholder stands for, on the rows of its
+#' predictor: the observed response `var` (missing where imputed), read
+#' through `idxl` when the two responses do not share their rows.
+#' `NULL` where `frame` does not have them.
+#'
+#' @noRd
+spread_mi_values <- function(info, frame) {
+  v <- frame[["y"]][[info[["var"]]]]
+  if (!is.numeric(v) || !is.null(dim(v))) return(NULL)
+  v[!response_observed(frame, info[["var"]])] <- NA
+  idx <- info[["idxl"]]
+  if (!is.null(idx)) {
+    if (!is.numeric(idx) || anyNA(idx) || any(idx < 1) ||
+          any(idx > length(v))) return(NULL)
+    v <- v[idx]
+  }
+  as.numeric(v)
+}
+
+#' The measured values an `me()` placeholder stands for: the product of
+#' its terms' observed values (`frame$me$terms[[k]]$Xn`). `NULL` where
+#' `frame` does not have them.
+#'
+#' @noRd
+spread_me_values <- function(info, frame) {
+  terms <- frame[["me"]][["terms"]]
+  ks <- info[["terms"]]
+  if (is.null(terms) || !length(ks) || anyNA(ks)) return(NULL)
+  out <- NULL
+  for (k in ks) {
+    xn <- terms[[k]][["Xn"]]
+    if (!is.numeric(xn)) return(NULL)
+    if (is.null(out)) {
+      out <- as.numeric(xn)
+    } else {
+      if (length(xn) != length(out)) return(NULL)
+      out <- out * as.numeric(xn)
+    }
+  }
+  out
+}
+
+#' The values of a placeholder column times its multiplier, or `NA` when
+#' they do not line up with the predictor's `n` rows.
+#'
+#' @noRd
+placeholder_values <- function(v, info, n) {
+  if (is.null(v) || length(v) != n) return(NA_real_)
+  mult <- info[["mult"]]
+  if (is.null(mult)) return(v)
+  mult <- suppressWarnings(as.numeric(mult))
+  if (length(mult) != n) return(NA_real_)
+  v * mult
 }
 
 #' The inner (random-effect) solver's control for a fit whose response

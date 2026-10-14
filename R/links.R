@@ -83,7 +83,12 @@
 #' | `von_mises` | `tan_half`, `identity` |
 #' | `cumulative`, `hurdle_cumulative`, `acat` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
 #' | `sratio`, `cratio` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` |
-#' | `categorical`, `multinomial` | `logit` |
+#' | `categorical`, `multinomial`, `dirichlet` | `logit` |
+#' | `logistic_normal` | `identity` |
+#' | `dirichlet2`, through `brmsfamily()` | `log`, `softplus`, `squareplus`, `identity`, `logm1` |
+#' | `frechet` | `log`, `identity`, `inverse`, `softplus`, `squareplus` |
+#' | `gen_extreme_value` | `identity`, `log`, `inverse`, `softplus`, `squareplus` |
+#' | `discrete_weibull` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity` |
 #'
 #' An ordinal family's `link` names the cumulative distribution
 #' function the thresholds are read through, not a link on a mean, so
@@ -106,9 +111,10 @@
 #' | Parameter | Argument | Links |
 #' |---|---|---|
 #' | `sigma`, `shape`, `phi`, `kappa`, `beta`, `ndt`, `disc`, and the `nu` of `compois` | `link_sigma` and so on | `log`, `identity`, `softplus`, `squareplus` |
-#' | `nu` of `student` | `link_nu` | `logm1`, `identity` |
+#' | `nu` of `student` and `frechet` | `link_nu` | `logm1`, `identity` |
 #' | `zi`, `hu`, `zoi`, `coi`, `quantile` | `link_zi`, `link_hu`, `link_zoi`, `link_coi`, `link_quantile` | `logit`, `identity` |
 #' | `alpha` of `skew_normal` | `link_alpha` | `identity`, `log`, `softplus`, `squareplus` |
+#' | `xi` of `gen_extreme_value` | `link_xi` | `log1p`, `identity` |
 #'
 #' `identity` is in every one of those sets because brms puts it there.
 #' It lets a parameter that must stay positive go negative, which the

@@ -125,7 +125,12 @@ homogeneous_sd <- function(sds, what) {
 #' freedom and scale matrix `Sigma = W W'`. The mixing variable `u_j` is
 #' per LEVEL and shared across that level's coefficients, so a
 #' correlated or a `diag()` block is one multivariate t and not several
-#' independent univariate ones. brms builds it the same way.
+#' independent univariate ones. So is a `||` term, which is one `diag()`
+#' block. brms builds one term the same way. brms also shares one `u_j`
+#' across all the Student-t terms of a grouping factor, as in
+#' `(1 | gr(g, dist = "student")) + (0 + x | gr(g, dist = "student"))`.
+#' frmtmb gives each block its own `u_j`, so two such terms are a
+#' different model from brms's. Write them as one term to share it.
 #'
 #' **`Sigma` is the SCALE, not the covariance.** The variance is
 #' `Sigma * nu / (nu - 2)`, so a standard deviation is
@@ -2014,6 +2019,24 @@ block_cor_spec <- function(bk) {
   f <- covstruct_registry[[bk[["covstruct"]]]][["cor_spec"]]
   if (is.null(f)) return(NULL)
   f(bk[["dim"]])
+}
+
+# The structures that are diagonal by construction; block_has_cor().
+uncorrelated_structures <- c("diag", "diag_t", "homdiag")
+
+#' Does a block correlate its columns?
+#'
+#' Not when its structure is diagonal by construction (`diag`,
+#' `diag_t`, `homdiag`): every correlation is then zero. brms's
+#' `cor = FALSE` block, which is what a `||` term is, has no `cor_`
+#' parameter, so such a block names, reports and summarizes none
+#' either. The test is the structure and not its parameter count:
+#' `equalto()` estimates nothing and still has a correlation, a fixed
+#' one.
+#'
+#' @noRd
+block_has_cor <- function(bk) {
+  bk[["dim"]] > 1L && !bk[["covstruct"]] %in% uncorrelated_structures
 }
 
 #' How many of a block's theta positions are correlations.

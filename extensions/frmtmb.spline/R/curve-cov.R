@@ -222,13 +222,24 @@ sp_one_basis <- function(fit, nd, dpar, resp, re_formula, allow_new_levels) {
     allow_new_levels = allow_new_levels, extra_cov = TRUE))
   lb <- lbc$value
   C <- as.matrix(lb$A)
-  Sigma <- unname(C %*% lb$V %*% t(C))
+  Sigma <- unname(sp_quad(C, lb$V, lb$V_root, lb$V_rest))
   rows <- sp_lost_rows(lb)
   se <- sp_se(diag(Sigma), lb$extra_var, rows$lost, rows$na)
   E <- lb$extra_cov
   Sigma <- sp_add_extra(Sigma, E)
   list(lb = lb, C = C, E = E, Sigma = Sigma, se = se,
        lost = rows$lost, na = rows$na, span = lbc$span)
+}
+
+#' `C V C'`, or on a fit whose covariance core holds as a factor
+#' (`V = rest + root root'`, frmtmb's `frm_lp_basis()` on an
+#' ill-conditioned design) the same through the factor: formed from `V`
+#' whole in double precision it loses every digit there.
+#'
+#' @noRd
+sp_quad <- function(C, V, root = NULL, rest = NULL) {
+  if (is.null(root)) return(C %*% V %*% t(C))
+  tcrossprod(C %*% root) + C %*% rest %*% t(C)
 }
 
 #' The rows of one `frm_lp_basis()` call that have no standard error,
@@ -371,7 +382,8 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
   if (is.null(contrast)) {
     a <- sp_one_basis(fit, newdata, dpar, resp, re_formula,
                       allow_new_levels)
-    out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
+    out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V,
+                root = a$lb$V_root, rest = a$lb$V_rest, Sigma = a$Sigma,
                 E = a$E, se = a$se, lost = a$lost, na = a$na,
                 rel = NA_real_, n_predict = 0L, newdata = newdata,
                 contrast = contrast,
@@ -405,7 +417,7 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
   dif <- function(M) M[j1, j1] + M[j2, j2] - M[j1, j2] - M[j2, j1]
   C <- st$C[j1, , drop = FALSE] - st$C[j2, , drop = FALSE]
   E <- dif(st$E)
-  Sigma <- unname(C %*% st$lb$V %*% t(C))
+  Sigma <- unname(sp_quad(C, st$lb$V, st$lb$V_root, st$lb$V_rest))
   # conservative: a difference of two rows that each move along a lost
   # direction may itself be determined, but the seam marks rows, not
   # differences, so either half takes the row
@@ -425,6 +437,7 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula,
     character(0)
   }
   out <- list(eta = st$lb$eta[j1] - st$lb$eta[j2], C = C, V = st$lb$V,
+              root = st$lb$V_root, rest = st$lb$V_rest,
               Sigma = Sigma, E = E, se = se, lost = lost, na = na,
               rel = NA_real_, n_predict = 0L, newdata = newdata,
               contrast = contrast,

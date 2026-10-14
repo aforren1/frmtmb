@@ -161,6 +161,13 @@ test_that("summary(waic =) is refused by name with the reason", {
   expect_error(summary(f, waic = TRUE), "AIC and BIC")
   # the control: summary() itself still runs
   expect_s3_class(summary(f), "summary.frmtmb_fit")
+  # waic = FALSE asks for nothing, and brms 2.23.0 prints it as it
+  # prints summary() (dev/postfix-brms.R). 0.70.0 refused it too
+  # (dev/postfix-log/probe-before.txt): the refusal fired where its
+  # condition was absent
+  expect_identical(capture.output(print(summary(f, waic = FALSE))),
+                   capture.output(print(summary(f))))
+  expect_error(summary(f, waic = NA), "waic")
 })
 
 test_that("plot() of a fit refuses brms's arguments by name", {

@@ -60,28 +60,28 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   check_named_list(int_conditions, "int_conditions",
                    "int_conditions = list(z = c(-1, 0, 1))")
-  if (!identical(method, "posterior_epred")) {
-    frm_stop("conditional_effects() on draws has no method = \"", method,
-             "\": the curves ARE posterior expected-response draws. For ",
-             "predictive bands, quantile posterior_predict() over your own ",
-             "grid", call. = FALSE)
-  }
+  # brms's names and core's: "posterior_epred" and "epred" draw the
+  # expected response, "posterior_predict" and "predict" one response
+  # per posterior draw, which is brms's posterior predictive band
+  method <- ce_method(method)
+  predict <- identical(method, "predict")
   check_flag(spaghetti, "spaghetti")
   check_flag(surface, "surface")
   ce_check_distance(select_points, "select_points")
   ce_check_distance(too_far, "too_far")
   unsupported <- c(ordinal = !isFALSE(ordinal),
-                   transform = !is.null(transform))
+                   transform = !is.null(transform) && !predict)
   if (any(unsupported)) {
     nm <- names(unsupported)[unsupported][1L]
     why <- switch(nm,
       ordinal = "brms deprecated it for `categorical`, which this takes",
       transform = paste("brms applies it only with method =",
-                        "\"posterior_predict\", which this does not have"),
+                        "\"posterior_predict\", to the predicted draws"),
       "this method does not implement it, so leave it at its default")
     frm_stop("conditional_effects() on draws cannot honor `", nm, "`: ", why,
              call. = FALSE)
   }
+  if (!is.null(transform)) transform <- match.fun(transform)
   band_p <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
   if (!is.null(probs)) {
     frm_warning("Argument 'probs' is deprecated. Please use 'prob' instead.",
@@ -108,10 +108,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   ce_structure_check(rspec)
+  if (predict) ce_predict_family_check(rspec)
   # the three displays, resolved core's way: `categorical =` used to be
   # neither honored nor a formal here, so the expected category number
-  # could not be asked for at all
-  kind <- ce_display_kind(rspec, dpar, categorical)
+  # could not be asked for at all. A category-valued response refuses
+  # method = "predict" there, in the fit method's words
+  kind <- ce_display_kind(rspec, dpar, categorical, method)
   categorical <- identical(kind, "cats")
   cats_mean <- identical(kind, "cats_mean")
   poly <- categorical || cats_mean
@@ -146,7 +148,10 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   ce_spaghetti_check(spaghetti, surface, gb$grids, gb$base)
   anl <- allow_new_levels || !pop_level
   plan <- if (!pop_level) ce_level_plan(fit, gb$grids, gb$base, re_formula)
-  if (!is.null(seed) && !is.null(plan) && ce_plan_has_new(plan)) {
+  # the seed governs every random number the call takes: the new-level
+  # draws of a plan, and the simulated responses of method = "predict"
+  if (!is.null(seed) &&
+        (predict || (!is.null(plan) && ce_plan_has_new(plan)))) {
     if (!exists(".Random.seed", envir = globalenv())) stats::runif(1)
     old_seed <- get(".Random.seed", envir = globalenv())
     on.exit(assign(".Random.seed", old_seed, envir = globalenv()),
@@ -190,6 +195,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     length(ce_boot_one(f1, g$nd, poly, resp, pred_dpar, re_formula, anl))
   }, 1L)
   offsets <- cumsum(c(0L, lens))
+  # method = "predict": one response drawn per grid row and posterior
+  # draw, at that draw's parameters, so the band is a quantile of the
+  # posterior predictive draws, as brms's posterior_predict() band is
+  sim_one <- if (predict) {
+    function(fit, nd) ce_sim_one(fit, nd, resp, re_formula, anl)
+  }
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
     fi <- if (i == 1L) f1 else draws_fit_at(x, rows[i], idx)
@@ -197,14 +208,22 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     cache <- new.env(parent = emptyenv())
     M[i, ] <- unlist(lapply(seq_along(gb$grids), function(gi) {
       if (is.null(plan)) {
+        if (predict) return(sim_one(fi, gb$grids[[gi]]$nd))
         ce_boot_one(fi, gb$grids[[gi]]$nd, poly, resp, pred_dpar,
                     re_formula, anl)
       } else {
         ce_plan_eval(fi, plan, gi, cache, poly, resp, pred_dpar,
-                     re_formula, anl)
+                     re_formula, anl, one = sim_one)
       }
     }), use.names = FALSE)
     watch(M[i, ])
+  }
+  # brms hands `transform` to posterior_predict(), which applies it to
+  # the predicted draws before they are summarized
+  if (!is.null(transform)) {
+    # brms passes it to posterior_predict(), which warns this
+    warn_transform_deprecated()
+    M[] <- transform(M)
   }
 
   # brms's frame always carries cond__, with one level when there is

@@ -431,7 +431,12 @@ resolve_par_index <- function(fit, parm, what) {
 #' Confidence intervals for frmtmb fits
 #'
 #' Covariance parameters (`theta_*`) are reported on their internal
-#' (unconstrained) scale.
+#' (unconstrained) scale. So are the residual correlations of
+#' `set_rescor(TRUE)` (`thetar_*`) and the correlations of a
+#' [logistic_normal()] response (`lncor_raw_*`), which are coordinates of
+#' a row-normalized Cholesky factor, not correlations. Their
+#' natural-scale values and intervals are in [summary()] (`lncor(b,c)`)
+#' and [hypothesis()] (`lncor__b__c`).
 #'
 #' An ordinal fit's thresholds and `cs()` coefficients are internal
 #' parameters too, and each row is named by what it is. Where the
@@ -716,12 +721,15 @@ varcorr_trans_rows <- function(fit) {
     # g(theta): log-sds then atanh-correlations, via the block's vcov.
     # The clamp keeps the CENTRAL DIFFERENCES finite; it must not reach
     # the reported estimate, which is why est0 below is computed
-    # separately from the covariance itself.
+    # separately from the covariance itself. A block with no correlation
+    # parameter (diag, brms's cor = FALSE) reports no correlation, as
+    # brms reports none.
+    has_cor <- block_has_cor(bk)
     gfun <- function(tt) {
       V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(tt, bk)
       sds <- sqrt(diag(V))
       out <- log(sds)
-      if (nrow(V) > 1) {
+      if (has_cor) {
         C <- stats::cov2cor(V)
         out <- c(out, atanh(pmin(pmax(C[lower.tri(C)],
                                       -varcorr_cor_clamp),
@@ -760,7 +768,7 @@ varcorr_trans_rows <- function(fit) {
     sds0 <- sqrt(diag(V0))
     est0 <- log(sds0)
     bd <- sds0 <= 0
-    if (d > 1L) {
+    if (has_cor) {
       C0 <- stats::cov2cor(V0)
       r0 <- C0[lower.tri(C0)]
       est0 <- c(est0, atanh(r0))
@@ -773,12 +781,12 @@ varcorr_trans_rows <- function(fit) {
     # more usable than a boundary estimate; both become NA bounds.
     se_g[bd | !is.finite(est0) | !is.finite(se_g)] <- NA_real_
 
-    n_sd <- length(g0) - if (d > 1) d * (d - 1) / 2 else 0
+    n_sd <- length(g0) - if (has_cor) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
       add(bk[["cnms"]][min(i,
                            length(bk[["cnms"]]))], "sd", est0[i], se_g[i], bk)
     }
-    if (d > 1) {
+    if (has_cor) {
       pairs <- which(lower.tri(diag(d)), arr.ind = TRUE)
       for (k in seq_len(nrow(pairs))) {
         add(paste0("cor(", bk[["cnms"]][pairs[k, 2]], ",",
@@ -914,6 +922,14 @@ smooth_edf <- function(fit) {
   # par.random holds the `random` components in template order; b entries
   # are the ones named "b"
   b_pos <- which(names(sdr$par.random) == "b")
+  # on a fit whose covariance is held as a factor (se_reparam_cov()),
+  # sdreport()'s own inverse of the natural Hessian is not the
+  # covariance; the joint one formed through the factor is
+  if (!is.null(sdr$cov_fixed_root)) {
+    jc <- tryCatch(get_joint_cov(fit), error = function(e) NULL)
+    bj <- if (!is.null(jc)) which(jc$names == "b")
+    if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(diag(jc$V)[bj], 0)
+  }
   th <- fit$estimates[["theta"]]
   out <- vapply(blocks, function(bk) {
     prior_var <- exp(th[bk[["theta_idx"]]])^2
@@ -1484,6 +1500,9 @@ diagnose <- function(fit, quiet = FALSE) {
   out <- list(
     convergence = fit$opt$convergence,
     message = fit$opt$message,
+    # a restart from the converged point that ended at a nonzero code
+    # without moving (restart_result()): the code above is the run's
+    restart = fit$opt$restart,
     # NULL for an optimizer that does not count them (optim, a custom one)
     nonfinite_trials = fit$opt$nonfinite_trials,
     max_grad =if (length(gr)) max(abs(gr)) else NA_real_,
@@ -1517,6 +1536,11 @@ diagnose <- function(fit, quiet = FALSE) {
   if (!quiet) {
     cat("Optimizer convergence code:", out$convergence,
         if (!is.null(out$message)) paste0("(", out$message, ")"), "\n")
+    if (!is.null(out$restart)) {
+      cat("  The restart from that point stopped at code ",
+          out$restart$convergence, " (", out$restart$message, ") ",
+          "without moving, so the run's code stands\n", sep = "")
+    }
     if (degenerate) {
       cat("No free parameters: the model is degenerate and the ",
           "likelihood was evaluated once\n", sep = "")
@@ -2685,6 +2709,13 @@ hyp_vals_only <- function(fit) {
     vals <- c(vals, v)
     comp <- c(comp, rep(cp, length(v)))
   }
+  # a logistic-normal fit's correlation chart, which brms reports as
+  # lncor__b__c variables
+  for (cp in simplex_extra_comps(fit)) {
+    v <- est[[cp]]
+    vals <- c(vals, v)
+    comp <- c(comp, rep(cp, length(v)))
+  }
   list(vals = vals, comp = comp)
 }
 
@@ -2742,7 +2773,7 @@ ord_threshold_values <- function(fam, raw) {
 #' @noRd
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
-             ord_extra_comps(fit), me_comps(fit))
+             ord_extra_comps(fit), me_comps(fit), simplex_extra_comps(fit))
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -2756,6 +2787,10 @@ hyp_par_cov <- function(fit) {
     list(vals = unname(sdr$par.fixed[keep]), comp = rn[keep],
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par), Vp = Vp,
+         # Vp = root root' where the fit holds a factor (se_reparam_cov())
+         root = if (!is.null(sdr$cov_fixed_root)) {
+           sdr$cov_fixed_root[keep, , drop = FALSE]
+         },
          jc = if (!is.null(sdr$se_null)) {
            list(null = sdr$se_null, flat = sdr$se_null_flat,
                 units = fit$par_units,
@@ -2791,7 +2826,12 @@ hyp_par_cov <- function(fit) {
 #' @noRd
 hyp_prop_var <- function(pc, G) {
   G <- as.matrix(G)
-  v <- pmax(rowSums((G %*% pc$Vp) * G), 0)
+  # through the factor where there is one: G Vp G' formed from Vp loses
+  # every digit of a hypothesis that is a fitted value of an
+  # ill-conditioned design (jc_rowvar())
+  v <- pmax(if (is.null(pc$root)) rowSums((G %*% pc$Vp) * G) else {
+    rowSums((G %*% pc$root)^2)
+  }, 0)
   on <- !is.null(pc$jc) && !is.null(pc$outer_pos)
   bad <- if (on) {
     jc_nonest(pc$jc, G, pc$outer_pos)
@@ -2843,6 +2883,8 @@ se_null_boundary <- function(fit, sdr) {
 #' - the residual autocorrelation parameters, `ar[1]`, `cosy`;
 #' - the residual correlations of a multivariate model,
 #'   `rescor__<resp1>__<resp2>`;
+#' - the correlations of a logistic_normal() response,
+#'   `lncor__<cat1>__<cat2>`;
 #' - the hyperparameters of the `me()` terms, `meanme_<coef>`,
 #'   `sdme_<coef>` and `corme__<coef1>__<coef2>`.
 #'
@@ -2894,7 +2936,9 @@ hyp_env_vals <- function(fit, vals, comp) {
     g <- brms_group_name(bk)
     sds <- sqrt(diag(V))
     for (j in seq_along(sds)) put(paste0("sd_", g, "__", tn[j]), sds[j])
-    if (nrow(V) > 1L) {
+    # an uncorrelated block (diag, brms's cor = FALSE) has no cor_
+    # parameter in brms, so it names none
+    if (block_has_cor(bk)) {
       C <- stats::cov2cor(V)
       for (j in seq_len(nrow(V) - 1L)) {
         for (k in seq(j + 1L, nrow(V))) {
@@ -2945,6 +2989,7 @@ hyp_env_vals <- function(fit, vals, comp) {
       }
     }
   }
+  lncor_put(fit, vals, comp, put)
   me_put_hyper(fit, vals, comp, put)
   env
 }
@@ -3271,6 +3316,27 @@ hyp_fd_grad <- function(f, v) {
     vm <- v; vm[i] <- vm[i] - step
     (f(vp) - f(vm)) / (2 * step)
   }, numeric(1))
+}
+
+#' The delta-method variance of `f` at `v` over hyp_par_cov()'s `pc`:
+#' hyp_prop_var() of the gradient, or, where the covariance is held as a
+#' factor (se_reparam_cov()), the sum of squares of `f` differenced
+#' along each column of the factor. A gradient taken by coordinates
+#' carries a relative error near the step's rounding, and on an
+#' ill-conditioned design the product with the factor magnifies it: a
+#' degree-8 raw polynomial's value at x = 1.5 came out 1.8e-4 away from
+#' fitted()'s SE (tests/testthat/test-se-reparam.R).
+#'
+#' @noRd
+hyp_delta_var <- function(pc, f, v, g = hyp_fd_grad(f, v)) {
+  vg <- hyp_prop_var(pc, matrix(g, 1L))
+  if (is.null(pc$root)) return(vg)
+  d <- vapply(seq_len(ncol(pc$root)), function(k) {
+    s <- fd_root_step * pc$root[, k]
+    (f(v + s) - f(v - s)) / (2 * fd_root_step)
+  }, numeric(1))
+  vg[] <- sum(d^2)
+  vg
 }
 
 #' Hypothesis tests on parameter expressions
@@ -3844,19 +3910,34 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
   # determine (a_k + b where only the sum enters); hyp_prop_var() reads
   # the covariance without the lost directions and gives NaN to the
   # hypotheses that move along them, as predict() does. A supplied
-  # `vcov` is used as given.
+  # `vcov` is used as given, through the factor that came with it
+  # (vcov_cluster() on a fit whose covariance is held as one). On such a
+  # fit a matrix without its factor gives no standard error to a
+  # hypothesis that combines parameters: the product formed from the
+  # whole matrix can lose every digit, and the sandwich from the whole
+  # bread gave a fitted value's SE as 0 and 1228 times the exact one
+  # (review of lane illse, item 1).
+  bare <- FALSE
   if (!is.null(vcov)) {
+    bare <- !is.null(pc$root) && is.null(rv$root)
     pc$Vp <- pc$V
     pc$jc <- NULL
+    pc$root <- if (!is.null(rv$root)) {
+      rv$root[pc$outer_pos, , drop = FALSE]
+    }
   }
-  lost_h <- logical(k_n)
+  lost_h <- lost_bare <- logical(k_n)
   profiles <- vector("list", k_n)
   se <- lwr <- upr <- stat <- p <- numeric(k_n)
   for (i in seq_len(k_n)) {
     ex <- exs[[i]]
     fn <- function(v) hyp_eval(x, ex, v, pc$comp)
     g <- hyp_fd_grad(fn, pc$vals)
-    vg <- hyp_prop_var(pc, matrix(g, 1L))
+    vg <- hyp_delta_var(pc, fn, pc$vals, g)
+    if (bare && sum(g != 0) > 1L) {
+      vg[] <- NaN
+      lost_bare[i] <- TRUE
+    }
     se[i] <- sqrt(vg)
     lost_h[i] <- attr(vg, "lost")
     dir <- hp$dir[i]
@@ -3903,6 +3984,17 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
     }
   }
   se_pred_warn(lost_h, "hypotheses")
+  if (any(lost_bare)) {
+    frm_warning(
+      "hypothesis(vcov = ): the fixed design of this fit is ",
+      "ill-conditioned, so its covariance is held as a factor, and the ",
+      "supplied matrix does not carry one. A combination of parameters ",
+      "formed from the whole matrix can lose every digit. So ",
+      sum(lost_bare), " of ", k_n, " hypotheses have no standard error. ",
+      "vcov_cluster(full = TRUE) carries its factor, and hypothesis() ",
+      "without `vcov` uses the model's", call. = FALSE,
+      class = "frmtmb_cov_products")
+  }
   test <- data.frame(Hypothesis = labels, stat = stat, p = p)
   names(test)[2L] <- stat_name
   # a directional claim passes when its one-sided bound excludes 0,

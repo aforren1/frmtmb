@@ -268,9 +268,10 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   effects for growth-mixture models. `mixture_mvn(K, D, model =)`
   fits multivariate gaussian components over mclust's covariance
   taxonomy, with covariate-dependent means and gating.
-  `categorical()` fits nominal responses, `von_mises()` circular
-  ones, and `cox()` proportional hazards with a flexible baseline
-  and Laplace frailties.
+  `categorical()` fits nominal responses, `dirichlet()` and
+  `logistic_normal()` compositions (rows of proportions that sum to
+  one), `von_mises()` circular responses, and `cox()` proportional
+  hazards with a flexible baseline and Laplace frailties.
   `custom_family()` takes a plain R log-density; section 11 of
   `vignette("case-studies")` writes one with a data-bounded link and
   checks it against the built-in family it shadows.

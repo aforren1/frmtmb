@@ -267,9 +267,14 @@ test_that("ranef(condVar = TRUE) reads the repaired joint covariance", {
   u <- cbind(stats::rnorm(16, 0, 0.7), stats::rnorm(16, 0, 0.4))
   dd$y <- stats::rnorm(160, 1 + 0.5 * dd$x + u[dd$g, 1] +
                          u[dd$g, 2] * dd$x, 1)
+  # from frmtmb 0.70.0's start, whose stop loses the two; from the
+  # least-squares start of mu the fit runs on to the boundary (1.4e-4
+  # lower, "singular convergence (7)"), where the check does not run
+  # (dev/optstart-grby.R)
   fit <- suppressMessages(suppressWarnings(
     frm(bf(y ~ x + (1 + x | gr(g, by = f))), family = gaussian(),
-        data = dd)))
+        data = dd, start = list(beta = c(mean(dd$y), 0),
+                                betad = log(stats::sd(dd$y))))))
   skip_if(!length(sdr_of(fit)$se_lost), "no standard error was lost here")
   cv <- as.data.frame(suppressWarnings(ranef(fit, condVar = TRUE)))
   jc <- frmtmb:::get_joint_cov(fit)

@@ -97,7 +97,12 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{von_mises} \tab \code{tan_half}, \code{identity} \cr
    \code{cumulative}, \code{hurdle_cumulative}, \code{acat} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit} \cr
    \code{sratio}, \code{cratio} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit} \cr
-   \code{categorical}, \code{multinomial} \tab \code{logit} \cr
+   \code{categorical}, \code{multinomial}, \code{dirichlet} \tab \code{logit} \cr
+   \code{logistic_normal} \tab \code{identity} \cr
+   \code{dirichlet2}, through \code{brmsfamily()} \tab \code{log}, \code{softplus}, \code{squareplus}, \code{identity}, \code{logm1} \cr
+   \code{frechet} \tab \code{log}, \code{identity}, \code{inverse}, \code{softplus}, \code{squareplus} \cr
+   \code{gen_extreme_value} \tab \code{identity}, \code{log}, \code{inverse}, \code{softplus}, \code{squareplus} \cr
+   \code{discrete_weibull} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit}, \code{identity} \cr
 }
 
 
@@ -122,9 +127,10 @@ the set is fixed by what the parameter must stay inside. The first
 link listed is the default.\tabular{lll}{
    Parameter \tab Argument \tab Links \cr
    \code{sigma}, \code{shape}, \code{phi}, \code{kappa}, \code{beta}, \code{ndt}, \code{disc}, and the \code{nu} of \code{compois} \tab \code{link_sigma} and so on \tab \code{log}, \code{identity}, \code{softplus}, \code{squareplus} \cr
-   \code{nu} of \code{student} \tab \code{link_nu} \tab \code{logm1}, \code{identity} \cr
+   \code{nu} of \code{student} and \code{frechet} \tab \code{link_nu} \tab \code{logm1}, \code{identity} \cr
    \code{zi}, \code{hu}, \code{zoi}, \code{coi}, \code{quantile} \tab \code{link_zi}, \code{link_hu}, \code{link_zoi}, \code{link_coi}, \code{link_quantile} \tab \code{logit}, \code{identity} \cr
    \code{alpha} of \code{skew_normal} \tab \code{link_alpha} \tab \code{identity}, \code{log}, \code{softplus}, \code{squareplus} \cr
+   \code{xi} of \code{gen_extreme_value} \tab \code{link_xi} \tab \code{log1p}, \code{identity} \cr
 }
 
 

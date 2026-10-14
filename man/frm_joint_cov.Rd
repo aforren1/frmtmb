@@ -23,6 +23,9 @@ for a random one.}
 standard error is lost (see \code{summary()}); \code{integer(0)} when none
 is.}
 }
+On a fit whose fixed design is ill-conditioned, \code{root} and \code{Vrest}
+hold \code{V} as \verb{Vrest + root root'}; see \code{\link[=frm_lp_basis]{frm_lp_basis()}} for why a
+product must be formed from them. They are \code{NULL} otherwise.
 The other elements (\code{null}, \code{units}) are internal.
 A fit with no random effects has no joint precision, and \code{V} is then
 the fixed-effect covariance \code{sdreport()$cov.fixed}; \code{names} says so.

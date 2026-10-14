@@ -448,8 +448,13 @@ ddm_ndt_install <- function(fam, ub, floors, what, pending = FALSE,
     # the scalar case, which is every model that predates ndt_group():
     # the bound goes back in the link and nothing else moves
     lo <- if (pending) NA_real_ else ub
-    fam[["links"]][["ndt"]] <- ddm_scaled_logit(lo, "non-decision time",
-                                                what)
+    # A family built with one of brms's unbounded `ndt` links keeps it:
+    # the user asked for brms's parameterization, and the record of
+    # the bound stays only for ndt_time() and the keep-on-refit rule.
+    if (!isTRUE(fam[["ndt_link_fixed"]])) {
+      fam[["links"]][["ndt"]] <- ddm_scaled_logit(lo, "non-decision time",
+                                                  what)
+    }
     if (has_st) {
       fam[["links"]][["st"]] <-
         ddm_scaled_logit(if (is.na(lo)) NA_real_ else 2 * lo,

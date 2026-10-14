@@ -69,10 +69,10 @@ setup	frmtmb	brmsfit-methods:302		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:303		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:305	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:308		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:312		FALSE	FALSE	fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
-assert	frmtmb	brmsfit-methods:314	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
-setup	frmtmb	brmsfit-methods:315		FALSE	FALSE	fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
-assert	frmtmb	brmsfit-methods:317	divergence	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
+setup	frmtmb	brmsfit-methods:312		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:314	defect	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:315		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:317	divergence	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:320		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:324		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:325	pass	TRUE	FALSE			TRUE
@@ -252,8 +252,8 @@ setup	frmtmb	brmsfit-methods:948		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:949	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:951		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:953	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-setup	frmtmb	brmsfit-methods:954		FALSE	FALSE	The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). Nonlinear models need starting values in the right region: par_template(formula, data) names the parameters, and the names go straight back, e.g. start = list(beta = c(ult = 5000)). A normal() or student_t() prior on a nonlinear parameter places its start from the prior location instead		FALSE
-assert	frmtmb	brmsfit-methods:955	defect	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). Nonlinear models need starting values in the right region: par_template(formula, data) names the parameters, and the names go straight back, e.g. start = list(beta = c(ult = 5000)). A normal() or student_t() prior on a nonlinear parameter places its start from th		FALSE
+setup	frmtmb	brmsfit-methods:954		FALSE	FALSE	The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). A nonlinear coefficient starts at 0 unless `start` or a located prior places it, and the body is often not defined there. frmtmb offers no start of its own: a start found by search can lead to a local maximum, which converges with no warning. Give the starts of `a`, `b` in one of two ways. (1) `start = list(bet		FALSE
+assert	frmtmb	brmsfit-methods:955	defect	FALSE	TRUE	STALE: reads 'up', whose last assignment failed: The nonlinear fit failed from its default starting values (NA/NaN gradient evaluation). A nonlinear coefficient starts at 0 unless `start` or a located prior places it, and the body is often not defined there. frmtmb offers no start of its own: a start found by search can lead to a local maximum, which converges with no warning. Give the starts of `		FALSE
 setup	frmtmb	brmsfit-methods:956		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:957	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:958		TRUE	FALSE			TRUE

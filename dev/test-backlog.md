@@ -2423,6 +2423,9 @@ closed is marked in place above with "CLOSED at 0.70.0".
   from its residual spread, across ten families' sigma conventions, so
   it needs its own fit diff over the suites: its own round. Lane
   optrap, punch round 2; its review's consolidation item 2.
+  CLOSED at 0.71.0 (lane optstart): mu starts at least squares and sigma at
+  the spread it leaves; seeds 1 to 3 end within 4e-8 of lmer (seed 1 at code
+  1 with a warning, the convergence-warning policy's).
 - **Accurate SEs on ill-conditioned designs** is its own lane: see
   lane seflags' section below ("Open - high priority"). 0.70.0 keeps
   0.69.0's NaN for the coefficients an ill-conditioned direction
@@ -2430,6 +2433,11 @@ closed is marked in place above with "CLOSED at 0.70.0".
   round 2b attempt gave wrong finite SEs through emmeans,
   marginaleffects, `vcov()` read whole and the ordinal category route
   (review B6 and B7).
+  CLOSED at 0.71.0 (lane illse): the covariance is computed in the design's
+  coordinates and held as a factor, and every route frmtmb controls reads the
+  factor; degree 8 with and without (1 | g) within 1.5e-5 of a 256-bit
+  reference on the correlation scale (dev/illse-findings.md, sections 3 and
+  10).
 
 ### Found at the consolidation (the merged build), fixed before the release
 
@@ -2495,12 +2503,19 @@ install 32), and the release tree took the fixes by a rerun of
   times its value. The warning is right about the optimizer and wrong
   about the fit. The sigma start of the item above would remove it.
   Lane optrap, review r2.
+  CLOSED at 0.71.0 (lane optstart): a restart that neither gains nor moves
+  keeps the converged run's code (restart_result()); 20 of 20 at code 0.
 - **The convergence-warning policy**: the SE check does not run on a
   fit with a convergence warning, so on a ridge the reported
   uncertainty flips with rounding (lane ci691; lane seflags' section
   below, "Pre-existing"). It covered seflags' B5 seeds 4 and 5
   without random effects on the review's merge build (fixed above, by
   undoing the polish). A policy decision for the user before a lane.
+  CLOSED at 0.71.0 (lane illse, item c): a stop nlminb did not call converged
+  is judged as a converged fit when a Newton step from it gains at most
+  grad_tol (conv_headroom()); otherwise its standard errors are kept with the
+  reason stated. The xbeta fit of lane ci691 is judged on code 0 and code 1
+  alike.
 - **The ported row `brmsfit-methods:326` fails again**: fixture 1
   (student, `mo()`, `s()`, `arma`, `sigma ~ Trt`) stops at "false
   convergence (8)" with an sd at -723 to -1253 on the log scale, on an
@@ -2530,6 +2545,9 @@ install 32), and the release tree took the fixes by a rerun of
   for example, zeta SEs 547.9 and 949.0 (seed 10 of `y ~ mo(x2)`) on a
   direction the likelihood does not read. Pre-existing and much
   reduced; every fit is at its maximum. Lane seflags' ground.
+  CLOSED at 0.71.0 (lane illse, item b): se_mo_null() adds the split of an
+  empty interior mo() category to the exact flat directions; 0 of 160 fits
+  silent with finite zeta SEs (8 on 0.70.0; dev/illse-segap.R).
 - **The least-squares subsample of the unit reads evenly spaced
   rows**, so on rows sorted by a covariate with strong
   heteroscedasticity (sd `exp(1.5 x)`) and a subsample of 100 rows the
@@ -2549,6 +2567,9 @@ install 32), and the release tree took the fixes by a rerun of
   (lane optrap; see seflags' ill-conditioned item). At degree 7
   without a group term 1 of 20 stays 4.0e-4 short in silence (lane
   optrap's consolidation fixes, seed 4).
+  CLOSED at 0.71.0 (lane illse): degree 8 gets standard errors through the
+  factor (lm()'s QR keeps it to 3.6e-9); degree 9 is where the frame drops an
+  aliased column, so a degree-9 fit is a degree-8 one.
 - **The one-level group with a bound** (`y ~ x + (1 | g1)`, g1 one
   level, `ub = 0.1` on x): nlminb zigzags to its evaluation limit on 5
   of 40 seeds on optrap's round-0 build, 0 of 40 on rellib-r7; with the
@@ -2567,6 +2588,9 @@ install 32), and the release tree took the fixes by a rerun of
   seflags' section below; review consolidation list).
 - **Read every `||` term as brms does** (moparity's r2, in its section
   below). A core parsing change; its own lane.
+  CLOSED at 0.71.0 (lane dblbar): a `||` term is `(x | gr(g, cor = FALSE))`,
+  one block coded with the formula's contrasts, column for column brms
+  2.23.0's on 29 spellings.
 
 ### Filed by lane moparity after punch round 1, 2026-10-07
 
@@ -2606,6 +2630,7 @@ install 32), and the release tree took the fixes by a rerun of
   have the same likelihood. Changing it reverses a NEWS-documented
   choice ("(f || g) with a factor now yields independent per-level
   effects") and is a core parsing change: its own lane.
+  CLOSED at 0.71.0 (lane dblbar), as above.
 
 ### Filed by lane seflags (round opened 2026-10-07)
 
@@ -2658,6 +2683,10 @@ the measurements.
   - A route can come back only where it is shown accurate on these
     designs (the `poly(x, 8)` fit of the same likelihood is the
     reference); elsewhere NaN with the warning, as now.
+  CLOSED at 0.71.0 (lane illse), as above. marginaleffects and
+  insight::get_varcov() get NaN with the frmtmb_cov_products warning where a
+  product of the whole matrix loses its digits; vcov() keeps its entries and
+  warns.
 
 #### Regression sources (tests exist; keep these constructions)
 
@@ -2710,10 +2739,13 @@ the measurements.
   named, `fitted()` finite at 0.37 of the exact SE at x = 2.5, silent.
   Running the check there is a policy change (the convergence warning
   is meant to explain the fit), so it is filed, not changed.
+  CLOSED at 0.71.0 (lane illse, item c), as above.
 - **Gaussian linear predictors could take their SEs from a QR of the
   whitened design** (re-check m6): accurate where the Hessian is not.
   Not built. See "Accurate SEs on ill-conditioned designs" (Open -
   high, below).
+  CLOSED at 0.71.0 (lane illse): reparam_basis() takes every dense design's
+  QR, not only gaussian ones.
 - **The optimizer stops short along an ill-conditioned direction**
   (punch round 2b): on degree-8 raw polynomials at code 0, a Newton
   step along the direction gains 0.0009 to 4.5 of log-likelihood
@@ -2725,6 +2757,9 @@ the measurements.
   the true shortfall on every such fit, `dev/seflags-rev4-gain.R`).
   Polishing the estimates is an optimizer change (lane optrap's
   ground), so it is filed.
+  CLOSED at 0.71.0 (lane illse): newton_polish() steps in the design's
+  coordinates where the natural Hessian needs them, also from a coded stop;
+  the degree-8 fits end within a Newton gain of 1e-7 to 8e-7.
 - **A mixing weight at its limit could be named "boundary"** (final
   check after punch round 2, frmtmb.eam `test-defects.R:92`): the mixing
   logit at -23.44 is called "flat", and "a mixing parameter at its
@@ -2765,6 +2800,259 @@ the measurements.
   review-v29 fit) and its convergence and gradient warnings, at a
   point 3.2e-7 below the maximum (`dev/ci701-findings.md`).
 
+## Filed at the 0.71.0 release (2026-10-14)
+
+Seven lanes off 0.70.0 (`dev/round-20261014.md`). What each lane filed
+and did not fix, from its findings, with the record to read. The items
+this round closed are marked "CLOSED at 0.71.0" in place above. Lane
+famuni's own section follows this one as the lane wrote it.
+
+### Found at the consolidation
+
+See `dev/round-20261014.md`, "Found at the consolidation".
+
+- **The count header of `test-simulate-density.R` was short at 0.70.0**
+  (low). It said 251 statistical assertions; the file made 289 on
+  rellib-r8 (`dev/rel071-simcount.R`, `dev/rel071-log/simcount-head-r8.txt`:
+  the `P(Y = 1)` atoms and ten cells were not counted). The header now
+  states the count measured on the merged build, 363. CLOSED at 0.71.0.
+- **illse's test of an sd held near zero lost its premise under
+  optstart's least-squares start** (`test-se-conv.R`; 5 of its
+  expectations failed on the merged tree). The first replacement
+  (every parameter started at 0) did not pin illse's R2-1 fix: the
+  intercept was short too, so the test passed with the fix removed
+  (the release review, 6a). The test now starts at `lm()`'s maximum
+  given sd = 0 with `iter.max = 0`, so only the sd is short; it fails
+  on 0.70.0, fails with `se_sd_gain_up()` stubbed to 0, and passes on
+  the merged build (`dev/rel071-seconv3.R`). CLOSED at 0.71.0.
+- **`_pkgdown.yml` lacked `frmtmb-extreme-families`** (lane famuni's
+  new topic; `check_pkgdown()` stopped). CLOSED at 0.71.0.
+- **24 bin-2 rows of the ported suite carried a false verdict** once
+  lanes famuni's and famsimplex's families were in one build: 5 now
+  pass, `log_lik:349` is a divergence (domain), and 18 move from
+  "absent" to "not ported (cost)". Each has a true verdict and reason
+  (`dev/rel071-bin2-moves.R`, `dev/rel071-log/bin2-diff.txt`). The
+  ledger had stopped on 14 rows (lane postfix 9, lane famuni 5).
+  CLOSED at 0.71.0.
+- **The families instrument had no data generator for the five new
+  families** (`dev/brms-port/families-coverage.R`): added, each on its
+  own seed; 39 of 40 fitted by core, 40 of 40 with frmtmb.eam.
+  CLOSED at 0.71.0.
+
+### Filed by the release review (`dev/reviews/2026-10-14-release.md`)
+
+#### Open - low
+
+- **A correlation's boundary verdict depends on where the stop lands
+  on a flat ridge** (section 2, `dev/relrev071-rssd.R`). On the
+  false-alarm battery's `rs_sd0.02` seed 4 the merged build stops at
+  t = 19.66 (rho 0.99871, code 1, the correlation's SE 1.86e4, "at
+  the maximum"), and 0.70.0 at t = 23.75 (rho 0.99911, code 0, a
+  boundary message); both are at the same maximum to 6e-8, and lme4
+  gives rho 0.99926. ci701's `se_edge_cor()` acts only past t = 70.7.
+  It goes with ci701's deferred general case, a pull in correlation
+  space (lane ci701's section, "The warning side of a correlation
+  past the clamp"). Pre-existing; the merge makes it visible.
+- The false-alarm battery's new warnings on the merged build are 7 of
+  4000 fits (reference BLAS) and 6 (OpenBLAS 0.3.26) over 100 seeds
+  per model, all `rs_sd`, each within twice the base SE error; fewer
+  warnings in 19 and 22 (section 2). The record's "1 new convergence
+  warning" was the count over 20 seeds.
+
+### Filed by lane dblbar (`dev/dblbar-findings.md`, "Not done")
+
+#### Open - medium
+
+- **sd priors per coefficient.** brms's `default_prior()` lists an sd
+  row per coefficient and honors `set_prior(class = "sd", coef = )`;
+  frmtmb lists class and group rows only and refuses `coef` on class
+  sd. A `||` block could honor it. A priors lane.
+- **Nested and multi-membership prior labels.** frmtmb labels
+  `(1 + x | g1/g2)` `g2:g1` and `g1`, and `mm(m1, m2)` as written; brms
+  writes `g1:g2` and `mmm1m2`, so `set_prior(group = "g1:g2")` is
+  refused. Pre-existing for `|` terms (`dev/dblbar-preexist.R`).
+- **brms shares one Student-t latent scale across all the Student-t
+  terms of a grouping factor**; frmtmb gives each block its own.
+  `?frmtmb-student-re` says to write one term to share the scale.
+- **`frm_sample(seed = )` does not fix every chain** (frmtmb.sample):
+  two calls with `seed = 3` and 2 chains differ unless `set.seed()`
+  comes first, on rellib-r8 too (`dev/dblbar-rev2-seed2.R`).
+
+#### Open - low
+
+- `variables()` lists `sd_g1:g2__*` before `sd_g1__*` (brms the
+  reverse); `gr(g, id = )` and group-level `cs()` refused;
+  `re_formula = ~ diag(x | g)` names no term. Pre-existing.
+- Messages and tables that read a block's `term_label` still say
+  `1 + f | g [diag]` for a `||` term (the class "cor" prior refusal,
+  `confint_varcorr()$block`); `term_label` is a matching key, so the
+  change is not cosmetic.
+- A diagonal within-level covariance for `gr(cov = )` / `gr(prec = )`
+  would let a factor sit in a `||` term over a known matrix; now
+  refused.
+- frmtmb.sample's draws carry `theta_*`, not brms's `sd_` names, in
+  `variables(draws)` and `as_draws_df()`.
+
+### Filed by lane famsimplex (`dev/famsimplex-findings.md`, sections 5 and 8)
+
+#### Open - low
+
+- `logistic_normal()` in `mvbf()` is refused (family extras in a
+  multivariate frame); `dirichlet()` in `mvbf()` is untested.
+- `posterior_linpred()` without `dpar` is one predictor's `S x N`
+  matrix for every multi-predictor family; brms gives `S x N x (K - 1)`.
+- `categorical()` has no `refcat`, so a brms `categorical(refcat = )`
+  object loses it.
+- `multinomial()`'s `fitted()` refuses; brms returns `n x 4 x K`.
+- The simplex families' `phi` (and every family's `phi`, `shape`,
+  `nu`) keep no frmtmb.sample default where brms has one; one change
+  across families.
+- Pre-existing, from the review: `confint(parm = "lncor__b__c")` and
+  `"rescor__y1__y2"` refused on a 2 x 2 matrix with advice that fails;
+  `conditional_effects(dpar = )` reports `se__` on the link scale
+  beside a response-scale estimate (gaussian `sigma ~ z` too); `nobs()`
+  counts rows `subset()` drops; `drop1()` and
+  `marginaleffects::predictions()` on a matrix response fail.
+
+### Filed by lane postfix (`dev/postfix-findings.md`, "Not done", "Defects")
+
+#### Open - medium
+
+- **The review's Emax model M6 converges silently 114.85 below its
+  maximum** (`dev/postfix-rev-nlscan.R`, pre-existing).
+- `conditional_effects(<frm_multiple()>, int_conditions = )` stops with
+  "matched by multiple actual arguments" (pre-existing).
+
+#### Open - low
+
+- `predict()` and `conditional_effects(method = "predict")` of a
+  `frm_multiple()` result stay refused (a mixture of simulated
+  replicates is not Rubin's rules); `update()` of one is refused
+  (`frm_multiple()` keeps neither its call nor the data list).
+- `fitted(ndraws = )` stays a Wald summary; `summary = FALSE` has no
+  answer.
+- brms's "first imputed data set" warning on in-sample methods of
+  pooled draws is not copied (documented).
+
+### Filed by lane optstart (`dev/optstart-findings.md`, "Filed")
+
+#### Open - medium
+
+- **At a condition number of 2e4 to 1e5 with `(1 | g)`**, where
+  `newton_polish()` does not run, 7 of 40 fits stop short of lme4 at
+  code 0 with no warning (up to 0.143 on the lane, 0.038 on rellib-r8;
+  `dev/optstart-rev-collin.R`). Pre-existing; the start moves which
+  seeds.
+- **exgaussian's density** (`RTMBdist::dexgauss`) ends at "NA/NaN
+  gradient" on a group sd 30 times sigma, 5 of 10 fits on both builds
+  and from the true values too.
+
+#### Open - low
+
+- huber() reached +1.39e5 on 400 rows on rellib-r8 (a degenerate stop
+  of its density); fuzz specs with `weights(w)` and `ar1()` on beta and
+  Gamma reach objectives near -1e15 on rellib-r8.
+- 0.70.0's initializers read an `mi()` response's imputed zeros outside
+  the least-squares rule (`bf(y | mi() ~ 1)`).
+- The wide design ends at "false convergence (8)" at lme4's maximum on
+  1 of 3 seeds from any start; an anova start halves its time.
+- `fit_assembled()` solves the unit's least squares a second time.
+- The gr(g, by = f) fixture of `test-se-check.R` and `test-se-tier.R`
+  pins SE verdicts at a point 1.44e-4 below the maximum.
+- `fd_hessian()` keeps a step that leaves the matrix positive definite
+  however large its rise.
+- Not done: a within-group or anova start for sigma and the group sd;
+  families outside the rule (tweedie, compois, nbinom1, beta_binomial,
+  the zero-inflated and hurdle families, von_mises, inverse.gaussian,
+  Gamma's inverse link, cox) keep their starts; nonlinear formulas keep
+  theirs.
+
+### Filed by lane remeasure (`dev/remeasure-findings.md`, "Defects found")
+
+- R1 (two `mi()` fits lose their SEs at 0.70.0): CLOSED at 0.71.0 by
+  lane optstart (`fd_hessian()`'s retake; `dev/optstart-findings.md`,
+  "Item R1"). R2 to R4 (draws' `loo(newdata = )`, `logLik()`,
+  `bayes_R2(newdata = )`): CLOSED at 0.71.0 by lane postfix (item h).
+- **R5** (low): frmtmb.eam's default `ndt` link is not brms's; lane
+  famuni added `wiener(link_ndt = )` with brms's links and kept the
+  bounded default, and `family = brms::wiener()` now reaches frmtmb.eam
+  with brms's link. The default remains a documented difference.
+- **R6** (decided): `com_poisson`'s `mu` is the mean in frmtmb; brms
+  2.23.0 fits the rate and post-processes another pmf (brms-24 in
+  `dev/upstream-bugs.md`). The difference is documented in
+  `?brmsfamily` and `?frmtmb-families` at 0.71.0.
+- **R7** (low): the ported-suite harness lets staleness lapse through a
+  setup line that reads a stale name (`helper-brms-suite.R`); 0 held
+  assertions read one today (`dev/remeasure-stale-reach.R`).
+- **R8** (low): a family's `$lcdf` slot returns the CDF, by documented
+  convention; the name misleads.
+- The bin-2 port leaves 49 rows "not ported (cost)" and 41 gaps in its
+  denominator at 0.71.0 (`dev/brmsport-bin2-summary.md`). 18 of the 49
+  are rows of families this round added that the thin adapter or the
+  G1 shims do not map yet (dirichlet, dirichlet2 and logistic_normal's
+  per-category `mu` and `lncor`; brms's d/p/r functions of frechet and
+  gen_extreme_value): the cheapest bin-2 rows to port next.
+NA
+  denominator (`dev/brmsport-bin2-summary.md`).
+
+### Filed by lane famuni (round opened 2026-10-13)
+
+Non-blocking items from the review (`dev/reviews/2026-10-13-famuni.md`,
+section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
+
+- **frechet near nu = 1.** At nu0 = 1.1, n = 300, `y ~ x`, seed 31 ran
+  to nu = 1 + 5e-9 with the mean intercept at 17.38 and NaN SEs for it
+  and nu (`dev/famuni-rev-frechet11.R`). The "Standard errors are not
+  available" warning fires; the boundary message does not. It is brms's
+  parameterization: when the sample's best nu is below 1 the mean is
+  infinite and the maximum is at the edge. Wanted: a message that names
+  nu = 1 as the edge, as `gev_fit_check()` now names xi = -1.
+- **GEV gradient NaN 19.5 to 20.3 scale units below the location.** An
+  outside row near the `exp(700)` cap of `exp_neg_capped()` has a
+  non-finite gradient at x in [-20.26, -19.47] (xi 0.06, sigma 1; 80 of
+  401 grid points, `dev/famuni-rev-out/numerics2.txt`). In a mixture
+  the adjoint reaching such a row is 0, so it does not propagate (0 of
+  40 mixtures failed); a single-component fit meets it only on a
+  rejected step. Latent; the fix is a cap that also bounds the
+  derivative.
+- **SEs at -1 < xi < -0.5 carry no message.** The help page says the
+  maximum is not regular there (Smith 1985); fits at xi -0.63 and -0.89
+  return SEs silently. A MESSAGE is warranted, not a warning: a true xi
+  in that range is a correct model, and a warning would fire on it. It
+  should say that the SEs of `mu`, `sigma` and `xi` are not
+  asymptotically normal there and point to `confint(method =
+  "profile")`.
+
+### Filed by lane illse (`dev/illse-findings.md`, sections 9 to 11)
+
+#### Open - medium
+
+- **Degree 7, seed 4 of the 80 sd-at-zero fits now loses its
+  coefficient SEs** (`dev/illse-log/fx/r2-edge4-lane.txt`, `-ob32.txt`).
+  A larger group sd gains 1.1e-3 there, above `grad_tol`, so the fit
+  warns that it may not have converged and keeps `sdreport()`'s
+  standard errors, which are NaN. 0.70.0 named theta_1 "short" and kept
+  finite coefficient SEs. Safe (a NaN with a warning, not a wrong
+  number), but theta_1's verdict now equals 0.70.0's on 77 of the 80
+  fits, not 78. The coordinator filed it at the consolidation.
+- **The influence measures and the D1 and D2 tests** of `anova()` on
+  `frm_multiple()` fits (`cooks.distance()`, `solve(V)`, `solve(U)`)
+  read the whole matrix; at degrees 7 and 8 they stop with an error.
+- **marginaleffects and a caller's `a' vcov() a`** cannot be made
+  accurate on these designs in double precision; they get NaN or the
+  `frmtmb_cov_products` warning.
+
+#### Open - low
+
+- Fits with more than 100 outer parameters, a bound that holds a
+  parameter or an sd at its edge keep 0.70.0's verdicts (at degree 8
+  with `(1 | g)` and the sd at zero only theta_1 is lost on 16 of 20
+  seeds; on the others the route does not apply).
+- REML, and nonlinear formulas, keep the "illcond" verdict.
+- frmtmb.sample's jitter is scaled by the diagonal SEs only, not by
+  the factor.
+- The cost: 1.45 to 1.66 times 0.70.0's on n = 1e5 with 100 outer
+  parameters, and 1.47 to 1.52 with `(1 | g)` (section 10, item 7).
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

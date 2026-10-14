@@ -72,7 +72,9 @@
 #'   parameter component (`beta`, `betad`, `theta`, ...).
 #'   [par_template()] returns that list already filled with the
 #'   defaults, for a fitted model or for a formula and data alone; edit
-#'   it and pass it back.
+#'   it and pass it back. Its section "The default starting values"
+#'   tells how the defaults are set; the entries you do not name in
+#'   `start` keep those defaults.
 #'
 #'   A component is read by NAME when its vector has names, so
 #'   `start = list(beta = c("(Intercept)" = 5000))` moves that one
@@ -231,6 +233,13 @@
 #'   grouping factor loses its unused levels either way, because a level
 #'   without rows adds nothing to the Laplace likelihood, so [ranef()]
 #'   lists the levels the data hold.
+#' @param threshold Refused. brms 1.x took the threshold structure of an
+#'   ordinal model as an argument of `brm()`, and the JSS overview
+#'   vignette still passes it there; brms 2.23.0 refuses it too
+#'   ("passing unknown arguments: threshold"). It is an argument of the
+#'   ordinal family, as in brms: `family = sratio(threshold =
+#'   "equidistant")`. The refusal names that spelling with the family of
+#'   the call.
 #' @return An object of class `frmtmb_fit`. It is a list, and two of its
 #'   elements are read directly often enough to name here. `fit$data2`
 #'   is the `data2` list of known matrices. `fit$data` is the MODEL
@@ -282,6 +291,36 @@
 #' functions written by an extension author, and they keep resolving
 #' lexically: qualify with `RTMB::` there, and see [frmtmb_ad_overload()]
 #' for the rest of that contract.
+#'
+#' @section Uncorrelated group-level terms, ||:
+#' `(x || g)` is brms's `(x | gr(g, cor = FALSE))`. It is one term,
+#' coded with the formula's own contrasts. Each column has its own
+#' standard deviation, and there are no correlations. So `(1 + f || g)`,
+#' with a factor `f` of levels `a`, `b` and `c`, has the columns
+#' `Intercept`, `fb` and `fc` of `(1 + f | g)`. Its standard deviations
+#' are `sd_g__Intercept`, `sd_g__fb` and `sd_g__fc`, and it has no `cor_`
+#' parameter. `(0 + f || g)` has `fa`, `fb` and `fc`. lme4 expands `||`
+#' term by term instead. It codes the factor apart from the intercept,
+#' with a column for every level, and then correlates them (lme4#818).
+#' frmtmb follows brms.
+#'
+#' `(x | gr(g, cor = FALSE))` and `diag(x | g)` are the same term as
+#' `(x || g)`. `(x | mm(g1, g2, cor = FALSE))` is the `||` term over the
+#' membership grouping, `(x || mm(g1, g2))`. Under `||`, a `cor`
+#' argument is ignored, as brms ignores it. Over `gr(g, dist =
+#' "student")`, a `||` term has one latent scale per level, shared by
+#' all its columns, as in brms.
+#'
+#' Two combinations are refused. The first is an `|ID|` key beside
+#' `||`, as in `(x | p || g)` or `(x | p | gr(g, cor = FALSE))`. It asks
+#' for correlation across terms and for none at once. brms refuses the
+#' first spelling and silently drops the key from the second. The second
+#' is a `||` term over `gr(g, cov = A)` or `gr(g, prec = Q)` that has a
+#' term with several columns in it (a factor, `poly()`). A `||` term
+#' over a known matrix is split into one block per term, which is
+#' brms's model for numeric columns. The known-covariance block
+#' correlates the columns of one term within a level, so a term with
+#' several columns is refused.
 #'
 #' @section Monotonic effects:
 #' `mo(x)` fits an ordinal predictor without assuming its categories are
@@ -372,10 +411,9 @@
 #' The population-level column it varies is required, and refused
 #' without it, where brms 2.23.0 drops the term silently. It is
 #' available in a plain `(... | g)` or `(... || g)` term. A `||` term
-#' with `mo()` is one block with no correlations, coded whole as brms
-#' codes it: `(mo(x) * f || g)` has the columns `Intercept`, `fb`, `fc`,
-#' `mox`, `mox:fb` and `mox:fc`. A `||` term without `mo()` is expanded
-#' as lme4 expands it, one block per term.
+#' with `mo()` is one block with no correlations, coded whole like any
+#' `||` term: `(mo(x) * f || g)` has the columns `Intercept`, `fb`,
+#' `fc`, `mox`, `mox:fb` and `mox:fc`.
 #'
 #' @section Category-specific effects, cs():
 #' `cs(x)` gives a predictor one coefficient per category boundary
@@ -807,7 +845,11 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 na.action = stats::na.omit,
                 prior = NULL, quadrature = FALSE, importance = 0L,
                 data2 = list(), dry_run = NULL, verbose = FALSE,
-                drop_unused_levels = TRUE) {
+                drop_unused_levels = TRUE, threshold = NULL) {
+  if (!is.null(threshold)) {
+    frm_refuse_threshold(substitute(family), family, threshold,
+                         names(sys.call()), formula)
+  }
   cl <- match.call()
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
@@ -920,6 +962,63 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 # the user's own call is the one place a placed start is
                 # news; refit(), influence and the pre-fit are not
                 announce_start = TRUE)
+}
+
+#' The refusal of `frm(threshold = )`, which names the family argument
+#' the threshold structure belongs to. brms 1.x read `threshold` from
+#' `brm()`, so a ported call (the JSS overview vignette's `fit3`) still
+#' passes it there, and brms 2.23.0 stops with "passing unknown
+#' arguments: threshold" on the same line. The family is named from the
+#' call where it can be, so the message gives the line to write.
+#'
+#' R matches a named argument to a formal by its prefix, so `thres = 1`
+#' (brms's `thres()` is a formula term, not an argument) reaches this
+#' formal too. A call that wrote such a prefix and never `threshold`
+#' gets the error R gave it before the formal existed. A prefix passed
+#' on through another function's dots (`frm_multiple(thres = 1)`) is not
+#' visible in this call, and is refused as `threshold`.
+#'
+#' @noRd
+frm_refuse_threshold <- function(fexpr, family, threshold, call_names,
+                                 formula = NULL) {
+  call_names <- call_names %||% character(0)
+  pref <- call_names[nzchar(call_names) & call_names != "threshold" &
+                       startsWith("threshold", call_names)]
+  if (!"threshold" %in% call_names && length(pref)) {
+    frm_stop("unused argument (", pref[1L], " = ", deparse1(threshold),
+             ")", call. = FALSE)
+  }
+  ord <- c("cumulative", "sratio", "cratio", "acat", "hurdle_cumulative")
+  nm <- if (is.character(family) && length(family) == 1L) {
+    family
+  } else if (is.list(family) && is.character(family[["family"]])) {
+    family[["family"]]
+  } else if (is.name(fexpr)) {
+    as.character(fexpr)
+  } else if (is.call(fexpr)) {
+    deparse1(fexpr[[1L]])
+  }
+  # bf(y ~ x) + cumulative() carries the family in the formula
+  if (is.null(nm) && is.list(formula) && is.list(formula[["family"]])) {
+    nm <- formula[["family"]][["family"]]
+  }
+  nm <- sub("^.*::", "", nm %||% "")
+  val <- if (is.character(threshold) && length(threshold) == 1L) {
+    threshold
+  } else {
+    "equidistant"
+  }
+  frm_stop("frm() has no `threshold` argument: the threshold structure is ",
+           "an argument of the ordinal family, as in brms 2.23.0, whose ",
+           "brm() refuses it too (\"passing unknown arguments: ",
+           "threshold\"); brms 1.x took it in brm(). Write family = ",
+           if (nm %in% ord) nm else "cumulative", "(threshold = \"", val,
+           "\")",
+           if (!nm %in% ord) {
+             paste0(", with the ordinal family of the model: ",
+                    paste0(ord, "()", collapse = ", "))
+           },
+           call. = FALSE)
 }
 
 # --- verbose progress reporting --------------------------------------
@@ -1394,9 +1493,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       # with random effects the Hessian costs 2 p inner solves, so only
       # a near-collinear fixed design pays for it (newton_polish())
       ill <- length(obj$env$random) > 0L && length(opt$par) <= 100L &&
-        isTRUE(opt$convergence == 0) &&
         predictor_design_kappa(frame) > 1e5
-      opt <- newton_polish(obj, opt, bounds, par_units, ctl_opt, ill = ill)
+      opt <- newton_polish(obj, opt, bounds, par_units, ctl_opt, ill = ill,
+                           frame = frame)
       if (vb && !is.null(opt$polish)) {
         vb_say("Newton steps from the stop: ", opt$polish[["steps"]],
                ", gained ", format(opt$polish[["gain"]], digits = 3),
@@ -1481,8 +1580,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (vb) vb_stage("sdreport", t0)
   }
   chk <- check_convergence(fit, control)
-  # a fit that stopped short has no curvature worth a second warning
-  if (length(chk$warnings)) fit$cache$se_explained <- "convergence"
+  # A stop measured to be the maximum is judged by the SE check as a
+  # converged fit is, messages and all, whatever nlminb's code. A stop
+  # short of it keeps sdreport()'s standard errors, and its convergence
+  # warning says they are those of a point short of the maximum: a
+  # curvature verdict there, such as "flat" on coefficients the data
+  # determine, would not be one about the data (se_check(),
+  # sdr_rescue_hessian())
+  if (length(chk$warnings) &&
+        !(isTRUE(chk$at_max) && length(chk$warnings) == 1L)) {
+    fit$cache$se_explained <- "convergence"
+  }
   # Fit-end checks: a family that wants to inspect its own fit, and the
   # knot-span coverage of any ps() block. Both need the finished object,
   # which is why neither can live in family_finalize() or in the frame.
@@ -2600,9 +2708,11 @@ optimize_obj <- function(obj, control,
                         format(g, digits = 3))
                })
     }
-    if (!inherits(opt2, "error") &&
-          isTRUE(opt2$objective <= opt$objective)) {
-      opt <- opt2
+    kept <- if (!inherits(opt2, "error")) {
+      restart_result(opt, opt2, control, par_units)
+    }
+    if (!is.null(kept)) {
+      opt <- kept
       next
     }
     obj_settle(obj, opt, opt, saved)
@@ -2613,6 +2723,90 @@ optimize_obj <- function(obj, control,
   if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n
   opt$evals <- tally$evals
   opt
+}
+
+#' What a restart's result `opt2` leaves of the run `opt` it started
+#' from: `opt2`, `opt2` relabeled with `opt`'s convergence code and
+#' message, or `NULL` (keep `opt`).
+#'
+#' A restart that ends higher is dropped, and one that ends no higher is
+#' kept. It is relabeled only where all of these hold: the run converged
+#' and the restart did not; the restart lowered the objective by no more
+#' than the optimizer's relative function tolerance
+#' (restart_rel_tol()); and it moved no coordinate by more than the
+#' optimizer's relative step tolerance (`x.tol`, 1.5e-8 by default) of
+#' that coordinate's size or its natural unit (`par_units`). Such a
+#' restart ended where the converged run ended, so the run's code
+#' describes the point; its own stop, usually "false convergence (8)",
+#' says only that it could not move. The relabeled result carries the
+#' run's code, message, iterations and evaluations, so it describes the
+#' run, with the restart's point (within the two tolerances of the
+#' run's). The restart's own code, message, iterations and evaluations
+#' are kept in `opt2$restart`, which diagnose() shows. A restart that moved
+#' or gained more keeps its own code: it is a different stop, and the
+#' run's code says nothing about it.
+#'
+#' On a group sd 1000 times the residual sd (20 groups of 5,
+#' dev/optrap-rev2-b1.R re1000) the first run stopped at lme4's maximum
+#' at relative convergence, its gradient in natural units (0.0021) was
+#' above `grad_tol`, and the restart stopped in one iteration at "false
+#' convergence (8)" at the same objective and the same point, and warned:
+#' 2 of 20 fits on 0.70.0, and a different 1 of 20 with the
+#' least-squares start (dev/optstart-findings.md). Every relabel on the
+#' suites and the review's batteries moved by exactly 0. Keeping the
+#' run's point instead of the restart's (the first version of this rule)
+#' left test-bcm-simple.R's SIMPLE_1 with a gradient of 0.0025 under
+#' OpenBLAS 0.3.26, above that test's bound.
+#'
+#' @noRd
+restart_result <- function(opt, opt2, control = list(), par_units = NULL) {
+  if (!isTRUE(opt2$objective <= opt$objective)) return(NULL)
+  if (!isTRUE(opt$convergence == 0) || isTRUE(opt2$convergence == 0)) {
+    return(opt2)
+  }
+  ctl <- control$optCtrl %||% list()
+  rt <- restart_rel_tol(control$optimizer %||% "nlminb", ctl)
+  gained <- opt$objective - opt2$objective
+  xt <- ctl[["x.tol"]]
+  if (!(is.numeric(xt) && length(xt) == 1L && is.finite(xt))) xt <- 1.5e-8
+  p1 <- as.numeric(opt$par)
+  p2 <- as.numeric(opt2$par)
+  u <- if (length(par_units) == length(p1)) par_units else rep(1, length(p1))
+  still <- length(p2) == length(p1) && all(is.finite(p2)) &&
+    all(abs(p2 - p1) <= xt * pmax(abs(p1), u))
+  if (gained <= rt * max(1, abs(opt$objective)) && still) {
+    opt2$restart <- list(convergence = opt2$convergence,
+                         message = opt2$message,
+                         iterations = opt2$iterations,
+                         evaluations = opt2$evaluations)
+    opt2$convergence <- opt$convergence
+    opt2$message <- opt$message
+    opt2$iterations <- opt$iterations
+    opt2$evaluations <- opt$evaluations
+  }
+  opt2
+}
+
+#' The relative function tolerance of the optimizer a fit ran, for
+#' restart_result(): nlminb's `rel.tol` (1e-10 by default); for
+#' `optimizer = "optim"`, L-BFGS-B's `factr` times machine epsilon (its
+#' default 1e7 gives 2.2e-9), or optim's `reltol` where only that is
+#' given; for an optimizer function, `rel.tol` or `reltol` as given, and
+#' nlminb's default otherwise.
+#'
+#' @noRd
+restart_rel_tol <- function(optimizer, ctl) {
+  num <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v)
+  if (identical(optimizer, "optim")) {
+    if (num(ctl[["factr"]])) return(ctl[["factr"]] * .Machine$double.eps)
+    if (num(ctl[["reltol"]])) return(ctl[["reltol"]])
+    return(1e7 * .Machine$double.eps)
+  }
+  if (num(ctl[["rel.tol"]])) return(ctl[["rel.tol"]])
+  if (!identical(optimizer, "nlminb") && num(ctl[["reltol"]])) {
+    return(ctl[["reltol"]])
+  }
+  1e-10
 }
 
 #' Where a linear predictor's coefficients sit in the outer parameter
@@ -2928,8 +3122,10 @@ obj_state_at <- function(obj, par) {
 #' A step is taken only while it predicts a gain above 1e-6, so a fit
 #' at its maximum to the optimizer's tolerance is left as it is, bit for
 #' bit, and kept only if the objective falls and every parameter stays
-#' strictly inside its bounds. At most five steps, and only for up to
-#' 100 parameters, where the Hessian costs at most 100 gradient sweeps.
+#' strictly inside its bounds. At most five Hessians, and five steps
+#' (ten in the design's coordinates, where a Hessian is used again), and
+#' only for up to 100 parameters, where the Hessian costs at most 100
+#' gradient sweeps.
 #' A fit whose `optCtrl` sets one of the optimizer's tolerances (nlminb's
 #' `rel.tol`, `x.tol`, `abs.tol`, `xf.tol`; optim's `reltol`, `abstol`,
 #' and L-BFGS-B's `factr`, `pgtol`), or whose optimizer is a function of
@@ -2975,14 +3171,19 @@ obj_state_at <- function(obj, par) {
 #'
 #' @noRd
 newton_polish <- function(obj, opt, bounds, par_units = NULL,
-                          control = NULL, ill = FALSE) {
+                          control = NULL, ill = FALSE, frame = NULL) {
   p <- opt$par
   np <- length(p)
   tols <- c("rel.tol", "x.tol", "abs.tol", "xf.tol", "reltol",
             "abstol", "factr", "pgtol")
   re <- length(obj$env$random) > 0L
+  # a stop nlminb did not call converged is stepped from only in the
+  # design's coordinates (below): y ~ x with x on [1e5, 1e5 + 1] stopped
+  # at "false convergence" 157 below lm()'s maximum, at its start
+  # slope (dev/illse-offdbg.R), and five steps there reach it
+  coded <- !isTRUE(opt$convergence == 0)
   if (!np || np > 100L || (re && !isTRUE(ill)) ||
-        !isTRUE(opt$convergence == 0) || !is.finite(opt$objective) ||
+        (coded && is.null(frame)) || !is.finite(opt$objective) ||
         any(names(control$optCtrl) %in% tols) ||
         is.function(control$optimizer)) {
     return(opt)
@@ -2990,51 +3191,156 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   lower <- rep_len(bounds$lower %||% -Inf, np)
   upper <- rep_len(bounds$upper %||% Inf, np)
   u <- rep_len(par_units %||% 1, np)
+  # On a fixed design ill-conditioned enough that the natural Hessian
+  # has no digits along its weakest direction, the steps are taken in
+  # the design's coordinates (reparam_basis()), the ones the standard
+  # errors use: at degree 8 the natural Hessian has no Cholesky factor
+  # and every fit stopped 0.09 to 1.2 short (dev/illse-check.R). The
+  # natural Hessian at the stop decides, by the rule the standard
+  # errors use (hess_needs_reparam())
+  M <- NULL
+  decided <- is.null(frame)
   v <- opt$objective
   saved <- obj_state_save(obj)
   moved <- FALSE
   steps <- 0L
-  hess_at <- function(p) {
+  Mi <- NULL
+  hess_at <- function(p, g = NULL) {
+    if (!is.null(M)) {
+      h <- reparam_hessian_refined(obj, p, M)
+      if (is.null(h) || !all(is.finite(h$H))) return(NULL)
+      Mi <<- h$M
+      return(h$H)
+    }
     H <- tryCatch(if (re) {
       stats::optimHess(p, obj$fn, obj$gr, control = list(parscale = u))
     } else {
-      obj$he(p)
+      obj_he_cached(obj, p)
     }, error = function(e) NULL)
-    if (is.null(H) || !identical(dim(H), c(np, np)) || !all(is.finite(H))) {
-      return(NULL)
+    if (is.null(H) || !identical(dim(H), c(np, np))) return(NULL)
+    fin <- all(is.finite(H))
+    if (!fin && (decided || is.null(frame))) return(NULL)
+    if (!decided) {
+      decided <<- TRUE
+      # a parameter with an empty row that a step cannot gain on, such
+      # as a group sd at zero, is left where it is, and the steps are
+      # taken over the others: its row alone kept a degree-8 fit with
+      # (1 | g) 2.7 below lm()'s maximum under OpenBLAS, where under the
+      # reference BLAS the row was not empty and the steps reached it
+      # (review of lane illse, item 5). So is a row that is not finite
+      # where the gradient along it is that small: an sd at exp(-355)
+      # left 4 of 20 degree-8 fits 1.5 short with no steps at all
+      Hs <- (H + t(H)) / 2
+      keep <- seq_len(np)
+      if (length(g) == np && all(is.finite(g))) {
+        keep <- which(!headroom_flat_rows(Hs, g, u,
+                                          control$grad_tol %||% 1e-3))
+      }
+      if (!all(is.finite(Hs[keep, keep]))) return(NULL)
+      if (length(keep) >= 2L &&
+            hess_needs_reparam(Hs[keep, keep, drop = FALSE])) {
+        M0 <- tryCatch(reparam_basis(frame, names(p)),
+                       error = function(e) NULL)
+        out <- setdiff(seq_len(np), keep)
+        if (!is.null(M0) && all(dim(M0) == np) &&
+              !length(intersect(out, attr(M0, "pos")))) {
+          M <<- if (length(out)) M0[, keep, drop = FALSE] else M0
+          return(hess_at(p))
+        }
+      }
+      if (coded || !fin) return(NULL)
     }
     H
   }
   chol_at <- function(H) {
     if (is.null(H)) return(NULL)
-    Hs <- H * outer(u, u)
+    Hs <- if (is.null(M)) H * outer(u, u) else H
     tryCatch(chol((Hs + t(Hs)) / 2), error = function(e) NULL)
   }
+  # one step from p with the Hessian Hc and its Cholesky factor R:
+  # list(q, vq, model), or NULL when no step is taken
+  polish_step <- function(Hc, R, g) {
+    if (is.null(Hc)) return(NULL)
+    damped <- is.null(R) && !is.null(M)
+    if (damped) {
+      # Far from the maximum the Hessian in the design's coordinates can
+      # be indefinite: on that y ~ x fit the slope's coordinate against
+      # log sigma (444 and 400 on the diagonal, -531 between). A damped
+      # step (Levenberg and Marquardt) still descends, and the gate below
+      # judges it as any other
+      for (lam in c(0.01, 0.1, 1, 10)) {
+        R <- chol_at(Hc + lam * diag(abs(diag(Hc)), nrow(Hc)))
+        if (!is.null(R)) break
+      }
+    }
+    if (is.null(R)) return(NULL)
+    # in natural units, where the Hessian is closest to unit diagonal,
+    # or in the coordinates the Hessian was taken in
+    gs <- if (is.null(M)) g * u else drop(crossprod(Mi, g))
+    st <- -drop(backsolve(R, forwardsolve(t(R), gs)))
+    if (!all(is.finite(st))) return(NULL)
+    gain <- -sum(gs * st) / 2
+    if (!is.finite(gain) || gain <= 1e-6) return(NULL)
+    q <- p + if (is.null(M)) st * u else drop(Mi %*% st)
+    if (any(q <= lower) || any(q >= upper)) return(NULL)
+    vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+    t <- 1
+    if (!is.null(M)) {
+      # in the design's coordinates a step from far off is shortened
+      # until it gains a tenth of what the quadratic model predicts at
+      # that fraction t of it, gain (2 t - t^2): on the y ~ x fit the
+      # full second step overshot in log sigma
+      while (t > 0.125 && !(is.finite(vq) && vq < v &&
+                              v - vq >= 0.1 * gain * (2 * t - t^2))) {
+        t <- t / 2
+        q <- p + t * drop(Mi %*% st)
+        vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+      }
+      gain <- gain * (2 * t - t^2)
+    }
+    if (!is.finite(vq) || vq >= v || v - vq < 0.1 * gain) return(NULL)
+    # whether the quadratic model held: a full, undamped step whose gain
+    # was within half of its prediction either way
+    list(q = q, vq = vq,
+         model = t == 1 && !damped && abs((v - vq) / gain - 1) <= 0.5)
+  }
   end_ok <- TRUE
-  for (it in 1:5) {
+  # In the design's coordinates a full step's Hessian is used again for
+  # the next step, and taken afresh only when a step from it fails: one
+  # there costs 4 p gradients (two passes when refined), and on n = 1e5
+  # with 100 parameters each took 100 to 200 s (review of lane illse,
+  # item 7). The gate below judges a step from a reused Hessian as any
+  # other, and the steps end on a fresh one, which the convergence and
+  # standard-error checks then read (reparam_hessian_refined()). At
+  # most five Hessians are taken, and ten steps; in natural units every
+  # step takes its own Hessian, so there are at most five steps.
+  stale <- FALSE
+  fresh_n <- 0L
+  while (steps < 10L) {
+    if (!stale && fresh_n >= 5L) break
     g <- tryCatch(drop(obj$gr(p)), error = function(e) NULL)
     if (is.null(g) || length(g) != np || !all(is.finite(g))) {
       end_ok <- FALSE
       break
     }
-    # in natural units, where the Hessian is closest to unit diagonal
-    gs <- g * u
-    R <- chol_at(hess_at(p))
-    end_ok <- !is.null(R)
-    if (is.null(R)) break
-    st <- -drop(backsolve(R, forwardsolve(t(R), gs)))
-    if (!all(is.finite(st))) break
-    gain <- -sum(gs * st) / 2
-    if (!is.finite(gain) || gain <= 1e-6) break
-    q <- p + st * u
-    if (any(q <= lower) || any(q >= upper)) break
-    vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
-    if (!is.finite(vq) || vq >= v || v - vq < 0.1 * gain) break
-    p <- q
-    v <- vq
+    if (!stale) {
+      fresh_n <- fresh_n + 1L
+      Hc <- hess_at(p, g)
+      R <- chol_at(Hc)
+      end_ok <- !is.null(R)
+    }
+    st_try <- polish_step(Hc, R, g)
+    if (is.null(st_try) && stale) {
+      stale <- FALSE
+      next
+    }
+    if (is.null(st_try)) break
+    p <- st_try$q
+    v <- st_try$vq
     moved <- TRUE
     steps <- steps + 1L
     end_ok <- NA
+    stale <- !is.null(M) && isTRUE(st_try$model)
   }
   # the loop leaves end_ok NA when its last step was taken and the
   # Hessian there not yet read
@@ -3476,6 +3782,32 @@ fit_numerical_error <- function(msg) {
         ignore.case = TRUE)
 }
 
+#' The error of a nonlinear fit that failed from its default start:
+#' how to give starts, and no start of its own.
+#'
+#' @noRd
+nl_start_message <- function(spec, emsg) {
+  nlp <- unique(unlist(lapply(spec$responses, function(r) r$nlpars)))
+  nlq <- paste0("`", nlp, "`", collapse = ", ")
+  # No start is offered. A start found by searching the objective
+  # converges at a local maximum as cleanly as at the global one: on a
+  # sinusoid, 22 of 30 such fits had code 0, finite standard errors and
+  # no warning, 93 to 118 log-likelihood units low
+  # (dev/reviews/2026-10-13-postfix.md, round 2)
+  paste0("The nonlinear fit failed from its default starting values (",
+         emsg, "). A nonlinear coefficient starts at 0 unless `start` ",
+         "or a located prior places it, and the body is often not defined ",
+         "there. frmtmb offers no start of its own: a start found by ",
+         "search can lead to a local maximum, which converges with no ",
+         "warning. ",
+         "Give the starts of ", nlq, " in one of two ways. (1) `start = ",
+         "list(beta = c(<name> = <value>))`: par_template(formula, data) ",
+         "gives the names, and the names go straight back. (2) A normal() ",
+         "or student_t() prior with a location, e.g. prior(normal(",
+         "<location>, <scale>), nlpar = \"", nlp[1L], "\"): the fit ",
+         "starts from the location")
+}
+
 #' Runs the optimizer call and rewrites any failure into a message that
 #' names the model and what to try next.
 #'
@@ -3507,14 +3839,7 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
       emsg <- conditionMessage(e)
       numerical <- fit_numerical_error(emsg)
       msg <- if (nl_start && numerical) {
-        paste0("The nonlinear fit failed from its default starting ",
-               "values (", emsg, "). Nonlinear models ",
-               "need starting values in the right region: ",
-               "par_template(formula, data) names the parameters, and ",
-               "the names go straight back, e.g. ",
-               "start = list(beta = c(ult = 5000)). A normal() or ",
-               "student_t() prior on a nonlinear parameter places its ",
-               "start from the prior location instead")
+        nl_start_message(spec, emsg)
       } else if (numerical) {
         paste0("The optimizer failed on this model (",
                vb_fit_detail(spec, REML, control, quadrature, prior),
@@ -3686,9 +4011,30 @@ make_start <- function(frame, start, prior_entries = NULL,
   tpl <- frame[["par_template"]]
   # computed at most once per response, and only for a family that asks
   resid_cache <- new.env(parent = emptyenv())
+  # mu at least squares and its scale at the residual spread, where that
+  # rule applies (start_ls_plan()); its residuals are the ones an
+  # initializer reads, so the design is solved once
+  ls_plan <- start_ls_plan(frame)
+  for (key in names(ls_plan)) resid_cache[[key]] <- ls_plan[[key]]$resid
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]])) next   # mapped; keep link(constant)
     if (!is.null(lp[["equate"]])) next     # its target sets the start
+    pl <- ls_plan[[as.character(lp[["resp"]])]]
+    if (!is.null(pl)) {
+      if (identical(lp[["dpar"]], "mu")) {
+        tpl[[lp[["par"]]]][lp[["idx"]]] <- pl$beta
+        next
+      }
+      v <- pl$scale[[lp[["dpar"]]]]
+      icpt <- match("(Intercept)", colnames(lp[["X"]]))
+      if (!is.null(v) && !is.na(icpt)) {
+        val <- lp[["link"]]$linkfun(v)
+        if (is.finite(val)) {
+          tpl[[lp[["par"]]]][lp[["idx"]][icpt]] <- val
+          next
+        }
+      }
+    }
     resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
     init_fn <- resp$family[["init_dpars"]][[lp[["dpar"]]]]
     if (is.null(init_fn)) next
@@ -3751,7 +4097,8 @@ make_start <- function(frame, start, prior_entries = NULL,
     if (is.function(sp)) tpl <- sp(frame, resp$resp_name, tpl)
   }
   # the group sds in the response's units; see predictor_units()
-  tpl <- unit_theta_start(frame, tpl)
+  tpl <- unit_theta_start(frame, tpl, predictor_units(
+    frame, unlist(lapply(unname(ls_plan), `[[`, "fits"), recursive = FALSE)))
   claimed <- integer(0)
   if (!is.null(start)) {
     nl_named <- unique(unlist(lapply(frame[["spec"]]$responses,
@@ -3900,7 +4247,15 @@ grad_headroom <- function(fit, g, active) {
   np <- length(p)
   free <- which(!active)
   if (!length(free)) return(0)
-  H <- tryCatch(fit$obj$he(p), error = function(e) NULL)
+  H <- tryCatch(obj_he_cached(fit$obj, p), error = function(e) NULL)
+  u1 <- is.null(fit$par_units) || all(fit$par_units == 1)
+  if (is.null(H) || !identical(dim(H), c(np, np))) {
+    # in natural units the same differences as optimHess() below, step
+    # for step (fd_hessian()), which the SE check reads again; under
+    # autoscale only the ones conv_headroom() already took here, so that
+    # a fit nlminb called converged keeps its own
+    H <- fit_outer_hessian_at(fit, p, kept_only = !u1)
+  }
   if (is.null(H) || !identical(dim(H), c(np, np))) {
     # he() is not implemented for a Laplace objective, so the Hessian of
     # the marginal comes from differencing its gradient
@@ -3915,15 +4270,231 @@ grad_headroom <- function(fit, g, active) {
     # optimizer left it for one gradient evaluation.
     try(fit$obj$gr(p), silent = TRUE)
   }
-  if (is.null(H) || !identical(dim(H), c(np, np)) || anyNA(H)) {
-    return(NA_real_)
-  }
+  if (is.null(H) || !identical(dim(H), c(np, np))) return(NA_real_)
   H <- (H + t(H)) / 2
+  tol <- fit$control$grad_tol %||% 1e-3
+  u <- rep_len(fit$par_units %||% 1, np)
+  dr <- headroom_drop_rows(fit, H, g, u, tol)
+  free <- setdiff(free, which(dr))
+  extra <- attr(dr, "gain")
+  if (!length(free)) return(extra)
+  if (anyNA(H[free, free])) return(NA_real_)
+  # On an ill-conditioned fixed design the natural Hessian has no digits
+  # along its weakest direction: at the maximum of a degree-7 raw
+  # polynomial with (1 | g) under bernoulli its Cholesky factor gave a
+  # headroom above grad_tol and the fit warned of a large gradient
+  # (dev/illse-glm.R). In the design's coordinates (reparam_basis()) the
+  # Newton step is measured exactly as the standard errors are.
+  if (!any(active)) {
+    h <- headroom_reparam_hessian(fit, H, free)
+    ch <- if (!is.null(h)) tryCatch(chol(h$H), error = function(e) NULL)
+    if (!is.null(ch)) {
+      return(extra + 0.5 * sum(backsolve(ch, drop(crossprod(h$M, g)),
+                                         transpose = TRUE)^2))
+    }
+  }
   ch <- tryCatch(chol(H[free, free, drop = FALSE]),
                  error = function(e) NULL)
   if (is.null(ch)) return(NA_real_)
-  0.5 * sum(backsolve(ch, g[free], transpose = TRUE)^2)
+  extra + 0.5 * sum(backsolve(ch, g[free], transpose = TRUE)^2)
 }
+
+#' How much log-likelihood a Newton step from the stop of a fit that did
+#' not report convergence would gain, over the parameters no bound holds:
+#' this decides whether the stop is the maximum (check_convergence()).
+#' Every such fit pays for one Hessian; a fit that converged does not.
+#'
+#' Unlike grad_headroom(), a direction the likelihood is flat along does
+#' not make the answer unusable: an exact alias leaves the Hessian
+#' singular at every point, the maximum included, and the SE check names
+#' it either way. The step is taken over the other directions, and a
+#' flat one counts only through what it could gain (newton_room()). On
+#' an ill-conditioned design the Hessian is taken in the design's
+#' coordinates, as the standard errors are (hess_needs_reparam()).
+#' `NA` when there is no usable Hessian or it curves upward somewhere.
+#'
+#' @noRd
+conv_headroom <- function(fit, g) {
+  p <- fit$opt$par
+  np <- length(p)
+  if (!np || length(g) != np || !all(is.finite(g))) return(NA_real_)
+  act <- grad_bound_active(p, g, fit_outer_box(fit)) %in% TRUE
+  free <- which(!act)
+  if (!length(free)) return(0)
+  obj <- fit$obj
+  saved <- obj_state_save(obj)
+  on.exit(obj_state_restore(obj, saved), add = TRUE)
+  u <- rep_len(fit$par_units %||% 1, np)
+  # with random effects, fit_outer_hessian()'s differences, which
+  # grad_headroom() and the SE check read again at this point
+  H <- if (length(obj$env$random)) fit_outer_hessian_at(fit, p)
+  if (is.null(H)) {
+    H <- tryCatch(if (length(obj$env$random)) {
+      stats::optimHess(p, function(q) as.numeric(obj$fn(q)),
+                       function(q) drop(obj$gr(q)),
+                       control = list(parscale = u))
+    } else {
+      obj_he_cached(obj, p)
+    }, error = function(e) NULL)
+  }
+  if (!is.matrix(H) || !all(dim(H) == np)) return(NA_real_)
+  H <- (H + t(H)) / 2
+  tol <- fit$control$grad_tol %||% 1e-3
+  dr <- headroom_drop_rows(fit, H, g, u, tol)
+  free <- setdiff(free, which(dr))
+  extra <- attr(dr, "gain")
+  if (!length(free)) return(extra)
+  if (!all(is.finite(H[free, free]))) return(NA_real_)
+  if (!any(act)) {
+    h <- headroom_reparam_hessian(fit, H, free)
+    if (!is.null(h)) {
+      return(extra + newton_room(h$H, drop(crossprod(h$M, g)), tol))
+    }
+  }
+  extra + newton_room(H[free, free, drop = FALSE], g[free], tol)
+}
+
+#' Rows of a natural Hessian `H` that the Newton steps leave where they
+#' are: the row is one tier 3 empties (`se_empty_row`, in the
+#' optimizer's units `u`) or is not finite (taken out one at a time, the
+#' worst first, as tier 3 does), and the gradient along it is small
+#' (`(g u)^2 / (2 se_empty_row) <= tol`). That bound is not a bound on
+#' what a step along the row gains: an empty row can curve by far less
+#' than `se_empty_row` (review of lane illse, round 2, R2-1). So a
+#' verdict about the maximum reads headroom_drop_rows(), which asks the
+#' likelihood itself.
+#'
+#' @noRd
+headroom_flat_rows <- function(H, g, u, tol) {
+  np <- NROW(H)
+  bad <- logical(np)
+  repeat {
+    f <- which(!bad)
+    nbad <- rowSums(!is.finite(H[f, f, drop = FALSE]))
+    if (!length(f) || !any(nbad > 0)) break
+    bad[f[which.max(nbad)]] <- TRUE
+  }
+  Hu <- abs(H * outer(u, u))
+  Hu[!is.finite(Hu)] <- 0
+  rmax <- apply(Hu, 1L, max)
+  small <- is.finite(g) & (g * u)^2 / (2 * se_empty_row) <= tol
+  (bad | rmax <= se_empty_row) & small
+}
+
+#' The rows of headroom_flat_rows() that the headroom of
+#' conv_headroom() and grad_headroom() leaves out of its Hessian: only
+#' log standard deviations, whose larger values the SE check's upward
+#' probe asks the likelihood about, the rest held (se_sd_gain_up()).
+#' What that probe gains is added to the headroom (attribute `gain`),
+#' so a stop short along the sd is called short, by at least that much.
+#' Every other such row stays, and its curvature, which is unusable,
+#' says so.
+#'
+#' A log sd run to zero at the maximum is left out: on a degree-6 raw
+#' polynomial with `(1 | g)` and no group effect the Newton steps
+#' reached lm()'s maximum to 6.4e-9, but the sd's row left the Hessian
+#' without a Cholesky factor, so the fit warned that it "may not have
+#' converged" and every standard error was NaN (review of lane illse,
+#' item 5). A log sd held near zero short of an interior maximum is not:
+#' `y ~ x + (1 | g)` with a true sd of 0.5, started at log sd -15 with
+#' three iterations, stopped 92 and 139 below the maximum with the sd's
+#' row empty and its gradient 5.6e-10, and the warning called the stop
+#' the maximum (round 2, R2-1).
+#'
+#' @noRd
+headroom_drop_rows <- function(fit, H, g, u, tol) {
+  out <- structure(logical(length(g)), gain = 0)
+  fr <- headroom_flat_rows(H, g, u, tol)
+  if (!any(fr)) return(out)
+  th <- fit$estimates[["theta"]]
+  om <- outer_par_map(fit)
+  thpos <- which(om$comp == "theta")
+  if (!length(th) || length(thpos) != length(th) ||
+        length(om$comp) != length(g)) {
+    return(out)
+  }
+  sd_i <- tryCatch(unique(log_sd_theta_index(fit)),
+                   error = function(e) integer(0))
+  extra <- 0
+  for (k in sd_i) {
+    j <- thpos[k]
+    if (!fr[j]) next
+    gain <- tryCatch(as.numeric(se_sd_gain_up(fit, k)),
+                     error = function(e) NA_real_)
+    if (!is.finite(gain)) next
+    out[j] <- TRUE
+    extra <- extra + max(gain, 0)
+  }
+  attr(out, "gain") <- extra
+  out
+}
+
+#' The Hessian in the design's coordinates over the parameters `free`,
+#' for the headroom of conv_headroom() and grad_headroom(), when the
+#' natural one over `free` needs them (hess_needs_reparam()). NULL
+#' otherwise, or when a parameter left out of `free` is in a design's
+#' block (its coordinates then mix it with the others).
+#'
+#' @noRd
+headroom_reparam_hessian <- function(fit, H, free) {
+  p <- fit$opt$par
+  np <- length(p)
+  if (!hess_needs_reparam(H[free, free, drop = FALSE])) return(NULL)
+  M <- tryCatch(reparam_basis(fit$frame, names(p)),
+                error = function(e) NULL)
+  if (is.null(M) || !all(dim(M) == np)) return(NULL)
+  out <- setdiff(seq_len(np), free)
+  if (length(intersect(out, attr(M, "pos")))) return(NULL)
+  if (length(out)) M <- M[, free, drop = FALSE]
+  h <- reparam_hessian_refined(fit$obj, p, M)
+  if (is.null(h) || !all(is.finite(h$H))) return(NULL)
+  h
+}
+
+#' `g' H^+ g / 2` over the directions of `H` (at unit diagonal) above
+#' `se_flat_tol` of its largest curvature. Along a flatter direction the
+#' step could gain as much as its gradient squared over twice that
+#' bound; when that is more than `tol` the gain is not known and the
+#' answer is `NA`, as it is when `H` curves upward beyond the same bound.
+#'
+#' @noRd
+newton_room <- function(H, g, tol) {
+  D <- sqrt(abs(diag(H)))
+  if (!length(D) || !all(D > 0)) return(NA_real_)
+  e <- eigen(H / outer(D, D), symmetric = TRUE)
+  big <- max(abs(e$values))
+  bound <- se_flat_tol * big
+  if (any(e$values < -bound)) return(NA_real_)
+  gs <- drop(crossprod(e$vectors, g / D))
+  flat <- e$values <= bound
+  if (any(gs[flat]^2 / (2 * bound) > tol)) return(NA_real_)
+  0.5 * sum(gs[!flat]^2 / e$values[!flat])
+}
+
+#' The clause the "did not report convergence" warning ends with: what a
+#' Newton step from the stop gains (conv_headroom()) and what that
+#' makes of the standard errors, which the check judges either way.
+#'
+#' @noRd
+conv_headroom_clause <- function(room, tol) {
+  if (!is.finite(room)) {
+    return(paste0(". The curvature at the stop is unusable, so whether ",
+                  "it is the maximum could not be measured; the standard ",
+                  "errors are those of the stop"))
+  }
+  if (room <= tol) {
+    return(paste0(". A Newton step from the stop gains ",
+                  format(room, digits = 3), " in log-likelihood, within ",
+                  "frmtmb_control(grad_tol = ", format(tol, digits = 3),
+                  "), so the estimates are at the maximum and their ",
+                  "standard errors are judged as for a converged fit"))
+  }
+  paste0(". A Newton step from the stop would still gain ",
+         format(room, digits = 3), " in log-likelihood, so the estimates ",
+         "and their standard errors are those of a point short of the ",
+         "maximum")
+}
+
 
 #' The gradient verdict one fit raises once: what the largest component
 #' is, which components a bound holds, what the largest component no
@@ -4045,6 +4616,9 @@ check_convergence <- function(fit, control) {
   # collected first, warned second, so the verbose summary line can
   # report how many diagnostics the fit raised
   msgs <- character(0)
+  # whether a stop nlminb did not call converged was measured to be the
+  # maximum (below)
+  at_max <- FALSE
   # Separation sends the optimizer toward infinity, so where it stops,
   # and with which code, is a platform's rounding: it is named whatever
   # the code, and in place of the optimizer's own verdict, which it
@@ -4089,16 +4663,29 @@ check_convergence <- function(fit, control) {
   bstop <- is.null(sep) && fit$opt$convergence != 0 &&
     is.null(fit$importance) && se_boundary_stop(fit, g, control)
   if (is.null(sep) && fit$opt$convergence != 0 && !bstop) {
+    # Whether the stop is the maximum is measured, not read off the code:
+    # nlminb's "false convergence (8)" also fires at the maximum (a group
+    # sd 1000 times sigma stopped there at lmer's maximum,
+    # dev/test-backlog.md), and on a ridge the code is rounding's choice,
+    # so the same model got its standard errors judged on one platform
+    # and not on the other (lane ci691). The standard-error check runs on
+    # every fit (se_check()); this says which kind of point it judged
+    room <- if (is.null(fit$importance)) conv_headroom(fit, gvec)
+    at_max <- isTRUE(is.finite(room) && room <= control$grad_tol)
     # a nonlinear model that started at zero is the likeliest cause, and
     # `start` is the only lever, so name it here [brms#734]
-    nl_hint <- if (any(vapply(fit$spec$responses,
-                              function(r) length(r$nlpars) > 0L, TRUE))) {
+    nl_hint <- if (!at_max &&
+                     any(vapply(fit$spec$responses,
+                                function(r) length(r$nlpars) > 0L, TRUE))) {
       paste0(". This is a nonlinear model; unless `start` or a ",
              "located prior placed them, the fit began at zero, which ",
              "is rarely in the right region (see par_template())")
     } else ""
     msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                           fit$opt$message, nl_hint))
+                           fit$opt$message, nl_hint,
+                           if (is.null(fit$importance)) {
+                             conv_headroom_clause(room, control$grad_tol)
+                           }))
   }
   if (!is.null(fit$importance)) {
     # An importance-corrected objective is a Monte Carlo estimate, and
@@ -4179,5 +4766,5 @@ check_convergence <- function(fit, control) {
                            "overparameterized", flat_par_note(fit)))
   }
   for (m in msgs) frm_warning(m, call. = FALSE)
-  invisible(list(grad = g, warnings = msgs))
+  invisible(list(grad = g, warnings = msgs, at_max = at_max))
 }

@@ -431,7 +431,13 @@ cluster_scores_at <- function(fit, cl) {
 #'   (covariance parameters included), named as in `vcov(full = TRUE)`;
 #'   otherwise the fixed-effect block, as [vcov.frmtmb_fit()] returns.
 #' @return A covariance matrix, with attributes `type`, `nclusters` and
-#'   `df` (the `G - 1` reference degrees of freedom).
+#'   `df` (the `G - 1` reference degrees of freedom). When the fixed
+#'   design is ill-conditioned, the model's covariance is held as a
+#'   factor (see [frm_lp_basis()]). Then the sandwich is formed through
+#'   that factor, and the matrix also has the attribute `root`, a matrix
+#'   `F` with `V = F F'`. [hypothesis()] reads `root` when it is given
+#'   the matrix as `vcov`. A product formed from the whole matrix loses
+#'   its digits on such a fit, and the function warns once per fit.
 #' @seealso [cluster_scores()] for the pieces, [vcov.frmtmb_fit()]
 #'   which accepts `cluster` and forwards here, and [frm_bootstrap()]
 #'   for the cases this refuses.
@@ -483,7 +489,9 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
   cluster_guard(object, cl)
 
   S <- cluster_scores_at(object, cl)
-  B <- vcov(object, full = TRUE)
+  # vcov_estimated(), not vcov(): vcov()'s warning is about the matrix
+  # it returns, and this one is formed below
+  B <- vcov_estimated(object, full = TRUE)
   nm <- outer_par_labels(object)
   if (!identical(dim(B), c(length(nm), length(nm)))) {
     frm_stop("the model-based covariance and the score matrix do not ",
@@ -497,10 +505,22 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
                 ") than estimated parameters (", p,
                 "); the small-sample factor is not positive", call. = FALSE)
   }
-  V <- B %*% crossprod(S) %*% B
-  V <- cr_adjust(type, G, N, p) * V
-  V <- (V + t(V)) / 2                   # kill the asymmetric round-off
+  cf <- cr_adjust(type, G, N, p)
+  Fr <- cluster_root(object, S, cf, nrow(B))
+  if (is.null(Fr)) {
+    V <- B %*% crossprod(S) %*% B
+    V <- cf * V
+    V <- (V + t(V)) / 2                   # kill the asymmetric round-off
+  } else {
+    V <- tcrossprod(Fr)
+    # a parameter the check lost has no row in the bread
+    lost <- !is.finite(diag(B))
+    V[lost, ] <- NaN
+    V[, lost] <- NaN
+    Fr[lost, ] <- NaN
+  }
   dimnames(V) <- list(nm, nm)
+  keep <- seq_along(nm)
   if (!full) {
     # by COMPONENT, not by name: vcov() does the same, and two linear
     # predictors can carry the same coefficient name
@@ -510,10 +530,43 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
     dimnames(V) <- list(estimated_coef_names(object),
                         estimated_coef_names(object))
   }
+  if (!is.null(Fr)) {
+    Fr <- Fr[keep, , drop = FALSE]
+    rownames(Fr) <- rownames(V)
+    attr(V, "root") <- Fr
+  }
   attr(V, "type") <- type
   attr(V, "nclusters") <- G
   attr(V, "df") <- G - 1
+  if (!is.null(Fr)) warn_cov_products(object, "vcov_cluster()")
   V
+}
+
+#' A factor `F` of the cluster-robust covariance, `V = F F'`, on a fit
+#' whose covariance is held as a factor `root` (se_reparam_cov()):
+#' `F = sqrt(cf) root K'` with `K = S root`, so the sandwich
+#' `B S'S B` is never formed from the bread `B = root root'`. On a
+#' degree-8 raw polynomial with `(1 | g)` the sandwich from the whole
+#' bread was off by 2.3 to 12 on the correlation scale, and even the
+#' exact bread rounded to double gave 3.5 to 10; through the factor the
+#' error was 6.4e-6 to 1.5e-5 (review of lane illse, item 1). With more
+#' clusters than parameters `F` is reduced to a square factor by a QR
+#' of `F'`. NULL on any other fit, or when `cf` is not positive.
+#'
+#' @noRd
+cluster_root <- function(object, S, cf, np) {
+  root <- tryCatch(sdr_of(object)$cov_fixed_root, error = function(e) NULL)
+  if (is.null(root) || nrow(root) != np || ncol(S) != np ||
+        !is.finite(cf) || cf <= 0) {
+    return(NULL)
+  }
+  K <- S %*% root
+  Fr <- sqrt(cf) * root %*% t(K)
+  if (ncol(Fr) > np) {
+    q <- qr(t(Fr))
+    Fr <- t(qr.R(q)[, order(q$pivot), drop = FALSE])
+  }
+  if (all(is.finite(Fr))) Fr
 }
 
 #' Resolves a user-supplied `vcov` argument (a matrix, or a function of
@@ -538,5 +591,9 @@ resolve_vcov_arg <- function(fit, V, what) {
              "return; got ", nrow(V), " x ", ncol(V), ".", hint,
              call. = FALSE)
   }
-  list(V = V, df = attr(V, "df"))
+  # a factor that came with the matrix (vcov_cluster() on a fit whose
+  # covariance is held as one), for the routes that form products
+  root <- attr(V, "root")
+  if (!is.matrix(root) || nrow(root) != nrow(V)) root <- NULL
+  list(V = V, df = attr(V, "df"), root = root)
 }

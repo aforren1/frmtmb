@@ -255,11 +255,11 @@ test_that("SDT_2 matches its Stan program", {
     fit = fit,
     pars = function(f) {
       b <- fixef_by_dpar(f)$mu
-      list(d = unname(b["half"]) + frm_u_term(f, "0 + half | id"),
-           c = unname(b["bias"]) + frm_u_term(f, "0 + bias | id"),
+      list(d = unname(b["half"]) + frm_u_term(f, "0 + half + bias | id", 1L),
+           c = unname(b["bias"]) + frm_u_term(f, "0 + half + bias | id", 2L),
            mud = unname(b["half"]), muc = unname(b["bias"]),
-           sigmad = frm_sd_term(f, "0 + half | id"),
-           sigmac = frm_sd_term(f, "0 + bias | id"))
+           sigmad = frm_sd_term(f, "0 + half + bias | id", 1L),
+           sigmac = frm_sd_term(f, "0 + half + bias | id", 2L))
     },
     # the outer estimate maximizes the Laplace-approximated marginal, so
     # only the inner block is at a stationary point of the joint
@@ -281,12 +281,12 @@ test_that("SDT_3's parameter expansion is a ridge, not a model", {
     pars = function(f) {
       b <- fixef_by_dpar(f)$mu
       list(mud = unname(b["half"]), muc = unname(b["bias"]),
-           sigmadnew = frm_sd_term(f, "0 + half | id"),
-           sigmacnew = frm_sd_term(f, "0 + bias | id"),
+           sigmadnew = frm_sd_term(f, "0 + half + bias | id", 1L),
+           sigmacnew = frm_sd_term(f, "0 + half + bias | id", 2L),
            # the point of the ridge where SDT_3 IS SDT_2
            xid = 1, xic = 1,
-           deltad = frm_u_term(f, "0 + half | id"),
-           deltac = frm_u_term(f, "0 + bias | id"))
+           deltad = frm_u_term(f, "0 + half + bias | id", 1L),
+           deltac = frm_u_term(f, "0 + half + bias | id", 2L))
     },
     inner = c("deltad", "deltac"),
     const = 0)

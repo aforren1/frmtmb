@@ -1,3 +1,61 @@
+# frmtmb.eam 0.12.0
+
+Runs on frmtmb 0.70.0 and later. The `wiener()` links follow brms
+2.23.0, and the order of its arguments changes.
+
+## Breaking changes
+
+* **A constant on a drift rate of `lba()` or `rdm()` is refused**, by
+  frmtmb 0.71.0. `bf(rt | vint(choice) ~ 1, v3 = 0.8)` on `lba(3)`
+  used to fit, and `v3` was estimated anyway: the constant had no
+  effect. The refusal says to write `v3 ~ 1` to estimate it, or
+  `v3 ~ 0 + offset(o)` to hold it at a known value. This package's
+  code is unchanged.
+
+* `wiener()` takes brms's link arguments in brms's order,
+  `wiener(link, link_bs, link_ndt, link_bias, max_ndt, ...)`, so a
+  positional call written for brms means the same thing here. A
+  positional `max_ndt` is now a link; name it.
+
+* `wiener(link = )` is refused outside brms's set for the drift
+  rate, `"identity"`, `"log"`, `"softplus"` and `"squareplus"`. Before,
+  `wiener(link = "logit")` fitted a drift rate held inside (0, 1), and
+  `"probit"` and `"sqrt"` fitted too. An unquoted name reads as brms
+  reads it: `wiener(log)` was refused as a `max_ndt` and now gives the
+  log link.
+
+## New features
+
+* `wiener()` gains `link_bs` (`"log"`, `"identity"`, `"softplus"`,
+  `"squareplus"`) and `link_bias` (`"logit"`, `"identity"`), as brms has.
+  Under an identity link the density and the fitted objective are
+  `NaN` outside the support. That is a `bs` at or below zero, a `bias`
+  outside (0, 1), or an `ndt` at or below zero
+  (`link_ndt = "identity"`). Before, the series alone returned a finite
+  number for a bias of 1.2.
+
+* `wiener(link_ndt = )` gives brms's parameterization of the
+  non-decision time: `"log"`, brms's default, or `"identity"`,
+  `"softplus"` or `"squareplus"`. The coefficients of `ndt ~ ...` are
+  then on brms's scale. The default stays the bounded link. On a scalar
+  `ndt` the two links are the same model. Over 200 simulated data sets
+  the two maxima agreed to 6e-10 in the log-likelihood. It is
+  refused with `max_ndt`, `ndt_group()`, `variability`,
+  `contaminant = TRUE` and `allow_unreachable = TRUE`; see `?wiener`,
+  "Links, and the one difference from brms".
+
+* A brms family object keeps its links: `family = brms::wiener()` and
+  `brms::brmsfamily("wiener")` carry brms's `link_ndt = "log"`, so they
+  fit brms's log link for `ndt`, where `family = "wiener"` and
+  `frmtmb.eam::wiener()` fit the bounded default. With brms and this
+  package both attached, a bare `wiener()` is whichever was attached
+  last. On a scalar `ndt` the maxima are the same; under `ndt ~ x` the
+  coefficients are on different scales.
+
+* `?wiener` documents how `fitted()` and `simulate()` differ from brms's
+  `posterior_epred()` and `posterior_predict()`, and that brms 2.23.0's
+  `posterior_epred()` for this family is right only at `bs = 1`.
+
 # frmtmb.eam 0.11.3
 
 Needs frmtmb 0.70.0. No change to the package's code.
@@ -974,7 +1032,6 @@ compatibility table.
   them 0.06 s apart. Both are checked against simulated data, which
   knows nothing about how either is computed.
 
-
 ## The generalized drift-diffusion model
 
 * `gddm()` is the generalized drift-diffusion family of Shinn, Lam and
@@ -1231,4 +1288,3 @@ API.
   `residuals()` answers `type = "response"` only.
 * `dev-findings.md` in the package source records what building this
   from outside frmtmb cost, as an acceptance test of the extension API.
-

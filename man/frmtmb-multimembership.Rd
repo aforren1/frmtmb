@@ -33,6 +33,10 @@ Everything downstream is therefore unchanged. The covariance is the
 usual one, the Laplace approximation is the usual one, and
 \code{\link[=ranef]{ranef()}}, \code{\link[=VarCorr]{VarCorr()}}, \code{\link[=ngrps]{ngrps()}}, \code{fitted()}, \code{simulate()} and
 \code{predict()} all read the block with no multi-membership branch.
+
+\code{(x | mm(g1, g2, cor = FALSE))} and \code{(x || mm(g1, g2))} are one block
+whose columns have their own standard deviations and no correlation,
+as in brms.
 }
 
 \section{Levels are pooled}{
@@ -83,12 +87,11 @@ pooled membership levels have no order, no coordinates and no
 relationship matrix for one to be defined on.}
 \item{\verb{|ID|} keys}{A merged block indexes one level set per
 observation row; an \code{mm()} row loads several at once.}
-\item{brms's other \code{mm()} arguments}{\code{cor = FALSE} is
-\code{diag(x | mm(g1, g2))}, \verb{id =} is the \verb{|ID|} key, and \verb{cov =} is
-\code{gr(g, cov = A)} over a single-membership factor, and \verb{dist =} is
-\code{gr(g, dist = "student")} over one (see
-\link{frmtmb-student-re}), though not over a membership design, whose
-rows load several levels at once. \verb{pw =} has no equivalent
+\item{brms's other \code{mm()} arguments}{\verb{id =} is the \verb{|ID|} key.
+\verb{cov =} is \code{gr(g, cov = A)} over a single-membership factor, and
+\verb{dist =} is \code{gr(g, dist = "student")} over one (see
+\link{frmtmb-student-re}). Neither applies to a membership design,
+whose rows load several levels at once. \verb{pw =} has no equivalent
 yet.}
 \item{Non-name members}{\code{mm()} reads its membership variables as
 column names, as brms does. Build the column first.}

@@ -1,0 +1,12 @@
+.libPaths(c("C:/Users/adf44/source/r/rellib-r8", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(frmtmb))
+cat("lib:", find.package("frmtmb"), "\n")
+set.seed(31); n <- 200
+d <- data.frame(x = rnorm(n)); P <- cbind(1, exp(0.3 + 0.5 * d$x), 1); P <- P / rowSums(P)
+d$f <- factor(c("a","b","c")[apply(P, 1, function(p) sample(3, 1, prob = p))])
+f <- frm(bf(f ~ x), family = categorical(), data = d)
+cat("drop1:", tryCatch({drop1(f); "OK"}, error = function(e) conditionMessage(e)), "\n")
+cat("mfx predictions:", tryCatch({marginaleffects::predictions(f); "OK"}, error = function(e) conditionMessage(e)), "\n")
+d$N <- 10L; d$Ym <- t(vapply(1:n, function(i) rmultinom(1, 10, P[i, ])[, 1], numeric(3)))
+g <- frm(bf(Ym | trials(N) ~ x), family = multinomial(K = 3), data = d)
+cat("multinomial mfx predictions:", tryCatch({marginaleffects::predictions(g); "OK"}, error = function(e) substr(conditionMessage(e), 1, 150)), "\n")

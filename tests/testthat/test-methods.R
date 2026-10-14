@@ -157,7 +157,7 @@ test_that("as.data.frame() and print() still index by position", {
   expect_output(print(re), "apo: 1 \\| id")
 })
 
-# The multi-block case is not a nonlinear-model corner. Three ordinary
+# The multi-block case is not a nonlinear-model corner. Two ordinary
 # spellings put two blocks on one grouping factor, and the ranef()
 # refusal reaches all of them; only the nonlinear one was covered above.
 
@@ -169,25 +169,28 @@ ranef_two_block_data <- function(seed = 21, n = 200) {
   d
 }
 
-test_that("an uncorrelated slope puts two blocks on one factor", {
+test_that("two bars on one factor are two blocks, and || is one", {
   d <- ranef_two_block_data()
-  fit <- suppressWarnings(frm(bf(y ~ x + (1 + x || g)) + gaussian(), data = d))
-  re <- ranef(fit)
-  expect_named(re, c("g", "g"))
-  expect_identical(unname(vapply(re, function(m) attr(m, "term"), "")),
-                   c("1 | g", "0 + x | g"))
-  expect_error(re$g, "2 random-effect blocks on grouping factor 'g'")
-  expect_identical(re[["1 | g"]], re[[1]])
-  expect_identical(re[["0 + x | g"]], re[[2]])
-
-  # the two bars written out are the same two blocks, so they behave
-  # identically - this is `||` desugared, not a separate rule
   fit2 <- suppressWarnings(frm(bf(y ~ x + (1 | g) + (0 + x | g)) + gaussian(),
                                data = d))
   re2 <- ranef(fit2)
+  expect_named(re2, c("g", "g"))
   expect_identical(unname(vapply(re2, function(m) attr(m, "term"), "")),
                    c("1 | g", "0 + x | g"))
-  expect_error(re2[["g"]], "2 random-effect blocks")
+  expect_error(re2$g, "2 random-effect blocks on grouping factor 'g'")
+  expect_identical(re2[["1 | g"]], re2[[1]])
+  expect_identical(re2[["0 + x | g"]], re2[[2]])
+
+  # an uncorrelated slope is ONE block with independent sds, as in
+  # brms, so its factor addresses it; it was lme4's two blocks, the
+  # same model
+  fit <- suppressWarnings(frm(bf(y ~ x + (1 + x || g)) + gaussian(), data = d))
+  re <- ranef(fit)
+  expect_named(re, "g")
+  expect_identical(colnames(re$g), c("Intercept", "x"))
+  expect_equal(unname(cbind(re$g[, 1], re$g[, 2])),
+               unname(cbind(re2[[1]][, 1], re2[[2]][, 1])),
+               tolerance = 1e-6)
 })
 
 test_that("a random effect on a second dpar puts two blocks on one factor", {

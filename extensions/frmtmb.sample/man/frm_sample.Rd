@@ -24,7 +24,8 @@ frm_sample(
 }
 \arguments{
 \item{fit}{A \code{frmtmb_fit}, or a \code{bf()}/formula to assemble and sample
-directly (then \code{data} is required).}
+directly (then \code{data} is required), or a \code{frmtmb::frm_multiple()}
+result (see Multiply imputed data).}
 
 \item{data}{A data frame of model data, when \code{fit} is a formula.}
 
@@ -362,8 +363,10 @@ priors, read off \code{brms::default_prior()} on matched models. Write
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
    \code{cor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{rescor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
+   \code{lncor} (a \code{logistic_normal()} response) \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
+   \verb{sigma<k>} of \code{logistic_normal()} \tab as \code{sigma}, with \code{s = 2.5} \tab natural or log \cr
    \code{Intercept} of an ordinal family's \code{disc} \tab \code{normal(0, 1)} \tab link \cr
    \code{simo} (a \code{mo()} simplex) \tab \code{dirichlet(1)} \tab the simplex \cr
 }
@@ -438,8 +441,8 @@ column and which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}'s class voc
 (\code{b}/\code{Intercept}/\code{sd}/\code{theta}) cannot address. An ordinal model
 still gets its \code{sd} defaults, and the message names the gap.
 \item The \code{shape}, \code{phi} and \code{nu} dispersion parameters stay flat: brms
-gives them gamma and inverse-gamma defaults, which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}
-does not carry.
+gives them gamma and inverse-gamma defaults. A user's prior writes
+one, as \code{set_prior("gamma(0.01, 0.01)", class = "phi")}.
 \item NONLINEAR parameters stay flat, which is what brms does: their
 coefficients are class \code{b}, and the response's median and mad say
 nothing about a rate or a shape sitting inside a nonlinear body.
@@ -521,6 +524,25 @@ a passed check.
 \code{frm_ode()} fit aborts at the first warmup step inside RTMBode,
 and the abort leaves rstan's autodiff arena unusable for the rest
 of the session, so the refusal is worth more than the attempt.
+}
+
+\section{Multiply imputed data}{
+
+Given a \code{frmtmb::frm_multiple()} result, \code{frm_sample()} samples the
+fit of every imputation with the same arguments and combines the
+draws, as brms's \code{brm_multiple()} combines the chains of its fits:
+the draws of imputation 2 follow those of imputation 1, and so on,
+and the \code{stanfit} holds every chain, so \code{nchains()} is the number
+of imputations times \code{chains}. A \code{seed} gives imputation \code{j} the
+seed \code{seed + j - 1}, so the result is reproducible and no two
+imputations share a random stream. The draws object keeps the
+first imputation's fit, so a method that reads the data in sample
+(\code{posterior_predict()} without \code{newdata}, \code{pp_check()}, \code{loo()})
+reads the first imputed data set, which is what brms does and warns
+about. Chains of different imputations sample different
+posteriors, so an R-hat across them measures the imputations as
+well as the sampler, as the brms vignette on missing values says;
+check each imputation's chains on their own.
 }
 
 \section{Multimodal posteriors}{

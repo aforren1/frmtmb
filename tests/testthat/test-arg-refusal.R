@@ -103,8 +103,11 @@ test_that("an argument brms has and a point fit cannot honor says why", {
   fit <- ar_case()
   # `probs` and `nlpar` left this list at item 2.6f: fitted() reports
   # brms's quantile columns now, as a Wald interval, and `nlpar` is a
-  # synonym for `dpar` here
-  for (a in c("ndraws", "draw_ids", "summary", "robust", "sort")) {
+  # synonym for `dpar` here. `ndraws` left it in the postfix lane of
+  # 2026-10-13: it sets brms's Monte Carlo error, which a fit has none
+  # of, so it is accepted and said to change nothing
+  # (test-brms-shapes.R)
+  for (a in c("draw_ids", "summary", "robust", "sort")) {
     cl <- list(quote(stats::fitted), quote(fit))
     cl[[a]] <- 1
     msg <- tryCatch(eval(as.call(cl)), error = conditionMessage)
@@ -112,9 +115,10 @@ test_that("an argument brms has and a point fit cannot honor says why", {
     expect_match(msg, a, fixed = TRUE, info = a)
   }
   # the draws-specific ones say where the argument does work
-  expect_match(tryCatch(fitted(fit, ndraws = 10)[, "Estimate"],
+  expect_match(tryCatch(fitted(fit, draw_ids = 1:3)[, "Estimate"],
                         error = conditionMessage),
                "frmtmb.sample")
+  expect_message(fitted(fit, ndraws = 10), "frmtmb.sample")
 })
 
 test_that("a base-R path that forwards its own argument still works", {
@@ -218,7 +222,8 @@ ar_is_dots_name <- function(x) {
 # worse, and on one it made it wrong:
 # `conditional_effects(frm_multiple_result, "x")` reported "1 argument
 # with no name" where "no pooled version" is the answer.
-ar_refusers <- c("stop", "frm_stop", "fit_no_draws", "multiple_no_draws")
+ar_refusers <- c("stop", "frm_stop", "fit_no_draws", "multiple_no_draws",
+                 "multiple_refuse")
 
 # Under covr every statement arrives as
 # `if (TRUE) { covr:::count(key); <statement> }`, so a one-call body no

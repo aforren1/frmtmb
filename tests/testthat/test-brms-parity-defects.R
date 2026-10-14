@@ -246,8 +246,10 @@ test_that("\"old_levels\" reads ONE seen group for every term of a factor", {
   # the response mean of a lognormal reads mu AND sigma
   fl <- frm(bf(yl ~ x + (1 | g), sigma ~ (1 | g)), family = lognormal(),
             data = dg)
-  # the intercept and the slope are two blocks of g
-  fs <- frm(bf(ys ~ x + (1 + x || g)), family = gaussian(), data = dg)
+  # the intercept and the slope are two blocks of g; (1 + x || g) was
+  # this model, and is one block now, as in brms
+  fs <- frm(bf(ys ~ x + (1 | g) + (0 + x | g)), family = gaussian(),
+            data = dg)
   expect_length(fs$frame[["re_blocks"]], 2L)
   for (s in 1:6) {
     set.seed(s)

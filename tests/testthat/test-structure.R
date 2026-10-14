@@ -467,7 +467,12 @@ test_that("the family applies the row weights, and the core does not", {
   dd$w <- rep(c(1, 2, 4, 3), length.out = 60)
   wf <- bf(y | weights(w) ~ x)
   fit <- frm(wf, data = dd, family = struct_wgauss())
-  ref <- frm(wf + gaussian(), data = dd)
+  # from the start struct_wgauss() takes (its family is not one the
+  # least-squares start reaches), so the two stop at one point and
+  # their deviance ratio is constant to the optimizer's precision
+  ref <- frm(wf + gaussian(), data = dd,
+             start = list(beta = c(mean(dd$y), 0),
+                          betad = log(stats::sd(dd$y))))
   # the same weighted likelihood, so the same fit
   expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(ref)),
                tolerance = 1e-8)

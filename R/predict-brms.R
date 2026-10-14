@@ -1158,7 +1158,14 @@ predict_par_drawer <- function(object, propagate_error, ndraws) {
   # from the covariance that holds them; any other loss keeps the
   # plug-in fallback and its warning
   if (!is.null(ds$jc) && !isTRUE(ds$boundary_only)) V <- NULL
-  L <- if (is.null(V) || !all(is.finite(V))) NULL else {
+  # a covariance held as a factor (se_reparam_cov()) is drawn through
+  # it: chol() of the whole matrix refuses one that ill-conditioned, or
+  # returns a factor with none of its digits
+  L <- if (!is.null(ds$root) && !is.null(V)) {
+    t(ds$root)
+  } else if (is.null(V) || !all(is.finite(V))) {
+    NULL
+  } else {
     tryCatch(chol(V + diag(0, nrow(V))), error = function(e) {
       if (is.null(ds$jc)) return(NULL)
       # held directions make the covariance singular: its symmetric

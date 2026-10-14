@@ -32,6 +32,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `update(fit, bf(~ ., family = acat()))` | same | a `bf()` whose formula is a delta: the location formula is updated, parameter formulas and constants are pooled, and its family wins |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
 | `(1 | p | g)` | same | cross-formula RE correlation |
+| `(x || g)`, `(x | gr(g, cor = FALSE))` | same | one term coded as `(x | g)` codes it, with one SD per column and no correlation: `(1 + f || g)` has `Intercept`, `fb` and `fc`, where lme4 gives `f` a column per level |
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families, ordinal ones included; `rescor` all gaussian or all student, with one shared `nu`; `mvbf() + family` fills only responses without a family (below) |
 | `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE censoring bound is read inclusively, unlike brms (below) |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
@@ -48,6 +49,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
 | `categorical()` on a numeric response | same | the distinct values are the categories, in numeric order: `11:13` is three categories with `11` the reference |
+| `dirichlet()`, `logistic_normal()`, `brmsfamily("dirichlet2")` | same | the response is `cbind(y1, y2, y3)` or a matrix column, `refcat` as in brms; every row is held to 1.5e-8 of one, where brms holds the mean over rows; `lncor` takes class `"lncor"` |
 | `mixture(..., order = "none")` | same | brms's `order = "mu"`, which orders the components' intercepts for a sampler, is refused, except on ordinal components, where it gives them one shared threshold vector, as in brms |
 
 ### Links
@@ -477,7 +479,7 @@ when it refuses one:
 
 | brms | frmtmb |
 |---|---|
-| `mm(g1, g2, cor = FALSE)` | `diag(x | mm(g1, g2))`, or `(x || mm(g1, g2))` |
+| `mm(g1, g2, cor = FALSE)` | same, or `(x || mm(g1, g2))` |
 | `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
 | `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
 | `mm(g1, g2, by = cbind(f1, f2))` | same, one by-variable column per member |

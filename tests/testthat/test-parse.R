@@ -44,10 +44,12 @@ test_that("parse_spec builds the IR for random-effect terms", {
 })
 
 test_that("double-bar and diag() terms parse to independent structures", {
+  # one term, as brms reads (x | gr(g, cor = FALSE))
   spec <- frm(bf(y ~ x + (x || g)) + poisson(),
                  data = NULL, dry_run = "spec")
   re <- spec$responses[[1]]$dpars$mu$re
-  expect_length(re, 2)
+  expect_length(re, 1)
+  expect_identical(re[[1]]$covstruct, "diag")
 
   spec2 <- frm(bf(y ~ x + diag(x | g)) + poisson(),
                   data = NULL, dry_run = "spec")

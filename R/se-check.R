@@ -29,21 +29,56 @@
 #' `pull` (logical, one per outer parameter) moves those parameters back
 #' to the clamp before the Hessian is taken (se_edge_cor()).
 #'
+#' The last result is kept on the objective (`obj$env`), keyed on the
+#' point (after `pull`) and the units: conv_headroom() and
+#' grad_headroom() read it at the fit's own point, as the SE check does,
+#' and on a Laplace objective with 100 parameters and n = 1e4 each one
+#' cost 10 s (review of lane illse, item 7).
+#'
 #' @noRd
 fit_outer_hessian <- function(fit, pull = NULL) {
   obj <- fit$obj
+  u <- fit$par_units
+  scaled <- !(is.null(u) || all(u == 1))
+  at <- se_pull_back(if (scaled) fit$opt$par else sdr_outer_point(obj),
+                     pull)
+  env <- obj$env
+  key <- list(at = unname(as.numeric(at)), u = u)
+  hit <- if (is.environment(env)) env$.frmtmb_outer_h
+  if (!is.null(hit) && identical(hit$key, key)) return(hit$h)
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
-  u <- fit$par_units
-  if (is.null(u) || all(u == 1)) {
-    at <- se_pull_back(sdr_outer_point(obj), pull)
+  out <- if (!scaled) {
     h <- fd_hessian(at, obj$gr)
-    return(list(H = h$H, at = at, Hq = NULL, E = h$E))
+    list(H = h$H, at = at, Hq = NULL, E = h$E)
+  } else {
+    h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u)
+    list(H = h$H / outer(u, u), at = at, Hq = h$H,
+         E = h$E / outer(u, u))
   }
-  at <- se_pull_back(fit$opt$par, pull)
-  h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u)
-  list(H = h$H / outer(u, u), at = at, Hq = h$H,
-       E = h$E / outer(u, u))
+  if (is.environment(env)) env$.frmtmb_outer_h <- list(key = key, h = out)
+  out
+}
+
+#' fit_outer_hessian()'s `H` when it is taken at `p`, the fit's own
+#' point, else NULL; with `kept_only`, only when it is already kept.
+#'
+#' @noRd
+fit_outer_hessian_at <- function(fit, p, kept_only = FALSE) {
+  u <- fit$par_units
+  scaled <- !(is.null(u) || all(u == 1))
+  at <- if (scaled) fit$opt$par else sdr_outer_point(fit$obj)
+  if (!identical(unname(as.numeric(at)), unname(as.numeric(p)))) {
+    return(NULL)
+  }
+  if (kept_only) {
+    hit <- fit$obj$env$.frmtmb_outer_h
+    key <- list(at = unname(as.numeric(at)), u = u)
+    if (is.null(hit) || !identical(hit$key, key)) return(NULL)
+  }
+  h <- tryCatch(fit_outer_hessian(fit), error = function(e) NULL)
+  H <- h$H
+  if (is.matrix(H) && all(dim(H) == length(p))) H
 }
 
 #' stats::optimHess() with its default controls, written out so that the
@@ -62,8 +97,29 @@ fit_outer_hessian <- function(fit, pull = NULL) {
 #' comes from the inner solve. Whether to build it at fit time at all is
 #' se_check_at_fit()'s decision, made before the first gradient.
 #'
+#' A step of 0.001 is right only in coordinates where the objective
+#' rises by a small amount over it, and `par` is in whatever coordinates
+#' the caller chose (natural units, where `par_units` are in play). The
+#' rise along coordinate `i`, `tau = 0.5 * H[i, i] * 0.001^2`, does not
+#' depend on the coordinates. Where the matrix has no Cholesky factor
+#' and some columns rose by more than `tau_band`, those columns are
+#' taken again with the step that gives a rise of `tau_step`, and the
+#' retaken matrix is kept when it factors and its smallest eigenvalue is
+#' above its own noise (the spectral norm of its `E`). With the
+#' response units of 0.70.0 on brms_missings' fit_imp2 the steps of
+#' `bmi_michl` and `bmi_michl:age` rose by about 0.03 and 0.09 and the
+#' Hessian was indefinite, so every standard error was NaN (lane
+#' remeasure, R1);
+#' retaken, the standard errors agree with a Richardson Jacobian of the
+#' gradient to 5e-7 whatever the units (dev/optstart-r1-steps.R). A
+#' matrix that factors is the old Hessian bit for bit, and so is one the
+#' retake does not make factor: a flat or curved ridge stays the
+#' standard-error check's to judge. Retaking every column whose rise is
+#' above the band moved the check's verdict on test-se-tier.R's curved
+#' ridge (dev/optstart-sediag.R).
+#'
 #' @noRd
-fd_hessian <- function(par, gr) {
+fd_hessian <- function(par, gr, tau_band = 1e-2, tau_step = 1e-4) {
   n <- length(par)
   eps <- 0.001
   dpar <- par
@@ -75,6 +131,33 @@ fd_hessian <- function(par, gr) {
     df2 <- as.numeric(gr(dpar))
     H[, i] <- (1 * (df1 - df2)) / (2 * eps * 1 * 1)
     dpar[i] <- dpar[i] + eps
+  }
+  factors <- function(M) {
+    all(is.finite(M)) &&
+      !inherits(try(chol(0.5 * (M + t(M))), silent = TRUE), "try-error")
+  }
+  d <- diag(H)
+  redo <- which(is.finite(d) & d > 0 & 0.5 * d * eps^2 > tau_band)
+  if (length(redo) && !factors(H)) {
+    H2 <- H
+    for (i in redo) {
+      h <- sqrt(2 * tau_step / d[i])
+      dpar[i] <- par[i] + h
+      df1 <- as.numeric(gr(dpar))
+      dpar[i] <- par[i] - h
+      df2 <- as.numeric(gr(dpar))
+      H2[, i] <- (df1 - df2) / (2 * h)
+      dpar[i] <- par[i]
+    }
+    # a retake of a matrix that is singular by construction can factor by
+    # its noise alone: on test-se-tier.R's curved ridge the retake's
+    # smallest eigenvalue was 1.5e-6 against a noise of 1.1e-3, and on
+    # R1's oversized steps 1.03 against 0.02 (dev/optstart-retake.R)
+    if (factors(H2)) {
+      lmin <- min(eigen(0.5 * (H2 + t(H2)), symmetric = TRUE,
+                        only.values = TRUE)$values)
+      if (lmin > norm(abs(H2 - t(H2)) / 2, "2")) H <- H2
+    }
   }
   E <- abs(H - t(H)) / 2
   H <- 0.5 * (H + t(H))
@@ -185,6 +268,12 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   p <- fit$opt$par
   held <- se_bound_held(fit, p)
   edge <- se_edge_sd(fit, H) | ec
+  # before the tiers: on an ill-conditioned fixed design the natural
+  # inverse is inaccurate whichever tier accepts it (se_reparam_cov())
+  if (!any(held) && !any(edge)) {
+    rp <- se_reparam_cov(fit, H, p)
+    if (!is.null(rp)) return(rp)
+  }
   if (!is.null(tier1) &&
         !se_tier3_could_act(fit, H, E, exact, held, edge)) {
     return(tier1)
@@ -195,7 +284,7 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   # Hessian is exact to rounding, a finite-difference one is not
   replaced <- FALSE
   if (!exact && !length(fit$obj$env$random)) {
-    Hx <- tryCatch(fit$obj$he(p), error = function(e) NULL)
+    Hx <- tryCatch(obj_he_cached(fit$obj, p), error = function(e) NULL)
     if (is.matrix(Hx) && all(dim(Hx) == np) && all(is.finite(Hx))) {
       E <- abs(Hx - t(Hx)) / 2
       H <- (Hx + t(Hx)) / 2
@@ -534,6 +623,26 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   ev <- numeric(0)
   remeasured <- FALSE
   flat <- NULL
+  # the rest of an ill-conditioned design in its own coordinates, where
+  # the eigenvalues below are rounding (se_reparam_cov())
+  rp <- if (length(free) >= 2L && length(free) < np) {
+    se_reparam_cov(fit, H, p, free)
+  }
+  if (!is.null(rp)) {
+    V[free, free] <- rp$V[free, free]
+    sc <- rep(NA_real_, np)
+    sc[free] <- sqrt(abs(diag(H)))[free]
+    flat <- list(cols = integer(0), scale = sc, tol = NA_real_,
+                 dscale = sqrt(abs(diag(H))))
+    lost <- why != ""
+    shown <- V
+    shown[lost, ] <- NaN
+    shown[, lost] <- NaN
+    return(list(V = V, shown = shown,
+                lost = stats::setNames(why[lost], nm[lost]), null = null,
+                flat = flat, tier = 3L, ev = rp$ev, remeasured = FALSE,
+                root = rp$root))
+  }
   if (length(free)) {
     Hf <- H[free, free, drop = FALSE]
     Df <- sqrt(abs(diag(Hf)))
@@ -606,7 +715,7 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     # and tested exactly below, and a removed direction that lies in
     # them needs no measurement. Asked only when a direction was
     # removed, since it decomposes the designs.
-    Nd <- if (any(!keep)) {
+    Nd <- if (any(!keep) || length(se_mo_gaps(fit))) {
       tryCatch(se_design_null(fit), error = function(e) NULL)
     }
     Qd <- NULL
@@ -616,6 +725,17 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
     }
     in_design <- function(k) {
       !is.null(Qd) && sum(crossprod(Qd, e$vectors[, k])^2) > 0.99
+    }
+    # An exactly flat direction is removed whatever the Hessian measured
+    # along it: a mo() simplex split by a category no row is in curves by
+    # 3e-9 of the largest at a stop the optimizer's tolerance away from
+    # the floor of that curved ridge, above se_flat_tol, and the ridge
+    # rule read 1.6 times its threshold there, so 8 of 160 such fits kept
+    # zeta SEs up to 949 in silence (dev/illse-segap.R, the backlog's
+    # residue of 0.70.0)
+    if (!is.null(Qd) && any(keep)) {
+      kk <- which(keep)
+      keep[kk[vapply(kk, in_design, NA)]] <- FALSE
     }
     # A removed direction the objective was never asked about (its
     # eigenvalue is below the digits the Hessian has, or within its
@@ -1079,6 +1199,10 @@ se_linear_pars <- function(fit) {
 #' tolerance). A design whose QR would cost more than `se_design_flops`
 #' is not decomposed; its alias is then judged by the Hessian alone.
 #'
+#' The directions a `mo()` simplex is flat along because a category no
+#' row is in splits two of its steps (se_mo_null()) join them: they are
+#' exact in the same sense.
+#'
 #' Returns a matrix with one column per direction (none: zero columns).
 #'
 #' @noRd
@@ -1111,7 +1235,68 @@ se_design_null <- function(fit) {
     M[pos, ] <- N
     out <- cbind(out, M)
   }
+  mo_n <- tryCatch(se_mo_null(fit, om), error = function(e) NULL)
+  if (NCOL(mo_n) && nrow(mo_n) == np) out <- cbind(out, mo_n)
   if (NCOL(out)) out <- qr.Q(qr(out))
+  out
+}
+
+#' The interior categories of each `mo()` term that no row the term
+#' reads is in: list of `list(mi, gap)`, empty when there is none.
+#' Increments `w_c` and `w_(c + 1)` of a simplex enter a row only
+#' through their sum when category `c` is not observed (a row at `x`
+#' reads `w_1 + ... + w_x`).
+#'
+#' @noRd
+se_mo_gaps <- function(fit) {
+  out <- list()
+  for (lp in fit$frame[["linpreds"]] %||% list()) {
+    for (mi in lp[["mo"]] %||% list()) {
+      D <- mi[["D"]] %||% 0L
+      codes <- mi[["codes"]]
+      if (D < 2L || !length(codes)) next
+      rows <- if (is.null(mi[["mult"]])) rep(TRUE, length(codes)) else {
+        mi[["mult"]] != 0
+      }
+      gap <- setdiff(seq_len(D - 1L), unique(codes[rows %in% TRUE]))
+      if (length(gap)) out[[length(out) + 1L]] <- list(mi = mi, gap = gap)
+    }
+  }
+  out
+}
+
+#' The directions, in the outer parameters' natural units, along which a
+#' `mo()` simplex is exactly flat because a category is not observed
+#' (se_mo_gaps()): `w_c - w_(c + 1)` carried to the simplex's
+#' coordinates through the Jacobian of its chart at the estimates. One
+#' column each; none when the coordinates are not outer parameters.
+#'
+#' @noRd
+se_mo_null <- function(fit, om = outer_par_map(fit)) {
+  np <- length(om$names)
+  out <- matrix(0, np, 0L)
+  for (g in se_mo_gaps(fit)) {
+    mi <- g$mi
+    D <- mi[["D"]]
+    pos <- which(om$comp == mi[["zeta"]])
+    z <- fit$estimates[[mi[["zeta"]]]]
+    if (length(pos) != D - 1L || length(z) != D - 1L) next
+    Jw <- RTMB::MakeTape(function(x) mo_simplex(x, mi[["chart"]]),
+                         z)$jacobian(z)
+    if (!all(is.finite(Jw))) next
+    for (c0 in g$gap) {
+      dw <- numeric(D)
+      dw[c0] <- 1
+      dw[c0 + 1L] <- -1
+      dz <- tryCatch(qr.solve(Jw, dw), error = function(e) NULL)
+      # the chart is singular at a face; the direction is then not one
+      # of its coordinates' and is left to the Hessian
+      if (is.null(dz) || sum((Jw %*% dz - dw)^2) > 1e-12 * sum(dw^2)) next
+      n <- numeric(np)
+      n[pos] <- dz
+      out <- cbind(out, n)
+    }
+  }
   out
 }
 
@@ -1351,6 +1536,8 @@ sdr_sep_lost <- function(fit, sdr, named) {
   sdr$cov_fixed_raw <- sdr$cov_fixed_raw %||% V0
   sdr$cov.fixed <- shown
   sdr$cov_fixed_prop <- prop
+  # the factor holds the separated coefficients at their estimates too
+  if (!is.null(sdr$cov_fixed_root)) sdr$cov_fixed_root[j, ] <- 0
   dimnames(sdr$cov.fixed) <- dimnames(sdr$cov_fixed_prop) <- dn
   sdr$se_lost <- c(lost, stats::setNames(rep("separation", length(j)),
                                          nm[j]))
@@ -1388,12 +1575,17 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
   V0 <- sdr$cov.fixed
   if (!length(V0)) return(sdr)
   an <- if (is.environment(fit$cache)) fit$cache$se_analysis
-  # an analysis asked for on a fit that did not converge (by
-  # check_convergence() or nl_flat_message()) repairs it only when it
-  # made the fit a boundary stop (se_boundary_stop()); otherwise the fit
-  # keeps sdreport()'s own answer, as below
-  if (!is.null(an) && !isTRUE(fit$opt$convergence == 0) &&
-        !isTRUE(fit$cache$se_boundary_stop)) {
+  # The analysis applies whatever the optimizer's code where the stop is
+  # the maximum (check_convergence() measures it), so a ridge is judged
+  # on either side of code 0 (lane ci691). A stop short of the maximum
+  # keeps sdreport()'s own answer, which its convergence warning says
+  # is that of the stop: a curvature verdict there is not one about the
+  # data (on test-review-v29.R's correlation run to 1 the check called
+  # every coefficient of an identified model flat, from finite
+  # differences whose asymmetry was 320), unless the check made the fit
+  # a boundary stop (se_boundary_stop())
+  short <- identical(fit$cache$se_explained, "convergence")
+  if (!is.null(an) && short && !isTRUE(fit$cache$se_boundary_stop)) {
     an <- NULL
   }
   if (is.null(an)) {
@@ -1408,13 +1600,7 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
              (isTRUE(hc$clean) && identical(H, hc$H)))) {
       return(sdr)
     }
-    # A fit that did not converge keeps sdreport()'s own answer: its
-    # curvature is not that of an optimum, and its convergence warning
-    # has already said what is wrong with it
-    if (!isTRUE(fit$opt$convergence == 0) ||
-          identical(fit$cache$se_explained, "convergence")) {
-      return(sdr)
-    }
+    if (short) return(sdr)
     same <- !is.null(H) && identical(H, hc$H)
     E <- if (same) hc$E
     if (is.null(H)) {
@@ -1439,6 +1625,10 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
   dimnames(sdr$cov.fixed) <- dn
   sdr$cov_fixed_prop <- an$V
   dimnames(sdr$cov_fixed_prop) <- dn
+  # the factor the propagating routes read instead of the matrix
+  # (se_reparam_cov(), jc_rowvar())
+  sdr$cov_fixed_root <- an$root
+  if (!is.null(an$root)) rownames(sdr$cov_fixed_root) <- dn[[1L]]
   sdr$se_lost <- se_relabel(fit, an$lost)
   sdr$se_null <- an$null
   sdr$se_null_flat <- an$flat
@@ -1447,12 +1637,15 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
 
 #' The fit-time standard-error check.
 #'
-#' Runs on the user's own call, after every other fit-time verdict. An
-#' optimizer that did not report convergence or a gradient that says the
-#' fit stopped short is not a point whose curvature means anything, so
-#' such a fit is left to its convergence warning; an earlier check that
-#' named some parameters explains those parameters only
-#' (se_explained_pars()).
+#' Runs on the user's own call, after every other fit-time verdict, on
+#' every fit at its maximum, whatever the optimizer reported: its code
+#' is rounding's choice on a ridge, and nlminb's "false convergence"
+#' also fires at a maximum, so a check that skipped those fits judged
+#' the same model on one platform and not on another (lane ci691).
+#' check_convergence() measures whether the stop is the maximum; a fit
+#' that stopped short of it is left to its convergence warning, which
+#' says so. An earlier check that named some parameters explains those
+#' parameters only (se_explained_pars()).
 #'
 #' Cost. On a model without random effects the check reads the exact AD
 #' Hessian, and the finite-difference one only when that shows a problem.
@@ -1478,8 +1671,9 @@ se_check <- function(fit, control) {
     return(invisible(NULL))
   }
   if (identical(fit$cache$se_explained, "convergence")) {
-    # the convergence warning said it; vcov() must not say it again in
-    # older words
+    # a stop short of the maximum: its convergence warning says the
+    # standard errors are those of the stop, and vcov() must not say it
+    # again in older words
     fit$cache$warned_nonfinite_cov <- TRUE
     return(invisible(NULL))
   }
@@ -1531,7 +1725,7 @@ se_fit_analysis0 <- function(fit, force) {
   p <- fit$opt$par
   if (!length(obj$env$random)) {
     saved <- obj_state_save(obj)
-    Hx <- tryCatch(obj$he(p), error = function(e) NULL)
+    Hx <- tryCatch(obj_he_cached(obj, p), error = function(e) NULL)
     obj_state_restore(obj, saved)
     if (is.matrix(Hx) && all(dim(Hx) == length(p)) && all(is.finite(Hx))) {
       Hs <- (Hx + t(Hx)) / 2

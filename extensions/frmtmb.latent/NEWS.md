@@ -1,3 +1,18 @@
+# frmtmb.latent 0.6.1
+
+No change to the package's code. frmtmb 0.71.0 changes what a model of
+this package may write.
+
+## Breaking changes
+
+* **A constant on a location of `hmm()` or `lca()` is refused**, by
+  frmtmb 0.71.0. `bf(y ~ x, mu2 = 3)` on `hmm(2)` and
+  `bf(Y ~ 1, theta2 = 0.5)` on `lca(3)` used to fit, and the location
+  was estimated anyway: the constant had no effect. The refusal says
+  to write a formula that estimates it, or an offset-only formula
+  (`mu2 ~ 0 + offset(o)`) that holds it at a known value. This
+  package's code is unchanged.
+
 # frmtmb.latent 0.6.0
 
 * `frm_compat()` records `autoscale` as working for `hmm()` and `lca()`,
@@ -52,7 +67,6 @@
   `frm(..., family = hmm(...), REML = TRUE)`, are a
   `frmtmb_latent_error`. frmtmb raises them, and before they had no
   subclass.
-
 
 # frmtmb.latent 0.3.1
 

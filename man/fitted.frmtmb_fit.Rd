@@ -49,12 +49,18 @@ mean.}
 distributional parameter here: a synonym for \code{dpar}, and giving
 both is an error.}
 
-\item{ndraws, draw_ids, sort, summary, robust}{brms's arguments, in
-brms's positions so that a positional brms call asks the same
-question. Each needs posterior draws, and a maximum-likelihood fit
-has none, so each is refused by name with the reason and with the
-place it does work: \code{frmtmb.sample}'s \code{posterior_epred()}. The
-default of each is accepted and changes nothing.}
+\item{ndraws}{brms's number of posterior draws to summarize. It sets
+the Monte Carlo error of brms's answer, not the quantity answered,
+and a maximum-likelihood fit answers that quantity at its estimate
+with no Monte Carlo error. So it is accepted, changes nothing, and
+a message says so.}
+
+\item{draw_ids, sort, summary, robust}{brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+Each needs posterior draws, and a maximum-likelihood fit has none,
+so each is refused by name with the reason and with the place it
+does work: \code{frmtmb.sample}'s \code{posterior_epred()}. The default of
+each is accepted and changes nothing.}
 
 \item{probs}{Probabilities of the two quantile columns. brms takes
 the posterior quantiles there; here they are the ends of the Wald

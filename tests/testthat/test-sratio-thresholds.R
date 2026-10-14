@@ -185,3 +185,45 @@ test_that("a multivariate model reaches each sratio response's own maximum", {
                   fu[nm, "Est.Error"]), 1e-3)
   expect_lt(fe["o_Intercept[2]", "Estimate"], fe["o_Intercept[1]", "Estimate"])
 })
+
+# Lane postfix (2026-10-13). The JSS overview vignette's fit3 passes
+# threshold = "equidistant" to brm(), which brms 1.x read and brms
+# 2.23.0 refuses ("passing unknown arguments: threshold.",
+# dev/postfix-brms.R). On 0.70.0 frm() said "unused argument (threshold
+# = ...)" (dev/postfix-log/probe-before.txt); it now names the family
+# argument the threshold structure belongs to.
+test_that("frm(threshold = ) names the family argument it belongs to", {
+  d <- sr_data()
+  msg <- tryCatch(frm(y ~ 1, family = sratio(), data = d,
+                      threshold = "equidistant"),
+                  error = conditionMessage)
+  expect_match(msg, "frm() has no `threshold` argument", fixed = TRUE)
+  expect_match(msg, "family = sratio(threshold = \"equidistant\")",
+               fixed = TRUE)
+  # a family given by name or as a bare function is named the same way
+  msg2 <- tryCatch(frm(y ~ 1, family = cratio, data = d,
+                       threshold = "flexible"),
+                   error = conditionMessage)
+  expect_match(msg2, "family = cratio(threshold = \"flexible\")",
+               fixed = TRUE)
+  # a family without thresholds gets the ordinal families listed
+  msg3 <- tryCatch(frm(y ~ 1, data = d, threshold = "equidistant"),
+                   error = conditionMessage)
+  expect_match(msg3, "acat(), hurdle_cumulative()", fixed = TRUE)
+  # a prefix of the name never wrote `threshold`, and gets R's own
+  # error, as it did before the formal existed
+  expect_error(frm(y ~ 1, family = sratio(), data = d, thres = 1),
+               "unused argument (thres = 1)", fixed = TRUE)
+  # the control: the family argument fits
+  f <- frm(y ~ 1, family = sratio(threshold = "equidistant"), data = d)
+  expect_s3_class(f, "frmtmb_fit")
+})
+
+test_that("frm(threshold = ) reads the family of bf() + family()", {
+  # fix round 1 (review): the family carried by the formula is named
+  msg <- tryCatch(frm(bf(y ~ 1) + cratio(), data = sr_data(),
+                      threshold = "equidistant"),
+                  error = conditionMessage)
+  expect_match(msg, "family = cratio(threshold = \"equidistant\")",
+               fixed = TRUE)
+})

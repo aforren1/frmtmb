@@ -614,20 +614,23 @@ family_link_secondary <- function(x) {
 }
 
 #' brms's `is_polytomous()`, for the families this package has: the
-#' response is a category (ordinal, categorical) or a vector of counts
-#' over categories (multinomial). brms refuses a predictive error and
+#' response is a category (ordinal, categorical), a vector of counts
+#' over categories (multinomial) or a composition over them (the simplex
+#' families). brms refuses a predictive error and
 #' `pp_check(type = "error_binned")` for every one of them.
 #'
 #' @noRd
 fam_is_polytomous <- function(fam) {
   isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
-    identical(fam[["family"]], "multinomial")
+    identical(fam[["family"]], "multinomial") ||
+    !is.null(fam[["simplex"]])
 }
 
 #' @noRd
 family_joint_link <- function(x) {
   identical(.subset2(x, "type"), "categorical") ||
-    identical(.subset2(x, "family"), "multinomial")
+    identical(.subset2(x, "family"), "multinomial") ||
+    !is.null(.subset2(x, "joint_link"))
 }
 
 #' The value of one of brms's link fields, read from `links`.
@@ -654,7 +657,8 @@ family_link_view <- function(x, name) {
   main <- if (!is.null(ol)) {
     ol
   } else if (family_joint_link(x)) {
-    "logit"
+    # a simplex family names its own: logistic_normal()'s is identity
+    .subset2(x, "joint_link") %||% "logit"
   } else if ("mu" %in% .subset2(x, "dpars")) {
     # NULL when the object has lost its links: reported as NA, not as a
     # link the family does not carry
@@ -5365,10 +5369,11 @@ mixture_check_components <- function(comps) {
   barred <- types == "categorical" | fams %in% brms_no_mixture
   if (any(barred)) {
     frm_stop("Some of the families are not allowed in mixture models: ",
-             paste(unique(fams[barred]), collapse = ", "), ". A categorical ",
-             "or multinomial response is not a value the other components ",
-             "can share, and a continuous hurdle or a zero-inflated or ",
-             "zero-one-inflated beta puts a probability mass at zero ",
+             paste(unique(fams[barred]), collapse = ", "), ". A categorical, ",
+             "multinomial or simplex response is not a value the other ",
+             "components can share, and a continuous hurdle or a ",
+             "zero-inflated or zero-one-inflated beta puts a probability ",
+             "mass at zero ",
              "(or one) beside a density",
              call. = FALSE)
   }
@@ -5718,7 +5723,11 @@ mixture_build <- function(comps, groups, ref) {
     init[[paste0("mu", k)]] <- local({
       k_ <- kk
       bounded <- mixture_mu_bounded(comps[[k_]])
+      # a component whose mu is not a location says where its quantile
+      # puts it (discrete_weibull()'s mu is P(Y >= 1))
+      own <- comps[[k_]][["post"]][["mixture_mu_start"]]
       function(y, aterms) {
+        if (is.function(own)) return(own(y, aterms, k_ / (K + 1)))
         mixture_mu_start(y, aterms, k_ / (K + 1), bounded)
       }
     })
@@ -8029,8 +8038,21 @@ family_registry <- list(
   acat                      = fam_acat,
   von_mises                 = fam_von_mises,
   cox                       = fam_cox,
-  categorical               = fam_categorical_deferred
+  categorical               = fam_categorical_deferred,
+  # the simplex families (R/families-simplex.R); dirichlet2 has no
+  # constructor, as in brms, and is reached through brmsfamily()
+  dirichlet                 = fam_dirichlet_deferred,
+  dirichlet2                = fam_dirichlet2_deferred,
+  logistic_normal           = fam_logistic_normal_deferred,
+  # R/families-extreme.R
+  frechet                   = fam_frechet,
+  gen_extreme_value         = fam_gen_extreme_value,
+  discrete_weibull          = fam_discrete_weibull
 )
+
+# brms families that an extension package supplies rather than core,
+# keyed by brms's name.
+extension_family_homes <- c(wiener = "frmtmb.eam")
 
 # An unknown value errors and names the supported families.
 
@@ -8054,6 +8076,18 @@ family_ctor <- function(name) {
   keys <- names(family_registry)
   hit <- keys[tolower(keys) == low]
   if (length(hit)) return(family_registry[[hit[1L]]])
+  home <- extension_family_homes[low]
+  if (!is.na(home)) {
+    # a brms family that an extension supplies: the generic refusal
+    # below listed the core families and so read as "not supported at
+    # all", when one package away it is
+    if (isNamespaceLoaded(home)) {
+      return(getExportedValue(home, low))
+    }
+    frm_stop("The ", low, " family is in the extension package ", home,
+             ", which is not loaded. Install it and run library(", home,
+             "), then use family = ", low, "()", call. = FALSE)
+  }
   frm_stop(name, " is not a supported family. Supported families are: ",
            paste(unique(names(family_registry)), collapse = ", "),
            call. = FALSE)
@@ -8116,7 +8150,17 @@ family_from_name <- function(family, link = NULL, args = list(),
 #' An argument the family does not have is refused by name. brms
 #' ignores it, so `brmsfamily("poisson", link_sigma = "log")` builds a
 #' poisson family there. `threshold` is an argument of the ordinal
-#' families alone, and `refcat` of none.
+#' families alone, and `refcat` of `"dirichlet"` and
+#' `"logistic_normal"`.
+#'
+#' `brmsfamily("com_poisson")` gives [compois()], whose `mu` is the
+#' MEAN of the count. brms 2.23.0 does not use the mean. Its Stan
+#' program fits `mu` as the rate `lambda` of the Conway-Maxwell-Poisson
+#' density, which is proportional to `lambda^y / (y!)^nu`, and its
+#' `log_lik()` and `posterior_predict()` read `mu` as
+#' `lambda^(1 / nu)`. So the coefficients of a brms `com_poisson()` fit
+#' and of an frmtmb fit are on different scales. They agree only at
+#' `nu = 1` (brms's `shape`), where all three are the Poisson mean.
 #'
 #' @param family Family name, as a single string.
 #' @param link The link for the mean, quoted or not. `NULL` gives the
@@ -8187,7 +8231,10 @@ as_frmtmb_family <- function(x) {
     ctor <- family_ctor(x[["family"]])
     # a brms family object also carries link_<dpar>; carry the ones the
     # constructor takes rather than silently dropping them
-    extra <- intersect(grep("^link_", names(x), value = TRUE),
+    # and its refcat, which a simplex family reads; brms stores none when
+    # the first category is the reference
+    extra <- intersect(c(grep("^link_", names(x), value = TRUE),
+                         if (!is.null(x[["refcat"]])) "refcat"),
                        names(formals(ctor)))
     return(do.call(ctor, c(list(link = x[["link"]]), unclass(x)[extra])))
   }
@@ -8506,6 +8553,18 @@ as_frmtmb_family <- function(x) {
 #' `asym_laplace()`. The estimates satisfy Huber's own estimating
 #' equations, `X' psi(u) = 0` with `psi(u) = min(max(u, -k), k)`, to
 #' the same order. [frm_allfit()] confirms the fit when in doubt.
+#'
+#' @section Conway-Maxwell-Poisson counts:
+#' In `compois()`, `mu` is the mean of the count and `nu` is the
+#' dispersion: `nu > 1` gives less variance than the Poisson, and
+#' `nu < 1` more. The density is `RTMB::dcompois2()`, so
+#' `exp(Intercept)` under the log link is the expected count. This is
+#' not brms's parameterization. brms 2.23.0's `com_poisson()` fits `mu`
+#' as the rate `lambda` of the density `lambda^y / (y!)^nu`, which is
+#' not the mean unless `nu = 1`. On counts simulated with `lambda = 9`
+#' and `nu = 2` (n = 400), frmtmb's `exp(Intercept)` is 2.78, the sample
+#' mean, and brms's is 7.30. The coefficients of the two fits are not
+#' comparable one by one (`dev/remeasure-findings.md`, R6).
 #'
 #' @section Links:
 #' Every constructor takes `link` for the mean and a `link_<dpar>` for
@@ -9024,6 +9083,11 @@ family_link_str <- function(fam, shown = character(0)) {
     # reports mu1 = logit
     k <- if (!is.null(mx)) match(d, paste0("mu", seq_len(mx$K))) else NA
     if (!is.na(k)) return(mx$comps[[k]][["ord_link"]][["name"]] %||% "?")
+    # a simplex family's category predictors report the joint link they
+    # enter through, as brms reports mub = logit on a dirichlet fit
+    if (!is.null(fam[["joint_link"]]) && d %in% fam[["primary_dpars"]]) {
+      return(fam[["joint_link"]])
+    }
     l <- lk[[d]]
     if (is.null(l)) NA_character_ else (l[["name"]] %||% NA_character_)
   }, character(1))

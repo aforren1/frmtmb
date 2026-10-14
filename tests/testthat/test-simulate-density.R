@@ -51,13 +51,15 @@ skip_on_cran()
 # between 41 and "hundreds" is what the small alpha buys, and it is why
 # the number is one constant rather than a value tuned per family.
 #
-# The trade depends on the COUNT, so it is written down here: 251 of
-# this file's assertions are statistical (87 chi-square, 77 mean, 77
-# variance, 10 P(Y = 0)). At this alpha that is a 0.0003 chance that
-# any reseed raises a permanent false alarm somewhere in the file; at
-# 1e-3 it would be 0.22, and at a conventional 0.05 it would be a
-# near-certainty. Re-check the arithmetic if the tier grows by an
-# order of magnitude.
+# The trade depends on the COUNT, so it is written down here: 363 of
+# this file's assertions are statistical (109 chi-square, 117 mean, 117
+# variance, 18 P(Y = 0) or P(Y = 1), 2 correlation; counted by
+# dev/rel071-simcount.R). The simplex families added 56 of them, and
+# frechet, gen_extreme_value and discrete_weibull 18. At this alpha
+# that is a 0.0004 chance that any reseed raises a permanent false
+# alarm somewhere in the file; at 1e-3 it would be 0.30, and at a
+# conventional 0.05 it would be a near-certainty.
+# Re-check the arithmetic if the tier grows by an order of magnitude.
 SIM_ALPHA <- 1e-6
 SIM_N <- 4000L        # draws PER CELL: two cells, 8000 rows per family
 SIM_CELLS <- 8L
@@ -320,6 +322,23 @@ sim_specs <- list(
   list(nm = "weibull", fam = quote(weibull()),
        eta = c(0, 0.5), dp = list(shape = 2), kind = "cont",
        lo = function(mu, d) 0, hi = function(mu, d) mu * 8),
+  # nu = 8 keeps four moments finite for the variance check; the mass
+  # above 30 mu is below 1e-11
+  list(nm = "frechet", fam = quote(frechet()),
+       eta = c(0, 0.5), dp = list(nu = 8), kind = "cont",
+       lo = function(mu, d) 0, hi = function(mu, d) mu * 30),
+  # xi = 0.1 keeps four moments finite; the support starts at
+  # mu - sigma / xi, where the density is 0 and its log is -Inf, so the
+  # quadrature starts just above it, and the mass beyond hi is 1e-12
+  list(nm = "gen_extreme_value", fam = quote(gen_extreme_value()),
+       eta = c(0, 1), dp = list(sigma = 0.7, xi = 0.1), kind = "cont",
+       lo = function(mu, d) mu - d[["sigma"]] / d[["xi"]] * (1 - 1e-9),
+       hi = function(mu, d) {
+         mu + d[["sigma"]] * ((1e-12)^(-d[["xi"]]) - 1) / d[["xi"]]
+       }),
+  list(nm = "discrete_weibull", fam = quote(discrete_weibull()),
+       eta = c(0.5, 1.2), dp = list(shape = 1.3), kind = "disc", hi = 200,
+       ydummy = 1L),
   # stats::inverse.gaussian()'s default 1/mu^2 link is not one frmtmb
   # implements; the family is reached under the log link it does
   list(nm = "inverse.gaussian",
@@ -630,6 +649,155 @@ test_that("multinomial: count-vector draws agree with the family's own density",
     obs <- tabulate(match(key(d), key(supp)), nrow(supp))
     expect_gof(rep(seq_along(obs), obs),
                list(cuts = seq_along(obs)[-length(obs)] + 0.5, p = p), lab)
+  }
+})
+
+# The simplex families draw a row of proportions. Their density is over
+# the first K - 1 proportions, so K = 2 reads as an ordinary density on
+# (0, 1) and takes the chi-square; K = 3 is integrated on a triangle grid
+# for the mean and variance of every proportion.
+
+#' The `sim_data()` design with an n x K placeholder composition, which
+#' the response check accepts and the draws replace.
+simplex_sim_data <- function(cats) {
+  dd <- data.frame(g = factor(rep(c("a", "b"), each = SIM_N)))
+  K <- length(cats)
+  dd[["Y"]] <- matrix(1 / K, 2L * SIM_N, K, dimnames = list(NULL, cats))
+  dd
+}
+
+#' The density of a two-category family as a measure on its second
+#' proportion, from `fam$lpdf` on the matrix response it reads.
+simplex_points2 <- function(fam, dp, extra = NULL, m = 4001L) {
+  y <- seq(0, 1, length.out = m + 2L)[-c(1L, m + 2L)]
+  d <- exp(dens_lp(fam, cbind(1 - y, y), dp, list(), extra))
+  h <- diff(y)
+  w <- c(h[1L], h[-1L] + h[-length(h)], h[length(h)]) / 2
+  list(y = y, p = d * w)
+}
+
+#' The mean and variance of each of three proportions under `fam$lpdf`,
+#' by the midpoint rule on the triangle y1 + y2 < 1.
+simplex_moments3 <- function(fam, dp, extra = NULL, m = 400L) {
+  g <- (seq_len(m) - 0.5) / m
+  G <- expand.grid(y1 = g, y2 = g)
+  G <- G[G$y1 + G$y2 < 1 - 0.5 / m, ]
+  Y <- cbind(G$y1, G$y2, 1 - G$y1 - G$y2)
+  p <- exp(dens_lp(fam, Y, dp, list(), extra))
+  p <- p / sum(p)
+  lapply(seq_len(3L), function(k) {
+    m1 <- sum(p * Y[, k])
+    c2 <- (Y[, k] - m1)^2
+    list(mean = m1, var = sum(p * c2), m4 = sum(p * c2^2))
+  })
+}
+
+test_that("simplex families: compositions agree with the family's own density",
+          {
+  us_theta <- frmtmb:::us_theta_cor
+  # two categories: the second proportion's distribution, cell by cell
+  cats2 <- c("lo", "hi")
+  specs2 <- list(
+    dirichlet = list(fam = dirichlet(),
+                     beta = c(muhi_ga = 0.4, muhi_gb = -0.7),
+                     betad = c(`phi_(Intercept)` = log(6))),
+    logistic_normal = list(fam = logistic_normal(),
+                           beta = c(muhi_ga = 0.4, muhi_gb = -0.7),
+                           betad = c(`sigmahi_(Intercept)` = log(0.6))),
+    dirichlet2 = list(fam = brmsfamily("dirichlet2"),
+                      beta = c(mulo_ga = 1, mulo_gb = 0.4,
+                               muhi_ga = 0.6, muhi_gb = 1.3)))
+  dd <- simplex_sim_data(cats2)
+  form <- Y ~ 0 + g
+  for (nm in names(specs2)) {
+    sp <- specs2[[nm]]
+    tpl <- frmtmb::par_template(form, dd, family = sp$fam)
+    np <- set_pars(tpl, sp[intersect(c("beta", "betad"), names(sp))])
+    s <- frmtmb::frm_simulate(form, dd, family = sp$fam,
+                              newparams = unclass(np), nsim = 1L,
+                              seed = SIM_SEED)
+    v <- s[["sim_1"]]
+    expect_identical(colnames(v), cats2, label = paste(nm, "columns"))
+    expect_lt(max(abs(rowSums(v) - 1)), 64 * .Machine$double.eps,
+              label = paste(nm, "rows on the simplex"))
+    fam <- sp$fam[["defer"]](form, dd)
+    for (cell in c("a", "b")) {
+      idx <- if (identical(cell, "a")) seq_len(SIM_N) else -seq_len(SIM_N)
+      lab <- paste0(nm, "[", cell, "]")
+      b <- np[["beta"]]
+      dp <- if (identical(nm, "dirichlet2")) {
+        list(mulo = exp(b[[paste0("mulo_g", cell)]]),
+             muhi = exp(b[[paste0("muhi_g", cell)]]))
+      } else if (identical(nm, "dirichlet")) {
+        list(muhi = b[[paste0("muhi_g", cell)]],
+             phi = exp(np[["betad"]][[1L]]))
+      } else {
+        list(muhi = b[[paste0("muhi_g", cell)]],
+             sigmahi = exp(np[["betad"]][[1L]]))
+      }
+      dz <- simplex_points2(fam, dp)
+      expect_gof(v[idx, 2L], dens_cells(dz, SIM_CELLS, FALSE), lab)
+      expect_moments(v[idx, 2L], dens_moments(dz), 2L, lab)
+    }
+  }
+  # three categories: every proportion's mean and variance, and the
+  # correlation of the log ratios through the lncor chart
+  cats3 <- c("a", "b", "c")
+  dd3 <- simplex_sim_data(cats3)
+  C <- matrix(c(1, 0.4, 0.4, 1), 2)
+  specs3 <- list(
+    dirichlet = list(fam = dirichlet(),
+                     beta = c(mub_ga = 0.5, mub_gb = -0.4, muc_ga = -0.3,
+                              muc_gb = 0.6),
+                     betad = c(`phi_(Intercept)` = log(8))),
+    logistic_normal = list(fam = logistic_normal(),
+                           beta = c(mub_ga = 0.3, mub_gb = -0.5,
+                                    muc_ga = -0.2, muc_gb = 0.4),
+                           betad = c(`sigmab_(Intercept)` = log(0.5),
+                                     `sigmac_(Intercept)` = log(0.6)),
+                           lncor_raw = us_theta(C)),
+    dirichlet2 = list(fam = brmsfamily("dirichlet2"),
+                      beta = c(mua_ga = 1, mua_gb = 0.3, mub_ga = 0.5,
+                               mub_gb = 1.2, muc_ga = 0.8, muc_gb = 0.9)))
+  for (nm in names(specs3)) {
+    sp <- specs3[[nm]]
+    tpl <- frmtmb::par_template(form, dd3, family = sp$fam)
+    np <- set_pars(tpl, sp[intersect(c("beta", "betad", "lncor_raw"),
+                                     names(sp))])
+    s <- frmtmb::frm_simulate(form, dd3, family = sp$fam,
+                              newparams = unclass(np), nsim = 1L,
+                              seed = SIM_SEED)
+    v <- s[["sim_1"]]
+    fam <- sp$fam[["defer"]](form, dd3)
+    for (cell in c("a", "b")) {
+      idx <- if (identical(cell, "a")) seq_len(SIM_N) else -seq_len(SIM_N)
+      b <- np[["beta"]]
+      gb <- function(k) b[[paste0(k, "_g", cell)]]
+      dp <- switch(nm,
+        dirichlet = list(mub = gb("mub"), muc = gb("muc"),
+                         phi = exp(np[["betad"]][[1L]])),
+        logistic_normal = list(mub = gb("mub"), muc = gb("muc"),
+                               sigmab = exp(np[["betad"]][[1L]]),
+                               sigmac = exp(np[["betad"]][[2L]])),
+        dirichlet2 = list(mua = exp(gb("mua")), mub = exp(gb("mub")),
+                          muc = exp(gb("muc"))))
+      ex <- if (identical(nm, "logistic_normal")) {
+        list(lncor_raw = np[["lncor_raw"]])
+      }
+      mo <- simplex_moments3(fam, dp, ex)
+      for (k in seq_len(3L)) {
+        expect_moments(v[idx, k], mo[[k]], 2L,
+                       paste0(nm, "[", cell, "] y", k))
+      }
+      if (identical(nm, "logistic_normal")) {
+        # the log ratios' correlation is the chart's 0.4, a Fisher z
+        # deviate within the file's alpha
+        X <- log(v[idx, 2:3] / v[idx, 1L])
+        z <- atanh(stats::cor(X[, 1L], X[, 2L])) - atanh(0.4)
+        expect_lt(abs(z) * sqrt(SIM_N - 3), SIM_Z,
+                  label = paste0(nm, "[", cell, "] lncor"))
+      }
+    }
   }
 })
 
@@ -950,7 +1118,8 @@ test_that("every registry family is either in the agreement tier or a declared g
   # simulator and without an entry here would otherwise slip through
   covered <- c(vapply(sim_specs, function(s) s[["nm"]], ""),
                vapply(ord_specs, function(s) s[["nm"]], ""),
-               "hurdle_cumulative", "categorical", "multinomial")
+               "hurdle_cumulative", "categorical", "multinomial",
+               "dirichlet", "dirichlet2", "logistic_normal")
   # nbinom2 and beta are registry aliases of negbinomial and Beta: the
   # same constructor under a second spelling, so covering one covers both
   aliases <- c(nbinom2 = "negbinomial", beta = "Beta")

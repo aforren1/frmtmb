@@ -19,8 +19,9 @@ the fixed effects, its rows named as brms names them, \code{Intercept}
 and \code{sigma_Intercept}), \code{pooled_varcorr} (grp/term/type/estimate/
 lwr/upr/df/fmi for the random-effect SDs and correlations; \code{NULL}
 without random effects), and \code{fits} (the per-imputation fits).
-\code{fixef()}, \code{summary()} and \code{conditional_effects()} pool across the
-imputations; see \link{frm_multiple-methods}.
+\code{fixef()}, \code{summary()}, \code{vcov()}, \code{fitted()}, \code{conditional_effects()}
+and the other methods of \link{frm_multiple-methods} pool across the
+imputations.
 }
 \description{
 The frequentist counterpart of brms's \code{brm_multiple()}: fits the
@@ -41,6 +42,8 @@ see in-model \code{mi()}.
 \code{\link[=hypothesis]{hypothesis()}} pools arbitrary functions of the parameters by the
 same rules, and \code{\link[=anova.frmtmb_multiple]{anova.frmtmb_multiple()}} compares two nested
 \code{frm_multiple()} fits with the D1, D2 and D3 rules of \code{mice}.
+\code{frmtmb.sample::frm_sample()} samples the fit of every imputation
+and combines the draws, as brms's \code{brm_multiple()} does.
 }
 \examples{
 set.seed(8)

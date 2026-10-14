@@ -834,7 +834,9 @@ compat_features_build <- function(extra = NULL) {
             "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "hurdle_cumulative",
-            "sratio", "cratio", "acat", "categorical", "von_mises", "cox")
+            "sratio", "cratio", "acat", "categorical", "von_mises", "cox",
+            "dirichlet", "dirichlet2", "logistic_normal",
+            "frechet", "gen_extreme_value", "discrete_weibull")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -894,15 +896,18 @@ frmtmb_compat_special_keys <- c(mi_pred = "mi", gp_pred = "gp",
 # Named feature sets, so one rule can cover "the families with a CDF"
 # instead of thirty near-identical rows.
 frmtmb_compat_groups_lst <- list(
-  # the six families carrying an AD log-CDF, which is what cens() and
+  # the families carrying an AD log-CDF, which is what cens() and
   # trunc() need to form their likelihood contributions
   cdf = c("gaussian", "poisson", "lognormal", "exponential", "weibull",
-          "inverse.gaussian", "cox"),
+          "inverse.gaussian", "cox", "frechet", "gen_extreme_value",
+          "discrete_weibull"),
   # cens() reaches these through the continuous convention, where the
-  # endpoints of an interval carry no mass; poisson is censored under
-  # the inclusive discrete convention instead and has a row of its own
+  # endpoints of an interval carry no mass; poisson and discrete_weibull
+  # are censored under the inclusive discrete convention instead and
+  # have rows of their own
   cdf_continuous = c("gaussian", "lognormal", "exponential", "weibull",
-                     "inverse.gaussian", "cox"),
+                     "inverse.gaussian", "cox", "frechet",
+                     "gen_extreme_value"),
   # families whose modelled response is a distribution over categories
   # rather than a number, so fitted() returns an n x K matrix
   categorical_probs = c("cumulative", "hurdle_cumulative", "sratio",
@@ -918,7 +923,7 @@ frmtmb_compat_groups_lst <- list(
                "zero_inflated_beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
                "zero_inflated_binomial", "hurdle_poisson",
-               "hurdle_negbinomial"),
+               "hurdle_negbinomial", "discrete_weibull"),
   # a point mass on an exact response value, which the density reads
   # off y == 0 (and y == 1); osa_point_mass_families in R/predict.R
   point_mass = c("zero_inflated_poisson", "zero_inflated_negbinomial",
@@ -927,7 +932,10 @@ frmtmb_compat_groups_lst <- list(
                  "zero_one_inflated_beta", "hurdle_poisson",
                  "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal",
                  "hurdle_cumulative"),
-  matrix_response = c("multinomial"),
+  matrix_response = c("multinomial", "dirichlet", "dirichlet2",
+                      "logistic_normal"),
+  # brms's simplex families: a row of proportions over categories
+  simplex = c("dirichlet", "dirichlet2", "logistic_normal"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial",
                       "zero_inflated_beta_binomial", "multinomial"),
@@ -1082,7 +1090,7 @@ compat_hand_rules_tbl <- function() {
   r("call_group", "*", "works",
     "Call-valued grouping factors are supported: (1 | factor(x)) and (1 | interaction(a, b)) both build the grouping factor from the model frame.")
   r("double_bar", "*", "works",
-    "(x || g) gives uncorrelated terms. With a factor on the left, (f || g) routes to diag, that is one independent effect per factor level.")
+    "(x || g) is brms's (x | gr(g, cor = FALSE)): one term coded with the formula's own contrasts, a standard deviation per column and no correlation. (1 + f || g) has the columns Intercept, fb and fc of (1 + f | g), not lme4's column per level of f. (x | gr(g, cor = FALSE)) is the same term, and (x | mm(g1, g2, cor = FALSE)) is the || term over the membership grouping.")
   r("0 + Intercept", "*", "works",
     "brms's reserved Intercept: y ~ 0 + Intercept + x is the model y ~ 1 + x, factors take treatment contrasts, and the intercept is an ordinary class \"b\" coefficient that is not centered. bf(center = FALSE) and lf(center = FALSE) are the same mechanism. The likelihood, the maximum likelihood fit and every post-fit method are those of the model with an intercept, and newdata needs no Intercept column; only the prior classes and brms's coefficient order differ. Intercept must be a term of its own: Intercept:x is refused, and so is brms's deprecated lower-case intercept.")
   r("0 + Intercept", "group:ordinal", "refused",
@@ -1274,6 +1282,10 @@ compat_hand_rules_tbl <- function() {
     "Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is.")
   r("trunc()", "poisson", "conditional",
     "Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. The bound is INCLUSIVE: trunc(lb = k) is P(Y >= k), scored with F(k - 1). That is brms's rule too, and it is the premise the discrete cens() convention is built on, so that one number means one thing on a response however it is bounded.")
+  r("cens()", "discrete_weibull", "conditional",
+    "Works, under the INCLUSIVE discrete convention poisson follows: right censoring at k is P(Y >= k) = mu^(k^shape), scored on the log scale. It differs from brms for RIGHT and INTERVAL censoring, where brms emits discrete_weibull_lccdf(y) = P(Y > y); LEFT censoring agrees. A non-integer censoring bound is refused.")
+  r("trunc()", "discrete_weibull", "conditional",
+    "As for poisson: the lower bound is INCLUSIVE, trunc(lb = k) is P(Y >= k), which is brms's discrete_weibull_lccdf(lb - 1), and it must be at least 1.")
   r("cens()", "trunc()", "works",
     "The response is truncated FIRST and censored inside the window: a right-censored row contributes (F(ub) - F(y)) / Z and a left-censored one (F(y) - F(lb)) / Z, with Z the window mass (F(lb - 1) for a discrete lower bound). Verified against a hand-rolled likelihood for gaussian and for the discrete composed form, and it is the likelihood simulate(censored = TRUE) draws from. Through v0.25 only the normalizer was windowed, which censored the UNtruncated variable and biased the residual sd upward.")
   r("cens()", "weights()", "works",
@@ -1289,6 +1301,10 @@ compat_hand_rules_tbl <- function() {
     "Refused: mixture_mvn() has no CDF.")
   r("cens()", "cox", "works",
     "The reason the family exists. An event contributes the density log h0(t) + eta - H0(t) exp(eta) and a censored row the survivor function, which is what cox()'s log-density and log-CDF already are, so right, left and interval censoring all run through the ordinary cens() machinery. Verified against a hand-rolled M-spline PH likelihood exactly and against survival::coxph() to 2e-2 on the log hazard ratio.")
+  r("cens()", "group:simplex", "refused",
+    "Refused: a row of proportions has no scalar CDF, and brms takes only weights(), subset() and index() on these families.")
+  r("trunc()", "group:simplex", "refused",
+    "Refused for the same reason: no scalar CDF, no truncation window.")
   r("cens()", "categorical", "refused",
     "Refused: a nominal response carries no order, so it has no CDF for a censored row to contribute.")
   r("trunc()", "categorical", "refused",
@@ -1796,6 +1812,16 @@ compat_hand_rules_tbl <- function() {
     "Draws come back as an n x K count matrix carrying the response's column names; needs trials().")
   r("simulate", "categorical", "works",
     "Draws come back as an UNORDERED factor carrying the response's own levels: the categories have no order, so restoring them as an ordered factor would claim one the model never used.")
+  r("simulate", "group:simplex", "works",
+    "Draws come back as an n x K matrix of proportions, rows on the simplex, columns named by the response's categories: Dirichlet draws by gamma normalization, logistic-normal draws by a multivariate normal draw on the log-ratio scale, as brms's posterior_predict() draws them.")
+  r("residuals", "group:simplex", "refused",
+    "Refused for every type, as brms refuses predictive errors for every polytomous family: a row of proportions has no scalar residual. Compare predict(fit) with the observed proportions.")
+  r("residuals_osa", "group:simplex", "refused",
+    "Refused with residuals() as a whole: a one-step-ahead residual is a scalar CDF value, and a composition has none.")
+  r("fitted", "group:simplex", "conditional",
+    "dirichlet() and brmsfamily(\"dirichlet2\") return brms's n x 4 x K array of category means, layers named P(Y = k), with delta-method standard errors. logistic_normal() is refused in brms's words: its mean has no closed form.")
+  r("predict", "group:simplex", "conditional",
+    "Returns brms's n x 4 x K summary of simulated compositions, layers named by category. type = \"response\" in frm_linpred() is the category means of fitted(), and refused for logistic_normal(); frm_linpred(dpar = \"mu<k>\") gives one category's predictor.")
   r("simulate", "von_mises", "works",
     "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
   r("simulate", "cox", "refused",
@@ -1950,7 +1976,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.",
     override = TRUE)
   r("double_bar", "diag", "works",
-    "diag is the structure (f || g) resolves to.")
+    "diag is the structure every (x || g) term resolves to.")
   r("bar_crossing", "kind:covstruct", "refused",
     "Refused for every covariance structure. The crossing must go inside the bar.")
   # The other two grammar rows are "*" rules of the same shape as the
@@ -1982,7 +2008,7 @@ compat_hand_rules_tbl <- function() {
   r("mm()", "us", "works",
     "The default: one unstructured covariance over the term's coefficients, shared by every pooled membership level.")
   r("mm()", "diag", "works",
-    "diag(x | mm(g1, g2)) is the spelling of brms's mm(..., cor = FALSE); (x || mm(g1, g2)) expands to the same thing.")
+    "diag(x | mm(g1, g2)), (x || mm(g1, g2)) and brms's (x | mm(g1, g2, cor = FALSE)) are the same block.")
   r("mm()", "|ID|", "refused",
     "Refused: a merged |ID| block indexes one level set per observation row, and an mm() row loads several levels at once.")
   r("mm()", "REML", "works",

@@ -391,26 +391,16 @@ test_that("fitted has reasonable outputs", {
     fi <- fitted(fit1, newdata = newdata, allow_new_levels = TRUE,
                  sample_new_levels = "old_levels", ndraws = 10)
   )
-  brms_port("brmsfit-methods:314", "defect",
-    paste0(
-      "fitted() takes sample_new_levels = 'old_levels' now (lane ",
-      "ceplot); the call also asks ndraws, which a ",
-      "maximum-likelihood fit has no draws to thin, and the setup ",
-      "dies on it (D3's reason), so the assertion reads a stale ",
-      "object"),
+  brms_port("brmsfit-methods:314", "pass",
+    "",
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:315",
     fi <- fitted(fit1, newdata = newdata, allow_new_levels = TRUE,
                  sample_new_levels = "gaussian", ndraws = 1)
   )
-  brms_port("brmsfit-methods:317", "divergence",
-    paste0(
-      "fitted() takes sample_new_levels = 'gaussian' now, as ",
-      "brms's does; ndraws = 1 is refused by name, since fitted() ",
-      "on a maximum-likelihood fit is a Wald summary with no draws ",
-      "to thin (D3's reason). The setup dies on it, so the ",
-      "assertion reads a stale object"),
+  brms_port("brmsfit-methods:317", "pass",
+    "",
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:320",

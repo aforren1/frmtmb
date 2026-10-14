@@ -259,7 +259,7 @@ test_that("ar1() warns on gapped integer levels (glmmTMB#1278)", {
   )
 })
 
-test_that("|| over a factor gives independent effects (lme4#818)", {
+test_that("|| over a factor is one term, coded as brms codes it (lme4#818)", {
   set.seed(11)
   dd <- data.frame(
     g = factor(rep(1:40, each = 10)),
@@ -271,34 +271,38 @@ test_that("|| over a factor gives independent effects (lme4#818)", {
     re[cbind(as.integer(dd$f), as.integer(dd$g))] + rnorm(400, sd = 0.7)
 
   # lme4 expands the factor into ONE term carrying every level, which
-  # the default `us` class then correlates
+  # the default `us` class then correlates; here it is uncorrelated
   dbar <- frm(bf(y ~ x + (0 + f || g)) + gaussian(), data = dd)
   ref <- frm(bf(y ~ x + diag(0 + f | g)) + gaussian(), data = dd)
-  expect_equal(as.numeric(logLik(dbar)), as.numeric(logLik(ref)),
-               tolerance = 1e-12)
-  expect_equal(dbar$estimates$theta, ref$estimates$theta,
-               tolerance = 1e-12)
+  expect_identical(as.numeric(logLik(dbar)), as.numeric(logLik(ref)))
+  expect_identical(dbar$estimates$theta, ref$estimates$theta)
   V <- varcorr_matrices(dbar)[[1]]
-  expect_equal(V[upper.tri(V)], rep(0, 3))
+  expect_identical(V[upper.tri(V)], rep(0, 3))
 
-  # the intercept form expands to (1 | g) + diag(0 + f | g)
+  # the intercept form is ONE term coded as brms codes it, with the
+  # treatment contrasts of (f | g), not lme4's (1 | g) + (0 + f | g)
   dbar_i <- frm(bf(y ~ x + (f || g)) + gaussian(), data = dd)
-  ref_i <- frm(bf(y ~ x + (1 | g) + diag(0 + f | g)) + gaussian(),
-               data = dd)
-  expect_equal(as.numeric(logLik(dbar_i)), as.numeric(logLik(ref_i)),
-               tolerance = 1e-12)
-  expect_length(varcorr_matrices(dbar_i), 2L)
+  ref_i <- frm(bf(y ~ x + diag(1 + f | g)) + gaussian(), data = dd)
+  expect_identical(as.numeric(logLik(dbar_i)), as.numeric(logLik(ref_i)))
+  expect_length(varcorr_matrices(dbar_i), 1L)
+  expect_identical(dbar_i$frame$re_blocks[[1L]]$cnms,
+                   c("(Intercept)", "fb", "fc"))
+  lme4_i <- frm(bf(y ~ x + (1 | g) + diag(0 + f | g)) + gaussian(),
+                data = dd)
+  expect_false(isTRUE(all.equal(as.numeric(logLik(dbar_i)),
+                                as.numeric(logLik(lme4_i)))))
 
-  # numeric double bars keep lme4's block split and their old values
+  # numeric double bars are one block now, with the likelihood and the
+  # estimates of lme4's split
   num <- frm(bf(y ~ x + (x || g)) + gaussian(), data = dd)
   num_ref <- frm(bf(y ~ x + (1 | g) + (0 + x | g)) + gaussian(), data = dd)
   expect_equal(num$estimates$theta, num_ref$estimates$theta,
+               tolerance = 1e-8)
+  expect_equal(as.numeric(logLik(num)), as.numeric(logLik(num_ref)),
                tolerance = 1e-12)
-  expect_equal(names(varcorr_matrices(num)), names(varcorr_matrices(num_ref)))
+  expect_length(varcorr_matrices(num), 1L)
   mix <- frm(bf(y ~ x + (1 + x || g)) + gaussian(), data = dd)
-  expect_equal(mix$estimates$theta, num_ref$estimates$theta,
-               tolerance = 1e-12)
-  expect_length(varcorr_matrices(mix), 2L)
+  expect_identical(mix$estimates$theta, num$estimates$theta)
 })
 
 test_that("tensor-product smooths are supported or refused clearly (glmmTMB#1082)", {

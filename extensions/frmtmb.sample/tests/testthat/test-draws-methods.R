@@ -305,6 +305,13 @@ test_that("summary() reports brms's three diagnostics, agreeing with rhat()", {
   expect_equal(unname(summary(cs$ds, robust = TRUE)[, "Estimate"]),
                unname(apply(cs$ds$draws[, rownames(s)], 2, stats::median)))
   expect_error(summary(cs$ds, priors = TRUE), "prior_summary")
+  # old brms printed WAIC under waic = TRUE, brms 2.23.0 ignores it, and
+  # neither summary prints it: refused by name, naming waic() (lane
+  # postfix; 0.18.0 gave the generic "has no argument `waic`",
+  # dev/postfix-log/probe-before.txt). waic = FALSE asks for nothing
+  expect_error(summary(cs$ds, waic = TRUE), "waic(x) computes it",
+               fixed = TRUE)
+  expect_identical(summary(cs$ds, waic = FALSE), s)
   expect_false("n_eff" %in% colnames(s))
   # the agreement itself, which is the point
   expect_equal(s[, "Rhat"], rhat(cs$ds)[rownames(s)])
@@ -553,8 +560,13 @@ test_that("conditional_effects() runs on formula-route draws", {
 
 test_that("conditional_effects() on draws refuses what it cannot mean", {
   cs <- dm_case()
-  expect_error(conditional_effects(cs$ds, method = "predict"),
-               "no method =")
+  # method = "predict" draws the posterior predictive band now, as brms
+  # does (lane postfix, test-conditional-effects-draws.R); a method
+  # neither brms nor the fit method has is still refused
+  expect_error(conditional_effects(cs$ds, method = "nosuch"),
+               "must be one of")
+  expect_error(conditional_effects(cs$ds, method = "posterior_linpred"),
+               "no frmtmb spelling")
   expect_error(conditional_effects(cs$ds, band = "boot"),
                "no band =")
   # laplace-shaped draws: random effects in the model, no r_ columns.
@@ -623,4 +635,61 @@ test_that("a missing mi() response is no observation on draws", {
   expect_error(suppressMessages(pp_check(ds, type = "loo_pit_overlay")),
                "log_lik() is not defined for a model with in-model",
                fixed = TRUE)
+})
+
+# Lane postfix (2026-10-13): frm_sample() of a frm_multiple() result,
+# brms's brm_multiple() posterior, which combines the chains of every
+# imputation. 0.18.0 had no route to it: frm_sample() read the pooled
+# object as a formula (dev/postfix-log/multiple-sample-before.txt).
+test_that("frm_sample() of a frm_multiple() result combines the imputations", {
+  skip_sampler()
+  set.seed(8)
+  n <- 60
+  x <- stats::rnorm(n)
+  y <- stats::rnorm(n, 1 + 0.5 * x, 1)
+  x[sample(n, 12)] <- NA
+  imps <- lapply(1:3, function(i) {
+    xi <- x
+    xi[is.na(xi)] <- sample(x[!is.na(x)], sum(is.na(xi)), TRUE)
+    data.frame(y = y, x = xi)
+  })
+  fm <- frm_multiple(bf(y ~ x), family = gaussian(), data = imps)
+  quiet <- function(e) suppressWarnings(suppressMessages(e))
+  ds <- quiet(frm_sample(fm, chains = 1, iter = 300, refresh = 0,
+                         seed = 5))
+  # the same call on each imputation's fit, with the seed it was given
+  one <- lapply(1:3, function(j) {
+    quiet(frm_sample(fm$fits[[j]], chains = 1, iter = 300, refresh = 0,
+                     seed = 5 + j - 1))
+  })
+  expect_s3_class(ds, "frmtmb_draws")
+  expect_identical(ds$draws, do.call(rbind, lapply(one, `[[`, "draws")))
+  expect_identical(nchains(ds), 3L)
+  expect_identical(ndraws(ds), 3L * ndraws(one[[1]]))
+  expect_identical(ds$nimp, 3L)
+  # the posterior summaries are of the combined draws, as brms's are
+  expect_equal(unname(fixef(ds)["x", "Estimate"]),
+               mean(ds$draws[, "b_x"]))
+  # an imputation whose fit has other parameters is refused by name
+  bad <- fm
+  d2 <- imps[[2]]
+  d2$z <- stats::rnorm(n)
+  bad$fits[[2]] <- frm(bf(y ~ x + z), family = gaussian(), data = d2)
+  expect_error(quiet(frm_sample(bad, chains = 1, iter = 100, refresh = 0)),
+               "different parameters from the first")
+  # brms's diagnostics of a brm_multiple() fit (fix round 1, review
+  # item 3): no R-hat or ESS across imputations (brms summary.R:109),
+  # and a relative efficiency of 1 in loo() (brms loo.R:770); one
+  # imputation's draws keep both
+  expect_equal(colnames(summary(ds)),
+               c("Estimate", "Est.Error", "l-95% CI", "u-95% CI"))
+  expect_true("Rhat" %in% colnames(summary(one[[1]])))
+  skip_if_not_installed("loo")
+  ll <- log_lik(ds)
+  expect_equal(quiet(loo(ds))$estimates,
+               quiet(loo::loo.matrix(ll, r_eff = rep(1, ncol(ll))))$estimates)
+  expect_false(isTRUE(all.equal(
+    quiet(loo(ds))$estimates,
+    quiet(loo::loo.matrix(ll, r_eff = loo::relative_eff(
+      exp(ll), chain_id = attr(ll, "chain_id"))))$estimates)))
 })

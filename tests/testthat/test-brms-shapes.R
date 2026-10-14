@@ -122,9 +122,28 @@ test_that("fitted() on an ordinal fit is brms's n x 4 x K array", {
 
 test_that("fitted() refuses the arguments that need draws", {
   fit <- shapes_fit("gauss")
-  expect_error(fitted(fit, ndraws = 3), "ndraws")
   expect_error(fitted(fit, summary = FALSE), "summary")
   expect_error(fitted(fit, robust = TRUE), "robust")
+  expect_error(fitted(fit, draw_ids = 1:3), "draw_ids")
+})
+
+# Lane postfix (2026-10-13): brms's `ndraws` sets how many posterior
+# draws brms summarizes, which is the Monte Carlo error of its answer
+# and not the quantity answered. A maximum-likelihood fit answers that
+# quantity with none, so `ndraws` is accepted and changes nothing, with
+# a message. 0.70.0 refused it, which stopped the setup of ported brms
+# rows brmsfit-methods:314 and :317 (dev/postfix-log/probe-before.txt).
+test_that("fitted() and residuals() take brms's ndraws and say it is moot", {
+  fit <- shapes_fit("gauss")
+  for (k in c(1, 10)) {
+    expect_message(fi <- fitted(fit, ndraws = k), "changes nothing")
+    expect_identical(fi, fitted(fit))
+    expect_message(re <- residuals(fit, ndraws = k), "changes nothing")
+    expect_identical(re, residuals(fit))
+  }
+  # still a count of draws
+  expect_error(fitted(fit, ndraws = 0), "ndraws")
+  expect_error(fitted(fit, ndraws = 2.5), "ndraws")
 })
 
 test_that("fitted() takes nlpar and allow_new_levels", {

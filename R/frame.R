@@ -49,7 +49,13 @@ refuse_duplicated_re <- function(cps) {
     # the term as written, gr() and a covariance wrapper included, so
     # the two terms the message names can be told apart
     wr <- cp[["written"]] %||% cp[["bar"]]
-    lab <- if (is.null(wr)) cp[["label"]] else {
+    # a || term or a cor = FALSE one is named as the user wrote it, not
+    # as the diag() term it is rewritten to
+    lab <- if (!is.null(cp[["written_text"]])) {
+      cp[["written_text"]]
+    } else if (is.null(wr)) {
+      cp[["label"]]
+    } else {
       cs <- cp[["covstruct"]] %||% "us"
       if (cs %in% c("us", "gr_cov", "gr_prec", "us_t")) {
         paste0("(", deparse1(wr), ")")
@@ -2643,7 +2649,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           !(right_only && !is.null(resp$family[["lccdf"]]))) {
         frm_stop("cens()/trunc() need a family with a CDF (currently: ",
                  "gaussian, lognormal, poisson, exponential, weibull, ",
-                 "inverse.gaussian, cox). The list is not closed: a family ",
+                 "inverse.gaussian, cox, frechet, gen_extreme_value, ",
+                 "discrete_weibull). The list is not closed: a family ",
                  "supplies one through the lcdf argument of ",
                  "frmtmb_family(), and a family that only ever sees RIGHT ",
                  "censoring may supply the log survivor function through ",
@@ -3176,6 +3183,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               bar = bars[[k]], Zlocal = methods::as(Zk, "CsparseMatrix"),
               mm = mms,
               written = dp[["re"]][[k]]$written,
+              written_text = dp[["re"]][[k]][["written_text"]],
               group_name = mms$label,
               label = paste0(dp_prefix, deparse1(bars[[k]]))
             )
@@ -3209,6 +3217,26 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             rt$cnms[[kk]] <- rt$cnms[[kk]][keep]
           }
           d_k <- length(rt$cnms[[kk]])
+          ws <- dp[["re"]][[k]][["within_struct"]]
+          if (!is.null(ws) && d_k > 1L) {
+            lab <- dp[["re"]][[k]][["within_label"]]
+            if (!identical(ws, "diag")) {
+              frm_stop(lab, " has ", d_k, " columns. ",
+                       "gr(cov = ) and gr(prec = ) fix the covariance over ",
+                       "the levels and fit an unstructured one within ",
+                       "them, so several columns do not combine with ",
+                       "another structure", call. = FALSE)
+            }
+            frm_stop(lab, " has a term with ", d_k,
+                     " columns (", paste(rt$cnms[[kk]], collapse = ", "),
+                     "), and an uncorrelated term over gr(cov = ) or ",
+                     "gr(prec = ) gives each column its own sd. That is ",
+                     "brms's model, but frmtmb's known-covariance block ",
+                     "correlates the columns within a level, so it is not ",
+                     "available yet. Write each column as a numeric ",
+                     "variable of its own in the || term, or fit the ",
+                     "columns correlated with |", call. = FALSE)
+          }
           len_k <- length(zrows)
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
@@ -3292,6 +3320,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # t latent, NULL on every gaussian block
             dist_nu = dp[["re"]][[k]]$dist_nu,
             written = dp[["re"]][[k]]$written,
+            written_text = dp[["re"]][[k]][["written_text"]],
             from_slash = dp[["re"]][[k]]$from_slash,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[kk]],

@@ -312,7 +312,9 @@ brms_fixef_extra_vcov <- function(fit, rows) {
   }
   # the covariance without the lost directions, and NaN for a row that
   # moves along one, so a lost parameter does not take the others (RB2)
-  V <- A %*% pc$Vp %*% t(A)
+  V <- if (is.null(pc$root)) A %*% pc$Vp %*% t(A) else {
+    tcrossprod(A %*% pc$root)
+  }
   bad <- attr(hyp_prop_var(pc, A), "lost")
   V[bad, ] <- NaN
   V[, bad] <- NaN
@@ -441,7 +443,9 @@ fit_draw_space <- function(fit) {
                             boundary = se_null_boundary(fit, sdr)),
                   boundary_only = all(sdr$se_lost == "boundary")))
     }
-    return(list(map = map, V = V))
+    # a covariance held as a factor (se_reparam_cov()) is drawn and
+    # propagated through it
+    return(list(map = map, V = V, root = sdr$cov_fixed_root))
   }
   bn <- names(fit$frame[["par_template"]][["beta"]])
   if (is.null(bn)) bn <- paste0("beta_", seq_len(nb))
@@ -526,14 +530,29 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
   b0 <- fit$estimates[["b"]]
   m0 <- as.matrix(f(fit))
   p <- length(v0)
+  # On a covariance held as a factor (se_reparam_cov()) a column per
+  # parameter fails twice: a relative step on a raw polynomial's top
+  # coefficient moves the predictor by many standard errors, and J V J'
+  # loses every digit. The output is differenced along each column of
+  # the factor instead, a step of a thousandth of a standard error, and
+  # V keeps only what the factor does not carry (the group effects'
+  # conditional covariance).
+  K <- NULL
+  if (!is.null(ds$root)) {
+    K <- if (nbd) fd_joint_root(fit, map, b_idx) else {
+      list(K = ds$root, Vrest = matrix(0, p, p))
+    }
+    if (!is.null(K)) V <- K$Vrest
+  }
   # J is (n * K) x p: one column per outer parameter, flattened the way
   # as.vector() flattens the prediction, so the quadratic form below is
   # elementwise over the same flattening. The group effects do NOT get a
   # column each unless they have to: a column per level made this matrix
   # (n * K) x (p + levels), which is where the time and the memory went
   # on a fit with many levels.
-  J <- matrix(NA_real_, length(m0), p)
-  for (j in seq_len(p)) {
+  J <- matrix(if (is.null(K)) NA_real_ else 0, length(m0), p)
+  # the factor's columns replace these (below)
+  if (is.null(K)) for (j in seq_len(p)) {
     h <- eps * max(1, abs(v0[j]))
     vp <- v0; vp[j] <- vp[j] + h
     vm <- v0; vm[j] <- vm[j] - h
@@ -639,6 +658,19 @@ fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL,
     if (length(ex$var) != nr || !any(ex$var > 0)) next
     var_out <- var_out + g_of(ex$key)^2 * rep(ex$var, times = nk)
   }
+  if (!is.null(K)) {
+    along <- function(k, s) {
+      g <- fit_set_outer(fit, v0 + s * K$K[seq_len(p), k], map)
+      if (nbd) g$estimates[["b"]][b_idx] <- b0[b_idx] +
+          s * K$K[p + seq_len(nbd), k]
+      as.vector(as.matrix(f(g)))
+    }
+    for (k in seq_len(ncol(K$K))) {
+      var_out <- var_out +
+        ((along(k, fd_root_step) - along(k, -fd_root_step)) /
+           (2 * fd_root_step))^2
+    }
+  }
   se <- sqrt(pmax(0, var_out))
   if (!is.null(jc) && NCOL(jc$null)) {
     # an output that moves along a lost direction has no standard error;
@@ -674,6 +706,35 @@ fd_joint_cov <- function(fit, map, b_idx) {
   pos <- c(pos_d, pos_b[b_idx])
   as.matrix(jc$V[pos, pos, drop = FALSE])
 }
+
+#' The factor of the joint covariance over the drawn parameters and the
+#' group effects `b_idx` (fd_joint_cov()'s rows), and the part it does
+#' not carry: `list(K, Vrest)` with that block of the joint covariance
+#' equal to `Vrest + K K'`, or NULL.
+#'
+#' @noRd
+fd_joint_root <- function(fit, map, b_idx) {
+  jc <- get_joint_cov(fit)
+  rn <- jc$names
+  if (is.null(rn) || is.null(jc$root) || !any(rn == "b")) return(NULL)
+  pos_d <- unlist(lapply(unique(map$comp), function(cp) which(rn == cp)))
+  pos_b <- which(rn == "b")
+  if (length(pos_d) != length(map$names) ||
+        length(pos_b) != length(fit$estimates[["b"]])) {
+    return(NULL)
+  }
+  pos <- c(pos_d, pos_b[b_idx])
+  Vr <- if (is.null(jc$Vrest)) matrix(0, length(pos), length(pos)) else {
+    as.matrix(jc$Vrest[pos, pos, drop = FALSE])
+  }
+  list(K = jc$root[pos, , drop = FALSE], Vrest = Vr)
+}
+
+#' The step fit_fd_se() takes along a column of the covariance's factor,
+#' in units of that column: a thousandth of a standard error.
+#'
+#' @noRd
+fd_root_step <- 1e-3
 
 #' brms's `P(Y = k)` labels: the response's own categories, or their
 #' positions when the response carries no labels.
