@@ -25,7 +25,13 @@ otherwise the fixed-effect block, as \code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_f
 }
 \value{
 A covariance matrix, with attributes \code{type}, \code{nclusters} and
-\code{df} (the \code{G - 1} reference degrees of freedom).
+\code{df} (the \code{G - 1} reference degrees of freedom). When the fixed
+design is ill-conditioned, the model's covariance is held as a
+factor (see \code{\link[=frm_lp_basis]{frm_lp_basis()}}). Then the sandwich is formed through
+that factor, and the matrix also has the attribute \code{root}, a matrix
+\code{F} with \verb{V = F F'}. \code{\link[=hypothesis]{hypothesis()}} reads \code{root} when it is given
+the matrix as \code{vcov}. A product formed from the whole matrix loses
+its digits on such a fit, and the function warns once per fit.
 }
 \description{
 The misspecification-robust covariance of the estimates when

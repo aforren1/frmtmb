@@ -890,6 +890,14 @@ smooth_edf <- function(fit) {
   # par.random holds the `random` components in template order; b entries
   # are the ones named "b"
   b_pos <- which(names(sdr$par.random) == "b")
+  # on a fit whose covariance is held as a factor (se_reparam_cov()),
+  # sdreport()'s own inverse of the natural Hessian is not the
+  # covariance; the joint one formed through the factor is
+  if (!is.null(sdr$cov_fixed_root)) {
+    jc <- tryCatch(get_joint_cov(fit), error = function(e) NULL)
+    bj <- if (!is.null(jc)) which(jc$names == "b")
+    if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(diag(jc$V)[bj], 0)
+  }
   th <- fit$estimates[["theta"]]
   out <- vapply(blocks, function(bk) {
     prior_var <- exp(th[bk[["theta_idx"]]])^2
@@ -2732,6 +2740,10 @@ hyp_par_cov <- function(fit) {
     list(vals = unname(sdr$par.fixed[keep]), comp = rn[keep],
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par), Vp = Vp,
+         # Vp = root root' where the fit holds a factor (se_reparam_cov())
+         root = if (!is.null(sdr$cov_fixed_root)) {
+           sdr$cov_fixed_root[keep, , drop = FALSE]
+         },
          jc = if (!is.null(sdr$se_null)) {
            list(null = sdr$se_null, flat = sdr$se_null_flat,
                 units = fit$par_units,
@@ -2767,7 +2779,12 @@ hyp_par_cov <- function(fit) {
 #' @noRd
 hyp_prop_var <- function(pc, G) {
   G <- as.matrix(G)
-  v <- pmax(rowSums((G %*% pc$Vp) * G), 0)
+  # through the factor where there is one: G Vp G' formed from Vp loses
+  # every digit of a hypothesis that is a fitted value of an
+  # ill-conditioned design (jc_rowvar())
+  v <- pmax(if (is.null(pc$root)) rowSums((G %*% pc$Vp) * G) else {
+    rowSums((G %*% pc$root)^2)
+  }, 0)
   on <- !is.null(pc$jc) && !is.null(pc$outer_pos)
   bad <- if (on) {
     jc_nonest(pc$jc, G, pc$outer_pos)
@@ -3247,6 +3264,27 @@ hyp_fd_grad <- function(f, v) {
     vm <- v; vm[i] <- vm[i] - step
     (f(vp) - f(vm)) / (2 * step)
   }, numeric(1))
+}
+
+#' The delta-method variance of `f` at `v` over hyp_par_cov()'s `pc`:
+#' hyp_prop_var() of the gradient, or, where the covariance is held as a
+#' factor (se_reparam_cov()), the sum of squares of `f` differenced
+#' along each column of the factor. A gradient taken by coordinates
+#' carries a relative error near the step's rounding, and on an
+#' ill-conditioned design the product with the factor magnifies it: a
+#' degree-8 raw polynomial's value at x = 1.5 came out 1.8e-4 away from
+#' fitted()'s SE (tests/testthat/test-se-reparam.R).
+#'
+#' @noRd
+hyp_delta_var <- function(pc, f, v, g = hyp_fd_grad(f, v)) {
+  vg <- hyp_prop_var(pc, matrix(g, 1L))
+  if (is.null(pc$root)) return(vg)
+  d <- vapply(seq_len(ncol(pc$root)), function(k) {
+    s <- fd_root_step * pc$root[, k]
+    (f(v + s) - f(v - s)) / (2 * fd_root_step)
+  }, numeric(1))
+  vg[] <- sum(d^2)
+  vg
 }
 
 #' Hypothesis tests on parameter expressions
@@ -3820,19 +3858,34 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
   # determine (a_k + b where only the sum enters); hyp_prop_var() reads
   # the covariance without the lost directions and gives NaN to the
   # hypotheses that move along them, as predict() does. A supplied
-  # `vcov` is used as given.
+  # `vcov` is used as given, through the factor that came with it
+  # (vcov_cluster() on a fit whose covariance is held as one). On such a
+  # fit a matrix without its factor gives no standard error to a
+  # hypothesis that combines parameters: the product formed from the
+  # whole matrix can lose every digit, and the sandwich from the whole
+  # bread gave a fitted value's SE as 0 and 1228 times the exact one
+  # (review of lane illse, item 1).
+  bare <- FALSE
   if (!is.null(vcov)) {
+    bare <- !is.null(pc$root) && is.null(rv$root)
     pc$Vp <- pc$V
     pc$jc <- NULL
+    pc$root <- if (!is.null(rv$root)) {
+      rv$root[pc$outer_pos, , drop = FALSE]
+    }
   }
-  lost_h <- logical(k_n)
+  lost_h <- lost_bare <- logical(k_n)
   profiles <- vector("list", k_n)
   se <- lwr <- upr <- stat <- p <- numeric(k_n)
   for (i in seq_len(k_n)) {
     ex <- exs[[i]]
     fn <- function(v) hyp_eval(x, ex, v, pc$comp)
     g <- hyp_fd_grad(fn, pc$vals)
-    vg <- hyp_prop_var(pc, matrix(g, 1L))
+    vg <- hyp_delta_var(pc, fn, pc$vals, g)
+    if (bare && sum(g != 0) > 1L) {
+      vg[] <- NaN
+      lost_bare[i] <- TRUE
+    }
     se[i] <- sqrt(vg)
     lost_h[i] <- attr(vg, "lost")
     dir <- hp$dir[i]
@@ -3879,6 +3932,17 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
     }
   }
   se_pred_warn(lost_h, "hypotheses")
+  if (any(lost_bare)) {
+    frm_warning(
+      "hypothesis(vcov = ): the fixed design of this fit is ",
+      "ill-conditioned, so its covariance is held as a factor, and the ",
+      "supplied matrix does not carry one. A combination of parameters ",
+      "formed from the whole matrix can lose every digit. So ",
+      sum(lost_bare), " of ", k_n, " hypotheses have no standard error. ",
+      "vcov_cluster(full = TRUE) carries its factor, and hypothesis() ",
+      "without `vcov` uses the model's", call. = FALSE,
+      class = "frmtmb_cov_products")
+  }
   test <- data.frame(Hypothesis = labels, stat = stat, p = p)
   names(test)[2L] <- stat_name
   # a directional claim passes when its one-sided bound excludes 0,

@@ -60,7 +60,20 @@ get_varcov.frmtmb_fit <- function(x, ...) {
   # model's scale; vcov() is brms's population-level block and leaves
   # out an intercept-only dispersion parameter that get_parameters()
   # does report
-  insight_param_scale(x)$V
+  V <- insight_param_scale(x)$V
+  # ggeffects, modelbased and parameters form products such as a' V a
+  # from it, which on a design ill-conditioned beyond se_product_kappa
+  # lose every digit: from the whole matrix a fitted value's SE at
+  # degree 8 was 0.779 of lm()'s, where 0.70.0 gave NaN (review of lane
+  # illse, item 2). Below that bound the products keep at least four
+  # digits, and a reader's own products are analytic (marginaleffects'
+  # numerical Jacobian is gated in get_vcov()).
+  if (cov_products_lossy(x)) {
+    interop_nan_warning(x, "insight::get_varcov()", "insight",
+                        "ggeffects, modelbased and parameters form")
+    V[] <- NaN
+  }
+  V
 }
 
 #' The parameter vector insight's seams report, and its covariance.

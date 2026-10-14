@@ -1,3 +1,24 @@
+# frmtmb.spline (development version)
+
+The new frmtmb holds the covariance of the coefficients as a factor
+on a fit whose fixed design is ill-conditioned. Its `frm_lp_basis()`
+returns that factor (`V_root`, `V_rest`). This version reads the factor
+only where `frm_lp_basis()` returns it. So on frmtmb 0.70.0 it behaves
+as 0.10.1 does. On the new frmtmb, version 0.10.1 refuses such a fit
+with an error ("disagrees with frm_linpred(se.fit = TRUE) by 1
+relative"). That is correct, but it gives no band. So no new floor on
+frmtmb is needed for correctness. Update the two packages together to
+get the bands.
+
+## Bug fixes
+
+* The grid covariance, the derivative's and the feature's standard
+  errors are formed through the factor where `frm_lp_basis()` returns
+  one. On a raw polynomial of degree 8, `C V C'` from the whole matrix
+  loses every digit of a band. Through the factor, a curve's standard
+  errors are within 1e-4 of `lm()`'s. A first derivative's are within
+  1e-3, the accuracy of the central difference.
+
 # frmtmb.spline 0.10.1
 
 Needs frmtmb 0.68.1, whose joint covariance is positive semi-definite

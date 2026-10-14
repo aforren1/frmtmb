@@ -279,13 +279,15 @@ test_that("a Newton step that gains far less than it predicts is refused", {
   expect_true(all(is.finite(se[1:2])))
 })
 
-test_that("Newton steps ending where the Hessian does not factor are undone", {
+test_that("Newton steps on an ill-conditioned design reach the maximum", {
   # lane seflags' B5 design without its group term, seeds 4 and 5:
-  # degree-8 raw powers plus z and w. The steps gained what they
-  # predicted and ended where the Hessian has no Cholesky factor (a
-  # gradient of 0.0335 and 1.63 on sigma); the convergence check warned
-  # and skipped the standard-error check, and every SE was lost
-  # (dev/optrap-c3-b5.R)
+  # degree-8 raw powers plus z and w. In natural units the steps gained
+  # what they predicted and ended where the Hessian has no Cholesky
+  # factor (a gradient of 0.0335 and 1.63 on sigma), and were undone, so
+  # the fits stayed 0.674 and 1.73 below the maximum (dev/optrap-c3-b5.R,
+  # filed at 0.70.0). Since lane illse they are taken in the design's
+  # coordinates, where the Hessian factors (reparam_basis()), and reach
+  # the maximum of the same likelihood with poly(x, 8)
   for (s in c(4, 5)) {
     set.seed(s)
     d <- data.frame(x = stats::runif(200, 1, 2), g = factor(rep(1:20, 10)),
@@ -301,9 +303,12 @@ test_that("Newton steps ending where the Hessian does not factor are undone", {
         w <<- c(w, conditionMessage(x))
         invokeRestart("muffleWarning")
       })
-    expect_null(f$opt$polish)
+    expect_false(is.null(f$opt$polish))
     expect_false(any(grepl("Large maximum absolute gradient", w,
                            fixed = TRUE)))
+    ref <- frm(y ~ poly(x, 8) + z + w, data = d)
+    # within a tenth of what one SE of log sigma moves the likelihood
+    expect_lt(abs(as.numeric(logLik(ref) - logLik(f))), 0.05)
   }
 })
 

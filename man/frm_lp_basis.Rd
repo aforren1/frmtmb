@@ -59,6 +59,19 @@ contributes), a dense matrix otherwise.}
 \code{var(eta)} is \code{rowSums((A \%*\% V) * A) + extra_var}, and
 \code{frm_linpred(se.fit = TRUE)} is written that way. The covariance of
 the whole prediction is \verb{A V A' + extra_cov}.
+
+On a fit whose fixed design is ill-conditioned (a raw polynomial of
+high degree, a covariate far from zero) the list also has
+\describe{
+\item{\code{V_root}}{\verb{p x k}; a factor of the coefficient covariance.}
+\item{\code{V_rest}}{\verb{p x p}; the part of \code{V} that \code{V_root} does not
+carry, zero without random effects.}
+}
+with \verb{V = V_rest + V_root V_root'}. Use
+\code{rowSums((A \%*\% V_root)^2) + rowSums((A \%*\% V_rest) * A)} for
+\code{var(eta)}, as \code{frm_linpred()} does. \code{V} is accurate entry by entry,
+but \verb{A V A'} formed from it in double precision is not: on a raw
+polynomial of degree 8 it can be wrong by a factor of 3.
 }
 \description{
 \code{frm_linpred(se.fit = TRUE)} builds a matrix \code{A} with one row per

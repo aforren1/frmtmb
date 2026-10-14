@@ -320,7 +320,12 @@ frm_curve_feature <- function(object, var,
   # the diagonal of the extra covariance at the roots, and the slope's
   # comes from its sources (sp_extra_deriv()), never from a difference
   # of that covariance
-  qf <- function(A, ev) sp_se(rowSums((A %*% parts$V) * A), ev)
+  qf <- function(A, ev) {
+    v <- if (is.null(parts$root)) rowSums((A %*% parts$V) * A) else {
+      rowSums((A %*% parts$root)^2) + rowSums((A %*% parts$rest) * A)
+    }
+    sp_se(v, ev)
+  }
   value_se <- qf(C0, parts$extra_var[rws(3L)])
   if (type == "crossing") {
     denom <- f1

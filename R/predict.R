@@ -17,6 +17,8 @@ get_joint_cov <- function(fit) {
   flat <- NULL
   units <- NULL
   lost_pos <- integer(0)
+  root <- NULL
+  Vrest <- NULL
   if (is.null(Q)) {
     # a parameter without a standard error is NaN in cov.fixed, which a
     # product would spread to every prediction; the finite covariance
@@ -30,6 +32,7 @@ get_joint_cov <- function(fit) {
     flat <- sdr$se_null_flat
     if (!is.null(null)) units <- fit$par_units
     lost_pos <- match(names(sdr$se_lost), outer_par_names(fit))
+    root <- sdr$cov_fixed_root
   } else {
     rep <- joint_cov_repair(fit, Q, sdr_of(fit))
     if (!is.null(rep)) {
@@ -38,6 +41,8 @@ get_joint_cov <- function(fit) {
       flat <- rep$flat
       units <- rep$units
       lost_pos <- rep$lost_pos
+      root <- rep$root
+      Vrest <- rep$Vrest
     } else {
       # same degradation vcov() uses: a singular joint precision gives
       # NaN standard errors and one warning naming diagnose(), not a raw
@@ -47,7 +52,8 @@ get_joint_cov <- function(fit) {
     rn <- rownames(Q)
   }
   cache$Vjoint <- list(V = V, names = rn, null = null, flat = flat,
-                       units = units, lost_pos = lost_pos[!is.na(lost_pos)])
+                       units = units, lost_pos = lost_pos[!is.na(lost_pos)],
+                       root = root, Vrest = Vrest)
   cache$Vjoint
 }
 
@@ -104,9 +110,15 @@ joint_cov_repair <- function(fit, Q, sdr) {
   Wrr <- tryCatch(as.matrix(Matrix::solve(Qrr)), error = function(e) NULL)
   if (is.null(Wrr) || !all(is.finite(Wrr))) return(NULL)
   J <- -Wrr %*% as.matrix(Q[r, f, drop = FALSE])
-  JV <- J %*% Vf
+  # through the factor where there is one (se_reparam_cov()): J Vf J'
+  # with Vf whole loses every digit of a group effect's variance on an
+  # ill-conditioned design, as a prediction would
+  Lf <- sdr$cov_fixed_root
+  if (!is.null(Lf) && nrow(Lf) != length(f)) Lf <- NULL
+  JL <- if (!is.null(Lf)) J %*% Lf
+  JV <- if (is.null(Lf)) J %*% Vf else tcrossprod(JL, Lf)
   V <- matrix(0, p, p, dimnames = list(rownames(Q), rownames(Q)))
-  V[r, r] <- Wrr + tcrossprod(JV, J)
+  V[r, r] <- Wrr + if (is.null(Lf)) tcrossprod(JV, J) else tcrossprod(JL)
   V[r, f] <- JV
   V[f, r] <- t(JV)
   V[f, f] <- Vf
@@ -129,7 +141,19 @@ joint_cov_repair <- function(fit, Q, sdr) {
       flat$dscale <- ds
     }
   }
-  list(V = V, null = null, flat = flat, units = units,
+  # the factor of the covariance (se_reparam_cov()) carried into the
+  # group effects as the propagated part is: V = Vrest + root root'
+  root <- NULL
+  Vrest <- NULL
+  if (!is.null(Lf)) {
+    root <- matrix(0, p, ncol(Lf), dimnames = list(rownames(Q), NULL))
+    root[f, ] <- Lf
+    root[r, ] <- JL
+    Vrest <- matrix(0, p, p, dimnames = dimnames(V))
+    Vrest[r, r] <- Wrr
+  }
+  list(V = V, null = null, flat = flat, units = units, root = root,
+       Vrest = Vrest,
        lost_pos = f[match(names(sdr$se_lost), outer_par_names(fit))])
 }
 
@@ -2164,7 +2188,7 @@ frm_linpred <- function(object, newdata = NULL,
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
   lb <- lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A), da$coef_pos,
                      lp_extra_var_vec(object, ed, use_re), ed[["nonest"]])
-  var_eta <- pmax(rowSums((lb$A %*% lb$V) * lb$A), 0) + lb$extra_var
+  var_eta <- pmax(lb_rowvar(lb), 0) + lb$extra_var
   se_eta <- sqrt(var_eta)
   # the kept columns still have a finite variance, but it is not the
   # standard error of anything the fit estimates
@@ -2869,8 +2893,7 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
       G[, cols] <- G[, cols] + Ak
     }
   }
-  V <- jc$V[pos_all, pos_all, drop = FALSE]
-  var_m <- pmax(rowSums((G %*% V) * G), 0)
+  var_m <- pmax(jc_rowvar(jc, G, pos_all), 0)
   lost_dir <- jc_nonest(jc, G, pos_all)
 
   # New grouping levels: a block whose components sit in several linear
@@ -4017,7 +4040,6 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
   n_beta <- ncol(A)
   n_more <- vapply(more, function(m) ncol(m$A), 0L)
   all_pos <- c(pos, unlist(lapply(more, `[[`, "pos")), extra_pos)
-  V <- jc$V[all_pos, all_pos, drop = FALSE]
   # `weights` collapses the K columns into ONE displayed quantity,
   # sum_k w_k p_k - the expected category number for w = the codes. The
   # weights go on the GRADIENT before the quadratic form, so the
@@ -4048,7 +4070,7 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
       off <- off + ncol(m$A)
     }
     for (i in seq_along(extra_d)) G[, off + i] <- extra_d[[i]][, k]
-    v <- rowSums((G %*% V) * G) + dPde[, k]^2 * ev_mu
+    v <- jc_rowvar(jc, G, all_pos) + dPde[, k]^2 * ev_mu
     for (i in seq_along(more)) v <- v + more[[i]]$dP[, k]^2 * ev_more[[i]]
     SE[, k] <- sqrt(pmax(v, 0))
     lost_k <- jc_nonest(jc, G, all_pos)
@@ -5403,6 +5425,9 @@ na_unpad <- function(fit, x) {
 #'     standard error is lost (see `summary()`); `integer(0)` when none
 #'     is.}
 #' }
+#' On a fit whose fixed design is ill-conditioned, `root` and `Vrest`
+#' hold `V` as `Vrest + root root'`; see [frm_lp_basis()] for why a
+#' product must be formed from them. They are `NULL` otherwise.
 #' The other elements (`null`, `units`) are internal.
 #' A fit with no random effects has no joint precision, and `V` is then
 #' the fixed-effect covariance `sdreport()$cov.fixed`; `names` says so.
@@ -5433,6 +5458,7 @@ frm_joint_cov <- function(object) {
   require_frmtmb_fit(object, "frm_joint_cov()")
   require_fitted(object, "frm_joint_cov()")
   jc <- get_joint_cov(object)
+  warn_cov_products(object, "frm_joint_cov()")
   jc$labels <- joint_coef_labels(object, jc)
   # the internal covariance keeps finite rows for the parameters the
   # Hessian lost, for predictions that do not move along them; what a
@@ -5543,6 +5569,19 @@ b_coef_labels <- function(fit) {
 #' `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
 #' `frm_linpred(se.fit = TRUE)` is written that way. The covariance of
 #' the whole prediction is `A V A' + extra_cov`.
+#'
+#' On a fit whose fixed design is ill-conditioned (a raw polynomial of
+#' high degree, a covariate far from zero) the list also has
+#' \describe{
+#'   \item{`V_root`}{`p x k`; a factor of the coefficient covariance.}
+#'   \item{`V_rest`}{`p x p`; the part of `V` that `V_root` does not
+#'     carry, zero without random effects.}
+#' }
+#' with `V = V_rest + V_root V_root'`. Use
+#' `rowSums((A %*% V_root)^2) + rowSums((A %*% V_rest) * A)` for
+#' `var(eta)`, as `frm_linpred()` does. `V` is accurate entry by entry,
+#' but `A V A'` formed from it in double precision is not: on a raw
+#' polynomial of degree 8 it can be wrong by a factor of 3.
 #' @section Variance that is not coefficient uncertainty:
 #' Two sources reach `extra_var`. An exact `gp()` evaluated at a position
 #' the fit did not see adds the field's conditional (kriging) covariance
@@ -5673,13 +5712,34 @@ lp_extra_var_vec <- function(object, ed, use_re) {
 #' @noRd
 lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
   lab <- joint_coef_labels(object, jc)
-  list(eta = eta, A = A, coef_pos = coef_pos,
-       V = jc$V[coef_pos, coef_pos, drop = FALSE],
-       coef_names = if (is.null(lab)) NULL else lab[coef_pos],
-       extra_var = extra_var,
-       nonest = nonest %||% rep(FALSE, length(eta)),
-       # rows whose standard error the lost directions take (jc_nonest())
-       se_nonest = jc_nonest(jc, A, coef_pos))
+  out <- list(eta = eta, A = A, coef_pos = coef_pos,
+              V = jc$V[coef_pos, coef_pos, drop = FALSE],
+              coef_names = if (is.null(lab)) NULL else lab[coef_pos],
+              extra_var = extra_var,
+              nonest = nonest %||% rep(FALSE, length(eta)),
+              # rows whose standard error the lost directions take
+              # (jc_nonest())
+              se_nonest = jc_nonest(jc, A, coef_pos))
+  if (!is.null(jc$root)) {
+    # V = V_rest + V_root V_root' on a fit whose covariance is held as
+    # a factor (se_reparam_cov()), which A V A' cannot be formed from
+    out$V_root <- jc$root[coef_pos, , drop = FALSE]
+    out$V_rest <- if (!is.null(jc$Vrest)) {
+      jc$Vrest[coef_pos, coef_pos, drop = FALSE]
+    } else {
+      matrix(0, length(coef_pos), length(coef_pos))
+    }
+  }
+  out
+}
+
+#' `diag(A V A')` of an frm_lp_basis() result, through its factor when it
+#' has one (jc_rowvar()).
+#'
+#' @noRd
+lb_rowvar <- function(lb) {
+  if (is.null(lb$V_root)) return(rowSums((lb$A %*% lb$V) * lb$A))
+  rowSums((lb$A %*% lb$V_root)^2) + rowSums((lb$A %*% lb$V_rest) * lb$A)
 }
 
 #' Which component of the parameter list each row of the joint

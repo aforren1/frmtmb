@@ -610,11 +610,10 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, class = "b",
         frm_stop("Hypothesis '", hypothesis[i], "' must evaluate to a ",
                  "single number in imputation ", j, " of ", m, call. = FALSE)
       }
-      g <- hyp_fd_grad(function(v) hyp_eval(fit, ex, v, pc$comp),
-                       pc$vals)
       Q[i, j] <- val
       # NaN along a direction this imputation's Hessian lost (RB2)
-      U[i, j] <- as.numeric(hyp_prop_var(pc, matrix(g, 1L)))
+      U[i, j] <- as.numeric(hyp_delta_var(
+        pc, function(v) hyp_eval(fit, ex, v, pc$comp), pc$vals))
     }
   }
   se_pred_warn(rowSums(is.nan(U)) > 0, "hypotheses")

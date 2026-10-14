@@ -1091,6 +1091,8 @@ vcov.frmtmb_fit <- function(object, correlation = FALSE, pars = NULL, ...,
   } else {
     vcov_cluster(object, cluster, type = type, full = full)
   }
+  # vcov_cluster() says it for its own matrix
+  if (is.null(cluster)) warn_cov_products(object, "vcov()")
   if (full) return(V)
   V <- vcov_brms_block(object, V, model_based = is.null(cluster))
   if (correlation) V <- stats::cov2cor(V)
@@ -1686,7 +1688,12 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     # on a gr(g, by = f) fit its condsd ran from 0 to 99 times what the
     # repaired joint covariance gives the same b, which predictions read
     # (dev/reviews/2026-10-06-cifix.md, m6). One covariance, one answer.
-    if (!is.null(cvr) && length(sdr$se_lost)) {
+    # The same holds on a fit whose covariance is held as a factor
+    # (se_reparam_cov()): sdreport()'s inverse of the natural Hessian
+    # gave a degree-8 polynomial with (1 | g) NaN here
+    # (dev/illse-routes.R)
+    if (!is.null(cvr) &&
+          (length(sdr$se_lost) || !is.null(sdr$cov_fixed_root))) {
       jc <- tryCatch(get_joint_cov(object), error = function(e) NULL)
       bj <- if (!is.null(jc)) which(jc$names == "b")
       if (length(bj) == length(cvr)) cvr <- pmax(diag(jc$V)[bj], 0)

@@ -1,3 +1,149 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **Standard errors on an ill-conditioned fixed design.** A raw
+  polynomial of high degree, a covariate far from zero or a
+  near-collinear pair can make the outer Hessian too ill-conditioned.
+  Then it cannot be inverted in the coefficients' own coordinates.
+  frmtmb now takes the Hessian by differences of the gradient along new
+  coordinates. These are the columns of the inverse of each design's QR
+  factor. In these coordinates the Hessian is close to the identity.
+  The covariance is then mapped back exactly, as `lm()` does through
+  its QR. This applies when the Hessian has a condition number above
+  1e8 at unit diagonal. Its weak directions must also lie in the
+  coefficients of the linear predictors.
+  - The designs measured: raw polynomials of degree 5 to 8 on [1, 2].
+    The families are gaussian with and without `(1 | g)`, bernoulli,
+    poisson and cumulative. Every entry of `vcov(full = TRUE)` is within
+    2e-5 of the exact covariance at the fit's own point. That is on the
+    scale of the correlation, against a 256-bit reference. `fitted()`
+    standard errors agree with the exact ones to four digits. Where a
+    reference uses `poly()`, they agree with it to four digits too.
+  - On the same designs, 0.70.0 gave no standard error to the nine
+    coefficients of a degree-8 polynomial ("the design is
+    ill-conditioned"). With `(1 | g)` under bernoulli, poisson and
+    cumulative it lost three to six of them as "flat". At degrees 6 and
+    7 it was up to 20 percent off. It gave the category probabilities
+    of a cumulative fit standard errors up to 270000 times the true
+    ones. It gave no warning.
+  - These fits keep the verdicts of 0.70.0. A design that its QR finds
+    rank deficient is one; the frame drops such a column, as `lm()`
+    does at degree 9. A nonlinear formula is another. So are a fit that
+    stopped short of the maximum, and a fit with more than 100 outer
+    parameters.
+  - Some parameters outside the designs have almost no curvature. A
+    group standard deviation at zero is an example. The SE check judges
+    such a parameter as on 0.70.0: "boundary", "short of the maximum"
+    or "not finite". When the check removes it, the covariance of the
+    other parameters is taken in the design's coordinates. That
+    covariance is conditional on the removed parameter.
+  - The test set: raw polynomials of degree 5 to 8 with `(1 | g)` and
+    no group effect, 20 seeds each. The sd gets the verdict of 0.70.0
+    on 77 of the 80 fits. On the 16 degree-8 fits with the sd at zero, the
+    coefficients get the standard errors of `lm()` to 3e-5. 0.70.0 gave
+    those 16 fits no standard error for any coefficient.
+  - The extra cost is about two Hessians in the design's coordinates,
+    at 4 p gradients each. One is for a step from the stop. The other
+    is for the standard errors at the maximum. With n = 1e5 and 100
+    parameters, a fit took 1.45 to 1.66 times as long as on 0.70.0 in
+    two runs. With `(1 | g)` it took 1.47 to 1.52 times as long. On
+    0.70.0 these fits stopped short of the maximum. Now they reach it.
+
+* **Every route that propagates the covariance reads it through a
+  factor on such a fit.** No double-precision matrix can be multiplied
+  by a row of that design without losing every digit. At degree 8,
+  `a' V a` from the exact covariance rounded to double is 2.8 times the
+  true variance of a fitted value.
+  - These routes use the factor: `fitted()`, `predict()` and its
+    parameter draws, `frm_linpred()`, and the ordinal and categorical
+    category probabilities. So do `conditional_effects()`,
+    `conditional_smooths()`, `hypothesis()`, `VarCorr()` and the pooled
+    hypotheses of `frm_multiple()`. emmeans now takes the grid route on
+    these fits, which also uses it.
+  - `frm_lp_basis()` returns the factor as `V_root` and `V_rest`, with
+    `V = V_rest + V_root V_root'`. `frm_joint_cov()` returns it as
+    `root` and `Vrest`.
+  - `vcov_cluster()` forms the sandwich through the factor. It returns
+    the factor of the sandwich as the attribute `root`, and
+    `hypothesis(vcov = )` reads it. On a degree-8 fit with `(1 | g)`,
+    the sandwich from the whole bread was off by 2.3 to 12 on the scale
+    of the correlation. A fitted value's standard error through it was
+    0 to 1511 times the exact one. Through the factor every entry is
+    within 2e-5, and that standard error is within 1e-6.
+  - These routes read the whole matrix: a product that a caller forms
+    from `vcov()` or `vcov_cluster()`, car and lmtest. They are not
+    accurate on such a fit. `cooks.distance()` and the D1 and D2 tests
+    of `anova()` on `frm_multiple()` fits invert the whole matrix. They
+    can stop with an error.
+  - A product formed from the whole matrix can keep fewer than about
+    four digits. That happens at a condition number above 1e12. Then
+    `vcov()`, `vcov_cluster()` and `frm_joint_cov()` warn once per fit
+    (class `frmtmb_cov_products`). The warning names the routes that are
+    right.
+  - marginaleffects forms `J V J'` itself from `get_vcov()`, with `J`
+    from finite differences. On such a fit the cancellation in that
+    product multiplies the error of `J`. On a binomial with mixed
+    scales (condition number 4e11), `predictions()` standard errors
+    were 4.8 to 15.1 times the exact ones, with no warning. So
+    `get_vcov()` now returns NaN, with a warning, on every fit whose
+    covariance is held as a factor.
+  - ggeffects, modelbased and parameters read `insight::get_varcov()`.
+    It returns NaN, with a warning, where a product loses its digits.
+  - `hypothesis(vcov = )` can get a matrix that does not carry its
+    factor. Then each hypothesis that combines parameters gets NaN,
+    with a warning.
+
+* **Newton steps from the stop and the gradient verdict use the same
+  coordinates.** On these designs the natural Hessian has no Cholesky
+  factor. So a degree-8 fit stopped up to 1.2 below the maximum. Its
+  gradient warning measured the remaining headroom from a matrix with
+  no digits along the weakest direction. Both now use the design's
+  coordinates, and the degree-8 fits reach the maximum of `lm()`.
+  - A log standard deviation whose Hessian row is empty, such as a
+    group sd at zero, cannot show its headroom through the Hessian. So
+    the headroom asks the likelihood what larger values of that sd gain,
+    the rest held. That gain is added to the headroom of the other
+    parameters, and only then compared with `grad_tol`.
+
+* **The standard-error check judges a fit at its maximum whatever
+  nlminb's code.** It skipped every fit with a convergence warning. It
+  showed the standard errors of `sdreport()` unchecked. So on a ridge,
+  rounding decided whether a fit's standard errors were judged. Take
+  the xbeta fit of lane ci691 from 25 starts a few ulps apart. The 8
+  fits with code 0 lost all three standard errors as flat. The 17 fits
+  at "false convergence" showed finite ones.
+  - The "did not report convergence" warning now says what a Newton
+    step from the stop gains. Within `grad_tol`, the estimates are at
+    the maximum. The check judges them as it judges a converged fit,
+    with the same messages. 23 of the 25 xbeta fits now lose the three
+    standard errors. The two that keep them stopped where the curvature
+    is above the check's threshold, whatever their code.
+  - Above `grad_tol`, the warning says that the estimates and standard
+    errors are those of a point short of the maximum. The check does
+    not judge them, because a curvature verdict there is not about the
+    data.
+  - The eight test suites have 129 fits that nlminb did not call
+    converged. A restart from the stop showed 104 of them at the
+    maximum.
+  - Newton steps in the design's coordinates also start from such a
+    stop. Take `y ~ x` with x on [1e5, 1e5 + 1]. It stopped at "false
+    convergence" 157 below the log-likelihood of `lm()`. Now it reaches
+    it.
+
+## Bug fixes
+
+* **A `mo()` simplex split by a category that no row is in loses the
+  split's standard errors on every fit at its maximum.** The two steps
+  around such a category enter only as their sum. That is an exact flat
+  direction, curved in the simplex's chart. The SE check read it off
+  the Hessian. It missed it where the fit stopped a tolerance away from
+  the floor of that ridge. The 0.70.0 consolidation had four designs
+  and 160 fits. 8 of them kept zeta standard errors up to 949, with no
+  warning. The split is now taken from the data, as a design alias is.
+  None of the 160 fits is silent. 156 name the split. The other 4 stop
+  short of the maximum with a large-gradient warning, as on 0.70.0.
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

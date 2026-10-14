@@ -226,7 +226,60 @@ get_vcov.frmtmb_fit <- function(model, ...) {
   # of the coefficient vector is the wrong matrix, not a differently
   # named one; the standard errors of avg_slopes() moved measurably
   # when the two disagreed (dev/shapes-log/interop-lane.txt).
-  interop_vcov(model)
+  V <- interop_vcov(model)
+  # marginaleffects forms J V J' from this matrix itself, with J taken
+  # by finite differences, and it cannot be handed a factor instead. On
+  # every fit whose covariance is held as a factor (se_reparam_cov()),
+  # not only where the product itself loses its digits: the true
+  # cancellation |J| |V| |J|' / J V J' was 3e10 to 1.7e11 on a binomial
+  # with mixed scales (kappa 4e11), and it multiplied the error of the
+  # numerical J, so predictions() SEs were 4.8 to 15.1 times the exact
+  # ones with no warning (review of lane illse, item 3)
+  if (cov_held_as_factor(model)) {
+    interop_nan_warning(model, "get_vcov()", "marginaleffects",
+                        "marginaleffects forms")
+    V[] <- NaN
+  }
+  V
+}
+
+#' Is the covariance of `fit` held as a factor (se_reparam_cov())?
+#'
+#' @noRd
+cov_held_as_factor <- function(fit) {
+  !is.null(tryCatch(sdr_of(fit)$cov_fixed_root, error = function(e) NULL))
+}
+
+#' The warning of an interop method that hands another package a
+#' covariance of NaN, once per fit and method: `who` forms its standard
+#' errors from the whole matrix, which on this fit it cannot do in
+#' double precision, and the routes named are right.
+#'
+#' @noRd
+interop_nan_warning <- function(fit, what, key, who) {
+  cache <- fit$cache
+  flag <- paste0("warned_nan_", key)
+  if (is.environment(cache) && isTRUE(cache[[flag]])) return(invisible())
+  if (is.environment(cache)) assign(flag, TRUE, envir = cache)
+  frm_warning(
+    what, ": ", who, " standard errors from the whole covariance this ",
+    "returns. The fixed design of this fit is ill-conditioned, so that ",
+    "covariance is held as a factor, and such a product loses its ",
+    "digits. So the covariance returned is NaN, and so are those ",
+    "standard errors. ", cov_routes_right(), call. = FALSE,
+    class = "frmtmb_cov_products")
+  invisible()
+}
+
+#' The sentence that names the routes that form products of the
+#' covariance from its factor and are right on such a fit.
+#'
+#' @noRd
+cov_routes_right <- function() {
+  paste0("These routes use the factor and are right: fitted(), ",
+         "predict(), frm_linpred(), conditional_effects(), hypothesis() ",
+         "(also with vcov = vcov_cluster(full = TRUE)), emmeans, VarCorr() ",
+         "and frm_lp_basis() through its V_root")
 }
 
 #' @exportS3Method marginaleffects::get_predict
@@ -780,7 +833,13 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
   # a nonlinear body's parameters keep their offsets out, as brms's
   # grid cannot see them; the selected predictor keeps its own
   if (!tg$epred) object <- emm_drop_offsets(object, tg)
-  b <- if (tg$route == "design") {
+  # The design route hands emmeans X and the coefficients' covariance
+  # for it to form X V X', which on an ill-conditioned design loses
+  # every digit (dev/illse-floor.R); the grid route forms G V G' here,
+  # through the covariance's factor (jc_quad())
+  held <- !is.null(tryCatch(sdr_of(object)$cov_fixed_root,
+                            error = function(e) NULL))
+  b <- if (tg$route == "design" && !held) {
     emm_basis_design(object, tg, xlev, grid)
   } else {
     emm_basis_grid(object, tg, grid)
@@ -919,7 +978,7 @@ emm_basis_grid <- function(object, tg, grid) {
     }
     off <- off + length(p$est)
   }
-  V <- G %*% jc$V[pos_all, pos_all, drop = FALSE] %*% t(G)
+  V <- jc_quad(jc, G, pos_all)
   # the variance that is not coefficient uncertainty, an exact gp()'s
   # kriging residual at an unseen position, covaries across the grid
   # rows of one predictor, and the marginal means read it through V
