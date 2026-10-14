@@ -55,15 +55,14 @@ name, and \code{$} and \code{[[} then take the block label instead:
 there, and names the labels, rather than returning the first block.
 Positional indexing reaches every block either way.
 
-Three ordinary spellings put more than one block on one factor, so
-this is not a nonlinear-model corner: an uncorrelated slope
-\code{(1 + x || g)}, which desugars to \code{1 | g} and \code{0 + x | g}; two bars
-written out on the same factor, \code{(1 | g) + (0 + x | g)}, the same
-two blocks; and a random effect on more than one distributional or
-nonlinear parameter, such as \code{bf(y ~ x + (1 | g), sigma ~ (1 | g))}
-(\code{1 | g} and \code{sigma: 1 | g}) or \code{(1 | id)} on three nonlinear
-parameters. A CORRELATED slope \code{(1 + x | g)} is one block and is
-addressed by the factor name as before.
+Two ordinary spellings put more than one block on one factor, so
+this is not a nonlinear-model corner: two bars written out on the
+same factor, \code{(1 | g) + (0 + x | g)}; and a random effect on more
+than one distributional or nonlinear parameter, such as
+\code{bf(y ~ x + (1 | g), sigma ~ (1 | g))} (\code{1 | g} and
+\code{sigma: 1 | g}) or \code{(1 | id)} on three nonlinear parameters. A
+slope \code{(1 + x | g)} is one block, and so is an uncorrelated slope
+\code{(1 + x || g)}, as in brms; each is addressed by the factor name.
 }
 \description{
 Extract random-effect modes

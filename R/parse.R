@@ -450,7 +450,7 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
              " must be a single value (got length ", length(val), ")",
              call. = FALSE)
   }
-  if (nm %in% c("iso", "sigma", "scale", "gr", "cmc")) {
+  if (nm %in% c("iso", "sigma", "scale", "gr", "cmc", "cor")) {
     if (!is.logical(val) || is.na(val)) {
       frm_stop(fn, "(): ", nm, " = ", deparse1(expr),
                " must be TRUE or FALSE", call. = FALSE)
@@ -660,6 +660,10 @@ parse_spde_call <- function(tm, env) {
 #' [ranef()], [VarCorr()], [ngrps()], `fitted()`, `simulate()` and
 #' `predict()` all read the block with no multi-membership branch.
 #'
+#' `(x | mm(g1, g2, cor = FALSE))` and `(x || mm(g1, g2))` are one block
+#' whose columns have their own standard deviations and no correlation,
+#' as in brms.
+#'
 #' @section Levels are pooled:
 #'
 #' The pooled level set is each membership variable's own levels,
@@ -701,12 +705,11 @@ parse_spde_call <- function(tm, env) {
 #'     relationship matrix for one to be defined on.}
 #'   \item{`|ID|` keys}{A merged block indexes one level set per
 #'     observation row; an `mm()` row loads several at once.}
-#'   \item{brms's other `mm()` arguments}{`cor = FALSE` is
-#'     `diag(x | mm(g1, g2))`, `id =` is the `|ID|` key, and `cov =` is
-#'     `gr(g, cov = A)` over a single-membership factor, and `dist =` is
-#'     `gr(g, dist = "student")` over one (see
-#'     [frmtmb-student-re]), though not over a membership design, whose
-#'     rows load several levels at once. `pw =` has no equivalent
+#'   \item{brms's other `mm()` arguments}{`id =` is the `|ID|` key.
+#'     `cov =` is `gr(g, cov = A)` over a single-membership factor, and
+#'     `dist =` is `gr(g, dist = "student")` over one (see
+#'     [frmtmb-student-re]). Neither applies to a membership design,
+#'     whose rows load several levels at once. `pw =` has no equivalent
 #'     yet.}
 #'   \item{Non-name members}{`mm()` reads its membership variables as
 #'     column names, as brms does. Build the column first.}
@@ -1057,7 +1060,8 @@ parse_mm_call <- function(tm, env) {
   if (length(used)) {
     frm_stop("mm(", used[1L], " = ) is not supported. brms's other mm() ",
              "arguments have spellings here that apply to any grouping ",
-             "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
+             "term: cor = is read in a plain term, (x | mm(g1, g2, cor = ",
+             "FALSE)), which is (x || mm(g1, g2)), id = is the ",
              "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
              "gr(g, dist = \"student\"). The last two take a ",
              "single-membership factor only. pw = has no equivalent yet",
@@ -1312,47 +1316,147 @@ slash_nested_bars <- function(rest, sf, specials, env) {
   if (same) flags else none
 }
 
-#' `(x || g)` promises uncorrelated effects, but lme4's expansion is
-#' purely syntactic: a FACTOR contributes a single term carrying all of
-#' its contrast columns, which then lands in one default (`us`) block and
-#' comes back fully correlated - the opposite of what was asked for
-#' `[lme4#818]`. Expand each `||` term the way lme4 does, so the block
-#' structure users already rely on is preserved, then tag every piece
-#' `diag()`, the independent-variance structure for any column count. A
-#' one-column piece has no correlation to lose, so `diag` and `us`
-#' coincide there and numeric double bars are bit-identical to before.
+#' Every `(x || g)` term as brms reads it: `(x | gr(g, cor = FALSE))`.
 #'
-#' A `||` term with `mo()` on the left is instead ONE `diag()` block over
-#' the whole term, which is brms's reading of `||`. lme4's pieces code
-#' `mo(x):f` apart from `mo(x)`, so the factor got every level
-#' (`mox:fa`, `mox:fb`) where the population-level term has `mox` and
-#' `mox:fb`, and the term was refused for a population-level term it
-#' had. Coded whole, the term has the columns brms gives it
-#' (`Intercept`, `fb`, `mox`, `mox:fb` for `(mo(x) * f || g)`).
+#' brms (`split_re_terms()`) codes the whole left-hand side as ONE term,
+#' with the formula's own contrasts, and gives every column its own sd
+#' and no correlation. So `(1 + f || g)` has `Intercept`, `fb` and `fc`,
+#' the columns of `(1 + f | g)`, and `diag()` over the whole term is that
+#' structure. lme4 expands `||` term by term instead, which codes a
+#' factor apart from the intercept and gives it a column for every level
+#' (`fa`, `fb`, `fc` beside `Intercept`): one more sd than brms has, and
+#' a different model. brms is the reference here.
+#'
+#' `gr(g, cor = FALSE)` and `mm(g1, g2, cor = FALSE)` are the same term,
+#' and `gr(cor = TRUE)` is the default, so the argument is read here and
+#' never reaches the `gr()` and `mm()` parsers. Under `||`, brms ignores
+#' a `cor` argument, and so does this.
+#'
+#' Two cases differ. A known covariance or precision, `gr(g, cov = A)`,
+#' has an unstructured covariance within each level, so the term is
+#' split into lme4's one-term pieces, each its own block: for numeric
+#' columns that is brms's model. A piece with several columns (a factor)
+#' is refused when its frame is built (`within_struct`). An `|ID|` key
+#' asks for correlation across terms, which `||` and `cor = FALSE` rule
+#' out; brms refuses `(x | p || g)` and silently drops the key from
+#' `(x | p | gr(g, cor = FALSE))`, and both are refused here.
 #'
 #' @noRd
 expand_double_verts <- function(form) {
+  env <- environment(form)
   raw <- split_plus(reformulas::RHSForm(form))
   out <- list()
+  # the terms as written, for messages: one queue per diag() bar, in
+  # the order the terms appear, because two spellings (or an explicit
+  # diag()) can rewrite to the same bar. NA is a term written as diag()
+  written <- list()
+  push <- function(bar, text) {
+    key <- deparse1(bar)
+    written[[key]] <<- c(written[[key]], text)
+  }
   for (tm in raw) {
     inner <- strip_parens(tm)
-    if (!(is.call(inner) && identical(inner[[1]], as.name("||")))) {
+    orig <- paste0("(", deparse1(inner), ")")
+    if (is.call(inner) && identical(inner[[1L]], as.name("|"))) {
+      # R reads (x || p | g) as ((x || p) | g)
+      lhs <- strip_parens(inner[[2L]])
+      if (is.call(lhs) && identical(lhs[[1L]], as.name("||"))) {
+        stop_id_double_vert(tm)
+      }
+      read <- bar_read_cor(inner, env)
+      # in its brackets, so the sum the term goes back into still reads
+      # it as one term
+      if (!identical(read, inner)) {
+        inner <- read
+        tm <- call("(", read)
+      }
+    }
+    if (!(is.call(inner) && identical(inner[[1L]], as.name("||")))) {
+      if (is.call(inner) && identical(inner[[1L]], as.name("diag")) &&
+            length(inner) == 2L) {
+        push(strip_parens(inner[[2L]]), NA_character_)
+      }
       out[[length(out) + 1L]] <- tm
       next
     }
-    if (calls_function(inner[[2L]], "mo")) {
-      out[[length(out) + 1L]] <- call("diag",
-                                      call("|", inner[[2L]], inner[[3L]]))
+    lhs <- strip_parens(inner[[2L]])
+    if (is.call(lhs) && identical(lhs[[1L]], as.name("|"))) {
+      stop_id_double_vert(tm)
+    }
+    rhs <- strip_parens(inner[[3L]])
+    if (is.call(rhs) && is.name(rhs[[1L]]) &&
+          as.character(rhs[[1L]]) %in% c("gr", "mm")) {
+      rhs <- drop_cor_arg(rhs, env)
+    }
+    if (is.call(rhs) && identical(rhs[[1L]], as.name("gr")) &&
+          any(c("cov", "prec") %in% names(rhs))) {
+      ex <- reformulas::expandDoubleVerts(
+        stats::as.formula(call("~", call("||", lhs, rhs)), env = env))
+      for (p in split_plus(strip_parens(reformulas::RHSForm(ex)))) {
+        out[[length(out) + 1L]] <- call("diag", strip_parens(p))
+        push(strip_parens(p), orig)
+      }
       next
     }
-    ex <- reformulas::expandDoubleVerts(
-      stats::as.formula(call("~", inner), env = environment(form)))
-    for (p in split_plus(strip_parens(reformulas::RHSForm(ex)))) {
-      out[[length(out) + 1L]] <- call("diag", strip_parens(p))
-    }
+    out[[length(out) + 1L]] <- call("diag", call("|", lhs, rhs))
+    push(call("|", lhs, rhs), orig)
   }
   reformulas::RHSForm(form) <- Reduce(function(a, b) call("+", a, b), out)
+  attr(form, "dblbar_written") <- written
   form
+}
+
+#' brms's refusal of an `|ID|` key beside `||`, `(x | p || g)` or
+#' `(x || p | g)`.
+#'
+#' @noRd
+stop_id_double_vert <- function(tm) {
+  frm_stop("Invalid syntax used in group-level terms: ", deparse1(tm),
+           ". An |ID| key correlates the terms that share it, and || ",
+           "asks for no correlation, so the two do not combine. Write ",
+           "(x | ID | g) or (x || g)", call. = FALSE)
+}
+
+#' A bar term whose `gr()` or `mm()` carries `cor =`, without it: as is
+#' when `cor = TRUE`, the default, and as the `||` term when `cor =
+#' FALSE`. Any other term is returned as it is.
+#'
+#' @noRd
+bar_read_cor <- function(bar, env) {
+  rhs <- strip_parens(bar[[3L]])
+  if (!(is.call(rhs) && is.name(rhs[[1L]]) &&
+          as.character(rhs[[1L]]) %in% c("gr", "mm") &&
+          "cor" %in% names(rhs))) {
+    return(bar)
+  }
+  fn <- as.character(rhs[[1L]])
+  cor <- eval_spec_arg(rhs[["cor"]], "cor", env, fn = fn)
+  rhs <- drop_cor_arg(rhs, env)
+  if (cor) return(call("|", bar[[2L]], rhs))
+  lhs <- strip_parens(bar[[2L]])
+  if (is.call(lhs) && identical(lhs[[1L]], as.name("|"))) {
+    frm_stop("(", deparse1(bar), "): an |ID| key correlates the terms ",
+             "that share it, and ", fn, "(cor = FALSE) asks for no ",
+             "correlation. brms drops the key here without a word; write ",
+             "the term without one, or with cor = TRUE", call. = FALSE)
+  }
+  call("||", bar[[2L]], rhs)
+}
+
+#' `gr()` or `mm()` without its `cor =` argument, which is checked to be
+#' TRUE or FALSE even where it is ignored.
+#'
+#' @noRd
+drop_cor_arg <- function(rhs, env) {
+  if (!"cor" %in% names(rhs)) return(rhs)
+  eval_spec_arg(rhs[["cor"]], "cor", env, fn = as.character(rhs[[1L]]))
+  rhs[["cor"]] <- NULL
+  # what is left of gr(g, cor = ) is the factor itself, as in brms
+  if (identical(rhs[[1L]], as.name("gr")) && length(rhs) == 2L &&
+        !nzchar(names(rhs)[2L] %||% "")) {
+    return(rhs[[2L]])
+  }
+  rhs
 }
 
 #' The right-hand side `e` with brms's reserved `Intercept` term and
@@ -1466,6 +1570,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(rhs_form) <- env
   rhs_form <- drop_twin_bar_terms(rhs_form)
   rhs_form <- expand_double_verts(rhs_form)
+  dblbar_written <- attr(rhs_form, "dblbar_written")
+  attr(rhs_form, "dblbar_written") <- NULL
   # terms()'s order of the variables, which orders the factors of an
   # interaction label as brms names it: `z + mo(x):z` is brms's `z:mox`
   mo_var_order <- tryCatch(
@@ -1764,6 +1870,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   }
   re <- Map(function(bar, cls, addargs, from_slash) {
     written <- bar
+    # the next written text queued for this bar, consumed in order
+    written_text <- NULL
+    key <- deparse1(bar)
+    if (identical(cls, "diag") && length(dblbar_written[[key]])) {
+      written_text <- dblbar_written[[key]][1L]
+      dblbar_written[[key]] <<- dblbar_written[[key]][-1L]
+      if (is.na(written_text)) written_text <- NULL
+    }
     # brms |ID| syntax: (x | p | g) parses as ((x | p) | g); the middle
     # element keys random-effect correlation across formulas
     id <- NULL
@@ -1844,6 +1958,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # gr(g, prec = Q) takes a (sparse) precision matrix instead;
     # gr(g, dist = "student") swaps the latent density for a t
     dist_nu <- NULL
+    within_struct <- NULL
+    within_label <- NULL
     by_spec <- NULL
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
       ga <- as.list(bar[[3]])[-1]
@@ -1885,6 +2001,22 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                    "design, or (x | gr(g, cov = A)) for the relationship ",
                    "matrix", call. = FALSE)
         }
+        # a structure asked for within the levels (diag() from || or
+        # cor = FALSE, homdiag(), ...) is what the known-covariance block
+        # cannot carry with several columns; one column needs none, so
+        # the frame checks once it knows their number
+        if (!identical(cls, "us")) {
+          within_struct <- cls
+          # the term as written, rr(..., d = 1) arguments included
+          extra <- as.list(addargs)[-1L]
+          nm <- names(extra) %||% rep("", length(extra))
+          args <- c(deparse1(written), if (length(extra)) {
+            paste0(ifelse(nzchar(nm), paste0(nm, " = "), ""),
+                   vapply(extra, deparse1, ""))
+          })
+          within_label <- written_text %||%
+            paste0(cls, "(", paste(args, collapse = ", "), ")")
+        }
         cov_expr <- ga$cov %||% ga$prec
         cls <- if (has_cov) "gr_cov" else "gr_prec"
       }
@@ -1902,7 +2034,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
          id_label = id_label, id_group = id_group,
          cov_expr = cov_expr, rank = rank, mm = mm,
          dist_nu = dist_nu, by = by_spec, written = written,
-         from_slash = from_slash)
+         from_slash = from_slash, within_struct = within_struct,
+         within_label = within_label, written_text = written_text)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs, slash)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 

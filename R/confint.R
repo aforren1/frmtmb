@@ -699,12 +699,15 @@ varcorr_trans_rows <- function(fit) {
     # g(theta): log-sds then atanh-correlations, via the block's vcov.
     # The clamp keeps the CENTRAL DIFFERENCES finite; it must not reach
     # the reported estimate, which is why est0 below is computed
-    # separately from the covariance itself.
+    # separately from the covariance itself. A block with no correlation
+    # parameter (diag, brms's cor = FALSE) reports no correlation, as
+    # brms reports none.
+    has_cor <- block_has_cor(bk)
     gfun <- function(tt) {
       V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(tt, bk)
       sds <- sqrt(diag(V))
       out <- log(sds)
-      if (nrow(V) > 1) {
+      if (has_cor) {
         C <- stats::cov2cor(V)
         out <- c(out, atanh(pmin(pmax(C[lower.tri(C)],
                                       -varcorr_cor_clamp),
@@ -736,7 +739,7 @@ varcorr_trans_rows <- function(fit) {
     sds0 <- sqrt(diag(V0))
     est0 <- log(sds0)
     bd <- sds0 <= 0
-    if (d > 1L) {
+    if (has_cor) {
       C0 <- stats::cov2cor(V0)
       r0 <- C0[lower.tri(C0)]
       est0 <- c(est0, atanh(r0))
@@ -749,12 +752,12 @@ varcorr_trans_rows <- function(fit) {
     # more usable than a boundary estimate; both become NA bounds.
     se_g[bd | !is.finite(est0) | !is.finite(se_g)] <- NA_real_
 
-    n_sd <- length(g0) - if (d > 1) d * (d - 1) / 2 else 0
+    n_sd <- length(g0) - if (has_cor) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
       add(bk[["cnms"]][min(i,
                            length(bk[["cnms"]]))], "sd", est0[i], se_g[i], bk)
     }
-    if (d > 1) {
+    if (has_cor) {
       pairs <- which(lower.tri(diag(d)), arr.ind = TRUE)
       for (k in seq_len(nrow(pairs))) {
         add(paste0("cor(", bk[["cnms"]][pairs[k, 2]], ",",
@@ -2870,7 +2873,9 @@ hyp_env_vals <- function(fit, vals, comp) {
     g <- brms_group_name(bk)
     sds <- sqrt(diag(V))
     for (j in seq_along(sds)) put(paste0("sd_", g, "__", tn[j]), sds[j])
-    if (nrow(V) > 1L) {
+    # an uncorrelated block (diag, brms's cor = FALSE) has no cor_
+    # parameter in brms, so it names none
+    if (block_has_cor(bk)) {
       C <- stats::cov2cor(V)
       for (j in seq_len(nrow(V) - 1L)) {
         for (k in seq(j + 1L, nrow(V))) {

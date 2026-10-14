@@ -91,7 +91,7 @@ test_that("PsychophysicalFunction1 is a binomial logit GLMM", {
   expect_equal(nrow(ranef(fit)[[1L]]), 8L)
   # the point of estimation at all: the just-noticeable difference is a
   # function of the slope, and every subject has a finite one
-  jnd <- qlogis(0.84) / (unname(b["xc"]) + frm_u_term(fit, "0 + xc | subj"))
+  jnd <- qlogis(0.84) / (unname(b["xc"]) + frm_u_term(fit, "xc | subj", 2L))
   expect_true(all(is.finite(jnd)))
   expect_true(all(jnd > 0))
 })
@@ -108,10 +108,10 @@ test_that("PsychophysicalFunction1 matches its Stan program", {
     pars = function(f) {
       b <- fixef_by_dpar(f)$mu
       list(mua = unname(b["(Intercept)"]), mub = unname(b["xc"]),
-           sigmaa = frm_sd_term(f, "1 | subj"),
-           sigmab = frm_sd_term(f, "0 + xc | subj"),
-           alpha = unname(b["(Intercept)"]) + frm_u_term(f, "1 | subj"),
-           beta = unname(b["xc"]) + frm_u_term(f, "0 + xc | subj"))
+           sigmaa = frm_sd_term(f, "xc | subj", 1L),
+           sigmab = frm_sd_term(f, "xc | subj", 2L),
+           alpha = unname(b["(Intercept)"]) + frm_u_term(f, "xc | subj", 1L),
+           beta = unname(b["xc"]) + frm_u_term(f, "xc | subj", 2L))
     },
     inner = c("alpha", "beta"),
     const = 0)
@@ -156,16 +156,16 @@ test_that("PsychophysicalFunction2 matches its Stan program", {
     pars = function(f) {
       b <- fixef_by_dpar(f)$mu
       bp <- fixef_by_dpar(f)$phi
-      # three independent blocks on the same grouping factor, two from
-      # the mu formula and one from the phi formula, so every one is
-      # addressed by the coefficient it carries
+      # two independent blocks on the same grouping factor, the || term
+      # of the mu formula and the phi formula's, so every effect is
+      # addressed by its block and column
       list(mua = unname(b["(Intercept)"]), mub = unname(b["xc"]),
            mup = unname(bp["(Intercept)"]),
-           sigmaa = frm_sd_term(f, "1 | subj"),
-           sigmab = frm_sd_term(f, "0 + xc | subj"),
+           sigmaa = frm_sd_term(f, "xc | subj", 1L),
+           sigmab = frm_sd_term(f, "xc | subj", 2L),
            sigmap = frm_sd_term(f, "phi: 1 | subj"),
-           alpha = unname(b["(Intercept)"]) + frm_u_term(f, "1 | subj"),
-           beta = unname(b["xc"]) + frm_u_term(f, "0 + xc | subj"),
+           alpha = unname(b["(Intercept)"]) + frm_u_term(f, "xc | subj", 1L),
+           beta = unname(b["xc"]) + frm_u_term(f, "xc | subj", 2L),
            logitphi = unname(bp["(Intercept)"]) +
              frm_u_term(f, "phi: 1 | subj"))
     },

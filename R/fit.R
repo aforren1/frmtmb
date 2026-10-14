@@ -283,6 +283,36 @@
 #' lexically: qualify with `RTMB::` there, and see [frmtmb_ad_overload()]
 #' for the rest of that contract.
 #'
+#' @section Uncorrelated group-level terms, ||:
+#' `(x || g)` is brms's `(x | gr(g, cor = FALSE))`. It is one term,
+#' coded with the formula's own contrasts. Each column has its own
+#' standard deviation, and there are no correlations. So `(1 + f || g)`,
+#' with a factor `f` of levels `a`, `b` and `c`, has the columns
+#' `Intercept`, `fb` and `fc` of `(1 + f | g)`. Its standard deviations
+#' are `sd_g__Intercept`, `sd_g__fb` and `sd_g__fc`, and it has no `cor_`
+#' parameter. `(0 + f || g)` has `fa`, `fb` and `fc`. lme4 expands `||`
+#' term by term instead. It codes the factor apart from the intercept,
+#' with a column for every level, and then correlates them (lme4#818).
+#' frmtmb follows brms.
+#'
+#' `(x | gr(g, cor = FALSE))` and `diag(x | g)` are the same term as
+#' `(x || g)`. `(x | mm(g1, g2, cor = FALSE))` is the `||` term over the
+#' membership grouping, `(x || mm(g1, g2))`. Under `||`, a `cor`
+#' argument is ignored, as brms ignores it. Over `gr(g, dist =
+#' "student")`, a `||` term has one latent scale per level, shared by
+#' all its columns, as in brms.
+#'
+#' Two combinations are refused. The first is an `|ID|` key beside
+#' `||`, as in `(x | p || g)` or `(x | p | gr(g, cor = FALSE))`. It asks
+#' for correlation across terms and for none at once. brms refuses the
+#' first spelling and silently drops the key from the second. The second
+#' is a `||` term over `gr(g, cov = A)` or `gr(g, prec = Q)` that has a
+#' term with several columns in it (a factor, `poly()`). A `||` term
+#' over a known matrix is split into one block per term, which is
+#' brms's model for numeric columns. The known-covariance block
+#' correlates the columns of one term within a level, so a term with
+#' several columns is refused.
+#'
 #' @section Monotonic effects:
 #' `mo(x)` fits an ordinal predictor without assuming its categories are
 #' equally spaced. `x` is an ordered factor or a non-negative integer
@@ -372,10 +402,9 @@
 #' The population-level column it varies is required, and refused
 #' without it, where brms 2.23.0 drops the term silently. It is
 #' available in a plain `(... | g)` or `(... || g)` term. A `||` term
-#' with `mo()` is one block with no correlations, coded whole as brms
-#' codes it: `(mo(x) * f || g)` has the columns `Intercept`, `fb`, `fc`,
-#' `mox`, `mox:fb` and `mox:fc`. A `||` term without `mo()` is expanded
-#' as lme4 expands it, one block per term.
+#' with `mo()` is one block with no correlations, coded whole like any
+#' `||` term: `(mo(x) * f || g)` has the columns `Intercept`, `fb`,
+#' `fc`, `mox`, `mox:fb` and `mox:fc`.
 #'
 #' @section Category-specific effects, cs():
 #' `cs(x)` gives a predictor one coefficient per category boundary

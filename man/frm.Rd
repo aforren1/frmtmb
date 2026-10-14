@@ -324,6 +324,37 @@ lexically: qualify with \verb{RTMB::} there, and see \code{\link[=frmtmb_ad_over
 for the rest of that contract.
 }
 
+\section{Uncorrelated group-level terms, ||}{
+
+\code{(x || g)} is brms's \code{(x | gr(g, cor = FALSE))}. It is one term,
+coded with the formula's own contrasts. Each column has its own
+standard deviation, and there are no correlations. So \code{(1 + f || g)},
+with a factor \code{f} of levels \code{a}, \code{b} and \code{c}, has the columns
+\code{Intercept}, \code{fb} and \code{fc} of \code{(1 + f | g)}. Its standard deviations
+are \code{sd_g__Intercept}, \code{sd_g__fb} and \code{sd_g__fc}, and it has no \code{cor_}
+parameter. \code{(0 + f || g)} has \code{fa}, \code{fb} and \code{fc}. lme4 expands \code{||}
+term by term instead. It codes the factor apart from the intercept,
+with a column for every level, and then correlates them (lme4#818).
+frmtmb follows brms.
+
+\code{(x | gr(g, cor = FALSE))} and \code{diag(x | g)} are the same term as
+\code{(x || g)}. \code{(x | mm(g1, g2, cor = FALSE))} is the \code{||} term over the
+membership grouping, \code{(x || mm(g1, g2))}. Under \code{||}, a \code{cor}
+argument is ignored, as brms ignores it. Over \code{gr(g, dist = "student")}, a \code{||} term has one latent scale per level, shared by
+all its columns, as in brms.
+
+Two combinations are refused. The first is an \verb{|ID|} key beside
+\code{||}, as in \code{(x | p || g)} or \code{(x | p | gr(g, cor = FALSE))}. It asks
+for correlation across terms and for none at once. brms refuses the
+first spelling and silently drops the key from the second. The second
+is a \code{||} term over \code{gr(g, cov = A)} or \code{gr(g, prec = Q)} that has a
+term with several columns in it (a factor, \code{poly()}). A \code{||} term
+over a known matrix is split into one block per term, which is
+brms's model for numeric columns. The known-covariance block
+correlates the columns of one term within a level, so a term with
+several columns is refused.
+}
+
 \section{Monotonic effects}{
 
 \code{mo(x)} fits an ordinal predictor without assuming its categories are
@@ -413,10 +444,9 @@ multiplies the sum by the same transform, \code{(b + r_g) * D * sum(zeta[1:k])},
 The population-level column it varies is required, and refused
 without it, where brms 2.23.0 drops the term silently. It is
 available in a plain \code{(... | g)} or \code{(... || g)} term. A \code{||} term
-with \code{mo()} is one block with no correlations, coded whole as brms
-codes it: \code{(mo(x) * f || g)} has the columns \code{Intercept}, \code{fb}, \code{fc},
-\code{mox}, \code{mox:fb} and \code{mox:fc}. A \code{||} term without \code{mo()} is expanded
-as lme4 expands it, one block per term.
+with \code{mo()} is one block with no correlations, coded whole like any
+\code{||} term: \code{(mo(x) * f || g)} has the columns \code{Intercept}, \code{fb},
+\code{fc}, \code{mox}, \code{mox:fb} and \code{mox:fc}.
 }
 
 \section{Category-specific effects, cs()}{

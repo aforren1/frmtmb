@@ -206,7 +206,7 @@ test_that("Zeelenberg is a within-subject probit rate comparison", {
   fit <- frm(s | trials(n) ~ both + (1 + both || id),
              family = binomial(link = "probit"), data = d)
   b <- fixef_by_dpar(fit)$mu
-  sd_both <- frm_sd_term(fit, "0 + both | id")
+  sd_both <- frm_sd_term(fit, "1 + both | id", 2L)
   delta <- unname(b["both"]) / sd_both
   # studying both words helps, which is the direction the chapter's
   # order-restricted model assumes

@@ -1621,15 +1621,14 @@ fixef_by_dpar <- function(object) {
 #'   there, and names the labels, rather than returning the first block.
 #'   Positional indexing reaches every block either way.
 #'
-#'   Three ordinary spellings put more than one block on one factor, so
-#'   this is not a nonlinear-model corner: an uncorrelated slope
-#'   `(1 + x || g)`, which desugars to `1 | g` and `0 + x | g`; two bars
-#'   written out on the same factor, `(1 | g) + (0 + x | g)`, the same
-#'   two blocks; and a random effect on more than one distributional or
-#'   nonlinear parameter, such as `bf(y ~ x + (1 | g), sigma ~ (1 | g))`
-#'   (`1 | g` and `sigma: 1 | g`) or `(1 | id)` on three nonlinear
-#'   parameters. A CORRELATED slope `(1 + x | g)` is one block and is
-#'   addressed by the factor name as before.
+#'   Two ordinary spellings put more than one block on one factor, so
+#'   this is not a nonlinear-model corner: two bars written out on the
+#'   same factor, `(1 | g) + (0 + x | g)`; and a random effect on more
+#'   than one distributional or nonlinear parameter, such as
+#'   `bf(y ~ x + (1 | g), sigma ~ (1 | g))` (`1 | g` and
+#'   `sigma: 1 | g`) or `(1 | id)` on three nonlinear parameters. A
+#'   slope `(1 + x | g)` is one block, and so is an uncorrelated slope
+#'   `(1 + x || g)`, as in brms; each is addressed by the factor name.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -1977,8 +1976,7 @@ varcorr_layout <- function(fit) {
     g$bylev <- c(g$bylev, rep(if (is.null(by)) NA_integer_ else {
       match(by$level, by$levels)
     }, length(rn)))
-    g$cor <- g$cor || (bk[["dim"]] > 1L &&
-                         !bk[["covstruct"]] %in% c("diag", "homdiag"))
+    g$cor <- g$cor || block_has_cor(bk)
     groups[[key]] <- g
   }
   for (key in names(groups)) {

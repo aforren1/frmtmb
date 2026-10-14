@@ -1,3 +1,70 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **Every `(x || g)` term is read as brms reads it.** It is
+  `(x | gr(g, cor = FALSE))`: one term, coded with the formula's own
+  contrasts. Each column has its own standard deviation, and there is
+  no correlation.
+* **A factor in a `||` term has the columns of the `|` term.**
+  `(1 + f || g)` with three levels of `f` now has `sd_g__Intercept`,
+  `sd_g__fb` and `sd_g__fc`. It had lme4's column for every level
+  (`fa`, `fb` and `fc` beside the intercept). That is one more standard
+  deviation than brms has, and a different model. `(1 + z + f || g)`
+  had 5 standard deviations and now has brms's 4. Fits of a factor in a
+  `||` term change. This reverses the earlier reading that `(f || g)`
+  gives a column per level. lme4 still expands `||` term by term
+  (lme4#818); frmtmb follows brms.
+* The random-effect design of 29 `||` spellings is brms 2.23.0's,
+  column for column (`standata()`). The `sd_` names are brms's, and
+  there is no `cor_`. The spellings cover numeric and factor terms,
+  interactions, `poly()`, `gr(by =)`, `g1:g2`, `g1/g2` and `mm()`. They
+  also cover `|ID|` terms beside `||` terms, `sigma`, nonlinear
+  parameters, `mo()`, `cmc = FALSE` and `mvbf()`. Their sd rows of
+  `default_prior()` are brms's too. The exception is the group label of
+  a nested or multi-membership term, which differs for `|` terms too.
+* **A `||` term is one block.** `(1 + x || g)` was two blocks, `1 | g`
+  and `0 + x | g`. It is now one block with independent standard
+  deviations, as in brms. So `ranef(fit)$g` and `VarCorr(fit)$g`
+  address it by the factor name. For gaussian group-level effects the
+  likelihood is the same. The estimates of a numeric `(1 + x || g)`
+  agree with the old fit to 1.5e-12 relative.
+* **A `||` term over `gr(g, dist = "student")` has one latent scale per
+  level, shared by all its columns, as in brms.** The old split gave
+  each piece its own scale, which is a different model. So these fits
+  change, numeric terms included. On one data set,
+  `(1 + x || gr(g, dist = "student"))` moved from logLik -538.612 to
+  -539.121.
+* **An uncorrelated block names no correlation.** brms has no `cor_`
+  parameter for such a block. frmtmb named one, fixed at zero, for each
+  pair of columns of a `diag()` or `homdiag()` block. It also did so
+  for the `diag_t` block of a `||` term over `gr(dist = "student")`.
+  `variables()`, `summary()`, `confint_varcorr()` and `hypothesis()`
+  list none now. This includes `hypothesis()` on frmtmb.sample's draws.
+
+## New features
+
+* `gr(g, cor = FALSE)` is read as in brms: it is the `||` term.
+  `mm(g1, g2, cor = FALSE)` is the `||` term over the membership
+  grouping. `cor = TRUE` is the default. Under `||`, a `cor` argument
+  is ignored, as brms ignores it. `gr(cor = )` and `mm(cor = )` were
+  refused.
+
+## Bug fixes
+
+* `(x | p || g)` and `(x || p | g)` are refused in brms's words. The
+  second was read as a grouping variable `p`. `(x | p | gr(g, cor =
+  FALSE))` is refused too; brms drops the key there without a word.
+* A known-covariance term with several columns and any structure other
+  than the default is refused. This covers `gr(g, cov = A)` and
+  `gr(g, prec = Q)`, and a factor in a `||` term over one of them. The
+  known-covariance block correlates the columns of a term within a
+  level, so such a term silently became a correlated block. A numeric
+  `(1 + x || gr(g, cov = A))` is unchanged. So is a one-column term in
+  any structure, such as `homdiag(0 + x | gr(g, cov = A))`.
+* The message about a duplicated group-level effect names a `||` term
+  as written, not as the `diag()` term it is rewritten to.
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

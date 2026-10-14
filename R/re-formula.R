@@ -22,8 +22,8 @@
 #'
 #' `(lhs | group)`, `(lhs || group)` and brms's `(lhs | id | group)`.
 #' Anything outside the bars is ignored, as brms ignores it. A nested
-#' group `a/b` expands to `a` and `a:b`, and `||` to one term per
-#' column, because that is how the fitted components are stored.
+#' group `a/b` expands to `a` and `a:b`. A `||` term asks for the same
+#' columns as the `|` term, as it does in brms, which codes both whole.
 #'
 #' @noRd
 re_formula_bars <- function(re_formula) {
@@ -45,7 +45,6 @@ re_formula_bars <- function(re_formula) {
       }
       for (grp in re_expand_group(e[[3L]])) {
         out[[length(out) + 1L]] <<- list(lhs = lhs, group = grp,
-                                         double = op == "||",
                                          text = paste0("(", deparse1(e),
                                                        ")"))
       }
@@ -90,16 +89,6 @@ re_group_key <- function(g) {
 re_term_cnms <- function(fit, term, cmc = TRUE) {
   lhs <- term$lhs
   tt <- stats::terms(stats::as.formula(call("~", lhs)))
-  if (isTRUE(term$double)) {
-    # `(1 + x || g)` is stored as `(1 | g)` and `(0 + x | g)`; the
-    # columns are the union, which the per-column components carry
-    labs <- attr(tt, "term.labels")
-    return(c(if (attr(tt, "intercept") == 1L) "(Intercept)",
-             unlist(lapply(labs, function(l) {
-               re_term_cnms(fit, list(lhs = call("+", 0, str2lang(l)),
-                                      double = FALSE), cmc = cmc)
-             }))))
-  }
   if (!length(attr(tt, "term.labels"))) {
     return(if (attr(tt, "intercept") == 1L) "(Intercept)" else character(0))
   }

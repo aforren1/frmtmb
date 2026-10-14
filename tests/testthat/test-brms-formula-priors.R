@@ -89,7 +89,8 @@ test_that("exact twin terms are one block, as brms reads them", {
   # between them at will; brms's terms() keeps one copy
   expect_identical(blocks(y ~ x + (1 | g) + (1 | g)), 1L)
   expect_identical(blocks(y ~ x + (x | g) + (x | g)), 1L)
-  expect_identical(blocks(y ~ x + (x || g) + (x || g)), 2L)
+  # a || term is one block, as in brms
+  expect_identical(blocks(y ~ x + (x || g) + (x || g)), 1L)
   expect_identical(blocks(y ~ x + (1 | mm(g, h)) + (1 | mm(g, h))), 1L)
   expect_identical(blocks(bf(y ~ a + x, a ~ 1 + (1 | g) + (1 | g),
                              nl = TRUE)), 1L)

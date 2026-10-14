@@ -165,8 +165,8 @@ fuzz_re <- list(
   ri      = list(term = "(1 | g)",           brms = "(1 | g)",      blocks = 1,
                  scalar = TRUE),
   rs      = list(term = "(1 + x | g)",       brms = "(1 + x | g)",  blocks = 1),
-  dbar    = list(term = "(1 + x || g)",      brms = "(1 + x || g)", blocks = 2),
-  dbar_f  = list(term = "(fac || g)",        brms = "(fac || g)",   blocks = 3),
+  dbar    = list(term = "(1 + x || g)",      brms = "(1 + x || g)", blocks = 1),
+  dbar_f  = list(term = "(fac || g)",        brms = "(fac || g)",   blocks = 1),
   diagbar = list(term = "diag(1 + x | g)",   brms = NULL,           blocks = 1),
   ar1     = list(term = "ar1(tt + 0 | g)",   brms = NULL,           blocks = 1),
   nested  = list(term = "(1 | ga/gb)",       brms = "(1 | ga/gb)",  blocks = 2,
@@ -1374,12 +1374,13 @@ fuzz_inv_brms <- function(recs, sp, d, frame, fit_ok) {
   if (sp$aterm == "se")      cmp(av$se, sd$se, "se")
 
   # --- random-effect blocks ------------------------------------------
-  # DIVERGENCE (convention, never asserted): brms numbers grouping
-  # factors and keeps `||` terms in ONE block with zero correlations,
-  # where lme4-style expansion (ours) splits them into independent
-  # blocks. Block SHAPES therefore differ legitimately. What cannot
-  # differ is how many random coefficients the model has in total, and
-  # over how many levels - so that is what is compared. s()/gp() add
+  # Block SHAPES are not compared: brms numbers its blocks by id and
+  # splits a term by coefficient type (a mo() column is a block of its
+  # own there), where frmtmb keeps a `||` term in one diag block. What
+  # cannot differ is how many random coefficients the model has in
+  # total, and over how many levels - so that is what is compared. A
+  # `||` factor once had one coefficient per level more than brms
+  # (dev/dblbar-findings.md). s()/gp() add
   # blocks brms represents outside its grouping machinery, so this runs
   # only when the special contributes no block.
   if (sp$re != "none" && fuzz_special[[sp$special]]$blk == 0) {
@@ -1656,10 +1657,6 @@ FUZZ_KNOWN_PENDING <- list(
   list(id = "hsgp-brms-scaling",
        why = "HSGP basis scaling matches brms only after the pending merge",
        match = function(f) f$invariant == "brms_gp"),
-  list(id = "double-bar-factor",
-       why = "(f || g) builds a correlated block instead of independent ones",
-       match = function(f) grepl("re=dbar_f", f$spec) &&
-         f$invariant == "brms_re_blocks"),
   list(id = "re-factor-call",
        why = "(1 | factor(x)) errors instead of grouping by the factor",
        match = function(f) grepl("re=ri_fx", f$spec) &&

@@ -1082,7 +1082,7 @@ compat_hand_rules_tbl <- function() {
   r("call_group", "*", "works",
     "Call-valued grouping factors are supported: (1 | factor(x)) and (1 | interaction(a, b)) both build the grouping factor from the model frame.")
   r("double_bar", "*", "works",
-    "(x || g) gives uncorrelated terms. With a factor on the left, (f || g) routes to diag, that is one independent effect per factor level.")
+    "(x || g) is brms's (x | gr(g, cor = FALSE)): one term coded with the formula's own contrasts, a standard deviation per column and no correlation. (1 + f || g) has the columns Intercept, fb and fc of (1 + f | g), not lme4's column per level of f. (x | gr(g, cor = FALSE)) is the same term, and (x | mm(g1, g2, cor = FALSE)) is the || term over the membership grouping.")
   r("0 + Intercept", "*", "works",
     "brms's reserved Intercept: y ~ 0 + Intercept + x is the model y ~ 1 + x, factors take treatment contrasts, and the intercept is an ordinary class \"b\" coefficient that is not centered. bf(center = FALSE) and lf(center = FALSE) are the same mechanism. The likelihood, the maximum likelihood fit and every post-fit method are those of the model with an intercept, and newdata needs no Intercept column; only the prior classes and brms's coefficient order differ. Intercept must be a term of its own: Intercept:x is refused, and so is brms's deprecated lower-case intercept.")
   r("0 + Intercept", "group:ordinal", "refused",
@@ -1950,7 +1950,7 @@ compat_hand_rules_tbl <- function() {
     "Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.",
     override = TRUE)
   r("double_bar", "diag", "works",
-    "diag is the structure (f || g) resolves to.")
+    "diag is the structure every (x || g) term resolves to.")
   r("bar_crossing", "kind:covstruct", "refused",
     "Refused for every covariance structure. The crossing must go inside the bar.")
   # The other two grammar rows are "*" rules of the same shape as the
@@ -1982,7 +1982,7 @@ compat_hand_rules_tbl <- function() {
   r("mm()", "us", "works",
     "The default: one unstructured covariance over the term's coefficients, shared by every pooled membership level.")
   r("mm()", "diag", "works",
-    "diag(x | mm(g1, g2)) is the spelling of brms's mm(..., cor = FALSE); (x || mm(g1, g2)) expands to the same thing.")
+    "diag(x | mm(g1, g2)), (x || mm(g1, g2)) and brms's (x | mm(g1, g2, cor = FALSE)) are the same block.")
   r("mm()", "|ID|", "refused",
     "Refused: a merged |ID| block indexes one level set per observation row, and an mm() row loads several levels at once.")
   r("mm()", "REML", "works",
