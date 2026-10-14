@@ -224,3 +224,39 @@ test_that("0 + Intercept leaves the intercept flat, as brms's class b", {
                                 route = "sample"))
   expect_identical(got[sort(names(want))], want[sort(names(want))])
 })
+
+test_that("xi gets brms's defaults in each of its three spellings", {
+  # brms 2.23.0 (dev/famuni-out/sample.txt, dev/famuni-rev-out/priors.txt):
+  # xi ~ z and xi ~ 1 are a predicted xi on log1p, normal(0, 4) on
+  # Intercept_xi (normal(0, 2.5) under link_xi = "identity"); a scalar
+  # xi is tmp_xi with normal(0, 2.5), class xi
+  set.seed(20261017)
+  n <- 120
+  d <- data.frame(x = stats::rnorm(n), z = stats::rnorm(n))
+  d$y <- 1 + 0.5 * d$x + 0.8 * (stats::rexp(n)^(-0.15) - 1) / 0.15
+  r <- dpb_rows(default_prior(bf(y ~ x, sigma ~ z, xi ~ z), d,
+                              family = gen_extreme_value(), route = "sample"))
+  expect_identical(r[["Intercept||||xi"]], "normal(0, 4)")
+  expect_identical(r[["Intercept||||sigma"]], "student_t(3, 0, 2.5)")
+  r <- dpb_rows(default_prior(bf(y ~ x, xi ~ z), d,
+                              family = gen_extreme_value(link_xi = "identity"),
+                              route = "sample"))
+  expect_identical(r[["Intercept||||xi"]], "normal(0, 2.5)")
+  # xi ~ 1 has the scalar's design, one intercept column, and is brms's
+  # predicted xi all the same (review fix 6: it was flat, with the
+  # scalar's note)
+  r <- dpb_rows(default_prior(bf(y ~ x, xi ~ 1), d,
+                              family = gen_extreme_value(), route = "sample"))
+  expect_identical(r[["Intercept||||xi"]], "normal(0, 4)")
+  f1 <- frm(bf(y ~ x, xi ~ 1), family = gen_extreme_value(), data = d)
+  expect_false(any(grepl("tmp_xi", frmtmb.sample:::default_prior_notes(f1),
+                         fixed = TRUE)))
+  # the scalar spelling: brms's class xi row, and the note that says
+  # where that prior sits
+  r <- dpb_rows(default_prior(bf(y ~ x), d, family = gen_extreme_value(),
+                              route = "sample"))
+  expect_identical(r[["xi||||"]], "normal(0, 2.5)")
+  fit <- frm(bf(y ~ x), family = gen_extreme_value(), data = d)
+  notes <- frmtmb.sample:::default_prior_notes(fit)
+  expect_true(any(grepl("through tmp_xi", notes, fixed = TRUE)))
+})

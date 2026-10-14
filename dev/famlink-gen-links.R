@@ -40,7 +40,9 @@ src <- c(
   asym_laplace = "asym_laplace",
   zero_inflated_asym_laplace = "zero_inflated_asym_laplace",
   huber = "gaussian", sratio = "sratio", cratio = "cratio", acat = "acat",
-  von_mises = "von_mises", cox = "cox", categorical = "categorical"
+  von_mises = "von_mises", cox = "cox", categorical = "categorical",
+  frechet = "frechet", gen_extreme_value = "gen_extreme_value",
+  discrete_weibull = "discrete_weibull"
 )
 analog <- c("nbinom1", "tweedie", "huber")
 

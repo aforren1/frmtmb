@@ -49,7 +49,10 @@ brms_mu_link_source <- c(
   acat = "acat",
   von_mises = "von_mises",
   cox = "cox",
-  categorical = "categorical"
+  categorical = "categorical",
+  frechet = "frechet",
+  gen_extreme_value = "gen_extreme_value",
+  discrete_weibull = "discrete_weibull"
 )
 
 brms_mu_link_analogs <- c("nbinom1", "tweedie", "huber")
@@ -120,7 +123,12 @@ brms_mu_links <- list(
       "softit"),
   von_mises = c("tan_half", "identity"),
   cox = c("log", "identity", "softplus", "squareplus"),
-  categorical = c("logit")
+  categorical = c("logit"),
+  frechet = c("log", "identity", "inverse", "softplus", "squareplus"),
+  gen_extreme_value = c("identity", "log", "inverse", "softplus",
+      "squareplus"),
+  discrete_weibull = c("logit", "probit", "probit_approx", "cloglog",
+      "cauchit", "softit", "identity")
 )
 
 # The families brms:::no_mixture() bars as mixture components, by

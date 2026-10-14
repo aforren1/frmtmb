@@ -10,17 +10,21 @@
 #'
 #' \describe{
 #'   \item{`mu`}{Drift rate, the mean rate of evidence accumulation
-#'     (brms and the literature also call it `v`). Identity link, so it
-#'     is signed: positive drift favors the upper boundary.}
+#'     (brms and the literature also call it `v`). Identity link by
+#'     default, so it is signed: positive drift favors the upper
+#'     boundary.}
 #'   \item{`bs`}{Boundary separation, the distance between the two
-#'     boundaries (`a`). Log link.}
+#'     boundaries (`a`). Log link by default.}
 #'   \item{`ndt`}{Non-decision time, the part of the response time spent
 #'     encoding and moving rather than deciding (`t0` or `tau`). Bounded
-#'     link; see Non-decision time below.}
+#'     link by default; see Non-decision time below.}
 #'   \item{`bias`}{Relative start point in (0, 1), the fraction of the
-#'     boundary separation the accumulator starts at (`w`). Logit link.
-#'     0.5 is unbiased.}
+#'     boundary separation the accumulator starts at (`w`). Logit link
+#'     by default. 0.5 is unbiased.}
 #' }
+#'
+#' Each of the four takes the links brms allows for it; see Links, and
+#' the one difference from brms.
 #'
 #' `variability` adds Ratcliff's three across-trial variability
 #' parameters to that set; see Across-trial variability below.
@@ -126,6 +130,9 @@
 #' so a prediction on new rows is scaled by the bound the fit used
 #' rather than by one re-derived from the new rows. A group the fit
 #' never saw has no bound and is refused.
+#'
+#' Both are the default link. brms's own link, a log link with no bound,
+#' is `link_ndt = "log"`; see Links, and the one difference from brms.
 #'
 #' Past a linear predictor of about 37 the logit saturates in double
 #' precision. Nothing guards that, and nothing needs to: the density
@@ -236,6 +243,103 @@
 #' The same 60 draws with `variability = "sv"` recover the same
 #' quantities to the same accuracy. What they add is in the next
 #' section.
+#'
+#' @section Links, and the one difference from brms:
+#' Each parameter takes the links brms 2.23.0 allows for it, through the
+#' argument brms uses, in brms's order: `link` for `mu`, then `link_bs`,
+#' `link_ndt` and `link_bias`. A positional call written for brms means
+#' the same thing here. A link outside brms's set is refused.
+#'
+#' The defaults are brms's, except for `ndt`. brms puts `ndt` on a log
+#' link. Without a formula on `ndt`, brms bounds it in its parameter
+#' block, `real<lower=0,upper=min_Y> ndt`, and gives it a
+#' `uniform(0, min_Y)` prior. With a formula, brms has no bound: each
+#' row's density rejects a non-decision time at or above that row's
+#' response time. This package has no parameter block, so its default
+#' link carries the bound instead.
+#'
+#' `link_ndt = "log"` gives brms's parameterization. The coefficients of
+#' `ndt ~ ...` are then on brms's log scale, and a prior written for
+#' brms means the same thing here. A row whose response time is at or
+#' below its non-decision time has a log density of minus infinity, and
+#' the optimizer treats that as a rejected step. The start is half the
+#' fastest response, which every row can reach.
+#'
+#' Measured on 100 data sets of 30 trials and 100 of 400 (seeds
+#' 20261101 to 20261200, `dev/famuni-wiener-ndtrep.R`): every fit
+#' converged under both links, and on this scalar `ndt`, where the two
+#' links are the same model, the two maxima agreed to 6e-10 in the
+#' log-likelihood and to 1.6e-05 standard errors in `ndt`. Against brms
+#' on one data set of 400 trials with `ndt ~ 1`, the maximum-likelihood
+#' estimates sat within 0.15 posterior standard deviations of brms's
+#' posterior medians, and the standard errors within 5 percent of the
+#' posterior standard deviations.
+#'
+#' Under `ndt ~ 1 + (1 | s)` the per-row rejection is a per-subject
+#' bound, which is the constraint `ndt_group()` gives the default link.
+#' Measured on 20 data sets of 20 subjects by 50 trials, with a
+#' between-subject standard deviation of 0.12 on the log non-decision
+#' time around 250 ms (seeds 20261101 to 20261120,
+#' `dev/famuni-wiener-ndtrep.R`): the log link converged on 20 of 20
+#' with no warning, `ndt_group()` on 20 of 20, and the one global bound
+#' on 12 of 20. The median per-subject root mean squared error of the
+#' non-decision time was 13.8 ms under the log link, 16.4 ms under
+#' `ndt_group()` and 24.4 ms under the global bound, and the log link
+#' had the smallest error on 20 of the 20 data sets. Its
+#' between-subject standard deviation came back at a median of 0.115,
+#' where `ndt_group()` put it at zero for the reason "What sd(ndt) does
+#' and does not tell you" gives.
+#'
+#' An unbounded `ndt` link cannot be combined with `max_ndt`,
+#' `ndt_group()`, `variability`, `contaminant = TRUE` or
+#' `allow_unreachable = TRUE`. The first two set the bound that the
+#' link does not have. Each of the other three holds a row past the
+#' non-decision time at a small positive decision time, and without a
+#' bound every row can be held there at the same time, where the
+#' density of one point has no upper limit as `bs` goes to zero. A
+#' mixture with a lognormal reached a log-likelihood of +7713.9 on 400
+#' rows that way, with `ndt` at 1.8e+308 and `bs` at 7.05e-05
+#' (`dev/famuni-wiener-mix2.R`).
+#'
+#' Under an identity link nothing keeps `bs` above zero, `bias` inside
+#' (0, 1) or `ndt` above zero. The density is `NaN` outside those
+#' ranges, on the tape the optimizer evaluates as well as on doubles, and
+#' the optimizer treats it as a rejected step. On data with a bias of
+#' 0.97 (seeds 20261101 to 20261105, n = 80), `link_bias = "identity"`
+#' fits reach the logit fits' maxima on all five.
+#'
+#' A brms family object is read with its links. `brms::wiener()` and
+#' `brms::brmsfamily("wiener")` carry brms's `link_ndt = "log"`, so
+#' `family = brms::wiener()` fits brms's log link for `ndt`, while
+#' `family = "wiener"` and this package's `wiener()` fit the bounded
+#' default. With both packages attached, a bare `wiener()` is the one
+#' attached last: brms's gives the log link, this package's the bounded
+#' one. On a scalar `ndt` the two are the same model with the same
+#' maximum; under `ndt ~ x` the coefficients are on different scales, and
+#' the log link refuses `max_ndt`, `ndt_group()`, `variability` and
+#' `contaminant = TRUE`. Write `frmtmb.eam::wiener()` to be sure which
+#' you have.
+#'
+#' @section Post-fit quantities against brms:
+#' The log-likelihood of a row is the same quantity in both packages:
+#' the log density of its response time at the boundary it ended at. On
+#' 50 posterior draws of a 400-row brms fit, this density and brms's
+#' `log_lik()` agree to 1.1e-14.
+#'
+#' `fitted()` and `simulate()` differ from brms on purpose. Both condition
+#' on the boundary each row ended at. brms's `posterior_predict()` draws
+#' the boundary as well and returns only the time, or, with
+#' `negative_rt = TRUE`, the time signed by the DRAWN boundary, so a row
+#' observed at the upper boundary gets draws at the lower one.
+#' `predict(negative_rt = TRUE)` is refused here. brms's
+#' `posterior_epred()` is the mean response time over both boundaries,
+#' from Grasman, Wagenmakers and van der Maas (2009). brms 2.23.0 passes
+#' that formula the relative start point `bias` where it takes the
+#' absolute one, `bias * bs`, so its value is correct only at `bs = 1`:
+#' at `bs = 2.5` it is wrong by up to 64 percent, and at a drift of
+#' exactly zero it is `NaN`. The formula with `bias * bs` agrees with
+#' this package's conditional means, weighted by the boundary
+#' probabilities, to 1.04e-15 relative (`dev/famuni-wiener-fit2.R`).
 #'
 #' @section Across-trial variability:
 #' Ratcliff's full diffusion model draws three of the four parameters
@@ -540,8 +644,20 @@
 #' @param allow_unreachable Permit a `max_ndt` above the smallest
 #'   response time. Only correct inside a mixture, where another
 #'   component carries the rows the Wiener density cannot reach.
-#' @param link Link for the drift rate. Identity by default, and there
-#'   is rarely a reason to change it: the drift rate is signed.
+#' @param link Link for the drift rate `mu`: `"identity"` (the
+#'   default), `"log"`, `"softplus"` or `"squareplus"`, the set brms
+#'   allows. An unquoted name works too, as in brms: `wiener(log)`. The
+#'   drift rate is signed, so a link other than the identity is a model
+#'   in which the accumulator can only drift up.
+#' @param link_bs Link for the boundary separation `bs`: `"log"` (the
+#'   default), `"identity"`, `"softplus"` or `"squareplus"`.
+#' @param link_ndt Link for the non-decision time `ndt`. `NULL`, the
+#'   default, is the bounded link of "Non-decision time" above. Give
+#'   `"log"`, brms's default, or `"identity"`, `"softplus"` or
+#'   `"squareplus"`, for brms's own parameterization; see "Links, and
+#'   the one difference from brms".
+#' @param link_bias Link for the start point `bias`: `"logit"` (the
+#'   default) or `"identity"`.
 #' @param contaminant Mix a uniform contaminant into the density, with
 #'   its mixing proportion estimated as the distributional parameter
 #'   `lambda` on a logit link. `FALSE`, the default, is the plain model.
@@ -556,6 +672,11 @@
 #' @return A `frmtmb_family`.
 #'
 #' @references
+#' Grasman, R. P. P. P., Wagenmakers, E.-J. and van der Maas, H. L. J.
+#' (2009). On the mean and variance of response times under the
+#' diffusion model with an application to parameter estimation.
+#' *Journal of Mathematical Psychology*, 53(2), 55-68.
+#'
 #' Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 #' for first-passage times in Wiener diffusion models. *Journal of
 #' Mathematical Psychology*, 53(4), 222-230.
@@ -573,10 +694,44 @@
 #' fixef(fit)
 #'
 #' @export
-wiener <- function(max_ndt = NULL, variability = character(0),
+wiener <- function(link = "identity", link_bs = "log", link_ndt = NULL,
+                   link_bias = "logit", max_ndt = NULL,
+                   variability = character(0),
                    nodes = c(sz = 7L, st = 21L),
-                   allow_unreachable = FALSE, link = "identity",
+                   allow_unreachable = FALSE,
                    contaminant = FALSE, contaminant_range = NULL) {
+  link <- ddm_link_value(substitute(link), link, ddm_links_brms)
+  link <- ddm_check_link(link, "mu", ddm_links_brms)
+  link_bs <- ddm_check_link(link_bs, "bs", ddm_links_brms)
+  link_bias <- ddm_check_link(link_bias, "bias", c("logit", "identity"))
+  if (!is.null(link_ndt)) {
+    link_ndt <- ddm_check_link(link_ndt, "ndt", ddm_links_brms,
+                               objects = FALSE)
+    if (!is.null(max_ndt)) {
+      frm_stop("wiener(): `max_ndt` is the bound of the default `ndt` link, ",
+               "and link_ndt = \"", link_ndt, "\" has no bound. Drop one of ",
+               "the two.", call. = FALSE)
+    }
+    # Each of these scores a row past the non-decision time by holding
+    # its decision time at a tiny margin rather than at zero. Under a
+    # bounded `ndt` some rows always stay reachable; under an unbounded
+    # one every row can be pinned at that margin at once, and the
+    # density of one point is unbounded as `bs` goes to zero. Measured:
+    # a mixture with a lognormal ran to ndt = 1.8e308, bs = 7.05e-05 and
+    # a log-likelihood of +7713.9 on 400 rows (dev/famuni-wiener-mix2.R).
+    # brms's model has none of the three, so link_ndt is for that model.
+    if (length(variability) || isTRUE(contaminant) ||
+        isTRUE(allow_unreachable)) {
+      frm_stop("wiener(): link_ndt = \"", link_ndt, "\" is brms's ",
+               "parameterization of the plain model, and cannot be ",
+               "combined with `variability`, `contaminant = TRUE` or ",
+               "`allow_unreachable = TRUE`. Each of those holds a row past ",
+               "the non-decision time at a tiny decision time, and without ",
+               "a bound on `ndt` every row can be held there at once, ",
+               "where the likelihood is unbounded. Use the default `ndt` ",
+               "link for them.", call. = FALSE)
+    }
+  }
   if (!is.logical(contaminant) || length(contaminant) != 1L ||
       is.na(contaminant)) {
     frm_stop("wiener(): `contaminant` must be TRUE or FALSE.", call. = FALSE)
@@ -618,7 +773,8 @@ wiener <- function(max_ndt = NULL, variability = character(0),
              "contaminant; contaminant = TRUE is the contaminant inside ",
              "the family, and needs no mixture.", call. = FALSE)
   }
-  cfg <- list(max_ndt = max_ndt, link = link,
+  cfg <- list(max_ndt = max_ndt, link = link, link_bs = link_bs,
+              link_ndt = link_ndt, link_bias = link_bias,
               allow_unreachable = isTRUE(allow_unreachable),
               variability = ddm_check_variability(variability),
               nodes = ddm_check_nodes(nodes),
@@ -672,6 +828,105 @@ ddm_check_nodes <- function(nodes) {
   out
 }
 
+# The links brms 2.23.0 allows for wiener's mu, bs and ndt, read from
+# brms:::.family_wiener()$links and brms's dpar link table; bias takes
+# "logit" and "identity". dev/famuni-wiener-findings.md has the run.
+ddm_links_brms <- c("identity", "log", "softplus", "squareplus")
+
+#' The mean link as brms reads it: an UNQUOTED link name is its name.
+#'
+#' `wiener(log)` would otherwise evaluate base R's `log()` function, and
+#' `wiener(softplus)` a symbol that exists nowhere. A name outside the
+#' set is evaluated, so a variable holding a link name still works.
+#'
+#' @noRd
+ddm_link_value <- function(slink, link, choices) {
+  if (is.name(slink) && as.character(slink) %in% choices) {
+    return(as.character(slink))
+  }
+  link
+}
+
+#' Refuse a link brms does not allow for this dpar.
+#'
+#' Before this, `wiener(link = "logit")` fitted: a drift rate squeezed
+#' into (0, 1), which brms refuses and no model of a signed drift wants.
+#' The refusal opens with brms's own sentence. A custom link list still
+#' passes, as frmtmb's own families let it, except for `ndt`, whose
+#' bounded default is built by this package and has no list form.
+#'
+#' @noRd
+ddm_check_link <- function(value, dpar, choices, objects = TRUE) {
+  if (objects && is.list(value)) return(value)
+  allowed <- paste0("'", choices, "'", collapse = ", ")
+  arg <- if (dpar == "mu") "link" else paste0("link_", dpar)
+  if (!is.character(value) || length(value) != 1L || is.na(value)) {
+    frm_stop("wiener(", arg, " =) takes a single link name. Supported ",
+             "links are: ", allowed, ".", call. = FALSE)
+  }
+  if (!value %in% choices) {
+    what <- if (dpar == "mu") "family 'wiener'" else
+      paste0("parameter '", dpar, "'")
+    frm_stop("'", value, "' is not a supported link for ", what, ". ",
+             "Supported links are: ", allowed, ", the set brms allows.",
+             call. = FALSE)
+  }
+  value
+}
+
+#' Make a parameter outside its support a NaN instead of a number.
+#'
+#' Under an identity link nothing keeps `bs` positive, `bias` inside
+#' (0, 1) or `ndt` above zero, and the series do not all fail
+#' there on their own: `ddm_pos()` turns a negative sum into its
+#' magnitude, so a bias of 1.2 returns a finite log density that is
+#' not a density of anything. With `u = x + |x|`, `u / u - 1` is exactly
+#' 0 for a positive `x`, with derivatives 0, and `0 / 0`, NaN,
+#' otherwise, which the optimizer reads as a rejected step, as frmtmb's
+#' own families do. It raises no warning on doubles, where `log(x)` would.
+#'
+#' The guard must not have a constant 0 as an operand. RTMB folds `0 * x`
+#' and `0 / x` to the constant 0 when it records the tape, so the first
+#' spelling, `0 / (x + |x|)`, was NaN on doubles and 0 in every fit: at a
+#' bias of -0.5 the objective was finite, with a log-likelihood above the
+#' maximum (dev/reviews/2026-10-13-famuni.md, fix 1;
+#' dev/famuni-out/fold-probe.txt).
+#' NULL when no link needs it, so a model on the default links runs the
+#' density it always has.
+#'
+#' @noRd
+ddm_support_guard <- function(cfg) {
+  on <- c(bs = identical(cfg$link_bs, "identity"),
+          bias = identical(cfg$link_bias, "identity"),
+          ndt = identical(cfg$link_ndt, "identity"))
+  if (!any(on)) return(NULL)
+  pos <- function(x) {
+    u <- x + abs(x)
+    u / u - 1
+  }
+  function(dpars) {
+    g <- 0
+    if (on[["bs"]]) g <- g + pos(dpars[["bs"]])
+    if (on[["bias"]]) {
+      g <- g + pos(dpars[["bias"]] * (1 - dpars[["bias"]]))
+    }
+    if (on[["ndt"]]) g <- g + pos(dpars[["ndt"]])
+    g
+  }
+}
+
+#' Wrap a density or distribution-function slot with the guard.
+#'
+#' The guard is added, so a log-scale slot and a probability-scale slot
+#' both come back unchanged inside the support and NaN outside it.
+#'
+#' @noRd
+ddm_guard_slot <- function(f, guard) {
+  force(f)
+  force(guard)
+  function(q, dpars, aterms) f(q, dpars, aterms) + guard(dpars)
+}
+
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 #' Build the family object, given whatever the data has settled.
@@ -695,7 +950,11 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
   # once the bound is known: with a scaled logit carrying that bound
   # when there is one number, and with a plain logit on a fraction when
   # ndt_group() makes it per row. See the head of ddm-shared.R.
-  links <- list(mu = cfg$link, bs = "log", ndt = "logit", bias = "logit")
+  # ...unless the user chose one of brms's unbounded `ndt` links, which
+  # is kept as it is (see ddm_ndt_install())
+  links <- list(mu = cfg$link, bs = cfg$link_bs %||% "log",
+                ndt = cfg$link_ndt %||% "logit",
+                bias = cfg$link_bias %||% "logit")
   if ("sv" %in% vv) links$sv <- "log"
   # a width on the same (0, 1) scale as bias, so the logit is the
   # scaled logit its own support asks for
@@ -873,6 +1132,13 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
     }
   }
 
+  guard <- ddm_support_guard(cfg)
+  if (!is.null(guard)) {
+    lpdf <- ddm_guard_slot(lpdf, guard)
+    lcdf <- ddm_guard_slot(lcdf, guard)
+    lccdf <- ddm_guard_slot(lccdf, guard)
+  }
+
   mean_fn <- if (!length(vv)) {
     function(dpars, aterms) ddm_mean_rt(dpars, aterms)
   } else {
@@ -949,6 +1215,8 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
     sim = sim,
     sim_refusal = NULL)
   if (isTRUE(cfg$contaminant)) fam[["contaminant_range"]] <- crange
+  # read by ddm_ndt_install(), which otherwise puts the bounded link in
+  if (!is.null(cfg$link_ndt)) fam[["ndt_link_fixed"]] <- TRUE
   # An interval's lower edge, which lcdf needs at the upper-edge call to
   # form the interval's mass directly; see lcdf above. Only when a row
   # is interval-censored, so every other model's data is what it was.
@@ -977,6 +1245,17 @@ ddm_family <- function(cfg, delta, crange = c(NA_real_, NA_real_)) {
 ddm_finalize <- function(fam, cfg, y, aterms) {
   lo <- min(y)
   sp <- ddm_ndt_spec(y, aterms, cfg$max_ndt, "wiener")
+  if (!is.null(cfg$link_ndt) && !is.null(sp$floors)) {
+    # ndt_group() exists to set the bound the default link scales onto;
+    # under an unbounded link each row's own density is what keeps `ndt`
+    # below that row's response time, which is the per-group constraint
+    # already, as it is in brms
+    frm_stop("wiener: ndt_group() sets the bound of the default `ndt` ",
+             "link, and link_ndt = \"", cfg$link_ndt, "\" has no bound. ",
+             "Drop ndt_group(): under link_ndt = \"", cfg$link_ndt, "\" ",
+             "every row's own response time bounds its non-decision time ",
+             "already.", call. = FALSE)
+  }
   if (!is.null(cfg$max_ndt) && sp$ub > lo && !cfg$allow_unreachable &&
       !isTRUE(cfg$contaminant)) {
     # min(y) itself is allowed, and is the default: the logit never

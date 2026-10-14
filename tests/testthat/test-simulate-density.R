@@ -320,6 +320,23 @@ sim_specs <- list(
   list(nm = "weibull", fam = quote(weibull()),
        eta = c(0, 0.5), dp = list(shape = 2), kind = "cont",
        lo = function(mu, d) 0, hi = function(mu, d) mu * 8),
+  # nu = 8 keeps four moments finite for the variance check; the mass
+  # above 30 mu is below 1e-11
+  list(nm = "frechet", fam = quote(frechet()),
+       eta = c(0, 0.5), dp = list(nu = 8), kind = "cont",
+       lo = function(mu, d) 0, hi = function(mu, d) mu * 30),
+  # xi = 0.1 keeps four moments finite; the support starts at
+  # mu - sigma / xi, where the density is 0 and its log is -Inf, so the
+  # quadrature starts just above it, and the mass beyond hi is 1e-12
+  list(nm = "gen_extreme_value", fam = quote(gen_extreme_value()),
+       eta = c(0, 1), dp = list(sigma = 0.7, xi = 0.1), kind = "cont",
+       lo = function(mu, d) mu - d[["sigma"]] / d[["xi"]] * (1 - 1e-9),
+       hi = function(mu, d) {
+         mu + d[["sigma"]] * ((1e-12)^(-d[["xi"]]) - 1) / d[["xi"]]
+       }),
+  list(nm = "discrete_weibull", fam = quote(discrete_weibull()),
+       eta = c(0.5, 1.2), dp = list(shape = 1.3), kind = "disc", hi = 200,
+       ydummy = 1L),
   # stats::inverse.gaussian()'s default 1/mu^2 link is not one frmtmb
   # implements; the family is reached under the log link it does
   list(nm = "inverse.gaussian",

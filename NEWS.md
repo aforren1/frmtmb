@@ -1,3 +1,60 @@
+# frmtmb (development version)
+
+## New features
+
+* Three brms families that `frm()` refused: `frechet()`,
+  `gen_extreme_value()` and `discrete_weibull()`, with brms 2.23.0's
+  parameters, links, link options and defaults (see
+  `?frmtmb-extreme-families`). They take random effects, distributional
+  formulas, `weights()`, `cens()` and `trunc()`, and they can be
+  components of a `mixture()`, as in brms. `fitted()`, `predict()`,
+  `simulate()`, `residuals()` (including `type = "pearson"` and
+  `"osa"`), `conditional_effects()`, `pp_check()` and `default_prior()`
+  cover them. Their log densities agree with a 256-bit reference to
+  about 1e-13 on a grid that includes the far tails. They agree with
+  brms's Stan functions where those are accurate. brms's are not
+  everywhere: its Frechet log survivor is off by up to 3.8e-3 and is
+  `-Inf` in the far right tail, and its GEV density loses digits near
+  `xi = 0`, 6.8e-8 at `xi = 1e-7` (`dev/famuni-findings.md`).
+
+  - `frechet()`: `mu` is the mean, as in brms, and the scale is
+    `mu / gamma(1 - 1 / nu)`. Under `link_nu = "identity"` a `nu` at or
+    below 1 has no likelihood.
+  - `gen_extreme_value()`: the support depends on the parameters, and
+    the density is 0 outside it, with a log that falls steeply rather
+    than a `NaN`. The optimizer is turned back, and in a `mixture()` a
+    component that does not reach a row adds nothing to it. brms's
+    density is `NaN` there. `xi = 0` is the Gumbel model, exactly, so
+    `bf(y ~ x, xi = 0)` fits one. `fitted()` returns `Inf` where the
+    mean is infinite (`xi >= 1`). brms's `posterior_epred()` returns
+    `NaN` at `xi = 0` and `xi = 1` and a finite, wrong number above 1.
+  - An `xi` without a formula takes the `log1p` link, which brms uses
+    for a predicted `xi`. brms scales such an `xi` into the support the
+    data leave. That is the same maximum, but its range reaches below
+    `xi = -1`, where the likelihood is unbounded. Under
+    `link_xi = "identity"`, `xi <= -1` has no likelihood, so every link
+    holds `xi` above -1. A fit that stops within 1e-3 of -1 with the
+    likelihood not stationary in `xi` there warns that its
+    log-likelihood is a supremum. A maximum inside that band gets a
+    message instead.
+  - `discrete_weibull()`: `fitted()` is the mean to about 1e-12, where
+    brms's `posterior_epred()` stops the series at the first term below
+    0.001. `cens()` follows frmtmb's inclusive discrete convention, so
+    right and interval censoring differ from brms, which reads a right
+    bound as `P(Y > y)`; subtract one from those bounds to reproduce a
+    brms fit. Left censoring and `trunc()` agree with brms.
+
+* `family = "wiener"` (or a brms `wiener()` object) takes the family
+  from frmtmb.eam when that package is loaded, and otherwise is refused
+  with a message that names frmtmb.eam. Before, it was refused as an
+  unsupported family, with a list of the core families. A brms object
+  keeps its links, so `brms::wiener()` fits brms's log link for `ndt`
+  (see `?frmtmb.eam::wiener`).
+
+* For frmtmb.sample, a sampling chart for a scalar GEV `xi`
+  (`gev_xi_chart_frame()` and its companions, `?frmtmb-gev-xi-chart`),
+  so that `frm_sample()` samples it through brms's `tmp_xi`.
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

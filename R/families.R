@@ -5718,7 +5718,11 @@ mixture_build <- function(comps, groups, ref) {
     init[[paste0("mu", k)]] <- local({
       k_ <- kk
       bounded <- mixture_mu_bounded(comps[[k_]])
+      # a component whose mu is not a location says where its quantile
+      # puts it (discrete_weibull()'s mu is P(Y >= 1))
+      own <- comps[[k_]][["post"]][["mixture_mu_start"]]
       function(y, aterms) {
+        if (is.function(own)) return(own(y, aterms, k_ / (K + 1)))
         mixture_mu_start(y, aterms, k_ / (K + 1), bounded)
       }
     })
@@ -8029,8 +8033,16 @@ family_registry <- list(
   acat                      = fam_acat,
   von_mises                 = fam_von_mises,
   cox                       = fam_cox,
-  categorical               = fam_categorical_deferred
+  categorical               = fam_categorical_deferred,
+  # R/families-extreme.R
+  frechet                   = fam_frechet,
+  gen_extreme_value         = fam_gen_extreme_value,
+  discrete_weibull          = fam_discrete_weibull
 )
+
+# brms families that an extension package supplies rather than core,
+# keyed by brms's name.
+extension_family_homes <- c(wiener = "frmtmb.eam")
 
 # An unknown value errors and names the supported families.
 
@@ -8054,6 +8066,18 @@ family_ctor <- function(name) {
   keys <- names(family_registry)
   hit <- keys[tolower(keys) == low]
   if (length(hit)) return(family_registry[[hit[1L]]])
+  home <- extension_family_homes[low]
+  if (!is.na(home)) {
+    # a brms family that an extension supplies: the generic refusal
+    # below listed the core families and so read as "not supported at
+    # all", when one package away it is
+    if (isNamespaceLoaded(home)) {
+      return(getExportedValue(home, low))
+    }
+    frm_stop("The ", low, " family is in the extension package ", home,
+             ", which is not loaded. Install it and run library(", home,
+             "), then use family = ", low, "()", call. = FALSE)
+  }
   frm_stop(name, " is not a supported family. Supported families are: ",
            paste(unique(names(family_registry)), collapse = ", "),
            call. = FALSE)

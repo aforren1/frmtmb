@@ -1,3 +1,32 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb that adds `gen_extreme_value()` and its sampling chart
+(`gev_xi_chart_frame()`).
+
+* `frm_sample()` samples a `gen_extreme_value()` `xi` without a formula
+  as brms samples it, through `tmp_xi`, mapped into the support each
+  draw's `mu` and `sigma` leave, with brms's default `normal(0, 2.5)` on
+  `tmp_xi`. On its `log1p` scale the support's edge was a wall in the
+  sampled space. On the review's n = 40 data sets at `xi` -0.45, 0.20
+  and -0.85 (4 chains x 2000), 1187, 263 and 3856 of 4000 transitions
+  diverged, with Rhat 2.30 on the last, against 0, 1 and 0 in brms.
+  Through `tmp_xi` none diverge, and the posterior mean of `xi` is
+  within 0.005 of brms's at the first two. One difference
+  from brms remains: frmtmb holds `xi` above -1 on every route, where
+  brms's range goes on (`dev/famuni-out/tmpxi.txt`, `tmpxi-sample.txt`).
+  The hold is material where the data put mass there: on the xi -0.85
+  data brms puts 29 percent of its posterior below -1, and
+  `frm_sample()`'s posterior is brms's conditioned on `xi > -1` (median
+  of `xi` -0.876 against -0.877; the review's round 2). A prior on
+  class `xi` is then a prior on `tmp_xi`, as in brms. A `cens()` or
+  `trunc()` response, a second GEV response, or GEV components of a
+  `mixture()` keep the `log1p` scale, and `frm_sample()` warns that they
+  do.
+
+* `frm_sample()` puts brms's default `normal(0, 4)` on the intercept of
+  a predicted `xi`, `xi ~ 1` included (`normal(0, 2.5)` under
+  `link_xi = "identity"`).
+
 # frmtmb.sample 0.18.0
 
 Needs frmtmb 0.70.0: it reads `simplex_frame_terms()` and the

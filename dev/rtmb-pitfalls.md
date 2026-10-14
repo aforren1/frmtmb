@@ -2,7 +2,7 @@
 
 Each item below cost real time once. Read this before you write or
 review objective code, a covariance block, a custom family, or a
-hand-rolled reference in a test. Items 1 to 13 and 16 to 18 are about
+hand-rolled reference in a test. Items 1 to 13, 16 to 18 and 22 are about
 the tape. Items 14, 15 and 19 to 21 are about the toolchain around it.
 
 This file was moved into the repository on 2026-09-28 from a
@@ -149,3 +149,37 @@ machine-local memory so that it survives a change of machine.
     compare within one process, or pin both with
     `start /affinity <mask>` to one core type, or repeat on several
     processes. CI runners are not hybrid.
+22. RTMB folds an operation with a constant-zero operand when it
+    records the tape: `0 * x`, `x * 0` and `0 / x` become the constant
+    0, whatever `x` is. A NaN guard written that way, `0 * log(x)` or
+    `0 / (x + abs(x))`, is NaN on doubles and absent in every fit, so a
+    test of the density on doubles passes on a guard the optimizer never
+    sees. Two did this in the famuni round: frmtmb.eam's identity-link
+    support guard gave a finite objective at a bias of -0.5, with a
+    log-likelihood above the maximum, and `frechet(link_nu =
+    "identity")` gave finite densities at nu = 0.8
+    (dev/reviews/2026-10-13-famuni.md, fixes 1 and 2). Write the guard
+    with no constant operand: with `u = x + abs(x)`, `u / u - 1` is 0
+    for `x > 0`, NaN for `x <= 0`, and silent on doubles (core's
+    `nan_unless_pos()`). Its derivatives are 0 where it is 0 except at
+    the ends of the doubles: the gradient is NaN for `0 < x < 2.3e-308`
+    (subnormal `x`), the Hessian is NaN for `0 < x <= 1e-155`, and the
+    value is NaN for `x >= 9e307`, where `u` overflows
+    (dev/famuni-rev2-out/guard.txt, hess.txt). The GEV and the Frechet
+    cannot reach these (`1 + xi` and `nu - 1` are 0 or at least
+    1.1e-16); frmtmb.eam's wiener guard reaches them only with a
+    parameter below 1e-154. `log(x) - log(x)` also
+    survives but warns on doubles; `sqrt(x) - sqrt(x)` is 0 at `x = 0`
+    and leaves a 2e-16 Hessian. Test a guard through the TAPED
+    objective, `fit$obj$fn()` at a point outside the support, never
+    the density on doubles alone. A zero CONSTRUCTOR, `0 * x` to get a
+    zero of `x`'s class and length, folds harmlessly and is the common
+    use. Minimal reproduction (dev/famuni-fold-probe.R, log
+    dev/famuni-out/fold-probe.txt):
+
+        f <- function(p) 0 * log(p[1]) + p[1]^2
+        tp <- RTMB::MakeTape(f, 2)
+        f(-1)        # NaN
+        tp(-1)       # 1: the guard is gone
+        g <- function(p) { u <- p[1] + abs(p[1]); u / u - 1 + p[1]^2 }
+        RTMB::MakeTape(g, 2)(-1)   # NaN

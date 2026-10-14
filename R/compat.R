@@ -834,7 +834,8 @@ compat_features_build <- function(extra = NULL) {
             "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "hurdle_cumulative",
-            "sratio", "cratio", "acat", "categorical", "von_mises", "cox")
+            "sratio", "cratio", "acat", "categorical", "von_mises", "cox",
+            "frechet", "gen_extreme_value", "discrete_weibull")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -894,15 +895,18 @@ frmtmb_compat_special_keys <- c(mi_pred = "mi", gp_pred = "gp",
 # Named feature sets, so one rule can cover "the families with a CDF"
 # instead of thirty near-identical rows.
 frmtmb_compat_groups_lst <- list(
-  # the six families carrying an AD log-CDF, which is what cens() and
+  # the families carrying an AD log-CDF, which is what cens() and
   # trunc() need to form their likelihood contributions
   cdf = c("gaussian", "poisson", "lognormal", "exponential", "weibull",
-          "inverse.gaussian", "cox"),
+          "inverse.gaussian", "cox", "frechet", "gen_extreme_value",
+          "discrete_weibull"),
   # cens() reaches these through the continuous convention, where the
-  # endpoints of an interval carry no mass; poisson is censored under
-  # the inclusive discrete convention instead and has a row of its own
+  # endpoints of an interval carry no mass; poisson and discrete_weibull
+  # are censored under the inclusive discrete convention instead and
+  # have rows of their own
   cdf_continuous = c("gaussian", "lognormal", "exponential", "weibull",
-                     "inverse.gaussian", "cox"),
+                     "inverse.gaussian", "cox", "frechet",
+                     "gen_extreme_value"),
   # families whose modelled response is a distribution over categories
   # rather than a number, so fitted() returns an n x K matrix
   categorical_probs = c("cumulative", "hurdle_cumulative", "sratio",
@@ -918,7 +922,7 @@ frmtmb_compat_groups_lst <- list(
                "zero_inflated_beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
                "zero_inflated_binomial", "hurdle_poisson",
-               "hurdle_negbinomial"),
+               "hurdle_negbinomial", "discrete_weibull"),
   # a point mass on an exact response value, which the density reads
   # off y == 0 (and y == 1); osa_point_mass_families in R/predict.R
   point_mass = c("zero_inflated_poisson", "zero_inflated_negbinomial",
@@ -1274,6 +1278,10 @@ compat_hand_rules_tbl <- function() {
     "Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is.")
   r("trunc()", "poisson", "conditional",
     "Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. The bound is INCLUSIVE: trunc(lb = k) is P(Y >= k), scored with F(k - 1). That is brms's rule too, and it is the premise the discrete cens() convention is built on, so that one number means one thing on a response however it is bounded.")
+  r("cens()", "discrete_weibull", "conditional",
+    "Works, under the INCLUSIVE discrete convention poisson follows: right censoring at k is P(Y >= k) = mu^(k^shape), scored on the log scale. It differs from brms for RIGHT and INTERVAL censoring, where brms emits discrete_weibull_lccdf(y) = P(Y > y); LEFT censoring agrees. A non-integer censoring bound is refused.")
+  r("trunc()", "discrete_weibull", "conditional",
+    "As for poisson: the lower bound is INCLUSIVE, trunc(lb = k) is P(Y >= k), which is brms's discrete_weibull_lccdf(lb - 1), and it must be at least 1.")
   r("cens()", "trunc()", "works",
     "The response is truncated FIRST and censored inside the window: a right-censored row contributes (F(ub) - F(y)) / Z and a left-censored one (F(y) - F(lb)) / Z, with Z the window mass (F(lb - 1) for a discrete lower bound). Verified against a hand-rolled likelihood for gaussian and for the discrete composed form, and it is the likelihood simulate(censored = TRUE) draws from. Through v0.25 only the normalizer was windowed, which censored the UNtruncated variable and biased the residual sd upward.")
   r("cens()", "weights()", "works",

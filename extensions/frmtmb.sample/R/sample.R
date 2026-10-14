@@ -643,7 +643,7 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
 #' @noRd
 prior_augmented_obj <- function(fit, entries) {
   nll <- build_objective(mo_sample_frame(fit))
-  entries <- mo_sample_entries(entries)
+  entries <- mo_sample_entries(entries, fit)
   nlp <- neg_log_prior_fn(entries)
   snlp <- mo_simplex_nlp(fit, entries)
   tpl <- fit$frame[["par_template"]]
@@ -681,8 +681,11 @@ prior_augmented_obj <- function(fit, entries) {
 #'
 #' @noRd
 mo_sample_frame <- function(fit) {
-  if (!length(simplex_frame_terms(fit))) return(fit$frame)
-  mo_chart_frame(fit$frame, "softmax")
+  fr <- if (!length(simplex_frame_terms(fit))) fit$frame else {
+    mo_chart_frame(fit$frame, "softmax")
+  }
+  # a scalar GEV xi in brms's tmp_xi chart (frmtmb's gev_xi_chart_frame())
+  gev_xi_chart_frame(fr, gev_xi_chart_terms(fit))
 }
 
 #' A parameter list with each `mo()` simplex moved from the fit's chart
@@ -694,7 +697,7 @@ mo_sample_pars <- function(fit, pars) {
   for (tm in simplex_frame_terms(fit)) {
     pars[[tm$zeta]] <- mo_coords(mo_simplex(pars[[tm$zeta]]), "softmax")
   }
-  pars
+  gev_xi_chart_start(fit, gev_xi_chart_terms(fit), pars)
 }
 
 #' The `mo()` simplexes (their `zeta` components) a fit's own prior puts
@@ -719,9 +722,22 @@ mo_fit_priored <- function(fit) {
 #' resolved in the fit's own chart.
 #'
 #' @noRd
-mo_sample_entries <- function(entries) {
+mo_sample_entries <- function(entries, fit = NULL) {
+  # without the fit there is no GEV chart to read a prior in
+  terms <- if (!is.null(fit)) {
+    Filter(function(tm) !length(tm$blocked), gev_xi_chart_terms(fit))
+  }
   lapply(entries, function(e) {
     if (identical(e$dist$kind, "dirichlet")) e$dist$chart <- "softmax"
+    # a prior on a scalar xi is brms's prior on tmp_xi, the coefficient
+    # the chart samples, so it is read on that coefficient as it stands
+    for (tm in terms) {
+      if (identical(e$comp, tm$par) && length(e$idx) &&
+            all(e$idx %in% tm$idx)) {
+        e$scale <- "tmp_xi"
+        e$link <- NULL
+      }
+    }
     e
   })
 }
@@ -763,6 +779,49 @@ mo_simplex_nlp <- function(fit, entries = list()) {
     }
     out
   }
+}
+
+#' Why a scalar GEV `xi` is not sampled through `tmp_xi`, and what that
+#' costs, for the warning and the disclosure note.
+#'
+#' @noRd
+gev_xi_blocked_text <- function(tm, of = "") {
+  paste0(tm$dpar %||% "xi", of, " of gen_extreme_value() is sampled ",
+         "on its ", tm$link$name, " scale, not through brms's tmp_xi, ",
+         "because of ", paste(tm$blocked, collapse = " and "), ", and ",
+         "a prior on it is a density on xi itself. The support's edge is ",
+         "then a wall the sampler meets: on the data of ",
+         "dev/famuni-out/tmpxi.txt, 957 to 3388 of 4000 transitions ",
+         "diverged that way and none through tmp_xi. Check the divergences")
+}
+
+#' The draws matrix with a scalar GEV `xi` carried from `tmp_xi`, the
+#' chart the sampler ran in, to the fit's own coefficient: each draw's
+#' `xi` is the one its density used, which the tape REPORTs, under the
+#' fit's link. brms's `compute_xi()` does the same after sampling.
+#'
+#' @noRd
+gev_draws_to_xi <- function(m, obj, fit, terms, laplace) {
+  terms <- Filter(function(tm) !length(tm$blocked), terms)
+  if (!length(terms)) return(m)
+  tm <- terms[[1L]]
+  pidx <- draws_par_index(fit, laplace = laplace)
+  tpl <- fit$frame[["par_template"]]
+  fx <- if (identical(tm$par, "betad")) fit$frame[["betad_fixed_idx"]]
+  free <- setdiff(seq_along(tpl[[tm$par]]), fx)
+  j <- pidx[[tm$par]][match(tm$idx, free)]
+  np <- if (laplace) length(obj$par) else length(obj$env$last.par)
+  for (i in seq_len(nrow(m))) {
+    row <- as.numeric(m[i, seq_len(np)])
+    rep <- if (laplace) {
+      obj$fn(row)
+      obj$report()
+    } else {
+      obj$report(row)
+    }
+    m[i, j] <- tm$link$linkfun(rep[["frmtmb_gev_xi"]][1L])
+  }
+  m
 }
 
 #' The draws matrix with each `mo()` simplex's softmax columns carried to
@@ -974,7 +1033,7 @@ ncp_objective <- function(fit, idx, entries) {
   frame <- mo_sample_frame(fit)
   frame[["ncp_blocks"]] <- idx
   nll <- build_objective(frame)
-  entries <- mo_sample_entries(entries)
+  entries <- mo_sample_entries(entries, fit)
   fn <- if (length(entries)) {
     nlp <- neg_log_prior_fn(entries)
     function(pars) nll(pars) + nlp(pars)
@@ -1432,6 +1491,30 @@ ord_disc_dpar <- function(rspec, dp) {
     (!is.null(rspec$family[["mix"]]) && grepl("^disc[0-9]+$", dp))
 }
 
+#' Whether `lp` is the `xi` of a `gen_extreme_value()` response with a
+#' formula of its own, `xi ~ 1` included: brms then samples `xi` on its
+#' `log1p` link with `normal(0, 4)` on the intercept. Without a formula
+#' brms samples `tmp_xi` with `normal(0, 2.5)` (`gev_xi_scalar()`). The
+#' two spellings have the same design, one intercept column, so the tell
+#' is the formula, which `dpar_has_predictor()` reads; a design test
+#' gave `xi ~ 1` the scalar's note and no default (review fix 6).
+#'
+#' @noRd
+gev_xi_predicted <- function(spec, rspec, lp) {
+  identical(rspec$family[["family"]], "gen_extreme_value") &&
+    identical(lp[["dpar"]], "xi") && is.null(lp[["constant"]]) &&
+    dpar_has_predictor(spec, lp)
+}
+
+#' Whether `lp` is a `gen_extreme_value()` `xi` without a formula.
+#'
+#' @noRd
+gev_xi_scalar <- function(spec, rspec, lp) {
+  identical(rspec$family[["family"]], "gen_extreme_value") &&
+    identical(lp[["dpar"]], "xi") && is.null(lp[["constant"]]) &&
+    is.null(lp[["equate"]]) && !dpar_has_predictor(spec, lp)
+}
+
 #' brms's default priors for the model this object holds, as a
 #' `frmtmb_priorlist`, or `NULL` when the model has no slot they cover.
 #'
@@ -1494,6 +1577,21 @@ default_priors_for <- function(fit) {
       # disc1, disc2, ... each get it, as brms's rows show
       add(set_prior("normal(0, 1)", class = "Intercept",
                     dpar = lp[["dpar"]], resp = rs))
+    } else if (gev_xi_scalar(fit$spec, rspec, lp)) {
+      # brms's default on a scalar xi is normal(0, 2.5) on tmp_xi, and
+      # frm_sample() samples that xi through tmp_xi as brms does
+      # (gev_xi_chart_frame()), where this density is read on tmp_xi.
+      # Where the chart cannot be used it is a density on xi itself
+      add(set_prior("normal(0, 2.5)", class = "xi", resp = rs))
+    } else if (gev_xi_predicted(fit$spec, rspec, lp)) {
+      # brms's def_dpar_prior() on a predicted xi of gen_extreme_value:
+      # normal(0, 4) on the intercept under its log1p link, normal(0, 2.5)
+      # under identity. A scalar xi is default_prior_notes()'s
+      add(set_prior(if (identical(lp[["link"]]$name, "identity")) {
+        "normal(0, 2.5)"
+      } else {
+        "normal(0, 4)"
+      }, class = "Intercept", dpar = "xi", resp = rs))
     }
   }
 
@@ -1575,6 +1673,17 @@ default_prior_notes <- function(fit, user_pl = NULL) {
       notes <- c(notes, paste0("no defaults for ",
                                paste(disp, collapse = ", "), of,
                                " (brms uses gamma / inverse-gamma)"))
+    }
+    for (tm in gev_xi_chart_terms(fit)) {
+      if (!identical(tm$resp, rspec$resp_name)) next
+      notes <- c(notes, if (length(tm$blocked)) {
+        gev_xi_blocked_text(tm, of)
+      } else {
+        paste0("xi", of, " is sampled as brms samples a scalar xi, ",
+               "through tmp_xi, mapped into the support each draw's mu and ",
+               "sigma leave, and above -1, where brms's range goes on; a ",
+               "prior on class xi is a prior on tmp_xi, as in brms")
+      })
     }
   }
   # correlations get lkj(1), brms's own default, wherever a density
@@ -1705,7 +1814,9 @@ announce_default_priors <- function(pl, notes) {
       sp$class
     }
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
-                          if (isTRUE(s$natural)) "  [natural scale]"
+                          # a scalar xi's scale has a note of its own
+                          if (identical(sp$class, "xi")) ""
+                          else if (isTRUE(s$natural)) "  [natural scale]"
                           else if (s$class %in% c("sd", "sdgp"))
                             "  [natural sd scale]"
                           else if (identical(s$class, "lscale"))
@@ -2506,6 +2617,16 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # the priors ride on the OUTER parameters, so they compose with the
   # reparameterization rather than interacting with it: theta is theta on
   # either route, and no prior addresses b (or z) at all
+  # a scalar GEV xi is sampled through brms's tmp_xi where it can be,
+  # and said so where it cannot (gev_xi_blocked_text())
+  gev_terms <- gev_xi_chart_terms(fit)
+  gev_chart <- any(vapply(gev_terms, function(tm) !length(tm$blocked), NA))
+  for (tm in gev_terms) {
+    if (length(tm$blocked)) {
+      frm_warning("frm_sample(): ", gev_xi_blocked_text(tm, ""),
+                  call. = FALSE)
+    }
+  }
   ncp <- ncp_plan(fit, reparameterize, laplace, ri$entries)
   announce_ncp(ncp)
   # every prior-carrying route rebuilds from build_objective(), the
@@ -2522,7 +2643,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     # weaker thing - no prior ADDED to the density the fit maximized -
     # which is fit$obj as it stands
     obj <- prior_augmented_obj(fit, list())
-  } else if (length(simplex_frame_terms(fit))) {
+  } else if (length(simplex_frame_terms(fit)) || gev_chart) {
     # fit$obj reads a mo() simplex in the maximum-likelihood chart, which
     # has no density a sampler can use; the retape samples the softmax
     # under dirichlet(1). A MAP fit under `.diagnostic` (check_laplace())
@@ -2646,6 +2767,11 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
   colnames(m) <- stan_names
+  # first, while every column is still in the sampled coordinates the
+  # objective reads
+  if (gev_chart && !identical(obj, fit$obj)) {
+    m <- gev_draws_to_xi(m, obj, fit, gev_terms, laplace)
+  }
   if (mo_soft) m <- mo_draws_to_chart(m, fit, laplace)
   if (length(ncp$idx)) m <- ncp_backtransform(m, fit, ncp$idx)
   # brms reports an unmodeled distributional parameter as the parameter

@@ -1,3 +1,46 @@
+# frmtmb.eam (development version)
+
+* BREAKING: `wiener()` takes brms's link arguments in brms's order,
+  `wiener(link, link_bs, link_ndt, link_bias, max_ndt, ...)`, so a
+  positional call written for brms means the same thing here. A
+  positional `max_ndt` is now a link; name it.
+
+* BREAKING: `wiener(link = )` is refused outside brms's set for the drift
+  rate, `"identity"`, `"log"`, `"softplus"` and `"squareplus"`. Before,
+  `wiener(link = "logit")` fitted a drift rate held inside (0, 1), and
+  `"probit"` and `"sqrt"` fitted too. An unquoted name reads as brms
+  reads it: `wiener(log)` was refused as a `max_ndt` and now gives the
+  log link.
+
+* `wiener()` gains `link_bs` (`"log"`, `"identity"`, `"softplus"`,
+  `"squareplus"`) and `link_bias` (`"logit"`, `"identity"`), as brms has.
+  Under an identity link the density, and the fitted objective, is `NaN`
+  for a `bs` at or below zero, a `bias` outside (0, 1), or an `ndt` at
+  or below zero (`link_ndt = "identity"`), where the series alone
+  returned a finite number for a bias of 1.2.
+
+* `wiener(link_ndt = )` gives brms's parameterization of the
+  non-decision time: `"log"`, brms's default, or `"identity"`,
+  `"softplus"` or `"squareplus"`. The coefficients of `ndt ~ ...` are
+  then on brms's scale. The default stays the bounded link. On a scalar
+  `ndt` the two links are the same model, and over 200 simulated data
+  sets the two maxima agreed to 6e-10 in the log-likelihood. It is
+  refused with `max_ndt`, `ndt_group()`, `variability`,
+  `contaminant = TRUE` and `allow_unreachable = TRUE`; see `?wiener`,
+  "Links, and the one difference from brms".
+
+* A brms family object keeps its links: `family = brms::wiener()` and
+  `brms::brmsfamily("wiener")` carry brms's `link_ndt = "log"`, so they
+  fit brms's log link for `ndt`, where `family = "wiener"` and
+  `frmtmb.eam::wiener()` fit the bounded default. With brms and this
+  package both attached, a bare `wiener()` is whichever was attached
+  last. On a scalar `ndt` the maxima are the same; under `ndt ~ x` the
+  coefficients are on different scales.
+
+* `?wiener` documents how `fitted()` and `simulate()` differ from brms's
+  `posterior_epred()` and `posterior_predict()`, and that brms 2.23.0's
+  `posterior_epred()` for this family is right only at `bs = 1`.
+
 # frmtmb.eam 0.11.3
 
 Needs frmtmb 0.70.0. No change to the package's code.
@@ -1231,4 +1274,3 @@ API.
   `residuals()` answers `type = "response"` only.
 * `dev-findings.md` in the package source records what building this
   from outside frmtmb cost, as an acceptance test of the extension API.
-

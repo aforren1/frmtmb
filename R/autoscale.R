@@ -641,7 +641,8 @@ predictor_units <- function(frame) {
 predictor_unit_families <- c("gaussian", "student", "lognormal",
                              "shifted_lognormal", "hurdle_lognormal",
                              "skew_normal", "exgaussian", "asym_laplace",
-                             "zero_inflated_asym_laplace", "huber")
+                             "zero_inflated_asym_laplace", "huber",
+                             "gen_extreme_value")
 
 #' One linear predictor's unit for predictor_units(), or 1.
 #'

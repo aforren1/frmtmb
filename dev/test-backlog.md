@@ -2747,6 +2747,34 @@ the measurements.
   code 1 with a gradient of 4.58 at sigma, and its ML fit stops 0.391
   below lmer()'s log-likelihood (both optimizer paths).
 
+### Filed by lane famuni (round opened 2026-10-13)
+
+Non-blocking items from the review (`dev/reviews/2026-10-13-famuni.md`,
+section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
+
+- **frechet near nu = 1.** At nu0 = 1.1, n = 300, `y ~ x`, seed 31 ran
+  to nu = 1 + 5e-9 with the mean intercept at 17.38 and NaN SEs for it
+  and nu (`dev/famuni-rev-frechet11.R`). The "Standard errors are not
+  available" warning fires; the boundary message does not. It is brms's
+  parameterization: when the sample's best nu is below 1 the mean is
+  infinite and the maximum is at the edge. Wanted: a message that names
+  nu = 1 as the edge, as `gev_fit_check()` now names xi = -1.
+- **GEV gradient NaN 19.5 to 20.3 scale units below the location.** An
+  outside row near the `exp(700)` cap of `exp_neg_capped()` has a
+  non-finite gradient at x in [-20.26, -19.47] (xi 0.06, sigma 1; 80 of
+  401 grid points, `dev/famuni-rev-out/numerics2.txt`). In a mixture
+  the adjoint reaching such a row is 0, so it does not propagate (0 of
+  40 mixtures failed); a single-component fit meets it only on a
+  rejected step. Latent; the fix is a cap that also bounds the
+  derivative.
+- **SEs at -1 < xi < -0.5 carry no message.** The help page says the
+  maximum is not regular there (Smith 1985); fits at xi -0.63 and -0.89
+  return SEs silently. A MESSAGE is warranted, not a warning: a true xi
+  in that range is a correct model, and a warning would fire on it. It
+  should say that the SEs of `mu`, `sigma` and `xi` are not
+  asymptotically normal there and point to `confint(method =
+  "profile")`.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:
