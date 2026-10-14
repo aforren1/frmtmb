@@ -26,20 +26,23 @@
 #' `par_units` are in play (what `autoscale_sdreport()` inverts), and
 #' `E` the noise of `H` (fd_hessian()).
 #'
+#' `pull` (logical, one per outer parameter) moves those parameters back
+#' to the clamp before the Hessian is taken (se_edge_cor()).
+#'
 #' @noRd
-fit_outer_hessian <- function(fit) {
+fit_outer_hessian <- function(fit, pull = NULL) {
   obj <- fit$obj
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   u <- fit$par_units
   if (is.null(u) || all(u == 1)) {
-    at <- sdr_outer_point(obj)
+    at <- se_pull_back(sdr_outer_point(obj), pull)
     h <- fd_hessian(at, obj$gr)
     return(list(H = h$H, at = at, Hq = NULL, E = h$E))
   }
-  q0 <- fit$opt$par / u
-  h <- fd_hessian(q0, function(q) obj$gr(q * u) * u)
-  list(H = h$H / outer(u, u), at = fit$opt$par, Hq = h$H,
+  at <- se_pull_back(fit$opt$par, pull)
+  h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u)
+  list(H = h$H / outer(u, u), at = at, Hq = h$H,
        E = h$E / outer(u, u))
 }
 
@@ -164,13 +167,24 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   np <- NROW(H)
   none <- stats::setNames(character(0), character(0))
   if (!np) return(list(V = H, shown = H, lost = none, tier = 1L))
+  # a correlation run past the clamp leaves a Hessian of noise, and the
+  # rest of it is read where the correlation is held at the clamp
+  ec <- se_edge_cor(fit, np)
+  if (any(ec)) {
+    h <- tryCatch(fit_outer_hessian(fit, pull = ec),
+                  error = function(e) NULL)
+    if (!is.null(h) && all(dim(h$H) == np)) {
+      H <- h$H
+      E <- h$E
+    }
+  }
   V <- try(solve(H), silent = TRUE)
   tier1 <- if (cov_usable(V)) {
     list(V = V, shown = V, lost = none, tier = 1L)
   }
   p <- fit$opt$par
   held <- se_bound_held(fit, p)
-  edge <- se_edge_sd(fit, H)
+  edge <- se_edge_sd(fit, H) | ec
   if (!is.null(tier1) &&
         !se_tier3_could_act(fit, H, E, exact, held, edge)) {
     return(tier1)
@@ -325,6 +339,72 @@ se_edge_sd <- function(fit, H) {
     }
   }
   out
+}
+
+#' The correlation parameter of a two-dimensional unstructured block
+#' that has run past the clamp (`varcorr_cor_clamp`, a correlation of
+#' 0.9999) to where the likelihood does not change as it moves further
+#' out (se_at_edge()).
+#'
+#' Such a parameter is at the limit of its range, and its Hessian row
+#' is noise. The block's covariance is singular to within `1 / t^2`
+#' there. The dense density factorizes it and loses the digits that
+#' the outer gradient is made of. On the `(1 | q | id)` fit of
+#' test-review-v29.R the parameter stops between t = 1666 and 13371 on
+#' ulp-moved data. At t = 1000, 3000 and 10000 the gradient of the two
+#' log sds reaches 1.2e-3, 0.077 and 7.9 over ulp-moved points. A
+#' code-0 stop at t = 2000 lost both sds as flat. The rank-one model
+#' that the boundary corresponds to gives them standard errors of
+#' 0.2177 and 0.2225 (dev/ci701-findings.md). With the parameter held
+#' at the clamp, the Hessian of the others gives 0.2177 and 0.2224 or
+#' 0.2225 in 120 of 120 fits. So the caller removes the parameter
+#' before the decomposition, as se_edge_sd() does an sd at zero. It
+#' reads the rest of the Hessian at the clamp (se_pull_back()).
+#'
+#' Only for dimension 2, where the parameter is the correlation,
+#' `rho = t / sqrt(1 + t^2)`. In a wider block one Cholesky parameter
+#' past 70.7 need not put any correlation near +/-1, and moving it
+#' moves the interior correlations of its row (lane ci701 review, R1).
+#'
+#' @noRd
+se_edge_cor <- function(fit, np) {
+  out <- logical(np)
+  if (isTRUE(fit$quadrature)) return(out)
+  th <- fit$estimates[["theta"]]
+  if (!length(th)) return(out)
+  om <- outer_par_map(fit)
+  thpos <- which(om$comp == "theta")
+  if (length(thpos) != length(th) || length(om$names) != np) return(out)
+  tc <- se_cor_clamp_theta()
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    d <- bk[["dim"]]
+    if (!identical(bk[["covstruct"]], "us") || !isTRUE(d == 2L)) next
+    ti <- bk[["theta_idx"]][-seq_len(d)]
+    ti <- ti[!is.na(ti) & ti >= 1L & ti <= length(th)]
+    for (k in ti[abs(th[ti]) > tc]) {
+      out[thpos[k]] <- se_at_edge(fit, om$names[thpos[k]], sign(th[k]))
+    }
+  }
+  out
+}
+
+#' The internal value of a two-dimensional unstructured block's
+#' correlation parameter at the clamp: `rho = t / sqrt(1 + t^2)` (us_chol_cor()) solved for
+#' `rho = varcorr_cor_clamp`.
+#'
+#' @noRd
+se_cor_clamp_theta <- function() {
+  varcorr_cor_clamp / sqrt(1 - varcorr_cor_clamp^2)
+}
+
+#' `p` with the parameters `pull` marks moved back to the clamp, each on
+#' its own side; `p` unchanged when nothing is marked.
+#'
+#' @noRd
+se_pull_back <- function(p, pull) {
+  if (!length(pull) || !any(pull)) return(p)
+  p[pull] <- sign(p[pull]) * se_cor_clamp_theta()
+  p
 }
 
 #' Is a log standard deviation that the likelihood ignores below its

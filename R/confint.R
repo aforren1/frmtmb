@@ -638,6 +638,23 @@ varcorr_cor_clamp <- 0.9999
 varcorr_trans_rows <- function(fit) {
   sdr <- sdr_of(fit)
   Vfull <- sdr$cov.fixed
+  # The NaN rows of a parameter without a standard error spread through
+  # a product to every row of its block: a correlation at its limit took
+  # the intervals of both sds with it (8 of 20 fits of y ~ x + (1 + x |
+  # g), dev/ci701-vc-spread.R). So, as hyp_par_cov() does for VarCorr(),
+  # the delta method below reads the covariance without the lost
+  # directions, and a row that moves along one gets no interval
+  # (jc_nonest()). The blocks read one diagonal entry each keep the
+  # NaN, which is then their own.
+  Vprop <- Vfull
+  jc <- NULL
+  np <- NROW(Vfull)
+  if (!is.null(sdr$se_null) && !is.null(sdr$cov_fixed_prop) &&
+        NROW(sdr$se_null) == np && all(dim(sdr$cov_fixed_prop) == np)) {
+    Vprop <- sdr$cov_fixed_prop
+    jc <- list(null = sdr$se_null, flat = sdr$se_null_flat,
+               units = fit$par_units)
+  }
   th_pos <- which(rownames(Vfull) == "theta")
   th <- fit$estimates[["theta"]]
   rows <- list()
@@ -721,7 +738,14 @@ varcorr_trans_rows <- function(fit) {
       (gfun(tp) - gfun(tm)) / (2 * h)
     }, numeric(length(g0)))
     J <- matrix(J, nrow = length(g0))
-    se_g <- sqrt(pmax(diag(J %*% Vth %*% t(J)), 0))
+    pos <- th_pos[bk[["theta_idx"]]]
+    se_g <- sqrt(pmax(diag(J %*% Vprop[pos, pos, drop = FALSE] %*% t(J)),
+                      0))
+    if (!is.null(jc)) {
+      G <- matrix(0, nrow(J), np)
+      G[, pos] <- J
+      se_g[jc_nonest(jc, G, seq_len(np))] <- NA_real_
+    }
 
     d <- bk[["dim"]]
     # Transformed-scale estimates read off the covariance without the

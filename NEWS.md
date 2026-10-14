@@ -1,3 +1,45 @@
+# frmtmb 0.70.1
+
+The macOS check of 0.70.0 failed where the Ubuntu and Windows ones
+passed. `dev/ci701-findings.md` has the causes and the numbers.
+
+## Bug fixes
+
+* `confint_varcorr()` keeps the sd intervals of a block where one
+  parameter has no standard error. Before, the NaN row of that
+  parameter went into every row of its block. So a correlation at
+  +/-1, or one sd at zero, removed the other sd intervals. `VarCorr()`
+  still reported their standard errors (8 of 20 fits of
+  `y ~ x + (1 + x | g)` with no slope variance). The delta method now
+  reads the covariance as `VarCorr()` reads it. Only a row that moves
+  with the lost parameter is NA.
+
+* The standard-error check does not call identified standard
+  deviations flat beside a correlation at +/-1. This applies to an
+  unstructured block of dimension 2. Its correlation parameter can run
+  past the clamp of `confint_varcorr()` (a correlation of 0.9999).
+  There the finite-difference Hessian is noise. On a `(1 | q | id)`
+  block, a fit that stopped with code 0 at t = 2000 lost both sds as
+  flat. Now the check first removes such a correlation, as a
+  boundary, if the likelihood no longer changes along it. Then it
+  takes the Hessian of the other parameters with the correlation held
+  at the clamp. The sds then get the standard errors of the rank-one
+  model that the boundary corresponds to, to 2e-4. The same rule runs
+  on a code-1 fit that `se_boundary_stop()` reads as a boundary stop.
+
+* On other fits with such a correlation, the standard errors move
+  toward an independent reference. On 6 of 20 fits of
+  `y ~ x + (1 + x | g)` with no slope variance, the largest relative
+  error was 7.6e-4 to 5.3e-3 in 0.70.0, and is 1.2e-4 to 2.8e-4 now.
+  The largest move is 0.55 percent.
+
+* A test asked `confint_varcorr()` to warn about a boundary. On some
+  platforms the fit's own boundary message names it instead. Another
+  test did not allow "singular convergence (7)" on a degenerate
+  ordinal mixture. nlminb reports it in 7 of 20 fits on ulp-moved data,
+  at the same log-likelihood. Both tests now ask for what holds on
+  every platform.
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

@@ -2747,6 +2747,24 @@ the measurements.
   code 1 with a gradient of 4.58 at sigma, and its ML fit stops 0.391
   below lmer()'s log-likelihood (both optimizer paths).
 
+### Filed by lane ci701 (0.70.1, 2026-10-13)
+
+- **Two "NaNs produced" warnings escape `vcov()` and `summary()` under
+  `check_se = "ignore"`** on `y ~ x + (1 + x | g)` with no slope
+  variance, seeds 7 and 12 (the shape of `dev/ci701-vc-spread.R`).
+  Pre-existing: 0.70.0 and the ci701 build alike (lane ci701 review,
+  R6).
+- **The dense `dmvnorm()` of a `us` block loses digits as a
+  correlation runs to +/-1**: the outer gradient is noise above t of
+  about 1000 (`dev/ci701-bcor-rank1.R`). Evaluating the block from its
+  Cholesky factor changes the rounding of every `us` fit, so it is for
+  a minor. With it, a pull-back in correlation space could replace
+  0.70.1's dimension-2 rule (`se_edge_cor()`) for wider blocks.
+- **The warning side of a correlation past the clamp keeps
+  sdreport()'s SEs from the noisy Hessian** (4.7 percent low on the
+  review-v29 fit) and its convergence and gradient warnings, at a
+  point 3.2e-7 below the maximum (`dev/ci701-findings.md`).
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

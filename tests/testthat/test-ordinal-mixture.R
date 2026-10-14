@@ -355,11 +355,16 @@ test_that("simulate() draws from the fitted category distribution", {
   d <- omx_data(20261011, n = 300)
   # this fit ends with component 1's thresholds collapsed, where the gap
   # floor binds (without it the fit stopped at a NaN gradient), and it
-  # says so; the draws still come from the fitted distribution
+  # says so; the draws still come from the fitted distribution. Whether
+  # nlminb also reports "singular convergence (7)" there is rounding: 7
+  # of 20 ulp-moved fits here, and the macOS runner, at the same
+  # log-likelihood to 1e-4 as those that report convergence
+  # (dev/ci701-findings.md)
   fit <- allow_warnings(
     frm(bf(y | thres(gr = g) ~ x), family = mixture(cumulative(), sratio()),
         data = d),
-    "degenerate boundary", require = "degenerate boundary")
+    c("degenerate boundary", "did not report convergence"),
+    require = "degenerate boundary")
   # the collapsed thresholds have no standard error, so the rows whose
   # probabilities move with them get none either, said once (lane
   # setier: fitted() reads the covariance that holds them)

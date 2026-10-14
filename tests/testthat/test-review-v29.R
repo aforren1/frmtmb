@@ -367,26 +367,149 @@ test_that("a boundary correlation reports NA bounds, not a clamp", {
     stats::rnorm(nrow(dd), 0, 0.4)
   dd$y2 <- -1 + 0.2 * dd$x + 0.6 * u[as.integer(dd$id)] +
     stats::rnorm(nrow(dd), 0, 0.3)
-  fit <- suppressWarnings(
-    frm(mvbf(bf(y1 ~ x + (1 | q | id)) + gaussian(),
-             bf(y2 ~ x + (1 | q | id)) + gaussian()), data = dd)
-  )
-  expect_equal(fit$frame$re_blocks[[1]]$dim, 2L)
+  # The model at the boundary is rank one, y_r = a_r + b_r x + s_r u_id +
+  # e_r, fitted here directly: the sds' standard errors at the boundary
+  # are its own
+  gi <- as.integer(dd$id)
+  r1 <- RTMB::MakeADFun(function(p) {
+    RTMB::getAll(p)
+    m1 <- a[1] + b[1] * dd$x + exp(ls[1]) * u[gi]
+    m2 <- a[2] + b[2] * dd$x + exp(ls[2]) * u[gi]
+    -sum(RTMB::dnorm(dd$y1, m1, exp(le[1]), log = TRUE)) -
+      sum(RTMB::dnorm(dd$y2, m2, exp(le[2]), log = TRUE)) -
+      sum(RTMB::dnorm(u, 0, 1, log = TRUE))
+  }, list(a = c(0, 0), b = c(0, 0), ls = c(0, 0), le = c(0, 0),
+          u = numeric(ng)), random = "u", silent = TRUE)
+  o1 <- stats::nlminb(r1$par, r1$fn, r1$gr)
+  se1 <- sqrt(diag(RTMB::sdreport(r1)$cov.fixed))[names(o1$par) == "ls"]
 
-  expect_warning(confint_varcorr(fit), "boundary")
-  ci <- suppressWarnings(confint_varcorr(fit))
-  cr <- ci[ci$type == "cor", ]
-  expect_equal(nrow(cr), 1L)
-  expect_equal(abs(cr$estimate), 1, tolerance = 1e-4)
-  # the defect: lwr == upr == 0.9999, a zero-width interval at the clamp
-  expect_true(is.na(cr$lwr))
-  expect_true(is.na(cr$upr))
-  # the sd rows are unaffected and keep real intervals
-  sd_rows <- ci[ci$type == "sd", ]
-  expect_equal(nrow(sd_rows), 2L)
-  expect_true(all(is.finite(c(sd_rows$lwr, sd_rows$upr))))
-  expect_true(all(sd_rows$lwr < sd_rows$estimate))
-  expect_true(all(sd_rows$upr > sd_rows$estimate))
+  # Where the optimizer stops on the way to +1 is rounding. The
+  # correlation parameter ends between 1666 and 13371 on ulp-moved data
+  # (dev/ci701-findings.md). Most stops end with a convergence warning,
+  # and then the standard-error check does not run. The macOS runner
+  # stopped where nlminb reports convergence, and then the check runs.
+  # Two starts reach that side here: t = 500, and t = 2000 on data moved
+  # by a few ulps (seed 8004), a code-0 stop where 0.70.0 lost both sds
+  # as flat (lane ci701 review, R3). The assertions hold on both sides.
+  dk <- dd
+  set.seed(8004)
+  for (v in c("x", "y1", "y2")) {
+    dk[[v]] <- dk[[v]] * (1 + sample(0:4, nrow(dk), TRUE) * 2^-52)
+  }
+  cases <- list(list(d = dd, t0 = NULL), list(d = dd, t0 = 500),
+                list(d = dk, t0 = 2000))
+  for (cs in cases) {
+    bmsg <- 0L
+    st <- if (!is.null(cs$t0)) list(theta = c(0, 0, cs$t0))
+    fit <- withCallingHandlers(suppressWarnings(
+      frm(mvbf(bf(y1 ~ x + (1 | q | id)) + gaussian(),
+               bf(y2 ~ x + (1 | q | id)) + gaussian()), data = cs$d,
+          start = st)
+    ), frmtmb_boundary_fit = function(m) {
+      bmsg <<- bmsg + 1L
+      invokeRestart("muffleMessage")
+    })
+    expect_equal(fit$frame$re_blocks[[1]]$dim, 2L)
+
+    # the boundary is said once: by the fit's message, which names the
+    # block, or else by confint_varcorr()
+    cw <- character(0)
+    ci <- withCallingHandlers(confint_varcorr(fit), warning = function(w) {
+      cw <<- c(cw, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+    said <- grepl("No interval for 1 component on the boundary", cw,
+                  fixed = TRUE)
+    expect_equal(bmsg + sum(said), 1L)
+    expect_length(cw[!said], 0L)
+    cr <- ci[ci$type == "cor", ]
+    expect_equal(nrow(cr), 1L)
+    expect_equal(abs(cr$estimate), 1, tolerance = 1e-4)
+    # the defect: lwr == upr == 0.9999, a zero-width interval at the clamp
+    expect_true(is.na(cr$lwr))
+    expect_true(is.na(cr$upr))
+    # the sd rows are unaffected and keep real intervals
+    sd_rows <- ci[ci$type == "sd", ]
+    expect_equal(nrow(sd_rows), 2L)
+    expect_true(all(is.finite(c(sd_rows$lwr, sd_rows$upr))))
+    expect_true(all(sd_rows$lwr < sd_rows$estimate))
+    expect_true(all(sd_rows$upr > sd_rows$estimate))
+
+    # The check, asked at the fit's own point on either side, removes
+    # the correlation alone and gives the sds the standard errors of the
+    # rank-one model (to 1 percent; measured 1.3e-4)
+    an <- se_fit_analysis(fit, force = TRUE)
+    expect_identical(an$lost, c(theta_3 = "boundary"))
+    th <- which(names(fit$opt$par) == "theta")
+    se_fit <- sqrt(diag(an$shown))[th[1:2]]
+    expect_lt(max(abs(se_fit / se1 - 1)), 1e-2)
+  }
+})
+
+test_that("a lost correlation leaves the sd intervals of its block", {
+  # y ~ x + (1 + x | g) with no slope variance: the correlation runs to
+  # +/-1 and the check removes it alone (10 of 10 ulp-moved fits per
+  # seed, dev/ci701-vc-check.R). 0.70.0 read the NaN row of the
+  # correlation into both sd rows, so confint_varcorr() had no interval
+  # where VarCorr() reported a standard error.
+  for (s in c(2L, 7L, 8L)) {
+    set.seed(s)
+    g <- factor(rep(seq_len(20), each = 10))
+    d <- data.frame(g = g, x = stats::rnorm(200))
+    d$y <- 1 + 0.5 * d$x + stats::rnorm(20, 0, 0.7)[g] + stats::rnorm(200)
+    fit <- allow_boundary(allow_warnings(
+      frm(bf(y ~ x + (1 + x | g)), family = gaussian(), data = d),
+      "did not report convergence"))
+    lost <- sdr_of(fit)$se_lost
+    ci <- allow_warnings(confint_varcorr(fit), "No interval for")
+    sd_rows <- ci[ci$type == "sd", ]
+    expect_true(all(is.finite(c(sd_rows$lwr, sd_rows$upr))))
+    # the same delta method as VarCorr(), read on the log scale
+    vc <- VarCorr(fit)$g$sd
+    se_log <- vc[, "Est.Error"] / vc[, "Estimate"]
+    expect_equal(sd_rows$upr,
+                 vc[, "Estimate"] * exp(stats::qnorm(0.975) * se_log),
+                 tolerance = 1e-6, ignore_attr = TRUE)
+    if (length(lost)) {
+      expect_identical(lost, c(theta_3 = "boundary"))
+      expect_true(is.na(ci$lwr[ci$type == "cor"]))
+      # Seeds 7 and 8 end with code 1 and |t| near 200, past the clamp:
+      # the check then runs through se_boundary_stop(), with the
+      # correlation pulled back (se_edge_cor()), and its boundary verdict
+      # stands in for the convergence warning
+      if (!isTRUE(fit$opt$convergence == 0)) {
+        expect_true(isTRUE(fit$cache$se_boundary_stop))
+      }
+    }
+  }
+})
+
+test_that("a block of dimension 3 keeps the 0.70.0 check", {
+  # In a wider block one Cholesky parameter past 70.7 need not put a
+  # correlation near +/-1, and pulling it back moves the interior
+  # correlations of its row (lane ci701 review, R1), so se_edge_cor()
+  # asks only a block of dimension 2. Here the x slope is a multiple of
+  # the intercept, and the fit starts with that parameter at 2000.
+  set.seed(3)
+  g <- factor(rep(seq_len(30), each = 10))
+  d <- data.frame(g = g, x = stats::rnorm(300), z = stats::rnorm(300))
+  uu <- stats::rnorm(30)
+  vv <- stats::rnorm(30)
+  d$y <- 1 + 0.5 * d$x - 0.3 * d$z + 0.8 * uu[g] + 0.4 * uu[g] * d$x +
+    0.5 * vv[g] * d$z + stats::rnorm(300, 0, 0.5)
+  fit <- suppressWarnings(
+    frm(bf(y ~ x + z + (1 + x + z | g)), family = gaussian(), data = d,
+        start = list(theta = c(-0.2, -0.8, -0.7, 2000, 1, 1))))
+  np <- length(fit$opt$par)
+  expect_gt(max(abs(fit$estimates$theta[4:6])), se_cor_clamp_theta())
+  expect_false(any(se_edge_cor(fit, np)))
+  # the same verdict and standard errors as with no se_edge_cor() at all
+  h <- fit_outer_hessian(fit)
+  a1 <- cov_from_hessian(fit, h$H, h$E)
+  local_mocked_bindings(se_edge_cor = function(fit, np) logical(np))
+  a0 <- cov_from_hessian(fit, h$H, h$E)
+  expect_identical(a1$lost, a0$lost)
+  expect_identical(a1$shown, a0$shown)
 })
 
 test_that("an ordinary correlation still gets a two-sided interval", {
