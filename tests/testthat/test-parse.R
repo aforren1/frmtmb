@@ -66,9 +66,9 @@ test_that("aterms parse and unsupported aterms error", {
                  data = NULL, dry_run = "spec")
   expect_true("se" %in% names(spec_se$responses[[1]]$aterms))
   expect_equal(spec_se$responses[[1]]$dpars$sigma$constant, 1)
-  expect_error(frm(bf(y | dec(d) ~ x) + gaussian(),
+  expect_error(frm(bf(y | side(d) ~ x) + gaussian(),
                    data = NULL, dry_run = "spec"),
-               "dec")
+               "side")
 })
 
 test_that("gaussian gets an intercept-only sigma dpar", {
@@ -91,11 +91,15 @@ test_that("unsupported covariance structures error at parse time", {
 })
 
 # --- the addition-term registry (frmtmb.eam finding 1) ----------------
+# `side()` and not `dec()`: frmtmb.eam registers dec() when it loads,
+# and covr runs every file in one session, so an earlier file that
+# loads frmtmb.eam made dec() parse here and the on.exit() below
+# removed frmtmb.eam's entry for the files after this one
 
 test_that("the refusal names vint()/vreal() and the registration seam", {
   # an extension author reading this message has to learn that the set
   # is not closed and what to reach for meanwhile
-  err <- tryCatch(frm(bf(y | dec(bound) ~ x) + gaussian(), data = NULL,
+  err <- tryCatch(frm(bf(y | side(bound) ~ x) + gaussian(), data = NULL,
                       dry_run = "spec"),
                   error = conditionMessage)
   expect_match(err, "vint() for integers", fixed = TRUE)
@@ -103,13 +107,13 @@ test_that("the refusal names vint()/vreal() and the registration seam", {
 })
 
 test_that("a registered aterm parses, coerces and reaches the density", {
-  on.exit(frmtmb_aterm_registry$reg[["dec"]] <- NULL, add = TRUE)
-  frmtmb_register_aterm("dec", arity = 1,
+  on.exit(frmtmb_aterm_registry$reg[["side"]] <- NULL, add = TRUE)
+  frmtmb_register_aterm("side", arity = 1,
                         coerce = function(x) as.integer(factor(x)) - 1L)
 
-  spec <- frm(bf(y | dec(bound) ~ x) + gaussian(), data = NULL,
+  spec <- frm(bf(y | side(bound) ~ x) + gaussian(), data = NULL,
               dry_run = "spec")
-  expect_identical(deparse1(spec$responses[[1]]$aterms$dec), "bound")
+  expect_identical(deparse1(spec$responses[[1]]$aterms$side), "bound")
 
   # not `d`: an aterm variable that newdata omits falls back to the
   # formula environment, so a one-letter name is a test that passes or
@@ -122,20 +126,20 @@ test_that("a registered aterm parses, coerces and reaches the density", {
 
   seen <- NULL
   fam <- custom_family(
-    "dec_reader", dpars = c("mu", "sigma"),
+    "side_reader", dpars = c("mu", "sigma"),
     links = list(mu = "identity", sigma = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(y, dpars$mu + 0.8 * aterms$dec, dpars$sigma,
+      RTMB::dnorm(y, dpars$mu + 0.8 * aterms$side, dpars$sigma,
                   log = TRUE)
     },
-    required_aterms = "dec",
+    required_aterms = "side",
     post = list(mean_fn = function(dpars, aterms) {
-      dpars$mu + 0.8 * aterms$dec
+      dpars$mu + 0.8 * aterms$side
     }))
-  fit <- frm(bf(y | dec(bound) ~ x) + fam, data = dd)
+  fit <- frm(bf(y | side(bound) ~ x) + fam, data = dd)
   # the factor arrived as the 0/1 the coercion produced, not as level
   # codes and not as a factor
-  seen <- fit$frame$aterm_values$y$dec
+  seen <- fit$frame$aterm_values$y$side
   expect_identical(sort(unique(seen)), c(0, 1))
   expect_identical(seen[1:2], c(0, 1))
   # and the same coercion runs on newdata
@@ -147,19 +151,19 @@ test_that("a registered aterm parses, coerces and reaches the density", {
 })
 
 test_that("a registered aterm is required on newdata that omits it", {
-  on.exit(frmtmb_aterm_registry$reg[["dec"]] <- NULL, add = TRUE)
-  frmtmb_register_aterm("dec")
+  on.exit(frmtmb_aterm_registry$reg[["side"]] <- NULL, add = TRUE)
+  frmtmb_register_aterm("side")
   set.seed(32)
   dd <- data.frame(x = stats::rnorm(60), bound = rep(0:1, 30))
   dd$y <- stats::rnorm(60, dd$x + dd$bound)
   fam <- custom_family(
-    "dec_reader2", dpars = c("mu", "sigma"),
+    "side_reader2", dpars = c("mu", "sigma"),
     links = list(mu = "identity", sigma = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(y, dpars$mu + aterms$dec, dpars$sigma, log = TRUE)
+      RTMB::dnorm(y, dpars$mu + aterms$side, dpars$sigma, log = TRUE)
     },
-    post = list(mean_fn = function(dpars, aterms) dpars$mu + aterms$dec))
-  fit <- frm(bf(y | dec(bound) ~ x) + fam, data = dd)
+    post = list(mean_fn = function(dpars, aterms) dpars$mu + aterms$side))
+  fit <- frm(bf(y | side(bound) ~ x) + fam, data = dd)
   expect_error(frm_linpred(fit, newdata = data.frame(x = 0),
                        type = "response"),
                "could not be evaluated on newdata")
