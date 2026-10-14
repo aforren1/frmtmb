@@ -358,3 +358,68 @@ test_that("allow_new_levels is accepted and its lme4 spelling refused", {
                                    nonesuch = 1),
                "has no argument")
 })
+
+# Lane postfix (2026-10-13): method = "predict" (brms's
+# "posterior_predict") on draws. 0.18.0 refused it, "conditional_effects()
+# on draws has no method = "predict"" (dev/postfix-log/probe-before.txt).
+# brms 2.23.0 draws one response per posterior draw and summarizes the
+# draws (dev/postfix-brms.R): under its robust = TRUE default estimate__
+# is their median, se__ their MAD, and the band their quantiles.
+test_that("method = \"predict\" on draws is the posterior predictive band", {
+  cs <- ce_case()
+  set.seed(5)
+  ce <- conditional_effects(cs$ds, effects = "x", resolution = 5,
+                            method = "predict", seed = 3)
+  ep <- conditional_effects(cs$ds, effects = "x", resolution = 5)
+  expect_identical(grid_of(ce$x), grid_of(ep$x))
+  # the same seed gives the same draws, and brms's alias the same call
+  expect_identical(conditional_effects(cs$ds, effects = "x", resolution = 5,
+                                       method = "posterior_predict",
+                                       seed = 3), ce)
+  # against posterior_predict() of the same draws on the same grid: the
+  # two simulate independently, so they agree within Monte Carlo error,
+  # judged against the predictive spread itself
+  nd <- grid_of(ce$x)
+  pp <- posterior_predict(cs$ds, newdata = nd, re_formula = NA)
+  sdp <- apply(pp, 2, stats::sd)
+  expect_lt(max(abs(ce$x$estimate__ - apply(pp, 2, stats::median)) / sdp),
+            0.3)
+  expect_lt(max(abs(ce$x$upper__ - apply(pp, 2, stats::quantile, 0.975)) /
+                  sdp), 0.5)
+  # observation noise is in it: wider than the expected-response band
+  expect_true(all(ce$x$se__ > 2 * ep$x$se__))
+  # brms hands `transform` to the predicted draws; a shift moves every
+  # quantile by the shift and leaves the spread alone, with brms's
+  # deprecation warning, which its posterior_predict() gives
+  ct <- allow_warnings(
+    conditional_effects(cs$ds, effects = "x", resolution = 5,
+                        method = "predict", seed = 3,
+                        transform = function(v) v + 10),
+    "Argument 'transform' is deprecated",
+    require = "Argument 'transform' is deprecated")
+  expect_equal(ct$x$estimate__, ce$x$estimate__ + 10)
+  expect_equal(ct$x$lower__, ce$x$lower__ + 10)
+  expect_equal(ct$x$se__, ce$x$se__)
+  # and transform on the expected response is still refused, as brms
+  # applies it only to predicted draws
+  expect_error(conditional_effects(cs$ds, effects = "x", resolution = 5,
+                                   transform = exp),
+               "cannot honor `transform`")
+  # re_formula = NULL draws the new group per posterior draw, for the
+  # predicted response too
+  cn <- conditional_effects(cs$ds, effects = "x", resolution = 5,
+                            method = "predict", re_formula = NULL, seed = 3)
+  expect_true(all(cn$x$se__ >= ce$x$se__ * 0.9))
+})
+
+test_that("method = \"predict\" on ordinal draws is refused as on a fit", {
+  cs <- ce_ord_case()
+  msg_d <- tryCatch(conditional_effects(cs$ds, effects = "x",
+                                        method = "predict"),
+                    error = conditionMessage)
+  msg_f <- tryCatch(conditional_effects(cs$fit, effects = "x",
+                                        method = "predict"),
+                    error = conditionMessage)
+  expect_identical(msg_d, msg_f)
+  expect_match(msg_d, "has no meaning on an ordinal family", fixed = TRUE)
+})

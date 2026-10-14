@@ -42,10 +42,15 @@ type: refused, naming the argument. The \code{residuals.brmsfit()}
 arguments this one does not have (\code{re_formula}, \code{method}) are
 refused with the reason rather than reported as unknown names.}
 
-\item{ndraws, draw_ids, sort, summary, robust}{brms's arguments. Each
-needs posterior draws and a maximum-likelihood fit has none, so
-each is refused by name with the reason. The default of each is
-accepted and changes nothing.}
+\item{ndraws}{brms's number of posterior draws to summarize. A
+maximum-likelihood fit has no Monte Carlo error to reduce, so it is
+accepted, changes nothing, and a message says so, as in
+\code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}}.}
+
+\item{draw_ids, sort, summary, robust}{brms's arguments. Each needs
+posterior draws and a maximum-likelihood fit has none, so each is
+refused by name with the reason. The default of each is accepted
+and changes nothing.}
 
 \item{probs}{Probabilities of the two quantile columns, the ends of
 the Wald interval at those probabilities.}

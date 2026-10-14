@@ -2972,12 +2972,17 @@ napred <- function(fit, x) {
 #' @param nlpar brms's name for a non-linear parameter, which is a
 #'   distributional parameter here: a synonym for `dpar`, and giving
 #'   both is an error.
-#' @param ndraws,draw_ids,sort,summary,robust brms's arguments, in
-#'   brms's positions so that a positional brms call asks the same
-#'   question. Each needs posterior draws, and a maximum-likelihood fit
-#'   has none, so each is refused by name with the reason and with the
-#'   place it does work: `frmtmb.sample`'s `posterior_epred()`. The
-#'   default of each is accepted and changes nothing.
+#' @param ndraws brms's number of posterior draws to summarize. It sets
+#'   the Monte Carlo error of brms's answer, not the quantity answered,
+#'   and a maximum-likelihood fit answers that quantity at its estimate
+#'   with no Monte Carlo error. So it is accepted, changes nothing, and
+#'   a message says so.
+#' @param draw_ids,sort,summary,robust brms's arguments, in brms's
+#'   positions so that a positional brms call asks the same question.
+#'   Each needs posterior draws, and a maximum-likelihood fit has none,
+#'   so each is refused by name with the reason and with the place it
+#'   does work: `frmtmb.sample`'s `posterior_epred()`. The default of
+#'   each is accepted and changes nothing.
 #' @param probs Probabilities of the two quantile columns. brms takes
 #'   the posterior quantiles there; here they are the ends of the Wald
 #'   interval at those probabilities.
@@ -3460,14 +3465,26 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
 #' The draws-only arguments of `fitted()` and `residuals()`, refused
 #' when they are set to anything but their default.
 #'
+#' `ndraws` is the exception, and is accepted. In brms it chooses how
+#' many posterior draws the summary averages over, which sets the Monte
+#' Carlo error of the answer and not the quantity answered. A
+#' maximum-likelihood fit answers that quantity at its estimate with no
+#' Monte Carlo error, so every `ndraws` gets the same summary, and a
+#' message says so. `draw_ids` and `summary = FALSE` ask for particular
+#' draws, which a fit does not have, so they stay refused.
+#'
 #' @noRd
 fitted_refuse_draws_args <- function(what, ndraws, draw_ids, sort, summary,
                                      robust) {
   check_flag(summary, "summary")
   check_flag(robust, "robust")
   if (!is.null(ndraws)) {
-    frm_stop(what, " cannot honor `ndraws`: ", fitted_no_draws[["ndraws"]],
-             call. = FALSE)
+    check_count(ndraws, "ndraws", min = 1L)
+    frm_message(what, " of a maximum-likelihood fit is computed at the ",
+                "estimate, with a Wald interval, so there are no draws to ",
+                "thin and `ndraws` changes nothing. brms uses it to choose ",
+                "how many posterior draws to summarize; frmtmb.sample's ",
+                "posterior_epred(ndraws = ) does so on draws")
   }
   if (!is.null(draw_ids)) {
     frm_stop(what, " cannot honor `draw_ids`: ",
@@ -3490,16 +3507,12 @@ fitted_refuse_draws_args <- function(what, ndraws, draw_ids, sort, summary,
 
 #' Arguments `fitted.brmsfit()` has that a point estimate cannot answer.
 #'
-#' Named rather than reported as unknown: `ndraws` is a real brms
+#' Named rather than reported as unknown: `draw_ids` is a real brms
 #' argument, and "there is no such argument" would send the caller
 #' looking for a typo that is not there.
 #'
 #' @noRd
 fitted_no_draws <- c(
-  ndraws = paste("a maximum likelihood fit carries one estimate, not a",
-                 "posterior, so there is nothing to thin. Draw from the",
-                 "fit with frmtmb.sample::frm_sample() and use",
-                 "posterior_epred(ndraws = ) there"),
   draw_ids = paste("a maximum likelihood fit has no draws to index.",
                    "frmtmb.sample's posterior_epred() takes draw_ids"),
   sort = paste("rows come back in the order of the data, always: there",
@@ -4308,10 +4321,14 @@ residuals_unsupported <- c(
 #' @param allow_new_levels With `newdata`: a grouping level the fit never
 #'   saw is predicted as [fitted.frmtmb_fit()] predicts it, instead of
 #'   an error.
-#' @param ndraws,draw_ids,sort,summary,robust brms's arguments. Each
-#'   needs posterior draws and a maximum-likelihood fit has none, so
-#'   each is refused by name with the reason. The default of each is
-#'   accepted and changes nothing.
+#' @param ndraws brms's number of posterior draws to summarize. A
+#'   maximum-likelihood fit has no Monte Carlo error to reduce, so it is
+#'   accepted, changes nothing, and a message says so, as in
+#'   [fitted.frmtmb_fit()].
+#' @param draw_ids,sort,summary,robust brms's arguments. Each needs
+#'   posterior draws and a maximum-likelihood fit has none, so each is
+#'   refused by name with the reason. The default of each is accepted
+#'   and changes nothing.
 #' @param probs Probabilities of the two quantile columns, the ends of
 #'   the Wald interval at those probabilities.
 #' @return brms's summary matrix: `n` rows with `NULL` dimnames, as
@@ -5080,15 +5097,21 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
                 allow_new_levels)
 }
 
-#' The body of `simulate.frmtmb_fit()`, with one setting the public
+#' The body of `simulate.frmtmb_fit()`, with two settings the public
 #' method does not offer: `re_plan`, a `sim_re_plan()` list that says
 #' which blocks each draw redraws, for a caller whose set of held terms
-#' no `re_formula` spells (`conditional_effects()`'s bootstrap).
+#' no `re_formula` spells (`conditional_effects()`'s bootstrap); and
+#' `resp`, one response of a multivariate fit, whose MARGINAL draws
+#' `pp_check(resp = )` compares with that response's data. The group
+#' effects are drawn for the whole model, so a block two responses
+#' share is one draw; a residual correlation between the responses is
+#' not drawn, and the marginal of one response does not depend on it.
 #'
 #' @noRd
 sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
                           censored = FALSE, newdata = NULL,
-                          allow_new_levels = FALSE, re_plan = NULL) {
+                          allow_new_levels = FALSE, re_plan = NULL,
+                          resp = NULL) {
   # nsim reaches vapply()/replicate() as a length, where a length-2 or
   # character value reports "invalid 'length' argument" and names
   # neither simulate() nor nsim
@@ -5116,7 +5139,11 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     on.exit(assign(".Random.seed", saved_seed, envir = globalenv()),
             add = TRUE)
   }
-  rspec <- single_response(object, "simulate()")
+  rspec <- if (is.null(resp)) {
+    single_response(object, "simulate()")
+  } else {
+    object$spec$responses[[resp]]
+  }
   fam <- rspec$family
   # the draw itself is the structure's own sim_ctx; what is decided here
   # is only what these two options would MEAN for a whole-block draw
@@ -5177,8 +5204,13 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     n_lost <- 0L
   } else {
     # the rows the model is fitted on; nobs() counts the data's rows,
-    # which a univariate subset() cuts
-    n <- object$frame[["n_obs"]]
+    # which a univariate subset() cuts. One response of a multivariate
+    # fit is drawn on its own rows, which its subset() can make fewer
+    n <- if (is.null(resp)) {
+      object$frame[["n_obs"]]
+    } else {
+      NROW(object$frame[["y"]][[resp]])
+    }
   }
   out <- vector("list", nsim)
   for (s in seq_len(nsim)) {
@@ -5186,6 +5218,9 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
     if (is.null(newdata)) {
       dp <- with_cs_offsets(object, rspec, eval_dpars(object, b = b_use))
       dp <- dp[[rspec$resp_name]]
+      # a Student-t rescor model keeps its one nu on one response, and
+      # the marginal of any of them is a t with that nu
+      if (!is.null(resp)) dp <- with_shared_nu(object, resp, dp)
       ctx <- sim_context(object, rspec, dp, aterms = av, n = n,
                          extra = fit_extras(object, rspec$resp_name))
       out[[s]] <- sim_draw(ctx)
@@ -5194,6 +5229,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
       fb$estimates[["b"]] <- b_use
       dp <- sim_newdata_dpars(fb, rspec, newdata, nl_ok, dz,
                               predict_new_level_draw(fb, nls))
+      if (!is.null(resp)) dp <- with_shared_nu(fb, resp, dp)
       ok <- ok0 & dpv_row_finite(dp)
       if (all(ok)) {
         ctx <- sim_context(fb, rspec, dp, aterms = av_nd, n = n,

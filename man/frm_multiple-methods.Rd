@@ -5,7 +5,15 @@
 \alias{fixef.frmtmb_multiple}
 \alias{summary.frmtmb_multiple}
 \alias{conditional_effects.frmtmb_multiple}
-\title{Pooled coefficients, summary and effect curves of a frm_multiple() fit}
+\alias{vcov.frmtmb_multiple}
+\alias{coef.frmtmb_multiple}
+\alias{ranef.frmtmb_multiple}
+\alias{VarCorr.frmtmb_multiple}
+\alias{fitted.frmtmb_multiple}
+\alias{nobs.frmtmb_multiple}
+\alias{formula.frmtmb_multiple}
+\alias{family.frmtmb_multiple}
+\title{Pooled post-processing of a frm_multiple() fit}
 \usage{
 \method{fixef}{frmtmb_multiple}(
   object,
@@ -22,10 +30,60 @@
   prob = 0.95,
   robust = FALSE,
   mc_se = FALSE,
-  ...
+  ...,
+  waic = FALSE
 )
 
 \method{conditional_effects}{frmtmb_multiple}(x, effects = NULL, ..., prob = 0.95)
+
+\method{vcov}{frmtmb_multiple}(object, correlation = FALSE, pars = NULL, ...)
+
+\method{coef}{frmtmb_multiple}(object, summary = TRUE, robust = FALSE, probs = c(0.025, 0.975), ...)
+
+\method{ranef}{frmtmb_multiple}(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  groups = NULL,
+  ...,
+  condVar = FALSE
+)
+
+\method{VarCorr}{frmtmb_multiple}(
+  x,
+  sigma = 1,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...
+)
+
+\method{fitted}{frmtmb_multiple}(
+  object,
+  newdata = NULL,
+  re_formula = NULL,
+  scale = c("response", "linear"),
+  resp = NULL,
+  dpar = NULL,
+  nlpar = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  sort = FALSE,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...,
+  allow_new_levels = FALSE,
+  sample_new_levels = NULL
+)
+
+\method{nobs}{frmtmb_multiple}(object, ...)
+
+\method{formula}{frmtmb_multiple}(x, ...)
+
+\method{family}{frmtmb_multiple}(object, resp = NULL, ...)
 }
 \arguments{
 \item{object, x}{A \code{frmtmb_multiple} from \code{\link[=frm_multiple]{frm_multiple()}}.}
@@ -33,9 +91,11 @@
 \item{summary, robust}{brms's arguments, refused when not the
 default: there are no draws.}
 
-\item{probs}{Probabilities of the quantile columns of \code{fixef()}.}
+\item{probs}{Probabilities of the quantile columns of \code{fixef()},
+\code{fitted()} and \code{VarCorr()}.}
 
-\item{pars}{Row names to keep, in the order given, as in brms.}
+\item{pars}{Row names to keep, in the order given, as in brms. For
+\code{ranef()}, the coefficients to keep, as in \code{\link[=ranef]{ranef()}}.}
 
 \item{priors}{If \code{TRUE}, \code{summary()} also prints the prior of the
 first imputation's fit.}
@@ -44,22 +104,50 @@ first imputation's fit.}
 
 \item{mc_se}{brms's argument, refused when \code{TRUE}.}
 
+\item{waic}{Old brms printed WAIC in \code{summary()} when it was \code{TRUE}.
+Maximum-likelihood fits have no WAIC, so \code{TRUE} is refused by name
+(brms 2.23.0 ignores the argument).}
+
 \item{effects, ...}{For \code{conditional_effects()}, passed to
 \code{\link[=conditional_effects]{conditional_effects()}} on each imputation's fit. Otherwise refused
 by name.}
+
+\item{correlation}{If \code{TRUE}, \code{vcov()} returns the pooled correlation
+matrix.}
+
+\item{groups}{For \code{ranef()}, the grouping factors to keep, as in
+\code{\link[=ranef]{ranef()}}.}
+
+\item{condVar}{For \code{ranef()}: if \code{TRUE}, each matrix carries the
+pooled conditional standard deviations as its \code{"condSD"} attribute.}
+
+\item{sigma}{Ignored, as in brms; nlme's generic carries it.}
+
+\item{newdata, re_formula, scale, resp, dpar, nlpar}{For \code{fitted()}: as in
+\code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}}, given to every imputation's fit. \code{resp} also
+names the response whose family \code{family()} returns.}
+
+\item{ndraws, draw_ids, sort}{For \code{fitted()}: brms's draws arguments, as
+on one fit.}
+
+\item{allow_new_levels, sample_new_levels}{For \code{fitted()}: as in
+\code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}}, given to every imputation's fit.}
 }
 \value{
 \code{fixef()}: brms's coefficient matrix. \code{summary()}: a
 \code{summary.frmtmb_multiple} object, printed in brms's layout.
 \code{conditional_effects()}: a conditional-effects object, which
-\code{plot()} draws.
+\code{plot()} draws. \code{vcov()}, \code{coef()}, \code{ranef()}, \code{VarCorr()} and
+\code{fitted()}: the shape the same method gives on one fit. \code{nobs()}: a
+number.
 }
 \description{
 brms's \code{brm_multiple()} combines the posterior draws of the m
-imputations, so \code{fixef()}, \code{summary()} and \code{conditional_effects()} of
-its result summarize the combined draws. A \code{\link[=frm_multiple]{frm_multiple()}} result is
-m maximum-likelihood fits, and these methods pool them by Rubin's
-rules with the Barnard-Rubin degrees of freedom instead:
+imputations, so \code{fixef()}, \code{summary()}, \code{conditional_effects()} and
+the other methods of its result summarize the combined draws. A
+\code{\link[=frm_multiple]{frm_multiple()}} result is m maximum-likelihood fits, and these
+methods pool them by Rubin's rules with the Barnard-Rubin degrees of
+freedom instead:
 }
 \details{
 \itemize{
@@ -77,10 +165,57 @@ brms prints R-hat and effective sample sizes.
 the grid of the first (brms's grid, which \code{brm_multiple()} reads
 from the first data set), pools each grid point on the scale its
 Wald band is symmetric on (the link, or the logit of an ordinal
-category probability), and transforms back. Only the Wald band
-pools this way: \code{method = "predict"} and the bootstrap and profile
-bands are refused by name.
+category probability), and transforms back. A category probability
+is the exception for its estimate: that is the mean of the
+imputations' probabilities, so the categories sum to 1, and the
+band is moved out to it where needed. Only the Wald band pools this
+way: \code{method = "predict"} and the bootstrap and profile bands are
+refused by name.
+\item \code{vcov()} is the total covariance of the \code{fixef()} rows: the mean of
+each imputation's \code{vcov()} plus \code{1 + 1/m} times the covariance of
+the estimates between imputations, which is \code{mice::pool()}'s.
+\item \code{fitted()} pools \code{fitted()} of each imputation row by row. It pools
+on the link scale of the predictor, as \code{conditional_effects()}
+does: each estimate goes through the link and its standard error
+through the delta method. The estimate and a t interval on the
+pooled degrees of freedom come back through the inverse link, so
+the interval stays inside the response's range, and \code{Est.Error} is
+the pooled standard error carried back by the delta method. A
+category probability takes its interval from the logit scale, but
+its estimate and \code{Est.Error} from Rubin's rules on the probability
+scale, so the categories sum to 1; an end on the wrong side of the
+estimate is moved to it. These are the values of the pooled
+\code{conditional_effects()}. \code{scale = "linear"} pools
+the linear predictor itself. In sample, each imputation predicts
+its own rows, so an imputed covariate enters at the value of each
+imputation; brms answers from the first imputed data set alone and
+warns that it does. With \code{newdata}, every imputation predicts the
+same rows.
+\item \code{coef()} and \code{ranef()} are the mean over the imputations of the
+coefficients and conditional modes of each level, which is Rubin's
+point estimate. \code{ranef(condVar = TRUE)} pools the conditional
+standard deviations as Rubin's total variance: the mean
+conditional variance plus \code{1 + 1/m} times the variance of the modes.
+\item \code{VarCorr()} pools each standard deviation on the log scale and each
+correlation on the Fisher z scale, the scales \code{frm_multiple()}
+pools its variance components on, and transforms back, with
+\code{Est.Error} by the delta method. A covariance pools on its own
+scale. A component at its boundary (a standard deviation of zero in
+one imputation) has no log, and its row is \code{NA}.
+\item \code{emmeans::emmeans()} pools the estimated marginal means of each
+imputation as emmeans pools a \code{mice::mira}: at the covariate means
+over the imputations, with the Barnard-Rubin degrees of freedom on
+the asymptotic reference that emmeans uses for one fit.
+\item \code{nobs()} is the number of observations, which every imputation
+shares, and \code{formula()} and \code{family()} are those of the model every
+imputation is fitted with.
 }
+
+\code{predict()}, \code{residuals()}, \code{pp_check()}, \code{logLik()} (and so \code{AIC()}
+and \code{BIC()}), \code{loo()}, \code{waic()}, \code{update()} and \code{model.frame()} have
+no Rubin's-rules meaning. Each is refused by name, with what to call instead:
+\code{anova()} pools a model comparison, and \code{x$fits[[j]]} is the fit of
+imputation \code{j}.
 
 brms's draws arguments have no meaning on pooled fits and are
 refused by name, as on one fit.
@@ -99,6 +234,9 @@ imps <- lapply(1:3, function(i) {
 fm <- frm_multiple(bf(y ~ x), family = gaussian(), data = imps)
 fixef(fm)
 summary(fm)
+# the total covariance, whose diagonal is the squared Est.Error
+vcov(fm)
+fitted(fm, newdata = data.frame(x = c(-1, 0, 1)))
 ce <- conditional_effects(fm, "x")
 head(ce$x[, c("x", "estimate__", "lower__", "upper__")])
 }

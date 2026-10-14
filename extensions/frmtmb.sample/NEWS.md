@@ -1,3 +1,82 @@
+# frmtmb.sample (development version)
+
+Needs the frmtmb release after 0.70.0 that exports `ce_sim_one()`,
+`ce_method()`, `ce_predict_family_check()` and `pp_check_resp()`, and
+that gives `ce_plan_eval()` its `one` argument.
+
+## Breaking changes
+
+* **`loo()` and `waic()` of draws take brms's arguments in brms's
+  order**, `(x, ..., compare, resp, ndraws, model_names)`. Draws given
+  without a name are further models, which are compared as brms
+  compares them. So `ndraws` must be named, as it is in brms.
+
+* **`loo()` and `waic()` of draws refuse by name the arguments they
+  dropped.** These are `newdata`, `re_formula` and the other arguments
+  `log_lik()` refuses, which brms reads. `loo(newdata = )` returned the
+  in-sample elpd in silence (lane remeasure, R2). `moment_match = TRUE`
+  and `reloo = TRUE` refit, so they are refused too. `pointwise` and
+  `k_threshold` change nothing and are accepted.
+
+## New features
+
+* **`loo()` and `waic()` of several draws objects return brms's
+  comparison.** It holds the criterion of each model (`loos`),
+  `loo::loo_compare()` of them (`diffs`) and brms's pairwise
+  `ic_diffs__`, printed as brms prints its `loolist`. `compare =` and
+  `model_names =` are brms's. Models with different numbers of
+  observations are refused in brms's words. Models of different
+  responses get loo's warning, through brms's `yhash` attribute.
+
+* **`logLik()` of draws is `log_lik()`**, the draws by observations
+  matrix, as brms's `logLik()` of a fit is. It had no method.
+
+* **`bayes_R2()` of draws takes `newdata` and `re_formula`**, which
+  brms hands to `posterior_epred()`. With `newdata` it is the
+  R-squared of newdata's rows, against newdata's own response column.
+  A newdata without that column is refused in brms's words.
+
+* **`model.frame()` of draws is the model frame of their fit.** stats'
+  default rebuilt a frame from the formula's environment, which holds
+  none of the data. It stopped at "object 'count' not found" on brms's
+  ported row `brmsfit-methods:120`.
+
+* **`conditional_effects(method = "predict")` on draws** (brms's
+  `"posterior_predict"`) draws one response per grid row and posterior
+  draw, at the parameters of that draw. That is the posterior
+  predictive band brms draws. Under the default `robust = TRUE`,
+  `estimate__` is its median and `se__` its MAD. A category-valued
+  response is refused, as the fit method refuses it.
+
+* **`transform =` applies to the predicted draws**, in
+  `conditional_effects(method = "predict")` and `posterior_predict()`,
+  with brms's warning that the argument is deprecated.
+
+* **`frm_sample()` of a `frm_multiple()` result samples the fit of every
+  imputation and combines the draws**, as brms's `brm_multiple()`
+  combines its chains. `nchains()` is the number of imputations times
+  `chains`. A `seed` gives imputation `j` the seed `seed + j - 1`.
+  Methods that read the data in sample read the first imputed data set,
+  as brms's do.
+
+* **The diagnostics of combined imputations are brms's.** `summary()`
+  leaves out `Rhat`, `Bulk_ESS` and `Tail_ESS`, as brms's does for a
+  `brm_multiple()` fit. `loo()` takes a relative efficiency of 1, as
+  brms does. Chains of different imputations sample different
+  posteriors, so their R-hat measures the imputations.
+
+## Bug fixes
+
+* **`pp_check()` of multivariate draws refuses a missing, plural or
+  unknown `resp` in brms 2.23.0's words**, as the fit method now does.
+  A missing one was "pp_check() is not supported yet for multivariate
+  fits".
+
+* **`summary(draws, waic = TRUE)` is refused by name, naming
+  `waic(x)`.** Old brms printed WAIC there, and brms 2.23.0 ignores the
+  argument. It got the generic "has no argument `waic`". `waic = FALSE`
+  is accepted.
+
 # frmtmb.sample 0.18.0
 
 Needs frmtmb 0.70.0: it reads `simplex_frame_terms()` and the

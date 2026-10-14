@@ -82,7 +82,15 @@ and the variable of an \code{se()} term or a \code{trunc()} bound at its
 mean, like every other variable. An expression bound is evaluated
 on the grid, where the response is at its mean too, so
 \code{trunc(lb = min(y) - 1)} is \code{mean(y) - 1}. Set the variable in
-\code{conditions} for a bound of your choice.}
+\code{conditions} for a bound of your choice. On the draws of
+\code{frmtmb.sample::frm_sample()}, \code{"predict"} draws one response per
+grid row and posterior draw, at the parameters of that draw, so the
+band is the posterior predictive band that brms draws: under the
+draws method's default \code{robust = TRUE}, \code{estimate__} is its median
+and \code{se__} its MAD. There, as in brms, \code{transform} applies to the
+predicted draws before they are summarized, with brms's warning that
+the argument is deprecated, and \code{seed} fixes the
+simulation.}
 
 \item{band}{How the confidence band is built: \code{"wald"} (default,
 the delta method on the scale the band is symmetric on),

@@ -50,10 +50,12 @@ looked up as \code{group} is.}
 its rows: \code{\link[=simulate]{simulate()}} draws for them, the observed series is its
 response column (needed for \code{prefix = "ppc"} only), and \code{group} and
 \code{x} are read from it, as brms reads them. A row with a missing
-response is dropped with brms's warning. \code{resp} is accepted and
-ignored, which is what brms does with it on a model that has one
-response; a multivariate fit is refused before \code{resp} could select
-one.}
+response is dropped with brms's warning. On a multivariate fit
+\code{resp} names the one response to check, as in brms, which refuses
+the call without it: that response's observed values against its
+own simulated replicates, on its own rows (a \code{subset()} response
+on the rows of its subset). On a model with one response \code{resp} is
+accepted and ignored, which is what brms does with it there.}
 
 \item{re_formula}{The random-effect switch, in brms's spelling
 (\code{pp_check()} is a brms function). On a fit it is passed to

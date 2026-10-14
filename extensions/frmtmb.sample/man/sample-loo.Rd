@@ -11,9 +11,9 @@
 \alias{WAIC.frmtmb_draws}
 \title{Approximate leave-one-out cross-validation}
 \usage{
-\method{loo}{frmtmb_draws}(x, ndraws = NULL, resp = NULL, ...)
+\method{loo}{frmtmb_draws}(x, ..., compare = TRUE, resp = NULL, ndraws = NULL, model_names = NULL)
 
-\method{waic}{frmtmb_draws}(x, ndraws = NULL, resp = NULL, ...)
+\method{waic}{frmtmb_draws}(x, ..., compare = TRUE, resp = NULL, ndraws = NULL, model_names = NULL)
 
 \method{loo_compare}{frmtmb_draws}(x, ..., criterion = c("loo", "waic"), model_names = NULL)
 
@@ -36,16 +36,24 @@ psis(log_ratios, ...)
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}, or (for
 \code{loo_compare()}) already-computed criteria.}
 
+\item{...}{Further models: for \code{loo()} and \code{waic()} the draws
+objects given without a name, which brms compares in one call, and
+brms's named options, refused by name where they would change the
+answer (\code{newdata} and the other arguments \code{log_lik()} refuses,
+\code{moment_match}, \code{reloo}) and passed on where they are the loo
+package's (\code{r_eff}, \code{save_psis}, \code{cores}). For \code{loo_compare()},
+further models.}
+
+\item{compare}{With several models, whether to add their comparison,
+\code{loo::loo_compare()} of the criteria, as brms does.}
+
 \item{ndraws, resp}{Passed to \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}.}
-
-\item{...}{Further models for \code{loo_compare()}; otherwise passed to
-the loo package function.}
-
-\item{criterion}{Which criterion \code{loo_compare()} computes for each
-draws object.}
 
 \item{model_names}{Row names for the comparison; the default deparses
 the arguments, as loo does.}
+
+\item{criterion}{Which criterion \code{loo_compare()} computes for each
+draws object.}
 
 \item{log_ratios}{For \code{psis()}, the draws object whose negative
 pointwise log-likelihood supplies the importance ratios.}
@@ -58,7 +66,9 @@ Accepted and unused: a \code{psis} object has nothing to label.}
 }
 \value{
 A \code{loo}, \code{waic}, \code{compare.loo} or \code{psis} object from the loo
-package.
+package; for several models, \code{loo()} and \code{waic()} give brms's list
+of them, \code{loos}, with their comparison \code{diffs} and brms's
+\code{ic_diffs__}, of class \code{frmtmb_loolist}.
 }
 \description{
 \code{loo()} runs Pareto-smoothed importance-sampling LOO and \code{waic()} the
@@ -129,6 +139,8 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   d2 <- frm_sample(bf(y ~ 1 + (1 | g)), family = gaussian(),
                    data = dd, chains = 1, iter = 500, refresh = 0)
   loo_compare(d1, d2)
+  # brms's spelling of the same comparison
+  loo(d1, d2)
   # the same thing, one step at a time
   loo_compare(loo(d1), loo(d2))
 }

@@ -158,3 +158,27 @@ test_that("a type bayesplot no longer lists is refused, as brms refuses it", {
   expect_error(pp_check(ppc_draws(fit), type = "loo_pit"),
                "Type 'loo_pit' is not a valid ppc type", fixed = TRUE)
 })
+
+# Lane postfix (2026-10-13): on a multivariate model the draws method
+# refuses a missing, plural or unknown `resp` in brms 2.23.0's words, as
+# the fit method now does (dev/postfix-brms.R). 0.18.0 said "pp_check()
+# is not supported yet for multivariate fits" for a missing `resp`, and
+# named the unknown one in its own words.
+test_that("pp_check(resp = ) on multivariate draws speaks brms's words", {
+  skip_if_not_installed("bayesplot")
+  dd <- ppc_data()
+  dd$y2 <- 0.3 * dd$x + stats::rnorm(nrow(dd))
+  fit <- frm(bf(mvbind(y, y2) ~ x), family = gaussian(), data = dd,
+             dry_run = "objective")
+  ds <- ppc_draws(fit)
+  p <- suppressMessages(pp_check(ds, resp = "y2", ndraws = 5))
+  expect_s3_class(p, "ggplot")
+  expect_identical(p$data$value[p$data$is_y], dd$y2)
+  expect_error(pp_check(ds), "Argument 'resp' must be a single variable",
+               fixed = TRUE)
+  expect_error(pp_check(ds, resp = c("y", "y2")),
+               "Cannot coerce 'resp' to a single character value.",
+               fixed = TRUE)
+  expect_error(pp_check(ds, resp = "nope"),
+               "Valid response variables are: 'y', 'y2'", fixed = TRUE)
+})

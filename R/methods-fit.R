@@ -156,6 +156,21 @@ brms_summary_args <- c(
                "waic(frmtmb.sample::frm_sample(fit))")
 )
 
+#' Old brms printed WAIC under `summary(waic = TRUE)`, so a ported call
+#' asks for a number that a maximum-likelihood summary does not have and
+#' that brms 2.23.0 drops in silence. `waic = FALSE` asks for nothing,
+#' and is accepted.
+#'
+#' @noRd
+summary_refuse_waic <- function(waic) {
+  check_flag(waic, "waic")
+  if (waic) {
+    frm_stop("summary() cannot honor `waic`: ",
+             brms_summary_args[["waic"]], call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 # brms's print() of a fit IS its summary, and the two used to disagree
 # here: print() showed the estimates alone while summary() showed the
 # table. One renderer, so a section can only be added once.
@@ -226,9 +241,10 @@ coef_block_key <- function(fit, lp) {
 #' @export
 summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
                                robust = FALSE, mc_se = FALSE, ...,
-                               vcov = NULL) {
+                               vcov = NULL, waic = FALSE) {
   frm_check_dots(..., .unsupported = c(brms_summary_args,
                                        brms_draws_summary_args["pars"]))
+  summary_refuse_waic(waic)
   check_flag(priors, "priors")
   check_flag(robust, "robust")
   check_flag(mc_se, "mc_se")

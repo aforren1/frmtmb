@@ -12,7 +12,9 @@
   robust = FALSE,
   probs = c(0.025, 0.975),
   ...,
-  ndraws = NULL
+  ndraws = NULL,
+  newdata = NULL,
+  re_formula = arg_unset()
 )
 }
 \arguments{
@@ -36,6 +38,12 @@ error naming it, rather than silently changing nothing.}
 
 \item{ndraws}{Number of draws to use (default: all). It follows
 \code{...} so that brms's positional slots keep brms's meaning.}
+
+\item{newdata, re_formula}{brms's arguments, which brms hands to
+\code{posterior_epred()}: with \code{newdata} the R-squared is of its rows,
+against its own response column, which it must carry, and
+\code{re_formula} chooses the group-level terms of the prediction, as
+in \code{\link[=posterior_epred]{posterior_epred()}}.}
 }
 \value{
 A one-row summary matrix, or the matrix of draws when

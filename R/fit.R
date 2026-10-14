@@ -231,6 +231,13 @@
 #'   grouping factor loses its unused levels either way, because a level
 #'   without rows adds nothing to the Laplace likelihood, so [ranef()]
 #'   lists the levels the data hold.
+#' @param threshold Refused. brms 1.x took the threshold structure of an
+#'   ordinal model as an argument of `brm()`, and the JSS overview
+#'   vignette still passes it there; brms 2.23.0 refuses it too
+#'   ("passing unknown arguments: threshold"). It is an argument of the
+#'   ordinal family, as in brms: `family = sratio(threshold =
+#'   "equidistant")`. The refusal names that spelling with the family of
+#'   the call.
 #' @return An object of class `frmtmb_fit`. It is a list, and two of its
 #'   elements are read directly often enough to name here. `fit$data2`
 #'   is the `data2` list of known matrices. `fit$data` is the MODEL
@@ -807,7 +814,11 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 na.action = stats::na.omit,
                 prior = NULL, quadrature = FALSE, importance = 0L,
                 data2 = list(), dry_run = NULL, verbose = FALSE,
-                drop_unused_levels = TRUE) {
+                drop_unused_levels = TRUE, threshold = NULL) {
+  if (!is.null(threshold)) {
+    frm_refuse_threshold(substitute(family), family, threshold,
+                         names(sys.call()), formula)
+  }
   cl <- match.call()
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
@@ -920,6 +931,63 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 # the user's own call is the one place a placed start is
                 # news; refit(), influence and the pre-fit are not
                 announce_start = TRUE)
+}
+
+#' The refusal of `frm(threshold = )`, which names the family argument
+#' the threshold structure belongs to. brms 1.x read `threshold` from
+#' `brm()`, so a ported call (the JSS overview vignette's `fit3`) still
+#' passes it there, and brms 2.23.0 stops with "passing unknown
+#' arguments: threshold" on the same line. The family is named from the
+#' call where it can be, so the message gives the line to write.
+#'
+#' R matches a named argument to a formal by its prefix, so `thres = 1`
+#' (brms's `thres()` is a formula term, not an argument) reaches this
+#' formal too. A call that wrote such a prefix and never `threshold`
+#' gets the error R gave it before the formal existed. A prefix passed
+#' on through another function's dots (`frm_multiple(thres = 1)`) is not
+#' visible in this call, and is refused as `threshold`.
+#'
+#' @noRd
+frm_refuse_threshold <- function(fexpr, family, threshold, call_names,
+                                 formula = NULL) {
+  call_names <- call_names %||% character(0)
+  pref <- call_names[nzchar(call_names) & call_names != "threshold" &
+                       startsWith("threshold", call_names)]
+  if (!"threshold" %in% call_names && length(pref)) {
+    frm_stop("unused argument (", pref[1L], " = ", deparse1(threshold),
+             ")", call. = FALSE)
+  }
+  ord <- c("cumulative", "sratio", "cratio", "acat", "hurdle_cumulative")
+  nm <- if (is.character(family) && length(family) == 1L) {
+    family
+  } else if (is.list(family) && is.character(family[["family"]])) {
+    family[["family"]]
+  } else if (is.name(fexpr)) {
+    as.character(fexpr)
+  } else if (is.call(fexpr)) {
+    deparse1(fexpr[[1L]])
+  }
+  # bf(y ~ x) + cumulative() carries the family in the formula
+  if (is.null(nm) && is.list(formula) && is.list(formula[["family"]])) {
+    nm <- formula[["family"]][["family"]]
+  }
+  nm <- sub("^.*::", "", nm %||% "")
+  val <- if (is.character(threshold) && length(threshold) == 1L) {
+    threshold
+  } else {
+    "equidistant"
+  }
+  frm_stop("frm() has no `threshold` argument: the threshold structure is ",
+           "an argument of the ordinal family, as in brms 2.23.0, whose ",
+           "brm() refuses it too (\"passing unknown arguments: ",
+           "threshold\"); brms 1.x took it in brm(). Write family = ",
+           if (nm %in% ord) nm else "cumulative", "(threshold = \"", val,
+           "\")",
+           if (!nm %in% ord) {
+             paste0(", with the ordinal family of the model: ",
+                    paste0(ord, "()", collapse = ", "))
+           },
+           call. = FALSE)
 }
 
 # --- verbose progress reporting --------------------------------------
@@ -3476,6 +3544,32 @@ fit_numerical_error <- function(msg) {
         ignore.case = TRUE)
 }
 
+#' The error of a nonlinear fit that failed from its default start:
+#' how to give starts, and no start of its own.
+#'
+#' @noRd
+nl_start_message <- function(spec, emsg) {
+  nlp <- unique(unlist(lapply(spec$responses, function(r) r$nlpars)))
+  nlq <- paste0("`", nlp, "`", collapse = ", ")
+  # No start is offered. A start found by searching the objective
+  # converges at a local maximum as cleanly as at the global one: on a
+  # sinusoid, 22 of 30 such fits had code 0, finite standard errors and
+  # no warning, 93 to 118 log-likelihood units low
+  # (dev/reviews/2026-10-13-postfix.md, round 2)
+  paste0("The nonlinear fit failed from its default starting values (",
+         emsg, "). A nonlinear coefficient starts at 0 unless `start` ",
+         "or a located prior places it, and the body is often not defined ",
+         "there. frmtmb offers no start of its own: a start found by ",
+         "search can lead to a local maximum, which converges with no ",
+         "warning. ",
+         "Give the starts of ", nlq, " in one of two ways. (1) `start = ",
+         "list(beta = c(<name> = <value>))`: par_template(formula, data) ",
+         "gives the names, and the names go straight back. (2) A normal() ",
+         "or student_t() prior with a location, e.g. prior(normal(",
+         "<location>, <scale>), nlpar = \"", nlp[1L], "\"): the fit ",
+         "starts from the location")
+}
+
 #' Runs the optimizer call and rewrites any failure into a message that
 #' names the model and what to try next.
 #'
@@ -3507,14 +3601,7 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
       emsg <- conditionMessage(e)
       numerical <- fit_numerical_error(emsg)
       msg <- if (nl_start && numerical) {
-        paste0("The nonlinear fit failed from its default starting ",
-               "values (", emsg, "). Nonlinear models ",
-               "need starting values in the right region: ",
-               "par_template(formula, data) names the parameters, and ",
-               "the names go straight back, e.g. ",
-               "start = list(beta = c(ult = 5000)). A normal() or ",
-               "student_t() prior on a nonlinear parameter places its ",
-               "start from the prior location instead")
+        nl_start_message(spec, emsg)
       } else if (numerical) {
         paste0("The optimizer failed on this model (",
                vb_fit_detail(spec, REML, control, quadrature, prior),

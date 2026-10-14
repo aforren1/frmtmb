@@ -19,7 +19,8 @@ frm(
   data2 = list(),
   dry_run = NULL,
   verbose = FALSE,
-  drop_unused_levels = TRUE
+  drop_unused_levels = TRUE,
+  threshold = NULL
 )
 }
 \arguments{
@@ -264,6 +265,13 @@ keeps the column, and only its prior places the coefficient). A
 grouping factor loses its unused levels either way, because a level
 without rows adds nothing to the Laplace likelihood, so \code{\link[=ranef]{ranef()}}
 lists the levels the data hold.}
+
+\item{threshold}{Refused. brms 1.x took the threshold structure of an
+ordinal model as an argument of \code{brm()}, and the JSS overview
+vignette still passes it there; brms 2.23.0 refuses it too
+("passing unknown arguments: threshold"). It is an argument of the
+ordinal family, as in brms: \code{family = sratio(threshold = "equidistant")}. The refusal names that spelling with the family of
+the call.}
 }
 \value{
 An object of class \code{frmtmb_fit}. It is a list, and two of its

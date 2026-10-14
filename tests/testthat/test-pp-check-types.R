@@ -424,3 +424,73 @@ test_that("pp_check still redraws (1 | g) at the default re_formula", {
   # measured requirement and not a chosen floor.
   expect_gt(want - 1, tol)
 })
+
+# Lane postfix (2026-10-13): pp_check(resp = ) on a multivariate fit,
+# in brms's words where brms refuses. 0.70.0 refused every multivariate
+# fit, "pp_check() is not supported yet for multivariate fits"
+# (dev/postfix-log/probe-before.txt); brms 2.23.0 plots the one
+# response `resp` names and refuses the call without it
+# (dev/postfix-brms.R).
+ppt_mv_data <- function() {
+  set.seed(3)
+  d <- data.frame(x = stats::rnorm(60), g = factor(rep(1:6, 10)))
+  d$y1 <- 1 + d$x + stats::rnorm(6)[d$g] + stats::rnorm(60)
+  d$y2 <- -4 + 0.5 * d$x + stats::rnorm(60, 0, 0.5)
+  d$keep <- d$x > -0.5
+  d
+}
+
+test_that("pp_check(resp = ) checks one response of a multivariate fit", {
+  d <- ppt_mv_data()
+  mv <- frm(bf(mvbind(y1, y2) ~ x + (1 | g)), data = d)
+  set.seed(4)
+  p1 <- pp_check(mv, resp = "y1", ndraws = 200)
+  set.seed(4)
+  p2 <- pp_check(mv, resp = "y2", ndraws = 200)
+  expect_s3_class(p1, "ggplot")
+  # the observed series is the named response's, in row order
+  expect_identical(p1$data$value[p1$data$is_y], d$y1)
+  expect_identical(p2$data$value[p2$data$is_y], d$y2)
+  # and the replicates are that response's: their grand mean sits on its
+  # own fitted mean, judged against its own spread, while the two
+  # responses' means are 5 of those spreads apart
+  for (k in 1:2) {
+    p <- list(p1, p2)[[k]]
+    y <- d[[c("y1", "y2")[k]]]
+    yrep <- p$data$value[!p$data$is_y]
+    expect_length(yrep, 200L * 60L)
+    expect_lt(abs(mean(yrep) - mean(y)) / stats::sd(y), 0.1)
+  }
+  expect_gt(abs(mean(d$y1) - mean(d$y2)) / stats::sd(d$y1), 2)
+  expect_s3_class(pp_check(mv, resp = "y2", type = "stat", ndraws = 5),
+                  "ggplot")
+  # brms's three refusals, in its words
+  expect_error(pp_check(mv), "Argument 'resp' must be a single variable",
+               fixed = TRUE)
+  expect_error(pp_check(mv, resp = c("y1", "y2")),
+               "Cannot coerce 'resp' to a single character value.",
+               fixed = TRUE)
+  expect_error(pp_check(mv, resp = "nope"),
+               "Valid response variables are: 'y1', 'y2'", fixed = TRUE)
+  # the control: a one-response fit ignores `resp`, as before
+  uv <- frm(y1 ~ x, data = d)
+  expect_s3_class(pp_check(uv, resp = "nope", ndraws = 5), "ggplot")
+})
+
+test_that("pp_check(resp = ) reads a rescor fit and a subset() response", {
+  d <- ppt_mv_data()
+  mr <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE), data = d)
+  p <- pp_check(mr, resp = "y2", ndraws = 50)
+  expect_identical(p$data$value[p$data$is_y], d$y2)
+  expect_lt(abs(mean(p$data$value[!p$data$is_y]) - mean(d$y2)) /
+              stats::sd(d$y2), 0.1)
+  # a subset() response is checked on the rows of its subset, as brms's
+  # posterior_predict(resp = ) gives them
+  ms <- frm(bf(y1 ~ x) + bf(y2 | subset(keep) ~ x), data = d)
+  p <- pp_check(ms, resp = "y2", ndraws = 20)
+  expect_identical(p$data$value[p$data$is_y], d$y2[d$keep])
+  expect_length(p$data$value[!p$data$is_y], 20L * sum(d$keep))
+  nd <- d[1:12, ]
+  p <- pp_check(ms, resp = "y2", ndraws = 20, newdata = nd)
+  expect_identical(p$data$value[p$data$is_y], nd$y2[nd$keep])
+})

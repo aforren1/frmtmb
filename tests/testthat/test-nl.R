@@ -508,3 +508,32 @@ test_that("a parameter carried by its random effects alone is not flat", {
              data = d)
   expect_identical(fit$opt$convergence, 0L)
 })
+
+# Lane postfix (2026-10-13): the error of a nonlinear fit that fails
+# from its default start says how to give starts, and offers no start
+# of its own. A start found by searching the objective (the lane's
+# first two rounds) converged at local maxima as cleanly as at the
+# global one: on this sinusoid (P 3, seed 1001 of the review's stress
+# block, dev/postfix-rev2-sinus.R) it gave code 0, finite standard
+# errors and no warning, 100.9 log-likelihood units low. Seen to fail
+# on 0.70.0 (rellib-r8), whose message named `ult` of another model and
+# not the parameters of this one.
+test_that("a failed default start names this model's parameters only", {
+  set.seed(1001)
+  xs <- seq(0, 15, length.out = 120)
+  ds <- data.frame(x = xs, y = 2 * sin(6.283185307179586 * xs / 3) +
+                     stats::rnorm(120, 0, 0.6))
+  f1 <- bf(y ~ A * sin(6.283185307179586 * x / P), A + P ~ 1, nl = TRUE)
+  msg <- tryCatch(frm(f1, data = ds), error = conditionMessage)
+  expect_match(msg, "failed from its default starting values",
+               fixed = TRUE)
+  expect_match(msg, "Give the starts of `A`, `P`", fixed = TRUE)
+  expect_match(msg, "nlpar = \"A\"", fixed = TRUE)
+  expect_match(msg, "offers no start of its own", fixed = TRUE)
+  expect_no_match(msg, "ult = 5000", fixed = TRUE)
+  # the absent case: from a start in the right region the model fits,
+  # with no error
+  h1 <- frm(f1, data = ds, start = list(beta = c(2, 3)))
+  expect_identical(h1$opt$convergence, 0L)
+  expect_equal(unname(fixef(h1)[, "Estimate"]), c(2, 3), tolerance = 0.1)
+})

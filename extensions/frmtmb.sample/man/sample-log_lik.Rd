@@ -3,6 +3,7 @@
 \name{sample-log_lik}
 \alias{sample-log_lik}
 \alias{log_lik.frmtmb_draws}
+\alias{logLik.frmtmb_draws}
 \title{Pointwise log-likelihood of posterior draws}
 \usage{
 \method{log_lik}{frmtmb_draws}(
@@ -18,6 +19,19 @@
   cores = NULL,
   point_estimate = NULL,
   ndraws_point_estimate = 1,
+  ...
+)
+
+\method{logLik}{frmtmb_draws}(
+  object,
+  newdata = NULL,
+  re_formula = NULL,
+  resp = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  pointwise = FALSE,
+  combine = TRUE,
+  cores = NULL,
   ...
 )
 }
@@ -60,6 +74,11 @@ The \verb{ndraws x nobs} matrix of per-observation log-densities, each row
 evaluated at one draw's own parameter vector. Every leave-one-out and
 information-criterion quantity in this package is a function of this
 matrix, and \code{\link[frmtmb:loo]{frmtmb::loo()}}, \code{\link[frmtmb:waic]{frmtmb::waic()}} and \code{loo::psis()} take it directly.
+}
+\details{
+\code{logLik()} of draws is \code{log_lik()}, as brms's \code{logLik()} of a
+fit is: the draws by observations matrix, not stats' \code{logLik}
+object, which describes one parameter vector.
 }
 \section{What is conditioned on}{
 

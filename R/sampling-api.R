@@ -334,6 +334,19 @@
 #' `ce_new_level_spec()`, `ce_boot_grids()` and `ce_draw_new_levels()`,
 #' which placed one new group over every row and are removed.
 #'
+#' `method = "predict"` has three more. `ce_method()` resolves brms's
+#' method names (`"posterior_predict"` is `"predict"`),
+#' `ce_predict_family_check(rspec)` refuses a family that cannot draw a
+#' response row by row, and `ce_sim_one(fit, nd, resp, re_form,
+#' allow_new_levels)` draws one response per row of grid `nd` at the
+#' parameters of `fit`, so that one call per posterior draw gives the
+#' posterior predictive draws. `ce_plan_eval()` takes it through its
+#' `one` argument, a function of the fit and a grid, so that a
+#' simulated response reads the new-level draws of the plan.
+#' `pp_check_resp(fit, resp)` is the response `pp_check()` checks, with
+#' brms's refusals of a missing, plural or unknown `resp` on a
+#' multivariate model, so the fit and draws methods say the same.
+#'
 #' @section The two-dialect argument seam:
 #' frmtmb answers to two argument dialects: a brms-named function takes
 #' `re_formula`, frmtmb's own fit surface takes lme4's `re_formula`, and
@@ -515,6 +528,10 @@
 #' @aliases ce_level_plan
 #' @aliases ce_plan_eval
 #' @aliases ce_plan_has_new
+#' @aliases ce_method
+#' @aliases ce_predict_family_check
+#' @aliases ce_sim_one
+#' @aliases pp_check_resp
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
@@ -537,6 +554,7 @@
 #'   ce_frame, ce_finalize, ce_spaghetti, ce_check_distance,
 #'   ce_spaghetti_check, cs_build, cs_coef, cs_frame, cs_finalize,
 #'   cs_probs, ce_level_plan, ce_plan_eval, ce_plan_has_new,
+#'   ce_method, ce_predict_family_check, ce_sim_one, pp_check_resp,
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
 #'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,

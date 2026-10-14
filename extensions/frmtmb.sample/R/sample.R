@@ -2197,7 +2197,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' the returned draws prints what the stack came to.
 #'
 #' @param fit A `frmtmb_fit`, or a `bf()`/formula to assemble and sample
-#'   directly (then `data` is required).
+#'   directly (then `data` is required), or a `frmtmb::frm_multiple()`
+#'   result (see Multiply imputed data).
 #' @param data A data frame of model data, when `fit` is a formula.
 #' @param family Family, when `fit` is a plain formula that does not
 #'   carry one (`frm_sample(bf(y ~ x), data = dd, family = poisson())`;
@@ -2346,6 +2347,22 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   `frm_ode()` fit aborts at the first warmup step inside RTMBode,
 #'   and the abort leaves rstan's autodiff arena unusable for the rest
 #'   of the session, so the refusal is worth more than the attempt.
+#' @section Multiply imputed data:
+#'   Given a `frmtmb::frm_multiple()` result, `frm_sample()` samples the
+#'   fit of every imputation with the same arguments and combines the
+#'   draws, as brms's `brm_multiple()` combines the chains of its fits:
+#'   the draws of imputation 2 follow those of imputation 1, and so on,
+#'   and the `stanfit` holds every chain, so `nchains()` is the number
+#'   of imputations times `chains`. A `seed` gives imputation `j` the
+#'   seed `seed + j - 1`, so the result is reproducible and no two
+#'   imputations share a random stream. The draws object keeps the
+#'   first imputation's fit, so a method that reads the data in sample
+#'   (`posterior_predict()` without `newdata`, `pp_check()`, `loo()`)
+#'   reads the first imputed data set, which is what brms does and warns
+#'   about. Chains of different imputations sample different
+#'   posteriors, so an R-hat across them measures the imputations as
+#'   well as the sampler, as the brms vignette on missing values says;
+#'   check each imputation's chains on their own.
 #' @section Multimodal posteriors:
 #'   For [frmtmb::mixture()] fits the posterior is multimodal by construction
 #'   (label switching at minimum). Mode-centered inits, jittered or
@@ -2392,6 +2409,9 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        fit_control = frmtmb_control(),
                        na.action = stats::na.omit, REML = FALSE,
                        .diagnostic = FALSE) {
+  if (inherits(fit, "frmtmb_multiple")) {
+    return(sample_multiple(fit, match.call(), parent.frame()))
+  }
   # `...` goes to tmbstan, which would take the retired spelling as an
   # unknown sampler option and run the model with no priors at all
   refuse_retired_priors(list(...), "frm_sample()")
@@ -2657,6 +2677,50 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                         centered = ncp$centered)
                  }),
             class = "frmtmb_draws")
+}
+
+#' `frm_sample()` of a `frm_multiple()` result: each imputation's fit
+#' sampled by the same call, and the draws combined as brms's
+#' `brm_multiple()` combines its chains (`rstan::sflist2stanfit()`).
+#' `cl` is the caller's call, re-evaluated once per imputation in
+#' `env` with that imputation's fit in place of the pooled object, so
+#' an argument the caller did not give stays missing there and the
+#' refusals of the fit route still read it so.
+#'
+#' @noRd
+sample_multiple <- function(x, cl, env) {
+  fits <- x[["fits"]]
+  seed <- if (!is.null(cl[["seed"]])) eval(cl[["seed"]], env)
+  if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1L ||
+                           is.na(seed))) {
+    frm_stop("frm_sample(): `seed` must be one number, not ",
+             deparse1(seed), call. = FALSE)
+  }
+  ds <- lapply(seq_along(fits), function(j) {
+    cj <- cl
+    # the function itself, so the call needs no frm_sample on the path
+    cj[[1L]] <- frm_sample
+    cj[["fit"]] <- fits[[j]]
+    # a random stream per imputation, reproducible from the one seed
+    if (!is.null(seed)) cj[["seed"]] <- seed + j - 1
+    eval(cj, env)
+  })
+  nm <- colnames(ds[[1L]]$draws)
+  for (j in seq_along(ds)[-1L]) {
+    if (!identical(colnames(ds[[j]]$draws), nm)) {
+      frm_stop("frm_sample() of a frm_multiple() result combines the ",
+               "draws of every imputation, and imputation ", j, " has ",
+               "different parameters from the first: a factor or group ",
+               "level, say, is missing from one of the imputed data ",
+               "sets. Sample each fit on its own, x$fits[[j]]",
+               call. = FALSE)
+    }
+  }
+  out <- ds[[1L]]
+  out$stanfit <- rstan::sflist2stanfit(lapply(ds, `[[`, "stanfit"))
+  out$draws <- do.call(rbind, lapply(ds, `[[`, "draws"))
+  out$nimp <- length(ds)
+  out
 }
 
 #' @rdname sample-as_draws

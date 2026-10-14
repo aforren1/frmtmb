@@ -1,3 +1,94 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`fitted()` and `residuals()` of a fit accept brms's `ndraws`.** In
+  brms it sets how many posterior draws the summary averages. That is
+  the Monte Carlo error of the answer, not the quantity answered. A
+  maximum-likelihood fit answers that quantity at its estimate, with no
+  Monte Carlo error. So `ndraws` changes nothing, and a message says
+  so; it was refused. `draw_ids`, `sort`, `summary = FALSE` and
+  `robust = TRUE` ask for particular draws and stay refused. The setup
+  lines of brms's ported rows `brmsfit-methods:314` and `:317` now run
+  (`dev/postfix-findings.md`, item f).
+
+## New features
+
+* **A `frm_multiple()` result has `vcov()`, `fitted()`, `coef()`,
+  `ranef()`, `VarCorr()`, `nobs()`, `formula()`, `family()` and an
+  emmeans basis.** Each pools the imputations by Rubin's rules, where
+  brms's `brm_multiple()` combines their draws. The test case is a
+  poisson model on 5 mice imputations, against `glm()` pooled by
+  `mice::pool()`. The largest relative differences are 1.4e-5 in
+  `fixef()`, 8.5e-6 in `vcov()` and 3.1e-5 in the pooled degrees of
+  freedom (`dev/postfix-validate.R`).
+
+* **`fitted()` of a `frm_multiple()` result pools on the link scale**,
+  as its `conditional_effects()` does, and transforms back. Its
+  interval therefore stays inside the response's range. On the poisson
+  case it agrees with `mice::pool.scalar()` of `glm()`'s linear
+  predictor to 7.5e-6. A category probability takes only its interval
+  from the logit scale. Its estimate is the mean of the imputations'
+  probabilities, so the categories sum to 1.
+
+* **`emmeans()` of a `frm_multiple()` result is emmeans's own pooling of
+  a `mice::mira`.** It agrees with that pooling of `glm()` fits to
+  4.4e-5 in the means and 4.3e-4 in the degrees of freedom.
+
+* **`ranef()` and `coef()` of a `frm_multiple()` result average the
+  modes and coefficients of each level.** `ranef(condVar = TRUE)` gives
+  Rubin's total variance. `VarCorr()` pools on the log and Fisher-z
+  scales of the pooled table, and its estimates match that table.
+  Before, `coef()`, `fitted()` and `residuals()` returned `NULL` in
+  silence (stats' default methods).
+
+* **`pp_check(resp = )` checks one response of a multivariate fit.** It
+  compares that response's observed values with its own simulated
+  replicates, on its own rows, as brms does. A `subset()` response uses
+  the rows of its subset. A missing, plural or unknown `resp` is
+  refused in brms 2.23.0's words. Every multivariate fit was refused.
+
+* The sampling API (`?frmtmb-sampling-api`) exports `ce_method()`,
+  `ce_predict_family_check()`, `ce_sim_one()` and `pp_check_resp()`.
+  `ce_plan_eval()` takes `one =`. frmtmb.sample reads them for
+  `conditional_effects(method = "predict")` and `pp_check(resp = )` on
+  draws.
+
+## Bug fixes
+
+* **The pooled `conditional_effects()` of an ordinal `frm_multiple()`
+  result has categories that sum to 1.** Each estimate is the mean of
+  the imputations' probabilities; it was the inverse logit of their
+  mean logit. The band still comes from the logit scale.
+
+* **The error of a nonlinear fit that fails from its default start
+  names this model's nonlinear parameters.** It gives the two ways to
+  give starts: `start =` with the names of `par_template()`, or a
+  located prior. It says that frmtmb offers no start of its own,
+  because a searched start can converge at a local maximum with no
+  warning. Its example named `ult`, a parameter of another model.
+
+* **A `frm_multiple()` result refuses by name the methods that have no
+  Rubin's-rules meaning.** They are `predict()`, `residuals()`,
+  `pp_check()`, `logLik()` (and so `AIC()` and `BIC()`), `loo()`,
+  `waic()`, `update()` and `model.frame()`. Each says why, and names
+  `anova()` or one imputation's fit, `x$fits[[j]]`.
+
+* **`frm_multiple()` refuses imputations whose fits have different
+  coefficients, and names them.** It stopped inside `vapply()` with
+  "values must be length 4".
+
+* **`summary(fit, waic = FALSE)` is accepted.** It asks for nothing, and
+  brms 2.23.0 prints it as it prints `summary()`. The refusal of
+  `waic = TRUE` stays, with its reason.
+
+* **`frm(threshold = )` is refused by name.** The refusal names the
+  family argument the threshold structure belongs to, as
+  `family = sratio(threshold = "equidistant")`. It reads the family
+  from `family =` or from `bf() + family()`. brms before 2.0.0 read the
+  argument in `brm()`, and brms 2.23.0 refuses it too. It was R's
+  "unused argument".
+
 # frmtmb 0.70.0
 
 Three lanes, each with an adversarial review and punch rounds:

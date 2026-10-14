@@ -410,13 +410,20 @@ ce_plan_part <- function(rows, nd, st, blocks, locked, base) {
 #' drawn from THAT vector's covariance. `cache`, an environment, shares a
 #' draw between the rows and panels that name the same new level.
 #'
+#' `one`, when given, is what each part of the grid evaluates in place
+#' of `ce_boot_one()`, as `one(fit, newdata)`: frmtmb.sample passes
+#' `ce_sim_one()` there for `method = "predict"`, so a simulated
+#' response reads the same new-level draws an expected one would.
+#'
 #' @noRd
 ce_plan_eval <- function(f, plan, gi, cache, categorical, resp, dpar,
-                         re_form, anl) {
+                         re_form, anl, one = NULL) {
+  one <- one %||% function(fit, nd) {
+    ce_boot_one(fit, nd, categorical, resp, dpar, re_form, anl)
+  }
   gp <- plan$grids[[gi]]
   if (length(gp$parts) == 1L && !length(gp$parts[[1L]]$new)) {
-    return(ce_boot_one(f, gp$parts[[1L]]$nd, categorical, resp, dpar,
-                       re_form, anl))
+    return(one(f, gp$parts[[1L]]$nd))
   }
   out <- NULL
   for (p in gp$parts) {
@@ -440,7 +447,7 @@ ce_plan_eval <- function(f, plan, gi, cache, categorical, resp, dpar,
       }
       fp$estimates[["b"]] <- b
     }
-    v <- ce_boot_one(fp, p$nd, categorical, resp, dpar, re_form, anl)
+    v <- one(fp, p$nd)
     K <- length(v) %/% length(p$rows)
     if (is.null(out)) out <- matrix(NA_real_, gp$n, K)
     out[p$rows, ] <- matrix(v, length(p$rows), K)

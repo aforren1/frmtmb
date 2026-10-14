@@ -306,8 +306,18 @@ draws_subsample <- function(x, ndraws, draw_ids = NULL) {
 
 #' @export
 summary.frmtmb_draws <- function(object, priors = FALSE, prob = 0.95,
-                                 robust = FALSE, mc_se = FALSE, ...) {
+                                 robust = FALSE, mc_se = FALSE, ...,
+                                 waic = FALSE) {
   frm_check_dots(...)
+  # old brms printed WAIC here; brms 2.23.0 drops the argument in
+  # silence, so a ported call asks for a number neither summary prints
+  check_flag(waic, "waic")
+  if (waic) {
+    frm_stop("summary() cannot honor `waic`: this summary does not print ",
+             "WAIC, and neither does brms 2.23.0's, which ignores the ",
+             "argument. waic(x) computes it from these draws",
+             call. = FALSE)
+  }
   check_flag(priors, "priors")
   check_flag(robust, "robust")
   check_flag(mc_se, "mc_se")
@@ -345,9 +355,14 @@ summary.frmtmb_draws <- function(object, priors = FALSE, prob = 0.95,
     measures$Est.Error <- stats::sd
   }
   measures$quantiles <- qfun
-  measures$Rhat <- posterior::rhat
-  measures$Bulk_ESS <- posterior::ess_bulk
-  measures$Tail_ESS <- posterior::ess_tail
+  # brms drops the three for a brm_multiple() fit: chains of different
+  # imputations sample different posteriors, so an R-hat across them
+  # reads as a failed sampler when the imputations merely differ
+  if (!draws_multiple(object)) {
+    measures$Rhat <- posterior::rhat
+    measures$Bulk_ESS <- posterior::ess_bulk
+    measures$Tail_ESS <- posterior::ess_tail
+  }
   a <- posterior::subset_draws(draws_as_array(object), variable = keep)
   out <- do.call(posterior::summarize_draws, c(list(a), measures))
   out <- as.data.frame(out)
@@ -766,7 +781,8 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' @param negative_rt For `posterior_predict()`: refused. It is brms's
 #'   sign convention for its own wiener family.
 #' @param transform For `posterior_predict()`: a function applied to
-#'   the finished draws, in brms's own fifth position.
+#'   the finished draws, in brms's own fifth position, with brms's warning
+#'   that the argument is deprecated.
 #' @param ... Refused: an argument the method does not have is an error
 #'   naming it, rather than a silently ignored name. The exceptions are
 #'   brms's `allow_new_levels` (and `allow.new.levels`) and
@@ -1186,7 +1202,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   # brms's fifth positional slot: a function applied to the finished
   # draws. It is carried so that a positional brms call means the same
   # thing here, and it does the same thing brms does with it
-  if (!is.null(transform)) out <- match.fun(transform)(out)
+  if (!is.null(transform)) {
+    warn_transform_deprecated()
+    out <- match.fun(transform)(out)
+  }
   out
 }
 
@@ -1255,19 +1274,9 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   fit <- draws_base_fit(object)
   # `resp` is IGNORED on a model with one response, as brms ignores it
   # (validate_resp() returns NULL there) and as the fit method does
-  # since punch round 1; on several responses it selects one, and a
-  # name none of them has is refused
-  multi <- length(fit$spec$responses) > 1L
-  rspec <- if (is.null(resp) || !multi) {
-    single_response(fit, "pp_check()")
-  } else {
-    fit$spec$responses[[resp]]
-  }
-  if (is.null(rspec)) {
-    frm_stop("pp_check(resp = \"", resp, "\") names no response of this ",
-             "model; it has ", paste(names(fit$spec$responses),
-                                      collapse = ", "), call. = FALSE)
-  }
+  # since punch round 1; on several responses it selects one, and the
+  # refusals are brms 2.23.0's words, core's pp_check_resp() for both
+  rspec <- pp_check_resp(fit, resp)
   resp <- rspec$resp_name
   data <- newdata %||% fit$frame[["data_frame"]]
   fargs <- names(formals(fun))
@@ -1381,7 +1390,7 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
     # each column is smoothed on its own, so leaving a column out before
     # the smoothing is the same as leaving it out after
     ps <- draws_ppc_psis_fit(psis_obj$ll[, take, drop = FALSE],
-                             psis_obj$chain_id)
+                             psis_obj$chain_id, draws_multiple(object))
     args[[loo_arg]] <- if (identical(loo_arg, "lw")) {
       stats::weights(ps, log = TRUE)
     } else ps
@@ -1423,7 +1432,9 @@ draws_ppc_psis <- function(object, type, resp, rows, newdata, re_formula) {
 #' under brms's own warning.
 #'
 #' @noRd
-draws_ppc_psis_fit <- function(ll, chain_id) {
+draws_ppc_psis_fit <- function(ll, chain_id, multiple = FALSE) {
+  # brms takes 1 on the combined chains of several imputations
+  if (multiple) return(loo::psis(-ll, r_eff = rep(1, ncol(ll))))
   cid <- chain_id %||% rep(1L, nrow(ll))
   r_eff <- loo::relative_eff(exp(ll), chain_id = cid)
   if (anyNA(r_eff)) {
@@ -3231,4 +3242,33 @@ draws_unseen_level <- function(fit, newdata, re_formula, anl) {
     TRUE
   }, error = function(e) FALSE)
   if (built) "" else NULL
+}
+
+# The model frame the draws were taken on, the fit's. stats' default
+# rebuilt one from formula() and its environment, which holds none of
+# the data, and stopped at "object 'count' not found" on brms's ported
+# row brmsfit-methods:120, bayes_R2(fit2, newdata = model.frame(fit2)).
+#' @export
+model.frame.frmtmb_draws <- function(formula, ...) {
+  stats::model.frame(draws_base_fit(formula), ...)
+}
+
+#' Whether the draws combine the chains of several imputations
+#' (`frm_sample()` of a `frm_multiple()` result), brms's
+#' `is.brmsfit_multiple()`.
+#'
+#' @noRd
+draws_multiple <- function(x) {
+  n <- x[["nimp"]]
+  is.numeric(n) && length(n) == 1L && n > 1
+}
+
+#' brms 2.23.0's warning on `transform =`, which its
+#' `posterior_predict()` gives (deprecated as of brms 2.12.3), and
+#' which `conditional_effects(method = "predict")` reaches through it.
+#'
+#' @noRd
+warn_transform_deprecated <- function() {
+  frm_warning("Argument 'transform' is deprecated and will be removed ",
+              "in the future.", call. = FALSE)
 }

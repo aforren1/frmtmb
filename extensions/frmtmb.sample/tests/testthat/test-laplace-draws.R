@@ -236,10 +236,12 @@ test_that("re_formula = NA is suggested only where it would compute", {
   p <- lap_pair(frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd))
   expect_match(msg(posterior_epred(p$lap)), hint, fixed = TRUE)
   expect_match(msg(fitted(p$lap)), hint, fixed = TRUE)
-  # bayes_R2() takes no re_formula
-  expect_no_match(msg(bayes_R2(p$lap)), "re_formula", fixed = TRUE)
-  expect_match(msg(bayes_R2(p$lap)), "Sample without laplace = TRUE",
+  # bayes_R2() takes brms's re_formula since lane postfix, and with NA
+  # it computes from these draws, so the hint is right there too
+  expect_match(msg(bayes_R2(p$lap)), hint, fixed = TRUE)
+  expect_match(msg(bayes_R2(p$lap)), "without laplace = TRUE",
                fixed = TRUE)
+  expect_true(is.matrix(suppressMessages(bayes_R2(p$lap, re_formula = NA))))
   # a smooth is read at re_formula = NA too, so NA would be refused again
   ps <- lap_pair(suppressWarnings(frm(bf(y ~ s(x, k = 5) + (1 | g)),
                                       family = gaussian(), data = dd)))

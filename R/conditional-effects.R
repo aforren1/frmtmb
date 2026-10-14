@@ -753,6 +753,49 @@ ce_boot_one <- function(fit, nd, categorical, resp, dpar,
   as.vector(p)
 }
 
+#' The families `conditional_effects(method = "predict")` can draw
+#' from, on a fit and on draws alike.
+#'
+#' @noRd
+ce_predict_family_check <- function(rspec) {
+  if (!sim_can(rspec$family)) {
+    frm_stop("method = 'predict' needs a family with a simulator",
+             sim_note(rspec$family), call. = FALSE,
+             package = frm_family_package(rspec$family))
+  }
+  # the band is built from ROWWISE draws, so a family that only draws
+  # whole is refused even though simulate() accepts it:
+  # mixture_mvn()'s sim_ctx returns an n by D matrix, which the
+  # per-row quantiles cannot consume
+  if (is.null(rspec$family[["sim"]])) {
+    frm_stop("method = 'predict' needs a family that draws row by row; '",
+             rspec$family[["family"]], "' draws the response whole",
+             call. = FALSE,
+             package = frm_family_package(rspec$family))
+  }
+  invisible(NULL)
+}
+
+#' One simulated response per row of one grid, at the parameters of
+#' `fit`. frmtmb.sample's `conditional_effects(method = "predict")`
+#' calls it once per posterior draw, which gives the posterior
+#' predictive draws that brms's `posterior_predict()` summarizes. The
+#' ingredients are the ones the fit method's `method = "predict"` draws
+#' from at the estimate: the natural-scale dpars on the grid, the
+#' addition terms held where the grid holds them, and the family's own
+#' simulator through `sim_response()`, so `trunc()` bounds hold.
+#'
+#' @noRd
+ce_sim_one <- function(fit, nd, resp, re_form = NA,
+                       allow_new_levels = FALSE) {
+  rspec <- fit$spec$responses[[resp]]
+  n <- nrow(nd)
+  dpv <- dpars_natural(fit, rspec, nd, re_form, allow_new_levels)
+  avc <- ce_aterms(rspec, nd, n)
+  as.numeric(sim_response(rspec$family, dpv, avc, n,
+                          extra = fit_extras(fit, resp)))
+}
+
 #' The population switch, in brms's spelling, which is now the only
 #' spelling the package has. `re.form` is named in the refusal rather
 #' than left to the generic unknown-argument message because it was a
@@ -1239,7 +1282,15 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   mean, like every other variable. An expression bound is evaluated
 #'   on the grid, where the response is at its mean too, so
 #'   `trunc(lb = min(y) - 1)` is `mean(y) - 1`. Set the variable in
-#'   `conditions` for a bound of your choice.
+#'   `conditions` for a bound of your choice. On the draws of
+#'   `frmtmb.sample::frm_sample()`, `"predict"` draws one response per
+#'   grid row and posterior draw, at the parameters of that draw, so the
+#'   band is the posterior predictive band that brms draws: under the
+#'   draws method's default `robust = TRUE`, `estimate__` is its median
+#'   and `se__` its MAD. There, as in brms, `transform` applies to the
+#'   predicted draws before they are summarized, with brms's warning that
+#'   the argument is deprecated, and `seed` fixes the
+#'   simulation.
 #' @param ndraws Simulated responses per grid point for
 #'   `method = "predict"`. For the draws method: how many evenly spaced
 #'   posterior draws the curves are computed over (default all).
@@ -2266,23 +2317,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # estimate had already been computed, and a family whose expected
   # response is not one number per row died there on a replacement
   # length instead
-  if (method == "predict") {
-    if (!sim_can(rspec$family)) {
-      frm_stop("method = 'predict' needs a family with a simulator",
-               sim_note(rspec$family), call. = FALSE,
-               package = frm_family_package(rspec$family))
-    }
-    # the band is built from ROWWISE draws, so a family that only draws
-    # whole is refused even though simulate() accepts it:
-    # mixture_mvn()'s sim_ctx returns an n by D matrix, which the
-    # per-row quantiles cannot consume
-    if (is.null(rspec$family[["sim"]])) {
-      frm_stop("method = 'predict' needs a family that draws row by row; '",
-               rspec$family[["family"]], "' draws the response whole",
-               call. = FALSE,
-               package = frm_family_package(rspec$family))
-    }
-  }
+  if (method == "predict") ce_predict_family_check(rspec)
   dpar_given <- !is.null(dpar)
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
@@ -3599,10 +3634,12 @@ pp_check_retired <- c(
 #'   its rows: [simulate()] draws for them, the observed series is its
 #'   response column (needed for `prefix = "ppc"` only), and `group` and
 #'   `x` are read from it, as brms reads them. A row with a missing
-#'   response is dropped with brms's warning. `resp` is accepted and
-#'   ignored, which is what brms does with it on a model that has one
-#'   response; a multivariate fit is refused before `resp` could select
-#'   one.
+#'   response is dropped with brms's warning. On a multivariate fit
+#'   `resp` names the one response to check, as in brms, which refuses
+#'   the call without it: that response's observed values against its
+#'   own simulated replicates, on its own rows (a `subset()` response
+#'   on the rows of its subset). On a model with one response `resp` is
+#'   accepted and ignored, which is what brms does with it there.
 #' @param re_formula The random-effect switch, in brms's spelling
 #'   (`pp_check()` is a brms function). On a fit it is passed to
 #'   [simulate()] and defaults to `NA`, which redraws every group-level
@@ -3644,17 +3681,22 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   }
   fun <- pp_check_fun(prefix, type)
   # `resp` is carried so that a positional brms call lands where brms
-  # lands it, and it is IGNORED here for the same reason brms ignores it:
-  # brms's validate_resp() returns NULL for a model with one response, so
-  # brms plots whatever `resp` says, including a name the model does not
-  # have (measured, dev/correct-log/brms-ppcheck.txt). A multivariate fit
-  # is refused by single_response() below, before `resp` could select.
-  rspec <- single_response(object, "pp_check()")
+  # lands it, and on a model with one response it is IGNORED for the
+  # same reason brms ignores it: brms's validate_resp() returns NULL
+  # there, so brms plots whatever `resp` says, including a name the
+  # model does not have (measured, dev/correct-log/brms-ppcheck.txt). On
+  # a multivariate fit it selects the response, in brms's words
+  # (dev/postfix-brms.R)
+  rspec <- pp_check_resp(object, resp)
+  mv <- length(object$spec$responses) > 1L
   if (!is.null(newdata) && !is.data.frame(newdata)) {
     frm_stop("pp_check(): `newdata` must be a data frame, or NULL to ",
              "check the fitted rows, not ", arg_desc(newdata),
              call. = FALSE)
   }
+  # a subset() response is checked on the newdata rows its subset keeps,
+  # as brms's posterior_predict(resp = ) keeps them
+  if (mv) newdata <- subset_newdata(object, rspec$resp_name, newdata)
   fargs <- names(formals(fun))
   if (any(c("lw", "psis_object") %in% fargs)) {
     frm_stop("pp_check(type = \"", type, "\") weights posterior draws by ",
@@ -3669,7 +3711,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
              pp_check_polytomous_noun(rspec$family), ", and a binned error ",
              "needs a numeric one, as in brms", call. = FALSE)
   }
-  if (is.matrix(object$frame[["y"]][[1L]])) {
+  if (is.matrix(object$frame[["y"]][[rspec$resp_name]])) {
     frm_stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
   # brms reads `group` and `x` off the model's data, not off the call:
@@ -3722,8 +3764,15 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   # conditioning on it would compare the data against draws that already
   # know each group's deviation. New levels per replicate are what makes
   # this the frequentist analog of the posterior predictive check.
-  sims <- simulate(object, nsim = ndraws, re_formula = re_formula,
-                   newdata = newdata)
+  sims <- if (mv) {
+    # the one response's marginal replicates, which simulate() itself
+    # does not offer for a multivariate fit
+    sim_fit_draws(object, nsim = ndraws, re_formula = re_formula,
+                  newdata = newdata, resp = rspec$resp_name)
+  } else {
+    simulate(object, nsim = ndraws, re_formula = re_formula,
+             newdata = newdata)
+  }
   if (is.null(newdata)) sims <- na_unpad(object, sims)
   # ordinal and categorical draws come back as factors carrying the
   # response's levels; bayesplot compares them with y, which is the
@@ -3766,6 +3815,27 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
     }
   }
   do.call(fun, c(args, list(...)))
+}
+
+#' The response `pp_check()` checks. A model with one response ignores
+#' `resp`, as brms's `validate_resp()` does. A multivariate one needs
+#' exactly one response named, and the three refusals are brms 2.23.0's
+#' own words for the same calls (dev/postfix-brms.R).
+#'
+#' @noRd
+pp_check_resp <- function(object, resp) {
+  rs <- object$spec$responses
+  if (length(rs) == 1L) return(rs[[1L]])
+  if (is.null(resp)) {
+    frm_stop("Argument 'resp' must be a single variable name when applying ",
+             "this method to a multivariate model.", call. = FALSE)
+  }
+  if (!is.character(resp) || length(resp) != 1L || is.na(resp)) {
+    frm_stop("Cannot coerce 'resp' to a single character value.",
+             call. = FALSE)
+  }
+  # an unknown name is refused by brms_validate_resp(), in brms's words
+  rs[[brms_validate_resp(object, resp)]]
 }
 
 #' What a polytomous response IS, for the `error_binned` refusal: a

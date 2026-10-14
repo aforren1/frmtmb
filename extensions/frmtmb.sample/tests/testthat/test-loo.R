@@ -449,13 +449,15 @@ test_that("the draws-only estimators refuse a fit with a pointer", {
   expect_error(expose_functions(uf), "no Stan program to read")
 })
 
-test_that("multi-model loo() and the draws-surface odd ends refuse", {
+test_that("the draws-surface odd ends refuse", {
   dd <- ll_data()
   uf <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
             dry_run = "objective")
   fd <- fake_draws(uf)
-  expect_error(loo(fd, fd), "one model here")
-  expect_error(waic(fd, fd), "one model here")
+  # loo(fd, fd) is brms's multi-model call since lane postfix (below);
+  # an unnamed argument that is not draws is still refused
+  expect_error(loo(fd, 100), "takes models without a name")
+  expect_error(waic(fd, 100), "takes models without a name")
   # plot() of draws is brms's trace-and-histogram display since lane
   # surface (test-add-criterion.R), no longer a refusal
   expect_error(update(fd), "no formula to revise")
@@ -804,4 +806,122 @@ test_that("a group-unit matrix says so, because loo() cannot", {
                                     ...) plain,
     .package = "frmtmb.sample")
   expect_no_message(loo_matrix(fd, NULL, NULL, "loo()"))
+})
+
+## ---- lane postfix (2026-10-13): brms's loo() surface on draws --------
+## Seen to fail on 0.18.0 (rellib-r8): loo(ds, ds) was refused ("takes
+## one model here"), loo(ds, newdata = ) returned the in-sample elpd in
+## silence, logLik() of draws had no method, and bayes_R2() refused
+## newdata and re_formula (dev/postfix-log/loo-before.txt; lane
+## remeasure R2 to R4, and brms's rows brmsfit-methods:446 to :449,
+## :434, :121, :469 and :1015 to :1016).
+
+test_that("loo() and waic() of several draws are brms's loolist", {
+  cs <- ll_case()
+  skip_if_not_installed("loo")
+  ds <- cs$ds
+  l1 <- suppressWarnings(loo(ds))
+  cmp <- suppressWarnings(loo(ds, ds))
+  expect_s3_class(cmp, "frmtmb_loolist")
+  expect_equal(names(cmp$loos), c("ds", "ds"))
+  expect_equal(cmp$loos[[1]]$estimates, l1$estimates)
+  expect_s3_class(cmp$diffs, "compare.loo")
+  expect_equal(dim(cmp$ic_diffs__), c(1L, 2L))
+  # the same model twice differs by exactly nothing
+  expect_identical(unname(cmp$ic_diffs__[1, ]), c(0, 0))
+  expect_output(print(cmp), "Output of model 'ds':")
+  expect_output(print(cmp), "Model comparisons:")
+  w <- suppressWarnings(waic(ds, ds, model_names = c("a", "b")))
+  expect_equal(names(w$loos), c("a", "b"))
+  expect_equal(colnames(w$ic_diffs__), c("WAIC", "SE"))
+  expect_null(suppressWarnings(loo(ds, ds, compare = FALSE))$diffs)
+  # brms's ic_diffs__ on two different models: model i minus model j
+  # of -2 elpd, and twice the standard error of the pointwise difference
+  d0 <- suppressWarnings(suppressMessages(
+    frm_sample(frm(bf(y ~ 1 + (1 | g)), family = gaussian(),
+                   data = cs$dd),
+               chains = 2, iter = 400, refresh = 0, seed = 1)))
+  two <- suppressWarnings(loo(ds, d0))
+  pa <- two$loos[[1]]$pointwise[, "elpd_loo"]
+  pb <- two$loos[[2]]$pointwise[, "elpd_loo"]
+  expect_equal(unname(two$ic_diffs__[1, ]),
+               c(-2 * sum(pa - pb), 2 * sqrt(length(pa) * stats::var(pa - pb))))
+})
+
+test_that("loo() and waic() refuse what they would otherwise ignore", {
+  cs <- ll_case()
+  skip_if_not_installed("loo")
+  nd <- cs$dd[1:20, ]
+  # 0.18.0 returned all 60 pointwise rows and the in-sample elpd here
+  expect_error(loo(cs$ds, newdata = nd), "cannot honor `newdata`")
+  expect_error(waic(cs$ds, newdata = nd), "cannot honor `newdata`")
+  expect_error(loo(cs$ds, re_formula = NA), "cannot honor `re_formula`")
+  expect_error(loo(cs$ds, moment_match = TRUE), "moment_match = TRUE")
+  expect_error(loo(cs$ds, reloo = TRUE), "reloo = TRUE")
+  expect_error(loo(cs$ds, nosuch = 1), "has no argument `nosuch`")
+  # the absent case: brms's options that change nothing, and the loo
+  # package's own, still run, and give the in-sample answer
+  l <- suppressWarnings(loo(cs$ds))
+  expect_equal(suppressWarnings(loo(cs$ds, pointwise = TRUE,
+                                    moment_match = FALSE))$estimates,
+               l$estimates)
+  expect_s3_class(suppressWarnings(loo(cs$ds, save_psis = TRUE)), "loo")
+})
+
+test_that("logLik() of draws is log_lik(), as brms's is", {
+  cs <- ll_case()
+  expect_identical(logLik(cs$ds), log_lik(cs$ds))
+  expect_equal(dim(logLik(cs$ds, ndraws = 10)), c(10L, 60L))
+  expect_error(logLik(cs$ds, newdata = cs$dd), "does not take newdata")
+})
+
+test_that("bayes_R2() of draws takes brms's newdata and re_formula", {
+  cs <- ll_case()
+  nd <- cs$dd[1:20, ]
+  # by hand: brms's estimator on posterior_epred() of the newdata rows
+  ep <- posterior_epred(cs$ds, newdata = nd, re_formula = NA)
+  vp <- apply(ep, 1L, stats::var)
+  ve <- apply(sweep(ep, 2L, nd$y), 1L, stats::var)
+  r2 <- bayes_R2(cs$ds, newdata = nd, re_formula = NA, summary = FALSE)
+  expect_equal(unname(r2[, 1]), unname(vp / (vp + ve)))
+  expect_equal(dim(bayes_R2(cs$ds, newdata = nd, re_formula = NA)),
+               c(1L, 4L))
+  # conditioning on the groups explains more of these rows than the
+  # population curve does
+  r2g <- bayes_R2(cs$ds, newdata = nd, summary = FALSE)
+  expect_gt(stats::median(r2g), stats::median(r2))
+  # brms's row brmsfit-methods:120 reads newdata off model.frame() of
+  # the draws, which stats' default could not rebuild
+  expect_identical(model.frame(cs$ds), model.frame(cs$fit))
+  expect_equal(dim(bayes_R2(cs$ds, newdata = model.frame(cs$ds)[1:5, ],
+                            re_formula = NA)), c(1L, 4L))
+  # in sample, unchanged
+  expect_equal(bayes_R2(cs$ds), bayes_R2(cs$ds, newdata = NULL))
+  nd$y <- NULL
+  expect_error(bayes_R2(cs$ds, newdata = nd),
+               "Response variables must be specified in 'newdata'.",
+               fixed = TRUE)
+})
+
+# Fix round 1 (review): two models fitted to different responses with
+# the same n are compared with loo's own warning, from brms's `yhash`;
+# the same response compares in silence
+test_that("loo() of models on different responses warns as brms does", {
+  cs <- ll_case()
+  skip_if_not_installed("loo")
+  dd <- cs$dd
+  dd$y2 <- dd$y + stats::rnorm(nrow(dd))
+  d2 <- suppressWarnings(suppressMessages(frm_sample(
+    frm(bf(y2 ~ x + (1 | g)), family = gaussian(), data = dd),
+    chains = 2, iter = 400, refresh = 0, seed = 1)))
+  allow_warnings(suppressMessages(loo(cs$ds, d2)), c(
+    "Not all models have the same y variable", "Pareto k", "pareto_k"),
+    require = "Not all models have the same y variable")
+  w <- character()
+  withCallingHandlers(suppressMessages(loo(cs$ds, cs$ds)),
+                      warning = function(x) {
+                        w <<- c(w, conditionMessage(x))
+                        invokeRestart("muffleWarning")
+                      })
+  expect_length(grep("same y variable", w), 0L)
 })
