@@ -1054,6 +1054,19 @@ estimated_coef_names <- function(fit) {
 #' `vcov(object)`
 #' is still the fixed-effect covariance there.
 #'
+#' Under REML that covariance is the `beta` block of the inverse joint
+#' precision. It is the conditional covariance at the estimated
+#' variance parameters, `sigma^2 (X' V^-1 X)^-1`, plus `J V_theta J'`:
+#' the variance the uncertainty of the variance parameters `theta` adds,
+#' with `J` the derivative of the estimate of `beta` in `theta` and
+#' `V_theta` their covariance. That is glmmTMB's definition, and its
+#' REML standard errors agree with frmtmb's to ten digits. lme4's
+#' `vcov()` reports the conditional part alone, so the two differ where
+#' `J` is not zero: on an unbalanced design by up to 1e-3 of the
+#' standard error, on a balanced one not at all. On an ill-conditioned
+#' design both parts are taken in the design's coordinates and held as a
+#' factor; the products warning of an ML fit applies.
+#'
 #' Passing `cluster` forwards to [vcov_cluster()] for the
 #' cluster-robust (sandwich) covariance, in the `sandwich::vcovCL()`
 #' spelling: `vcov(fit, cluster = ~ g, type = "CR1")`.
@@ -1163,7 +1176,7 @@ vcov_estimated <- function(object, full = FALSE) {
     V <- V[ord, ord, drop = FALSE]
   } else {
     Q <- sdr_of(object)$jointPrecision
-    Vall <- solve_joint_precision(Q, object$cache, object)
+    Vall <- joint_cov_whole(object, Q)$V
     rn <- rownames(Q)
     if (full) {
       # The outer parameter vector under REML (or control profile =

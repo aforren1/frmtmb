@@ -368,8 +368,23 @@ cooks.distance.frmtmb_influence <- function(model, ...) {
   frm_check_dots(...)
   V <- interop_vcov(model$fit)
   p <- ncol(V)
-  Vi <- solve(V)
   d <- sweep(model$fixed, 2, model$fixed_full)
+  # through the factor where the fit holds one: solve(V) stops as
+  # computationally singular on a degree-7 raw polynomial and keeps
+  # three or four digits at degree 6 (dev/illse2-findings.md, item 1)
+  K <- if (all(is.finite(V))) coef_vcov_root(model$fit)
+  if (!is.null(K) && nrow(K) == p) {
+    ok <- !apply(is.na(d), 1L, any)
+    out <- rep(NA_real_, nrow(d))
+    q <- if (any(ok)) root_inv_quad(K, t(d[ok, , drop = FALSE]))
+    if (any(ok) && is.null(q)) {
+      warn_cov_singular(model$fit, "cooks.distance()")
+      q <- NaN
+    }
+    out[ok] <- q / p
+    return(stats::setNames(out, rownames(model$fixed)))
+  }
+  Vi <- solve(V)
   out <- vapply(seq_len(nrow(d)), function(i) {
     di <- d[i, ]
     if (anyNA(di)) return(NA_real_)

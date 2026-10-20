@@ -1,3 +1,125 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **REML and `profile = TRUE` fits on an ill-conditioned fixed design
+  are taped in the design's coordinates.** There `beta` is integrated
+  with the group effects. Its inner Hessian has the design's condition
+  number squared, and the REML objective lost its digits.
+  - On a raw polynomial of degree 7 with `(1 | g)`, the fit stopped
+    short with a convergence warning. Its coefficient standard errors
+    were 1.5 to 1.9 times the exact ones. At degree 8 every standard
+    error was NaN, or the optimizer failed.
+  - Now the objective is taped in `gamma`, with `beta = T gamma` and
+    `T` from the design's QR. Under REML the tape also carries
+    `-log |det T|`, so `logLik()`, AIC and BIC are those of `beta`.
+  - At degrees 3 to 7 the REML log-likelihood equals the exact
+    restricted log-likelihood to 6.6e-10. At degrees 5 to 8 the fit
+    reaches the REML optimum to 2e-12. The covariance is within 6.1e-9
+    of the exact one on the scale of the correlation.
+  - The joint covariance is held as a factor, as on an ML fit. Every
+    route that propagates it reads the factor. `vcov()` warns (class
+    `frmtmb_cov_products`) where a product of the whole matrix loses
+    its digits, and `marginaleffects::get_vcov()` returns NaN.
+  - frmtmb's REML `vcov()` adds the uncertainty of the variance
+    parameters to the conditional covariance, as glmmTMB does. lme4's
+    `vcov()` is the conditional part alone. On these designs it is 2.2
+    to 3.3 percent off its own exact value at degree 7.
+    At degree 8 lme4 stops with an error.
+
+* **A log standard deviation that the optimizer leaves near zero below
+  a small interior maximum now moves.** The log-likelihood is flat
+  toward zero in a log sd. So nlminb can stop at an sd near zero and
+  call the stop converged.
+  - Take a raw polynomial of degree 7 with `(1 | g)` and no group
+    effect (seed 4). The stop was at an sd of 1.9e-6. The maximum is at
+    0.033 times sigma, 1.2e-3 higher. The fit warned, and every
+    coefficient lost its standard error.
+  - When a larger sd gains more than `grad_tol` with the rest held, the
+    optimizer restarts from it. That fit now reaches the exact maximum
+    to 8e-9. Its covariance is within 5.6e-6 of the exact one.
+  - Among 80 such fits, three were more than `grad_tol` short. All
+    three now reach the maximum. One of them had called the sd "flat".
+  - A caller who asks for an earlier stop keeps it. That is an
+    `iter.max` or `eval.max` below 1000, a looser `rel.tol`, `x.tol`,
+    `abs.tol` or `xf.tol` than nlminb's, or another optimizer. Higher
+    caps and tighter tolerances keep the restart.
+
+* **Newton steps from the stop respect the bounds a prior sets.** Every
+  full step that crossed a bound was refused. A step now holds the
+  coordinates it would push out at their bounds.
+  - Take an upper bound one standard error below the estimate of a raw
+    polynomial's top coefficient. On 0.71.0, 10 of 20 fits reached the
+    constrained maximum at degrees 5 to 8. Two of the others stopped
+    0.12 and 0.60 short with no warning. Their standard errors were 5.8
+    to 39 times the right ones. Now 17 of the 20 reach it.
+  - A parameter on its bound that the Newton step would push out is
+    held by that bound, whatever the sign of its gradient. On an
+    ill-conditioned design that sign is rounding.
+  - The other coefficients' covariance is taken in the coordinates of
+    the design without the held one.
+
+* **Nonlinear formulas take the coordinates of their Jacobian.** A
+  nonlinear body has no design, but its Jacobian with respect to the
+  coefficients of its parameters serves as one. This changes the
+  standard errors of such fits.
+  - A degree-8 raw polynomial written as a body, one parameter per
+    coefficient, now reaches the maximum of `lm()`. Its covariance is
+    within 4.7e-6 of the exact one. 0.71.0 stopped 0.047 to 0.41 short
+    and gave no standard errors.
+  - A degree-6 raw polynomial beside `A * sin(w * z)` had a covariance
+    up to 3e-3 from the exact one, with no warning. Now it is within
+    1.8e-8.
+  - The Hessian in these coordinates must be symmetric to 1e-3 of its
+    largest entry. A body that is nearly unidentified along a nonlinear
+    parameter fails that test and keeps the covariance of 0.71.0.
+
+* **Fits with up to 400 outer parameters take the design's
+  coordinates.** The limit was 100. This changes the standard errors
+  of such fits.
+  - A degree-7 raw polynomial beside 150 or 292 covariates now reaches
+    the maximum of `lm()`. Its standard errors are within 5.3e-6. On
+    0.71.0 these fits stopped 0.5 to 2.2 short, with a warning, and
+    their standard errors were NaN or wrong.
+  - Newton steps in natural units still stop at 100 parameters.
+
+* **On an identity-link gaussian design the Hessian in the design's
+  coordinates costs half the gradients.** There the gradient is linear,
+  so a central difference is exact. Every other column keeps the
+  Richardson extrapolation. This moves such fits' standard errors in
+  their last digits.
+  - With 100 outer parameters and n = 1e4, a gaussian fit takes 0.87
+    of the time it took on 0.71.0. With `(1 | g)` it takes 0.89 of
+    that time.
+  - With n = 1e5, both fits take 0.88 of the time they took on 0.71.0.
+  - Non-gaussian and nonlinear fits keep the cost and the accuracy of
+    0.71.0.
+
+## New features
+
+* **`cooks.distance()` and the Wald rules of `anova()` on
+  `frm_multiple()` fits read the factor of the covariance.** These are
+  D1, and D2 with `use = "wald"`. On 0.71.0 they inverted the whole
+  matrix.
+  - At degrees 7 and 8 they stopped with "system is computationally
+    singular". At degree 6 Cook's distances were up to 5.8e-4 off.
+  - Now they are within 2.3e-6 of the exact ones at degree 8.
+  - Where the factor's rows are dependent to working precision, they
+    give NaN with a warning.
+
+## Bug fixes
+
+* When the standard-error check removes nothing, a log sd with a small
+  curvature is interior. The covariance is then taken in the design's
+  coordinates. Before, `solve()` of the natural Hessian kept it
+  1.4e-3 from the exact one at degree 7.
+
+## Documentation
+
+* `?vcov.frmtmb_fit` says what the REML covariance of the coefficients
+  is: the conditional part plus what the variance parameters'
+  uncertainty adds. It names how that differs from lme4's.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

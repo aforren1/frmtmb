@@ -463,7 +463,8 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
     H <- if (!is.null(hc) && is.null(hc$Hq) && identical(hc$at, at)) hc$H
     sdr <- RTMB::sdreport(fit$obj, hessian.fixed = H,
                           getJointPrecision = jp)
-    return(sdr_rescue(fit, sdr_name_joint(sdr, fit$obj), H))
+    return(sdr_rescue(fit, sdr_unwhiten(fit, sdr_name_joint(sdr, fit$obj)),
+                      H))
   }
   obj <- fit$obj
   q0 <- fit$opt$par / u
@@ -482,7 +483,8 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
     sdr$cov.fixed <- V
     sdr$pdHess <- !inherits(try(chol(Hq), silent = TRUE), "try-error")
   }
-  sdr_rescue(fit, sdr_name_joint(sdr, obj), Hq / outer(u, u))
+  sdr_rescue(fit, sdr_unwhiten(fit, sdr_name_joint(sdr, obj)),
+             Hq / outer(u, u))
 }
 
 #' Name the joint precision when sdreport left it unnamed.

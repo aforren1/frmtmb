@@ -451,8 +451,8 @@ fit_draw_space <- function(fit) {
   if (is.null(bn)) bn <- paste0("beta_", seq_len(nb))
   map <- list(names = c(bn, map$names), comp = c(rep("beta", nb), map$comp))
   Q <- sdr_of(fit)$jointPrecision
-  Vall <- tryCatch(solve_joint_precision(Q, fit$cache, fit),
-                   error = function(e) NULL)
+  jw <- tryCatch(joint_cov_whole(fit, Q), error = function(e) NULL)
+  Vall <- jw$V
   rn <- rownames(Q)
   keep <- c(which(rn == "beta"),
             unlist(lapply(unique(map$comp[-seq_len(nb)]),
@@ -462,7 +462,11 @@ fit_draw_space <- function(fit) {
   }
   V <- as.matrix(Vall[keep, keep, drop = FALSE])
   dimnames(V) <- list(map$names, map$names)
-  list(map = map, V = V)
+  root <- if (!is.null(jw$root)) {
+    square_root_rows(jw$root[keep, , drop = FALSE])
+  }
+  if (!is.null(root)) rownames(root) <- map$names
+  list(map = map, V = V, root = root)
 }
 
 #' Delta-method standard errors of a matrix-valued function of the outer

@@ -2798,7 +2798,10 @@ hyp_par_cov <- function(fit) {
          })
   } else {
     Q <- sdr_of(fit)$jointPrecision
-    Vall <- solve_joint_precision(Q, fit$cache, fit)
+    # through the factor of a beta taped in the design's coordinates
+    # (sdr_unwhiten())
+    jw <- joint_cov_whole(fit, Q)
+    Vall <- jw$V
     rn <- rownames(Q)
     keep <- which(rn %in% comps)
     vo <- hyp_vals_only(fit)
@@ -2811,7 +2814,10 @@ hyp_par_cov <- function(fit) {
     }
     V <- as.matrix(Vall[keep, keep, drop = FALSE])
     list(vals = vals, comp = rn[keep], V = V, outer_pos = NULL,
-         n_outer = length(fit$opt$par), Vp = V, jc = NULL)
+         n_outer = length(fit$opt$par), Vp = V, jc = NULL,
+         root = if (!is.null(jw$root)) {
+           square_root_rows(jw$root[keep, , drop = FALSE])
+         })
   }
 }
 

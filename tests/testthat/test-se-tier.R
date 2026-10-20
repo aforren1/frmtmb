@@ -438,28 +438,29 @@ test_that("an sd the fit left near zero short of the maximum is no boundary", {
   # "false convergence (8)" at an sd of 1.7e-12 times sigma, 0.825 below
   # lme4's log-likelihood at 0.33; the convergence warning was replaced
   # by "is at zero" (dev/setier-rev2-trap.R). The default start reaches
-  # lme4's maximum at any units since lane optrap, so the fit is left
-  # short here by its start: from a group sd of exp(-20) it stops at
-  # 2.1e-9, 0.825 short, at code 0 (dev/optrap-rb2.R)
-  set.seed(36)
-  d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
-  d$y <- 1 + 0.5 * d$x + rnorm(100)
-  r <- tier_conds(frm(y ~ x + (1 | g), data = d,
-                      start = list(theta = -20)))
-  bm <- Filter(function(x) inherits(x, "frmtmb_boundary_fit"), r$messages)
-  expect_length(bm, 0L)
-  expect_true(any(grepl("did not report convergence|stopped short",
-                        r$warnings)))
-  # seed 19, code 0, 0.666 short: the SE warning says why
-  set.seed(19)
-  d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
-  d$y <- 1 + 0.5 * d$x + rnorm(100)
-  r <- tier_conds(frm(y ~ x + (1 | g), data = d,
-                      start = list(theta = -20)))
-  expect_length(Filter(function(x) inherits(x, "frmtmb_boundary_fit"),
-                       r$messages), 0L)
-  expect_true(any(grepl("stopped short of the maximum", r$warnings,
-                        fixed = TRUE)))
+  # lme4's maximum at any units since lane optrap, so the fit was left
+  # short here by its start: from a group sd of exp(-20) nlminb stops at
+  # 2.1e-9, 0.825 short, at code 0 (dev/optrap-rb2.R). The optimizer
+  # now restarts from the larger sd the upward probe finds better
+  # (sd_up_escape()) and reaches lme4's maximum to 5e-10
+  # (dev/illse2-p2tier.R); test-se-conv.R pins a stop that a caller's
+  # iteration cap keeps short
+  skip_if_not_installed("lme4")
+  for (seed in c(36, 19)) {
+    set.seed(seed)
+    d <- data.frame(g = factor(rep(1:20, each = 5)), x = rnorm(100))
+    d$y <- 1 + 0.5 * d$x + rnorm(100)
+    r <- tier_conds(frm(y ~ x + (1 | g), data = d,
+                        start = list(theta = -20)))
+    bm <- Filter(function(x) inherits(x, "frmtmb_boundary_fit"),
+                 r$messages)
+    expect_length(bm, 0L)
+    expect_length(r$warnings, 0L)
+    l <- lme4::lmer(y ~ x + (1 | g), data = d, REML = FALSE)
+    ll <- as.numeric(stats::logLik(l))
+    expect_lt(abs(as.numeric(stats::logLik(r$value)) / ll - 1), 1e-8)
+    expect_true(isTRUE(r$value$opt$sd_escape[["gain"]] > 0.5))
+  }
 })
 
 test_that("under quadrature no sd is called a boundary", {

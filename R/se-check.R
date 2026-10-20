@@ -266,7 +266,7 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
     list(V = V, shown = V, lost = none, tier = 1L)
   }
   p <- fit$opt$par
-  held <- se_bound_held(fit, p)
+  held <- se_bound_held(fit, p, H)
   edge <- se_edge_sd(fit, H) | ec
   # before the tiers: on an ill-conditioned fixed design the natural
   # inverse is inaccurate whichever tier accepts it (se_reparam_cov())
@@ -320,6 +320,15 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
   # the covariance tier 3 builds is not needed where tier 1 stands
   lazy <- !is.null(tier1) && !replaced
   an <- se_tier3(fit, H, E, p, exact, held, edge, lazy = lazy)
+  # Tier 3 removed nothing, so a log sd the route deferred to it
+  # (se_reparam_defer()) is interior, and the route may take the whole
+  # Hessian: an sd at 0.033 times sigma on a degree-7 raw polynomial
+  # kept a covariance 1.4e-3 from the exact one on the scale of the
+  # correlation (dev/illse2-p2.R)
+  if (!length(an$lost) && !any(held) && !any(edge)) {
+    rp <- se_reparam_cov(fit, H, p, defer = FALSE)
+    if (!is.null(rp)) return(rp)
+  }
   # a re-measured span is not the Hessian sdreport() inverted
   if (!length(an$lost) && lazy && !isTRUE(an$remeasured)) tier1 else an
 }
@@ -367,16 +376,18 @@ se_tier3_could_act <- function(fit, H, E, exact, held = logical(0),
   min(ev) <= scr * max(abs(ev))
 }
 
-#' The parameters a bound holds (grad_bound_active()), read only when the
+#' The parameters a bound holds (grad_bound_active(), or with the
+#' Hessian `H` bound_held_by_step()), read only when the
 #' box has a finite bound, since a gradient costs a sweep.
 #'
 #' @noRd
-se_bound_held <- function(fit, p) {
+se_bound_held <- function(fit, p, H = NULL) {
   np <- length(p)
   box <- fit_outer_box(fit)
   if (!any(is.finite(c(box$lower, box$upper)))) return(logical(np))
   g <- tryCatch(drop(fit$obj$gr(p)), error = function(e) rep(NA_real_, np))
-  grad_bound_active(p, g, box) %in% TRUE
+  if (is.null(H)) grad_bound_active(p, g, box) %in% TRUE else
+    bound_held_by_step(fit, p, g, H, box)
 }
 
 #' Log standard deviations at their edge: the likelihood does not change
@@ -583,7 +594,7 @@ se_tier3 <- function(fit, H, E, p, exact = FALSE, held = NULL,
   np <- NROW(H)
   nm <- outer_par_names(fit)
   why <- character(np)
-  if (is.null(held)) held <- se_bound_held(fit, p)
+  if (is.null(held)) held <- se_bound_held(fit, p, H)
   why[held %in% TRUE] <- "bound"
   # a log sd the likelihood ignores below its estimate is at its edge
   # whatever the size of its row, which grows with n (se_edge_sd())
@@ -1972,6 +1983,7 @@ se_boundary_names <- function(fit, lost) {
 #' Attribute `moved` is the largest change of the log-likelihood over
 #' the same values, either sign: 0 when none was asked, so a caller that
 #' needs the likelihood to read the sd (se_sd_at_zero()) refuses then.
+#' Attribute `at` is the log sd of the best gain, NULL when none gains.
 #' The answer is kept per sd in the fit's cache, since se_edge_sd() and
 #' se_boundary_names() both ask it of the same point.
 #'
@@ -1997,19 +2009,7 @@ se_sd_gain_up0 <- function(fit, k) {
   if (length(thpos) != length(th) || length(om$names) != length(p)) {
     return(none)
   }
-  scale <- 1
-  for (bk in fit$frame[["re_blocks"]] %||% list()) {
-    if (!k %in% bk[["theta_idx"]]) next
-    key <- bk[["components"]][[1L]]$lp_key
-    lp <- fit$frame[["linpreds"]][[key]]
-    dp <- tryCatch(eval_dpars(fit, b = NULL)[[lp[["resp"]]]],
-                   error = function(e) NULL)
-    sg <- dp[["sigma"]]
-    if (is.numeric(sg) && length(sg) && all(is.finite(sg))) {
-      scale <- stats::median(sg)
-    }
-    break
-  }
+  scale <- se_sd_scale(fit, k)
   up <- log(c(0.01, 0.03, 0.1, 0.3, 1) * scale)
   up <- up[up > p[thpos[k]]]
   # a quadrature objective is not accurate above the sd it was fitted
@@ -2029,7 +2029,10 @@ se_sd_gain_up0 <- function(fit, k) {
     f0 - tryCatch(se_quiet(obj$fn(q)), error = function(e) NA_real_)
   }
   gain <- vapply(up, at, 0)
+  up <- up[is.finite(gain)]
   gain <- gain[is.finite(gain)]
+  # where the best gain was, for an escape from the stop (sd_up_escape())
+  best <- if (length(gain) && max(gain) > 0) up[which.max(gain)]
   # Whether the likelihood reads the sd at all is asked beyond the
   # grid too: a group effect off the response's scale (an nl term
   # times 1e-4) moved the objective by less than 1e-6 over the grid and
@@ -2038,7 +2041,29 @@ se_sd_gain_up0 <- function(fit, k) {
   # (test-diagnostics-ux.R's flat peak) moves it by nothing
   far <- at(p[thpos[k]] + se_sd_far)
   moved <- max(abs(c(gain, far[is.finite(far)], 0)))
-  structure(if (length(gain)) max(0, gain) else 0, moved = moved)
+  structure(if (length(gain)) max(0, gain) else 0, moved = moved,
+            at = best)
+}
+
+#' The scale of the term of the `k`th theta, against which
+#' se_sd_gain_up() places its grid: the median residual sd where the
+#' response has one, else 1 on the link scale.
+#'
+#' @noRd
+se_sd_scale <- function(fit, k) {
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    if (!k %in% bk[["theta_idx"]]) next
+    key <- bk[["components"]][[1L]]$lp_key
+    lp <- fit$frame[["linpreds"]][[key]]
+    dp <- tryCatch(eval_dpars(fit, b = NULL)[[lp[["resp"]]]],
+                   error = function(e) NULL)
+    sg <- dp[["sigma"]]
+    if (is.numeric(sg) && length(sg) && all(is.finite(sg))) {
+      return(stats::median(sg))
+    }
+    break
+  }
+  1
 }
 
 #' How far up, on the log scale, se_sd_gain_up() asks whether the
