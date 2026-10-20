@@ -424,3 +424,30 @@ test_that("the simulated first moment matches the fitted matrix", {
                 sqrt(ch * s11 * s22) * sin(ph))
   expect_equal(m, tgt, tolerance = 0.05, ignore_attr = TRUE)
 })
+
+test_that("the coherence refusal is the same at both ends", {
+  # One bound on the logit scale, qlogis(1 - eps): an end within machine
+  # precision of 1 and its mirror image near 0 are refused alike, and
+  # an interval inside (0, 1) is returned. The old test of the rounded
+  # ends refused only near 1: plogis() rounds a lower end to 0 only
+  # below a logit of about -745.
+  edge <- stats::qlogis(1 - .Machine$double.eps)
+  z <- stats::qnorm(0.975)
+  link <- function(eta, se) {
+    function(...) list(fit = eta, se.fit = se, z = z)
+  }
+  # both ends, past the bound by a tenth of a standard error
+  for (s in c(-1, 1)) {
+    local_mocked_bindings(cp_link_se = link(s * (edge - 9.9 * z), 10))
+    e <- tryCatch(frm_coherence(NULL), error = function(e) e)
+    expect_s3_class(e, "error")
+    expect_match(conditionMessage(e), "no interval exists", fixed = TRUE)
+  }
+  # the absent case: the same intervals a tenth of a standard error
+  # inside the bound, at both ends
+  local_mocked_bindings(
+    cp_link_se = link(c(-1, 1) * (edge - 10.1 * z), c(10, 10)))
+  co <- frm_coherence(NULL)
+  expect_true(all(co$.lower > 0 & co$.upper < 1))
+  expect_true(all(co$.lower < co$.estimate & co$.estimate < co$.upper))
+})

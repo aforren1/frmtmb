@@ -1,3 +1,17 @@
+# frmtmb.coupling (development version)
+
+## Breaking changes
+
+* **`frm_coherence()` refuses, by name, an interval that comes within
+  machine precision of 0 or 1**, where it used to return one. The
+  interval is documented to stay inside (0, 1). frmtmb now takes the
+  exact Hessian on a fit without random effects, so a coherence run off
+  to 1 has a finite, very large standard error rather than a NaN one,
+  and its interval came back with an upper end of exactly 1. The bound
+  is one number on the logit scale, `qlogis(1 - eps)` (about 36.04),
+  and it is the same at both ends, so a coherence run off to 0 is
+  refused in the same way.
+
 # frmtmb.coupling 0.6.0
 
 * `frm_cross_spectrum()` takes two lists of epochs of unequal length,

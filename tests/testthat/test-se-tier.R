@@ -100,7 +100,13 @@ test_that("a healthy fit with random effects is untouched and silent", {
   expect_length(r$messages, 0L)
   expect_null(r$value$par_units)
   expect_length(sdr_of(r$value)$se_lost, 0L)
-  ref <- RTMB::sdreport(r$value$obj)$cov.fixed
+  # sdreport()'s own inverse of the Hessian it is handed, whose step for
+  # Days is 1e-3 over Days' root mean square of 5.3 (outer_fd_steps()).
+  # 0.71.0 pinned RTMB::sdreport(obj), optimHess()'s step of 1e-3; on
+  # this gaussian fit the two agree to 6.1e-14 in SE (lane adhess,
+  # dev/adhess-tier-pin.R)
+  h <- asNamespace("frmtmb")$fit_outer_hessian(r$value)
+  ref <- RTMB::sdreport(r$value$obj, hessian.fixed = h$H)$cov.fixed
   expect_identical(unname(vcov(r$value, full = TRUE)), unname(ref))
   cb <- lme4::cbpp
   r <- tier_conds(frm(cbind(incidence, size - incidence) ~ period +

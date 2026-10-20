@@ -430,6 +430,10 @@ autoscale_choose <- function(run, control, template, vb = 0L) {
   chosen$value
 }
 
+#' sdreport() is handed the outer Hessian fit_outer_hessian() builds:
+#' the AD Hessian without random effects, central differences of the
+#' gradient with them.
+#'
 #' sdreport on the unscaled optimum needs two repairs when non-unit
 #' autoscale units are in play: optimHess steps are absolute (far larger
 #' than a 1e-6-magnitude coefficient, so the default outer Hessian is
@@ -472,9 +476,12 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
     stats::optimHess(q0, function(q) obj$fn(q * u),
                      function(q) obj$gr(q * u) * u)
   }
+  # an AD Hessian is exact in natural units already, and sdr_rescue()
+  # recognizes it there as the one the check kept
+  Hn <- if (isTRUE(hc$exact) && identical(hc$Hq, Hq)) hc$H else
+    Hq / outer(u, u)
   sdr <- RTMB::sdreport(obj, par.fixed = fit$opt$par,
-                        hessian.fixed = Hq / outer(u, u),
-                        getJointPrecision = jp)
+                        hessian.fixed = Hn, getJointPrecision = jp)
   Vq <- try(solve(Hq), silent = TRUE)
   if (!inherits(Vq, "try-error")) {
     V <- Vq * outer(u, u)
@@ -482,7 +489,7 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
     sdr$cov.fixed <- V
     sdr$pdHess <- !inherits(try(chol(Hq), silent = TRUE), "try-error")
   }
-  sdr_rescue(fit, sdr_name_joint(sdr, obj), Hq / outer(u, u))
+  sdr_rescue(fit, sdr_name_joint(sdr, obj), Hn)
 }
 
 #' Name the joint precision when sdreport left it unnamed.

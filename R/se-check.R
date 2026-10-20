@@ -21,10 +21,16 @@
 #' and TMB keeps the best point it has evaluated, which sdreport() then
 #' reads; so the state is saved and restored, as nl_flat_message() does.
 #'
-#' Returns `list(H, at, Hq, E)`: `H` in natural units, `at` the outer
-#' parameter vector it was taken at, `Hq` the autoscaled Hessian when
-#' `par_units` are in play (what `autoscale_sdreport()` inverts), and
-#' `E` the noise of `H` (fd_hessian()).
+#' Without random effects it is the AD Hessian (outer_hessian_ad()), and
+#' central differences of the gradient (fd_hessian()) only where RTMB
+#' cannot give one; with random effects TMB has no Hessian of the
+#' Laplace objective, so it is always the differences.
+#'
+#' Returns `list(H, at, Hq, E, exact)`: `H` in natural units, `at` the
+#' outer parameter vector it was taken at, `Hq` the autoscaled Hessian
+#' when `par_units` are in play (what `autoscale_sdreport()` inverts),
+#' `E` the noise of `H` (the AD Hessian's asymmetry, or fd_hessian()'s),
+#' and `exact` `TRUE` for the AD Hessian.
 #'
 #' `pull` (logical, one per outer parameter) moves those parameters back
 #' to the clamp before the Hessian is taken (se_edge_cor()).
@@ -48,16 +54,50 @@ fit_outer_hessian <- function(fit, pull = NULL) {
   if (!is.null(hit) && identical(hit$key, key)) return(hit$h)
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
-  out <- if (!scaled) {
-    h <- fd_hessian(at, obj$gr)
+  hx <- if (!length(obj$env$random)) outer_hessian_ad(obj, at)
+  pn <- names(fit$opt$par)
+  out <- if (!is.null(hx)) {
+    # u is a diagonal scaling, so Hq is the exact Hessian in the
+    # optimizer's units to one rounding per entry
+    list(H = hx$H, at = at,
+         Hq = if (scaled) hx$H * outer(u, u),
+         E = hx$E, exact = TRUE)
+  } else if (!scaled) {
+    h <- fd_hessian(at, obj$gr, eps = outer_fd_steps(fit$frame, pn))
     list(H = h$H, at = at, Hq = NULL, E = h$E)
   } else {
-    h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u)
+    h <- fd_hessian(at / u, function(q) obj$gr(q * u) * u,
+                    eps = outer_fd_steps(fit$frame, pn, u))
     list(H = h$H / outer(u, u), at = at, Hq = h$H,
          E = h$E / outer(u, u))
   }
   if (is.environment(env)) env$.frmtmb_outer_h <- list(key = key, h = out)
   out
+}
+
+#' The AD Hessian of an objective without random effects at `at`,
+#' symmetrized, with `E` its asymmetry (rounding only), or NULL when RTMB
+#' cannot build it or it is not finite.
+#'
+#' sdreport() would otherwise invert optimHess()'s central differences,
+#' whose step of 1e-3 is absolute: where that step moves a predictor by
+#' much and the gradient is not linear along it, the covariance is wrong
+#' and nothing warns. A poisson GLM with x ~ N(500, 100) had SEs 6.2
+#' percent off, `a * exp(b * x)` with x on 20 + [0, 1] a correlation
+#' 0.133 off (dev/adhess-fdcov.R, dev/adhess-findings.md). The SE check
+#' already reads this Hessian as exact (se_fit_analysis()), so the
+#' covariance and the check now see the same matrix.
+#'
+#' @noRd
+outer_hessian_ad <- function(obj, at) {
+  Hx <- tryCatch(se_quiet(obj_he_cached(obj, at)), error = function(e) NULL)
+  np <- length(at)
+  if (!is.matrix(Hx) || !all(dim(Hx) == np) || !all(is.finite(Hx))) {
+    return(NULL)
+  }
+  H <- (Hx + t(Hx)) / 2
+  dimnames(H) <- list(names(at), names(at))
+  list(H = H, E = abs(Hx - t(Hx)) / 2)
 }
 
 #' fit_outer_hessian()'s `H` when it is taken at `p`, the fit's own
@@ -81,16 +121,71 @@ fit_outer_hessian_at <- function(fit, p, kept_only = FALSE) {
   if (is.matrix(H) && all(dim(H) == length(p))) H
 }
 
+#' The steps fd_hessian() takes along the outer parameters, in the
+#' coordinates `par / u`: 1e-3 over the root mean square of the design
+#' column a coefficient multiplies (in those coordinates), where that is
+#' above one, and 1e-3 otherwise. So a step moves a linear predictor by
+#' about 1e-3 in root mean square over the rows; a row far out in a heavy
+#' tail moves by more (1.7e-2 for the largest row of a lognormal column of
+#' root mean square 50, whose SEs were still within 7e-6 of a Richardson
+#' reference; lane adhess review, finding 3).
+#'
+#' The root mean square is the scale of a shifted column (it is |mean|
+#' there), of a dummy and of an interaction. The alternative 1e-3 / max|x|
+#' measured 30 times more accurate on heavy tails and equal elsewhere,
+#' but it changes the steps of a standardized covariate (max |x| about 3),
+#' so a design at unit scale would no longer keep 0.71.0's Hessian bit
+#' for bit (dev/adhess-findings.md, "Fix round 1").
+#'
+#' The truncation of a central difference grows with the square of how
+#' far the step moves the predictor, so the absolute 1e-3 of optimHess()
+#' is wrong for a coefficient on a covariate of scale 500: on a poisson
+#' GLMM with x ~ N(500, 100) the step moved the predictor by 0.5 per
+#' row, the SEs were 0.37 percent off and the correlation 0.10, and the
+#' SE check then called the group sd flat; with these steps the error is
+#' 2.6e-7 (dev/adhess-restep.R, dev/adhess-findings.md). The rule reads
+#' the design only, so it decides nothing from a measured number that
+#' rounding could move. A column narrower than one unit keeps 1e-3:
+#' `par_units` already widen one below 1e-3 (autoscale), and between the
+#' two the error is that of a unit column. A nonlinear body, a `mo()`
+#' term and every other parameter keep 1e-3 (dev/adhess-findings.md says
+#' what that leaves).
+#'
+#' @noRd
+outer_fd_steps <- function(frame, pn, u = 1) {
+  np <- length(pn)
+  # 0 for a parameter no design column multiplies, whatever its unit
+  s <- rep(0, np)
+  for (lp in frame[["linpreds"]] %||% list()) {
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
+          length(lp[["mo"]] %||% list()) ||
+          !isTRUE(lp[["par"]] %in% c("beta", "betad"))) {
+      next
+    }
+    X <- lp[["X"]]
+    if (!design_ok(X)) next
+    pos <- tryCatch(outer_index_of(lp, pn, frame), error = function(e) NULL)
+    if (length(pos) != ncol(X)) next
+    rms <- tryCatch(sqrt(as.numeric(Matrix::colSums(X^2)) / nrow(X)),
+                    error = function(e) NULL)
+    if (length(rms) != length(pos) || !all(is.finite(rms))) next
+    s[pos] <- pmax(s[pos], rms)
+  }
+  # in the coordinates par / u a column's scale is its own times u
+  1e-3 / pmax(1, s * rep_len(u, np))
+}
+
 #' stats::optimHess() with its default controls, written out so that the
 #' unsymmetrized differences are kept.
 #'
 #' The arithmetic is optimHess()'s C code step for step: the same
 #' gradient calls in the same order, the base point moved by `+ eps`,
 #' `- 2 * eps` and `+ eps` in place, column `i` as
-#' `(g(+) - g(-)) / (2 * eps)`, then `0.5 * (H[i, j] + H[j, i])`. So `H`
-#' is the matrix sdreport() would build, bit for bit
-#' (test-se-check.R pins it with identical()), and sdreport() can be
-#' handed it.
+#' `(g(+) - g(-)) / (2 * eps)`, then `0.5 * (H[i, j] + H[j, i])`. So at
+#' its default `eps`, `H` is the matrix sdreport() would build, bit for
+#' bit (test-se-check.R pins it with identical()). fit_outer_hessian()
+#' passes the steps of outer_fd_steps() instead and hands sdreport() the
+#' result.
 #'
 #' `E` is half the asymmetry of the differences before they are
 #' symmetrized: the Hessian's own noise, which on a Laplace objective
@@ -118,19 +213,24 @@ fit_outer_hessian_at <- function(fit, p, kept_only = FALSE) {
 #' above the band moved the check's verdict on test-se-tier.R's curved
 #' ridge (dev/optstart-sediag.R).
 #'
+#' `eps` is the step, one per coordinate or one for all. Its default is
+#' optimHess()'s; fit_outer_hessian() passes outer_fd_steps(), which is
+#' that default wherever no design column is wider than one unit.
+#'
 #' @noRd
-fd_hessian <- function(par, gr, tau_band = 1e-2, tau_step = 1e-4) {
+fd_hessian <- function(par, gr, tau_band = 1e-2, tau_step = 1e-4,
+                       eps = 0.001) {
   n <- length(par)
-  eps <- 0.001
+  eps <- rep_len(eps, n)
   dpar <- par
   H <- matrix(0, n, n)
   for (i in seq_len(n)) {
-    dpar[i] <- dpar[i] + eps
+    dpar[i] <- dpar[i] + eps[i]
     df1 <- as.numeric(gr(dpar))
-    dpar[i] <- dpar[i] - 2 * eps
+    dpar[i] <- dpar[i] - 2 * eps[i]
     df2 <- as.numeric(gr(dpar))
-    H[, i] <- (1 * (df1 - df2)) / (2 * eps * 1 * 1)
-    dpar[i] <- dpar[i] + eps
+    H[, i] <- (1 * (df1 - df2)) / (2 * eps[i] * 1 * 1)
+    dpar[i] <- dpar[i] + eps[i]
   }
   factors <- function(M) {
     all(is.finite(M)) &&
@@ -259,6 +359,9 @@ cov_from_hessian <- function(fit, H, E = NULL, exact = FALSE) {
     if (!is.null(h) && all(dim(h$H) == np)) {
       H <- h$H
       E <- h$E
+      # an AD Hessian at the clamp must not be swapped below for the one
+      # at the fit's own point
+      exact <- isTRUE(h$exact)
     }
   }
   V <- try(solve(H), silent = TRUE)
@@ -1570,6 +1673,46 @@ sdr_rescue <- function(fit, sdr, H = NULL) {
   sdr
 }
 
+#' A variance that is zero, negative or not finite is never shown: its
+#' row and column of `cov.fixed` become NaN, and the parameter is lost
+#' with the reason "nocurv". The paths of sdr_rescue_hessian() that keep
+#' sdreport()'s own inverse call this.
+#'
+#' solve() inverts a Hessian with a zero diagonal entry and nonzero
+#' cross terms, `[[0, B], [B', C]]`, and the block of the result for the
+#' other parameters is exactly 0. asym_laplace's log density is
+#' piecewise linear in its location, so its AD Hessian is that matrix,
+#' and its fits stop short (the gradient check), which keeps sdreport()'s
+#' inverse: standard errors of exactly 0 and intervals of zero width
+#' (lane adhess review, finding 1). 0.71.0's differences across the kinks
+#' gave noise there rather than 0.
+#'
+#' @noRd
+sdr_nan_nonpos <- function(fit, sdr) {
+  V0 <- sdr$cov.fixed
+  v <- if (is.matrix(V0)) diag(V0)
+  j <- which(!(is.finite(v) & v > 0))
+  nm <- outer_par_names(fit)
+  if (!length(j) || length(nm) != NROW(V0)) return(sdr)
+  shown <- V0
+  shown[j, ] <- NaN
+  shown[, j] <- NaN
+  sdr$cov_fixed_raw <- sdr$cov_fixed_raw %||% V0
+  sdr$cov.fixed <- shown
+  # what predictions read: a NaN row there makes every prediction NaN,
+  # which is right when the covariance is not one
+  if (!is.null(sdr$cov_fixed_prop)) {
+    sdr$cov_fixed_prop[j, ] <- NaN
+    sdr$cov_fixed_prop[, j] <- NaN
+  }
+  lost <- sdr$se_lost %||% stats::setNames(character(0), character(0))
+  j <- setdiff(j, match(names(lost), nm))
+  if (length(j)) {
+    sdr$se_lost <- c(lost, stats::setNames(rep("nocurv", length(j)), nm[j]))
+  }
+  sdr
+}
+
 #' @noRd
 sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
   V0 <- sdr$cov.fixed
@@ -1590,7 +1733,8 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
   }
   if (is.null(an)) {
     # Without random effects the fit-time check read the exact Hessian
-    # and found nothing, and the finite-difference one sdreport() got
+    # and found nothing, and sdreport() inverted that same Hessian
+    # (fit_outer_hessian()), or differences where RTMB had none, which
     # must not overrule it. With random effects an inverse that is
     # usable can still rest on a row of noise (cov_from_hessian()), so
     # it is looked at unless there is no Hessian to look at.
@@ -1598,18 +1742,20 @@ sdr_rescue_hessian <- function(fit, sdr, H = NULL) {
     if (cov_usable(V0) &&
           (!length(fit$obj$env$random) || is.null(H) ||
              (isTRUE(hc$clean) && identical(H, hc$H)))) {
-      return(sdr)
+      return(sdr_nan_nonpos(fit, sdr))
     }
-    if (short) return(sdr)
+    if (short) return(sdr_nan_nonpos(fit, sdr))
     same <- !is.null(H) && identical(H, hc$H)
     E <- if (same) hc$E
+    exact <- same && isTRUE(hc$exact)
     if (is.null(H)) {
       h <- tryCatch(fit_outer_hessian(fit), error = function(e) NULL)
       H <- h$H
       E <- h$E
+      exact <- isTRUE(h$exact)
     }
     if (is.null(H)) return(sdr)
-    an <- cov_from_hessian(fit, H, E)
+    an <- cov_from_hessian(fit, H, E, exact = exact)
     if (an$tier == 1L) {
       # the joint-precision sdreport of the same fit need not ask again
       if (same) fit$cache$hessian_fixed$clean <- TRUE
@@ -2636,11 +2782,19 @@ se_lost_clauses <- function(fit, lost) {
                        "direction and other starting values may reach a ",
                        "higher one"),
       nonfinite = paste0("the Hessian is not finite in ",
-                         if (one) "its row" else "their rows"))
+                         if (one) "its row" else "their rows"),
+      nocurv = paste0("the inverse of the Hessian where the fit stopped ",
+                      "gives ", if (one) "it a variance that is" else
+                        "them variances that are",
+                      " zero, negative or not finite, so the ",
+                      "curvature there does not measure the uncertainty (a ",
+                      "log density with a kink in a parameter, such as ",
+                      "asym_laplace()'s in its location, has no curvature ",
+                      "along it)"))
   }
   out <- character(0)
   for (r in c("bound", "boundary", "separation", "short", "flat",
-              "illcond", "concave", "nonfinite")) {
+              "illcond", "concave", "nonfinite", "nocurv")) {
     n <- names(lost)[lost == r]
     if (!length(n)) next
     lab <- if (r == "boundary") se_boundary_labels(fit, n) else {

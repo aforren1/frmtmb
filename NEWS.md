@@ -1,3 +1,64 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **Standard errors of a fit without random effects come from the exact
+  Hessian.** The covariance was the inverse of central differences of
+  the gradient with an absolute step of 1e-3, the step
+  `stats::optimHess()` takes. Where that step moves a linear predictor
+  by much and the gradient is not linear along it, the standard errors
+  were wrong and nothing warned. A poisson GLM with x ~ N(500, 100) had
+  standard errors 6.2 percent off. Over ten designs with covariates of
+  very different scales, poisson and bernoulli, the error was up to 21
+  percent, against an exact covariance formed in 256 bits; it is now
+  below 1e-11 on 18 of the 20 fits and 2.6e-8 on the other two, a
+  covariate on [1000, 1001]. `y ~ a * exp(b * x)` with x on
+  20 + [0, 1] had a correlation 0.133 off, and is now within 5e-7.
+  The covariance is now the inverse of the AD Hessian, which the
+  standard-error check already read as exact.
+  Every fit without random effects moves: on 27 ordinary, well-scaled
+  fits the standard errors moved by at most 5.2e-7 relative and the
+  correlations by at most 1.1e-6, all toward the exact values.
+  The fit already holds this Hessian, so the first `vcov()` no longer
+  takes one: on a bernoulli GLM with 50 coefficients and 1e5 rows it
+  went from 20.4 s to 2.2 s. Under
+  `frmtmb_control(check_se = "ignore")` the fit does not hold it, and
+  the first `vcov()` builds it: faster than the differences, but on a
+  bernoulli GLM with 1e4 rows the peak memory rose by 350 MB at 200
+  coefficients and by 870 MB at 500.
+  The change includes `quadrature = TRUE` and `importance =` fits,
+  whose outer objective has no inner random effects, and there it is
+  the largest. A poisson `y ~ x + (1 | g)` fit by importance sampling
+  with x ~ N(500, 100) had an intercept standard error of 0.498 where
+  the same model on x / 100, an exact reparameterization, gives 0.270:
+  85 percent off. It now gives 0.270 on both. The quadrature fit of the
+  same model was 0.27 percent off.
+
+* **With random effects, the outer Hessian's step follows the design.**
+  A coefficient's step is 1e-3 divided by the root mean square of its
+  design column, where that is above one, so that a step moves the
+  linear predictor by about 1e-3 in root mean square over the rows. A
+  row far out in a heavy tail moves by more: on a lognormal column with
+  a root mean square of 50 and a largest value of 836, that row moves
+  by 1.7e-2, and the standard errors are within 7e-6 of a Richardson
+  reference, where 0.71.0 was 1.6e-2 off. A poisson GLMM with
+  x ~ N(500, 100) and `(1 | g)` had standard errors 0.37 percent off
+  and a correlation 0.10 off, and its group standard deviation lost its
+  standard error as "flat", with a warning. It now keeps it, and the
+  covariance is within 5.3e-7 of a Richardson reference. A design whose
+  columns are all at unit scale or below keeps the steps of 0.71.0, so
+  its covariance does not change. A nonlinear parameter, a `mo()` term
+  and a variance parameter keep the step of 1e-3.
+
+* **A variance that is zero, negative or not finite is shown as `NaN`,
+  never as itself.** `asym_laplace()`'s log density is piecewise linear
+  in its location, so its exact Hessian has no curvature there, and
+  inverting it gave standard errors of exactly 0 and `confint()`
+  intervals of zero width. Such a parameter now has a `NaN` row and
+  column in `vcov()`, and `summary()` and `diagnose()` give the reason.
+  No `asym_laplace()` fit has a valid Hessian standard error, in this
+  version or in 0.71.0, whose differences across the kinks gave noise.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:
