@@ -20,7 +20,7 @@
 NULL
 
 test_that("random-effect terms cannot be crossed with '*' or ':' (lme4#196)", {
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   # reformulas hoists the bar out and silently fits the '+' model, so
   # lme4 accepts this typo and reports an interaction it never fit
   expect_error(
@@ -97,7 +97,7 @@ test_that("mo() codes a factor or character multiplier as brms does", {
 })
 
 test_that("anova() rejects fits with different numbers of observations (lme4#622)", {
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   full <- frm(bf(Reaction ~ Days + (1 | Subject)) + gaussian(),
               data = sleepstudy)
   null <- frm(bf(Reaction ~ 1 + (1 | Subject)) + gaussian(),

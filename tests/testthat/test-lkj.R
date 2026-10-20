@@ -326,7 +326,7 @@ test_that("the named-list spelling refuses an LKJ prior by name", {
 
 test_that("an LKJ MAP penalty pulls the correlation toward zero", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   ff <- bf(Reaction ~ Days + (Days | Subject)) + gaussian()
   f0 <- frm(ff, data = sleepstudy)
   cor_of <- function(f) {
@@ -359,7 +359,7 @@ test_that("an LKJ MAP penalty pulls the correlation toward zero", {
 
 test_that("frm() is untouched when no prior is given", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   # the recorded pre-LKJ value of this fit (v0.38.0, same machine and

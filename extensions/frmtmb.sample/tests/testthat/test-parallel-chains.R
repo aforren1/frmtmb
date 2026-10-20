@@ -41,7 +41,7 @@ test_that("parallel chains refuse a family from a development namespace", {
   skip_if_not_installed("tmbstan")
   skip_if_not_installed("rstan")
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frmtmb::frm(frmtmb::bf(Reaction ~ Days + (1 | Subject)) +
                        stats::gaussian(), data = sleepstudy)
   # under pkgload the core itself is the development namespace, and an

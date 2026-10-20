@@ -10,6 +10,27 @@
 # are deliberately not run: they record defects, and asserting the
 # defect would freeze it in place.
 
+# covr and R CMD check run every file in one session, so an extension an
+# earlier file loaded has registered its features and rules here. A
+# check on the vocabulary is therefore written for two parts: core's
+# own rows, which it pins exactly, and the contributed rows, which it
+# holds to what a contribution promises. An assertion that the table
+# holds ONLY core's rows would be a test of the load order.
+
+# The contributed display names, as compat_features_build() reads them.
+compat_contributed_names <- function() {
+  names(unlist(frmtmb_compat_contrib$features))
+}
+
+# How many leading rows of frm_compat_rules() are core's own.
+# Contributions are appended after them (R/compat.R, "contributor
+# seam"), so the count is the table with no contributed rule set.
+compat_core_rule_count <- function() {
+  local_frmtmb_registries()
+  frmtmb_compat_contrib$rules <- list()
+  nrow(frmtmb_compat_rules_tbl())
+}
+
 # ------------------------------------------------------------ invariants
 
 test_that("registry statuses are drawn from the declared set", {
@@ -59,6 +80,15 @@ test_that("every rule wins at least one pair", {
   rules <- frm_compat_rules()
   win <- compat_resolve(pairs, rules)$win
   dead <- setdiff(seq_len(nrow(rules)), unique(win))
+  # A contributed rule naming a feature another package owns waits for
+  # that package (frmtmb_register_compat(expects =)): frmtmb.sample's
+  # hmm x frm_sample without frmtmb.latent. frm_compat() reports it as
+  # unresolved, which test-compat-register.R pins. A core rule is never
+  # excused, and neither is a contributed rule dead for any other reason.
+  un <- compat_unresolved_sides(rules, frmtmb_compat_features_tbl()$name)
+  waiting <- seq_len(nrow(rules)) > compat_core_rule_count() &
+    (rules$feature_a %in% un | rules$feature_b %in% un)
+  dead <- setdiff(dead, which(waiting))
   # An unreachable rule is a claim nobody can read: it looks like a
   # declaration and behaves like a comment.
   expect_equal(
@@ -171,7 +201,10 @@ test_that("precedence compares the two sides as a sorted pair", {
 
 test_that("rule patterns name real kinds, groups, and features", {
   ft <- frm_compat_features()
-  rules <- frm_compat_rules()
+  # core's own rules only: a contributed side is checked when it is
+  # registered (test-compat-register.R), and one that names a feature
+  # another package owns is legitimately absent until that package loads
+  rules <- frm_compat_rules()[seq_len(compat_core_rule_count()), ]
   pats <- unique(c(rules$feature_a, rules$feature_b))
   for (p in pats) {
     if (p == "*") next
@@ -245,7 +278,9 @@ test_that("declared addition terms are the ones the parser accepts", {
 
 test_that("declared specials still parse", {
   ft <- frm_compat_features()
-  expect_setequal(ft$key[ft$kind == "special"],
+  # frmtmb.ode contributes frm_ode() and frm_lincmt() when it is loaded
+  core <- !ft$name %in% compat_contributed_names()
+  expect_setequal(ft$key[ft$kind == "special" & core],
                   c("s", "t2", "mo", "mi", "gp", "cs", "ps", "me"))
   set.seed(1)
   n <- 60
@@ -322,6 +357,13 @@ test_that("declared post-fit methods are callable", {
              predict = "predict.frmtmb_fit",
              simulate = "simulate.frmtmb_fit",
              residuals = "residuals.frmtmb_fit")
+  # Core's own rows only. A contributed method lives in a namespace an
+  # earlier file may have loaded without attaching, and its row may name
+  # an argument setting this map cannot know (frmtmb.spline's
+  # frm_curve_contrast is the contrast argument of frm_curve()). The
+  # contributed rows are checked with every extension loaded, in
+  # test-compat-extensions.R.
+  meths <- setdiff(meths, compat_contributed_names())
   for (m in meths) {
     fn <- if (m %in% names(as_fn)) as_fn[[m]] else m
     expect_true(exists(fn, mode = "function"), info = m)

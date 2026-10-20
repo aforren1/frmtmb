@@ -60,7 +60,7 @@ test_that("latent classes with class-specific intercept REs work", {
 
 test_that("variables() lists the usable parameter names", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   v <- variables(fit)

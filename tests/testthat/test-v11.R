@@ -9,7 +9,7 @@ skip_on_cran()
 # optimizers.
 
 test_that("built-in and custom optimizers agree", {
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   bfm <- bf(Reaction ~ Days + (Days | Subject)) + gaussian()
   f1 <- frm(bfm, sleepstudy)
   f2 <- suppressWarnings(

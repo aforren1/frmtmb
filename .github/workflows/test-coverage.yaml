@@ -1,6 +1,30 @@
-# Coverage on pushes and PRs. Uploads to Codecov when a CODECOV_TOKEN
-# secret exists; without one the job still computes and prints the
-# package coverage in the run log, so the number is always available.
+# Coverage on pushes and PRs: one job for the core package, measured with
+# NO extension installed, and one job per extension, measured with the
+# siblings it names installed from this checkout. Uploads to Codecov
+# when a CODECOV_TOKEN secret exists, one flag per package; without one
+# each job still computes and prints its coverage in the run log.
+#
+# WHY CORE IS MEASURED ALONE. The extensions are separate packages and
+# the core DESCRIPTION names none of them, so nothing in this job ever
+# installed them on purpose. They arrived in the cached R library: the
+# setup-r-dependencies cache is keyed by OS, R version, cache version
+# and the resolved dependencies, and a miss restores the newest cache
+# with the same prefix from ANY workflow. pkgdown.yaml installs all
+# seven extensions into that library, coverage restored it and saved it
+# again under its own key, and pak never touches a package the
+# DESCRIPTION does not name. So 0.71.0's coverage run tested core
+# against frmtmb.eam 0.11.2 and frmtmb.sample 0.17.0, built for frmtmb
+# 0.69.0, and an exact-key hit would have frozen that set
+# (dev/testiso-findings.md). Removing every frmtmb.* package makes the
+# core job see what R CMD check sees: the tests that need an extension
+# skip. Running core's suite in one session WITH the extensions is the
+# release gate's job (dev/release/run-session.R, the preload order).
+#
+# WHY EACH EXTENSION FROM THE CHECKOUT. Every frmtmb package an
+# extension job needs is installed from this commit, never taken from
+# the cache: the job removes every frmtmb.* package from the restored
+# library first, then installs core and the siblings. Each job also has
+# its own cache-version, so it restores only its own library.
 on:
   push:
     branches: [main, master]
@@ -30,6 +54,21 @@ jobs:
         with:
           extra-packages: any::covr, any::xml2
           needs: coverage
+          # its own, so that no other workflow's library is restored here
+          cache-version: coverage-core-1
+      # covr installs core from the checkout itself, so a frmtmb in the
+      # library is only ever a stale copy; the extensions are removed so
+      # that the tests needing one skip, as under R CMD check
+      - name: Remove every frmtmb package from the library
+        run: |
+          ip <- installed.packages()
+          p <- rownames(ip)[startsWith(rownames(ip), "frmtmb")]
+          cat("removing:", if (length(p)) p else "nothing", "\n")
+          for (q in p) remove.packages(q, lib = ip[q, "LibPath"])
+          left <- grep("^frmtmb", rownames(installed.packages()),
+                       value = TRUE)
+          if (length(left)) stop("still installed: ", toString(left))
+        shell: Rscript {0}
       - name: Measure coverage
         run: |
           cov <- covr::package_coverage(quiet = FALSE, clean = FALSE,
@@ -50,4 +89,135 @@ jobs:
         if: env.CODECOV_TOKEN != ''
         with:
           files: ./cobertura.xml
+          flags: frmtmb
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  extension-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # `siblings` are the frmtmb extensions the package names in its
+        # DESCRIPTION (Imports or Suggests), in install order. learn
+        # imports eam. sample suggests latent, ode and eam, and its tests
+        # of those pairs skip without them. eam suggests sample. A
+        # sibling gets its Imports only: its Suggests serve its own
+        # tests, which this job does not run.
+        include:
+          - pkg: frmtmb.coupling
+            siblings: ''
+          - pkg: frmtmb.eam
+            siblings: 'frmtmb.sample'
+          - pkg: frmtmb.latent
+            siblings: ''
+          - pkg: frmtmb.learn
+            siblings: 'frmtmb.eam'
+          - pkg: frmtmb.ode
+            siblings: ''
+          - pkg: frmtmb.sample
+            siblings: 'frmtmb.latent frmtmb.ode frmtmb.eam'
+          - pkg: frmtmb.spline
+            siblings: ''
+    name: coverage ${{ matrix.pkg }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      NOT_CRAN: "true"
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      PKG: ${{ matrix.pkg }}
+      SIBLINGS: ${{ matrix.siblings }}
+      # A seeded Stan chain is not platform-deterministic, so the
+      # chain-agreement bands of frmtmb.sample stay off on CI, as in
+      # check-frmtmb-sample.yaml and pkgcheck.yaml (helper-sampling.R).
+      # The only other variable a check-frmtmb-* job sets for its tests
+      # is NOT_CRAN, above; _R_CHECK_DONTTEST_EXAMPLES_ is read by
+      # R CMD check's examples, which covr does not run.
+      FRMTMB_SAMPLER_GATES: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+          # RTMBode is on r-universe, not CRAN; frmtmb.ode suggests it.
+          # Same reasoning as pkgdown.yaml and check-frmtmb-ode.yaml.
+          extra-repositories: 'https://kaskr.r-universe.dev'
+      # the core's dependencies, which installing core below needs
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::covr, any::xml2
+          needs: coverage
+          cache-version: coverage-${{ matrix.pkg }}-1
+      # frmtmb.eam suggests rtdists, which imports gsl, which links the
+      # system GSL; install.packages() installs no system library
+      # (pkgdown.yaml has the history)
+      - name: Install the system libraries the extensions' Suggests link
+        run: sudo apt-get update && sudo apt-get install -y libgsl-dev
+        shell: bash
+      - name: Install core and the siblings from this checkout
+        run: |
+          ip <- installed.packages()
+          old <- rownames(ip)[startsWith(rownames(ip), "frmtmb")]
+          cat("removing:", if (length(old)) old else "nothing", "\n")
+          for (q in old) remove.packages(q, lib = ip[q, "LibPath"])
+          deps_of <- function(dir, fields) {
+            d <- read.dcf(file.path(dir, "DESCRIPTION"))
+            f <- intersect(fields, colnames(d))
+            p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+            p <- trimws(sub("[(].*", "", p))
+            p <- p[nzchar(p) & !startsWith(p, "frmtmb") & p != "R"]
+            setdiff(p, rownames(installed.packages()))
+          }
+          inst <- function(dir) {
+            st <- system2("R", c("CMD", "INSTALL", "--no-multiarch",
+                                 "--with-keep.source", dir))
+            if (st != 0L) stop("R CMD INSTALL failed for ", dir)
+          }
+          inst(".")
+          sib <- strsplit(trimws(Sys.getenv("SIBLINGS")), " +")[[1]]
+          for (nm in sib[nzchar(sib)]) {
+            dir <- file.path("extensions", nm)
+            p <- deps_of(dir, c("Depends", "Imports"))
+            if (length(p)) install.packages(p)
+            inst(dir)
+          }
+          # the package's own Imports and Suggests; covr installs the
+          # package itself
+          dir <- file.path("extensions", Sys.getenv("PKG"))
+          p <- deps_of(dir, c("Depends", "Imports", "Suggests"))
+          cat("installing", length(p), "dependencies:",
+              paste(p, collapse = " "), "\n")
+          if (length(p)) install.packages(p)
+          ip <- installed.packages()
+          print(ip[startsWith(rownames(ip), "frmtmb"),
+                   c("Version", "LibPath"), drop = FALSE])
+        shell: Rscript {0}
+      - name: Measure coverage
+        run: |
+          pkg <- Sys.getenv("PKG")
+          cov <- covr::package_coverage(
+            file.path("extensions", pkg), quiet = FALSE, clean = FALSE,
+            install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"),
+                                                   winslash = "/"),
+                                     "package"))
+          print(cov)
+          covr::to_cobertura(cov, file = "cobertura.xml")
+          # covr names a file from the package root (R/zzz.R), and core
+          # has files of the same names, so the report names them from
+          # the repository root for Codecov
+          x <- readLines("cobertura.xml")
+          x <- gsub('filename="R/',
+                    paste0('filename="extensions/', pkg, '/R/'), x,
+                    fixed = TRUE)
+          writeLines(x, "cobertura.xml")
+        shell: Rscript {0}
+      - name: Show testthat output
+        if: always()
+        run: |
+          find "${RUNNER_TEMP}/package" -name 'testthat.Rout*' -exec cat '{}' \; || true
+        shell: bash
+      - uses: codecov/codecov-action@v4
+        if: env.CODECOV_TOKEN != ''
+        with:
+          files: ./cobertura.xml
+          flags: ${{ matrix.pkg }}
           token: ${{ secrets.CODECOV_TOKEN }}

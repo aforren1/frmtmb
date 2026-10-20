@@ -10,19 +10,17 @@
 # vocabulary says `mixture`, and named `dec()` before that term was a
 # feature at all, and lost two rows for a release without a word.
 #
-# Every test here restores both registries, because a registration
-# lasts for the session and the rest of the suite reads the same table.
-
-local_registries <- function(env = parent.frame()) {
-  old_f <- frmtmb_compat_contrib$features
-  old_r <- frmtmb_compat_contrib$rules
-  old_a <- frmtmb_aterm_registry$reg
-  withr::defer({
-    frmtmb_compat_contrib$features <- old_f
-    frmtmb_compat_contrib$rules <- old_r
-    frmtmb_aterm_registry$reg <- old_a
-  }, envir = env)
-}
+# Every test here restores the registries (helper-registry.R), because
+# a registration lasts for the session and the rest of the suite reads
+# the same table.
+#
+# The names registered here are ones no extension registers: tfam, tterm,
+# thmm. covr and R CMD check run every file in one session, and an
+# extension loaded by an earlier file has already registered its own:
+# frmtmb.eam the wiener family and dec(), frmtmb.latent hmm and lca.
+# Each test asserts against the state it found, not against a session
+# that holds no extension.
+local_registries <- local_frmtmb_registries
 
 # a rule set of one row, built the way a contributor builds one
 one_rule <- function(a, b, status = "works", note = "planted") {
@@ -36,12 +34,12 @@ one_rule <- function(a, b, status = "works", note = "planted") {
 test_that("a rule naming a feature outside the vocabulary is refused", {
   local_registries()
   err <- expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "mixture()")),
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "mixture()")),
     class = "frmtmb_error")
   msg <- conditionMessage(err)
   # the rule, the spelling, and the near miss the registrant meant
-  expect_match(msg, "`wiener x mixture()`", fixed = TRUE)
+  expect_match(msg, "`tfam x mixture()`", fixed = TRUE)
   expect_match(msg, "'mixture()'", fixed = TRUE)
   expect_match(msg, "Did you mean 'mixture'?", fixed = TRUE)
   # and the two ways out
@@ -53,44 +51,44 @@ test_that("a refused registration leaves the vocabulary as it found it", {
   local_registries()
   before <- frm_compat_features()
   expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "mixture()")))
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "mixture()")))
   # the features of a rule set that never took would be a vocabulary
   # entry for a family the table says nothing about
   after <- frm_compat_features()
   expect_identical(after, before)
-  expect_false("wiener" %in% after$name)
+  expect_false("tfam" %in% after$name)
 })
 
 test_that("an unknown spelling with no near miss is refused without a guess", {
   local_registries()
   err <- expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "dec()")))
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "xyzzy()")))
   # a confident wrong suggestion costs more than none
   expect_false(grepl("Did you mean", conditionMessage(err), fixed = TRUE))
-  expect_match(conditionMessage(err), "'dec()'", fixed = TRUE)
+  expect_match(conditionMessage(err), "'xyzzy()'", fixed = TRUE)
 })
 
 test_that("a rule may name the features its own registration adds", {
   local_registries()
   expect_silent(
-    frmtmb_register_compat(features = c(wiener = "family",
-                                        "dec()" = "aterm"),
-                           rules = one_rule("wiener", "dec()")))
-  expect_equal(frm_compat("wiener", "dec()")$status, "works")
+    frmtmb_register_compat(features = c(tfam = "family",
+                                        "tterm()" = "aterm"),
+                           rules = one_rule("tfam", "tterm()")))
+  expect_equal(frm_compat("tfam", "tterm()")$status, "works")
 })
 
 test_that("expects = admits another package's feature without adding it", {
   local_registries()
   expect_silent(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "hmm"),
-                           expects = "hmm"))
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "thmm"),
+                           expects = "thmm"))
   # the rule lies dormant: the feature is not in the table, because
   # nothing in this session implements it
-  expect_false("hmm" %in% frm_compat_features()$name)
-  expect_true("wiener" %in% frm_compat_features()$name)
+  expect_false("thmm" %in% frm_compat_features()$name)
+  expect_true("tfam" %in% frm_compat_features()$name)
 })
 
 test_that("a rule pattern names a real kind and a real group", {
@@ -118,8 +116,8 @@ test_that("a rule naming one feature on both sides is refused", {
   # resolved table holds unordered pairs of DISTINCT features, so a
   # self-pair rule matches nothing however well spelled it is
   expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "wiener")),
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "tfam")),
     "names one feature on both sides")
   # a kind or a group on both sides covers distinct members and stands
   expect_silent(
@@ -130,7 +128,7 @@ test_that("features = and rules = are checked for shape", {
   local_registries()
   expect_error(frmtmb_register_compat(features = c("family")),
                "DISPLAY name to its kind")
-  expect_error(frmtmb_register_compat(features = c(wiener = "familly")),
+  expect_error(frmtmb_register_compat(features = c(tfam = "familly")),
                "no such kind")
   expect_error(frmtmb_register_compat(rules = data.frame(a = 1)),
                "FUNCTION of no arguments")
@@ -144,37 +142,37 @@ test_that("features = and rules = are checked for shape", {
 
 test_that("a registered addition term becomes a compat feature", {
   local_registries()
-  expect_false("dec()" %in% frm_compat_features()$name)
-  frmtmb_register_aterm("dec", arity = 1L)
+  expect_false("tterm()" %in% frm_compat_features()$name)
+  frmtmb_register_aterm("tterm", arity = 1L)
   ft <- frm_compat_features()
-  expect_equal(sum(ft$name == "dec()"), 1L)
-  expect_equal(ft$kind[ft$name == "dec()"], "aterm")
-  expect_equal(ft$key[ft$name == "dec()"], "dec")
+  expect_equal(sum(ft$name == "tterm()"), 1L)
+  expect_equal(ft$kind[ft$name == "tterm()"], "aterm")
+  expect_equal(ft$key[ft$name == "tterm()"], "tterm")
   # so the table can be asked about it, rather than refusing a term
   # frm() accepts
-  expect_equal(nrow(frm_compat("dec()", "gaussian")), 1L)
+  expect_equal(nrow(frm_compat("tterm()", "gaussian")), 1L)
 })
 
 test_that("declaring a registered term again is a no-op, not a duplicate", {
   local_registries()
   # the order the drift-diffusion extension uses: the term first, then
   # the rules that name it, with the feature spelled out anyway
-  frmtmb_register_aterm("dec", arity = 1L)
+  frmtmb_register_aterm("tterm", arity = 1L)
   expect_silent(
-    frmtmb_register_compat(features = c(wiener = "family",
-                                        "dec()" = "aterm"),
-                           rules = one_rule("wiener", "dec()")))
+    frmtmb_register_compat(features = c(tfam = "family",
+                                        "tterm()" = "aterm"),
+                           rules = one_rule("tfam", "tterm()")))
   ft <- frm_compat_features()
-  expect_equal(sum(ft$name == "dec()"), 1L)
+  expect_equal(sum(ft$name == "tterm()"), 1L)
   expect_equal(anyDuplicated(ft$name), 0L)
-  expect_equal(frm_compat("wiener", "dec()")$status, "works")
+  expect_equal(frm_compat("tfam", "tterm()")$status, "works")
 })
 
 test_that("one display name carries one kind", {
   local_registries()
-  frmtmb_register_aterm("dec", arity = 1L)
+  frmtmb_register_aterm("tterm", arity = 1L)
   expect_error(
-    frmtmb_register_compat(features = c("dec()" = "special")),
+    frmtmb_register_compat(features = c("tterm()" = "special")),
     "already holds that name under the kind 'aterm'", fixed = TRUE)
 })
 
@@ -204,13 +202,13 @@ test_that("an exact vocabulary entry beats an approximate match", {
   # covariance is the confident wrong suggestion the tight threshold
   # was chosen to avoid
   err <- expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "se")))
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "se")))
   expect_match(conditionMessage(err), "Did you mean 'se()'?", fixed = TRUE)
   expect_false(grepl("'us'", conditionMessage(err), fixed = TRUE))
   err2 <- expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "trials")))
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "trials")))
   expect_match(conditionMessage(err2), "Did you mean 'trials()'?",
                fixed = TRUE)
 })
@@ -221,13 +219,13 @@ test_that("a rules = builder that throws says which argument failed", {
   # registrant's .onLoad(). Raw, it arrived out of loadNamespace() with
   # nothing naming the argument that called it
   err <- expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
+    frmtmb_register_compat(features = c(tfam = "family"),
                            rules = function() stop("boom")))
   msg <- conditionMessage(err)
   expect_match(msg, "frmtmb_register_compat()", fixed = TRUE)
   expect_match(msg, "rules = builder", fixed = TRUE)
   expect_match(msg, "boom", fixed = TRUE)
-  expect_false("wiener" %in% frm_compat_features()$name)
+  expect_false("tfam" %in% frm_compat_features()$name)
 })
 
 test_that("the failure clause names the package whose load it was", {
@@ -241,50 +239,59 @@ test_that("the failure clause names the package whose load it was", {
 
 test_that("expects = accepts a name another package already supplies", {
   local_registries()
+  un0 <- attr(frm_compat(), "unresolved")
   # frmtmb.sample expects hmm and loads after frmtmb.latent in half of
   # the load orders: an expectation the session has already met is
   # met, not a forward reference that exempts nothing
   frmtmb_register_compat(features = c(hmmx = "family"),
                          rules = one_rule("hmmx", "cens()"))
   expect_silent(
-    frmtmb_register_compat(features = c(wiener = "family"),
+    frmtmb_register_compat(features = c(tfam = "family"),
                            rules = one_rule("hmmx", "vint()"),
                            expects = "hmmx"))
-  expect_true(all(c("hmmx", "wiener") %in% frm_compat_features()$name))
-  expect_null(attr(frm_compat(), "unresolved"))
+  expect_true(all(c("hmmx", "tfam") %in% frm_compat_features()$name))
+  # what the extensions in this session still wait for is theirs; this
+  # registration adds nothing to it
+  expect_identical(attr(frm_compat(), "unresolved"), un0)
 })
 
 test_that("expects = refuses a name this very call supplies", {
   local_registries()
   expect_error(
-    frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "cens()"),
-                           expects = "wiener"),
+    frmtmb_register_compat(features = c(tfam = "family"),
+                           rules = one_rule("tfam", "cens()"),
+                           expects = "tfam"),
     "this very call supplies")
-  expect_false("wiener" %in% frm_compat_features()$name)
+  expect_false("tfam" %in% frm_compat_features()$name)
 })
 
 test_that("a declared but unresolved rule side is reported, not dropped", {
   local_registries()
-  expect_null(attr(frm_compat("gaussian", "cens()"), "unresolved"))
-  frmtmb_register_compat(features = c(wiener = "family"),
-                         rules = one_rule("wiener", "hmm"),
-                         expects = "hmm")
-  out <- frm_compat("wiener")
-  # it cannot honestly be a row: nothing here implements hmm, so there
+  # an extension loaded earlier may still wait for a feature of its own
+  # (frmtmb.sample expects hmm and lca, frmtmb.ode frm_sample), so the
+  # registration is measured against what the session already reports
+  un0 <- attr(frm_compat("gaussian", "cens()"), "unresolved")
+  expect_false("thmm" %in% un0)
+  frmtmb_register_compat(features = c(tfam = "family"),
+                         rules = one_rule("tfam", "thmm"),
+                         expects = "thmm")
+  out <- frm_compat("tfam")
+  # it cannot honestly be a row: nothing here implements thmm, so there
   # is no pair. Saying nothing is what expects = re-opened, so the
   # resolver says it at the one moment the session is known
-  expect_false(any(out$feature_b == "hmm"))
-  expect_identical(attr(out, "unresolved"), "hmm")
+  expect_false(any(out$feature_b == "thmm"))
+  expect_identical(attr(out, "unresolved"), sort(c(un0, "thmm")))
   expect_s3_class(out, "frmtmb_compat")
   expect_output(print(out), "Unresolved rule sides")
-  expect_output(print(out), "hmm")
+  expect_output(print(out), "thmm")
   # and goes quiet the moment something supplies it
-  frmtmb_register_compat(features = c(hmm = "structure"))
-  out2 <- frm_compat("wiener")
-  expect_null(attr(out2, "unresolved"))
-  expect_false(inherits(out2, "frmtmb_compat"))
-  expect_equal(frm_compat("wiener", "hmm")$status, "works")
+  frmtmb_register_compat(features = c(thmm = "structure"))
+  out2 <- frm_compat("tfam")
+  expect_identical(attr(out2, "unresolved"), un0)
+  # the class marks a session holding a forward reference, so it stays
+  # exactly when one is left
+  expect_identical(inherits(out2, "frmtmb_compat"), length(un0) > 0L)
+  expect_equal(frm_compat("tfam", "thmm")$status, "works")
 })
 
 test_that("a refused frmtmb_register_aterm() registers nothing at all", {
@@ -318,10 +325,10 @@ test_that("the refusal reads in the term registrant's own terms", {
 
 test_that("a kind beginning with a vowel takes the right article", {
   local_registries()
-  frmtmb_register_aterm("dec", arity = 1L)
+  frmtmb_register_aterm("tterm", arity = 1L)
   expect_match(
     conditionMessage(expect_error(
-      frmtmb_register_compat(features = c("dec()" = "special")))),
+      frmtmb_register_compat(features = c("tterm()" = "special")))),
     "as a 'special' feature", fixed = TRUE)
   expect_match(
     conditionMessage(expect_error(

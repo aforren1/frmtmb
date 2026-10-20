@@ -52,13 +52,22 @@ test_that("the registration survives being run again, which is what
   # rules tie on specificity and agree on the status, so the resolved
   # answer is unchanged, which is what this asserts.
   #
-  # This block LEAVES a duplicate rule in the registry for the rest of
-  # the R process, and there is no way to withdraw one. Under
-  # `R CMD check` testthat runs this package's files in one process,
-  # and this file sorts before every test-ode*.R, none of which reads
-  # the registry, so nothing downstream is affected. Anyone adding a
-  # registry-reading file to this package should either put it before
-  # this one or expect the extra rule.
+  # The second run appends a duplicate rule AND a second copy of the
+  # frame check, which would then run twice on every fit for the rest of
+  # the session. covr and R CMD check run every file in one session, so
+  # the block puts both registries back as it found them: the saved
+  # lists, never a removal by position, which could take an entry that
+  # another package made.
+  ns <- asNamespace("frmtmb")
+  contrib <- ns$frmtmb_compat_contrib
+  checks <- ns$frmtmb_frame_checks
+  saved <- list(features = contrib$features, rules = contrib$rules,
+                checks = checks$fns)
+  on.exit({
+    contrib$features <- saved$features
+    contrib$rules <- saved$rules
+    checks$fns <- saved$checks
+  }, add = TRUE)
   before <- nrow(frmtmb::frm_compat_rules())
   expect_silent(frmtmb.ode:::.onLoad(NULL, "frmtmb.ode"))
   rl <- frmtmb::frm_compat_rules()

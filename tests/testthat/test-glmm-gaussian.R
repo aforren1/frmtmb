@@ -1,7 +1,7 @@
 test_that("sleepstudy LMM matches lmer and glmmTMB (ML)", {
   skip_if_not_installed("lme4")
   skip_if_not_installed("glmmTMB")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
                 data = sleepstudy)
@@ -35,7 +35,7 @@ test_that("sleepstudy LMM matches lmer and glmmTMB (ML)", {
 
 test_that("sleepstudy REML matches lmer REML", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
                 data = sleepstudy, REML = TRUE)
@@ -51,7 +51,7 @@ test_that("sleepstudy REML matches lmer REML", {
 
 test_that("uncorrelated slopes (x || g) match glmmTMB", {
   skip_if_not_installed("glmmTMB")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   fit <- frm(bf(Reaction ~ Days + (Days || Subject)) + gaussian(),
                 data = sleepstudy)

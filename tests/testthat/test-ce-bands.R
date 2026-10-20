@@ -65,7 +65,7 @@ test_that("boot bands are percentiles of one shared bootstrap", {
 
 test_that("boot bands on a mixed model match a hand-run bootstrap", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fs <- frm(bf(Reaction ~ Days + (1 | Subject)), family = gaussian(),
             data = sleepstudy)
 

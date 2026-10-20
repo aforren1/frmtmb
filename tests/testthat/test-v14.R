@@ -4,7 +4,7 @@
 
 test_that("anova labels distinguish distributional fits", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   f1 <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
             data = sleepstudy)
   f2 <- frm(bf(Reaction ~ Days + (Days | Subject), sigma ~ Days) +
@@ -52,7 +52,7 @@ test_that("se() reproduces fixed- and random-effects meta-analysis", {
 
 test_that("proportion response with trials() matches the counts form", {
   skip_if_not_installed("lme4")
-  data(cbpp, package = "lme4")
+  data(cbpp, package = "lme4", envir = environment())
   cbpp$prop <- cbpp$incidence / cbpp$size
   f1 <- frm(bf(incidence | trials(size) ~ period + (1 | herd)) +
               binomial(), data = cbpp)
@@ -238,7 +238,7 @@ test_that("zero_inflated_asym_laplace matches direct ML and collapses", {
 
 test_that("ranef condVar and the tidy data-frame forms", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   r <- ranef(fit, condVar = TRUE)
@@ -321,7 +321,7 @@ test_that("frm_allfit agrees across optimizers", {
 test_that("frm_allfit drives the nloptr optimizer", {
   skip_if_not_installed("nloptr")
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   af <- frm_allfit(fit)

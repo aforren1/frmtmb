@@ -96,7 +96,7 @@ test_that("estimability tests the null space, not the dropped columns (lme4#303)
 })
 
 test_that("grouping factors written as calls fit (lme4#464, #156)", {
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   ss <- sleepstudy
   ss$xn <- as.integer(ss$Subject)
   ss$xf <- factor(ss$xn)

@@ -93,8 +93,11 @@ test_that("unsupported covariance structures error at parse time", {
 # --- the addition-term registry (frmtmb.eam finding 1) ----------------
 # `side()` and not `dec()`: frmtmb.eam registers dec() when it loads,
 # and covr runs every file in one session, so an earlier file that
-# loads frmtmb.eam made dec() parse here and the on.exit() below
-# removed frmtmb.eam's entry for the files after this one
+# loads frmtmb.eam made dec() parse here and the on.exit() that was
+# here removed frmtmb.eam's entry for the files after this one. Each
+# test now saves the registries and restores them (helper-registry.R):
+# a deletion by name would also leave the side() compat feature behind,
+# since frmtmb_register_aterm() writes one.
 
 test_that("the refusal names vint()/vreal() and the registration seam", {
   # an extension author reading this message has to learn that the set
@@ -107,7 +110,7 @@ test_that("the refusal names vint()/vreal() and the registration seam", {
 })
 
 test_that("a registered aterm parses, coerces and reaches the density", {
-  on.exit(frmtmb_aterm_registry$reg[["side"]] <- NULL, add = TRUE)
+  local_frmtmb_registries()
   frmtmb_register_aterm("side", arity = 1,
                         coerce = function(x) as.integer(factor(x)) - 1L)
 
@@ -151,7 +154,7 @@ test_that("a registered aterm parses, coerces and reaches the density", {
 })
 
 test_that("a registered aterm is required on newdata that omits it", {
-  on.exit(frmtmb_aterm_registry$reg[["side"]] <- NULL, add = TRUE)
+  local_frmtmb_registries()
   frmtmb_register_aterm("side")
   set.seed(32)
   dd <- data.frame(x = stats::rnorm(60), bound = rep(0:1, 30))
@@ -170,7 +173,7 @@ test_that("a registered aterm is required on newdata that omits it", {
 })
 
 test_that("a registered aterm of arity above one numbers its arguments", {
-  on.exit(frmtmb_aterm_registry$reg[["pair"]] <- NULL, add = TRUE)
+  local_frmtmb_registries()
   frmtmb_register_aterm("pair", arity = 2)
   spec <- frm(bf(y | pair(a, b) ~ x) + gaussian(), data = NULL,
               dry_run = "spec")
@@ -194,7 +197,7 @@ test_that("frmtmb_register_aterm validates its own arguments", {
 })
 
 test_that("a registered coercion must return numbers", {
-  on.exit(frmtmb_aterm_registry$reg[["tag"]] <- NULL, add = TRUE)
+  local_frmtmb_registries()
   frmtmb_register_aterm("tag", coerce = function(x) as.character(x))
   set.seed(33)
   dd <- data.frame(x = stats::rnorm(30), flag = rep(0:1, 15))

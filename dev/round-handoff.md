@@ -884,10 +884,39 @@ release's library served as the reference build again this round.
 
 Consolidation: commit each lane on its branch, merge, set versions,
 roxygenise, THEN install (that order), verify the tree is unchanged by
-roxygenise, run the tiers, commit the release and the docs separately,
-remove the worktrees, prune branches, regenerate
-`dev/suite-baseline.tsv`. Do not install into the release library while
-any lane still uses it as its base build.
+roxygenise, run the tiers, run each suite in one session three ways
+(below), commit the release and the docs separately, remove the
+worktrees, prune branches, regenerate `dev/suite-baseline.tsv`. Do not
+install into the release library while any lane still uses it as its
+base build.
+
+**Run each suite in one session: forward, reverse and preload.** The
+tiers run one test file per R process. covr and `R CMD check` run a
+whole suite in one session, in alphabetical order. 0.71.0's
+test-coverage job failed only there: one file loaded frmtmb.eam, and a
+later file assumed that `dec()` was not registered. With every
+extension in the release library, run:
+
+    NOT_CRAN=true bash dev/release/run-sessions.sh rel<ver> 8
+
+It runs all eight suites through `dev/release/run-session.R` three
+ways: alphabetical order, reverse order, and preload (alphabetical,
+with all seven extensions loaded before the first file): 24 sessions.
+Preload is the session in which no file loads an extension, so every
+registry difference it reports is a test's own, and a test that
+assumes an extension is absent fails there. The CI coverage job
+measures core with no extension installed (`test-coverage.yaml`), so
+this gate is the only run of core's suite in one session with the
+extensions present.
+
+The run passes when the last line of `dev/release/rel<ver>.log` reads
+`ran 24 of 24`, every SESSION line reads `fail=0 err=0`, and every
+LEAK line ends in `[with load of ...]`. A LEAK line without it is a
+test that left a registry, the notice state, an option, an environment
+variable, the search path or the global environment changed for the
+files after it; a global or search-path LEAK is never tagged. When the
+release library changes, change the `LIB` line of `run-session.R`
+with the one in `run-tests.R`.
 
 **Run `R CMD check` on a QUIET machine.** Its examples-timing NOTE
 measures load here; it did not appear at the 0.63.0 release, run alone.
