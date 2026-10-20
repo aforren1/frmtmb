@@ -471,8 +471,10 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
                                                  class = "b",
                                                  tag = "mytag")),
                "Drop the tag")
-  # a density frmtmb does not carry says which one it was
-  expect_error(frmtmb:::as_priorlist(brms::prior(uniform(0, 10),
+  # a density frmtmb does not carry says which one it was. uniform()
+  # was the example until frmtmb carried it, for brms's default on a
+  # non-decision time
+  expect_error(frmtmb:::as_priorlist(brms::prior(chi_square(3),
                                                  class = "sd")),
                "Unsupported prior distribution")
   # brms's shrinkage priors reach that same message rather than the

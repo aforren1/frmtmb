@@ -125,14 +125,15 @@ test_that("ranef(), coef() and VarCorr() are brms's, draws and summaries", {
   expect_identical(coef(ds, FALSE, TRUE), brms:::coef.brmsfit(shb, FALSE,
                                                                TRUE))
 
-  # brms reads sd_ and cor_ draws; these draws store theta, so the shim
-  # carries the standard deviations and correlation frmtmb derives from
-  # it, and what is compared is brms's layout and summary path on them
+  # brms reads sd_ and cor_ draws. The draws carry them, derived from
+  # each draw's theta, so the shim takes the draws as they are and what
+  # is compared is brms's layout and summary path on them
   vd <- VarCorr(ds, summary = FALSE)
-  M <- cbind(ds$draws,
-             sd_g__Intercept = unname(vd$g$sd[, "Intercept"]),
-             sd_g__x = unname(vd$g$sd[, "x"]),
-             cor_g__Intercept__x = vd$g$cor[, "Intercept", "x"])
+  M <- ds$draws
+  expect_identical(unname(M[, "sd_g__Intercept"]),
+                   unname(vd$g$sd[, "Intercept"]))
+  expect_equal(unname(M[, "cor_g__Intercept__x"]),
+               unname(vd$g$cor[, "Intercept", "x"]), tolerance = 1e-14)
   expect_equal(unname(vd$g$sd[, "Intercept"]),
                unname(exp(ds$draws[, "theta_1"])))
   sv <- bo_shim(cs, M)

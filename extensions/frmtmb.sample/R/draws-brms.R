@@ -112,13 +112,166 @@ draws_natural_cols <- function(fit) {
   # the columns added after the sampled ones: a mixture's last weight,
   # an equated dpar, and the thresholds and delta an ordinal block
   # reports beyond its internal parameters
+  # brms's sd_, cor_ and the other covariance summaries, computed from
+  # each draw's internal covariance parameters (draws_cov_cols())
+  out$derived <- draws_cov_cols(fit, c(out$names,
+                                       unlist(lapply(out$ordinal,
+                                                     `[[`, "names"))))
   out$extra <- c(unlist(lapply(smp, function(s) {
     s$names[length(s$names)]
   })), vapply(equated, `[[`, "", "name"),
   unlist(lapply(out$ordinal, function(o) {
     o$names[-seq_along(o$internal)]
-  })))
+  })), out$derived$names)
   if (is.environment(cache)) cache$brms_natural_cols_v2 <- out
+  out
+}
+
+#' The covariance summaries brms stores as draws and frmtmb's sampler
+#' does not: `sd_<group>__<coef>`, `cor_<group>__<c1>__<c2>`, a
+#' smooth's `sds_`, `rescor__`, the residual structures' `ar[1]`,
+#' `cosy`, `cortime__`, and `me()`'s `sdme_` and `corme__`. The sampler
+#' works on the internal covariance parameters (`theta_1`, ...), so these
+#' are DERIVED columns: each draw's value is what core's
+#' `hyp_env_vals()` gives for that draw, which is also where core's
+#' `variables()` of a fit takes its names, so the two cannot disagree.
+#' The internal columns stay, and the model reads only them.
+#'
+#' `have` lists the names the draws already carry (a `gp()` term's
+#' `sdgp_`), which are left alone. `names` is empty when the model has
+#' no such parameter.
+#'
+#' @noRd
+draws_cov_cols <- function(fit, have = character(0)) {
+  none <- list(names = character(0))
+  vo <- tryCatch(hyp_vals_only(fit), error = function(e) NULL)
+  if (is.null(vo)) return(none)
+  ev <- tryCatch(hyp_env_vals(fit, vo$vals, vo$comp),
+                 error = function(e) NULL)
+  if (is.null(ev)) return(none)
+  pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime__|sdme_|corme__|",
+                "ar[[]|ma[[]|cosy$)")
+  nm <- setdiff(grep(pat, names(ev), value = TRUE), have)
+  if (!length(nm)) return(none)
+  cov_comps <- intersect(c("theta", "thetaac", "thetar", "logsdme",
+                           "thetame"), unique(vo$comp))
+  # where each covariance component sits among the sampled columns,
+  # read by name: the draws carry the internal labels for them
+  lab <- brms_par_labels(fit, include_random = FALSE)
+  pidx <- draws_par_index(fit, laplace = TRUE)
+  list(names = nm, vals = vo$vals, comp = vo$comp,
+       cols = lapply(stats::setNames(cov_comps, cov_comps), function(cp) {
+         lab[pidx[[cp]] %||% integer(0)]
+       }),
+       fast = draws_cov_fast(fit, nm, vo, ev))
+}
+
+#' Where each `sd_` and `cor_` name sits in its block's covariance
+#' matrix, so a draw's value is one `varcorr_matrices()` call rather than
+#' the whole of `hyp_env_vals()`, whose names cost about 1 ms a draw and
+#' do not change from draw to draw (dev/sampleprior-names-prof.R). The
+#' names are core's, read off `hyp_env_vals()` itself: for each block,
+#' a name is taken only where perturbing that block alone moves it, and
+#' the map is kept only where it reproduces every value `hyp_env_vals()`
+#' gives at the estimate and at the perturbed point. Otherwise `NULL`,
+#' and every draw goes through `hyp_env_vals()`.
+#'
+#' @noRd
+draws_cov_fast <- function(fit, nm, vo, ev) {
+  blocks <- fit$frame[["re_blocks"]]
+  th <- vo$vals[vo$comp == "theta"]
+  ok_cs <- function(bk) {
+    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")
+  }
+  map <- list()
+  for (bi in seq_along(blocks)) {
+    bk <- blocks[[bi]]
+    if (!ok_cs(bk) || !length(bk[["theta_idx"]])) next
+    g <- brms_group_name(bk)
+    tn <- brms_re_rnames(fit, bk)
+    for (j in seq_along(tn)) {
+      map[[length(map) + 1L]] <- list(name = paste0("sd_", g, "__", tn[j]),
+                                      b = bi, i = j, j = j)
+      for (k in seq_along(tn)[seq_along(tn) > j]) {
+        map[[length(map) + 1L]] <- list(
+          name = paste0("cor_", g, "__", tn[j], "__", tn[k]),
+          b = bi, i = j, j = k)
+      }
+    }
+  }
+  map <- Filter(function(e) e$name %in% nm, map)
+  if (!length(map)) return(NULL)
+  vals_at <- function(theta) {
+    V <- varcorr_matrices(fit, theta)
+    vapply(map, function(e) {
+      M <- V[[e$b]]
+      # the arithmetic of core's varcorr_values(), S / tcrossprod(sd),
+      # so a draw's cor_ is bitwise VarCorr()'s and brms's VarCorr()
+      # read off these columns is frmtmb's
+      if (e$i == e$j) sqrt(M[e$i, e$i]) else {
+        M[e$i, e$j] / (sqrt(M[e$i, e$i]) * sqrt(M[e$j, e$j]))
+      }
+    }, 1)
+  }
+  # the check, at the estimate and at a point that moves every theta
+  th2 <- th + 0.1 * seq_along(th) / max(1, length(th))
+  vals2 <- vo$vals
+  vals2[vo$comp == "theta"] <- th2
+  ev2 <- tryCatch(hyp_env_vals(fit, vals2, vo$comp),
+                  error = function(e) NULL)
+  if (is.null(ev2)) return(NULL)
+  nmv <- vapply(map, `[[`, "", "name")
+  same <- function(a, b) {
+    isTRUE(all(abs(a - b) <= 8 * .Machine$double.eps * pmax(1, abs(b))))
+  }
+  if (!same(vals_at(th), unlist(ev[nmv])) ||
+        !same(vals_at(th2), unlist(ev2[nmv]))) {
+    return(NULL)
+  }
+  list(map = map, names = nmv, vals_at = vals_at)
+}
+
+#' The derived covariance columns of `draws_cov_cols()` for a draws
+#' matrix whose covariance parameters are on the internal scale.
+#'
+#' @noRd
+draws_cov_values <- function(m, fit, dv) {
+  out <- matrix(NA_real_, nrow(m), length(dv$names),
+                dimnames = list(NULL, dv$names))
+  j <- lapply(dv$cols, function(cn) match(cn, colnames(m)))
+  if (anyNA(unlist(j))) return(NULL)
+  fast <- dv$fast
+  vals <- dv$vals
+  # the construction's two-point check, repeated at the draws holding
+  # each theta column's smallest and largest value, where a defect
+  # confined to one region of the parameters would show; on a mismatch
+  # every draw goes through hyp_env_vals()
+  if (length(fast$names) && length(j[["theta"]])) {
+    th <- m[, j[["theta"]], drop = FALSE]
+    rows <- unique(c(apply(th, 2L, which.min), apply(th, 2L, which.max)))
+    for (r in rows) {
+      for (cp in names(j)) vals[dv$comp == cp] <- m[r, j[[cp]]]
+      ev <- hyp_env_vals(fit, vals, dv$comp)
+      a <- fast$vals_at(m[r, j[["theta"]]])
+      b <- unlist(ev[fast$names], use.names = FALSE)
+      if (!isTRUE(all(abs(a - b) <= 8 * .Machine$double.eps *
+                        pmax(1, abs(b))))) {
+        fast <- NULL
+        break
+      }
+    }
+  }
+  slow <- setdiff(dv$names, fast$names)
+  for (r in seq_len(nrow(m))) {
+    if (length(fast$names)) {
+      out[r, fast$names] <- fast$vals_at(m[r, j[["theta"]]])
+    }
+    if (length(slow)) {
+      for (cp in names(j)) vals[dv$comp == cp] <- m[r, j[[cp]]]
+      ev <- hyp_env_vals(fit, vals, dv$comp)
+      out[r, slow] <- unlist(ev[slow], use.names = FALSE)
+    }
+  }
   out
 }
 
@@ -289,6 +442,10 @@ draws_rowmap <- function(M, f) {
 #' @noRd
 draws_to_natural <- function(m, fit, inverse = FALSE) {
   nc <- draws_natural_cols(fit)
+  if (inverse && length(nc$derived$names)) {
+    dj <- match(nc$derived$names, colnames(m))
+    if (length(dj <- dj[!is.na(dj)])) m <- m[, -dj, drop = FALSE]
+  }
   if (inverse && length(nc$equated)) {
     eq <- match(vapply(nc$equated, `[[`, "", "name"), colnames(m))
     if (length(eq <- eq[!is.na(eq)])) m <- m[, -eq, drop = FALSE]
@@ -372,6 +529,19 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
       m <- cbind(m[, seq_len(at), drop = FALSE], m[, j],
                  m[, seq_len(ncol(m) - at) + at, drop = FALSE])
       colnames(m) <- nm_all
+    }
+    # brms's covariance summaries, after every sampled column and
+    # before lp__, so no sampled column moves; not added twice
+    dv <- nc$derived
+    if (length(dv$names) && !any(dv$names %in% colnames(m))) {
+      v <- draws_cov_values(m, fit, dv)
+      if (!is.null(v)) {
+        at <- match("lp__", colnames(m), nomatch = ncol(m) + 1L) - 1L
+        nm_all <- append(colnames(m), dv$names, after = at)
+        m <- cbind(m[, seq_len(at), drop = FALSE], v,
+                   m[, seq_len(ncol(m) - at) + at, drop = FALSE])
+        colnames(m) <- nm_all
+      }
     }
   }
   m

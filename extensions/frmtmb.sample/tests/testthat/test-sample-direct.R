@@ -92,13 +92,7 @@ def_strings <- function(form, data, family = NULL) {
   uf <- frm(form, data, family = family, dry_run = "objective")
   pl <- frmtmb.sample:::default_priors_for(uf)
   vapply(unclass(pl), function(s) {
-    d <- if (identical(s$dist$kind, "lkj")) {
-      paste0("lkj(", s$dist$eta, ")")
-    } else {
-      paste0("student_t(", paste(c(s$dist$df, s$dist$location,
-                                   s$dist$scale), collapse = ", "), ")")
-    }
-    paste0(d, "|", s$class, if (nzchar(s$dpar)) paste0(":", s$dpar))
+    paste0(s$prior, "|", s$class, if (nzchar(s$dpar)) paste0(":", s$dpar))
   }, "")
 }
 
@@ -130,22 +124,19 @@ test_that("the default priors are brms 2.23's, read off brms itself", {
   dd <- sd_prior_data()
 
   # brms's own answer, reduced to the class-level rows that carry a
-  # distribution. Dropped: class b (a documented non-match: brms leaves
-  # slopes flat and so do we), the shape/phi/nu dispersion classes
-  # (gamma and inverse-gamma defaults set_prior() cannot carry), and the
-  # Intercept row of an ordinal model (its thresholds). Each of those is
-  # announced by the disclosure message and pinned by its own test
-  # below. Class `cor` is NOT dropped any more: since 0.39 the lkj(1)
-  # default matches brms's own, and the correlated case below is the row
-  # that checks it. brms lists one sd row per dpar for a categorical
-  # family where frmtmb has one shared block, so the rows are
-  # deduplicated.
-  brms_def <- function(f, family, drop = character(0)) {
+  # distribution. Dropped: class b, which brms leaves flat and so do we.
+  # The dispersion classes (shape, phi, nu) and an ordinal model's
+  # Intercept row (its thresholds) were dropped through frmtmb.sample
+  # 0.19.0, which had no default there; they take brms's now. A
+  # dispersion class is frmtmb's natural-scale spec, class Intercept on
+  # that dpar. brms lists one sd row per dpar for a categorical family
+  # where frmtmb has one shared block, so the rows are deduplicated.
+  brms_def <- function(f, family) {
     p <- brms::default_prior(f, data = dd, family = family)
     p <- p[nzchar(p$prior) & p$prior != "(flat)" & p$coef == "" &
-             p$group == "" &
-             !p$class %in% c("b", "shape", "phi", "nu", drop), ]
-    cls <- ifelse(p$class == "sigma", "Intercept:sigma", p$class)
+             p$group == "" & p$class != "b", ]
+    cls <- ifelse(p$class %in% c("sigma", "shape", "phi", "nu"),
+                  paste0("Intercept:", p$class), p$class)
     sort(unique(paste0(p$prior, "|", cls)))
   }
   cases <- list(
@@ -173,9 +164,8 @@ test_that("the default priors are brms 2.23's, read off brms itself", {
          brms::cumulative())
   )
   for (cs in cases) {
-    drop <- if (identical(deparse1(cs[[1L]][[2L]]), "o")) "Intercept"
     expect_equal(sort(unname(def_strings(cs[[2L]], dd))),
-                 brms_def(cs[[1L]], cs[[3L]], drop %||% character(0)))
+                 brms_def(cs[[1L]], cs[[3L]]))
   }
 })
 
@@ -229,27 +219,32 @@ test_that("every slot left flat is announced, never silently dropped", {
   notes <- function(form) {
     frmtmb.sample:::default_prior_notes(frm(form, dd, dry_run = "objective"))
   }
-  # an ordinal model's thresholds are not a design column, so
-  # set_prior() cannot reach them; the priorlist really is empty here
+  # an ordinal model's thresholds take brms's class Intercept default,
+  # so there is no gap to announce; through frmtmb.sample 0.19.0 they
+  # were flat and named as one
   uf <- frm(bf(o ~ x) + cumulative(), dd, dry_run = "objective")
-  expect_null(frmtmb.sample:::default_priors_for(uf))
-  expect_match(notes(bf(o ~ x) + cumulative()), "thresholds")
-  # ... and it is still announced rather than passing in silence
+  cls <- vapply(unclass(frmtmb.sample:::default_priors_for(uf)), `[[`, "",
+                "class")
+  expect_equal(cls, "Intercept")
+  expect_length(notes(bf(o ~ x) + cumulative()), 0L)
+  # sum-to-zero thresholds are the gap that is left, and it is announced
+  # rather than passing in silence
+  ufz <- frm(bf(o ~ x) + cumulative(threshold = "sum_to_zero"), dd,
+             dry_run = "objective")
+  expect_null(frmtmb.sample:::default_priors_for(ufz))
   msg <- capture_messages(
-    frmtmb.sample:::sample_resolve_priors(uf, NULL))
-  expect_match(paste(msg, collapse = ""), "thresholds")
+    frmtmb.sample:::sample_resolve_priors(ufz, NULL))
+  expect_match(paste(msg, collapse = ""), "sum_to_zero thresholds")
   expect_match(paste(msg, collapse = ""), "see ?frm_sample", fixed = TRUE)
-  # an ordinal model WITH random effects still gets its sd default
+  # an ordinal model WITH random effects gets its sd default as well
   uf2 <- frm(bf(o ~ x + (1 | g)) + cumulative(), dd,
              dry_run = "objective")
   cls <- vapply(unclass(frmtmb.sample:::default_priors_for(uf2)), `[[`, "",
                 "class")
-  expect_equal(cls, "sd")
-  expect_match(paste(capture_messages(
-    frmtmb.sample:::sample_resolve_priors(uf2, NULL)), collapse = ""),
-    "thresholds")
+  expect_setequal(cls, c("Intercept", "sd"))
 
-  expect_match(notes(bf(z ~ x) + negbinomial()), "shape")
+  # the dispersion parameters are no gap either
+  expect_length(notes(bf(z ~ x) + negbinomial()), 0L)
   # a correlated block is no longer a gap: it gets lkj(1), brms's own
   # default, so there is nothing left to announce
   expect_length(notes(bf(y ~ x + (1 + x | g)) + gaussian()), 0L)
@@ -296,19 +291,21 @@ test_that("the formula route discloses its defaults and reproduces them", {
                seed = 1))))
 })
 
-test_that("an ordinal formula-route call announces its threshold gap", {
+test_that("an ordinal formula-route call announces its threshold default", {
   skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_prior_data()
 
-  # no random effects: the priorlist is empty, and the call must SAY so
+  # the thresholds take brms's student_t(3, 0, 2.5), and the call says so
   msg <- capture_messages(suppressWarnings(
     ds <- frm_sample(bf(o ~ x) + cumulative(), data = dd, chains = 1,
                      iter = 300, refresh = 0, seed = 6)))
   m <- paste(msg, collapse = "")
   expect_match(m, "default priors")
-  expect_match(m, "thresholds")
-  expect_null(prior_summary(ds))
+  expect_match(m, "Intercept +student_t[(]3, 0, 2.5[)]")
+  ps <- as.data.frame(prior_summary(ds))
+  expect_identical(ps$prior[ps$class == "Intercept"],
+                   "student_t(3, 0, 2.5)")
   # the model still sampled, thresholds included
   expect_s3_class(ds, "frmtmb_draws")
   expect_true("b_x" %in% colnames(ds$draws))
@@ -614,9 +611,11 @@ test_that("every draws accessor speaks brms's names", {
   nm <- setdiff(colnames(ds$draws),
                 c("lp__", grep("^r_", colnames(ds$draws), value = TRUE)))
   # brms's b_ and r_ names; theta_1 is the log standard deviation, which
-  # brms does not sample and which keeps confint()'s internal name
+  # brms does not sample and which keeps confint()'s internal name, and
+  # brms's sd_g__Intercept is derived from it
   # sigma with no formula is brms's natural-scale `sigma`
-  expect_equal(nm, c("b_Intercept", "b_x", "sigma", "theta_1"))
+  expect_equal(nm, c("b_Intercept", "b_x", "sigma", "theta_1",
+                     "sd_g__Intercept"))
   expect_true(all(sprintf("r_g[%s,Intercept]", levels(dd$g)) %in%
                     colnames(ds$draws)))
   expect_false(any(grepl("[()]", colnames(ds$draws))))
@@ -650,5 +649,7 @@ test_that("every draws accessor speaks brms's names", {
   # check_laplace() reports the same names
   cl <- suppressWarnings(check_laplace(fit, chains = 1, iter = 400,
                                        refresh = 0, seed = 5))
-  expect_equal(cl$parameter, nm)
+  # which compares parameters, and a derived summary has no ML value of
+  # its own
+  expect_equal(cl$parameter, setdiff(nm, "sd_g__Intercept"))
 })

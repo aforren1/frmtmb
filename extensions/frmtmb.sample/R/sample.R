@@ -596,6 +596,34 @@ mode_inits <- function(mode, chains, jitter, lower = NULL, upper = NULL) {
   })
 }
 
+#' Evaluate `expr` on R's random stream seeded by `seed`, and leave the
+#' caller's stream as it was. brms's `seed` reaches Stan alone, because
+#' Stan draws brms's inits; frm_sample()'s jitter is drawn in R, and a
+#' seed that fixed Stan and not the jitter left two seeded calls with
+#' different chains. `NULL` or `NA`, brms's "no seed", draws from the
+#' session's stream, so `set.seed()` still decides.
+#'
+#' @noRd
+with_sample_seed <- function(seed, expr) {
+  if (is.null(seed) || (length(seed) == 1L && is.na(seed))) return(expr)
+  if (!is.numeric(seed) || length(seed) != 1L || !is.finite(seed)) {
+    frm_stop("frm_sample(seed = ) takes one finite number, or NA for no ",
+             "seed; got ", deparse1(seed), call. = FALSE)
+  }
+  genv <- globalenv()
+  had <- exists(".Random.seed", envir = genv, inherits = FALSE)
+  old <- if (had) get(".Random.seed", envir = genv, inherits = FALSE)
+  on.exit({
+    if (had) {
+      assign(".Random.seed", old, envir = genv)
+    } else if (exists(".Random.seed", envir = genv, inherits = FALSE)) {
+      rm(".Random.seed", envir = genv)
+    }
+  })
+  set.seed(seed)
+  expr
+}
+
 #' Per-chain numeric inits carried as one-dimensional arrays.
 #'
 #' tmbstan's model has one parameter, `vector[N] y`, and hands a
@@ -645,7 +673,7 @@ prior_augmented_obj <- function(fit, entries) {
   nll <- build_objective(mo_sample_frame(fit))
   entries <- mo_sample_entries(entries, fit)
   nlp <- neg_log_prior_fn(entries)
-  snlp <- mo_simplex_nlp(fit, entries)
+  snlp <- sample_extra_nlp(fit, entries)
   tpl <- fit$frame[["par_template"]]
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(tpl[["b"]])) "b",
@@ -658,6 +686,18 @@ prior_augmented_obj <- function(fit, entries) {
   }
   RTMB::MakeADFun(fn, mo_sample_pars(fit, fit$estimates), random = random,
                   map = fit$frame[["map"]], silent = TRUE)
+}
+
+#' The densities the sampler adds outside the resolved entries: brms's
+#' `dirichlet(1)` on each `mo()` simplex and on a mixture's weights.
+#'
+#' @noRd
+sample_extra_nlp <- function(fit, entries) {
+  f1 <- mo_simplex_nlp(fit, entries)
+  f2 <- mix_theta_nlp(fit)
+  if (is.null(f1)) return(f2)
+  if (is.null(f2)) return(f1)
+  function(pars) f1(pars) + f2(pars)
 }
 
 # --- mo() simplexes ---------------------------------------------------
@@ -1040,7 +1080,7 @@ ncp_objective <- function(fit, idx, entries) {
   } else {
     nll
   }
-  snlp <- mo_simplex_nlp(fit, entries)
+  snlp <- sample_extra_nlp(fit, entries)
   if (!is.null(snlp)) {
     fn0 <- fn
     fn <- function(pars) fn0(pars) + snlp(pars)
@@ -1259,13 +1299,9 @@ sample_assemble <- function(formula, data, family, data2, start,
 # out loud by the disclosure message: a correlation whose STRUCTURE has
 # no LKJ density (toep(), which is not positive definite everywhere, so
 # there is no correlation matrix over its parameter space to put one
-# on), ORDINAL THRESHOLDS (brms
-# priors them as its Intercept class; frmtmb keeps them in the `thres`
-# extra-parameter vector, which set_prior() cannot address), the
-# shape/phi/nu-style dispersion parameters (brms uses gamma and
-# inverse-gamma defaults, which a user's set_prior() can write and
-# the defaults here do not yet), and
-# NONLINEAR parameters (class "b" in brms, which brms leaves flat).
+# on), sum-to-zero ordinal thresholds (brms's prior sits on a vector
+# frmtmb does not have), and NONLINEAR parameters (class "b" in brms,
+# which brms leaves flat).
 
 # Families whose response is on the log scale inside the density even
 # though the mu link is spelled identity; brms's `has_logscale()`.
@@ -1278,12 +1314,22 @@ logscale_families <- c("lognormal", "shifted_lognormal",
 #' the mean offset of the predictor the intercept belongs to away from
 #' it (`default_intercept_location()`).
 #'
+#' `link` is the link brms transforms the response by. brms reads the
+#' family's own link for the `sd` rows and for the location, and swaps
+#' in the dpar's link for a dpar: `"identity"` for one without a
+#' formula, its link for one with a formula (`def_dpar_prior()`), and a
+#' mixture component's own link for its location. A mixture family's
+#' link is the identity, and brms does not see a log-scale component
+#' through it.
+#'
 #' @noRd
-default_prior_scale <- function(fit, rspec = fit$spec$responses[[1L]]) {
+default_prior_scale <- function(fit, rspec = fit$spec$responses[[1L]],
+                                link = NULL) {
   fam <- rspec$family
   y <- fit$frame[["y"]][[rspec$resp_name]]
-  link <- if (fam[["family"]] %in% logscale_families) "log" else {
-    fam[["links"]][["mu"]]$name %||% "identity"
+  mix <- !is.null(fam[["mix"]])
+  link <- if (!mix && fam[["family"]] %in% logscale_families) "log" else {
+    link %||% fam[["links"]][["mu"]]$name %||% "identity"
   }
   flat <- list(location = 0, scale = 2.5, link = link, centered = FALSE)
   if (is.null(y) || !is.numeric(y) || is.matrix(y) || !length(y)) {
@@ -1299,8 +1345,12 @@ default_prior_scale <- function(fit, rspec = fit$spec$responses[[1L]]) {
   if (link %in% c("log", "inverse", "1/mu^2")) {
     y <- ifelse(y == 0, y + 0.1, y)
   }
-  yl <- switch(link, identity = y, log = log(y), inverse = 1 / y,
-               sqrt = sqrt(y), `1/mu^2` = 1 / y^2)
+  # a negative response under a log or sqrt link gives NaN, which the
+  # finiteness checks below read as "keep 2.5"; brms silences the same
+  # warning (SW() in def_scale_prior())
+  yl <- suppressWarnings(switch(link, identity = y, log = log(y),
+                                inverse = 1 / y, sqrt = sqrt(y),
+                                `1/mu^2` = 1 / y^2))
   loc <- round(stats::median(yl), 1L)
   scl <- round(stats::mad(yl), 1L)
   list(location = if (is.finite(loc)) loc else 0,
@@ -1327,9 +1377,9 @@ default_intercept_location <- function(ps, lp) {
 #' rather than on the coefficient, with the class `"sd"` log-Jacobian.
 #'
 #' @noRd
-natural_dpar_prior <- function(dist, dpar, resp = "") {
+natural_dpar_prior <- function(dist, dpar, resp = "", lb = NA, ub = NA) {
   spec <- unclass(set_prior(dist, class = "Intercept", dpar = dpar,
-                            resp = resp))
+                            resp = resp, lb = lb, ub = ub))
   spec[[1L]]$natural <- TRUE
   structure(spec, class = "frmtmb_priorlist")
 }
@@ -1482,40 +1532,172 @@ default_lp_dpar <- function(rspec, dp) {
   if (dp %in% rspec$primary_dpars && !several) "" else dp
 }
 
-#' Whether `dp` is an ordinal discrimination of `rspec`: `disc` of an
-#' ordinal family, or `disc<k>` of an ordinal mixture's component `k`.
-#'
-#' @noRd
-ord_disc_dpar <- function(rspec, dp) {
-  if (!identical(rspec$family[["type"]], "ordinal")) {
-    return(identical(dp, "disc"))
-  }
-  identical(dp, "disc") ||
-    (!is.null(rspec$family[["mix"]]) && grepl("^disc[0-9]+$", dp))
-}
-
-#' Whether `lp` is the `xi` of a `gen_extreme_value()` response with a
-#' formula of its own, `xi ~ 1` included: brms then samples `xi` on its
-#' `log1p` link with `normal(0, 4)` on the intercept. Without a formula
-#' brms samples `tmp_xi` with `normal(0, 2.5)` (`gev_xi_scalar()`). The
-#' two spellings have the same design, one intercept column, so the tell
-#' is the formula, which `dpar_has_predictor()` reads; a design test
-#' gave `xi ~ 1` the scalar's note and no default (review fix 6).
-#'
-#' @noRd
-gev_xi_predicted <- function(spec, rspec, lp) {
-  identical(rspec$family[["family"]], "gen_extreme_value") &&
-    identical(lp[["dpar"]], "xi") && is.null(lp[["constant"]]) &&
-    dpar_has_predictor(spec, lp)
-}
-
-#' Whether `lp` is a `gen_extreme_value()` `xi` without a formula.
+#' Whether `lp` is a `gen_extreme_value()` `xi` without a formula. With
+#' a formula, `xi ~ 1` included, brms samples `xi` on its `log1p` link
+#' with `normal(0, 4)` on the intercept, which `brms_def_dpar_prior()`
+#' gives it. The two spellings have the same design, one intercept
+#' column, so the tell is the formula, which `dpar_has_predictor()`
+#' reads; a design test gave `xi ~ 1` the scalar's note and no default
+#' (review fix 6).
 #'
 #' @noRd
 gev_xi_scalar <- function(spec, rspec, lp) {
   identical(rspec$family[["family"]], "gen_extreme_value") &&
     identical(lp[["dpar"]], "xi") && is.null(lp[["constant"]]) &&
     is.null(lp[["equate"]]) && !dpar_has_predictor(spec, lp)
+}
+
+#' brms's class for one of a response's dpars, its `dpar_class()`: a
+#' mixture component's `sigma2` is class `sigma` and its `theta2` class
+#' `theta`, and a logistic_normal() category's `sigma<k>` is class
+#' `sigma`. frmtmb calls com_poisson()'s dispersion `nu` where brms calls
+#' it `shape`, and brms's default belongs to the quantity, not the word.
+#'
+#' @noRd
+brms_dpar_class <- function(rspec, dp) {
+  fam <- rspec$family
+  if (dp %in% fam[["simplex"]][["sigma"]]) return("sigma")
+  if (!is.null(fam[["mix"]])) return(sub("[0-9]+$", "", dp))
+  if (identical(fam[["family"]], "compois") && identical(dp, "nu")) {
+    return("shape")
+  }
+  dp
+}
+
+#' The defaults a brms family states for itself (brms 2.23.0's
+#' `family$prior` hooks, brms#1614), or `NULL` where the family has none
+#' for the class under that link. A mixture never reaches them: brms
+#' asks the mixture family, which has none.
+#'
+#' @noRd
+brms_family_prior <- function(rspec, cls, link) {
+  fam <- rspec$family
+  if (!is.null(fam[["mix"]])) return(NULL)
+  switch(fam[["family"]],
+    xbeta = if (identical(cls, "kappa")) {
+      if (identical(link, "identity")) "gamma(0.01, 0.01)" else
+        "student_t(3, 0, 2.5)"
+    },
+    negbinomial = , hurdle_negbinomial = , zero_inflated_negbinomial =
+      if (identical(cls, "shape") && identical(link, "identity")) {
+        "inv_gamma(0.4, 0.3)"
+      },
+    von_mises = if (identical(cls, "mu") && identical(link, "tan_half")) {
+      "student_t(1, 0, 1)"
+    },
+    NULL)
+}
+
+#' brms 2.23.0's `def_dpar_prior()` for one dpar of class `cls`, as a
+#' density string, `""` where brms leaves the slot flat. `link` is
+#' `"identity"` for a dpar without a formula, whose density is then on
+#' the parameter itself, and the dpar's link for one with a formula,
+#' whose density is then on its intercept. A family brms does not have
+#' gets the class's default, which is what brms gives a custom family
+#' with a dpar of that name. `lk` is the dpar's link object, which the
+#' `ndt` default reads (`ndt_upper()`).
+#'
+#' @noRd
+brms_def_dpar_prior <- function(fit, rspec, cls, link, lk = NULL) {
+  hook <- brms_family_prior(rspec, cls, link)
+  if (!is.null(hook)) return(hook)
+  if (identical(cls, "sigma")) {
+    ps <- default_prior_scale(fit, rspec, link = link)
+    return(sprintf("student_t(3, 0, %s)", as.character(ps$scale)))
+  }
+  if (identical(link, "identity")) {
+    switch(cls,
+      shape = "gamma(0.01, 0.01)", nu = "gamma(2, 0.1)",
+      phi = "gamma(0.01, 0.01)", kappa = "gamma(2, 0.01)",
+      beta = "gamma(1, 0.1)", zi = , hu = , zoi = , coi = , bias = ,
+      quantile = "beta(1, 1)", bs = "gamma(1, 1)",
+      ndt = ndt_uniform_prior(fit, rspec, lk), xi = "normal(0, 2.5)",
+      alpha = "normal(0, 4)", disc = "lognormal(0, 1)",
+      theta = "logistic(0, 1)", "")
+  } else {
+    switch(cls,
+      shape = "student_t(3, 0, 2.5)", nu = "normal(2.7, 0.8)",
+      phi = "student_t(3, 0, 2.5)", kappa = "normal(5.0, 0.8)",
+      beta = "normal(1.7, 1.3)", zi = , hu = , zoi = , coi = , bias = ,
+      quantile = "logistic(0, 1)", bs = "normal(-0.6, 1.3)",
+      xi = "normal(0, 4)", alpha = "normal(0, 4)", disc = "normal(0, 1)",
+      "")
+  }
+}
+
+#' brms's bounds on a distributional parameter's own class
+#' (`dpar_bounds()`), where frmtmb's link does not hold the parameter
+#' inside them already: `nu` above 1 under an identity or log link, and
+#' a log-linked `ndt` below the smallest response. brms declares the
+#' bound on the parameter (`real<lower=1> nu`,
+#' `real<lower=0, upper=min_Y> ndt`), so Stan's transform keeps a draw
+#' inside it; without it the density is a wall the sampler meets
+#' (dev/reviews/2026-10-14-sampleprior.md, findings 3 and 4). A link
+#' whose image is inside the bound, logit or logm1 or frmtmb.eam's
+#' bounded `ndt`, needs none and gets none.
+#'
+#' @noRd
+brms_natural_bounds <- function(fit, rspec, cls, link) {
+  bd <- switch(cls,
+    sigma = , shape = , phi = , kappa = , beta = , bs = , disc = c(0, NA),
+    nu = c(1, NA),
+    zi = , hu = , zoi = , coi = , bias = , quantile = c(0, 1),
+    ndt = c(0, ndt_upper(fit, rspec, link)),
+    c(NA, NA))
+  img <- tryCatch(suppressWarnings(link$linkinv(c(-30, 30))),
+                  error = function(e) c(-Inf, Inf))
+  lb <- if (!is.na(bd[1L]) && isTRUE(img[1L] < bd[1L])) bd[1L] else NA
+  ub <- if (!is.na(bd[2L]) && isTRUE(img[2L] > bd[2L])) bd[2L] else NA
+  c(lb = lb, ub = ub)
+}
+
+#' The smallest response, brms's `min_Y`, or `NA` without a positive one.
+#'
+#' @noRd
+ndt_min_y <- function(fit, rspec) {
+  y <- fit$frame[["y"]][[rspec$resp_name]]
+  if (is.matrix(y)) y <- y[, 1L]
+  y <- y[is.finite(y)]
+  if (!length(y) || !(min(y) > 0)) return(NA_real_)
+  min(y)
+}
+
+#' The top of a non-decision time's support: the top of its link's
+#' image where the link is bounded above, and brms's `min_Y`, the
+#' smallest response, where it is not. frmtmb.eam bounds `ndt` in its
+#' link. Without `ndt_group()` that bound is the fastest response, so
+#' the image is `(0, min_Y)`, brms's interval; with `ndt_group()` the
+#' parameter is a FRACTION of each group's fastest response, the image
+#' is `(0, 1)`, and `min_Y` would cap the fraction where it does not
+#' belong (dev/reviews/2026-10-14-sampleprior.md, finding 9: the
+#' posterior pinned at 0.33 against an ML fraction of 0.818). A log,
+#' softplus or identity link, the shifted lognormal's, is unbounded and
+#' takes `min_Y`.
+#'
+#' @noRd
+ndt_upper <- function(fit, rspec, link) {
+  top <- if (is.null(link)) Inf else {
+    tryCatch(suppressWarnings(link$linkinv(Inf)), error = function(e) NaN)
+  }
+  if (!is.finite(top)) {
+    # a linkinv() that cannot take Inf: read it far out instead
+    top <- tryCatch(suppressWarnings(link$linkinv(800)),
+                    error = function(e) Inf)
+  }
+  if (is.finite(top) && top > 0) top else ndt_min_y(fit, rspec)
+}
+
+#' brms's `uniform(0, min_Y)` on a non-decision time without a formula,
+#' with `min_Y` the smallest response, over the link's own image where
+#' the link is bounded above (`ndt_upper()`). The bound is written to 17
+#' significant digits, so the density's edge is the support's own value
+#' and not a rounding of it.
+#'
+#' @noRd
+ndt_uniform_prior <- function(fit, rspec, link = NULL) {
+  m <- ndt_upper(fit, rspec, link)
+  if (is.na(m)) return("")
+  sprintf("uniform(0, %.17g)", m)
 }
 
 #' brms's default priors for the model this object holds, as a
@@ -1547,66 +1729,67 @@ default_priors_for <- function(fit) {
     # "b", which brms leaves flat
     if (isFALSE(lp[["center"]])) next
     rspec <- fit$spec$responses[[lp[["resp"]]]]
-    ps <- scales[[lp[["resp"]]]]
-    rs <- if (multi) lp[["resp"]] else ""
+    # the shared nu of a Student-t rescor model has no response, as its
+    # brms row has none
+    rs <- if (multi && !isTRUE(lp[["shared"]])) lp[["resp"]] else ""
+    dp <- lp[["dpar"]]
     # a NONLINEAR parameter's coefficients are class "b" in brms, and
     # brms leaves class "b" flat: the response's median and mad say
     # nothing about a rate or a shape sitting inside a nonlinear body,
     # so a default there would be an invented prior rather than brms's
-    if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) next
-    if (lp[["dpar"]] %in% rspec$primary_dpars) {
-      add(set_prior(st(default_intercept_location(ps, lp), ps$scale),
-                    class = "Intercept", resp = rs,
-                    dpar = default_lp_dpar(rspec, lp[["dpar"]])))
-    } else if (identical(lp[["dpar"]], "sigma") &&
-                 identical(lp[["link"]]$name, "log")) {
-      # brms scales the prior on sigma itself by the response's mad
-      # only when sigma is a single number; with a predictor the
-      # intercept gets the plain student_t(3, 0, 2.5) on the log scale
-      if (ncol(lp[["X"]]) == 1L && is.null(lp[["Z"]])) {
-        add(natural_dpar_prior(st(0, ps$scale), "sigma", resp = rs))
-      } else {
-        add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma",
-                      resp = rs))
+    if (dp %in% (rspec$nlpars %||% character(0))) next
+    if (dp %in% rspec$primary_dpars) {
+      # a mixture component's location is read on its own link
+      ps <- if (is.null(rspec$family[["mix"]])) scales[[lp[["resp"]]]] else {
+        default_prior_scale(fit, rspec, link = lp[["link"]]$name)
       }
-    } else if (lp[["dpar"]] %in% rspec$family[["simplex"]][["sigma"]] &&
-                 identical(lp[["link"]]$name, "log")) {
-      # a logistic_normal() category's sigma<k>, which brms priors as it
-      # priors sigma; its response is a composition, so the scale is
-      # brms's untransformed 2.5 (default_prior_scale())
-      if (ncol(lp[["X"]]) == 1L && is.null(lp[["Z"]])) {
-        add(natural_dpar_prior(st(0, ps$scale), lp[["dpar"]], resp = rs))
-      } else {
-        add(set_prior(st(0, 2.5), class = "Intercept", dpar = lp[["dpar"]],
-                      resp = rs))
-      }
-    } else if (ord_disc_dpar(rspec, lp[["dpar"]]) &&
-                 !identical(lp[["link"]]$name, "identity")) {
-      # an ordinal discrimination: brms's def_dpar_prior() puts
-      # normal(0, 1) on the link-scale intercept, which is also what
-      # places that intercept at all, since the likelihood cannot tell
-      # it from the scale of the thresholds. Under the identity link
-      # brms writes lognormal(0, 1), which set_prior() does not carry;
-      # default_prior_notes() names that gap. An ordinal mixture's
-      # disc1, disc2, ... each get it, as brms's rows show
-      add(set_prior("normal(0, 1)", class = "Intercept",
-                    dpar = lp[["dpar"]], resp = rs))
-    } else if (gev_xi_scalar(fit$spec, rspec, lp)) {
+      d <- brms_family_prior(rspec, "mu", lp[["link"]]$name) %||%
+        st(default_intercept_location(ps, lp), ps$scale)
+      add(set_prior(d, class = "Intercept", resp = rs,
+                    dpar = default_lp_dpar(rspec, dp)))
+      next
+    }
+    if (gev_xi_scalar(fit$spec, rspec, lp)) {
       # brms's default on a scalar xi is normal(0, 2.5) on tmp_xi, and
       # frm_sample() samples that xi through tmp_xi as brms does
       # (gev_xi_chart_frame()), where this density is read on tmp_xi.
       # Where the chart cannot be used it is a density on xi itself
       add(set_prior("normal(0, 2.5)", class = "xi", resp = rs))
-    } else if (gev_xi_predicted(fit$spec, rspec, lp)) {
-      # brms's def_dpar_prior() on a predicted xi of gen_extreme_value:
-      # normal(0, 4) on the intercept under its log1p link, normal(0, 2.5)
-      # under identity. A scalar xi is default_prior_notes()'s
-      add(set_prior(if (identical(lp[["link"]]$name, "identity")) {
-        "normal(0, 2.5)"
-      } else {
-        "normal(0, 4)"
-      }, class = "Intercept", dpar = "xi", resp = rs))
+      next
     }
+    # every other dpar: brms's def_dpar_prior(), which reads the dpar's
+    # link only when it has a formula (`dp ~ 1` included); without one
+    # the density is on the parameter itself, in the dpar's own class
+    pred <- dpar_has_predictor(fit$spec, lp)
+    cls <- brms_dpar_class(rspec, dp)
+    # a mixture's weights without a formula take brms's dirichlet(1) on
+    # the whole simplex instead (mix_theta_nlp())
+    if (identical(cls, "theta") && !pred) next
+    d <- brms_def_dpar_prior(fit, rspec, cls,
+                             if (pred) lp[["link"]]$name else "identity",
+                             lk = lp[["link"]])
+    if (!nzchar(d)) next
+    add(if (pred) {
+      set_prior(d, class = "Intercept", dpar = dp, resp = rs)
+    } else {
+      bd <- brms_natural_bounds(fit, rspec, cls, lp[["link"]])
+      natural_dpar_prior(d, dp, resp = rs, lb = bd[["lb"]],
+                         ub = bd[["ub"]])
+    })
+  }
+  # an ordinal model's thresholds are brms's class "Intercept", with the
+  # response's def_scale_prior(): one row per threshold vector, keyed as
+  # get_prior() keys it, and none under sum_to_zero, where brms's
+  # density is on a vector frmtmb does not have
+  for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+    if (ob$shared && !identical(ob$k, 1L)) next
+    if (!length(fit$frame[["par_template"]][[ob$comp]] %||% numeric(0))) {
+      next
+    }
+    if (identical(ob$fam[["thres"]][["type"]], "sum_to_zero")) next
+    r <- ob$lp[["resp"]] %||% names(fit$spec$responses)[1L]
+    add(set_prior(st(0, scales[[r]]$scale), class = "Intercept",
+                  dpar = ob$prior_dpar, resp = if (multi) r else ""))
   }
 
   for (k in default_sd_prefixes(fit)) {
@@ -1642,7 +1825,57 @@ default_priors_for <- function(fit) {
   if (length(fit$frame[["par_template"]][["lncor_raw"]] %||% numeric(0))) {
     add(set_prior("lkj(1)", class = "lncor"))
   }
+  # and on an unstr() residual correlation, class cortime, per response
+  for (r in names(fit$frame[["autocor"]] %||% list())) {
+    ac <- fit$frame[["autocor"]][[r]]
+    if (identical(ac[["struct"]], "unstr") && isTRUE(ac[["d"]] >= 2L)) {
+      add(set_prior("lkj(1)", class = "cortime", resp = if (multi) r else ""))
+    }
+  }
   pl
+}
+
+#' The mixing weights of each mixture response that has no formula on
+#' any of them, where brms 2.23.0 puts `dirichlet(1)` on the simplex
+#' (`has_joint_theta()`): for each, the positions of its `K - 1` log
+#' ratios in `betad`. A weight with a formula is brms's class
+#' `Intercept` instead, and gets `logistic(0, 1)` there.
+#'
+#' @noRd
+mix_theta_terms <- function(fit) {
+  tab <- brms_coef_table(fit)
+  smp <- attr(tab, "simplex")
+  if (!length(smp)) return(list())
+  n_beta <- length(fit$frame[["par_template"]][["beta"]])
+  n_bd <- length(fit$frame[["par_template"]][["betad"]])
+  free <- setdiff(seq_len(n_bd), fit$frame[["betad_fixed_idx"]])
+  lapply(smp, function(s) {
+    list(idx = free[s$pos - n_beta], K = length(s$names),
+         names = s$names)
+  })
+}
+
+#' brms's `dirichlet(1)` on a mixture's weights, as a negative log
+#' density of the log ratios the fit holds them in. The flat density on
+#' the simplex carried to those coordinates is the softmax's Jacobian,
+#' `Gamma(K) prod(w)` over all `K` weights, whichever component is the
+#' reference. `NULL` without such weights.
+#'
+#' @noRd
+mix_theta_nlp <- function(fit) {
+  terms <- if (isTRUE(attr(fit$prior, "mix_theta"))) mix_theta_terms(fit)
+  if (!length(terms)) return(NULL)
+  function(pars) {
+    "c" <- RTMB::ADoverload("c")
+    out <- 0
+    for (tm in terms) {
+      a <- c(0, pars[["betad"]][tm$idx])
+      lse <- a[1L]
+      for (k in seq_along(a)[-1L]) lse <- RTMB::logspace_add(lse, a[k])
+      out <- out - (sum(a) - tm$K * lse) - lgamma(tm$K)
+    }
+    out
+  }
 }
 
 #' What this model has that brms would prior and frmtmb deliberately
@@ -1666,31 +1899,15 @@ default_prior_notes <- function(fit, user_pl = NULL) {
                                " (brms leaves them flat too, as class b; ",
                                "set_prior(nlpar = ) writes them)"))
     }
-    if (identical(rspec$family[["type"]], "ordinal")) {
-      notes <- c(notes, paste0("no defaults for this family's thresholds",
-                               of, " (brms priors them as its Intercept ",
-                               "class)"))
-      lpd <- Filter(function(lp) {
-        identical(lp[["resp"]], rspec$resp_name) &&
-          ord_disc_dpar(rspec, lp[["dpar"]]) && is.null(lp[["constant"]]) &&
-          "(Intercept)" %in% colnames(lp[["X"]]) &&
-          identical(lp[["link"]]$name, "identity")
-      }, fit$frame[["linpreds"]])
-      for (lp in lpd) {
-        notes <- c(notes, paste0("no default for the intercept of ",
-                                 lp[["dpar"]], of, " under the identity ",
-                                 "link (brms uses lognormal(0, 1))"))
-      }
-    }
-    # dispersion dpars brms gives a gamma or inverse-gamma default, which
-    # set_prior() cannot express; kappa is xbeta()'s and von_mises()'s
-    disp <- setdiff(intersect(names(rspec$dpars %||% list()),
-                              c("shape", "phi", "nu", "kappa")),
-                    rspec$primary_dpars)
-    if (length(disp)) {
-      notes <- c(notes, paste0("no defaults for ",
-                               paste(disp, collapse = ", "), of,
-                               " (brms uses gamma / inverse-gamma)"))
+    for (ob in ord_lp_blocks(fit$frame, fit$spec)) {
+      r <- ob$lp[["resp"]] %||% rspec$resp_name
+      if (!identical(r, rspec$resp_name)) next
+      if (!identical(ob$fam[["thres"]][["type"]], "sum_to_zero")) next
+      notes <- c(notes, paste0(
+        "no default for the sum_to_zero thresholds", of, " (brms puts ",
+        "student_t(3, 0, 2.5) on thresholds it declares before centering ",
+        "them, which frmtmb does not have)"))
+      break
     }
     for (tm in gev_xi_chart_terms(fit)) {
       if (!identical(tm$resp, rspec$resp_name)) next
@@ -1703,6 +1920,14 @@ default_prior_notes <- function(fit, user_pl = NULL) {
                "prior on class xi is a prior on tmp_xi, as in brms")
       })
     }
+  }
+  # a mixture's weights without a formula: brms's dirichlet(1) on the
+  # simplex, which no set_prior() class addresses here
+  for (tm in mix_theta_terms(fit)) {
+    notes <- c(notes, paste0(
+      "theta: dirichlet(1), brms's default, on the mixing weights (",
+      paste(tm$names, collapse = ", "), "); it is the flat density on ",
+      "the simplex, and prior = \"flat\" drops it with the rest"))
   }
   # correlations get lkj(1), brms's own default, wherever a density
   # exists for the block's parameterization; what is left is named
@@ -1997,7 +2222,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
     eff <- eff %||% structure(list(), class = "frmtmb_priorlist")
     attr(eff, "overrides") <- Reduce(utils::modifyList, st$legacy)
   }
-  list(effective = eff, ri = ri)
+  # brms's dirichlet(1) on a mixture's weights is a density on the whole
+  # simplex, which no set_prior() class names here (class "theta" is
+  # frmtmb's covariance vector), so it rides on the effective prior as
+  # a flag that the retape reads (mix_theta_nlp())
+  mix <- defaults && length(mix_theta_terms(fit))
+  if (mix) {
+    eff <- eff %||% structure(list(), class = "frmtmb_priorlist")
+    attr(eff, "mix_theta") <- TRUE
+  }
+  list(effective = eff, ri = ri, mix_theta = mix)
 }
 
 #' Sample a model with NUTS
@@ -2211,23 +2445,72 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'
 #' @section Default priors:
 #' Both routes default to brms 2.23's own weakly-informative
-#' priors, read off `brms::default_prior()` on matched models. Write
-#' `y*` for the response transformed by the `mu` link and
+#' priors, read off `brms::default_prior()` on matched models, family by
+#' family. Write `y*` for the response transformed by a link and
 #' `s = max(2.5, round(mad(y*), 1))`:
 #'
 #' | class | default | scale |
 #' |---|---|---|
 #' | `b` (slopes) | flat | - |
 #' | `Intercept` | `student_t(3, round(median(y*), 1) - m, s)` | link |
+#' | `Intercept` (ordinal thresholds) | `student_t(3, 0, 2.5)` | thresholds |
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
-#' | `cor` | `lkj(1)` | correlation matrix, Jacobian applied |
-#' | `rescor` | `lkj(1)` | correlation matrix, Jacobian applied |
-#' | `lncor` (a `logistic_normal()` response) | `lkj(1)` | correlation matrix, Jacobian applied |
-#' | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
-#' | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
-#' | `sigma<k>` of `logistic_normal()` | as `sigma`, with `s = 2.5` | natural or log |
-#' | `Intercept` of an ordinal family's `disc` | `normal(0, 1)` | link |
-#' | `simo` (a `mo()` simplex) | `dirichlet(1)` | the simplex |
+#' | `cor`, `rescor`, `lncor`, `cortime` | `lkj(1)` | correlation matrix |
+#' | `simo`, `sbhaz` | `dirichlet(1)` | the simplex |
+#' | `theta` (mixture weights) | `dirichlet(1)` | the simplex |
+#' | `sigma` | `student_t(3, 0, s)` | natural |
+#' | `shape`, `phi` | `gamma(0.01, 0.01)` | natural |
+#' | `shape` of the negative binomials | `inv_gamma(0.4, 0.3)` | natural |
+#' | `nu` | `gamma(2, 0.1)` | natural |
+#' | `kappa` | `gamma(2, 0.01)`; `gamma(0.01, 0.01)` for `xbeta()` | natural |
+#' | `beta` (exgaussian) | `gamma(1, 0.1)` | natural |
+#' | `zi`, `hu`, `zoi`, `coi`, `bias`, `quantile` | `beta(1, 1)` | natural |
+#' | `bs` | `gamma(1, 1)` | natural |
+#' | `ndt` | `uniform(0, min(y))` | natural |
+#' | `alpha` | `normal(0, 4)` | natural |
+#' | `xi` | `normal(0, 2.5)` on `tmp_xi` | see below |
+#'
+#' The rows marked natural are for a parameter without a formula: the
+#' density is on the parameter itself, with the Jacobian of its link,
+#' which is what brms's bounds do on its constrained parameters. A
+#' parameter with a formula, `shape ~ x` or `shape ~ 1`, has its default
+#' on its intercept instead, on the link scale, as in brms:
+#' `student_t(3, 0, s)` for `sigma` (with `y*` on `sigma`'s link),
+#' `student_t(3, 0, 2.5)` for `shape` and `phi`, `normal(2.7, 0.8)` for
+#' `nu`, `normal(5.0, 0.8)` for `kappa`, `normal(1.7, 1.3)` for `beta`,
+#' `logistic(0, 1)` for `zi`, `hu`, `zoi`, `coi`, `bias`, `quantile` and
+#' a mixture weight, `normal(-0.6, 1.3)` for `bs`, `normal(0, 4)` for
+#' `xi` and `alpha`, and `normal(0, 1)` for an ordinal `disc`
+#' (`lognormal(0, 1)` under its identity link). `ndt` with a formula
+#' stays flat, as in brms. A family brms does not have takes the
+#' default of the dpar's name, which is what brms gives a custom family.
+#'
+#' For `sigma` without a formula `y*` is the response itself (logged for
+#' a log-scale family), whatever the `mu` link: brms reads `sigma`'s
+#' own link there, which is the identity. `com_poisson()`'s dispersion,
+#' frmtmb's `nu`, takes brms's `shape` default, because it is the same
+#' quantity under brms's name. A mixture component's dpars take the
+#' class's default (`sigma2` is class `sigma`) and no family's own: brms
+#' asks the mixture, which states none.
+#'
+#' The support of each natural default is brms's bound on the class:
+#' frmtmb's link maps onto it (`log` onto `(0, Inf)`, `logm1` onto
+#' `(1, Inf)` for `nu`, `logit` onto `(0, 1)`). Two classes differ, and
+#' the default is still the faithful one. `ndt` of
+#' [frmtmb::shifted_lognormal()] is on a log link, and its upper bound,
+#' brms's `min_Y`, is the density's: the uniform is `NaN` past it, where
+#' the likelihood has no support either. `ndt` of frmtmb.eam's
+#' `wiener()` is on a link bounded by the fastest response, so the
+#' uniform is flat over exactly brms's interval. A scalar `xi` of
+#' [frmtmb::gen_extreme_value()] is sampled through brms's `tmp_xi` (see
+#' the message), and is above -1, where brms's range goes on.
+#'
+#' A mixture's weights without a formula are a simplex, and
+#' `dirichlet(1)` on it is the flat density there, with the Jacobian of
+#' the log ratios the sampler works on. No [frmtmb::set_prior()] class
+#' names them (`theta` is frmtmb's covariance vector), so the default
+#' is disclosed in the message and `prior = "flat"` drops it with the
+#' other defaults.
 #'
 #' A `mo()` simplex is sampled in softmax coordinates under
 #' `dirichlet(1)`, brms's default and the flat density on the simplex,
@@ -2239,11 +2522,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' coef = "mox1")`, replaces `dirichlet(1)` on that simplex, as in brms,
 #' with the softmax's Jacobian applied.
 #'
-#' The `disc` default is brms's for every `link_disc` but the identity,
-#' where brms uses `lognormal(0, 1)`, which [frmtmb::set_prior()] does
-#' not carry; the message names that gap. It matters more than most
-#' defaults: the likelihood cannot tell an intercept in `disc` apart
-#' from the scale of the thresholds, so this prior is what places it.
+#' The `disc` default matters more than most: the likelihood cannot
+#' tell an intercept in `disc` apart from the scale of the thresholds,
+#' so this prior is what places it.
 #'
 #' `m` is the mean of the predictor's `offset()`, 0 without one. brms
 #' takes it off because an offset moves the intercept by that much, and
@@ -2252,12 +2533,12 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'
 #' The `sd` default is written once per response, distributional
 #' parameter and nonlinear parameter that has a random-effect standard
-#' deviation, as brms writes one row for each. A class `"sd"`
-#' specification reaches only its own response, distributional
-#' parameter and nonlinear parameter (see [frmtmb::set_prior()]), so a
-#' `set_prior(class = "sd")` of your own replaces the location
-#' parameter's default and leaves, for example, a `phi` block's default
-#' in place, as in brms.
+#' deviation, as brms writes one row for each, with `y*` on the `mu`
+#' link. A class `"sd"` specification reaches only its own response,
+#' distributional parameter and nonlinear parameter (see
+#' [frmtmb::set_prior()]), so a `set_prior(class = "sd")` of your own
+#' replaces the location parameter's default and leaves, for example, a
+#' `phi` block's default in place, as in brms.
 #'
 #' A multivariate model reads `y*` and `s` off each response for that
 #' response's rows, which are written with `resp`, as brms's are.
@@ -2281,7 +2562,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' that gets few defaults - or none - says so rather than looking flat
 #' by accident. Wrap it in `suppressMessages()` to silence that.
 #' `prior_summary()` on the returned draws reproduces the chosen priors
-#' exactly.
+#' exactly, except the mixture weights' Dirichlet, which no class names.
 #'
 #' *What is deliberately NOT matched.* Each of these is named in the
 #' message whenever the model has one.
@@ -2291,15 +2572,12 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   Every other correlated structure gets `lkj(1)`, brms's own default
 #'   (see [frmtmb::set_prior()] for what the density is on frmtmb's
 #'   parameters).
-#' - ORDINAL THRESHOLDS stay flat. brms priors them
-#'   `student_t(3, 0, 2.5)` under its `Intercept` class; frmtmb keeps
-#'   them in the `thres` extra-parameter vector, which is not a design
-#'   column and which [frmtmb::set_prior()]'s class vocabulary
-#'   (`b`/`Intercept`/`sd`/`theta`) cannot address. An ordinal model
-#'   still gets its `sd` defaults, and the message names the gap.
-#' - The `shape`, `phi` and `nu` dispersion parameters stay flat: brms
-#'   gives them gamma and inverse-gamma defaults. A user's prior writes
-#'   one, as `set_prior("gamma(0.01, 0.01)", class = "phi")`.
+#' - Sum-to-zero ordinal thresholds stay flat: brms puts its density on
+#'   thresholds it declares before centering them, a vector frmtmb does
+#'   not have.
+#' - A Student-t group term's degrees of freedom have no prior: frmtmb
+#'   fixes them (`gr(dist_nu = )`), where brms estimates them under
+#'   `gamma(2, 0.1)`.
 #' - NONLINEAR parameters stay flat, which is what brms does: their
 #'   coefficients are class `b`, and the response's median and mad say
 #'   nothing about a rate or a shape sitting inside a nonlinear body.
@@ -2368,7 +2646,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   fixed several seconds, so short chains gain nothing; long chains
 #'   approach a per-chain speedup. A core count inherited from
 #'   `options(mc.cores)`, which rstan reads when `cores` is not given,
-#'   behaves the same way.
+#'   behaves the same way. `seed` fixes Stan's stream and the init
+#'   jitter both (see `init_jitter`); `NA`, brms's default, leaves both
+#'   to the session.
 #' @param prior Priors: a [frmtmb::set_prior()] specification, or a named list
 #'   of prior objects (see [frmtmb::prior_normal()]) whose names are parameter
 #'   names as in the draws (or whole components: `"beta"`, `"theta"`,
@@ -2399,8 +2679,13 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   overdispersed initialization, and is the default from a formula,
 #'   where there is no mode to start at.
 #' @param init_jitter Per-chain perturbation sd for the default init;
-#'   `0` starts every chain exactly at the mode. Draws from the R
-#'   session's RNG, so `set.seed()` makes the inits reproducible.
+#'   `0` starts every chain exactly at the mode. With `seed` given (in
+#'   `...`), the jitter is drawn from that seed rather than from the
+#'   session's random stream, so `seed` reproduces every chain, as
+#'   `brm(seed = )` does. Without one it is drawn from the session's
+#'   stream, so `set.seed()` decides it. Either way rstan's sampler
+#'   still advances the session's stream (it draws each chain's
+#'   permutation of its draws), as it does under `brm()`.
 #' @param reparameterize Sample the qualifying random-effect blocks in
 #'   their non-centered form (`b = L(theta) z`), which removes the
 #'   funnel of the centered joint posterior. `TRUE` by default. Not
@@ -2426,7 +2711,15 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   originating fit, and, when any block was non-centered, a
 #'   `reparam` note saying which. The `stanfit` holds the parameters as
 #'   Stan sampled them, so on a non-centered run its random-effect
-#'   columns are `z` while the draws matrix holds `b`.
+#'   columns are `z` while the draws matrix holds `b`. The draws matrix
+#'   also carries brms's covariance summaries under brms's names,
+#'   `sd_<group>__<coef>`, `cor_<group>__<coef1>__<coef2>`, a smooth's
+#'   `sds_`, `rescor__` and the residual structures' `ar[1]`, `cosy` and
+#'   `cortime__`, which [frmtmb::variables()] lists for the fit. They
+#'   are derived from each draw's internal covariance parameters
+#'   (`theta_1`, ...), which stay in the matrix because the model reads
+#'   them, so `as_draws_df(draws)$sd_g__Intercept` works as it does on a
+#'   brms fit.
 #' @section The pre-flight against the compatibility registry:
 #'   Some models cannot be sampled at all, and the reason usually
 #'   belongs to the package that supplies the feature rather than to
@@ -2674,8 +2967,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # sampled untouched only when nothing has to be added to it
   if (length(ncp$idx)) {
     obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list())
-  } else if (!is.null(ri) && length(ri$entries)) {
-    obj <- prior_augmented_obj(fit, ri$entries)
+  } else if ((!is.null(ri) && length(ri$entries)) || isTRUE(rp$mix_theta)) {
+    obj <- prior_augmented_obj(fit, ri$entries %||% list())
   } else if (isTRUE(rp$flat) && !isTRUE(.diagnostic) && !is.null(own)) {
     # the opt-out has something to SUBTRACT here: a MAP fit's own prior
     # is part of fit$obj, and "flat" on the user-facing argument means
@@ -2753,8 +3046,11 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
       }
     }
     mb <- mode_aligned_bounds(obj, bounds, laplace, length(mode))
-    init <- mode_inits(mode, list(...)$chains %||% 4, init_jitter,
-                       mb$lower, mb$upper)
+    # the jitter is the one draw R makes for the sampler; with a seed it
+    # comes from that seed, so `seed =` fixes every chain as it does in
+    # brms, where Stan draws the inits
+    init <- with_sample_seed(list(...)$seed, mode_inits(
+      mode, list(...)$chains %||% 4, init_jitter, mb$lower, mb$upper))
   }
   args <- list(obj = obj, init = stan_init_arrays(init), ...)
   if (drop_laplace) args$laplace <- NULL
@@ -3000,7 +3296,11 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
                    .diagnostic = TRUE)
   # the ML mode and its standard errors are on the link scale
   m <- draws_internal_matrix(ds)
-  keep <- draws_outer_cols(ds)
+  # the sd_ and cor_ columns are summaries of the theta beside them, not
+  # parameters with an ML value of their own, and the internal matrix
+  # has none of them
+  keep <- setdiff(draws_outer_cols(ds),
+                  draws_natural_cols(ds$fit)$derived$names)
   ml <- fit$opt$par
   se <- sqrt(diag(sdr_of(fit)$cov.fixed))
   # A mo() simplex is compared on the weight scale. Its coordinates are

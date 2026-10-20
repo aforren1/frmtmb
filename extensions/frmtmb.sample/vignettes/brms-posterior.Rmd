@@ -97,11 +97,13 @@ coefficients, `r_g[1,Intercept]` for a group-level coefficient. A ported
 `class = "b"` reads `x` as `b_x`, and a natural-scale name such as
 `sd_g__Intercept` takes `class = NULL`, as in brms.
 
-Two kinds of column differ from a brmsfit, and both are named for what
-they hold. The sampler samples the log standard deviation of a
-group-level effect, not the standard deviation, so the column is
-`theta_1`, the name `confint()` gives the same parameter on the fit;
-`VarCorr()` reports the standard deviation brms calls `sd_g__Intercept`.
+The group-level standard deviations and correlations are brms's
+columns too, `sd_g__Intercept` and `cor_g__Intercept__x`, so
+`as_draws_df(ds)$sd_g__Intercept` works as on a brmsfit. The sampler
+samples the log standard deviation, not the standard deviation, and
+that column stays beside them as `theta_1`, the name `confint()` gives
+the same parameter on the fit; `sd_g__Intercept` is computed from it,
+draw by draw.
 A residual standard deviation with no formula of its own is the column
 `sigma`, on its natural scale, as in brms; written out as `sigma ~ 1` it
 is the log-scale coefficient `b_sigma_Intercept`, as in brms too.

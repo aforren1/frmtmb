@@ -155,9 +155,11 @@ as_draws(ds); as.array(ds); as.mcmc(ds)
 mcmc_plot(ds, type = "trace")
 ```
 
-Parameter names are brms's: `b_Intercept`, `b_x`, `r_g[1,Intercept]`.
-A log standard deviation brms does not sample keeps the name `confint()`
-gives it on the fit, `theta_1`. `variables(ds)` lists them all.
+Parameter names are brms's: `b_Intercept`, `b_x`, `r_g[1,Intercept]`,
+`sd_g__Intercept`. The log standard deviation the sampler samples, which
+brms does not, keeps the name `confint()` gives it on the fit,
+`theta_1`, and `sd_g__Intercept` is computed from it. `variables(ds)`
+lists them all.
 
 ## Conditional effects draw the frame the fit draws
 

@@ -54,8 +54,9 @@ Builds prior specifications with brms spelling:
 \code{set_prior("normal(0, 5)", class = "b")}. Combine several with \code{+} or
 \code{c()}. Distributions: \code{normal(mu, sd)}, \code{student_t(df, mu, sd)},
 \code{cauchy(mu, sd)}, \code{exponential(rate)}, \code{logistic(mu, s)},
-\code{gamma(shape, rate)}, \code{lkj(eta)}, \code{dirichlet(alpha)}; an empty string
-sets bounds only.
+\code{gamma(shape, rate)}, \code{inv_gamma(shape, scale)}, \code{beta(a, b)},
+\code{uniform(lb, ub)}, \code{lognormal(mu, sd)}, \code{lkj(eta)}, \code{dirichlet(alpha)};
+an empty string sets bounds only.
 }
 \details{
 Classes and their scales:

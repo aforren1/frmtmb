@@ -1,3 +1,60 @@
+# frmtmb.sample (development version)
+
+Needs frmtmb with `uniform()` and `lognormal()` priors and the
+sampling-API export `ord_lp_blocks()`.
+
+## Breaking changes
+
+* **`frm_sample()` puts brms 2.23.0's default prior on every
+  distributional parameter that brms gives one.** They were flat on the
+  link scale: `shape` (`gamma(0.01, 0.01)`, and `inv_gamma(0.4, 0.3)`
+  for the negative binomials), `phi` (`gamma(0.01, 0.01)`), `nu`
+  (`gamma(2, 0.1)`), `kappa`, the exgaussian `beta`, `alpha`, `zi`,
+  `hu`, `zoi`, `coi`, `quantile` (`beta(1, 1)`), and frmtmb.eam's
+  `bs`, `bias` and `ndt`. A parameter with a formula has brms's default
+  on its intercept, on the link scale. On small data the posteriors
+  move: a beta `phi` near 300 on 10 rows moved by 30 Monte Carlo
+  standard errors, and a negative binomial `shape` and a Student-t `nu`
+  had no proper posterior before. The table of every brms family's
+  defaults against frmtmb's is in `dev/sampleprior-findings.md`.
+
+* **The ordinal thresholds take brms's `student_t(3, 0, 2.5)`**, class
+  `Intercept`, and a mixture's weights without a formula take brms's
+  `dirichlet(1)` on the simplex. Both were flat.
+
+* **`sigma ~ 1` takes brms's default on sigma's intercept.** It got a
+  natural-scale default that addressed a slot the model does not have.
+  `sigma` without a formula now reads the response on the identity
+  scale, as brms does, where a log `mu` link read it on the log scale.
+
+* An `unstr()` residual correlation takes brms's `lkj(1)`, class
+  `cortime`.
+
+* **`frm_sample(seed = )` fixes every chain.** The init jitter of
+  chains 2 and up came from the session's random stream, so two calls
+  with `seed = 3` differed unless `set.seed()` came first. The jitter is
+  now drawn from `seed` and no longer from the session's stream. rstan's
+  sampler still advances the session's stream, as under `brm()`.
+
+* A natural-scale default carries brms's bound on its class where
+  frmtmb's link does not hold the parameter inside it: a log-linked
+  `ndt` is bounded above by the smallest response and an identity- or
+  log-linked `nu` below by 1, as brms declares them, so Stan transforms
+  the draws inside rather than meeting the density's edge. Where the
+  link holds `ndt` inside a bound of its own, frmtmb.eam's, the uniform
+  is over the link's image and no bound is written: `uniform(0, min_Y)`
+  for an ungrouped `wiener()`, `lba()` or `rdm()`, and `uniform(0, 1)`
+  for the fraction `ndt_group()` makes of `ndt`.
+
+## New features
+
+* **The draws carry brms's `sd_<group>__<coef>` and
+  `cor_<group>__<coef1>__<coef2>`**, and a smooth's `sds_`, `rescor__`,
+  `ar[1]`, `cosy` and `cortime__`, as columns of the draws matrix, so
+  `as_draws_df(draws)$sd_g__Intercept` works as on a brms fit. They are
+  derived from each draw's `theta_` columns, which stay. The names are
+  core's, the ones `variables()` of the fit lists.
+
 # frmtmb.sample 0.19.0
 
 Needs frmtmb 0.71.0: it reads the sampling-API exports `ce_method()`,

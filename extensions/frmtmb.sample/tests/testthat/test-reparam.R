@@ -32,7 +32,10 @@ theta_priors <- function(fit) {
 raw_stan_matrix <- function(ds) {
   a <- rstan::extract(ds$stanfit, permuted = FALSE)
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
-  colnames(m) <- colnames(ds$draws)
+  # the draws matrix also holds brms's sd_ and cor_ columns, derived
+  # after sampling, which the stanfit does not
+  dv <- frmtmb.sample:::draws_natural_cols(ds$fit)$derived$names
+  colnames(m) <- setdiff(colnames(ds$draws), dv)
   # the stored draws hold an unmodeled sigma on its natural scale, as
   # brms does; the sampler's own values are its log
   frmtmb.sample:::draws_to_natural(m, ds$fit)

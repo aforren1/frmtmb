@@ -11,8 +11,9 @@
 #' `set_prior("normal(0, 5)", class = "b")`. Combine several with `+` or
 #' `c()`. Distributions: `normal(mu, sd)`, `student_t(df, mu, sd)`,
 #' `cauchy(mu, sd)`, `exponential(rate)`, `logistic(mu, s)`,
-#' `gamma(shape, rate)`, `lkj(eta)`, `dirichlet(alpha)`; an empty string
-#' sets bounds only.
+#' `gamma(shape, rate)`, `inv_gamma(shape, scale)`, `beta(a, b)`,
+#' `uniform(lb, ub)`, `lognormal(mu, sd)`, `lkj(eta)`, `dirichlet(alpha)`;
+#' an empty string sets bounds only.
 #'
 #' Classes and their scales:
 #' - `"b"`: population-level coefficients of `dpar` (default: the
@@ -521,6 +522,97 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
                           a$dpar, a$nlpar, a$lb, a$ub))[[1L]]
   })
   structure(rows, class = "frmtmb_priorlist")
+}
+
+#' The bounds a class has of its own, brms 2.23.0's: `lb = 0` on the
+#' standard deviations and length scales, the bounds of `dpar_bounds()`
+#' on a distributional parameter's own class, none on a coefficient, an
+#' intercept or frmtmb's internal `theta`.
+#'
+#' @noRd
+prior_class_bounds <- function(s) {
+  if (isTRUE(s$natural)) {
+    dc <- sub("[0-9]+$", "", s$dpar %||% "")
+    # a logistic_normal() category's sigma<k> is brms's class sigma
+    if (startsWith(dc, "sigma")) dc <- "sigma"
+    return(switch(dc,
+      sigma = , shape = , phi = , kappa = , beta = , bs = , disc = ,
+      nu = c(lb = TRUE, ub = FALSE),
+      zi = , hu = , zoi = , coi = , bias = , quantile = ,
+      ndt = c(lb = TRUE, ub = TRUE),
+      c(lb = FALSE, ub = FALSE)))
+  }
+  switch(s$class,
+    sd = , sdgp = , lscale = , delta = c(lb = TRUE, ub = FALSE),
+    cosy = c(lb = TRUE, ub = TRUE),
+    c(lb = FALSE, ub = FALSE))
+}
+
+#' brms's `check_prior_content()` warnings: a density with a lower bound
+#' (or both bounds) on a parameter that has no such bound of its own,
+#' with no `lb` (`ub`) given. The parameter is then not constrained, and
+#' the density is a wall a sampler meets rather than a support it is
+#' transformed onto: brms warns, and so does this, in brms's words
+#' (dev/sampleprior-brmsunif.R).
+#'
+#' It reads the WHOLE prior a call is given, as brms reads its combined
+#' prior frame: a coefficient's or a group's row is bounded by the
+#' bounds of the class row above it (same class, dpar, nlpar and resp,
+#' no coef or group), which frmtmb applies to it too. So it runs where
+#' the prior is used (check_prior_slots()), not in each set_prior()
+#' call, and the defaults, which never pass through there, are not
+#' checked: brms checks a user's rows only.
+#'
+#' @noRd
+prior_bound_warning <- function(rows) {
+  lb_kind <- c("lognormal", "exponential", "gamma", "inv_gamma")
+  ulb_kind <- c("beta", "uniform")
+  lb_msg <- ub_msg <- character(0)
+  cls_key <- function(s) {
+    paste(s$class, s$dpar %||% "", s$nlpar %||% "", s$resp %||% "",
+          sep = "|")
+  }
+  top <- Filter(function(s) {
+    !nzchar(s$coef %||% "") && !nzchar(s$group %||% "")
+  }, rows)
+  top_lb <- vapply(top, function(s) !is.na(s$lb), NA)
+  top_ub <- vapply(top, function(s) !is.na(s$ub), NA)
+  top_key <- vapply(top, cls_key, "")
+  for (s in rows) {
+    k <- s$dist$kind %||% ""
+    if (!k %in% c(lb_kind, ulb_kind)) next
+    own <- prior_class_bounds(s)
+    up <- top_key == cls_key(s)
+    if (any(top_lb[up])) own[["lb"]] <- TRUE
+    if (any(top_ub[up])) own[["ub"]] <- TRUE
+    sp <- spec_spelling(s)
+    lab <- paste0(sp$class, if (nzchar(sp$dpar)) paste0("_", sp$dpar),
+                  if (nzchar(s$coef %||% "")) paste0("_", s$coef), " ~ ",
+                  s$prior %||% "")
+    if (!own[["lb"]] && is.na(s$lb)) lb_msg <- c(lb_msg, lab)
+    if (k %in% ulb_kind && !own[["ub"]] && is.na(s$ub)) {
+      ub_msg <- c(ub_msg, lab)
+    }
+  }
+  if (length(lb_msg)) {
+    frm_warning("It appears as if you have specified a lower bounded ",
+                "prior on a parameter that has no natural lower bound.\n",
+                "If this is really what you want, please specify ",
+                "argument 'lb' of 'set_prior' appropriately.\n",
+                "Warning occurred for prior \n",
+                paste(lb_msg, collapse = "\n"), call. = FALSE,
+                class = "frmtmb_prior_unbounded")
+  }
+  if (length(ub_msg)) {
+    frm_warning("It appears as if you have specified an upper bounded ",
+                "prior on a parameter that has no natural upper bound.\n",
+                "If this is really what you want, please specify ",
+                "argument 'ub' of 'set_prior' appropriately.\n",
+                "Warning occurred for prior \n",
+                paste(ub_msg, collapse = "\n"), call. = FALSE,
+                class = "frmtmb_prior_unbounded")
+  }
+  invisible(NULL)
 }
 
 #' One row of [set_prior()]: every argument is a scalar here.
@@ -1150,10 +1242,29 @@ parse_prior_dist <- function(prior) {
     gamma = prior_gamma(pars[1], pars[2]),
     inv_gamma = prior_inv_gamma(pars[1], pars[2]),
     beta = prior_beta(pars[1], pars[2]),
+    # brms's default on a non-decision time without a formula is
+    # uniform(0, min_Y), and on an ordinal discrimination under the
+    # identity link lognormal(0, 1)
+    uniform = {
+      if (!all(is.finite(pars)) || !(pars[1] < pars[2])) {
+        frm_stop("Prior '", prior, "': uniform(lb, ub) needs finite ",
+                 "bounds with lb < ub", call. = FALSE)
+      }
+      structure(list(kind = "uniform", lower = pars[1], upper = pars[2]),
+                class = "frmtmb_prior")
+    },
+    lognormal = {
+      if (!(pars[2] > 0)) {
+        frm_stop("Prior '", prior, "': the scale of lognormal() must be ",
+                 "positive, not ", pars[2], call. = FALSE)
+      }
+      structure(list(kind = "lognormal", location = pars[1],
+                     scale = pars[2]), class = "frmtmb_prior")
+    },
     frm_stop("Unsupported prior distribution '", kind,
              "' (supported: normal, student_t, cauchy, exponential, ",
-             "logistic, gamma, inv_gamma, beta, lkj, dirichlet)",
-             call. = FALSE)
+             "logistic, gamma, inv_gamma, beta, uniform, lognormal, lkj, ",
+             "dirichlet)", call. = FALSE)
   )
 }
 
@@ -1165,7 +1276,8 @@ prior_dist_params <- list(
   normal = c("mu", "sigma"), student_t = c("nu", "mu", "sigma"),
   cauchy = c("mu", "sigma"), exponential = "beta", lkj = "eta",
   logistic = c("mu", "sigma"), gamma = c("alpha", "beta"),
-  inv_gamma = c("alpha", "beta"), beta = c("alpha", "beta"))
+  inv_gamma = c("alpha", "beta"), beta = c("alpha", "beta"),
+  uniform = c("alpha", "beta"), lognormal = c("mu", "sigma"))
 
 #' The location of a prior distribution, or `NA` where it has none.
 #' `normal` and `student_t` (which `cauchy` parses into) carry one;
@@ -2606,6 +2718,7 @@ check_prior_slots <- function(prior) {
              "set_prior(\"normal(0, 1)\", class = \"b\", lb = 0)",
              call. = FALSE)
   }
+  prior_bound_warning(specs)
   invisible(prior)
 }
 
@@ -2640,6 +2753,12 @@ resp_keyed_prior_classes <- c("b", "Intercept", "ar", "ma", "cosy",
 resp_missing_refusal <- function(spec, frame, s) {
   if (length(spec$responses) < 2L || nzchar(s$resp %||% "")) return(NULL)
   if (!s$class %in% resp_keyed_prior_classes) return(NULL)
+  # the nu a Student-t rescor model shares across its responses is one
+  # parameter with no response in it, and brms's row for it has none;
+  # it is the one dpar such a model addresses without resp
+  if (!is.null(spec[["rescor_nu"]]) && identical(s$dpar %||% "", "nu")) {
+    return(NULL)
+  }
   sp <- spec_spelling(s)
   # the responses the same specification resolves on once it names
   # them, found by resolving it: reading them off the default_prior()
@@ -3959,7 +4078,7 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
     # the same change of variables for a link that is not the log: the
     # density belongs to the dpar, and the tape carries its link-scale
     # coefficient
-    jac <- log(abs(link$mu_eta(x)))
+    jac <- natural_log_jacobian(x, link)
     x <- link$linkinv(x)
   }
   # a density written about a TRANSFORMED parameter (an AR coefficient,
@@ -3975,10 +4094,37 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
   prior_base_logdens(x, dist) + jac
 }
 
+#' The log Jacobian of a natural-scale density's link, `log |mu_eta|`.
+#' A logit link's `mu_eta` is `p (1 - p)`, which is exactly 0 once
+#' `plogis(eta)` rounds to 1, past `eta` near 37, so its log was -Inf
+#' there: a mode on that side (an `rdm()` ndt fraction at 1 under
+#' `ndt_group()`, dev/sampleprior-rdm2.R) had an infinite objective and
+#' no chain could start. The logit and frmtmb.eam's scaled logit take it
+#' as `log(top) - log1p(exp(-eta)) - log1p(exp(eta))`, which is finite
+#' for every `eta`, as Stan's `log_inv_logit() + log1m_inv_logit()` is.
+#'
+#' @noRd
+natural_log_jacobian <- function(x, link) {
+  nm <- link$name %||% ""
+  if (identical(nm, "logit") || startsWith(nm, "scaled_logit")) {
+    top <- if (identical(nm, "logit")) 1 else link$linkinv(Inf)
+    return(log(top) - RTMB::logspace_add(0 * x, -x) -
+             RTMB::logspace_add(0 * x, x))
+  }
+  log(abs(link$mu_eta(x)))
+}
+
 #' The density itself, with no change of variables.
 #'
 #' @noRd
 prior_base_logdens <- function(x, dist) {
+  # NaN where `v` is below 0 and exactly 0 at and above it: the support
+  # is CLOSED, as Stan's is, so a value a link rounds onto the edge
+  # (plogis(40) is 1) or a mode on it keeps the density's value there.
+  # The 1e-300 is absorbed by any |v| above 1e-284, which leaves the
+  # guard nan_unless_pos() itself except at the edge, where its gradient
+  # is still 0 (rtmb-pitfalls item 22: NaN only for subnormal arguments)
+  support_guard <- function(v) nan_unless_pos(v + 1e-300)
   if (identical(dist$kind, "vec")) {
     # one density per element of a threshold vector, NULL for an
     # element with none (a coef row without a class-wide row)
@@ -3994,7 +4140,11 @@ prior_base_logdens <- function(x, dist) {
     normal = RTMB::dnorm(x, dist$location, dist$scale, log = TRUE),
     t = RTMB::dt((x - dist$location) / dist$scale, df = dist$df,
                  log = TRUE) - log(dist$scale),
-    exponential = log(dist$rate) - dist$rate * x,
+    # each density with a bounded support is NaN outside it on the tape
+    # too (support_guard()): (shape - 1) * log(x) at shape 1 is a
+    # constant-zero operand the tape folds, and exponential() had no
+    # guard at all (dev/rtmb-pitfalls.md, item 22)
+    exponential = log(dist$rate) - dist$rate * x + support_guard(x),
     # written through logspace_add rather than log1p(exp(-z)), which
     # overflows in the lower tail exactly where brms's logistic(0, 1) on
     # a mixture proportion is doing its work
@@ -4003,20 +4153,28 @@ prior_base_logdens <- function(x, dist) {
       -z - log(dist$scale) - 2 * RTMB::logspace_add(0 * z, -z)
     },
     gamma = dist$shape * log(dist$rate) - lgamma(dist$shape) +
-      (dist$shape - 1) * log(x) - dist$rate * x,
+      (dist$shape - 1) * log(x) - dist$rate * x + support_guard(x),
     # brms's inv_gamma(shape, scale) is Stan's, so the second argument
     # is the SCALE of the inverse gamma, which is the rate of the gamma
     # on 1/x. Written out rather than through dgamma(1/x) so the tape
     # carries one expression instead of a reciprocal and a correction
     inv_gamma = dist$shape * log(dist$scale) - lgamma(dist$shape) -
-      (dist$shape + 1) * log(x) - dist$scale / x,
+      (dist$shape + 1) * log(x) - dist$scale / x + support_guard(x),
     # log1p rather than log(1 - x): a zi or hu near one is exactly where
     # brms's beta(1, 1) is doing its work, and that is where log(1 - x)
     # loses its last digits
     beta = (dist$shape1 - 1) * log(x) +
       (dist$shape2 - 1) * log1p(-x) -
       (lgamma(dist$shape1) + lgamma(dist$shape2) -
-         lgamma(dist$shape1 + dist$shape2)),
+         lgamma(dist$shape1 + dist$shape2)) +
+      support_guard(x) + support_guard(1 - x),
+    # NaN outside the interval, where brms's lb and ub reject the value.
+    # The guard has no constant operand, which the tape would fold away
+    # (dev/rtmb-pitfalls.md, item 22)
+    uniform = -log(dist$upper - dist$lower) +
+      support_guard(x - dist$lower) + support_guard(dist$upper - x),
+    lognormal = RTMB::dnorm(log(x), dist$location, dist$scale,
+                            log = TRUE) - log(x) + support_guard(x),
     # a JOINT density over a whole correlation, so `x` is the block's
     # correlation segment and the value is one number, not one per
     # element (see lkj_logdens)

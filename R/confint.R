@@ -3602,11 +3602,11 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' result lists the draw columns. The coefficients, the natural-scale
 #' distributional parameters, an ordinal fit's thresholds
 #' (`b_Intercept[1]`) and the `cs()` coefficients (`bcs_<column>[1]`)
-#' have the names and the values this page gives them. The covariance
-#' parameters do not: a draw stores them as the sampler sampled them, on
-#' the unconstrained scale and under their internal names (`theta_1`),
-#' and `VarCorr()` and `hypothesis()` on the draws compute the `sd_` and
-#' `cor_` quantities from them.
+#' have the names and the values this page gives them. So do the
+#' covariance summaries, `sd_` and `cor_` among them, which the draws
+#' carry as columns computed from each draw's covariance parameters;
+#' those are stored as the sampler sampled them, on the unconstrained
+#' scale and under their internal names (`theta_1`), beside them.
 #'
 #' brms's `variables()` also lists what a fit has no counterpart of:
 #' group-level coefficients `r_<group>[<level>,<coef>]`, the centered

@@ -1,3 +1,50 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A prior density with a bounded support is `NaN` outside it on the
+  tape too.** `beta()`, `gamma()`, `inv_gamma()`, `exponential()` and
+  `lognormal()` each add a guard that is `NaN` outside the support and
+  exactly 0 on it, its edges included as in Stan. `beta()` and `gamma()`
+  relied on a `log()` that the tape drops where it is multiplied by a
+  constant 0, so `beta(1, 1)` on a coefficient was flat over the whole
+  line and `gamma(1, r)` finite below 0; `exponential()` had no guard at
+  all and was finite below 0 on doubles too. Inside the support nothing
+  changes.
+
+* **A bounded density on a parameter with no such bound of its own
+  warns, in brms's words** (`uniform()` or `beta()` on a coefficient,
+  `gamma()` on an intercept), when neither its row nor the class row
+  above it gives `lb` or `ub`, as brms 2.23.0 does. The warning comes
+  from the call that uses the prior (`frm()`, `validate_prior()`,
+  `update()`, `frmtmb.sample::frm_sample()`). Without the bound the
+  parameter is not constrained, and the density is a wall a sampler
+  meets: give `lb` and `ub`, which `frm_sample()` passes to Stan as a
+  transform.
+
+## New features
+
+* `set_prior()` takes brms's `uniform(lb, ub)` and `lognormal(mu, sd)`.
+  frmtmb.sample needs both for brms's defaults on a non-decision time
+  without a formula and on an ordinal `disc` under its identity link.
+  The uniform density is `NaN` outside its interval. That rejects a
+  value there; it does not keep a sampler inside, which `lb` and `ub`
+  do.
+
+* A natural-scale prior on a logit-linked distributional parameter
+  (`set_prior("beta(1, 1)", class = "zi")`, and frmtmb.sample's
+  defaults) has a finite Jacobian for every value of its coefficient.
+  Past a coefficient of about 37 it was minus infinity, so a mode there
+  gave an infinite objective.
+
+* A prior on the `nu` that the Student-t responses of a
+  `set_rescor(TRUE)` model share takes no `resp`, as brms's row has
+  none: `set_prior("gamma(2, 0.1)", class = "nu")`. It was refused with
+  and without `resp`.
+
+* The sampling API exports `ord_lp_blocks()`, the threshold blocks of an
+  ordinal model with the `dpar` class `"Intercept"` addresses each by.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

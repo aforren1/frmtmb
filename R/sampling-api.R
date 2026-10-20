@@ -170,6 +170,10 @@
 #' predictor with the thresholds included at the fit's estimates, the
 #' `n x K1` matrix one draw of `posterior_linpred(incl_thres = TRUE)`
 #' holds.
+#' `ord_lp_blocks(frame, spec)` lists an ordinal model's threshold
+#' blocks with the linear predictor and the `dpar` that class
+#' `"Intercept"` addresses each by, which is where brms puts its
+#' default on the thresholds.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -502,6 +506,7 @@
 #' @aliases brms_prob_cols
 #' @aliases brms_fixef_rows
 #' @aliases ord_delta_info
+#' @aliases ord_lp_blocks
 #' @aliases ord_thres_linpred
 #' @aliases rescor_row_loglik
 #' @aliases arma_cond_resp
@@ -561,6 +566,7 @@
 #'   fam_is_category_valued, predict_category_props, vcov_estimated,
 #'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
 #'   brms_prob_cols, brms_fixef_rows, ord_delta_info, ord_thres_linpred,
+#'   ord_lp_blocks,
 #'   rescor_row_loglik,
 #'   arma_cond_resp, arma_cond_dpars, arma_cond_fill_dpars,
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
