@@ -39,13 +39,18 @@ test_that("a variance at zero loses its SE whatever the sign of noise", {
   expect_match(conditionMessage(bm[[1L]]),
                "Boundary (singular) fit: sd_Subject:a__Intercept is at zero",
                fixed = TRUE)
+  # Subject:a's theta, which follows Subject's as brms orders the groups
+  # of Subject/a (dev/prilabel-findings.md, item 2)
+  bk <- Filter(function(b) identical(b$group_name, "Subject:a"),
+               fit$frame$re_blocks)[[1L]]
+  th0 <- paste0("theta_", bk$theta_idx)
   lost <- sdr_of(fit)$se_lost
-  expect_identical(names(lost), "theta_1")
+  expect_identical(names(lost), th0)
   expect_identical(unname(lost), "boundary")
   # the same verdict for either sign of the noise row
   ns <- asNamespace("frmtmb")
   h <- fit$cache$hessian_fixed
-  j <- match("theta_1", ns$outer_par_names(fit))
+  j <- match(th0, ns$outer_par_names(fit))
   verdict <- function(sgn) {
     H <- h$H
     H[j, ] <- H[, j] <- sgn * abs(H[j, ])
@@ -54,7 +59,7 @@ test_that("a variance at zero loses its SE whatever the sign of noise", {
   }
   pos <- verdict(1)
   neg <- verdict(-1)
-  expect_identical(pos$lost, c(theta_1 = "flat"))
+  expect_identical(pos$lost, stats::setNames("flat", th0))
   expect_identical(neg$lost, pos$lost)
   # the others keep the covariance with that row held out
   ref <- solve(h$H[-j, -j])

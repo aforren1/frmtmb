@@ -1297,6 +1297,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                "intercepts only (every block must be a dim-1 us/diag term)",
                call. = FALSE)
     }
+    # the rule integrates one random effect at a time, and Student-t
+    # terms that share a latent scale are not independent at a level
+    shared_t <- Filter(function(bk) !is.null(bk[["t_share"]]),
+                       frame[["re_blocks"]])
+    if (length(shared_t)) {
+      frm_stop("quadrature = TRUE integrates one scalar random effect at ",
+               "a time, and the Student-t terms of grouping factor '",
+               shared_t[[1L]][["group_name"]], "' share one latent scale ",
+               "per level, as in brms, so their effects at a level are ",
+               "not independent. Fit with the Laplace approximation",
+               call. = FALSE)
+    }
     # a group-level mo() column moves with its simplex, which the
     # quadrature rule's fixed design does not; such a block can be a
     # dim-1 us term, so the message above would name the wrong reason

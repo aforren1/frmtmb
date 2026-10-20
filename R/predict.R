@@ -920,10 +920,18 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         is_new <- rt$new
       }
       if (any(is_new) && !allow_new_levels) {
+        # the levels as brms names them, p4_qNEW for one of g1:g2
+        nl <- unique(gv[is_new])
+        if (grepl(":", bk[["group_name"]] %||% "", fixed = TRUE)) {
+          nb <- tryCatch(group_values_brms(comp$bar[[3]], newdata, env),
+                         error = function(e) NULL)
+          nl <- if (length(nb) == length(gv)) unique(nb[is_new]) else
+            gsub(":", "_", nl, fixed = TRUE)
+        }
         stop_new_levels(
           paste0("New levels in grouping factor `",
                  deparse1(comp$bar[[3]]), "`: ",
-                 paste(unique(gv[is_new]), collapse = ", ")),
+                 paste(nl, collapse = ", ")),
           "Use allow_new_levels = TRUE to predict them at the population level")
       }
       j <- new_level_pick_apply(fit[["new_level_pick"]], bk, gv, j, is_new)
@@ -992,8 +1000,8 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
       as.character(gv[[k]])[is_new[, k]]
     }), use.names = FALSE))
     stop_new_levels(
-      paste0("New levels in multi-membership factor `", mms$label, "`: ",
-             paste(new, collapse = ", ")),
+      paste0("New levels in multi-membership factor `",
+             mm_group_name(mms), "`: ", paste(new, collapse = ", ")),
       paste0("Use allow_new_levels = TRUE to predict those memberships ",
              "at the population level; the row's remaining members still ",
              "contribute their fitted effects"))
@@ -4872,6 +4880,10 @@ residual_values <- function(object, type = c("response", "pearson",
 draw_b <- function(fit) {
   th <- fit$estimates[["theta"]]
   b <- numeric(length(fit$estimates[["b"]] %||% numeric(0)))
+  # one mixing draw per level for each set of Student-t blocks that
+  # share a latent scale (student_share_sets()), taken at its first
+  # block and read by the others
+  t_mix <- list()
   for (bk in fit$frame[["re_blocks"]]) {
     if (bk[["covstruct"]] == "rr") {
       # standard-normal factors; eval_dpars expands them via loadings
@@ -4922,7 +4934,18 @@ draw_b <- function(fit) {
       # shared across that level's coefficients, which is what makes the
       # draw a multivariate t rather than d independent ones
       nu <- bk[["dist_nu"]]
-      U <- U * sqrt(nu / stats::rchisq(bk[["n_levels"]], df = nu))
+      sh <- bk[["t_share"]]
+      if (is.null(sh)) {
+        U <- U * sqrt(nu / stats::rchisq(bk[["n_levels"]], df = nu))
+      } else {
+        # one draw per level of the factor, over the union of the set's
+        # levels, read at this block's own levels
+        key <- paste(sh, collapse = ",")
+        if (is.null(t_mix[[key]])) {
+          t_mix[[key]] <- sqrt(nu / stats::rchisq(bk[["t_n"]], df = nu))
+        }
+        U <- U * t_mix[[key]][bk[["t_level"]]]
+      }
     }
     b[bk[["b_idx"]]] <- as.vector(t(U))   # level-major
   }

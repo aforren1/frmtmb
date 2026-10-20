@@ -51,7 +51,8 @@ set.
 brms's \code{default_prior()}, and \code{get_prior()}, which brms has kept as
 its alias since 2.20.14: one row per slot a prior can target, with
 the class/coef/dpar/group values to pass to \code{\link[=set_prior]{set_prior()}}. Classes
-\code{"sd"} and \code{"cor"} are targeted by \code{group} and \code{nlpar}; the
+\code{"sd"} and \code{"cor"} are targeted by \code{group} and \code{nlpar}, and class
+\code{"sd"} lists a row per coefficient of each group, as brms does; the
 residual-correlation classes (\code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"})
 by \code{resp}; class \code{"rescor"} has one row and takes no \code{resp}; and
 class \code{"theta"} rows name the raw internal covariance parameters
@@ -86,10 +87,10 @@ a structured covariance they are the only spelling that reaches one
 parameter. brms has no such class, so a brms table for the same model
 has fewer rows.
 
-brms lists a class \code{"sd"} row per coefficient of each block
-(\code{sd_patient__Intercept}). frmtmb's class \code{"sd"} addresses a whole
-block and refuses a \code{coef}, so those rows are not listed; class
-\code{"theta"} reaches one standard deviation on its own.
+A covariance structure brms does not have, and whose columns share
+one standard deviation (\code{homdiag()}, \code{ar1()}, ...), has no class
+\code{"sd"} row per coefficient. Every other block has one per column,
+as in brms (\code{sd_patient__Intercept}).
 
 A flat slot reads \code{"(flat)"} in the \code{prior} column, where brms stores
 an empty string and prints \code{(flat)}.

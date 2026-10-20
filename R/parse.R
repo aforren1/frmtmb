@@ -660,6 +660,11 @@ parse_spde_call <- function(tm, env) {
 #' [ranef()], [VarCorr()], [ngrps()], `fitted()`, `simulate()` and
 #' `predict()` all read the block with no multi-membership branch.
 #'
+#' The group is named as brms names it, `mm` and the members:
+#' `(1 | mm(g1, g2, weights = cbind(w1, w2)))` is the group `mmg1g2` in
+#' `ranef()`, `VarCorr()`, `variables()` (`sd_mmg1g2__Intercept`) and
+#' `set_prior(group = "mmg1g2")`.
+#'
 #' `(x | mm(g1, g2, cor = FALSE))` and `(x || mm(g1, g2))` are one block
 #' whose columns have their own standard deviations and no correlation,
 #' as in brms.
@@ -1100,6 +1105,31 @@ parse_mm_call <- function(tm, env) {
        scale = scale, by = by, label = deparse1(tm))
 }
 
+#' A predictor's group-level terms in brms's order: brms numbers them by
+#' their groups (`terms_re()`: `out[order(out$group), ]`), and its
+#' parameter names, `ranef()`, `VarCorr()`, `ngrps()` and `summary()`
+#' follow that order, so the blocks are built in it too. `order()` is
+#' brms's own call, collation and all, and it keeps the written order
+#' within a group (dev/prilabel-log/brms-order.txt).
+#'
+#' @noRd
+re_brms_order <- function(re) {
+  grp <- vapply(re, function(z) {
+    if (is.null(z$mm)) deparse1(z$bar[[3L]]) else mm_group_name(z$mm)
+  }, "")
+  re[order(grp)]
+}
+
+#' brms's name for a multi-membership group: `mm` and its members,
+#' `mmm1m2` for `mm(m1, m2, weights = )`, whatever the weights, scale or
+#' by-variable (dev/prilabel-log/brms-ref2.txt). It is the group in
+#' brms's prior rows, `sd_mmm1m2__Intercept` and `ranef()$mmm1m2`.
+#'
+#' @noRd
+mm_group_name <- function(mms) {
+  paste0("mm", paste(mms[["gvars"]], collapse = ""))
+}
+
 #' `gr(g, dist = )`: the latent density of a grouping term.
 #'
 #' brms's `gr()` takes `dist = "gaussian"` (the default) or
@@ -1276,44 +1306,64 @@ drop_twin_bar_terms <- function(form) {
   form
 }
 
-#' Which of `splitForm()`'s bar terms came from a nested grouping
-#' `a/b`, one flag per term.
+#' Every nested grouping `(x | a/b)` written as brms writes it:
+#' `(x | a) + (x | a:b)`, outer factor first.
 #'
-#' reformulas expands `(1 | g/h)` into `(1 | h:g) + (1 | g)`, and brms
-#' into `(1 | g) + (1 | g:h)`. brms compares grouping factors as the
-#' strings it writes, so `(1 | g:h) + (1 | h:g)` is two blocks there
-#' while `(1 | g:h) + (1 | g/h)` repeats one. The duplicate check reads
-#' a flagged term's factors in brms's order. Each written term is split
-#' on its own; if the pieces do not line up with the whole split, no
-#' term is flagged, which leaves every name as reformulas wrote it.
+#' reformulas expands `a/b` into `(x | b:a) + (x | a)`, which names the
+#' inner group `b:a` and lists it first. brms 2.23.0 names it `a:b`, in
+#' its prior rows (`set_prior(group = "a:b")`), its parameter names
+#' (`sd_a:b__Intercept`), `ranef()`, `VarCorr()` and `summary()`, and
+#' lists `a` first (dev/prilabel-findings.md, item 2). Expanding before
+#' splitForm() makes the block's own grouping factor brms's, so every
+#' reader of `group_name` agrees without a translation of its own.
+#' `a/b/c` is `a`, `a:b` and `a:b:c`, as in brms.
+#'
+#' A covariance wrapper, `diag(x | a/b)`, and an `|ID|` key,
+#' `(x | p | a/b)`, are kept on each piece. A nested group inside
+#' `gr()` or `mm()` is left alone: brms refuses `gr(a/b)`, and the
+#' `gr()` parser refuses what it cannot read.
 #'
 #' @noRd
-slash_nested_bars <- function(rest, sf, specials, env) {
-  n <- length(sf$reTrmFormulas)
-  none <- rep(FALSE, n)
-  flags <- logical(0)
-  pieces <- list()
-  for (tm in rest) {
-    if (!("|" %in% all.names(tm))) next
-    one <- tryCatch(
-      reformulas::splitForm(stats::as.formula(call("~", tm), env = env),
-                            defaultTerm = "us", specials = specials),
-      error = function(e) NULL)
-    if (is.null(one)) return(none)
-    grp <- vapply(one$reTrmFormulas, function(b) deparse1(b[[3L]]), "")
-    inner <- strip_parens(tm)
-    if (is.call(inner) && !identical(inner[[1L]], as.name("|"))) {
-      inner <- strip_parens(inner[[2L]])
-    }
-    nested <- is.call(inner) && length(inner) == 3L &&
-      "/" %in% all.names(inner[[3L]])
-    flags <- c(flags, rep(nested, length(grp)))
-    pieces <- c(pieces, one$reTrmFormulas)
+expand_slash_groups <- function(form) {
+  raw <- split_plus(reformulas::RHSForm(form))
+  is_bar <- function(e) {
+    is.call(e) && as.character(e[[1L]])[1L] %in% c("|", "||")
   }
-  same <- length(pieces) == n &&
-    identical(vapply(pieces, deparse1, ""),
-              vapply(sf$reTrmFormulas, deparse1, ""))
-  if (same) flags else none
+  pieces <- function(bar) {
+    grp <- strip_parens(bar[[3L]])
+    if (!(is.call(grp) && identical(grp[[1L]], as.name("/")))) return(NULL)
+    lapply(re_expand_group(grp), function(g) {
+      b <- bar
+      b[[3L]] <- g
+      b
+    })
+  }
+  changed <- FALSE
+  out <- list()
+  for (tm in raw) {
+    inner <- strip_parens(tm)
+    new <- NULL
+    if (is_bar(inner)) {
+      new <- lapply(pieces(inner), function(b) call("(", b))
+    } else if (is.call(inner) && is.name(inner[[1L]]) &&
+                 length(inner) >= 2L && is_bar(strip_parens(inner[[2L]]))) {
+      # a covariance wrapper keeps its other arguments on each piece
+      new <- lapply(pieces(strip_parens(inner[[2L]])), function(b) {
+        w <- inner
+        w[[2L]] <- b
+        w
+      })
+    }
+    if (length(new)) {
+      changed <- TRUE
+      out <- c(out, new)
+    } else {
+      out[[length(out) + 1L]] <- tm
+    }
+  }
+  if (!changed) return(form)
+  reformulas::RHSForm(form) <- Reduce(function(a, b) call("+", a, b), out)
+  form
 }
 
 #' Every `(x || g)` term as brms reads it: `(x | gr(g, cor = FALSE))`.
@@ -1363,7 +1413,7 @@ expand_double_verts <- function(form) {
       if (is.call(lhs) && identical(lhs[[1L]], as.name("||"))) {
         stop_id_double_vert(tm)
       }
-      read <- bar_read_cor(inner, env)
+      read <- bar_read_cor(bar_read_id(inner, env), env)
       # in its brackets, so the sum the term goes back into still reads
       # it as one term
       if (!identical(read, inner)) {
@@ -1384,6 +1434,10 @@ expand_double_verts <- function(form) {
       stop_id_double_vert(tm)
     }
     rhs <- strip_parens(inner[[3L]])
+    if (is.call(rhs) && identical(rhs[[1L]], as.name("gr")) &&
+          "id" %in% names(rhs)) {
+      stop_id_double_vert(tm)
+    }
     if (is.call(rhs) && is.name(rhs[[1L]]) &&
           as.character(rhs[[1L]]) %in% c("gr", "mm")) {
       rhs <- drop_cor_arg(rhs, env)
@@ -1441,6 +1495,45 @@ bar_read_cor <- function(bar, env) {
              "the term without one, or with cor = TRUE", call. = FALSE)
   }
   call("||", bar[[2L]], rhs)
+}
+
+#' A bar term whose `gr()` carries brms's `id =`, as the `|ID|` term it
+#' is: `(x | gr(g, id = "a"))` is `(x | a | g)`, which brms 2.23.0
+#' builds the same way (one correlated block over the terms that share
+#' the id, dev/prilabel-log/brms-ref.txt). `id = NA`, brms's default,
+#' is no id. Both spellings at once name the key twice and are refused.
+#' Any other term is returned as it is.
+#'
+#' @noRd
+bar_read_id <- function(bar, env) {
+  rhs <- strip_parens(bar[[3L]])
+  if (!(is.call(rhs) && identical(rhs[[1L]], as.name("gr")) &&
+          "id" %in% names(rhs))) {
+    return(bar)
+  }
+  id <- tryCatch(eval(rhs[["id"]], env), error = function(e) {
+    frm_stop("gr(): cannot evaluate id = ", deparse1(rhs[["id"]]), ": ",
+             conditionMessage(e), call. = FALSE)
+  })
+  # brms's as_one_character(id, allow_na = TRUE)
+  if (length(id) != 1L || !(is.character(id) || is.numeric(id) ||
+                              is.logical(id) && is.na(id))) {
+    frm_stop("gr(): id = ", deparse1(rhs[["id"]]), " must be a single ",
+             "string, as in brms's gr(g, id = \"a\")", call. = FALSE)
+  }
+  rhs[["id"]] <- NULL
+  if (identical(rhs[[1L]], as.name("gr")) && length(rhs) == 2L &&
+        !nzchar(names(rhs)[2L] %||% "")) {
+    rhs <- rhs[[2L]]
+  }
+  if (is.na(id)) return(call("|", bar[[2L]], rhs))
+  lhs <- strip_parens(bar[[2L]])
+  if (is.call(lhs) && identical(lhs[[1L]], as.name("|"))) {
+    frm_stop("(", deparse1(bar), ") names its correlation id twice, as ",
+             "|", deparse1(lhs[[3L]]), "| and as gr(id = ). Write one of ",
+             "them", call. = FALSE)
+  }
+  call("|", call("|", bar[[2L]], as.name(as.character(id))), rhs)
 }
 
 #' `gr()` or `mm()` without its `cor =` argument, which is checked to be
@@ -1569,6 +1662,8 @@ rsv_intercept_fixed <- function(fixed) {
 parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(rhs_form) <- env
   rhs_form <- drop_twin_bar_terms(rhs_form)
+  # after the twin check, which compares terms as written, as brms does
+  rhs_form <- expand_slash_groups(rhs_form)
   rhs_form <- expand_double_verts(rhs_form)
   dblbar_written <- attr(rhs_form, "dblbar_written")
   attr(rhs_form, "dblbar_written") <- NULL
@@ -1860,7 +1955,6 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # reaches the informative not-supported error below)
   sf <- reformulas::splitForm(bare_form, defaultTerm = "us",
                               specials = cs_specials)
-  slash <- slash_nested_bars(rest, sf, cs_specials, env_lp)
   bad <- setdiff(sf$reTrmClasses, supported_cs)
   if (length(bad)) {
     frm_stop("Covariance structure(s) not supported yet: ",
@@ -1868,7 +1962,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
              " (currently supported: ",
              paste(supported_cs, collapse = ", "), ")", call. = FALSE)
   }
-  re <- Map(function(bar, cls, addargs, from_slash) {
+  re <- Map(function(bar, cls, addargs) {
     written <- bar
     # the next written text queued for this bar, consumed in order
     written_text <- NULL
@@ -2034,10 +2128,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
          id_label = id_label, id_group = id_group,
          cov_expr = cov_expr, rank = rank, mm = mm,
          dist_nu = dist_nu, by = by_spec, written = written,
-         from_slash = from_slash, within_struct = within_struct,
+         within_struct = within_struct,
          within_label = within_label, written_text = written_text)
-  }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs, slash)
+  }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
+  re <- re_brms_order(re)
 
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp

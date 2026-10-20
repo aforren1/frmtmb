@@ -56,9 +56,13 @@ test_that("a class sd prior with no dpar stays on the location blocks", {
                        bf(yb ~ x + (1 | g), phi ~ (1 | g)) + Beta(),
                        data = d)
   sd <- as.data.frame(vp)[vp$class == "sd", ]
+  # the group row, and below it the coefficient row it covers
   expect_identical(sd$prior[sd$group == "g" & sd$dpar == ""],
-                   "normal(0, 5)")
-  expect_identical(sd$prior[sd$group == "g" & sd$dpar == "phi"], "(flat)")
+                   c("normal(0, 5)", "normal(0, 5)"))
+  expect_identical(sd$source[sd$group == "g" & sd$dpar == ""],
+                   c("user", "(vectorized)"))
+  expect_identical(sd$prior[sd$group == "g" & sd$dpar == "phi"],
+                   c("(flat)", "(flat)"))
   expect_identical(sort(sd$dpar[sd$group == ""]), c("", "phi"))
 })
 

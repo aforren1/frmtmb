@@ -440,7 +440,7 @@ test_that("a block of a distributional parameter lists its dpar", {
                     g = factor(rep(1:4, 10)))
   p <- default_prior(bf(y ~ 1 + (1 | g), phi ~ z + (1 | g)) + Beta(),
                      data = dat)
-  sd_g <- p[p$class == "sd" & p$group == "g", ]
+  sd_g <- p[p$class == "sd" & p$group == "g" & !nzchar(p$coef), ]
   # two blocks on one factor in two predictors are two rows, where they
   # used to collapse into one
   expect_identical(sort(sd_g$dpar), c("", "phi"))
@@ -468,9 +468,13 @@ test_that("external interface of validate_prior works correctly (brms)", {
                                   nzchar(prior1$coef)] == "(vectorized)"))
   expect_true(all(prior1$prior[prior1$class == "b"] == "normal(0, 10)"))
   expect_identical(prior1$source[prior1$class == "Intercept"], "default")
+  # the group row and, under it, its coefficient's row, as in brms
   expect_identical(prior1$prior[prior1$class == "sd" &
                                   prior1$group == "patient"],
-                   "cauchy(0, 2)")
+                   c("cauchy(0, 2)", "cauchy(0, 2)"))
+  expect_identical(prior1$coef[prior1$class == "sd" &
+                                 prior1$group == "patient"],
+                   c("", "Intercept"))
 })
 
 test_that("validate_prior() refuses what frm() refuses, with its message", {
@@ -516,10 +520,11 @@ test_that("a validate_prior() table fits the model its prior fits", {
                      "normal(0, 0.01)")
     expect_identical(tab$source[tab$class == "b" & tab$coef == "x"],
                      "(vectorized)")
+    # each group row, and its coefficient row under it
     expect_identical(tab$prior[tab$class == "sd" & tab$group == "g"],
-                     "normal(0, 5)")
+                     rep("normal(0, 5)", 2L))
     expect_identical(tab$prior[tab$class == "sd" & tab$group == "h"],
-                     "normal(0, 0.05)")
+                     rep("normal(0, 0.05)", 2L))
     expect_identical(tab$lb[tab$class == "sd" & tab$group == ""], 0.01)
     a
   })
@@ -622,7 +627,7 @@ test_that("every leaf row of a validate_prior() table is what the fit applies",
   # and it sees the defect when the table is wrong
   tab <- validate_prior(cls_sd + phi_sd, beta_f, data = d)
   expect_identical(tab$prior[tab$class == "sd" & tab$group == "g" &
-                               tab$dpar == "phi"], "normal(0, 5)")
+                               tab$dpar == "phi"], rep("normal(0, 5)", 2L))
 })
 
 test_that("a group-specific cor prior wins over the class-wide one", {

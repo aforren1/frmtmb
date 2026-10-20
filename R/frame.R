@@ -29,7 +29,7 @@
 #' repeating a coefficient, is still accepted. An exact twin term is
 #' collapsed to one before this, as brms collapses it
 #' (`drop_twin_bar_terms()`), and grouping factors are compared as
-#' brms writes them (`slash_nested_bars()`).
+#' brms writes them (`expand_slash_groups()`, `mm_group_name()`).
 #'
 #' The glmmTMB covariance structures brms does not have are held to the
 #' same rule: `rr(0 + x | g) + diag(0 + x | g)`, `equalto(...) + us(...)`
@@ -63,19 +63,12 @@ refuse_duplicated_re <- function(cps) {
         paste0(cs, "(", deparse1(wr), ")")
       }
     }
-    # brms compares grouping factors as the strings it writes, and it
-    # writes g/h as g:h where reformulas writes h:g, so only a term that
-    # came from a slash is read back in brms's order
+    # brms compares grouping factors as the strings it writes, which is
+    # what group_name holds: g/h arrives as g and g:h
+    # (expand_slash_groups()), and a multi-membership group is named by
+    # its members alone (mmg1g2), so weights or scale do not make it a
+    # second factor
     grp <- cp[["group_name"]]
-    # brms names a multi-membership group by its members alone
-    # (mmg1g2), so weights or scale do not make it a second factor
-    if (!is.null(cp[["mm"]])) {
-      grp <- paste0("mm", paste(cp[["mm"]][["gvars"]], collapse = ""))
-    }
-    if (isTRUE(cp[["from_slash"]])) {
-      grp <- paste(rev(strsplit(grp, ":", fixed = TRUE)[[1L]]),
-                   collapse = ":")
-    }
     keys <- paste0(grp, "\r", cp[["cnms"]])
     hit <- match(keys, seen_key)
     if (any(!is.na(hit))) {
@@ -3184,7 +3177,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               mm = mms,
               written = dp[["re"]][[k]]$written,
               written_text = dp[["re"]][[k]][["written_text"]],
-              group_name = mms$label,
+              # brms's name for the group, by its members alone, which
+              # its prior rows, parameter names and ranef() all carry
+              group_name = mm_group_name(mms),
               label = paste0(dp_prefix, deparse1(bars[[k]]))
             )
             comp_ids <- c(comp_ids, length(components))
@@ -3321,9 +3316,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             dist_nu = dp[["re"]][[k]]$dist_nu,
             written = dp[["re"]][[k]]$written,
             written_text = dp[["re"]][[k]][["written_text"]],
-            from_slash = dp[["re"]][[k]]$from_slash,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[kk]],
+            # brms's names of the levels of an interaction group
+            brms_levels = brms_level_map(bars[[k]][[3L]], levels(fac), mf,
+                                         resp$formula_env),
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             aux_Qk = aux_Qk,
@@ -4089,6 +4086,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       c_idx = n_c + seq_len(D * n_levels),
       theta_idx = n_theta + seq_len(npar_k),
       levels = cps[[1]]$levels,
+      brms_levels = cps[[1]]$brms_levels,
       aux_A = cps[[1]]$aux_A,
       aux_D = cps[[1]]$aux_D,
       aux_D2 = cps[[1]]$aux_D2,
@@ -4107,9 +4105,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_brms = cps[[1]]$gp_brms,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
-      # reformulas writes g/h's nested factor as h:g and brms as g:h; the
-      # frame keeps reformulas's factor, and brms's names read this flag
-      from_slash = isTRUE(cps[[1]]$from_slash),
       term_label = label,
       dpar = cps[[1]]$dpar,
       components = lapply(seq_along(gd), function(k) {
@@ -4120,6 +4115,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # cmc = FALSE on this term, which a prediction has to repeat
         if (isTRUE(cps[[k]][["cmc_intercept"]])) {
           out[["cmc_intercept"]] <- TRUE
+        }
+        # a || or cor = FALSE term as written, which messages name it by
+        # (block_written_label())
+        if (!is.null(cps[[k]][["written_text"]])) {
+          out[["written_text"]] <- cps[[k]][["written_text"]]
         }
         # its group-level mo() columns, which a prediction scales too
         if (!is.null(cps[[k]][["mo_re"]])) {
@@ -4132,6 +4132,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     n_c <- n_c + D * n_levels
     n_theta <- n_theta + npar_k
   }
+
+  # brms's one Student-t latent scale per grouping factor
+  re_blocks <- student_share_sets(re_blocks)
 
   ## Phase 3: per-linpred Z over the full b vector; resolve smooth block
   ## ids; assemble the parameter template.

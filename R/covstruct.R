@@ -126,11 +126,27 @@ homogeneous_sd <- function(sds, what) {
 #' per LEVEL and shared across that level's coefficients, so a
 #' correlated or a `diag()` block is one multivariate t and not several
 #' independent univariate ones. So is a `||` term, which is one `diag()`
-#' block. brms builds one term the same way. brms also shares one `u_j`
-#' across all the Student-t terms of a grouping factor, as in
+#' block. brms builds one term the same way.
+#'
+#' All the Student-t terms of one grouping factor also share one `u_j`
+#' per level, as in brms. An example is
 #' `(1 | gr(g, dist = "student")) + (0 + x | gr(g, dist = "student"))`.
-#' frmtmb gives each block its own `u_j`, so two such terms are a
-#' different model from brms's. Write them as one term to share it.
+#' A term in `mu` and a term in `sigma` also share it. At each level,
+#' the coefficients of these terms are one multivariate t, with a
+#' block-diagonal scale matrix. So the example is the model
+#' `(1 + x || gr(g, dist = "student"))`.
+#'
+#' A `gr(g, by = f, dist = "student")` term has one block per level of
+#' `f`. Each block holds different levels of `g`, so alone the blocks
+#' share nothing. Beside a plain Student-t term on `g`, each level of
+#' `g` shares one `u_j` with the by-term's block that holds it.
+#'
+#' A term on another grouping factor has its own `u_j`. A gaussian term
+#' on `g` has none. The Student-t terms of one factor take one
+#' `dist_nu`, because brms has one `df` per factor.
+#' `simulate(re_formula = )` keeps or redraws the terms together at the
+#' levels they share. `quadrature = TRUE` refuses terms that share a
+#' level, because it integrates one random effect at a time.
 #'
 #' **`Sigma` is the SCALE, not the covariance.** The variance is
 #' `Sigma * nu / (nu - 2)`, so a standard deviation is
@@ -277,6 +293,121 @@ student_var_factor <- function(nu) nu / (nu - 2)
 #'
 #' @noRd
 is_student_block <- function(bk) !is.null(bk[["dist_nu"]])
+
+#' Mark the Student-t blocks that share one latent scale.
+#'
+#' brms 2.23.0 gives every Student-t term of a grouping factor ONE
+#' mixing variable per level of the factor: `(1 | gr(g, dist =
+#' "student")) + (0 + x | gr(g, dist = "student"))` writes `dfm_1` into
+#' both terms. So does a term in `mu` beside one in `sigma`, and a
+#' `gr(g, by = f)` term beside a plain one, where `dfm_1` runs over
+#' every level of `g` (dev/prilabel-log/brms-ref.txt,
+#' dev/prilabel-rev-log/misc.txt). A term on another factor gets its
+#' own `dfm_2`. At each level of the factor the coefficients of every
+#' block that holds the level are then ONE multivariate t, with a
+#' block-diagonal scale matrix.
+#'
+#' The scale is shared per LEVEL. frmtmb splits a `gr(g, by = f)` term
+#' into one block per by-level, each over its own levels of `g`, so the
+#' blocks of one factor need not hold the same levels. Each block of a
+#' set gets `t_share` (the indices of every block of the set, in block
+#' order), `t_level` (its levels' positions in the union of the set's
+#' levels) and `t_n` (the size of that union). A set whose blocks hold
+#' disjoint levels, one by-term alone, shares nothing and is not
+#' marked: it is the model of independent blocks. brms has one `df` per
+#' factor, so a marked set must agree on `dist_nu`.
+#'
+#' @noRd
+student_share_sets <- function(re_blocks) {
+  st <- which(vapply(re_blocks, is_student_block, NA))
+  if (length(st) < 2L) return(re_blocks)
+  key <- vapply(re_blocks[st], function(bk) bk[["group_name"]] %||% "", "")
+  for (g in unique(key[duplicated(key)])) {
+    ids <- st[key == g]
+    lvs <- lapply(re_blocks[ids], function(bk) as.character(bk[["levels"]]))
+    u <- unique(unlist(lvs))
+    held <- tabulate(unlist(lapply(lvs, match, u)), nbins = length(u))
+    if (max(held) < 2L) next
+    lab <- vapply(re_blocks[ids], function(bk) bk[["term_label"]], "")
+    nu <- vapply(re_blocks[ids], function(bk) bk[["dist_nu"]], 0)
+    if (length(unique(nu)) > 1L) {
+      frm_stop("The Student-t terms of grouping factor '", g, "' (",
+               paste(lab, collapse = "; "), ") share one latent scale, as ",
+               "in brms, which has one df per grouping factor, so they ",
+               "take one dist_nu. Got ",
+               paste(unique(nu), collapse = " and "),
+               ". Write the same dist_nu in each", call. = FALSE)
+    }
+    for (k in seq_along(ids)) {
+      i <- ids[k]
+      re_blocks[[i]][["t_share"]] <- ids
+      re_blocks[[i]][["t_level"]] <- match(lvs[[k]], u)
+      re_blocks[[i]][["t_n"]] <- length(u)
+    }
+  }
+  re_blocks
+}
+
+#' The pieces of one Student-t block's density that a shared latent
+#' scale adds up: per level, the quadratic form `q_j = b_j' S^-1 b_j`,
+#' and the log-determinant of the scale's factor, exactly as the block's
+#' own `nll` computes them (scalar, `us_t` and `diag_t` alike).
+#'
+#' @noRd
+student_t_parts <- function(b, theta, bk) {
+  d <- bk[["dim"]]
+  n <- bk[["n_levels"]]
+  if (d == 1L) {
+    z <- b * exp(-theta[1L])
+    return(list(q = z * z, ldet = theta[1L]))
+  }
+  if (identical(bk[["covstruct"]], "diag_t")) {
+    z <- b * rep(exp(-theta), times = n)
+    dim(z) <- c(d, n)
+    return(list(q = RTMB::colSums(z * z), ldet = sum(theta)))
+  }
+  W <- us_chol_L(theta[-seq_len(d)], d) * sd_floored(theta[seq_len(d)])
+  dim(b) <- c(d, n)
+  z <- RTMB::solve(W, b)
+  list(q = RTMB::colSums(z * z), ldet = sum(log(RTMB::diag(W))))
+}
+
+#' Log-density of the blocks of one shared Student-t set: at each level
+#' `j` of the factor, one multivariate t over the coefficients of every
+#' block that holds `j`, of dimension `D_j`, the sum of those blocks'
+#' dimensions. Its block-diagonal scale makes the quadratic forms and
+#' the log-determinants add, so the density is
+#'
+#'   sum_j { lgamma((nu + D_j) / 2) - lgamma(nu / 2)
+#'          - D_j / 2 log(nu pi) - (nu + D_j) / 2 log1p(q_j / nu) }
+#'   - sum_k n_k ldet_k,
+#'
+#' with `q_j` the sum of the blocks' quadratic forms at `j` and `n_k`
+#' block `k`'s number of levels. `b` and `theta` are the model's whole
+#' vectors.
+#'
+#' @noRd
+student_shared_lpdf <- function(bks, b, theta) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  nu <- bks[[1L]][["dist_nu"]]
+  n_u <- bks[[1L]][["t_n"]]
+  D <- numeric(n_u)
+  q <- numeric(n_u)
+  ldet <- 0
+  for (bk in bks) {
+    p <- student_t_parts(b[bk[["b_idx"]]], theta[bk[["theta_idx"]]], bk)
+    at <- bk[["t_level"]]
+    # scattered into the union's levels; positions the block does not
+    # hold stay 0, which adds nothing to the level's quadratic form
+    qk <- numeric(n_u)
+    qk[at] <- p$q
+    q <- q + qk
+    D[at] <- D[at] + bk[["dim"]]
+    ldet <- ldet + length(at) * p$ldet
+  }
+  sum(lgamma_shift_diff(nu / 2, D / 2) - D / 2 * (log(nu) + log(pi))) -
+    ldet - sum((nu + D) / 2 * log1p(q / nu))
+}
 
 #' Log-density of `n` scalar Student-t latents with log scale
 #' `log_scale`, vectorized. The `d = 1` case of student_lpdf_core(),

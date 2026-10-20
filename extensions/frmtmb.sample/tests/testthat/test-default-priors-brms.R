@@ -260,3 +260,72 @@ test_that("xi gets brms's defaults in each of its three spellings", {
   notes <- frmtmb.sample:::default_prior_notes(fit)
   expect_true(any(grepl("through tmp_xi", notes, fixed = TRUE)))
 })
+
+test_that("a narrower user sd prior keeps the default on the rest", {
+  # brms 2.23.0, set_prior("normal(0, 0.5)", class = "sd", group = "g",
+  # coef = "x") on y ~ x + (1 + x | g): student_t_lpdf(sd_1[1] | 3, 0,
+  # 2.5) beside normal_lpdf(sd_1[2] | 0, 0.5), and a group-level prior
+  # on g keeps the default on every other group
+  # (dev/prilabel-log/brms-ref.txt). frmtmb.sample once dropped the
+  # default of the whole class for either, so the rest went flat
+  # (dev/prilabel-log/sample-defaults-base.txt)
+  set.seed(3)
+  n <- 120
+  d <- data.frame(x = rnorm(n), g = factor(sample(1:10, n, TRUE)),
+                  h = factor(sample(1:6, n, TRUE)))
+  d$y <- 1 + d$x + rnorm(10)[d$g] + rnorm(6)[d$h] + rnorm(n)
+  uf <- frm(bf(y ~ x + (1 + x | g) + (1 | h)), d, dry_run = "objective")
+  reached <- function(pr) {
+    ri <- suppressMessages(
+      frmtmb.sample:::sample_resolve_priors(uf, pr))$ri
+    th <- Filter(function(z) identical(z$comp, "theta") &&
+                   !identical(z$dist$kind, "lkj"), ri$entries)
+    out <- vapply(th, function(z) z$dist$kind, "")
+    names(out) <- vapply(th, function(z) as.character(z$idx), "")
+    out[order(as.integer(names(out)))]
+  }
+  # theta 1 and 2: sd_g__Intercept, sd_g__x; 3 the correlation; 4 sd_h
+  expect_identical(reached(NULL), c("1" = "t", "2" = "t", "4" = "t"))
+  expect_identical(
+    reached(set_prior("normal(0, 0.5)", class = "sd", group = "g")),
+    c("1" = "normal", "2" = "normal", "4" = "t"))
+  # the class-wide spelling is the default's own slot and replaces it
+  expect_identical(reached(set_prior("normal(0, 0.5)", class = "sd")),
+                   c("1" = "normal", "2" = "normal", "4" = "normal"))
+  expect_identical(
+    reached(set_prior("normal(0, 0.5)", class = "sd", group = "g",
+                      coef = "x")),
+    c("1" = "t", "2" = "normal", "4" = "t"))
+})
+
+test_that("a class-wide prior beside a per-coefficient default says so", {
+  # lane prilabel's review, finding 7 (dev/prilabel-rev-lscale.R, data
+  # seed 51): brms keeps its tuned inv_gamma() on lscale_gpx beside a
+  # class-wide lscale prior, and so does frmtmb.sample; the user's
+  # specification then applies to no parameter, which the message says
+  set.seed(51)
+  n <- 80
+  d <- data.frame(x = runif(n), g = factor(sample(1:8, n, TRUE)))
+  d$y <- sin(4 * d$x) + rnorm(8, 0, 0.5)[d$g] + rnorm(n, 0, 0.3)
+  uf <- frm(bf(y ~ gp(x) + (1 | g)), d, dry_run = "objective")
+  msgs <- function(pr) {
+    out <- character(0)
+    withCallingHandlers(
+      frmtmb.sample:::sample_resolve_priors(uf, pr),
+      message = function(m) {
+        out <<- c(out, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      })
+    paste(out, collapse = "\n")
+  }
+  expect_match(msgs(set_prior("inv_gamma(2, 1)", class = "lscale")),
+               "class=lscale applies to no parameter", fixed = TRUE)
+  # the coef that names the sub-GP replaces the default, and no note
+  expect_false(grepl("applies to no parameter",
+                     msgs(set_prior("inv_gamma(2, 1)", class = "lscale",
+                                    coef = "gpx")), fixed = TRUE))
+  # nor does a prior that reaches its parameters
+  expect_false(grepl("applies to no parameter",
+                     msgs(set_prior("normal(0, 1)", class = "sd",
+                                    group = "g")), fixed = TRUE))
+})

@@ -1749,25 +1749,47 @@ default_prior_notes <- function(fit, user_pl = NULL) {
   notes
 }
 
-#' The classes a user's priorlist speaks for; a default of the same
-#' class steps aside for it, which is brms's partial-override rule.
+#' The user specifications whose every parameter keeps a default, one
+#' note each for the announcement.
+#'
+#' A default steps aside only for its own slot (`drop_superseded()`),
+#' and a default written per coefficient is more specific than a
+#' class-wide user row, so it wins on its parameter, as brms's does:
+#' `set_prior("inv_gamma(2, 1)", class = "lscale")` on a `gp(x)` model
+#' keeps brms's tuned `inv_gamma()` on `lscale_gpx`
+#' (dev/prilabel-rev-lscale.R). Such a specification applies nowhere,
+#' which would pass in silence; the announcement names it and the coef
+#' that reaches the parameter.
 #'
 #' @noRd
-priorlist_classes <- function(pl) {
-  unique(vapply(unclass(pl), prior_class_key, ""))
-}
-
-#' The class key a default and a user specification are matched on. The
-#' nonlinear parameter and the response belong in it for the same
-#' reason the distributional parameter does: a prior on ONE of them
-#' does not speak for the same class on the others, and a default that
-#' stepped aside for it would leave those slots silently flat.
-#'
-#' @noRd
-prior_class_key <- function(s) {
-  paste0(s$class, if (nzchar(s$dpar)) paste0(":", s$dpar),
-         if (nzchar(s$nlpar %||% "")) paste0("/", s$nlpar),
-         if (nzchar(s$resp %||% "")) paste0("@", s$resp))
+unreached_prior_notes <- function(fit, user_pl, ri) {
+  if (is.null(user_pl) || is.null(ri)) return(character(0))
+  key <- function(e) paste0(e$comp, ".", e$idx)
+  got <- list()
+  for (e in ri$entries) {
+    for (k in key(e)) got[[k]] <- e$dist
+  }
+  out <- character(0)
+  for (s in unclass(user_pl)) {
+    if (is.null(s$dist)) next
+    one <- structure(list(s), class = "frmtmb_priorlist")
+    alone <- tryCatch(resolve_prior_input(fit, one)$entries,
+                      error = function(e) NULL)
+    if (!length(alone)) next
+    # the density the specification alone puts at a position, as the
+    # resolver writes it (an lkj or a Dirichlet is rewritten per block),
+    # against what the whole stack leaves there
+    hit <- vapply(alone, function(e) {
+      any(vapply(key(e), function(k) identical(got[[k]], e$dist), NA))
+    }, NA)
+    if (any(hit)) next
+    out <- c(out, paste0(
+      spec_target(s), " applies to no parameter: a default written for ",
+      "each of them is more specific and stays, as in brms. Name the ",
+      "parameter's coef, as get_prior(route = \"sample\") lists it, to ",
+      "replace that default"))
+  }
+  out
 }
 
 #' Drop the specifications a later one for the same slot replaces:
@@ -1787,16 +1809,6 @@ drop_superseded <- function(base, over) {
                                          class = "frmtmb_priorlist")
 }
 
-#' Drop the default specs a user specification has taken over.
-#'
-#' @noRd
-drop_overridden <- function(defaults, user_classes) {
-  keep <- Filter(function(s) {
-    !(prior_class_key(s) %in% user_classes)
-  }, unclass(defaults))
-  if (!length(keep)) NULL else structure(keep,
-                                         class = "frmtmb_priorlist")
-}
 
 #' One compact line per prior class, so the call discloses what it
 #' chose - and one line per slot it deliberately left flat, so a model
@@ -1928,9 +1940,14 @@ prior_stack <- function(...) {
 #' PRECEDENCE, most explicit wins per addressed slot: `prior =` on the
 #' call, then `base` (a fitted object's own prior, which a MAP fit
 #' carries into sampling), then the defaults. The first two are stacked
-#' in that order and resolved later-wins; the defaults step aside for a
-#' whole class either of them names, which is brms's partial-override
-#' rule.
+#' in that order and resolved later-wins; a default steps aside only for
+#' a specification of its own slot (`drop_superseded()`), and a narrower
+#' one, a group's or a coefficient's, applies over it on its own
+#' parameters and leaves the default on the rest. That is brms's rule:
+#' `set_prior(class = "sd", group = "g", coef = "x")` keeps brms's
+#' `student_t()` default on `sd_g__Intercept` and on every other group
+#' (dev/prilabel-log/brms-ref.txt), where this once dropped the default
+#' of the whole class.
 #'
 #' `defaults = FALSE` is the DIAGNOSTIC mode [check_laplace()] runs in:
 #' no defaults, no disclosure, and no opt-out warning. That caller
@@ -1974,13 +1991,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
   user_pl <- st$pl
   defs <- if (defaults) default_priors_for(fit)
   if (!is.null(defs) && !is.null(user_pl)) {
-    defs <- drop_overridden(defs, priorlist_classes(user_pl))
-  }
-  # announced even when there are no defaults at all: a family whose
-  # slots frmtmb cannot prior must say so rather than look flat by
-  # accident
-  if (defaults) {
-    announce_default_priors(defs, default_prior_notes(fit, user_pl))
+    defs <- drop_superseded(defs, user_pl)
   }
   eff <- if (is.null(defs)) user_pl else if (is.null(user_pl)) {
     defs
@@ -1988,6 +1999,14 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
     defs + user_pl
   }
   ri <- if (!is.null(eff)) resolve_prior_input(fit, eff)
+  # announced even when there are no defaults at all: a family whose
+  # slots frmtmb cannot prior must say so rather than look flat by
+  # accident
+  if (defaults) {
+    announce_default_priors(defs, c(default_prior_notes(fit, user_pl),
+                                    unreached_prior_notes(fit, user_pl,
+                                                          ri)))
+  }
   if (length(st$legacy)) {
     # the legacy spelling takes over exactly the internal parameters it
     # names and leaves the rest of the stack in place
@@ -2307,8 +2326,16 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   vignette does.
 #'
 #' *Overriding and opting out.* A `set_prior()` specification takes over
-#' the classes it names and leaves the other defaults in place, which is
-#' brms's partial-override rule; a named list of prior objects takes
+#' the parameters it reaches. The defaults stay on every other
+#' parameter, as in brms. `set_prior(class = "sd", group = "g")`
+#' replaces the default on the standard deviations of `g` and keeps it
+#' on the other groups. Adding `coef = "x"` narrows the prior to one
+#' standard deviation. A default written per coefficient, such as the
+#' `lscale` of each `gp()` term, is more specific than a class-wide
+#' specification and stays, as in brms. The default-prior message
+#' names a specification that applies to no parameter for this reason.
+#' Write the coef to replace such a default. A named list of prior
+#' objects takes
 #' over exactly the internal parameters it names. `prior = "flat"`
 #' turns the defaults off entirely and samples the likelihood, which
 #' warns when the model has variance components: their flat-prior
@@ -2523,8 +2550,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' prior_summary(ds2)
 #' fixef(ds2)
 #'
-#' # a set_prior() specification takes over the classes it names and
-#' # leaves the rest of the defaults alone
+#' # a set_prior() specification takes over the parameters it reaches
+#' # and leaves the defaults on the rest
 #' ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
 #'                   chains = 1, iter = 500, refresh = 0,
 #'                   prior = set_prior("exponential(1)", class = "sd"))

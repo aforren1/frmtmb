@@ -1,3 +1,22 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* **A default steps aside only for a prior on its own slot**, as in
+  brms. A narrower prior keeps the defaults on the parameters it does
+  not reach. `set_prior(class = "sd", group = "g")` replaces the
+  default on the standard deviations of `g`. It keeps
+  `student_t(3, 0, 2.5)` on the other groups. Adding `coef = "x"`
+  narrows the prior to `sd_g__x`. Before, the defaults of the whole
+  class stepped aside, and the other standard deviations were flat.
+
+* **A class-wide prior does not replace a default written per
+  coefficient.** For example, `set_prior("inv_gamma(2, 1)", class =
+  "lscale")` on a `gp(x)` model keeps brms's tuned default on
+  `lscale_gpx`, as brms keeps it. Before, the class-wide prior replaced
+  it. The default-prior message now says when a specification applies
+  to no parameter for this reason, and names the coef to write.
+
 # frmtmb.sample 0.19.0
 
 Needs frmtmb 0.71.0: it reads the sampling-API exports `ce_method()`,

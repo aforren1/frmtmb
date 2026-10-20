@@ -1350,7 +1350,10 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
       # frame; the fixed effects are broadcast only once
       gname <- bk[["group_name"]]
       df <- out[[key]][[gname]]
-      if (!is.null(df) && !identical(rownames(df), bk[["levels"]])) {
+      # brms's level names, `a_b` for a level of the group a:b, as
+      # ranef() writes them
+      lv <- brms_levels(bk)
+      if (!is.null(df) && !identical(rownames(df), lv)) {
         gname <- bk[["term_label"]]
         df <- out[[key]][[gname]]
       }
@@ -1358,7 +1361,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
         fev <- fe[[key]]
         df <- as.data.frame(
           matrix(fev, nrow = bk[["n_levels"]], ncol = length(fev),
-                 byrow = TRUE, dimnames = list(bk[["levels"]], names(fev))),
+                 byrow = TRUE, dimnames = list(lv, names(fev))),
           optional = TRUE
         )
       }
@@ -1751,7 +1754,9 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
         bare <- bp$coef
       }
     }
-    dimnames(M) <- list(bk[["levels"]], rn)
+    # brms's level names: a level of the group a:b is `a_b` there
+    # (combine_groups()), as the draws' ranef() already names it
+    dimnames(M) <- list(brms_levels(bk), rn)
     # brms's `pars` names coefficients WITHOUT their dpar prefix
     # (`Intercept` selects `sigma_Intercept` too); a group left with no
     # coefficient is dropped, as brms drops it

@@ -470,6 +470,16 @@ build_objective <- function(frame) {
                                      log = TRUE))
         next
       }
+      # Student-t blocks of one grouping factor share a latent scale
+      # (student_share_sets()) and are one density, taken at the first
+      sh <- bk[["t_share"]]
+      if (!is.null(sh)) {
+        if (i == sh[1L]) {
+          nll <- nll - student_shared_lpdf(blocks[sh], bfull,
+                                           pars[["theta"]])
+        }
+        next
+      }
       nll <- nll - block_fns[[i]](bfull[bk[["b_idx"]]],
                                   pars[["theta"]][bk[["theta_idx"]]], bk)
     }

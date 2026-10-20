@@ -488,16 +488,15 @@ test_that("a coef frmtmb cannot honor is refused, not applied wider", {
   skip_if_not_installed("brms")
   # brms narrows an sd row to one coefficient of a block and writes
   # exponential_lpdf(sd_1[2] | 1), keeping its default on sd_1[1].
-  # frmtmb's class "sd" addresses a BLOCK and never reads `coef`, so
-  # honoring the row without it would put the density on every standard
-  # deviation of the block. Measured before this refusal: coef =
-  # "Intercept", coef = "x" and no coef gave one bit-identical
-  # objective. Silently widening a prior is the failure D1 exists to
-  # remove, so the row is refused and the whole-block spelling named.
-  expect_error(
-    frmtmb:::as_priorlist(brms::prior(exponential(1), class = "sd",
-                                      group = "g", coef = "x")),
-    "addresses a whole random-effect BLOCK", fixed = TRUE)
+  # frmtmb's class "sd" reads `coef` the same way now
+  # (test-prior-sd-coef.R), so the row translates with its coef. It was
+  # refused while class "sd" addressed whole blocks, because honoring it
+  # without the coef would have widened the prior.
+  expect_identical(
+    unclass(frmtmb:::as_priorlist(brms::prior(exponential(1), class = "sd",
+                                              group = "g",
+                                              coef = "x")))[[1L]]$coef,
+    "x")
   expect_error(
     frmtmb:::as_priorlist(brms::prior(lkj(2), class = "cor",
                                       group = "g", coef = "x")),
@@ -802,16 +801,14 @@ test_that("a distributional class is refused by the same name on both routes", {
 })
 
 test_that("set_prior() refuses an unhonored coef, as the brms route does", {
-  # The review's residual R1. The translated route refused a `coef` on
-  # class "sd" (frmtmb resolves that class per BLOCK, so the row would
-  # have applied to every standard deviation of the block); the native
-  # spelling accepted it silently and widened. Both refuse now.
-  expect_error(set_prior("exponential(2)", class = "sd", group = "g",
-                         coef = "x"),
-               "addresses a whole random-effect BLOCK", fixed = TRUE)
+  # The review's residual R1: the translated route and the native
+  # spelling refuse the same coefs. Class "cor" reads none
   expect_error(set_prior("lkj(2)", class = "cor", coef = "x"),
                "names nothing it can narrow to", fixed = TRUE)
-  # and `coef` on the classes that read it is untouched
+  # and `coef` on the classes that read it is untouched, class "sd"
+  # among them (test-prior-sd-coef.R)
+  expect_silent(set_prior("exponential(2)", class = "sd", group = "g",
+                          coef = "x"))
   expect_silent(set_prior("normal(0, 1)", class = "b", coef = "x"))
   expect_silent(set_prior("normal(0, 1)", class = "Intercept",
                           coef = "Intercept"))

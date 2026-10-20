@@ -2914,11 +2914,19 @@ hyp_env_vals <- function(fit, vals, comp) {
 
   th <- vals[comp == "theta"]
   sds_nm <- brms_sds_names(fit)
+  # every block's correlations follow every block's standard
+  # deviations, where brms's variables() lists them
+  # (dev/prilabel-log/brms-vars.txt)
+  cor_nm <- character(0)
+  cor_val <- numeric(0)
+  # and a smooth's sds_ follows them, brms's order sd, cor, sds, sdgp,
+  # lscale (reorder_pars(); dev/prilabel-rev-log/order-brms.txt)
+  sds_at <- integer(0)
   for (bi in seq_along(fit$frame[["re_blocks"]])) {
     bk <- fit$frame[["re_blocks"]][[bi]]
     # a smooth's one parameter is brms's smoothing sd, sds_sx_1
     if (!is.na(sds_nm[bi])) {
-      put(sds_nm[bi], exp(th[bk[["theta_idx"]][1L]]))
+      sds_at <- c(sds_at, bi)
       next
     }
     # Excluded: the structures whose theta segment is not a set of
@@ -2942,10 +2950,16 @@ hyp_env_vals <- function(fit, vals, comp) {
       C <- stats::cov2cor(V)
       for (j in seq_len(nrow(V) - 1L)) {
         for (k in seq(j + 1L, nrow(V))) {
-          put(paste0("cor_", g, "__", tn[j], "__", tn[k]), C[j, k])
+          cor_nm <- c(cor_nm, paste0("cor_", g, "__", tn[j], "__", tn[k]))
+          cor_val <- c(cor_val, C[j, k])
         }
       }
     }
+  }
+  for (j in seq_along(cor_nm)) put(cor_nm[j], cor_val[j])
+  for (bi in sds_at) {
+    put(sds_nm[bi],
+        exp(th[fit$frame[["re_blocks"]][[bi]][["theta_idx"]][1L]]))
   }
 
   # a gp() term's sd and length scales, brms's sdgp_ and lscale_ on

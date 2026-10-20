@@ -451,8 +451,16 @@ vignette does.
 }
 
 \emph{Overriding and opting out.} A \code{set_prior()} specification takes over
-the classes it names and leaves the other defaults in place, which is
-brms's partial-override rule; a named list of prior objects takes
+the parameters it reaches. The defaults stay on every other
+parameter, as in brms. \code{set_prior(class = "sd", group = "g")}
+replaces the default on the standard deviations of \code{g} and keeps it
+on the other groups. Adding \code{coef = "x"} narrows the prior to one
+standard deviation. A default written per coefficient, such as the
+\code{lscale} of each \code{gp()} term, is more specific than a class-wide
+specification and stays, as in brms. The default-prior message
+names a specification that applies to no parameter for this reason.
+Write the coef to replace such a default. A named list of prior
+objects takes
 over exactly the internal parameters it names. \code{prior = "flat"}
 turns the defaults off entirely and samples the likelihood, which
 warns when the model has variance components: their flat-prior
@@ -577,8 +585,8 @@ ds2 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
 prior_summary(ds2)
 fixef(ds2)
 
-# a set_prior() specification takes over the classes it names and
-# leaves the rest of the defaults alone
+# a set_prior() specification takes over the parameters it reaches
+# and leaves the defaults on the rest
 ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
                   chains = 1, iter = 500, refresh = 0,
                   prior = set_prior("exponential(1)", class = "sd"))

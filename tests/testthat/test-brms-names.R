@@ -272,7 +272,9 @@ test_that("names pass through brms's renaming", {
   v <- variables(fit)
   expect_true(all(c("b_IxE2", "b_fcMd", "b_fe", "sd_gs__Intercept",
                     "sd_g:h__Intercept") %in% v))
-  expect_named(VarCorr(fit), c("gs", "g:h", "residual__"))
+  # brms sorts a predictor's groups by name, g:h before gs
+  # (dev/prilabel-brms-order.R, dev/prilabel-log/brms-order.txt)
+  expect_named(VarCorr(fit), c("g:h", "gs", "residual__"))
   lab <- brms_par_labels(fit)
   # rename_re_levels(): whitespace in a level is a dot; combine_groups():
   # an interaction level joins its parts with _

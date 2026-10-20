@@ -29,7 +29,8 @@ name (\code{"sigma"}, \code{"shape"}, ...). See A distributional parameter's
 own class.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}),
-or name the simplex of class \code{"simo"}.}
+to the standard deviation of one coefficient (class \code{"sd"}, with
+\code{group}), or name the simplex of class \code{"simo"}.}
 
 \item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
 
@@ -72,7 +73,10 @@ vector; see Ordinal thresholds.
 \item \code{"sd"}: random-effect standard deviations (and smoothing SDs), on
 the NATURAL sd scale with the log-Jacobian applied, so
 \code{set_prior("exponential(1)", class = "sd")} means what it says;
-narrow with \code{group}. As in brms, \code{resp}, \code{dpar} and \code{nlpar} select
+narrow with \code{group}, and to one coefficient's standard deviation
+with \code{group} and \code{coef} (\code{coef = "x"} for the \code{x} column of
+\code{(1 + x | g)}, as \code{\link[=default_prior]{default_prior()}} lists it). See Group-level
+standard deviations. As in brms, \code{resp}, \code{dpar} and \code{nlpar} select
 the standard deviations of that response, distributional parameter
 and nonlinear parameter only, and leaving one empty selects the
 empty one: with no \code{dpar} the specification reaches the location
@@ -167,6 +171,35 @@ a \code{"cor"} prior covers replaces that whole LKJ term if it comes later,
 and the other way round.
 \code{lb}/\code{ub} become hard bounds. See Hard bounds.
 }
+\section{Group-level standard deviations}{
+
+\code{set_prior(class = "sd", group = "g", coef = "x")} puts the density
+on one standard deviation: that of the \code{x} column of the \code{g} block.
+brms puts the same prior on \code{sd_g__x}. The other standard deviations
+of the block keep the prior of the group or of the class. A \code{coef}
+without a \code{group} is refused, because brms has no such row.
+
+The density is on the standard deviation itself, with the
+log-Jacobian of the log map. frmtmb holds a correlated block as log
+standard deviations and separate correlation parameters. It does not
+hold a Cholesky factor. So each standard deviation is one parameter,
+and the prior on it is exact. The prior does not change the
+correlations. A class \code{"cor"} prior addresses those. In a Student-t
+block (\code{gr(g, dist = "student")}), the parameter is the scale. That
+is also what brms's \code{sd} is in that term.
+
+Some structures give their columns one shared standard deviation,
+for example \code{homdiag()}, \code{ar1()} and \code{homcs()}. They have no standard
+deviation per coefficient. A \code{coef} that names one of their columns
+is refused by name. Drop the \code{coef} to put the prior on the shared
+standard deviation. A block of another response, distributional
+parameter or nonlinear parameter does not cause this refusal.
+
+The group labels are brms's. A nested \code{(1 | g1/g2)} has the groups
+\code{g1} and \code{g1:g2}. A multi-membership \code{(1 | mm(m1, m2))} has the group
+\code{mmm1m2}. \code{\link[=default_prior]{default_prior()}} lists them so.
+}
+
 \section{Where an intercept prior lands}{
 
 brms centers its design matrix and constrains the intercept at the

@@ -1,3 +1,71 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **Nested and multi-membership groups carry brms's labels.**
+  `(x | g1/g2)` is `(x | g1) + (x | g1:g2)`, as brms 2.23.0 expands it.
+  The groups are `g1` and `g1:g2`. reformulas wrote `g2:g1`. The group
+  of `(x | mm(m1, m2))` is `mmm1m2`, whatever its weights. These labels
+  are in `set_prior(group = )`, `default_prior()`, `prior_summary()`,
+  `variables()` (`sd_g1:g2__x`), `ranef()`, `coef()`, `VarCorr()`,
+  `ngrps()`, `summary()`, `re_formula` and the new-level messages. The
+  old spellings `"g2:g1"` and `"mm(m1, m2)"` are refused, as brms
+  refuses them. A `re_formula` term now names its group exactly as the
+  fit writes it.
+
+* **The groups of each predictor are in brms's order**, sorted by name
+  (brms's `terms_re()`). This order is in `variables()`, `ranef()`,
+  `VarCorr()`, `ngrps()`, `summary()` and the order of the `theta`
+  parameters. `(1 | h) + (1 | g)` now lists `g` first. Terms on one
+  group keep their written order.
+
+* **`ranef()` and `coef()` name the levels of an interaction group as
+  brms does.** The parts are joined with `_`: `p1_q1` for a level of
+  `g1:g2` (was `p1:q1`). A `:` inside a part stays: `c:d_f`.
+
+* **`variables()` lists every group-level standard deviation, then
+  every correlation, then a smooth's `sds_`**, in brms's order. Before,
+  each block's correlations followed its own standard deviations.
+
+* **Student-t terms of one grouping factor share one latent scale per
+  level**, as in brms. Examples are
+  `(1 | gr(g, dist = "student")) + (0 + x | gr(g, dist = "student"))`,
+  and a term in `mu` beside a term in `sigma`. At each level, their
+  coefficients are one multivariate t. So the first example is the
+  model `(1 + x || gr(g, dist = "student"))`. A `gr(g, by = f)` term
+  beside a plain term on `g` shares the scale at each level of `g`. A
+  `gr(g, by = f)` term alone is the model it was. Terms that share a
+  scale take one `dist_nu`. `simulate(re_formula = )` keeps or redraws
+  them together, and `quadrature = TRUE` refuses them. See
+  `?frmtmb-student-re`.
+
+## New features
+
+* **A class `"sd"` prior can name one coefficient**, as in brms.
+  `set_prior("normal(0, 0.5)", class = "sd", group = "g", coef = "x")`
+  puts the density on `sd_g__x` alone. This works in `frm()`,
+  `validate_prior()` and `frmtmb.sample::frm_sample()`.
+  `default_prior()` lists a row per coefficient below each group row,
+  in brms's order. A brms prior table with such a row translates. A
+  `coef` without a `group` is refused by name. So is a `coef` on a
+  structure whose columns share one standard deviation (`homdiag()`,
+  `ar1()`, `homcs()`). See "Group-level standard deviations" in
+  `?set_prior`.
+
+* **`gr(g, id = )` is brms's correlation id.**
+  `(1 | gr(g, id = "a")) + (0 + x | gr(g, id = "a"))` is
+  `(1 | a | g) + (0 + x | a | g)`.
+
+* `re_formula = ~ diag(x | g)` names the term it wraps, as `~ (x | g)`
+  does. It named no term before.
+
+* A refused class `"cor"` prior names a `||` or `gr(cor = FALSE)` term
+  as it was written, `(1 + f || g)`, not as `1 + f | g [diag]`.
+
+* `validate_prior()` and `prior_summary()` list the class `"sd"` rows in
+  brms's order: the class-wide rows, then group by group, with the
+  responses inside each group.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

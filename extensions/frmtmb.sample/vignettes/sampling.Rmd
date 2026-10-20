@@ -95,9 +95,11 @@ standard deviation the posterior need not be proper, and neither the
 chains nor Rhat can see it, so the opt-out warns when the model has
 variance components.
 
-A `set_prior()` specification takes over the classes it names and
-leaves the other defaults alone, which is brms's partial-override
-rule.
+A `set_prior()` specification takes over the parameters it reaches and
+leaves the defaults on the other parameters, as brms does. A prior on
+one group's standard deviations, or on one coefficient's
+(`set_prior(class = "sd", group = "g", coef = "x")`), keeps the default
+on the rest.
 
 ```{r, eval = FALSE}
 ds <- frm_sample(fit, chains = 4,

@@ -84,7 +84,8 @@ test_that("the level set is the members' levels pooled in order", {
   expect_identical(bk$levels, unique(c(levels(dd$g1), levels(dd$g2))))
   expect_identical(bk$n_levels, length(bk$levels))
   expect_identical(bk$covstruct, "us")
-  expect_identical(bk$group_name, "mm(g1, g2)")
+  # brms names the group by its members alone, mmg1g2
+  expect_identical(bk$group_name, "mmg1g2")
   # one variance parameter: the block is an ordinary scalar block
   expect_length(bk$theta_idx, 1L)
 })
@@ -529,8 +530,9 @@ test_that("mm blocks coexist with the rest of the grammar", {
   fr <- frm(bf(y ~ x + (1 | mm(g1, g2)) + (1 | fc)) + gaussian(),
             data = dd, dry_run = "frame")
   expect_length(fr$re_blocks, 2L)
-  expect_identical(fr$re_blocks[[1L]]$group_name, "mm(g1, g2)")
-  expect_identical(fr$re_blocks[[2L]]$levels, levels(dd$fc))
+  # in brms's order, sorted by group: fc before mmg1g2
+  expect_identical(fr$re_blocks[[2L]]$group_name, "mmg1g2")
+  expect_identical(fr$re_blocks[[1L]]$levels, levels(dd$fc))
   # a membership block on a dpar of its own
   frs <- frm(bf(y ~ x, sigma ~ (1 | mm(g1, g2))) + gaussian(),
              data = dd, dry_run = "frame")
