@@ -1351,18 +1351,99 @@ is_custom_data_aterm <- function(nm) {
   grepl("^v(int|real)[0-9]+$", nm) || !is.null(registered_aterm_of(nm))
 }
 
-#' Re-evaluate a response's addition terms on new data, for the
-#' expected-response prediction path. A term the family mean needs must
-#' evaluate, because dropping it silently changes the mean; any other
-#' term is dropped with a warning.
+#' The addition terms no prediction on newdata evaluates, as brms fills
+#' or ignores them in post-processing: `cens()` and `weights()` (brms's
+#' `validate_newdata()` fills both), `mi()`, the `se_sigma` flag, which
+#' is copied from the spec, a `thres()` count, which lives on the family
+#' once the fit is made, and `subset()` and `index()`, which choose rows
+#' and reach no density.
+#'
+#' @noRd
+newdata_unread_aterms <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd",
+                           "weights", "thres", row_aterms)
+
+#' An addition term's value on rows the fit did not see, coded as the
+#' frame coded it: `thres(gr = )` as the fit's group codes, a value
+#' whose coding depends on its levels through the table the frame kept
+#' (`aterm_code_table()`), a registered term otherwise through the
+#' coercion its package registered, anything else as a number.
+#'
+#' A coercion handed newdata alone codes it by newdata's own levels: a
+#' `dec()` factor relevelled, or given as character, swapped the two
+#' boundaries, and one value alone (a one-row newdata) was refused for
+#' holding one level.
+#'
+#' @noRd
+aterm_coerce <- function(nm, v, rspec) {
+  if (nm == "thres_gr") return(thres_newdata_codes(rspec$family, v))
+  reg_at <- registered_aterm_of(nm)
+  tab <- rspec[["aterm_codes"]][[nm]]
+  if (!is.null(tab) && aterm_is_labelled(v)) {
+    return(aterm_code_lookup(v, tab, aterm_label(nm, rspec$aterms[[nm]])))
+  }
+  as.numeric(if (is.null(reg_at)) v else reg_at$coerce(v))
+}
+
+#' Whether an addition term's raw value is coded by its levels rather
+#' than by its values: a factor for any term (`as.numeric()` gives level
+#' codes), and a character or logical vector for a registered term,
+#' whose coercion may build levels from whatever values it is handed
+#' (frmtmb.eam's `ddm_coerce_dec()` does).
+#'
+#' @noRd
+aterm_level_coded <- function(v, reg_at) {
+  is.factor(v) || (!is.null(reg_at) && (is.character(v) || is.logical(v)))
+}
+
+#' Whether a value is labels (a factor, character or logical vector),
+#' which a term the fit coded by its levels reads through its table
+#' however newdata spells them: a factor-coded term given `"hi"` as
+#' character became `NA` through `as.numeric()`.
+#'
+#' @noRd
+aterm_is_labelled <- function(v) {
+  is.factor(v) || is.character(v) || is.logical(v)
+}
+
+#' The value-to-number table of a level-coded term, from its raw values
+#' and what the frame coded them as.
+#'
+#' @noRd
+aterm_code_table <- function(raw, coded) {
+  key <- as.character(raw)
+  keep <- !is.na(key) & !duplicated(key)
+  list(key = key[keep], value = as.numeric(coded)[keep])
+}
+
+#' A level-coded term on new rows, read through the fit's table. A value
+#' the fit never saw has no code, so it is refused by name.
+#'
+#' @noRd
+aterm_code_lookup <- function(v, tab, label) {
+  key <- as.character(v)
+  i <- match(key, tab$key)
+  bad <- unique(key[is.na(i) & !is.na(key)])
+  if (length(bad)) {
+    frm_stop("Addition term ", label, " holds value(s) ",
+             paste0("'", bad, "'", collapse = ", "), " the fit did not ",
+             "see, so they have no code; the fit saw ",
+             paste0("'", tab$key[seq_len(min(10L, length(tab$key)))], "'",
+                    collapse = ", "),
+             if (length(tab$key) > 10L) ", ...", call. = FALSE)
+  }
+  as.numeric(tab$value[i])
+}
+
+#' Re-evaluate a response's addition terms on new data. Every post-fit
+#' path that hands newdata rows to a family's mean, simulator or density
+#' takes its terms from here, all of them, so that none of them is left
+#' to a family default. A term the family needs must evaluate, because
+#' dropping it silently changes the answer; any other term is dropped
+#' with a warning.
 #'
 #' @noRd
 aterms_for_newdata <- function(rspec, newdata) {
-  # a thres() count lives on the family once the fit is made, so newdata
-  # need not repeat it
-  # subset() and index() choose rows and reach no density
-  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
-            "thres", row_aterms)
+  skip <- newdata_unread_aterms
   # rate() scales the mean, so a row without its exposure has none, as
   # brms says ("can neither be found in 'data' nor in 'data2'")
   need <- c("trials", "se", "trunc_lb", "trunc_ub", "rate")
@@ -1385,18 +1466,24 @@ aterms_for_newdata <- function(rspec, newdata) {
                           nd_n %||% length(v))
       next
     }
-    # the same coercion the frame applied, or newdata's factor would
-    # reach the density as level codes where training data reached it as
-    # whatever the contributing package meant
-    reg_at <- registered_aterm_of(nm)
     v <- tryCatch(
-      as.numeric(if (is.null(reg_at)) {
-        eval(ex, newdata, rspec$formula_env)
-      } else {
-        reg_at$coerce(eval(ex, newdata, rspec$formula_env))
-      }),
-      error = function(e) NULL
+      aterm_coerce(nm, eval(ex, newdata, rspec$formula_env), rspec),
+      error = function(e) e
     )
+    if (inherits(v, "error")) {
+      # with every variable present the failure is the value's own (a
+      # coercion's refusal, a value the fit never saw), and its message
+      # is the one that says what is wrong
+      if (!length(setdiff(all.vars(ex), names(newdata)))) {
+        msg <- conditionMessage(v)
+        lead <- paste0("Addition term ", aterm_label(nm, ex))
+        # the table lookup already names the term; say it once
+        frm_stop(if (startsWith(msg, lead)) msg else {
+          paste0(lead, " on newdata: ", msg)
+        }, call. = FALSE)
+      }
+      v <- NULL
+    }
     # a bound the model frame supplied but newdata did not can still
     # resolve in the formula environment, to the FITTED rows; the length
     # check catches that rather than silently pairing the wrong bounds
@@ -1417,7 +1504,7 @@ aterms_for_newdata <- function(rspec, newdata) {
                    paste0(": newdata has no column ",
                           paste(missed, collapse = ", "))
                  } else "",
-                 "; supply the variable or use type = \"conditional\"",
+                 "; supply the variable",
                  call. = FALSE)
       }
       # anything else is dropped, but never silently: an aterm the

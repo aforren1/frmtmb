@@ -543,7 +543,9 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
       dk <- lapply(state_dpars(dp_all, k), function(v) {
         rep(v, length.out = n)[rows]
       })
-      comp$sim(dk, aterms, length(rows))
+      # the state's own rows of every per-row term: the whole list gave
+      # the j-th row of the state the trials() of the j-th row of data
+      comp$sim(dk, hmm_rows_of(aterms, rows, n), length(rows))
     }
   )
   # The transition cells share one default predictor, which the parser
@@ -1087,6 +1089,21 @@ hmm_lse_rows <- function(M) {
   if (nc > 1L) for (j in seq_len(nc)[-1L]) mx <- pmax(mx, M[, j])
   mx[!is.finite(mx)] <- 0
   mx + log(.rowSums(exp(M - mx), nrow(M), nc))
+}
+
+#' The rows `rows` of each per-row entry of an addition-term list, for
+#' a draw on one state's rows. A scalar or a flag passes through.
+#' frmtmb's own `subset_obs()` is not exported, so this is its copy.
+#'
+#' @noRd
+hmm_rows_of <- function(x, rows, n) {
+  lapply(x, function(v) {
+    if (is.numeric(v) && length(v) %in% c(1L, n)) {
+      rep(v, length.out = n)[rows]
+    } else {
+      v
+    }
+  })
 }
 
 #' The response spec of an `hmm()` fit, or the one refusal every

@@ -1080,6 +1080,56 @@ resid_sd <- function(sigma, aterms) {
     2) else aterms[["se"]]
 }
 
+#' The number of trials a binomial-type family reads, or a refusal that
+#' names the term.
+#'
+#' Frame assembly refuses a binomial-type model without `trials()`
+#' (`check_trials_given()`), so a missing value here is a caller that
+#' built the term list without it. One trial in its place is the reason
+#' `predict(newdata =)` drew 0/1 counts where newdata held 1000 trials,
+#' and raised nothing.
+#'
+#' @noRd
+aterm_trials <- function(aterms, family) {
+  tr <- aterms[["trials"]]
+  if (is.null(tr)) {
+    frm_stop(family, ": the number of trials, trials(), did not reach ",
+             "the family, and one trial is no stand-in for it. Give ",
+             "newdata the variable trials() reads", call. = FALSE)
+  }
+  tr
+}
+
+#' Refuse a term list that lacks what the family declares it cannot do
+#' without, `frmtmb_family(required_aterms =)`, at the post-fit entry
+#' points (`sim_response()`, `response_mean()`).
+#'
+#' Frame assembly enforces the declaration on the data, but every
+#' post-fit path builds its own list. Where one dropped a term, a
+#' custom family's simulator met `NULL` and stopped in `rbinom()`'s
+#' "invalid arguments", or gave a zero-length answer. A term that no
+#' post-fit path evaluates on newdata (`weights()`, `cens()`, `mi()`)
+#' is not asked for, as a declaration naming one would otherwise refuse
+#' every prediction.
+#'
+#' @noRd
+check_family_aterms <- function(fam, aterms) {
+  miss <- Filter(function(g) {
+    !any(g %in% names(aterms)) && !any(g %in% newdata_unread_aterms)
+  }, required_aterm_groups(fam[["required_aterms"]]))
+  if (!length(miss)) return(invisible(NULL))
+  needs <- vapply(miss, function(g) {
+    paste(paste0("`", g, "`"), collapse = " or ")
+  }, "")
+  spell <- vapply(miss, function(g) aterm_spelling(g[[1L]]), "")
+  frm_stop(fam[["family"]], ": ", paste(needs, collapse = ", "),
+           " did not reach the family, which declares that it cannot do ",
+           "without ", if (length(miss) > 1L) "them" else "it",
+           ". Give newdata the variable that ",
+           paste(spell, collapse = " and "), " reads", call. = FALSE,
+           package = frm_family_package(fam))
+}
+
 #' `trunc()` bounds from an aterm-value list as a pair of length-n
 #' numeric vectors, or `NULL` when the response is not truncated. An
 #' absent bound is the family's unbounded default; the per-family
@@ -1102,6 +1152,7 @@ trunc_bounds <- function(aterms, n) {
 #' @rdname frmtmb-extension-api
 #' @export
 response_mean <- function(fam, dpars, aterms) {
+  check_family_aterms(fam, aterms)
   mu <- if (!is.null(fam[["post"]]$mean_fn)) {
     fam[["post"]]$mean_fn(dpars, aterms)
   } else if ("mu" %in% names(dpars)) {
@@ -1236,6 +1287,7 @@ subset_obs <- function(x, idx, n) {
 #' @noRd
 sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
                          extra = NULL) {
+  check_family_aterms(fam, aterms)
   # families whose draws need parameters outside the dpar system
   # (ordinal thresholds) declare a fourth argument; the rest keep the
   # three-argument contract
@@ -1584,8 +1636,9 @@ fam_poisson <- function(link = "log") {
 }
 
 #' Binomial family, single dpar `mu` (the success probability). The
-#' number of trials comes from the `trials()` addition term and defaults
-#' to one, so the response is a count out of `trials`.
+#' number of trials comes from the `trials()` addition term, which the
+#' model must have (`check_trials_given()`), so the response is a count
+#' out of `trials`.
 #'
 #' On the tape it uses `RTMB::dbinom_robust()`, TMB's log-odds
 #' parameterization of the same density, which is what glmmTMB fits
@@ -1602,7 +1655,7 @@ fam_binomial <- function(link = "logit") {
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "binomial")
       lo <- robust_logit(dpars, lk)
       if (is.null(lo)) {
         return(RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE))
@@ -1610,7 +1663,7 @@ fam_binomial <- function(link = "logit") {
       RTMB::dbinom_robust(y, size, lo, log = TRUE)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "binomial")
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop("binomial: response must be integer counts in [0, trials]",
                  call. = FALSE)
@@ -1618,24 +1671,25 @@ fam_binomial <- function(link = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        size <- aterms[["trials"]] %||% 1
+        size <- aterm_trials(aterms, "binomial")
         p <- mean(y / size)
         min(max(p, 0.02), 0.98)
       }
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars,
-                         aterms) dpars[["mu"]] * (aterms[["trials"]] %||% 1),
+      mean_fn = function(dpars, aterms) {
+        dpars[["mu"]] * aterm_trials(aterms, "binomial")
+      },
       var_fn = function(dpars, aterms) {
-        (aterms[["trials"]] %||% 1) * dpars[["mu"]] * (1 - dpars[["mu"]])
+        aterm_trials(aterms, "binomial") * dpars[["mu"]] * (1 - dpars[["mu"]])
       },
       dev_fn = function(y, dpars, aterms) {
-        binomial_deviance(y, dpars[["mu"]], aterms[["trials"]] %||% 1)
+        binomial_deviance(y, dpars[["mu"]], aterm_trials(aterms, "binomial"))
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, aterms[["trials"]] %||% 1, dpars[["mu"]])
+      stats::rbinom(n, aterm_trials(aterms, "binomial"), dpars[["mu"]])
     }
   )
 }
@@ -2809,7 +2863,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     dpars = c("mu", "zi"),
     links = list(mu = lk, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "zero_inflated_binomial")
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
       lo <- robust_logit(dpars, lk)
@@ -2824,7 +2878,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "zero_inflated_binomial")
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop("zero_inflated_binomial: response must be integer counts ",
                  "in [0, trials]", call. = FALSE)
@@ -2832,7 +2886,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        size <- aterms[["trials"]] %||% 1
+        size <- aterm_trials(aterms, "zero_inflated_binomial")
         min(max(mean(y / size), 0.05), 0.95)
       },
       zi = function(y, aterms) min(max(mean(y == 0) / 2, 0.05), 0.9)
@@ -2840,12 +2894,14 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars[["zi"]]) * dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+        (1 - dpars[["zi"]]) * dpars[["mu"]] *
+          aterm_trials(aterms, "zero_inflated_binomial")
       }
     ),
     sim = function(dpars, aterms, n) {
+      size <- aterm_trials(aterms, "zero_inflated_binomial")
       stats::rbinom(n, 1, 1 - dpars[["zi"]]) *
-        stats::rbinom(n, aterms[["trials"]] %||% 1, dpars[["mu"]])
+        stats::rbinom(n, size, dpars[["mu"]])
     }
   )
 }
@@ -3749,7 +3805,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "beta_binomial")
       # RTMBdist has no log-odds form, so the robustness has to go into
       # the shapes: a zero second shape gives lgamma(0) = NaN
       mp <- dpar_complement(dpars, "mu", lk)
@@ -3758,7 +3814,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
                            log = TRUE)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "beta_binomial")
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop("beta_binomial: response must be integer counts in ",
                  "[0, trials]", call. = FALSE)
@@ -3766,7 +3822,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        p <- mean(y / (aterms[["trials"]] %||% 1))
+        p <- mean(y / aterm_trials(aterms, "beta_binomial"))
         min(max(p, 0.02), 0.98)
       },
       phi = function(y, aterms) 5
@@ -3774,16 +3830,16 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+        dpars[["mu"]] * aterm_trials(aterms, "beta_binomial")
       },
       # without it pearson residuals were refused for want of a variance
       var_fn = function(dpars, aterms) {
         beta_binomial_var(dpars[["mu"]], dpars[["phi"]],
-                          aterms[["trials"]] %||% 1)
+                          aterm_trials(aterms, "beta_binomial"))
       }
     ),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rbetabinom(n, aterms[["trials"]] %||% 1,
+      RTMBdist::rbetabinom(n, aterm_trials(aterms, "beta_binomial"),
                            dpars[["mu"]] * dpars[["phi"]],
                            (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
@@ -3816,7 +3872,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
     dpars = c("mu", "phi", "zi"),
     links = list(mu = lk, phi = lk_phi, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, nm)
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
       # the shapes off the log-odds, for the reason fam_beta_binomial()
@@ -3827,7 +3883,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       i0 * RTMB::logspace_add(g$l, g$l1m + base) + (1 - i0) * (g$l1m + base)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, nm)
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop(nm, ": response must be integer counts in [0, trials]",
                  call. = FALSE)
@@ -3835,7 +3891,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        p <- mean(y / (aterms[["trials"]] %||% 1))
+        p <- mean(y / aterm_trials(aterms, nm))
         min(max(p, 0.02), 0.98)
       },
       phi = function(y, aterms) 5,
@@ -3845,10 +3901,10 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
     post = list(
       # brms's posterior_epred_zero_inflated_beta_binomial()
       mean_fn = function(dpars, aterms) {
-        (1 - dpars[["zi"]]) * dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+        (1 - dpars[["zi"]]) * dpars[["mu"]] * aterm_trials(aterms, nm)
       },
       var_fn = function(dpars, aterms) {
-        size <- aterms[["trials"]] %||% 1
+        size <- aterm_trials(aterms, nm)
         mu <- dpars[["mu"]]
         q <- 1 - dpars[["zi"]]
         # E[Y^2] = (1 - zi) (Var BB + E[BB]^2)
@@ -3857,7 +3913,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       }
     ),
     sim = function(dpars, aterms, n) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, nm)
       (1 - stats::rbinom(n, 1L, dpars[["zi"]])) *
         RTMBdist::rbetabinom(n, size, dpars[["mu"]] * dpars[["phi"]],
                              (1 - dpars[["mu"]]) * dpars[["phi"]])
@@ -5841,7 +5897,9 @@ mixture_build <- function(comps, groups, ref) {
           dk <- lapply(comp_dpars(dpars, k), function(v) {
             rep(v, length.out = n)[idx]
           })
-          out[idx] <- sk(dk, aterms, length(idx))
+          # the class rows' own terms: the whole list gave row i of the
+          # class the trials() of row i of the data
+          out[idx] <- sk(dk, subset_obs(aterms, idx, n), length(idx))
         }
       }
       out
@@ -6846,7 +6904,8 @@ mixture_sim_groups <- function(ctx) {
     dk <- lapply(mx[["comp_dpars"]](dp, k), function(v) {
       rep(v, length.out = n)[idx]
     })
-    ys[idx] <- mx[["comp_sim"]](dk, av, length(idx), k)
+    # the class rows' own terms, not the first length(idx) of the data
+    ys[idx] <- mx[["comp_sim"]](dk, subset_obs(av, idx, n), length(idx), k)
   }
   ys
 }
@@ -7614,6 +7673,11 @@ resolve_deferred_families <- function(bform, data) {
 carry_finalized_responses <- function(spec, frame) {
   for (rn_ in names(spec$responses)) {
     fr_ <- frame[["spec"]]$responses[[rn_]]
+    # the codes of a level-coded addition term, which newdata and
+    # refits are read against (aterm_coerce())
+    if (!is.null(fr_[["aterm_codes"]])) {
+      spec$responses[[rn_]][["aterm_codes"]] <- fr_[["aterm_codes"]]
+    }
     if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) {
       if (!is.null(fr_$family[["bin_levels"]])) {
         spec$responses[[rn_]]$family[["bin_levels"]] <-

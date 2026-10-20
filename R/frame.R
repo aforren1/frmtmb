@@ -2425,6 +2425,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
                         c("cens_y2", "se_sigma", "mi", row_aterms))
+    codes_new <- list()
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
@@ -2458,16 +2459,31 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # registering one: the spelling a literature uses (a factor, a
       # two-level character) becomes the numbers the density indexes
       reg_at <- registered_aterm_of(nm_at)
-      if (is.null(reg_at)) return(as.numeric(v))
-      v <- reg_at$coerce(v)
+      # a refit codes a term as the fit coded it, whatever levels its
+      # rows hold (a subset may hold one of a dec() factor's two)
+      tab <- resp[["aterm_codes"]][[nm_at]]
+      if (!is.null(tab) && aterm_is_labelled(v)) {
+        return(aterm_code_lookup(v, tab, aterm_label(nm_at, a)))
+      }
+      raw <- v
+      v <- if (is.null(reg_at)) as.numeric(v) else reg_at$coerce(v)
       if (!is.numeric(v)) {
         frm_stop("The coercion registered for `", reg_at$name,
                  "()` returned ", arg_desc(v), "; an addition term's value ",
                  "is baked into the tape as data and must be numeric",
                  call. = FALSE)
       }
+      if (aterm_level_coded(raw, reg_at)) {
+        codes_new[[nm_at]] <<- aterm_code_table(raw, v)
+      }
       as.numeric(v)
     }), at_names)
+    if (length(codes_new) && is.null(resp[["aterm_codes"]])) {
+      # newdata and refits are coded against these, as a bernoulli
+      # response is against its bin_levels
+      resp[["aterm_codes"]] <- codes_new
+      spec$responses[[resp$resp_name]] <- resp
+    }
     if (!is.null(resp$aterms[["se_sigma"]])) {
       av[["se_sigma"]] <- resp$aterms[["se_sigma"]]   # logical flag, not data
     }

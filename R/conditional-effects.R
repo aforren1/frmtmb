@@ -10,17 +10,22 @@
 #' (dev/fixes-ce-brms.R). `trials()` variables are held at 1 before
 #' this, as in brms. Literal bounds apply as written, and anything else
 #' (`vint`/`vreal` payloads a custom family needs) is evaluated against
-#' the grid when it can be.
+#' the grid when it can be. A registered term and `thres(gr = )` are
+#' coded as `aterms_for_newdata()` codes them (`aterm_coerce()`).
 #'
 #' @noRd
 ce_aterms <- function(rspec, nd, n) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
             row_aterms)
-  strict <- c("trials", "se", "trunc_lb", "trunc_ub")
+  # thres(gr = ) picks the thresholds a row is drawn from, so a grid row
+  # without its group has no draw
+  strict <- c("trials", "se", "trunc_lb", "trunc_ub", "thres_gr")
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
-    v <- tryCatch(as.numeric(eval(ex, nd, rspec$formula_env)),
+    # coded as the frame coded it, so a dec() factor held at its first
+    # level is the boundary the fit read that level as
+    v <- tryCatch(aterm_coerce(nm, eval(ex, nd, rspec$formula_env), rspec),
                   error = function(e) NULL)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
     if (is.null(v) && nm %in% strict) {
@@ -46,6 +51,22 @@ ce_trial_vars <- function(rspec, base) {
   ex <- rspec$aterms[["trials"]]
   if (is.null(ex)) return(character(0))
   intersect(all.vars(ex), names(base))
+}
+
+#' The numeric variables of the addition terms that take whole values:
+#' `thres()`, `vint()` and every registered term (frmtmb.eam's `dec()`
+#' is a 0/1 boundary). brms's `get_int_vars()` names trials, thres and
+#' vint; a registered term is here because frmtmb's families read it as
+#' data, where brms's wiener does not read `dec` in a prediction at all.
+#'
+#' @noRd
+ce_int_vars <- function(rspec, base) {
+  nms <- names(rspec$aterms)
+  int <- nms %in% c("thres", "thres_gr") | grepl("^vint[0-9]+$", nms) |
+    vapply(nms, function(nm) !is.null(registered_aterm_of(nm)), NA)
+  vars <- unique(unlist(lapply(rspec$aterms[int], all.vars)))
+  vars <- intersect(vars, names(base))
+  vars[vapply(base[vars], function(x) is.numeric(x) && !is.matrix(x), NA)]
 }
 
 #' Reference value a predictor is held at when it is not varied.
@@ -1788,6 +1809,30 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                   "is a probability per trial (brms's default too). Pin ",
                   "them in conditions = list(...) for a count.")
     }
+  }
+  # thres(), vint() and registered terms take whole values, and a mean
+  # is none: a dec() variable held at 0.573 is no boundary, and a vint()
+  # count at 9.985 draws NA. brms holds its integer variables
+  # (get_int_vars(): trials, thres, vint) at round(median())
+  iv <- setdiff(ce_int_vars(rspec, base), c(tv, unlist(strsplit(
+    effects, ":", fixed = TRUE))))
+  held <- numeric(0)
+  for (v in iv) {
+    val <- round(stats::median(base[[v]], na.rm = TRUE))
+    for (i in seq_along(cond_sets)) {
+      if (is.null(cond_sets[[i]][[v]])) {
+        cond_sets[[i]][[v]] <- val
+        held[[v]] <- val
+      }
+    }
+  }
+  if (length(held)) {
+    frm_message("conditional_effects(): holding the addition-term ",
+                "variable(s) ", paste0(names(held), " at ", held,
+                                       collapse = ", "),
+                ", the rounded median, because the term takes whole ",
+                "values (brms's default too). Pin them in conditions = ",
+                "list(...) for another value.")
   }
   # subset(): brms holds a subset variable at TRUE, so the grid is on
   # the rows the response is fitted on (its prepare_conditions())

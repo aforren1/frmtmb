@@ -1,3 +1,89 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`predict(newdata =)` reads every addition term from newdata, and a
+  binomial-type family refuses a missing `trials()`.** Before, the
+  predictive draws read only `trunc()`, `rate()` and `thres(gr = )`
+  from newdata, and the simulator was given no other term. A binomial
+  with `y | trials(N)` and newdata `N = 1000` drew 0 or 1 on every draw
+  (column mean 0.555; `simulate()` and `fitted()` gave 563). A gaussian
+  with `se(s)` drew at sd 0.029 where newdata had `s = 5`. A custom
+  family's `vint()` and `vreal()` and frmtmb.eam's `dec()` failed. The
+  defect is in every release from 0.61.0, when `predict()` became a
+  predictive summary. Now `predict()` reads the terms as `simulate()`
+  and `fitted()` read them: binomial gives 563.3 and 1.08 (brms 2.23.0:
+  562.7 and 1.15), and `se()` gives sd 0.059 and 4.77 (brms: 0.061 and
+  4.95). The same fix reaches the newdata fill of a `cov = FALSE` ARMA
+  term, and `multinomial()` `predict(newdata =)`, which was refused, now
+  draws newdata's trials.
+
+  What changes for a caller: newdata without the `trials()` or `se()`
+  variable is refused, naming the term, as brms refuses it. Before, it
+  drew one trial per row or ignored the known standard error. The
+  refusal ends "supply the variable"; it used to offer
+  `type = "conditional"`, which `predict()` does not take.
+
+* **A binomial-type family no longer reads a missing `trials()` as one
+  trial.** `binomial()`, `zero_inflated_binomial()`, `beta_binomial()`
+  and `zero_inflated_beta_binomial()` refuse it by name. A model of
+  these families always has the term, so only a caller that drops it
+  meets the refusal.
+
+* **A custom family's declared `required_aterms` are checked after the
+  fit too.** `sim_response()` and `response_mean()` refuse a term list
+  that lacks one, naming the term. Before, the family's own code met
+  `NULL`, which gave "invalid arguments" from `rbinom()` or an empty
+  answer.
+
+* **An addition term coded by its levels is read on newdata through the
+  fit's codes.** This is a factor for any term, and a factor, character
+  or logical value of a registered term such as frmtmb.eam's `dec()`.
+  Before, newdata was coded by its own levels: a relevelled or
+  character `dec()` swapped the two boundaries in silence, and one value
+  alone (a one-row newdata, or a logical `dec()` given `TRUE`) was
+  refused for holding one level. A value the fit did not see is now
+  refused by name, where it used to be coded as if it were one of the
+  fit's. A coercion's own refusal is reported in its own words, not as
+  "could not be evaluated on newdata".
+
+* **`conditional_effects()` holds the variables of `thres()`, `vint()`
+  and registered terms at `round(median())`**, as brms holds its
+  whole-valued terms, and says so in a message. They were held at the
+  mean: a `vint()` count of 9.985 drew `NA`, and a numeric `dec()` at
+  0.573 was no boundary.
+
+* **The `conditional_effects()` grid refuses a row without its
+  `thres(gr = )` group** (`method = "predict"`), where it used to draw
+  the row without it. The default grid holds the group, so the refusal
+  meets only a grid that cannot evaluate it.
+
+## Bug fixes
+
+* **A `mixture()` draws each component at its own rows' addition
+  terms.** The simulator gave each component the whole term list, so
+  the j-th row of a class read the `trials()` of the j-th row of the
+  data. In `simulate()`, `predict()` and frmtmb.sample's
+  `posterior_predict()` of a binomial mixture with `N` of 2 and 50,
+  25% of the draws exceeded `N`, and the `N = 2` rows averaged 11.8
+  where `fitted()` says 0.98. `mixture(groups =)` had the same defect
+  (21%). Present in every release with mixtures of trials families.
+
+* **`predict(newdata =)` and `predict(re_formula =)` hand the simulator
+  each distributional parameter on its natural scale.** They handed it
+  the reporting scale, which for a mixture's `theta` is already the
+  softmax probability, and the simulator applied the softmax again:
+  the mixing weights were wrong on every draw away from the in-sample
+  fast path (443 against `fitted()` 484 on a binomial mixture at
+  `N = 1000`). The defect is in every release from 0.61.0 (862032e3),
+  where these draws first read the dpars that way.
+
+* `conditional_effects(method = "predict")` codes a registered addition
+  term, such as frmtmb.eam's `dec()`, with the coercion its package
+  registered, and `thres(gr = )` as the fit's group codes. A `dec()`
+  factor reached the simulator as its level codes, so each level was
+  drawn at the other boundary.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

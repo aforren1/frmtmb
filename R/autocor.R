@@ -1359,7 +1359,11 @@ arma_cond_fill_dpars <- function(fit, rspec, newdata, dpars_fn) {
   dpv <- dpars_fn(autocor_cond_strip(fit))
   n <- length(y)
   acn <- autocor_for_newdata(fit, ac, rspec, newdata)
-  av <- if (has_trunc(rspec)) aterms_for_newdata(rspec, newdata) else list()
+  # every term the filling draw reads, not only trunc(): the fit refuses
+  # se() beside cov = FALSE, so trunc() is all a gaussian or student
+  # draw can read here today, but a subset is how predict() lost
+  # trials() and se() on newdata
+  av <- aterms_for_newdata(rspec, newdata)
   extra <- fit_extras(fit, rspec$resp_name)
   draw <- function(rows, m) {
     dpt <- subset_obs(dpv, rows, n)

@@ -1,3 +1,29 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* **`posterior_predict(newdata =)` reads every addition term from
+  newdata.** It read only `trunc()`, `rate()` and `thres(gr = )`, and
+  gave the simulator no other term, from the method's first version
+  on. A binomial with `y | trials(N)` and newdata `N = 1000` drew 0 or
+  1 (column mean 0.595 where `posterior_epred()` gave 576.3), and a
+  gaussian with `se(s)` drew at sd 0.033 where newdata had `s = 5`.
+  `predict()`, `predictive_error()` and `residuals()` of draws, which
+  call it, change with it. Newdata without the `trials()` or `se()`
+  variable is now refused, naming the term, as brms refuses it.
+
+## Bug fixes
+
+* `posterior_predict(newdata =)` and `posterior_predict(re_formula =)`
+  hand the simulator each distributional parameter on its natural
+  scale. They handed it the reporting scale, which for a mixture's
+  `theta` is already the softmax probability, and the simulator
+  applied the softmax again, so the mixing weights were wrong. The
+  defect is in every release from 0.2.0 (frmtmb 0.52.0, whose afd00a43
+  gave a mixture's weights their softmax reporting scale). With
+  frmtmb's fix of the same release, a mixture also draws each class at
+  its own rows' `trials()`.
+
 # frmtmb.sample 0.19.0
 
 Needs frmtmb 0.71.0: it reads the sampling-API exports `ce_method()`,

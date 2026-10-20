@@ -373,8 +373,10 @@ test_that("a group the fit never saw cannot fail open", {
   nd <- d[1:3, ]
   nd$g <- factor(rep("s9", 3), levels = c(levels(d$g), "s9"))
   expect_error(ndt_time(fit, newdata = nd), "was not fitted to")
+  # frmtmb reads a labelled term on newdata through the fit's codes and
+  # refuses a label it never saw before this package's own lookup runs
   expect_error(frm_linpred(fit, newdata = nd, type = "response"),
-               "was not fitted to")
+               "holds value(s) 's9' the fit did not see", fixed = TRUE)
   # and through frame assembly, which is where an NA would reach the
   # tape as data
   expect_error(

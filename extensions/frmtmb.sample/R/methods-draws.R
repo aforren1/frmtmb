@@ -1079,17 +1079,14 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   }
   idx <- draws_index(object)
   rows <- draws_subsample(object, ndraws, draw_ids)
+  # every term, as posterior_epred() reads them through frmtmb: a
+  # subset here (trunc(), rate() and thres(gr = ) were the only ones)
+  # left the simulator without trials(), se() or dec(), and binomial
+  # drew one trial per row where newdata had 1000
   av <- if (is.null(newdata)) {
     fit$frame[["aterm_values"]][[resp]]
-  } else if (has_trunc(rspec) ||
-             any(c("thres_gr", "rate") %in% names(rspec$aterms))) {
-    # truncation bounds must follow the newdata rows, or the draws land
-    # outside the support the likelihood was normalized on; so must a
-    # row's group under grouped thresholds, thres(gr = ), and a row's
-    # exposure under rate(), which scales its mean
-    aterms_for_newdata(rspec, newdata)
   } else {
-    list()
+    aterms_for_newdata(rspec, newdata)
   }
   # brms's cov = FALSE ARMA: brms's posterior_predict() draws each row
   # around its one-step mean, which reads the OBSERVED earlier residuals
@@ -1149,10 +1146,20 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       dpars_fn <- function(f) {
         dpv <- list()
         for (dnm in names(rspec$dpars)) {
-          dpv[[dnm]] <- as.vector(frm_linpred(f, newdata = newdata,
-                                              dpar = dnm, resp = resp,
-                                              re_formula = rf,
-                                              type = "response"))
+          # the link inverse of the predictor, the scale the simulator
+          # reads. type = "response" is the REPORTING scale, and for a
+          # mixture's theta that is already the softmax probability,
+          # which the simulator then took through the softmax again
+          lp <- f$frame[["linpreds"]][[paste(resp, dnm, sep = ".")]]
+          dpv[[dnm]] <- if (is.null(lp)) {
+            as.vector(frm_linpred(f, newdata = newdata, dpar = dnm,
+                                  resp = resp, re_formula = rf,
+                                  type = "response"))
+          } else {
+            lp[["link"]]$linkinv(as.vector(frm_linpred(
+              f, newdata = newdata, dpar = dnm, resp = resp,
+              re_formula = rf, type = "link")))
+          }
         }
         dpv
       }

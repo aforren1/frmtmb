@@ -1,3 +1,17 @@
+# frmtmb.latent (development version)
+
+Runs on frmtmb 0.63.0 and later, as before; the fix needs nothing new
+from frmtmb.
+
+## Bug fixes
+
+* **`hmm()` draws each state at its own rows' addition terms.** The
+  simulator gave the state-dependent family the whole term list, so
+  the j-th row of a state read the `trials()` of the j-th row of the
+  data. In `simulate()` of a binomial `hmm(K = 2)` with `N` of 2 and
+  50, 26% of the draws exceeded `N`, and the `N = 2` rows averaged 12.2
+  where `fitted()` says 0.91. The likelihood was not affected.
+
 # frmtmb.latent 0.6.1
 
 No change to the package's code. frmtmb 0.71.0 changes what a model of
