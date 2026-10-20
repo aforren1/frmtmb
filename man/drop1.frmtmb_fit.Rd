@@ -31,6 +31,19 @@ refits, and tabulates AIC (and likelihood-ratio tests with
 \code{drop1.merMod}. Random-effect, smooth, and \code{mo()}/\code{mi()} terms are
 not part of the deletion scope.
 }
+\details{
+Each refit reads the data the fit holds (see \code{\link[=update.frmtmb_fit]{update.frmtmb_fit()}}),
+on the rows the fit used, so a term such as \code{log(x)}, \code{scale(x)} or
+\code{splines::ns(x, 3)} is evaluated again from \code{x}, and the table does
+not depend on the data object in the workspace. The terms a refit
+keeps keep the fit's bases: \code{scale(x)} keeps the center and scale,
+and \code{ns()} and \code{poly()} the knots and coefficients, that the fit
+computed from every row of the data before \code{na.action}. So each
+submodel is nested in the fit, and on a linear or generalized linear
+model the statistics are those of \code{\link[stats:drop1]{stats::drop1()}}. A fit whose prior
+adds a log density to the objective is refused, as in
+\code{\link[=anova.frmtmb_fit]{anova.frmtmb_fit()}}.
+}
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), z = rnorm(100),

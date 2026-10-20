@@ -8,8 +8,10 @@ make_conditions(x, vars, ...)
 }
 \arguments{
 \item{x}{A data frame, or a fitted model. From a \code{frmtmb_fit} the
-model data is used; from any other list that has a \code{data} element,
-that element is used, as brms does.}
+data the fit holds is used: the model frame and the variables the
+formula reads through a transform, such as \code{x2} of \code{log(x2)}, as
+brms uses its stored data. From any other list that has a \code{data}
+element, that element is used, as brms does.}
 
 \item{vars}{Character vector of the names of the variables to
 condition on.}

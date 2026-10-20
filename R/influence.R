@@ -39,9 +39,13 @@
 #' @param groups Name of a random-effect grouping factor (see
 #'   [ngrps()]) to delete level-wise; `NULL` deletes single
 #'   observations (refuses for large n unless `force = TRUE`).
-#' @param data The original model data; defaults to the stored model
-#'   frame, which works unless the formula uses variables that are not
-#'   stored raw (e.g. inside `poly()`).
+#' @param data The original model data. The default is the data the
+#'   fit holds: the model frame and the variables the formula reads
+#'   through a transform (`x` of `poly(x, 2)` or `log(x)`), on the rows
+#'   the fit used. A data-dependent basis (`poly()`, `splines::ns()`,
+#'   `scale()`) keeps the knots, coefficients or center of the fit in
+#'   every deletion refit, as in lme4's `influence.merMod()`, so a
+#'   coefficient change is not a change of basis.
 #' @param force Allow observation-wise deletion for n > 500.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
@@ -60,7 +64,7 @@
 influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                  force = FALSE, ...) {
   frm_check_dots(...)
-  data <- data %||% model$frame[["data_frame"]]
+  data <- data %||% fit_refit_data(model) %||% model$frame[["data_frame"]]
   if (!is.null(groups)) {
     gv <- data[[groups]]
     if (is.null(gv)) {
@@ -117,7 +121,8 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                 data2 = data2, thres_pin = pin,
                                 drop_unused_levels =
                                   model$frame[["drop_unused_levels"]] %||%
-                                  TRUE)
+                                  TRUE,
+                                predvar_map = model$frame[["predvar_map"]])
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {

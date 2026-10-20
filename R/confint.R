@@ -1946,6 +1946,15 @@ lrt_pvalue <- function(chisq, ddf) {
 #' p-value; halve it for the one-component case, or use
 #' [frm_bootstrap()] for a simulation-based reference.
 #'
+#' A fit whose prior adds a log density to the objective (a MAP fit,
+#' `frm(prior = )`) is refused, and so is `drop1()` on one. Its
+#' `logLik()` is the log-likelihood plus the log prior, so a difference
+#' of two holds prior densities at two different estimates. It is not a
+#' likelihood ratio, and it can be negative. A prior that only sets
+#' bounds adds no density and is not refused. Refit without the prior
+#' for a likelihood-ratio test. To compare models under the prior, use
+#' `loo()` or `bayes_factor()` of frmtmb.sample.
+#'
 #' @section Nesting is assumed, not verified:
 #' A likelihood-ratio statistic has a chi-square null distribution only
 #' when the smaller model is a restriction of the larger. `anova()`
@@ -2009,6 +2018,10 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
                                  list(...)))
   if (length(fits) < 2) {
     frm_stop("anova() needs at least two frmtmb fits to compare", call. = FALSE)
+  }
+  dens <- which(vapply(fits, fit_prior_density, NA))
+  if (length(dens)) {
+    prior_lrt_refusal("anova()", paste0("model ", dens[1L], " has"))
   }
   reml <- vapply(fits, `[[`, TRUE, "REML")
   if (any(reml) && isTRUE(refit)) {
@@ -2092,6 +2105,18 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' `drop1.merMod`. Random-effect, smooth, and `mo()`/`mi()` terms are
 #' not part of the deletion scope.
 #'
+#' Each refit reads the data the fit holds (see [update.frmtmb_fit()]),
+#' on the rows the fit used, so a term such as `log(x)`, `scale(x)` or
+#' `splines::ns(x, 3)` is evaluated again from `x`, and the table does
+#' not depend on the data object in the workspace. The terms a refit
+#' keeps keep the fit's bases: `scale(x)` keeps the center and scale,
+#' and `ns()` and `poly()` the knots and coefficients, that the fit
+#' computed from every row of the data before `na.action`. So each
+#' submodel is nested in the fit, and on a linear or generalized linear
+#' model the statistics are those of [stats::drop1()]. A fit whose prior
+#' adds a log density to the objective is refused, as in
+#' [anova.frmtmb_fit()].
+#'
 #' @param object A `frmtmb_fit` from an ML fit (`REML = FALSE`) of a
 #'   univariate model.
 #' @param scope Terms to drop: a character vector or a right-hand-side
@@ -2130,6 +2155,9 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   if (length(object$spec$responses) > 1) {
     frm_stop("drop1() is not supported for multivariate fits", call. = FALSE)
   }
+  if (fit_prior_density(object)) {
+    prior_lrt_refusal("drop1()", "this fit has")
+  }
   tt <- terms(object)
   labs <- attr(tt, "term.labels")
   if (missing(scope)) {
@@ -2149,24 +2177,50 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   aic0 <- -2 * as.numeric(ll0) + k * df0
   n_sc <- length(scope)
   ddf <- aic <- lrt <- rep(NA_real_, n_sc)
+  # the data the fit holds, not the data the call names: the model
+  # frame has `log(x2)` and no `x2` to evaluate it again, and the
+  # workspace object may be gone or changed. These are the fit's own
+  # rows, so every refit is on the sample the fit's likelihood is on
+  # The kept terms keep the fit's bases (the channel's predvar_map), as
+  # stats::drop1() keeps the fit's design columns, and their names
+  rd <- fit_refit_data(object)
+  held <- !is.null(rd)
+  if (!held) rd <- object$frame[["data_frame"]]
+  # Everything else the refit needs goes in by value too, from the fit:
+  # the call's own arguments were evaluated in the formula's
+  # environment, so `family = fam` from a function's frame was not
+  # found. The family travels on the bf() object. The stored prior is
+  # marked as update() marks it, so a bounds-only specification on the
+  # dropped term's coefficient is dropped from that refit
+  ctl <- object$control %||% frmtmb_control()
+  ctl$verbose <- FALSE
+  pri <- object$prior
+  if (inherits(pri, "frmtmb_priorlist")) {
+    pri <- structure(pri, allow_invalid_prior = TRUE, drop_who = "drop1()")
+  }
+  args <- list(data = rd, REML = FALSE, control = ctl, prior = pri,
+               data2 = object$data2 %||% list(),
+               quadrature = isTRUE(object$quadrature),
+               importance = object$importance$draws %||% 0L,
+               drop_unused_levels =
+                 object$frame[["drop_unused_levels"]] %||% TRUE)
   for (i in seq_len(n_sc)) {
-    # rebuild the bf() object with the term removed; the stored model
-    # frame carries every variable, so the refit does not depend on
-    # the original data still being visible
     nb <- object$bform
     nf <- stats::update.formula(nb$formula,
                                 paste(". ~ . -", scope[i]))
     environment(nf) <- environment(nb$formula)
     nb$formula <- nf
-    cl <- object$call
-    cl$formula <- nb
-    cl$data <- object$frame[["data_frame"]]
-    # same reason for data2: the stored structural objects go in by
-    # value, so the refit does not need the names the user passed to
-    # still resolve where the call is evaluated
-    if (length(object$data2)) cl$data2 <- object$data2
-    fit_i <- eval(cl, environment(nb$formula) %||% parent.frame())
+    if (held) args$data <- refit_channel(rd, formula = nb, fit = object)
+    fit_i <- do.call(frm, c(list(formula = nb), args), quote = TRUE)
     ll_i <- logLik(fit_i)
+    if (is.na(attr(ll_i, "df"))) {
+      # a refit whose degrees of freedom are unknown gives no test, and
+      # the row would otherwise be NA without a reason
+      frm_stop("drop1(): the refit without ", scope[i], " has no degrees ",
+               "of freedom to compare: ",
+               attr(ll_i, "df_why") %||% "logLik() gives none",
+               call. = FALSE)
+    }
     ddf[i] <- df0 - attr(ll_i, "df")
     aic[i] <- -2 * as.numeric(ll_i) + k * attr(ll_i, "df")
     lrt[i] <- 2 * (as.numeric(ll0) - as.numeric(ll_i))
@@ -2431,6 +2485,41 @@ update_pool_pars <- function(out, old, new) {
 #' a prior, so one that matches no parameter is an error; brms drops it
 #' with no message.
 #'
+#' Without `data` (or `newdata`), the refit reads the data the fit
+#' holds, as brms's `update()` does: the model frame and the variables
+#' the formula reads through a transform, on the rows the fit used,
+#' after `na.action`. A data-dependent basis (`splines::ns()`, `poly()`,
+#' `scale()`) keeps the knots, coefficients or center that the fit
+#' computed, so `update(fit)` with nothing changed gives the fit. The
+#' result does not change when the data object is changed or removed,
+#' or after [saveRDS()] and [readRDS()] in a new session.
+#'
+#' Rows that `na.action` removed from the fit stay out of the refit.
+#' This is also true when the update drops the variable that held the
+#' missing value. Under `na.action = na.exclude`, the refit pads its
+#' residuals and fitted values to the same rows as the fit.
+#'
+#' A formula that reads a variable the fit does not hold, as
+#' `update(fit, ~ . + z)` with a new `z`, reads the `data` of the stored
+#' call again, as [stats::update()] does. That is done only when those
+#' data still hold the fit's rows and values. Otherwise the update is
+#' refused with brms's advice to give the data as `newdata`.
+#'
+#' The formula, the family, the control, the start and the flags of the
+#' stored call that `update()` does not replace come from the fit, as in
+#' brms. So a fit made inside a function updates where the function's
+#' arguments are gone, and an object of the same name in the workspace
+#' does not become the model. The new fit's call names them as the
+#' stored call did. `evaluate = FALSE` returns the call that `update()`
+#' evaluates. It holds those values and the data, so it gives the same
+#' refit wherever it is evaluated, as in [stats::step()] and
+#' [stats::add1()].
+#' The data are in the call by value, so printing the call prints
+#' them. The call names the model it was made for: if it is edited
+#' before it is evaluated, for example with a new formula, the fit
+#' records its own call and does not take the old fit's bases or
+#' missing rows.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param formula. A complete formula or [bf()], or a delta such as
 #'   `~ . + z` or `. ~ . + z`.
@@ -2464,7 +2553,41 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
     }
     names(extras)[names(extras) == "newdata"] <- "data"
   }
-  for (nm in names(extras)) cl[[nm]] <- extras[[nm]]
+  given <- names(extras)
+  for (nm in given) {
+    # `start = NULL` removes the argument; assigning NULL to a name the
+    # call does not have is an out-of-bounds error, not a no-op
+    if (!is.null(extras[[nm]])) {
+      cl[[nm]] <- extras[[nm]]
+    } else if (nm %in% names(cl)) {
+      cl[[nm]] <- NULL
+    }
+  }
+  # stats::step() passes the delta as text, "~ . - x", which
+  # stats::update.formula() reads as a formula
+  if (!missing(formula.) && is.character(formula.)) {
+    formula. <- stats::as.formula(formula.)
+  }
+  # The variables the updated formula reads that the fit does not hold.
+  # A parameter formula's name (`sigma`, a nonlinear `a`) is not one
+  new_vars <- character(0)
+  if (!missing(formula.)) {
+    own <- if (inherits(formula., "frmtmb_formula")) {
+      c(names(formula.$pforms), names(formula.$nlforms),
+        names(formula.$pfix))
+    }
+    new_vars <- setdiff(formula_vars(formula.),
+                        c(formula_vars(object$bform), own, "."))
+  }
+  data_given <- "data" %in% given
+  stored <- !is.null(fit_refit_data(object))
+  # On the fit's own rows the family resolved from the data is the
+  # fit's; on other data, a family that reads its categories from the
+  # data (categorical()) reads them again
+  if (data_given || length(new_vars) || !stored) {
+    object$bform <- attr(object$bform, "frmtmb_written") %||% object$bform
+  }
+  fam_by_formula <- FALSE
   if (!missing(formula.)) {
     # a complete formula goes in unevaluated, so the stored call stays
     # readable; a delta has to be resolved against the stored one
@@ -2477,7 +2600,10 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
                     formula_has_dot(formula.$formula))) {
       # brms's reading of a bf() delta: the family it carries wins
       # over the family argument (brms:::update.brmsfit())
-      if (!is.null(formula.$family)) cl$family <- NULL
+      if (!is.null(formula.$family)) {
+        cl$family <- NULL
+        fam_by_formula <- TRUE
+      }
       update_delta_bform(object, formula.)
     } else {
       if (inherits(object$bform, "frmtmb_mvformula") ||
@@ -2497,8 +2623,9 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
         fam <- NULL
         if (!is.null(pooled$family)) {
           cl$family <- NULL
+          fam_by_formula <- TRUE
           fam <- pooled$family
-        } else if (is.null(cl$family)) {
+        } else if (!("family" %in% given)) {
           fam <- object$bform$family
         }
         pooled$family <- fam
@@ -2506,28 +2633,127 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
         # not the evaluated object and the family's closures
         pooled <- bform_call(pooled) %||% pooled
       }
+      if (inherits(formula., "frmtmb_formula") && !is.null(formula.$family)) {
+        if ("family" %in% names(cl)) cl$family <- NULL
+        fam_by_formula <- TRUE
+      }
       pooled %||% substitute(formula.)
     }
   }
-  if (!evaluate) return(cl)
+  # the call the new fit records: the stored call with this update's
+  # arguments, which names the data, the family and the control as the
+  # user wrote them
+  shown <- cl
+  # Below, the call that is evaluated takes from the fit by value what
+  # the user did not give, as brms's update() takes it from the object:
+  # the formula, the family, the control, the start and the flags. A
+  # symbol of the stored call names an object of the session the fit
+  # was made in: a helper's argument is gone, and a global of the same
+  # name would silently become the model
+  if (missing(formula.)) {
+    bfv <- object$bform
+    if ("family" %in% given && inherits(bfv, "frmtmb_mvformula")) {
+      # a family given to update() fills every response
+      bfv$forms <- lapply(bfv$forms, function(f) {
+        f$family <- NULL
+        f
+      })
+    }
+    cl$formula <- bfv
+  }
+  if (!("family" %in% given) && !fam_by_formula &&
+        !inherits(object$bform, "frmtmb_mvformula")) {
+    cl["family"] <- list(object$bform$family)
+  }
+  if (!("control" %in% given) && !is.null(object$control)) {
+    ctl <- object$control
+    # frm() filled the control's verbose from its own `verbose`; a
+    # verbose given here wins over it again
+    if ("verbose" %in% given) ctl$verbose <- NULL
+    cl$control <- ctl
+  }
+  if (!("start" %in% given) && "start" %in% names(cl)) {
+    cl["start"] <- list(object$start)
+  }
+  flags <- list(REML = isTRUE(object$REML),
+                quadrature = isTRUE(object$quadrature),
+                importance = object$importance$draws %||% 0L,
+                drop_unused_levels =
+                  object$frame[["drop_unused_levels"]] %||% TRUE)
+  for (nm in names(flags)) {
+    if (!(nm %in% given) && nm %in% names(cl)) cl[[nm]] <- flags[[nm]]
+  }
   # the stored structural objects go into the call by value, so an
   # update in a session where the original data2 names are gone still
   # assembles; an explicit data2 = in the update wins
-  if (length(object$data2) && !("data2" %in% names(extras))) {
+  if (length(object$data2) && !("data2" %in% given)) {
     cl$data2 <- object$data2
   }
   # the stored prior goes in by value, marked as brms's update() marks
   # it, so frm() drops a specification the new formula leaves without a
   # parameter (prior_drop_unmatched()); a prior given to this call is
   # merged into it and checked like any other
-  if ("prior" %in% names(extras)) {
+  if ("prior" %in% given) {
     newp <- eval(extras[["prior"]], parent.frame())
     cl["prior"] <- list(update_merge_prior(object$prior, newp))
   } else if (inherits(object$prior, "frmtmb_priorlist")) {
     cl$prior <- structure(object$prior, allow_invalid_prior = TRUE)
   }
+  cl[[1L]] <- quote(frmtmb::frm)
+  # The data. brms's update() refits on the data the fit holds, so the
+  # answer does not change when the workspace does, and survives
+  # saveRDS(); the fit's bases and NA rows go with them, so a refit with
+  # nothing changed is the fit. A variable the fit does not hold is read
+  # from the call's data, as stats::update() reads it, but only from
+  # data that still hold the fit's, so that add1() works and a changed
+  # object cannot become the model; brms refuses every such case
+  # the formula and family as values: the channel names the call it
+  # was made for by them (refit_channel_for())
+  if (is.language(cl$formula)) {
+    fv <- eval(cl$formula, parent.frame())
+    cl$formula <- if (inherits(fv, "formula")) bf(fv) else fv
+  }
+  if ("family" %in% given && is.language(cl[["family"]])) {
+    cl["family"] <- list(eval(cl[["family"]], parent.frame()))
+  }
+  fv <- cl[["formula"]]
+  famv <- cl[["family"]]
+  if (data_given) {
+    dv <- eval(extras[["data"]], parent.frame())
+    cl$data <- refit_channel(dv, fv, famv, call = shown)
+  } else if (stored && !length(new_vars)) {
+    cl$data <- refit_channel(fit_refit_data(object, "data"), fv, famv,
+                             call = shown, fit = object)
+  } else if (stored) {
+    # where update() is called, then the formula's environment, where
+    # stats::add1() evaluates the call update(evaluate = FALSE) returns
+    fenv <- environment(object$bform$formula %||%
+                          object$bform$forms[[1L]]$formula)
+    cd <- NULL
+    for (e in list(parent.frame(), fenv)) {
+      if (!is.environment(e)) next
+      cd <- tryCatch(eval(object$call[["data"]], e),
+                     error = function(err) NULL)
+      if (!is.null(cd)) break
+    }
+    if (!refit_data_matches(object, cd)) {
+      frm_stop("New variables found: ",
+               paste0("'", new_vars, "'", collapse = ", "),
+               "\nPlease supply your data again via argument 'newdata'. ",
+               "The fit holds its data without ",
+               if (length(new_vars) == 1L) "this variable" else "these",
+               ", and the data its call names (",
+               data_label(object$call[["data"]]), ") ",
+               if (is.null(cd)) "are gone" else
+                 "no longer hold the data the model was fitted to",
+               call. = FALSE)
+    }
+    cl$data <- refit_channel(cd, fv, famv, call = shown)
+  }
+  if (!evaluate) return(cl)
   eval(cl, parent.frame())
 }
+
 
 #' The prior an `update(prior = )` refits with: brms's merge.
 #'

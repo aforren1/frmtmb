@@ -1,3 +1,103 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`update()` takes what it does not replace from the fit**, as brms's
+  `update()` does: the data, the formula, the family, the control, the
+  start and the flags. Since `update()` was added (0.6.0) it evaluated
+  the symbols of the stored call again, so the refit used the objects
+  of that name at that time. With `x2` changed in the workspace,
+  `update(fit)` gave a log-likelihood of -3597.28 for a fit of
+  -3536.91, and with 10 rows deleted it had 1990 observations for the
+  fit's 2000. With the data removed, after `saveRDS()` and `readRDS()`
+  in a new session, or for a fit made inside a function, it stopped
+  with "object 'd' not found" (or `'form'`, `'fam'`). A global `form`
+  of the same name as the call's argument became the model without a
+  word. The data the fit holds are the model frame and the variables
+  the formula reads through a transform, on the rows the fit used,
+  after `na.action`. The fit's bases go with them, so `update(fit)`
+  with nothing changed gives the fit's log-likelihood, also when
+  `na.action` removed rows and the formula has `splines::ns()`,
+  `poly()` or `scale()`. Rows that `na.action` removed stay out of the
+  refit, and under `na.exclude` the refit pads its residuals to the
+  fit's rows. The new fit's call names everything as the stored call
+  did.
+
+* **A variable the fit does not hold is read only from data that are
+  still the fit's.** `update(fit, ~ . + z)` with a new `z` reads the
+  stored call's data, as `stats::update()` and `add1()` need, when
+  those data hold the fit's rows and values. Otherwise it is refused
+  with brms's words, "New variables found: 'z' Please supply your data
+  again via argument 'newdata'.", and a reason. It used to read every
+  variable again from the changed object.
+
+* **`drop1()`, and so `step()`, and `anova()` refuse a fit whose prior
+  adds a log density to the objective.** Its `logLik()` is the
+  log-likelihood plus the log prior (since MAP fits, 0.10.0), so the
+  difference of two is not a likelihood ratio: on one probe it was
+  -1.56, with p = 1. A prior that only sets bounds adds no density and
+  is not refused. The message points to a refit without the prior, or
+  to frmtmb.sample's `loo()` and `bayes_factor()`. brms has no
+  `drop1()` and compares models with those two.
+
+* **`drop1()` keeps the fit's bases.** A submodel keeps the knots of
+  `ns()`, the coefficients of `poly()` and the center and scale of
+  `scale()` that the fit computed from every row before `na.action`,
+  as `stats::drop1()` keeps the fit's design columns, and their
+  coefficient names. With three missing values in another variable,
+  the likelihood-ratio statistics now equal `stats::drop1()`'s on
+  `lm()` and `glm()`, and the AIC of a submodel equals that of
+  `update(fit, ~ . - x3)`.
+
+* **`influence()` keeps the fit's bases** in every deletion refit, as
+  lme4's `influence.merMod()` does. On `z ~ poly(x2, 2) + x + (1 | g)`
+  the deleted-group coefficients differed from lme4's by 1.3 times the
+  largest displacement, because each deletion computed the basis again
+  from its own rows (since 0.15.0); they now agree to 4.6e-6 of it.
+
+## Bug fixes
+
+* `drop1()` refits a term that reads a raw variable. `z ~ x + log(x2)`,
+  `scale(x)`, `I(x^2)`, `splines::ns(x2, 3)`, `poly(x, 2)` beside
+  another term, `x * log(x2)`, a transformed response, and
+  `drop1(scope = )` stopped with "The model uses `x2`, which is not a
+  column of `data`" (since 0.49.0), because the refits read the model
+  frame, which holds `log(x2)` and not `x2`. The likelihood-ratio
+  statistics and degrees of freedom equal those of `stats::drop1()` on
+  `lm()` and `glm()` and of lme4's `drop1()` on `lmer(REML = FALSE)`
+  (`dev/drop1raw-findings.md`). brms has no `drop1()`.
+
+* `drop1()` refits a model with an interval `cens(cc, y2)`. The upper
+  bound is not a column of the model frame, so every refit stopped
+  (since 0.49.0).
+
+* `drop1()` takes the family and the control from the fit. It
+  evaluated them again from the formula's environment, so
+  `family = fam` from a function's frame was "object 'fam' not found"
+  (since 0.49.0).
+
+* `step()` removes a term, on the fit's data. It passes its update to
+  `update(evaluate = FALSE)` as text, `"~ . - x3"`, which `update()`
+  did not read, so every step that removed a term stopped with "object
+  'change' not found" (since 0.21.0, when drop1() was added). The call
+  it evaluates now holds the fit's data and formula by value, so
+  `step()` gives the same model with the data object changed,
+  removed, or in a new session after `readRDS()`. Its path equals
+  `stats::step()`'s on `lm()` and `glm()`.
+
+* `influence()` reads the raw variables by default. Its default data,
+  the model frame, made every deletion refit of a model with a
+  transformed term fail (since 0.15.0).
+
+* `fitted(fit, re_formula = ~ (1 + log(x2) | g))`, the fit's own term,
+  was refused as matching no group-level term (since 0.61.0), and
+  `make_conditions(fit, "x2")` refused `x2` of `log(x2)` (since
+  0.65.0); both read the model frame.
+
+* A fit on a tibble with a transformed term no longer warns "Setting
+  row names on a tibble is deprecated", and a fit on a named list keeps
+  the raw variables a refit reads (both since 0.66.0).
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

@@ -94,7 +94,9 @@ re_term_cnms <- function(fit, term, cmc = TRUE) {
   }
   cmc_drop <- !cmc && attr(tt, "intercept") == 0L
   if (cmc_drop) attr(tt, "intercept") <- 1L
-  df <- fit$frame[["data_frame"]]
+  # a term such as `log(x2)` is evaluated again, from `x2`, which the
+  # model frame does not hold
+  df <- fit_refit_data(fit) %||% fit$frame[["data_frame"]]
   mf <- tryCatch(stats::model.frame(tt, df, na.action = stats::na.pass),
                  error = function(e) NULL)
   if (is.null(mf)) return(NULL)

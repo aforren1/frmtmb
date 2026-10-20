@@ -358,30 +358,28 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
     frm_stop("hmm_starts(): this fit carries no call to re-evaluate, so it ",
              "cannot be refit", call. = FALSE)
   }
+  # Each refit is update(): it reads the data the fit holds and takes
+  # the formula, family, control, data2 and prior by value, so a fit
+  # whose data are gone from the workspace, or that was saved and read
+  # back in a new session, still refits. It is evaluated from the
+  # caller's frame, so any other symbol the call names resolves as it
+  # would there.
   env <- new.env(parent = parent.frame())
-  # a `[[` READ of an absent name on a call is an error rather than
-  # NULL, which is why this asks names(cl) instead
-  if (length(fit[["data2"]]) && !("data2" %in% names(cl))) {
-    assign(".hmm_starts_data2", fit[["data2"]], envir = env)
-    cl[["data2"]] <- as.name(".hmm_starts_data2")
-  }
-  # Assemble the frame once before paying for any refit. The call names
-  # its data by SYMBOL, so a fit built somewhere the caller cannot see
-  # fails here, once and by name, instead of n times as n identical
-  # errors counted as n bad starts.
-  probe <- cl
-  probe[["dry_run"]] <- "frame"
-  # dropping an argument a call does not have is another out-of-bounds
-  # `[[`, not a no-op
-  if ("start" %in% names(probe)) probe[["start"]] <- NULL
+  assign(".hmm_starts_fit", fit, envir = env)
+  # Assemble the frame once before paying for any refit, so a call that
+  # cannot be evaluated fails here, once and by name, instead of n times
+  # as n identical errors counted as n bad starts. The fit's own start
+  # is not part of it: every refit replaces it
+  probe <- quote(stats::update(.hmm_starts_fit, dry_run = "frame",
+                               start = NULL))
   ok <- tryCatch({
     suppressMessages(suppressWarnings(eval(probe, env)))
     TRUE
   }, error = function(e) conditionMessage(e))
   if (!isTRUE(ok)) {
     frm_stop("hmm_starts(): the model's own call could not be re-evaluated ",
-             "from here, so there is nothing to refit. The data and any ",
-             "other symbol the call names must be visible from where ",
+             "from here, so there is nothing to refit. A symbol the call ",
+             "names other than the data must be visible from where ",
              "hmm_starts() is called. The call reported: ", ok, call. = FALSE)
   }
 
@@ -415,10 +413,9 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
   for (i in seq_len(n)) {
     v <- as.numeric(par) + stats::rnorm(length(par), 0, jitter * sc$s)
     st <- hmm_starts_relist(fit, v)
-    cli <- cl
     assign(".hmm_starts_start", st, envir = env)
-    cli[["start"]] <- as.name(".hmm_starts_start")
-    cli[["se"]] <- FALSE
+    cli <- quote(stats::update(.hmm_starts_fit, start = .hmm_starts_start,
+                               se = FALSE))
     t0 <- Sys.time()
     f <- tryCatch(suppressWarnings(suppressMessages(eval(cli, env))),
                   error = function(e) e)

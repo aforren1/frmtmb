@@ -2548,6 +2548,9 @@ prior_drop_unmatched <- function(prior, spec, frame) {
   attr(prior, "allow_invalid_prior") <- NULL
   strict <- attr(prior, "update_strict")
   attr(prior, "update_strict") <- NULL
+  # drop1() refits through the same door, and the message names it
+  who <- attr(prior, "drop_who") %||% "update()"
+  attr(prior, "drop_who") <- NULL
   if (!inherits(prior, "frmtmb_priorlist")) return(prior)
   design <- list(spec = spec, frame = frame)
   specs <- unclass(prior)
@@ -2559,15 +2562,22 @@ prior_drop_unmatched <- function(prior, spec, frame) {
   if (length(strict) == length(ok)) ok[strict] <- TRUE
   if (all(ok)) return(prior)
   lab <- vapply(specs[!ok], function(s) {
-    paste0(s[["prior"]] %||% prior_dist_string(s[["dist"]]), " on ",
-           prior_slot_label(s))
+    what <- s[["prior"]] %||% prior_dist_string(s[["dist"]])
+    # a specification with bounds and no density has an empty prior
+    if (!length(what) || !nzchar(what)) what <- "bounds"
+    paste0(what, " on ", prior_slot_label(s))
   }, "")
   one <- sum(!ok) == 1L
-  frm_message("update() drops ",
+  frm_message(who, " drops ",
               if (one) "the prior specification" else
                 paste(sum(!ok), "prior specifications"),
               " of the original fit that ", if (one) "matches" else "match",
-              " no parameter of the updated model, as brms drops ",
+              " no parameter of the ",
+              if (identical(who, "update()")) {
+                "updated model, as brms drops "
+              } else {
+                "refitted model, as update() drops "
+              },
               if (one) "it" else "them", ": ", paste(lab, collapse = "; "))
   if (!any(ok)) return(NULL)
   structure(specs[ok], class = class(prior))

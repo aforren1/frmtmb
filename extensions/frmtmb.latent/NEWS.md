@@ -1,3 +1,15 @@
+# frmtmb.latent (development version)
+
+* `hmm_starts()` refits with `update()`, which takes the data, the
+  formula, the family and the control from the fit. A fit whose data
+  object is gone from the workspace, that was saved and read back in a
+  new session, or that was made inside a function, now refits; since
+  `hmm_starts()` was added (0.55.2 of frmtmb) it stopped with "the
+  model's own call could not be re-evaluated from here". A symbol of
+  the call that `update()` does not take from the fit, such as
+  `na.action`, still has to be visible from where `hmm_starts()` is
+  called. This needs the frmtmb release with the new `update()`.
+
 # frmtmb.latent 0.6.1
 
 No change to the package's code. frmtmb 0.71.0 changes what a model of

@@ -43,6 +43,15 @@ df), so the reported p-value is conservative - up to a factor of two
 for a single component. lme4 and glmmTMB report the same naive
 p-value; halve it for the one-component case, or use
 \code{\link[=frm_bootstrap]{frm_bootstrap()}} for a simulation-based reference.
+
+A fit whose prior adds a log density to the objective (a MAP fit,
+\code{frm(prior = )}) is refused, and so is \code{drop1()} on one. Its
+\code{logLik()} is the log-likelihood plus the log prior, so a difference
+of two holds prior densities at two different estimates. It is not a
+likelihood ratio, and it can be negative. A prior that only sets
+bounds adds no density and is not refused. Refit without the prior
+for a likelihood-ratio test. To compare models under the prior, use
+\code{loo()} or \code{bayes_factor()} of frmtmb.sample.
 }
 \section{Nesting is assumed, not verified}{
 

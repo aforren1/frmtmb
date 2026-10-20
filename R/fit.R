@@ -851,6 +851,17 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                          names(sys.call()), formula)
   }
   cl <- match.call()
+  # A refit from update() or drop1() passes the fit's data by value,
+  # with what the refit must keep from the fit in an attribute: the
+  # call to record, which names the data as the original call did, and
+  # the frozen bases and NA rows of the fit (refit_channel()). It is
+  # read only for the formula, family and rows it was made for, and
+  # dropped otherwise: an edited call or reused data is another model
+  refit <- if (!missing(data)) refit_channel_for(data, formula, family)
+  if (!missing(data) && !is.null(attr(data, "frmtmb_refit"))) {
+    attr(data, "frmtmb_refit") <- NULL
+  }
+  if (!is.null(refit[["call"]])) cl <- refit[["call"]]
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
   prior <- as_priorlist(prior)
@@ -919,7 +930,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # a family whose parameter vocabulary is a property of the data
   # (categorical()'s one predictor per observed category) becomes
   # concrete here, before the grammar that names those dpars is parsed
+  written <- bform
   bform <- resolve_deferred_families(bform, data)
+  # update(newdata = ) resolves the family again from the new data
+  if (!identical(written, bform)) attr(bform, "frmtmb_written") <- written
 
   if (vb) t0 <- vb_now()
   spec <- parse_spec(bform)
@@ -930,13 +944,15 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   frame <- assemble_frame(spec, data, na.action = na.action,
                           sparse_x = isTRUE(control$sparse_x),
                           data2 = data2,
-                          drop_unused_levels = drop_unused_levels)
+                          drop_unused_levels = drop_unused_levels,
+                          predvar_map = refit[["predvar_map"]],
+                          refit_na_action = refit[["na_action"]])
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
   # brms's `data_name` attribute: the data as the call spelled it, which
   # update(newdata = ) re-records. A value passed by do.call() has no
   # spelling, and deparsing a whole data frame to get one would cost
   # time in proportion to its rows, so it records nothing
-  dn <- substitute(data)
+  dn <- if (!is.null(refit[["call"]])) cl[["data"]] else substitute(data)
   if ((is.name(dn) || is.call(dn)) && !is.null(frame[["data_frame"]])) {
     attr(frame[["data_frame"]], "data_name") <- substr(deparse1(dn), 1L, 50L)
   }
