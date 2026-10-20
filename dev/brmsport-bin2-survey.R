@@ -71,10 +71,12 @@ groups <- data.frame(stringsAsFactors = FALSE, rbind(
         "brms's own test environment"),
       paste0(
         "the ordinal densities: each ordinal family object's ",
-        "exported ord_lpdf_make(identity), a thin read (ported). ",
-        "The link maps on arrays and the categorical functions: ",
-        "none, frmtmb exports no map between linear predictors ",
-        "and category probabilities"),
+        "exported ord_lpdf_make(identity), a thin read (ported); ",
+        "the inverse links on arrays, the same read (fix 2b); the ",
+        "categorical probability maps, the categorical family's ",
+        "row density (lane bin2port). The link maps from ",
+        "probabilities to predictors: none, frmtmb exports no map ",
+        "from category probabilities to linear predictors"),
       paste0(
         "low for the two density blocks; high for the link maps ",
         "(the array convention, draws x observations x ",
@@ -93,9 +95,10 @@ groups <- data.frame(stringsAsFactors = FALSE, rbind(
         "aterms), documented in ?frmtmb_family: a thin adapter ",
         "evaluates it per draw at observation i; an ordinal ",
         "family's ord_lpdf_make(identity) takes brms's ",
-        "thresholds. Autocorrelation (ARMA, SAR, FCOR), ",
-        "multivariate, categorical and custom-family preps have ",
-        "no such read"),
+        "thresholds; a categorical-like family takes brms's ",
+        "per-category mu1, mu2, ... by position (lane bin2port). ",
+        "Autocorrelation (ARMA, SAR, FCOR), multivariate and ",
+        "custom-family preps have no such read"),
       paste0(
         "low for the univariate families (one adapter, a dpar ",
         "name map and brms's reference densities bound as data); ",
@@ -162,6 +165,65 @@ groups <- data.frame(stringsAsFactors = FALSE, rbind(
 names(groups) <- c("group", "reads", "frmtmb_counterpart", "cost",
                    "class", "reason")
 
+# Lane bin2port: the G3 and G4 blocks left to the survey, each with the
+# class and reason a run of frmtmb 0.71.0 gives it rather than the
+# group's "frmtmb has each of these models" (dev/bin2port-probe4.R, log
+# dev/bin2port-out/probe4.txt). frmtmb has no sar() and no fcor(), so
+# those rows are gaps. frmtmb fits arma(cov = TRUE), and log_lik() of
+# its draws refuses it, so brms's leave-one-out conditional density of
+# each observation is a gap too: the quantity is well defined, brms
+# computes it, and no scope document puts it outside frmtmb (review
+# 2026-10-14, finding 1). The multivariate, ARMA posterior_predict and
+# custom-family rows remain transferable, at the cost named.
+bp_absent <- function(term) c("absent", paste0(
+  "gap: frmtmb has no ", term, " term; frm() refuses it ('", term,
+  "() is a brms autocorrelation term that frmtmb does not support'; ",
+  "the supported residual correlation terms are ar(), ma(), arma(), ",
+  "cosy(), unstr() and car())"))
+bp_fit_bound <- function(what) c("not-ported", paste0(
+  "not ported (cost): frmtmb ", what, ", but its density and its ",
+  "simulator of the structure read a fit (the correlation parameters ",
+  "from fit$estimates, the structure from fit$frame) and no exported ",
+  "function takes brms's per-draw matrices, so a port must construct ",
+  "a fit per draw or call internals: not a thin read"))
+bp_custom <- c("not-ported", paste0(
+  "not ported (cost): brms's custom family dispatches to a user's ",
+  "prep-level function, log_lik_<name>(i, prep) or ",
+  "posterior_predict_<name>(i, prep), found by name; frmtmb's ",
+  "custom_family() is frmtmb_family(), which takes lpdf(y, dpars, ",
+  "aterms) and sim(dpars, aterms, n) at construction. A port must ",
+  "restate the user's function in that signature, a 2T-style ",
+  "restatement rather than a thin read"))
+bin2port_g34 <- list(
+  "log_lik for multivariate linear models runs without errors" =
+    bp_fit_bound(paste(
+      "fits gaussian and student responses with set_rescor(TRUE), and",
+      "log_lik() of its draws answers per row (rescor_row_loglik())")),
+  "log_lik for ARMA models runs without errors" = c("absent",
+    paste0(
+      "gap: frmtmb fits arma(cov = TRUE), and log_lik() of its draws ",
+      "refuses it ('needs a likelihood that factors into one term per ",
+      "observation ... a column of the matrix would be a GROUP'), ",
+      "pointing to the cov = FALSE form, which it supports; brms's row ",
+      "is the leave-one-out conditional density of one observation ",
+      "given the rest of its group, which frmtmb does not compute")),
+  "log_lik for SAR models runs without errors" = bp_absent("sar"),
+  "log_lik for FCOR models runs without errors" = bp_absent("fcor"),
+  "log_lik for FCOR student-t models works as expected" = bp_absent("fcor"),
+  "log_lik_custom runs without errors" = bp_custom,
+  "posterior_predict for multivariate linear models runs without errors" =
+    bp_fit_bound(paste(
+      "simulates gaussian and student responses with set_rescor(TRUE)")),
+  "posterior_predict for ARMA covariance models runs without errors" =
+    bp_fit_bound(paste(
+      "simulates arma(cov = TRUE) models (sim_autocor_rows(), with the",
+      "group patterns of the fitted frame and the correlation from",
+      "thetaac); brms's matrices are the covariance at unit innovation",
+      "variance and its prep adds se")),
+  "loglik for SAR models runs without errors" = bp_absent("sar"),
+  "posterior_predict for FCOR models runs without errors" = bp_absent("fcor"),
+  "posterior_predict_custom runs without errors" = bp_custom)
+
 rows <- list()
 for (b in blocks) {
   g <- group_of(b)
@@ -195,12 +257,16 @@ for (b in blocks) {
                "inv_link_categorical() works correctly for arrays")) {
       # fix 2b: the categorical probability map, which frmtmb's
       # categorical family has; the same class as the categorical
-      # log_lik and posterior_predict rows
+      # log_lik and posterior_predict rows. Lane bin2port ported both
+      # blocks (brms_g2_cat_shims), so the ledger reads this class only
+      # if they leave dev/brmsport-bin2-adapters-spec.R
       c("not-ported", paste0(
         "not ported (cost): brms's categorical probability map, which ",
         "frmtmb's categorical family computes; the existing adapter ",
         "refuses brms's mu1/mu2 layout, as for the categorical log_lik ",
         "and posterior_predict rows"))
+    } else if (!is.null(bin2port_g34[[b$label]])) {
+      bin2port_g34[[b$label]]
     } else {
       c("", "")
     }

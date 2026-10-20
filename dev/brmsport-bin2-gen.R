@@ -73,6 +73,24 @@ verdict_for <- function(id, pkg) {
   stopifnot(nrow(v) == 1L)
   list(verdict = v$verdict, reason = v$reason)
 }
+# the value checks' recorded outcomes (dev/brmsport-bin2-ledger.R); a
+# check with none is generated with "", which only a recording run allows
+vcf <- "dev/brmsport-bin2-valuechecks.tsv"
+vchecks <- if (file.exists(vcf)) {
+  utils::read.delim(vcf, stringsAsFactors = FALSE, quote = "",
+                    colClasses = "character")
+} else {
+  data.frame(id = character(), outcome = character())
+}
+value_expected <- function(id) {
+  o <- vchecks$outcome[vchecks$id == id]
+  if (length(o) == 1L) o else ""
+}
+# the message text a manual value verdict was written for, "" for none
+value_msg_has <- function(id) {
+  o <- vchecks$msg_has[vchecks$id == id]
+  if (length(o) == 1L && !is.na(o)) o else ""
+}
 
 q <- function(x) encodeString(x, quote = "\"")
 emit_reason <- function(reason, indent) {
@@ -109,6 +127,7 @@ blocks <- c(brms_bin_blocks("2T"), Filter(function(b) {
 out <- list()
 ids_by_pkg <- character()
 adapted_ids <- character()
+value_ids <- character()
 for (b in blocks) {
   cfg <- files[[b$file]]
   stopifnot(!is.null(cfg))
@@ -128,6 +147,14 @@ for (b in blocks) {
       # setup lines count too: an adapter mostly rewrites those
       if (adapted) adapted_ids <- c(adapted_ids, id)
       k <- n_expect(s)
+      # a value check after the next statement needs the random number
+      # state this line starts from (dev/brmsport-bin2-adapters.R)
+      vnext <- if (j < length(b$stmts)) bin2_value_check_ok(b, j + 1L)
+      vhere <- bin2_value_check_ok(b, j)
+      if ((!is.null(vnext) && is.null(vnext$inline)) ||
+          !is.null(vhere$inline)) {
+        body <- c(body, "  brms_value_mark()")
+      }
       if (k == 0L) {
         if (is.call(s) && as.character(s[[1]])[1] %in%
             c("skip_on_cran", "skip_if_not_installed", "context")) {
@@ -167,6 +194,26 @@ for (b in blocks) {
       body <- c(body, sprintf("  brms_port(%s, %s,", q(id), q(v$verdict)),
                 emit_reason(v$reason, "    "),
                 code_lines(text, expr, "    ", b$cols[j]), "  )")
+      if (!is.null(vhere)) {
+        # the line before (or the call inside the assertion), as brms
+        # wrote it, against brms's own function
+        value_ids <- c(value_ids, id)
+        head <- sprintf("  brms_value_check(%s, %s, %s, {", q(id),
+                        q(vhere$var), q(value_expected(id)))
+        mh <- value_msg_has(id)
+        tail <- if (nzchar(mh)) sprintf("  }, msg_has = %s)", q(mh)) else
+          "  })"
+        if (is.null(vhere$inline)) {
+          body <- c(body, head,
+                    code_lines(b$texts[j - 1L], b$stmts[[j - 1L]], "    ",
+                               b$cols[j - 1L]),
+                    tail)
+        } else {
+          ref <- paste(".value <-", deparse1(vhere$inline))
+          body <- c(body, head, paste0("    ", ref), "  }, adapted = {",
+                    paste0("    ", apply_subst(ref, cfg$subst)), tail)
+        }
+      }
     }
     body <- c(body, "})", "")
     out[[key]] <- c(out[[key]], body)
@@ -212,5 +259,6 @@ writeLines(sort(unique(adapted_ids)), file.path(out_root, "adapted-ids.txt"))
 ids <- unique(sub("^[^ ]+ ", "", ids_by_pkg))
 cat("wrote", length(written), "files;", length(ids), "assertion ids;",
     sum(!ids %in% verdicts$id), "without a verdict;",
-    length(unique(adapted_ids)), "adapted\n")
+    length(unique(adapted_ids)), "adapted;", length(unique(value_ids)),
+    "value checks\n")
 cat(written, sep = "\n")

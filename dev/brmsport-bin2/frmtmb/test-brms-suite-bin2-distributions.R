@@ -29,10 +29,18 @@ dhurdle_poisson <- brms_g1_shims[["dhurdle_poisson"]]
 dhurdle_negbinomial <- brms_g1_shims[["dhurdle_negbinomial"]]
 dhurdle_gamma <- brms_g1_shims[["dhurdle_gamma"]]
 dhurdle_lognormal <- brms_g1_shims[["dhurdle_lognormal"]]
+dfrechet <- brms_g1_shims[["dfrechet"]]
+pfrechet <- brms_g1_shims[["pfrechet"]]
+rfrechet <- brms_g1_shims[["rfrechet"]]
+dgen_extreme_value <- brms_g1_shims[["dgen_extreme_value"]]
+pgen_extreme_value <- brms_g1_shims[["pgen_extreme_value"]]
+rgen_extreme_value <- brms_g1_shims[["rgen_extreme_value"]]
 inv_link_cumulative <- brms_g2_shims[["cumulative"]]
 inv_link_sratio <- brms_g2_shims[["sratio"]]
 inv_link_cratio <- brms_g2_shims[["cratio"]]
 inv_link_acat <- brms_g2_shims[["acat"]]
+dcategorical <- brms_g2_cat_shims[["dcategorical"]]
+inv_link_categorical <- brms_g2_cat_shims[["inv_link_categorical"]]
 SW <- suppressWarnings
 
 test_that("student distribution works correctly", {
@@ -78,6 +86,7 @@ test_that("von_mises distribution functions run without errors", {
   brms_setup("distributions:48",
     n <- 10
   )
+  brms_value_mark()
   brms_setup("distributions:49",
     res <- dvon_mises(runif(n, -pi, pi), mu = 1, kappa = 1:n)
   )
@@ -85,6 +94,9 @@ test_that("von_mises distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:50", "res", "holds", {
+    res <- dvon_mises(runif(n, -pi, pi), mu = 1, kappa = 1:n)
+  })
   brms_setup("distributions:51",
     res <- pvon_mises(runif(n, -pi, pi), mu = rnorm(n), kappa = 0:(n-1))
   )
@@ -113,6 +125,7 @@ test_that("skew_normal distribution functions run without errors", {
   brms_setup("distributions:59",
     x <- rnorm(n, 10, 3)
   )
+  brms_value_mark()
   brms_setup("distributions:60",
     res <- dskew_normal(x, mu = 1, sigma = 2, alpha = 1)
   )
@@ -120,6 +133,9 @@ test_that("skew_normal distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:61", "res", "holds", {
+    res <- dskew_normal(x, mu = 1, sigma = 2, alpha = 1)
+  })
   brms_setup("distributions:62",
     res <- pskew_normal(x, mu = rnorm(n), sigma = 1:n,
                         alpha = 3, log.p = TRUE)
@@ -178,6 +194,7 @@ test_that("exgaussian distribution functions run without errors", {
   brms_setup("distributions:78",
     x <- rnorm(n, 10, 3)
   )
+  brms_value_mark()
   brms_setup("distributions:79",
     res <- dexgaussian(x, mu = 1, sigma = 2, beta = 1)
   )
@@ -185,6 +202,9 @@ test_that("exgaussian distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:80", "res", "holds", {
+    res <- dexgaussian(x, mu = 1, sigma = 2, beta = 1)
+  })
   brms_setup("distributions:81",
     res <- pexgaussian(x, mu = rnorm(n), sigma = 1:n,
                        beta = 3, log.p = TRUE)
@@ -214,43 +234,51 @@ test_that("frechet distribution functions run without errors", {
   brms_setup("distributions:90",
     x <- 21:30
   )
+  brms_value_mark()
   brms_setup("distributions:91",
     res <- dfrechet(x, loc = 1, scale = 2, shape = 1, log = TRUE)
   )
-  brms_port("distributions:92", "cannot transfer",
+  brms_port("distributions:92", "divergence",
     paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+      "brms's dfrechet() takes the Frechet scale and the row ",
+      "passes shape = 1; frmtmb's frechet(), like brms's frechet ",
+      "family, takes the mean mu = scale * gamma(1 - 1 / nu), ",
+      "which is infinite at shape <= 1, so there is no frmtmb ",
+      "parameter for it. The shim refuses the call ",
+      "(brms_g1_frechet_dp()) rather than hand the density mu = ",
+      "Inf, on which brms's length-only assertion would hold over ",
+      "NaN values. At shape 3 the same shims agree with brms's ",
+      "pfrechet() to 1.1e-16 (distributions:95 and its value ",
+      "check)"),
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:92", "res", "error", {
+    res <- dfrechet(x, loc = 1, scale = 2, shape = 1, log = TRUE)
+  })
   brms_setup("distributions:93",
     loc <- 1:10
   )
+  brms_value_mark()
   brms_setup("distributions:94",
     res <- pfrechet(x, loc = loc, scale = 1:n, shape = 3)
   )
-  brms_port("distributions:95", "cannot transfer",
-    paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+  brms_port("distributions:95", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:95", "res", "holds", {
+    res <- pfrechet(x, loc = loc, scale = 1:n, shape = 3)
+  })
   brms_setup("distributions:96",
     q <- qfrechet(res, loc = loc, scale = 1:n, shape = 3)
   )
   brms_port("distributions:97", "cannot transfer",
     paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+      "decision: brms's qfrechet(); no frmtmb family object ",
+      "carries a quantile function, and SPEC.md:153-154 puts ",
+      "numeric d/p/q/r functions for post-processing outside ",
+      "frmtmb, in gamlss.dist or extraDistr (as distributions:8, ",
+      ":68 and :71)"),
     expect_equal(x, q)
   )
   brms_setup("distributions:98",
@@ -261,23 +289,28 @@ test_that("frechet distribution functions run without errors", {
   )
   brms_port("distributions:100", "cannot transfer",
     paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+      "decision: brms's qfrechet(); no frmtmb family object ",
+      "carries a quantile function, and SPEC.md:153-154 puts ",
+      "numeric d/p/q/r functions for post-processing outside ",
+      "frmtmb, in gamlss.dist or extraDistr (as distributions:8, ",
+      ":68 and :71)"),
     expect_equal(res, c(NA, 0, Inf, NA))
   )
   brms_setup("distributions:101",
     res <- rfrechet(n, loc = loc, scale = 10, shape = 1:10)
   )
-  brms_port("distributions:102", "cannot transfer",
+  brms_port("distributions:102", "divergence",
     paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+      "brms's rfrechet() takes the Frechet scale and the row ",
+      "passes shape = 1:10; frmtmb's frechet(), like brms's ",
+      "frechet family, takes the mean mu = scale * gamma(1 - 1 / ",
+      "nu), which is infinite at shape <= 1, so there is no frmtmb ",
+      "parameter for it. The shim refuses the call ",
+      "(brms_g1_frechet_dp()) rather than hand the density mu = ",
+      "Inf, on which brms's length-only assertion would hold over ",
+      "NaN values. At shape 3 the same shims agree with brms's ",
+      "pfrechet() to 1.1e-16 (distributions:95 and its value ",
+      "check)"),
     expect_true(length(res) == n)
   )
 })
@@ -290,6 +323,7 @@ test_that("inv_gaussian distribution functions run without errors", {
   brms_setup("distributions:107",
     x <- rgamma(n, 10, 3)
   )
+  brms_value_mark()
   brms_setup("distributions:108",
     res <- dinv_gaussian(x, mu = 1, shape = 1)
   )
@@ -297,6 +331,10 @@ test_that("inv_gaussian distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:109", "res", "holds", {
+    res <- dinv_gaussian(x, mu = 1, shape = 1)
+  })
+  brms_value_mark()
   brms_setup("distributions:110",
     res <- pinv_gaussian(x, mu = abs(rnorm(n)), shape = 3)
   )
@@ -304,6 +342,9 @@ test_that("inv_gaussian distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:111", "res", "holds", {
+    res <- pinv_gaussian(x, mu = abs(rnorm(n)), shape = 3)
+  })
   brms_setup("distributions:112",
     res <- rinv_gaussian(n, mu = abs(rnorm(n)), shape = 1:10)
   )
@@ -322,6 +363,7 @@ test_that("beta_binomial distribution functions run without errors", {
   brms_setup("distributions:120",
     x <- rpois(n, lambda = 1)
   )
+  brms_value_mark()
   brms_setup("distributions:122",
     res <- dbeta_binomial(x, c(2, 10), mu = 0.4, phi = 1)
   )
@@ -329,6 +371,9 @@ test_that("beta_binomial distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:123", "res", "error", {
+    res <- dbeta_binomial(x, c(2, 10), mu = 0.4, phi = 1)
+  }, msg_has = "Please install the 'extraDistr' package")
   brms_setup("distributions:124",
     res <- pbeta_binomial(x, c(2, 10), mu = 0.4, phi = 1)
   )
@@ -357,55 +402,48 @@ test_that("gen_extreme_value distribution functions run without errors", {
   brms_setup("distributions:132",
     x <- rgamma(n, 10, 3)
   )
+  brms_value_mark()
   brms_setup("distributions:133",
     res <- dgen_extreme_value(x, mu = 1, sigma = 2, xi = 1)
   )
-  brms_port("distributions:134", "cannot transfer",
-    paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+  brms_port("distributions:134", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:134", "res", "holds", {
+    res <- dgen_extreme_value(x, mu = 1, sigma = 2, xi = 1)
+  })
   brms_setup("distributions:135",
     mu <- rnorm(n)
   )
+  brms_value_mark()
   brms_setup("distributions:136",
     res <- pgen_extreme_value(x, mu = mu, sigma = 1:n, xi = 3)
   )
-  brms_port("distributions:137", "cannot transfer",
-    paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+  brms_port("distributions:137", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:137", "res", "holds", {
+    res <- pgen_extreme_value(x, mu = mu, sigma = 1:n, xi = 3)
+  })
   brms_setup("distributions:138",
     q <- qgen_extreme_value(res, mu = mu, sigma = 1:n, xi = 3)
   )
   brms_port("distributions:139", "cannot transfer",
     paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+      "decision: brms's qgen_extreme_value(); no frmtmb family ",
+      "object carries a quantile function, and SPEC.md:153-154 ",
+      "puts numeric d/p/q/r functions for post-processing outside ",
+      "frmtmb, in gamlss.dist or extraDistr (as distributions:8, ",
+      ":68 and :71)"),
     expect_equal(x, q)
   )
   brms_setup("distributions:140",
     res <- rgen_extreme_value(n, mu = mu, sigma = 10, xi = 1:10)
   )
-  brms_port("distributions:141", "cannot transfer",
-    paste0(
-      "frechet and gen_extreme_value are frmtmb families since ",
-      "0.71.0 (lane famuni), but brms's d/p/r functions of them ",
-      "are not shimmed (brms_g1_shims covers the families it was ",
-      "built for), so the row stops at 'could not find function': ",
-      "transferable at a cost"),
+  brms_port("distributions:141", "pass",
+    "",
     expect_true(length(res) == n)
   )
 })
@@ -418,6 +456,7 @@ test_that("asym_laplace distribution functions run without errors", {
   brms_setup("distributions:146",
     x <- rnorm(n, 10, 3)
   )
+  brms_value_mark()
   brms_setup("distributions:147",
     res <- dasym_laplace(x, mu = 1, sigma = 2, quantile = 0.5)
   )
@@ -425,6 +464,9 @@ test_that("asym_laplace distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:148", "res", "holds", {
+    res <- dasym_laplace(x, mu = 1, sigma = 2, quantile = 0.5)
+  })
   brms_setup("distributions:149",
     res <- pasym_laplace(x, mu = rnorm(n), sigma = 1:n, quantile = 0.3)
   )
@@ -455,6 +497,7 @@ test_that("zero-inflated distribution functions run without errors", {
   brms_setup("distributions:159",
     x <- rpois(n, lambda = 1)
   )
+  brms_value_mark()
   brms_setup("distributions:161",
     res <- dzero_inflated_poisson(x, lambda = 1, zi = 0.1)
   )
@@ -462,6 +505,9 @@ test_that("zero-inflated distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:162", "res", "holds", {
+    res <- dzero_inflated_poisson(x, lambda = 1, zi = 0.1)
+  })
   brms_setup("distributions:163",
     res <- pzero_inflated_poisson(x, lambda = 1, zi = 0.1)
   )
@@ -473,6 +519,7 @@ test_that("zero-inflated distribution functions run without errors", {
       "shimmed and its row holds (distributions:111)"),
     expect_true(length(res) == n)
   )
+  brms_value_mark()
   brms_setup("distributions:166",
     res <- dzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
   )
@@ -480,6 +527,9 @@ test_that("zero-inflated distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:167", "res", "holds", {
+    res <- dzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
+  })
   brms_setup("distributions:168",
     res <- pzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
   )
@@ -491,6 +541,7 @@ test_that("zero-inflated distribution functions run without errors", {
       "shimmed and its row holds (distributions:111)"),
     expect_true(length(res) == n)
   )
+  brms_value_mark()
   brms_setup("distributions:171",
     res <- dzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
   )
@@ -498,6 +549,9 @@ test_that("zero-inflated distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:172", "res", "holds", {
+    res <- dzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
+  })
   brms_setup("distributions:173",
     res <- pzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
   )
@@ -509,6 +563,7 @@ test_that("zero-inflated distribution functions run without errors", {
       "shimmed and its row holds (distributions:111)"),
     expect_true(length(res) == n)
   )
+  brms_value_mark()
   brms_setup("distributions:176",
     res <- dzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
         zi = 0.1)
@@ -517,6 +572,10 @@ test_that("zero-inflated distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:177", "res", "error", {
+    res <- dzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
+        zi = 0.1)
+  }, msg_has = "Please install the 'extraDistr' package")
   brms_setup("distributions:178",
     res <- pzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
         zi = 0.1)
@@ -532,6 +591,7 @@ test_that("zero-inflated distribution functions run without errors", {
   brms_setup("distributions:181",
     x <- c(rbeta(n - 2, shape1 = 2, shape2 = 3), 0, 0)
   )
+  brms_value_mark()
   brms_setup("distributions:182",
     res <- dzero_inflated_beta(x, shape1 = 2, shape2 = 3, zi = 0.1)
   )
@@ -539,6 +599,9 @@ test_that("zero-inflated distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:183", "res", "holds", {
+    res <- dzero_inflated_beta(x, shape1 = 2, shape2 = 3, zi = 0.1)
+  })
   brms_setup("distributions:184",
     res <- pzero_inflated_beta(x, shape1 = 2, shape2 = 3, zi = 0.1)
   )
@@ -560,6 +623,7 @@ test_that("hurdle distribution functions run without errors", {
   brms_setup("distributions:190",
     x <- rpois(n, lambda = 1)
   )
+  brms_value_mark()
   brms_setup("distributions:192",
     res <- dhurdle_poisson(x, lambda = 1, hu = 0.1)
   )
@@ -567,6 +631,9 @@ test_that("hurdle distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:193", "res", "holds", {
+    res <- dhurdle_poisson(x, lambda = 1, hu = 0.1)
+  })
   brms_setup("distributions:194",
     res <- phurdle_poisson(x, lambda = 1, hu = 0.1)
   )
@@ -578,6 +645,7 @@ test_that("hurdle distribution functions run without errors", {
       "shimmed and its row holds (distributions:111)"),
     expect_true(length(res) == n)
   )
+  brms_value_mark()
   brms_setup("distributions:197",
     res <- dhurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
   )
@@ -585,6 +653,9 @@ test_that("hurdle distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:198", "res", "holds", {
+    res <- dhurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
+  })
   brms_setup("distributions:199",
     res <- phurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
   )
@@ -596,6 +667,7 @@ test_that("hurdle distribution functions run without errors", {
       "shimmed and its row holds (distributions:111)"),
     expect_true(length(res) == n)
   )
+  brms_value_mark()
   brms_setup("distributions:202",
     res <- dhurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
   )
@@ -603,6 +675,9 @@ test_that("hurdle distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:203", "res", "holds", {
+    res <- dhurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
+  })
   brms_setup("distributions:204",
     res <- phurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
   )
@@ -614,6 +689,7 @@ test_that("hurdle distribution functions run without errors", {
       "shimmed and its row holds (distributions:111)"),
     expect_true(length(res) == n)
   )
+  brms_value_mark()
   brms_setup("distributions:207",
     res <- dhurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
   )
@@ -621,6 +697,9 @@ test_that("hurdle distribution functions run without errors", {
     "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:208", "res", "holds", {
+    res <- dhurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
+  })
   brms_setup("distributions:209",
     res <- phurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
   )
@@ -818,6 +897,61 @@ test_that("inv_link_sratio() and inv_link_cratio() applied to arrays give the sa
               expect_false(isTRUE(all.equal(il_sratio, il_cratio)))
             }
           }
+        }
+      }
+    }
+  )
+})
+
+test_that("dcategorical() works correctly", {
+  withr::local_seed(524L)
+  brms_setup("distributions:525",
+    source(identity(file.path(brms_adapt_suite_dir, "helpers", "inv_link_categorical_ch.R")))
+  )
+  brms_setup("distributions:526",
+    source(identity(file.path(brms_adapt_suite_dir, "helpers", "simopts_catlike_oneobs.R")))
+  )
+  brms_port("distributions:527", "pass",
+    "",
+    for (ndraws in ndraws_vec) {
+      for (ncat in ncat_vec) {
+        eta_test_list <- list(cbind(
+          0, matrix(rnorm(ndraws * (ncat - 1)), nrow = ndraws)
+        ))
+        if (ndraws == 1) {
+          eta_test_list <- c(eta_test_list, list(c(0, rnorm(ncat - 1))))
+        }
+        for (eta_test in eta_test_list) {
+          d_categorical <- dcategorical(seq_len(ncat), eta_test)
+          d_categorical_ch <- inv_link_categorical_ch(eta_test,
+                                                      refcat_ins = FALSE)
+          expect_equivalent(d_categorical, d_categorical_ch)
+          expect_equal(dim(d_categorical), c(ndraws, ncat))
+        }
+      }
+    }
+  )
+})
+
+test_that("inv_link_categorical() works correctly for arrays", {
+  withr::local_seed(546L)
+  brms_setup("distributions:547",
+    source(identity(file.path(brms_adapt_suite_dir, "helpers", "inv_link_categorical_ch.R")))
+  )
+  brms_setup("distributions:548",
+    source(identity(file.path(brms_adapt_suite_dir, "helpers", "simopts_catlike.R")))
+  )
+  brms_port("distributions:549", "pass",
+    "",
+    for (ndraws in ndraws_vec) {
+      for (nobsv in nobsv_vec) {
+        for (ncat in ncat_vec) {
+          x_test <- array(rnorm(ndraws * nobsv * (ncat - 1)),
+                          dim = c(ndraws, nobsv, ncat - 1))
+          il_categorical <- inv_link_categorical(x_test)
+          il_categorical_ch <- inv_link_categorical_ch(x_test)
+          expect_equivalent(il_categorical, il_categorical_ch)
+          expect_equal(dim(il_categorical), c(ndraws, nobsv, ncat))
         }
       }
     }

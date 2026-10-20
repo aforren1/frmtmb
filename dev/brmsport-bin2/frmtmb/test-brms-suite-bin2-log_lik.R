@@ -179,6 +179,7 @@ test_that("log_lik of aysm_laplace models runs without errors", {
   brms_setup("log_lik:83",
     prep$data <- list(Y = rasym_laplace(ns))
   )
+  brms_value_mark()
   brms_setup("log_lik:84",
     ll <- brms_adapt_log_lik("asym_laplace", 1, prep = prep)
   )
@@ -186,6 +187,10 @@ test_that("log_lik of aysm_laplace models runs without errors", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:85", "ll", "holds", {
+    ll <- brms:::log_lik_asym_laplace(1, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:87",
     ll <- brms_adapt_log_lik("zero_inflated_asym_laplace", 1, prep = prep)
   )
@@ -193,6 +198,9 @@ test_that("log_lik of aysm_laplace models runs without errors", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:88", "ll", "holds", {
+    ll <- brms:::log_lik_zero_inflated_asym_laplace(1, prep = prep)
+  })
 })
 
 test_that("log_lik for count and survival models works correctly", {
@@ -269,6 +277,7 @@ test_that("log_lik for count and survival models works correctly", {
       "section 2). Installing extraDistr makes this row run"),
     expect_equal(ll, ll_beta_binom)
   )
+  brms_value_mark()
   brms_setup("log_lik:270",
     ll <- brms_adapt_log_lik("discrete_weibull", i, prep = prep)
   )
@@ -276,6 +285,9 @@ test_that("log_lik for count and survival models works correctly", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:271", "ll", "differs", {
+    ll <- brms:::log_lik_discrete_weibull(i, prep = prep)
+  }, msg_has = "DIFFERS: 25 values (0 NA, 17 infinite)")
   brms_setup("log_lik:273",
     prep$dpars$mu <- exp(prep$dpars$eta)
   )
@@ -524,6 +536,7 @@ test_that("log_lik for circular models runs without errors", {
   brms_setup("log_lik:387",
     i <- sample(seq_len(nobs), 1)
   )
+  brms_value_mark()
   brms_setup("log_lik:388",
     ll <- brms_adapt_log_lik("von_mises", i, prep = prep)
   )
@@ -531,9 +544,13 @@ test_that("log_lik for circular models runs without errors", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:389", "ll", "holds", {
+    ll <- brms:::log_lik_von_mises(i, prep = prep)
+  })
   brms_setup("log_lik:390",
     prep$data$cens <- sample(-1:1, nobs, TRUE)
   )
+  brms_value_mark()
   brms_setup("log_lik:391",
     ll <- brms_adapt_log_lik("von_mises", i, prep = prep)
   )
@@ -548,6 +565,9 @@ test_that("log_lik for circular models runs without errors", {
       "matches brms::dvon_mises() to 8.9e-16"),
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:392", "ll", "error", {
+    ll <- brms:::log_lik_von_mises(i, prep = prep)
+  })
 })
 
 test_that("log_lik for zero-inflated and hurdle models runs without erros", {
@@ -586,6 +606,7 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
   brms_setup("log_lik:412",
     prep$dpars$mu <- exp(prep$dpars$eta)
   )
+  brms_value_mark()
   brms_setup("log_lik:413",
     ll <- brms_adapt_log_lik("hurdle_poisson", 1, prep = prep)
   )
@@ -593,6 +614,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:414", "ll", "holds", {
+    ll <- brms:::log_lik_hurdle_poisson(1, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:416",
     ll <- brms_adapt_log_lik("hurdle_negbinomial", 5, prep = prep)
   )
@@ -600,6 +625,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:417", "ll", "holds", {
+    ll <- brms:::log_lik_hurdle_negbinomial(5, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:419",
     ll <- brms_adapt_log_lik("hurdle_gamma", 2, prep = prep)
   )
@@ -607,6 +636,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:420", "ll", "holds", {
+    ll <- brms:::log_lik_hurdle_gamma(2, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:422",
     ll <- brms_adapt_log_lik("hurdle_gamma", 8, prep = prep)
   )
@@ -614,6 +647,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:423", "ll", "holds", {
+    ll <- brms:::log_lik_hurdle_gamma(8, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:425",
     ll <- brms_adapt_log_lik("zero_inflated_poisson", 3, prep = prep)
   )
@@ -621,6 +658,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:426", "ll", "holds", {
+    ll <- brms:::log_lik_zero_inflated_poisson(3, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:428",
     ll <- brms_adapt_log_lik("zero_inflated_negbinomial", 6, prep = prep)
   )
@@ -628,9 +669,13 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:429", "ll", "holds", {
+    ll <- brms:::log_lik_zero_inflated_negbinomial(6, prep = prep)
+  })
   brms_setup("log_lik:431",
     prep$dpars$mu <- inv_logit(prep$dpars$eta)
   )
+  brms_value_mark()
   brms_setup("log_lik:432",
     ll <- brms_adapt_log_lik("zero_inflated_binomial", 4, prep = prep)
   )
@@ -638,6 +683,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:433", "ll", "holds", {
+    ll <- brms:::log_lik_zero_inflated_binomial(4, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:435",
     ll <- brms_adapt_log_lik("zero_inflated_beta_binomial", 7, prep = prep)
   )
@@ -645,9 +694,13 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:436", "ll", "error", {
+    ll <- brms:::log_lik_zero_inflated_beta_binomial(7, prep = prep)
+  }, msg_has = "Please install the 'extraDistr' package")
   brms_setup("log_lik:438",
     prep$data$Y[1:nobs] <- rbeta(nobs / 2, 0.5, 4)
   )
+  brms_value_mark()
   brms_setup("log_lik:439",
     ll <- brms_adapt_log_lik("zero_inflated_beta", 6, prep = prep)
   )
@@ -655,6 +708,10 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:440", "ll", "holds", {
+    ll <- brms:::log_lik_zero_inflated_beta(6, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:442",
     ll <- brms_adapt_log_lik("zero_one_inflated_beta", 7, prep = prep)
   )
@@ -662,6 +719,9 @@ test_that("log_lik for zero-inflated and hurdle models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:443", "ll", "holds", {
+    ll <- brms:::log_lik_zero_one_inflated_beta(7, prep = prep)
+  })
 })
 
 test_that("log_lik for ordinal models runs without erros", {
@@ -697,6 +757,7 @@ test_that("log_lik for ordinal models runs without erros", {
   brms_setup("log_lik:459",
     prep$family$link <- "logit"
   )
+  brms_value_mark()
   brms_setup("log_lik:461",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "cumulative", prep = prep)
   )
@@ -704,6 +765,10 @@ test_that("log_lik for ordinal models runs without erros", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:462", "ll", "differs", {
+    ll <- sapply(1:nobs, brms:::log_lik_cumulative, prep = prep)
+  }, msg_has = "NA in 200 values from the adapter, 200 from brms")
+  brms_value_mark()
   brms_setup("log_lik:464",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "sratio", prep = prep)
   )
@@ -711,6 +776,10 @@ test_that("log_lik for ordinal models runs without erros", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:465", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_sratio, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:467",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "cratio", prep = prep)
   )
@@ -718,6 +787,10 @@ test_that("log_lik for ordinal models runs without erros", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:468", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_cratio, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:470",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "acat", prep = prep)
   )
@@ -725,9 +798,13 @@ test_that("log_lik for ordinal models runs without erros", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:471", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_acat, prep = prep)
+  })
   brms_setup("log_lik:473",
     prep$family$link <- "probit"
   )
+  brms_value_mark()
   brms_setup("log_lik:474",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "acat", prep = prep)
   )
@@ -735,6 +812,10 @@ test_that("log_lik for ordinal models runs without erros", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:475", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_acat, prep = prep)
+  })
+  brms_value_mark()
   brms_setup("log_lik:477",
     ll <- brms_adapt_log_lik("hurdle_cumulative", 3, prep = prep)
   )
@@ -742,6 +823,9 @@ test_that("log_lik for ordinal models runs without erros", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:478", "ll", "differs", {
+    ll <- brms:::log_lik_hurdle_cumulative(3, prep = prep)
+  }, msg_has = "NA in 0 values from the adapter, 50 from brms")
 })
 
 test_that("log_lik for categorical and related models runs without erros", {
@@ -774,18 +858,17 @@ test_that("log_lik for categorical and related models runs without erros", {
   brms_setup("log_lik:493",
     prep$refcat <- 1
   )
+  brms_value_mark()
   brms_setup("log_lik:494",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "categorical", prep = prep)
   )
-  brms_port("log_lik:495", "cannot transfer",
-    paste0(
-      "categorical: brms's prep holds one linear predictor per ",
-      "non-reference category (mu1, mu2), which the thin adapter ",
-      "does not map onto frmtmb's categorical family ('prep$dpars ",
-      "has no mu'); frmtmb has the family, so the row is ",
-      "transferable at a cost"),
+  brms_port("log_lik:495", "pass",
+    "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:495", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_categorical, prep = prep)
+  })
   brms_setup("log_lik:497",
     prep$data$Y <- matrix(
       sample(1:20, nobs * ncat, TRUE),
@@ -798,17 +881,27 @@ test_that("log_lik for categorical and related models runs without erros", {
   brms_setup("log_lik:502",
     prep$family <- multinomial()
   )
+  brms_value_mark()
   brms_setup("log_lik:503",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "multinomial", prep = prep)
   )
   brms_port("log_lik:504", "cannot transfer",
     paste0(
       "multinomial: the block builds the family as brms spells it, ",
-      "multinomial(), which frmtmb refuses ('needs the number of ",
-      "categories'); frmtmb needs K, which brms reads from the ",
-      "data (gap rank 26)"),
+      "multinomial(), which frmtmb 0.71.0 refuses ('needs the ",
+      "number of categories'), and the adapter builds frmtmb's ",
+      "family from that same bare constructor, resolved on brms's ",
+      "ncat categories (brms_adapt_cat_family()). A gap (rank 26), ",
+      "blocked on lane catmulti, which makes multinomial() read ",
+      "its category count from the data. The density the row would ",
+      "then reach agrees with brms's log_lik_multinomial() on this ",
+      "block's prep to 4.3e-14 (multinomial(K = 3), ",
+      "dev/bin2port-probe1.R)"),
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:504", "ll", "error", {
+    ll <- sapply(1:nobs, brms:::log_lik_multinomial, prep = prep)
+  })
   brms_setup("log_lik:506",
     prep$data$trials <- sample(1:20, nobs)
   )
@@ -818,6 +911,7 @@ test_that("log_lik for categorical and related models runs without erros", {
   brms_setup("log_lik:508",
     prep$family <- dirichlet_multinomial()
   )
+  brms_value_mark()
   brms_setup("log_lik:509",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "dirichlet_multinomial", 
         prep = prep)
@@ -828,6 +922,9 @@ test_that("log_lik for categorical and related models runs without erros", {
       "supported family'): a gap, not a decision"),
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:510", "ll", "error", {
+    ll <- sapply(1:nobs, brms:::log_lik_dirichlet_multinomial, prep = prep)
+  })
   brms_setup("log_lik:512",
     prep$data$Y <- prep$data$Y / rowSums(prep$data$Y)
   )
@@ -837,19 +934,17 @@ test_that("log_lik for categorical and related models runs without erros", {
   brms_setup("log_lik:514",
     prep$family <- dirichlet()
   )
+  brms_value_mark()
   brms_setup("log_lik:515",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "dirichlet", prep = prep)
   )
-  brms_port("log_lik:516", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("log_lik:516", "pass",
+    "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:516", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_dirichlet, prep = prep)
+  })
   brms_setup("log_lik:518",
     prep$family <- brmsfamily("dirichlet2")
   )
@@ -862,19 +957,17 @@ test_that("log_lik for categorical and related models runs without erros", {
   brms_setup("log_lik:521",
     prep$dpars$mu3 <- rexp(ns, 10)
   )
+  brms_value_mark()
   brms_setup("log_lik:522",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "dirichlet2", prep = prep)
   )
-  brms_port("log_lik:523", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("log_lik:523", "pass",
+    "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:523", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_dirichlet2, prep = prep)
+  })
   brms_setup("log_lik:525",
     prep$family <- brmsfamily("logistic_normal")
   )
@@ -889,20 +982,18 @@ test_that("log_lik for categorical and related models runs without erros", {
   brms_setup("log_lik:532",
     prep$lncor <- rbeta(ns, 2, 1)
   )
+  brms_value_mark()
   brms_setup("log_lik:533",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "logistic_normal", 
         prep = prep)
   )
-  brms_port("log_lik:534", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("log_lik:534", "pass",
+    "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:534", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_logistic_normal, prep = prep)
+  })
 })
 
 test_that("censored and truncated log_lik run without errors", {
@@ -925,6 +1016,7 @@ test_that("censored and truncated log_lik run without errors", {
   brms_setup("log_lik:545",
     prep$data <- list(Y = rnorm(ns), cens = c(-1,0,1))
   )
+  brms_value_mark()
   brms_setup("log_lik:546",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "gaussian", prep = prep)
   )
@@ -932,9 +1024,13 @@ test_that("censored and truncated log_lik run without errors", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:547", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_gaussian, prep = prep)
+  })
   brms_setup("log_lik:548",
     prep$data <- list(Y = sample(-3:3, nobs), lb = -4, ub = 5)
   )
+  brms_value_mark()
   brms_setup("log_lik:549",
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "gaussian", prep = prep)
   )
@@ -942,6 +1038,46 @@ test_that("censored and truncated log_lik run without errors", {
     "",
     expect_equal(dim(ll), c(ns, nobs))
   )
+  brms_value_check("log_lik:550", "ll", "holds", {
+    ll <- sapply(1:nobs, brms:::log_lik_gaussian, prep = prep)
+  })
+})
+
+test_that("log_lik for the wiener diffusion model runs without errors", {
+  withr::local_seed(553L)
+  brms_adapt_brms_needs("RWiener")
+  brms_setup("log_lik:555",
+    ns <- 5
+  )
+  brms_setup("log_lik:556",
+    nobs <- 3
+  )
+  brms_setup("log_lik:557",
+    prep <- structure(list(ndraws = ns, nobs = nobs), class = "brmsprep")
+  )
+  brms_setup("log_lik:558",
+    prep$dpars <- list(
+      mu = matrix(rnorm(ns * nobs), ncol = nobs),
+      bs = rchisq(ns, 3), ndt = rep(0.5, ns),
+      bias = rbeta(ns, 1, 1)
+    )
+  )
+  brms_setup("log_lik:563",
+    prep$data <- list(Y = abs(rnorm(ns)) + 0.5, dec = c(1, 0, 1))
+  )
+  brms_setup("log_lik:564",
+    i <- sample(1:nobs, 1)
+  )
+  brms_value_mark()
+  brms_port("log_lik:565", "pass",
+    "",
+    expect_equal(length(brms_adapt_log_lik("wiener", i, prep)), ns)
+  )
+  brms_value_check("log_lik:565", ".value", "holds", {
+    .value <- brms:::log_lik_wiener(i, prep)
+  }, adapted = {
+    .value <- brms_adapt_log_lik("wiener", i, prep)
+  })
 })
 
 test_that("log_lik for the xbeta model runs without errors", {
@@ -966,6 +1102,7 @@ test_that("log_lik for the xbeta model runs without errors", {
   brms_setup("log_lik:578",
     prep$data <- list(Y = rbeta(nobs, 2, 3))
   )
+  brms_value_mark()
   brms_setup("log_lik:579",
     ll <- brms_adapt_log_lik("xbeta", 3, prep = prep)
   )
@@ -973,4 +1110,7 @@ test_that("log_lik for the xbeta model runs without errors", {
     "",
     expect_equal(length(ll), ns)
   )
+  brms_value_check("log_lik:580", "ll", "error", {
+    ll <- brms:::log_lik_xbeta(3, prep = prep)
+  }, msg_has = "Please install the 'betareg' package")
 })

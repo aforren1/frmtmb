@@ -1,3 +1,18 @@
+# frmtmb (development version)
+
+## Internal
+
+* Bin 2 of the ported brms suite reaches 0.71.0's families. The thin
+  adapter maps brms's per-category predictors onto `categorical()`,
+  `dirichlet()`, `brmsfamily("dirichlet2")` and `logistic_normal()`
+  (`multinomial()` once it reads its category count from the data),
+  shims brms's Frechet, generalized extreme value
+  and categorical functions onto frmtmb's families, and reaches
+  frmtmb.eam's `wiener()`. Where brms checks only the shape of a log
+  density or a CDF, a value check now compares it with brms's own
+  function on the same arguments. No package code changed (lane
+  `bin2port`, `dev/bin2port-findings.md`).
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

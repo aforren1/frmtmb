@@ -1,0 +1,52 @@
+id	pkg	outcome	msg_has	msg
+distributions:50	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 3.33e-16, max rel 1.77e-15
+distributions:61	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 3.04e-18, max rel 3.69e-15
+distributions:80	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:92	frmtmb	error		NOT CHECKED: the adapter's value does not exist
+distributions:95	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 1.22e-16
+distributions:109	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:111	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:123	frmtmb	error	Please install the 'extraDistr' package	REFERENCE ERROR: Please install the 'extraDistr' package.
+distributions:134	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-17, max rel 4.72e-16
+distributions:137	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 2.17e-16
+distributions:148	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 6.94e-18, max rel 2.97e-16
+distributions:162	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 1.29e-16
+distributions:167	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-16, max rel 2.03e-15
+distributions:172	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 5.26e-16
+distributions:177	frmtmb	error	Please install the 'extraDistr' package	REFERENCE ERROR: Please install the 'extraDistr' package.
+distributions:183	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.48e-16
+distributions:193	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:198	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 1.89e-16
+distributions:203	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:208	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+log_lik:85	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 1.98e-16
+log_lik:88	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 1.78e-15, max rel 3.08e-16
+log_lik:271	frmtmb	differs	DIFFERS: 25 values (0 NA, 17 infinite)	DIFFERS: 25 values (0 NA, 17 infinite), max abs diff 1.73e-06, max rel 2.37e-09
+log_lik:389	frmtmb	holds		HOLDS: 15 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 3.91e-16
+log_lik:392	frmtmb	error		NOT CHECKED: the adapter's value does not exist
+log_lik:414	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 3.55e-15, max rel 2.08e-16
+log_lik:417	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 5.77e-15, max rel 2.89e-15
+log_lik:420	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+log_lik:423	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 4.44e-16, max rel 1.27e-16
+log_lik:426	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+log_lik:429	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 1.42e-14, max rel 5.43e-16
+log_lik:433	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 4.44e-16, max rel 1.23e-16
+log_lik:436	frmtmb	error	Please install the 'extraDistr' package	REFERENCE ERROR: Please install the 'extraDistr' package.
+log_lik:440	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.68e-16
+log_lik:443	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+log_lik:462	frmtmb	differs	NA in 200 values from the adapter, 200 from brms	DIFFERS: NA in 200 values from the adapter, 200 from brms
+log_lik:465	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 9.95e-14, max rel 1.61e-14
+log_lik:468	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 3.73e-14, max rel 3.89e-14
+log_lik:471	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 3.55e-15, max rel 2.26e-14
+log_lik:475	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 4.46e-08, max rel 1.26e-09
+log_lik:478	frmtmb	differs	NA in 0 values from the adapter, 50 from brms	DIFFERS: NA in 0 values from the adapter, 50 from brms
+log_lik:495	frmtmb	holds		HOLDS: 400 values (100 NA, 0 infinite), max abs diff 4.44e-16, max rel 6.14e-15
+log_lik:504	frmtmb	error		NOT CHECKED: the adapter's value does not exist
+log_lik:510	frmtmb	error		NOT CHECKED: the adapter's value does not exist
+log_lik:516	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 3.55e-15, max rel 7.68e-16
+log_lik:523	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 4.44e-15, max rel 1.26e-14
+log_lik:534	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 7.45e-09, max rel 1.21e-14
+log_lik:547	frmtmb	holds		HOLDS: 90 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.41e-16
+log_lik:550	frmtmb	holds		HOLDS: 90 values (60 NA, 0 infinite), max abs diff 4.44e-16, max rel 2.03e-16
+log_lik:565	frmtmb	holds		HOLDS: 5 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 3.26e-16
+log_lik:580	frmtmb	error	Please install the 'betareg' package	REFERENCE ERROR: Please install the 'betareg' package.

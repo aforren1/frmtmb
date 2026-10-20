@@ -204,8 +204,157 @@ add("log_lik:32", "cannot transfer", "adapter", paste(
 V <- do.call(rbind, v)
 # the verdict moves of the 0.71.0 consolidation
 V <- source("dev/rel071-bin2-moves.R")$value(V, "2p")
+
+## lane bin2port: the categorical-like adapter and the extreme-value
+## and categorical shims (dev/brmsport-bin2-adapters.R) ----------------
+# Rows that hold now carry no manual verdict: the simplex rows and
+# categorical through brms_adapt_cat_*() (values against brms's own
+# log_lik_<family>() in dev/bin2port-probe1.R, and as value checks in
+# the ledger), the frechet and GEV p, d and r rows through brms_g1_shims
+# (pfrechet, dgen_extreme_value, pgen_extreme_value and
+# rgen_extreme_value).
+held <- c("log_lik:495", "log_lik:516", "log_lik:523", "log_lik:534",
+          "posterior_predict:344", "posterior_predict:360",
+          "posterior_predict:361", "posterior_predict:368",
+          "posterior_predict:369", "posterior_predict:380",
+          "posterior_predict:381", "distributions:95", "distributions:134",
+          "distributions:137", "distributions:141")
+stopifnot(all(held %in% V$id))
+V <- V[!V$id %in% held, , drop = FALSE]
+bp_set <- function(V, id, verdict, class, reason) {
+  i <- which(V$id == id)
+  stopifnot(length(i) == 1L)
+  V$verdict[i] <- verdict
+  V$class[i] <- class
+  V$reason[i] <- reason
+  V
+}
+for (id in c("log_lik:504", "posterior_predict:349")) {
+  V <- bp_set(V, id, "cannot transfer", "absent", paste(
+    "multinomial: the block builds the family as brms spells it,",
+    "multinomial(), which frmtmb 0.71.0 refuses ('needs the number of",
+    "categories'), and the adapter builds frmtmb's family from that same",
+    "bare constructor, resolved on brms's ncat categories",
+    "(brms_adapt_cat_family()). A gap (rank 26), blocked on lane",
+    "catmulti, which makes multinomial() read its category count from",
+    "the data. The density the row would then reach agrees with brms's",
+    "log_lik_multinomial() on this block's prep to 4.3e-14",
+    "(multinomial(K = 3), dev/bin2port-probe1.R)"))
+}
+for (k in c(92, 102)) {
+  # "domain", as log_lik:349 (the GEV support): review finding 8
+  V <- bp_set(V, paste0("distributions:", k), "divergence",
+              "domain", paste(
+    sprintf("brms's %s takes the Frechet scale and the row passes %s;",
+            if (k == 92) "dfrechet()" else "rfrechet()",
+            if (k == 92) "shape = 1" else "shape = 1:10"),
+    "frmtmb's frechet(), like brms's frechet family, takes the mean",
+    "mu = scale * gamma(1 - 1 / nu), which is infinite at shape <= 1,",
+    "so there is no frmtmb parameter for it. The shim refuses the call",
+    "(brms_g1_frechet_dp()) rather than hand the density mu = Inf, on",
+    "which brms's length-only assertion would hold over NaN values. At",
+    "shape 3 the same shims agree with brms's pfrechet() to 1.1e-16",
+    "(distributions:95 and its value check)"))
+}
+for (k in c(97, 100, 139)) {
+  V <- bp_set(V, paste0("distributions:", k), "cannot transfer",
+              "no-quantile", paste(
+    sprintf("decision: brms's %s; no frmtmb family object carries a",
+            if (k == 139) "qgen_extreme_value()" else "qfrechet()"),
+    "quantile",
+    "function, and SPEC.md:153-154 puts numeric d/p/q/r functions for",
+    "post-processing outside frmtmb, in gamlss.dist or extraDistr (as",
+    "distributions:8, :68 and :71)"))
+}
+# posterior_predict:420 (review finding 7, fix round 2) holds and has
+# no manual verdict: the adapter returns brms's
+# posterior_predict_wiener() container, ndraws x 1
+# (dev/brmsport-bin2-adapters.R), and the row's nrow() then counts
+# frmtmb.eam's draws, a shape check as for every other family. A
+# difference the row does not test: frmtmb.eam draws the time given the
+# boundary the row ended at (brms's dec, c(1, 0, 1)), and brms draws
+# the boundary too; frmtmb.eam documents it (?frmtmb.eam::wiener,
+# 'Post-fit quantities against brms'). brms 2.23.0 skips its own block
+# ('skip as long as RWiener fails on R-devel'), so the port runs it in
+# place of the skip.
 stopifnot(!anyDuplicated(V$id), all(nzchar(V$reason)),
           !any(grepl("\t", V$reason)))
+
+## lane bin2port: the value checks that do not hold -------------------
+# A value check compares the adapter's value with brms's own function on
+# the same arguments (dev/brmsport-bin2-adapters.R, brms_value_check()).
+# One that holds needs no entry; the ledger stops on one that does not
+# hold without an entry here, and on an entry for one that holds.
+# Constructions: dev/bin2port-probe2.R, log dev/bin2port-out/probe2.txt
+# (the blocks' own seeds).
+#
+# msg_has is the text of the recorded message the verdict was written
+# for; the ledger stops, and the tier fails, when the check keeps its
+# label but its message no longer contains it (review finding 3)
+W <- list()
+addv <- function(id, verdict, class, msg_has, reason) {
+  W[[length(W) + 1L]] <<- data.frame(id = id, pkg = "frmtmb",
+                                     verdict = verdict, class = class,
+                                     msg_has = msg_has, reason = reason)
+}
+addv("log_lik:271", "divergence", "precision",
+     "DIFFERS: 25 values (0 NA, 17 infinite)", paste(
+  "discrete_weibull at y = 12: brms's log_lik_discrete_weibull() forms",
+  "log(mu^(y^shape) - mu^((y + 1)^shape)), which underflows to -Inf in",
+  "17 of the 25 draws (brms's block says so: 'they will be -Inf for",
+  "this data'); frmtmb's density works on the log scale and is finite",
+  "there (down to -3.6e9), matching the same closed form taken on the",
+  "log scale to 5.7e-6 absolute, about 1e-15 relative. On the 8 draws",
+  "where brms's value is finite the two agree to 2.4e-9 relative,",
+  "brms's cancellation. frmtmb is the more accurate side"))
+addv("log_lik:462", "defect", "tied-thresholds",
+     "NA in 200 values from the adapter, 200 from brms", paste(
+  "cumulative with all three thresholds 0 (brms's prep): frmtmb's log",
+  "probability of category 1 and of category 4 is NaN, where it is",
+  "finite (log F(-mu) and log(1 - F(-mu)), brms's values); the two",
+  "zero-width middle categories are -Inf in frmtmb, the exact value,",
+  "and NaN in brms. The cause is ord_cumulative_logpmf() (R/families.R):",
+  "an end category's row still evaluates the clamped interior pair,",
+  "which is log(0) = -Inf at tied thresholds, and masks it as",
+  "0 * -Inf. hurdle_cumulative calls the same function on pmax(y, 1)",
+  "and masks it with (1 - i0), so its y = 0 rows are NaN too at a tie",
+  "of the lowest pair (review finding 4; at tau (0, 0, 1), mu 0, hu 0.2,",
+  "y = 0, 1, 4 gives NaN, NaN, -1.536405 where the exact values are",
+  "-1.609438, -0.916291, -1.536405; dev/bin2port-defect-cumulative.R).",
+  "With",
+  "distinct thresholds (-1, 0, 1) every category agrees with brms to",
+  "6.2e-14. Not reached by the optimizer (the tape folds the masked",
+  "term); reachable by log_lik() on doubles at such draws. Not fixed in",
+  "this lane: dev/bin2port-findings.md has the reproduction and a",
+  "one-line fix. After the fix this check stays 'differs' with a new",
+  "message (frmtmb 0 NA, brms 200), the ledger stops on it, and it is",
+  "re-judged: a divergence (domain), as log_lik:478"))
+addv("log_lik:478", "divergence", "domain",
+     "NA in 0 values from the adapter, 50 from brms", paste(
+  "hurdle_cumulative at y = 3 with all thresholds 0: the category has",
+  "probability 0, which frmtmb returns as -Inf, the exact log, and",
+  "brms's log_diff_exp() as NaN. With distinct thresholds the two",
+  "agree to 6.0e-14 (dev/bin2port-probe2.R)"))
+for (id in c("distributions:123", "distributions:177", "log_lik:436")) {
+  addv(id, "cannot transfer", "reference",
+       "Please install the 'extraDistr' package", paste(
+    "the reference cannot run here: brms's",
+    if (id == "log_lik:436") "log_lik_zero_inflated_beta_binomial()" else
+      if (id == "distributions:123") "dbeta_binomial()" else
+        "dzero_inflated_beta_binomial()",
+    "needs extraDistr, which is not installed ('Please install the",
+    "'extraDistr' package'), as for log_lik:267"))
+}
+addv("log_lik:580", "cannot transfer", "reference",
+     "Please install the 'betareg' package", paste(
+  "the reference cannot run here: brms's log_lik_xbeta() needs betareg,",
+  "which is not installed ('Please install the 'betareg' package')"))
+W <- do.call(rbind, W)
+stopifnot(!anyDuplicated(W$id), !any(grepl("\t", W$reason)),
+          all(nzchar(W$msg_has)))
+utils::write.table(W, "dev/brmsport-bin2-valuechecks-manual.tsv", sep = "\t",
+                   quote = FALSE, row.names = FALSE)
+
 utils::write.table(V, "dev/brmsport-bin2-verdicts-manual-2p.tsv", sep = "\t",
                    quote = FALSE, row.names = FALSE)
 cat("bin-2P adapter verdicts:", nrow(V), "(",

@@ -39,11 +39,11 @@ recs <- list.files("dev/brmsport-bin2-log", pattern = "^rec-.*[.]tsv$",
                    full.names = TRUE)
 cols <- c("kind", "pkg", "id", "verdict", "held", "vacuous", "msg",
           "caught", "raw_held")
-rec <- do.call(rbind, lapply(recs, function(f) {
-  x <- utils::read.delim(f, header = FALSE, quote = "", col.names = cols,
-                         colClasses = "character", na.strings = NULL)
-  x[x$kind == "assert", ]
+rec_all <- do.call(rbind, lapply(recs, function(f) {
+  utils::read.delim(f, header = FALSE, quote = "", col.names = cols,
+                    colClasses = "character", na.strings = NULL)
 }))
+rec <- rec_all[rec_all$kind == "assert", ]
 rec$held <- rec$held == "TRUE"
 rec$raw_held <- rec$raw_held == "TRUE"
 stopifnot(!anyDuplicated(rec[c("pkg", "id")]))
@@ -173,12 +173,81 @@ if (length(stale)) {
   problems <- c(problems, paste("MANUAL VERDICT FOR A RUN NOT RECORDED:",
                                 stale))
 }
+
+# The value checks (lane bin2port, dev/brmsport-bin2-adapters.R): the
+# value a line computed through the adapter, compared with brms's own
+# function on the same arguments, after a brms assertion that checks
+# only its shape. Each is recorded under the brms row's id and is judged
+# beside that row, never in its verdict. On a row that passes on a
+# shape, a check that holds needs no manual verdict and one that does
+# not hold needs one (dev/brmsport-bin2-valuechecks-manual.tsv, written
+# by dev/brmsport-bin2-verdicts-2p.R); the rules are the rows' own.
+val <- rec_all[rec_all$kind == "value", ]
+val$held <- val$held == "TRUE"
+stopifnot(!anyDuplicated(val[c("pkg", "id")]))
+val$outcome <- ifelse(val$held, "holds",
+                      ifelse(grepl("^DIFFERS", val$msg), "differs", "error"))
+vmf <- "dev/brmsport-bin2-valuechecks-manual.tsv"
+vman <- if (file.exists(vmf)) rd(vmf) else
+  data.frame(id = character(), pkg = character(), verdict = character(),
+             class = character(), msg_has = character(),
+             reason = character())
+stopifnot(!anyDuplicated(vman[c("id", "pkg")]),
+          all(vman$verdict %in% outcomes), all(nzchar(vman$reason)))
+led$value_check <- ""; led$value_verdict <- ""; led$value_class <- ""
+led$value_reason <- ""; led$value_msg <- ""
+shape_pass <- led$outcome %in% "pass" &
+  grepl(bin2_shape_re, led$assertion)
+used_vman <- character()
+for (i in which(shape_pass)) {
+  r <- val[val$id == led$id[i] & val$pkg == led$target[i], ]
+  if (!nrow(r)) next
+  m <- vman[vman$id == led$id[i] & vman$pkg == led$target[i], ]
+  led$value_check[i] <- r$outcome
+  led$value_msg[i] <- r$msg
+  if (r$held) {
+    if (nrow(m)) {
+      problems <- c(problems, sprintf(
+        "VALUE CHECK HOLDS but has manual verdict '%s': %s", m$verdict,
+        led$id[i]))
+    }
+    led$value_verdict[i] <- "pass"
+  } else if (!nrow(m)) {
+    problems <- c(problems, sprintf("VALUE CHECK UNCLASSIFIED %s: %s",
+                                    led$id[i], substr(r$msg, 1, 150)))
+  } else {
+    # a manual verdict names the message it was written for; the same
+    # label with another message is a stale verdict
+    if (!nzchar(m$msg_has) || !grepl(m$msg_has, r$msg, fixed = TRUE)) {
+      problems <- c(problems, sprintf(
+        "VALUE CHECK '%s' no longer matches its verdict's message '%s': %s",
+        led$id[i], m$msg_has, substr(r$msg, 1, 150)))
+    }
+    led$value_verdict[i] <- m$verdict
+    led$value_class[i] <- m$class
+    led$value_reason[i] <- m$reason
+  }
+  used_vman <- c(used_vman, paste(led$id[i], led$target[i]))
+}
+vstale <- setdiff(paste(vman$id, vman$pkg), used_vman)
+if (length(vstale)) {
+  problems <- c(problems, paste(
+    "VALUE-CHECK VERDICT FOR NO CHECK ON A SHAPE PASS:", vstale))
+}
 if (length(problems)) {
   cat(problems, sep = "\n")
   stop(length(problems), " problem(s); the ledger was not written")
 }
 verd <- do.call(rbind, out_v)
 utils::write.table(verd, "dev/brmsport-bin2-verdicts.tsv", sep = "\t",
+                   quote = FALSE, row.names = FALSE)
+# every recorded check's outcome, which the generator gives the tier to
+# assert (a check on a row that is not a shape pass included)
+val$msg_has <- vman$msg_has[match(paste(val$id, val$pkg),
+                                  paste(vman$id, vman$pkg))]
+val$msg_has[is.na(val$msg_has)] <- ""
+utils::write.table(val[c("id", "pkg", "outcome", "msg_has", "msg")],
+                   "dev/brmsport-bin2-valuechecks.tsv", sep = "\t",
                    quote = FALSE, row.names = FALSE)
 
 # A statement that holds several assertions (a loop) is run whole by the
@@ -214,12 +283,11 @@ if (file.exists(splf)) {
 # errors": a check of a shape, a length, names or a type, which says the
 # call answered and not that the answer is right. "value" is an
 # assertion that compares a computed number with a reference or with
-# another computation. Read from brms's assertion text.
-shape_re <- paste0("\\b(dim|length|names|dimnames|nrow|ncol|is[.]numeric|",
-                   "is[.]character)[(]|expect_is[(]|expect_output[(]|",
-                   "expect_length[(]|expect_named[(]")
+# another computation. Read from brms's assertion text, with the
+# pattern dev/brmsport-bin2-adapters-spec.R shares with the generator.
 led$kind <- ifelse(led$outcome %in% "pass",
-                   ifelse(grepl(shape_re, led$assertion), "shape", "value"),
+                   ifelse(grepl(bin2_shape_re, led$assertion), "shape",
+                          "value"),
                    "")
 # The classes of "cannot transfer", split by what they mean. A decision
 # is a question frmtmb does not answer on purpose or cannot be asked,
@@ -245,7 +313,8 @@ ct <- led$outcome %in% "cannot transfer"
 stopifnot(all(led$class[ct] %in% names(ct_kind)))
 led$ct_kind[ct] <- ct_kind[led$class[ct]]
 ledger <- led[c("file", "block", "line", "bin", "tier", "n", "id", "ported",
-                "target", "outcome", "class", "ct_kind", "kind", "reason",
+                "target", "outcome", "class", "ct_kind", "kind",
+                "value_check", "value_verdict", "value_class", "reason",
                 "held", "other", "assertion", "message")]
 utils::write.table(ledger, "dev/brmsport-bin2-ledger.tsv", sep = "\t",
                    quote = FALSE, row.names = FALSE)
@@ -318,6 +387,45 @@ md <- c(md, "",
                       "fit (the restatement, not counted): %s."),
                 paste(sprintf("%s %d", names(table(fit_v)), table(fit_v)),
                       collapse = ", ")))
+
+# the value checks beside the shape passes (lane bin2port)
+sp <- L[L$outcome %in% "pass" & L$kind == "shape", ]
+vrow <- function(d, label) {
+  sprintf("| %s | %d | %d | %d | %d | %d | %d |", label, sum(d$n),
+          sum(d$n[nzchar(d$value_check)]),
+          sum(d$n[d$value_verdict == "pass"]),
+          sum(d$n[d$value_verdict == "defect"]),
+          sum(d$n[d$value_verdict == "divergence"]),
+          sum(d$n[d$value_verdict == "cannot transfer"]))
+}
+md <- c(md, "", "### Value checks beside the shape passes", "",
+        paste("A value check compares the value the line before a shape",
+              "assertion computed through the adapter with brms's own",
+              "function on the same arguments (brms:::log_lik_<family>(),",
+              "or brms's d or p function). It is recorded beside the brms",
+              "row and does not change that row's verdict. Simulators are",
+              "not checked: two of them agree in distribution, not draw by",
+              "draw."), "",
+        paste("| file | shape passes | with a value check | holds |",
+              "defect | divergence | reference cannot run |"),
+        "|---|---|---|---|---|---|---|")
+for (f in unique(sp$file)) {
+  md <- c(md, vrow(sp[sp$file == f, ], sprintf("`%s`", f)))
+}
+md <- c(md, sub("^[|] ([^|]*) [|]", "| **total** |", vrow(sp, "total")))
+vh <- sum(sp$n[sp$value_verdict == "pass"])
+vbad <- sp[nzchar(sp$value_verdict) & sp$value_verdict != "pass", ]
+md <- c(md, "",
+        sprintf(paste("Of the %d bin-2 passes, %d compare a value as brms",
+                      "wrote them, %d more check a shape and carry a value",
+                      "check that holds against brms's own function, and %d",
+                      "check only a shape."),
+                p2t + p2p, pv, vh, p2t + p2p - pv - vh),
+        if (nrow(vbad)) {
+          paste0("Value checks that do not hold: ",
+                 paste(sprintf("`%s` (%s, %s)", vbad$id, vbad$value_verdict,
+                               vbad$value_class), collapse = "; "), ".")
+        })
 
 # compose with bin 1, whose cannot-transfer classes map the same way
 b1 <- utils::read.delim("dev/brmsport-ledger.tsv", quote = "",
