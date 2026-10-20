@@ -1,3 +1,97 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`multinomial()` takes brms's arguments, `(link, refcat, K)`, and
+  reads its categories from the response matrix.** `multinomial()` with
+  no arguments now fits, as brms spells it; the dpars are named by the
+  columns, `cbind(y1, y2, y3)` giving `muy2` and `muy3`, as in brms.
+  `multinomial(K = 3)` still builds the family away from the data, with
+  the positional names `mu2`, `mu3`. `multinomial(3)` is refused: the
+  first argument is the link, and the refusal names `K =`.
+
+* **A `categorical()` dpar name is brms's `make_stan_names()`.** Dots
+  and underscores in a level are dropped, so the level `"p.q"` gives
+  `mupq` where it gave `mup.q`.
+
+* **`fitted(scale = "linear")` on a family with several location
+  predictors returns brms's `n x 4 x P` array.** That is every `mu<cat>`
+  of `categorical()`, `multinomial()` and the simplex families, layers
+  `eta1, eta2, ...`, and every component's `mu<k>` of a mixture,
+  layers unnamed. It returned the first predictor's `n x 4` matrix.
+
+* **`categorical()` takes `refcat` as its second argument**, as brms
+  does; `levels` and `K` follow it.
+
+## New features
+
+* `categorical(refcat = )` and `multinomial(refcat = )` name the
+  reference category, as in brms: `NULL` is the first, a name must be
+  one of the categories, and `NA` gives every category a predictor.
+  The dpar names, `default_prior()` rows and post-fit shapes follow the
+  reference. A brms `categorical(refcat = "b")` object passed as
+  `family =` keeps its `refcat`; 0.71.0 dropped it and fitted reference
+  `a` under the names `mub`, `muc`. `brmsfamily("categorical", refcat =
+  )` and `brmsfamily("multinomial", refcat = )` take it too. Under
+  `refcat = NA` a maximum-likelihood fit determines only the category
+  probabilities, and its standard-error warning names the common shift
+  of every category's predictor; a prior on each predictor determines
+  the coefficients. `logLik()`, `AIC()`, `BIC()`, `anova()` and
+  `drop1()` count the degrees of freedom of the same model with a
+  reference category, which has the same likelihood; with a category
+  formula of its own the count is not defined, the df is `NA`, and
+  `anova()` and `drop1()` say why. The same holds for
+  `dirichlet(refcat = NA)`. brms 2.23.0's own fit of that model with
+  its default priors does not converge (R-hat 1.71). A family's
+  `print()` shows its reference category.
+
+* `fitted()` on `multinomial()` returns brms's `n x 4 x K` array of
+  expected counts, layers `P(Y = <category>)`, with delta-method
+  standard errors; 0.71.0 refused it. `frm_linpred(type = "response")`
+  gives the `n x K` counts.
+
+* `logistic_normal()` fits inside `mvbf()`. Its correlations are a
+  block of its response, reported as `lncor_<resp>(b,c)` in the summary
+  and `lncor_<resp>__b__c` in `variables()` and `hypothesis()`, with
+  `<resp>` brms's Stan name of the response (`Ya` for `Y_a`), and set
+  with `set_prior(class = "lncor", resp = )`. brms 2.23.0 cannot compile
+  this model; its model block, repaired, agrees with frmtmb's
+  likelihood at frmtmb's estimates. `dirichlet()` in `mvbf()` worked
+  and is now tested against brms.
+
+## Bug fixes
+
+* `cumulative()` and `hurdle_cumulative()` gave a log probability of
+  `NaN` on doubles for an end category whose neighboring thresholds are
+  tied, under every link with a log-odds form (logit, probit,
+  probit_approx, cloglog), where the category has a positive
+  probability. Fits were not affected, because the tape drops the
+  masked term; `log_lik()` of draws was. The taped value and gradient
+  are unchanged bit for bit at distinct thresholds.
+  A `hurdle_cumulative()` zero row at such a tie was `NaN`
+  too, and is `log(hu)` now.
+
+* `conditional_effects()` on `multinomial()` draws one curve per
+  category, as brms does with `categorical = TRUE`, and as for the
+  simplex families; `dharma_residuals()` on it is refused by name.
+  `conditional_effects(categorical = TRUE)` on `categorical()` draws its
+  Wald band from `fitted()`, where it asked for `band = "boot"`.
+
+* `set_prior(resp = )` takes brms's Stan name of a response (`Ya` for
+  a response `Y_a`) as well as frmtmb's own.
+
+* `confint(parm = )` takes the name of a correlation that is one
+  internal parameter: `rescor__y1__y2` of two responses and
+  `lncor__b__c` of a three-category `logistic_normal()`. The refusal
+  for a wider block advised `hypothesis(method = "profile")`, which
+  fails there ("not linear"); it now names
+  `hypothesis(class = NULL)` and `method = "boot"`.
+
+* `drop1()` on `categorical()`, `multinomial()`, the simplex families
+  and mixtures was refused ("No linear predictor for dpar 'mu'"). A
+  dropped term now leaves every location predictor that reads the main
+  formula.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

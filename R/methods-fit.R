@@ -912,12 +912,112 @@ n_outer_est <- function(object) {
   n
 }
 
+#' The degrees of freedom of a fit's log-likelihood.
+#'
+#' Under `refcat = NA` (categorical(), multinomial(), dirichlet()) the
+#' likelihood is that of the same model with a reference category: a
+#' common shift of every category's predictor leaves it unchanged, so
+#' the extra parameters are flat directions, not degrees of freedom.
+#' The count is the reference model's. `frm()` assembles that model's
+#' frame from the same data while it has them (`refcat_first_outer()`)
+#' and stores its parameter count; nothing here evaluates the formula
+#' again, because the fit keeps only its model frame, where a term such
+#' as `log(x)` has no raw `x` to read. Where the reference model is not
+#' the same model, because a category has a formula of its own and so
+#' the shift is only partly free, or the fit is multivariate, the df is
+#' `NA` with the reason as attribute `df_why`, and `anova()` and
+#' `drop1()` refuse with it. Every other fit keeps `n_outer_est()`.
+#'
+#' @noRd
+loglik_df <- function(object) {
+  n <- n_outer_est(object)
+  fams <- lapply(object$spec$responses, `[[`, "family")
+  na_ref <- vapply(fams, function(f) is.function(f[["refcat_first"]]), NA)
+  if (!any(na_ref)) return(n)
+  ref <- object$frame[["refcat_first_outer"]]
+  if (!is.null(ref[["lens"]])) {
+    return(as.integer(n - (frame_n_outer(object$frame, object) -
+                             frame_n_outer(ref, object))))
+  }
+  structure(NA_integer_, df_why = ref[["why"]] %||% paste0(
+    "under refcat = NA the category predictors are determined only up ",
+    "to a common shift, and this fit carries no count of the ",
+    "reference-category model to read its degrees of freedom from. ",
+    "Refit with frm(), or with a reference category, which has the same ",
+    "log-likelihood"))
+}
+
+#' The parameter count of a `refcat = NA` model's reference twin, for
+#' `loglik_df()`, from the data `frm()` was given. `NULL` for a model
+#' without such a family; otherwise either the twin frame's template
+#' lengths (`lens`, `nfix`) or the reason there is no count (`why`).
+#'
+#' @noRd
+refcat_first_outer <- function(spec, bform, data, na.action, data2,
+                               drop_unused_levels) {
+  fams <- lapply(spec$responses, `[[`, "family")
+  na_ref <- vapply(fams, function(f) is.function(f[["refcat_first"]]), NA)
+  if (!any(na_ref)) return(NULL)
+  why <- paste0("under refcat = NA the category predictors are ",
+                "determined only up to a common shift, so the parameters ",
+                "are not all degrees of freedom")
+  if (length(spec$responses) > 1L) {
+    return(list(why = paste0(
+      why, ", and the reference-category model they count as is built ",
+      "for a univariate fit only. Refit with a reference category, which ",
+      "has the same log-likelihood")))
+  }
+  fam <- fams[na_ref][[1L]]
+  own <- intersect(names(bform[["pforms"]] %||% list()),
+                   fam[["primary_dpars"]])
+  if (length(own)) {
+    return(list(why = paste0(
+      why, ", and with a formula of its own on ",
+      paste(own, collapse = ", "), " the shift is only partly free, so ",
+      "the count is not the reference model's. Refit with a reference ",
+      "category to compare models")))
+  }
+  bf2 <- bform
+  bf2$family <- fam[["refcat_first"]]()
+  fr2 <- tryCatch(
+    assemble_frame(parse_spec(bf2), data, na.action = na.action,
+                   data2 = data2,
+                   drop_unused_levels = drop_unused_levels),
+    frmtmb_error = function(e) e)
+  if (inherits(fr2, "error")) {
+    return(list(why = paste0(
+      why, ", and the reference-category model could not be assembled ",
+      "from the same data (", conditionMessage(fr2), "). Refit with a ",
+      "reference category, which has the same log-likelihood")))
+  }
+  list(lens = lengths(fr2[["par_template"]]),
+       nfix = length(fr2[["betad_fixed_idx"]]))
+}
+
+#' The outer parameters a frame holds, counted as `n_outer_est()`
+#' counts them for a fit with `object`'s REML and profile settings.
+#' `frame` is a frame or the `lens`/`nfix` record of
+#' `refcat_first_outer()`.
+#'
+#' @noRd
+frame_n_outer <- function(frame, object) {
+  lens <- frame[["lens"]] %||% lengths(frame[["par_template"]])
+  nfix <- frame[["nfix"]] %||% length(frame[["betad_fixed_idx"]])
+  inner <- c("b", "miss")
+  if (isTRUE(object$REML) && !isTRUE(object$control$profile)) {
+    inner <- c(inner, "beta")
+  }
+  sum(lens[setdiff(names(lens), inner)]) - nfix
+}
+
 #' @export
 logLik.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
   require_fitted(object, "logLik() (and AIC(), BIC(), anova())")
+  df <- loglik_df(object)
   structure(-object$opt$objective,
-            df = n_outer_est(object),
+            df = as.vector(df),
+            df_why = attr(df, "df_why"),
             nobs = object$frame[["n_obs"]],
             REML = object$REML,
             class = "logLik")
@@ -951,7 +1051,7 @@ nobs.frmtmb_fit <- function(object, ..., resp = NULL) {
 #' @export
 df.residual.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
-  object$frame[["n_obs"]] - n_outer_est(object)
+  object$frame[["n_obs"]] - as.vector(loglik_df(object))
 }
 
 #' @export

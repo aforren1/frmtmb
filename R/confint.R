@@ -244,6 +244,21 @@ par_alias_index <- function(fit) {
     add(names(nat)[1L],
         if (p >= 1L && p <= length(ac_pos)) ac_pos[p] else NA_integer_)
   }
+  # a 2 x 2 correlation matrix is ONE chart coordinate, theta, with
+  # r = theta / sqrt(1 + theta^2), so its correlation names that
+  # coordinate: the residual correlation of two responses, and that of
+  # a three-category logistic_normal() response
+  tr_pos <- which(map$comp == "thetar")
+  if (isTRUE(fit$spec[["rescor"]]) && length(tr_pos) == 1L &&
+        length(fit$spec$responses) == 2L) {
+    rs <- brms_stan_name(names(fit$spec$responses))
+    add(paste0("rescor__", rs[1L], "__", rs[2L]), tr_pos)
+  }
+  for (b in lncor_blocks(fit)) {
+    p <- which(map$comp == b$comp)
+    if (length(p) != 1L) next
+    add(names(lncor_values(fit$estimates[[b$comp]], b$sx, b$prefix)), p)
+  }
   stats::setNames(pos, nms)
 }
 
@@ -410,8 +425,10 @@ resolve_par_index <- function(fit, parm, what) {
                "parameter, and it does not stand for a single internal one ",
                "here (a correlation of a wider us() block mixes several, ",
                "and a response-scale summary such as sigma is a transform ",
-               "of one). Use hypothesis(fit, \"", b, " = 0\", method = ",
-               "'profile'), which profiles the combination itself, read ",
+               "of one). Use hypothesis(fit, \"", b, " = 0\", class = ",
+               "NULL) for its delta-method interval on the natural scale ",
+               "(method = \"boot\" for a bootstrap one; a profile needs a ",
+               "linear combination, which this is not), read ",
                "confint_varcorr() for natural-scale variance components, ",
                "or name the internal parameter: confint(fit) lists them",
                call. = FALSE)
@@ -2065,6 +2082,12 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   }
   ll <- vapply(fits, function(f) as.numeric(logLik(f)), 0)
   df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
+  na_df <- which(is.na(df))
+  if (length(na_df)) {
+    frm_stop("anova(): model ", na_df[1L], " has no degrees of freedom ",
+             "to compare: ", attr(logLik(fits[[na_df[1L]]]), "df_why"),
+             call. = FALSE)
+  }
   ord <- order(df)
   fits <- fits[ord]; ll <- ll[ord]; df <- df[ord]
   warn_non_nested(fits)
@@ -2091,6 +2114,13 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' `test = "Chisq"`), following [stats::drop1()] and lme4's
 #' `drop1.merMod`. Random-effect, smooth, and `mo()`/`mi()` terms are
 #' not part of the deletion scope.
+#'
+#' A family without a `mu` gives the main formula to every location
+#' predictor that has no formula of its own: each category of
+#' [categorical()], [multinomial()], [dirichlet()] and
+#' [logistic_normal()], and each component of a [mixture()]. A dropped
+#' term leaves all of them at once, as [nnet::multinom()]'s `drop1()`
+#' drops it from every logit.
 #'
 #' @param object A `frmtmb_fit` from an ML fit (`REML = FALSE`) of a
 #'   univariate model.
@@ -2130,7 +2160,25 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   if (length(object$spec$responses) > 1) {
     frm_stop("drop1() is not supported for multivariate fits", call. = FALSE)
   }
-  tt <- terms(object)
+  # the refits below edit the main formula, which a family without a mu
+  # (categorical, multinomial, the simplex families, a mixture) gives to
+  # every location predictor that has no formula of its own; the scope
+  # is read off the first of those
+  rs <- object$spec$responses[[1L]]
+  dp_main <- "mu"
+  if (!"mu" %in% names(rs$dpars)) {
+    own <- names(object$bform[["pforms"]] %||% list())
+    loc <- setdiff(rs$family[["primary_dpars"]] %||% rs$primary_dpars, own)
+    if (!length(loc)) {
+      frm_stop("drop1() drops a term from the main formula, and every ",
+               "location predictor of this '", rs$family[["family"]],
+               "' fit has a formula of its own (",
+               paste(own, collapse = ", "), "), so none reads it. Compare ",
+               "the refits you mean with anova()", call. = FALSE)
+    }
+    dp_main <- loc[1L]
+  }
+  tt <- terms(object, dpar = dp_main)
   labs <- attr(tt, "term.labels")
   if (missing(scope)) {
     scope <- stats::drop.scope(tt)
@@ -2146,6 +2194,9 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
 
   ll0 <- logLik(object)
   df0 <- attr(ll0, "df")
+  if (is.na(df0)) {
+    frm_stop("drop1(): ", attr(ll0, "df_why"), call. = FALSE)
+  }
   aic0 <- -2 * as.numeric(ll0) + k * df0
   n_sc <- length(scope)
   ddf <- aic <- lrt <- rep(NA_real_, n_sc)

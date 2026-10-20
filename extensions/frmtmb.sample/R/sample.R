@@ -1638,9 +1638,16 @@ default_priors_for <- function(fit) {
   if (length(fit$frame[["par_template"]][["thetar"]] %||% numeric(0))) {
     add(set_prior("lkj(1)", class = "rescor"))
   }
-  # and on a logistic_normal() response's correlations, class lncor
-  if (length(fit$frame[["par_template"]][["lncor_raw"]] %||% numeric(0))) {
-    add(set_prior("lkj(1)", class = "lncor"))
+  # and on a logistic_normal() response's correlations, class lncor,
+  # one per such response; a multivariate model holds each under its
+  # own name (core's extra_map) and names its response, as brms does
+  multi <- length(fit$spec$responses) > 1L
+  for (r in names(fit$spec$responses)) {
+    if (!identical(fit$spec$responses[[r]]$family[["simplex"]]$kind,
+                   "logistic_normal")) next
+    comp <- fit$frame[["extra_map"]][[r]][["lncor_raw"]] %||% "lncor_raw"
+    if (!length(fit$frame[["par_template"]][[comp]] %||% numeric(0))) next
+    add(set_prior("lkj(1)", class = "lncor", resp = if (multi) r else ""))
   }
   pl
 }

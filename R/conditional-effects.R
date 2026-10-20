@@ -573,10 +573,11 @@ ce_group_vars <- function(x) {
 #'
 #' @noRd
 ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
-  # a simplex family's response is a composition over categories, and
-  # brms draws it per category too ("Please set 'categorical' to TRUE")
+  # a simplex family's response is a composition over categories, and a
+  # multinomial one counts over them; brms draws both per category too
+  # ("Please set 'categorical' to TRUE")
   poly <- isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical")) ||
-    fam_is_simplex(rspec$family)
+    ce_matrix_mean(rspec$family)
   if (!is.null(categorical)) check_flag(categorical, "categorical")
   if (!is.null(dpar) || !poly) {
     if (isTRUE(categorical)) {
@@ -593,14 +594,15 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
     }
     return("linpred")
   }
-  if (identical(method, "predict") && fam_is_simplex(rspec$family)) {
+  if (identical(method, "predict") && ce_matrix_mean(rspec$family)) {
     # a composition DOES scatter about its mean, so the reason is the
     # display's: brms refuses it too ("Can only use 'categorical' with
     # method = 'posterior_epred'.")
-    sx <- rspec$family[["simplex"]]
+    sx <- rspec$family[["simplex"]] %||%
+      list(kind = "multinomial", mu = rspec$family[["primary_dpars"]])
     frm_stop("method = \"predict\" is not available for family '",
              rspec$family[["family"]], "' in the per-category display, ",
-             "as in brms. Each simulated composition is one row over every ",
+             "as in brms. Each simulated response is one row over every ",
              "category, and the display draws one curve per category. ",
              if (identical(sx$kind, "logistic_normal")) {
                "This family's category means have no closed form, so "
@@ -609,8 +611,8 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
                       "category means, or ")
              },
              "ask for one category's predictor with dpar = \"", sx$mu[1L],
-             "\". predict(fit, newdata = ) summarizes simulated ",
-             "compositions", call. = FALSE)
+             "\". predict(fit, newdata = ) summarizes the simulated ",
+             "responses", call. = FALSE)
   }
   if (identical(method, "predict")) {
     frm_stop("method = \"predict\" has no meaning on ",
@@ -667,7 +669,26 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
 ce_cats_display <- function(rspec, dpar) {
   is.null(dpar) &&
     (isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical")) ||
-       fam_is_simplex(rspec$family))
+       ce_matrix_mean(rspec$family))
+}
+
+#' Whether a family's expected response is an `n x K` matrix over
+#' categories that `fitted()` summarizes with its own standard errors:
+#' the simplex families' category means, and `multinomial()`'s expected
+#' counts (probabilities, at the one trial the display holds).
+#'
+#' @noRd
+ce_matrix_mean <- function(fam) {
+  fam_is_simplex(fam) || identical(fam[["family"]], "multinomial")
+}
+
+#' Whether the per-category display reads its estimates and standard
+#' errors off `fitted()`: the families of `ce_matrix_mean()`, and
+#' `categorical()`, whose `fitted()` has the same delta-method array.
+#'
+#' @noRd
+ce_fitted_bands <- function(fam) {
+  ce_matrix_mean(fam) || identical(fam[["type"]], "categorical")
 }
 
 #' The dpar `conditional_effects()` actually PREDICTS, which is not
@@ -1069,6 +1090,14 @@ ce_outer_comp <- function(fit) {
 #'
 #' @noRd
 ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
+  if (categorical && !identical(rspec$family[["type"]], "ordinal")) {
+    frm_stop("band = \"profile\" cannot cover a category probability of ",
+             "family '", rspec$family[["family"]], "': it is not a linear ",
+             "combination of the parameters (every category's predictor ",
+             "enters every probability), so there is no single likelihood ",
+             "root to invert. Use band = \"wald\" (the default) or \"boot\", ",
+             "or dpar = for one category's predictor", call. = FALSE)
+  }
   if (categorical) {
     frm_stop("band = \"profile\" cannot cover an ordinal category ",
              "probability: it is not a linear combination of the ",
@@ -2324,7 +2353,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # delta-method standard error differences the whole mean
   if (categorical && band != "boot" &&
       !identical(rspec$family[["type"]], "ordinal") &&
-      !fam_is_simplex(rspec$family)) {
+      !ce_fitted_bands(rspec$family)) {
     frm_stop("conditional_effects() has no analytic standard error for the ",
              "category probabilities of family '", rspec$family[["family"]],
              "': the delta method it uses is written for ordinal thresholds. ",
@@ -2475,13 +2504,14 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
         ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
                           allow_new_levels = anl)
-      } else if (fam_is_simplex(rspec$family) && band != "boot") {
+      } else if (ce_fitted_bands(rspec$family) && band != "boot") {
         # the category means and their standard errors are fitted()'s,
         # which is also where logistic_normal() is refused in brms's
         # words: its mean has no closed form
         f <- fitted(x, newdata = nd, re_formula = re_formula, resp = resp,
                     allow_new_levels = anl)
-        cats <- rspec$family[["simplex"]][["cats"]]
+        # the categories as fitted() names its layers, P(Y = k)
+        cats <- sub("^P[(]Y = (.*)[)]$", "\\1", dimnames(f)[[3L]])
         ps <- list(P = matrix(f[, "Estimate", ], nrow(f),
                               dimnames = list(NULL, cats)),
                    se = matrix(f[, "Est.Error", ], nrow(f)))

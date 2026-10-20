@@ -50,8 +50,8 @@ as brms does.
 An argument the family does not have is refused by name. brms
 ignores it, so \code{brmsfamily("poisson", link_sigma = "log")} builds a
 poisson family there. \code{threshold} is an argument of the ordinal
-families alone, and \code{refcat} of \code{"dirichlet"} and
-\code{"logistic_normal"}.
+families alone, and \code{refcat} of \code{"categorical"}, \code{"multinomial"},
+\code{"dirichlet"} and \code{"logistic_normal"}.
 
 \code{brmsfamily("com_poisson")} gives \code{\link[=compois]{compois()}}, whose \code{mu} is the
 MEAN of the count. brms 2.23.0 does not use the mean. Its Stan

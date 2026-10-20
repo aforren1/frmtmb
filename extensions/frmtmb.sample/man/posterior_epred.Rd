@@ -180,10 +180,14 @@ predicts one number per observation keeps the plain
 \verb{draws x observations} matrix.
 
 \code{posterior_predict()} is unaffected for an ordinal or categorical
-family (it draws one category per observation), and so is
-\code{posterior_linpred()}, which is a statement about one distributional
-parameter and stays an \code{n}-column matrix of the latent predictor.
-What does take the array shape in \code{posterior_predict()} is a
+family: it draws one category per observation. \code{posterior_linpred()}
+with no \code{dpar} gives every location predictor of a family whose
+parameters run over categories (categorical, multinomial and the
+simplex families) or of a mixture, as brms does: a \verb{draws x observations x predictors} array with no dimnames, \code{K - 1} layers
+with a reference category and \code{K} without one. \code{dpar = "mub"} gives
+one predictor's \verb{draws x observations} matrix. On these families
+\code{transform = TRUE} needs a \code{dpar}, as in brms. What does take the
+array shape in \code{posterior_predict()} is a
 matrix-valued RESPONSE: \code{\link[frmtmb:multinomial]{frmtmb::multinomial()}} counts, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}}
 draws and \code{frmtmb.latent::lca()} item codes give one row per observation, so the
 draws stack into \verb{draws x observations x columns}.

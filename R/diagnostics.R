@@ -85,6 +85,18 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
              "compositions, with the observed proportions instead",
              call. = FALSE)
   }
+  # a row of counts over categories has no scalar CDF either; 0.71.0
+  # stopped on the missing mean first, and once the family had one the
+  # rank code failed on the matrix with a subscript error
+  if (identical(rspec$family[["family"]], "multinomial")) {
+    frm_stop("dharma_residuals() has no meaning for the 'multinomial' ",
+             "family: a scaled quantile residual is the predictive ",
+             "distribution function evaluated at the observation, and a ",
+             "row of counts over categories has no such function. Compare ",
+             "predict(fit), a summary of simulated counts, or fitted(fit), ",
+             "the expected counts, with the observed counts instead",
+             call. = FALSE)
+  }
   ordinal <-identical(rspec$family[["type"]], "ordinal")
   # DHARMa works in fitted-row space, so the na.exclude padding
   # simulate() adds has to come back off

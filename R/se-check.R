@@ -2684,9 +2684,26 @@ se_ill_gain <- 0.005
 #' @noRd
 se_lost_message <- function(fit, lost) {
   np <- length(fit$opt$par)
+  # a refcat = NA family's flat direction is known in advance, so it is
+  # named rather than left among the generic reasons
+  # and only when the lost parameters reach every category's predictor,
+  # which the shift moves; an sd at 0 alone is not it
+  na_ref <- any(vapply(fit$spec$responses, function(r) {
+    is.function(r$family[["refcat_first"]]) &&
+      all(vapply(r$family[["primary_dpars"]], function(d) {
+        any(grepl(paste0(d, "_"), names(lost), fixed = TRUE))
+      }, NA))
+  }, NA))
   paste0("Standard errors are not available for ", length(lost), " of ",
          np, " parameters. ", paste(se_lost_clauses(fit, lost),
                                     collapse = ". "),
+         if (na_ref) {
+           paste0(". Under refcat = NA a common shift of every category's ",
+                  "predictor leaves the likelihood unchanged, so the ",
+                  "category probabilities are determined and the ",
+                  "coefficients are not: set a reference category, or a ",
+                  "prior on each predictor")
+         },
          if (needs_jp(fit)) {
            paste0(". The other outer parameters keep theirs; the ",
                   "coefficients' standard errors come from the joint ",

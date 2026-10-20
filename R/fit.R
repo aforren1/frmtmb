@@ -945,6 +945,11 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # from the frame, so family(fit) would otherwise report the family as
   # written rather than the one that was taped.
   spec <- carry_finalized_responses(spec, frame)
+  # a refcat = NA family's degrees of freedom are its reference twin's,
+  # counted here while the raw data are in hand: the fit keeps only its
+  # model frame, where log(x) has no x to re-evaluate (loglik_df())
+  frame[["refcat_first_outer"]] <- refcat_first_outer(
+    spec, bform, data, na.action, data2, drop_unused_levels)
   # a structure that loses a variance's standard error by construction
   # has said so; se_check() reads this rather than saying it again
   attr(frame, "se_explained") <- check_re_structure(spec, frame, control)

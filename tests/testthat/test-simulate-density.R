@@ -607,7 +607,7 @@ test_that("multinomial: count-vector draws agree with the family's own density",
           {
   K <- 3L
   size <- 5L
-  fam <- multinomial(K)
+  fam <- multinomial(K = K)
   n <- 2L * SIM_N
   Y <- matrix(0L, n, K)
   Y[, 1L] <- size

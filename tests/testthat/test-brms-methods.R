@@ -1200,15 +1200,13 @@ test_that("an ordinal fit's conditional_effects reach both layouts", {
 test_that("a nominal per-category display needs a bootstrap band", {
   skip_unless_brms_fit()
 
-  # PARADIGM DIFFERENCE, and the reason r13 stays out of the one-way
-  # loop. The per-category display of a NOMINAL family has no
-  # thresholds, so the ordinal delta method (ord_prob_se) does not
-  # apply and there is no analytic standard error to draw a wald band
-  # from; frmtmb refuses by name and points at band = "boot". brms
-  # summarizes posterior draws and needs no Jacobian.
+  # r13 stays out of the one-way loop: its per-category band is
+  # fitted()'s delta-method band (refused before lane catmulti's fix
+  # round 1, "no analytic standard error"), where brms summarizes
+  # posterior draws
   s <- brms_shape("r13")
-  expect_error(conditional_effects(s$fit, categorical = TRUE),
-               "no analytic standard error for the category")
+  cw <- suppressWarnings(conditional_effects(s$fit, categorical = TRUE))
+  expect_true(all(cw[[1L]]$se__ > 0))
 
   # under that band the ESTIMATE is still the fit's own, not a draw
   # mean, so it is brms's curve exactly - two refits are enough to

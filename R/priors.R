@@ -2084,9 +2084,10 @@ prior_table <- function(spec, frame, route) {
   }
   if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
   # a logistic_normal() response's correlations, brms's class lncor;
-  # frmtmb.sample supplies brms's lkj(1) default, as for rescor
-  if (length(frame[["par_template"]][["lncor_raw"]] %||% numeric(0))) {
-    add("lncor")
+  # frmtmb.sample supplies brms's lkj(1) default, as for rescor. One row
+  # per such response, which a multivariate model names, as brms does
+  for (b in lncor_blocks(list(spec = spec, frame = frame))) {
+    add("lncor", resp = if (multi) b$resp else "")
   }
   # brms's default on a simplex is dirichlet(1), the flat density on it;
   # frm() applies no density there, and frm_sample() applies brms's
@@ -3124,6 +3125,14 @@ resolve_priorlist <- function(fit, pl) {
   # as the residual correlations above, so the same LKJ density applies.
   resolve_lncor <- function(s) {
     bl <- lncor_blocks(fit)
+    # resp narrows the class to one response of a multivariate model,
+    # named as frmtmb names it or as brms does (its Stan name, Ya for
+    # Y_a), since brms's prior table reads the second
+    if (nzchar(s$resp %||% "")) {
+      bl <- Filter(function(b) {
+        s$resp %in% c(b$resp, brms_stan_name(b$resp))
+      }, bl)
+    }
     if (!length(bl)) {
       frm_stop("No logistic-normal correlation matches ", spec_target(s),
                ". Class \"lncor\" is the correlation matrix of a ",
@@ -3333,6 +3342,11 @@ resolve_priorlist <- function(fit, pl) {
   }
 
   for (s in prior_specificity_order(pl)) {
+    # brms names a response by its Stan name (Ya for Y_a), which reaches
+    # the response frmtmb names Y_a
+    if (nzchar(s$resp %||% "")) {
+      s$resp <- resp_from_stan_name(fit$spec, s$resp)
+    }
     # before the shape gate: in a multivariate model that gate would
     # judge the spelling against whichever response it met first
     no_resp <- resp_missing_refusal(fit$spec, frame, s)
@@ -4727,4 +4741,16 @@ resolve_bounds <- function(fit, lower, upper) {
     out
   }
   list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
+}
+
+#' A prior's `resp` as frmtmb names the response: brms's Stan name of a
+#' response (`brms_stan_name()`, `Ya` for `Y_a`) maps to it, and a name
+#' that is already frmtmb's, or that matches nothing, is kept.
+#'
+#' @noRd
+resp_from_stan_name <- function(spec, resp) {
+  rn <- names(spec$responses)
+  if (resp %in% rn) return(resp)
+  hit <- match(resp, brms_stan_name(rn))
+  if (is.na(hit)) resp else rn[hit]
 }

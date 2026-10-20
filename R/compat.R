@@ -1550,6 +1550,8 @@ compat_hand_rules_tbl <- function() {
     "Each response carries its own family unless rescor = TRUE.")
   r("mvbf", "group:ordinal", "works",
     "Each ordinal response has its own thresholds, stored under a name that carries the response (o_tau_raw) and reported as brms names them, b_o_Intercept[k]; set_prior(class = \"Intercept\", resp = \"o\") addresses them. |ID| correlates an ordinal response's group effects with another response's. Verified: with no shared random effect the log-likelihood is the sum of the univariate fits' (an identity: residual 0 at a shared parameter point), and with a shared |ID| effect it agrees with a hand-written RTMB objective at a shared point and at the ML optimum (dev/mv-validate-ordinal.R). fitted() stacks the category probabilities as P(Y = k) layers, as brms does; predict() answers one ordinal response at a time.")
+  r("mvbf", "group:simplex", "works",
+    "A dirichlet(), dirichlet2 or logistic_normal() response sits in a multivariate model. A logistic_normal() response's correlations are a block of that response, reported as lncor_<resp>__b__c and set with set_prior(class = \"lncor\", resp = ); brms 2.23.0 generates Stan code for that model that does not compile (its generated quantities read Llncor without the suffix), and its model block, repaired there, agrees at frmtmb's estimates (test-refcat-brms.R). Without a shared effect the log-likelihood is the sum of the univariate fits' (test-simplex-mvbf.R).")
   r("mvbf", "cox", "refused",
     "Refused: the Cox baseline is an extra parameter block that the post-fit methods read without a response in hand. Fit the survival response in a model of its own.")
   r("mvbf", "kind:aterm", "works",
@@ -1877,6 +1879,8 @@ compat_hand_rules_tbl <- function() {
     "Needs a family with a mean function.")
   r("fitted", "categorical", "conditional",
     "Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = \"response\") == fitted() identity holds.")
+  r("fitted", "multinomial", "works",
+    "Returns brms's n x 4 x K array of expected counts, probability times the row's trials, layers named P(Y = <category>) as brms names them, with delta-method standard errors through the softmax; the Wald bounds are held between 0 and the trials. newdata needs its trials() column, as in brms. Through 0.71.0 it was refused.")
   r("fitted", "cox", "refused",
     "Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = \"link\") for the log hazard ratio.")
   r("fitted", "von_mises", "conditional",

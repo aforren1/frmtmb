@@ -1,3 +1,23 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* **`posterior_linpred()` with no `dpar` on a family with several
+  location predictors returns brms's `draws x observations x P` array**,
+  every margin unnamed: every `mu<cat>` of `categorical()`,
+  `multinomial()` and the simplex families (`K - 1` layers with a
+  reference category, `K` without), and every component's `mu<k>` of a
+  mixture. It returned the first predictor's matrix. On these families
+  `transform = TRUE` without a `dpar` is refused in brms's words, a
+  two-category `categorical()` with its one predictor included.
+
+## New features
+
+* Draws of a `logistic_normal()` response inside `mvbf()` report its
+  correlations as `lncor_<resp>__b__c`, with `<resp>` brms's Stan name
+  of the response, and the sampler's default puts
+  brms's `lkj(1)` on each such response.
+
 # frmtmb.sample 0.19.0
 
 Needs frmtmb 0.71.0: it reads the sampling-API exports `ce_method()`,

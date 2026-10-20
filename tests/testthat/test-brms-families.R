@@ -178,7 +178,7 @@ test_that("an unquoted link resolves as brms resolves it", {
 test_that("link and link_<dpar> agree with links on every registry family", {
   checked <- 0L
   for (nm in names(frmtmb:::family_registry)) {
-    f <- if (nm == "multinomial") multinomial(3) else {
+    f <- if (nm == "multinomial") multinomial(K = 3) else {
       frmtmb:::family_registry[[nm]]()
     }
     x <- unclass(f)
@@ -276,7 +276,7 @@ test_that("a link replaced in family_finalize() reaches family(fit)", {
 test_that("mixture() refuses what brms refuses, and keeps what brms keeps", {
   expect_error(mixture(gaussian, hurdle_gamma),
                "not allowed in mixture models: hurdle_gamma", fixed = TRUE)
-  expect_error(mixture(poisson, multinomial(3)),
+  expect_error(mixture(poisson, multinomial()),
                "not allowed in mixture models: multinomial", fixed = TRUE)
   expect_error(mixture(Beta, zero_inflated_beta),
                "not allowed in mixture models: zero_inflated_beta",
@@ -509,8 +509,8 @@ test_that("get_prior() answers without trials() where brms does", {
     list(s ~ x, binomial()),
     list(y01 ~ x, zero_inflated_binomial()),
     list(y01 ~ 1, mixture(binomial(), binomial())),
-    list(Y ~ x, multinomial(3)),
-    list(Y | trials(one) ~ x, multinomial(3))
+    list(Y ~ x, multinomial()),
+    list(Y | trials(one) ~ x, multinomial(K = 3))
   )
   for (cs in cases) {
     expect_s3_class(get_prior(cs[[1]], data = d, family = cs[[2]]),

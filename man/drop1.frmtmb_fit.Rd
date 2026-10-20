@@ -31,6 +31,14 @@ refits, and tabulates AIC (and likelihood-ratio tests with
 \code{drop1.merMod}. Random-effect, smooth, and \code{mo()}/\code{mi()} terms are
 not part of the deletion scope.
 }
+\details{
+A family without a \code{mu} gives the main formula to every location
+predictor that has no formula of its own: each category of
+\code{\link[=categorical]{categorical()}}, \code{\link[=multinomial]{multinomial()}}, \code{\link[=dirichlet]{dirichlet()}} and
+\code{\link[=logistic_normal]{logistic_normal()}}, and each component of a \code{\link[=mixture]{mixture()}}. A dropped
+term leaves all of them at once, as \code{\link[nnet:multinom]{nnet::multinom()}}'s \code{drop1()}
+drops it from every logit.
+}
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), z = rnorm(100),

@@ -127,22 +127,29 @@ draws_natural_cols <- function(fit) {
 #' `lncor_raw`, and brms reports the correlations themselves as
 #' `lncor__b__c`, the upper triangle read column by column. Read off the
 #' family's own bookkeeping, so it needs nothing of core beyond
-#' `us_chol_cor()`.
+#' `us_chol_cor()`. A multivariate model holds each response's chart
+#' under the name `<resp>_lncor_raw` (core's `extra_map`) and reports it
+#' as `lncor_<resp>__b__c` with brms's Stan name of the response, as
+#' core's `variables()` does.
 #'
 #' @noRd
 draws_lncor_cols <- function(fit) {
   out <- list()
   tpl <- fit$frame[["par_template"]]
-  for (rspec in fit$spec$responses) {
-    sx <- rspec$family[["simplex"]]
+  multi <- length(fit$spec$responses) > 1L
+  for (r in names(fit$spec$responses)) {
+    sx <- fit$spec$responses[[r]]$family[["simplex"]]
     if (!identical(sx$kind, "logistic_normal")) next
+    comp <- fit$frame[["extra_map"]][[r]][["lncor_raw"]] %||% "lncor_raw"
     D <- length(sx$pred)
-    m <- length(tpl[["lncor_raw"]])
+    m <- length(tpl[[comp]])
     if (D < 2L || !m) next
     lab <- sub("^mu", "", sx$mu)
     up <- which(upper.tri(diag(D)), arr.ind = TRUE)
     up <- up[order(up[, "col"], up[, "row"]), , drop = FALSE]
-    out[[length(out) + 1L]] <- draws_lncor_block(D, up, lab)
+    out[[length(out) + 1L]] <- draws_lncor_block(
+      D, up, lab, comp,
+      if (multi) paste0("lncor_", brms_stan_name(r)) else "lncor")
   }
   out
 }
@@ -151,9 +158,11 @@ draws_lncor_cols <- function(fit) {
 #' dimension (see `draws_ordinal_block()` for why this is a function).
 #'
 #' @noRd
-draws_lncor_block <- function(D, up, lab) {
-  list(internal = paste0("lncor_raw_", seq_len(nrow(up))),
-       names = paste0("lncor__", lab[up[, "row"]], "__", lab[up[, "col"]]),
+draws_lncor_block <- function(D, up, lab, comp = "lncor_raw",
+                              prefix = "lncor") {
+  list(internal = paste0(comp, "_", seq_len(nrow(up))),
+       names = paste0(prefix, "__", lab[up[, "row"]], "__",
+                      lab[up[, "col"]]),
        map = function(r) {
          C <- us_chol_cor(as.numeric(r), D)
          C[up]

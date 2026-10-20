@@ -3159,6 +3159,17 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                           paste0("eta", seq_len(dim(out)[3L])))
     return(out)
   }
+  if (is.matrix(est) && isTRUE(attr(est, "per_predictor"))) {
+    # one layer per location predictor, unbounded: brms names them eta1,
+    # eta2, ... for a family over categories and leaves a mixture's
+    # unnamed (its is_polytomous() is FALSE there)
+    out <- brms_summary_array(est, se, probs)
+    dimnames(out) <- list(NULL, dimnames(out)[[2L]],
+                          if (fam_is_polytomous(rs$family)) {
+                            paste0("eta", seq_len(dim(out)[3L]))
+                          })
+    return(out)
+  }
   if (is.matrix(est)) {
     # a category distribution: one summary layer per category, brms's
     # n x 4 x K array, named by the response's own categories the way
@@ -3169,6 +3180,12 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     dn <- dimnames(out)
     dn[1L] <- list(NULL)
     dimnames(out) <- dn
+    if (identical(rs[["family"]][["family"]], "multinomial") &&
+          scale == "response" && is.null(dpar)) {
+      # expected COUNTS, which brms labels P(Y = k) too: a row's counts
+      # lie between 0 and its trials, which the estimates sum to
+      return(prob_clamp_quantiles(out, upper = rowSums(est)))
+    }
     return(prob_clamp_quantiles(out))
   }
   out <- brms_summary_matrix(est, se, probs, rownames = NULL)
@@ -3249,11 +3266,16 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
 #' interval, so a bound that was clamped is a sign that the normal
 #' approximation is poor there.
 #'
+#' `upper` is the per-row bound when the layers are expected counts
+#' (a multinomial fit's), whose range is 0 to the row's trials.
+#'
 #' @noRd
-prob_clamp_quantiles <- function(out) {
+prob_clamp_quantiles <- function(out, upper = 1) {
   q <- setdiff(seq_len(dim(out)[2L]), 1:2)
   if (length(q)) {
-    out[, q, ] <- pmin(pmax(out[, q, , drop = FALSE], 0), 1)
+    # out[i, q, k] varies fastest in i, so a per-row bound recycles
+    # down the rows
+    out[, q, ] <- pmin(pmax(out[, q, , drop = FALSE], 0), upper)
   }
   out
 }
@@ -3269,6 +3291,23 @@ prob_clamp_quantiles <- function(out) {
 fitted_point <- function(object, newdata = NULL, re_formula = NULL,
                          scale = "response", resp = NULL, dpar = NULL,
                          allow_new_levels = FALSE) {
+  if (scale == "linear" && is.null(dpar)) {
+    rn <- resp %||% names(object$spec$responses)[1L]
+    mus <- mu_stack_dpars(object$spec$responses[[rn]]$family)
+    if (length(mus) > 1L) {
+      # brms stacks every location predictor here, one layer each
+      # (posterior_epred.brmsprep(), "multiple mu parameters")
+      cols <- lapply(mus, function(d) {
+        as.numeric(frm_linpred(object, newdata = newdata, type = "link",
+                               dpar = d, resp = resp,
+                               re_formula = re_formula,
+                               allow_new_levels = allow_new_levels))
+      })
+      out <- do.call(cbind, cols)
+      attr(out, "per_predictor") <- TRUE
+      return(out)
+    }
+  }
   out <- frm_linpred(object, newdata = newdata,
                      type = if (scale == "response") "response" else "link",
                      dpar = dpar, resp = resp, re_formula = re_formula,
@@ -3277,6 +3316,22 @@ fitted_point <- function(object, newdata = NULL, re_formula = NULL,
     out <- ord_linear_per_threshold(object, out, newdata, resp)
   }
   out
+}
+
+#' The location predictors brms stacks into a third dimension when a
+#' linear-scale summary names no `dpar`: every `mu<cat>` of a family
+#' whose dpars run over categories (brms's `conv_cats_dpars()`:
+#' categorical, multinomial and the simplex families), and every
+#' component's `mu<k>` of a mixture. `NULL` for any other family.
+#'
+#' @noRd
+mu_stack_dpars <- function(fam) {
+  if (is.null(fam)) return(NULL)
+  if (isTRUE(fam[["family"]] %in% c("categorical", "multinomial")) ||
+        fam_is_simplex(fam) || !is.null(fam[["mix"]])) {
+    return(fam[["primary_dpars"]])
+  }
+  NULL
 }
 
 #' The linear predictor of an ordinal fit with `cs()` terms, one column
@@ -3889,16 +3944,20 @@ predict_ordinal <- function(object, rspec, newdata, use_re,
 #' space.
 #'
 #' Unlike the ordinal families, which share one latent predictor, a
-#' categorical fit carries K-1 of them - one per non-reference category,
-#' in category order - so the softmax runs over the whole set. The
-#' reference category's column is the pinned zero, and the row maximum
-#' comes out before `exp()` so a wide predictor cannot overflow.
+#' categorical fit carries one per category but the reference (every
+#' category under `refcat = NA`), in category order, so the softmax runs
+#' over the whole set. The reference category's column is the pinned
+#' zero, and the row maximum comes out before `exp()` so a wide predictor
+#' cannot overflow.
 #'
 #' @noRd
 cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
                       allow_new_levels = FALSE) {
-  dpn <- rspec$primary_dpars
-  K <- length(dpn) + 1L
+  # the family's own list, in category order: the spec's swaps a
+  # location with an nlf() body for its parameters
+  dpn <- rspec$family[["primary_dpars"]] %||% rspec$primary_dpars
+  K <- cat_ncat(rspec$family, length(dpn))
+  pred <- cat_pred_pos(rspec$family, length(dpn))
   E <- NULL
   nonest <- NULL
   rn <- NULL
@@ -3915,7 +3974,7 @@ cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
       nonest <- rep(FALSE, n)
       rn <- names(ed[["eta"]])
     }
-    E[, j + 1L] <- unname(ed[["eta"]])
+    E[, pred[j]] <- unname(ed[["eta"]])
     nonest <- nonest | ed[["nonest"]]
   }
   P <- exp(E - apply(E, 1L, max))
@@ -5339,23 +5398,28 @@ extra_tpl_name <- function(frame, resp, nm) {
 #' An ordinal family's extras are its thresholds, a block that belongs
 #' to one response and that every post-fit path reads through the
 #' response (`fit_extras(fit, resp)`), so they are namespaced by the
-#' response and supported. Any other family's extras are refused by
-#' name: the Cox baseline and the class covariances of mixture_mvn()
-#' are read by post-fit methods that have not been checked with a
-#' response in hand, and a family from another package has declared
-#' nothing about them.
+#' response and supported. So are a `logistic_normal()` response's
+#' correlations, which every post-fit path reads through
+#' `lncor_blocks()`, one block per response. Any other family's extras
+#' are refused by name: the Cox baseline and the class covariances of
+#' mixture_mvn() are read by post-fit methods that have not been checked
+#' with a response in hand, and a family from another package has
+#' declared nothing about them.
 #'
 #' @noRd
 check_mv_extra_family <- function(fam) {
   if (identical(fam[["type"]], "ordinal")) return(invisible(NULL))
+  if (identical(fam[["simplex"]][["kind"]], "logistic_normal")) {
+    return(invisible(NULL))
+  }
   frm_stop("Families with extra parameters ('", fam[["family"]],
            "') are not supported in multivariate fits yet. The ordinal ",
-           "families (cumulative, sratio, cratio, acat) are, because ",
-           "their thresholds are a block of one response; this family's ",
-           "extra parameters are read by post-fit methods that have not ",
-           "been checked inside a multivariate model. Fit this response ",
-           "in a model of its own", call. = FALSE,
-           package = frm_family_package(fam))
+           "families (cumulative, sratio, cratio, acat) and ",
+           "logistic_normal() are, because their extra parameters are a ",
+           "block of one response; this family's extra parameters are ",
+           "read by post-fit methods that have not been checked inside a ",
+           "multivariate model. Fit this response in a model of its own",
+           call. = FALSE, package = frm_family_package(fam))
 }
 
 #' @rdname frmtmb-extension-api

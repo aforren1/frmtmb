@@ -70,10 +70,12 @@ test_that("multinomial validation", {
                    data = dd),
                "Number of trials does not match the number of events.",
                fixed = TRUE)
-  expect_error(multinomial(), "number of categories")
-  # fitted() delegates to frm_linpred(type = "response") now, so the refusal
-  # is the FAMILY's own and says why rather than only that it refused
-  expect_error(fitted(frm(bf(Y | trials(n) ~ x) + multinomial(K = 3),
-                          data = dd)),
-               "declares no mean")
+  # the bare spelling reads the categories off the response, as brms
+  # does, and the same checks apply (test-refcat.R covers the rest)
+  expect_error(frm(bf(Y ~ x) + multinomial(), data = dd),
+               "Specifying 'trials' is required for this model.",
+               fixed = TRUE)
+  # fitted() is the expected counts now, brms's n x 4 x K array
+  expect_identical(dim(fitted(frm(bf(Y | trials(n) ~ x) + multinomial(),
+                                  data = dd))), c(300L, 4L, 3L))
 })

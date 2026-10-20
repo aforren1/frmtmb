@@ -681,10 +681,15 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' `draws x observations` matrix.
 #'
 #' `posterior_predict()` is unaffected for an ordinal or categorical
-#' family (it draws one category per observation), and so is
-#' `posterior_linpred()`, which is a statement about one distributional
-#' parameter and stays an `n`-column matrix of the latent predictor.
-#' What does take the array shape in `posterior_predict()` is a
+#' family: it draws one category per observation. `posterior_linpred()`
+#' with no `dpar` gives every location predictor of a family whose
+#' parameters run over categories (categorical, multinomial and the
+#' simplex families) or of a mixture, as brms does: a `draws x
+#' observations x predictors` array with no dimnames, `K - 1` layers
+#' with a reference category and `K` without one. `dpar = "mub"` gives
+#' one predictor's `draws x observations` matrix. On these families
+#' `transform = TRUE` needs a `dpar`, as in brms. What does take the
+#' array shape in `posterior_predict()` is a
 #' matrix-valued RESPONSE: [frmtmb::multinomial()] counts, [frmtmb::mixture_mvn()]
 #' draws and `frmtmb.latent::lca()` item codes give one row per observation, so the
 #' draws stack into `draws x observations x columns`.
@@ -952,6 +957,21 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   incl <- isTRUE(incl_thres) && !isTRUE(transform) && is.null(dpar) &&
     is.null(nlpar) && identical(rs$family[["type"]], "ordinal")
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_linpred()")
+  # brms's linear scale with no dpar named: every location predictor of
+  # a family over categories, or of a mixture, one layer each
+  # (posterior_epred.brmsprep(), "multiple mu parameters")
+  stack <- if (is.null(dpar) && !incl) draws_mu_stack(rs$family)
+  if (length(stack) && isTRUE(transform)) {
+    # brms's transform = TRUE asks for dpar "mu", which these families
+    # do not have, a two-category categorical() with its one mub too;
+    # its words, then what to do here
+    frm_stop("Invalid argument 'dpar'. Valid distributional parameters ",
+             "are: ", paste0("'", rs$family[["dpars"]], "'",
+                             collapse = ", "), ". transform = TRUE gives ",
+             "the parameter mu on its natural scale, and this family has ",
+             "no mu: name its parameter with dpar =, or use ",
+             "posterior_epred() for the expected response", call. = FALSE)
+  }
   # subset(): one response at a time, as brms asks
   subset_resp_check(object$fit, resp %||% names(object$fit$spec$responses),
                     "posterior_linpred()")
@@ -968,6 +988,12 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
     if (incl) {
       return(ord_thres_linpred(f, newdata = newdata, resp = resp,
                                re_formula = rf))
+    }
+    if (length(stack) > 1L) {
+      return(do.call(cbind, lapply(stack, function(d) {
+        as.numeric(frm_linpred(f, newdata = newdata, resp = resp,
+                               dpar = d, re_formula = rf, type = "link"))
+      })))
     }
     frm_linpred(f, newdata = newdata, resp = resp, dpar = dpar,
                 re_formula = rf,
@@ -992,10 +1018,35 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
       out[k, , ] <- p
       next
     }
+    if (length(stack) > 1L) {
+      # draws x observations x predictors, every margin unnamed, as brms
+      # 2.23.0 returns it (dev/catmulti-out/brms-fits.txt)
+      if (is.null(out)) {
+        out <- array(NA_real_, c(length(rows), nrow(p), ncol(p)))
+      }
+      out[k, , ] <- p
+      next
+    }
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
   }
   out
+}
+
+#' The location dpars brms stacks when `posterior_linpred()` names no
+#' `dpar`: the `mu<cat>` of a family whose dpars run over categories
+#' (brms's `conv_cats_dpars()`), or each component's `mu<k>` of a
+#' mixture. `NULL` for any other family. Core's `fitted(scale =
+#' "linear")` reads the same set.
+#'
+#' @noRd
+draws_mu_stack <- function(fam) {
+  if (is.null(fam)) return(NULL)
+  if (isTRUE(fam[["family"]] %in% c("categorical", "multinomial")) ||
+        !is.null(fam[["simplex"]]) || !is.null(fam[["mix"]])) {
+    return(fam[["primary_dpars"]])
+  }
+  NULL
 }
 
 #' brms's `dpar` and `nlpar` are ONE argument here.
