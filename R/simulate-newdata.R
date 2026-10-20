@@ -105,6 +105,28 @@ sim_re_plan <- function(fit, re_formula) {
     }
     cond[[length(cond) + 1L]] <- list(block = i, keep = ck)
   }
+  # Student-t terms that share a latent scale are dependent: a term
+  # redrawn from its marginal beside one kept at its estimates would
+  # drop that dependence at every level they share, so there they are
+  # kept or redrawn together
+  for (i in seq_along(blocks)) {
+    sh <- blocks[[i]][["t_share"]]
+    if (is.null(sh) || i != sh[1L]) next
+    gone <- vapply(sh, function(j) !any(colkeep[[j]]), NA)
+    lv_gone <- unlist(lapply(blocks[sh[gone]], `[[`, "t_level"))
+    lv_kept <- unlist(lapply(blocks[sh[!gone]], `[[`, "t_level"))
+    if (length(intersect(lv_gone, lv_kept))) {
+      frm_stop("simulate(): re_formula keeps some of the Student-t terms ",
+               "of grouping factor '", blocks[[i]][["group_name"]],
+               "' and drops others (",
+               paste(vapply(blocks[sh], `[[`, "", "term_label"),
+                     collapse = "; "),
+               "). They share one latent scale per level, as in brms, so ",
+               "a dropped term is not independent of a kept one and has ",
+               "no law of its own to be redrawn from here. Keep or drop ",
+               "all of them", call. = FALSE)
+    }
+  }
   list(redraw = redraw, cond = cond, blocks = ids)
 }
 

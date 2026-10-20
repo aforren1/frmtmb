@@ -257,10 +257,18 @@ test_that("the bare-name collision that used to revoke the ODE refusal
   # The attack, performed for real rather than against a hand-built
   # table: core ACCEPTS a bare `frm_ode` display name, and under the old
   # parser-key match that shared key downgraded the refusal to a warning
-  # and the model sampled. The registration is permanent for this R
-  # process and there is no way to withdraw one, so it comes last in
-  # this block; the blocks after it are unaffected because the bare row
-  # carries no rules and so changes no pair's status.
+  # and the model sampled. covr and R CMD check run every file in one
+  # session, so the block puts the vocabulary back as it found it.
+  ns <- asNamespace("frmtmb")
+  contrib <- ns$frmtmb_compat_contrib
+  cache <- ns$frmtmb_compat_cache
+  saved <- list(features = contrib$features, cache_f = cache$features,
+                cache_t = cache$tbl)
+  withr::defer({
+    contrib$features <- saved$features
+    cache$features <- saved$cache_f
+    cache$tbl <- saved$cache_t
+  })
   expect_silent(
     frmtmb_register_compat(features = c("frm_ode" = "structure")))
   ft2 <- frm_compat_features()

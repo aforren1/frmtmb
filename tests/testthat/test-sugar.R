@@ -2,7 +2,7 @@
 
 test_that("accessors match lme4 conventions on sleepstudy", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   ref <- lme4::lmer(Reaction ~ Days + (Days | Subject), sleepstudy,

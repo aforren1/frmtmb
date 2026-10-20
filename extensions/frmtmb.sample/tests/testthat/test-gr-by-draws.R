@@ -101,13 +101,16 @@ test_that("VarCorr() of a by-split term is brms's", {
   vd <- VarCorr(ds, summary = FALSE)
   expect_identical(colnames(vd$g$sd),
                    c("Intercept:fa", "x:fa", "Intercept:fb", "x:fb"))
-  M <- cbind(ds$draws,
-             "sd_g__Intercept:fa" = unname(vd$g$sd[, "Intercept:fa"]),
-             "sd_g__x:fa" = unname(vd$g$sd[, "x:fa"]),
-             "sd_g__Intercept:fb" = unname(vd$g$sd[, "Intercept:fb"]),
-             "sd_g__x:fb" = unname(vd$g$sd[, "x:fb"]),
-             "cor_g__Intercept:fa__x:fa" = vd$g$cor[, "Intercept:fa", "x:fa"],
-             "cor_g__Intercept:fb__x:fb" = vd$g$cor[, "Intercept:fb", "x:fb"])
+  # the draws carry brms's sd_ and cor_ columns, derived from theta, and
+  # brms's VarCorr() reads them as they are
+  M <- ds$draws
+  for (k in colnames(vd$g$sd)) {
+    expect_identical(unname(M[, paste0("sd_g__", k)]),
+                     unname(vd$g$sd[, k]))
+  }
+  expect_equal(unname(M[, "cor_g__Intercept:fb__x:fb"]),
+               unname(vd$g$cor[, "Intercept:fb", "x:fb"]),
+               tolerance = 1e-14)
   sv <- grby_shim(cs, M)
   expect_identical(VarCorr(ds), brms:::VarCorr.brmsfit(sv))
 })

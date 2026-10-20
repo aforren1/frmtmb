@@ -35,11 +35,11 @@ For sampled fits, \code{variables()} on the \code{frmtmb.sample::frm_sample()}
 result lists the draw columns. The coefficients, the natural-scale
 distributional parameters, an ordinal fit's thresholds
 (\code{b_Intercept[1]}) and the \code{cs()} coefficients (\verb{bcs_<column>[1]})
-have the names and the values this page gives them. The covariance
-parameters do not: a draw stores them as the sampler sampled them, on
-the unconstrained scale and under their internal names (\code{theta_1}),
-and \code{VarCorr()} and \code{hypothesis()} on the draws compute the \code{sd_} and
-\code{cor_} quantities from them.
+have the names and the values this page gives them. So do the
+covariance summaries, \code{sd_} and \code{cor_} among them, which the draws
+carry as columns computed from each draw's covariance parameters;
+those are stored as the sampler sampled them, on the unconstrained
+scale and under their internal names (\code{theta_1}), beside them.
 
 brms's \code{variables()} also lists what a fit has no counterpart of:
 group-level coefficients \verb{r_<group>[<level>,<coef>]}, the centered

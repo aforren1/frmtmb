@@ -47,7 +47,9 @@ get_joint_cov <- function(fit) {
       # same degradation vcov() uses: a singular joint precision gives
       # NaN standard errors and one warning naming diagnose(), not a raw
       # LAPACK message from deep inside predict()
-      V <- as.matrix(solve_joint_precision(Q, cache, fit))
+      jw <- joint_cov_whole(fit, Q)
+      V <- as.matrix(jw$V)
+      root <- jw$root
     }
     rn <- rownames(Q)
   }
@@ -920,10 +922,18 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         is_new <- rt$new
       }
       if (any(is_new) && !allow_new_levels) {
+        # the levels as brms names them, p4_qNEW for one of g1:g2
+        nl <- unique(gv[is_new])
+        if (grepl(":", bk[["group_name"]] %||% "", fixed = TRUE)) {
+          nb <- tryCatch(group_values_brms(comp$bar[[3]], newdata, env),
+                         error = function(e) NULL)
+          nl <- if (length(nb) == length(gv)) unique(nb[is_new]) else
+            gsub(":", "_", nl, fixed = TRUE)
+        }
         stop_new_levels(
           paste0("New levels in grouping factor `",
                  deparse1(comp$bar[[3]]), "`: ",
-                 paste(unique(gv[is_new]), collapse = ", ")),
+                 paste(nl, collapse = ", ")),
           "Use allow_new_levels = TRUE to predict them at the population level")
       }
       j <- new_level_pick_apply(fit[["new_level_pick"]], bk, gv, j, is_new)
@@ -992,8 +1002,8 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
       as.character(gv[[k]])[is_new[, k]]
     }), use.names = FALSE))
     stop_new_levels(
-      paste0("New levels in multi-membership factor `", mms$label, "`: ",
-             paste(new, collapse = ", ")),
+      paste0("New levels in multi-membership factor `",
+             mm_group_name(mms), "`: ", paste(new, collapse = ", ")),
       paste0("Use allow_new_levels = TRUE to predict those memberships ",
              "at the population level; the row's remaining members still ",
              "contribute their fitted effects"))
@@ -1351,18 +1361,99 @@ is_custom_data_aterm <- function(nm) {
   grepl("^v(int|real)[0-9]+$", nm) || !is.null(registered_aterm_of(nm))
 }
 
-#' Re-evaluate a response's addition terms on new data, for the
-#' expected-response prediction path. A term the family mean needs must
-#' evaluate, because dropping it silently changes the mean; any other
-#' term is dropped with a warning.
+#' The addition terms no prediction on newdata evaluates, as brms fills
+#' or ignores them in post-processing: `cens()` and `weights()` (brms's
+#' `validate_newdata()` fills both), `mi()`, the `se_sigma` flag, which
+#' is copied from the spec, a `thres()` count, which lives on the family
+#' once the fit is made, and `subset()` and `index()`, which choose rows
+#' and reach no density.
+#'
+#' @noRd
+newdata_unread_aterms <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd",
+                           "weights", "thres", row_aterms)
+
+#' An addition term's value on rows the fit did not see, coded as the
+#' frame coded it: `thres(gr = )` as the fit's group codes, a value
+#' whose coding depends on its levels through the table the frame kept
+#' (`aterm_code_table()`), a registered term otherwise through the
+#' coercion its package registered, anything else as a number.
+#'
+#' A coercion handed newdata alone codes it by newdata's own levels: a
+#' `dec()` factor releveled, or given as character, swapped the two
+#' boundaries, and one value alone (a one-row newdata) was refused for
+#' holding one level.
+#'
+#' @noRd
+aterm_coerce <- function(nm, v, rspec) {
+  if (nm == "thres_gr") return(thres_newdata_codes(rspec$family, v))
+  reg_at <- registered_aterm_of(nm)
+  tab <- rspec[["aterm_codes"]][[nm]]
+  if (!is.null(tab) && aterm_is_labelled(v)) {
+    return(aterm_code_lookup(v, tab, aterm_label(nm, rspec$aterms[[nm]])))
+  }
+  as.numeric(if (is.null(reg_at)) v else reg_at$coerce(v))
+}
+
+#' Whether an addition term's raw value is coded by its levels rather
+#' than by its values: a factor for any term (`as.numeric()` gives level
+#' codes), and a character or logical vector for a registered term,
+#' whose coercion may build levels from whatever values it is handed
+#' (frmtmb.eam's `ddm_coerce_dec()` does).
+#'
+#' @noRd
+aterm_level_coded <- function(v, reg_at) {
+  is.factor(v) || (!is.null(reg_at) && (is.character(v) || is.logical(v)))
+}
+
+#' Whether a value is labels (a factor, character or logical vector),
+#' which a term the fit coded by its levels reads through its table
+#' however newdata spells them: a factor-coded term given `"hi"` as
+#' character became `NA` through `as.numeric()`.
+#'
+#' @noRd
+aterm_is_labelled <- function(v) {
+  is.factor(v) || is.character(v) || is.logical(v)
+}
+
+#' The value-to-number table of a level-coded term, from its raw values
+#' and what the frame coded them as.
+#'
+#' @noRd
+aterm_code_table <- function(raw, coded) {
+  key <- as.character(raw)
+  keep <- !is.na(key) & !duplicated(key)
+  list(key = key[keep], value = as.numeric(coded)[keep])
+}
+
+#' A level-coded term on new rows, read through the fit's table. A value
+#' the fit never saw has no code, so it is refused by name.
+#'
+#' @noRd
+aterm_code_lookup <- function(v, tab, label) {
+  key <- as.character(v)
+  i <- match(key, tab$key)
+  bad <- unique(key[is.na(i) & !is.na(key)])
+  if (length(bad)) {
+    frm_stop("Addition term ", label, " holds value(s) ",
+             paste0("'", bad, "'", collapse = ", "), " the fit did not ",
+             "see, so they have no code; the fit saw ",
+             paste0("'", tab$key[seq_len(min(10L, length(tab$key)))], "'",
+                    collapse = ", "),
+             if (length(tab$key) > 10L) ", ...", call. = FALSE)
+  }
+  as.numeric(tab$value[i])
+}
+
+#' Re-evaluate a response's addition terms on new data. Every post-fit
+#' path that hands newdata rows to a family's mean, simulator or density
+#' takes its terms from here, all of them, so that none of them is left
+#' to a family default. A term the family needs must evaluate, because
+#' dropping it silently changes the answer; any other term is dropped
+#' with a warning.
 #'
 #' @noRd
 aterms_for_newdata <- function(rspec, newdata) {
-  # a thres() count lives on the family once the fit is made, so newdata
-  # need not repeat it
-  # subset() and index() choose rows and reach no density
-  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
-            "thres", row_aterms)
+  skip <- newdata_unread_aterms
   # rate() scales the mean, so a row without its exposure has none, as
   # brms says ("can neither be found in 'data' nor in 'data2'")
   need <- c("trials", "se", "trunc_lb", "trunc_ub", "rate")
@@ -1385,18 +1476,24 @@ aterms_for_newdata <- function(rspec, newdata) {
                           nd_n %||% length(v))
       next
     }
-    # the same coercion the frame applied, or newdata's factor would
-    # reach the density as level codes where training data reached it as
-    # whatever the contributing package meant
-    reg_at <- registered_aterm_of(nm)
     v <- tryCatch(
-      as.numeric(if (is.null(reg_at)) {
-        eval(ex, newdata, rspec$formula_env)
-      } else {
-        reg_at$coerce(eval(ex, newdata, rspec$formula_env))
-      }),
-      error = function(e) NULL
+      aterm_coerce(nm, eval(ex, newdata, rspec$formula_env), rspec),
+      error = function(e) e
     )
+    if (inherits(v, "error")) {
+      # with every variable present the failure is the value's own (a
+      # coercion's refusal, a value the fit never saw), and its message
+      # is the one that says what is wrong
+      if (!length(setdiff(all.vars(ex), names(newdata)))) {
+        msg <- conditionMessage(v)
+        lead <- paste0("Addition term ", aterm_label(nm, ex))
+        # the table lookup already names the term; say it once
+        frm_stop(if (startsWith(msg, lead)) msg else {
+          paste0(lead, " on newdata: ", msg)
+        }, call. = FALSE)
+      }
+      v <- NULL
+    }
     # a bound the model frame supplied but newdata did not can still
     # resolve in the formula environment, to the FITTED rows; the length
     # check catches that rather than silently pairing the wrong bounds
@@ -1417,7 +1514,7 @@ aterms_for_newdata <- function(rspec, newdata) {
                    paste0(": newdata has no column ",
                           paste(missed, collapse = ", "))
                  } else "",
-                 "; supply the variable or use type = \"conditional\"",
+                 "; supply the variable",
                  call. = FALSE)
       }
       # anything else is dropped, but never silently: an aterm the
@@ -3159,6 +3256,17 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                           paste0("eta", seq_len(dim(out)[3L])))
     return(out)
   }
+  if (is.matrix(est) && isTRUE(attr(est, "per_predictor"))) {
+    # one layer per location predictor, unbounded: brms names them eta1,
+    # eta2, ... for a family over categories and leaves a mixture's
+    # unnamed (its is_polytomous() is FALSE there)
+    out <- brms_summary_array(est, se, probs)
+    dimnames(out) <- list(NULL, dimnames(out)[[2L]],
+                          if (fam_is_polytomous(rs$family)) {
+                            paste0("eta", seq_len(dim(out)[3L]))
+                          })
+    return(out)
+  }
   if (is.matrix(est)) {
     # a category distribution: one summary layer per category, brms's
     # n x 4 x K array, named by the response's own categories the way
@@ -3169,6 +3277,12 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     dn <- dimnames(out)
     dn[1L] <- list(NULL)
     dimnames(out) <- dn
+    if (identical(rs[["family"]][["family"]], "multinomial") &&
+          scale == "response" && is.null(dpar)) {
+      # expected COUNTS, which brms labels P(Y = k) too: a row's counts
+      # lie between 0 and its trials, which the estimates sum to
+      return(prob_clamp_quantiles(out, upper = rowSums(est)))
+    }
     return(prob_clamp_quantiles(out))
   }
   out <- brms_summary_matrix(est, se, probs, rownames = NULL)
@@ -3249,11 +3363,16 @@ fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
 #' interval, so a bound that was clamped is a sign that the normal
 #' approximation is poor there.
 #'
+#' `upper` is the per-row bound when the layers are expected counts
+#' (a multinomial fit's), whose range is 0 to the row's trials.
+#'
 #' @noRd
-prob_clamp_quantiles <- function(out) {
+prob_clamp_quantiles <- function(out, upper = 1) {
   q <- setdiff(seq_len(dim(out)[2L]), 1:2)
   if (length(q)) {
-    out[, q, ] <- pmin(pmax(out[, q, , drop = FALSE], 0), 1)
+    # out[i, q, k] varies fastest in i, so a per-row bound recycles
+    # down the rows
+    out[, q, ] <- pmin(pmax(out[, q, , drop = FALSE], 0), upper)
   }
   out
 }
@@ -3269,6 +3388,23 @@ prob_clamp_quantiles <- function(out) {
 fitted_point <- function(object, newdata = NULL, re_formula = NULL,
                          scale = "response", resp = NULL, dpar = NULL,
                          allow_new_levels = FALSE) {
+  if (scale == "linear" && is.null(dpar)) {
+    rn <- resp %||% names(object$spec$responses)[1L]
+    mus <- mu_stack_dpars(object$spec$responses[[rn]]$family)
+    if (length(mus) > 1L) {
+      # brms stacks every location predictor here, one layer each
+      # (posterior_epred.brmsprep(), "multiple mu parameters")
+      cols <- lapply(mus, function(d) {
+        as.numeric(frm_linpred(object, newdata = newdata, type = "link",
+                               dpar = d, resp = resp,
+                               re_formula = re_formula,
+                               allow_new_levels = allow_new_levels))
+      })
+      out <- do.call(cbind, cols)
+      attr(out, "per_predictor") <- TRUE
+      return(out)
+    }
+  }
   out <- frm_linpred(object, newdata = newdata,
                      type = if (scale == "response") "response" else "link",
                      dpar = dpar, resp = resp, re_formula = re_formula,
@@ -3277,6 +3413,22 @@ fitted_point <- function(object, newdata = NULL, re_formula = NULL,
     out <- ord_linear_per_threshold(object, out, newdata, resp)
   }
   out
+}
+
+#' The location predictors brms stacks into a third dimension when a
+#' linear-scale summary names no `dpar`: every `mu<cat>` of a family
+#' whose dpars run over categories (brms's `conv_cats_dpars()`:
+#' categorical, multinomial and the simplex families), and every
+#' component's `mu<k>` of a mixture. `NULL` for any other family.
+#'
+#' @noRd
+mu_stack_dpars <- function(fam) {
+  if (is.null(fam)) return(NULL)
+  if (isTRUE(fam[["family"]] %in% c("categorical", "multinomial")) ||
+        fam_is_simplex(fam) || !is.null(fam[["mix"]])) {
+    return(fam[["primary_dpars"]])
+  }
+  NULL
 }
 
 #' The linear predictor of an ordinal fit with `cs()` terms, one column
@@ -3889,16 +4041,20 @@ predict_ordinal <- function(object, rspec, newdata, use_re,
 #' space.
 #'
 #' Unlike the ordinal families, which share one latent predictor, a
-#' categorical fit carries K-1 of them - one per non-reference category,
-#' in category order - so the softmax runs over the whole set. The
-#' reference category's column is the pinned zero, and the row maximum
-#' comes out before `exp()` so a wide predictor cannot overflow.
+#' categorical fit carries one per category but the reference (every
+#' category under `refcat = NA`), in category order, so the softmax runs
+#' over the whole set. The reference category's column is the pinned
+#' zero, and the row maximum comes out before `exp()` so a wide predictor
+#' cannot overflow.
 #'
 #' @noRd
 cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
                       allow_new_levels = FALSE) {
-  dpn <- rspec$primary_dpars
-  K <- length(dpn) + 1L
+  # the family's own list, in category order: the spec's swaps a
+  # location with an nlf() body for its parameters
+  dpn <- rspec$family[["primary_dpars"]] %||% rspec$primary_dpars
+  K <- cat_ncat(rspec$family, length(dpn))
+  pred <- cat_pred_pos(rspec$family, length(dpn))
   E <- NULL
   nonest <- NULL
   rn <- NULL
@@ -3915,7 +4071,7 @@ cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
       nonest <- rep(FALSE, n)
       rn <- names(ed[["eta"]])
     }
-    E[, j + 1L] <- unname(ed[["eta"]])
+    E[, pred[j]] <- unname(ed[["eta"]])
     nonest <- nonest | ed[["nonest"]]
   }
   P <- exp(E - apply(E, 1L, max))
@@ -4872,6 +5028,10 @@ residual_values <- function(object, type = c("response", "pearson",
 draw_b <- function(fit) {
   th <- fit$estimates[["theta"]]
   b <- numeric(length(fit$estimates[["b"]] %||% numeric(0)))
+  # one mixing draw per level for each set of Student-t blocks that
+  # share a latent scale (student_share_sets()), taken at its first
+  # block and read by the others
+  t_mix <- list()
   for (bk in fit$frame[["re_blocks"]]) {
     if (bk[["covstruct"]] == "rr") {
       # standard-normal factors; eval_dpars expands them via loadings
@@ -4922,7 +5082,18 @@ draw_b <- function(fit) {
       # shared across that level's coefficients, which is what makes the
       # draw a multivariate t rather than d independent ones
       nu <- bk[["dist_nu"]]
-      U <- U * sqrt(nu / stats::rchisq(bk[["n_levels"]], df = nu))
+      sh <- bk[["t_share"]]
+      if (is.null(sh)) {
+        U <- U * sqrt(nu / stats::rchisq(bk[["n_levels"]], df = nu))
+      } else {
+        # one draw per level of the factor, over the union of the set's
+        # levels, read at this block's own levels
+        key <- paste(sh, collapse = ",")
+        if (is.null(t_mix[[key]])) {
+          t_mix[[key]] <- sqrt(nu / stats::rchisq(bk[["t_n"]], df = nu))
+        }
+        U <- U * t_mix[[key]][bk[["t_level"]]]
+      }
     }
     b[bk[["b_idx"]]] <- as.vector(t(U))   # level-major
   }
@@ -5339,23 +5510,28 @@ extra_tpl_name <- function(frame, resp, nm) {
 #' An ordinal family's extras are its thresholds, a block that belongs
 #' to one response and that every post-fit path reads through the
 #' response (`fit_extras(fit, resp)`), so they are namespaced by the
-#' response and supported. Any other family's extras are refused by
-#' name: the Cox baseline and the class covariances of mixture_mvn()
-#' are read by post-fit methods that have not been checked with a
-#' response in hand, and a family from another package has declared
-#' nothing about them.
+#' response and supported. So are a `logistic_normal()` response's
+#' correlations, which every post-fit path reads through
+#' `lncor_blocks()`, one block per response. Any other family's extras
+#' are refused by name: the Cox baseline and the class covariances of
+#' mixture_mvn() are read by post-fit methods that have not been checked
+#' with a response in hand, and a family from another package has
+#' declared nothing about them.
 #'
 #' @noRd
 check_mv_extra_family <- function(fam) {
   if (identical(fam[["type"]], "ordinal")) return(invisible(NULL))
+  if (identical(fam[["simplex"]][["kind"]], "logistic_normal")) {
+    return(invisible(NULL))
+  }
   frm_stop("Families with extra parameters ('", fam[["family"]],
            "') are not supported in multivariate fits yet. The ordinal ",
-           "families (cumulative, sratio, cratio, acat) are, because ",
-           "their thresholds are a block of one response; this family's ",
-           "extra parameters are read by post-fit methods that have not ",
-           "been checked inside a multivariate model. Fit this response ",
-           "in a model of its own", call. = FALSE,
-           package = frm_family_package(fam))
+           "families (cumulative, sratio, cratio, acat) and ",
+           "logistic_normal() are, because their extra parameters are a ",
+           "block of one response; this family's extra parameters are ",
+           "read by post-fit methods that have not been checked inside a ",
+           "multivariate model. Fit this response in a model of its own",
+           call. = FALSE, package = frm_family_package(fam))
 }
 
 #' @rdname frmtmb-extension-api

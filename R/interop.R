@@ -180,6 +180,34 @@ interop_vcov <- function(model) {
   V
 }
 
+#' A factor `K` of the coefficient covariance, `V = K K'`, where the fit
+#' holds its covariance as one (se_reparam_cov(), or sdr_unwhiten()'s
+#' joint factor under REML); NULL otherwise.
+#' `extra = FALSE` gives the rows of vcov_estimated(), `TRUE` those of
+#' interop_vcov(), in the same order and with the same names. A caller
+#' that inverts `V` reads `K` instead (root_inv_quad()): on a degree-8
+#' raw polynomial solve() of the whole matrix stops as computationally
+#' singular, and at degree 6 it loses 6e-4 of a Cook's distance.
+#'
+#' @noRd
+coef_vcov_root <- function(model, extra = TRUE) {
+  sdr <- tryCatch(sdr_of(model), error = function(e) NULL)
+  integ <- model$REML || isTRUE(model$control$profile)
+  # under REML the coefficients are rows of the joint factor
+  # (sdr_unwhiten()), in the joint precision's order
+  root <- if (integ) sdr$joint_root else sdr$cov_fixed_root
+  if (is.null(root)) return(NULL)
+  rn <- rownames(if (integ) sdr$jointPrecision else sdr$cov.fixed)
+  cps <- c("beta", "betad", if (extra) ord_extra_comps(model))
+  ord <- unlist(lapply(cps, function(cp) which(rn == cp)))
+  nm <- if (extra) interop_coef_names(model) else
+    estimated_coef_names(model)
+  if (length(ord) != length(nm) || nrow(root) != length(rn)) return(NULL)
+  K <- root[ord, , drop = FALSE]
+  rownames(K) <- nm
+  K
+}
+
 #' @exportS3Method marginaleffects::get_coef
 get_coef.frmtmb_fit <- function(model, ...) {
   # Exempt: marginaleffects reaches this through its numderiv machinery
@@ -243,11 +271,13 @@ get_vcov.frmtmb_fit <- function(model, ...) {
   V
 }
 
-#' Is the covariance of `fit` held as a factor (se_reparam_cov())?
+#' Is the covariance of `fit` held as a factor (se_reparam_cov(), or
+#' sdr_unwhiten() for an integrated beta)?
 #'
 #' @noRd
 cov_held_as_factor <- function(fit) {
-  !is.null(tryCatch(sdr_of(fit)$cov_fixed_root, error = function(e) NULL))
+  sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+  !is.null(sdr$cov_fixed_root) || !is.null(sdr$joint_root)
 }
 
 #' The warning of an interop method that hands another package a
@@ -278,8 +308,9 @@ interop_nan_warning <- function(fit, what, key, who) {
 cov_routes_right <- function() {
   paste0("These routes use the factor and are right: fitted(), ",
          "predict(), frm_linpred(), conditional_effects(), hypothesis() ",
-         "(also with vcov = vcov_cluster(full = TRUE)), emmeans, VarCorr() ",
-         "and frm_lp_basis() through its V_root")
+         "(also with vcov = vcov_cluster(full = TRUE)), emmeans, VarCorr(), ",
+         "frm_lp_basis() through its V_root, cooks.distance(), and the ",
+         "Wald rules of anova() on frm_multiple() fits")
 }
 
 #' @exportS3Method marginaleffects::get_predict

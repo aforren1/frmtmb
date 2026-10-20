@@ -51,6 +51,8 @@ er_prior_density <- function(dist, v) {
             (dist$shape + 1) * log(v) - dist$scale / v)
     },
     beta = stats::dbeta(v, dist$shape1, dist$shape2),
+    uniform = stats::dunif(v, dist$lower, dist$upper),
+    lognormal = stats::dlnorm(v, dist$location, dist$scale),
     NULL)
 }
 

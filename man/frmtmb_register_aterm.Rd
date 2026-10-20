@@ -19,7 +19,12 @@ value arrives as \code{aterms[[name]]}; above one it arrives as
 frame assembly. It must return a numeric vector, because the value
 is baked into the tape as data. The default is \code{\link[=as.numeric]{as.numeric()}}; a
 term whose natural spelling is a factor gives a function that maps
-the factor to the numbers the density wants.}
+the factor to the numbers the density wants. A factor, character
+or logical value is coerced on the fitted data only. Newdata and
+refits are coded through a table of what each value became there,
+so that a coercion that builds levels from its input cannot code
+new rows by their own levels, and a value the fit did not see is
+refused.}
 }
 \value{
 \code{NULL}, invisibly. Called for the registration.

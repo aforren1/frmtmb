@@ -318,6 +318,8 @@ rprior_one <- function(dist) {
     inv_gamma = 1 / stats::rgamma(1L, shape = dist$shape,
                                   rate = dist$scale),
     beta = stats::rbeta(1L, dist$shape1, dist$shape2),
+    uniform = stats::runif(1L, dist$lower, dist$upper),
+    lognormal = stats::rlnorm(1L, dist$location, dist$scale),
     frm_stop("No sampler for prior kind '", dist$kind, "'", call. = FALSE)
   )
 }

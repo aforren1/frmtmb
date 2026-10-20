@@ -2866,53 +2866,67 @@ See `dev/round-20261014.md`, "Found at the consolidation".
 - **sd priors per coefficient.** brms's `default_prior()` lists an sd
   row per coefficient and honors `set_prior(class = "sd", coef = )`;
   frmtmb lists class and group rows only and refuses `coef` on class
-  sd. A `||` block could honor it. A priors lane.
+  sd. A `||` block could honor it. A priors lane. CLOSED at 0.72.0 (lane prilabel).
 - **Nested and multi-membership prior labels.** frmtmb labels
   `(1 + x | g1/g2)` `g2:g1` and `g1`, and `mm(m1, m2)` as written; brms
   writes `g1:g2` and `mmm1m2`, so `set_prior(group = "g1:g2")` is
-  refused. Pre-existing for `|` terms (`dev/dblbar-preexist.R`).
+  refused. Pre-existing for `|` terms (`dev/dblbar-preexist.R`). CLOSED at
+  0.72.0 (lane prilabel).
 - **brms shares one Student-t latent scale across all the Student-t
   terms of a grouping factor**; frmtmb gives each block its own.
   `?frmtmb-student-re` says to write one term to share the scale.
+  CLOSED at 0.72.0 (lane prilabel).
 - **`frm_sample(seed = )` does not fix every chain** (frmtmb.sample):
   two calls with `seed = 3` and 2 chains differ unless `set.seed()`
-  comes first, on rellib-r8 too (`dev/dblbar-rev2-seed2.R`).
+  comes first, on rellib-r8 too (`dev/dblbar-rev2-seed2.R`). CLOSED at
+  0.72.0 (lane sampleprior).
 
 #### Open - low
 
 - `variables()` lists `sd_g1:g2__*` before `sd_g1__*` (brms the
   reverse); `gr(g, id = )` and group-level `cs()` refused;
-  `re_formula = ~ diag(x | g)` names no term. Pre-existing.
+  `re_formula = ~ diag(x | g)` names no term. Pre-existing. CLOSED at
+  0.72.0 (lane prilabel), but for group-level `cs()`, which lane
+  prilabel filed again.
 - Messages and tables that read a block's `term_label` still say
   `1 + f | g [diag]` for a `||` term (the class "cor" prior refusal,
   `confint_varcorr()$block`); `term_label` is a matching key, so the
-  change is not cosmetic.
+  change is not cosmetic. The class "cor" refusal names the term as
+  written since 0.72.0 (lane prilabel); the tables still read it.
 - A diagonal within-level covariance for `gr(cov = )` / `gr(prec = )`
   would let a factor sit in a `||` term over a known matrix; now
   refused.
 - frmtmb.sample's draws carry `theta_*`, not brms's `sd_` names, in
-  `variables(draws)` and `as_draws_df()`.
+  `variables(draws)` and `as_draws_df()`. CLOSED at 0.72.0 (lane
+  sampleprior: the draws carry brms's `sd_` and `cor_` columns).
 
 ### Filed by lane famsimplex (`dev/famsimplex-findings.md`, sections 5 and 8)
 
 #### Open - low
 
 - `logistic_normal()` in `mvbf()` is refused (family extras in a
-  multivariate frame); `dirichlet()` in `mvbf()` is untested.
+  multivariate frame); `dirichlet()` in `mvbf()` is untested. CLOSED at
+  0.72.0 (lane catmulti).
 - `posterior_linpred()` without `dpar` is one predictor's `S x N`
   matrix for every multi-predictor family; brms gives `S x N x (K - 1)`.
+  CLOSED at 0.72.0 (lane catmulti).
 - `categorical()` has no `refcat`, so a brms `categorical(refcat = )`
-  object loses it.
+  object loses it. CLOSED at 0.72.0 (lane catmulti).
 - `multinomial()`'s `fitted()` refuses; brms returns `n x 4 x K`.
+  CLOSED at 0.72.0 (lane catmulti).
 - The simplex families' `phi` (and every family's `phi`, `shape`,
   `nu`) keep no frmtmb.sample default where brms has one; one change
-  across families.
+  across families. CLOSED at 0.72.0 (lane sampleprior).
 - Pre-existing, from the review: `confint(parm = "lncor__b__c")` and
   `"rescor__y1__y2"` refused on a 2 x 2 matrix with advice that fails;
   `conditional_effects(dpar = )` reports `se__` on the link scale
   beside a response-scale estimate (gaussian `sigma ~ z` too); `nobs()`
   counts rows `subset()` drops; `drop1()` and
   `marginaleffects::predictions()` on a matrix response fail.
+  The `confint()` aliases and `drop1()` are CLOSED at 0.72.0 (lane
+  catmulti); `nobs()` is not a defect (brms counts the same rows,
+  `dev/catmulti-findings.md`); marginaleffects is filed again
+  (lane catmulti).
 
 ### Filed by lane postfix (`dev/postfix-findings.md`, "Not done", "Defects")
 
@@ -2991,9 +3005,8 @@ See `dev/round-20261014.md`, "Found at the consolidation".
   are rows of families this round added that the thin adapter or the
   G1 shims do not map yet (dirichlet, dirichlet2 and logistic_normal's
   per-category `mu` and `lncor`; brms's d/p/r functions of frechet and
-  gen_extreme_value): the cheapest bin-2 rows to port next.
-NA
-  denominator (`dev/brmsport-bin2-summary.md`).
+  gen_extreme_value): the cheapest bin-2 rows to port next. CLOSED at
+  0.72.0 (lane bin2port).
 
 ### Filed by lane famuni (round opened 2026-10-13)
 
@@ -3034,10 +3047,13 @@ section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
   standard errors, which are NaN. 0.70.0 named theta_1 "short" and kept
   finite coefficient SEs. Safe (a NaN with a warning, not a wrong
   number), but theta_1's verdict now equals 0.70.0's on 77 of the 80
-  fits, not 78. The coordinator filed it at the consolidation.
+  fits, not 78. The coordinator filed it at the consolidation. CLOSED
+  at 0.72.0 (lane illse2's sd escape: the fit ends 7.6e-9 short,
+  `dev/illse2-findings.md`, section 2).
 - **The influence measures and the D1 and D2 tests** of `anova()` on
   `frm_multiple()` fits (`cooks.distance()`, `solve(V)`, `solve(U)`)
   read the whole matrix; at degrees 7 and 8 they stop with an error.
+  CLOSED at 0.72.0 (lane illse2).
 - **marginaleffects and a caller's `a' vcov() a`** cannot be made
   accurate on these designs in double precision; they get NaN or the
   `frmtmb_cov_products` warning.
@@ -3047,12 +3063,303 @@ section C) and fix round 1 (`dev/famuni-findings.md`, section 12).
 - Fits with more than 100 outer parameters, a bound that holds a
   parameter or an sd at its edge keep 0.70.0's verdicts (at degree 8
   with `(1 | g)` and the sd at zero only theta_1 is lost on 16 of 20
-  seeds; on the others the route does not apply).
-- REML, and nonlinear formulas, keep the "illcond" verdict.
+  seeds; on the others the route does not apply). The route reaches 400
+  outer parameters and bounds since 0.72.0 (lane illse2).
+- REML, and nonlinear formulas, keep the "illcond" verdict. CLOSED at
+  0.72.0 (lane illse2).
 - frmtmb.sample's jitter is scaled by the diagonal SEs only, not by
-  the factor.
+  the factor. Not done at 0.72.0: lane sampleprior found the premise
+  wrong (`dev/sampleprior-findings.md`, item 4).
 - The cost: 1.45 to 1.66 times 0.70.0's on n = 1e5 with 100 outer
   parameters, and 1.47 to 1.52 with `(1 | g)` (section 10, item 7).
+  At 0.72.0 the cost is 0.87 to 0.89 of 0.71.0's (lane illse2).
+## Filed at the 0.72.0 release (2026-10-20)
+
+Nine lanes off 0.71.0 (`dev/round-20261020.md`). What each lane, or its
+reviewer, filed and did not fix, with the record to read. The items
+this round closed are marked "CLOSED at 0.72.0" in place above. Bugs in
+other packages are in `dev/upstream-bugs.md` only (brms-28, brms-29,
+TMB-4, and the correction to brms-26).
+
+### Found at the consolidation
+
+See `dev/round-20261020.md`, "Found at the consolidation".
+
+### Filed by the release review (`dev/reviews/2026-10-20-release.md`)
+
+#### Open - low
+
+- **A zero-width correlation interval at a stop far out on a flat
+  ridge, with nothing lost** (section 3, `rev072-seed7.R`). Seed 7 of
+  the review's three-dimensional `us` design stops at code 1 with
+  theta_6 = -294.6 and no parameter lost; `cor(x,z)` gets the interval
+  [-0.122416, -0.122416] with `se_t` exactly 0, on 0.71.0 and on
+  0.72.0. A restart at theta_6 = -30 is 1.3e-4 lower in logLik and
+  reports NA for both affected correlations. It is 0.71.0's filed
+  flat-ridge item; a cheap guard would treat `se_t == 0` on a row that
+  is not at its boundary as NA.
+- **`summary()` prints "Method: ML (MAP)" for a fit whose prior only
+  sets bounds**, which adds no density and which `drop1()` now treats
+  as maximum likelihood. On 0.71.0 too.
+
+### Filed by lane testiso (`dev/testiso-findings.md`, "Not done, and found but not fixed")
+
+#### Open - low
+
+- **A reload duplicates registrations.** `frmtmb_register_frame_check()`
+  and `frmtmb_register_prior_defaults()` append without a key, so a
+  `pkgload::load_all()` of an extension (which runs `.onLoad()` again)
+  makes each of its frame checks run twice per fit for the rest of the
+  session. A fix needs a key per registrant (package and function).
+- `test-brms-suite-emmeans.R` (generated by `dev/brmsport-gen.R`) calls
+  `library(emmeans)` at file level, so a gated one-session run has
+  emmeans attached for every later file.
+- Extensions' once-per-session state (frmtmb.ode's `ode_warned`, the
+  eam cache, frmtmb.sample's call state) has no test seam, and the RNG
+  state is shared across the files of one session. No test depends on
+  either today; nothing guards them.
+- The one-session runs are `NOT_CRAN=true` only; the gated tiers were
+  not run in one session.
+- The reviewer's optional notes (`dev/reviews/2026-10-14-testiso.md`,
+  check of fix round 2): `local_frmtmb_registries()` replaces each
+  `onLoad` hook list at the restore, so a hook another party added in
+  the scope is lost (remove only the helper's own function, by
+  identity); the registry proof compares rules by count, not by order,
+  and order decides precedence.
+- The extension coverage matrix has no path filter, so every push runs
+  eight coverage jobs; check Codecov's first report for how it joins
+  `<source>` paths (the review, R2 and its notes).
+
+### Filed by lane catmulti (`dev/catmulti-findings.md`, section 13 and "To file (added)")
+
+#### Open - medium
+
+- **A log- or logit-scale interval for `fitted()` of `categorical()`
+  and `multinomial()`**, so a bound near 0 is not clamped to exactly 0
+  (review finding 6: 57 of 900 lower bounds at 0 on a rare category).
+- `marginaleffects::predictions()` on a matrix response fails in
+  marginaleffects's data.table step ("Column 2 ['Yc'] is length 600 but
+  column 1 is length 200").
+
+#### Open - low
+
+- `ranef()` of a categorical fit is 25 x 2; brms's is 25 x 4 x 2.
+  `coef()` is a list by dpar, so `coef(fit)$g` is `NULL`; brms's is
+  25 x 4 x 4. Pre-existing.
+- `variables()` order on a categorical fit is `b_mua_Intercept b_mua_x
+  b_muc_Intercept b_muc_x`; brms's is `b_mua_Intercept b_muc_Intercept
+  b_mua_x b_muc_x`. The names agree.
+- `default_prior()` prints a multivariate response by its raw name
+  (`Y_a`) where brms prints its Stan name (`Ya`); `set_prior(resp = )`
+  takes both. Pre-existing for every class.
+- `multinomial(K = )` and `categorical(K = )` keep positional `mu2`,
+  `mu3` names with named columns; `categorical()` keeps unused factor
+  levels where brms drops them; `insight::get_predicted()` on
+  `multinomial()` returns flattened counts where brms errors; the
+  observation margin of `posterior_epred()` of categorical draws is
+  named where brms leaves it `NULL`.
+- The review's nit (check of round 2): the `tryCatch()` around the
+  twin's `assemble_frame()` in `refcat_first_outer()` catches only
+  `frmtmb_error`, so a base R error there would stop the fit instead of
+  giving `NA` with a reason. No case reaches it.
+- The bin-2 rows `log_lik:510` and `posterior_predict:355` stay gaps:
+  frmtmb has no `dirichlet_multinomial()`.
+
+### Filed by lane prilabel (`dev/prilabel-findings.md`, "Not done"; review R2)
+
+#### Open - medium
+
+- **Group-level `cs()`** (`(cs(1) | g)`): a per-threshold random effect
+  of the sequential ordinal families; it needs a new block layout.
+- **brms estimates the Student-t df of a group-level term; frmtmb fixes
+  `nu`** (documented, "Why nu is fixed" in `?frmtmb-student-re`). An
+  `|ID|`-keyed Student-t term stays refused.
+
+#### Open - low
+
+- The order across predictors is frmtmb's: brms lists dpars in the
+  order the formula writes them (`bf(y ~ (1 | h), alpha ~ (1 | g),
+  sigma ~ (1 | ga))` with `skew_normal()` gives h, alpha g, sigma ga;
+  frmtmb h, sigma ga, alpha g; `dev/prilabel-rev2-predorder.R`).
+  Within a predictor the order is brms's (review R2).
+- `mm(id = )` stays refused.
+- Population-level `variables()` order: brms `b_Intercept,
+  b_sigma_Intercept, b_x`; frmtmb `b_Intercept, b_x,
+  b_sigma_Intercept`.
+- `coef()` of a distributional model is keyed by dpar, then group;
+  brms keys by group.
+- Class `cor` rows of a dpar block: frmtmb lists `cor, g, sigma` where
+  brms has one `cor, g` row, and brms sorts `cor` before `sd`.
+- `confint_varcorr()$block` and other tables read `term_label` (`1 + f
+  | g` for a `||` term); it is the matching key.
+- `ranef()` gives one entry per block: two blocks on one factor give
+  the names `g g`; brms merges them into one `g` entry.
+- `validate_prior()` and `prior_summary()` keep `default_prior()`'s
+  order for every class but `sd`; brms sorts by class, group, resp,
+  dpar, nlpar and coef.
+
+### Filed by lane sampleprior (`dev/sampleprior-findings.md`, "To file", "Not done")
+
+#### Open - medium
+
+- **`frm_sample()` from a formula cannot sample a `gen_extreme_value()`
+  model with a scalar `xi`** (pre-existing at 0.71.0). Core's
+  `gev_xi_chart_start()` reads the start of the `tmp_xi` chart through
+  `frm_linpred()`, which needs a fitted model; the formula route stops
+  with "frm_linpred() needs a fitted model", the fit route samples
+  (`dev/sampleprior-gevform.R`). Fix: compute the chart's start from
+  the starting parameter list.
+
+#### Open - low
+
+- **`lba()` posteriors do not mix in short chains**: R-hat 2.04 to
+  2.93 on three data seeds at 2 x 400 under `ndt_group()`
+  (`dev/sampleprior-ndtgroup.R`), whatever the `ndt` default; `rdm()`
+  1.03 to 2.48. (The lane's "To file" says 2.26; its log says 2.926.)
+- `default_prior()` lists no row for a mixture's weights without a
+  formula, though `frm_sample()` applies `dirichlet(1)`; the
+  disclosure message and `prior_summary()` do not list it either.
+- The prior table's `lb`/`ub` columns, and brms's empty group `sd` row
+  under the class row (frmtmb repeats the density).
+- Draw columns other than `sd_`/`cor_` (autocor, rescor and the like)
+  go through `hyp_env_vals()` once per draw, about 33 times the fast
+  path's cost.
+- Item 4 of the lane (jitter scaled by the covariance factor) was not
+  done: its premise was wrong. Sampling in the QR coordinates the fit
+  holds (brms's `decomp = "QR"`) is what would change those outcomes,
+  and would let `frm_sample()` converge on an ill-conditioned fixed
+  design.
+
+### Filed by lane bin2port (`dev/bin2port-findings.md`, "To file")
+
+#### Open - medium
+
+- **`log_lik()` of draws for residual covariance blocks**
+  (`arma(cov = TRUE)`, `cosy()`, `unstr()`) refuses the pointwise
+  matrix. brms returns the leave-one-out conditional density of each
+  row given the rest of its group (`log_lik_gaussian_time()`,
+  `log_lik_student_time()`); its own suite checks the FCOR Student-t
+  case in closed form. Bin-2 rows `log_lik:130` and `:133` are gaps
+  until it exists, and neither SPEC.md, the compatibility table nor
+  `vignettes/brms-migration.Rmd` lists the refusal.
+
+#### Open - low
+
+- The bin-2 tier does not reach the logistic-normal correlation path
+  (only `dev/bin2port-probe1.R` checks it), and the categorical-like
+  `posterior_predict` rows do not check category order (review
+  finding 6).
+- 8 bin-2 rows stay "not ported (cost)" (multivariate residual
+  correlation, `arma(cov = TRUE)` draws, a custom family).
+
+### Filed by lane ndaterm (`dev/ndaterm-findings.md`, "To file")
+
+#### Open - medium
+
+- **`predict()` at a boundary parameter**: on a `zero_inflated_binomial()`
+  fit whose zi is at its boundary (`dev/ndaterm-r1-probe.R`, last block,
+  seed 7), `predict()` averages 3.04 where `fitted()` says 5.74, with no
+  condition raised: `propagate_error = TRUE` draws the zi intercept from
+  N(estimate, 4926.7^2). The boundary message and `frmtmb_boundary_fit`
+  are the seam a fix would read. Of the same class: `predict()` of
+  `se(s, sigma = TRUE)` with sigma near 0 overflows the draws (sd
+  1.6e141).
+- **`mixture(cumulative(), cumulative())` draws `NA`**: `predict(
+  propagate_error = TRUE)` gives `NA` in 42.75% of draws with no
+  condition (review R1-c, `dev/ndaterm-rev-r1ord.R`). Pre-existing.
+
+#### Open - low
+
+- `mixture_mvn(K = 2, D = 2)`'s `fitted(newdata = )` labels its two
+  response dimensions "P(Y = 1)" and "P(Y = 2)" and reports quantiles
+  of 1 and 0 beside estimates of 1.36 and -1.04 (review R1-d,
+  `dev/ndaterm-rev-r1dpar.R`). Pre-existing.
+- frmtmb.sample's `posterior_predict(newdata = )` does not add a shared
+  `nu` (`with_shared_nu()`, a rescor Student-t fit) as core's
+  `predict_dpar_values()` does.
+
+### Filed by lane illse2 (`dev/illse2-findings.md`, "Defects found, not fixed"; review findings 2 and 5)
+
+#### Open - medium
+
+- **`newton_polish()` turns off whenever `optCtrl` names any
+  tolerance**, so `rel.tol = 1e-12` leaves degree 7 seed 4 of the 80
+  sd-at-zero fits 0.211 short, with a warning and every coefficient SE
+  NaN (`f4/esc2-lane.txt`). The rule also ignores `sing.tol`,
+  `step.min` and `step.max` (review nit).
+- **An active bound on an ill-conditioned design whose least-squares
+  start is off** (condition number above 1e5) starts at a saddle and
+  stops there 2580 to 2700 short with a warning (degree 8, seeds 1 to
+  3). Fix: a start that solves the least squares with the bound
+  coefficient held.
+
+#### Open - low
+
+- The REML `beta` whitener needs the joint precision's dense factor;
+  above `joint_root_max` (4000) joint parameters such a fit keeps
+  0.71.0's inverse of the whole joint precision.
+- `joint_cov_repair()` (a REML fit whose variance parameter is lost)
+  still inverts the inner block `Qrr`, which under REML holds `beta`;
+  not met on the designs measured.
+- frmtmb's REML AIC counts only the outer parameters (278.44 against
+  lme4's 290.44 by the REML df convention; review finding 5).
+  Pre-existing.
+- marginaleffects and a caller's `a' vcov() a` stay inaccurate on
+  these designs in double precision (filed at 0.71.0).
+
+### Filed by lane adhess (`dev/adhess-findings.md`, section 9; its review)
+
+#### Open - medium
+
+- **ML on a shifted covariate stops short** (illse2 review finding 8):
+  `Reaction ~ (Days + s) + (1 | Subject)` at s = 1e5 stops 2.45e-2
+  short with a gradient warning; at s = 1e6 the Hessian is indefinite
+  and 2 parameters are lost as "flat". Fix: optimize ML's `beta` in
+  the design's coordinates as illse2's REML does, or start
+  `newton_polish()` at a design kappa near 1e4.
+- **No `asym_laplace()` or `zero_inflated_asym_laplace()` fit has a
+  valid Hessian standard error**, and their fits never pass the
+  gradient check. Refuse by name, or use a sandwich estimate.
+- **Silent extreme SEs**: a poisson fit to an all-zero response gives
+  SEs of 1.5e136 with only the convergence warning (no separation
+  verdict for poisson); `y | cens(cen) ~ x` with every row
+  right-censored gives SEs near 4e9 with no warning (seeds 2 and 3
+  lose two SEs as "flat").
+
+#### Open - low
+
+- A nonlinear body with random effects keeps 0.71.0's step: `nl_re`
+  has SEs 2.05e-4 off. A step from the RMS of the body's Jacobian
+  column was not built.
+- `autoscale_prefit_converged()` and `autoscale_fit_sound()` decide
+  with `optimHess()`; they could read the AD Hessian, which would
+  change which start autoscale keeps.
+- `TMB::tmbroot()`'s internal `sdreport()` has no Hessian (its bracket
+  only).
+- `y | trunc(lb = 1) ~ x` with poisson: the gradient at the optimum is
+  not finite and `obj$fn()` at `last.par.best` is `Inf` (seed 19).
+- `logLik()` of a MAP fit is the log posterior, not what brms or lme4
+  call a log-likelihood. Possibly intended; a policy question.
+- On a short fit the variances that stay positive come from the inverse
+  of an indefinite Hessian (pre-existing; the convergence warning
+  covers it).
+
+### Filed by lane drop1raw (`dev/drop1raw-findings.md`, "To file", "Defects found and not fixed")
+
+#### Open - low
+
+- **N3**: after a delta update, `getCall(update(fit, ~ . - x3))` holds
+  the deparsed `bf()` object (2474 characters). Record the delta
+  through `bform_call()`, as the complete-formula branch does.
+- `vcov_cluster()` on a variable outside the model reads the call's
+  data and fails when they are gone; `update()` still evaluates
+  `na.action`, `se` and `verbose` of the stored call where it is
+  called.
+- A smooth (`s(x)`) in an `influence()` deletion refit is rebuilt from
+  the subset's rows (mgcv's knots move); `predvars` do not cover it.
+- `ce_base_frame()` repeats `fit_refit_data()` without the subset rows;
+  it could call it.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

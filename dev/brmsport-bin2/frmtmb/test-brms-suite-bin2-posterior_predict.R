@@ -613,13 +613,8 @@ test_that("posterior_predict for categorical and related models runs without err
     pred <- sapply(1:nobs, brms_adapt_posterior_predict, fun = "categorical", 
         prep = prep)
   )
-  brms_port("posterior_predict:344", "cannot transfer",
-    paste0(
-      "categorical: brms's prep holds one linear predictor per ",
-      "non-reference category (mu1, mu2), which the thin adapter ",
-      "does not map onto frmtmb's categorical family ('prep$dpars ",
-      "has no mu'); frmtmb has the family, so the row is ",
-      "transferable at a cost"),
+  brms_port("posterior_predict:344", "pass",
+    "",
     expect_equal(dim(pred), c(ns, nobs))
   )
   brms_setup("posterior_predict:346",
@@ -632,12 +627,8 @@ test_that("posterior_predict for categorical and related models runs without err
     pred <- brms_adapt_posterior_predict("multinomial", i = sample(1:nobs, 
         1), prep = prep)
   )
-  brms_port("posterior_predict:349", "cannot transfer",
-    paste0(
-      "multinomial: the block builds the family as brms spells it, ",
-      "multinomial(), which frmtmb refuses ('needs the number of ",
-      "categories'); frmtmb needs K, which brms reads from the ",
-      "data (gap rank 26)"),
+  brms_port("posterior_predict:349", "pass",
+    "",
     expect_equal(dim(pred), c(ns, ncat))
   )
   brms_setup("posterior_predict:351",
@@ -669,24 +660,12 @@ test_that("posterior_predict for categorical and related models runs without err
     pred <- brms_adapt_posterior_predict("dirichlet", i = sample(1:nobs, 
         1), prep = prep)
   )
-  brms_port("posterior_predict:360", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("posterior_predict:360", "pass",
+    "",
     expect_equal(dim(pred), c(ns, ncat))
   )
-  brms_port("posterior_predict:361", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("posterior_predict:361", "pass",
+    "",
     expect_equal(rowSums(pred), rep(1, nrow(pred)))
   )
   brms_setup("posterior_predict:363",
@@ -705,24 +684,12 @@ test_that("posterior_predict for categorical and related models runs without err
     pred <- brms_adapt_posterior_predict("dirichlet2", i = sample(1:nobs, 
         1), prep = prep)
   )
-  brms_port("posterior_predict:368", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("posterior_predict:368", "pass",
+    "",
     expect_equal(dim(pred), c(ns, ncat))
   )
-  brms_port("posterior_predict:369", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("posterior_predict:369", "pass",
+    "",
     expect_equal(rowSums(pred), rep(1, nrow(pred)))
   )
   brms_setup("posterior_predict:371",
@@ -743,24 +710,12 @@ test_that("posterior_predict for categorical and related models runs without err
     pred <- brms_adapt_posterior_predict("logistic_normal", i = sample(1:nobs, 
         1), prep = prep)
   )
-  brms_port("posterior_predict:380", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("posterior_predict:380", "pass",
+    "",
     expect_equal(dim(pred), c(ns, ncat))
   )
-  brms_port("posterior_predict:381", "cannot transfer",
-    paste0(
-      "dirichlet, dirichlet2 and logistic_normal are frmtmb ",
-      "families since 0.71.0 (lane famsimplex), but brms's prep ",
-      "holds one predictor per non-reference category (and ",
-      "logistic_normal's lncor), which the thin adapter does not ",
-      "map ('prep$dpars has no mu', 'the prep carries lncor'), as ",
-      "for categorical: transferable at a cost"),
+  brms_port("posterior_predict:381", "pass",
+    "",
     expect_equal(rowSums(pred), rep(1, nrow(pred)))
   )
 })
@@ -820,5 +775,38 @@ test_that("truncated posterior_predict run without errors", {
   brms_port("posterior_predict:405", "pass",
     "",
     expect_equal(dim(pred), c(ns, nobs))
+  )
+})
+
+test_that("posterior_predict for the wiener diffusion model runs without errors", {
+  withr::local_seed(408L)
+  brms_setup("posterior_predict:409",
+    brms_adapt_brms_skip("skip as long as RWiener fails on R-devel for 3.6.0")
+  )
+  brms_setup("posterior_predict:410",
+    ns <- 5
+  )
+  brms_setup("posterior_predict:411",
+    nobs <- 3
+  )
+  brms_setup("posterior_predict:412",
+    prep <- structure(list(ndraws = ns, nobs = nobs), class = "brmsprep")
+  )
+  brms_setup("posterior_predict:413",
+    prep$dpars <- list(
+      mu = matrix(rnorm(ns * nobs), ncol = nobs),
+      bs = rchisq(ns, 3), ndt = rep(0.5, ns),
+      bias = rbeta(ns, 1, 1)
+    )
+  )
+  brms_setup("posterior_predict:418",
+    prep$data <- list(Y = abs(rnorm(ns)) + 0.5, dec = c(1, 0, 1))
+  )
+  brms_setup("posterior_predict:419",
+    i <- sample(1:nobs, 1)
+  )
+  brms_port("posterior_predict:420", "pass",
+    "",
+    expect_equal(nrow(brms_adapt_posterior_predict("wiener", i, prep)), ns)
   )
 })

@@ -12,6 +12,15 @@
 #' @noRd
 .onLoad <- function(libname, pkgname) {
   frm_install_generics(pkgname)
+  # TMB's ADFun finalizer calls isNullPointer(), which TMB lazy-loads.
+  # When a garbage collection runs the first finalizer of a session, it
+  # forces that promise, and every finalizer pending with it fails with
+  # "promise already under evaluation" (printed to the console) and
+  # leaks its tape (dev/illse2-findings.md, dev/upstream-bugs.md TMB-4).
+  # Forcing it here, before any tape exists, costs one lazy-load fetch
+  tryCatch(invisible(get("isNullPointer", envir = asNamespace("TMB"),
+                         inherits = FALSE)),
+           error = function(e) NULL)
   if (requireNamespace("emmeans", quietly = TRUE)) {
     emmeans::.emm_register("frmtmb_fit", pkgname)
   }

@@ -814,12 +814,25 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       }
     } else if (identical(nm, "Lrescor")) {
       out[[nm]] <- brms_lrescor(fit, sdat)
-    } else if (identical(nm, "Llncor")) {
+    } else if (grepl("^Llncor(_.+)?$", nm)) {
       # a logistic_normal() response's correlations: brms declares the
       # Cholesky factor of the matrix frmtmb holds in its lncor_raw chart,
-      # with the categories in the same order on both sides
-      sx <- family(fit)[["simplex"]]
-      lmat <- t(chol(lncor_matrix(fit$estimates[["lncor_raw"]],
+      # with the categories in the same order on both sides. In a
+      # multivariate model brms suffixes it with the response, Llncor_Y,
+      # and frmtmb holds the chart under that response's own name
+      # brms's suffix is the response's Stan name (Ya for Y_a)
+      rs <- sub("^Llncor_?", "", nm)
+      if (nzchar(rs)) {
+        rn <- names(fit$spec$responses)
+        rs <- rn[match(rs, brms_stan_name(rn))]
+      }
+      sx <- if (nzchar(rs)) {
+        fit$spec$responses[[rs]]$family[["simplex"]]
+      } else {
+        family(fit)[["simplex"]]
+      }
+      comp <- extra_tpl_name(fit$frame, if (nzchar(rs)) rs, "lncor_raw")
+      lmat <- t(chol(lncor_matrix(fit$estimates[[comp]],
                                   length(sx$pred))))
       lmat[upper.tri(lmat)] <- 0
       out[[nm]] <- unname(lmat)
@@ -883,10 +896,15 @@ brms_inner_index <- function(sf, pars, pattern = brms_inner_pat) {
 #      objective plus the map's log-Jacobian, and B is asserted on the z
 #      block only, because the outer gradient is not zero at that point.
 brms_lp_check <- function(bform, family, data, fit, joint = FALSE,
-                          const = 0, tol_grad = 1e-3, ...) {
+                          const = 0, tol_grad = 1e-3, code_fix = NULL,
+                          ...) {
   prior <- brms_flat_prior(bform, data = data, family = family, ...)
   code <- brms::make_stancode(bform, data = data, family = family,
                               prior = prior, ...)
+  # a repair of brms's program where brms's own generator is wrong, so
+  # the model block it writes can still be evaluated; the caller says
+  # what it repairs and why
+  if (is.function(code_fix)) code <- code_fix(code)
   sdat <- brms_standata(bform, data = data, family = family,
                         prior = prior, ...)
   rtab <- brms_ranef_table(bform, data, family, prior, ...)
@@ -969,12 +987,17 @@ brms_mv_resps <- function(fit) {
 brms_lp_parts <- function(fit, sfx) {
   dp <- brms_dpar_of(sfx)
   resps <- brms_mv_resps(fit)
-  hit <- resps[sfx == resps | endsWith(sfx, paste0("_", resps))]
-  if (!length(hit)) {
+  # brms suffixes with the response's Stan name (Ya for Y_a), and
+  # frmtmb files the predictor under its own name
+  stan <- brms_stan_name(resps)
+  at <- which(sfx == stan | endsWith(sfx, paste0("_", stan)))
+  if (!length(at)) {
     return(list(resp = "", dpar = dp, frm = dp))
   }
-  r <- hit[[which.max(nchar(hit))]]
-  dpar <- if (identical(sfx, r)) "mu" else sub(paste0("_", r, "$"), "", sfx)
+  at <- at[[which.max(nchar(stan[at]))]]
+  r <- resps[[at]]
+  rs <- stan[[at]]
+  dpar <- if (identical(sfx, rs)) "mu" else sub(paste0("_", rs, "$"), "", sfx)
   list(resp = r, dpar = dpar, frm = paste0(r, "_", dpar))
 }
 

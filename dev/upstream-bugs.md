@@ -442,7 +442,14 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   in 'x && y'" from `use_glm_primitive_categorical()`: `all.equal()`
   returns a string when the two designs differ, and `&&` refuses it.
 - Workaround: frmtmb fits it.
-- Record: `dev/famsimplex-findings.md`, section 6, brms-B.
+- Correction (lane catmulti, 2026-10-14; `dev/catmulti-brms-b.R`, log
+  `brms-b.txt`): it fires for any category with a formula of its own,
+  not only the first predicted one. `mua ~ z` and `mub ~ z` under
+  `refcat = "c"`, and `muc ~ z` under the default reference, all stop
+  with the same error. `dev/famsimplex-findings.md`, section 6, says
+  "the FIRST predicted category".
+- Record: `dev/famsimplex-findings.md`, section 6, brms-B;
+  `dev/catmulti-findings.md`, section 13.
 - Status: not reported.
 
 ### brms-27. `posterior_epred()` for `wiener()` is right only at `bs = 1`
@@ -468,6 +475,49 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   boundary and does not use this formula; `?wiener` documents the
   difference.
 - Record: `dev/famuni-wiener-findings.md`, sections 5 and 9.
+- Status: not reported.
+
+### brms-28. `logistic_normal()` in `mvbf()` does not compile
+
+- Seen: 2.23.0, 2026-10-14 (lane catmulti, brms-C;
+  `dev/catmulti-brms-fits.R`, case "mv-ln"; the Stan code in its log
+  `brms-probe.txt`).
+- Repro: `brm(bf(Y ~ x, family = logistic_normal()) + bf(w ~ x, family
+  = gaussian()) + set_rescor(FALSE), data = dd)`, `Y` a three-column
+  composition.
+- Expected: a fit. Actual: "Semantic error ... Identifier "Llncor" not
+  in scope. Did you mean "Lncor"?". The generated quantities read
+  `Llncor` and `nlncor`, where the parameters and the transformed data
+  declare `Llncor_Y` and `nlncor_Y` (`stan-predictor.R`: the glue of
+  `gen_def` has no `{p}` suffix). With two `logistic_normal()`
+  responses the generated quantities also declare `Lncor` and `lncor`
+  twice, and `rename_family_cor_pars()` would give both responses'
+  correlations the one name `lncor__b__c`.
+- Workaround: frmtmb fits the model. Its test repairs the two
+  identifiers and checks brms's model block (lines 135 and 136 of 145
+  change).
+- Record: `dev/catmulti-findings.md`, sections 8 and 13.
+- Status: not reported.
+
+### brms-29. `update()` without new data computes a data-dependent basis again on fewer rows
+
+- Seen: 2.23.0, 2026-10-19 (lane drop1raw, review finding 2;
+  `dev/drop1raw-rev-brms2.R`, log `brms2.txt`, run on an empty fit with
+  a stub stanfit, so `update()` runs without a compile).
+- Repro: a fit of `z ~ poly(x2, 2) + x3` on 40 rows (seed 5), 2 of
+  them `NA` in `x3`. The fit's `poly()` column is computed on all 40
+  rows before `na.action`; `object$data` keeps the 38 rows after it, and
+  `update(fit)` computes `poly()` again on those 38. The script prints
+  "fit column == update column: FALSE".
+- Expected: an update with no change reproduces the fit's design.
+  Actual: a different basis, so the refit is a different model (in
+  frmtmb's measurement of the same defect, `ns(x2, 3) + x3` moved the
+  log-likelihood by 1.5e-2).
+- Workaround: frmtmb keeps the fit's bases (`predvar_map`) on every
+  refit from the fit's own data (`update()` without `newdata`,
+  `drop1()`, `influence()`), and so does not follow brms here.
+- Record: `dev/reviews/2026-10-19-drop1raw.md`, finding 2;
+  `dev/drop1raw-findings.md`, fix round 1.
 - Status: not reported.
 
 ## RTMB
@@ -652,6 +702,30 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   correction for dimension 2 and up (`R/importance.R:5`).
 - Record: `NEWS.md` near lines 3699 and 5824; `dev/test-backlog.md`
   near line 505.
+- Status: not reported.
+
+### TMB-4. The ADFun finalizer fails while `isNullPointer` is a lazy-load promise
+
+- Seen: TMB 1.9.25 with RTMB 2.0, 2026-10-19 (lane illse2 and its
+  review; `dev/illse2-rev-tmbfin.R`).
+- Repro: the finalizer that `TMB:::registerFinalizer()` puts on an
+  ADFun is `function(ptr) if (!isNullPointer(ptr)) .Call(...)`.
+  `isNullPointer` is lazy-loaded. When a garbage collection runs the
+  first finalizer of a session, that finalizer forces the promise, and
+  every other ADFun finalizer pending in the same collection meets the
+  promise under evaluation. Each prints "Error in (function (ptr) :
+  promise already under evaluation" to the console and does not free
+  its tape. It happens at most once per session. In frmtmb it showed on
+  a 159-parameter fit that makes many tapes (`dev/illse2-p4wide.R 150
+  2000 1:2`: three lines during the second fit).
+- Expected: no error, every tape freed. The finalizer could call
+  `.Call("isNullPointer", ...)` directly, or TMB could force the
+  binding when it loads.
+- Workaround: frmtmb's `.onLoad()` forces `TMB:::isNullPointer` before
+  any tape exists (`R/zzz.R`); with that, the same fit prints nothing
+  (`dev/round-20261020.md`, consolidation item 2).
+- Record: `dev/illse2-findings.md`, section 4 and "Defects found, not
+  fixed"; `dev/reviews/2026-10-14-illse2.md`, item 6 of the re-check.
 - Status: not reported.
 
 ## tmbstan

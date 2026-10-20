@@ -175,7 +175,17 @@ with adaptive quadrature, and `frm(importance = )` reweights it
 
 ### NaN standard errors
 
-The covariance is the inverse of the Hessian at the optimum. A plain
+The covariance is the inverse of the Hessian at the optimum. Without
+random effects it is the exact Hessian, from automatic
+differentiation. This includes `quadrature = TRUE` and `importance =`
+fits, whose outer objective has no inner random effects. With random
+effects it is central differences of the exact gradient. The step of a
+coefficient of a design column moves its linear predictor by about
+1e-3 in root mean square over the rows, whatever the covariate's
+units. A nonlinear parameter, a `mo()` term and a variance parameter
+keep a step of 1e-3 on their own scale. Where the design is
+ill-conditioned, the covariance comes instead from a Hessian taken in
+the coordinates of the design's QR decomposition. A plain
 inverse fails as a whole: one unusable direction makes every entry
 `NaN`. `frm()` does not stop there. It builds the Hessian when it
 fits, and when the plain inverse fails it tries two repairs before it
@@ -184,10 +194,7 @@ gives up on a parameter:
 1. It scales the Hessian to unit diagonal and inverts that. This is
    the same matrix, so it changes nothing where the plain inverse
    worked. It recovers the standard errors where one parameter is on a
-   very different scale from the others. On a model without random
-   effects it also uses the exact Hessian instead of a
-   finite-difference one, which matters for a coefficient of a
-   covariate in large units.
+   very different scale from the others.
 2. When that also fails, it removes the directions the likelihood does
    not determine and keeps the standard errors of the other
    parameters. A parameter goes with a direction when a measurable part
@@ -214,6 +221,12 @@ parameters", with a reason for each:
   short step along the direction confirms this before the warning
   says it; a direction where the step does not gain is called flat.
 * **Its Hessian row is not finite.**
+* **The inverse gives it a variance of zero or less.** The curvature
+  where the fit stopped does not measure the uncertainty. A log
+  density with a kink in a parameter does this: `asym_laplace()` is
+  piecewise linear in its location, so its exact Hessian has no
+  curvature there. `vcov()` shows `NaN`, never 0, and `summary()`
+  gives this reason.
 
 An earlier warning that names a parameter, such as the one for a
 grouping factor with one level, explains that parameter only. The
@@ -243,7 +256,12 @@ first use of a standard error (`summary()`, `fixef()`, `vcov()`,
 large mixed model can fit without the warning and give it later. The
 rule counts work and does not read the clock, so a call warns in the
 same place on every run. To
-skip the check, use `frmtmb_control(check_se = "ignore")`.
+skip the check, use `frmtmb_control(check_se = "ignore")`. On a model
+without random effects the first `vcov()` then builds the exact
+Hessian itself. That takes less time than the finite differences it
+replaces, but more memory: on a bernoulli model with 10,000 rows the
+peak working set was 350 MB higher with 200 coefficients and 870 MB
+higher with 500.
 
 `diagnose(fit)` also reports "Flat directions" when the likelihood
 does not depend on a parameter at all: zero gradient and an empty

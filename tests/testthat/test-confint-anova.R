@@ -1,5 +1,10 @@
+# update() evaluates the stored call, which names `sleepstudy`, from
+# where it is called (anova(refit = TRUE) refits from the stored frame
+# and does not). The data is in this file's environment, where every
+# test here finds it, and not in the global one, where it would reach
+# every file after this one.
+data(sleepstudy, package = "lme4", envir = environment())
 fit_ca <- local({
-  data(sleepstudy, package = "lme4")
   list(
     data = sleepstudy,
     full = frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),

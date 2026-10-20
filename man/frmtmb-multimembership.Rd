@@ -34,6 +34,11 @@ usual one, the Laplace approximation is the usual one, and
 \code{\link[=ranef]{ranef()}}, \code{\link[=VarCorr]{VarCorr()}}, \code{\link[=ngrps]{ngrps()}}, \code{fitted()}, \code{simulate()} and
 \code{predict()} all read the block with no multi-membership branch.
 
+The group is named as brms names it, \code{mm} and the members:
+\code{(1 | mm(g1, g2, weights = cbind(w1, w2)))} is the group \code{mmg1g2} in
+\code{ranef()}, \code{VarCorr()}, \code{variables()} (\code{sd_mmg1g2__Intercept}) and
+\code{set_prior(group = "mmg1g2")}.
+
 \code{(x | mm(g1, g2, cor = FALSE))} and \code{(x || mm(g1, g2))} are one block
 whose columns have their own standard deviations and no correlation,
 as in brms.

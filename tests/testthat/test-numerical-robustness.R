@@ -171,7 +171,7 @@ test_that("ordinal log-densities survive extreme and near-coincident cuts", {
 })
 
 test_that("multinomial-logit denominators accumulate in log space", {
-  catf <- frmtmb:::fam_categorical_impl(c("mu2", "mu3"))
+  catf <- categorical(K = 3)
   for (e0 in c(ETA, 750)) {
     expect_robust_at(catf, c(1, 2, 3), list(), list(mu2 = 0, mu3 = 0),
                      "mu2", e0)

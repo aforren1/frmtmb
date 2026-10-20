@@ -1,0 +1,5 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-adhess/dev/adhess-rev-common.R")
+set.seed(2); n <- 400; x <- rnorm(n); y <- 1 + 0.5 * x + rnorm(n)
+fit <- suppressWarnings(frm(y ~ x, family = asym_laplace(), data = data.frame(x, y)))
+print(suppressWarnings(fixef(fit)))
+print(suppressWarnings(confint(fit)))

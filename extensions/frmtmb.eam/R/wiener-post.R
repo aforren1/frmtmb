@@ -88,7 +88,7 @@ ddm_indicator_mean <- function(aterms) {
     frm_stop("wiener: the mean response time is conditional on the boundary ",
              "a trial ended at, which is missing. See ?wiener.", call. = FALSE)
   }
-  up
+  ddm_indicator_binary(up)
 }
 
 #' The decision indicator for a draw, or the refusal.
@@ -99,6 +99,27 @@ ddm_indicator_sim <- function(aterms) {
   if (is.null(up)) {
     frm_stop("wiener: simulating a response time needs the boundary each ",
              "row ended at, which is missing. See ?wiener.", call. = FALSE)
+  }
+  ddm_indicator_binary(up)
+}
+
+#' A post-fit boundary indicator that is not 0 or 1, refused.
+#'
+#' The fit checks the indicator (`ddm_check_response()`), but rows
+#' given after it are not checked there, and every consumer reads
+#' `up == 1` as the upper boundary and anything else as the lower one.
+#' A newdata value such as 0.5 used to be drawn at the lower boundary
+#' in silence. `NA` passes: a row without a value is a missing row,
+#' as it is for every other variable.
+#'
+#' @noRd
+ddm_indicator_binary <- function(up) {
+  bad <- !is.na(up) & up != 0 & up != 1
+  if (any(bad)) {
+    frm_stop("wiener: the boundary indicator on newdata must be 0 (lower) ",
+             "or 1 (upper) on every row, and ", sum(bad), " row(s) hold ",
+             paste(format(unique(up[bad]), digits = 4), collapse = ", "), ".",
+             call. = FALSE)
   }
   up
 }

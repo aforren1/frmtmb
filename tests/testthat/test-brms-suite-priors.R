@@ -153,14 +153,8 @@ test_that("default_prior returns correct prior names for auxiliary parameters", 
   brms_setup("priors:73",
     pdata <- pdata[with(pdata, order(class, group, coef)), ]
   )
-  brms_port("priors:74", "divergence",
-    paste0(
-      "default_prior() answers brms's Beta() model on an rnorm() ",
-      "response now, as brms does (lane wt-defects); its 5 phi ",
-      "rows against brms's 6 lack the per-coefficient sd row (sd, ",
-      "g, Intercept), which frmtmb does not list because its class ",
-      "sd addresses a block and refuses coef (priorform ledger P1, ",
-      "P26)"),
+  brms_port("priors:74", "pass",
+    "",
     expect_equivalent(prior[, c("class", "coef", "group")], pdata)
   )
 })

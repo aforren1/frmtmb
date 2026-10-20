@@ -65,7 +65,7 @@ test_that("boot bands are percentiles of one shared bootstrap", {
 
 test_that("boot bands on a mixed model match a hand-run bootstrap", {
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fs <- frm(bf(Reaction ~ Days + (1 | Subject)), family = gaussian(),
             data = sleepstudy)
 
@@ -523,12 +523,14 @@ test_that("a nominal family gets bootstrap bands and honest refusals", {
   expect_true(all(cb$estimate__ >= 0 & cb$estimate__ <= 1))
   expect_true(all(cb$lower__ <= cb$estimate__ &
                     cb$estimate__ <= cb$upper__))
-  # the delta method for a category probability is written for ordinal
-  # thresholds, which a nominal family has none of
-  expect_error(conditional_effects(fc, effects = "x"),
-               "no analytic standard error")
+  # the default wald band reads fitted()'s delta-method errors (lane
+  # catmulti, fix round 1; it was refused, "no analytic standard error")
+  cw <- conditional_effects(fc, effects = "x", resolution = 4)$x
+  expect_true(all(cw$se__ > 0))
+  expect_true(all(cw$lower__ <= cw$estimate__ &
+                    cw$estimate__ <= cw$upper__))
   expect_error(conditional_effects(fc, effects = "x", band = "profile"),
-               "no analytic standard error")
+               "cannot cover a category probability of family")
 })
 
 test_that("dharma_residuals() refuses a nominal response", {

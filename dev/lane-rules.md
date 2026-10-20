@@ -404,6 +404,34 @@ own work rather than in review.
   could not show the two failures the 0.69.0 merged tree has under
   OpenBLAS LAPACK (`dev/reviews/2026-10-07-release.md`, B1).
 
+## Added after the 0.71.0 round
+
+- **A test leaves every registry as it found it, and does not depend
+  on what an earlier file loaded.** covr and `R CMD check` run every
+  file of a suite in ONE session, in alphabetical order, and an
+  extension that an earlier file loads has already registered its
+  features, rules, addition terms and frame checks. 0.71.0's
+  test-coverage job failed on that: test-families-extreme.R loaded
+  frmtmb.eam, and test-parse.R assumed `dec()` was unregistered. A
+  test that registers calls `local_frmtmb_registries()`
+  (`tests/testthat/helper-registry.R`), which saves and restores; it
+  never deletes an entry by name, because the name can belong to an
+  extension. An extension that loads inside the scope keeps its
+  registrations: the helper runs its `.onLoad()` again after the
+  restore. A test registers names no extension uses (`tfam`,
+  `tterm()`), and an assertion about the vocabulary is written
+  against the state the test found, not against a core-only session.
+  A property that needs every extension loaded runs in a child process
+  (`test-compat-extensions.R`). `data(x, package = )` takes
+  `envir = environment()`, or it writes to the global environment for
+  every file after it. A new top-level environment in `R/` fails
+  `test-registry-helper.R` until the helper covers it.
+- **Run your suite in one session, three ways** (forward, reverse,
+  preload), with every extension installed: `bash
+  dev/release/run-sessions.sh <tier> 8 <package>` (set `FRMTMB_RELLIB`
+  to your library). Report each SESSION line, and read the LEAK lines:
+  one without `[with load of ...]` is your test's.
+
 
 ## Cost, which is a real constraint
 

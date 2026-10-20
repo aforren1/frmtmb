@@ -1,3 +1,572 @@
+# frmtmb 0.72.0
+
+The main changes:
+
+- brms's `categorical()` and `multinomial()` signatures, `refcat`,
+  `fitted()` and `posterior_linpred()` of every location predictor,
+  and `logistic_normal()` in `mvbf()`.
+- Per-coefficient `sd` priors, brms's labels and order of nested and
+  multi-membership groups, and one Student-t latent scale for the
+  terms of one grouping factor.
+- `uniform()` and `lognormal()` priors, and support guards on the
+  tape.
+- Every addition term on `newdata`, coded as the fit coded it.
+- Accurate standard errors for Cook's distance, D1 and D2, REML in the
+  design's coordinates, and bounded Newton steps.
+- The exact Hessian for every fit without random effects.
+- `drop1()`, `step()`, `update()` and `influence()` refit on the data
+  the fit holds.
+
+## Breaking changes
+
+* **`multinomial()` takes brms's arguments, `(link, refcat, K)`, and
+  reads its categories from the response matrix.** `multinomial()` with
+  no arguments now fits, as brms spells it; the dpars are named by the
+  columns, `cbind(y1, y2, y3)` giving `muy2` and `muy3`, as in brms.
+  `multinomial(K = 3)` still builds the family away from the data, with
+  the positional names `mu2`, `mu3`. `multinomial(3)` is refused: the
+  first argument is the link, and the refusal names `K =`.
+
+* **A `categorical()` dpar name is brms's `make_stan_names()`.** Dots
+  and underscores in a level are dropped, so the level `"p.q"` gives
+  `mupq` where it gave `mup.q`.
+
+* **`fitted(scale = "linear")` on a family with several location
+  predictors returns brms's `n x 4 x P` array.** That is every `mu<cat>`
+  of `categorical()`, `multinomial()` and the simplex families, layers
+  `eta1, eta2, ...`, and every component's `mu<k>` of a mixture, layers
+  unnamed. It returned the first predictor's `n x 4` matrix.
+
+* **`categorical()` takes `refcat` as its second argument**, as brms
+  does; `levels` and `K` follow it.
+
+* **Nested and multi-membership groups carry brms's labels.** `(x |
+  g1/g2)` is `(x | g1) + (x | g1:g2)`, as brms 2.23.0 expands it. The
+  groups are `g1` and `g1:g2`. reformulas wrote `g2:g1`. The group of
+  `(x | mm(m1, m2))` is `mmm1m2`, whatever its weights. These labels are
+  in `set_prior(group = )`, `default_prior()`, `prior_summary()`,
+  `variables()` (`sd_g1:g2__x`), `ranef()`, `coef()`, `VarCorr()`,
+  `ngrps()`, `summary()`, `re_formula` and the new-level messages. The
+  old spellings `"g2:g1"` and `"mm(m1, m2)"` are refused, as brms
+  refuses them. A `re_formula` term now names its group exactly as the
+  fit writes it.
+
+* **The groups of each predictor are in brms's order**, sorted by name
+  (brms's `terms_re()`). This order is in `variables()`, `ranef()`,
+  `VarCorr()`, `ngrps()`, `summary()` and the order of the `theta`
+  parameters. `(1 | h) + (1 | g)` now lists `g` first. Terms on one
+  group keep their written order.
+
+* **`ranef()` and `coef()` name the levels of an interaction group as
+  brms does.** The parts are joined with `_`: `p1_q1` for a level of
+  `g1:g2` (was `p1:q1`). A `:` inside a part stays: `c:d_f`.
+
+* **`variables()` lists every group-level standard deviation, then every
+  correlation, then a smooth's `sds_`**, in brms's order. Before, each
+  block's correlations followed its own standard deviations.
+
+* **Student-t terms of one grouping factor share one latent scale per
+  level**, as in brms. Examples are `(1 | gr(g, dist = "student")) + (0
+  + x | gr(g, dist = "student"))`, and a term in `mu` beside a term in
+  `sigma`. At each level, their coefficients are one multivariate t. So
+  the first example is the model `(1 + x || gr(g, dist = "student"))`. A
+  `gr(g, by = f)` term beside a plain term on `g` shares the scale at
+  each level of `g`. A `gr(g, by = f)` term alone is the model it was.
+  Terms that share a scale take one `dist_nu`. `simulate(re_formula = )`
+  keeps or redraws them together, and `quadrature = TRUE` refuses them.
+  See `?frmtmb-student-re`.
+
+* **A prior density with a bounded support is `NaN` outside it on the
+  tape too.** `beta()`, `gamma()`, `inv_gamma()`, `exponential()` and
+  `lognormal()` each add a guard. The guard is `NaN` outside the support
+  and exactly 0 on it, its edges included as in Stan. `beta()` and
+  `gamma()` relied on a `log()` that the tape drops where it is
+  multiplied by a constant 0. So `beta(1, 1)` on a coefficient was flat
+  over the whole line, and `gamma(1, r)` was finite below 0.
+  `exponential()` had no guard at all and was finite below 0 on doubles
+  too. Inside the support nothing changes.
+
+* **A bounded density on a parameter with no such bound of its own
+  warns, in brms's words.** Examples are `uniform()` or `beta()` on a
+  coefficient and `gamma()` on an intercept. It warns when neither its
+  row nor the class row above it gives `lb` or `ub`, as brms 2.23.0
+  does. The warning comes from the call that uses the prior (`frm()`,
+  `validate_prior()`, `update()`, `frmtmb.sample::frm_sample()`).
+  Without the bound the parameter is not constrained, and the density is
+  a wall a sampler meets: give `lb` and `ub`, which `frm_sample()`
+  passes to Stan as a transform.
+
+* **`predict(newdata =)` reads every addition term from newdata, and a
+  binomial-type family refuses a missing `trials()`.** Before, the
+  predictive draws read only `trunc()`, `rate()` and `thres(gr = )` from
+  newdata, and the simulator was given no other term. A binomial with `y
+  | trials(N)` and newdata `N = 1000` drew 0 or 1 on every draw (column
+  mean 0.555; `simulate()` and `fitted()` gave 563). A gaussian with
+  `se(s)` drew at sd 0.029 where newdata had `s = 5`. A custom family's
+  `vint()` and `vreal()` and frmtmb.eam's `dec()` failed. The defect is
+  in every release from 0.61.0, when `predict()` became a predictive
+  summary. Now `predict()` reads the terms as `simulate()` and
+  `fitted()` read them: binomial gives 563.3 and 1.08 (brms 2.23.0:
+  562.7 and 1.15), and `se()` gives sd 0.059 and 4.77 (brms: 0.061 and
+  4.95). The same fix reaches the newdata fill of a `cov = FALSE` ARMA
+  term, and `multinomial()` `predict(newdata =)`, which was refused, now
+  draws newdata's trials.
+
+  What changes for a caller: newdata without the `trials()` or `se()`
+  variable is refused, naming the term, as brms refuses it. Before, it
+  drew one trial per row or ignored the known standard error. The
+  refusal ends "supply the variable"; it used to offer `type =
+  "conditional"`, which `predict()` does not take.
+
+* **A binomial-type family no longer reads a missing `trials()` as one
+  trial.** `binomial()`, `zero_inflated_binomial()`, `beta_binomial()`
+  and `zero_inflated_beta_binomial()` refuse it by name. A model of
+  these families always has the term, so only a caller that drops it
+  meets the refusal.
+
+* **A custom family's declared `required_aterms` are checked after the
+  fit too.** `sim_response()` and `response_mean()` refuse a term list
+  that lacks one, naming the term. Before, the family's own code met
+  `NULL`, which gave "invalid arguments" from `rbinom()` or an empty
+  answer.
+
+* **An addition term coded by its levels is read on newdata through the
+  fit's codes.** This is a factor for any term, and a factor, character
+  or logical value of a registered term such as frmtmb.eam's `dec()`.
+  Before, newdata was coded by its own levels. A releveled or character
+  `dec()` swapped the two boundaries in silence. One value alone (a
+  one-row newdata, or a logical `dec()` given `TRUE`) was refused for
+  holding one level. A value the fit did not see is now refused by name.
+  It used to be coded as if it were one of the fit's. A coercion's own
+  refusal is reported in its own words, not as "could not be evaluated
+  on newdata".
+
+* **`conditional_effects()` holds the variables of `thres()`, `vint()`
+  and registered terms at `round(median())`**, as brms holds its
+  whole-valued terms, and says so in a message. They were held at the
+  mean: a `vint()` count of 9.985 drew `NA`, and a numeric `dec()` at
+  0.573 was no boundary.
+
+* **The `conditional_effects()` grid refuses a row without its `thres(gr
+  = )` group** (`method = "predict"`), where it used to draw the row
+  without it. The default grid holds the group, so the refusal meets
+  only a grid that cannot evaluate it.
+
+* **REML and `profile = TRUE` fits on an ill-conditioned fixed design
+  are taped in the design's coordinates.** There `beta` is integrated
+  with the group effects. Its inner Hessian has the design's condition
+  number squared, and the REML objective lost its digits.
+  - On a raw polynomial of degree 7 with `(1 | g)`, the fit stopped
+    short with a convergence warning. Its coefficient standard errors
+    were 1.5 to 1.9 times the exact ones. At degree 8 every standard
+    error was NaN, or the optimizer failed.
+  - Now the objective is taped in `gamma`, with `beta = T gamma` and `T`
+    from the design's QR. Under REML the tape also carries `-log |det
+    T|`, so `logLik()`, AIC and BIC are those of `beta`.
+  - At degrees 3 to 7 the REML log-likelihood equals the exact
+    restricted log-likelihood to 6.6e-10. At degrees 5 to 8 the fit
+    reaches the REML optimum to 2e-12. The covariance is within 6.1e-9
+    of the exact one on the scale of the correlation.
+  - The joint covariance is held as a factor, as on an ML fit. Every
+    route that propagates it reads the factor. `vcov()` warns (class
+    `frmtmb_cov_products`) where a product of the whole matrix loses its
+    digits, and `marginaleffects::get_vcov()` returns NaN.
+  - frmtmb's REML `vcov()` adds the uncertainty of the variance
+    parameters to the conditional covariance, as glmmTMB does. lme4's
+    `vcov()` is the conditional part alone. On these designs it is 2.2
+    to 3.3 percent off its own exact value at degree 7. At degree 8 lme4
+    stops with an error.
+
+* **A log standard deviation that the optimizer leaves near zero below a
+  small interior maximum now moves.** The log-likelihood is flat toward
+  zero in a log sd. So nlminb can stop at an sd near zero and call the
+  stop converged.
+  - Take a raw polynomial of degree 7 with `(1 | g)` and no group effect
+    (seed 4). The stop was at an sd of 1.9e-6. The maximum is at 0.033
+    times sigma, 1.2e-3 higher. The fit warned, and every coefficient
+    lost its standard error.
+  - When a larger sd gains more than `grad_tol` with the rest held, the
+    optimizer restarts from it. That fit now reaches the exact maximum
+    to 8e-9. Its covariance is within 5.6e-6 of the exact one.
+  - Among 80 such fits, three were more than `grad_tol` short. All three
+    now reach the maximum. One of them had called the sd "flat".
+  - A caller who asks for an earlier stop keeps it. That is an
+    `iter.max` or `eval.max` below 1000, a looser `rel.tol`, `x.tol`,
+    `abs.tol` or `xf.tol` than nlminb's, or another optimizer. Higher
+    caps and tighter tolerances keep the restart.
+
+* **Newton steps from the stop respect the bounds a prior sets.** Every
+  full step that crossed a bound was refused. A step now holds the
+  coordinates it would push out at their bounds.
+  - Take an upper bound one standard error below the estimate of a raw
+    polynomial's top coefficient. On 0.71.0, 10 of 20 fits reached the
+    constrained maximum at degrees 5 to 8. Two of the others stopped
+    0.12 and 0.60 short with no warning. Their standard errors were 5.8
+    to 39 times the right ones. Now 17 of the 20 reach it.
+  - A parameter on its bound that the Newton step would push out is held
+    by that bound, whatever the sign of its gradient. On an
+    ill-conditioned design that sign is rounding.
+  - The other coefficients' covariance is taken in the coordinates of
+    the design without the held one.
+
+* **Nonlinear formulas take the coordinates of their Jacobian.** A
+  nonlinear body has no design, but its Jacobian with respect to the
+  coefficients of its parameters serves as one. This changes the
+  standard errors of such fits.
+  - A degree-8 raw polynomial written as a body, one parameter per
+    coefficient, now reaches the maximum of `lm()`. Its covariance is
+    within 4.7e-6 of the exact one. 0.71.0 stopped 0.047 to 0.41 short
+    and gave no standard errors.
+  - A degree-6 raw polynomial beside `A * sin(w * z)` had a covariance
+    up to 3e-3 from the exact one, with no warning. Now it is within
+    1.8e-8.
+  - The Hessian in these coordinates must be symmetric to 1e-3 of its
+    largest entry. A body that is nearly unidentified along a nonlinear
+    parameter fails that test and keeps the covariance of 0.71.0.
+
+* **Fits with up to 400 outer parameters take the design's
+  coordinates.** The limit was 100. This changes the standard errors of
+  such fits.
+  - A degree-7 raw polynomial beside 150 or 292 covariates now reaches
+    the maximum of `lm()`. Its standard errors are within 5.3e-6. On
+    0.71.0 these fits stopped 0.5 to 2.2 short, with a warning, and
+    their standard errors were NaN or wrong.
+  - Newton steps in natural units still stop at 100 parameters.
+
+* **On an identity-link gaussian design the Hessian in the design's
+  coordinates costs half the gradients.** There the gradient is linear,
+  so a central difference is exact. Every other column keeps the
+  Richardson extrapolation. This moves such fits' standard errors in
+  their last digits.
+  - With 100 outer parameters and n = 1e4, a gaussian fit takes 0.87 of
+    the time it took on 0.71.0. With `(1 | g)` it takes 0.89 of that
+    time.
+  - With n = 1e5, both fits take 0.88 of the time they took on 0.71.0.
+  - Non-gaussian and nonlinear fits keep the cost and the accuracy of
+    0.71.0.
+
+* **Standard errors of a fit without random effects come from the exact
+  Hessian.** The covariance was the inverse of central differences of
+  the gradient with an absolute step of 1e-3, the step
+  `stats::optimHess()` takes. Where that step moves a linear predictor
+  by much and the gradient is not linear along it, the standard errors
+  were wrong and nothing warned. A poisson GLM with x ~ N(500, 100) had
+  standard errors 6.2 percent off. Take ten poisson and bernoulli
+  designs with covariates of very different scales, against an exact
+  covariance formed in 256 bits. The error was up to 21 percent. It is
+  now below 1e-11 on 18 of the 20 fits, and 2.6e-8 on the other two (a
+  covariate on [1000, 1001]). `y ~ a * exp(b * x)` with x on 20 + [0, 1]
+  had a correlation 0.133 off, and is now within 5e-7. The covariance is
+  now the inverse of the AD Hessian, which the standard-error check
+  already read as exact. Every fit without random effects moves. On 27
+  ordinary, well-scaled fits the standard errors moved by at most 5.2e-7
+  relative, and the correlations by at most 1.1e-6. All moved toward the
+  exact values. The fit already holds this Hessian, so the first
+  `vcov()` no longer takes one: on a bernoulli GLM with 50 coefficients
+  and 1e5 rows it went from 20.4 s to 2.2 s. Under
+  `frmtmb_control(check_se = "ignore")` the fit does not hold it, and
+  the first `vcov()` builds it. That is faster than the differences, but
+  it takes more memory. On a bernoulli GLM with 1e4 rows the peak memory
+  rose by 350 MB at 200 coefficients and by 870 MB at 500. The change
+  includes `quadrature = TRUE` and `importance =` fits, whose outer
+  objective has no inner random effects, and there it is the largest.
+  Take a poisson `y ~ x + (1 | g)` fit by importance sampling with x ~
+  N(500, 100). Its intercept standard error was 0.498. The same model on
+  x / 100, an exact reparameterization, gives 0.270, so the first was 85
+  percent off. It now gives 0.270 on both. The quadrature fit of the
+  same model was 0.27 percent off.
+
+* **With random effects, the outer Hessian's step follows the design.**
+  Where the root mean square of a coefficient's design column is above
+  one, the step is 1e-3 divided by it. So a step moves the linear
+  predictor by about 1e-3 in root mean square over the rows. A row far
+  out in a heavy tail moves by more. Take a lognormal column with a root
+  mean square of 50 and a largest value of 836: that row moves by
+  1.7e-2. The standard errors are within 7e-6 of a Richardson reference,
+  where 0.71.0 was 1.6e-2 off. A poisson GLMM with x ~ N(500, 100) and
+  `(1 | g)` had standard errors 0.37 percent off and a correlation 0.10
+  off. Its group standard deviation lost its standard error as "flat",
+  with a warning. It now keeps it, and the covariance is within 5.3e-7
+  of a Richardson reference. A design whose columns are all at unit
+  scale or below keeps the steps of 0.71.0, so its covariance does not
+  change. A nonlinear parameter, a `mo()` term and a variance parameter
+  keep the step of 1e-3.
+
+* **A variance that is zero, negative or not finite is shown as `NaN`,
+  never as itself.** `asym_laplace()`'s log density is piecewise linear
+  in its location, so its exact Hessian has no curvature there.
+  Inverting it gave standard errors of exactly 0 and `confint()`
+  intervals of zero width. Such a parameter now has a `NaN` row and
+  column in `vcov()`, and `summary()` and `diagnose()` give the reason.
+  No `asym_laplace()` fit has a valid Hessian standard error, in this
+  version or in 0.71.0, whose differences across the kinks gave noise.
+
+* **`update()` takes what it does not replace from the fit**, as brms's
+  `update()` does: the data, the formula, the family, the control, the
+  start and the flags. Since `update()` was added (0.6.0) it evaluated
+  the symbols of the stored call again. So the refit used the objects of
+  that name at that time. With `x2` changed in the workspace,
+  `update(fit)` gave a log-likelihood of -3597.28 for a fit of -3536.91.
+  With 10 rows deleted it had 1990 observations for the fit's 2000. It
+  stopped with "object 'd' not found" (or `'form'`, `'fam'`) in three
+  cases. The data were removed, the fit was read back with `readRDS()`
+  in a new session, or it was made inside a function. A global `form` of
+  the same name as the call's argument became the model without a word.
+  The data the fit holds are the model frame and the variables the
+  formula reads through a transform. They are on the rows the fit used,
+  after `na.action`. The fit's bases go with them. So `update(fit)` with
+  nothing changed gives the fit's log-likelihood, also when `na.action`
+  removed rows and the formula has `splines::ns()`, `poly()` or
+  `scale()`. Rows that `na.action` removed stay out of the refit, and
+  under `na.exclude` the refit pads its residuals to the fit's rows. The
+  new fit's call names everything as the stored call did.
+
+* **A variable the fit does not hold is read only from data that are
+  still the fit's.** `update(fit, ~ . + z)` with a new `z` reads the
+  stored call's data, as `stats::update()` and `add1()` need, when those
+  data hold the fit's rows and values. Otherwise it is refused with
+  brms's words, "New variables found: 'z' Please supply your data again
+  via argument 'newdata'.", and a reason. It used to read every variable
+  again from the changed object.
+
+* **`drop1()`, and so `step()`, and `anova()` refuse a fit whose prior
+  adds a log density to the objective.** Its `logLik()` is the
+  log-likelihood plus the log prior (since MAP fits, 0.10.0), so the
+  difference of two is not a likelihood ratio: on one probe it was
+  -1.56, with p = 1. A prior that only sets bounds adds no density and
+  is not refused. The message points to a refit without the prior, or to
+  frmtmb.sample's `loo()` and `bayes_factor()`. brms has no `drop1()`
+  and compares models with those two.
+
+* **`drop1()` keeps the fit's bases.** A submodel keeps the bases that
+  the fit computed from every row before `na.action`: the knots of
+  `ns()`, the coefficients of `poly()`, and the center and scale of
+  `scale()`. It keeps their coefficient names too, as `stats::drop1()`
+  keeps the fit's design columns. With three missing values in another
+  variable, the likelihood-ratio statistics now equal `stats::drop1()`'s
+  on `lm()` and `glm()`. The AIC of a submodel equals that of
+  `update(fit, ~ . - x3)`.
+
+* **`influence()` keeps the fit's bases** in every deletion refit, as
+  lme4's `influence.merMod()` does. On `z ~ poly(x2, 2) + x + (1 | g)`
+  the deleted-group coefficients differed from lme4's by 1.3 times the
+  largest displacement. Each deletion computed the basis again from its
+  own rows (since 0.15.0). They now agree to 4.6e-6 of it.
+
+* **A brms `categorical(refcat = "b")` object passed as `family =` keeps
+  its `refcat`.** 0.71.0 dropped it and fitted reference `a` under the
+  names `mub` and `muc`. The same call now fits brms's parameterization,
+  with brms's names.
+
+* **`validate_prior()` and `prior_summary()` list the class `"sd"` rows
+  in brms's order**: the class-wide rows, then group by group, with the
+  responses inside each group.
+
+* **`conditional_effects(categorical = TRUE)` on `categorical()` draws a
+  Wald band from `fitted()` by default**, where it asked for `band =
+  "boot"`.
+
+* **When the standard-error check removes nothing, a log sd with a small
+  curvature is interior.** The covariance is then taken in the design's
+  coordinates, which moves the standard errors of such fits. Before,
+  `solve()` of the natural Hessian kept it 1.4e-3 from the exact one at
+  degree 7.
+
+## New features
+
+* `categorical(refcat = )` and `multinomial(refcat = )` name the
+  reference category, as in brms: `NULL` is the first, a name must be
+  one of the categories, and `NA` gives every category a predictor. The
+  dpar names, `default_prior()` rows and post-fit shapes follow the
+  reference. `brmsfamily("categorical", refcat = )` and
+  `brmsfamily("multinomial", refcat = )` take it too. Under `refcat =
+  NA` a maximum-likelihood fit determines only the category
+  probabilities. Its standard-error warning names the common shift of
+  every category's predictor. A prior on each predictor determines the
+  coefficients. `logLik()`, `AIC()`, `BIC()`, `anova()` and `drop1()`
+  count the degrees of freedom of the same model with a reference
+  category, which has the same likelihood. With a category formula of
+  its own the count is not defined: the df is `NA`, and `anova()` and
+  `drop1()` say why. The same holds for `dirichlet(refcat = NA)`. brms
+  2.23.0's own fit of that model with its default priors does not
+  converge (R-hat 1.71). A family's `print()` shows its reference
+  category.
+
+* `fitted()` on `multinomial()` returns brms's `n x 4 x K` array of
+  expected counts, layers `P(Y = <category>)`, with delta-method
+  standard errors; 0.71.0 refused it. `frm_linpred(type = "response")`
+  gives the `n x K` counts.
+
+* `logistic_normal()` fits inside `mvbf()`. Its correlations are a block
+  of its response, set with `set_prior(class = "lncor", resp = )`. The
+  summary reports them as `lncor_<resp>(b,c)`, and `variables()` and
+  `hypothesis()` as `lncor_<resp>__b__c`. `<resp>` is brms's Stan name
+  of the response (`Ya` for `Y_a`). brms 2.23.0 cannot compile this
+  model; its model block, repaired, agrees with frmtmb's likelihood at
+  frmtmb's estimates. `dirichlet()` in `mvbf()` worked and is now tested
+  against brms.
+
+* **A class `"sd"` prior can name one coefficient**, as in brms.
+  `set_prior("normal(0, 0.5)", class = "sd", group = "g", coef = "x")`
+  puts the density on `sd_g__x` alone. This works in `frm()`,
+  `validate_prior()` and `frmtmb.sample::frm_sample()`.
+  `default_prior()` lists a row per coefficient below each group row, in
+  brms's order. A brms prior table with such a row translates. A `coef`
+  without a `group` is refused by name. So is a `coef` on a structure
+  whose columns share one standard deviation (`homdiag()`, `ar1()`,
+  `homcs()`). See "Group-level standard deviations" in `?set_prior`.
+
+* **`gr(g, id = )` is brms's correlation id.** `(1 | gr(g, id = "a")) +
+  (0 + x | gr(g, id = "a"))` is `(1 | a | g) + (0 + x | a | g)`.
+
+* `re_formula = ~ diag(x | g)` names the term it wraps, as `~ (x | g)`
+  does. It named no term before.
+
+* A refused class `"cor"` prior names a `||` or `gr(cor = FALSE)` term
+  as it was written, `(1 + f || g)`, not as `1 + f | g [diag]`.
+
+* `set_prior()` takes brms's `uniform(lb, ub)` and `lognormal(mu, sd)`.
+  frmtmb.sample needs both for brms's defaults on a non-decision time
+  without a formula and on an ordinal `disc` under its identity link.
+  The uniform density is `NaN` outside its interval. That rejects a
+  value there; it does not keep a sampler inside, which `lb` and `ub`
+  do.
+
+* A natural-scale prior on a logit-linked distributional parameter
+  (`set_prior("beta(1, 1)", class = "zi")`, and frmtmb.sample's
+  defaults) has a finite Jacobian for every value of its coefficient.
+  Past a coefficient of about 37 it was minus infinity, so a mode there
+  gave an infinite objective.
+
+* A prior on the `nu` that the Student-t responses of a
+  `set_rescor(TRUE)` model share takes no `resp`, as brms's row has
+  none: `set_prior("gamma(2, 0.1)", class = "nu")`. It was refused with
+  and without `resp`.
+
+* The sampling API exports `ord_lp_blocks()`, the threshold blocks of an
+  ordinal model with the `dpar` class `"Intercept"` addresses each by.
+
+* **`cooks.distance()` and the Wald rules of `anova()` on
+  `frm_multiple()` fits read the factor of the covariance.** These are
+  D1, and D2 with `use = "wald"`. On 0.71.0 they inverted the whole
+  matrix.
+  - At degrees 7 and 8 they stopped with "system is computationally
+    singular". At degree 6 Cook's distances were up to 5.8e-4 off.
+  - Now they are within 2.3e-6 of the exact ones at degree 8.
+  - Where the factor's rows are dependent to working precision, they
+    give NaN with a warning.
+
+## Bug fixes
+
+* `cumulative()` and `hurdle_cumulative()` gave a log probability of
+  `NaN` on doubles for an end category whose neighboring thresholds are
+  tied. The category has a positive probability there. This held under
+  every link with a log-odds form (logit, probit, probit_approx,
+  cloglog). Fits were not affected, because the tape drops the masked
+  term; `log_lik()` of draws was. The taped value and gradient are
+  unchanged bit for bit at distinct thresholds. A `hurdle_cumulative()`
+  zero row at such a tie was `NaN` too, and is `log(hu)` now.
+
+* `conditional_effects()` on `multinomial()` draws one curve per
+  category, as brms does with `categorical = TRUE`, and as for the
+  simplex families. `dharma_residuals()` on it is refused by name.
+
+* `set_prior(resp = )` takes brms's Stan name of a response (`Ya` for a
+  response `Y_a`) as well as frmtmb's own.
+
+* `confint(parm = )` takes the name of a correlation that is one
+  internal parameter: `rescor__y1__y2` of two responses and
+  `lncor__b__c` of a three-category `logistic_normal()`. The refusal for
+  a wider block advised `hypothesis(method = "profile")`, which fails
+  there ("not linear"); it now names `hypothesis(class = NULL)` and
+  `method = "boot"`.
+
+* `drop1()` on `categorical()`, `multinomial()`, the simplex families
+  and mixtures was refused ("No linear predictor for dpar 'mu'"). A
+  dropped term now leaves every location predictor that reads the main
+  formula.
+
+* **A `mixture()` draws each component at its own rows' addition
+  terms.** The simulator gave each component the whole term list. So the
+  j-th row of a class read the `trials()` of the j-th row of the data.
+  Take a binomial mixture with `N` of 2 and 50. In `simulate()`,
+  `predict()` and frmtmb.sample's `posterior_predict()`, 25% of the
+  draws exceeded `N`, and the `N = 2` rows averaged 11.8 where
+  `fitted()` says 0.98. `mixture(groups =)` had the same defect (21%).
+  Present in every release with mixtures of trials families.
+
+* **`predict(newdata =)` and `predict(re_formula =)` hand the simulator
+  each distributional parameter on its natural scale.** They handed it
+  the reporting scale, which for a mixture's `theta` is already the
+  softmax probability, and the simulator applied the softmax again: the
+  mixing weights were wrong on every draw away from the in-sample fast
+  path (443 against `fitted()` 484 on a binomial mixture at `N = 1000`).
+  The defect is in every release from 0.61.0 (862032e3), where these
+  draws first read the dpars that way.
+
+* `conditional_effects(method = "predict")` codes a registered addition
+  term, such as frmtmb.eam's `dec()`, with the coercion its package
+  registered, and `thres(gr = )` as the fit's group codes. A `dec()`
+  factor reached the simulator as its level codes, so each level was
+  drawn at the other boundary.
+
+* `drop1()` refits a term that reads a raw variable. These stopped with
+  "The model uses `x2`, which is not a column of `data`" (since 0.49.0):
+  `z ~ x + log(x2)`, `scale(x)`, `I(x^2)`, `splines::ns(x2, 3)`,
+  `poly(x, 2)` beside another term, `x * log(x2)`, a transformed
+  response, and `drop1(scope = )`. The refits read the model frame,
+  which holds `log(x2)` and not `x2`. The likelihood-ratio statistics
+  and degrees of freedom equal those of `stats::drop1()` on `lm()` and
+  `glm()` and of lme4's `drop1()` on `lmer(REML = FALSE)`. brms has no
+  `drop1()`.
+
+* `drop1()` refits a model with an interval `cens(cc, y2)`. The upper
+  bound is not a column of the model frame, so every refit stopped
+  (since 0.49.0).
+
+* `drop1()` takes the family and the control from the fit. It evaluated
+  them again from the formula's environment, so `family = fam` from a
+  function's frame was "object 'fam' not found" (since 0.49.0).
+
+* `step()` removes a term, on the fit's data. It passes its update to
+  `update(evaluate = FALSE)` as text, `"~ . - x3"`, which `update()` did
+  not read. So every step that removed a term stopped with "object
+  'change' not found" (since 0.21.0, when drop1() was added). The call
+  it evaluates now holds the fit's data and formula by value. So
+  `step()` gives the same model when the data object is changed or
+  removed, or in a new session after `readRDS()`. Its path equals
+  `stats::step()`'s on `lm()` and `glm()`.
+
+* `influence()` reads the raw variables by default. Its default data,
+  the model frame, made every deletion refit of a model with a
+  transformed term fail (since 0.15.0).
+
+* `fitted(fit, re_formula = ~ (1 + log(x2) | g))`, the fit's own term,
+  was refused as matching no group-level term (since 0.61.0).
+  `make_conditions(fit, "x2")` refused `x2` of `log(x2)` (since 0.65.0).
+  Both read the model frame.
+
+* A fit on a tibble with a transformed term no longer warns "Setting row
+  names on a tibble is deprecated". A fit on a named list keeps the raw
+  variables a refit reads. Both were defects since 0.66.0.
+
+## Documentation
+
+* `?vcov.frmtmb_fit` says what the REML covariance of the coefficients
+  is: the conditional part plus what the variance parameters'
+  uncertainty adds. It names how that differs from lme4's.
+
+## Internal
+
+* Bin 2 of the ported brms suite reaches 0.71.0's families. The thin
+  adapter maps brms's per-category predictors onto `categorical()`,
+  `dirichlet()`, `brmsfamily("dirichlet2")`, `logistic_normal()` and
+  `multinomial()`. It shims brms's Frechet, generalized extreme value
+  and categorical functions onto frmtmb's families, and reaches
+  frmtmb.eam's `wiener()`. Some of brms's checks read only the shape of
+  a log density or a CDF. A value check now compares such a value with
+  brms's own function on the same arguments. No package code changed.
+
 # frmtmb 0.71.0
 
 Seven lanes, each with an adversarial review and fix rounds:

@@ -486,7 +486,7 @@ priors:39	frmtmb	cannot transfer	set_prior(check = FALSE) passes Stan code throu
 priors:48	frmtmb	pass	
 priors:55	frmtmb	pass	
 priors:59	frmtmb	pass	
-priors:74	frmtmb	divergence	default_prior() answers brms's Beta() model on an rnorm() response now, as brms does (lane wt-defects); its 5 phi rows against brms's 6 lack the per-coefficient sd row (sd, g, Intercept), which frmtmb does not list because its class sd addresses a block and refuses coef (priorform ledger P1, P26)
+priors:74	frmtmb	pass	
 priors:84	frmtmb	pass	
 priors:85	frmtmb	divergence	default_prior() describes frm(), which is flat in every slot; the sampling route's flat rescor is a filed frmtmb.sample defect (priorform ledger P15, dev/priorform-findings.md section 6)
 priors:91	frmtmb	pass	

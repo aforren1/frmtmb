@@ -48,6 +48,12 @@ re_formula_bars <- function(re_formula) {
                                          text = paste0("(", deparse1(e),
                                                        ")"))
       }
+    } else if (op %in% c(names(covstruct_registry), "rr") &&
+                 length(e) >= 2L && is.call(e[[2L]]) &&
+                 deparse1(e[[2L]][[1L]]) %in% c("|", "||")) {
+      # a covariance wrapper, diag(x | g), which brms does not have:
+      # the term it wraps names the columns, as the fit's own term does
+      walk(e[[2L]])
     }
     invisible(NULL)
   }
@@ -70,14 +76,16 @@ re_expand_group <- function(g) {
   list(g)
 }
 
-#' One comparison key per grouping expression: an interaction is the
-#' same factor whichever order its parts are written in.
+#' One comparison key per grouping expression: the group as written.
+#' brms compares the strings, so `g2:g1` is not the group `g1:g2` there
+#' and a re_formula naming it keeps no term (dev/prilabel-rev-log/
+#' brmsfit.txt); a fit of `(1 | g1:g2) + (1 | g2:g1)` has both groups.
+#' This read the parts in any order until the blocks took brms's names,
+#' and so kept the old reformulas label `g2:g1` working.
 #'
 #' @noRd
 re_group_key <- function(g) {
-  g <- re_expand_group(g)[[1L]]
-  parts <- strsplit(deparse1(g), ":", fixed = TRUE)[[1L]]
-  paste(sort(trimws(parts)), collapse = ":")
+  deparse1(re_expand_group(g)[[1L]])
 }
 
 #' The design columns one re_formula term asks for, named as the fitted
@@ -94,7 +102,9 @@ re_term_cnms <- function(fit, term, cmc = TRUE) {
   }
   cmc_drop <- !cmc && attr(tt, "intercept") == 0L
   if (cmc_drop) attr(tt, "intercept") <- 1L
-  df <- fit$frame[["data_frame"]]
+  # a term such as `log(x2)` is evaluated again, from `x2`, which the
+  # model frame does not hold
+  df <- fit_refit_data(fit) %||% fit$frame[["data_frame"]]
   mf <- tryCatch(stats::model.frame(tt, df, na.action = stats::na.pass),
                  error = function(e) NULL)
   if (is.null(mf)) return(NULL)

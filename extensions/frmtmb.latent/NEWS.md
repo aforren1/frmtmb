@@ -1,3 +1,28 @@
+# frmtmb.latent 0.6.2
+
+Needs frmtmb 0.72.0: `hmm_starts()` refits through that release's
+`update()`.
+
+## Bug fixes
+
+* **`hmm()` draws each state at its own rows' addition terms.** The
+  simulator gave the state-dependent family the whole term list. So the
+  j-th row of a state read the `trials()` of the j-th row of the data.
+  Take a binomial `hmm(K = 2)` with `N` of 2 and 50. In its
+  `simulate()`, 26% of the draws exceeded `N`, and the `N = 2` rows
+  averaged 12.2 where `fitted()` says 0.91. The likelihood was not
+  affected.
+
+* `hmm_starts()` refits with `update()`, which takes the data, the
+  formula, the family and the control from the fit. Now a fit refits in
+  three cases: its data object is gone from the workspace, it was saved
+  and read back in a new session, or it was made inside a function.
+  Since `hmm_starts()` was added (0.55.2 of frmtmb) such a fit stopped
+  with "the model's own call could not be re-evaluated from here". Some
+  symbols of the call are not taken from the fit, such as `na.action`.
+  They still have to be visible from where `hmm_starts()` is called.
+  This needs frmtmb 0.72.0.
+
 # frmtmb.latent 0.6.1
 
 No change to the package's code. frmtmb 0.71.0 changes what a model of

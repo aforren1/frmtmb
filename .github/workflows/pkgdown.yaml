@@ -206,6 +206,25 @@ jobs:
             if (st != 0L) stop("R CMD INSTALL failed for ", nm)
           }
         shell: Rscript {0}
+      # The rows the extensions contribute to the compatibility table
+      # can be checked only with all seven loaded. No other job has them
+      # all: coverage runs core alone, and R CMD check hides what the
+      # DESCRIPTION does not name, so test-compat-extensions.R skips
+      # there. This job has just installed them. A skip here would hide a
+      # broken row, so it fails the step as a failure does
+      - name: Check the extensions' compatibility rows
+        env:
+          NOT_CRAN: "true"
+        run: |
+          r <- as.data.frame(testthat::test_file(
+            "tests/testthat/test-compat-extensions.R", package = "frmtmb",
+            load_package = "installed", reporter = "summary"))
+          print(r[, c("test", "nb", "failed", "skipped", "error")])
+          bad <- any(r$skipped) || any(r$error) || sum(r$failed) > 0 ||
+            sum(r$nb) == 0
+          if (bad) stop("test-compat-extensions.R did not pass with all ",
+                        "seven extensions installed")
+        shell: Rscript {0}
       # Asked before the build so that a legacy-mode repository gets its
       # warning in the first minute rather than after the site is built.
       # A read failure is reported as unknown, which skips the deploy:

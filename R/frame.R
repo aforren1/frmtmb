@@ -29,7 +29,7 @@
 #' repeating a coefficient, is still accepted. An exact twin term is
 #' collapsed to one before this, as brms collapses it
 #' (`drop_twin_bar_terms()`), and grouping factors are compared as
-#' brms writes them (`slash_nested_bars()`).
+#' brms writes them (`expand_slash_groups()`, `mm_group_name()`).
 #'
 #' The glmmTMB covariance structures brms does not have are held to the
 #' same rule: `rr(0 + x | g) + diag(0 + x | g)`, `equalto(...) + us(...)`
@@ -63,19 +63,12 @@ refuse_duplicated_re <- function(cps) {
         paste0(cs, "(", deparse1(wr), ")")
       }
     }
-    # brms compares grouping factors as the strings it writes, and it
-    # writes g/h as g:h where reformulas writes h:g, so only a term that
-    # came from a slash is read back in brms's order
+    # brms compares grouping factors as the strings it writes, which is
+    # what group_name holds: g/h arrives as g and g:h
+    # (expand_slash_groups()), and a multi-membership group is named by
+    # its members alone (mmg1g2), so weights or scale do not make it a
+    # second factor
     grp <- cp[["group_name"]]
-    # brms names a multi-membership group by its members alone
-    # (mmg1g2), so weights or scale do not make it a second factor
-    if (!is.null(cp[["mm"]])) {
-      grp <- paste0("mm", paste(cp[["mm"]][["gvars"]], collapse = ""))
-    }
-    if (isTRUE(cp[["from_slash"]])) {
-      grp <- paste(rev(strsplit(grp, ":", fixed = TRUE)[[1L]]),
-                   collapse = ":")
-    }
     keys <- paste0(grp, "\r", cp[["cnms"]])
     hit <- match(keys, seen_key)
     if (any(!is.na(hit))) {
@@ -2083,14 +2076,25 @@ check_frame_variables <- function(rhs, data, env) {
 #' `poly(x, 2)` or `z` in `log(abs(z) + 1)`, on the rows of the model
 #' frame. The model frame keeps the transformed columns only; brms's
 #' keeps the variables, and `conditional_effects()` varies a variable,
-#' not a basis matrix. A variable read only inside `offset()` is left
-#' out: the offset has its own handling in the display. `NULL` when the
-#' model frame already holds every variable, or when its rows cannot be
-#' matched to the data's by name.
+#' not a basis matrix. Together with the model frame they are the data
+#' a refit reads (`fit_refit_data()`), so `rhs` also carries what the
+#' frame leaves out on purpose, such as the upper bound of an interval
+#' `cens()`. A variable read only inside `offset()` is left out: the
+#' offset has its own handling in the display. A data frame with no
+#' columns when the model frame already holds every variable; `NULL`
+#' when its rows cannot be matched to the data's.
 #'
 #' @noRd
 frame_raw_vars <- function(mf, data, rhs, env = NULL) {
-  if (is.null(rhs) || !is.data.frame(data)) return(NULL)
+  n_data <- if (is.data.frame(data)) {
+    nrow(data)
+  } else if (is.list(data) && length(data)) {
+    NROW(data[[1L]])
+  }
+  if (is.null(n_data)) return(NULL)
+  rn_mf <- attr(mf, "row.names")
+  none <- structure(list(), class = "data.frame", row.names = rn_mf)
+  if (is.null(rhs)) return(none)
   off_only <- character(0)
   other <- character(0)
   walk <- function(e, in_off) {
@@ -2104,28 +2108,87 @@ frame_raw_vars <- function(mf, data, rhs, env = NULL) {
   }
   walk(rhs, FALSE)
   v <- setdiff(unique(other), names(mf))
-  rows <- match(rownames(mf), rownames(data))
+  # model.frame() names the rows of a list, a tibble or a data.table
+  # 1 to n, as rownames() reads those of the last two
+  rn_data <- if (is.data.frame(data)) {
+    rownames(data)
+  } else {
+    as.character(seq_len(n_data))
+  }
+  rows <- match(rownames(mf), rn_data)
   if (anyNA(rows)) return(NULL)
+  pick <- function(x) if (is.null(dim(x))) x[rows] else x[rows, , drop = FALSE]
   # a predictor keeps R's lookup in the formula environment (user
   # decision of 2026-09-30), so a variable found there, one value per
   # row of the data, is a raw variable as a column is; a function or a
   # constant of another length is not
-  from_env <- list()
-  if (!is.null(env)) {
-    for (w in setdiff(v, names(data))) {
-      x <- tryCatch(get(w, envir = env), error = function(e) NULL)
-      if ((is.numeric(x) || is.factor(x) || is.character(x) ||
-             is.logical(x)) && is.null(dim(x)) && length(x) == nrow(data)) {
-        from_env[[w]] <- x[rows]
-      }
+  out <- list()
+  for (w in v) {
+    if (w %in% names(data)) {
+      out[[w]] <- pick(data[[w]])
+      next
+    }
+    if (is.null(env)) next
+    x <- tryCatch(get(w, envir = env), error = function(e) NULL)
+    if ((is.numeric(x) || is.factor(x) || is.character(x) ||
+           is.logical(x)) && is.null(dim(x)) && length(x) == n_data) {
+      out[[w]] <- x[rows]
     }
   }
-  v <- intersect(v, names(data))
-  if (!length(v) && !length(from_env)) return(NULL)
-  out <- data[rows, v, drop = FALSE]
-  for (w in names(from_env)) out[[w]] <- from_env[[w]]
-  rownames(out) <- rownames(mf)
-  out
+  # built column by column: `[` on a data.table reads a column vector
+  # differently, and setting row names on a tibble warns
+  if (!length(out)) return(none)
+  structure(out, class = "data.frame", row.names = rn_mf)
+}
+
+#' The rows a univariate `subset()` cut from the model frame, kept so
+#' that a refit on the fit's data (`fit_refit_data(rows = "data")`)
+#' sees every row the fit read, as brms's stored data does: `nobs()`
+#' counts them. `NULL` without a cut. `keep` indexes the uncut frame's
+#' rows the fit uses, `n` is their count, and `data` holds the others,
+#' with the frame's columns and the raw variables.
+#'
+#' @noRd
+subset_cut_data <- function(mf_uncut, keep, data, rhs, env) {
+  if (is.null(mf_uncut) || is.null(keep)) return(NULL)
+  out <- setdiff(seq_len(nrow(mf_uncut)), keep)
+  if (!length(out)) return(NULL)
+  cut <- mf_uncut[out, , drop = FALSE]
+  raw <- frame_raw_vars(cut, data, rhs, env)
+  if (is.null(raw)) return(NULL)
+  cols <- as.list(cut)
+  for (v in setdiff(names(raw), names(cols))) cols[[v]] <- raw[[v]]
+  list(keep = keep, n = nrow(mf_uncut),
+       data = structure(cols, class = "data.frame",
+                        row.names = attr(cut, "row.names")))
+}
+
+#' The rows a fit's `na.action` removed, for a refit on the fit's own
+#' rows, classed by the refit's `na.action`: `na.exclude` pads the
+#' residuals and fitted values to the data's rows, `na.omit` does not.
+#'
+#' @noRd
+refit_na_rows <- function(rows, na.action) {
+  if (is.null(rows)) return(NULL)
+  ex <- identical(na.action, stats::na.exclude) ||
+    identical(na.action, "na.exclude")
+  class(rows) <- if (ex) "exclude" else "omit"
+  rows
+}
+
+#' The combined frame's right-hand side plus what a refit reads from the
+#' data although the frame leaves it out: the upper bound of an interval
+#' `cens()`, which may be `NA` on rows that are not intervals and so
+#' cannot be a frame column without `na.action` dropping those rows.
+#'
+#' @noRd
+raw_rhs <- function(spec, rhs) {
+  for (r in spec$responses) {
+    y2 <- r$aterms[["cens_y2"]]
+    if (!is.language(y2)) next
+    rhs <- if (is.null(rhs)) y2 else call("+", rhs, y2)
+  }
+  rhs
 }
 
 #' Turn a parsed spec plus data into the numeric `frmtmb_frame` the
@@ -2174,11 +2237,25 @@ frame_raw_vars <- function(mf, data, rhs, env = NULL) {
 #' absent refits the FITTED model rather than a shorter one. A count the
 #' user wrote wins over the pinned count, but not over the recoding.
 #'
+#' `predvar_map` is for refits from a fit's own rows: `influence()`,
+#' and `update()` and `drop1()` through `frm()`. It is the fitted
+#' frame's `predvar_map`, so that a data-dependent basis (`poly()`,
+#' `ns()`, `scale()`) keeps the knots, coefficients or center the fit
+#' computed from every row before `na.action`, instead of computing
+#' them again from fewer rows. lme4's `influence.merMod()` keeps them
+#' the same way, by refitting with `subset =`. The frame's column
+#' names, and so the coefficient names, do not change.
+#'
+#' `refit_na_action` is the fitted frame's `na_action`, for a refit on
+#' the fit's rows: those rows have no missing value left to drop, and
+#' the refit pads its residuals and fitted values as the fit does.
+#'
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list(),
                            check_response = TRUE, thres_pin = NULL,
-                           drop_unused_levels = TRUE) {
+                           drop_unused_levels = TRUE, predvar_map = NULL,
+                           refit_na_action = NULL) {
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -2196,6 +2273,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
              "not ", arg_desc(data), call. = FALSE)
   }
   data2 <- validate_data2(data2)
+  # the variables the data supply, before the fill below adds one: a
+  # refit reads a new variable only from data that still hold these
+  # (refit_data_matches())
+  data_names <- if (is.environment(data)) character(0) else names(data)
   data <- rsv_lower_fill(spec, data)
   check_nl_self_reference(spec, data)
   spec <- resolve_nl_dpar_refs(spec, data)
@@ -2276,6 +2357,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   }
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
+  if (length(predvar_map)) {
+    # model.frame() evaluates a terms object's predvars, and names the
+    # columns after its variables
+    fr_formula <- patch_predvars(stats::terms(fr_formula), predvar_map)
+  }
   check_frame_variables(rhs_comb, data, env)
   check_rsv_intercept_data(spec, data)
   # x | mi() responses may carry NAs (they become latent parameters);
@@ -2347,8 +2433,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # brms's nobs(): the rows of the data, before any subset() cut
   n_data <- nrow(mf)
   uni_rows <- NULL
+  mf_uncut <- NULL
   if (has_sub && length(spec$responses) == 1L) {
     uni_rows <- sub_rows[[1L]]
+    mf_uncut <- mf
     mf <- frame_rows(mf, uni_rows)
     n <- nrow(mf)
     sub_rows <- list()
@@ -2425,6 +2513,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     y[[resp$resp_name]] <- rc$y
     at_names <- setdiff(names(resp$aterms),
                         c("cens_y2", "se_sigma", "mi", row_aterms))
+    codes_new <- list()
     av <- stats::setNames(lapply(at_names, function(nm_at) {
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
@@ -2458,16 +2547,31 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # registering one: the spelling a literature uses (a factor, a
       # two-level character) becomes the numbers the density indexes
       reg_at <- registered_aterm_of(nm_at)
-      if (is.null(reg_at)) return(as.numeric(v))
-      v <- reg_at$coerce(v)
+      # a refit codes a term as the fit coded it, whatever levels its
+      # rows hold (a subset may hold one of a dec() factor's two)
+      tab <- resp[["aterm_codes"]][[nm_at]]
+      if (!is.null(tab) && aterm_is_labelled(v)) {
+        return(aterm_code_lookup(v, tab, aterm_label(nm_at, a)))
+      }
+      raw <- v
+      v <- if (is.null(reg_at)) as.numeric(v) else reg_at$coerce(v)
       if (!is.numeric(v)) {
         frm_stop("The coercion registered for `", reg_at$name,
                  "()` returned ", arg_desc(v), "; an addition term's value ",
                  "is baked into the tape as data and must be numeric",
                  call. = FALSE)
       }
+      if (aterm_level_coded(raw, reg_at)) {
+        codes_new[[nm_at]] <<- aterm_code_table(raw, v)
+      }
       as.numeric(v)
     }), at_names)
+    if (length(codes_new) && is.null(resp[["aterm_codes"]])) {
+      # newdata and refits are coded against these, as a bernoulli
+      # response is against its bin_levels
+      resp[["aterm_codes"]] <- codes_new
+      spec$responses[[resp$resp_name]] <- resp
+    }
     if (!is.null(resp$aterms[["se_sigma"]])) {
       av[["se_sigma"]] <- resp$aterms[["se_sigma"]]   # logical flag, not data
     }
@@ -3184,7 +3288,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               mm = mms,
               written = dp[["re"]][[k]]$written,
               written_text = dp[["re"]][[k]][["written_text"]],
-              group_name = mms$label,
+              # brms's name for the group, by its members alone, which
+              # its prior rows, parameter names and ranef() all carry
+              group_name = mm_group_name(mms),
               label = paste0(dp_prefix, deparse1(bars[[k]]))
             )
             comp_ids <- c(comp_ids, length(components))
@@ -3321,9 +3427,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             dist_nu = dp[["re"]][[k]]$dist_nu,
             written = dp[["re"]][[k]]$written,
             written_text = dp[["re"]][[k]][["written_text"]],
-            from_slash = dp[["re"]][[k]]$from_slash,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[kk]],
+            # brms's names of the levels of an interaction group
+            brms_levels = brms_level_map(bars[[k]][[3L]], levels(fac), mf,
+                                         resp$formula_env),
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             aux_Qk = aux_Qk,
@@ -4089,6 +4197,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       c_idx = n_c + seq_len(D * n_levels),
       theta_idx = n_theta + seq_len(npar_k),
       levels = cps[[1]]$levels,
+      brms_levels = cps[[1]]$brms_levels,
       aux_A = cps[[1]]$aux_A,
       aux_D = cps[[1]]$aux_D,
       aux_D2 = cps[[1]]$aux_D2,
@@ -4107,9 +4216,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_brms = cps[[1]]$gp_brms,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
-      # reformulas writes g/h's nested factor as h:g and brms as g:h; the
-      # frame keeps reformulas's factor, and brms's names read this flag
-      from_slash = isTRUE(cps[[1]]$from_slash),
       term_label = label,
       dpar = cps[[1]]$dpar,
       components = lapply(seq_along(gd), function(k) {
@@ -4120,6 +4226,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # cmc = FALSE on this term, which a prediction has to repeat
         if (isTRUE(cps[[k]][["cmc_intercept"]])) {
           out[["cmc_intercept"]] <- TRUE
+        }
+        # a || or cor = FALSE term as written, which messages name it by
+        # (block_written_label())
+        if (!is.null(cps[[k]][["written_text"]])) {
+          out[["written_text"]] <- cps[[k]][["written_text"]]
         }
         # its group-level mo() columns, which a prediction scales too
         if (!is.null(cps[[k]][["mo_re"]])) {
@@ -4132,6 +4243,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     n_c <- n_c + D * n_levels
     n_theta <- n_theta + npar_k
   }
+
+  # brms's one Student-t latent scale per grouping factor
+  re_blocks <- student_share_sets(re_blocks)
 
   ## Phase 3: per-linpred Z over the full b vector; resolve smooth block
   ## ids; assemble the parameter template.
@@ -4296,12 +4410,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          # a refit inside the package keeps the fit's choice
          drop_unused_levels = drop_unused_levels,
          data_frame = mf,
-         raw_vars = frame_raw_vars(mf, data, rhs_comb, env),
-         na_action = attr(mf, "na.action"),
+         raw_vars = frame_raw_vars(mf, data, raw_rhs(spec, rhs_comb), env),
+         na_action = attr(mf, "na.action") %||%
+           refit_na_rows(refit_na_action, na.action),
          # subset(): the rows of `data_frame` each such response uses,
          # and the rows before a univariate model's cut, for nobs()
          subset_rows = if (length(sub_rows)) sub_rows,
-         nobs_data = if (!is.null(uni_rows)) n_data),
+         nobs_data = if (!is.null(uni_rows)) n_data,
+         subset_cut = subset_cut_data(mf_uncut, uni_rows, data,
+                                      raw_rhs(spec, rhs_comb), env),
+         data_vars = intersect(all.vars(raw_rhs(spec, rhs_comb)),
+                               data_names)),
     class = "frmtmb_frame"
   )
   # brms refuses a group-level effect given twice (frame_re()), and the

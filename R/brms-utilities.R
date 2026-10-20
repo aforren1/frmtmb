@@ -11,8 +11,10 @@
 #' deviation. The last variable of `vars` varies fastest.
 #'
 #' @param x A data frame, or a fitted model. From a `frmtmb_fit` the
-#'   model data is used; from any other list that has a `data` element,
-#'   that element is used, as brms does.
+#'   data the fit holds is used: the model frame and the variables the
+#'   formula reads through a transform, such as `x2` of `log(x2)`, as
+#'   brms uses its stored data. From any other list that has a `data`
+#'   element, that element is used, as brms does.
 #' @param vars Character vector of the names of the variables to
 #'   condition on.
 #' @param ... Passed to the labeler that makes the `cond__` column:
@@ -37,7 +39,7 @@
 make_conditions <- function(x, vars, ...) {
   vars <- rev(as.character(vars))
   if (inherits(x, "frmtmb_fit")) {
-    x <- x$frame[["data_frame"]]
+    x <- fit_refit_data(x, "data") %||% x$frame[["data_frame"]]
   } else if (!is.data.frame(x) && "data" %in% names(x)) {
     x <- x[["data"]]
   }

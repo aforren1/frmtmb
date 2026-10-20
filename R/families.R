@@ -1080,6 +1080,56 @@ resid_sd <- function(sigma, aterms) {
     2) else aterms[["se"]]
 }
 
+#' The number of trials a binomial-type family reads, or a refusal that
+#' names the term.
+#'
+#' Frame assembly refuses a binomial-type model without `trials()`
+#' (`check_trials_given()`), so a missing value here is a caller that
+#' built the term list without it. One trial in its place is the reason
+#' `predict(newdata =)` drew 0/1 counts where newdata held 1000 trials,
+#' and raised nothing.
+#'
+#' @noRd
+aterm_trials <- function(aterms, family) {
+  tr <- aterms[["trials"]]
+  if (is.null(tr)) {
+    frm_stop(family, ": the number of trials, trials(), did not reach ",
+             "the family, and one trial is no stand-in for it. Give ",
+             "newdata the variable trials() reads", call. = FALSE)
+  }
+  tr
+}
+
+#' Refuse a term list that lacks what the family declares it cannot do
+#' without, `frmtmb_family(required_aterms =)`, at the post-fit entry
+#' points (`sim_response()`, `response_mean()`).
+#'
+#' Frame assembly enforces the declaration on the data, but every
+#' post-fit path builds its own list. Where one dropped a term, a
+#' custom family's simulator met `NULL` and stopped in `rbinom()`'s
+#' "invalid arguments", or gave a zero-length answer. A term that no
+#' post-fit path evaluates on newdata (`weights()`, `cens()`, `mi()`)
+#' is not asked for, as a declaration naming one would otherwise refuse
+#' every prediction.
+#'
+#' @noRd
+check_family_aterms <- function(fam, aterms) {
+  miss <- Filter(function(g) {
+    !any(g %in% names(aterms)) && !any(g %in% newdata_unread_aterms)
+  }, required_aterm_groups(fam[["required_aterms"]]))
+  if (!length(miss)) return(invisible(NULL))
+  needs <- vapply(miss, function(g) {
+    paste(paste0("`", g, "`"), collapse = " or ")
+  }, "")
+  spell <- vapply(miss, function(g) aterm_spelling(g[[1L]]), "")
+  frm_stop(fam[["family"]], ": ", paste(needs, collapse = ", "),
+           " did not reach the family, which declares that it cannot do ",
+           "without ", if (length(miss) > 1L) "them" else "it",
+           ". Give newdata the variable that ",
+           paste(spell, collapse = " and "), " reads", call. = FALSE,
+           package = frm_family_package(fam))
+}
+
 #' `trunc()` bounds from an aterm-value list as a pair of length-n
 #' numeric vectors, or `NULL` when the response is not truncated. An
 #' absent bound is the family's unbounded default; the per-family
@@ -1102,6 +1152,7 @@ trunc_bounds <- function(aterms, n) {
 #' @rdname frmtmb-extension-api
 #' @export
 response_mean <- function(fam, dpars, aterms) {
+  check_family_aterms(fam, aterms)
   mu <- if (!is.null(fam[["post"]]$mean_fn)) {
     fam[["post"]]$mean_fn(dpars, aterms)
   } else if ("mu" %in% names(dpars)) {
@@ -1236,6 +1287,7 @@ subset_obs <- function(x, idx, n) {
 #' @noRd
 sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
                          extra = NULL) {
+  check_family_aterms(fam, aterms)
   # families whose draws need parameters outside the dpar system
   # (ordinal thresholds) declare a fourth argument; the rest keep the
   # three-argument contract
@@ -1584,8 +1636,9 @@ fam_poisson <- function(link = "log") {
 }
 
 #' Binomial family, single dpar `mu` (the success probability). The
-#' number of trials comes from the `trials()` addition term and defaults
-#' to one, so the response is a count out of `trials`.
+#' number of trials comes from the `trials()` addition term, which the
+#' model must have (`check_trials_given()`), so the response is a count
+#' out of `trials`.
 #'
 #' On the tape it uses `RTMB::dbinom_robust()`, TMB's log-odds
 #' parameterization of the same density, which is what glmmTMB fits
@@ -1602,7 +1655,7 @@ fam_binomial <- function(link = "logit") {
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "binomial")
       lo <- robust_logit(dpars, lk)
       if (is.null(lo)) {
         return(RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE))
@@ -1610,7 +1663,7 @@ fam_binomial <- function(link = "logit") {
       RTMB::dbinom_robust(y, size, lo, log = TRUE)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "binomial")
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop("binomial: response must be integer counts in [0, trials]",
                  call. = FALSE)
@@ -1618,24 +1671,25 @@ fam_binomial <- function(link = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        size <- aterms[["trials"]] %||% 1
+        size <- aterm_trials(aterms, "binomial")
         p <- mean(y / size)
         min(max(p, 0.02), 0.98)
       }
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars,
-                         aterms) dpars[["mu"]] * (aterms[["trials"]] %||% 1),
+      mean_fn = function(dpars, aterms) {
+        dpars[["mu"]] * aterm_trials(aterms, "binomial")
+      },
       var_fn = function(dpars, aterms) {
-        (aterms[["trials"]] %||% 1) * dpars[["mu"]] * (1 - dpars[["mu"]])
+        aterm_trials(aterms, "binomial") * dpars[["mu"]] * (1 - dpars[["mu"]])
       },
       dev_fn = function(y, dpars, aterms) {
-        binomial_deviance(y, dpars[["mu"]], aterms[["trials"]] %||% 1)
+        binomial_deviance(y, dpars[["mu"]], aterm_trials(aterms, "binomial"))
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, aterms[["trials"]] %||% 1, dpars[["mu"]])
+      stats::rbinom(n, aterm_trials(aterms, "binomial"), dpars[["mu"]])
     }
   )
 }
@@ -2809,7 +2863,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     dpars = c("mu", "zi"),
     links = list(mu = lk, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "zero_inflated_binomial")
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
       lo <- robust_logit(dpars, lk)
@@ -2824,7 +2878,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "zero_inflated_binomial")
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop("zero_inflated_binomial: response must be integer counts ",
                  "in [0, trials]", call. = FALSE)
@@ -2832,7 +2886,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        size <- aterms[["trials"]] %||% 1
+        size <- aterm_trials(aterms, "zero_inflated_binomial")
         min(max(mean(y / size), 0.05), 0.95)
       },
       zi = function(y, aterms) min(max(mean(y == 0) / 2, 0.05), 0.9)
@@ -2840,12 +2894,14 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars[["zi"]]) * dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+        (1 - dpars[["zi"]]) * dpars[["mu"]] *
+          aterm_trials(aterms, "zero_inflated_binomial")
       }
     ),
     sim = function(dpars, aterms, n) {
+      size <- aterm_trials(aterms, "zero_inflated_binomial")
       stats::rbinom(n, 1, 1 - dpars[["zi"]]) *
-        stats::rbinom(n, aterms[["trials"]] %||% 1, dpars[["mu"]])
+        stats::rbinom(n, size, dpars[["mu"]])
     }
   )
 }
@@ -3749,7 +3805,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "beta_binomial")
       # RTMBdist has no log-odds form, so the robustness has to go into
       # the shapes: a zero second shape gives lgamma(0) = NaN
       mp <- dpar_complement(dpars, "mu", lk)
@@ -3758,7 +3814,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
                            log = TRUE)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, "beta_binomial")
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop("beta_binomial: response must be integer counts in ",
                  "[0, trials]", call. = FALSE)
@@ -3766,7 +3822,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        p <- mean(y / (aterms[["trials"]] %||% 1))
+        p <- mean(y / aterm_trials(aterms, "beta_binomial"))
         min(max(p, 0.02), 0.98)
       },
       phi = function(y, aterms) 5
@@ -3774,16 +3830,16 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+        dpars[["mu"]] * aterm_trials(aterms, "beta_binomial")
       },
       # without it pearson residuals were refused for want of a variance
       var_fn = function(dpars, aterms) {
         beta_binomial_var(dpars[["mu"]], dpars[["phi"]],
-                          aterms[["trials"]] %||% 1)
+                          aterm_trials(aterms, "beta_binomial"))
       }
     ),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rbetabinom(n, aterms[["trials"]] %||% 1,
+      RTMBdist::rbetabinom(n, aterm_trials(aterms, "beta_binomial"),
                            dpars[["mu"]] * dpars[["phi"]],
                            (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
@@ -3816,7 +3872,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
     dpars = c("mu", "phi", "zi"),
     links = list(mu = lk, phi = lk_phi, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, nm)
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
       # the shapes off the log-odds, for the reason fam_beta_binomial()
@@ -3827,7 +3883,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       i0 * RTMB::logspace_add(g$l, g$l1m + base) + (1 - i0) * (g$l1m + base)
     },
     valid_y = function(y, aterms) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, nm)
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         frm_stop(nm, ": response must be integer counts in [0, trials]",
                  call. = FALSE)
@@ -3835,7 +3891,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        p <- mean(y / (aterms[["trials"]] %||% 1))
+        p <- mean(y / aterm_trials(aterms, nm))
         min(max(p, 0.02), 0.98)
       },
       phi = function(y, aterms) 5,
@@ -3845,10 +3901,10 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
     post = list(
       # brms's posterior_epred_zero_inflated_beta_binomial()
       mean_fn = function(dpars, aterms) {
-        (1 - dpars[["zi"]]) * dpars[["mu"]] * (aterms[["trials"]] %||% 1)
+        (1 - dpars[["zi"]]) * dpars[["mu"]] * aterm_trials(aterms, nm)
       },
       var_fn = function(dpars, aterms) {
-        size <- aterms[["trials"]] %||% 1
+        size <- aterm_trials(aterms, nm)
         mu <- dpars[["mu"]]
         q <- 1 - dpars[["zi"]]
         # E[Y^2] = (1 - zi) (Var BB + E[BB]^2)
@@ -3857,7 +3913,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       }
     ),
     sim = function(dpars, aterms, n) {
-      size <- aterms[["trials"]] %||% 1
+      size <- aterm_trials(aterms, nm)
       (1 - stats::rbinom(n, 1L, dpars[["zi"]])) *
         RTMBdist::rbetabinom(n, size, dpars[["mu"]] * dpars[["phi"]],
                              (1 - dpars[["mu"]]) * dpars[["phi"]])
@@ -4256,9 +4312,16 @@ ord_cumulative_logpmf <- function(y, eta, tau, lk, disc = 1, cs = NULL,
     iK * log1m_inv_logit(q(disc * (tau[K1] - eta)))
   if (K1 >= 2L) {
     # data-only clamp into the interior categories, so the masked rows
-    # still evaluate a legal (strictly ordered) threshold pair
+    # still evaluate a threshold pair. The clamped pair of an end row
+    # can be tied (thresholds that are the same double, as a sampler's
+    # draw can reach), where log(F(a) - F(b)) is -Inf and the mask's
+    # 0 * -Inf is NaN on doubles; the tape folds the masked product away
+    # (rtmb-pitfalls item 22), so only numeric evaluation saw it. One
+    # added to `a` on the end rows alone, a data constant that is 0 on
+    # the interior rows, makes their pair strictly ordered and leaves
+    # every interior value and derivative as it was.
     ym <- pmin(pmax(y, 2L), K1)
-    a <- q(disc * (tau[ym] - eta))
+    a <- q(disc * (tau[ym] - eta)) + (i1 + iK)
     b <- q(disc * (tau[ym - 1L] - eta))
     out <- out + (1 - i1 - iK) * ord_log_interior(a, b, gap_floor)
   }
@@ -5841,7 +5904,9 @@ mixture_build <- function(comps, groups, ref) {
           dk <- lapply(comp_dpars(dpars, k), function(v) {
             rep(v, length.out = n)[idx]
           })
-          out[idx] <- sk(dk, aterms, length(idx))
+          # the class rows' own terms: the whole list gave row i of the
+          # class the trials() of row i of the data
+          out[idx] <- sk(dk, subset_obs(aterms, idx, n), length(idx))
         }
       }
       out
@@ -6846,7 +6911,8 @@ mixture_sim_groups <- function(ctx) {
     dk <- lapply(mx[["comp_dpars"]](dp, k), function(v) {
       rep(v, length.out = n)[idx]
     })
-    ys[idx] <- mx[["comp_sim"]](dk, av, length(idx), k)
+    # the class rows' own terms, not the first length(idx) of the data
+    ys[idx] <- mx[["comp_sim"]](dk, subset_obs(av, idx, n), length(idx), k)
   }
   ys
 }
@@ -7401,54 +7467,95 @@ rvon_mises <- function(n, mu, kappa) {
 # --- categorical (nominal) responses ---------------------------------
 
 #' Multinomial-logit log-density over a CATEGORY INDEX response `1..K`.
-#' `eta` is the list of K-1 non-reference linear predictors in category
-#' order, category 1 being the reference with `eta_1 = 0`; the shared
-#' code is factored out so the taped path (`ord_cat_sel`, which needs no
-#' comparison operators) and the data path agree term for term.
+#' `eta` is the list of linear predictors of the categories at positions
+#' `pred`, in category order. With a reference category (`pred` shorter
+#' than `K`) that category's predictor is the pinned 0; with none (brms's
+#' `refcat = NA`) every category has one. The shared code is factored
+#' out so the taped path (`ord_cat_sel`, which needs no comparison
+#' operators) and the data path agree term for term.
 #'
 #' @noRd
-cat_logit_lpdf <- function(y, eta, K, sel = NULL) {
+cat_logit_lpdf <- function(y, eta, K, sel = NULL, pred = seq_len(K)[-1L]) {
   if (is.null(sel)) sel <- lapply(seq_len(K), function(k) {
     as.numeric(y == k)
   })
   # the denominator accumulates in LOG space from the reference
   # category's implicit zero, so a wide predictor cannot overflow it;
   # summing exp(eta_j) first loses the model at eta = 709
-  lden <- 0 * eta[[1L]]
+  has_ref <- length(pred) < K
+  lden <- if (has_ref) 0 * eta[[1L]] else eta[[1L]]
   num <- 0
-  for (j in seq_len(K - 1L)) {
-    lden <- RTMB::logspace_add(lden, eta[[j]])
-    num <- num + sel[[j + 1L]] * eta[[j]]
+  for (j in seq_along(pred)) {
+    if (has_ref || j > 1L) lden <- RTMB::logspace_add(lden, eta[[j]])
+    num <- num + sel[[pred[j]]] * eta[[j]]
   }
   num - lden
 }
 
-#' Categorical (nominal) family over a `1..K` category index, category 1
-#' the reference. One linear predictor per non-reference category, all
-#' receiving the main model formula unless overridden.
-#'
-#' `dpar_names` is the brms spelling `mu<Level>` when the levels are
-#' known and the positional `mu2 ... muK` when only `K` is.
+#' The positions of the categories that carry a linear predictor, for a
+#' categorical or multinomial family: every category but the reference,
+#' or all of them under `refcat = NA`. A family built without the field
+#' (an extension's) has category 1 as its reference.
 #'
 #' @noRd
-fam_categorical_impl <- function(dpar_names, levels = NULL,
-                                 link = "logit") {
+cat_pred_pos <- function(fam, n_pred = length(fam[["primary_dpars"]])) {
+  fam[["cat_pred"]] %||% (seq_len(n_pred) + 1L)
+}
+
+#' The number of categories of a categorical or multinomial family.
+#'
+#' @noRd
+cat_ncat <- function(fam, n_pred = length(fam[["primary_dpars"]])) {
+  fam[["cat_K"]] %||% (n_pred + 1L)
+}
+
+#' The reference position and predicted positions of a categorical or
+#' multinomial family over the categories `cats`, from a checked
+#' `refcat`: brms's rule, `NULL` is the first category, a name must be
+#' one of `cats`, and `NA` predicts every category.
+#'
+#' @noRd
+cat_ref_info <- function(cats, refcat) {
+  ref <- simplex_refcat(refcat, cats)
+  K <- length(cats)
+  pred <- if (is.na(ref)) seq_len(K) else seq_len(K)[-ref]
+  list(ref = ref, pred = pred,
+       dpars = simplex_dpar_names("mu", cats[pred]))
+}
+
+#' Categorical (nominal) family over a `1..K` category index. One linear
+#' predictor per category but the reference (`refcat`, the first by
+#' default; `NA` for none), all receiving the main model formula unless
+#' overridden.
+#'
+#' `cats` are the category labels in code order. `levels` is what the
+#' frame reads them back as: the labels when the levels are known, and
+#' `NULL` when only `K` is (then `cats` is `1..K` and the dpars are the
+#' positional `mu2 ... muK`). The dpar names are brms's,
+#' `make_stan_names(paste0("mu", cat))` over the predicted categories.
+#'
+#' @noRd
+fam_categorical_impl <- function(cats, refcat = NULL, link = "logit",
+                                 levels = cats) {
   categorical_link_check(link)
-  K <- length(dpar_names) + 1L
+  K <- length(cats)
+  ri <- cat_ref_info(cats, refcat)
+  dpar_names <- ri$dpars
+  pred <- ri$pred
   fam <- frmtmb_family(
     "categorical",
     accepts_aterms = "weights",
     dpars = dpar_names,
-    links = stats::setNames(rep(list("identity"), K - 1L), dpar_names),
+    links = stats::setNames(rep(list("identity"), length(pred)), dpar_names),
     lpdf = function(y, dpars, aterms) {
       eta <- lapply(dpar_names, function(nm) dpars[[nm]])
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
         # the response is on the tape: pick the category arithmetically
-        return(cat_logit_lpdf(NULL, eta, K,
-                              sel = ord_cat_sel(ov$y, K)) * ov$keep)
+        return(cat_logit_lpdf(NULL, eta, K, sel = ord_cat_sel(ov$y, K),
+                              pred = pred) * ov$keep)
       }
-      cat_logit_lpdf(y, eta, K)
+      cat_logit_lpdf(y, eta, K, pred = pred)
     },
     valid_y = function(y, aterms) {
       if (any(y < 1) || any(y > K) || any(y != round(y))) {
@@ -7462,10 +7569,10 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
     },
     type = "categorical",
     sim = function(dpars, aterms, n) {
-      eta <- lapply(dpar_names, function(nm) {
-        rep(dpars[[nm]], length.out = n)
-      })
-      E <- cbind(0, do.call(cbind, eta))
+      E <- matrix(0, n, K)
+      for (j in seq_along(pred)) {
+        E[, pred[j]] <- rep(dpars[[dpar_names[j]]], length.out = n)
+      }
       P <- exp(E - apply(E, 1L, max))
       P <- P / rowSums(P)
       cp <- t(apply(P, 1L, cumsum))
@@ -7476,6 +7583,15 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
   )
   fam[["cat_levels"]] <- levels
   fam[["cat_K"]] <- K
+  fam[["cat_pred"]] <- pred
+  fam[["refcat"]] <- if (is.na(ri$ref)) NA_character_ else cats[ri$ref]
+  # the same model with a reference category, whose parameters are the
+  # degrees of freedom of this one's likelihood (loglik_df())
+  if (is.na(ri$ref)) {
+    fam[["refcat_first"]] <- function() {
+      fam_categorical_impl(cats, NULL, link, levels)
+    }
+  }
   fam
 }
 
@@ -7501,10 +7617,11 @@ categorical_link_check <- function(link) {
 #' reaches the likelihood with it in place says so.
 #'
 #' @noRd
-fam_categorical_deferred <- function(link = "logit") {
+fam_categorical_deferred <- function(link = "logit", refcat = NULL) {
   # checked here and not only once the levels are known: the levels come
   # from the data, and a data problem would otherwise mask the bad link
   categorical_link_check(link)
+  refcat <- check_simplex_refcat(refcat, "categorical", allow_na = TRUE)
   fam <- frmtmb_family(
     "categorical",
     accepts_aterms = "weights",
@@ -7520,8 +7637,9 @@ fam_categorical_deferred <- function(link = "logit") {
   )
   fam[["defer"]] <- function(formula, data) {
     lv <- categorical_levels(formula, data)
-    fam_categorical_impl(paste0("mu", lv[-1L]), levels = lv, link = link)
+    fam_categorical_impl(lv, refcat, link = link)
   }
+  fam[["refcat"]] <- refcat
   fam
 }
 
@@ -7614,6 +7732,11 @@ resolve_deferred_families <- function(bform, data) {
 carry_finalized_responses <- function(spec, frame) {
   for (rn_ in names(spec$responses)) {
     fr_ <- frame[["spec"]]$responses[[rn_]]
+    # the codes of a level-coded addition term, which newdata and
+    # refits are read against (aterm_coerce())
+    if (!is.null(fr_[["aterm_codes"]])) {
+      spec$responses[[rn_]][["aterm_codes"]] <- fr_[["aterm_codes"]]
+    }
     if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) {
       if (!is.null(fr_$family[["bin_levels"]])) {
         spec$responses[[rn_]]$family[["bin_levels"]] <-
@@ -7922,44 +8045,61 @@ cox_baseline <- function(fit) {
   stats::setNames(s, paste0("s", seq_along(s)))
 }
 
-#' Matrix-response multinomial: y is an n x K count matrix, category 1
-#' is the reference. One linear predictor per non-reference category
-#' (`mu2`, ..., `muK`), all receiving the main model formula unless
-#' overridden.
+#' Matrix-response multinomial: y is an n x K count matrix over the
+#' categories `cats` (its columns, in order). One linear predictor per
+#' category but the reference (`refcat`, the first by default; `NA` for
+#' none), all receiving the main model formula unless overridden, named
+#' as brms names them, `make_stan_names(paste0("mu", cat))`.
 #'
 #' @noRd
-fam_multinomial <- function(K) {
-  if (missing(K) || K < 2) {
-    frm_stop("multinomial() needs the number of categories, e.g. ",
-             "multinomial(K = 3)", call. = FALSE)
+fam_multinomial_impl <- function(cats, refcat = NULL, link = "logit") {
+  multinomial_link_check(link)
+  K <- length(cats)
+  ri <- cat_ref_info(cats, refcat)
+  dpn <- ri$dpars
+  pred <- ri$pred
+  has_ref <- !is.na(ri$ref)
+  # the category probabilities on doubles, the row maximum out before
+  # exp(), for the mean; the simulator keeps its own arithmetic
+  probs <- function(dpars, n) {
+    E <- matrix(0, n, K)
+    for (j in seq_along(pred)) {
+      E[, pred[j]] <- rep(as.numeric(dpars[[dpn[j]]]), length.out = n)
+    }
+    P <- exp(E - apply(E, 1L, max))
+    P <- P / rowSums(P)
+    colnames(P) <- cats
+    P
   }
-  dpn <- paste0("mu", seq_len(K)[-1])
-  frmtmb_family(
+  fam <- frmtmb_family(
     "multinomial",
     accepts_aterms = c("weights", "trials"),
     dpars = dpn,
-    links = stats::setNames(rep(list("identity"), K - 1L), dpn),
+    links = stats::setNames(rep(list("identity"), length(pred)), dpn),
     lpdf = function(y, dpars, aterms) {
       # log-space denominator, as in cat_logit_lpdf(): a count response
       # multiplies it by the row total, so an overflow there is fatal
-      lden <- 0 * dpars[[dpn[1L]]]
-      for (k in dpn) lden <- RTMB::logspace_add(lden, dpars[[k]])
+      lden <- if (has_ref) 0 * dpars[[dpn[1L]]] else dpars[[dpn[1L]]]
+      for (k in if (has_ref) dpn else dpn[-1L]) {
+        lden <- RTMB::logspace_add(lden, dpars[[k]])
+      }
       nvec <- rowSums(y)
       ll <- -nvec * lden
       for (j in seq_along(dpn)) {
-        ll <- ll + y[, j + 1L] * dpars[[dpn[j]]]
+        ll <- ll + y[, pred[j]] * dpars[[dpn[j]]]
       }
       # multinomial coefficient: data-only
       ll + lgamma(nvec + 1) - rowSums(lgamma(y + 1))
     },
     valid_y = function(y, aterms) {
       if (!is.matrix(y) || ncol(y) != K) {
-        frm_stop("multinomial(K = ", K, "): response must be an n x ", K,
-                 " count matrix", call. = FALSE)
+        frm_stop("multinomial(): the response must be an n x ", K,
+                 " count matrix, one column per category (",
+                 paste(cats, collapse = ", "), ")", call. = FALSE)
       }
       if (any(y < 0) || any(y != round(y))) {
-        frm_stop("multinomial: response must be non-negative integer counts",
-                 call. = FALSE)
+        frm_stop("Family 'multinomial' requires integer responses. The ",
+                 "counts must be non-negative whole numbers", call. = FALSE)
       }
       tr <- aterms[["trials"]]
       if (!is.null(tr) && any(rowSums(y) != tr)) {
@@ -7969,28 +8109,132 @@ fam_multinomial <- function(K) {
       }
     },
     type = "discrete",
+    post = list(
+      # brms's posterior_epred(): the expected count of each category,
+      # its probability times the row's trials
+      mean_fn = function(dpars, aterms) {
+        tr <- aterms[["trials"]]
+        n <- max(length(tr), vapply(dpn, function(k) {
+          length(dpars[[k]])
+        }, 1L))
+        probs(dpars, n) * rep(tr %||% 1, length.out = n)
+      }
+    ),
     sim = function(dpars, aterms, n) {
       size <- aterms[["trials"]]
       if (is.null(size)) {
         frm_stop("simulate(): a multinomial fit needs trials() to know how ",
                  "many draws each row gets", call. = FALSE)
       }
-      denom <- 1
+      denom <- if (has_ref) 1 else 0
       for (k in dpn) denom <- denom + exp(dpars[[k]])
       P <- matrix(0, n, K)
-      P[, 1L] <- rep(1 / denom, length.out = n)
+      if (has_ref) P[, ri$ref] <- rep(1 / denom, length.out = n)
       for (j in seq_along(dpn)) {
-        P[, j + 1L] <- rep(exp(dpars[[dpn[j]]]) / denom, length.out = n)
+        P[, pred[j]] <- rep(exp(dpars[[dpn[j]]]) / denom, length.out = n)
       }
       size <- rep(size, length.out = n)
       out <- matrix(0L, n, K)
       for (i in seq_len(n)) {
         out[i, ] <- stats::rmultinom(1L, size[i], P[i, ])
       }
+      colnames(out) <- cats
       out
     },
     primary_dpars = dpn
   )
+  fam[["cat_levels"]] <- cats
+  fam[["cat_K"]] <- K
+  fam[["cat_pred"]] <- pred
+  fam[["refcat"]] <- if (has_ref) cats[ri$ref] else NA_character_
+  # see fam_categorical_impl()
+  if (!has_ref) {
+    fam[["refcat_first"]] <- function() fam_multinomial_impl(cats, NULL, link)
+  }
+  fam
+}
+
+#' Refuse any multinomial link but the logit, in brms's words.
+#'
+#' @noRd
+multinomial_link_check <- function(link) {
+  if (identical(link, "logit")) return(invisible(NULL))
+  shown <- if (is.character(link) && length(link) == 1L) link else {
+    arg_desc(link)
+  }
+  # multinomial(3) set K before brms's argument order was adopted
+  hint <- if (grepl("^[0-9]+$", shown)) {
+    paste0(". The link comes first, as in brms; a number of categories ",
+           "is multinomial(K = ", shown, ")")
+  } else ""
+  frm_stop("'", shown, "' is not a supported link for family ",
+           "'multinomial'. Supported links are: 'logit'", hint,
+           call. = FALSE)
+}
+
+#' Placeholder returned by a bare `multinomial()`, as brms spells it: the
+#' categories are the columns of the response matrix, which `frm()`
+#' reads through `resolve_deferred_families()` once it can see the data.
+#'
+#' @noRd
+fam_multinomial_deferred <- function(link = "logit", refcat = NULL) {
+  multinomial_link_check(link)
+  refcat <- check_simplex_refcat(refcat, "multinomial", allow_na = TRUE)
+  fam <- frmtmb_family(
+    "multinomial",
+    accepts_aterms = c("weights", "trials"),
+    dpars = "mu",
+    links = list(mu = "identity"),
+    lpdf = function(y, dpars, aterms) {
+      frm_stop("multinomial(): the response categories were never ",
+               "resolved. They are read from the response matrix by frm(); ",
+               "on another entry point give their number, multinomial(K = 3)",
+               call. = FALSE)
+    },
+    type = "discrete"
+  )
+  fam[["defer"]] <- function(formula, data) {
+    fam_multinomial_impl(multinomial_categories(formula, data), refcat,
+                         link)
+  }
+  fam[["refcat"]] <- refcat
+  fam
+}
+
+#' The registry's multinomial constructor, which `multinomial()`,
+#' `brmsfamily()` and a brms family object reach.
+#'
+#' @noRd
+fam_multinomial <- function(link = "logit", refcat = NULL, K = NULL) {
+  multinomial_link_check(link)
+  if (is.null(K)) return(fam_multinomial_deferred(link, refcat))
+  refcat <- check_simplex_refcat(refcat, "multinomial", allow_na = TRUE)
+  K <- check_ncat_arg(K, "multinomial")
+  fam_multinomial_impl(as.character(seq_len(K)), refcat, link)
+}
+
+#' The categories of a multinomial response: its column names, or `1..K`
+#' when it has none, as brms's `extract_cat_names()` reads them.
+#'
+#' @noRd
+multinomial_categories <- function(formula, data) {
+  ri <- parse_response(formula)
+  y <- tryCatch(eval(ri$resp, data, environment(formula) %||% globalenv()),
+                error = function(e) NULL)
+  if (is.null(y)) {
+    frm_stop("multinomial(): the response '", deparse1(ri$resp), "' could ",
+             "not be evaluated on the data to find its categories. Give ",
+             "their number instead: multinomial(K = 3)", call. = FALSE)
+  }
+  y <- as.matrix(y)
+  cats <- colnames(y) %||% as.character(seq_len(ncol(y)))
+  if (length(cats) < 2L) {
+    frm_stop("At least 2 response categories are required. multinomial() ",
+             "takes an n x K matrix of counts, as cbind(y1, y2, y3) or a ",
+             "matrix column of the data; '", deparse1(ri$resp), "' has ",
+             length(cats), " column", call. = FALSE)
+  }
+  cats
 }
 
 family_registry <- list(
@@ -8150,8 +8394,8 @@ family_from_name <- function(family, link = NULL, args = list(),
 #' An argument the family does not have is refused by name. brms
 #' ignores it, so `brmsfamily("poisson", link_sigma = "log")` builds a
 #' poisson family there. `threshold` is an argument of the ordinal
-#' families alone, and `refcat` of `"dirichlet"` and
-#' `"logistic_normal"`.
+#' families alone, and `refcat` of `"categorical"`, `"multinomial"`,
+#' `"dirichlet"` and `"logistic_normal"`.
 #'
 #' `brmsfamily("com_poisson")` gives [compois()], whose `mu` is the
 #' MEAN of the count. brms 2.23.0 does not use the mean. Its Stan
@@ -8385,13 +8629,27 @@ as_frmtmb_family <- function(x) {
 #' or hold `kappa` at a value with `bf(kappa = )`.
 #'
 #' @section Categorical (nominal) responses:
-#' `categorical()` fits a multinomial logit to an unordered factor. The
-#' FIRST level is the reference category, its linear predictor is held
-#' at zero, and each remaining level gets its own predictor named
-#' `mu<Level>`, as in brms. The main model formula applies to every one
-#' of them, and any single category is overridden by naming it:
-#' `bf(y ~ x, mub ~ z)` gives category `"b"` its own predictor and
-#' leaves the rest on `~ x`.
+#' `categorical()` fits a multinomial logit to an unordered factor. One
+#' category is the reference: its linear predictor is held at zero, and
+#' each other category gets its own predictor named `mu<Level>`, as in
+#' brms. The reference is the FIRST level, or the level that `refcat`
+#' names: `categorical(refcat = "b")` gives the dpars `mua` and `muc`.
+#' Changing the reference changes the coefficients, not the model: the
+#' log-likelihood and the category probabilities stay the same. The main
+#' model formula applies to every predictor, and any single category is
+#' overridden by naming it: `bf(y ~ x, muc ~ z)` gives category `"c"`
+#' its own predictor and leaves the rest on `~ x`. A dpar name is
+#' brms's: dots and underscores in a level are dropped, so the level
+#' `"p.q"` gives `mupq`.
+#'
+#' `refcat = NA` gives every category a predictor, as brms allows. The
+#' likelihood then stays the same when one number is added to every
+#' predictor, so a maximum-likelihood fit cannot determine the
+#' coefficients, only the category probabilities, and the fit warns
+#' that their standard errors are not available. A prior on each
+#' predictor ([set_prior()]) determines them. brms leans on its priors
+#' here too, and with its default priors (flat on the slopes) its
+#' sampler does not converge on this model.
 #'
 #' The categories come from the data, so `frm()` reads them off the
 #' response before it parses the formula. Constructing the family away
@@ -8402,14 +8660,31 @@ as_frmtmb_family <- function(x) {
 #' response is coerced to a factor with a message naming the level
 #' order, because that order is the model.
 #'
-#' `fitted()` and `frm_linpred(type = "response")` return the `n x K` matrix
-#' of category probabilities, columns named by the response's own
-#' levels and rows summing to one - the same convention the ordinal
-#' families follow. `frm_linpred(type = "link")` and `frm_linpred(dpar =)` give
-#' the per-category latent predictors, which is where `se.fit` lives.
-#' `simulate()` draws factor levels. The same likelihood is available on
-#' a count-matrix response as `multinomial(K)`, and a one-hot matrix
-#' gives an identical log-likelihood.
+#' `fitted()` returns brms's `n x 4 x K` array of category
+#' probabilities, one layer per category named `P(Y = <level>)`, and
+#' `frm_linpred(type = "response")` the `n x K` matrix of the estimates,
+#' rows summing to one: the convention the ordinal families follow.
+#' `fitted(scale = "linear")` stacks the predictors into an
+#' `n x 4 x (K - 1)` array, layers `eta1, eta2, ...` (`K` layers under
+#' `refcat = NA`), as brms does; with one predictor (two categories and
+#' a reference) it stays an `n x 4` matrix, as in brms. The intervals of
+#' `fitted()` here and for `multinomial()` are Wald intervals, the
+#' estimate plus or minus a normal quantile times its delta-method
+#' standard error, held inside the range of the quantity (0 to 1 for a
+#' probability, 0 to the trials for a count), so near the edge of that
+#' range a bound can be exactly 0. `frm_linpred(dpar = "mub")` gives one
+#' category's predictor, which is where `se.fit` lives. `simulate()`
+#' draws factor levels.
+#'
+#' `multinomial()` is the same likelihood on an `n x K` matrix of counts,
+#' with the number of trials in `trials()`, as in brms. The columns are
+#' the categories: `cbind(y1, y2, y3)` gives the dpars `muy2` and `muy3`,
+#' and an unnamed matrix numbers them `mu2`, `mu3`. `refcat` works as
+#' for `categorical()`. `fitted()` returns brms's `n x 4 x K` array of
+#' expected COUNTS, probability times trials, which brms labels
+#' `P(Y = <category>)` too. `multinomial(K = 3)` builds the family away
+#' from the data, with the categories `1..K`. A one-hot matrix with one
+#' trial a row gives the log-likelihood of `categorical()`.
 #'
 #' @section Circular responses:
 #' `von_mises()` models an angle in radians on `(-pi, pi]`. Its `mu` is
@@ -8776,10 +9051,18 @@ hurdle_negbinomial <- function(link = "log", link_shape = "log",
 }
 
 #' @rdname frmtmb-families
-#' @param K For `multinomial()`: number of response categories (columns
-#'   of the count-matrix response); category 1 is the reference.
+#' @param K For `multinomial()` and `categorical()`: the number of
+#'   response categories, for a family built away from the data. The
+#'   categories are then `1..K` and the dpars `mu2 ... muK`. Leave it
+#'   `NULL` and [frm()] reads the categories off the response, as brms
+#'   does: the columns of a multinomial count matrix, the levels of a
+#'   categorical factor.
 #' @export
-multinomial <- function(K) fam_multinomial(K)
+multinomial <- function(link = "logit", refcat = NULL, K = NULL) {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["multinomial"]], "logit")
+  fam_multinomial(link, refcat, K)
+}
 
 #' @rdname frmtmb-families
 #' @export
@@ -8996,32 +9279,42 @@ von_mises <- function(link = "tan_half", link_kappa = "log") {
 
 #' @rdname frmtmb-families
 #' @param levels For `categorical()`: the response's category labels, in
-#'   the order that fixes the reference category (the first) and the
-#'   dpar names. Only needed when the family is built away from the
-#'   data; [frm()] reads them off the response.
+#'   the order that fixes the dpar names. Only needed when the family is
+#'   built away from the data; [frm()] reads them off the response.
 #' @export
-categorical <- function(link = "logit", levels = NULL, K = NULL) {
+categorical <- function(link = "logit", refcat = NULL, levels = NULL,
+                        K = NULL) {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["categorical"]], "logit")
   categorical_link_check(link)
+  refcat <- check_simplex_refcat(refcat, "categorical", allow_na = TRUE)
   if (!is.null(levels)) {
     levels <- as.character(levels)
     if (length(levels) < 2L || anyDuplicated(levels)) {
       frm_stop("categorical(levels =): needs at least two distinct category ",
                "labels", call. = FALSE)
     }
-    return(fam_categorical_impl(paste0("mu", levels[-1L]), levels, link))
+    return(fam_categorical_impl(levels, refcat, link))
   }
   if (!is.null(K)) {
-    if (length(K) != 1L || is.na(K) || K < 2) {
-      frm_stop("categorical(K =): needs at least two categories",
-               call. = FALSE)
-    }
-    K <- as.integer(K)
-    return(fam_categorical_impl(paste0("mu", seq_len(K)[-1L]),
-                                levels = NULL, link = link))
+    K <- check_ncat_arg(K, "categorical")
+    return(fam_categorical_impl(as.character(seq_len(K)), refcat, link,
+                                levels = NULL))
   }
-  fam_categorical_deferred(link)
+  fam_categorical_deferred(link, refcat)
+}
+
+#' Check a `K =` argument of `categorical()` or `multinomial()`: one
+#' whole number of at least two categories.
+#'
+#' @noRd
+check_ncat_arg <- function(K, fname) {
+  if (!is.numeric(K) || length(K) != 1L || is.na(K) || K < 2 ||
+        K != round(K)) {
+    frm_stop(fname, "(K =): needs at least two categories, given as one ",
+             "whole number. Got ", arg_desc(K), call. = FALSE)
+  }
+  as.integer(K)
 }
 
 #' @rdname frmtmb-families
@@ -9139,6 +9432,13 @@ print.frmtmb_family <- function(x, links = FALSE, newline = TRUE, ...) {
   }
   cat("Parameters: ", paste0(x[["dpars"]], " (", lk[x[["dpars"]]], ")",
                              collapse = ", "), "\n", sep = "")
+  # a family over categories carries the reference it was given; a bare
+  # placeholder's dpars do not show it yet
+  if ("refcat" %in% names(x)) {
+    cat("Reference category: ",
+        if (is.na(x[["refcat"]])) "none (refcat = NA)" else x[["refcat"]],
+        "\n", sep = "")
+  }
   if (!isFALSE(links)) {
     dp <- setdiff(x[["dpars"]], "mu")
     if (is.character(links)) dp <- intersect(dp, links)

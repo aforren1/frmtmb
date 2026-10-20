@@ -309,7 +309,7 @@ test_that("a name that is not one internal parameter is refused", {
   expect_error(profile(fit, "cor_g__Intercept__x"),
                "does not stand for a single internal one")
   expect_error(confint(fit, "cor_g__Intercept__x", method = "profile"),
-               "method = 'profile'")
+               "class = NULL) for its delta-method interval")
   # hypothesis() is the route named, and it handles the combination
   expect_true(is.finite(hypothesis(fit, "cor_g__Intercept__x = 0",
                                    class = NULL)$hypothesis$Estimate))

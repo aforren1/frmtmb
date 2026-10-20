@@ -278,6 +278,10 @@ fam_dirichlet_impl <- function(cats, ref, link_phi = "log") {
     },
     primary_dpars = mun
   )
+  # the same model with a reference category (loglik_df())
+  if (is.na(ref)) {
+    fam[["refcat_first"]] <- function() fam_dirichlet_impl(cats, 1L, link_phi)
+  }
   simplex_finish(fam, sx, "logit")
 }
 
@@ -463,17 +467,18 @@ lncor_matrix <- function(theta, D) {
 
 #' The correlations of a logistic-normal fit in brms's order and under
 #' brms's names, `lncor__b__c`: the upper triangle read column by column,
-#' which is the loop brms's generated quantities write it with.
+#' which is the loop brms's generated quantities write it with. `prefix`
+#' is `lncor_<resp>` in a multivariate model (`lncor_blocks()`).
 #'
 #' @noRd
-lncor_values <- function(theta, sx) {
+lncor_values <- function(theta, sx, prefix = "lncor") {
   D <- length(sx$pred)
   if (D < 2L) return(stats::setNames(numeric(0), character(0)))
   C <- lncor_matrix(theta, D)
   lab <- sub("^mu", "", sx$mu)
   idx <- which(upper.tri(C), arr.ind = TRUE)
   idx <- idx[order(idx[, "col"], idx[, "row"]), , drop = FALSE]
-  stats::setNames(C[idx], paste0("lncor__", lab[idx[, "row"]], "__",
+  stats::setNames(C[idx], paste0(prefix, "__", lab[idx[, "row"]], "__",
                                  lab[idx[, "col"]]))
 }
 
@@ -592,10 +597,13 @@ fam_is_simplex <- function(fam) !is.null(fam[["simplex"]])
 NULL
 
 #' @rdname frmtmb-families
-#' @param refcat For `dirichlet()` and `logistic_normal()`: the name of
-#'   the reference category, whose predictor is held at zero. `NULL`
-#'   (the default) takes the first column of the response. `NA` predicts
-#'   every category, which `dirichlet()` alone allows.
+#' @param refcat For `categorical()`, `multinomial()`, `dirichlet()` and
+#'   `logistic_normal()`: the name of the reference category, whose
+#'   predictor is held at zero. `NULL` (the default) takes the first
+#'   category: the first level of a factor response, or the first column
+#'   of a matrix response. `NA` predicts every category, which every one
+#'   of them but `logistic_normal()` allows; see "Categorical (nominal)
+#'   responses" for what a fit can then identify.
 #' @export
 dirichlet <- function(link = "logit", link_phi = "log", refcat = NULL) {
   link <- link_arg_value(substitute(link), link,
@@ -613,20 +621,30 @@ logistic_normal <- function(link = "identity", link_sigma = "log",
 }
 
 #' The logistic-normal correlation blocks of a fit: the template
-#' component holding each one's chart and the family's categories.
-#' `extra_pars` refuses a family with extras in a multivariate model, so
-#' there is at most one, under its own name.
+#' component holding each one's chart, the family's categories, and the
+#' name the correlations are reported under. A univariate model has at
+#' most one block, `lncor`, brms's name. A multivariate model has one
+#' per logistic_normal() response, under `lncor_<resp>` with `<resp>`
+#' brms's Stan name of the response (`brms_stan_name()`: `Y_a` is `Ya`,
+#' `cbind(a, b, c)` is `cbindabc`), the suffix brms gives every other
+#' parameter of one response, as `sigmab_Ya`: brms 2.23.0 itself
+#' cannot compile this model (its generated quantities read `Llncor`
+#' without the suffix), so there is no brms name to copy.
 #'
 #' @noRd
 lncor_blocks <- function(fit) {
   tpl <- fit$frame[["par_template"]]
+  multi <- length(fit$spec$responses) > 1L
   out <- list()
   for (r in names(fit$spec$responses)) {
     sx <- fit$spec$responses[[r]]$family[["simplex"]]
     if (!identical(sx$kind, "logistic_normal")) next
     nm <- extra_tpl_name(fit$frame, r, "lncor_raw")
     if (!length(tpl[[nm]])) next
-    out[[length(out) + 1L]] <- list(resp = r, comp = nm, sx = sx)
+    out[[length(out) + 1L]] <- list(resp = r, comp = nm, sx = sx,
+                                    prefix = if (multi) {
+                                      paste0("lncor_", brms_stan_name(r))
+                                    } else "lncor")
   }
   out
 }
@@ -645,7 +663,7 @@ simplex_extra_comps <- function(fit) {
 #' @noRd
 lncor_put <- function(fit, vals, comp, put) {
   for (b in lncor_blocks(fit)) {
-    v <- lncor_values(vals[comp == b$comp], b$sx)
+    v <- lncor_values(vals[comp == b$comp], b$sx, b$prefix)
     for (j in seq_along(v)) put(names(v)[j], v[[j]])
   }
   invisible(NULL)
@@ -666,7 +684,7 @@ lncor_summary_rows <- function(object, q) {
               hi = numeric(0), nm = character(0))
   for (b in bl) {
     th <- object$estimates[[b$comp]]
-    r <- lncor_values(th, b$sx)
+    r <- lncor_values(th, b$sx, b$prefix)
     G <- matrix(0, length(r), length(th))
     for (k in seq_along(th)) {
       h <- 1e-6 * max(1, abs(th[k]))
@@ -674,7 +692,8 @@ lncor_summary_rows <- function(object, q) {
       tm <- th
       tp[k] <- tp[k] + h
       tm[k] <- tm[k] - h
-      G[, k] <- (lncor_values(tp, b$sx) - lncor_values(tm, b$sx)) / (2 * h)
+      G[, k] <- (lncor_values(tp, b$sx, b$prefix) -
+                   lncor_values(tm, b$sx, b$prefix)) / (2 * h)
     }
     se <- rep(NA_real_, length(r))
     if (!is.null(pc)) {
@@ -687,13 +706,13 @@ lncor_summary_rows <- function(object, q) {
     }
     z <- atanh(r)
     sz <- se / (1 - r^2)
-    lab <- sub("^lncor__", "", names(r))
+    lab <- substring(names(r), nchar(b$prefix) + 3L)
     out$est <- c(out$est, unname(r))
     out$err <- c(out$err, se)
     out$lo <- c(out$lo, tanh(z - q * sz))
     out$hi <- c(out$hi, tanh(z + q * sz))
-    out$nm <- c(out$nm, paste0("lncor(", sub("__", ",", lab, fixed = TRUE),
-                               ")"))
+    out$nm <- c(out$nm, paste0(b$prefix, "(",
+                               sub("__", ",", lab, fixed = TRUE), ")"))
   }
   out
 }

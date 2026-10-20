@@ -1,6 +1,6 @@
 fit_sleep <- local({
   if (requireNamespace("lme4", quietly = TRUE)) {
-    data(sleepstudy, package = "lme4")
+    data(sleepstudy, package = "lme4", envir = environment())
     frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
            data = sleepstudy)
   } else {
@@ -78,7 +78,7 @@ test_that("print and summary run without error", {
 
 test_that("start values are validated", {
   skip_if(is.null(fit_sleep))
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   expect_error(frm(bf(Reaction ~ Days) + gaussian(), sleepstudy,
                       start = list(bogus = 1)),
                "Unknown start component")

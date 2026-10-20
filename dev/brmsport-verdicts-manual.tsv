@@ -20,7 +20,6 @@ standata:1133	frmtmb	divergence	policy	frm(drop_unused_levels = FALSE) is accept
 priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
 priors:27	frmtmb	divergence	class	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 priors:39	frmtmb	cannot transfer	stan	set_prior(check = FALSE) passes Stan code through, and frmtmb builds no Stan program (priorform ledger P9)
-priors:74	frmtmb	divergence	policy	default_prior() answers brms's Beta() model on an rnorm() response now, as brms does (lane wt-defects); its 5 phi rows against brms's 6 lack the per-coefficient sd row (sd, g, Intercept), which frmtmb does not list because its class sd addresses a block and refuses coef (priorform ledger P1, P26)
 priors:85	frmtmb	divergence	policy	default_prior() describes frm(), which is flat in every slot; the sampling route's flat rescor is a filed frmtmb.sample defect (priorform ledger P15, dev/priorform-findings.md section 6)
 priors:123	frmtmb	divergence	policy	10 rows against brms's 9: two class theta rows added, one per-coefficient sd row absent (priorform ledger P26)
 priors:156	frmtmb	cannot transfer	stan	set_prior() takes no tag: a tag names a prior inside a Stan program (priorform ledger P33)

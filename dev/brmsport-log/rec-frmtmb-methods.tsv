@@ -70,9 +70,9 @@ setup	frmtmb	brmsfit-methods:303		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:305	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:308		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:312		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:314	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:314	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:315		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:317	divergence	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:317	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:320		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:324		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:325	pass	TRUE	FALSE			TRUE

@@ -165,14 +165,16 @@ test_that("mm(g1, g2, by = ) is brms's density at the estimates", {
 test_that("the parameters carry brms's names", {
   fit <- grby_fit()
   # brms 2.23.0's rename_re() for (1 + x | gr(g, by = f))
-  # (dev/grby-brmsnames.R, dev/grby-log/brmsnames.txt)
+  # (dev/grby-brmsnames.R, dev/grby-log/brmsnames.txt), in the order
+  # brms's variables() lists them: every sd, then every cor
+  # (dev/prilabel-log/brms-vars.txt)
   expect_identical(
     variables(fit),
     c("b_Intercept", "b_x",
-      "sd_g__Intercept:fa", "sd_g__x:fa", "cor_g__Intercept:fa__x:fa",
-      "sd_g__Intercept:fb", "sd_g__x:fb", "cor_g__Intercept:fb__x:fb",
-      "sd_g__Intercept:fc", "sd_g__x:fc", "cor_g__Intercept:fc__x:fc",
-      "sigma"))
+      "sd_g__Intercept:fa", "sd_g__x:fa", "sd_g__Intercept:fb",
+      "sd_g__x:fb", "sd_g__Intercept:fc", "sd_g__x:fc",
+      "cor_g__Intercept:fa__x:fa", "cor_g__Intercept:fb__x:fb",
+      "cor_g__Intercept:fc__x:fc", "sigma"))
   vc <- VarCorr(fit)
   expect_identical(names(vc), c("g", "residual__"))
   expect_identical(rownames(vc$g$sd),

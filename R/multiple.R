@@ -322,11 +322,15 @@ anova.frmtmb_multiple <- function(object, ...,
 
   if (method == "D1") {
     if (is.null(dfcom)) dfcom <- df.residual(parts$big_fit)
-    st <- d1_stat(parts$Q, parts$U, m, dfcom)
+    st <- d1_stat(parts$Q, parts$U, m, dfcom, parts$K)
   } else if (method == "D2") {
     st <- d2_stat(parts$d, parts$k, m)
   } else {
     st <- d3_stat(parts$dbar, parts$dtilde, parts$k, m)
+  }
+  # a Wald rule through the factors whose inverse does not exist
+  if (wald && !is.null(parts$K) && !is.finite(st$statistic)) {
+    warn_cov_singular(parts$big_fit, "anova()")
   }
   p <- stats::pf(st$statistic, st$df1, st$df2, lower.tail = FALSE)
   structure(
@@ -445,12 +449,50 @@ pooled_wald_parts <- function(big, small, constraint) {
     # the one over that vector rather than brms's block
     U[, , j] <- vcov_estimated(f)[tested, tested, drop = FALSE]
   }
-  # per-imputation Wald chi-squares, for D2(use = "wald")
-  d <- vapply(seq_len(m), function(j) {
-    drop(t(Q[, j]) %*% solve(U[, , j], Q[, j]))
-  }, 0)
+  # per-imputation Wald chi-squares, for D2(use = "wald"), through the
+  # factors where the fits hold them: solve() of U stops as
+  # computationally singular when `tested` are the powers of a degree-7
+  # raw polynomial (dev/illse2-findings.md, item 1)
+  K <- pooled_wald_roots(big$fits, tested, U)
+  d <- if (is.null(K)) {
+    vapply(seq_len(m), function(j) {
+      drop(t(Q[, j]) %*% solve(U[, , j], Q[, j]))
+    }, 0)
+  } else {
+    vapply(seq_len(m), function(j) {
+      root_inv_quad(K[[j]], Q[, j]) %||% NaN
+    }, 0)
+  }
   list(Q = Q, U = U, d = d, k = k, labels = labels,
-       big_fit = big$fits[[1]])
+       big_fit = big$fits[[1]], K = K)
+}
+
+#' Factors `K_j` of the per-imputation covariances `U[, , j]` of the
+#' coefficients `tested`, `U_j = K_j K_j'`, when at least one fit holds
+#' its covariance as a factor (se_reparam_cov()); NULL otherwise, and
+#' then the Wald rules invert `U` as they did. A fit without a factor
+#' gets the pivoted Cholesky factor of its `U_j`, whose condition the
+#' fit's own SE check accepted; NULL when one has none.
+#'
+#' @noRd
+pooled_wald_roots <- function(fits, tested, U) {
+  if (!all(is.finite(U))) return(NULL)
+  K <- lapply(fits, function(f) {
+    Kf <- coef_vcov_root(f, extra = FALSE)
+    if (is.null(Kf) || !all(tested %in% rownames(Kf))) return(NULL)
+    Kf[tested, , drop = FALSE]
+  })
+  have <- !vapply(K, is.null, NA)
+  if (!any(have)) return(NULL)
+  for (j in which(!have)) {
+    R <- tryCatch(suppressWarnings(chol(U[, , j], pivot = TRUE)),
+                  error = function(e) NULL)
+    if (is.null(R) || attr(R, "rank") < nrow(R)) return(NULL)
+    Kj <- matrix(0, nrow(R), ncol(R))
+    Kj[attr(R, "pivot"), ] <- t(R)
+    K[[j]] <- Kj
+  }
+  K
 }
 
 #' Per-imputation deviance differences, at the imputation-specific
@@ -547,12 +589,27 @@ d1_denom_df <- function(r, k, m, dfcom) {
 #' Pools the coefficients `Q` and their within-imputation covariances
 #' `U`, then inflates the pooled covariance by the average relative
 #' increase in variance. The result is referred to an F distribution on
-#' `k` and the `d1_denom_df()` denominator degrees of freedom.
+#' `k` and the `d1_denom_df()` denominator degrees of freedom. `K`, the
+#' factors of `U` (pooled_wald_roots()), replaces `U` where it is given.
 #'
 #' @noRd
-d1_stat <- function(Q, U, m, dfcom) {
+d1_stat <- function(Q, U, m, dfcom, K = NULL) {
   k <- nrow(Q)
   qbar <- rowMeans(Q)
+  if (!is.null(K)) {
+    # the mean of the factored covariances is factored too, so neither
+    # the trace nor the form inverts an ill-conditioned ubar
+    Kb <- do.call(cbind, K) / sqrt(m)
+    C <- (Q - qbar) / sqrt(m - 1)
+    tr <- root_inv_quad(Kb, C)
+    qf <- root_inv_quad(Kb, qbar)
+    if (is.null(tr) || is.null(qf)) {
+      return(list(statistic = NaN, df1 = k, df2 = NaN, riv = NaN))
+    }
+    r <- max(0, (1 + 1 / m) * sum(tr) / k)
+    return(list(statistic = qf / ((1 + r) * k), df1 = k,
+                df2 = d1_denom_df(r, k, m, dfcom), riv = r))
+  }
   ubar <- apply(U, c(1, 2), mean)
   bvar <- stats::var(t(Q))
   # ARIV clamped at zero: the moment estimator can go negative on few

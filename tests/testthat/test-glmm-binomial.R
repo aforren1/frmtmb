@@ -1,7 +1,7 @@
 test_that("cbpp binomial GLMM with trials() matches glmmTMB and glmer", {
   skip_if_not_installed("lme4")
   skip_if_not_installed("glmmTMB")
-  data(cbpp, package = "lme4")
+  data(cbpp, package = "lme4", envir = environment())
 
   fit <- frm(bf(incidence | trials(size) ~ period + (1 | herd)) +
                   binomial(),

@@ -159,7 +159,11 @@ test_that("a bound-held parameter loses its SE and the others keep theirs", {
 
 test_that("a healthy fit is untouched and never warns", {
   # the guard's absent case: sdreport()'s own inverse is usable, so the
-  # covariance is exactly sdreport()'s. On a response near unit spread:
+  # covariance is exactly sdreport()'s inverse of the Hessian it is
+  # handed, the AD one without random effects. 0.71.0 pinned
+  # RTMB::sdreport(fit$obj), the inverse of optimHess()'s differences,
+  # which is 6.0e-6 from the exact SEs here (lane adhess,
+  # dev/adhess-secheck-pin.R). On a response near unit spread:
   # a response in other units has its coefficients' unit
   # (predictor_units()), and the covariance is then the inverse of the
   # Hessian taken in that unit (autoscale_sdreport()), not sdreport()'s
@@ -168,7 +172,8 @@ test_that("a healthy fit is untouched and never warns", {
   expect_silent(fit <- frm(ls ~ mo(income), data = d))
   expect_null(fit$par_units)
   V <- vcov(fit, full = TRUE)
-  ref <- RTMB::sdreport(fit$obj)$cov.fixed
+  H <- fit$obj$he(sdr_outer_point(fit$obj))
+  ref <- RTMB::sdreport(fit$obj, hessian.fixed = (H + t(H)) / 2)$cov.fixed
   expect_identical(unname(V), unname(ref))
 })
 
@@ -205,9 +210,12 @@ test_that("se = TRUE says it once, and a fit that stopped short not at all", {
     })
   expect_true(any(grepl("did not report convergence", w, fixed = TRUE)))
   expect_length(grep(se_lost_phrase, w, fixed = TRUE), 0L)
-  # and its covariance is sdreport()'s own, unrepaired
+  # and its covariance is sdreport()'s own inverse of the AD Hessian it
+  # is handed, unrepaired
   V <- suppressWarnings(vcov(short, full = TRUE))
-  ref <- suppressWarnings(RTMB::sdreport(short$obj)$cov.fixed)
+  H <- short$obj$he(sdr_outer_point(short$obj))
+  ref <- suppressWarnings(RTMB::sdreport(
+    short$obj, hessian.fixed = (H + t(H)) / 2)$cov.fixed)
   expect_identical(unname(V), unname(ref))
 })
 
@@ -413,8 +421,9 @@ test_that("separated data are named as separation", {
 })
 
 test_that("the fit-time Hessian is sdreport()'s", {
-  # m2: fd_hessian() is optimHess() step for step, so sdreport() is
-  # handed the matrix it would build, names included
+  # m2: at its default steps fd_hessian() is optimHess() step for step,
+  # names included; the fit hands sdreport() the matrix taken with the
+  # steps of outer_fd_steps() instead (below)
   fit <- frm(Reaction ~ Days + (Days | Subject), data = lme4::sleepstudy)
   obj <- fit$obj
   ns <- asNamespace("frmtmb")
@@ -425,6 +434,14 @@ test_that("the fit-time Hessian is sdreport()'s", {
   b <- ns$fd_hessian(at, obj$gr)$H
   ns$obj_state_restore(obj, st)
   expect_identical(a, b)
+  # the fit's own Hessian takes the steps of outer_fd_steps() (Days has
+  # a root mean square of 5.3), and sdreport() inverts exactly it
+  h <- ns$fit_outer_hessian(fit)
+  c1 <- ns$fd_hessian(at, obj$gr,
+                      eps = ns$outer_fd_steps(fit$frame, names(at)))$H
+  ns$obj_state_restore(obj, st)
+  expect_identical(h$H, c1)
+  expect_identical(unname(vcov(fit, full = TRUE)), unname(solve(h$H)))
 })
 
 test_that("whether the check waits is decided by counted work", {

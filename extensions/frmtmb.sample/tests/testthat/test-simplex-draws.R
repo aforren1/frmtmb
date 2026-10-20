@@ -123,9 +123,13 @@ test_that("the draws carry brms's lncor__b__c, read back exactly", {
                                                   fixed = TRUE)))
   expect_true(any(grepl("sigmab", cs$msg) & grepl("student_t(3, 0, 2.5)",
                                                    cs$msg, fixed = TRUE)))
-  # a dirichlet fit names its phi among the defaults it cannot carry
-  expect_true(any(grepl("no defaults for phi", sxd_draws("dirichlet")$msg,
-                        fixed = TRUE)))
+  # a dirichlet fit's phi takes brms's gamma(0.01, 0.01), which through
+  # frmtmb.sample 0.19.0 the message named as a default it lacked
+  msg <- sxd_draws("dirichlet")$msg
+  ls <- unlist(strsplit(msg, "\n", fixed = TRUE))
+  expect_true(any(grepl("^ *phi ", ls) & grepl("gamma(0.01, 0.01)", ls,
+                                                fixed = TRUE)))
+  expect_false(any(grepl("no defaults for phi", msg, fixed = TRUE)))
 })
 
 test_that("pp_check() and predictive_error() are refused as in brms", {

@@ -8,7 +8,7 @@ skip_on_cran()
 # sampling bridge, natural-scale varcorr CIs, smooth edf.
 
 test_that("OSA residuals are standard normal for correct models", {
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   r <- residuals(fit, type = "osa")[, "Estimate"]
@@ -82,7 +82,7 @@ test_that("zero-truncated poisson matches glmmTMB truncated_poisson", {
 
 test_that("confint_varcorr matches glmmTMB's natural-scale intervals", {
   skip_if_not_installed("glmmTMB")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   cv <- confint_varcorr(fit)

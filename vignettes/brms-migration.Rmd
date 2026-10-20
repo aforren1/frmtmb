@@ -39,7 +39,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
 | `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
-| `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
+| `cumulative()`, `multinomial()`, `categorical()` | same | the categories come from the response, and `refcat` names the reference category, as in brms |
 | `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes brms's threshold structures, `thres(gr = )` and `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |

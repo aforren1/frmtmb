@@ -72,6 +72,41 @@ is an error.
 The specifications given to \code{update()} are checked as \code{\link[=frm]{frm()}} checks
 a prior, so one that matches no parameter is an error; brms drops it
 with no message.
+
+Without \code{data} (or \code{newdata}), the refit reads the data the fit
+holds, as brms's \code{update()} does: the model frame and the variables
+the formula reads through a transform, on the rows the fit used,
+after \code{na.action}. A data-dependent basis (\code{splines::ns()}, \code{poly()},
+\code{scale()}) keeps the knots, coefficients or center that the fit
+computed, so \code{update(fit)} with nothing changed gives the fit. The
+result does not change when the data object is changed or removed,
+or after \code{\link[=saveRDS]{saveRDS()}} and \code{\link[=readRDS]{readRDS()}} in a new session.
+
+Rows that \code{na.action} removed from the fit stay out of the refit.
+This is also true when the update drops the variable that held the
+missing value. Under \code{na.action = na.exclude}, the refit pads its
+residuals and fitted values to the same rows as the fit.
+
+A formula that reads a variable the fit does not hold, as
+\code{update(fit, ~ . + z)} with a new \code{z}, reads the \code{data} of the stored
+call again, as \code{\link[stats:update]{stats::update()}} does. That is done only when those
+data still hold the fit's rows and values. Otherwise the update is
+refused with brms's advice to give the data as \code{newdata}.
+
+The formula, the family, the control, the start and the flags of the
+stored call that \code{update()} does not replace come from the fit, as in
+brms. So a fit made inside a function updates where the function's
+arguments are gone, and an object of the same name in the workspace
+does not become the model. The new fit's call names them as the
+stored call did. \code{evaluate = FALSE} returns the call that \code{update()}
+evaluates. It holds those values and the data, so it gives the same
+refit wherever it is evaluated, as in \code{\link[stats:step]{stats::step()}} and
+\code{\link[stats:add1]{stats::add1()}}.
+The data are in the call by value, so printing the call prints
+them. The call names the model it was made for: if it is edited
+before it is evaluated, for example with a new formula, the fit
+records its own call and does not take the old fit's bases or
+missing rows.
 }
 \examples{
 set.seed(3)

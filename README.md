@@ -257,7 +257,7 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - Multivariate models use `mvbf`, per-response families, and
   `rescor`. Nonlinear formulas use `nl = TRUE`. Inside a nonlinear
   body, a bare `pnorm()` or `qgamma()` is the tape-capable version,
-  so a process model reads as it would on paper. `multinomial(K)`
+  so a process model reads as it would on paper. `multinomial()`
   takes a matrix response.
 - The families include the usual GLM(M) set plus student, tweedie,
   compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted

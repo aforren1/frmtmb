@@ -95,9 +95,11 @@ standard deviation the posterior need not be proper, and neither the
 chains nor Rhat can see it, so the opt-out warns when the model has
 variance components.
 
-A `set_prior()` specification takes over the classes it names and
-leaves the other defaults alone, which is brms's partial-override
-rule.
+A `set_prior()` specification takes over the parameters it reaches and
+leaves the defaults on the other parameters, as brms does. A prior on
+one group's standard deviations, or on one coefficient's
+(`set_prior(class = "sd", group = "g", coef = "x")`), keeps the default
+on the rest.
 
 ```{r, eval = FALSE}
 ds <- frm_sample(fit, chains = 4,
@@ -155,9 +157,11 @@ as_draws(ds); as.array(ds); as.mcmc(ds)
 mcmc_plot(ds, type = "trace")
 ```
 
-Parameter names are brms's: `b_Intercept`, `b_x`, `r_g[1,Intercept]`.
-A log standard deviation brms does not sample keeps the name `confint()`
-gives it on the fit, `theta_1`. `variables(ds)` lists them all.
+Parameter names are brms's: `b_Intercept`, `b_x`, `r_g[1,Intercept]`,
+`sd_g__Intercept`. The log standard deviation the sampler samples, which
+brms does not, keeps the name `confint()` gives it on the fit,
+`theta_1`, and `sd_g__Intercept` is computed from it. `variables(ds)`
+lists them all.
 
 ## Conditional effects draw the frame the fit draws
 

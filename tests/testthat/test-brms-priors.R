@@ -56,7 +56,7 @@
 test_that("a brms get_prior() table applies what its rows say", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # This is the first thing a user porting a brms script meets. Every
   # row get_prior() writes carries source == "default", and
@@ -80,7 +80,7 @@ test_that("a brms get_prior() table applies what its rows say", {
 test_that("a row the USER edited in a get_prior() table is honored", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # The sharpest form of the same defect, and the reason it was a
   # correctness bug rather than an ergonomics gap. `source` records who
@@ -126,7 +126,7 @@ test_that("a row the USER edited in a get_prior() table is honored", {
 test_that("every default row's fate is one of five, by shape", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # Four distinct refusals, and they are not the same kind of thing.
   # "refused: class"        the class names a structure frmtmb holds
@@ -196,7 +196,7 @@ test_that("every default row's fate is one of five, by shape", {
 test_that("both routes are one code path, class by class", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # BEHAVIOR CHANGE, and the reason for it. Every class brms writes
   # that frmtmb can honor is now a class set_prior() takes under the
@@ -379,7 +379,7 @@ test_that("row 5: the translated table reproduces brms's mode", {
 test_that("row C: class sd is brms's placement, up to log(2)", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # brms writes a lower-bounded prior as the density MINUS one lccdf
   # per element; frmtmb writes the untruncated density PLUS the log
@@ -439,7 +439,7 @@ test_that("row C: class sd is brms's placement, up to log(2)", {
 test_that("row C: class cor is the same LKJ in another coordinate", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # brms declares a cholesky_factor_corr and puts lkj_corr_cholesky on
   # it; frmtmb holds a row-normalized Cholesky parameter `t` and
@@ -541,7 +541,7 @@ test_that("row 1: a dpar WITH a linear predictor agrees exactly", {
 test_that("S7: the centering no longer biases a regression slope", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # The largest effect this tier ever measured, and the only one that
   # moved a regression coefficient rather than a dispersion parameter.

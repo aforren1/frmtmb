@@ -27,11 +27,27 @@ freedom and scale matrix \verb{Sigma = W W'}. The mixing variable \code{u_j} is
 per LEVEL and shared across that level's coefficients, so a
 correlated or a \code{diag()} block is one multivariate t and not several
 independent univariate ones. So is a \code{||} term, which is one \code{diag()}
-block. brms builds one term the same way. brms also shares one \code{u_j}
-across all the Student-t terms of a grouping factor, as in
+block. brms builds one term the same way.
+
+All the Student-t terms of one grouping factor also share one \code{u_j}
+per level, as in brms. An example is
 \code{(1 | gr(g, dist = "student")) + (0 + x | gr(g, dist = "student"))}.
-frmtmb gives each block its own \code{u_j}, so two such terms are a
-different model from brms's. Write them as one term to share it.
+A term in \code{mu} and a term in \code{sigma} also share it. At each level,
+the coefficients of these terms are one multivariate t, with a
+block-diagonal scale matrix. So the example is the model
+\code{(1 + x || gr(g, dist = "student"))}.
+
+A \code{gr(g, by = f, dist = "student")} term has one block per level of
+\code{f}. Each block holds different levels of \code{g}, so alone the blocks
+share nothing. Beside a plain Student-t term on \code{g}, each level of
+\code{g} shares one \code{u_j} with the by-term's block that holds it.
+
+A term on another grouping factor has its own \code{u_j}. A gaussian term
+on \code{g} has none. The Student-t terms of one factor take one
+\code{dist_nu}, because brms has one \code{df} per factor.
+\code{simulate(re_formula = )} keeps or redraws the terms together at the
+levels they share. \code{quadrature = TRUE} refuses terms that share a
+level, because it integrates one random effect at a time.
 
 \strong{\code{Sigma} is the SCALE, not the covariance.} The variance is
 \code{Sigma * nu / (nu - 2)}, so a standard deviation is

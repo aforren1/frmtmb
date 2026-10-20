@@ -1,3 +1,115 @@
+# frmtmb.sample 0.20.0
+
+Needs frmtmb 0.72.0. It calls the sampling-API export `ord_lp_blocks()`
+and writes `uniform()` and `lognormal()` priors. It reads the
+per-response `lncor_<resp>` names and the per-coefficient `sd` priors of
+that release.
+
+## Breaking changes
+
+* **`posterior_linpred()` with no `dpar` on a family with several
+  location predictors returns brms's `draws x observations x P` array**,
+  every margin unnamed: every `mu<cat>` of `categorical()`,
+  `multinomial()` and the simplex families (`K - 1` layers with a
+  reference category, `K` without), and every component's `mu<k>` of a
+  mixture. It returned the first predictor's matrix. On these families
+  `transform = TRUE` without a `dpar` is refused in brms's words, a
+  two-category `categorical()` with its one predictor included.
+
+* **A default steps aside only for a prior on its own slot**, as in
+  brms. A narrower prior keeps the defaults on the parameters it does
+  not reach. `set_prior(class = "sd", group = "g")` replaces the default
+  on the standard deviations of `g`. It keeps `student_t(3, 0, 2.5)` on
+  the other groups. Adding `coef = "x"` narrows the prior to `sd_g__x`.
+  Before, the defaults of the whole class stepped aside, and the other
+  standard deviations were flat.
+
+* **A class-wide prior does not replace a default written per
+  coefficient.** For example, `set_prior("inv_gamma(2, 1)", class =
+  "lscale")` on a `gp(x)` model keeps brms's tuned default on
+  `lscale_gpx`, as brms keeps it. Before, the class-wide prior replaced
+  it. The default-prior message now names a specification that applies
+  to no parameter. That happens for this reason, or when a more specific
+  specification of your own covers its parameters. The message names the
+  coef to write.
+
+* **`frm_sample()` puts brms 2.23.0's default prior on every
+  distributional parameter that brms gives one.** They were flat on the
+  link scale: `shape` (`gamma(0.01, 0.01)`, and `inv_gamma(0.4, 0.3)`
+  for the negative binomials), `phi` (`gamma(0.01, 0.01)`), `nu`
+  (`gamma(2, 0.1)`) and `kappa`. So were the exgaussian `beta`, `alpha`,
+  `zi`, `hu`, `zoi`, `coi` and `quantile` (`beta(1, 1)`), and
+  frmtmb.eam's `bs`, `bias` and `ndt`. A parameter with a formula has
+  brms's default on its intercept, on the link scale. On small data the
+  posteriors move. A beta `phi` near 300 on 10 rows moved by 30 Monte
+  Carlo standard errors. A negative binomial `shape` and a Student-t
+  `nu` had no proper posterior before.
+
+* **The ordinal thresholds take brms's `student_t(3, 0, 2.5)`**, class
+  `Intercept`, and a mixture's weights without a formula take brms's
+  `dirichlet(1)` on the simplex. Both were flat.
+
+* **`sigma ~ 1` takes brms's default on sigma's intercept.** It got a
+  natural-scale default that addressed a slot the model does not have.
+  `sigma` without a formula now reads the response on the identity
+  scale, as brms does. Under a log `mu` link it read it on the log
+  scale.
+
+* An `unstr()` residual correlation takes brms's `lkj(1)`, class
+  `cortime`.
+
+* **`frm_sample(seed = )` fixes every chain.** The init jitter of chains
+  2 and up came from the session's random stream, so two calls with
+  `seed = 3` differed unless `set.seed()` came first. The jitter is now
+  drawn from `seed` and no longer from the session's stream. rstan's
+  sampler still advances the session's stream, as under `brm()`.
+
+* A natural-scale default carries brms's bound on its class where
+  frmtmb's link does not hold the parameter inside it. A log-linked
+  `ndt` is bounded above by the smallest response. An identity- or
+  log-linked `nu` is bounded below by 1. brms declares them so, and Stan
+  then transforms the draws inside rather than meeting the density's
+  edge. Where the link holds `ndt` inside a bound of its own,
+  frmtmb.eam's, the uniform is over the link's image and no bound is
+  written: `uniform(0, min_Y)` for an ungrouped `wiener()`, `lba()` or
+  `rdm()`, and `uniform(0, 1)` for the fraction `ndt_group()` makes of
+  `ndt`.
+
+* **`posterior_predict(newdata =)` reads every addition term from
+  newdata.** It read only `trunc()`, `rate()` and `thres(gr = )`, and
+  gave the simulator no other term, from the method's first version on.
+  A binomial with `y | trials(N)` and newdata `N = 1000` drew 0 or 1
+  (column mean 0.595 where `posterior_epred()` gave 576.3). A gaussian
+  with `se(s)` drew at sd 0.033 where newdata had `s = 5`. `predict()`,
+  `predictive_error()` and `residuals()` of draws, which call it, change
+  with it. Newdata without the `trials()` or `se()` variable is now
+  refused, naming the term, as brms refuses it.
+
+## New features
+
+* Draws of a `logistic_normal()` response inside `mvbf()` report its
+  correlations as `lncor_<resp>__b__c`, with `<resp>` brms's Stan name
+  of the response. The sampler's default puts brms's `lkj(1)` on each
+  such response.
+
+* **The draws carry brms's `sd_<group>__<coef>` and
+  `cor_<group>__<coef1>__<coef2>`**, and a smooth's `sds_`, `rescor__`,
+  `ar[1]`, `cosy` and `cortime__`, as columns of the draws matrix. So
+  `as_draws_df(draws)$sd_g__Intercept` works as on a brms fit. They are
+  derived from each draw's `theta_` columns, which stay. The names are
+  core's, the ones `variables()` of the fit lists.
+
+## Bug fixes
+
+* `posterior_predict(newdata =)` and `posterior_predict(re_formula =)`
+  hand the simulator each distributional parameter on its natural scale.
+  They handed it the reporting scale, which for a mixture's `theta` is
+  already the softmax probability. The simulator applied the softmax
+  again, so the mixing weights were wrong. The defect is in every
+  release from 0.2.0 (frmtmb 0.52.0, whose afd00a43 gave a mixture's
+  weights their softmax reporting scale). With frmtmb's fix of the same
+  release, a mixture also draws each class at its own rows' `trials()`.
+
 # frmtmb.sample 0.19.0
 
 Needs frmtmb 0.71.0: it reads the sampling-API exports `ce_method()`,

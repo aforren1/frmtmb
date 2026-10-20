@@ -176,7 +176,12 @@ in the same place on any machine. Measured against \code{"ignore"}: 8 to
 23 percent on seven small models and on mixed models with 14 to 23
 outer parameters, 19 to 24 percent on a glm with 301 coefficients,
 and 3 percent or less on mixed models with 42 to 403 outer
-parameters, where the check waited. \code{"ignore"} skips it. The
+parameters, where the check waited. \code{"ignore"} skips it. A model
+without random effects then builds the exact Hessian at the first
+standard-error use. That is faster than the finite differences it
+replaces but takes more memory: on a bernoulli model with 10,000
+rows the peak working set rose by 350 MB with 200 coefficients and
+by 870 MB with 500. The
 warning names each parameter and the reason: a bound holds it, the
 data separate the outcomes, the likelihood is flat along it (a
 standard deviation at 0, a \code{mo()} simplex split by a category no

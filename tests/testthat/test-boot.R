@@ -72,7 +72,7 @@ test_that("hypothesis exposes natural-scale RE names", {
 
   # correlation name on a correlated-slopes fit
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   fs <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
             data = sleepstudy)
   hc <- hypothesis(fs, "cor_Subject__Intercept__Days = 0", class = NULL)

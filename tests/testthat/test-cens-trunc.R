@@ -336,11 +336,11 @@ test_that("a discrete row censored at the support minimum is free", {
 
 arm_cens_notice <- function(env = parent.frame()) {
   withr::local_options(frmtmb.notices = TRUE, .local_envir = env)
+  # the notices given before this test are put back afterwards rather
+  # than cleared, so a later file sees the session it would have seen
+  local_frmtmb_registries(env)
   st <- frmtmb:::frmtmb_notice_state
-  clear <- function() rm(list = ls(envir = st, all.names = TRUE),
-                         envir = st)
-  clear()
-  withr::defer(clear(), envir = env)
+  rm(list = ls(envir = st, all.names = TRUE), envir = st)
 }
 
 # messages only: a censored fit may also warn, and expect_silent()

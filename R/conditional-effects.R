@@ -10,17 +10,22 @@
 #' (dev/fixes-ce-brms.R). `trials()` variables are held at 1 before
 #' this, as in brms. Literal bounds apply as written, and anything else
 #' (`vint`/`vreal` payloads a custom family needs) is evaluated against
-#' the grid when it can be.
+#' the grid when it can be. A registered term and `thres(gr = )` are
+#' coded as `aterms_for_newdata()` codes them (`aterm_coerce()`).
 #'
 #' @noRd
 ce_aterms <- function(rspec, nd, n) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
             row_aterms)
-  strict <- c("trials", "se", "trunc_lb", "trunc_ub")
+  # thres(gr = ) picks the thresholds a row is drawn from, so a grid row
+  # without its group has no draw
+  strict <- c("trials", "se", "trunc_lb", "trunc_ub", "thres_gr")
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
-    v <- tryCatch(as.numeric(eval(ex, nd, rspec$formula_env)),
+    # coded as the frame coded it, so a dec() factor held at its first
+    # level is the boundary the fit read that level as
+    v <- tryCatch(aterm_coerce(nm, eval(ex, nd, rspec$formula_env), rspec),
                   error = function(e) NULL)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
     if (is.null(v) && nm %in% strict) {
@@ -46,6 +51,22 @@ ce_trial_vars <- function(rspec, base) {
   ex <- rspec$aterms[["trials"]]
   if (is.null(ex)) return(character(0))
   intersect(all.vars(ex), names(base))
+}
+
+#' The numeric variables of the addition terms that take whole values:
+#' `thres()`, `vint()` and every registered term (frmtmb.eam's `dec()`
+#' is a 0/1 boundary). brms's `get_int_vars()` names trials, thres and
+#' vint; a registered term is here because frmtmb's families read it as
+#' data, where brms's wiener does not read `dec` in a prediction at all.
+#'
+#' @noRd
+ce_int_vars <- function(rspec, base) {
+  nms <- names(rspec$aterms)
+  int <- nms %in% c("thres", "thres_gr") | grepl("^vint[0-9]+$", nms) |
+    vapply(nms, function(nm) !is.null(registered_aterm_of(nm)), NA)
+  vars <- unique(unlist(lapply(rspec$aterms[int], all.vars)))
+  vars <- intersect(vars, names(base))
+  vars[vapply(base[vars], function(x) is.numeric(x) && !is.matrix(x), NA)]
 }
 
 #' Reference value a predictor is held at when it is not varied.
@@ -573,10 +594,11 @@ ce_group_vars <- function(x) {
 #'
 #' @noRd
 ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
-  # a simplex family's response is a composition over categories, and
-  # brms draws it per category too ("Please set 'categorical' to TRUE")
+  # a simplex family's response is a composition over categories, and a
+  # multinomial one counts over them; brms draws both per category too
+  # ("Please set 'categorical' to TRUE")
   poly <- isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical")) ||
-    fam_is_simplex(rspec$family)
+    ce_matrix_mean(rspec$family)
   if (!is.null(categorical)) check_flag(categorical, "categorical")
   if (!is.null(dpar) || !poly) {
     if (isTRUE(categorical)) {
@@ -593,14 +615,15 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
     }
     return("linpred")
   }
-  if (identical(method, "predict") && fam_is_simplex(rspec$family)) {
+  if (identical(method, "predict") && ce_matrix_mean(rspec$family)) {
     # a composition DOES scatter about its mean, so the reason is the
     # display's: brms refuses it too ("Can only use 'categorical' with
     # method = 'posterior_epred'.")
-    sx <- rspec$family[["simplex"]]
+    sx <- rspec$family[["simplex"]] %||%
+      list(kind = "multinomial", mu = rspec$family[["primary_dpars"]])
     frm_stop("method = \"predict\" is not available for family '",
              rspec$family[["family"]], "' in the per-category display, ",
-             "as in brms. Each simulated composition is one row over every ",
+             "as in brms. Each simulated response is one row over every ",
              "category, and the display draws one curve per category. ",
              if (identical(sx$kind, "logistic_normal")) {
                "This family's category means have no closed form, so "
@@ -609,8 +632,8 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
                       "category means, or ")
              },
              "ask for one category's predictor with dpar = \"", sx$mu[1L],
-             "\". predict(fit, newdata = ) summarizes simulated ",
-             "compositions", call. = FALSE)
+             "\". predict(fit, newdata = ) summarizes the simulated ",
+             "responses", call. = FALSE)
   }
   if (identical(method, "predict")) {
     frm_stop("method = \"predict\" has no meaning on ",
@@ -667,7 +690,26 @@ ce_display_kind <- function(rspec, dpar, categorical, method = "epred") {
 ce_cats_display <- function(rspec, dpar) {
   is.null(dpar) &&
     (isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical")) ||
-       fam_is_simplex(rspec$family))
+       ce_matrix_mean(rspec$family))
+}
+
+#' Whether a family's expected response is an `n x K` matrix over
+#' categories that `fitted()` summarizes with its own standard errors:
+#' the simplex families' category means, and `multinomial()`'s expected
+#' counts (probabilities, at the one trial the display holds).
+#'
+#' @noRd
+ce_matrix_mean <- function(fam) {
+  fam_is_simplex(fam) || identical(fam[["family"]], "multinomial")
+}
+
+#' Whether the per-category display reads its estimates and standard
+#' errors off `fitted()`: the families of `ce_matrix_mean()`, and
+#' `categorical()`, whose `fitted()` has the same delta-method array.
+#'
+#' @noRd
+ce_fitted_bands <- function(fam) {
+  ce_matrix_mean(fam) || identical(fam[["type"]], "categorical")
 }
 
 #' The dpar `conditional_effects()` actually PREDICTS, which is not
@@ -1069,6 +1111,14 @@ ce_outer_comp <- function(fit) {
 #'
 #' @noRd
 ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
+  if (categorical && !identical(rspec$family[["type"]], "ordinal")) {
+    frm_stop("band = \"profile\" cannot cover a category probability of ",
+             "family '", rspec$family[["family"]], "': it is not a linear ",
+             "combination of the parameters (every category's predictor ",
+             "enters every probability), so there is no single likelihood ",
+             "root to invert. Use band = \"wald\" (the default) or \"boot\", ",
+             "or dpar = for one category's predictor", call. = FALSE)
+  }
   if (categorical) {
     frm_stop("band = \"profile\" cannot cover an ordinal category ",
              "probability: it is not a linear combination of the ",
@@ -1789,6 +1839,30 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                   "them in conditions = list(...) for a count.")
     }
   }
+  # thres(), vint() and registered terms take whole values, and a mean
+  # is none: a dec() variable held at 0.573 is no boundary, and a vint()
+  # count at 9.985 draws NA. brms holds its integer variables
+  # (get_int_vars(): trials, thres, vint) at round(median())
+  iv <- setdiff(ce_int_vars(rspec, base), c(tv, unlist(strsplit(
+    effects, ":", fixed = TRUE))))
+  held <- numeric(0)
+  for (v in iv) {
+    val <- round(stats::median(base[[v]], na.rm = TRUE))
+    for (i in seq_along(cond_sets)) {
+      if (is.null(cond_sets[[i]][[v]])) {
+        cond_sets[[i]][[v]] <- val
+        held[[v]] <- val
+      }
+    }
+  }
+  if (length(held)) {
+    frm_message("conditional_effects(): holding the addition-term ",
+                "variable(s) ", paste0(names(held), " at ", held,
+                                       collapse = ", "),
+                ", the rounded median, because the term takes whole ",
+                "values (brms's default too). Pin them in conditions = ",
+                "list(...) for another value.")
+  }
   # subset(): brms holds a subset variable at TRUE, so the grid is on
   # the rows the response is fitted on (its prepare_conditions())
   for (v in intersect(all.vars(rspec$aterms[["subset"]]), names(base))) {
@@ -2324,7 +2398,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # delta-method standard error differences the whole mean
   if (categorical && band != "boot" &&
       !identical(rspec$family[["type"]], "ordinal") &&
-      !fam_is_simplex(rspec$family)) {
+      !ce_fitted_bands(rspec$family)) {
     frm_stop("conditional_effects() has no analytic standard error for the ",
              "category probabilities of family '", rspec$family[["family"]],
              "': the delta method it uses is written for ordinal thresholds. ",
@@ -2475,13 +2549,14 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
         ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
                           allow_new_levels = anl)
-      } else if (fam_is_simplex(rspec$family) && band != "boot") {
+      } else if (ce_fitted_bands(rspec$family) && band != "boot") {
         # the category means and their standard errors are fitted()'s,
         # which is also where logistic_normal() is refused in brms's
         # words: its mean has no closed form
         f <- fitted(x, newdata = nd, re_formula = re_formula, resp = resp,
                     allow_new_levels = anl)
-        cats <- rspec$family[["simplex"]][["cats"]]
+        # the categories as fitted() names its layers, P(Y = k)
+        cats <- sub("^P[(]Y = (.*)[)]$", "\\1", dimnames(f)[[3L]])
         ps <- list(P = matrix(f[, "Estimate", ], nrow(f),
                               dimnames = list(NULL, cats)),
                    se = matrix(f[, "Est.Error", ], nrow(f)))

@@ -1,540 +1,540 @@
-key	vignette	kind	edge	v065.ok	v066.ok	v067.ok	r6.ok	r7.ok	r8.ok	merged.ok
-brms-coexistence | 1 | ML: the masking table (brms attached second)	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 2 | ML: the exact masking message	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 3 | ML: plain frm() with brms attached	brms-coexistence	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 4 | ML: frm() binomial with brms attached	brms-coexistence	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 5 | ML: frm(bf(...)) where bf() is brms's	brms-coexistence	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 6 | ML: frm(frmtmb::bf(...)) [the fix]	brms-coexistence	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 7 | ML: conditional_effects(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 8 | ML: conditional_effects(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 9 | ML: hypothesis(gaussian) with brms attached	brms-coexistence	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 10 | ML: hypothesis(binomial) with brms attached	brms-coexistence	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 11 | ML: pp_check(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 12 | ML: pp_check(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 13 | ML: ngrps(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 14 | ML: ngrps(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 15 | ML: fixef(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 16 | ML: fixef(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 17 | ML: ranef(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 18 | ML: ranef(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 19 | ML: VarCorr(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 20 | ML: VarCorr(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 21 | ML: loo(gaussian) with brms attached	brms-coexistence	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 22 | ML: loo(binomial) with brms attached	brms-coexistence	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 23 | ML: set_prior() resolves to brms	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 24 | ML: frmtmb::set_prior() [the fix]	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 25 | ML: get_prior() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 26 | ML: frmtmb::get_prior() [the fix]	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 27 | ML: prior() resolves to brms	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 28 | ML: mixture() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 29 | ML: custom_family() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 30 | ML: lf() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 31 | ML: nlf() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 32 | ML: family constructors resolve to brms	brms-coexistence	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 33 | ML: reversed attach order (brms first, then frmtmb)	brms-coexistence	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 34 | SAMPLE: frm_sample(fit_g) with brms attached	brms-coexistence	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 35 | SAMPLE: frm_sample(fit_b) with brms attached	brms-coexistence	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 36 | SAMPLE: summary(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 37 | SAMPLE: fixef(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 38 | SAMPLE: ranef(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 39 | SAMPLE: VarCorr(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 40 | SAMPLE: posterior_epred(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 41 | SAMPLE: posterior_predict(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 42 | SAMPLE: posterior_linpred(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 43 | SAMPLE: log_lik(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 44 | SAMPLE: loo(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 45 | SAMPLE: waic(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 46 | SAMPLE: bayes_R2(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 47 | SAMPLE: pp_check(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 48 | SAMPLE: mcmc_plot(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 49 | SAMPLE: conditional_effects(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 50 | SAMPLE: ngrps(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 51 | SAMPLE: nchains(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 52 | SAMPLE: ndraws(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 53 | SAMPLE: posterior_summary(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 54 | SAMPLE: posterior_interval(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 55 | SAMPLE: as.mcmc(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 56 | SAMPLE: hypothesis(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 57 | SAMPLE: summary(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 58 | SAMPLE: fixef(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 59 | SAMPLE: pp_check(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 60 | SAMPLE: loo(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 61 | SAMPLE: conditional_effects(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 62 | SAMPLE: posterior_predict(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 63 | SAMPLE: hypothesis(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 64 | SAMPLE: posterior::as_draws_df() with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 65 | SAMPLE: LOO(draws) with brms attached	brms-coexistence	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 66 | SAMPLE: WAIC(draws) with brms attached	brms-coexistence	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms-coexistence | 67 | SAMPLE: parnames(draws) with brms attached	brms-coexistence	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 68 | SAMPLE: posterior_samples(draws) with brms attached	brms-coexistence	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms-coexistence | 69 | SAMPLE: nsamples(draws) with brms attached	brms-coexistence	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 1 | ML: fit1	brms_customfamilies	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 2 | ML: summary(fit1)	brms_customfamilies	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 3 | ML: beta_binomial2 <- custom_family(...)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 4 | ML: check_custom_family(beta_binomial2)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 5 | ML: stan_funs <- '<Stan source>'	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_customfamilies | 6 | ML: stanvars <- stanvar(scode = stan_funs, block = 'functions')	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_customfamilies | 7 | ML: fit2 (the custom family)	brms_customfamilies	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 8 | ML: summary(fit2)	brms_customfamilies	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 9 | ML: the native beta_binomial() agrees with the hand-written one	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 10 | ML: expose_functions(fit2, vectorize = TRUE)	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_customfamilies | 11 | ML: log_lik_beta_binomial2 <- function(i, prep)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 12 | ML: loo(fit1, fit2)	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_customfamilies | 13 | ML: AIC(fit1, fit2) [the substitute]	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 14 | ML: posterior_predict_beta_binomial2 <- function(i, prep, ...)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 15 | ML: pp_check(fit2)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 16 | ML: pp_check() on a custom family with no sim	brms_customfamilies	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_customfamilies | 17 | ML: posterior_epred_beta_binomial2 <- function(prep)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 18 | ML: conditional_effects(fit2, conditions = data.frame(size = 1))	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 19 | SAMPLE: fit1	brms_customfamilies	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 20 | SAMPLE: fit2 (the custom family)	brms_customfamilies	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 21 | SAMPLE: summary(fit2 draws)	brms_customfamilies	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 22 | SAMPLE: log_lik(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 23 | SAMPLE: loo(fit1, fit2) [the vignette's comparison]	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 24 | SAMPLE: posterior_predict(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 25 | SAMPLE: posterior_epred(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 26 | SAMPLE: pp_check(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 27 | SAMPLE: expose_functions(fit2 draws)	brms_customfamilies	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_customfamilies | 28 | SAMPLE: conditional_effects(s2, conditions = data.frame(size = 1))	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_customfamilies | 29 | SAMPLE: stancode(s2)	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_distreg | 1 | ML: fit1	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 2 | ML: summary(fit1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 3 | ML: plot(fit1, N = 2, ask = FALSE)	brms_distreg	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_distreg | 4 | ML: plot(conditional_effects(fit1), points = TRUE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 5 | ML: conditional_effects(fit1, dpar = 'sigma')	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 6 | ML: hypothesis(fit1, hyp) [point]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 7 | ML: hypothesis(fit1, hyp) [directional >]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 8 | ML: plot(hyp, chars = NULL)	brms_distreg	post	BEHAVIOR	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 9 | ML: fit_zinb1	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 10 | ML: summary(fit_zinb1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 11 | ML: plot(conditional_effects(fit_zinb1), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 12 | ML: fit_zinb2	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 13 | ML: summary(fit_zinb2)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 14 | ML: plot(conditional_effects(fit_zinb2), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 15 | ML: fit_smooth1	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 16 | ML: summary(fit_smooth1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 17 | ML: plot(conditional_effects(fit_smooth1), points = TRUE, ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 18 | ML: appendix conditional_smooths(fit_smooth1)	brms_distreg	post	MISSING	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 19 | ML: appendix mixture(gaussian(), gaussian())	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 20 | ML: appendix bf(y ~ 1, mu1 ~ x1, mu2 ~ x1)	brms_distreg	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_distreg | 21 | ML: appendix per-component predictors, frmtmb spelling	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 22 | ML: appendix pp_mixture(fit_mix2)	brms_distreg	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
-brms_distreg | 23 | ML: appendix mixture_probs(fit_mix2) [the substitute]	brms_distreg	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 24 | ML: appendix pp_check(fit_zinb1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 25 | SAMPLE: fit1	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 26 | SAMPLE: summary(fit1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 27 | SAMPLE: plot(fit1, N = 2, ask = FALSE)	brms_distreg	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
-brms_distreg | 28 | SAMPLE: mcmc_plot(fit1) [the substitute]	brms_distreg	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 29 | SAMPLE: plot(conditional_effects(fit1), points = TRUE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 30 | SAMPLE: hypothesis(fit1, hyp) [point]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 31 | SAMPLE: hypothesis(fit1, hyp) [directional >]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 32 | SAMPLE: plot(hyp, chars = NULL)	brms_distreg	post	BEHAVIOR	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 33 | SAMPLE: fit_zinb1	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 34 | SAMPLE: summary(fit_zinb1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 35 | SAMPLE: plot(conditional_effects(fit_zinb1), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 36 | SAMPLE: fit_zinb2	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 37 | SAMPLE: summary(fit_zinb2)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 38 | SAMPLE: plot(conditional_effects(fit_zinb2), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 39 | SAMPLE: loo(fit_zinb1) [recovered from the ML path]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 40 | SAMPLE: loo_compare(zinb1, zinb2)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 41 | SAMPLE: fit_smooth1	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 42 | SAMPLE: summary(fit_smooth1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 43 | SAMPLE: ranef(fit_smooth1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 44 | SAMPLE: VarCorr(fit_smooth1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 45 | SAMPLE: plot(conditional_effects(fit_smooth1), points = TRUE, ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 46 | SAMPLE: conditional_effects(fit1, method = 'predict')	brms_distreg	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_distreg | 47 | SAMPLE: waic(fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 48 | SAMPLE: bayes_R2(fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 49 | SAMPLE: pp_check(fit_zinb1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 50 | SAMPLE: posterior_epred / posterior_predict (fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_distreg | 51 | SAMPLE: as_draws_df(fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 1 | ML: gaussian	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 2 | ML: student	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 3 | ML: skew_normal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 4 | ML: binomial	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 5 | ML: bernoulli	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 6 | ML: poisson	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 7 | ML: negbinomial	brms_families	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 8 | ML: geometric	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 9 | ML: discrete_weibull	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_families | 10 | ML: lognormal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 11 | ML: Gamma	brms_families	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 12 | ML: weibull	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 13 | ML: exponential	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 14 | ML: inverse.gaussian	brms_families	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 15 | ML: inverse.gaussian mean check under the log link	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 16 | ML: cox	brms_families	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 17 | ML: frechet	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_families | 18 | ML: gen_extreme_value	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_families | 19 | ML: exgaussian	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 20 | ML: shifted_lognormal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 21 | ML: wiener	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_families | 22 | ML: asym_laplace	brms_families	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 23 | ML: Beta	brms_families	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 24 | ML: dirichlet	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_families | 25 | ML: logistic_normal	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_families | 26 | ML: von_mises	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 27 | ML: cumulative	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 28 | ML: sratio	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 29 | ML: cratio	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 30 | ML: acat	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 31 | ML: categorical	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 32 | ML: multinomial [brms spelling]	brms_families	post	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_families | 33 | ML: multinomial(K = 3)	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 34 | ML: zero_inflated_poisson	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 35 | ML: zero_inflated_binomial	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 36 | ML: zero_inflated_negbinomial	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 37 | ML: zero_inflated_beta	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 38 | ML: hurdle_poisson	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 39 | ML: hurdle_negbinomial	brms_families	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 40 | ML: hurdle_gamma	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 41 | ML: hurdle_lognormal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 42 | ML: zero_one_inflated_beta	brms_families	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 43 | ML: family coverage tally	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_families | 44 | ML: frm_sample accepts a continuous, a count and an ordinal family	brms_families	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 1 | ML: fit_imp1	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 2 | ML: summary(fit_imp1)	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 3 | ML: print(fit_imp1) [the pooled table]	brms_missings	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 4 | ML: plot(fit_imp1, variable = '^b', regex = TRUE)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 5 | ML: as_draws_array(fit_imp1)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 6 | ML: nchains(fit_imp1)	brms_missings	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 7 | ML: posterior::nchains(fit_imp1)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 8 | ML: per-submodel check (the substitute for summarise_draws)	brms_missings	post	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 9 | ML: conditional_effects(fit_imp1, 'age:chl')	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
-brms_missings | 10 | ML: conditional_effects(fit_imp1$fits[[1]], 'age:chl') [workaround]	brms_missings	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 11 | ML: hypothesis(fit_imp1, 'age')	brms_missings	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 12 | ML: fit_imp1 from a list of data frames	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 13 | ML: fit_imp2	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 14 | ML: summary(fit_imp2)	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 15 | ML: conditional_effects(fit_imp2, 'age:chl', resp = 'bmi')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 16 | ML: fit_imp3 (mi(se) measurement error)	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 17 | ML: summary(fit_imp3)	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 18 | SAMPLE: fit_imp1 (the pooled object)	brms_missings	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_missings | 19 | SAMPLE: fit_imp1$fits[[1]] (one imputation)	brms_missings	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 20 | SAMPLE: summary(fit_imp1 draws)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 21 | SAMPLE: nchains/ndraws/as_draws_df	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 22 | SAMPLE: conditional_effects(s_imp1, 'age:chl')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 23 | SAMPLE: pp_check(s_imp1)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 24 | SAMPLE: loo(s_imp1)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 25 | SAMPLE: hypothesis(s_imp1, 'age > 0')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 26 | SAMPLE: fit_imp2	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 27 | SAMPLE: summary(fit_imp2 draws)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 28 | SAMPLE: conditional_effects(s_imp2, 'age:chl', resp = 'bmi')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_missings | 29 | SAMPLE: conditional_effects(s_imp2, method = 'predict')	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_missings | 30 | SAMPLE: pp_check(s_imp2)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 31 | SAMPLE: loo(s_imp2)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_missings | 32 | SAMPLE: posterior_predict(s_imp2)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 1 | ML: fit1	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 2 | ML: the brms line with no family at all	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 3 | ML: summary(fit1)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 4 | ML: plot(fit1, variable = 'simo', regex = TRUE)	brms_monotonic	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_monotonic | 5 | ML: plot(conditional_effects(fit1))	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 6 | ML: fit2	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 7 | ML: summary(fit2)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 8 | ML: fit3	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 9 | ML: summary(fit3)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 10 | ML: loo(fit1, fit2, fit3)	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_monotonic | 11 | ML: AIC(fit1, fit2, fit3) [the substitute]	brms_monotonic	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 12 | ML: prior4 = prior(dirichlet(c(2, 1, 1)), class = 'simo', coef = 'moincome1')	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
-brms_monotonic | 13 | ML: set_prior(class = 'simo') with a supported density	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_monotonic | 14 | ML: fit4 [the vignette's exact translation]	brms_monotonic	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
-brms_monotonic | 15 | ML: fit4 [without the prior]	brms_monotonic	model	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 16 | ML: summary(fit4)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 17 | ML: plot(fit4, variable = 'prior_simo', regex = TRUE, N = 3)	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_monotonic | 18 | ML: fit5	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 19 | ML: summary(fit5)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 20 | ML: conditional_effects(fit5, 'income:age')	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 21 | ML: fit6	brms_monotonic	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
-brms_monotonic | 22 | ML: fit6 [the varying-intercept workaround]	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 23 | ML: summary(fit6)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 24 | ML: appendix cumulative() with threshold = 'equidistant'	brms_monotonic	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_monotonic | 25 | ML: appendix family = cumulative [bare constructor]	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 26 | SAMPLE: fit1	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 27 | SAMPLE: summary(fit1)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 28 | SAMPLE: plot(fit1, variable = 'simo', regex = TRUE)	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
-brms_monotonic | 29 | SAMPLE: mcmc_plot(fit1) [the substitute]	brms_monotonic	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 30 | SAMPLE: plot(conditional_effects(fit1))	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 31 | SAMPLE: fit2	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 32 | SAMPLE: fit3	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 33 | SAMPLE: loo(fit1, fit2, fit3)	brms_monotonic	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 34 | SAMPLE: fit4 [the vignette's exact translation]	brms_monotonic	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
-brms_monotonic | 35 | SAMPLE: fit4 [formula route, default priors]	brms_monotonic	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 36 | SAMPLE: summary(fit4)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 37 | SAMPLE: fit5	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 38 | SAMPLE: summary(fit5)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 39 | SAMPLE: conditional_effects(fit5, 'income:age')	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 40 | SAMPLE: fit6	brms_monotonic	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
-brms_monotonic | 41 | SAMPLE: waic(fit1)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 42 | SAMPLE: bayes_R2(fit1)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_monotonic | 43 | SAMPLE: as_draws_df(fit1)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 1 | ML: fit_zinb1	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 2 | ML: summary(fit_zinb1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 3 | ML: conditional_effects(fit_zinb1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 4 | ML: fit_zinb2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 5 | ML: summary(fit_zinb2)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 6 | ML: LOO(fit_zinb1, fit_zinb2)	brms_multilevel	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 7 | ML: AIC(fit_zinb1, fit_zinb2) [the substitute]	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 8 | ML: fit_rent1	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 9 | ML: summary(fit_rent1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 10 | ML: conditional_effects(fit_rent1, surface = TRUE)	brms_multilevel	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 11 | ML: conditional_effects(fit_rent1, 'area:yearc') [the substitute]	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 12 | ML: fit_rent2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 13 | ML: VarCorr(fit_rent2) [the group-level block]	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 14 | ML: conditional_smooths(fit_rent2)	brms_multilevel	post	MISSING	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 15 | ML: fit_loss1	brms_multilevel	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 16 | ML: fit_loss1 with the priors instead of start	brms_multilevel	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 17 | ML: summary(fit_loss1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 18 | ML: conditional_effects(fit_loss1)	brms_multilevel	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 19 | ML: conditional_effects(fit_loss1, band = 'boot')	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 20 | ML: conditional_effects(conditions, re_formula = NULL, method = 'predict')	brms_multilevel	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 21 | ML: conditional_effects(conditions, re_formula = NULL, band = 'boot')	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 22 | ML: plot(me_year, ncol = 5, points = TRUE)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 23 | ML: fit_loss2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 24 | ML: VarCorr(fit_loss2)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 25 | ML: ult + omega + theta ~ 1 + (1|ID1|AY)	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 26 | ML: LOO(fit_loss1, fit_loss2)	brms_multilevel	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 27 | ML: AIC(fit_loss1, fit_loss2) [the substitute]	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 28 | ML: fit_mm	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 29 | ML: summary(fit_mm)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 30 | ML: ngrps(fit_mm)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 31 | ML: fit_mm2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 32 | ML: summary(fit_mm2)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 33 | SAMPLE: fit_zinb1	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 34 | SAMPLE: summary(fit_zinb1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 35 | SAMPLE: conditional_effects(fit_zinb1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 36 | SAMPLE: pp_check(fit_zinb1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 37 | SAMPLE: fit_zinb2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 38 | SAMPLE: LOO(fit_zinb1, fit_zinb2)	brms_multilevel	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 39 | SAMPLE: loo_compare(loo(fit_zinb1), loo(fit_zinb2))	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 40 | SAMPLE: fit_rent1	brms_multilevel	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 41 | SAMPLE: fit_rent1 through the fit route, no priors	brms_multilevel	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 42 | SAMPLE: summary(fit_rent1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 43 | SAMPLE: conditional_effects(fit_rent1, surface = TRUE)	brms_multilevel	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 44 | SAMPLE: bayes_R2(fit_rent1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 45 | SAMPLE: fit_rent2	brms_multilevel	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 46 | SAMPLE: VarCorr(fit_rent2) [the group-level block]	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 47 | SAMPLE: conditional_smooths(fit_rent2)	brms_multilevel	post	MISSING	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 48 | SAMPLE: fit_loss1	brms_multilevel	model	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 49 | SAMPLE: summary(fit_loss1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 50 | SAMPLE: conditional_effects(fit_loss1)	brms_multilevel	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 51 | SAMPLE: conditional_effects(conditions, re_formula = NULL, method = 'predict')	brms_multilevel	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 52 | SAMPLE: posterior_predict(fit_loss1) [the named substitute]	brms_multilevel	post	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multilevel | 53 | SAMPLE: fit_mm	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 54 | SAMPLE: summary(fit_mm)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 55 | SAMPLE: VarCorr(fit_mm)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 56 | SAMPLE: ngrps(fit_mm)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 57 | SAMPLE: fit_mm2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multilevel | 58 | SAMPLE: summary(fit_mm2)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 1 | ML: fit1	brms_multivariate	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 2 | ML: fit1 <- add_criterion(fit1, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multivariate | 3 | ML: summary(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 4 | ML: pp_check(fit1, resp = 'tarsus')	brms_multivariate	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_multivariate | 5 | ML: pp_check(fit1, resp = 'back')	brms_multivariate	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_multivariate | 6 | ML: bayes_R2(fit1)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multivariate | 7 | ML: fit2	brms_multivariate	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 8 | ML: fit2 <- add_criterion(fit2, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multivariate | 9 | ML: summary(fit2)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 10 | ML: loo(fit1, fit2)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multivariate | 11 | ML: AIC(fit1, fit2) and anova() [the substitute]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 12 | ML: fit3	brms_multivariate	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 13 | ML: fit3 <- add_criterion(fit3, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multivariate | 14 | ML: summary(fit3)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 15 | ML: conditional_effects(fit3, 'hatchdate', resp = 'back')	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 16 | ML: fixef(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 17 | ML: confint(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 18 | ML: VarCorr(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 19 | ML: rescor_matrix(fit1)	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 20 | ML: ranef(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 21 | ML: coef(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 22 | ML: predict(fit1, resp = 'back')	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 23 | ML: residuals(fit1)	brms_multivariate	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 24 | ML: fitted(fit3)	brms_multivariate	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 25 | SAMPLE: fit1 [fit route]	brms_multivariate	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 26 | SAMPLE: VarCorr(fit1) [fit route]	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 27 | SAMPLE: fit1 [formula route]	brms_multivariate	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 28 | SAMPLE: fit1 <- add_criterion(fit1, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
-brms_multivariate | 29 | SAMPLE: loo(fit1) [what add_criterion would have stored]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 30 | SAMPLE: summary(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 31 | SAMPLE: VarCorr(fit1) [the natural-scale reading]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 32 | SAMPLE: rescor_matrix(fit1)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_multivariate | 33 | SAMPLE: pp_check(fit1, resp = 'tarsus')	brms_multivariate	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 34 | SAMPLE: bayes_R2(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 35 | SAMPLE: fit2	brms_multivariate	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 36 | SAMPLE: summary(fit2)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 37 | SAMPLE: loo(fit1, fit2)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_multivariate | 38 | SAMPLE: loo_compare(loo(fit1), loo(fit2)) [the substitute]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 39 | SAMPLE: fit3	brms_multivariate	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 40 | SAMPLE: summary(fit3)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 41 | SAMPLE: conditional_effects(fit3, 'hatchdate', resp = 'back')	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 42 | SAMPLE: conditional_effects(..., method = 'predict')	brms_multivariate	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_multivariate | 43 | SAMPLE: posterior_epred(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 44 | SAMPLE: posterior_predict(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_multivariate | 45 | SAMPLE: as_draws_df(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 1 | ML: fit1	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 2 | ML: b1 + b2 ~ 1 equals b1 ~ 1, b2 ~ 1	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 3 | ML: summary(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 4 | ML: plot(fit1)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 5 | ML: conditional_effects(fit1) [default band]	brms_nonlinear	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 6 | ML: conditional_effects(fit1, band = 'boot')	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 7 | ML: plot(ce1, points = TRUE)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 8 | ML: fit2	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 9 | ML: summary(fit2)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 10 | ML: pp_check(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 11 | ML: pp_check(fit2)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 12 | ML: loo(fit1, fit2)	brms_nonlinear	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_nonlinear | 13 | ML: AIC(fit1, fit2) [the substitute]	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 14 | ML: fit_loss	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 15 | ML: summary(fit_loss)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 16 | ML: plot(fit_loss, N = 3, ask = FALSE)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 17 | ML: conditional_effects(fit_loss)	brms_nonlinear	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 18 | ML: conditional_effects(conditions, re_formula = NULL, method = 'predict')	brms_nonlinear	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 19 | ML: conditional_effects(conditions, re_formula = NULL, band = 'boot')	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 20 | ML: per-year curves present in the returned data	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 21 | ML: re_formula = NA collapses the ten conditions	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 22 | ML: plot(me_loss, ncol = 5, points = TRUE)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 23 | ML: par(mfrow) workaround for the facet grid	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 24 | ML: fit_ir1	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 25 | ML: summary(fit_ir1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 26 | ML: plot(conditional_effects(fit_ir1), points = TRUE)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 27 | ML: fit_ir2	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 28 | ML: summary(fit_ir2)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 29 | ML: plot(conditional_effects(fit_ir2), points = TRUE)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 30 | ML: loo(fit_ir1, fit_ir2)	brms_nonlinear	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_nonlinear | 31 | ML: fit_ir3	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 32 | ML: summary(fit_ir3)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 33 | ML: plot(fit_ir3)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 34 | ML: plot(conditional_effects(fit_ir3), points = TRUE)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 35 | SAMPLE: fit1	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 36 | SAMPLE: summary(fit1)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 37 | SAMPLE: plot(fit1) -> mcmc_plot(s1)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 38 | SAMPLE: conditional_effects(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 39 | SAMPLE: fit2	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 40 | SAMPLE: pp_check(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 41 | SAMPLE: loo(fit1, fit2)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 42 | SAMPLE: fit_loss (fit route)	brms_nonlinear	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 43 | SAMPLE: fit_loss (formula route)	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 44 | SAMPLE: summary(fit_loss)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 45 | SAMPLE: VarCorr(fit_loss) [the natural-scale reading]	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 46 | SAMPLE: the vignette's exact call (method = 'predict')	brms_nonlinear	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_nonlinear | 47 | SAMPLE: conditions + re_formula = NULL	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 48 | SAMPLE: per-year curves present in the returned data	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 49 | SAMPLE: plot(me_loss, ncol = 5, points = TRUE)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 50 | SAMPLE: fit_ir1	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 51 | SAMPLE: fit_ir2	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 52 | SAMPLE: loo(fit_ir1, fit_ir2)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 53 | SAMPLE: plot(conditional_effects(fit_ir2), points = TRUE)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 54 | SAMPLE: hypothesis(s_ir1, 'ability > 0')	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_nonlinear | 55 | ML: hypothesis(fit_ir1, 'ability > 0')	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 1 | ML: fit1	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 2 | ML: fit1 with the vignette's priors kept	brms_overview	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 3 | ML: prior <- c(set_prior(...), set_prior(...))	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 4 | ML: set_prior('normal(0,10)', class = 'b')	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 5 | ML: set_prior('horseshoe(1)')	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 6 | ML: get_prior(time | cens(censored) ~ ..., family = lognormal())	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 7 | ML: stancode(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 8 | ML: standata(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 9 | ML: summary(fit1, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 10 | ML: plot(fit1)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 11 | ML: conditional_effects(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 12 | ML: marginal_effects(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 13 | ML: launch_shiny(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 14 | ML: hypothesis(fit1, 'Intercept - age > 0', class = 'sd', group = 'patient')	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 15 | ML: fit2	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 16 | ML: formula(fit2)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 17 | ML: LOO(fit1, fit2)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 18 | ML: AIC(fit1, fit2) [the substitute]	brms_overview	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 19 | ML: fit3	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 20 | ML: summary(fit3)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 21 | ML: fit4 (the vignette's exact call)	brms_overview	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 22 | ML: fit4 prior on the cs(treat) coefficient	brms_overview	model	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 23 | ML: fit4 (threshold and prior dropped)	brms_overview	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 24 | ML: summary(fit4, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 25 | ML: plot(fit4)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 26 | SAMPLE: fit1	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 27 | SAMPLE: fit1 through the fit route, no priors	brms_overview	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 28 | SAMPLE: summary(fit1, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 29 | SAMPLE: VarCorr(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 30 | SAMPLE: plot(fit1) [trace and density]	brms_overview	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 31 | SAMPLE: conditional_effects(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 32 | SAMPLE: conditional_effects(fit1, method = 'predict')	brms_overview	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_overview | 33 | SAMPLE: pp_check(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 34 | SAMPLE: hypothesis(fit1, 'Intercept - age > 0', class = 'sd', group = 'patient')	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 35 | SAMPLE: bayes_R2(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 36 | SAMPLE: posterior_summary(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 37 | SAMPLE: fit2	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 38 | SAMPLE: LOO(fit1, fit2)	brms_overview	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_overview | 39 | SAMPLE: loo(fit1); loo(fit2) [the LOOIC values]	brms_overview	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 40 | SAMPLE: loo_compare(loo(fit1), loo(fit2))	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 41 | SAMPLE: waic(fit1)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 42 | SAMPLE: fit3	brms_overview	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 43 | SAMPLE: summary(fit3)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 44 | SAMPLE: fit4	brms_overview	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_overview | 45 | SAMPLE: summary(fit4, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_phylogenetics | 1 | ML: model_simple	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 2 | ML: summary(model_simple)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 3 | ML: plot(model_simple, N = 2, ask = FALSE)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 4 | ML: plot(conditional_effects(model_simple), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 5 | ML: hypothesis(model_simple, hyp, class = NULL)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 6 | ML: plot(hyp)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 7 | ML: hypothesis(model_simple, 'cofactor > 0')	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 8 | ML: model_repeat1	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 9 | ML: summary(model_repeat1)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 10 | ML: hypothesis(model_repeat1, hyp, class = NULL)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 11 | ML: plot(hyp) [repeat1]	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 12 | ML: model_repeat2 (update)	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 13 | ML: summary(model_repeat2)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 14 | ML: hypothesis(model_repeat2, hyp, class = NULL)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 15 | ML: model_fisher	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 16 | ML: summary(model_fisher)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 17 | ML: plot(model_fisher)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 18 | ML: model_pois	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 19 | ML: summary(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 20 | ML: plot(conditional_effects(model_pois), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 21 | ML: model_normal	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 22 | ML: summary(model_normal)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 23 | ML: pp_check(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 24 | ML: pp_check(model_normal)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 25 | ML: loo(model_pois, model_normal)	brms_phylogenetics	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_phylogenetics | 26 | ML: AIC(model_pois, model_normal) [the substitute]	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 27 | ML: prior(normal(0, 10), 'b') [brms spelling]	brms_phylogenetics	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 28 | ML: set_prior(..., class = 'sigma')	brms_phylogenetics	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 29 | ML: the four-prior block, frmtmb spelling	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 30 | ML: frm(..., prior = ) [the penalized fit]	brms_phylogenetics	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_phylogenetics | 31 | ML: prior_summary(model_simple)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 32 | ML: get_prior(...)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 33 | SAMPLE: model_simple	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 34 | SAMPLE: summary(model_simple)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 35 | SAMPLE: plot(model_simple, N = 2) -> mcmc_plot()	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 36 | SAMPLE: plot(conditional_effects(model_simple), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 37 | SAMPLE: hypothesis(model_simple, hyp, class = NULL)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 38 | SAMPLE: plot(hyp)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 39 | SAMPLE: hypothesis(model_simple, 'cofactor > 0')	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 40 | SAMPLE: model_repeat1	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 41 | SAMPLE: summary(model_repeat1)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 42 | SAMPLE: hypothesis(model_repeat1, hyp, class = NULL)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 43 | SAMPLE: model_repeat2 (update)	brms_phylogenetics	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_phylogenetics | 44 | SAMPLE: model_repeat2 workaround (re-sample)	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 45 | SAMPLE: hypothesis(model_repeat2, hyp, class = NULL)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 46 | SAMPLE: model_fisher	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 47 | SAMPLE: summary(model_fisher)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 48 | SAMPLE: plot(model_fisher) -> mcmc_plot()	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 49 | SAMPLE: model_pois [fit route]	brms_phylogenetics	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 50 | SAMPLE: summary(model_pois) [fit route]	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 51 | SAMPLE: model_pois [formula route]	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 52 | SAMPLE: summary(model_pois)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 53 | SAMPLE: plot(conditional_effects(model_pois), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 54 | SAMPLE: model_normal	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 55 | SAMPLE: summary(model_normal)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 56 | SAMPLE: pp_check(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 57 | SAMPLE: pp_check(model_normal)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 58 | SAMPLE: loo(model_pois, model_normal)	brms_phylogenetics	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
-brms_phylogenetics | 59 | SAMPLE: loo_compare(loo(a), loo(b)) [the substitute]	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_phylogenetics | 60 | SAMPLE: bayes_R2(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_threading | 1 | ML: threading(threads, grainsize, static)	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_threading | 2 | ML: brm(..., threads = threading(2))	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_threading | 3 | ML: reduce_sum in the generated Stan code	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_threading | 4 | ML: brm(..., backend = 'cmdstanr')	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_threading | 5 | ML: grainsize tuning	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
-brms_threading | 6 | ML: what frmtmb offers instead of threading()	brms_threading	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_threading | 7 | ML: frm_sample(cores =) is the only parallel argument	brms_threading	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
-brms_threading | 8 | ML: fit-level parallelism is the documented substitute	brms_threading	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+key	vignette	kind	edge	v065.ok	v066.ok	v067.ok	r6.ok	r7.ok	r8.ok	merged.ok	r072.ok
+brms-coexistence | 1 | ML: the masking table (brms attached second)	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 2 | ML: the exact masking message	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 3 | ML: plain frm() with brms attached	brms-coexistence	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 4 | ML: frm() binomial with brms attached	brms-coexistence	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 5 | ML: frm(bf(...)) where bf() is brms's	brms-coexistence	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 6 | ML: frm(frmtmb::bf(...)) [the fix]	brms-coexistence	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 7 | ML: conditional_effects(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 8 | ML: conditional_effects(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 9 | ML: hypothesis(gaussian) with brms attached	brms-coexistence	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 10 | ML: hypothesis(binomial) with brms attached	brms-coexistence	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 11 | ML: pp_check(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 12 | ML: pp_check(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 13 | ML: ngrps(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 14 | ML: ngrps(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 15 | ML: fixef(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 16 | ML: fixef(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 17 | ML: ranef(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 18 | ML: ranef(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 19 | ML: VarCorr(gaussian) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 20 | ML: VarCorr(binomial) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 21 | ML: loo(gaussian) with brms attached	brms-coexistence	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 22 | ML: loo(binomial) with brms attached	brms-coexistence	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 23 | ML: set_prior() resolves to brms	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 24 | ML: frmtmb::set_prior() [the fix]	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 25 | ML: get_prior() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 26 | ML: frmtmb::get_prior() [the fix]	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 27 | ML: prior() resolves to brms	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 28 | ML: mixture() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 29 | ML: custom_family() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 30 | ML: lf() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 31 | ML: nlf() resolves to brms	brms-coexistence	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 32 | ML: family constructors resolve to brms	brms-coexistence	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 33 | ML: reversed attach order (brms first, then frmtmb)	brms-coexistence	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 34 | SAMPLE: frm_sample(fit_g) with brms attached	brms-coexistence	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 35 | SAMPLE: frm_sample(fit_b) with brms attached	brms-coexistence	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 36 | SAMPLE: summary(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 37 | SAMPLE: fixef(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 38 | SAMPLE: ranef(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 39 | SAMPLE: VarCorr(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 40 | SAMPLE: posterior_epred(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 41 | SAMPLE: posterior_predict(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 42 | SAMPLE: posterior_linpred(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 43 | SAMPLE: log_lik(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 44 | SAMPLE: loo(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 45 | SAMPLE: waic(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 46 | SAMPLE: bayes_R2(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 47 | SAMPLE: pp_check(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 48 | SAMPLE: mcmc_plot(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 49 | SAMPLE: conditional_effects(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 50 | SAMPLE: ngrps(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 51 | SAMPLE: nchains(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 52 | SAMPLE: ndraws(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 53 | SAMPLE: posterior_summary(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 54 | SAMPLE: posterior_interval(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 55 | SAMPLE: as.mcmc(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 56 | SAMPLE: hypothesis(gaussian draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 57 | SAMPLE: summary(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 58 | SAMPLE: fixef(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 59 | SAMPLE: pp_check(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 60 | SAMPLE: loo(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 61 | SAMPLE: conditional_effects(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 62 | SAMPLE: posterior_predict(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 63 | SAMPLE: hypothesis(binomial draws) with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 64 | SAMPLE: posterior::as_draws_df() with brms attached	brms-coexistence	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 65 | SAMPLE: LOO(draws) with brms attached	brms-coexistence	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 66 | SAMPLE: WAIC(draws) with brms attached	brms-coexistence	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms-coexistence | 67 | SAMPLE: parnames(draws) with brms attached	brms-coexistence	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 68 | SAMPLE: posterior_samples(draws) with brms attached	brms-coexistence	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms-coexistence | 69 | SAMPLE: nsamples(draws) with brms attached	brms-coexistence	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 1 | ML: fit1	brms_customfamilies	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 2 | ML: summary(fit1)	brms_customfamilies	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 3 | ML: beta_binomial2 <- custom_family(...)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 4 | ML: check_custom_family(beta_binomial2)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 5 | ML: stan_funs <- '<Stan source>'	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_customfamilies | 6 | ML: stanvars <- stanvar(scode = stan_funs, block = 'functions')	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_customfamilies | 7 | ML: fit2 (the custom family)	brms_customfamilies	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 8 | ML: summary(fit2)	brms_customfamilies	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 9 | ML: the native beta_binomial() agrees with the hand-written one	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 10 | ML: expose_functions(fit2, vectorize = TRUE)	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_customfamilies | 11 | ML: log_lik_beta_binomial2 <- function(i, prep)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 12 | ML: loo(fit1, fit2)	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_customfamilies | 13 | ML: AIC(fit1, fit2) [the substitute]	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 14 | ML: posterior_predict_beta_binomial2 <- function(i, prep, ...)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 15 | ML: pp_check(fit2)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 16 | ML: pp_check() on a custom family with no sim	brms_customfamilies	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_customfamilies | 17 | ML: posterior_epred_beta_binomial2 <- function(prep)	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 18 | ML: conditional_effects(fit2, conditions = data.frame(size = 1))	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 19 | SAMPLE: fit1	brms_customfamilies	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 20 | SAMPLE: fit2 (the custom family)	brms_customfamilies	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 21 | SAMPLE: summary(fit2 draws)	brms_customfamilies	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 22 | SAMPLE: log_lik(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 23 | SAMPLE: loo(fit1, fit2) [the vignette's comparison]	brms_customfamilies	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 24 | SAMPLE: posterior_predict(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 25 | SAMPLE: posterior_epred(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 26 | SAMPLE: pp_check(fit2 draws)	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 27 | SAMPLE: expose_functions(fit2 draws)	brms_customfamilies	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_customfamilies | 28 | SAMPLE: conditional_effects(s2, conditions = data.frame(size = 1))	brms_customfamilies	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_customfamilies | 29 | SAMPLE: stancode(s2)	brms_customfamilies	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_distreg | 1 | ML: fit1	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 2 | ML: summary(fit1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 3 | ML: plot(fit1, N = 2, ask = FALSE)	brms_distreg	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_distreg | 4 | ML: plot(conditional_effects(fit1), points = TRUE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 5 | ML: conditional_effects(fit1, dpar = 'sigma')	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 6 | ML: hypothesis(fit1, hyp) [point]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 7 | ML: hypothesis(fit1, hyp) [directional >]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 8 | ML: plot(hyp, chars = NULL)	brms_distreg	post	BEHAVIOR	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 9 | ML: fit_zinb1	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 10 | ML: summary(fit_zinb1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 11 | ML: plot(conditional_effects(fit_zinb1), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 12 | ML: fit_zinb2	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 13 | ML: summary(fit_zinb2)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 14 | ML: plot(conditional_effects(fit_zinb2), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 15 | ML: fit_smooth1	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 16 | ML: summary(fit_smooth1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 17 | ML: plot(conditional_effects(fit_smooth1), points = TRUE, ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 18 | ML: appendix conditional_smooths(fit_smooth1)	brms_distreg	post	MISSING	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 19 | ML: appendix mixture(gaussian(), gaussian())	brms_distreg	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 20 | ML: appendix bf(y ~ 1, mu1 ~ x1, mu2 ~ x1)	brms_distreg	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_distreg | 21 | ML: appendix per-component predictors, frmtmb spelling	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 22 | ML: appendix pp_mixture(fit_mix2)	brms_distreg	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 23 | ML: appendix mixture_probs(fit_mix2) [the substitute]	brms_distreg	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 24 | ML: appendix pp_check(fit_zinb1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 25 | SAMPLE: fit1	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 26 | SAMPLE: summary(fit1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 27 | SAMPLE: plot(fit1, N = 2, ask = FALSE)	brms_distreg	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 28 | SAMPLE: mcmc_plot(fit1) [the substitute]	brms_distreg	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 29 | SAMPLE: plot(conditional_effects(fit1), points = TRUE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 30 | SAMPLE: hypothesis(fit1, hyp) [point]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 31 | SAMPLE: hypothesis(fit1, hyp) [directional >]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 32 | SAMPLE: plot(hyp, chars = NULL)	brms_distreg	post	BEHAVIOR	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 33 | SAMPLE: fit_zinb1	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 34 | SAMPLE: summary(fit_zinb1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 35 | SAMPLE: plot(conditional_effects(fit_zinb1), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 36 | SAMPLE: fit_zinb2	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 37 | SAMPLE: summary(fit_zinb2)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 38 | SAMPLE: plot(conditional_effects(fit_zinb2), ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 39 | SAMPLE: loo(fit_zinb1) [recovered from the ML path]	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 40 | SAMPLE: loo_compare(zinb1, zinb2)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 41 | SAMPLE: fit_smooth1	brms_distreg	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 42 | SAMPLE: summary(fit_smooth1)	brms_distreg	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 43 | SAMPLE: ranef(fit_smooth1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 44 | SAMPLE: VarCorr(fit_smooth1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 45 | SAMPLE: plot(conditional_effects(fit_smooth1), points = TRUE, ask = FALSE)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 46 | SAMPLE: conditional_effects(fit1, method = 'predict')	brms_distreg	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_distreg | 47 | SAMPLE: waic(fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 48 | SAMPLE: bayes_R2(fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 49 | SAMPLE: pp_check(fit_zinb1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 50 | SAMPLE: posterior_epred / posterior_predict (fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_distreg | 51 | SAMPLE: as_draws_df(fit1)	brms_distreg	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 1 | ML: gaussian	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 2 | ML: student	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 3 | ML: skew_normal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 4 | ML: binomial	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 5 | ML: bernoulli	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 6 | ML: poisson	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 7 | ML: negbinomial	brms_families	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 8 | ML: geometric	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 9 | ML: discrete_weibull	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_families | 10 | ML: lognormal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 11 | ML: Gamma	brms_families	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 12 | ML: weibull	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 13 | ML: exponential	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 14 | ML: inverse.gaussian	brms_families	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 15 | ML: inverse.gaussian mean check under the log link	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 16 | ML: cox	brms_families	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 17 | ML: frechet	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_families | 18 | ML: gen_extreme_value	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_families | 19 | ML: exgaussian	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 20 | ML: shifted_lognormal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 21 | ML: wiener	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_families | 22 | ML: asym_laplace	brms_families	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 23 | ML: Beta	brms_families	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 24 | ML: dirichlet	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_families | 25 | ML: logistic_normal	brms_families	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_families | 26 | ML: von_mises	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 27 | ML: cumulative	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 28 | ML: sratio	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 29 | ML: cratio	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 30 | ML: acat	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 31 | ML: categorical	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 32 | ML: multinomial [brms spelling]	brms_families	post	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE
+brms_families | 33 | ML: multinomial(K = 3)	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 34 | ML: zero_inflated_poisson	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 35 | ML: zero_inflated_binomial	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 36 | ML: zero_inflated_negbinomial	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 37 | ML: zero_inflated_beta	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 38 | ML: hurdle_poisson	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 39 | ML: hurdle_negbinomial	brms_families	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 40 | ML: hurdle_gamma	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 41 | ML: hurdle_lognormal	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 42 | ML: zero_one_inflated_beta	brms_families	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 43 | ML: family coverage tally	brms_families	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_families | 44 | ML: frm_sample accepts a continuous, a count and an ordinal family	brms_families	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 1 | ML: fit_imp1	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 2 | ML: summary(fit_imp1)	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 3 | ML: print(fit_imp1) [the pooled table]	brms_missings	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 4 | ML: plot(fit_imp1, variable = '^b', regex = TRUE)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 5 | ML: as_draws_array(fit_imp1)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 6 | ML: nchains(fit_imp1)	brms_missings	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 7 | ML: posterior::nchains(fit_imp1)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 8 | ML: per-submodel check (the substitute for summarise_draws)	brms_missings	post	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 9 | ML: conditional_effects(fit_imp1, 'age:chl')	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 10 | ML: conditional_effects(fit_imp1$fits[[1]], 'age:chl') [workaround]	brms_missings	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 11 | ML: hypothesis(fit_imp1, 'age')	brms_missings	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 12 | ML: fit_imp1 from a list of data frames	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 13 | ML: fit_imp2	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 14 | ML: summary(fit_imp2)	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 15 | ML: conditional_effects(fit_imp2, 'age:chl', resp = 'bmi')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 16 | ML: fit_imp3 (mi(se) measurement error)	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 17 | ML: summary(fit_imp3)	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 18 | SAMPLE: fit_imp1 (the pooled object)	brms_missings	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_missings | 19 | SAMPLE: fit_imp1$fits[[1]] (one imputation)	brms_missings	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 20 | SAMPLE: summary(fit_imp1 draws)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 21 | SAMPLE: nchains/ndraws/as_draws_df	brms_missings	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 22 | SAMPLE: conditional_effects(s_imp1, 'age:chl')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 23 | SAMPLE: pp_check(s_imp1)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 24 | SAMPLE: loo(s_imp1)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 25 | SAMPLE: hypothesis(s_imp1, 'age > 0')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 26 | SAMPLE: fit_imp2	brms_missings	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 27 | SAMPLE: summary(fit_imp2 draws)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 28 | SAMPLE: conditional_effects(s_imp2, 'age:chl', resp = 'bmi')	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_missings | 29 | SAMPLE: conditional_effects(s_imp2, method = 'predict')	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_missings | 30 | SAMPLE: pp_check(s_imp2)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 31 | SAMPLE: loo(s_imp2)	brms_missings	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_missings | 32 | SAMPLE: posterior_predict(s_imp2)	brms_missings	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 1 | ML: fit1	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 2 | ML: the brms line with no family at all	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 3 | ML: summary(fit1)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 4 | ML: plot(fit1, variable = 'simo', regex = TRUE)	brms_monotonic	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_monotonic | 5 | ML: plot(conditional_effects(fit1))	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 6 | ML: fit2	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 7 | ML: summary(fit2)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 8 | ML: fit3	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 9 | ML: summary(fit3)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 10 | ML: loo(fit1, fit2, fit3)	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_monotonic | 11 | ML: AIC(fit1, fit2, fit3) [the substitute]	brms_monotonic	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 12 | ML: prior4 = prior(dirichlet(c(2, 1, 1)), class = 'simo', coef = 'moincome1')	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
+brms_monotonic | 13 | ML: set_prior(class = 'simo') with a supported density	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_monotonic | 14 | ML: fit4 [the vignette's exact translation]	brms_monotonic	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
+brms_monotonic | 15 | ML: fit4 [without the prior]	brms_monotonic	model	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 16 | ML: summary(fit4)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 17 | ML: plot(fit4, variable = 'prior_simo', regex = TRUE, N = 3)	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_monotonic | 18 | ML: fit5	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 19 | ML: summary(fit5)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 20 | ML: conditional_effects(fit5, 'income:age')	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 21 | ML: fit6	brms_monotonic	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
+brms_monotonic | 22 | ML: fit6 [the varying-intercept workaround]	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 23 | ML: summary(fit6)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 24 | ML: appendix cumulative() with threshold = 'equidistant'	brms_monotonic	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_monotonic | 25 | ML: appendix family = cumulative [bare constructor]	brms_monotonic	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 26 | SAMPLE: fit1	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 27 | SAMPLE: summary(fit1)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 28 | SAMPLE: plot(fit1, variable = 'simo', regex = TRUE)	brms_monotonic	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 29 | SAMPLE: mcmc_plot(fit1) [the substitute]	brms_monotonic	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 30 | SAMPLE: plot(conditional_effects(fit1))	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 31 | SAMPLE: fit2	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 32 | SAMPLE: fit3	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 33 | SAMPLE: loo(fit1, fit2, fit3)	brms_monotonic	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 34 | SAMPLE: fit4 [the vignette's exact translation]	brms_monotonic	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
+brms_monotonic | 35 | SAMPLE: fit4 [formula route, default priors]	brms_monotonic	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 36 | SAMPLE: summary(fit4)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 37 | SAMPLE: fit5	brms_monotonic	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 38 | SAMPLE: summary(fit5)	brms_monotonic	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 39 | SAMPLE: conditional_effects(fit5, 'income:age')	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 40 | SAMPLE: fit6	brms_monotonic	model	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE
+brms_monotonic | 41 | SAMPLE: waic(fit1)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 42 | SAMPLE: bayes_R2(fit1)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_monotonic | 43 | SAMPLE: as_draws_df(fit1)	brms_monotonic	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 1 | ML: fit_zinb1	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 2 | ML: summary(fit_zinb1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 3 | ML: conditional_effects(fit_zinb1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 4 | ML: fit_zinb2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 5 | ML: summary(fit_zinb2)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 6 | ML: LOO(fit_zinb1, fit_zinb2)	brms_multilevel	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 7 | ML: AIC(fit_zinb1, fit_zinb2) [the substitute]	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 8 | ML: fit_rent1	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 9 | ML: summary(fit_rent1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 10 | ML: conditional_effects(fit_rent1, surface = TRUE)	brms_multilevel	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 11 | ML: conditional_effects(fit_rent1, 'area:yearc') [the substitute]	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 12 | ML: fit_rent2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 13 | ML: VarCorr(fit_rent2) [the group-level block]	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 14 | ML: conditional_smooths(fit_rent2)	brms_multilevel	post	MISSING	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 15 | ML: fit_loss1	brms_multilevel	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 16 | ML: fit_loss1 with the priors instead of start	brms_multilevel	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 17 | ML: summary(fit_loss1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 18 | ML: conditional_effects(fit_loss1)	brms_multilevel	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 19 | ML: conditional_effects(fit_loss1, band = 'boot')	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 20 | ML: conditional_effects(conditions, re_formula = NULL, method = 'predict')	brms_multilevel	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 21 | ML: conditional_effects(conditions, re_formula = NULL, band = 'boot')	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 22 | ML: plot(me_year, ncol = 5, points = TRUE)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 23 | ML: fit_loss2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 24 | ML: VarCorr(fit_loss2)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 25 | ML: ult + omega + theta ~ 1 + (1|ID1|AY)	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 26 | ML: LOO(fit_loss1, fit_loss2)	brms_multilevel	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 27 | ML: AIC(fit_loss1, fit_loss2) [the substitute]	brms_multilevel	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 28 | ML: fit_mm	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 29 | ML: summary(fit_mm)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 30 | ML: ngrps(fit_mm)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 31 | ML: fit_mm2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 32 | ML: summary(fit_mm2)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 33 | SAMPLE: fit_zinb1	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 34 | SAMPLE: summary(fit_zinb1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 35 | SAMPLE: conditional_effects(fit_zinb1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 36 | SAMPLE: pp_check(fit_zinb1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 37 | SAMPLE: fit_zinb2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 38 | SAMPLE: LOO(fit_zinb1, fit_zinb2)	brms_multilevel	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 39 | SAMPLE: loo_compare(loo(fit_zinb1), loo(fit_zinb2))	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 40 | SAMPLE: fit_rent1	brms_multilevel	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 41 | SAMPLE: fit_rent1 through the fit route, no priors	brms_multilevel	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 42 | SAMPLE: summary(fit_rent1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 43 | SAMPLE: conditional_effects(fit_rent1, surface = TRUE)	brms_multilevel	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 44 | SAMPLE: bayes_R2(fit_rent1)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 45 | SAMPLE: fit_rent2	brms_multilevel	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 46 | SAMPLE: VarCorr(fit_rent2) [the group-level block]	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 47 | SAMPLE: conditional_smooths(fit_rent2)	brms_multilevel	post	MISSING	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 48 | SAMPLE: fit_loss1	brms_multilevel	model	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 49 | SAMPLE: summary(fit_loss1)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 50 | SAMPLE: conditional_effects(fit_loss1)	brms_multilevel	post	CLEAN	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 51 | SAMPLE: conditional_effects(conditions, re_formula = NULL, method = 'predict')	brms_multilevel	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 52 | SAMPLE: posterior_predict(fit_loss1) [the named substitute]	brms_multilevel	post	SPELLING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multilevel | 53 | SAMPLE: fit_mm	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 54 | SAMPLE: summary(fit_mm)	brms_multilevel	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 55 | SAMPLE: VarCorr(fit_mm)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 56 | SAMPLE: ngrps(fit_mm)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 57 | SAMPLE: fit_mm2	brms_multilevel	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multilevel | 58 | SAMPLE: summary(fit_mm2)	brms_multilevel	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 1 | ML: fit1	brms_multivariate	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 2 | ML: fit1 <- add_criterion(fit1, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multivariate | 3 | ML: summary(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 4 | ML: pp_check(fit1, resp = 'tarsus')	brms_multivariate	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_multivariate | 5 | ML: pp_check(fit1, resp = 'back')	brms_multivariate	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_multivariate | 6 | ML: bayes_R2(fit1)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multivariate | 7 | ML: fit2	brms_multivariate	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 8 | ML: fit2 <- add_criterion(fit2, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multivariate | 9 | ML: summary(fit2)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 10 | ML: loo(fit1, fit2)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multivariate | 11 | ML: AIC(fit1, fit2) and anova() [the substitute]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 12 | ML: fit3	brms_multivariate	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 13 | ML: fit3 <- add_criterion(fit3, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multivariate | 14 | ML: summary(fit3)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 15 | ML: conditional_effects(fit3, 'hatchdate', resp = 'back')	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 16 | ML: fixef(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 17 | ML: confint(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 18 | ML: VarCorr(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 19 | ML: rescor_matrix(fit1)	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 20 | ML: ranef(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 21 | ML: coef(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 22 | ML: predict(fit1, resp = 'back')	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 23 | ML: residuals(fit1)	brms_multivariate	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 24 | ML: fitted(fit3)	brms_multivariate	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 25 | SAMPLE: fit1 [fit route]	brms_multivariate	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 26 | SAMPLE: VarCorr(fit1) [fit route]	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 27 | SAMPLE: fit1 [formula route]	brms_multivariate	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 28 | SAMPLE: fit1 <- add_criterion(fit1, 'loo')	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 29 | SAMPLE: loo(fit1) [what add_criterion would have stored]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 30 | SAMPLE: summary(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 31 | SAMPLE: VarCorr(fit1) [the natural-scale reading]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 32 | SAMPLE: rescor_matrix(fit1)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_multivariate | 33 | SAMPLE: pp_check(fit1, resp = 'tarsus')	brms_multivariate	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 34 | SAMPLE: bayes_R2(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 35 | SAMPLE: fit2	brms_multivariate	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 36 | SAMPLE: summary(fit2)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 37 | SAMPLE: loo(fit1, fit2)	brms_multivariate	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_multivariate | 38 | SAMPLE: loo_compare(loo(fit1), loo(fit2)) [the substitute]	brms_multivariate	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 39 | SAMPLE: fit3	brms_multivariate	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 40 | SAMPLE: summary(fit3)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 41 | SAMPLE: conditional_effects(fit3, 'hatchdate', resp = 'back')	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 42 | SAMPLE: conditional_effects(..., method = 'predict')	brms_multivariate	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_multivariate | 43 | SAMPLE: posterior_epred(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 44 | SAMPLE: posterior_predict(fit1)	brms_multivariate	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_multivariate | 45 | SAMPLE: as_draws_df(fit1)	brms_multivariate	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 1 | ML: fit1	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 2 | ML: b1 + b2 ~ 1 equals b1 ~ 1, b2 ~ 1	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 3 | ML: summary(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 4 | ML: plot(fit1)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 5 | ML: conditional_effects(fit1) [default band]	brms_nonlinear	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 6 | ML: conditional_effects(fit1, band = 'boot')	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 7 | ML: plot(ce1, points = TRUE)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 8 | ML: fit2	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 9 | ML: summary(fit2)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 10 | ML: pp_check(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 11 | ML: pp_check(fit2)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 12 | ML: loo(fit1, fit2)	brms_nonlinear	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_nonlinear | 13 | ML: AIC(fit1, fit2) [the substitute]	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 14 | ML: fit_loss	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 15 | ML: summary(fit_loss)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 16 | ML: plot(fit_loss, N = 3, ask = FALSE)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 17 | ML: conditional_effects(fit_loss)	brms_nonlinear	post	REFUSAL	FALSE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 18 | ML: conditional_effects(conditions, re_formula = NULL, method = 'predict')	brms_nonlinear	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 19 | ML: conditional_effects(conditions, re_formula = NULL, band = 'boot')	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 20 | ML: per-year curves present in the returned data	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 21 | ML: re_formula = NA collapses the ten conditions	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 22 | ML: plot(me_loss, ncol = 5, points = TRUE)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 23 | ML: par(mfrow) workaround for the facet grid	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 24 | ML: fit_ir1	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 25 | ML: summary(fit_ir1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 26 | ML: plot(conditional_effects(fit_ir1), points = TRUE)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 27 | ML: fit_ir2	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 28 | ML: summary(fit_ir2)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 29 | ML: plot(conditional_effects(fit_ir2), points = TRUE)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 30 | ML: loo(fit_ir1, fit_ir2)	brms_nonlinear	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_nonlinear | 31 | ML: fit_ir3	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 32 | ML: summary(fit_ir3)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 33 | ML: plot(fit_ir3)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 34 | ML: plot(conditional_effects(fit_ir3), points = TRUE)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 35 | SAMPLE: fit1	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 36 | SAMPLE: summary(fit1)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 37 | SAMPLE: plot(fit1) -> mcmc_plot(s1)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 38 | SAMPLE: conditional_effects(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 39 | SAMPLE: fit2	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 40 | SAMPLE: pp_check(fit1)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 41 | SAMPLE: loo(fit1, fit2)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 42 | SAMPLE: fit_loss (fit route)	brms_nonlinear	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 43 | SAMPLE: fit_loss (formula route)	brms_nonlinear	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 44 | SAMPLE: summary(fit_loss)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 45 | SAMPLE: VarCorr(fit_loss) [the natural-scale reading]	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 46 | SAMPLE: the vignette's exact call (method = 'predict')	brms_nonlinear	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_nonlinear | 47 | SAMPLE: conditions + re_formula = NULL	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 48 | SAMPLE: per-year curves present in the returned data	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 49 | SAMPLE: plot(me_loss, ncol = 5, points = TRUE)	brms_nonlinear	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 50 | SAMPLE: fit_ir1	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 51 | SAMPLE: fit_ir2	brms_nonlinear	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 52 | SAMPLE: loo(fit_ir1, fit_ir2)	brms_nonlinear	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 53 | SAMPLE: plot(conditional_effects(fit_ir2), points = TRUE)	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 54 | SAMPLE: hypothesis(s_ir1, 'ability > 0')	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_nonlinear | 55 | ML: hypothesis(fit_ir1, 'ability > 0')	brms_nonlinear	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 1 | ML: fit1	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 2 | ML: fit1 with the vignette's priors kept	brms_overview	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 3 | ML: prior <- c(set_prior(...), set_prior(...))	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 4 | ML: set_prior('normal(0,10)', class = 'b')	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 5 | ML: set_prior('horseshoe(1)')	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 6 | ML: get_prior(time | cens(censored) ~ ..., family = lognormal())	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 7 | ML: stancode(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 8 | ML: standata(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 9 | ML: summary(fit1, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 10 | ML: plot(fit1)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 11 | ML: conditional_effects(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 12 | ML: marginal_effects(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 13 | ML: launch_shiny(fit1)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 14 | ML: hypothesis(fit1, 'Intercept - age > 0', class = 'sd', group = 'patient')	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 15 | ML: fit2	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 16 | ML: formula(fit2)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 17 | ML: LOO(fit1, fit2)	brms_overview	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 18 | ML: AIC(fit1, fit2) [the substitute]	brms_overview	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 19 | ML: fit3	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 20 | ML: summary(fit3)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 21 | ML: fit4 (the vignette's exact call)	brms_overview	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 22 | ML: fit4 prior on the cs(treat) coefficient	brms_overview	model	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 23 | ML: fit4 (threshold and prior dropped)	brms_overview	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 24 | ML: summary(fit4, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 25 | ML: plot(fit4)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 26 | SAMPLE: fit1	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 27 | SAMPLE: fit1 through the fit route, no priors	brms_overview	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 28 | SAMPLE: summary(fit1, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 29 | SAMPLE: VarCorr(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 30 | SAMPLE: plot(fit1) [trace and density]	brms_overview	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 31 | SAMPLE: conditional_effects(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 32 | SAMPLE: conditional_effects(fit1, method = 'predict')	brms_overview	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_overview | 33 | SAMPLE: pp_check(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 34 | SAMPLE: hypothesis(fit1, 'Intercept - age > 0', class = 'sd', group = 'patient')	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 35 | SAMPLE: bayes_R2(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 36 | SAMPLE: posterior_summary(fit1)	brms_overview	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 37 | SAMPLE: fit2	brms_overview	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 38 | SAMPLE: LOO(fit1, fit2)	brms_overview	post	REFUSAL	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_overview | 39 | SAMPLE: loo(fit1); loo(fit2) [the LOOIC values]	brms_overview	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 40 | SAMPLE: loo_compare(loo(fit1), loo(fit2))	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 41 | SAMPLE: waic(fit1)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 42 | SAMPLE: fit3	brms_overview	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 43 | SAMPLE: summary(fit3)	brms_overview	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 44 | SAMPLE: fit4	brms_overview	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_overview | 45 | SAMPLE: summary(fit4, waic = TRUE)	brms_overview	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_phylogenetics | 1 | ML: model_simple	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 2 | ML: summary(model_simple)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 3 | ML: plot(model_simple, N = 2, ask = FALSE)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 4 | ML: plot(conditional_effects(model_simple), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 5 | ML: hypothesis(model_simple, hyp, class = NULL)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 6 | ML: plot(hyp)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 7 | ML: hypothesis(model_simple, 'cofactor > 0')	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 8 | ML: model_repeat1	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 9 | ML: summary(model_repeat1)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 10 | ML: hypothesis(model_repeat1, hyp, class = NULL)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 11 | ML: plot(hyp) [repeat1]	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 12 | ML: model_repeat2 (update)	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 13 | ML: summary(model_repeat2)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 14 | ML: hypothesis(model_repeat2, hyp, class = NULL)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 15 | ML: model_fisher	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 16 | ML: summary(model_fisher)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 17 | ML: plot(model_fisher)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 18 | ML: model_pois	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 19 | ML: summary(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 20 | ML: plot(conditional_effects(model_pois), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 21 | ML: model_normal	brms_phylogenetics	model	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 22 | ML: summary(model_normal)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 23 | ML: pp_check(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 24 | ML: pp_check(model_normal)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 25 | ML: loo(model_pois, model_normal)	brms_phylogenetics	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_phylogenetics | 26 | ML: AIC(model_pois, model_normal) [the substitute]	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 27 | ML: prior(normal(0, 10), 'b') [brms spelling]	brms_phylogenetics	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 28 | ML: set_prior(..., class = 'sigma')	brms_phylogenetics	post	REFUSAL	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 29 | ML: the four-prior block, frmtmb spelling	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 30 | ML: frm(..., prior = ) [the penalized fit]	brms_phylogenetics	post	BEHAVIOR	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_phylogenetics | 31 | ML: prior_summary(model_simple)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 32 | ML: get_prior(...)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 33 | SAMPLE: model_simple	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 34 | SAMPLE: summary(model_simple)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 35 | SAMPLE: plot(model_simple, N = 2) -> mcmc_plot()	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 36 | SAMPLE: plot(conditional_effects(model_simple), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 37 | SAMPLE: hypothesis(model_simple, hyp, class = NULL)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 38 | SAMPLE: plot(hyp)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 39 | SAMPLE: hypothesis(model_simple, 'cofactor > 0')	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 40 | SAMPLE: model_repeat1	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 41 | SAMPLE: summary(model_repeat1)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 42 | SAMPLE: hypothesis(model_repeat1, hyp, class = NULL)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 43 | SAMPLE: model_repeat2 (update)	brms_phylogenetics	model	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_phylogenetics | 44 | SAMPLE: model_repeat2 workaround (re-sample)	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 45 | SAMPLE: hypothesis(model_repeat2, hyp, class = NULL)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 46 | SAMPLE: model_fisher	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 47 | SAMPLE: summary(model_fisher)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 48 | SAMPLE: plot(model_fisher) -> mcmc_plot()	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 49 | SAMPLE: model_pois [fit route]	brms_phylogenetics	model	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 50 | SAMPLE: summary(model_pois) [fit route]	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 51 | SAMPLE: model_pois [formula route]	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 52 | SAMPLE: summary(model_pois)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 53 | SAMPLE: plot(conditional_effects(model_pois), points = TRUE)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 54 | SAMPLE: model_normal	brms_phylogenetics	model	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 55 | SAMPLE: summary(model_normal)	brms_phylogenetics	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 56 | SAMPLE: pp_check(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 57 | SAMPLE: pp_check(model_normal)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 58 | SAMPLE: loo(model_pois, model_normal)	brms_phylogenetics	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	TRUE	TRUE
+brms_phylogenetics | 59 | SAMPLE: loo_compare(loo(a), loo(b)) [the substitute]	brms_phylogenetics	post	SPELLING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_phylogenetics | 60 | SAMPLE: bayes_R2(model_pois)	brms_phylogenetics	post	CLEAN	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_threading | 1 | ML: threading(threads, grainsize, static)	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_threading | 2 | ML: brm(..., threads = threading(2))	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_threading | 3 | ML: reduce_sum in the generated Stan code	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_threading | 4 | ML: brm(..., backend = 'cmdstanr')	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_threading | 5 | ML: grainsize tuning	brms_threading	post	MISSING	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+brms_threading | 6 | ML: what frmtmb offers instead of threading()	brms_threading	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_threading | 7 | ML: frm_sample(cores =) is the only parallel argument	brms_threading	post	BEHAVIOR	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE
+brms_threading | 8 | ML: fit-level parallelism is the documented substitute	brms_threading	post	MISSING	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE	TRUE

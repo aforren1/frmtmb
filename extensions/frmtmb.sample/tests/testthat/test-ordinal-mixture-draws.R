@@ -226,8 +226,9 @@ test_that("incl_thres on an ordinal mixture is refused in brms's words", {
     expect_error(posterior_linpred(cs$ds, incl_thres = TRUE, ndraws = 2),
                  "'incl_thres' is not supported for mixture models.",
                  fixed = TRUE)
-    # without incl_thres the latent predictor is read as before
+    # without incl_thres, one layer per component's latent predictor,
+    # as brms stacks a mixture's mu1, mu2 (dev/catmulti-out/brms-fits2.txt)
     pl <- posterior_linpred(cs$ds, ndraws = 2)
-    expect_identical(dim(pl), c(2L, nrow(cs$d)))
+    expect_identical(dim(pl), c(2L, nrow(cs$d), 2L))
   }
 })

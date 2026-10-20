@@ -10,7 +10,16 @@
 # same way.
 
 rl_source <- system.file("rl", "rw-delta.R", package = "frmtmb")
-if (nzchar(rl_source)) source(rl_source, local = TRUE)
+if (nzchar(rl_source)) {
+  # The file registers reward() for the vignette's session. A test run
+  # puts the registries back when it ends (helper-registry.R), so it
+  # leaves them as it found them. Outside a run (load_all()) nothing
+  # ends, and the registration stays, as the vignette's does.
+  if (testthat::is_testing()) {
+    local_frmtmb_registries(testthat::teardown_env())
+  }
+  source(rl_source, local = TRUE)
+}
 
 skip_unless_rl <- function() {
   testthat::skip_if_not(nzchar(rl_source),

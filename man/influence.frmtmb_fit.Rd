@@ -22,9 +22,13 @@
 \code{\link[=ngrps]{ngrps()}}) to delete level-wise; \code{NULL} deletes single
 observations (refuses for large n unless \code{force = TRUE}).}
 
-\item{data}{The original model data; defaults to the stored model
-frame, which works unless the formula uses variables that are not
-stored raw (e.g. inside \code{poly()}).}
+\item{data}{The original model data. The default is the data the
+fit holds: the model frame and the variables the formula reads
+through a transform (\code{x} of \code{poly(x, 2)} or \code{log(x)}), on the rows
+the fit used. A data-dependent basis (\code{poly()}, \code{splines::ns()},
+\code{scale()}) keeps the knots, coefficients or center of the fit in
+every deletion refit, as in lme4's \code{influence.merMod()}, so a
+coefficient change is not a change of basis.}
 
 \item{force}{Allow observation-wise deletion for n > 500.}
 

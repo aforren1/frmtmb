@@ -118,9 +118,21 @@ test_that("a hurdle ordinal's expected category is scored 0..K", {
 })
 
 test_that("the default-prior disclosure names xbeta's kappa", {
+  # brms 2.23.0's defaults, which through frmtmb.sample 0.19.0 the
+  # message named as defaults it lacked: gamma(0.01, 0.01) on xbeta's
+  # phi and kappa (xbeta's own hook), and beta(1, 1) on zi
+  lines_of <- function(m) unlist(strsplit(m, "\n", fixed = TRUE))
   cs <- f2_draws("xbeta")
-  expect_true(any(grepl("no defaults for phi, kappa", cs$msg,
-                        fixed = TRUE)))
+  ls <- lines_of(cs$msg)
+  for (dp in c("phi", "kappa")) {
+    expect_true(any(grepl(paste0("^ *", dp, " "), ls) &
+                      grepl("gamma(0.01, 0.01)", ls, fixed = TRUE)),
+                label = dp)
+  }
   cz <- f2_draws("zibb")
-  expect_true(any(grepl("no defaults for phi", cz$msg, fixed = TRUE)))
+  lz <- lines_of(cz$msg)
+  expect_true(any(grepl("^ *zi ", lz) &
+                    grepl("beta(1, 1)", lz, fixed = TRUE)))
+  expect_false(any(grepl("no defaults for", c(cs$msg, cz$msg),
+                         fixed = TRUE)))
 })

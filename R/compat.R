@@ -1550,6 +1550,8 @@ compat_hand_rules_tbl <- function() {
     "Each response carries its own family unless rescor = TRUE.")
   r("mvbf", "group:ordinal", "works",
     "Each ordinal response has its own thresholds, stored under a name that carries the response (o_tau_raw) and reported as brms names them, b_o_Intercept[k]; set_prior(class = \"Intercept\", resp = \"o\") addresses them. |ID| correlates an ordinal response's group effects with another response's. Verified: with no shared random effect the log-likelihood is the sum of the univariate fits' (an identity: residual 0 at a shared parameter point), and with a shared |ID| effect it agrees with a hand-written RTMB objective at a shared point and at the ML optimum (dev/mv-validate-ordinal.R). fitted() stacks the category probabilities as P(Y = k) layers, as brms does; predict() answers one ordinal response at a time.")
+  r("mvbf", "group:simplex", "works",
+    "A dirichlet(), dirichlet2 or logistic_normal() response sits in a multivariate model. A logistic_normal() response's correlations are a block of that response, reported as lncor_<resp>__b__c and set with set_prior(class = \"lncor\", resp = ); brms 2.23.0 generates Stan code for that model that does not compile (its generated quantities read Llncor without the suffix), and its model block, repaired there, agrees at frmtmb's estimates (test-refcat-brms.R). Without a shared effect the log-likelihood is the sum of the univariate fits' (test-simplex-mvbf.R).")
   r("mvbf", "cox", "refused",
     "Refused: the Cox baseline is an extra parameter block that the post-fit methods read without a response in hand. Fit the survival response in a model of its own.")
   r("mvbf", "kind:aterm", "works",
@@ -1578,9 +1580,9 @@ compat_hand_rules_tbl <- function() {
   r("group:student_blocks", "gr_prec", "refused",
     "Refused for the same reason as gr(cov = ): a precision matrix over the levels and a per-level mixing variable do not compose into a density the Laplace approximation can be taken over.")
   r("group:student_blocks", "group:post_fit", "works",
-    "Verified: the Laplace machinery is distribution-agnostic, so ranef(), its conditional variances and sdreport() standard errors need no change. simulate() and frm_simulate() draw a multivariate t with one chi-square per level. predict(allow_new_levels = TRUE) inflates the unseen level's variance by nu/(nu-2); the interval is still built as a gaussian one, so it carries the right variance but not the right far-tail quantile.")
+    "Verified: the Laplace machinery is distribution-agnostic, so ranef(), its conditional variances and sdreport() standard errors need no change. simulate() and frm_simulate() draw a multivariate t with one chi-square per level, shared by the Student-t terms of one grouping factor as brms shares its dfm; simulate(re_formula = ) that keeps some of those terms and drops others is refused. predict(allow_new_levels = TRUE) inflates the unseen level's variance by nu/(nu-2); the interval is still built as a gaussian one, so it carries the right variance but not the right far-tail quantile.")
   r("quadrature", "group:student_blocks", "conditional",
-    "Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block.")
+    "Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block, and so are two Student-t terms of one grouping factor, whose shared latent scale makes a level's effects dependent while the rule integrates one at a time.")
   r("REML", "group:student_blocks", "works",
     "Verified against a two-stage exact quadrature: REML stacks one more Laplace dimension on the t latent, and the objective error roughly doubles while staying small (0.11 against 0.05 at nu = 3 over 15 groups). The variance component moves in the direction REML exists to move it.")
 
@@ -1877,6 +1879,8 @@ compat_hand_rules_tbl <- function() {
     "Needs a family with a mean function.")
   r("fitted", "categorical", "conditional",
     "Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = \"response\") == fitted() identity holds.")
+  r("fitted", "multinomial", "works",
+    "Returns brms's n x 4 x K array of expected counts, probability times the row's trials, layers named P(Y = <category>) as brms names them, with delta-method standard errors through the softmax; the Wald bounds are held between 0 and the trials. newdata needs its trials() column, as in brms. Through 0.71.0 it was refused.")
   r("fitted", "cox", "refused",
     "Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = \"link\") for the log hazard ratio.")
   r("fitted", "von_mises", "conditional",
@@ -2042,7 +2046,7 @@ compat_hand_rules_tbl <- function() {
       "One block of this structure per by-level. Verified: us, diag, ar1, cs, homcs, toep and hetar1 against glmmTMB writing one term per by-level with indicator columns; homdiag, homtoep, ou, exp, gau and mat by the by-split objective equalling the sum of the by-levels' subset fits at their estimates.")
   }
   r("gr_by", "group:student_blocks", "works",
-    "gr(g, by = f, dist = \"student\"): one multivariate-t block per by-level with the same fixed nu. Verified by the by-split objective equalling the sum of the by-levels' subset fits.")
+    "gr(g, by = f, dist = \"student\"): one multivariate-t block per by-level with the same fixed nu. The by-levels hold different levels of g, so alone they share no latent scale: verified by the by-split objective equalling the sum of the by-levels' subset fits, and by the 0.71.0 logLik (test-student-share.R). Beside a plain Student-t term on g, each level of g shares one latent scale with the by-level block that holds it, as brms writes dfm_1 into both terms; verified against a closed-form bivariate t at the mode and at perturbed points of the tape.")
   r("gr_by", "gr_cov", "refused",
     "Refused by name: brms scales each level's effects by its by-level's covariance and then correlates the levels through the Cholesky factor of A, so levels in different by-levels stay correlated. That covariance is neither block-diagonal over the by-levels nor a Kronecker product, and splitting A into its by-level blocks would fit a different model.")
   r("gr_by", "gr_prec", "refused",

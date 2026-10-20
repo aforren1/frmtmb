@@ -597,17 +597,14 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
                sim_note(fam), call. = FALSE,
                package = frm_family_package(fam))
     }
+    # every term, as simulate() and fitted() read them: a subset here
+    # (trunc(), rate() and thres(gr = ) were the only ones) left the
+    # simulator without trials(), se() or dec(), and binomial drew one
+    # trial per row where newdata had 1000
     av[[nm]] <- if (is.null(newdata)) {
       object$frame[["aterm_values"]][[rspec$resp_name]]
-    } else if (has_trunc(rspec) || has_rate(rspec) ||
-               "thres_gr" %in% names(rspec$aterms)) {
-      # truncation bounds must follow the newdata rows, or the draws
-      # land outside the support the likelihood was normalized on; so
-      # must a row's group under grouped thresholds, which picks the
-      # thresholds it is drawn from
-      aterms_for_newdata(rspec, newdata)
     } else {
-      list()
+      aterms_for_newdata(rspec, newdata)
     }
     ctx0 <- sim_context(object, rspec, list(), aterms = av[[nm]])
     # a cov = FALSE term is drawn row by row around the one-step mean,
@@ -1108,19 +1105,24 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
     dpv <- list()
     for (dnm in names(rspec$dpars)) {
       off <- new_level_off[[dnm]]
+      lp <- fit$frame[["linpreds"]][[linpred_key(resp, dnm)]]
       # the NAMES are kept: they are the data's row names, which every
       # other method carries into its output and which as.vector() drops
-      if (is.null(off)) {
+      if (is.null(off) && is.null(lp)) {
         dpv[[dnm]] <- drop(frm_linpred(fit, newdata = newdata, dpar = dnm,
                                        resp = resp, re_formula = re_formula,
                                        type = "response",
                                        allow_new_levels = allow_new_levels))
         next
       }
-      # an unseen level's drawn effect is an offset on the LINK scale,
-      # where the model is additive, so the predictor is read there and
-      # the link inverse applied after the offset is in
-      lp <- fit$frame[["linpreds"]][[linpred_key(resp, dnm)]]
+      # the link inverse of the predictor is the scale the simulator
+      # reads (dpars_natural()). type = "response" is the REPORTING
+      # scale, which for a mixture's theta is already the softmax
+      # probability, and the simulator applied the softmax again: on
+      # newdata a binomial mixture drew 443 where fitted() says 484. An
+      # unseen level's drawn effect is an offset on the same scale,
+      # where the model is additive
+      off <- off %||% 0
       eta <- drop(frm_linpred(fit, newdata = newdata, dpar = dnm,
                               resp = resp, re_formula = re_formula,
                               type = "link",

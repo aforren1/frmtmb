@@ -1,3 +1,23 @@
+# frmtmb.coupling 0.6.1
+
+Runs on frmtmb 0.61.0 and later. On frmtmb 0.72.0 the standard errors
+come from the exact Hessian. At a coherence of 1 that gives a finite,
+very large standard error, where frmtmb 0.71.0 gave `NaN`. This version
+refuses the interval that frmtmb.coupling 0.6.0 then returns with an
+upper end of exactly 1, so update the two packages together.
+
+## Breaking changes
+
+* **`frm_coherence()` refuses, by name, an interval that comes within
+  machine precision of 0 or 1**, where it used to return one. The
+  interval is documented to stay inside (0, 1). frmtmb now takes the
+  exact Hessian on a fit without random effects. So a coherence run off
+  to 1 has a finite, very large standard error rather than a NaN one.
+  Its interval came back with an upper end of exactly 1. The bound is
+  one number on the logit scale, `qlogis(1 - eps)` (about 36.04). It is
+  the same at both ends, so a coherence run off to 0 is refused in the
+  same way.
+
 # frmtmb.coupling 0.6.0
 
 * `frm_cross_spectrum()` takes two lists of epochs of unequal length,
@@ -48,7 +68,6 @@
   A partial value still matches.
 * A refusal that frmtmb raises about `cross_wishart()`, such as a
   missing addition term, is a `frmtmb_coupling_error`.
-
 
 # frmtmb.coupling 0.3.2
 

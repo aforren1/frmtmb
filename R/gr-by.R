@@ -218,7 +218,7 @@ check_gr_by_groups <- function(spec) {
       for (z in dp[["re"]] %||% list()) {
         by <- z$by %||% z$mm$by
         if (is.null(by)) next
-        g <- if (is.null(z$mm)) deparse1(z$bar[[3L]]) else z$mm$label
+        g <- if (is.null(z$mm)) deparse1(z$bar[[3L]]) else mm_group_name(z$mm)
         seen[[g]] <- unique(c(seen[[g]], by$label))
         if (length(seen[[g]]) > 1L) {
           frm_stop("Each grouping factor can only be associated with one ",

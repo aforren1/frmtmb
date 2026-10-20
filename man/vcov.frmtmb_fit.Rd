@@ -73,6 +73,19 @@ carries exactly the parameters \code{\link[=confint.frmtmb_fit]{confint.frmtmb_f
 \code{vcov(object)}
 is still the fixed-effect covariance there.
 
+Under REML that covariance is the \code{beta} block of the inverse joint
+precision. It is the conditional covariance at the estimated
+variance parameters, \verb{sigma^2 (X' V^-1 X)^-1}, plus \verb{J V_theta J'}:
+the variance the uncertainty of the variance parameters \code{theta} adds,
+with \code{J} the derivative of the estimate of \code{beta} in \code{theta} and
+\code{V_theta} their covariance. That is glmmTMB's definition, and its
+REML standard errors agree with frmtmb's to ten digits. lme4's
+\code{vcov()} reports the conditional part alone, so the two differ where
+\code{J} is not zero: on an unbalanced design by up to 1e-3 of the
+standard error, on a balanced one not at all. On an ill-conditioned
+design both parts are taken in the design's coordinates and held as a
+factor; the products warning of an ML fit applies.
+
 Passing \code{cluster} forwards to \code{\link[=vcov_cluster]{vcov_cluster()}} for the
 cluster-robust (sandwich) covariance, in the \code{sandwich::vcovCL()}
 spelling: \code{vcov(fit, cluster = ~ g, type = "CR1")}.

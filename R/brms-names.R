@@ -363,38 +363,70 @@ brms_lp_coef_names <- function(lp, tab) {
 brms_coef_names <- function(fit) brms_coef_table(fit)$brms
 
 #' brms's group name for a block: the grouping term with brms's
-#' `rename()` applied, which keeps an interaction's `:`.
+#' `rename()` applied, which keeps an interaction's `:`. A nested
+#' `g/h` is already brms's `g` and `g:h` (`expand_slash_groups()`), and
+#' an `mm()` group brms's `mmg1g2` (`mm_group_name()`).
 #'
 #' @noRd
 brms_group_name <- function(bk) {
-  g <- bk[["group_name"]] %||% bk[["term_label"]]
-  # reformulas expands g/h into h:g and brms into g:h, so without this
-  # (1 | h:g) + (1 | g/h), two blocks in brms, would share one name
-  if (isTRUE(bk[["from_slash"]])) g <- slash_brms_order(g)
-  brms_rename(g)
-}
-
-#' A `:` grouping factor or level from a slash, in brms's order.
-#'
-#' @noRd
-slash_brms_order <- function(x) {
-  vapply(strsplit(x, ":", fixed = TRUE),
-         function(p) paste(rev(p), collapse = ":"), "")
+  brms_rename(bk[["group_name"]] %||% bk[["term_label"]])
 }
 
 #' brms's levels of a block's grouping factor. `combine_groups()` joins
 #' the parts of an interaction group with `_`, and `for_r = TRUE` adds
 #' `rename_re_levels()`'s whitespace-to-`.` for the `r_` names.
 #'
+#' The frame keeps those names in `brms_levels` (`brms_level_map()`),
+#' because reformulas's `a:b` label cannot be split back when a part
+#' holds a `:` itself (brms: `c:d_f` for parts `c:d` and `f`). Without
+#' the map, the label's `:` are read as part separators.
+#'
 #' @noRd
 brms_levels <- function(bk, for_r = FALSE) {
   lev <- bk[["levels"]]
-  if (isTRUE(bk[["from_slash"]])) lev <- slash_brms_order(lev)
   if (grepl(":", bk[["group_name"]] %||% "", fixed = TRUE)) {
-    lev <- gsub(":", "_", lev, fixed = TRUE)
+    map <- bk[["brms_levels"]]
+    out <- if (is.null(map)) rep(NA_character_, length(lev)) else
+      unname(map[as.character(lev)])
+    miss <- is.na(out)
+    out[miss] <- gsub(":", "_", lev[miss], fixed = TRUE)
+    lev <- out
   }
   if (for_r) lev <- gsub("[ \t\r\n]", ".", lev)
   lev
+}
+
+#' A grouping expression's values with an interaction's parts joined by
+#' `_`, brms's `combine_groups()`; any other expression's values as they
+#' are. The `_` twin of `group_values()`, which joins them by `:` as
+#' reformulas labels the factor.
+#'
+#' @noRd
+group_values_brms <- function(expr, data, env) {
+  if (is.call(expr) && identical(expr[[1L]], as.name(":")) &&
+      length(expr) == 3L) {
+    a <- group_values_brms(expr[[2L]], data, env)
+    b <- group_values_brms(expr[[3L]], data, env)
+    out <- paste(a, b, sep = "_")
+    out[is.na(a) | is.na(b)] <- NA_character_
+    return(out)
+  }
+  as.character(group_values(expr, data, env))
+}
+
+#' brms's name of each level of an interaction group, named by the
+#' fit's own label of the level, or `NULL` for any other group or where
+#' the parts cannot be read.
+#'
+#' @noRd
+brms_level_map <- function(expr, levels, data, env) {
+  if (!(is.call(expr) && identical(expr[[1L]], as.name(":")))) return(NULL)
+  lab <- tryCatch(as.character(group_values(expr, data, env)),
+                  error = function(e) NULL)
+  brms <- tryCatch(group_values_brms(expr, data, env),
+                   error = function(e) NULL)
+  if (is.null(lab) || length(lab) != length(brms)) return(NULL)
+  stats::setNames(brms[match(levels, lab)], levels)
 }
 
 #' The prefix, the renamed coefficient and brms's coefficient name

@@ -110,7 +110,7 @@ test_that("the simplex and group-level rules round-trip", {
   expect_lt(abs(log(pars[["sigma"]]) - sg),
             1e-12)
 
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   bform2 <- brms::bf(Reaction ~ Days + (Days | Subject), sigma ~ Days)
   fit2 <- frm(bf(Reaction ~ Days + (Days | Subject), sigma ~ Days) +
                 gaussian(), data = sleepstudy)
@@ -641,7 +641,7 @@ test_that("row 21: one-predictor fits across the family roster", {
 test_that("check C: sleepstudy joint density with (Days | Subject)", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   # This shape replaces the posterior-mean comparison retired from
   # test-brms-agreement.R: the same model, checked as an identity of

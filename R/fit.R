@@ -851,6 +851,17 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                          names(sys.call()), formula)
   }
   cl <- match.call()
+  # A refit from update() or drop1() passes the fit's data by value,
+  # with what the refit must keep from the fit in an attribute: the
+  # call to record, which names the data as the original call did, and
+  # the frozen bases and NA rows of the fit (refit_channel()). It is
+  # read only for the formula, family and rows it was made for, and
+  # dropped otherwise: an edited call or reused data is another model
+  refit <- if (!missing(data)) refit_channel_for(data, formula, family)
+  if (!missing(data) && !is.null(attr(data, "frmtmb_refit"))) {
+    attr(data, "frmtmb_refit") <- NULL
+  }
+  if (!is.null(refit[["call"]])) cl <- refit[["call"]]
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
   prior <- as_priorlist(prior)
@@ -919,7 +930,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # a family whose parameter vocabulary is a property of the data
   # (categorical()'s one predictor per observed category) becomes
   # concrete here, before the grammar that names those dpars is parsed
+  written <- bform
   bform <- resolve_deferred_families(bform, data)
+  # update(newdata = ) resolves the family again from the new data
+  if (!identical(written, bform)) attr(bform, "frmtmb_written") <- written
 
   if (vb) t0 <- vb_now()
   spec <- parse_spec(bform)
@@ -930,13 +944,15 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   frame <- assemble_frame(spec, data, na.action = na.action,
                           sparse_x = isTRUE(control$sparse_x),
                           data2 = data2,
-                          drop_unused_levels = drop_unused_levels)
+                          drop_unused_levels = drop_unused_levels,
+                          predvar_map = refit[["predvar_map"]],
+                          refit_na_action = refit[["na_action"]])
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
   # brms's `data_name` attribute: the data as the call spelled it, which
   # update(newdata = ) re-records. A value passed by do.call() has no
   # spelling, and deparsing a whole data frame to get one would cost
   # time in proportion to its rows, so it records nothing
-  dn <- substitute(data)
+  dn <- if (!is.null(refit[["call"]])) cl[["data"]] else substitute(data)
   if ((is.name(dn) || is.call(dn)) && !is.null(frame[["data_frame"]])) {
     attr(frame[["data_frame"]], "data_name") <- substr(deparse1(dn), 1L, 50L)
   }
@@ -945,6 +961,14 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # from the frame, so family(fit) would otherwise report the family as
   # written rather than the one that was taped.
   spec <- carry_finalized_responses(spec, frame)
+  # a refcat = NA family's degrees of freedom are its reference twin's,
+  # counted once here, so that logLik() never assembles a frame
+  # (loglik_df()); a refit on the fit's own rows gives the twin the
+  # fit's bases and NA rows, as it gives the refit
+  frame[["refcat_first_outer"]] <- refcat_first_outer(
+    spec, bform, data, na.action, data2, drop_unused_levels,
+    predvar_map = refit[["predvar_map"]],
+    refit_na_action = refit[["na_action"]])
   # a structure that loses a variance's standard error by construction
   # has said so; se_check() reads this rather than saying it again
   attr(frame, "se_explained") <- check_re_structure(spec, frame, control)
@@ -1297,6 +1321,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                "intercepts only (every block must be a dim-1 us/diag term)",
                call. = FALSE)
     }
+    # the rule integrates one random effect at a time, and Student-t
+    # terms that share a latent scale are not independent at a level
+    shared_t <- Filter(function(bk) !is.null(bk[["t_share"]]),
+                       frame[["re_blocks"]])
+    if (length(shared_t)) {
+      frm_stop("quadrature = TRUE integrates one scalar random effect at ",
+               "a time, and the Student-t terms of grouping factor '",
+               shared_t[[1L]][["group_name"]], "' share one latent scale ",
+               "per level, as in brms, so their effects at a level are ",
+               "not independent. Fit with the Laplace approximation",
+               call. = FALSE)
+    }
     # a group-level mo() column moves with its simplex, which the
     # quadrature rule's fixed design does not; such a block can be a
     # dim-1 us term, so the message above would name the wrong reason
@@ -1363,6 +1399,19 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                "quadrature = TRUE", call. = FALSE)
     }
     profile_arg <- "beta"
+  }
+  # An integrated beta on an ill-conditioned design is taped in the
+  # design's coordinates, where the inner Hessian is well conditioned
+  # (beta_whitener()); the estimates and the sdreport are carried back
+  bw <- NULL
+  if (!objective_only && (REML || isTRUE(control$profile)) &&
+        is.null(integrate) && n_imp == 0L) {
+    bw <- tryCatch(beta_whitener(frame), error = function(e) NULL)
+    if (!is.null(bw)) {
+      nll <- beta_whiten_nll(nll, bw, jacobian = REML)
+      template[["beta"]] <- beta_whiten_map(template[["beta"]], bw,
+                                            inv = TRUE)
+    }
   }
   # Under integrate= the objective is built in two passes: the plain
   # Laplace tape first, then the marginalized one calibrated at its
@@ -1492,7 +1541,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (is.null(integrate)) {
       # with random effects the Hessian costs 2 p inner solves, so only
       # a near-collinear fixed design pays for it (newton_polish())
-      ill <- length(obj$env$random) > 0L && length(opt$par) <= 100L &&
+      ill <- length(obj$env$random) > 0L && length(opt$par) <= se_reparam_np &&
         predictor_design_kappa(frame) > 1e5
       opt <- newton_polish(obj, opt, bounds, par_units, ctl_opt, ill = ill,
                            frame = frame)
@@ -1511,22 +1560,27 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # parList() has no slot for them; the Laplace inner solve at the
   # corrected optimum is both the source of the conditional modes and
   # a complete parameter list to start from.
-  est <- if (is.null(imp)) obj$env$parList(opt$par) else {
-    solved_par_list(lap_obj, opt$par)
-  }
-  for (nm in names(frame[["par_template"]])) {
-    names(est[[nm]]) <- names(frame[["par_template"]][[nm]])
-  }
-  # under integrate= (quadrature), parList leaves outer components NA;
-  # the optimizer vector is authoritative for them either way
-  pn <- names(opt$par)
-  for (cp in setdiff(unique(pn), random %||% character(0))) {
-    pos <- seq_along(frame[["par_template"]][[cp]])
-    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
-      pos <- setdiff(pos, frame[["betad_fixed_idx"]])
+  est_at <- function(opt) {
+    est <- if (is.null(imp)) obj$env$parList(opt$par) else {
+      solved_par_list(lap_obj, opt$par)
     }
-    est[[cp]][pos] <- unname(opt$par[pn == cp])
+    if (!is.null(bw)) est[["beta"]] <- beta_whiten_map(est[["beta"]], bw)
+    for (nm in names(frame[["par_template"]])) {
+      names(est[[nm]]) <- names(frame[["par_template"]][[nm]])
+    }
+    # under integrate= (quadrature), parList leaves outer components NA;
+    # the optimizer vector is authoritative for them either way
+    pn <- names(opt$par)
+    for (cp in setdiff(unique(pn), random %||% character(0))) {
+      pos <- seq_along(frame[["par_template"]][[cp]])
+      if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+        pos <- setdiff(pos, frame[["betad_fixed_idx"]])
+      }
+      est[[cp]][pos] <- unname(opt$par[pn == cp])
+    }
+    est
   }
+  est <- est_at(opt)
   if (!is.null(integrate)) {
     # integrate= removes the random effects from the tape, so this
     # objective has no conditional modes to report: parList() leaves
@@ -1555,6 +1609,26 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
+  # the coordinates an integrated beta was taped in (beta_whitener())
+  if (!is.null(bw)) fit$beta_whiten <- bw
+  if (is.null(imp) && is.null(integrate)) {
+    esc <- sd_up_escape(fit, ctl_opt, bounds, par_units, tally)
+    if (!is.null(esc)) {
+      esc <- newton_polish(obj, esc, bounds, par_units, ctl_opt, ill = ill,
+                           frame = frame)
+      if (vb) {
+        vb_say("restarted from a larger sd: gained ",
+               format(fit$opt$objective - esc$objective, digits = 3),
+               " in log-likelihood")
+      }
+      opt <- esc
+      est <- est_at(opt)
+      fit$opt <- opt
+      fit$estimates <- est
+      # the probe's answers belong to the stop the restart left
+      fit$cache <- new.env(parent = emptyenv())
+    }
+  }
   if (!is.null(imp)) {
     imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
@@ -2035,7 +2109,12 @@ sdr_of <- function(fit) {
 #'   23 percent on seven small models and on mixed models with 14 to 23
 #'   outer parameters, 19 to 24 percent on a glm with 301 coefficients,
 #'   and 3 percent or less on mixed models with 42 to 403 outer
-#'   parameters, where the check waited. `"ignore"` skips it. The
+#'   parameters, where the check waited. `"ignore"` skips it. A model
+#'   without random effects then builds the exact Hessian at the first
+#'   standard-error use. That is faster than the finite differences it
+#'   replaces but takes more memory: on a bernoulli model with 10,000
+#'   rows the peak working set rose by 350 MB with 200 coefficients and
+#'   by 870 MB with 500. The
 #'   warning names each parameter and the reason: a bound holds it, the
 #'   data separate the outcomes, the likelihood is flat along it (a
 #'   standard deviation at 0, a `mo()` simplex split by a category no
@@ -3061,6 +3140,105 @@ escape_stationary <- function(obj, opt, frame, control, bounds,
   best
 }
 
+#' Restart the optimizer from a larger value of each log standard
+#' deviation that the stop left near zero, when the likelihood gains
+#' more than `grad_tol` there with the rest held (se_sd_gain_up()).
+#'
+#' Toward zero the log-likelihood is flat in a log sd, so nlminb can stop
+#' at an sd near zero short of a small interior maximum, with a gradient
+#' it calls converged. On a degree-7 raw polynomial with `(1 | g)` and no
+#' group effect (seed 4 of dev/illse-rev-edge4.R) the stop was at an sd
+#' of 1.9e-6 and the exact maximum at 0.033 times sigma, 1.2e-3 higher
+#' (dev/illse2-p2.R). The headroom then called the fit short, and every
+#' coefficient lost its standard error. Only an sd below
+#' `se_sd_escape_frac` of its term's scale is probed, so a fit whose sds
+#' are away from zero pays nothing. A caller who asks for an earlier
+#' stop (optctrl_stops_earlier()) or another optimizer keeps that stop.
+#'
+#' Returns the better optimum, with the objective's state left at it,
+#' or NULL.
+#'
+#' @noRd
+sd_up_escape <- function(fit, control, bounds, par_units = NULL,
+                         tally = NULL) {
+  obj <- fit$obj
+  if (!length(obj$env$random) || isTRUE(fit$quadrature) ||
+        !is.null(fit$importance) || is.function(control$optimizer) ||
+        !identical(control$optimizer %||% "nlminb", "nlminb") ||
+        optctrl_stops_earlier(control$optCtrl) ||
+        !is.finite(fit$opt$objective)) {
+    return(NULL)
+  }
+  th <- fit$estimates[["theta"]]
+  om <- outer_par_map(fit)
+  thpos <- which(om$comp == "theta")
+  p <- fit$opt$par
+  if (!length(th) || length(thpos) != length(th) ||
+        length(om$comp) != length(p)) {
+    return(NULL)
+  }
+  sd_i <- tryCatch(unique(log_sd_theta_index(fit)),
+                   error = function(e) integer(0))
+  tol <- control$grad_tol %||% 1e-3
+  q <- p
+  for (k in sd_i) {
+    j <- thpos[k]
+    sc <- tryCatch(se_sd_scale(fit, k), error = function(e) NA_real_)
+    if (!is.finite(p[j]) || !isTRUE(sc > 0) ||
+          p[j] >= log(se_sd_escape_frac * sc)) {
+      next
+    }
+    gain <- tryCatch(se_sd_gain_up(fit, k), error = function(e) NULL)
+    if (!isTRUE(as.numeric(gain) > tol) || is.null(attr(gain, "at"))) next
+    q[j] <- attr(gain, "at")
+  }
+  if (identical(q, p)) return(NULL)
+  q <- pmin(pmax(q, bounds$lower), bounds$upper)
+  saved <- obj_state_save(obj)
+  o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                             start_par = q, tally = tally),
+                error = function(e) NULL)
+  if (is.null(o) || !is.finite(o$objective) ||
+        o$objective >= fit$opt$objective) {
+    obj_settle(obj, fit$opt, fit$opt, saved)
+    return(NULL)
+  }
+  obj_settle(obj, fit$opt, o, saved)
+  o$sd_escape <- c(gain = fit$opt$objective - o$objective)
+  o
+}
+
+#' Does `optCtrl` ask nlminb to stop earlier than frmtmb_control()'s
+#' defaults would: a lower `iter.max` or `eval.max` than 1000, or a
+#' looser `rel.tol`, `x.tol`, `abs.tol` or `xf.tol` than nlminb's own
+#' (1e-10, 1.5e-8, 0, 2.2e-14)? A caller who raises a cap or tightens a
+#' tolerance asks for more work, not less: `iter.max = eval.max = 5000`
+#' turned the sd escape off and left degree 7 seed 4 1.2e-3 short with
+#' every coefficient SE NaN (review of lane illse2, finding 2).
+#'
+#' @noRd
+optctrl_stops_earlier <- function(oc) {
+  oc <- oc %||% list()
+  caps <- c(iter.max = 1000, eval.max = 1000)
+  tols <- c(rel.tol = 1e-10, x.tol = 1.5e-8, abs.tol = 0,
+            xf.tol = 2.2e-14)
+  num1 <- function(v) is.numeric(v) && length(v) == 1L && !is.na(v)
+  for (nm in intersect(names(oc), names(caps))) {
+    if (num1(oc[[nm]]) && oc[[nm]] < caps[[nm]]) return(TRUE)
+  }
+  for (nm in intersect(names(oc), names(tols))) {
+    if (num1(oc[[nm]]) && oc[[nm]] > tols[[nm]]) return(TRUE)
+  }
+  FALSE
+}
+
+#' The fraction of its term's scale below which a log standard deviation
+#' is probed upward by sd_up_escape(): the lowest value se_sd_gain_up()
+#' asks about.
+#'
+#' @noRd
+se_sd_escape_frac <- 0.01
+
 #' Leave the objective at the optimum a fit keeps after trying others.
 #'
 #' The objective remembers its last point and its best one, and the fit
@@ -3182,7 +3360,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   # at "false convergence" 157 below lm()'s maximum, at its start
   # slope (dev/illse-offdbg.R), and five steps there reach it
   coded <- !isTRUE(opt$convergence == 0)
-  if (!np || np > 100L || (re && !isTRUE(ill)) ||
+  if (!np || np > se_reparam_np || (re && !isTRUE(ill)) ||
         (coded && is.null(frame)) || !is.finite(opt$objective) ||
         any(names(control$optCtrl) %in% tols) ||
         is.function(control$optimizer)) {
@@ -3239,16 +3417,18 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
       if (!all(is.finite(Hs[keep, keep]))) return(NULL)
       if (length(keep) >= 2L &&
             hess_needs_reparam(Hs[keep, keep, drop = FALSE])) {
-        M0 <- tryCatch(reparam_basis(frame, names(p)),
+        M0 <- tryCatch(reparam_basis(frame, names(p),
+                                     est = tryCatch(obj$env$parList(p),
+                                       error = function(e) NULL)),
                        error = function(e) NULL)
         out <- setdiff(seq_len(np), keep)
         if (!is.null(M0) && all(dim(M0) == np) &&
               !length(intersect(out, attr(M0, "pos")))) {
-          M <<- if (length(out)) M0[, keep, drop = FALSE] else M0
+          M <<- if (length(out)) reparam_cols(M0, keep) else M0
           return(hess_at(p))
         }
       }
-      if (coded || !fin) return(NULL)
+      if (coded || !fin || np > newton_natural_np) return(NULL)
     }
     H
   }
@@ -3277,26 +3457,68 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     # in natural units, where the Hessian is closest to unit diagonal,
     # or in the coordinates the Hessian was taken in
     gs <- if (is.null(M)) g * u else drop(crossprod(Mi, g))
-    st <- -drop(backsolve(R, forwardsolve(t(R), gs)))
+    hsolve <- function(v) backsolve(R, forwardsolve(t(R), v))
+    st <- -drop(hsolve(gs))
     if (!all(is.finite(st))) return(NULL)
-    gain <- -sum(gs * st) / 2
+    B <- if (is.null(M)) diag(u, np) else Mi
+    q <- p + drop(B %*% st)
+    # A step that leaves the box is taken again with the coordinates it
+    # crosses held at their bounds: the Newton step of the quadratic
+    # model under those equality constraints, s = -H^-1 (g + C lambda)
+    # with C' s = r. An active upper bound on the top coefficient of a
+    # raw polynomial of degree 6 to 8 left the fit 0.12 to 2700 below
+    # the constrained maximum, at code 0 and in silence on degree 6,
+    # because every full step crossed the bound and was refused
+    # (dev/illse2-p4bound.R)
+    held <- integer(0)
+    tgt <- numeric(0)
+    for (it in seq_len(np)) {
+      cross <- setdiff(which(q < lower | q > upper), held)
+      if (!length(cross)) break
+      held <- c(held, cross)
+      tgt <- c(tgt, ifelse(q[cross] < lower[cross], lower[cross],
+                           upper[cross]))
+      C <- t(B[held, , drop = FALSE])
+      HC <- hsolve(C)
+      rhs <- tgt - p[held] + drop(crossprod(C, hsolve(gs)))
+      lam <- tryCatch(solve(crossprod(C, HC), -rhs),
+                      error = function(e) NULL)
+      if (is.null(lam)) return(NULL)
+      st <- -drop(hsolve(gs + drop(C %*% lam)))
+      if (!all(is.finite(st))) return(NULL)
+      q <- p + drop(B %*% st)
+      q[held] <- tgt
+    }
+    fr <- setdiff(seq_len(np), held)
+    if (any(q < lower) || any(q > upper) ||
+          any(q[fr] <= lower[fr] | q[fr] >= upper[fr])) {
+      return(NULL)
+    }
+    # the model's gain along t s, t lin - t^2 quad / 2; without a held
+    # coordinate lin = quad, and the gain is written as it always was
+    lin <- -sum(gs * st)
+    quad <- if (length(held)) sum((R %*% st)^2) else lin
+    gain <- if (length(held)) lin - quad / 2 else -sum(gs * st) / 2
     if (!is.finite(gain) || gain <= 1e-6) return(NULL)
-    q <- p + if (is.null(M)) st * u else drop(Mi %*% st)
-    if (any(q <= lower) || any(q >= upper)) return(NULL)
     vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
     t <- 1
     if (!is.null(M)) {
       # in the design's coordinates a step from far off is shortened
       # until it gains a tenth of what the quadratic model predicts at
-      # that fraction t of it, gain (2 t - t^2): on the y ~ x fit the
-      # full second step overshot in log sigma
+      # that fraction t of it: on the y ~ x fit the full second step
+      # overshot in log sigma
+      gt <- function(t) {
+        if (length(held)) t * lin - t^2 * quad / 2 else
+          gain * (2 * t - t^2)
+      }
       while (t > 0.125 && !(is.finite(vq) && vq < v &&
-                              v - vq >= 0.1 * gain * (2 * t - t^2))) {
+                              v - vq >= 0.1 * gt(t))) {
         t <- t / 2
-        q <- p + t * drop(Mi %*% st)
+        q <- p + t * drop(B %*% st)
+        if (length(held)) q[held] <- p[held] + t * (tgt - p[held])
         vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
       }
-      gain <- gain * (2 * t - t^2)
+      gain <- gt(t)
     }
     if (!is.finite(vq) || vq >= v || v - vq < 0.1 * gain) return(NULL)
     # whether the quadratic model held: a full, undamped step whose gain
@@ -4215,6 +4437,59 @@ grad_bound_active <- function(par, g, bounds) {
   (at_lo & g > 0) | (at_hi & g < 0)
 }
 
+#' grad_bound_active(), and also each parameter on its bound that the
+#' Newton step over the others, `-H^-1 g` (in the design's coordinates
+#' where the Hessian needs them, headroom_reparam_hessian()), would move
+#' out of the box. On an ill-conditioned design the gradient's sign does
+#' not say whether a bound holds: under an upper bound one standard error
+#' below the unconstrained estimate of a degree-7 raw polynomial's top
+#' coefficient, the fit at the constrained maximum (7.5e-8 short) had a
+#' gradient of +6.6e-4 along it, rounding, and the headroom then counted
+#' the step past the bound, 0.524, and warned that the fit was short
+#' (dev/illse2-p4bound.R, seed 3). `H` is the natural Hessian at `p`;
+#' `act0` marks parameters a caller already holds.
+#'
+#' @noRd
+bound_held_by_step <- function(fit, p, g, H, box = fit_outer_box(fit),
+                               act0 = FALSE) {
+  act <- (grad_bound_active(p, g, box) %in% TRUE) | act0
+  np <- length(p)
+  lo <- box$lower
+  hi <- box$upper
+  if (length(lo) != np || length(hi) != np || !is.matrix(H) ||
+        !all(dim(H) == np)) {
+    return(act)
+  }
+  slack <- sqrt(.Machine$double.eps) *
+    pmax(1, abs(ifelse(is.finite(lo), lo, 0)),
+         abs(ifelse(is.finite(hi), hi, 0)))
+  at_lo <- is.finite(lo) & (p - lo) <= slack
+  at_hi <- is.finite(hi) & (hi - p) <= slack
+  cand <- (at_lo | at_hi) & !act
+  free <- which(!act)
+  if (!any(cand) || !length(free) || !all(is.finite(g[free])) ||
+        !all(is.finite(H[free, free]))) {
+    return(act)
+  }
+  step <- numeric(np)
+  h <- if (length(free) >= 2L) {
+    tryCatch(headroom_reparam_hessian(fit, H, free),
+             error = function(e) NULL)
+  }
+  ch <- if (!is.null(h)) tryCatch(chol(h$H), error = function(e) NULL)
+  if (!is.null(ch)) {
+    gs <- drop(crossprod(h$M, g))
+    step <- -drop(h$M %*% backsolve(ch, forwardsolve(t(ch), gs)))
+  } else {
+    Hf <- H[free, free, drop = FALSE]
+    st <- tryCatch(-solve((Hf + t(Hf)) / 2, g[free]),
+                   error = function(e) NULL)
+    if (is.null(st) || !all(is.finite(st))) return(act)
+    step[free] <- st
+  }
+  act | (cand & ((at_hi & step > 0) | (at_lo & step < 0)))
+}
+
 #' How much log likelihood is still on the table where the optimizer
 #' stopped: half the Newton decrement over the parameters no bound holds.
 #'
@@ -4274,6 +4549,9 @@ grad_headroom <- function(fit, g, active) {
   H <- (H + t(H)) / 2
   tol <- fit$control$grad_tol %||% 1e-3
   u <- rep_len(fit$par_units %||% 1, np)
+  active <- bound_held_by_step(fit, p, g, H, act0 = active)
+  free <- which(!active)
+  if (!length(free)) return(0)
   dr <- headroom_drop_rows(fit, H, g, u, tol)
   free <- setdiff(free, which(dr))
   extra <- attr(dr, "gain")
@@ -4285,7 +4563,7 @@ grad_headroom <- function(fit, g, active) {
   # headroom above grad_tol and the fit warned of a large gradient
   # (dev/illse-glm.R). In the design's coordinates (reparam_basis()) the
   # Newton step is measured exactly as the standard errors are.
-  if (!any(active)) {
+  if (length(free) >= 2L) {
     h <- headroom_reparam_hessian(fit, H, free)
     ch <- if (!is.null(h)) tryCatch(chol(h$H), error = function(e) NULL)
     if (!is.null(ch)) {
@@ -4339,13 +4617,18 @@ conv_headroom <- function(fit, g) {
   }
   if (!is.matrix(H) || !all(dim(H) == np)) return(NA_real_)
   H <- (H + t(H)) / 2
+  # a parameter on its bound that the Newton step would push out is
+  # held, whatever its gradient's sign (bound_held_by_step())
+  act <- bound_held_by_step(fit, p, g, H)
+  free <- which(!act)
+  if (!length(free)) return(0)
   tol <- fit$control$grad_tol %||% 1e-3
   dr <- headroom_drop_rows(fit, H, g, u, tol)
   free <- setdiff(free, which(dr))
   extra <- attr(dr, "gain")
   if (!length(free)) return(extra)
   if (!all(is.finite(H[free, free]))) return(NA_real_)
-  if (!any(act)) {
+  if (length(free) >= 2L) {
     h <- headroom_reparam_hessian(fit, H, free)
     if (!is.null(h)) {
       return(extra + newton_room(h$H, drop(crossprod(h$M, g)), tol))
@@ -4432,20 +4715,21 @@ headroom_drop_rows <- function(fit, H, g, u, tol) {
 #' The Hessian in the design's coordinates over the parameters `free`,
 #' for the headroom of conv_headroom() and grad_headroom(), when the
 #' natural one over `free` needs them (hess_needs_reparam()). NULL
-#' otherwise, or when a parameter left out of `free` is in a design's
-#' block (its coordinates then mix it with the others).
+#' otherwise. A parameter left out of `free` (a bound holds it, or its
+#' row is empty) is left out of its design's block (reparam_basis()).
 #'
 #' @noRd
 headroom_reparam_hessian <- function(fit, H, free) {
   p <- fit$opt$par
   np <- length(p)
   if (!hess_needs_reparam(H[free, free, drop = FALSE])) return(NULL)
-  M <- tryCatch(reparam_basis(fit$frame, names(p)),
+  out <- setdiff(seq_len(np), free)
+  M <- tryCatch(reparam_basis(fit$frame, names(p), est = fit$estimates,
+                              drop = out),
                 error = function(e) NULL)
   if (is.null(M) || !all(dim(M) == np)) return(NULL)
-  out <- setdiff(seq_len(np), free)
   if (length(intersect(out, attr(M, "pos")))) return(NULL)
-  if (length(out)) M <- M[, free, drop = FALSE]
+  if (length(out)) M <- reparam_cols(M, free)
   h <- reparam_hessian_refined(fit$obj, p, M)
   if (is.null(h) || !all(is.finite(h$H))) return(NULL)
   h

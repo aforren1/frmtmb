@@ -49,7 +49,7 @@ test_that("fixef() pools fixef() of each imputation under brms's names", {
 
 test_that("fixef() agrees with mice's pooling of lm()", {
   skip_if_not_installed("mice")
-  data("nhanes", package = "mice")
+  data("nhanes", package = "mice", envir = environment())
   imp <- mice::mice(nhanes, m = 5, print = FALSE, seed = 1)
   fm <- frm_multiple(bmi ~ age * chl, data = imp)
   ref <- summary(mice::pool(with(imp, stats::lm(bmi ~ age * chl))))

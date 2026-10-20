@@ -39,9 +39,13 @@
 #' @param groups Name of a random-effect grouping factor (see
 #'   [ngrps()]) to delete level-wise; `NULL` deletes single
 #'   observations (refuses for large n unless `force = TRUE`).
-#' @param data The original model data; defaults to the stored model
-#'   frame, which works unless the formula uses variables that are not
-#'   stored raw (e.g. inside `poly()`).
+#' @param data The original model data. The default is the data the
+#'   fit holds: the model frame and the variables the formula reads
+#'   through a transform (`x` of `poly(x, 2)` or `log(x)`), on the rows
+#'   the fit used. A data-dependent basis (`poly()`, `splines::ns()`,
+#'   `scale()`) keeps the knots, coefficients or center of the fit in
+#'   every deletion refit, as in lme4's `influence.merMod()`, so a
+#'   coefficient change is not a change of basis.
 #' @param force Allow observation-wise deletion for n > 500.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
@@ -60,7 +64,7 @@
 influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                  force = FALSE, ...) {
   frm_check_dots(...)
-  data <- data %||% model$frame[["data_frame"]]
+  data <- data %||% fit_refit_data(model) %||% model$frame[["data_frame"]]
   if (!is.null(groups)) {
     gv <- data[[groups]]
     if (is.null(gv)) {
@@ -117,7 +121,8 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                 data2 = data2, thres_pin = pin,
                                 drop_unused_levels =
                                   model$frame[["drop_unused_levels"]] %||%
-                                  TRUE)
+                                  TRUE,
+                                predvar_map = model$frame[["predvar_map"]])
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {
@@ -368,8 +373,23 @@ cooks.distance.frmtmb_influence <- function(model, ...) {
   frm_check_dots(...)
   V <- interop_vcov(model$fit)
   p <- ncol(V)
-  Vi <- solve(V)
   d <- sweep(model$fixed, 2, model$fixed_full)
+  # through the factor where the fit holds one: solve(V) stops as
+  # computationally singular on a degree-7 raw polynomial and keeps
+  # three or four digits at degree 6 (dev/illse2-findings.md, item 1)
+  K <- if (all(is.finite(V))) coef_vcov_root(model$fit)
+  if (!is.null(K) && nrow(K) == p) {
+    ok <- !apply(is.na(d), 1L, any)
+    out <- rep(NA_real_, nrow(d))
+    q <- if (any(ok)) root_inv_quad(K, t(d[ok, , drop = FALSE]))
+    if (any(ok) && is.null(q)) {
+      warn_cov_singular(model$fit, "cooks.distance()")
+      q <- NaN
+    }
+    out[ok] <- q / p
+    return(stats::setNames(out, rownames(model$fixed)))
+  }
+  Vi <- solve(V)
   out <- vapply(seq_len(nrow(d)), function(i) {
     di <- d[i, ]
     if (anyNA(di)) return(NA_real_)

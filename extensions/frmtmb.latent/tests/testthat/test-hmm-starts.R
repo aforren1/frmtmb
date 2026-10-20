@@ -457,17 +457,57 @@ test_that("hmm_starts() refuses arguments it cannot use", {
   expect_error(hmm_starts(fit, keep = "yes"), "must be TRUE or FALSE")
 })
 
-test_that("a fit whose data the caller cannot see is refused by name", {
+test_that("a fit whose data the caller cannot see refits from its own", {
   skip_on_cran()
-  # the call names its data by SYMBOL, so a fit assembled in a scope
-  # that has since gone has to fail once, loudly, rather than n times
-  # as n bad starts
-  fit <- local({
-    dd_gone <- small_data()
-    frm(bf(y ~ 1),
+  # the call names its data by SYMBOL, and that object is gone; the
+  # refits read the data the fit holds, so they are the refits a
+  # visible data object gives, start for start. A transformed term
+  # needs the raw variable, which the model frame alone does not hold
+  dd <- small_data()
+  dd$x2 <- stats::rexp(nrow(dd)) + 0.1
+  fit_seen <- frm(bf(y ~ log(x2)),
+                  family = hmm(K = 2, gaussian(), time = t, group = id),
+                  data = dd)
+  fit_gone <- local({
+    dd_gone <- dd
+    frm(bf(y ~ log(x2)),
         family = hmm(K = 2, gaussian(), time = t, group = id),
         data = dd_gone)
   })
+  expect_false(exists("dd_gone"))
+  a <- hmm_starts(fit_seen, n = 2, seed = 7L)
+  b <- hmm_starts(fit_gone, n = 2, seed = 7L)
+  expect_identical(b$table$status, a$table$status)
+  expect_false(any(b$table$status == "error"))
+  expect_equal(b$table$logLik, a$table$logLik)
+})
+
+test_that("a call naming another symbol the caller cannot see is refused", {
+  skip_on_cran()
+  # the data, formula, family, control and start travel with the fit;
+  # a symbol update() does not take from it does not, so it has to fail
+  # once, loudly, rather than n times as n bad starts
+  fit <- local({
+    na_gone <- stats::na.omit
+    frm(bf(y ~ 1),
+        family = hmm(K = 2, gaussian(), time = t, group = id),
+        data = small_data(), na.action = na_gone)
+  })
   expect_error(hmm_starts(fit, n = 1),
                "could not be re-evaluated from here")
+})
+
+test_that("a fit whose call has a start the caller cannot see refits", {
+  skip_on_cran()
+  # every refit replaces the start, so the original one is never read
+  dd <- small_data()
+  fit <- local({
+    st_gone <- NULL
+    frm(bf(y ~ 1),
+        family = hmm(K = 2, gaussian(), time = t, group = id),
+        data = dd, start = st_gone)
+  })
+  ms <- hmm_starts(fit, n = 2, seed = 3L)
+  expect_false(any(ms$table$status == "error"))
+  expect_identical(nrow(ms$table), 3L)
 })

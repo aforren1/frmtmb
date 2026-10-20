@@ -86,6 +86,7 @@
 \alias{brms_prob_cols}
 \alias{brms_fixef_rows}
 \alias{ord_delta_info}
+\alias{ord_lp_blocks}
 \alias{ord_thres_linpred}
 \alias{rescor_row_loglik}
 \alias{arma_cond_resp}
@@ -288,6 +289,10 @@ sits, and the map from it to \code{delta}. \code{ord_thres_linpred(fit, newdata,
 predictor with the thresholds included at the fit's estimates, the
 \verb{n x K1} matrix one draw of \code{posterior_linpred(incl_thres = TRUE)}
 holds.
+\code{ord_lp_blocks(frame, spec)} lists an ordinal model's threshold
+blocks with the linear predictor and the \code{dpar} that class
+\code{"Intercept"} addresses each by, which is where brms puts its
+default on the thresholds.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.

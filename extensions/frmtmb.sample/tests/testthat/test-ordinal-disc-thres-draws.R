@@ -107,8 +107,14 @@ test_that("a hurdle ordinal's thresholds are stored under brms's names", {
 
 test_that("an intercept in disc gets brms's normal(0, 1) by default", {
   cs <- ordd_draws("hdisc")
-  ps <- utils::capture.output(print(prior_summary(cs$ds)))
-  expect_true(any(grepl("Intercept_disc ~ normal(0, 1)", ps, fixed = TRUE)))
+  ps <- as.data.frame(prior_summary(cs$ds))
+  expect_identical(ps$prior[ps$class == "Intercept" & ps$dpar == "disc"],
+                   "normal(0, 1)")
+  # and the thresholds and hu take brms's too (they were flat through
+  # frmtmb.sample 0.19.0)
+  expect_identical(ps$prior[ps$class == "Intercept" & !nzchar(ps$dpar)],
+                   "student_t(3, 0, 2.5)")
+  expect_identical(ps$prior[ps$class == "hu"], "beta(1, 1)")
 })
 
 # A draw's category probabilities against brms's R-side density at the

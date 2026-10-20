@@ -58,11 +58,38 @@
 frm_coherence <- function(fit, newdata = NULL, re_formula = NULL,
                           level = 0.95, allow_new_levels = FALSE) {
   p <- cp_link_se(fit, "coh", newdata, re_formula, level, allow_new_levels)
+  # An end past qlogis(1 - eps), about 36.04 on the logit scale, is
+  # within machine precision of 0 or 1, and it says only that the fit has
+  # almost no curvature there. Since frmtmb takes the exact Hessian, a
+  # coherence run off to 1 has a small positive curvature where the old
+  # differences gave a negative one, so its standard error is finite and
+  # huge rather than NaN (47.7 on the logit scale in test-coherence.R at
+  # eta = 16; dev/adhess-coh.R in frmtmb). The bound is on the logit
+  # scale and the same at both ends: plogis() rounds an upper end to 1
+  # above about 36.7 but a lower end to 0 only below about -745, so a
+  # test of the rounded ends refused only the end near 1.
+  edge <- abs(p$fit) + p$z * p$se.fit > cp_logit_edge
+  if (any(edge)) {
+    frm_stop("the interval of `coh` comes within machine precision of 0 ",
+             "or 1 in ", sum(edge), " of ", length(edge), " rows, so no ",
+             "interval exists for them inside (0, 1). This is what a ",
+             "coherence estimated at 0 or 1 to machine precision looks ",
+             "like: the linear predictor has run off to where the fit ",
+             "carries almost no curvature. Refit with more segments per ",
+             "unit, or with a prior on `coh`.", call. = FALSE)
+  }
+  lo <- stats::plogis(p$fit - p$z * p$se.fit)
+  up <- stats::plogis(p$fit + p$z * p$se.fit)
   data.frame(.estimate = stats::plogis(p$fit), .se = p$se.fit,
-             .lower = stats::plogis(p$fit - p$z * p$se.fit),
-             .upper = stats::plogis(p$fit + p$z * p$se.fit),
-             .eta = p$fit)
+             .lower = lo, .upper = up, .eta = p$fit)
 }
+
+#' The largest logit an end of a coherence interval may reach: plogis()
+#' of it is 1 - eps, the largest distance from 1 that the interval can
+#' report as a number below 1.
+#'
+#' @noRd
+cp_logit_edge <- stats::qlogis(1 - .Machine$double.eps)
 
 #' @rdname frm_coherence
 #' @export

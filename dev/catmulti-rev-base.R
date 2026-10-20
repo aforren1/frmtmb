@@ -1,0 +1,17 @@
+# Reviewer: rellib-r9 (0.71.0) on the same categorical fit, to tell
+# pre-existing shapes from the lane's. Log dev/catmulti-rev-out/base.txt
+.libPaths(c("C:/Users/adf44/source/r/rellib-r9", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+setwd("C:/Users/adf44/source/r/frmtmb-wt-catmulti")
+suppressPackageStartupMessages(library(frmtmb))
+cat("frmtmb", format(packageVersion("frmtmb")), "from", dirname(find.package("frmtmb")), "\n")
+source("dev/catmulti-rev-data.R")
+d3 <- rev_cat_data(21, 3)
+f <- frm(bf(y ~ x + (1 | p | g)), family = categorical(), data = d3)
+cat("variables:", grep("^b_", variables(f), value = TRUE), "\n")
+cat("coef names:", names(coef(f)), "\n")
+cat("ranef g dim:", dim(ranef(f)$g), "\n")
+r <- tryCatch(conditional_effects(f, "x", categorical = TRUE), error = function(e) conditionMessage(e))
+cat("ce:", if (is.character(r)) r else "works", "\n")
+set.seed(3)
+d2 <- d3; d2$y <- factor(ifelse(d2$y == "a", "a", "b"))
+cat("DONE\n")

@@ -44,7 +44,9 @@ per-worker startup (a new R process, package load, retape) is a
 fixed several seconds, so short chains gain nothing; long chains
 approach a per-chain speedup. A core count inherited from
 \code{options(mc.cores)}, which rstan reads when \code{cores} is not given,
-behaves the same way.}
+behaves the same way. \code{seed} fixes Stan's stream and the init
+jitter both (see \code{init_jitter}); \code{NA}, brms's default, leaves both
+to the session.}
 
 \item{prior}{Priors: a \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} specification, or a named list
 of prior objects (see \code{\link[frmtmb:prior_normal]{frmtmb::prior_normal()}}) whose names are parameter
@@ -78,8 +80,13 @@ overdispersed initialization, and is the default from a formula,
 where there is no mode to start at.}
 
 \item{init_jitter}{Per-chain perturbation sd for the default init;
-\code{0} starts every chain exactly at the mode. Draws from the R
-session's RNG, so \code{set.seed()} makes the inits reproducible.}
+\code{0} starts every chain exactly at the mode. With \code{seed} given (in
+\code{...}), the jitter is drawn from that seed rather than from the
+session's random stream, so \code{seed} reproduces every chain, as
+\code{brm(seed = )} does. Without one it is drawn from the session's
+stream, so \code{set.seed()} decides it. Either way rstan's sampler
+still advances the session's stream (it draws each chain's
+permutation of its draws), as it does under \code{brm()}.}
 
 \item{reparameterize}{Sample the qualifying random-effect blocks in
 their non-centered form (\verb{b = L(theta) z}), which removes the
@@ -133,7 +140,15 @@ a draws matrix with named columns (\code{as.matrix()} method), the
 originating fit, and, when any block was non-centered, a
 \code{reparam} note saying which. The \code{stanfit} holds the parameters as
 Stan sampled them, so on a non-centered run its random-effect
-columns are \code{z} while the draws matrix holds \code{b}.
+columns are \code{z} while the draws matrix holds \code{b}. The draws matrix
+also carries brms's covariance summaries under brms's names,
+\verb{sd_<group>__<coef>}, \verb{cor_<group>__<coef1>__<coef2>}, a smooth's
+\code{sds_}, \code{rescor__} and the residual structures' \code{ar[1]}, \code{cosy} and
+\code{cortime__}, which \code{\link[frmtmb:variables]{frmtmb::variables()}} lists for the fit. They
+are derived from each draw's internal covariance parameters
+(\code{theta_1}, ...), which stay in the matrix because the model reads
+them, so \code{as_draws_df(draws)$sd_g__Intercept} works as it does on a
+brms fit.
 }
 \description{
 Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the model's objective and returns the
@@ -354,23 +369,72 @@ coefficient.
 \section{Default priors}{
 
 Both routes default to brms 2.23's own weakly-informative
-priors, read off \code{brms::default_prior()} on matched models. Write
-\verb{y*} for the response transformed by the \code{mu} link and
+priors, read off \code{brms::default_prior()} on matched models, family by
+family. Write \verb{y*} for the response transformed by a link and
 \verb{s = max(2.5, round(mad(y*), 1))}:\tabular{lll}{
    class \tab default \tab scale \cr
    \code{b} (slopes) \tab flat \tab - \cr
    \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1) - m, s)} \tab link \cr
+   \code{Intercept} (ordinal thresholds) \tab \code{student_t(3, 0, 2.5)} \tab thresholds \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
-   \code{cor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
-   \code{rescor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
-   \code{lncor} (a \code{logistic_normal()} response) \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
-   \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
-   \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
-   \verb{sigma<k>} of \code{logistic_normal()} \tab as \code{sigma}, with \code{s = 2.5} \tab natural or log \cr
-   \code{Intercept} of an ordinal family's \code{disc} \tab \code{normal(0, 1)} \tab link \cr
-   \code{simo} (a \code{mo()} simplex) \tab \code{dirichlet(1)} \tab the simplex \cr
+   \code{cor}, \code{rescor}, \code{lncor}, \code{cortime} \tab \code{lkj(1)} \tab correlation matrix \cr
+   \code{simo}, \code{sbhaz} \tab \code{dirichlet(1)} \tab the simplex \cr
+   \code{theta} (mixture weights) \tab \code{dirichlet(1)} \tab the simplex \cr
+   \code{sigma} \tab \code{student_t(3, 0, s)} \tab natural \cr
+   \code{shape}, \code{phi} \tab \code{gamma(0.01, 0.01)} \tab natural \cr
+   \code{shape} of the negative binomials \tab \code{inv_gamma(0.4, 0.3)} \tab natural \cr
+   \code{nu} \tab \code{gamma(2, 0.1)} \tab natural \cr
+   \code{kappa} \tab \code{gamma(2, 0.01)}; \code{gamma(0.01, 0.01)} for \code{xbeta()} \tab natural \cr
+   \code{beta} (exgaussian) \tab \code{gamma(1, 0.1)} \tab natural \cr
+   \code{zi}, \code{hu}, \code{zoi}, \code{coi}, \code{bias}, \code{quantile} \tab \code{beta(1, 1)} \tab natural \cr
+   \code{bs} \tab \code{gamma(1, 1)} \tab natural \cr
+   \code{ndt} \tab \code{uniform(0, min(y))} \tab natural \cr
+   \code{alpha} \tab \code{normal(0, 4)} \tab natural \cr
+   \code{xi} \tab \code{normal(0, 2.5)} on \code{tmp_xi} \tab see below \cr
 }
 
+
+The rows marked natural are for a parameter without a formula: the
+density is on the parameter itself, with the Jacobian of its link,
+which is what brms's bounds do on its constrained parameters. A
+parameter with a formula, \code{shape ~ x} or \code{shape ~ 1}, has its default
+on its intercept instead, on the link scale, as in brms:
+\code{student_t(3, 0, s)} for \code{sigma} (with \verb{y*} on \code{sigma}'s link),
+\code{student_t(3, 0, 2.5)} for \code{shape} and \code{phi}, \code{normal(2.7, 0.8)} for
+\code{nu}, \code{normal(5.0, 0.8)} for \code{kappa}, \code{normal(1.7, 1.3)} for \code{beta},
+\code{logistic(0, 1)} for \code{zi}, \code{hu}, \code{zoi}, \code{coi}, \code{bias}, \code{quantile} and
+a mixture weight, \code{normal(-0.6, 1.3)} for \code{bs}, \code{normal(0, 4)} for
+\code{xi} and \code{alpha}, and \code{normal(0, 1)} for an ordinal \code{disc}
+(\code{lognormal(0, 1)} under its identity link). \code{ndt} with a formula
+stays flat, as in brms. A family brms does not have takes the
+default of the dpar's name, which is what brms gives a custom family.
+
+For \code{sigma} without a formula \verb{y*} is the response itself (logged for
+a log-scale family), whatever the \code{mu} link: brms reads \code{sigma}'s
+own link there, which is the identity. \code{com_poisson()}'s dispersion,
+frmtmb's \code{nu}, takes brms's \code{shape} default, because it is the same
+quantity under brms's name. A mixture component's dpars take the
+class's default (\code{sigma2} is class \code{sigma}) and no family's own: brms
+asks the mixture, which states none.
+
+The support of each natural default is brms's bound on the class:
+frmtmb's link maps onto it (\code{log} onto \verb{(0, Inf)}, \code{logm1} onto
+\verb{(1, Inf)} for \code{nu}, \code{logit} onto \verb{(0, 1)}). Two classes differ, and
+the default is still the faithful one. \code{ndt} of
+\code{\link[frmtmb:shifted_lognormal]{frmtmb::shifted_lognormal()}} is on a log link, and its upper bound,
+brms's \code{min_Y}, is the density's: the uniform is \code{NaN} past it, where
+the likelihood has no support either. \code{ndt} of frmtmb.eam's
+\code{wiener()} is on a link bounded by the fastest response, so the
+uniform is flat over exactly brms's interval. A scalar \code{xi} of
+\code{\link[frmtmb:gen_extreme_value]{frmtmb::gen_extreme_value()}} is sampled through brms's \code{tmp_xi} (see
+the message), and is above -1, where brms's range goes on.
+
+A mixture's weights without a formula are a simplex, and
+\code{dirichlet(1)} on it is the flat density there, with the Jacobian of
+the log ratios the sampler works on. No \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} class
+names them (\code{theta} is frmtmb's covariance vector), so the default
+is disclosed in the message and \code{prior = "flat"} drops it with the
+other defaults.
 
 A \code{mo()} simplex is sampled in softmax coordinates under
 \code{dirichlet(1)}, brms's default and the flat density on the simplex,
@@ -381,11 +445,9 @@ names, \verb{simo_<term>1[k]}, one column per weight. A \code{simo} row in
 \verb{prior =}, \code{set_prior("dirichlet(c(5, 1, 1))", class = "simo", coef = "mox1")}, replaces \code{dirichlet(1)} on that simplex, as in brms,
 with the softmax's Jacobian applied.
 
-The \code{disc} default is brms's for every \code{link_disc} but the identity,
-where brms uses \code{lognormal(0, 1)}, which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} does
-not carry; the message names that gap. It matters more than most
-defaults: the likelihood cannot tell an intercept in \code{disc} apart
-from the scale of the thresholds, so this prior is what places it.
+The \code{disc} default matters more than most: the likelihood cannot
+tell an intercept in \code{disc} apart from the scale of the thresholds,
+so this prior is what places it.
 
 \code{m} is the mean of the predictor's \code{offset()}, 0 without one. brms
 takes it off because an offset moves the intercept by that much, and
@@ -394,12 +456,12 @@ other link the location stays 0.
 
 The \code{sd} default is written once per response, distributional
 parameter and nonlinear parameter that has a random-effect standard
-deviation, as brms writes one row for each. A class \code{"sd"}
-specification reaches only its own response, distributional
-parameter and nonlinear parameter (see \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}), so a
-\code{set_prior(class = "sd")} of your own replaces the location
-parameter's default and leaves, for example, a \code{phi} block's default
-in place, as in brms.
+deviation, as brms writes one row for each, with \verb{y*} on the \code{mu}
+link. A class \code{"sd"} specification reaches only its own response,
+distributional parameter and nonlinear parameter (see
+\code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}), so a \code{set_prior(class = "sd")} of your own
+replaces the location parameter's default and leaves, for example, a
+\code{phi} block's default in place, as in brms.
 
 A multivariate model reads \verb{y*} and \code{s} off each response for that
 response's rows, which are written with \code{resp}, as brms's are.
@@ -423,7 +485,7 @@ class, AND one line per slot it deliberately left flat, so a model
 that gets few defaults - or none - says so rather than looking flat
 by accident. Wrap it in \code{suppressMessages()} to silence that.
 \code{prior_summary()} on the returned draws reproduces the chosen priors
-exactly.
+exactly, except the mixture weights' Dirichlet, which no class names.
 
 \emph{What is deliberately NOT matched.} Each of these is named in the
 message whenever the model has one.
@@ -434,15 +496,12 @@ over its whole parameter space for an LKJ density to be about.
 Every other correlated structure gets \code{lkj(1)}, brms's own default
 (see \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}} for what the density is on frmtmb's
 parameters).
-\item ORDINAL THRESHOLDS stay flat. brms priors them
-\code{student_t(3, 0, 2.5)} under its \code{Intercept} class; frmtmb keeps
-them in the \code{thres} extra-parameter vector, which is not a design
-column and which \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}'s class vocabulary
-(\code{b}/\code{Intercept}/\code{sd}/\code{theta}) cannot address. An ordinal model
-still gets its \code{sd} defaults, and the message names the gap.
-\item The \code{shape}, \code{phi} and \code{nu} dispersion parameters stay flat: brms
-gives them gamma and inverse-gamma defaults. A user's prior writes
-one, as \code{set_prior("gamma(0.01, 0.01)", class = "phi")}.
+\item Sum-to-zero ordinal thresholds stay flat: brms puts its density on
+thresholds it declares before centering them, a vector frmtmb does
+not have.
+\item A Student-t group term's degrees of freedom have no prior: frmtmb
+fixes them (\code{gr(dist_nu = )}), where brms estimates them under
+\code{gamma(2, 0.1)}.
 \item NONLINEAR parameters stay flat, which is what brms does: their
 coefficients are class \code{b}, and the response's median and mad say
 nothing about a rate or a shape sitting inside a nonlinear body.
@@ -451,8 +510,17 @@ vignette does.
 }
 
 \emph{Overriding and opting out.} A \code{set_prior()} specification takes over
-the classes it names and leaves the other defaults in place, which is
-brms's partial-override rule; a named list of prior objects takes
+the parameters it reaches. The defaults stay on every other
+parameter, as in brms. \code{set_prior(class = "sd", group = "g")}
+replaces the default on the standard deviations of \code{g} and keeps it
+on the other groups. Adding \code{coef = "x"} narrows the prior to one
+standard deviation. A default written per coefficient, such as the
+\code{lscale} of each \code{gp()} term, is more specific than a class-wide
+specification and stays, as in brms, and so does a more specific
+specification of your own. The default-prior message names a
+specification that applies to no parameter for either reason.
+Write the coef to replace such a default. A named list of prior
+objects takes
 over exactly the internal parameters it names. \code{prior = "flat"}
 turns the defaults off entirely and samples the likelihood, which
 warns when the model has variance components: their flat-prior
@@ -577,8 +645,8 @@ ds2 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
 prior_summary(ds2)
 fixef(ds2)
 
-# a set_prior() specification takes over the classes it names and
-# leaves the rest of the defaults alone
+# a set_prior() specification takes over the parameters it reaches
+# and leaves the defaults on the rest
 ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
                   chains = 1, iter = 500, refresh = 0,
                   prior = set_prior("exponential(1)", class = "sd"))

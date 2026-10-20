@@ -11,24 +11,37 @@
 # independent, which is all the adapter reads; the ordinal blocks read
 # thresholds too, which each ordinal family object takes through its
 # exported ord_lpdf_make() and ord_sim_make() (fix round 1, after the
-# review's dev/remeasure-rev-ord.R). Left to the survey: the
+# review's dev/remeasure-rev-ord.R). The categorical blocks (lane
+# bin2port) map brms's per-category mu1, mu2, ... onto the categorical,
+# multinomial, dirichlet, dirichlet2 and logistic_normal families
+# (brms_adapt_cat_*()), and the wiener blocks onto frmtmb.eam's wiener
+# family, with brms's dec as its dec() term. Left to the survey: the
 # multivariate, ARMA, SAR and FCOR blocks (the row density is not the
-# family's), the categorical blocks (category arrays), wiener
-# (frmtmb.eam's) and custom families.
+# family's) and custom families.
 #
 # G2 (tests.distributions.R): the two blocks that compare brms's
 # unexported ordinal densities dcumulative(), dsratio(), dcratio() and
 # dacat() with brms's own closed-form helpers go through
-# brms_adapt_dord(), the same ordinal family objects. The link-map
-# blocks (link_<ordinal>(), inv_link_<ordinal>() on arrays) have no
-# frmtmb counterpart and stay with the survey.
+# brms_adapt_dord(), the same ordinal family objects; the
+# inv_link_<ordinal>() array blocks through brms_g2_shims (fix 2b); and
+# dcategorical() and inv_link_categorical() through brms_g2_cat_shims,
+# frmtmb's categorical family (lane bin2port). The link maps the other
+# way (link_<ordinal>(), link_categorical()) have no frmtmb counterpart
+# and stay with the survey.
 #
-# A family frmtmb does not have (discrete_weibull, negbinomial2, frechet,
-# gen_extreme_value) inside a listed block is substituted too: the
-# adapter's brmsfamily() call then refuses it in frmtmb's own words, and
-# the row records that refusal. Porting the block whole keeps the
-# binomial, poisson, gamma, weibull and other comparisons beside them,
-# which leaving the block to the survey would lose.
+# A family frmtmb does not have (negbinomial2, dirichlet_multinomial)
+# inside a listed block is substituted too: the adapter's brmsfamily()
+# call then refuses it in frmtmb's own words, and the row records that
+# refusal. Porting the block whole keeps the binomial, poisson, gamma,
+# weibull and other comparisons beside them, which leaving the block to
+# the survey would lose.
+#
+# Value checks (lane bin2port): where brms's assertion checks only a
+# shape and the line before it computed the value through the adapter
+# from a log density or a p function, the generator adds a check that
+# compares that value with brms's own function on the same arguments
+# (bin2_value_check_ok(), brms_value_check()). It is recorded as its
+# own "value" row and never changes the brms row's verdict.
 #
 # The reference side of every assertion stays brms's exported density or
 # base R's. brms's text calls those unqualified, because brms's tests run
@@ -65,7 +78,13 @@ brms_adapt_subst <- function(kind, funs) {
          c("skip_if_not_installed(\"extraDistr\")",
            "brms_adapt_brms_needs(\"extraDistr\")"),
          c("skip_if_not_installed(\"betareg\")",
-           "brms_adapt_brms_needs(\"betareg\")")))
+           "brms_adapt_brms_needs(\"betareg\")"),
+         # lane bin2port: RWiener is brms's wiener backend, and brms
+         # skips its wiener posterior_predict block for a fault of it
+         c("skip_if_not_installed(\"RWiener\")",
+           "brms_adapt_brms_needs(\"RWiener\")"),
+         c("skip(\"skip as long as RWiener fails",
+           "brms_adapt_brms_skip(\"skip as long as RWiener fails")))
 }
 
 brms_adapt_funs <- c(
@@ -82,7 +101,9 @@ brms_adapt_funs <- c(
   # fix round 2: the categorical blocks are tried with no new adapter
   # code; frmtmb's refusal is what a row that cannot run records
   "categorical", "multinomial", "dirichlet_multinomial", "dirichlet",
-  "dirichlet2", "logistic_normal")
+  "dirichlet2", "logistic_normal",
+  # lane bin2port: frmtmb.eam's wiener
+  "wiener")
 
 # brms's exported d, r and p functions that dev/brmsport-bin2-adapters.R
 # shims (brms_g1_shims), bound by name in the distributions file's header
@@ -94,7 +115,73 @@ brms_g1_names <- c(
   "dzero_inflated_negbinomial", "dzero_inflated_binomial",
   "dzero_inflated_beta_binomial", "dzero_inflated_beta",
   "dhurdle_poisson", "dhurdle_negbinomial", "dhurdle_gamma",
-  "dhurdle_lognormal")
+  "dhurdle_lognormal",
+  # lane bin2port: 0.71.0's extreme-value families
+  "dfrechet", "pfrechet", "rfrechet", "dgen_extreme_value",
+  "pgen_extreme_value", "rgen_extreme_value")
+brms_g2_cat_names <- c("dcategorical", "inv_link_categorical")
+
+# What a pass asserts, read from brms's assertion text: a shape, length,
+# names or type check, as against a comparison of values. The ledger
+# classifies passes with it; the generator adds a value check after a
+# shape assertion (dev/brmsport-bin2-ledger.R). The shape call must be
+# the assertion's FIRST argument: expect_equal(rowSums(pred), rep(1,
+# nrow(pred))) compares values, and a match anywhere counted it as a
+# shape (review 2026-10-14, finding 5). SW() may wrap the assertion.
+bin2_shape_re <- paste0(
+  "^[[:space:]]*(SW[(][[:space:]]*)?(",
+  "expect_(equal|true|identical|equivalent)[(][[:space:]]*",
+  "(dim|length|names|dimnames|nrow|ncol|is[.]numeric|is[.]character)[(]|",
+  "expect_is[(]|expect_output[(]|expect_length[(]|expect_named[(])")
+
+# The value-check candidate at statement j of a block: the name the line
+# before it assigns, when that line computes a log density or a CDF
+# (brms:::log_lik_<family>(), or a d or p function the header binds to a
+# shim) and statement j is one assertion of a shape of that name; NULL
+# otherwise. A line that draws (r functions, posterior_predict_*) is not
+# a candidate: two simulators agree in distribution, not draw by draw.
+bin2_value_check_ok <- function(b, j) {
+  if (n_expect(b$stmts[[j]]) != 1L || !grepl(bin2_shape_re, b$texts[j])) {
+    return(NULL)
+  }
+  # the call inside the assertion itself, as in
+  # expect_equal(length(brms:::log_lik_wiener(i, prep)), ns)
+  inner <- bin2_inner_log_lik(b$stmts[[j]])
+  if (!is.null(inner)) return(list(var = ".value", inline = inner))
+  if (j < 2L || n_expect(b$stmts[[j - 1L]]) != 0L) return(NULL)
+  s <- b$stmts[[j - 1L]]
+  if (!is.call(s) || !as.character(s[[1]])[1] %in% c("<-", "=") ||
+      !is.name(s[[2]])) {
+    return(NULL)
+  }
+  v <- as.character(s[[2]])
+  if (!v %in% all.vars(b$stmts[[j]])) return(NULL)
+  rhs <- s[[3]]
+  if (is.call(rhs) && identical(rhs[[1]], as.name("SW"))) rhs <- rhs[[2]]
+  fn <- if (is.call(rhs)) deparse(rhs[[1]]) else ""
+  dp <- grep("^[dp]", c(brms_g1_names, brms_g2_cat_names), value = TRUE)
+  ref <- grepl("brms:::log_lik_", b$texts[j - 1L], fixed = TRUE) ||
+    fn %in% dp
+  if (ref) list(var = v, inline = NULL) else NULL
+}
+
+# The one brms:::log_lik_<family>() call inside an expression, or NULL
+bin2_inner_log_lik <- function(e) {
+  found <- list()
+  walk <- function(x) {
+    if (!is.call(x)) return(invisible())
+    h <- deparse(x[[1]])
+    if (startsWith(h, "brms:::log_lik_")) {
+      found[[length(found) + 1L]] <<- x
+      return(invisible())
+    }
+    # x[[k]] is read in place: an empty argument (x[i, ]) cannot be
+    # bound to a name
+    for (k in seq_along(x)[-1L]) if (is.call(x[[k]])) walk(x[[k]])
+  }
+  walk(e)
+  if (length(found) == 1L) found[[1L]] else NULL
+}
 
 bin2_adapted <- list(
   "tests.log_lik.R" = list(
@@ -110,7 +197,9 @@ bin2_adapted <- list(
       "censored and truncated log_lik run without errors",
       "log_lik for the xbeta model runs without errors",
       "log_lik for ordinal models runs without erros",
-      "log_lik for categorical and related models runs without erros"),
+      "log_lik for categorical and related models runs without erros",
+      # lane bin2port: frmtmb.eam's wiener family
+      "log_lik for the wiener diffusion model runs without errors"),
     pre = c(
       "dstudent_t <- brms::dstudent_t",
       "dshifted_lnorm <- brms::dshifted_lnorm",
@@ -140,7 +229,10 @@ bin2_adapted <- list(
       "truncated posterior_predict run without errors",
       "posterior_predict for ordinal models runs without errors",
       paste("posterior_predict for categorical and related models runs",
-            "without erros")),
+            "without erros"),
+      # lane bin2port: frmtmb.eam's wiener family
+      paste("posterior_predict for the wiener diffusion model runs",
+            "without errors")),
     pre = brms_adapt_pre_links,
     subst = brms_adapt_subst("posterior_predict", brms_adapt_funs)),
   "tests.distributions.R" = list(
@@ -167,12 +259,17 @@ bin2_adapted <- list(
       "inv_link_<ordinal_family>() works correctly for arrays",
       paste("inv_link_sratio() and inv_link_cratio() applied to arrays",
             "give the same results for symmetric distribution functions",
-            "(when respecting the sign appropriately).")),
+            "(when respecting the sign appropriately)."),
+      # lane bin2port: the categorical probability maps
+      "dcategorical() works correctly",
+      "inv_link_categorical() works correctly for arrays"),
     pre = c(sprintf("%s <- brms_g1_shims[[\"%s\"]]", brms_g1_names,
                     brms_g1_names),
             sprintf("inv_link_%s <- brms_g2_shims[[\"%s\"]]",
                     c("cumulative", "sratio", "cratio", "acat"),
                     c("cumulative", "sratio", "cratio", "acat")),
+            sprintf("%s <- brms_g2_cat_shims[[\"%s\"]]", brms_g2_cat_names,
+                    brms_g2_cat_names),
             "SW <- suppressWarnings"),
     subst = c(
       list(c("skip_if_not_installed(\"extraDistr\")",

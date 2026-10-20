@@ -1,0 +1,11 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-adhess/dev/adhess-rev-common.R")
+set.seed(11)
+d <- data.frame(x = rnorm(150, 500, 100))
+d$y <- rpois(150, exp(0.3 + 0.004 * (d$x - 500)))
+f0 <- frm(y ~ x, family = poisson(), data = d)
+f1 <- frm(y ~ x, family = poisson(), data = d,
+          prior = set_prior("normal(0, 0.001)", class = "b"))
+print(rbind(ml = f0$opt$par, map = f1$opt$par))
+cat("fn at map par, ML obj vs MAP obj:", f0$obj$fn(f1$opt$par), f1$obj$fn(f1$opt$par), "\n")
+cat("logLik:", logLik(f0), logLik(f1), "\n")
+print(sqrt(diag(vcov(f0)))); print(sqrt(diag(vcov(f1))))

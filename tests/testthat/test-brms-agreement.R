@@ -70,7 +70,7 @@ test_that("population-level designs match brms standata X", {
 test_that("random-effect designs match brms Z_*/J_* and level order", {
   skip_unless_brms()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   sd <- brms_standata(brms::bf(Reaction ~ Days + (Days | Subject)),
                       data = sleepstudy, family = gaussian())
@@ -95,7 +95,7 @@ test_that("random-effect designs match brms Z_*/J_* and level order", {
 test_that("|ID| merging matches brms's cross-formula grouping block", {
   skip_unless_brms()
   skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
 
   bform <- brms::bf(Reaction ~ Days + (1 | p | Subject)) +
     brms::bf(Days ~ 1 + (1 | p | Subject)) + brms::set_rescor(FALSE)
@@ -158,7 +158,7 @@ test_that("ordinal families agree on thresholds and the dropped intercept", {
 test_that("cs() category-specific effects match brms Xcs", {
   skip_unless_brms()
   skip_if_not_installed("brms")
-  data(inhaler, package = "brms")
+  data(inhaler, package = "brms", envir = environment())
 
   sd <- brms_standata(brms::bf(rating ~ period + carry + cs(treat)),
                       data = inhaler, family = brms::sratio())
@@ -393,7 +393,7 @@ test_that("addition terms match brms's standata vectors", {
 
 test_that("censored survival data agrees on the whole design (kidney)", {
   skip_unless_brms()
-  data(kidney, package = "brms")
+  data(kidney, package = "brms", envir = environment())
 
   sd <- brms_standata(brms::bf(time | cens(censored) ~ age + sex + disease),
                       data = kidney, family = brms::lognormal())

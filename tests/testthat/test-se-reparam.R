@@ -186,10 +186,11 @@ test_that("a well-conditioned design keeps its covariance untouched", {
   expect_null(frm_lp_basis(fit, newdata = reparam_nd(d))$V_root)
 })
 
-test_that("a nonlinear body keeps the ill-conditioned verdict", {
+test_that("a nonlinear body takes the coordinates of its Jacobian", {
   # each coefficient is its own nonlinear parameter, so there is no
-  # design to take coordinates from; the SE check's "illcond" reason
-  # and the NaN stay (dev/illse-nl.R)
+  # design; the body's Jacobian is one, and on a body linear in its
+  # parameters it is the design itself. 0.71.0 stopped 0.41 below lm()'s
+  # maximum and lost all nine as "illcond" (dev/illse2-p3nl.R poly)
   set.seed(1)
   d <- data.frame(x = stats::runif(200, 1, 2))
   d$y <- sin(3 * d$x) + stats::rnorm(200, 0, 0.3)
@@ -197,12 +198,17 @@ test_that("a nonlinear body keeps the ill-conditioned verdict", {
             b6 * x^6 + b7 * x^7 + b8 * x^8,
           b0 + b1 + b2 + b3 + b4 + b5 + b6 + b7 + b8 ~ 1, nl = TRUE)
   r <- reparam_conds(frm(f, data = d))
-  expect_true(any(grepl("the design is ill-conditioned", r$warnings,
-                        fixed = TRUE)))
-  lost <- sdr_of(r$value)$se_lost
-  expect_length(lost, 9L)
-  expect_true(all(lost == "illcond"))
-  expect_null(sdr_of(r$value)$cov_fixed_root)
+  expect_length(r$warnings, 0L)
+  fit <- r$value
+  expect_length(sdr_of(fit)$se_lost, 0L)
+  expect_false(is.null(sdr_of(fit)$cov_fixed_root))
+  lmf <- stats::lm(y ~ stats::poly(x, 8, raw = TRUE), data = d)
+  ll <- as.numeric(stats::logLik(lmf))
+  expect_lt(abs(as.numeric(stats::logLik(fit)) / ll - 1), 1e-8)
+  n <- nrow(d)
+  Vl <- stats::vcov(lmf) * (n - 9) / n
+  V <- allow_warnings(vcov(fit, full = TRUE), reparam_products)[1:9, 1:9]
+  expect_lt(max(abs(V / unname(Vl) - 1)), 1e-4)
 })
 
 test_that("a covariate far from zero reaches lm()'s maximum and SEs", {
@@ -378,4 +384,161 @@ test_that("a fit at the maximum with an sd at zero is not unconverged", {
                      fixed = TRUE), 0L)
   se <- unname(sqrt(diag(allow_warnings(vcov(r$value), reparam_products))))
   expect_lt(max(abs(se / reparam_lm_se(r) - 1)), 1e-3)
+})
+
+test_that("an sd stopped near zero below a small interior maximum moves", {
+  # degree 7, seed 4: nlminb stopped at an sd of 1.9e-6 at code 0, but
+  # the maximum is at 0.033 times sigma, 1.2e-3 higher; the headroom
+  # then called the fit short and every coefficient lost its SE. The
+  # optimizer restarts from the larger sd the upward probe finds
+  # (sd_up_escape()). The reference is the profile of the
+  # log-likelihood in tau = sd / sigma: per group, I - a J whitens the
+  # rows, and the residual of the QR of the whitened design is the GLS
+  # residual (dev/illse2-p2.R, 256-bit, gives the same maximum)
+  r <- reparam_edge_fit(7, 4)
+  expect_length(r$warnings, 0L)
+  d <- r$data
+  X <- stats::model.matrix(r$lm)
+  gi <- split(seq_len(nrow(d)), d$g)
+  prof <- function(tau) {
+    yt <- d$y
+    Xt <- X
+    ld <- 0
+    for (ix in gi) {
+      ng <- length(ix)
+      a <- (1 - 1 / sqrt(1 + ng * tau^2)) / ng
+      yt[ix] <- d$y[ix] - a * sum(d$y[ix])
+      Xt[ix, ] <- X[ix, , drop = FALSE] -
+        a * rep(colSums(X[ix, , drop = FALSE]), each = ng)
+      ld <- ld + log(1 + ng * tau^2)
+    }
+    rss <- sum(qr.resid(qr(Xt, tol = 1e-12), yt)^2)
+    n <- nrow(d)
+    -(n / 2) * log(2 * pi * rss / n) - n / 2 - ld / 2
+  }
+  top <- stats::optimize(prof, c(0, 0.3), maximum = TRUE, tol = 1e-8)
+  expect_gt(top$maximum, 0.01)
+  ll <- as.numeric(stats::logLik(r$value))
+  expect_lt((top$objective - ll) / abs(top$objective), 1e-7)
+  se <- sqrt(diag(allow_warnings(vcov(r$value), reparam_products)))
+  expect_true(all(is.finite(se)))
+})
+
+test_that("an active bound on an ill-conditioned design is reached", {
+  # degree 6, an upper bound one SE below lm()'s estimate of x6: every
+  # full Newton step crossed the bound and was refused, and 0.71.0
+  # stopped 0.12 below the constrained maximum at code 0 with no warning
+  # and coefficient SEs 5.8 to 36 times the right ones. The steps now
+  # hold a coordinate they would push out at its bound
+  # (newton_polish()), and the others' covariance is taken in the
+  # coordinates of the design without x6 (dev/illse2-p4bound.R seed 1).
+  # The constrained maximum is lm() with x6 as an offset at the bound
+  set.seed(1)
+  d <- data.frame(x = stats::runif(200, 1, 2))
+  d$y <- sin(3 * d$x) + stats::rnorm(200, 0, 0.2)
+  for (k in 1:6) d[[paste0("x", k)]] <- d$x^k
+  fo <- y ~ x1 + x2 + x3 + x4 + x5 + x6
+  l0 <- stats::lm(fo, data = d)
+  ub <- stats::coef(l0)[["x6"]] - sqrt(diag(stats::vcov(l0)))[["x6"]]
+  fit <- allow_warnings(
+    frm(fo, data = d, prior = set_prior("", class = "b", coef = "x6",
+                                        ub = ub)),
+    "x6", require = "x6")
+  expect_identical(names(sdr_of(fit)$se_lost), "x6")
+  d$off <- ub * d$x6
+  l1 <- stats::lm(y ~ x1 + x2 + x3 + x4 + x5 + offset(off), data = d)
+  ll <- as.numeric(stats::logLik(l1))
+  expect_lt(abs(as.numeric(stats::logLik(fit)) / ll - 1), 1e-7)
+  se <- allow_warnings(fixef(fit), "x6")[c("Intercept", paste0("x", 1:5)),
+                                         "Est.Error"]
+  ref <- sqrt(diag(stats::vcov(l1)) * (200 - 6) / 200)
+  expect_lt(max(abs(unname(se / ref) - 1)), 1e-3)
+})
+
+test_that("raising the optimizer's caps keeps the sd escape", {
+  # a caller who asks for more iterations asks for more work: with
+  # iter.max = eval.max = 5000 the escape was off, and degree 7 seed 4
+  # stayed 1.2e-3 short with every coefficient SE NaN (review of lane
+  # illse2, finding 2). A cap below the default keeps its stop
+  # (test-se-conv.R)
+  r <- reparam_edge_fit(7, 4)
+  fo <- y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + (1 | g)
+  w <- character()
+  f2 <- withCallingHandlers(
+    frm(fo, data = r$data,
+        control = frmtmb_control(optCtrl = list(iter.max = 5000,
+                                                eval.max = 5000))),
+    warning = function(x) {
+      w <<- c(w, conditionMessage(x))
+      invokeRestart("muffleWarning")
+    })
+  expect_length(w, 0L)
+  expect_true(isTRUE(f2$opt$sd_escape[["gain"]] > 1e-3))
+  ll <- as.numeric(stats::logLik(r$value))
+  expect_lt(abs(as.numeric(stats::logLik(f2)) / ll - 1), 1e-9)
+  expect_false(frmtmb:::optctrl_stops_earlier(list(iter.max = 5000,
+                                                   rel.tol = 1e-12)))
+  expect_true(frmtmb:::optctrl_stops_earlier(list(iter.max = 3)))
+  expect_true(frmtmb:::optctrl_stops_earlier(list(rel.tol = 1e-6)))
+})
+
+reparam_aexp_fit <- function(seed, A0) {
+  set.seed(seed)
+  n <- 2000
+  d <- data.frame(x = stats::runif(n, 1, 2), z = stats::runif(n, 0, 10))
+  for (k in 1:6) d[[paste0("x", k)]] <- d$x^k
+  d$y <- sin(3 * d$x) + A0 * exp(-0.5 * d$z) + stats::rnorm(n, 0, 0.01)
+  f <- bf(y ~ b0 + b1 * x1 + b2 * x2 + b3 * x3 + b4 * x4 + b5 * x5 +
+            b6 * x6 + A * exp(-k * z),
+          b0 + b1 + b2 + b3 + b4 + b5 + b6 + A + k ~ 1, nl = TRUE)
+  l0 <- stats::lm(y ~ x1 + x2 + x3 + x4 + x5 + x6, data = d)
+  st <- list(beta = c(unname(stats::coef(l0)), A0, 0.5))
+  list(d = d, fit = frm(f, data = d, start = st))
+}
+
+test_that("an identified nonlinear body passes the asymmetry guard", {
+  # a degree-6 raw polynomial beside A exp(-k z), A = 1 (t(k) near
+  # 460): the route takes it, and with every column extrapolated its
+  # covariance is within 3.2e-7 of the exact one (review of lane
+  # illse2, findings 3 and 4). Reference: the Hessian at the maximum,
+  # (J'J - S) / s2 with S the residuals times the body's second
+  # derivatives in (A, k), inverted through the QR of the Jacobian J
+  r <- reparam_aexp_fit(1, 1)
+  fit <- r$fit
+  d <- r$d
+  expect_false(is.null(sdr_of(fit)$cov_fixed_root))
+  b <- fit$opt$par[1:9]
+  s2 <- exp(2 * fit$opt$par[[10]])
+  X <- as.matrix(cbind(1, d[paste0("x", 1:6)]))
+  e <- exp(-b[[9]] * d$z)
+  J <- cbind(X, e, -b[[8]] * d$z * e)
+  res <- d$y - drop(X %*% b[1:7]) - b[[8]] * e
+  S <- matrix(0, 9, 9)
+  S[8, 9] <- S[9, 8] <- sum(res * (-d$z * e))
+  S[9, 9] <- sum(res * b[[8]] * d$z^2 * e)
+  q <- qr(J, tol = 1e-12)
+  Ri <- matrix(0, 9, 9)
+  Ri[q$pivot, ] <- backsolve(qr.R(q), diag(9))
+  G <- crossprod(Ri, S %*% Ri)
+  Fm <- Ri %*% t(chol(solve(diag(9) - G)))
+  se_ref <- sqrt(s2 * rowSums(Fm^2))
+  se <- sqrt(diag(allow_warnings(vcov(fit, full = TRUE),
+                                 reparam_products)))[1:9]
+  expect_lt(max(abs(unname(se) / se_ref - 1)), 1e-4)
+})
+
+test_that("a nearly unidentified nonlinear body is refused by the guard", {
+  # the same body with A = 0.05 (t(k) near 22), seed 2: the Jacobian's
+  # coordinates are not linear enough for the differences there, and
+  # the Hessian in them is asymmetric by 6.6e-3 of its largest entry
+  # (at most 1.7e-5 on fits the route should take). Taken anyway, its
+  # covariance was 9.1e-2 from the exact one on the scale of the
+  # correlation, silently; refused, the fit keeps 0.71.0's, 5.9e-4 off
+  # (dev/illse2-rev-asym.R with I2_ASYM=off)
+  fit <- reparam_aexp_fit(2, 0.05)$fit
+  expect_null(sdr_of(fit)$cov_fixed_root)
+  p <- fit$opt$par
+  M <- frmtmb:::reparam_basis(fit$frame, names(p), est = fit$estimates)
+  h <- frmtmb:::reparam_hessian(fit$obj, p, M)
+  expect_gt(max(h$E) / max(abs(h$H)), frmtmb:::se_reparam_asym)
 })

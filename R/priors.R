@@ -11,8 +11,9 @@
 #' `set_prior("normal(0, 5)", class = "b")`. Combine several with `+` or
 #' `c()`. Distributions: `normal(mu, sd)`, `student_t(df, mu, sd)`,
 #' `cauchy(mu, sd)`, `exponential(rate)`, `logistic(mu, s)`,
-#' `gamma(shape, rate)`, `lkj(eta)`, `dirichlet(alpha)`; an empty string
-#' sets bounds only.
+#' `gamma(shape, rate)`, `inv_gamma(shape, scale)`, `beta(a, b)`,
+#' `uniform(lb, ub)`, `lognormal(mu, sd)`, `lkj(eta)`, `dirichlet(alpha)`;
+#' an empty string sets bounds only.
 #'
 #' Classes and their scales:
 #' - `"b"`: population-level coefficients of `dpar` (default: the
@@ -27,7 +28,10 @@
 #' - `"sd"`: random-effect standard deviations (and smoothing SDs), on
 #'   the NATURAL sd scale with the log-Jacobian applied, so
 #'   `set_prior("exponential(1)", class = "sd")` means what it says;
-#'   narrow with `group`. As in brms, `resp`, `dpar` and `nlpar` select
+#'   narrow with `group`, and to one coefficient's standard deviation
+#'   with `group` and `coef` (`coef = "x"` for the `x` column of
+#'   `(1 + x | g)`, as [default_prior()] lists it). See Group-level
+#'   standard deviations. As in brms, `resp`, `dpar` and `nlpar` select
 #'   the standard deviations of that response, distributional parameter
 #'   and nonlinear parameter only, and leaving one empty selects the
 #'   empty one: with no `dpar` the specification reaches the location
@@ -120,6 +124,33 @@
 #' a `"cor"` prior covers replaces that whole LKJ term if it comes later,
 #' and the other way round.
 #' `lb`/`ub` become hard bounds. See Hard bounds.
+#'
+#' @section Group-level standard deviations:
+#' `set_prior(class = "sd", group = "g", coef = "x")` puts the density
+#' on one standard deviation: that of the `x` column of the `g` block.
+#' brms puts the same prior on `sd_g__x`. The other standard deviations
+#' of the block keep the prior of the group or of the class. A `coef`
+#' without a `group` is refused, because brms has no such row.
+#'
+#' The density is on the standard deviation itself, with the
+#' log-Jacobian of the log map. frmtmb holds a correlated block as log
+#' standard deviations and separate correlation parameters. It does not
+#' hold a Cholesky factor. So each standard deviation is one parameter,
+#' and the prior on it is exact. The prior does not change the
+#' correlations. A class `"cor"` prior addresses those. In a Student-t
+#' block (`gr(g, dist = "student")`), the parameter is the scale. That
+#' is also what brms's `sd` is in that term.
+#'
+#' Some structures give their columns one shared standard deviation,
+#' for example `homdiag()`, `ar1()` and `homcs()`. They have no standard
+#' deviation per coefficient. A `coef` that names one of their columns
+#' is refused by name. Drop the `coef` to put the prior on the shared
+#' standard deviation. A block of another response, distributional
+#' parameter or nonlinear parameter does not cause this refusal.
+#'
+#' The group labels are brms's. A nested `(1 | g1/g2)` has the groups
+#' `g1` and `g1:g2`. A multi-membership `(1 | mm(m1, m2))` has the group
+#' `mmm1m2`. [default_prior()] lists them so.
 #'
 #' @section Where an intercept prior lands:
 #' brms centers its design matrix and constrains the intercept at the
@@ -407,7 +438,8 @@
 #'   name (`"sigma"`, `"shape"`, ...). See A distributional parameter's
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
-#'   or name the simplex of class `"simo"`.
+#'   to the standard deviation of one coefficient (class `"sd"`, with
+#'   `group`), or name the simplex of class `"simo"`.
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
 #' @param resp Response of a multivariate model. Required there for
 #'   every class except `"cor"`, `"rescor"` and `"theta"`; refused on a
@@ -521,6 +553,97 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
                           a$dpar, a$nlpar, a$lb, a$ub))[[1L]]
   })
   structure(rows, class = "frmtmb_priorlist")
+}
+
+#' The bounds a class has of its own, brms 2.23.0's: `lb = 0` on the
+#' standard deviations and length scales, the bounds of `dpar_bounds()`
+#' on a distributional parameter's own class, none on a coefficient, an
+#' intercept or frmtmb's internal `theta`.
+#'
+#' @noRd
+prior_class_bounds <- function(s) {
+  if (isTRUE(s$natural)) {
+    dc <- sub("[0-9]+$", "", s$dpar %||% "")
+    # a logistic_normal() category's sigma<k> is brms's class sigma
+    if (startsWith(dc, "sigma")) dc <- "sigma"
+    return(switch(dc,
+      sigma = , shape = , phi = , kappa = , beta = , bs = , disc = ,
+      nu = c(lb = TRUE, ub = FALSE),
+      zi = , hu = , zoi = , coi = , bias = , quantile = ,
+      ndt = c(lb = TRUE, ub = TRUE),
+      c(lb = FALSE, ub = FALSE)))
+  }
+  switch(s$class,
+    sd = , sdgp = , lscale = , delta = c(lb = TRUE, ub = FALSE),
+    cosy = c(lb = TRUE, ub = TRUE),
+    c(lb = FALSE, ub = FALSE))
+}
+
+#' brms's `check_prior_content()` warnings: a density with a lower bound
+#' (or both bounds) on a parameter that has no such bound of its own,
+#' with no `lb` (`ub`) given. The parameter is then not constrained, and
+#' the density is a wall a sampler meets rather than a support it is
+#' transformed onto: brms warns, and so does this, in brms's words
+#' (dev/sampleprior-brmsunif.R).
+#'
+#' It reads the WHOLE prior a call is given, as brms reads its combined
+#' prior frame: a coefficient's or a group's row is bounded by the
+#' bounds of the class row above it (same class, dpar, nlpar and resp,
+#' no coef or group), which frmtmb applies to it too. So it runs where
+#' the prior is used (check_prior_slots()), not in each set_prior()
+#' call, and the defaults, which never pass through there, are not
+#' checked: brms checks a user's rows only.
+#'
+#' @noRd
+prior_bound_warning <- function(rows) {
+  lb_kind <- c("lognormal", "exponential", "gamma", "inv_gamma")
+  ulb_kind <- c("beta", "uniform")
+  lb_msg <- ub_msg <- character(0)
+  cls_key <- function(s) {
+    paste(s$class, s$dpar %||% "", s$nlpar %||% "", s$resp %||% "",
+          sep = "|")
+  }
+  top <- Filter(function(s) {
+    !nzchar(s$coef %||% "") && !nzchar(s$group %||% "")
+  }, rows)
+  top_lb <- vapply(top, function(s) !is.na(s$lb), NA)
+  top_ub <- vapply(top, function(s) !is.na(s$ub), NA)
+  top_key <- vapply(top, cls_key, "")
+  for (s in rows) {
+    k <- s$dist$kind %||% ""
+    if (!k %in% c(lb_kind, ulb_kind)) next
+    own <- prior_class_bounds(s)
+    up <- top_key == cls_key(s)
+    if (any(top_lb[up])) own[["lb"]] <- TRUE
+    if (any(top_ub[up])) own[["ub"]] <- TRUE
+    sp <- spec_spelling(s)
+    lab <- paste0(sp$class, if (nzchar(sp$dpar)) paste0("_", sp$dpar),
+                  if (nzchar(s$coef %||% "")) paste0("_", s$coef), " ~ ",
+                  s$prior %||% "")
+    if (!own[["lb"]] && is.na(s$lb)) lb_msg <- c(lb_msg, lab)
+    if (k %in% ulb_kind && !own[["ub"]] && is.na(s$ub)) {
+      ub_msg <- c(ub_msg, lab)
+    }
+  }
+  if (length(lb_msg)) {
+    frm_warning("It appears as if you have specified a lower bounded ",
+                "prior on a parameter that has no natural lower bound.\n",
+                "If this is really what you want, please specify ",
+                "argument 'lb' of 'set_prior' appropriately.\n",
+                "Warning occurred for prior \n",
+                paste(lb_msg, collapse = "\n"), call. = FALSE,
+                class = "frmtmb_prior_unbounded")
+  }
+  if (length(ub_msg)) {
+    frm_warning("It appears as if you have specified an upper bounded ",
+                "prior on a parameter that has no natural upper bound.\n",
+                "If this is really what you want, please specify ",
+                "argument 'ub' of 'set_prior' appropriately.\n",
+                "Warning occurred for prior \n",
+                paste(ub_msg, collapse = "\n"), call. = FALSE,
+                class = "frmtmb_prior_unbounded")
+  }
+  invisible(NULL)
 }
 
 #' One row of [set_prior()]: every argument is a scalar here.
@@ -932,14 +1055,9 @@ as_priorlist <- function(x) {
 
 #' Why a `coef` or `group` on a row cannot be honored, or `NULL`.
 #'
-#' brms narrows a `sd` row to one coefficient of a block and writes
-#' `exponential_lpdf(sd_1[2] | 1)`, keeping its default on the rest.
-#' frmtmb's class `"sd"` addresses a BLOCK: `resolve_priorlist()` reads
-#' `group`, `nlpar` and `resp` and never reads `coef`, so a narrowed row
-#' would silently apply to every standard deviation of the block. That
-#' is a wider prior than the one asked for, which is exactly the failure
-#' D1 exists to remove, so it is refused instead. Class `"cor"` reads no
-#' `coef` either, and a correlation is not per-coefficient at all.
+#' Class `"cor"` reads no `coef`: a correlation is not per-coefficient
+#' at all. A class `"sd"` row narrowed to one coefficient is honored
+#' (`sd_spec_reach()`), as brms honors it.
 #'
 #' A distributional parameter's own class is one parameter, so it reads
 #' neither: it has no coefficients to narrow to and belongs to no
@@ -970,20 +1088,11 @@ unhonored_coef_refusal <- function(cls, coef, group = "") {
                   "a grouping term, and brms's rows for it carry none. ",
                   "`coef` names the term, as get_prior() lists it. "))
   }
-  if (!nzchar(coef) || !cls %in% c("sd", "cor")) return(NULL)
-  if (identical(cls, "cor")) {
-    return(paste0("class = \"cor\" addresses a whole correlation ",
-                  "matrix, so coef = \"", coef, "\" names nothing it ",
-                  "can narrow to. Drop the coef; `group` selects the ",
-                  "block. "))
-  }
-  paste0("frmtmb's class = \"sd\" addresses a whole random-effect ",
-         "BLOCK, not one coefficient of it, so coef = \"", coef,
-         "\" cannot be honored and applying the row without it would ",
-         "put the density on every standard deviation of the block. ",
-         "Drop the coef to prior the whole block (`group` selects ",
-         "which one), or address the one parameter with ",
-         "class = \"theta\" and the coef get_prior() lists for it. ")
+  if (!nzchar(coef) || !identical(cls, "cor")) return(NULL)
+  paste0("class = \"cor\" addresses a whole correlation ",
+         "matrix, so coef = \"", coef, "\" names nothing it ",
+         "can narrow to. Drop the coef; `group` selects the ",
+         "block. ")
 }
 
 #' brms class names frmtmb spells with the same word and the same
@@ -1150,10 +1259,29 @@ parse_prior_dist <- function(prior) {
     gamma = prior_gamma(pars[1], pars[2]),
     inv_gamma = prior_inv_gamma(pars[1], pars[2]),
     beta = prior_beta(pars[1], pars[2]),
+    # brms's default on a non-decision time without a formula is
+    # uniform(0, min_Y), and on an ordinal discrimination under the
+    # identity link lognormal(0, 1)
+    uniform = {
+      if (!all(is.finite(pars)) || !(pars[1] < pars[2])) {
+        frm_stop("Prior '", prior, "': uniform(lb, ub) needs finite ",
+                 "bounds with lb < ub", call. = FALSE)
+      }
+      structure(list(kind = "uniform", lower = pars[1], upper = pars[2]),
+                class = "frmtmb_prior")
+    },
+    lognormal = {
+      if (!(pars[2] > 0)) {
+        frm_stop("Prior '", prior, "': the scale of lognormal() must be ",
+                 "positive, not ", pars[2], call. = FALSE)
+      }
+      structure(list(kind = "lognormal", location = pars[1],
+                     scale = pars[2]), class = "frmtmb_prior")
+    },
     frm_stop("Unsupported prior distribution '", kind,
              "' (supported: normal, student_t, cauchy, exponential, ",
-             "logistic, gamma, inv_gamma, beta, lkj, dirichlet)",
-             call. = FALSE)
+             "logistic, gamma, inv_gamma, beta, uniform, lognormal, lkj, ",
+             "dirichlet)", call. = FALSE)
   )
 }
 
@@ -1165,7 +1293,8 @@ prior_dist_params <- list(
   normal = c("mu", "sigma"), student_t = c("nu", "mu", "sigma"),
   cauchy = c("mu", "sigma"), exponential = "beta", lkj = "eta",
   logistic = c("mu", "sigma"), gamma = c("alpha", "beta"),
-  inv_gamma = c("alpha", "beta"), beta = c("alpha", "beta"))
+  inv_gamma = c("alpha", "beta"), beta = c("alpha", "beta"),
+  uniform = c("alpha", "beta"), lognormal = c("mu", "sigma"))
 
 #' The location of a prior distribution, or `NA` where it has none.
 #' `normal` and `student_t` (which `cauchy` parses into) carry one;
@@ -1491,7 +1620,8 @@ priorlist_from_rows <- function(x, what) {
 #' brms's `default_prior()`, and `get_prior()`, which brms has kept as
 #' its alias since 2.20.14: one row per slot a prior can target, with
 #' the class/coef/dpar/group values to pass to [set_prior()]. Classes
-#' `"sd"` and `"cor"` are targeted by `group` and `nlpar`; the
+#' `"sd"` and `"cor"` are targeted by `group` and `nlpar`, and class
+#' `"sd"` lists a row per coefficient of each group, as brms does; the
 #' residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`)
 #' by `resp`; class `"rescor"` has one row and takes no `resp`; and
 #' class `"theta"` rows name the raw internal covariance parameters
@@ -1524,10 +1654,10 @@ priorlist_from_rows <- function(x, what) {
 #' parameter. brms has no such class, so a brms table for the same model
 #' has fewer rows.
 #'
-#' brms lists a class `"sd"` row per coefficient of each block
-#' (`sd_patient__Intercept`). frmtmb's class `"sd"` addresses a whole
-#' block and refuses a `coef`, so those rows are not listed; class
-#' `"theta"` reaches one standard deviation on its own.
+#' A covariance structure brms does not have, and whose columns share
+#' one standard deviation (`homdiag()`, `ar1()`, ...), has no class
+#' `"sd"` row per coefficient. Every other block has one per column,
+#' as in brms (`sd_patient__Intercept`).
 #'
 #' A flat slot reads `"(flat)"` in the `prior` column, where brms stores
 #' an empty string and prints `(flat)`.
@@ -1792,7 +1922,26 @@ fill_prior_table <- function(tab, pl) {
     tab$prior[i] <- tab$prior[best[length(best)]]
     tab$source[i] <- "(vectorized)"
   }
+  tab <- prior_rows_sd_order(tab)
   rownames(tab) <- NULL
+  tab
+}
+
+#' The class `"sd"` rows of a filled table in brms's order.
+#' brms's validate_prior() and prior_summary() order the rows by
+#' `order(class, group, resp, dpar, nlpar, coef)`, not by default_prior()'s
+#' `order(resp, dpar, ...)`: every class-wide sd row first, then group by
+#' group, the responses inside each (dev/prilabel-rev-log/brmsfit.txt).
+#' Only the sd rows are put in that order, in the places they hold.
+#'
+#' @noRd
+prior_rows_sd_order <- function(tab) {
+  sdr <- which(tab$class == "sd")
+  if (length(sdr) > 1L) {
+    s <- tab[sdr, , drop = FALSE]
+    tab[sdr, ] <- s[with(s, order(group, resp, dpar, nlpar, coef)), ,
+                    drop = FALSE]
+  }
   tab
 }
 
@@ -2032,25 +2181,33 @@ prior_table <- function(spec, frame, route) {
       next
     }
     # brms lists sd rows per prefix, so a block spanning mu and sigma
-    # has a row for each (sd_spec_reach() is the rule the rows describe)
-    sp <- unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
-                                                      "nlpar")])
-    for (i in seq_len(nrow(sp))) {
-      sd_rows[[length(sd_rows) + 1L]] <- list(
-        group = bk[["group_name"]], nlpar = sp$nlpar[i], dpar = sp$dpar[i],
-        resp = sp$resp[i])
-    }
+    # has a row for each, and below each group row one per coefficient
+    # (sd_spec_reach() is the rule the rows describe)
+    sp <- block_sd_prefix(spec, frame, bk)
+    cf <- block_sd_coefs(frame, bk)
+    sd_rows[[length(sd_rows) + 1L]] <- data.frame(
+      group = bk[["group_name"]], nlpar = sp$nlpar, dpar = sp$dpar,
+      resp = sp$resp, coef = if (nrow(sp)) cf[sp$k] else character(0),
+      stringsAsFactors = FALSE)
     if (identical(block_cor_prior(bk), "lkj")) {
       cor_rows[[length(cor_rows) + 1L]] <- key
     }
   }
-  if (length(sd_rows)) {
-    # the class-wide row, once per prefix
-    for (k in sd_rows) add("sd", dpar = k$dpar, nlpar = k$nlpar,
-                           resp = k$resp)
-    for (k in sd_rows) {
-      add("sd", group = k$group, dpar = k$dpar, nlpar = k$nlpar,
-          resp = k$resp)
+  sd_rows <- do.call(rbind, sd_rows)
+  if (NROW(sd_rows)) {
+    # the class-wide row of each prefix, its group rows and their
+    # coefficient rows, in brms's order(resp, dpar, nlpar, class, group,
+    # coef) (.default_prior()); `""` sorts first, so each wider row
+    # comes before the rows it covers
+    wide <- unique(rbind(
+      transform(sd_rows, group = "", coef = ""),
+      transform(sd_rows, coef = ""),
+      sd_rows[!is.na(sd_rows$coef), , drop = FALSE]))
+    wide <- wide[with(wide, order(resp, dpar, nlpar, group, coef)), ,
+                 drop = FALSE]
+    for (i in seq_len(nrow(wide))) {
+      add("sd", coef = wide$coef[i], group = wide$group[i],
+          dpar = wide$dpar[i], nlpar = wide$nlpar[i], resp = wide$resp[i])
     }
   }
   if (length(cor_rows)) {
@@ -2084,9 +2241,10 @@ prior_table <- function(spec, frame, route) {
   }
   if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
   # a logistic_normal() response's correlations, brms's class lncor;
-  # frmtmb.sample supplies brms's lkj(1) default, as for rescor
-  if (length(frame[["par_template"]][["lncor_raw"]] %||% numeric(0))) {
-    add("lncor")
+  # frmtmb.sample supplies brms's lkj(1) default, as for rescor. One row
+  # per such response, which a multivariate model names, as brms does
+  for (b in lncor_blocks(list(spec = spec, frame = frame))) {
+    add("lncor", resp = if (multi) b$resp else "")
   }
   # brms's default on a simplex is dirichlet(1), the flat density on it;
   # frm() applies no density there, and frm_sample() applies brms's
@@ -2348,9 +2506,20 @@ block_sd_prefix <- function(spec, frame, bk) {
 #' fields reaches every column there, and the more specific one wins,
 #' which the caller's specificity order already arranges.
 #'
+#' A `coef` narrows the specification to the standard deviation of that
+#' one coefficient, as brms's `sd_1[2]` row does, and then the prefix
+#' must EQUAL the standard deviation's even in a block that spans
+#' several: brms puts `set_prior(class = "sd", group = "g", coef =
+#' "Intercept")` on mu's intercept alone in `(1 + x | p | g)` with
+#' `sigma ~ (1 | p | g)` (dev/prilabel-log/brms-ref3.txt). A structure
+#' whose columns share one standard deviation has none per coefficient
+#' (`block_sd_coefs()`); the caller refuses a `coef` that names one of
+#' its columns.
+#'
 #' Returns a list: `reach`, a logical per entry of `block_sd_idx()`, and
-#' `exact`, whether the specification's own prefix is one this block
-#' has, which is what brms requires for the row to exist at all.
+#' `exact`, whether the specification's own prefix (and coefficient) is
+#' one this block has, which is what brms requires for the row to exist
+#' at all.
 #'
 #' @noRd
 sd_spec_reach <- function(spec, frame, bk, s) {
@@ -2365,6 +2534,13 @@ sd_spec_reach <- function(spec, frame, bk, s) {
             nlpar = s$nlpar %||% "")
   eq <- sp$resp == want[["resp"]] & sp$dpar == want[["dpar"]] &
     sp$nlpar == want[["nlpar"]]
+  if (nzchar(s$coef %||% "")) {
+    cf <- block_sd_coefs(frame, bk)
+    hit <- !is.na(cf) & (cf == s$coef | cf == par_name_bare(s$coef))
+    reach <- vapply(seq_len(n), function(j) hit[j] && any(eq[sp$k == j]),
+                    TRUE)
+    return(list(reach = reach, exact = any(reach)))
+  }
   spans <- nrow(unique(sp[, c("resp", "dpar", "nlpar")])) > 1L
   fits <- if (spans) {
     (sp$resp == want[["resp"]] | !nzchar(want[["resp"]])) &
@@ -2375,6 +2551,120 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   }
   reach <- vapply(seq_len(n), function(j) any(fits[sp$k == j]), TRUE)
   list(reach = reach, exact = any(eq))
+}
+
+#' The structures whose standard deviations no brms coefficient names: a
+#' smooth's (brms's class `"sds"`), a gp() term's (`"sdgp"`), a CAR or
+#' SPDE field's, and a reduced-rank or fixed block, which have none of
+#' their own per column.
+#'
+#' @noRd
+sd_coef_unaddressable <- c("smooth", "gp", "hsgp", "car", "spde", "rr",
+                           "equalto")
+
+#' brms's coefficient name for each standard deviation of a block, one
+#' per entry of `block_sd_idx()`: `Intercept`, `x`, `fb`, `moxo`, as
+#' brms's class `"sd"` rows name them (`brms_rename()` of the column
+#' name, which is what brms's `get_rnames()` gives before the prefix).
+#' `NA` for every entry of a block whose columns share their standard
+#' deviations (`homdiag()`, `ar1()`, `homcs()`, ...), where no entry is
+#' one coefficient's, and of a block in `sd_coef_unaddressable`.
+#'
+#' @noRd
+block_sd_coefs <- function(frame, bk) {
+  n <- length(block_sd_idx(bk))
+  d <- bk[["dim"]] %||% 0L
+  if (!n || n != d || bk[["covstruct"]] %in% sd_coef_unaddressable ||
+        length(bk[["cnms"]]) != d) {
+    return(rep(NA_character_, n))
+  }
+  block_col_coefs(bk)
+}
+
+#' brms's coefficient name for each COLUMN of a block, in column order:
+#' each component's column names, `brms_rename()`d.
+#'
+#' @noRd
+block_col_coefs <- function(bk) {
+  d <- bk[["dim"]] %||% 0L
+  cf <- bk[["cnms"]] %||% rep(NA_character_, d)
+  for (cp in bk[["components"]] %||% list()) {
+    if (is.null(cp[["offset"]]) || is.null(cp[["cnms"]])) next
+    pos <- cp[["offset"]] + seq_along(cp[["cnms"]])
+    ok <- pos <= d
+    cf[pos[ok]] <- cp[["cnms"]][ok]
+  }
+  brms_rename(cf)
+}
+
+#' A block as a message names it: a `||` or `gr(cor = FALSE)` term as
+#' it was written, `(1 + f || g)`, and any other term by its label and
+#' structure, `1 + f | g [us]`. The label alone would read a `||` term
+#' as the correlated `1 + f | g`, which is the term it is not.
+#'
+#' @noRd
+block_written_label <- function(bk) {
+  wt <- unique(unlist(lapply(bk[["components"]] %||% list(), function(cp) {
+    cp[["written_text"]]
+  })))
+  if (length(wt)) return(paste(wt, collapse = " + "))
+  paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
+}
+
+#' What a refused per-coefficient class `"sd"` specification could have
+#' named: the coefficients each group's standard deviations carry, as
+#' `default_prior()` lists them.
+#'
+#' @noRd
+sd_coef_hint <- function(frame, s) {
+  bks <- Filter(function(bk) {
+    !nzchar(s$group) || identical(bk[["group_name"]], s$group)
+  }, frame[["re_blocks"]])
+  grp <- vapply(bks, function(bk) bk[["group_name"]] %||% "", "")
+  cf <- lapply(bks, function(bk) {
+    v <- block_sd_coefs(frame, bk)
+    v[!is.na(v)]
+  })
+  lab <- vapply(unique(grp), function(g) {
+    v <- unique(unlist(cf[grp == g]))
+    if (!length(v)) return(NA_character_)
+    paste0("group \"", g, "\": ", paste0("\"", v, "\"", collapse = ", "))
+  }, "")
+  lab <- lab[!is.na(lab)]
+  if (!length(lab)) {
+    return(paste0("No standard deviation of ",
+                  if (nzchar(s$group)) paste0("group \"", s$group, "\"")
+                  else "this model",
+                  " is one coefficient's. "))
+  }
+  paste0("Per-coefficient standard deviations: ",
+         paste(lab, collapse = "; "), ". ")
+}
+
+#' The columns of a block a `coef` names whose standard deviation is
+#' shared with other columns, so that a prior on it cannot be one
+#' coefficient's. `character(0)` when there is none. A column counts
+#' only where the specification's prefix (resp, dpar, nlpar) EQUALS the
+#' column's, the rule of `sd_spec_reach()`'s coef branch: a
+#' `sigma ~ homdiag(1 + x | g)` block does not stop a coef prior with no
+#' dpar from reaching mu's `(1 + x | g)`, as brms puts it there.
+#'
+#' @noRd
+sd_coef_shared <- function(spec, frame, bk, s) {
+  if (!nzchar(s$coef %||% "") || !length(block_sd_idx(bk)) ||
+        bk[["covstruct"]] %in% sd_coef_unaddressable) {
+    return(character(0))
+  }
+  if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
+    return(character(0))
+  }
+  if (!all(is.na(block_sd_coefs(frame, bk)))) return(character(0))
+  cf <- block_col_coefs(bk)
+  cp <- block_col_prefix(spec, frame, bk)
+  if (length(cf) != nrow(cp)) return(character(0))
+  eq <- cp$resp == (s$resp %||% "") & cp$dpar == (s$dpar %||% "") &
+    cp$nlpar == (s$nlpar %||% "")
+  cf[eq & (cf == s$coef | cf == par_name_bare(s$coef))]
 }
 
 #' What a refused class `"sd"` specification could have named: the
@@ -2548,6 +2838,9 @@ prior_drop_unmatched <- function(prior, spec, frame) {
   attr(prior, "allow_invalid_prior") <- NULL
   strict <- attr(prior, "update_strict")
   attr(prior, "update_strict") <- NULL
+  # drop1() refits through the same door, and the message names it
+  who <- attr(prior, "drop_who") %||% "update()"
+  attr(prior, "drop_who") <- NULL
   if (!inherits(prior, "frmtmb_priorlist")) return(prior)
   design <- list(spec = spec, frame = frame)
   specs <- unclass(prior)
@@ -2559,15 +2852,22 @@ prior_drop_unmatched <- function(prior, spec, frame) {
   if (length(strict) == length(ok)) ok[strict] <- TRUE
   if (all(ok)) return(prior)
   lab <- vapply(specs[!ok], function(s) {
-    paste0(s[["prior"]] %||% prior_dist_string(s[["dist"]]), " on ",
-           prior_slot_label(s))
+    what <- s[["prior"]] %||% prior_dist_string(s[["dist"]])
+    # a specification with bounds and no density has an empty prior
+    if (!length(what) || !nzchar(what)) what <- "bounds"
+    paste0(what, " on ", prior_slot_label(s))
   }, "")
   one <- sum(!ok) == 1L
-  frm_message("update() drops ",
+  frm_message(who, " drops ",
               if (one) "the prior specification" else
                 paste(sum(!ok), "prior specifications"),
               " of the original fit that ", if (one) "matches" else "match",
-              " no parameter of the updated model, as brms drops ",
+              " no parameter of the ",
+              if (identical(who, "update()")) {
+                "updated model, as brms drops "
+              } else {
+                "refitted model, as update() drops "
+              },
               if (one) "it" else "them", ": ", paste(lab, collapse = "; "))
   if (!any(ok)) return(NULL)
   structure(specs[ok], class = class(prior))
@@ -2606,6 +2906,7 @@ check_prior_slots <- function(prior) {
              "set_prior(\"normal(0, 1)\", class = \"b\", lb = 0)",
              call. = FALSE)
   }
+  prior_bound_warning(specs)
   invisible(prior)
 }
 
@@ -2640,6 +2941,12 @@ resp_keyed_prior_classes <- c("b", "Intercept", "ar", "ma", "cosy",
 resp_missing_refusal <- function(spec, frame, s) {
   if (length(spec$responses) < 2L || nzchar(s$resp %||% "")) return(NULL)
   if (!s$class %in% resp_keyed_prior_classes) return(NULL)
+  # the nu a Student-t rescor model shares across its responses is one
+  # parameter with no response in it, and brms's row for it has none;
+  # it is the one dpar such a model addresses without resp
+  if (!is.null(spec[["rescor_nu"]]) && identical(s$dpar %||% "", "nu")) {
+    return(NULL)
+  }
   sp <- spec_spelling(s)
   # the responses the same specification resolves on once it names
   # them, found by resolving it: reading them off the default_prior()
@@ -2975,11 +3282,15 @@ resolve_priorlist <- function(fit, pl) {
   # and nlpar select by class "sd"'s rule (sd_spec_reach()).
   resolve_gp_class <- function(s) {
     hit <- FALSE
+    # the prefix only: a gp() coef names a sub-GP, read below, not a
+    # column's standard deviation
+    s_pre <- s
+    s_pre$coef <- ""
     for (bk in frame[["re_blocks"]]) {
       if (!bk[["covstruct"]] %in% c("gp", "hsgp")) next
       meta <- bk[["gp_brms"]]
       if (is.null(meta)) next
-      if (!any(sd_spec_reach(fit$spec, frame, bk, s)$reach)) next
+      if (!any(sd_spec_reach(fit$spec, frame, bk, s_pre)$reach)) next
       if (identical(s$class, "sdgp")) {
         pick <- 1L
         cf <- meta$sfx1
@@ -3124,6 +3435,14 @@ resolve_priorlist <- function(fit, pl) {
   # as the residual correlations above, so the same LKJ density applies.
   resolve_lncor <- function(s) {
     bl <- lncor_blocks(fit)
+    # resp narrows the class to one response of a multivariate model,
+    # named as frmtmb names it or as brms does (its Stan name, Ya for
+    # Y_a), since brms's prior table reads the second
+    if (nzchar(s$resp %||% "")) {
+      bl <- Filter(function(b) {
+        s$resp %in% c(b$resp, brms_stan_name(b$resp))
+      }, bl)
+    }
     if (!length(bl)) {
       frm_stop("No logistic-normal correlation matches ", spec_target(s),
                ". Class \"lncor\" is the correlation matrix of a ",
@@ -3333,6 +3652,11 @@ resolve_priorlist <- function(fit, pl) {
   }
 
   for (s in prior_specificity_order(pl)) {
+    # brms names a response by its Stan name (Ya for Y_a), which reaches
+    # the response frmtmb names Y_a
+    if (nzchar(s$resp %||% "")) {
+      s$resp <- resp_from_stan_name(fit$spec, s$resp)
+    }
     # before the shape gate: in a multivariate model that gate would
     # judge the spelling against whichever response it met first
     no_resp <- resp_missing_refusal(fit$spec, frame, s)
@@ -3420,6 +3744,28 @@ resolve_priorlist <- function(fit, pl) {
         if (!is.na(s$ub)) upper[tg$name] <- internal_bound(s$ub, pm, "ub")
       }
     } else if (s$class == "sd") {
+      if (nzchar(s$coef %||% "") && !nzchar(s$group)) {
+        # brms keys a coefficient's sd row by its group and has no
+        # row sd_x: "The following priors do not correspond to any
+        # model parameter" (dev/prilabel-log/brms-ref.txt)
+        frm_stop("class = \"sd\" with coef = \"", s$coef, "\" needs a ",
+                 "`group`: brms lists a coefficient's standard deviation ",
+                 "under its grouping factor (sd_<group>__", s$coef,
+                 ") and has no row for coef = \"", s$coef, "\" alone. ",
+                 "Add group = , as default_prior() lists it",
+                 call. = FALSE)
+      }
+      for (bk in frame[["re_blocks"]]) {
+        shared <- sd_coef_shared(fit$spec, frame, bk, s)
+        if (length(shared)) {
+          frm_stop("class = \"sd\", coef = \"", s$coef, "\" names a ",
+                   "column of ", bk[["term_label"]], ", whose ",
+                   bk[["covstruct"]], "() structure gives its columns ",
+                   "one shared standard deviation, so no standard ",
+                   "deviation is that coefficient's alone. Drop the coef ",
+                   "to put the prior on the shared one", call. = FALSE)
+        }
+      }
       # brms's rule: a row exists only for a prefix some block has, and
       # it reaches the standard deviations of that prefix (sd_spec_reach)
       exact <- any(vapply(frame[["re_blocks"]], function(bk) {
@@ -3451,6 +3797,7 @@ resolve_priorlist <- function(fit, pl) {
       }
       if (!hit) {
         frm_stop("No random-effect SDs match ", spec_target(s), ". ",
+                 if (nzchar(s$coef %||% "")) sd_coef_hint(frame, s),
                  sd_prefix_hint(fit$spec, frame),
                  if (any(vapply(frame[["re_blocks"]], function(bk) {
                    bk[["covstruct"]] %in% c("gp", "hsgp")
@@ -3468,7 +3815,7 @@ resolve_priorlist <- function(fit, pl) {
         if (!block_addressed(fit$spec, frame, bk, s)) next
         cs <- bk[["covstruct"]]
         if (cs %in% names(lkj_refusals)) {
-          refused <- c(refused, paste0(bk[["term_label"]], " [", cs, "]: ",
+          refused <- c(refused, paste0(block_written_label(bk), ": ",
                                        unname(lkj_refusals[[cs]])))
           next
         }
@@ -3486,9 +3833,8 @@ resolve_priorlist <- function(fit, pl) {
         # a refused structure is named with its reason; otherwise the
         # model simply has no correlation to prior, and the message says
         # what it does have
-        have <- unique(vapply(frame[["re_blocks"]], function(bk) {
-          paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
-        }, ""))
+        have <- unique(vapply(frame[["re_blocks"]], block_written_label,
+                              ""))
         frm_stop("No random-effect correlations match ", spec_target(s),
                  ". ",
                  if (length(refused)) {
@@ -3959,7 +4305,7 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
     # the same change of variables for a link that is not the log: the
     # density belongs to the dpar, and the tape carries its link-scale
     # coefficient
-    jac <- log(abs(link$mu_eta(x)))
+    jac <- natural_log_jacobian(x, link)
     x <- link$linkinv(x)
   }
   # a density written about a TRANSFORMED parameter (an AR coefficient,
@@ -3975,10 +4321,37 @@ prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
   prior_base_logdens(x, dist) + jac
 }
 
+#' The log Jacobian of a natural-scale density's link, `log |mu_eta|`.
+#' A logit link's `mu_eta` is `p (1 - p)`, which is exactly 0 once
+#' `plogis(eta)` rounds to 1, past `eta` near 37, so its log was -Inf
+#' there: a mode on that side (an `rdm()` ndt fraction at 1 under
+#' `ndt_group()`, dev/sampleprior-rdm2.R) had an infinite objective and
+#' no chain could start. The logit and frmtmb.eam's scaled logit take it
+#' as `log(top) - log1p(exp(-eta)) - log1p(exp(eta))`, which is finite
+#' for every `eta`, as Stan's `log_inv_logit() + log1m_inv_logit()` is.
+#'
+#' @noRd
+natural_log_jacobian <- function(x, link) {
+  nm <- link$name %||% ""
+  if (identical(nm, "logit") || startsWith(nm, "scaled_logit")) {
+    top <- if (identical(nm, "logit")) 1 else link$linkinv(Inf)
+    return(log(top) - RTMB::logspace_add(0 * x, -x) -
+             RTMB::logspace_add(0 * x, x))
+  }
+  log(abs(link$mu_eta(x)))
+}
+
 #' The density itself, with no change of variables.
 #'
 #' @noRd
 prior_base_logdens <- function(x, dist) {
+  # NaN where `v` is below 0 and exactly 0 at and above it: the support
+  # is CLOSED, as Stan's is, so a value a link rounds onto the edge
+  # (plogis(40) is 1) or a mode on it keeps the density's value there.
+  # The 1e-300 is absorbed by any |v| above 1e-284, which leaves the
+  # guard nan_unless_pos() itself except at the edge, where its gradient
+  # is still 0 (rtmb-pitfalls item 22: NaN only for subnormal arguments)
+  support_guard <- function(v) nan_unless_pos(v + 1e-300)
   if (identical(dist$kind, "vec")) {
     # one density per element of a threshold vector, NULL for an
     # element with none (a coef row without a class-wide row)
@@ -3994,7 +4367,11 @@ prior_base_logdens <- function(x, dist) {
     normal = RTMB::dnorm(x, dist$location, dist$scale, log = TRUE),
     t = RTMB::dt((x - dist$location) / dist$scale, df = dist$df,
                  log = TRUE) - log(dist$scale),
-    exponential = log(dist$rate) - dist$rate * x,
+    # each density with a bounded support is NaN outside it on the tape
+    # too (support_guard()): (shape - 1) * log(x) at shape 1 is a
+    # constant-zero operand the tape folds, and exponential() had no
+    # guard at all (dev/rtmb-pitfalls.md, item 22)
+    exponential = log(dist$rate) - dist$rate * x + support_guard(x),
     # written through logspace_add rather than log1p(exp(-z)), which
     # overflows in the lower tail exactly where brms's logistic(0, 1) on
     # a mixture proportion is doing its work
@@ -4003,20 +4380,28 @@ prior_base_logdens <- function(x, dist) {
       -z - log(dist$scale) - 2 * RTMB::logspace_add(0 * z, -z)
     },
     gamma = dist$shape * log(dist$rate) - lgamma(dist$shape) +
-      (dist$shape - 1) * log(x) - dist$rate * x,
+      (dist$shape - 1) * log(x) - dist$rate * x + support_guard(x),
     # brms's inv_gamma(shape, scale) is Stan's, so the second argument
     # is the SCALE of the inverse gamma, which is the rate of the gamma
     # on 1/x. Written out rather than through dgamma(1/x) so the tape
     # carries one expression instead of a reciprocal and a correction
     inv_gamma = dist$shape * log(dist$scale) - lgamma(dist$shape) -
-      (dist$shape + 1) * log(x) - dist$scale / x,
+      (dist$shape + 1) * log(x) - dist$scale / x + support_guard(x),
     # log1p rather than log(1 - x): a zi or hu near one is exactly where
     # brms's beta(1, 1) is doing its work, and that is where log(1 - x)
     # loses its last digits
     beta = (dist$shape1 - 1) * log(x) +
       (dist$shape2 - 1) * log1p(-x) -
       (lgamma(dist$shape1) + lgamma(dist$shape2) -
-         lgamma(dist$shape1 + dist$shape2)),
+         lgamma(dist$shape1 + dist$shape2)) +
+      support_guard(x) + support_guard(1 - x),
+    # NaN outside the interval, where brms's lb and ub reject the value.
+    # The guard has no constant operand, which the tape would fold away
+    # (dev/rtmb-pitfalls.md, item 22)
+    uniform = -log(dist$upper - dist$lower) +
+      support_guard(x - dist$lower) + support_guard(dist$upper - x),
+    lognormal = RTMB::dnorm(log(x), dist$location, dist$scale,
+                            log = TRUE) - log(x) + support_guard(x),
     # a JOINT density over a whole correlation, so `x` is the block's
     # correlation segment and the value is one number, not one per
     # element (see lkj_logdens)
@@ -4727,4 +5112,16 @@ resolve_bounds <- function(fit, lower, upper) {
     out
   }
   list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
+}
+
+#' A prior's `resp` as frmtmb names the response: brms's Stan name of a
+#' response (`brms_stan_name()`, `Ya` for `Y_a`) maps to it, and a name
+#' that is already frmtmb's, or that matches nothing, is kept.
+#'
+#' @noRd
+resp_from_stan_name <- function(spec, resp) {
+  rn <- names(spec$responses)
+  if (resp %in% rn) return(resp)
+  hit <- match(resp, brms_stan_name(rn))
+  if (is.na(hit)) resp else rn[hit]
 }

@@ -28,7 +28,7 @@ test_that("emmeans marginal means match glmmTMB", {
 # --- lme4::getME ------------------------------------------------------
 
 getme_fit <- local({
-  data(sleepstudy, package = "lme4")
+  data(sleepstudy, package = "lme4", envir = environment())
   frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
       data = sleepstudy)
 })

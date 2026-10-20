@@ -70,7 +70,7 @@ hurdle_poisson(link = "log", link_hu = "logit")
 
 hurdle_negbinomial(link = "log", link_shape = "log", link_hu = "logit")
 
-multinomial(K)
+multinomial(link = "logit", refcat = NULL, K = NULL)
 
 cumulative(link = "logit", link_disc = "log", threshold = "flexible")
 
@@ -139,17 +139,20 @@ acat(link = "logit", link_disc = "log", threshold = "flexible")
 
 von_mises(link = "tan_half", link_kappa = "log")
 
-categorical(link = "logit", levels = NULL, K = NULL)
+categorical(link = "logit", refcat = NULL, levels = NULL, K = NULL)
 
 cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 }
 \arguments{
 \item{link}{Link for \code{mu}. See \link{frmtmb-links}.}
 
-\item{refcat}{For \code{dirichlet()} and \code{logistic_normal()}: the name of
-the reference category, whose predictor is held at zero. \code{NULL}
-(the default) takes the first column of the response. \code{NA} predicts
-every category, which \code{dirichlet()} alone allows.}
+\item{refcat}{For \code{categorical()}, \code{multinomial()}, \code{dirichlet()} and
+\code{logistic_normal()}: the name of the reference category, whose
+predictor is held at zero. \code{NULL} (the default) takes the first
+category: the first level of a factor response, or the first column
+of a matrix response. \code{NA} predicts every category, which every one
+of them but \code{logistic_normal()} allows; see "Categorical (nominal)
+responses" for what a fit can then identify.}
 
 \item{link_sigma, link_shape, link_phi, link_kappa, link_ndt, link_beta, link_disc}{Link for a strictly positive parameter: one of \code{"log"} (the
 default), \code{"identity"}, \code{"softplus"} or \code{"squareplus"}.}
@@ -165,8 +168,12 @@ parameter on the unit interval: \code{"logit"} (the default) or
 probability of an exact 0 or 1, and \code{coi} is the probability that
 such a value is 1.}
 
-\item{K}{For \code{multinomial()}: number of response categories (columns
-of the count-matrix response); category 1 is the reference.}
+\item{K}{For \code{multinomial()} and \code{categorical()}: the number of
+response categories, for a family built away from the data. The
+categories are then \verb{1..K} and the dpars \verb{mu2 ... muK}. Leave it
+\code{NULL} and \code{\link[=frm]{frm()}} reads the categories off the response, as brms
+does: the columns of a multinomial count matrix, the levels of a
+categorical factor.}
 
 \item{threshold}{For the ordinal families: the threshold structure,
 as in brms. \code{"flexible"} (the default) estimates every threshold.
@@ -185,9 +192,8 @@ Laplace. It is FIXED, not estimated - the default 1.345 is
 \code{MASS::rlm()}'s, which gives 95\% efficiency against a gaussian.}
 
 \item{levels}{For \code{categorical()}: the response's category labels, in
-the order that fixes the reference category (the first) and the
-dpar names. Only needed when the family is built away from the
-data; \code{\link[=frm]{frm()}} reads them off the response.}
+the order that fixes the dpar names. Only needed when the family is
+built away from the data; \code{\link[=frm]{frm()}} reads them off the response.}
 
 \item{df}{For \code{cox()}: the number of M-spline basis functions in the
 baseline hazard (brms's \code{bhaz(df = 5)} default).}
@@ -389,13 +395,27 @@ or hold \code{kappa} at a value with \code{bf(kappa = )}.
 
 \section{Categorical (nominal) responses}{
 
-\code{categorical()} fits a multinomial logit to an unordered factor. The
-FIRST level is the reference category, its linear predictor is held
-at zero, and each remaining level gets its own predictor named
-\verb{mu<Level>}, as in brms. The main model formula applies to every one
-of them, and any single category is overridden by naming it:
-\code{bf(y ~ x, mub ~ z)} gives category \code{"b"} its own predictor and
-leaves the rest on \code{~ x}.
+\code{categorical()} fits a multinomial logit to an unordered factor. One
+category is the reference: its linear predictor is held at zero, and
+each other category gets its own predictor named \verb{mu<Level>}, as in
+brms. The reference is the FIRST level, or the level that \code{refcat}
+names: \code{categorical(refcat = "b")} gives the dpars \code{mua} and \code{muc}.
+Changing the reference changes the coefficients, not the model: the
+log-likelihood and the category probabilities stay the same. The main
+model formula applies to every predictor, and any single category is
+overridden by naming it: \code{bf(y ~ x, muc ~ z)} gives category \code{"c"}
+its own predictor and leaves the rest on \code{~ x}. A dpar name is
+brms's: dots and underscores in a level are dropped, so the level
+\code{"p.q"} gives \code{mupq}.
+
+\code{refcat = NA} gives every category a predictor, as brms allows. The
+likelihood then stays the same when one number is added to every
+predictor, so a maximum-likelihood fit cannot determine the
+coefficients, only the category probabilities, and the fit warns
+that their standard errors are not available. A prior on each
+predictor (\code{\link[=set_prior]{set_prior()}}) determines them. brms leans on its priors
+here too, and with its default priors (flat on the slopes) its
+sampler does not converge on this model.
 
 The categories come from the data, so \code{frm()} reads them off the
 response before it parses the formula. Constructing the family away
@@ -405,14 +425,31 @@ another entry point) needs them stated: \code{categorical(levels = c("a", "b", "
 response is coerced to a factor with a message naming the level
 order, because that order is the model.
 
-\code{fitted()} and \code{frm_linpred(type = "response")} return the \verb{n x K} matrix
-of category probabilities, columns named by the response's own
-levels and rows summing to one - the same convention the ordinal
-families follow. \code{frm_linpred(type = "link")} and \code{frm_linpred(dpar =)} give
-the per-category latent predictors, which is where \code{se.fit} lives.
-\code{simulate()} draws factor levels. The same likelihood is available on
-a count-matrix response as \code{multinomial(K)}, and a one-hot matrix
-gives an identical log-likelihood.
+\code{fitted()} returns brms's \verb{n x 4 x K} array of category
+probabilities, one layer per category named \verb{P(Y = <level>)}, and
+\code{frm_linpred(type = "response")} the \verb{n x K} matrix of the estimates,
+rows summing to one: the convention the ordinal families follow.
+\code{fitted(scale = "linear")} stacks the predictors into an
+\verb{n x 4 x (K - 1)} array, layers \verb{eta1, eta2, ...} (\code{K} layers under
+\code{refcat = NA}), as brms does; with one predictor (two categories and
+a reference) it stays an \verb{n x 4} matrix, as in brms. The intervals of
+\code{fitted()} here and for \code{multinomial()} are Wald intervals, the
+estimate plus or minus a normal quantile times its delta-method
+standard error, held inside the range of the quantity (0 to 1 for a
+probability, 0 to the trials for a count), so near the edge of that
+range a bound can be exactly 0. \code{frm_linpred(dpar = "mub")} gives one
+category's predictor, which is where \code{se.fit} lives. \code{simulate()}
+draws factor levels.
+
+\code{multinomial()} is the same likelihood on an \verb{n x K} matrix of counts,
+with the number of trials in \code{trials()}, as in brms. The columns are
+the categories: \code{cbind(y1, y2, y3)} gives the dpars \code{muy2} and \code{muy3},
+and an unnamed matrix numbers them \code{mu2}, \code{mu3}. \code{refcat} works as
+for \code{categorical()}. \code{fitted()} returns brms's \verb{n x 4 x K} array of
+expected COUNTS, probability times trials, which brms labels
+\verb{P(Y = <category>)} too. \code{multinomial(K = 3)} builds the family away
+from the data, with the categories \verb{1..K}. A one-hot matrix with one
+trial a row gives the log-likelihood of \code{categorical()}.
 }
 
 \section{Circular responses}{

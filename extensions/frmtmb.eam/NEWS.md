@@ -1,3 +1,41 @@
+# frmtmb.eam 0.13.0
+
+Needs frmtmb 0.72.0, which reads every addition term on `newdata` and
+codes `dec()` as the fit coded it. Its tests of `frm_sample()` need
+frmtmb.sample 0.20.0.
+
+## Breaking changes
+
+* **`wiener()` refuses a boundary indicator that is not 0 or 1 after the
+  fit.** The fit checks it, but newdata was not checked, and every
+  post-fit quantity read any value but 1 as the lower boundary.
+  `fitted(newdata = data.frame(upper = 0.5))` now refuses. `NA` rows
+  stay missing rows. `conditional_effects()` no longer meets the
+  refusal. frmtmb holds a numeric `dec()` variable at `round(median())`,
+  a boundary. It used to hold it at its mean (0.573 on the test data),
+  which was drawn at the lower boundary in silence.
+
+* **`dec()` on newdata is coded as the fit coded it**, with frmtmb's fix
+  of the same release. A releveled factor or a character vector was
+  coded by its own levels, so the two boundaries swapped in silence. One
+  value alone, and a one-row logical `dec()`, were refused for holding
+  one level. A value the fit did not see was coded as one of the two
+  boundaries. That value is now refused by name. The same frmtmb rule
+  refuses an `ndt_group()` label the fit never saw on newdata, in
+  frmtmb's words ("holds value(s) ... the fit did not see"), before this
+  package's own "was not fitted to".
+
+## Bug fixes
+
+* `predict(newdata =, summary = FALSE)` and frmtmb.sample's
+  `posterior_predict(newdata =)` draw at newdata's `dec()`, with
+  frmtmb's fix of the same release. They refused with "needs the
+  boundary each row ended at, which is missing" although newdata had it.
+
+* `conditional_effects()` reads a `dec()` factor with this package's
+  coercion, with frmtmb's fix of the same release. Each level was drawn
+  at the other boundary.
+
 # frmtmb.eam 0.12.0
 
 Runs on frmtmb 0.70.0 and later. The `wiener()` links follow brms

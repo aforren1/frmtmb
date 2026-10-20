@@ -31,15 +31,44 @@
 #' `frmtmb.unit_ls_cells`, as predictor_design_kappa() does; `T` only
 #' has to make the Hessian well conditioned, not equal to the identity.
 #'
+#' A nonlinear body has no design, but its Jacobian at the estimates
+#' `est` (a parameter list, as `fit$estimates`) plays the part of one:
+#' the Gauss-Newton part of the Hessian is `J' W J`, and on a body
+#' linear in its parameters `J` is the design. The block is taken from
+#' it as from a design (reparam_nl_jacobian()), before the designs of
+#' the parameters' own predictors, which it covers. Without `est` no
+#' body gets a block.
+#'
+#' `drop`, positions the blocks leave out, keep their own coordinates: a
+#' coefficient a bound holds is not in the covariance, and the others'
+#' is conditional on it, so their block is that of the design without
+#' its column.
+#'
 #' Returns `M` (`np x np`) with attribute `pos`, the positions its
-#' blocks cover, or `NULL` when no design gets a block.
+#' blocks cover, and `lin_pos`, those of identity-link gaussian designs
+#' (reparam_lin_lp()), or `NULL` when no design gets a block.
 #'
 #' @noRd
 reparam_basis <- function(frame, pn,
-                          cells = getOption("frmtmb.unit_ls_cells", 5e6)) {
+                          cells = getOption("frmtmb.unit_ls_cells", 5e6),
+                          est = NULL, drop = integer(0)) {
   np <- length(pn)
   M <- diag(1, np)
   covered <- integer(0)
+  lin <- integer(0)
+  for (lp in if (!is.null(est)) frame[["linpreds"]]) {
+    if (is.null(lp[["nl_body"]])) next
+    jb <- tryCatch(reparam_nl_jacobian(frame, lp, pn, est),
+                   error = function(e) NULL)
+    if (is.null(jb) || length(intersect(jb$pos, covered))) next
+    kc <- !jb$pos %in% drop
+    jb <- list(J = jb$J[, kc, drop = FALSE], pos = jb$pos[kc])
+    if (length(jb$pos) < 2L) next
+    Tb <- tryCatch(design_whitener(jb$J, cells), error = function(e) NULL)
+    if (is.null(Tb)) next
+    M[jb$pos, jb$pos] <- Tb
+    covered <- c(covered, jb$pos)
+  }
   for (lp in frame[["linpreds"]] %||% list()) {
     if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]]) ||
           length(lp[["mo"]] %||% list()) ||
@@ -49,13 +78,19 @@ reparam_basis <- function(frame, pn,
     X <- lp[["X"]]
     if (!design_ok(X)) next
     pos <- outer_index_of(lp, pn, frame)
-    if (length(pos) != ncol(X)) next
+    if (length(pos) != ncol(X) || length(intersect(pos, covered))) next
+    if (any(pos %in% drop)) {
+      X <- as.matrix(X)[, !pos %in% drop, drop = FALSE]
+      pos <- pos[!pos %in% drop]
+      if (!length(pos)) next
+    }
     # an ordinal predictor has no intercept: a common shift of the
     # thresholds is one, and a raw polynomial without a constant column
     # nearly contains the constant (on a cumulative degree-8 fit the
     # designs' coordinates alone left a curvature at 1.3e-11 of the
     # largest, dev/illse-glm.R), so the shift joins the design
     sh <- ord_shift(frame, lp, pn)
+    if (!is.null(sh) && length(intersect(sh$pos, drop))) next
     if (!is.null(sh)) {
       Ta <- tryCatch(design_whitener(cbind(-1, as.matrix(X)), cells),
                      error = function(e) NULL)
@@ -77,9 +112,95 @@ reparam_basis <- function(frame, pn,
     Tb <- tryCatch(design_whitener(X, cells), error = function(e) NULL)
     if (is.null(Tb)) next
     M[pos, pos] <- Tb
+    if (reparam_lin_lp(frame, lp)) lin <- c(lin, pos)
     covered <- c(covered, pos)
   }
-  if (length(covered)) structure(M, pos = sort(unique(covered)))
+  if (length(covered)) {
+    structure(M, pos = sort(unique(covered)), lin_pos = sort(lin))
+  }
+}
+
+#' Is `lp` the mean of a gaussian response with the identity link and
+#' no aterm (censoring, truncation, a missing or mismeasured value)?
+#' Its gradient is then linear in the design's coefficients, so a
+#' central difference of it along their columns is exact
+#' (reparam_hessian()).
+#'
+#' @noRd
+reparam_lin_lp <- function(frame, lp) {
+  if (!identical(lp[["dpar"]], "mu") || !is.null(lp[["nl_body"]]) ||
+        !identical(lp[["link"]][["name"]], "identity")) {
+    return(FALSE)
+  }
+  r <- frame[["spec"]]$responses[[lp[["resp"]]]]
+  identical(r[["family"]][["family"]], "gaussian") &&
+    !length(r[["aterms"]])
+}
+
+#' `M[, j]`, keeping the attribute reparam_hessian() reads.
+#'
+#' @noRd
+reparam_cols <- function(M, j) {
+  structure(M[, j, drop = FALSE], lin_pos = attr(M, "lin_pos"))
+}
+
+#' The Jacobian of a nonlinear body's predictor `lp` (on its link
+#' scale, every row) with respect to the outer coefficients of the
+#' nonlinear parameters it names, by central differences at the
+#' estimates `est`: `list(J, pos)` with `pos` those coefficients'
+#' positions in `pn`, or NULL.
+#'
+#' The step is a thousandth of each coefficient's size, or of 1 when it
+#' is smaller. The Jacobian only has to make the Hessian well
+#' conditioned, so its truncation does not reach the covariance, which
+#' reparam_hessian() measures along its columns. A body with a `ps()`
+#' term, or a parameter whose own predictor is not a plain design, gets
+#' no Jacobian.
+#'
+#' @noRd
+reparam_nl_jacobian <- function(frame, lp, pn, est) {
+  if (length(lp[["ps_terms"]] %||% list()) || !length(lp[["nl_pars"]])) {
+    return(NULL)
+  }
+  pos <- integer(0)
+  for (q in frame[["linpreds"]]) {
+    if (!identical(q[["resp"]], lp[["resp"]]) ||
+          !q[["dpar"]] %in% lp[["nl_pars"]]) {
+      next
+    }
+    if (!is.null(q[["constant"]]) || !is.null(q[["nl_body"]]) ||
+          length(q[["mo"]] %||% list()) || !design_ok(q[["X"]]) ||
+          !q[["par"]] %in% c("beta", "betad")) {
+      return(NULL)
+    }
+    pq <- outer_index_of(q, pn, frame)
+    if (length(pq) != ncol(q[["X"]])) return(NULL)
+    pos <- c(pos, pq)
+  }
+  pos <- sort(unique(pos))
+  if (length(pos) < 2L) return(NULL)
+  pf <- structure(list(frame = frame, spec = frame[["spec"]],
+                       estimates = est), class = "frmtmb_fit")
+  # the outer vector's coefficients, in est's components
+  map <- list(names = pn, comp = pn)
+  v0 <- fit_outer_vector(pf, map)
+  eta_at <- function(v) {
+    dp <- eval_dpars(fit_set_outer(pf, v, map), b = est[["b"]])
+    lp[["link"]]$linkfun(dp[[lp[["resp"]]]][[lp[["dpar"]]]])
+  }
+  e0 <- eta_at(v0)
+  J <- matrix(0, length(e0), length(pos))
+  for (k in seq_along(pos)) {
+    j <- pos[k]
+    h <- 1e-3 * max(1, abs(v0[[j]]))
+    vp <- v0
+    vm <- v0
+    vp[j] <- vp[j] + h
+    vm[j] <- vm[j] - h
+    J[, k] <- (eta_at(vp) - eta_at(vm)) / (2 * h)
+  }
+  if (!all(is.finite(J))) return(NULL)
+  list(J = J, pos = pos)
 }
 
 #' Where an ordinal response's thresholds sit among the outer parameters
@@ -140,7 +261,206 @@ design_whitener <- function(X, cells) {
   Ri <- backsolve(R, diag(p)) * sqrt(nrow(Xk))
   Tb <- matrix(0, p, p)
   Tb[q$pivot, ] <- Ri / s[q$pivot]
-  if (all(is.finite(Tb))) Tb
+  if (!all(is.finite(Tb))) return(NULL)
+  # its inverse, from R itself rather than by inverting T: a start in
+  # the new coordinates is T^-1 times one in the natural ones
+  Ti <- matrix(0, p, p)
+  Ti[, q$pivot] <- (R / sqrt(nrow(Xk))) * rep(s[q$pivot], each = p)
+  structure(Tb, inv = Ti)
+}
+
+#' Coordinates for an integrated `beta` (REML, `profile = TRUE`): for
+#' each linear predictor whose coefficients are `beta` and enter through
+#' a dense ill-conditioned design, the block `T` of design_whitener() at
+#' its positions. NULL when no design gets one, or when a map fixes some
+#' of `beta` (a fixed coordinate would then mean another coefficient).
+#'
+#' There `beta` is an inner parameter, so the outer Hessian has no row
+#' for it and se_reparam_cov() cannot help. The inner Hessian carries
+#' `X' W X` and has the design's condition number squared: at degree 8
+#' the Laplace solve of a gaussian REML fit failed and the fit stopped
+#' with every coefficient SE NaN; at degree 7 it stopped short and the
+#' coefficient SEs were 1.5 times the exact ones (dev/illse2-p3reml.R).
+#' The objective is taped in `gamma`, `beta = T gamma`, where that
+#' Hessian is well conditioned (beta_whiten_nll()).
+#'
+#' Returns `list(blocks)`, each `list(idx, T, Tinv)`.
+#'
+#' @noRd
+beta_whitener <- function(frame,
+                          cells = getOption("frmtmb.unit_ls_cells", 5e6)) {
+  nb <- length(frame[["par_template"]][["beta"]])
+  if (!nb || "beta" %in% names(frame[["map"]] %||% list())) return(NULL)
+  used <- integer(0)
+  blocks <- list()
+  for (lp in frame[["linpreds"]] %||% list()) {
+    if (!identical(lp[["par"]], "beta") || !is.null(lp[["constant"]]) ||
+          !is.null(lp[["nl_body"]]) || length(lp[["mo"]] %||% list())) {
+      next
+    }
+    X <- lp[["X"]]
+    idx <- lp[["idx"]]
+    if (!design_ok(X) || ncol(X) < 2L || length(idx) != ncol(X) ||
+          anyNA(idx) || any(idx %in% used) || any(idx > nb)) {
+      next
+    }
+    Tb <- tryCatch(design_whitener(X, cells), error = function(e) NULL)
+    if (is.null(Tb)) next
+    blocks[[length(blocks) + 1L]] <- list(idx = idx,
+                                          T = unname(Tb[, , drop = FALSE]),
+                                          Tinv = attr(Tb, "inv"))
+    used <- c(used, idx)
+  }
+  if (length(blocks)) list(blocks = blocks)
+}
+
+#' `nll` taped in the coordinates of beta_whitener(): the tape's `beta`
+#' is `gamma`, and `nll` sees `beta = T gamma`.
+#'
+#' With `jacobian` (REML) the tape also carries `-log |det T|`. Laplace
+#' over `gamma` integrates `exp(-nll(T gamma)) d gamma`, which is the
+#' integral over `beta` divided by `|det T|`: without the term the REML
+#' log-likelihood of a raw polynomial of degree 4 to 6 with `(1 | g)`
+#' came out 13.5 to 28.4 below lme4's, and `Days` and `Days + 1e5`
+#' gave two values for one model (review of lane illse2, finding 1). A
+#' profiled `beta` (`profile = TRUE`) is maximized, not integrated, and
+#' takes no such term.
+#'
+#' @noRd
+beta_whiten_nll <- function(nll, bw, jacobian = FALSE) {
+  # forced now: the caller rebinds its own `nll` to this closure
+  force(nll)
+  blocks <- bw[["blocks"]]
+  ldt <- if (jacobian) {
+    sum(vapply(blocks, function(blk) {
+      determinant(blk[["T"]], logarithm = TRUE)$modulus[[1L]]
+    }, 0))
+  } else 0
+  function(pars) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    b <- pars[["beta"]]
+    for (blk in blocks) {
+      b[blk[["idx"]]] <- as.vector(blk[["T"]] %*% b[blk[["idx"]]])
+    }
+    pars[["beta"]] <- b
+    nll(pars) - ldt
+  }
+}
+
+#' `beta` from the coordinates of beta_whitener() (`inv = FALSE`), or
+#' into them (`inv = TRUE`).
+#'
+#' @noRd
+beta_whiten_map <- function(beta, bw, inv = FALSE) {
+  for (blk in bw[["blocks"]]) {
+    A <- if (inv) blk[["Tinv"]] else blk[["T"]]
+    beta[blk[["idx"]]] <- drop(A %*% beta[blk[["idx"]]])
+  }
+  beta
+}
+
+#' The sdreport of a fit taped in the coordinates of beta_whitener(),
+#' carried back to the natural ones. `par.random`'s `beta` becomes
+#' `T gamma`; the joint precision is factored where it is well
+#' conditioned, `Q_gamma = R' R`, and the factor of the joint covariance
+#' in natural coordinates, `joint_root` with `V = joint_root
+#' joint_root'`, is `R^-1` with its `beta` rows times `T`. The joint
+#' precision itself is carried back, `W^-T Q_gamma W^-1`, so that a
+#' reader of its entries sees the natural ones; one that inverts it
+#' whole would lose the digits the factor keeps, and every reader in
+#' frmtmb takes the factor (joint_cov_whole()). `diag.cov.random`'s
+#' `beta` entries come from the factor. Above `joint_root_max` joint
+#' parameters the factor, which is dense, is not formed.
+#'
+#' @noRd
+sdr_unwhiten <- function(fit, sdr) {
+  bw <- fit$beta_whiten
+  if (is.null(bw)) return(sdr)
+  rn <- names(sdr$par.random)
+  ib <- which(rn == "beta")
+  nb <- length(fit$frame[["par_template"]][["beta"]])
+  if (length(ib) != nb) return(sdr)
+  sdr$par.random[ib] <- beta_whiten_map(sdr$par.random[ib], bw)
+  Q <- sdr$jointPrecision
+  if (is.null(Q)) return(sdr)
+  jb <- which(rownames(Q) == "beta")
+  if (length(jb) != nb) return(sdr)
+  Wf <- diag(1, nb)
+  for (blk in bw[["blocks"]]) Wf[blk[["idx"]], blk[["idx"]]] <- blk[["T"]]
+  if (nrow(Q) <= joint_root_max) {
+    R <- tryCatch(chol(as.matrix((Q + Matrix::t(Q)) / 2)),
+                  error = function(e) NULL)
+    if (!is.null(R) && all(is.finite(R))) {
+      root <- backsolve(R, diag(nrow(R)))
+      root[jb, ] <- Wf %*% root[jb, , drop = FALSE]
+      rownames(root) <- rownames(Q)
+      # whether a' V a over the coefficients formed from the whole
+      # matrix keeps a few digits, as se_reparam_cov() marks it
+      Kb <- root[jb, , drop = FALSE]
+      sv <- svd(Kb / sqrt(rowSums(Kb^2)), 0L, 0L)$d
+      attr(root, "lossy") <- (max(sv) / min(sv))^2 > se_product_kappa
+      sdr$joint_root <- root
+      if (length(sdr$diag.cov.random) == length(rn)) {
+        sdr$diag.cov.random[ib] <- rowSums(root[jb, , drop = FALSE]^2)
+      }
+    }
+  }
+  # sparse, so that a fit with many group effects does not pay for a
+  # dense joint-size matrix to carry its precision back
+  nq <- nrow(Q)
+  inb <- unlist(lapply(bw[["blocks"]], function(blk) jb[blk[["idx"]]]))
+  ri <- setdiff(seq_len(nq), inb)
+  ci <- ri
+  xv <- rep(1, length(ri))
+  for (blk in bw[["blocks"]]) {
+    pp <- jb[blk[["idx"]]]
+    ri <- c(ri, rep(pp, times = length(pp)))
+    ci <- c(ci, rep(pp, each = length(pp)))
+    xv <- c(xv, as.vector(blk[["Tinv"]]))
+  }
+  Wi <- Matrix::sparseMatrix(i = ri, j = ci, x = xv, dims = c(nq, nq))
+  Qn <- Matrix::forceSymmetric(Matrix::crossprod(Wi, Q %*% Wi))
+  if (is.matrix(Q)) Qn <- as.matrix(Qn)
+  dimnames(Qn) <- dimnames(Q)
+  sdr$jointPrecision <- Qn
+  sdr
+}
+
+#' The most joint parameters (random and fixed) for which sdr_unwhiten()
+#' forms the dense factor of the joint covariance.
+#'
+#' @noRd
+joint_root_max <- 4000L
+
+#' The joint covariance of every estimated parameter from the stored
+#' sdreport's joint precision: `list(V, root)`, through the factor
+#' sdr_unwhiten() kept where there is one (`V = root root'`), else
+#' solve_joint_precision() of the whole matrix with `root` NULL.
+#'
+#' @noRd
+joint_cov_whole <- function(fit, Q = sdr_of(fit)$jointPrecision) {
+  root <- tryCatch(sdr_of(fit)$joint_root, error = function(e) NULL)
+  if (!is.null(root) && nrow(root) == nrow(Q)) {
+    V <- tcrossprod(root)
+    dimnames(V) <- dimnames(Q)
+    return(list(V = V, root = root))
+  }
+  list(V = solve_joint_precision(Q, fit$cache, fit), root = NULL)
+}
+
+#' A square factor `F` of `K K'` for a factor `K` with more columns than
+#' rows (rows of joint_cov_whole()'s `root`, which spans every joint
+#' parameter): with `K' P = Q R`, `F[P, ] = R'`. A draw or a difference
+#' along each column of `F` then costs one per row, not one per joint
+#' parameter.
+#'
+#' @noRd
+square_root_rows <- function(K) {
+  if (ncol(K) <= nrow(K)) return(K)
+  q <- qr(t(K), LAPACK = TRUE)
+  F <- matrix(0, nrow(K), nrow(K), dimnames = list(rownames(K), NULL))
+  F[q$pivot, ] <- t(qr.R(q))
+  F
 }
 
 #' The outer Hessian in the coordinates of `M`, `M' H M`, by central
@@ -150,11 +470,23 @@ design_whitener <- function(X, cells) {
 #' natural coordinates and then rotated: there the curvature of the
 #' weak directions is below the rounding of the larger ones.
 #'
+#' Each column is Richardson-extrapolated over steps 1e-3 and 2e-3,
+#' except one that moves only the coefficients of an identity-link
+#' gaussian design (`lin_pos`, reparam_lin_lp()), unless `rich_all`.
+#' There the gradient is linear, so a central difference is exact and
+#' costs half the gradients: on n = 1e4 with 100 parameters a gaussian
+#' fit took 58 s where 0.71.0 took 68 (dev/illse2-time.sh). Along a
+#' nonlinear body's Jacobian or a non-gaussian design it is not linear,
+#' and a central difference lost digits: 3.4e-4 against 3.2e-7 on a
+#' degree-6 polynomial beside
+#' `A * exp(-k * z)`, and 5.2e-7 against 5.7e-8 on a poisson degree-6
+#' polynomial at n = 1e5 (review of lane illse2, finding 3).
+#'
 #' Returns `list(H, E)`, `E` half the asymmetry before symmetrizing (the
 #' differences' own noise), or NULL when a gradient is not finite.
 #'
 #' @noRd
-reparam_hessian <- function(obj, p, M, step = 1e-3, richardson = TRUE) {
+reparam_hessian <- function(obj, p, M, step = 1e-3, rich_all = FALSE) {
   saved <- obj_state_save(obj)
   on.exit(obj_state_restore(obj, saved), add = TRUE)
   k <- ncol(M)
@@ -170,10 +502,18 @@ reparam_hessian <- function(obj, p, M, step = 1e-3, richardson = TRUE) {
     }
     crossprod(M, gp - gm) / (2 * h)
   }
+  # a central difference is exact along a column that moves only an
+  # identity-link gaussian design (its gradient is linear there);
+  # every other column is extrapolated
+  lin <- attr(M, "lin_pos")
+  plain <- if (length(lin)) {
+    colSums(M[-lin, , drop = FALSE] != 0) == 0L
+  } else rep(FALSE, k)
+  rich <- rich_all | !plain
   for (j in seq_len(k)) {
     c1 <- cd(j, step)
     if (is.null(c1)) return(NULL)
-    if (richardson) {
+    if (rich[j]) {
       c2 <- cd(j, 2 * step)
       if (is.null(c2)) return(NULL)
       c1 <- (4 * c1 - c2) / 3
@@ -259,7 +599,7 @@ reparam_hessian_refined_at <- function(obj, p, M) {
   lam <- pmax(e$values, nk, big * .Machine$double.eps)
   W <- sweep(e$vectors / D, 2L, sqrt(lam), "/")
   M2 <- M %*% W
-  h2 <- reparam_hessian(obj, p, M2)
+  h2 <- reparam_hessian(obj, p, M2, rich_all = TRUE)
   if (is.null(h2) || !all(is.finite(h2$H)) || !all(diag(h2$H) > 0)) {
     return(h)
   }
@@ -317,14 +657,21 @@ se_reparam_refine <- 1e4
 #' cov_from_hessian() asks. se_tier3() asks with the parameters it
 #' removed left out: a group sd at its boundary, a row it emptied, a
 #' bound. The covariance of the others is then conditional on them, as
-#' tier 3's own is, with zero rows and columns for them; it needs every
-#' removed parameter to be outside the designs' blocks. On a degree-8
+#' tier 3's own is, with zero rows and columns for them. A removed
+#' coefficient of a design, such as one a bound holds, is left out of
+#' its design's block (reparam_basis(drop = )). On a degree-8
 #' raw polynomial with `(1 | g)` and the sd at zero, tier 3 in natural
 #' coordinates called x3 to x6 flat and kept the other coefficients'
 #' SEs at 5 to 10 percent of lm()'s (review of lane illse, item 4).
 #'
+#' `defer = FALSE` skips se_reparam_defer(): cov_from_hessian() asks so
+#' once the tiers have judged every parameter and removed none, since a
+#' weakly curved log sd that they keep is no longer a verdict the route
+#' could skip.
+#'
 #' @noRd
-se_reparam_cov <- function(fit, H, p, free = seq_len(NROW(H))) {
+se_reparam_cov <- function(fit, H, p, free = seq_len(NROW(H)),
+                           defer = TRUE) {
   np <- NROW(H)
   k <- length(free)
   if (k < 2L || np > se_reparam_np || length(p) != np ||
@@ -339,21 +686,28 @@ se_reparam_cov <- function(fit, H, p, free = seq_len(NROW(H))) {
   big <- max(abs(e$values))
   weak <- which(e$values <= big / se_reparam_kappa)
   if (!length(weak)) return(NULL)
-  M <- tryCatch(reparam_basis(fit$frame, names(fit$opt$par)),
+  # a removed parameter inside a design leaves the rest of it in the
+  # design's coordinates
+  out <- setdiff(seq_len(np), free)
+  M <- tryCatch(reparam_basis(fit$frame, names(fit$opt$par),
+                              est = fit$estimates, drop = out),
                 error = function(e) NULL)
   if (is.null(M) || !all(dim(M) == np)) return(NULL)
   pos <- attr(M, "pos")
-  out <- setdiff(seq_len(np), free)
   if (length(intersect(out, pos))) return(NULL)
   posf <- which(free %in% pos)
   load <- colSums(e$vectors[posf, weak, drop = FALSE]^2)
   if (any(load < se_reparam_load)) return(NULL)
-  if (se_reparam_defer(fit, H, c(pos, out))) return(NULL)
-  if (length(out)) M <- M[, free, drop = FALSE]
+  if (defer && se_reparam_defer(fit, H, c(pos, out))) return(NULL)
+  if (length(out)) M <- reparam_cols(M, free)
   saved <- obj_state_save(fit$obj)
   on.exit(obj_state_restore(fit$obj, saved), add = TRUE)
   h <- reparam_hessian_refined(fit$obj, p, M)
   if (is.null(h)) return(NULL)
+  # differences that are not symmetric are not a Hessian: a step along
+  # a Jacobian's column that moves a nonlinear parameter too far gave
+  # entries 48 percent off (a rational body, dev/illse2-p3ratdbg.R)
+  if (max(h$E) > se_reparam_asym * max(abs(h$H))) return(NULL)
   M <- h$M
   Dt <- sqrt(diag(h$H))
   et <- eigen(h$H / outer(Dt, Dt), symmetric = TRUE)
@@ -449,10 +803,23 @@ hess_needs_reparam <- function(H) {
 }
 
 #' The most outer parameters se_reparam_cov() and the Newton steps take
-#' the design's coordinates for, as newton_polish() caps its own steps.
+#' the design's coordinates for. Up to 100 parameters they cost 1.4
+#' times 0.70.0's fit on n = 1e4 (dev/illse2-time.sh). At 159 and 301
+#' parameters (a degree-7 raw polynomial beside 150 or 292 covariates,
+#' n = 2000) frmtmb 0.71.0, with this cap at 100, stopped 0.5 to 2.2
+#' short with NaN or wrong SEs and a warning; at 400 the fit reaches
+#' lm()'s maximum to 5e-7 with SEs within 5e-6, in 33 s against 23 to
+#' 25 s and 60 to 89 s against 39 to 49 s (dev/illse2-p4wide.R).
 #'
 #' @noRd
-se_reparam_np <- 100L
+se_reparam_np <- 400L
+
+#' The most outer parameters newton_polish() takes steps for in natural
+#' units. Above it a fit that does not need the design's coordinates
+#' takes no step, as before se_reparam_np rose: each takes an AD Hessian.
+#'
+#' @noRd
+newton_natural_np <- 100L
 
 #' The condition number, at unit diagonal, of an outer Hessian above
 #' which the covariance is taken in the design's coordinates
@@ -479,6 +846,20 @@ se_reparam_floor <- 1e-6
 #'
 #' @noRd
 se_reparam_load <- 0.5
+
+#' The largest asymmetry of the Hessian in the design's coordinates,
+#' `max |H - H'| / 2` over its largest entry, at which se_reparam_cov()
+#' accepts it. On 27 fits the route takes (gaussian, bernoulli, poisson
+#' and cumulative raw polynomials of degree 7 and 8 with and without
+#' `(1 | g)`, and a binomial with mixed scales) it was at most 1.7e-5
+#' (dev/illse2-asym2.R); on a rational body nearly unidentified along
+#' its nonlinear parameter, 0.165 and 1.0; and on a polynomial beside
+#' `A * exp(-k * z)`, 2.5e-8 to 2.1e-5 where the route is accurate (A = 1
+#' and 0.2) and 4.3e-3 to 6.6e-3 where it is not (A = 0.05; review of
+#' lane illse2, finding 4; dev/illse2-p3asym.R, dev/illse2-rev-asym.R).
+#'
+#' @noRd
+se_reparam_asym <- 1e-3
 
 #' `diag(G V G')` over positions `pos` of a joint covariance `jc`
 #' (get_joint_cov()). Where the fit carries a factor of its covariance
@@ -516,6 +897,50 @@ jc_quad <- function(jc, G, pos) {
   out
 }
 
+#' `d' V^-1 d` for each column `d` of `D`, with `V = K K'` held as its
+#' factor `K` (`p x k`, `k >= p`); NULL when the rows of `K` are not
+#' independent to working precision.
+#'
+#' `V` itself has the condition number of the design squared, and its
+#' inverse keeps no digits at degree 8. `K` has the square root of it,
+#' and a QR of `K'` keeps it there: with `K' P = Q R`, `V = P R'R P'`,
+#' so the form is `|R^-T P' d|^2`. Rows are scaled to unit length first,
+#' so the rank test sees the shape of `K` and not the units of its
+#' coefficients. LAPACK's pivoted QR has no rank tolerance, where the
+#' default LINPACK one moves a column below 1e-7 of its norm to the end.
+#'
+#' @noRd
+root_inv_quad <- function(K, D) {
+  D <- as.matrix(D)
+  p <- nrow(K)
+  if (!all(is.finite(K)) || ncol(K) < p || nrow(D) != p) return(NULL)
+  s <- sqrt(rowSums(K^2))
+  if (!all(s > 0)) return(NULL)
+  q <- qr(t(K / s), LAPACK = TRUE)
+  R <- qr.R(q)
+  dg <- abs(diag(R))
+  if (!all(is.finite(dg)) || min(dg) <= p * .Machine$double.eps * max(dg)) {
+    return(NULL)
+  }
+  Z <- backsolve(R, D[q$pivot, , drop = FALSE] / s[q$pivot],
+                 transpose = TRUE)
+  colSums(Z^2)
+}
+
+#' The warning of a route that inverts a covariance held as a factor
+#' whose rows root_inv_quad() finds dependent, so that its answer is
+#' NaN: the inverse does not exist to working precision, and a number
+#' from solve() there would have none of its digits.
+#'
+#' @noRd
+warn_cov_singular <- function(fit, what) {
+  frm_warning(
+    what, ": the covariance of the coefficients is singular to working ",
+    "precision, so its inverse does not exist and the result is NaN. ",
+    "Centering the covariate, or poly() for its powers, removes the ",
+    "ill-conditioning", call. = FALSE, class = "frmtmb_cov_products")
+}
+
 #' The condition number, at unit diagonal, above which a product
 #' `a' V a` formed from the whole covariance in double precision keeps
 #' fewer than about four digits: kappa times epsilon is 2e-4 here. On
@@ -531,7 +956,8 @@ se_product_kappa <- 1e12
 #'
 #' @noRd
 cov_products_lossy <- function(fit) {
-  root <- tryCatch(sdr_of(fit)$cov_fixed_root, error = function(e) NULL)
+  sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+  root <- sdr$cov_fixed_root %||% sdr$joint_root
   isTRUE(attr(root, "lossy"))
 }
 
@@ -555,8 +981,6 @@ warn_cov_products <- function(fit, what) {
     "it can lose every digit of a fitted value's variance. ",
     cov_routes_right(), ". These read the whole matrix: a product you ",
     "form yourself, and car and lmtest, are not right; ",
-    "cooks.distance() and the D1 and D2 tests of anova() on ",
-    "frm_multiple() fits invert it and can stop with an error; ",
     "marginaleffects and insight::get_varcov() get NaN. Centering the ",
     "covariate, or poly() for its powers, removes the ill-conditioning",
     call. = FALSE, class = "frmtmb_cov_products")
