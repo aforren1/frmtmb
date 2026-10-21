@@ -551,7 +551,13 @@ test_that("a censored Gamma at shape 1e5 reaches the independent maximum", {
   qq <- stats::quantile(d$y, 0.8)
   d$cc <- as.integer(d$y > qq)
   d$y[d$cc == 1] <- qq
-  fit <- frm(y | cens(cc) ~ x, family = Gamma(link = "log"), data = d)
+  # whether nlminb's own test reports convergence here is decided by
+  # rounding (ubuntu's BLAS gives code 8, "false convergence"); frmtmb's
+  # Newton check then says the stop is the maximum, which is what this
+  # test is about, so it asserts that and reads the maximum itself
+  fit <- allow_warnings(
+    frm(y | cens(cc) ~ x, family = Gamma(link = "log"), data = d),
+    allowed = "so the estimates are at the maximum")
   nll <- function(p) {
     mu <- exp(p[1] + p[2] * d$x)
     sh <- exp(p[3])
@@ -561,7 +567,7 @@ test_that("a censored Gamma at shape 1e5 reaches the independent maximum", {
                 stats::dgamma(d$y, sh, sh / mu, log = TRUE)))
   }
   ind <- stats::nlminb(c(1, 0.1, log(1e5)), nll)
-  expect_equal(fit$opt$convergence, 0L)
+  expect_true(all(is.finite(fit$opt$par)))
   expect_equal(as.numeric(logLik(fit)), -ind$objective, tolerance = 1e-9)
 })
 

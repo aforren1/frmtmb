@@ -3283,8 +3283,10 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     if (fam_is_multinomial(rs[["family"]]) &&
           scale == "response" && is.null(dpar)) {
       # expected COUNTS, which brms labels P(Y = k) too: a row's counts
-      # lie between 0 and its trials, which the estimates sum to
-      return(prob_clamp_quantiles(out, upper = rowSums(est)))
+      # lie between 0 and its trials. The estimates sum to the trials
+      # only to rounding, so a bound held at that sum could pass them by
+      # a few ulps (Windows, CI); trials are whole numbers, so round
+      return(prob_clamp_quantiles(out, upper = round(rowSums(est))))
     }
     return(prob_clamp_quantiles(out))
   }
