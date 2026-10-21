@@ -43,9 +43,10 @@ brms's \code{add_criterion()}: compute each criterion once and store it in
 \code{x$criteria}, so that a later \code{loo()}, \code{waic()} or \code{loo_compare()}
 without further arguments reads it instead of computing it again, as
 brms's do. \code{"loo"} and \code{"waic"} are computed by \code{\link[=loo]{loo()}} and \code{\link[=waic]{waic()}},
-and \code{"bayes_R2"} by \code{\link[frmtmb:bayes_R2]{frmtmb::bayes_R2()}} with \code{summary = FALSE}, as
-brms stores it. \code{"kfold"}, \code{"loo_subsample"}, \code{"loo_R2"} and
-\code{"marglik"} are refused with the reason their own functions give. On
+\code{"bayes_R2"} by \code{\link[frmtmb:bayes_R2]{frmtmb::bayes_R2()}} and \code{"loo_R2"} by \code{\link[=loo_R2]{loo_R2()}},
+both with \code{summary = FALSE}, as brms stores them. \code{"kfold"},
+\code{"loo_subsample"} and \code{"marglik"} are refused with the reason their
+own functions give. On
 a maximum-likelihood fit, \code{\link[frmtmb:add_criterion]{frmtmb::add_criterion()}} refuses every
 criterion and names \code{AIC()} and \code{BIC()}.
 }

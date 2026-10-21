@@ -64,7 +64,10 @@ test_that("add_criterion() stores loo and waic, and loo() reads them", {
                fixed = TRUE)
   expect_error(add_criterion(ds, "marglik"), "bridge_sampler()",
                fixed = TRUE)
-  expect_error(add_criterion(ds, "loo_R2"), "loo_R2", fixed = TRUE)
+  # loo_R2 stored as brms stores it, the bootstrap draws
+  ds6 <- add_criterion(ds, "loo_R2", seed = 1)
+  expect_identical(ds6$criteria$loo_R2,
+                   loo_R2(ds, summary = FALSE, seed = 1))
   expect_error(add_criterion(ds, "aic"), "should be a subset of")
   }, c("Pareto k", "p_waic"))
 })

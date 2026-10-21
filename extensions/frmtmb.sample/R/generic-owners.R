@@ -1,6 +1,6 @@
 # Why this file exists.
 #
-# This package defines 24 S3 generics of its own, and every one of
+# This package defines 20 S3 generics of its own, and every one of
 # those names is owned by another package: rstantools, loo,
 # bridgesampling, bayesplot, posterior, coda, gratia or brms. A generic
 # defined here and exported is a rival, not an alias. `UseMethod()`
@@ -48,9 +48,11 @@
 #' exported function, because a package that exports a name may only
 #' have imported it: brms exported 20 of the 28 audited and defined 8
 #' (dev/samplegen-audit.R). `parnames`, and later `stancode`,
-#' `standata` and `pp_mixture`, have since moved to frmtmb, which
-#' defines them for a fit, and this package re-exports them. The
-#' owner is the package that DEFINES the generic, because that is the
+#' `standata`, `pp_mixture`, `kfold`, `reloo`, `loo_moment_match`,
+#' `loo_subsample` and the `loo_*()`
+#' generics, have since moved to frmtmb, which defines them for a fit,
+#' and this package re-exports them.
+#' The owner is the package that DEFINES the generic, because that is the
 #' table brms's own methods are in.
 #'
 #' Two names have rival definers whose generics are different closures.
@@ -66,9 +68,6 @@ sample_generic_owners <- list(
   bayes_factor = "bridgesampling",
   bridge_sampler = "bridgesampling",
   post_prob = "bridgesampling",
-  kfold = "loo",
-  loo_moment_match = "loo",
-  loo_subsample = "loo",
   psis = "loo",
   nsamples = "rstantools",
   posterior_epred = "rstantools",
@@ -84,6 +83,5 @@ sample_generic_owners <- list(
   mcmc_plot = "brms",
   posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
-  reloo = "brms",
   restructure = "brms"
 )

@@ -1,3 +1,26 @@
+# frmtmb (development version)
+
+## New features
+
+* **The generics of brms's `loo_epred()`, `loo_linpred()`,
+  `loo_predict()`, `loo_predictive_interval()`, `loo_R2()`,
+  `loo_model_weights()`, `kfold()`, `reloo()`, `loo_moment_match()` and
+  `loo_subsample()`**, with a refusal on a fit, as `log_lik()`, `loo()`
+  and `bayes_R2()` have. On a fit the six `loo_*()` functions name
+  `frmtmb.sample::frm_sample()`. `kfold()`, `reloo()` and
+  `loo_moment_match()` name `frm_bootstrap()` and `AIC()`, because
+  neither frmtmb nor frmtmb.sample refits the sampler, and
+  `loo_subsample()` names the full `loo()` of draws. Before, with frmtmb
+  alone a call stopped at "could not find function", and with
+  rstantools, loo or brms attached at "no applicable method";
+  `loo_moment_match(fit)` with loo attached stopped inside loo's default
+  method, at a missing argument `loo`. frmtmb.sample registers its draws
+  methods on these generics. Each defers to its owner's generic while
+  the owner is loaded (rstantools; loo for `loo_model_weights()`,
+  `kfold()`, `loo_moment_match()` and `loo_subsample()`; brms for
+  `reloo()`). `loo_epred()` has two owners, brms 2.23.0 and rstantools
+  2.7.1, and takes the one nearer the front of the search path.
+
 # frmtmb 0.72.0
 
 The main changes:

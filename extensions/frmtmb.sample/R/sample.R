@@ -2437,7 +2437,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `re_formula`, with or without `newdata`), any prediction on a model
 #' with a smooth or an `mi()` term that reads them, `ranef()`,
 #' `coef()`, `log_lik()` and everything built on it (`loo()`, `waic()`,
-#' `psis()`, `pp_check()`'s `loo_*` types), and `bayes_R2()`. The
+#' `psis()`, the `loo_*()` functions, `pp_check()`'s `loo_*` types), and
+#' `bayes_R2()`. The
 #' refusal names the function you called and says what to do instead;
 #' it suggests `re_formula = NA` only where that function takes it and
 #' it computes on the model. Whether a call reads an integrated value is

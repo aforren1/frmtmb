@@ -39,6 +39,16 @@
 \alias{frm}
 \alias{bf}
 \alias{set_prior}
+\alias{loo_epred}
+\alias{loo_linpred}
+\alias{loo_predict}
+\alias{loo_predictive_interval}
+\alias{loo_R2}
+\alias{loo_model_weights}
+\alias{kfold}
+\alias{reloo}
+\alias{loo_moment_match}
+\alias{loo_subsample}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -46,6 +56,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{frmtmb}{\code{\link[frmtmb:add_criterion]{add_criterion()}}, \code{\link[frmtmb:as_draws]{as_draws()}}, \code{\link[frmtmb:as_draws_array]{as_draws_array()}}, \code{\link[frmtmb:as_draws_df]{as_draws_df()}}, \code{\link[frmtmb:as_draws_list]{as_draws_list()}}, \code{\link[frmtmb:as_draws_matrix]{as_draws_matrix()}}, \code{\link[frmtmb:as_draws_rvars]{as_draws_rvars()}}, \code{\link[frmtmb:bayes_R2]{bayes_R2()}}, \code{\link[frmtmb:bf]{bf()}}, \code{\link[frmtmb:conditional_effects]{conditional_effects()}}, \code{\link[frmtmb:conditional_smooths]{conditional_smooths()}}, \code{\link[frmtmb:fixef]{fixef}}, \code{\link[frmtmb:frm]{frm()}}, \code{\link[frmtmb:hypothesis]{hypothesis()}}, \code{\link[frmtmb:log_lik]{log_lik()}}, \code{\link[frmtmb:loo]{loo()}}, \code{\link[frmtmb:LOO]{LOO()}}, \code{\link[frmtmb:loo_compare]{loo_compare()}}, \code{\link[frmtmb:nchains]{nchains()}}, \code{\link[frmtmb:ndraws]{ndraws()}}, \code{\link[frmtmb:ngrps]{ngrps()}}, \code{\link[frmtmb:niterations]{niterations()}}, \code{\link[frmtmb:nvariables]{nvariables()}}, \code{\link[frmtmb:parnames]{parnames()}}, \code{\link[frmtmb:posterior_summary]{posterior_summary()}}, \code{\link[frmtmb:pp_check]{pp_check()}}, \code{\link[frmtmb:pp_mixture]{pp_mixture()}}, \code{\link[frmtmb:prior_summary]{prior_summary()}}, \code{\link[frmtmb:ranef]{ranef}}, \code{\link[frmtmb:set_prior]{set_prior()}}, \code{\link[frmtmb:stancode]{stancode()}}, \code{\link[frmtmb:standata]{standata()}}, \code{\link[frmtmb:VarCorr]{VarCorr}}, \code{\link[frmtmb:variables]{variables()}}, \code{\link[frmtmb:waic]{waic()}}, \code{\link[frmtmb:WAIC]{WAIC()}}}
+  \item{frmtmb}{\code{\link[frmtmb:add_criterion]{add_criterion()}}, \code{\link[frmtmb:as_draws]{as_draws()}}, \code{\link[frmtmb:as_draws_array]{as_draws_array()}}, \code{\link[frmtmb:as_draws_df]{as_draws_df()}}, \code{\link[frmtmb:as_draws_list]{as_draws_list()}}, \code{\link[frmtmb:as_draws_matrix]{as_draws_matrix()}}, \code{\link[frmtmb:as_draws_rvars]{as_draws_rvars()}}, \code{\link[frmtmb:bayes_R2]{bayes_R2()}}, \code{\link[frmtmb:bf]{bf()}}, \code{\link[frmtmb:conditional_effects]{conditional_effects()}}, \code{\link[frmtmb:conditional_smooths]{conditional_smooths()}}, \code{\link[frmtmb:fixef]{fixef}}, \code{\link[frmtmb:frm]{frm()}}, \code{\link[frmtmb:hypothesis]{hypothesis()}}, \code{\link[frmtmb:kfold]{kfold()}}, \code{\link[frmtmb:log_lik]{log_lik()}}, \code{\link[frmtmb:loo]{loo()}}, \code{\link[frmtmb:LOO]{LOO()}}, \code{\link[frmtmb:loo_compare]{loo_compare()}}, \code{\link[frmtmb:loo_epred]{loo_epred()}}, \code{\link[frmtmb:loo_linpred]{loo_linpred()}}, \code{\link[frmtmb:loo_model_weights]{loo_model_weights()}}, \code{\link[frmtmb:loo_moment_match]{loo_moment_match()}}, \code{\link[frmtmb:loo_predict]{loo_predict()}}, \code{\link[frmtmb:loo_predictive_interval]{loo_predictive_interval()}}, \code{\link[frmtmb:loo_R2]{loo_R2()}}, \code{\link[frmtmb:loo_subsample]{loo_subsample()}}, \code{\link[frmtmb:nchains]{nchains()}}, \code{\link[frmtmb:ndraws]{ndraws()}}, \code{\link[frmtmb:ngrps]{ngrps()}}, \code{\link[frmtmb:niterations]{niterations()}}, \code{\link[frmtmb:nvariables]{nvariables()}}, \code{\link[frmtmb:parnames]{parnames()}}, \code{\link[frmtmb:posterior_summary]{posterior_summary()}}, \code{\link[frmtmb:pp_check]{pp_check()}}, \code{\link[frmtmb:pp_mixture]{pp_mixture()}}, \code{\link[frmtmb:prior_summary]{prior_summary()}}, \code{\link[frmtmb:ranef]{ranef}}, \code{\link[frmtmb:reloo]{reloo()}}, \code{\link[frmtmb:set_prior]{set_prior()}}, \code{\link[frmtmb:stancode]{stancode()}}, \code{\link[frmtmb:standata]{standata()}}, \code{\link[frmtmb:VarCorr]{VarCorr}}, \code{\link[frmtmb:variables]{variables()}}, \code{\link[frmtmb:waic]{waic()}}, \code{\link[frmtmb:WAIC]{WAIC()}}}
 }}
 

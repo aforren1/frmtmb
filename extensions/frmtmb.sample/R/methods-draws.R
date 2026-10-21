@@ -1498,17 +1498,10 @@ draws_ppc_psis <- function(object, type, resp, rows, newdata, re_formula) {
 #'
 #' @noRd
 draws_ppc_psis_fit <- function(ll, chain_id, multiple = FALSE) {
-  # brms takes 1 on the combined chains of several imputations
-  if (multiple) return(loo::psis(-ll, r_eff = rep(1, ncol(ll))))
-  cid <- chain_id %||% rep(1L, nrow(ll))
-  r_eff <- loo::relative_eff(exp(ll), chain_id = cid)
-  if (anyNA(r_eff)) {
-    frm_warning("Ignoring relative efficiencies as some were NA. See ",
-                "argument 'r_eff' in ?loo::loo for more details.",
-                call. = FALSE)
-    r_eff <- rep(1, length(r_eff))
-  }
-  loo::psis(-ll, r_eff = r_eff)
+  # loo()'s own relative efficiency, so pp_check() and the loo_*()
+  # functions weight the same draws the same way
+  loo::psis(-ll, r_eff = loo_r_eff(ll, chain_id = chain_id,
+                                   multiple = multiple))
 }
 
 #' Convert draws to a posterior draws object

@@ -520,6 +520,27 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   `dev/drop1raw-findings.md`, fix round 1.
 - Status: not reported.
 
+### brms-30. `loo_epred(ndraws =)` weights one subsample's prediction by another's likelihood
+
+- Seen: 2.23.0, 2026-10-20 (lane loodraws; `dev/loodraws-brms-ndraws.R`,
+  log `dev/loodraws-log/brms-ndraws.txt`).
+- Repro: a gaussian `y ~ x` fit, 60 rows (seed 1), 4 chains of 1000.
+  `set.seed(42); loo_epred(fit, ndraws = 100)`. A trace on
+  `brms:::validate_draw_ids()` shows two calls, one from `log_lik()`
+  inside `loo()` and one from `posterior_epred()`, each with its own
+  `sample()`: the two subsamples share 2 of 100 draws. The result equals
+  `loo::E_loo()` of `posterior_epred()` at the second subsample under
+  the PSIS weights of `log_lik()` at the first (max abs diff 0).
+- Expected: one subsample for both halves. Actual: the weights belong to
+  other draws than the prediction they weight; the same-draw answer
+  differs by up to 8.7 percent of its largest value. `loo_linpred()`,
+  `loo_predict()` and `loo_R2()` pass `...` to both halves the same way.
+- Workaround: frmtmb.sample's `loo_*()` functions choose the draws once
+  (`ndraws` is an evenly spaced subsample) and give the same rows to
+  `log_lik()` and the prediction.
+- Record: `dev/loodraws-findings.md`.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives

@@ -333,7 +333,8 @@ value: a prediction at the observed group levels (the default
 \code{re_formula}, with or without \code{newdata}), any prediction on a model
 with a smooth or an \code{mi()} term that reads them, \code{ranef()},
 \code{coef()}, \code{log_lik()} and everything built on it (\code{loo()}, \code{waic()},
-\code{psis()}, \code{pp_check()}'s \verb{loo_*} types), and \code{bayes_R2()}. The
+\code{psis()}, the \verb{loo_*()} functions, \code{pp_check()}'s \verb{loo_*} types), and
+\code{bayes_R2()}. The
 refusal names the function you called and says what to do instead;
 it suggests \code{re_formula = NA} only where that function takes it and
 it computes on the model. Whether a call reads an integrated value is

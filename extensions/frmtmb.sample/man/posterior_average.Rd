@@ -69,8 +69,8 @@ same draws, the same weights and the same seed.
 \code{weights} is a numeric vector with one weight per model, or the name
 of a method that computes them:
 \itemize{
-\item \code{"stacking"} (the default) and \code{"pseudobma"}:
-\code{\link[loo:loo_model_weights]{loo::loo_model_weights()}} over the \code{\link[=loo]{loo()}} of each model.
+\item \code{"stacking"} (the default) and \code{"pseudobma"}: the weights of
+\code{\link[=loo_model_weights]{loo_model_weights()}}.
 \item \code{"loo"} and \code{"waic"}: Akaike-type weights,
 \code{exp(-delta / 2)} normalized, over each model's LOOIC or WAIC.
 \item \code{"kfold"} and \code{"bma"} are refused: frmtmb.sample has no \code{kfold()}
