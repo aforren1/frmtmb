@@ -239,7 +239,7 @@ start_ls_rules <- local({
     # median
     list(sigma = sum(w * abs(r - stats::median(r))) / sum(w) / 2)
   }
-  list(
+  rules <- list(
     gaussian = list(link = "identity", dpars = "sigma", scale = rms_sigma),
     lognormal = list(link = "identity", dpars = "sigma", scale = rms_sigma),
     shifted_lognormal = list(link = "identity", dpars = "sigma",
@@ -324,6 +324,16 @@ start_ls_rules <- local({
                          list(shape = max(k, 0.1), .shift = s)
                        })
   )
+  # negbinomial2 is negbinomial in sigma = 1 / shape, so it starts where
+  # negbinomial does
+  nb <- rules[["negbinomial"]]
+  rules[["negbinomial2"]] <- utils::modifyList(nb, list(
+    dpars = "sigma",
+    scale = function(r, w, y, eta) {
+      sc <- nb[["scale"]](r, w, y, eta)
+      list(sigma = 1 / sc[["shape"]], .shift = sc[[".shift"]])
+    }))
+  rules
 })
 
 #' Which rows of a response are data: `FALSE` where `mi()` imputes the

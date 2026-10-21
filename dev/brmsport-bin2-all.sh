@@ -7,7 +7,7 @@
 #
 #   FRMTMB_PORT_LIB=<lib> sh dev/brmsport-bin2-all.sh
 #
-# FRMTMB_PORT_LIB defaults to rellib-r10 (dev/brmsport-bin2-run.R). The
+# FRMTMB_PORT_LIB defaults to rellib-r11 (dev/brmsport-bin2-run.R). The
 # ledger stops on a stale or missing verdict, so a run on another build
 # names every row that moved.
 set -e

@@ -223,7 +223,8 @@ ar_is_dots_name <- function(x) {
 # `conditional_effects(frm_multiple_result, "x")` reported "1 argument
 # with no name" where "no pooled version" is the answer.
 ar_refusers <- c("stop", "frm_stop", "fit_no_draws", "multiple_no_draws",
-                 "multiple_refuse")
+                 "multiple_refuse", "loo_fit_refusal", "loo_refit_refusal",
+                 "loo_unbuilt_refusal")
 
 # Under covr every statement arrives as
 # `if (TRUE) { covr:::count(key); <statement> }`, so a one-call body no
@@ -501,11 +502,15 @@ test_that("frm_check_dots() is only ever called from a dots-taker", {
   expect_identical(defined, 1L)
 })
 
-test_that("the two refusal helpers really are unconditional", {
-  # 38 methods are exempt from the swallow guard because their whole
-  # body is one call to one of these. If either grows a branch, those
-  # 38 become exempt SWALLOWERS with nothing failing.
-  for (nm in c("fit_no_draws", "multiple_no_draws")) {
+test_that("the refusal helpers really are unconditional", {
+  # 38 methods, and the 10 loo_*(), kfold(), reloo(), loo_moment_match()
+  # and loo_subsample() refusals on a
+  # fit, are exempt from the swallow guard because their whole
+  # body is one call to one of these. If one grows a branch, those
+  # become exempt SWALLOWERS with nothing failing.
+  for (nm in c("fit_no_draws", "multiple_no_draws", "loo_fit_refusal",
+              "loo_unbuilt_refusal",
+              "loo_refit_refusal")) {
     fn <- getFromNamespace(nm, "frmtmb")
     b <- ar_body(fn)
     expect_true(is.call(b) && identical(as.character(b[[1L]]), "{"),

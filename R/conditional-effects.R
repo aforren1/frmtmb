@@ -700,7 +700,7 @@ ce_cats_display <- function(rspec, dpar) {
 #'
 #' @noRd
 ce_matrix_mean <- function(fam) {
-  fam_is_simplex(fam) || identical(fam[["family"]], "multinomial")
+  fam_is_simplex(fam) || fam_is_multinomial(fam)
 }
 
 #' Whether the per-category display reads its estimates and standard
@@ -3964,7 +3964,7 @@ pp_check_resp <- function(object, resp) {
 #'
 #' @noRd
 pp_check_polytomous_noun <- function(fam) {
-  if (identical(fam[["family"]], "multinomial")) {
+  if (fam_is_multinomial(fam)) {
     "a set of counts over categories"
   } else {
     "a category"

@@ -1033,6 +1033,12 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   out
 }
 
+#' The families whose response is a row of counts over categories:
+#' core's `multinomial_families`, which is internal there.
+#'
+#' @noRd
+draws_count_cats <- c("multinomial", "dirichlet_multinomial")
+
 #' The location dpars brms stacks when `posterior_linpred()` names no
 #' `dpar`: the `mu<cat>` of a family whose dpars run over categories
 #' (brms's `conv_cats_dpars()`), or each component's `mu<k>` of a
@@ -1042,7 +1048,7 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
 #' @noRd
 draws_mu_stack <- function(fam) {
   if (is.null(fam)) return(NULL)
-  if (isTRUE(fam[["family"]] %in% c("categorical", "multinomial")) ||
+  if (isTRUE(fam[["family"]] %in% c("categorical", draws_count_cats)) ||
         !is.null(fam[["simplex"]]) || !is.null(fam[["mix"]])) {
     return(fam[["primary_dpars"]])
   }
@@ -1399,10 +1405,10 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
     # should not describe one case two ways (punch round 1, minor 3)
     fam <- rspec$family
     if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
-          identical(fam[["family"]], "multinomial")) {
+          isTRUE(fam[["family"]] %in% draws_count_cats)) {
       frm_stop("Type 'error_binned' is not available for polytomous ",
                "models: the '", fam[["family"]], "' response is ",
-               if (identical(fam[["family"]], "multinomial")) {
+               if (isTRUE(fam[["family"]] %in% draws_count_cats)) {
                  "a set of counts over categories"
                } else "a category", ", and a binned error needs a ",
                "numeric one, as in brms", call. = FALSE)
@@ -1498,17 +1504,10 @@ draws_ppc_psis <- function(object, type, resp, rows, newdata, re_formula) {
 #'
 #' @noRd
 draws_ppc_psis_fit <- function(ll, chain_id, multiple = FALSE) {
-  # brms takes 1 on the combined chains of several imputations
-  if (multiple) return(loo::psis(-ll, r_eff = rep(1, ncol(ll))))
-  cid <- chain_id %||% rep(1L, nrow(ll))
-  r_eff <- loo::relative_eff(exp(ll), chain_id = cid)
-  if (anyNA(r_eff)) {
-    frm_warning("Ignoring relative efficiencies as some were NA. See ",
-                "argument 'r_eff' in ?loo::loo for more details.",
-                call. = FALSE)
-    r_eff <- rep(1, length(r_eff))
-  }
-  loo::psis(-ll, r_eff = r_eff)
+  # loo()'s own relative efficiency, so pp_check() and the loo_*()
+  # functions weight the same draws the same way
+  loo::psis(-ll, r_eff = loo_r_eff(ll, chain_id = chain_id,
+                                   multiple = multiple))
 }
 
 #' Convert draws to a posterior draws object
@@ -1979,7 +1978,7 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
   # over categories (brms's simplex families are polytomous too)
   fam <- fit$spec$responses[[resp]]$family
   if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
-        identical(fam[["family"]], "multinomial") ||
+        isTRUE(fam[["family"]] %in% draws_count_cats) ||
         !is.null(fam[["simplex"]])) {
     frm_stop("predictive_error() and residuals() are not defined for the ",
              "'", fam[["family"]], "' family, as in brms: the response is ",

@@ -95,7 +95,7 @@ fuzz_families <- list(
   student = list(
     ctor = "student()", brms = "brms::student()", dpar2 = "sigma",
     reml = TRUE, sim = TRUE, mean_check = TRUE, ordinal = FALSE,
-    trials = FALSE, cens = FALSE, trunc = FALSE, se = TRUE,
+    trials = FALSE, cens = TRUE, trunc = TRUE, se = TRUE,
     eta0 = 1, trunc_lb = -0.6
   ),
   lognormal = list(
@@ -114,13 +114,13 @@ fuzz_families <- list(
     ctor = "Gamma(link = \"log\")", brms = "Gamma(link = \"log\")",
     dpar2 = "shape",
     reml = TRUE, sim = TRUE, mean_check = TRUE, ordinal = FALSE,
-    trials = FALSE, cens = FALSE, trunc = FALSE, se = FALSE,
+    trials = FALSE, cens = TRUE, trunc = TRUE, se = FALSE,
     eta0 = 1, trunc_lb = 0.3
   ),
   Beta = list(
     ctor = "Beta()", brms = "brms::Beta()", dpar2 = "phi",
     reml = TRUE, sim = TRUE, mean_check = TRUE, ordinal = FALSE,
-    trials = FALSE, cens = FALSE, trunc = FALSE, se = FALSE,
+    trials = FALSE, cens = TRUE, trunc = TRUE, se = FALSE,
     eta0 = 0, trunc_lb = 0.02
   ),
   poisson = list(
@@ -139,14 +139,14 @@ fuzz_families <- list(
     ctor = "negbinomial()", brms = "brms::negbinomial()",
     dpar2 = "shape",
     reml = FALSE, sim = TRUE, mean_check = TRUE, ordinal = FALSE,
-    trials = FALSE, cens = FALSE, trunc = FALSE, se = FALSE,
+    trials = FALSE, cens = TRUE, trunc = TRUE, se = FALSE,
     eta0 = 1, trunc_lb = 1
   ),
   zero_inflated_poisson = list(
     ctor = "zero_inflated_poisson()",
     brms = "brms::zero_inflated_poisson()", dpar2 = "zi",
     reml = FALSE, sim = TRUE, mean_check = TRUE, ordinal = FALSE,
-    trials = FALSE, cens = FALSE, trunc = FALSE, se = FALSE,
+    trials = FALSE, cens = TRUE, trunc = TRUE, se = FALSE,
     eta0 = 1.2, trunc_lb = 1
   ),
   cumulative = list(
@@ -363,12 +363,16 @@ fuzz_plan <- function(seed = 20260901L, size = 300L) {
 # Deliberately refused-by-design combinations. Each must produce a
 # clean, informative error - never a crash from inside an index.
 fuzz_refusal_cases <- list(
+  # Gamma (cens) and Beta (trunc) were the two cases here through
+  # 0.72.0; both gained a CDF, as did student, negbinomial and
+  # zero_inflated_poisson, which joined the grid above. cumulative is
+  # the family of this table that has none.
   list(name = "cens_no_cdf", expect = "CDF",
-       a = list(family = "Gamma", aterm = "cens", re = "ri",
+       a = list(family = "cumulative", aterm = "cens", re = "ri",
                 special = "none", dpar = "none", mode = "ml",
                 op = "predict")),
   list(name = "trunc_no_cdf", expect = "CDF",
-       a = list(family = "Beta", aterm = "trunc", re = "none",
+       a = list(family = "cumulative", aterm = "trunc", re = "none",
                 special = "none", dpar = "none", mode = "ml",
                 op = "predict")),
   # cens_discrete was here. Through 0.53.0 cens() refused a family for
@@ -431,7 +435,7 @@ fuzz_design <- function(sp) {
   g <- factor(rep(seq_len(ng), each = nt))
   tt <- factor(rep(seq_len(nt), ng))
   gb <- factor(rep(rep(c("i", "ii"), length.out = nt), ng))
-  data.frame(
+  d <- data.frame(
     g = g, tt = tt, ga = g, gb = gb,
     gc = as.character(g),
     fac = factor(rep(c("a", "b", "c"), length.out = n)),
@@ -444,6 +448,13 @@ fuzz_design <- function(sp) {
     one = 1,
     stringsAsFactors = FALSE
   )
+  # ar1(tt + 0 | g) gives each row an effect of its own here, and with
+  # weights summing above n a free dispersion then has no maximum
+  # likelihood, which frm() refuses (check_weights_unbounded()). Half of
+  # runif(0.5, 2) is below 1 on every row, so sum(w) < n always holds.
+  # Scaled after the draw, so every other column keeps its stream.
+  if (identical(sp$re, "ar1")) d$w <- d$w * 0.5
+  d
 }
 
 # The one generating coefficient every spec shares, whatever the family
@@ -582,12 +593,20 @@ fuzz_data <- function(sp) {
       # quantile() interpolates between order statistics and does not.
       if (all(y == round(y))) {
         qs <- c(floor(qs[1]), ceiling(qs[2]))
-        if (qs[2] - qs[1] < 2) next
+        # A zero-heavy count response has its 15% quantile at its
+        # minimum, so no row falls below the bound and no row is
+        # left-censored; one lattice step up censors the minimum.
+        qs[1] <- max(qs[1], min(y) + 1)
+        qs[2] <- min(qs[2], max(y) - 1)
+        # An ordinal response feeds only the cens refusal probe, which
+        # needs the three codes and not an interior value.
+        if (qs[2] - qs[1] < if (fm$ordinal) 0 else 2) next
       }
       cc <- ifelse(y < qs[1], -1L, ifelse(y > qs[2], 1L, 0L))
       d$y <- pmin(pmax(y, qs[1]), qs[2])
       d$cc <- cc
       d$ccl <- c("left", "none", "right")[cc + 2L]
+      if (fm$ordinal) d$y <- factor(d$y, ordered = TRUE)
       if (length(unique(cc)) < 3) next
     }
     return(d)
@@ -1649,11 +1668,10 @@ fuzz_run <- function(plan, brms_oracle = TRUE, nsim = 200L,
 fuzz_not_quad <- function(f) !grepl("mode=quadrature", f$spec)
 
 FUZZ_KNOWN_PENDING <- list(
-  list(id = "trunc-postfit",
-       why = "truncation ignored by fitted/predict/simulate/residuals",
-       match = function(f) grepl("aterm=trunc", f$spec) &&
-         (f$invariant %in% c("trunc_support", "simulate_mean") ||
-            (f$invariant == "predict_eq_fitted" && fuzz_not_quad(f)))),
+  # `trunc-postfit` was here. Its branch (the truncation-aware post-fit
+  # surface) merged before this list was written, so the entry claimed
+  # nothing pending; it hid simulate()'s rejection sampler leaving a row
+  # of a valid weibull fit unfilled, which inverse-CDF draws now fill.
   list(id = "hsgp-brms-scaling",
        why = "HSGP basis scaling matches brms only after the pending merge",
        match = function(f) f$invariant == "brms_gp"),
@@ -1708,11 +1726,7 @@ FUZZ_KNOWN_REFUSAL <- list(
                    "and at the optimum with the integrand widths",
                    "displaced; when none of those yields a finite",
                    "objective and gradient the model is refused with a",
-                   "message that names the configuration. Nested scalar",
-                   "blocks are the shape that cannot be repaired by",
-                   "recalibration at all: the outer integrand is the",
-                   "inner rescaling's output, so the objective is NaN",
-                   "before the optimizer takes a step. An integrator",
+                   "message that names the configuration. An integrator",
                    "that recalibrates per evaluation would be the fix;",
                    "TMBad's adaptive = TRUE is meant to be that and is",
                    "measurably worse (it fails on negbinomial cases the",
@@ -1722,7 +1736,34 @@ FUZZ_KNOWN_REFUSAL <- list(
                    "Laplace warm start."),
        match = function(f) identical(f$invariant, "fit_error") &&
          grepl("mode=quadrature", f$spec) &&
-         grepl("could not marginalize this model", f$detail))
+         grepl("could not marginalize this model", f$detail)),
+  list(id = "trunc-no-mean",
+       why = paste("fitted(), residuals() and frm_linpred(type =",
+                   "'response') refuse a trunc() response of a family",
+                   "brms 2.23.0 has no truncated mean for (Beta and",
+                   "zero_inflated_poisson in this grid), as brms does,",
+                   "rather than report the untruncated mean; the",
+                   "likelihood and simulate() work. The two invariants",
+                   "that compare against fitted() meet the refusal."),
+       match = function(f) grepl("aterm=trunc", f$spec) &&
+         f$invariant %in% c("predict_eq_fitted", "simulate_mean") &&
+         grepl("has no truncated mean", f$detail)),
+  list(id = "quad-one-block-per-row",
+       why = paste("quadrature = TRUE integrates one scalar random effect",
+                   "per row. Over (1 | ga/gb) one Gauss-Kronrod pass",
+                   "integrated the ga effects and left the ga:gb effects",
+                   "to the Laplace approximation: the log-likelihood",
+                   "equaled the Laplace one to 1e-8 and summary() failed.",
+                   "lme4 refuses nAGQ > 1 for more than one term. An",
+                   "exact iterated route was measured and set aside",
+                   "because its tape grows by 12 to 551 MB per row. The",
+                   "refusal comes before any tape, and quadrature = FALSE",
+                   "fits these models."),
+       match = function(f) identical(f$invariant, "fit_error") &&
+         grepl("mode=quadrature", f$spec) &&
+         grepl("re=nested", f$spec) &&
+         grepl("quadrature = TRUE integrates one scalar random effect per",
+               f$detail, fixed = TRUE))
 )
 
 # Divergences from brms's reading of the same formula. Each one is a

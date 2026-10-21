@@ -14,6 +14,7 @@ brms_mu_link_source <- c(
   lognormal = "lognormal",
   student = "student",
   negbinomial = "negbinomial",
+  negbinomial2 = "negbinomial2",
   nbinom1 = "negbinomial",
   beta = "beta",
   tweedie = "gamma",
@@ -23,6 +24,7 @@ brms_mu_link_source <- c(
   hurdle_poisson = "hurdle_poisson",
   hurdle_negbinomial = "hurdle_negbinomial",
   multinomial = "multinomial",
+  dirichlet_multinomial = "dirichlet_multinomial",
   hurdle_cumulative = "hurdle_cumulative",
   xbeta = "xbeta",
   zero_inflated_beta_binomial = "zero_inflated_beta_binomial",
@@ -71,6 +73,7 @@ brms_mu_links <- list(
   student = c("identity", "log", "inverse", "softplus", "squareplus",
       "logit", "probit", "probit_approx", "cloglog", "cauchit", "softit"),
   negbinomial = c("log", "identity", "sqrt", "softplus", "squareplus"),
+  negbinomial2 = c("log", "identity", "sqrt", "softplus", "squareplus"),
   nbinom1 = c("log", "identity", "sqrt", "softplus", "squareplus"),
   beta = c("logit", "probit", "probit_approx", "cloglog", "cauchit",
       "softit", "identity", "log"),
@@ -84,6 +87,7 @@ brms_mu_links <- list(
   hurdle_negbinomial = c("log", "identity", "sqrt", "softplus",
       "squareplus"),
   multinomial = c("logit"),
+  dirichlet_multinomial = c("logit"),
   hurdle_cumulative = c("logit", "probit", "probit_approx", "cloglog",
       "cauchit", "softit"),
   xbeta = c("logit", "probit", "probit_approx", "cloglog", "cauchit",
@@ -139,6 +143,7 @@ brms_mu_links <- list(
 
 # The families brms:::no_mixture() bars as mixture components, by
 # frmtmb family name. The analogs above take no verdict.
-brms_no_mixture <- c("multinomial", "hurdle_gamma", "hurdle_lognormal",
-  "zero_inflated_beta", "zero_one_inflated_beta", "categorical",
-  "dirichlet", "dirichlet2", "logistic_normal")
+brms_no_mixture <- c("multinomial", "dirichlet_multinomial",
+  "hurdle_gamma", "hurdle_lognormal", "zero_inflated_beta",
+  "zero_one_inflated_beta", "categorical", "dirichlet", "dirichlet2",
+  "logistic_normal")

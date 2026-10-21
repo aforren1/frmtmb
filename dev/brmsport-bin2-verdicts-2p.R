@@ -27,12 +27,6 @@ for (id in c("log_lik:271", "posterior_predict:159")) {
   add(id, "cannot transfer", "absent", absent_family("discrete_weibull",
     "A gap, not a decision"))
 }
-for (id in c("log_lik:288", "posterior_predict:169")) {
-  add(id, "cannot transfer", "absent", absent_family("negbinomial2",
-    paste("brms's sigma = 1 / shape spelling of the negative binomial;",
-          "frmtmb's negbinomial() is the same density in shape, and the",
-          "block's negbinomial row (log_lik:285) holds")))
-}
 for (id in c("log_lik:324", "posterior_predict:184")) {
   add(id, "cannot transfer", "absent", absent_family("frechet",
     "A gap, not a decision"))
@@ -354,6 +348,10 @@ W <- do.call(rbind, W)
 mv072 <- source("dev/rel072-bin2-moves.R")$value
 W <- mv072(W, "values")
 V <- mv072(V, "2p")
+# the verdict moves of the 0.73.0 consolidation
+mv073 <- source("dev/rel073-bin2-moves.R")$value
+W <- mv073(W, "values")
+V <- mv073(V, "2p")
 stopifnot(!anyDuplicated(W$id), !any(grepl("\t", W$reason)),
           all(nzchar(W$msg_has)))
 utils::write.table(W, "dev/brmsport-bin2-valuechecks-manual.tsv", sep = "\t",

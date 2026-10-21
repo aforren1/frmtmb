@@ -118,11 +118,10 @@ precision of about 1e-12, the tail beyond 1000 terms through its
 integral. brms's \code{posterior_epred()} stops the sum at the first term
 below 0.001, so the two differ where the tail is long.
 
-\code{cens()} follows frmtmb's discrete censoring convention (see
+\code{cens()} and \code{trunc()} follow brms's discrete conventions (see
 \code{\link[=frmtmb_family]{frmtmb_family()}}, Censoring a discrete response): a right-censored
-count at \code{k} is \code{P(Y >= k)}. brms reads it as \code{P(Y > k)}, so right
-and interval censoring differ from brms; left censoring agrees.
-\code{trunc(lb = )} reads its bound as inclusive, as brms does.
+count at \code{k} is \code{P(Y > k)}, and \code{trunc(lb = )} reads its bound as
+inclusive.
 }
 
 \section{Addition terms}{

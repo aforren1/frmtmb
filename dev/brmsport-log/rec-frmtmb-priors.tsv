@@ -23,7 +23,7 @@ setup	frmtmb	priors:67		TRUE	FALSE			TRUE
 setup	frmtmb	priors:68		TRUE	FALSE			TRUE
 setup	frmtmb	priors:69		TRUE	FALSE			TRUE
 setup	frmtmb	priors:73		TRUE	FALSE			TRUE
-assert	frmtmb	priors:74	divergence	TRUE	FALSE			TRUE
+assert	frmtmb	priors:74	pass	TRUE	FALSE			TRUE
 setup	frmtmb	priors:78		TRUE	FALSE			TRUE
 setup	frmtmb	priors:80		TRUE	FALSE			TRUE
 setup	frmtmb	priors:83		TRUE	FALSE			TRUE

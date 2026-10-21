@@ -88,8 +88,9 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
   # a row of counts over categories has no scalar CDF either; 0.71.0
   # stopped on the missing mean first, and once the family had one the
   # rank code failed on the matrix with a subscript error
-  if (identical(rspec$family[["family"]], "multinomial")) {
-    frm_stop("dharma_residuals() has no meaning for the 'multinomial' ",
+  if (fam_is_multinomial(rspec$family)) {
+    frm_stop("dharma_residuals() has no meaning for the '",
+             rspec$family[["family"]], "' ",
              "family: a scaled quantile residual is the predictive ",
              "distribution function evaluated at the observation, and a ",
              "row of counts over categories has no such function. Compare ",

@@ -124,7 +124,7 @@ the same penalty so the constant is zero.
 | Kappa | `cbind(y1, y2, y3, y4) ~ 1` with `bcm_kappa()` | identity, structure | the tree is saturated, so the estimate IS Cohen's kappa |
 | ChangeDetection | `frm(c ~ 1, family = bcm_changepoint(t))` | identity, recovery | the changepoint is summed out; the port's continuous `tau` is a different model |
 | Planes | **refused**: the model has no free parameter | identity of the arithmetic | `bcm_planes_posterior()` computes it |
-| ChaSaSoon | `z | trials(n) + cens(cc, hi) + weights(w) ~ 1` with `bcm_binomial_cdf()` | identity | a band of counts, not a marginalization |
+| ChaSaSoon | `z | trials(n) + cens(cc, hi) + weights(w) ~ 1` with `binomial()` | identity | a band of counts, not a marginalization |
 
 `mi(sd)` is frmtmb's measurement-error spelling and it does not reach
 Correlation_2: `mi()` refuses `rescor = TRUE`, and with a correlated
@@ -143,14 +143,14 @@ against the reference program directly, and the posterior mode falls
 where Lincoln and Petersen put it, at `floor(x n / k)`.
 
 `ChaSaSoon` is interval censoring, and `cens("interval")` is how it is
-written. One thing stands between the core binomial and a censored row,
-and the refusal names it: the family has no CDF. `bcm_binomial_cdf()`
-supplies one with `frmtmb_family(lcdf = )` in four lines, and the model
-is then `z | trials(n) + cens(cc, hi) + weights(w) ~ 1`, with
-`weights()` carrying the 949 repeats. frmtmb reads a discrete censoring
-bound as INCLUSIVE, so the banded row scores
-`F(25) - F(14) = P(15 <= Y <= 25)`, which is the book's Stan program
-exactly.
+written: `z | trials(n) + cens(cc, hi) + weights(w) ~ 1` with the core
+`binomial()`, with `weights()` carrying the 949 repeats. frmtmb reads a
+discrete interval as brms does, `(y, y2]`, so the band from 15 to 25 is
+the row `z = 14, hi = 25`, which scores `F(25) - F(14) =
+P(15 <= Y <= 25)`, the book's Stan program exactly. `bcm_binomial_cdf()` is the same model as a custom family, a
+CDF supplied with `frmtmb_family(lcdf = )` in four lines, and gives the
+same log-likelihood; it is how the port ran while the core binomial had
+no CDF.
 
 Through frmtmb 0.53.0 the band had to be written into the family's own
 density, because `cens()` refused every family whose `type` was

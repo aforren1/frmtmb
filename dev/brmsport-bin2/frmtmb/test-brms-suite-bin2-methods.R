@@ -244,23 +244,23 @@ test_that("loo_subsample has reasonable outputs", {
   )
   brms_port("brmsfit-methods:478", "divergence",
     paste0(
-      "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "loo_subsample() approximates loo() over posterior draws, ",
+      "which a maximum-likelihood fit has none of: since 0.73.0 ",
+      "frmtmb's own generic refuses it on a fit by name"),
     expect_true(is.numeric(loo2$estimates))
   )
   brms_port("brmsfit-methods:479", "divergence",
     paste0(
-      "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "loo_subsample() approximates loo() over posterior draws, ",
+      "which a maximum-likelihood fit has none of: since 0.73.0 ",
+      "frmtmb's own generic refuses it on a fit by name"),
     expect_equal(nrow(loo2$pointwise), 30)
   )
   brms_port("brmsfit-methods:480", "divergence",
     paste0(
-      "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "loo_subsample() approximates loo() over posterior draws, ",
+      "which a maximum-likelihood fit has none of: since 0.73.0 ",
+      "frmtmb's own generic refuses it on a fit by name"),
     expect_output(print(loo2), "looic")
   )
 })
@@ -274,8 +274,9 @@ test_that("loo_R2 has reasonable outputs", {
   brms_port("brmsfit-methods:487", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(R2), c(1, 4))
   )
   brms_setup("brmsfit-methods:489",
@@ -284,8 +285,9 @@ test_that("loo_R2 has reasonable outputs", {
   brms_port("brmsfit-methods:490", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(R2), c(ndraws(fit1), 1))
   )
 })
@@ -299,8 +301,9 @@ test_that("loo_epred has reasonable outputs", {
   brms_port("brmsfit-methods:497", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit1))
   )
   brms_setup("brmsfit-methods:499",
@@ -319,8 +322,9 @@ test_that("loo_epred has reasonable outputs", {
   brms_port("brmsfit-methods:508", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(llp), c(nrow(newdata), 2))
   )
   brms_setup("brmsfit-methods:510",
@@ -329,15 +333,17 @@ test_that("loo_epred has reasonable outputs", {
   brms_port("brmsfit-methods:511", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit4))
   )
   brms_port("brmsfit-methods:512", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(llp)[3], 4)
   )
 })
@@ -351,8 +357,9 @@ test_that("loo_linpred has reasonable outputs", {
   brms_port("brmsfit-methods:519", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit1))
   )
   brms_setup("brmsfit-methods:521",
@@ -361,15 +368,17 @@ test_that("loo_linpred has reasonable outputs", {
   brms_port("brmsfit-methods:522", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit4))
   )
   brms_port("brmsfit-methods:523", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(llp)[3], 3)
   )
   brms_setup("brmsfit-methods:525",
@@ -378,8 +387,9 @@ test_that("loo_linpred has reasonable outputs", {
   brms_port("brmsfit-methods:526", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit2))
   )
 })
@@ -393,8 +403,9 @@ test_that("loo_predict has reasonable outputs", {
   brms_port("brmsfit-methods:533", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit1))
   )
   brms_setup("brmsfit-methods:535",
@@ -413,8 +424,9 @@ test_that("loo_predict has reasonable outputs", {
   brms_port("brmsfit-methods:544", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(llp), c(nrow(newdata), 2))
   )
   brms_setup("brmsfit-methods:546",
@@ -423,15 +435,17 @@ test_that("loo_predict has reasonable outputs", {
   brms_port("brmsfit-methods:547", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(nrow(llp), nobs(fit4))
   )
   brms_port("brmsfit-methods:548", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(length(dim(llp)), 2)
   )
 })
@@ -445,8 +459,9 @@ test_that("loo_predictive_interval has reasonable outputs", {
   brms_port("brmsfit-methods:555", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(dim(llp), c(nobs(fit3), 2))
   )
 })
@@ -460,15 +475,17 @@ test_that("loo_model_weights has reasonable outputs", {
   brms_port("brmsfit-methods:562", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_is(llw[1:2], "numeric")
   )
   brms_port("brmsfit-methods:563", "divergence",
     paste0(
       "a leave-one-out quantity over posterior draws, which a ",
-      "maximum-likelihood fit has none of; the function is also ",
-      "absent from frmtmb core"),
+      "maximum-likelihood fit has none of: since 0.73.0 frmtmb's ",
+      "own generic refuses it on a fit by name and names ",
+      "frm_sample()"),
     expect_equal(names(llw), c("fit1", "fit1"))
   )
 })

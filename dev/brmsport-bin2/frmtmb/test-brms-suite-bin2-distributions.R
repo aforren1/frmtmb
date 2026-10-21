@@ -35,6 +35,21 @@ rfrechet <- brms_g1_shims[["rfrechet"]]
 dgen_extreme_value <- brms_g1_shims[["dgen_extreme_value"]]
 pgen_extreme_value <- brms_g1_shims[["pgen_extreme_value"]]
 rgen_extreme_value <- brms_g1_shims[["rgen_extreme_value"]]
+pstudent_t <- brms_g1_shims[["pstudent_t"]]
+pvon_mises <- brms_g1_shims[["pvon_mises"]]
+pskew_normal <- brms_g1_shims[["pskew_normal"]]
+pexgaussian <- brms_g1_shims[["pexgaussian"]]
+pbeta_binomial <- brms_g1_shims[["pbeta_binomial"]]
+pasym_laplace <- brms_g1_shims[["pasym_laplace"]]
+pzero_inflated_poisson <- brms_g1_shims[["pzero_inflated_poisson"]]
+pzero_inflated_negbinomial <- brms_g1_shims[["pzero_inflated_negbinomial"]]
+pzero_inflated_binomial <- brms_g1_shims[["pzero_inflated_binomial"]]
+pzero_inflated_beta_binomial <- brms_g1_shims[["pzero_inflated_beta_binomial"]]
+pzero_inflated_beta <- brms_g1_shims[["pzero_inflated_beta"]]
+phurdle_poisson <- brms_g1_shims[["phurdle_poisson"]]
+phurdle_negbinomial <- brms_g1_shims[["phurdle_negbinomial"]]
+phurdle_gamma <- brms_g1_shims[["phurdle_gamma"]]
+phurdle_lognormal <- brms_g1_shims[["phurdle_lognormal"]]
 inv_link_cumulative <- brms_g2_shims[["cumulative"]]
 inv_link_sratio <- brms_g2_shims[["sratio"]]
 inv_link_cratio <- brms_g2_shims[["cratio"]]
@@ -54,12 +69,8 @@ test_that("student distribution works correctly", {
     "",
     expect_equal(dstudent_t(1, df = 10, mu = 0, sigma = 5), dt(1/5, df = 10)/5)
   )
-  brms_port("distributions:6", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:6", "pass",
+    "",
     expect_equal(pstudent_t(2, df = 20, mu = 2, sigma = 0.4), pt(0, df = 20))
   )
   brms_setup("distributions:7",
@@ -97,17 +108,17 @@ test_that("von_mises distribution functions run without errors", {
   brms_value_check("distributions:50", "res", "holds", {
     res <- dvon_mises(runif(n, -pi, pi), mu = 1, kappa = 1:n)
   })
+  brms_value_mark()
   brms_setup("distributions:51",
     res <- pvon_mises(runif(n, -pi, pi), mu = rnorm(n), kappa = 0:(n-1))
   )
-  brms_port("distributions:52", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:52", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:52", "res", "holds", {
+    res <- pvon_mises(runif(n, -pi, pi), mu = rnorm(n), kappa = 0:(n-1))
+  })
   brms_setup("distributions:53",
     res <- rvon_mises(n, mu = rnorm(n), kappa = 0:(n-1))
   )
@@ -136,18 +147,19 @@ test_that("skew_normal distribution functions run without errors", {
   brms_value_check("distributions:61", "res", "holds", {
     res <- dskew_normal(x, mu = 1, sigma = 2, alpha = 1)
   })
+  brms_value_mark()
   brms_setup("distributions:62",
     res <- pskew_normal(x, mu = rnorm(n), sigma = 1:n,
                         alpha = 3, log.p = TRUE)
   )
-  brms_port("distributions:64", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:64", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:64", "res", "holds", {
+    res <- pskew_normal(x, mu = rnorm(n), sigma = 1:n,
+                        alpha = 3, log.p = TRUE)
+  })
   brms_setup("distributions:65",
     p <- log(runif(n, 0, 1))
   )
@@ -205,18 +217,19 @@ test_that("exgaussian distribution functions run without errors", {
   brms_value_check("distributions:80", "res", "holds", {
     res <- dexgaussian(x, mu = 1, sigma = 2, beta = 1)
   })
+  brms_value_mark()
   brms_setup("distributions:81",
     res <- pexgaussian(x, mu = rnorm(n), sigma = 1:n,
                        beta = 3, log.p = TRUE)
   )
-  brms_port("distributions:83", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:83", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:83", "res", "holds", {
+    res <- pexgaussian(x, mu = rnorm(n), sigma = 1:n,
+                       beta = 3, log.p = TRUE)
+  })
   brms_setup("distributions:84",
     res <- rexgaussian(n, mu = rnorm(n), sigma = 10, beta = 1:10)
   )
@@ -374,17 +387,17 @@ test_that("beta_binomial distribution functions run without errors", {
   brms_value_check("distributions:123", "res", "holds", {
     res <- dbeta_binomial(x, c(2, 10), mu = 0.4, phi = 1)
   })
+  brms_value_mark()
   brms_setup("distributions:124",
     res <- pbeta_binomial(x, c(2, 10), mu = 0.4, phi = 1)
   )
-  brms_port("distributions:125", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:125", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:125", "res", "holds", {
+    res <- pbeta_binomial(x, c(2, 10), mu = 0.4, phi = 1)
+  })
   brms_setup("distributions:126",
     res <- rbeta_binomial(n, c(2, 10), mu = 0.4, phi = 1)
   )
@@ -467,17 +480,17 @@ test_that("asym_laplace distribution functions run without errors", {
   brms_value_check("distributions:148", "res", "holds", {
     res <- dasym_laplace(x, mu = 1, sigma = 2, quantile = 0.5)
   })
+  brms_value_mark()
   brms_setup("distributions:149",
     res <- pasym_laplace(x, mu = rnorm(n), sigma = 1:n, quantile = 0.3)
   )
-  brms_port("distributions:150", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:150", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:150", "res", "holds", {
+    res <- pasym_laplace(x, mu = rnorm(n), sigma = 1:n, quantile = 0.3)
+  })
   brms_setup("distributions:151",
     res <- rasym_laplace(n, mu = rnorm(n), sigma = 10,
                          quantile = runif(n, 0, 1))
@@ -508,17 +521,17 @@ test_that("zero-inflated distribution functions run without errors", {
   brms_value_check("distributions:162", "res", "holds", {
     res <- dzero_inflated_poisson(x, lambda = 1, zi = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:163",
     res <- pzero_inflated_poisson(x, lambda = 1, zi = 0.1)
   )
-  brms_port("distributions:164", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:164", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:164", "res", "holds", {
+    res <- pzero_inflated_poisson(x, lambda = 1, zi = 0.1)
+  })
   brms_value_mark()
   brms_setup("distributions:166",
     res <- dzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
@@ -530,17 +543,17 @@ test_that("zero-inflated distribution functions run without errors", {
   brms_value_check("distributions:167", "res", "holds", {
     res <- dzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:168",
     res <- pzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
   )
-  brms_port("distributions:169", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:169", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:169", "res", "holds", {
+    res <- pzero_inflated_negbinomial(x, mu = 2, shape = 5, zi = 0.1)
+  })
   brms_value_mark()
   brms_setup("distributions:171",
     res <- dzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
@@ -552,17 +565,17 @@ test_that("zero-inflated distribution functions run without errors", {
   brms_value_check("distributions:172", "res", "holds", {
     res <- dzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:173",
     res <- pzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
   )
-  brms_port("distributions:174", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:174", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:174", "res", "holds", {
+    res <- pzero_inflated_binomial(x, size = c(2, 10), prob = 0.4, zi = 0.1)
+  })
   brms_value_mark()
   brms_setup("distributions:176",
     res <- dzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
@@ -576,18 +589,19 @@ test_that("zero-inflated distribution functions run without errors", {
     res <- dzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
         zi = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:178",
     res <- pzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
         zi = 0.1)
   )
-  brms_port("distributions:179", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:179", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:179", "res", "holds", {
+    res <- pzero_inflated_beta_binomial(x, c(2, 10), mu = 0.4, phi = 1, 
+        zi = 0.1)
+  })
   brms_setup("distributions:181",
     x <- c(rbeta(n - 2, shape1 = 2, shape2 = 3), 0, 0)
   )
@@ -602,17 +616,17 @@ test_that("zero-inflated distribution functions run without errors", {
   brms_value_check("distributions:183", "res", "holds", {
     res <- dzero_inflated_beta(x, shape1 = 2, shape2 = 3, zi = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:184",
     res <- pzero_inflated_beta(x, shape1 = 2, shape2 = 3, zi = 0.1)
   )
-  brms_port("distributions:185", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:185", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:185", "res", "holds", {
+    res <- pzero_inflated_beta(x, shape1 = 2, shape2 = 3, zi = 0.1)
+  })
 })
 
 test_that("hurdle distribution functions run without errors", {
@@ -634,17 +648,17 @@ test_that("hurdle distribution functions run without errors", {
   brms_value_check("distributions:193", "res", "holds", {
     res <- dhurdle_poisson(x, lambda = 1, hu = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:194",
     res <- phurdle_poisson(x, lambda = 1, hu = 0.1)
   )
-  brms_port("distributions:195", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:195", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:195", "res", "holds", {
+    res <- phurdle_poisson(x, lambda = 1, hu = 0.1)
+  })
   brms_value_mark()
   brms_setup("distributions:197",
     res <- dhurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
@@ -656,17 +670,17 @@ test_that("hurdle distribution functions run without errors", {
   brms_value_check("distributions:198", "res", "holds", {
     res <- dhurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:199",
     res <- phurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
   )
-  brms_port("distributions:200", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:200", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:200", "res", "holds", {
+    res <- phurdle_negbinomial(x, mu = 2, shape = 5, hu = 0.1)
+  })
   brms_value_mark()
   brms_setup("distributions:202",
     res <- dhurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
@@ -678,17 +692,17 @@ test_that("hurdle distribution functions run without errors", {
   brms_value_check("distributions:203", "res", "holds", {
     res <- dhurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:204",
     res <- phurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
   )
-  brms_port("distributions:205", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:205", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:205", "res", "holds", {
+    res <- phurdle_gamma(x, shape = 1, scale = 3, hu = 0.1)
+  })
   brms_value_mark()
   brms_setup("distributions:207",
     res <- dhurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
@@ -700,17 +714,17 @@ test_that("hurdle distribution functions run without errors", {
   brms_value_check("distributions:208", "res", "holds", {
     res <- dhurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
   })
+  brms_value_mark()
   brms_setup("distributions:209",
     res <- phurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
   )
-  brms_port("distributions:210", "cannot transfer",
-    paste0(
-      "brms's p function of a family frmtmb has, and the frmtmb ",
-      "family has no CDF (no $lcdf), so there is nothing to read: ",
-      "a gap. inverse.gaussian, the one family here with a CDF, is ",
-      "shimmed and its row holds (distributions:111)"),
+  brms_port("distributions:210", "pass",
+    "",
     expect_true(length(res) == n)
   )
+  brms_value_check("distributions:210", "res", "holds", {
+    res <- phurdle_lognormal(x, mu = 2, sigma = 5, hu = 0.1)
+  })
 })
 
 test_that("d<ordinal_family>() works correctly", {

@@ -176,8 +176,13 @@ approximation (the \code{glmer(nAGQ = k)} analogue; matches it in
 tests). Worth it for Bernoulli responses with small clusters,
 where Laplace biases variance components. Scalar random-intercept
 models only, and not with \code{mi()}, \code{trunc()}, \code{REML = TRUE}, or
-\code{frmtmb_control(profile = TRUE)}. A plain Laplace fit runs first
-and the quadrature tape is built at its optimum: the
+\code{frmtmb_control(profile = TRUE)}. A row may read one block only:
+nested blocks, \code{(1 | ga/gb)}, crossed blocks, \code{(1 | g) + (1 | h)},
+and \code{(1 | g)} in both \code{mu} and \code{sigma} are refused, as lme4
+refuses \code{nAGQ > 1} for more than one term. The blocks of a by-split
+\code{gr(g, by = f)} each read rows of their own and are allowed. A
+plain Laplace fit runs first and the quadrature tape is built at
+its optimum: the
 Gauss-Kronrod rescaling is fixed when the tape is built, so the
 starting point decides whether the marginalized objective is
 finite at all. That fit also supplies the conditional modes, which

@@ -168,15 +168,17 @@ bcm_contaminant <- function(link = "logit", link_phi = "logit") {
 # somewhere between 15 and 25. That is interval censoring, and
 # `cens("interval")` is the grammar's word for it.
 #
-# The core binomial has no `lcdf`, which is the one thing standing
-# between it and a censored row, and the refusal says so. Four lines
-# supply one, and the band is then written where a reader looks for it:
+# Through frmtmb 0.72.0 the core binomial had no `lcdf`, which was the
+# one thing standing between it and a censored row. Four lines supply
+# one; the core binomial now has its own and gives the same likelihood,
+# and the band is written where a reader looks for it:
 #
 #   z | trials(n) + cens(cc, hi) + weights(w) ~ 1
 #
-# frmtmb reads a discrete censoring bound as INCLUSIVE, so the interval
-# row scores F(25) - F(14) = P(15 <= Y <= 25), which is the book's Stan
-# program exactly. `weights()` carries the 949 repeats.
+# frmtmb reads a discrete interval as brms does, `(y, y2]`, so the band
+# 15 to 25 is the row `z = 14, hi = 25`, which scores F(25) - F(14) =
+# P(15 <= Y <= 25), the book's Stan program exactly. `weights()` carries
+# the 949 repeats.
 #
 # This family used to carry the band in its own density, because
 # `cens()` refused every discrete family whatever CDF it supplied. That

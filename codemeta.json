@@ -8,7 +8,7 @@
   "codeRepository": "https://github.com/aforren1/frmtmb",
   "issueTracker": "https://github.com/aforren1/frmtmb/issues",
   "license": "https://spdx.org/licenses/GPL-2.0",
-  "version": "0.72.0",
+  "version": "0.73.0",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
@@ -154,6 +154,18 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=emmeans"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "extraDistr",
+      "name": "extraDistr",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=extraDistr"
     },
     {
       "@type": "SoftwareApplication",
@@ -419,6 +431,18 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=rmarkdown"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "Rmpfr",
+      "name": "Rmpfr",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=Rmpfr"
     },
     {
       "@type": "SoftwareApplication",

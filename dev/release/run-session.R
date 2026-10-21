@@ -37,7 +37,7 @@
 local({
 # The same libraries as run-tests.R: FRMTMB_RELLIB ahead of the release
 # library, for a lane's build. Change LIB in both files at a release.
-LIB <- "C:/Users/adf44/source/r/rellib-r10"
+LIB <- "C:/Users/adf44/source/r/rellib-r11"
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
 }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
@@ -157,6 +157,24 @@ leaks <- function(f, before, after) {
     by <- if (k %in% c("globals", "search path")) character(0) else
       if (k %in% c("options", "envvars")) ns_new else
         grep("^frmtmb", ns_new, value = TRUE)
+    # rstan defines a Stan model's Rcpp module classes, and the S4
+    # class cache entries they bring, in the global environment when it
+    # instantiates the model, whoever calls it: rstan::sampling() of a
+    # cached model inside a function, with nothing else loaded, leaves
+    # the same names (dev/rel073-rcpp-globals.R). They are rstan's, so
+    # they are tagged as a load, on a line of their own; every other
+    # global stays the test's
+    if (identical(k, "globals")) {
+      st <- grepl(paste0("^[+](\\.__C__Rcpp_stan_fit4model|",
+                         "\\.__C__C[+][+]Object$|\\.__global__$|",
+                         "\\.requireCachedGenerics$)"), what)
+      if (any(st)) {
+        cat("LEAK ", f, " ", k, ": ", paste(what[st], collapse = " "),
+            " [with load of a Stan model (rstan)]\n", sep = "")
+        what <- what[!st]
+        if (!length(what) || all(what == "-")) next
+      }
+    }
     cat("LEAK ", f, " ", k, ": ", paste(what, collapse = " "),
         if (length(by)) {
           paste0(" [with load of ", paste(sort(by), collapse = " "), "]")

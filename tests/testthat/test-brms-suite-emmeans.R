@@ -5,7 +5,7 @@
 
 skip_unless_brms_suite()
 skip_if_not_installed("emmeans")
-library(emmeans)
+withr::local_package("emmeans")
 SW <- suppressWarnings
 rename_pars <- brms_shim_rename_pars
 fit1 <- brms_fixture(1)

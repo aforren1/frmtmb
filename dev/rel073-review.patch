@@ -1,0 +1,199 @@
+diff -ruN a/R/weights-unbounded.R b/R/weights-unbounded.R
+--- a/R/weights-unbounded.R
++++ b/R/weights-unbounded.R
+@@ -6,14 +6,18 @@
+ # with an observation-level intercept and weights of 1.2 and to fit with
+ # weights of 0.9 (dev/fuzzfix-spike-families.R, dev/fuzzfix-fr1-families.R).
+ # exgaussian needs both its scales: with beta held, its density stays
+-# below 1 / beta.
++# below 1 / beta. zero_inflated_asym_laplace is asym_laplace on its
++# nonzero rows (dev/rel073-zial-probe.R: Laplace logLik 278.05 and
++# 201.90 unweighted, quadrature bounded at unit weights and unbounded
++# at 1.2, a group of 4 rows bounded).
+ unbounded_spike_dpar <- list(
+   gaussian = "sigma", student = "sigma", lognormal = "sigma",
+   Gamma = "shape", weibull = "shape", beta = "phi",
+   inverse.gaussian = "shape", skew_normal = "sigma",
+   shifted_lognormal = "sigma", huber = "sigma", von_mises = "kappa",
+   frechet = "nu", gen_extreme_value = "sigma",
+-  exgaussian = c("sigma", "beta"), asym_laplace = "sigma")
++  exgaussian = c("sigma", "beta"), asym_laplace = "sigma",
++  zero_inflated_asym_laplace = "sigma")
+ 
+ # The limit each spike dpar runs to: a scale shrinks to 0, a precision
+ # or shape grows without bound
+@@ -49,7 +53,19 @@
+ #' intercept); (ii) each row's mean reaches its observation, which an
+ #' owned effect in a full-rank block gives; (iii) the effects' prior
+ #' density is positive and finite there. It also fails open for several
+-#' responses, `se()`, `cens()`, residual correlation and `mi()`.
++#' responses, `se()`, residual correlation and `mi()`.
++#'
++#' Under `cens()` the argument runs over the uncensored rows. A censored
++#' row's probability is at most 1, and its own effect can bring it to 1,
++#' so the exact marginal of such a row stays between a positive constant
++#' and 1 while the uncensored rows run away as before: the excess is
++#' theirs alone. Under the Laplace approximation a censored row's own
++#' effect sits where its probability turns from 0 to 1, where the
++#' curvature grows like 1 / width, so each such row takes back up to
++#' half a power of the growth; the check subtracts 1/2 per censored row,
++#' which fails open where that is too much. On 80 gaussian rows with 16
++#' censored (dev/rel073-wcens-probe.R) an uncensored excess of 2 and 4
++#' stopped at an interior estimate and 16 and 32 ran away.
+ #'
+ #' A prior on a spike dpar exempts the model only when it provably
+ #' bounds the growth (`prior_spike_verdict()`); a prior on anything else
+@@ -69,8 +85,9 @@
+   fam <- resp$family[["family"]] %||% ""
+   spike <- unbounded_spike_dpar[[fam]]
+   if (is.null(spike)) return(invisible())
+-  laplace_linear <- identical(fam, "asym_laplace") && !isTRUE(exact)
+-  if (!is.null(resp$aterms[["se"]]) || !is.null(resp$aterms[["cens"]]) ||
++  laplace_linear <- fam %in% c("asym_laplace", "zero_inflated_asym_laplace") &&
++    !isTRUE(exact)
++  if (!is.null(resp$aterms[["se"]]) ||
+         length(frame[["autocor"]] %||% list()) ||
+         length(frame[["mi_map"]] %||% list())) {
+     return(invisible())
+@@ -95,9 +112,23 @@
+   owned <- unique(Zc@i[Zc@p[one] + 1L] + 1L)
+   pos <- which(w > 0)
+   if (!length(pos) || !all(pos %in% owned)) return(invisible())
+-  excess <- if (laplace_linear) sum(w[pos]) else sum(w[pos] - 1)
++  # the excess is the uncensored rows' (see above); a censored row needs
++  # its own effect too, or its probability can fall to 0 as the
++  # dispersion goes to its limit
++  cen <- frame[["aterm_values"]][[r]][["cens"]]
++  unc <- if (is.null(cen)) pos else pos[rep_len(cen, n)[pos] == 0]
++  n_cens <- length(pos) - length(unc)
++  # a zero of zero_inflated_asym_laplace is the point mass: log(zi),
++  # whatever its own effect, so the row neither grows nor curves
++  if (identical(fam, "zero_inflated_asym_laplace")) {
++    yv <- frame[["y"]][[r]]
++    unc <- unc[yv[unc] != 0]
++  }
++  if (!length(unc)) return(invisible())
++  excess <- if (laplace_linear) sum(w[unc]) else sum(w[unc] - 1)
++  if (!isTRUE(exact)) excess <- excess - n_cens / 2
+   # rounding of weights normalized to mean 1 must not read as an excess
+-  if (excess <= 1e-8 * length(pos)) return(invisible())
++  if (excess <= 1e-8 * length(unc)) return(invisible())
+   verdicts <- vapply(seq_along(spike), function(k) {
+     prior_spike_verdict(prior, r, spike[k], lps[[k]], excess, route)
+   }, "")
+@@ -106,8 +137,8 @@
+   terms <- unique(vapply(Filter(function(bk) {
+     any(bk[["c_idx"]] %in% cols[one])
+   }, owned_blocks), block_term_as_written, ""))
+-  frm_stop(weights_unbounded_message(terms, w[pos], excess, spike, fam,
+-                                     laplace_linear, route),
++  frm_stop(weights_unbounded_message(terms, w[unc], excess, spike, fam,
++                                     laplace_linear, route, n_cens),
+            call. = FALSE)
+ }
+ 
+@@ -266,7 +297,7 @@
+ #'
+ #' @noRd
+ weights_unbounded_message <- function(terms, w, excess, spike, fam,
+-                                      laplace_linear, route) {
++                                      laplace_linear, route, n_cens = 0L) {
+   zero <- spike[1L] %in% unbounded_spike_toward_zero
+   dp <- paste(spike, collapse = " and ")
+   lim <- if (zero) {
+@@ -286,8 +317,17 @@
+                  if (length(w) && any(w != 1)) {
+                    paste0(", and the weights sum to ",
+                           format(sum(w), digits = 6), " over ", length(w),
+-                          " rows")
+-                 }, ". ")
++                          if (n_cens) " uncensored", " rows")
++                 }, ". ",
++                 if (n_cens) {
++                   paste0("The ", n_cens, " censored rows do not stop ",
++                          "it: a censored row's probability is at most 1, ",
++                          "and its own effect can bring it to 1",
++                          if (!laplace_linear) {
++                            paste("; under the Laplace approximation",
++                                  "each takes 1/2 off the power below")
++                          }, ". ")
++                 })
+   why <- if (laplace_linear) {
+     paste0("The ", fam, " log density is linear on each side of its ",
+            "mode, so the data give a row's own effect no curvature, and as ",
+diff -ruN a/extensions/frmtmb.sample/tests/testthat/test-weights-unbounded.R b/extensions/frmtmb.sample/tests/testthat/test-weights-unbounded.R
+--- a/extensions/frmtmb.sample/tests/testthat/test-weights-unbounded.R
++++ b/extensions/frmtmb.sample/tests/testthat/test-weights-unbounded.R
+@@ -36,3 +36,16 @@
+                data = d, chains = 1, iter = 200, refresh = 0, seed = 1)))
+   expect_s3_class(ds, "frmtmb_draws")
+ })
++
++test_that("a cens() column does not turn the formula route's check off", {
++  skip_sampler()
++  d <- wus_data()
++  d$none <- "none"
++  allow_warnings(
++    expect_error(
++      frm_sample(bf(y | weights(w) + cens(none) ~ x + (1 | obs)),
++                 family = gaussian(), data = d, chains = 1, iter = 200,
++                 refresh = 0, seed = 1),
++      "posterior of this model is improper"),
++    "gives every observation its own random effect")
++})
+diff -ruN a/tests/testthat/test-weights-unbounded.R b/tests/testthat/test-weights-unbounded.R
+--- a/tests/testthat/test-weights-unbounded.R
++++ b/tests/testthat/test-weights-unbounded.R
+@@ -216,3 +216,52 @@
+   expect_null(check_weights_unbounded(fg$spec, fg, shp, exact = TRUE,
+                                       route = "sample"))
+ })
++
++test_that("cens() does not turn the check off: it counts uncensored rows", {
++  # The check returned early on cens(), and the 0.73.0 families gained a
++  # CDF, so a censoring column with no row censored switched the refusal
++  # off (asym_laplace (1 | obs): logLik 762.92 at sigma 1.6e-05; Gamma
++  # with weights 1.5: 5.1e7). A censored row's probability is at most 1
++  # and its own effect can bring it to 1, so the uncensored rows still
++  # run away.
++  d <- wu_data()
++  d$none <- "none"
++  q <- stats::quantile(d$ly, 0.9)
++  d$cc <- ifelse(d$ly > q, "right", "none")
++  d$lyc <- pmin(d$ly, q)
++  d$w15 <- 1.5
++  expect_error(frm(bf(ly | cens(none) ~ x + (1 | obs)) + asym_laplace(),
++                   data = d), "Laplace approximation")
++  expect_gt(sum(d$cc == "right"), 0)
++  expect_error(frm(bf(lyc | cens(cc) ~ x + (1 | obs)) + asym_laplace(),
++                   data = d), "Laplace approximation")
++  expect_error(frm(bf(y | weights(w15) + cens(none) ~ x + (1 | obs)) +
++                     Gamma(link = "log"), data = d), wu_refusal)
++  allow_warnings(
++    expect_error(frm(bf(lyc | weights(w15) + cens(cc) ~ x + (1 | obs)) +
++                       gaussian(), data = d),
++                 "censored rows do not stop it"),
++    "gives every observation its own random effect")
++  # the absent case: six rows per level of g, not one, own no effect
++  r <- wu_fit(bf(lyc | weights(w15) + cens(cc) ~ x + (1 | g)) + gaussian(),
++              data = d)
++  expect_true(is.finite(as.numeric(logLik(r$fit))))
++  expect_identical(r$fit$opt$convergence, 0L)
++})
++
++test_that("zero_inflated_asym_laplace is asym_laplace on its nonzero rows", {
++  # dev/rel073-zial-probe.R: with (1 | obs) the Laplace objective ran to
++  # logLik 278.05 and 201.90 on 80 unweighted rows; a group of four rows
++  # per level stayed at -119.29 and -124.25
++  d <- wu_data()
++  d$yz <- ifelse(seq_len(nrow(d)) %% 5 == 0, 0, d$ly)
++  f <- zero_inflated_asym_laplace()
++  expect_error(frm(bf(yz ~ x + (1 | obs)), family = f, data = d),
++               "Laplace approximation")
++  fr <- frm(bf(yz ~ x + (1 | obs)), family = f, data = d,
++            dry_run = "frame")
++  # the exact integral is bounded at unit weights
++  expect_null(check_weights_unbounded(fr$spec, fr, NULL, exact = TRUE))
++  r <- wu_fit(bf(yz ~ x + (1 | g)), family = f, data = d)
++  expect_true(is.finite(as.numeric(logLik(r$fit))))
++})

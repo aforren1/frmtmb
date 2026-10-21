@@ -537,6 +537,7 @@
 #' @aliases ce_predict_family_check
 #' @aliases ce_sim_one
 #' @aliases pp_check_resp
+#' @aliases check_weights_unbounded
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
@@ -572,7 +573,7 @@
 #'   arma_cond_fill_epred, response_codes_newdata, subset_resp_check,
 #'   subset_newdata, mo_simplex, mo_coords, mo_chart_frame, mo_frame_terms,
 #'   simplex_frame_terms,
-#'   summary_mo_frame)
+#'   summary_mo_frame, check_weights_unbounded)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

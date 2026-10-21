@@ -1528,7 +1528,7 @@ default_lp_dpar <- function(rspec, dp) {
   if (dp %in% (rspec$nlpars %||% character(0))) return("")
   loc <- setdiff(rspec$primary_dpars, rspec$nlpars %||% character(0))
   several <- length(loc) > 1L || !is.null(rspec$family[["mix"]]) ||
-    isTRUE(rspec$family[["family"]] %in% c("categorical", "multinomial"))
+    isTRUE(rspec$family[["family"]] %in% c("categorical", draws_count_cats))
   if (dp %in% rspec$primary_dpars && !several) "" else dp
 }
 
@@ -1582,6 +1582,11 @@ brms_family_prior <- function(rspec, cls, link) {
       if (identical(cls, "shape") && identical(link, "identity")) {
         "inv_gamma(0.4, 0.3)"
       },
+    # the same prior moved to sigma = 1 / shape: brms's hook for
+    # negbinomial2 says gamma where negbinomial's says inv_gamma
+    negbinomial2 = if (identical(cls, "sigma") && identical(link, "identity")) {
+      "gamma(0.4, 0.3)"
+    },
     von_mises = if (identical(cls, "mu") && identical(link, "tan_half")) {
       "student_t(1, 0, 1)"
     },
@@ -2437,7 +2442,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `re_formula`, with or without `newdata`), any prediction on a model
 #' with a smooth or an `mi()` term that reads them, `ranef()`,
 #' `coef()`, `log_lik()` and everything built on it (`loo()`, `waic()`,
-#' `psis()`, `pp_check()`'s `loo_*` types), and `bayes_R2()`. The
+#' `psis()`, the `loo_*()` functions, `pp_check()`'s `loo_*` types), and
+#' `bayes_R2()`. The
 #' refusal names the function you called and says what to do instead;
 #' it suggests `re_formula = NA` only where that function takes it and
 #' it computes on the model. Whether a call reads an integrated value is
@@ -2487,6 +2493,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `sigma` | `student_t(3, 0, s)` | natural |
 #' | `shape`, `phi` | `gamma(0.01, 0.01)` | natural |
 #' | `shape` of the negative binomials | `inv_gamma(0.4, 0.3)` | natural |
+#' | `sigma` of `brmsfamily("negbinomial2")`, `1 / shape` | `gamma(0.4, 0.3)` | natural |
 #' | `nu` | `gamma(2, 0.1)` | natural |
 #' | `kappa` | `gamma(2, 0.01)`; `gamma(0.01, 0.01)` for `xbeta()` | natural |
 #' | `beta` (exgaussian) | `gamma(1, 0.1)` | natural |
@@ -2981,6 +2988,17 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                 "route and the full route sample the same density. ",
                 "Sampling the model as it is")
     laplace <- FALSE
+  }
+  # frm() skips this check for the unfitted object, because only here
+  # are the priors known that the chains will sample under. brms's
+  # default on sigma is finite at 0, so with weights summing to n + 1
+  # or more over rows that each own an effect, the posterior does not
+  # integrate and the chains do not mix (Rhat 2.5 on 2 chains). The fit
+  # route was refused by frm() already, or fitted under a prior that
+  # bounds it
+  if (from_formula) {
+    check_weights_unbounded(fit$spec, fit$frame, rp$effective,
+                            exact = !laplace, route = "sample")
   }
   # the priors ride on the OUTER parameters, so they compose with the
   # reparameterization rather than interacting with it: theta is theta on

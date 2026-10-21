@@ -178,7 +178,8 @@ test_that("an unquoted link resolves as brms resolves it", {
 test_that("link and link_<dpar> agree with links on every registry family", {
   checked <- 0L
   for (nm in names(frmtmb:::family_registry)) {
-    f <- if (nm == "multinomial") multinomial(K = 3) else {
+    mn <- nm %in% frmtmb:::multinomial_families
+    f <- if (mn) frmtmb:::family_registry[[nm]](K = 3) else {
       frmtmb:::family_registry[[nm]]()
     }
     x <- unclass(f)
@@ -191,11 +192,11 @@ test_that("link and link_<dpar> agree with links on every registry family", {
       # a simplex family's categories share the link it names, which
       # is brms's $link; their own links are where the softmax starts
       expect_identical(f$link, x$joint_link, label = nm)
-    } else if (!identical(x$type, "categorical") && nm != "multinomial") {
+    } else if (!identical(x$type, "categorical") && !mn) {
       expect_identical(f$link, main$name, label = nm)
       expect_identical(f$linkinv, main$linkinv, label = nm)
     }
-    secondary <- setdiff(x$dpars, c("mu", if (nm == "multinomial" ||
+    secondary <- setdiff(x$dpars, c("mu", if (mn ||
                                             identical(x$type, "categorical"))
                                       x$primary_dpars))
     for (dp in secondary) {

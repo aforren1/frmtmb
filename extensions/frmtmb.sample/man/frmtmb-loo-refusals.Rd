@@ -2,13 +2,9 @@
 % Please edit documentation in R/loo.R
 \name{frmtmb-loo-refusals}
 \alias{frmtmb-loo-refusals}
-\alias{loo_moment_match}
 \alias{loo_moment_match.frmtmb_draws}
-\alias{loo_subsample}
 \alias{loo_subsample.frmtmb_draws}
-\alias{reloo}
 \alias{reloo.frmtmb_draws}
-\alias{kfold}
 \alias{kfold.frmtmb_draws}
 \alias{bridge_sampler}
 \alias{bridge_sampler.frmtmb_draws}
@@ -18,19 +14,11 @@
 \alias{post_prob.frmtmb_draws}
 \title{Refusals for the refit-based and marginal-likelihood brmsfit methods}
 \usage{
-loo_moment_match(x, ...)
-
 \method{loo_moment_match}{frmtmb_draws}(x, ...)
-
-loo_subsample(x, ...)
 
 \method{loo_subsample}{frmtmb_draws}(x, ...)
 
-reloo(x, ...)
-
 \method{reloo}{frmtmb_draws}(x, ...)
-
-kfold(x, ...)
 
 \method{kfold}{frmtmb_draws}(x, ...)
 
@@ -66,6 +54,8 @@ are documented so the reason is findable.
 all need to refit the model on modified data. \code{frm_bootstrap()} is
 the resampling machinery frmtmb does have, and \code{AIC()} on the
 maximum-likelihood fits answers the comparison question directly.
+The generics of these four and their refusals on a fit
+are frmtmb's (\code{\link[frmtmb:kfold]{frmtmb::kfold()}}); these are the methods for draws.
 \item \code{bridge_sampler()}, \code{bayes_factor()} and \code{post_prob()} are
 marginal-likelihood quantities. A marginal likelihood is an
 integral against the PRIOR, so it is undefined under

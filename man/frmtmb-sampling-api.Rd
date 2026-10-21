@@ -117,6 +117,7 @@
 \alias{ce_predict_family_check}
 \alias{ce_sim_one}
 \alias{pp_check_resp}
+\alias{check_weights_unbounded}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}

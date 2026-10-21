@@ -501,9 +501,11 @@ logLik.frmtmb_draws <- function(object, newdata = NULL, re_formula = NULL,
 #'
 #' @section Relative efficiency:
 #' `r_eff` defaults to `loo::relative_eff()` on the chain structure of
-#' the draws, which is what brms does. Thinning with `ndraws` breaks
-#' that structure, so `r_eff` is then dropped and the estimate is the
-#' one loo computes without an autocorrelation correction.
+#' the draws, which is what brms does. A subset of the draws (`ndraws`,
+#' `draw_ids`) no longer has that structure, so its relative efficiency
+#' is taken on one chain, as brms takes it. The same rule gives the
+#' weights of [psis()], the `loo_*()` functions and `pp_check()`'s
+#' `loo_*` types.
 #'
 #' @param x A `frmtmb_draws` from [frm_sample()], or (for
 #'   `loo_compare()`) already-computed criteria.
@@ -575,7 +577,8 @@ waic.frmtmb_draws <- function(x, ..., compare = TRUE, resp = NULL,
 #'
 #' The options are refused by name where the answer would otherwise
 #' ignore them. `newdata` and the other arguments of `log_lik()` that
-#' change the matrix are refused as `log_lik()` refuses them: brms
+#' change the matrix are refused as `log_lik()` refuses them, unless
+#' they hold brms's default value; `draw_ids` reaches `log_lik()`: brms
 #' computes the criterion on `newdata`, and passing them on to
 #' `loo::loo.matrix()` dropped them in silence (lane remeasure, R2).
 #' `moment_match` and `reloo` improve brms's estimate by refitting,
@@ -597,9 +600,12 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
              "Name the options, as ndraws = 100", call. = FALSE)
   }
   opts <- dots[!is_model]
-  ll_args <- c("newdata", "re_formula", "re.form", "allow_new_levels",
-               "sample_new_levels", "draw_ids", "nug")
-  hit <- intersect(names(opts), ll_args)
+  # brms's own default values ask for nothing log_lik() refuses, so a
+  # call that spells them out is answered as one that leaves them out
+  ll_args <- c("newdata", "re_formula", "re.form", draws_new_level_args,
+               "nug")
+  hit <- Filter(function(a) !loo_default_value(a, opts[[a]]),
+                intersect(names(opts), ll_args))
   if (length(hit)) {
     frm_stop(what, " cannot honor `", hit[1L], "`: the criterion is ",
              "computed from log_lik() of the draws, which takes the rows ",
@@ -622,7 +628,7 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
   # the loo package's own arguments go on; the rest change nothing
   pass <- if (identical(crit, "loo")) c("r_eff", "save_psis", "cores")
   quiet <- c("pointwise", "k_threshold", "moment_match", "reloo",
-             "moment_match_args", "reloo_args")
+             "moment_match_args", "reloo_args", "draw_ids", ll_args)
   unknown <- setdiff(names(opts), c(pass, quiet))
   if (length(unknown)) {
     frm_stop(what, " has no argument `", unknown[1L], "`", call. = FALSE)
@@ -636,7 +642,7 @@ loo_criterion <- function(x, dots, dots_expr, crit, compare, resp, ndraws,
       draws_stored_criterion(m, crit, ndraws, resp)
     }
     if (!is.null(st)) return(st)
-    ll <- loo_matrix(m, ndraws, resp, what)
+    ll <- loo_matrix(m, ndraws, resp, what, draw_ids = opts$draw_ids)
     po <- opts[intersect(names(opts), pass)]
     out <- if (identical(crit, "loo")) {
       if (is.null(po$r_eff)) po$r_eff <- loo_r_eff(ll, m)
@@ -746,9 +752,10 @@ add_criterion_options <- c("loo", "waic", "kfold", "loo_subsample",
 #' `x$criteria`, so that a later `loo()`, `waic()` or `loo_compare()`
 #' without further arguments reads it instead of computing it again, as
 #' brms's do. `"loo"` and `"waic"` are computed by [loo()] and [waic()],
-#' and `"bayes_R2"` by [frmtmb::bayes_R2()] with `summary = FALSE`, as
-#' brms stores it. `"kfold"`, `"loo_subsample"`, `"loo_R2"` and
-#' `"marglik"` are refused with the reason their own functions give. On
+#' `"bayes_R2"` by [frmtmb::bayes_R2()] and `"loo_R2"` by [loo_R2()],
+#' both with `summary = FALSE`, as brms stores them. `"kfold"`,
+#' `"loo_subsample"` and `"marglik"` are refused with the reason their
+#' own functions give. On
 #' a maximum-likelihood fit, [frmtmb::add_criterion()] refuses every
 #' criterion and names `AIC()` and `BIC()`.
 #'
@@ -820,20 +827,18 @@ add_criterion.frmtmb_draws <- function(x, criterion, model_name = NULL,
       kfold = kfold(x),
       loo_subsample = loo_subsample(x),
       marglik = bridge_sampler(x),
-      loo_R2 = frm_stop("add_criterion(criterion = \"loo_R2\") is not ",
-                        "available for frmtmb draws: loo_R2() is not ",
-                        "implemented here. bayes_R2 is, and loo() gives ",
-                        "the predictive comparison", call. = FALSE),
       NULL)
   }
   # cleared first, as brms clears them: loo() and waic() return a stored
   # criterion, so overwrite = TRUE would hand back the one it replaces
   x$criteria[new] <- NULL
+  args <- add_criterion_args(list(...), new)
   for (k in new) {
     val <- switch(k,
-      loo = loo(x, ...),
-      waic = waic(x, ...),
-      bayes_R2 = bayes_R2(x, summary = FALSE, ...))
+      loo = do.call(loo, c(list(x), args[[k]])),
+      waic = do.call(waic, c(list(x), args[[k]])),
+      bayes_R2 = do.call(bayes_R2, c(list(x, summary = FALSE), args[[k]])),
+      loo_R2 = do.call(loo_R2, c(list(x, summary = FALSE), args[[k]])))
     if (inherits(val, "loo")) attr(val, "model_name") <- model_name
     x$criteria[[k]] <- val
   }
@@ -847,17 +852,63 @@ add_criterion.frmtmb_draws <- function(x, criterion, model_name = NULL,
   x
 }
 
-#' The log-likelihood matrix with the loo package present.
+#' `add_criterion()`'s `...`, split by the criterion that takes each
+#' name. brms hands every argument to every criterion, and each ignores
+#' what it does not know: `add_criterion(x, c("loo", "loo_R2"), seed =
+#' 1)` seeds `loo_R2()`'s bootstrap and `loo()` never reads `seed`.
+#' Here a name goes to the criteria that take it, and a name no
+#' requested criterion takes is refused, so a misspelling is still
+#' named. Unnamed arguments go to `loo()` and `waic()`, which take
+#' further models that way.
 #'
 #' @noRd
-loo_matrix <- function(x, ndraws, resp, what) {
+add_criterion_args <- function(dots, crits) {
+  # nothing is computed, so nothing is read
+  if (!length(crits)) return(list())
+  nms <- names(dots) %||% rep("", length(dots))
+  ll_named <- c("newdata", "re_formula", "re.form", draws_new_level_args,
+                "nug", "draw_ids")
+  loo_opts <- c("r_eff", "save_psis", "cores", "pointwise", "k_threshold",
+                "moment_match", "reloo", "moment_match_args", "reloo_args")
+  takes <- list(
+    loo = c("resp", "ndraws", "compare", "model_names", ll_named, loo_opts),
+    waic = c("resp", "ndraws", "compare", "model_names", ll_named,
+             loo_opts),
+    bayes_R2 = setdiff(names(formals(bayes_R2.frmtmb_draws)),
+                       c("object", "summary", "...")),
+    loo_R2 = c(setdiff(names(formals(loo_R2.frmtmb_draws)),
+                       c("object", "summary", "...")),
+               "ndraws", "draw_ids", "dpar", "nlpar", ll_named, "r_eff",
+               "cores", "pointwise", "k_threshold", "moment_match",
+               "reloo", "moment_match_args", "reloo_args"))
+  takes <- takes[intersect(names(takes), crits)]
+  named <- nms[nzchar(nms)]
+  orphan <- setdiff(named, unlist(takes))
+  if (length(orphan)) {
+    frm_stop("add_criterion(): no requested criterion (",
+             paste(crits, collapse = ", "), ") takes the argument `",
+             orphan[1L], "`", call. = FALSE)
+  }
+  lapply(stats::setNames(nm = names(takes)), function(k) {
+    keep <- nms %in% takes[[k]] |
+      (!nzchar(nms) & k %in% c("loo", "waic"))
+    dots[keep]
+  })
+}
+
+#' The log-likelihood matrix with the loo package present. `...` reaches
+#' log_lik(): `draw_ids`, for a caller that weights a prediction on the
+#' same draws.
+#'
+#' @noRd
+loo_matrix <- function(x, ndraws, resp, what, ...) {
   if (!requireNamespace("loo", quietly = TRUE)) {
     frm_stop(what, " needs the 'loo' package; install it, or call ",
              "log_lik() and pass the matrix to your own estimator",
              call. = FALSE)
   }
   ll <- draws_as_caller(what, re_formula = FALSE,
-                        log_lik(x, ndraws = ndraws, resp = resp))
+                        log_lik(x, ndraws = ndraws, resp = resp, ...))
   # loo::loo.matrix() prints "Computed from N by K log-likelihood
   # matrix" and nothing else, so a matrix whose columns are GROUPS
   # reads exactly like a per-observation one. The attribute log_lik()
@@ -873,19 +924,34 @@ loo_matrix <- function(x, ndraws, resp, what) {
   ll
 }
 
-#' Relative efficiency of the likelihood ratios, or NULL when the draws
-#' were thinned and the chain structure no longer describes them. On
-#' the combined chains of several imputations it is 1, as brms's
-#' `r_eff_log_lik()` makes it for a `brm_multiple()` fit: the chains
-#' sample different posteriors, so their autocorrelation measures the
-#' imputations as well as the sampler.
+#' Relative efficiency of the likelihood ratios, brms's
+#' `r_eff_log_lik()`: `loo::relative_eff()` on the chains when every
+#' draw is used, and on ONE chain for a subset (`ndraws`, `draw_ids`),
+#' whose rows no longer have the chains' structure. It is 1 on the
+#' combined chains of several imputations, as brms makes it for a
+#' `brm_multiple()` fit: the chains sample different posteriors, so
+#' their autocorrelation measures the imputations as well as the
+#' sampler. An `NA` efficiency makes them all 1, under brms's warning.
+#'
+#' One function for `loo()`, `psis()`, the `loo_*()` functions and
+#' `pp_check()`'s `loo_*` types, so that one set of draws gets one set
+#' of weights. `chain_id` is an argument because `pp_check()` drops
+#' columns, and with them the attribute.
 #'
 #' @noRd
-loo_r_eff <- function(ll, x = NULL) {
-  if (!is.null(x) && draws_multiple(x)) return(rep(1, ncol(ll)))
-  cid <- attr(ll, "chain_id")
-  if (is.null(cid)) return(NULL)
-  loo::relative_eff(exp(ll), chain_id = cid)
+loo_r_eff <- function(ll, x = NULL, chain_id = attr(ll, "chain_id"),
+                      multiple = !is.null(x) && draws_multiple(x)) {
+  if (multiple) return(rep(1, ncol(ll)))
+  r_eff <- loo::relative_eff(exp(ll),
+                             chain_id = chain_id %||% rep(1L, nrow(ll)))
+  if (anyNA(r_eff)) {
+    # brms's words, and its fallback
+    frm_warning("Ignoring relative efficiencies as some were NA. See ",
+                "argument 'r_eff' in ?loo::loo for more details.",
+                call. = FALSE)
+    r_eff <- rep(1, length(r_eff))
+  }
+  r_eff
 }
 
 #' @rdname sample-loo
@@ -957,9 +1023,13 @@ psis.frmtmb_draws <- function(log_ratios, newdata = NULL, resp = NULL,
   # the leave-one-out importance ratios are the NEGATIVE log-likelihood
   # (down-weighting the draws the held-out point likes), which is what
   # loo::loo.matrix smooths internally and what brms's psis.brmsfit
-  # passes on
-  ll <- loo_matrix(log_ratios, ndraws, resp, "psis()")
-  loo::psis(-ll, r_eff = loo_r_eff(ll, log_ratios), ...)
+  # passes on. `...` is sorted as the loo_*() functions sort theirs:
+  # `draw_ids` picks the draws, `r_eff` and `cores` reach loo::psis(),
+  # and a name nothing reads is refused rather than swallowed by it
+  op <- loo_draws_opts(list(...), "psis()", character())
+  rows <- draws_subsample(log_ratios, ndraws, op$draw_ids)
+  resp <- loo_resp_name(draws_base_fit(log_ratios), resp, "psis()")
+  loo_draws_weights(log_ratios, rows, resp, "psis()", op$psis)$psis
 }
 
 #' @rdname sample-loo
@@ -1057,6 +1127,24 @@ bayes_R2_newdata_y <- function(fit, resp, newdata) {
   response_codes_newdata(rspec, y, "bayes_R2(newdata = )")
 }
 
+#' brms's `validate_resp()` for the R2 functions: `NULL` is every
+#' response, and a response is named as brms spells it, `y_a` as `ya`.
+#' Returns the positions in `stan`, the brms spellings. frmtmb's own
+#' spelling is refused here, as brms refuses it: these two functions
+#' already took brms's names, and a brms pin holds them to it.
+#'
+#' @noRd
+brms_resp_index <- function(resp, stan) {
+  if (is.null(resp)) return(seq_along(stan))
+  s <- match(as.character(resp), stan)
+  if (anyNA(s)) {
+    # brms's words
+    frm_stop("Invalid argument 'resp'. Valid response variables are: ",
+             paste(stan, collapse = ", "), call. = FALSE)
+  }
+  s
+}
+
 #' @rdname sample-bayes_R2
 #' @exportS3Method rstantools::bayes_R2
 #' @export
@@ -1075,16 +1163,7 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
   resps <- names(fit$spec$responses)
   stan <- brms_stan_name(resps)
   mv <- length(resps) > 1L
-  # brms's validate_resp(): NULL is every response, and a response is
-  # named as brms spells it, y_a as ya
-  sel <- if (is.null(resp)) seq_along(resps) else {
-    s <- match(as.character(resp), stan)
-    if (anyNA(s)) {
-      frm_stop("Invalid argument 'resp'. Valid response variables are: ",
-               paste(stan, collapse = ", "), call. = FALSE)
-    }
-    s
-  }
+  sel <- brms_resp_index(resp, stan)
   R2 <- lapply(sel, function(r) {
     # NA at a missing mi() row, so R2 is NA, as brms's is, rather than
     # scored against the frame's placeholder. With newdata, brms reads
@@ -1151,6 +1230,8 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 #'   all need to refit the model on modified data. `frm_bootstrap()` is
 #'   the resampling machinery frmtmb does have, and `AIC()` on the
 #'   maximum-likelihood fits answers the comparison question directly.
+#'   The generics of these four and their refusals on a fit
+#'   are frmtmb's ([frmtmb::kfold()]); these are the methods for draws.
 #' * `bridge_sampler()`, `bayes_factor()` and `post_prob()` are
 #'   marginal-likelihood quantities. A marginal likelihood is an
 #'   integral against the PRIOR, so it is undefined under
@@ -1181,10 +1262,6 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 NULL
 
 #' @rdname frmtmb-loo-refusals
-#' @export
-loo_moment_match <- function(x, ...) UseMethod("loo_moment_match")
-
-#' @rdname frmtmb-loo-refusals
 #' @exportS3Method loo::loo_moment_match
 #' @export
 loo_moment_match.frmtmb_draws <- function(x, ...) {
@@ -1196,10 +1273,6 @@ loo_moment_match.frmtmb_draws <- function(x, ...) {
            "frm_bootstrap() answers the influence question directly",
            call. = FALSE)
 }
-
-#' @rdname frmtmb-loo-refusals
-#' @export
-loo_subsample <- function(x, ...) UseMethod("loo_subsample")
 
 #' @rdname frmtmb-loo-refusals
 #' @exportS3Method loo::loo_subsample
@@ -1215,10 +1288,6 @@ loo_subsample.frmtmb_draws <- function(x, ...) {
 }
 
 #' @rdname frmtmb-loo-refusals
-#' @export
-reloo <- function(x, ...) UseMethod("reloo")
-
-#' @rdname frmtmb-loo-refusals
 #' @exportS3Method brms::reloo
 #' @export
 reloo.frmtmb_draws <- function(x, ...) {
@@ -1230,10 +1299,6 @@ reloo.frmtmb_draws <- function(x, ...) {
            "the data alone; see the prior section of ?loo), or compare the ",
            "maximum-likelihood fits with AIC()", call. = FALSE)
 }
-
-#' @rdname frmtmb-loo-refusals
-#' @export
-kfold <- function(x, ...) UseMethod("kfold")
 
 #' @rdname frmtmb-loo-refusals
 #' @exportS3Method loo::kfold

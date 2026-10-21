@@ -198,15 +198,8 @@ test_that("posterior_predict for count and survival models runs without errors",
   brms_setup("posterior_predict:168",
     pred <- brms_adapt_posterior_predict("negbinomial2", i, prep = prep)
   )
-  brms_port("posterior_predict:169", "cannot transfer",
-    paste0(
-      "negbinomial2 is not a frmtmb family: the adapter's ",
-      "brmsfamily(\"negbinomial2\") is refused ('negbinomial2 is not ",
-      "a supported family'), so the row reads the value its last ",
-      "successful line left. brms's sigma = 1 / shape spelling of ",
-      "the negative binomial; frmtmb's negbinomial() is the same ",
-      "density in shape, and the block's negbinomial row ",
-      "(log_lik:285) holds"),
+  brms_port("posterior_predict:169", "pass",
+    "",
     expect_equal(length(pred), ns)
   )
   brms_setup("posterior_predict:171",
@@ -644,10 +637,8 @@ test_that("posterior_predict for categorical and related models runs without err
     pred <- brms_adapt_posterior_predict("dirichlet_multinomial", 
         i = sample(1:nobs, 1), prep = prep)
   )
-  brms_port("posterior_predict:355", "cannot transfer",
-    paste0(
-      "dirichlet_multinomial is not a frmtmb family ('not a ",
-      "supported family'): a gap, not a decision"),
+  brms_port("posterior_predict:355", "pass",
+    "",
     expect_equal(dim(pred), c(ns, ncat))
   )
   brms_setup("posterior_predict:357",

@@ -142,6 +142,8 @@ for (k in c(1005, 1010, 1015, 1016, 1018, 1020, 1021, 1024)) nd(k, paste(
 V <- do.call(rbind, v)
 # the verdict moves of the 0.71.0 consolidation
 V <- source("dev/rel071-bin2-moves.R")$value(V, "2t")
+# the verdict moves of the 0.73.0 consolidation
+V <- source("dev/rel073-bin2-moves.R")$value(V, "2t")
 stopifnot(!anyDuplicated(V[c("id", "pkg")]),
           all(V$id %in% targets$id), all(nzchar(V$reason)),
           !any(grepl("\t", V$reason)))

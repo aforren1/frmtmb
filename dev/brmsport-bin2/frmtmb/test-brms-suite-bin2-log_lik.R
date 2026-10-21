@@ -312,15 +312,8 @@ test_that("log_lik for count and survival models works correctly", {
   brms_setup("log_lik:287",
     ll <- brms_adapt_log_lik("negbinomial2", i, prep = prep)
   )
-  brms_port("log_lik:288", "cannot transfer",
-    paste0(
-      "negbinomial2 is not a frmtmb family: the adapter's ",
-      "brmsfamily(\"negbinomial2\") is refused ('negbinomial2 is not ",
-      "a supported family'), so the row reads the value its last ",
-      "successful line left. brms's sigma = 1 / shape spelling of ",
-      "the negative binomial; frmtmb's negbinomial() is the same ",
-      "density in shape, and the block's negbinomial row ",
-      "(log_lik:285) holds"),
+  brms_port("log_lik:288", "pass",
+    "",
     expect_equal(ll, ll_nbinom)
   )
   brms_setup("log_lik:290",
@@ -547,18 +540,11 @@ test_that("log_lik for circular models runs without errors", {
   brms_setup("log_lik:391",
     ll <- brms_adapt_log_lik("von_mises", i, prep = prep)
   )
-  brms_port("log_lik:392", "cannot transfer",
-    paste0(
-      "censored von_mises: frmtmb's von_mises() has no CDF and ",
-      "accepts only weights, so cens() is refused (the adapter by ",
-      "the family's accepts_aterms; frm() with 'cens()/trunc() ",
-      "need a family with a CDF'); brms censors it through ",
-      "pvon_mises(). The row's cens[i] is -1 at the block's seed. ",
-      "The uncensored row (log_lik:389) holds, and the density ",
-      "matches brms::dvon_mises() to 8.9e-16"),
+  brms_port("log_lik:392", "pass",
+    "",
     expect_equal(length(ll), ns)
   )
-  brms_value_check("log_lik:392", "ll", "error", {
+  brms_value_check("log_lik:392", "ll", "holds", {
     ll <- brms:::log_lik_von_mises(i, prep = prep)
   })
 })
@@ -899,13 +885,11 @@ test_that("log_lik for categorical and related models runs without erros", {
     ll <- sapply(1:nobs, brms_adapt_log_lik, fun = "dirichlet_multinomial", 
         prep = prep)
   )
-  brms_port("log_lik:510", "cannot transfer",
-    paste0(
-      "dirichlet_multinomial is not a frmtmb family ('not a ",
-      "supported family'): a gap, not a decision"),
+  brms_port("log_lik:510", "pass",
+    "",
     expect_equal(dim(ll), c(ns, nobs))
   )
-  brms_value_check("log_lik:510", "ll", "error", {
+  brms_value_check("log_lik:510", "ll", "holds", {
     ll <- sapply(1:nobs, brms:::log_lik_dirichlet_multinomial, prep = prep)
   })
   brms_setup("log_lik:512",

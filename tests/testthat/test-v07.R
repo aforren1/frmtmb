@@ -75,8 +75,11 @@ test_that("zero-truncated poisson matches glmmTMB truncated_poisson", {
   expect_loglik_equal(fit, ref, tol = 1e-6)
   expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
-  expect_error(frm(bf(y | trunc(lb = 0) ~ x) + poisson(), data = dd),
-               "lb >= 1")
+  # trunc(lb = 0) on a count is no truncation, which brms accepts
+  zero <- frm(bf(y | trunc(lb = 0) ~ x) + poisson(), data = dd)
+  plain <- frm(bf(y ~ x) + poisson(), data = dd)
+  expect_equal(as.numeric(logLik(zero)), as.numeric(logLik(plain)),
+               tolerance = 1e-10)
 })
 
 

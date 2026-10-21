@@ -157,3 +157,43 @@ frmtmb::bf
 #' @importFrom frmtmb set_prior
 #' @export
 frmtmb::set_prior
+
+#' @importFrom frmtmb loo_epred
+#' @export
+frmtmb::loo_epred
+
+#' @importFrom frmtmb loo_linpred
+#' @export
+frmtmb::loo_linpred
+
+#' @importFrom frmtmb loo_predict
+#' @export
+frmtmb::loo_predict
+
+#' @importFrom frmtmb loo_predictive_interval
+#' @export
+frmtmb::loo_predictive_interval
+
+#' @importFrom frmtmb loo_R2
+#' @export
+frmtmb::loo_R2
+
+#' @importFrom frmtmb loo_model_weights
+#' @export
+frmtmb::loo_model_weights
+
+#' @importFrom frmtmb kfold
+#' @export
+frmtmb::kfold
+
+#' @importFrom frmtmb reloo
+#' @export
+frmtmb::reloo
+
+#' @importFrom frmtmb loo_moment_match
+#' @export
+frmtmb::loo_moment_match
+
+#' @importFrom frmtmb loo_subsample
+#' @export
+frmtmb::loo_subsample

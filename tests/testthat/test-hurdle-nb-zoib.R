@@ -114,12 +114,19 @@ test_that("links and responses brms refuses are refused by name", {
   expect_no_error(mixture(poisson, hurdle_negbinomial))
 })
 
-test_that("cens() and trunc() are refused: neither family has a CDF", {
+test_that("hurdle_negbinomial takes cens() and trunc(); zoib refuses both", {
+  # hurdle_negbinomial gained a CDF, the hurdle over negbinomial()'s own;
+  # brms 2.23.0 censors and truncates it, and refuses both on
+  # zero_one_inflated_beta
   d <- sim_hnb(5, n = 60)
+  fit <- frm(bf(y | cens(x > 1) ~ x) + hurdle_negbinomial(), data = d)
+  expect_s3_class(fit, "frmtmb_fit")
+  # the zeros lie below trunc(lb = 1), which brms refuses by name too
   expect_error(frm(bf(y | trunc(lb = 1) ~ x) + hurdle_negbinomial(),
-                   data = d), "need a family with a CDF")
-  expect_error(frm(bf(y | cens(x > 1) ~ x) + hurdle_negbinomial(),
-                   data = d), "need a family with a CDF")
+                   data = d), "outside of the truncation bounds")
+  dz <- sim_zoib(6, n = 80)
+  expect_error(frm(bf(y | trunc(ub = 0.9) ~ x) + zero_one_inflated_beta(),
+                   data = dz), "need a family with a CDF")
 })
 
 # ----------------------------------------------------------------- density
@@ -318,7 +325,10 @@ test_that("the compatibility registry lists both families", {
   for (f in c("hurdle_negbinomial", "zero_one_inflated_beta")) {
     expect_identical(frm_compat(f, "simulate")$status, "works", info = f)
   }
+  # censored as brms censors it, as poisson is
   expect_identical(frm_compat("hurdle_negbinomial", "cens()")$status,
+                   "works")
+  expect_identical(frm_compat("zero_one_inflated_beta", "cens()")$status,
                    "refused")
 })
 

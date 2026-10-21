@@ -27,15 +27,18 @@
 # Nor is parnames: frmtmb defines it for a fit, and this package
 # re-exports it. stancode, standata and pp_mixture moved to frmtmb the
 # same way when they gained methods for a fit, and add_criterion was
-# defined there.
+# defined there; kfold, reloo, loo_moment_match, loo_subsample and the
+# loo_*() functions moved with
+# their refusals on a fit, and the block "the loo_*() names on draws"
+# below covers them.
 own_generics <- c(
-  "as.mcmc", "bayes_factor", "bridge_sampler", "kfold",
-  "log_posterior", "loo_moment_match", "loo_subsample", "mcmc_plot",
+  "as.mcmc", "bayes_factor", "bridge_sampler",
+  "log_posterior", "mcmc_plot",
   "neff_ratio", "nsamples", "nuts_params", "post_prob",
   "posterior_average",
   "posterior_epred", "posterior_interval", "posterior_linpred",
   "posterior_predict", "posterior_samples",
-  "predictive_error", "predictive_interval", "psis", "reloo",
+  "predictive_error", "predictive_interval", "psis",
   "restructure", "rhat")
 
 # The owner table, restated for the same reason; a block below asserts
@@ -44,7 +47,6 @@ own_generics <- c(
 owner_table <- list(
   as.mcmc = "coda", bayes_factor = "bridgesampling",
   bridge_sampler = "bridgesampling", post_prob = "bridgesampling",
-  kfold = "loo", loo_moment_match = "loo", loo_subsample = "loo",
   psis = "loo", nsamples = "rstantools",
   posterior_epred = "rstantools", posterior_interval = "rstantools",
   posterior_linpred = "rstantools", posterior_predict = "rstantools",
@@ -53,7 +55,7 @@ owner_table <- list(
   nuts_params = "bayesplot", rhat = c("posterior", "bayesplot"),
   mcmc_plot = "brms", posterior_average = "brms",
   posterior_samples = c("brms", "gratia"),
-  reloo = "brms", restructure = "brms")
+  restructure = "brms")
 
 all_owners <- c("posterior", "loo", "rstantools", "bayesplot", "coda",
                 "bridgesampling", "gratia", "brms")
@@ -179,6 +181,69 @@ test_that("brms loaded but never attached loses no brms method", {
   expect_clean(run_child(probe_src(c(
     "suppressMessages(library(frmtmb.sample))",
     "suppressMessages(loadNamespace('brms'))"))))
+})
+
+test_that("the loo_*() names on draws reach their methods in every order", {
+  # The generics are frmtmb's, with rstantools, loo and brms as owners
+  # (loo_epred has two: brms 2.23.0 and rstantools 2.7.1 each define
+  # one). The draws methods are this package's, and must be in every
+  # owner's table. Seen to fail on frmtmb.sample 0.20.0 (rellib-r10):
+  # rstantools::loo_epred(ds) gave "no applicable method for
+  # 'loo_epred' applied to an object of class "frmtmb_draws"".
+  skip_on_cran()
+  skip_if_not_installed("rstantools")
+  skip_if_not_installed("loo")
+  draws_src <- c(
+    "set.seed(1); d <- data.frame(x = rnorm(40)); d$y <- rnorm(40, d$x)",
+    "fit <- frmtmb::frm(frmtmb::bf(y ~ x), family = gaussian(), data = d)",
+    "tpl <- fit$frame$par_template",
+    "est <- unlist(lapply(names(tpl), function(cp) fit$estimates[[cp]]))",
+    "M <- matrix(rep(est, each = 100) + rnorm(100 * length(est), 0, 0.05),",
+    "  100, dimnames = list(NULL, frmtmb::brms_par_labels(fit)))",
+    "ds <- structure(list(stanfit = NULL, draws = cbind(",
+    "  frmtmb.sample:::draws_to_natural(M, fit), lp__ = 0), fit = fit),",
+    "  class = 'frmtmb_draws')",
+    "ok <- function(e) tryCatch({ suppressWarnings(suppressMessages(e));",
+    "  'ok' }, error = function(c) paste('ERROR', conditionMessage(c)))",
+    "calls <- list(",
+    "  bare = quote(loo_epred(ds)),",
+    "  rst_epred = quote(rstantools::loo_epred(ds)),",
+    "  rst_R2 = quote(rstantools::loo_R2(ds)),",
+    "  rst_pi = quote(rstantools::loo_predictive_interval(ds)),",
+    "  loo_mw = quote(loo::loo_model_weights(ds, ds)))",
+    "if (isNamespaceLoaded('brms')) calls$brms_epred <-",
+    "  quote(brms::loo_epred(ds))",
+    "for (k in names(calls)) cat(sprintf('CALL_%s: %s\n', k,",
+    "  gsub(',', ';', ok(eval(calls[[k]])))))",
+    "# the two whose draws methods refuse: reached means refused by name",
+    "msg <- function(e) tryCatch({ e; 'no error' },",
+    "  error = function(c) conditionMessage(c))",
+    "cat('REFUSE_mm:', grepl('not implemented for frmtmb draws',",
+    "  msg(loo::loo_moment_match(ds)), fixed = TRUE), '\\n')",
+    "cat('REFUSE_ss:', grepl('not implemented for frmtmb draws',",
+    "  msg(loo::loo_subsample(ds)), fixed = TRUE), '\\n')",
+    "cat('CHILDOK\n')")
+  orders <- list(
+    rstantools_first = c("suppressMessages(library(rstantools))",
+                         "suppressMessages(library(frmtmb.sample))"),
+    loo_attached = c("suppressMessages(library(frmtmb.sample))",
+                     "suppressMessages(library(loo))"),
+    loaded_only = c("suppressMessages(loadNamespace('frmtmb.sample'))",
+                    "loo_epred <- frmtmb::loo_epred"))
+  if (requireNamespace("brms", quietly = TRUE)) {
+    orders$brms_after <- c("suppressMessages(library(frmtmb.sample))",
+                           "suppressMessages(library(brms))")
+  }
+  for (o in names(orders)) {
+    out <- run_child(c(orders[[o]], draws_src))
+    expect_match(out, "CHILDOK", fixed = TRUE, info = o)
+    lines <- grep("^CALL_", strsplit(out, "\n")[[1]], value = TRUE)
+    expect_gte(length(lines), 5L)
+    expect_equal(sub("^CALL_[^:]*: ", "", lines), rep("ok", length(lines)),
+                 info = paste(o, paste(lines, collapse = " | ")))
+    expect_equal(parse_field(out, "REFUSE_mm"), "TRUE", info = o)
+    expect_equal(parse_field(out, "REFUSE_ss"), "TRUE", info = o)
+  }
 })
 
 test_that("a package importing frmtmb.sample does not lose brms methods", {
@@ -493,7 +558,8 @@ test_that("every method on an owned name is in each owner's table", {
     sort(out)
   }
   # the guard is only a guard if it has rows to read
-  expect_equal(sum(is.na(m[, 4]) & m[, 1] %in% names(tab)),
+  expect_equal(sum(is.na(m[, 4]) & m[, 1] %in% names(tab) &
+                     m[, 2] == "frmtmb_draws"),
                length(own_generics))
   expect_equal(missing_twins(m), character())
   # the inverse, built in: drop ONE real twin and the check must name it
@@ -570,4 +636,32 @@ test_that("parnames() on draws warns once whichever generic dispatched", {
     expect_equal(parse_field(out, "NWARN"), "1", info = nm)
     expect_equal(parse_field(out, "SAME"), "TRUE", info = nm)
   }
+})
+
+test_that("the draws methods on frmtmb's loo_*() names have every twin", {
+  # The generics moved to frmtmb with their owners; a draws method has
+  # to be in frmtmb's table (the local row) and in each owner's.
+  moved <- c("loo_epred", "loo_linpred", "loo_predict",
+             "loo_predictive_interval", "loo_R2", "loo_model_weights",
+             "kfold", "reloo", "loo_moment_match", "loo_subsample")
+  own <- get("frm_generic_owners", envir = asNamespace("frmtmb"))
+  expect_true(all(moved %in% names(own)))
+  expect_identical(own[["loo_epred"]], c("brms", "rstantools"))
+  m <- parseNamespaceFile("frmtmb.sample",
+                          dirname(find.package("frmtmb.sample")))$S3methods
+  miss <- character()
+  for (g in moved) {
+    rows <- m[, 1] == g & m[, 2] == "frmtmb_draws"
+    if (!any(rows & is.na(m[, 4]))) miss <- c(miss, paste0("local ", g))
+    for (o in own[[g]]) {
+      if (!any(rows & m[, 4] %in% o)) miss <- c(miss, paste0(o, "::", g))
+    }
+  }
+  expect_equal(miss, character())
+  # and none of them is defined here any more: one generic per name
+  ns <- asNamespace("frmtmb.sample")
+  home <- vapply(moved, function(g) {
+    environmentName(topenv(environment(get(g, envir = ns))))
+  }, "")
+  expect_false(any(home == "frmtmb.sample"))
 })

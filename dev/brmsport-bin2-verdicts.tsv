@@ -42,49 +42,49 @@ brmsfit-methods:460	frmtmb.sample	pass
 brmsfit-methods:467	frmtmb	divergence	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
 brmsfit-methods:467	frmtmb.sample	pass	
 brmsfit-methods:469	frmtmb	divergence	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
-brmsfit-methods:469	frmtmb.sample	divergence	loo() of draws refuses newdata by name, as log_lik() of draws does: draws are evaluated on the fitted objective's frame, and a frame rebuilt from newdata would rebuild a smooth's basis on it (lane postfix, item h). brms computes the elpd on newdata. The row held hollowly at 0.70.0, on a NULL newdata that loo() swallowed
+brmsfit-methods:469	frmtmb.sample	hollow	policy (newdata): holds hollowly. A frmtmb_draws has no $data (names stanfit, draws, fit), so fit6$data is NULL and the call is loo(fit6), which since 0.73.0 accepts brms's default newdata = NULL; with the data given (newdata = model.frame(fit6)) loo() of draws refuses newdata by name, as log_lik() of draws does. brms computes the elpd on newdata
 brmsfit-methods:471	frmtmb	divergence	loo() and LOO() are refused by name on a maximum-likelihood fit, naming AIC() and loo(frm_sample(fit))
 brmsfit-methods:471	frmtmb.sample	cannot transfer	loo 2.10.1's loo_compare() returns a data frame whose first column is the model name, so [2, 1] is a string and the range check is FALSE; brms 2.23.0's own fixture 6 gives the same string (dev/remeasure-bin2-probe1.R)
-brmsfit-methods:478	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:478	frmtmb	divergence	loo_subsample() approximates loo() over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name
 brmsfit-methods:478	frmtmb.sample	divergence	loo_subsample() on draws is refused by name: its point is a cheap approximation for data too large to evaluate, which a frmtmb model is not
-brmsfit-methods:479	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:479	frmtmb	divergence	loo_subsample() approximates loo() over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name
 brmsfit-methods:479	frmtmb.sample	divergence	loo_subsample() on draws is refused by name: its point is a cheap approximation for data too large to evaluate, which a frmtmb model is not
-brmsfit-methods:480	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
+brmsfit-methods:480	frmtmb	divergence	loo_subsample() approximates loo() over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name
 brmsfit-methods:480	frmtmb.sample	divergence	loo_subsample() on draws is refused by name: its point is a cheap approximation for data too large to evaluate, which a frmtmb model is not
-brmsfit-methods:487	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:487	frmtmb.sample	cannot transfer	loo_R2() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:490	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:490	frmtmb.sample	cannot transfer	loo_R2() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:497	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:497	frmtmb.sample	cannot transfer	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:508	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:508	frmtmb.sample	cannot transfer	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:511	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:511	frmtmb.sample	cannot transfer	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:512	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:512	frmtmb.sample	cannot transfer	loo_epred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:519	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:519	frmtmb.sample	cannot transfer	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:522	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:522	frmtmb.sample	cannot transfer	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:523	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:523	frmtmb.sample	cannot transfer	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:526	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:526	frmtmb.sample	cannot transfer	loo_linpred() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:533	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:533	frmtmb.sample	cannot transfer	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:544	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:544	frmtmb.sample	cannot transfer	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:547	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:547	frmtmb.sample	cannot transfer	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:548	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:548	frmtmb.sample	cannot transfer	loo_predict() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:555	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:555	frmtmb.sample	cannot transfer	loo_predictive_interval() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:562	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:562	frmtmb.sample	cannot transfer	loo_model_weights() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
-brmsfit-methods:563	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of; the function is also absent from frmtmb core
-brmsfit-methods:563	frmtmb.sample	cannot transfer	loo_model_weights() does not exist in frmtmb or frmtmb.sample ('could not find function'). On draws it has a meaning (brms computes it from the PSIS weights loo() already builds), so this is a gap, not a decision
+brmsfit-methods:487	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:487	frmtmb.sample	pass	
+brmsfit-methods:490	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:490	frmtmb.sample	pass	
+brmsfit-methods:497	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:497	frmtmb.sample	pass	
+brmsfit-methods:508	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:508	frmtmb.sample	divergence	the loo_*() functions refuse newdata by name, as loo() does: a leave-one-out weight is the observation's own column of log_lik(), so it exists only for a row the model was fitted on. brms computes the weights on the new rows' own response (this row with allow_new_levels = TRUE). Lane loodraws's decision 1
+brmsfit-methods:511	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:511	frmtmb.sample	pass	
+brmsfit-methods:512	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:512	frmtmb.sample	pass	
+brmsfit-methods:519	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:519	frmtmb.sample	pass	
+brmsfit-methods:522	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:522	frmtmb.sample	pass	
+brmsfit-methods:523	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:523	frmtmb.sample	divergence	loo_linpred() of an ordinal fit with a cs() term returns one matrix where brms returns one layer per threshold (dim(llp)[3] is 3 in brms, NA here): posterior_linpred() of draws has no cs() threshold layer, and loo_linpred() inherits it (dev/test-backlog.md, filed at 0.73.0)
+brmsfit-methods:526	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:526	frmtmb.sample	divergence	loo_linpred(scale = ) is refused by name: brms 2.23.0 reads it nowhere, and its result is the default's, on a logit link too (lane loodraws, decision 3; its review re-ran brms)
+brmsfit-methods:533	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:533	frmtmb.sample	pass	
+brmsfit-methods:544	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:544	frmtmb.sample	divergence	the loo_*() functions refuse newdata by name, as loo() does: a leave-one-out weight is the observation's own column of log_lik(), so it exists only for a row the model was fitted on. brms computes the weights on the new rows' own response (this row with allow_new_levels = TRUE). Lane loodraws's decision 1
+brmsfit-methods:547	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:547	frmtmb.sample	pass	
+brmsfit-methods:548	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:548	frmtmb.sample	pass	
+brmsfit-methods:555	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:555	frmtmb.sample	pass	
+brmsfit-methods:562	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:562	frmtmb.sample	pass	
+brmsfit-methods:563	frmtmb	divergence	a leave-one-out quantity over posterior draws, which a maximum-likelihood fit has none of: since 0.73.0 frmtmb's own generic refuses it on a fit by name and names frm_sample()
+brmsfit-methods:563	frmtmb.sample	pass	
 brmsfit-methods:964	frmtmb	pass	
 brmsfit-methods:964	frmtmb.sample	pass	
 brmsfit-methods:966	frmtmb	pass	
@@ -118,19 +118,19 @@ brmsfit-methods:1024	frmtmb.sample	pass
 priors:130	frmtmb	divergence	default_prior() describes frm(), which is flat in every slot (the policy of bin-1 priors:85); brms's student_t(3, -8, 2.5) is its sampling default for the intercept, shifted by the offset
 distributions:4	frmtmb	pass	
 distributions:5	frmtmb	pass	
-distributions:6	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:6	frmtmb	pass	
 distributions:8	frmtmb	cannot transfer	decision: brms's q function; no frmtmb family object carries a quantile function, and SPEC.md:153-154 puts numeric d/p/q/r functions for post-processing outside frmtmb, in gamlss.dist or extraDistr
 distributions:9	frmtmb	pass	
 distributions:50	frmtmb	pass	
-distributions:52	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:52	frmtmb	pass	
 distributions:54	frmtmb	pass	
 distributions:61	frmtmb	pass	
-distributions:64	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:64	frmtmb	pass	
 distributions:68	frmtmb	cannot transfer	decision: brms's q function; no frmtmb family object carries a quantile function, and SPEC.md:153-154 puts numeric d/p/q/r functions for post-processing outside frmtmb, in gamlss.dist or extraDistr
 distributions:71	frmtmb	cannot transfer	decision: brms's q function; no frmtmb family object carries a quantile function, and SPEC.md:153-154 puts numeric d/p/q/r functions for post-processing outside frmtmb, in gamlss.dist or extraDistr
 distributions:73	frmtmb	pass	
 distributions:80	frmtmb	pass	
-distributions:83	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:83	frmtmb	pass	
 distributions:85	frmtmb	pass	
 distributions:92	frmtmb	divergence	brms's dfrechet() takes the Frechet scale and the row passes shape = 1; frmtmb's frechet(), like brms's frechet family, takes the mean mu = scale * gamma(1 - 1 / nu), which is infinite at shape <= 1, so there is no frmtmb parameter for it. The shim refuses the call (brms_g1_frechet_dp()) rather than hand the density mu = Inf, on which brms's length-only assertion would hold over NaN values. At shape 3 the same shims agree with brms's pfrechet() to 1.1e-16 (distributions:95 and its value check)
 distributions:95	frmtmb	pass	
@@ -141,33 +141,33 @@ distributions:109	frmtmb	pass
 distributions:111	frmtmb	pass	
 distributions:113	frmtmb	pass	
 distributions:123	frmtmb	pass	
-distributions:125	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:125	frmtmb	pass	
 distributions:127	frmtmb	pass	
 distributions:134	frmtmb	pass	
 distributions:137	frmtmb	pass	
 distributions:139	frmtmb	cannot transfer	decision: brms's qgen_extreme_value(); no frmtmb family object carries a quantile function, and SPEC.md:153-154 puts numeric d/p/q/r functions for post-processing outside frmtmb, in gamlss.dist or extraDistr (as distributions:8, :68 and :71)
 distributions:141	frmtmb	pass	
 distributions:148	frmtmb	pass	
-distributions:150	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:150	frmtmb	pass	
 distributions:153	frmtmb	pass	
 distributions:162	frmtmb	pass	
-distributions:164	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:164	frmtmb	pass	
 distributions:167	frmtmb	pass	
-distributions:169	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:169	frmtmb	pass	
 distributions:172	frmtmb	pass	
-distributions:174	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:174	frmtmb	pass	
 distributions:177	frmtmb	pass	
-distributions:179	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:179	frmtmb	pass	
 distributions:183	frmtmb	pass	
-distributions:185	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:185	frmtmb	pass	
 distributions:193	frmtmb	pass	
-distributions:195	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:195	frmtmb	pass	
 distributions:198	frmtmb	pass	
-distributions:200	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:200	frmtmb	pass	
 distributions:203	frmtmb	pass	
-distributions:205	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:205	frmtmb	pass	
 distributions:208	frmtmb	pass	
-distributions:210	frmtmb	cannot transfer	brms's p function of a family frmtmb has, and the frmtmb family has no CDF (no $lcdf), so there is nothing to read: a gap. inverse.gaussian, the one family here with a CDF, is shimmed and its row holds (distributions:111)
+distributions:210	frmtmb	pass	
 distributions:238	frmtmb	divergence	brms's block draws its thresholds unsorted (rnorm), and at a decreasing pair brms's dcumulative() returns a NEGATIVE category probability (4 of 20 cells at seed 238), which its closed-form helper reproduces; frmtmb's cumulative builds the categories from the threshold gaps and returns NaN with a warning, in categories on either side of the decreasing pair (at draw 5 of bin2-probe3.txt categories 1 and 2 are NaN where brms's category 1 is 0.805). With sorted thresholds every cell agrees, and sratio, cratio and acat agree everywhere, to 2.2e-16 or better (dev/remeasure-bin2-probe3.R, log dev/remeasure-out/probe/bin2-probe3.txt). A fit never reaches decreasing thresholds: frmtmb's threshold map orders them
 distributions:300	frmtmb	divergence	the statement is one loop of 8 assertions; recorded whole it does not hold, and dev/brmsport-bin2-split.tsv gives each line its verdict: brms's block draws its array x = thres - eta unsorted (rnorm), so for cumulative a decreasing pair gives brms's inv_link_cumulative() a NEGATIVE probability, which frmtmb's cumulative returns as NaN: the identity holds in 16 of 32 iterations, the ordered-threshold domain limit of distributions:238. A fit never reaches decreasing thresholds
 distributions:446	frmtmb	pass	
@@ -188,7 +188,7 @@ log_lik:267	frmtmb	pass
 log_lik:271	frmtmb	pass	
 log_lik:278	frmtmb	pass	
 log_lik:285	frmtmb	pass	
-log_lik:288	frmtmb	cannot transfer	negbinomial2 is not a frmtmb family: the adapter's brmsfamily("negbinomial2") is refused ('negbinomial2 is not a supported family'), so the row reads the value its last successful line left. brms's sigma = 1 / shape spelling of the negative binomial; frmtmb's negbinomial() is the same density in shape, and the block's negbinomial row (log_lik:285) holds
+log_lik:288	frmtmb	pass	
 log_lik:295	frmtmb	pass	
 log_lik:302	frmtmb	divergence	a known parameterization divergence (findings R6, fix round 2): the reference brms:::dcom_poisson() takes mu = lambda^(1 / shape), while frmtmb's compois mu is the mean (RTMB::dcompois2), so the two log densities differ at the same numbers (max 94 log units at the block's seed; at mu = 3, shape = 2 brms's mean is 2.737, dev/remeasure-bin2-probe2.R section 6). The row's text reaches brms:::, so the harness records it and does not run it
 log_lik:308	frmtmb	pass	
@@ -200,7 +200,7 @@ log_lik:349	frmtmb	divergence	frmtmb's gen_extreme_value() log density is finite
 log_lik:367	frmtmb	pass	
 log_lik:375	frmtmb	pass	
 log_lik:389	frmtmb	pass	
-log_lik:392	frmtmb	cannot transfer	censored von_mises: frmtmb's von_mises() has no CDF and accepts only weights, so cens() is refused (the adapter by the family's accepts_aterms; frm() with 'cens()/trunc() need a family with a CDF'); brms censors it through pvon_mises(). The row's cens[i] is -1 at the block's seed. The uncensored row (log_lik:389) holds, and the density matches brms::dvon_mises() to 8.9e-16
+log_lik:392	frmtmb	pass	
 log_lik:414	frmtmb	pass	
 log_lik:417	frmtmb	pass	
 log_lik:420	frmtmb	pass	
@@ -219,7 +219,7 @@ log_lik:475	frmtmb	pass
 log_lik:478	frmtmb	pass	
 log_lik:495	frmtmb	pass	
 log_lik:504	frmtmb	pass	
-log_lik:510	frmtmb	cannot transfer	dirichlet_multinomial is not a frmtmb family ('not a supported family'): a gap, not a decision
+log_lik:510	frmtmb	pass	
 log_lik:516	frmtmb	pass	
 log_lik:523	frmtmb	pass	
 log_lik:534	frmtmb	pass	
@@ -240,7 +240,7 @@ posterior_predict:156	frmtmb	pass
 posterior_predict:159	frmtmb	pass	
 posterior_predict:163	frmtmb	pass	
 posterior_predict:166	frmtmb	pass	
-posterior_predict:169	frmtmb	cannot transfer	negbinomial2 is not a frmtmb family: the adapter's brmsfamily("negbinomial2") is refused ('negbinomial2 is not a supported family'), so the row reads the value its last successful line left. brms's sigma = 1 / shape spelling of the negative binomial; frmtmb's negbinomial() is the same density in shape, and the block's negbinomial row (log_lik:285) holds
+posterior_predict:169	frmtmb	pass	
 posterior_predict:172	frmtmb	pass	
 posterior_predict:175	frmtmb	pass	
 posterior_predict:178	frmtmb	pass	
@@ -271,7 +271,7 @@ posterior_predict:323	frmtmb	pass
 posterior_predict:327	frmtmb	pass	
 posterior_predict:344	frmtmb	pass	
 posterior_predict:349	frmtmb	pass	
-posterior_predict:355	frmtmb	cannot transfer	dirichlet_multinomial is not a frmtmb family ('not a supported family'): a gap, not a decision
+posterior_predict:355	frmtmb	pass	
 posterior_predict:360	frmtmb	pass	
 posterior_predict:361	frmtmb	pass	
 posterior_predict:368	frmtmb	pass	

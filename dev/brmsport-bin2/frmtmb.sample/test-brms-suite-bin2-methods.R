@@ -182,14 +182,15 @@ test_that("loo has reasonable outputs", {
   brms_setup("brmsfit-methods:468",
     loo6_2 <- SW(loo(fit6, cores = 1, newdata = fit6$data))
   )
-  brms_port("brmsfit-methods:469", "divergence",
+  brms_port("brmsfit-methods:469", "hollow",
     paste0(
-      "loo() of draws refuses newdata by name, as log_lik() of ",
-      "draws does: draws are evaluated on the fitted objective's ",
-      "frame, and a frame rebuilt from newdata would rebuild a ",
-      "smooth's basis on it (lane postfix, item h). brms computes ",
-      "the elpd on newdata. The row held hollowly at 0.70.0, on a ",
-      "NULL newdata that loo() swallowed"),
+      "policy (newdata): holds hollowly. A frmtmb_draws has no ",
+      "$data (names stanfit, draws, fit), so fit6$data is NULL and ",
+      "the call is loo(fit6), which since 0.73.0 accepts brms's ",
+      "default newdata = NULL; with the data given (newdata = ",
+      "model.frame(fit6)) loo() of draws refuses newdata by name, ",
+      "as log_lik() of draws does. brms computes the elpd on ",
+      "newdata"),
     expect_true(is.numeric(loo6_2$estimates))
   )
   brms_setup("brmsfit-methods:470",
@@ -240,23 +241,15 @@ test_that("loo_R2 has reasonable outputs", {
   brms_setup("brmsfit-methods:486",
     R2 <- SW(loo_R2(fit1))
   )
-  brms_port("brmsfit-methods:487", "cannot transfer",
-    paste0(
-      "loo_R2() does not exist in frmtmb or frmtmb.sample ('could ",
-      "not find function'). On draws it has a meaning (brms ",
-      "computes it from the PSIS weights loo() already builds), so ",
-      "this is a gap, not a decision"),
+  brms_port("brmsfit-methods:487", "pass",
+    "",
     expect_equal(dim(R2), c(1, 4))
   )
   brms_setup("brmsfit-methods:489",
     R2 <- SW(loo_R2(fit2, summary = FALSE))
   )
-  brms_port("brmsfit-methods:490", "cannot transfer",
-    paste0(
-      "loo_R2() does not exist in frmtmb or frmtmb.sample ('could ",
-      "not find function'). On draws it has a meaning (brms ",
-      "computes it from the PSIS weights loo() already builds), so ",
-      "this is a gap, not a decision"),
+  brms_port("brmsfit-methods:490", "pass",
+    "",
     expect_equal(dim(R2), c(ndraws(fit1), 1))
   )
 })
@@ -267,12 +260,8 @@ test_that("loo_epred has reasonable outputs", {
   brms_setup("brmsfit-methods:496",
     llp <- SW(loo_epred(fit1))
   )
-  brms_port("brmsfit-methods:497", "cannot transfer",
-    paste0(
-      "loo_epred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:497", "pass",
+    "",
     expect_equal(nrow(llp), nobs(fit1))
   )
   brms_setup("brmsfit-methods:499",
@@ -288,31 +277,25 @@ test_that("loo_epred has reasonable outputs", {
       allow_new_levels = TRUE
     ))
   )
-  brms_port("brmsfit-methods:508", "cannot transfer",
+  brms_port("brmsfit-methods:508", "divergence",
     paste0(
-      "loo_epred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+      "the loo_*() functions refuse newdata by name, as loo() ",
+      "does: a leave-one-out weight is the observation's own ",
+      "column of log_lik(), so it exists only for a row the model ",
+      "was fitted on. brms computes the weights on the new rows' ",
+      "own response (this row with allow_new_levels = TRUE). Lane ",
+      "loodraws's decision 1"),
     expect_equal(dim(llp), c(nrow(newdata), 2))
   )
   brms_setup("brmsfit-methods:510",
     llp <- SW(loo_epred(fit4))
   )
-  brms_port("brmsfit-methods:511", "cannot transfer",
-    paste0(
-      "loo_epred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:511", "pass",
+    "",
     expect_equal(nrow(llp), nobs(fit4))
   )
-  brms_port("brmsfit-methods:512", "cannot transfer",
-    paste0(
-      "loo_epred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:512", "pass",
+    "",
     expect_equal(dim(llp)[3], 4)
   )
 })
@@ -323,42 +306,35 @@ test_that("loo_linpred has reasonable outputs", {
   brms_setup("brmsfit-methods:518",
     llp <- SW(loo_linpred(fit1))
   )
-  brms_port("brmsfit-methods:519", "cannot transfer",
-    paste0(
-      "loo_linpred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:519", "pass",
+    "",
     expect_equal(nrow(llp), nobs(fit1))
   )
   brms_setup("brmsfit-methods:521",
     llp <- SW(loo_linpred(fit4))
   )
-  brms_port("brmsfit-methods:522", "cannot transfer",
-    paste0(
-      "loo_linpred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:522", "pass",
+    "",
     expect_equal(nrow(llp), nobs(fit4))
   )
-  brms_port("brmsfit-methods:523", "cannot transfer",
+  brms_port("brmsfit-methods:523", "divergence",
     paste0(
-      "loo_linpred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+      "loo_linpred() of an ordinal fit with a cs() term returns ",
+      "one matrix where brms returns one layer per threshold ",
+      "(dim(llp)[3] is 3 in brms, NA here): posterior_linpred() of ",
+      "draws has no cs() threshold layer, and loo_linpred() ",
+      "inherits it (dev/test-backlog.md, filed at 0.73.0)"),
     expect_equal(dim(llp)[3], 3)
   )
   brms_setup("brmsfit-methods:525",
     llp <- SW(loo_linpred(fit2, scale = "response", type = "var"))
   )
-  brms_port("brmsfit-methods:526", "cannot transfer",
+  brms_port("brmsfit-methods:526", "divergence",
     paste0(
-      "loo_linpred() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+      "loo_linpred(scale = ) is refused by name: brms 2.23.0 reads ",
+      "it nowhere, and its result is the default's, on a logit ",
+      "link too (lane loodraws, decision 3; its review re-ran ",
+      "brms)"),
     expect_equal(nrow(llp), nobs(fit2))
   )
 })
@@ -369,12 +345,8 @@ test_that("loo_predict has reasonable outputs", {
   brms_setup("brmsfit-methods:532",
     llp <- SW(loo_predict(fit1))
   )
-  brms_port("brmsfit-methods:533", "cannot transfer",
-    paste0(
-      "loo_predict() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:533", "pass",
+    "",
     expect_equal(nrow(llp), nobs(fit1))
   )
   brms_setup("brmsfit-methods:535",
@@ -390,31 +362,25 @@ test_that("loo_predict has reasonable outputs", {
       allow_new_levels = TRUE
     ))
   )
-  brms_port("brmsfit-methods:544", "cannot transfer",
+  brms_port("brmsfit-methods:544", "divergence",
     paste0(
-      "loo_predict() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+      "the loo_*() functions refuse newdata by name, as loo() ",
+      "does: a leave-one-out weight is the observation's own ",
+      "column of log_lik(), so it exists only for a row the model ",
+      "was fitted on. brms computes the weights on the new rows' ",
+      "own response (this row with allow_new_levels = TRUE). Lane ",
+      "loodraws's decision 1"),
     expect_equal(dim(llp), c(nrow(newdata), 2))
   )
   brms_setup("brmsfit-methods:546",
     llp <- SW(loo_predict(fit4))
   )
-  brms_port("brmsfit-methods:547", "cannot transfer",
-    paste0(
-      "loo_predict() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:547", "pass",
+    "",
     expect_equal(nrow(llp), nobs(fit4))
   )
-  brms_port("brmsfit-methods:548", "cannot transfer",
-    paste0(
-      "loo_predict() does not exist in frmtmb or frmtmb.sample ",
-      "('could not find function'). On draws it has a meaning ",
-      "(brms computes it from the PSIS weights loo() already ",
-      "builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:548", "pass",
+    "",
     expect_equal(length(dim(llp)), 2)
   )
 })
@@ -425,12 +391,8 @@ test_that("loo_predictive_interval has reasonable outputs", {
   brms_setup("brmsfit-methods:554",
     llp <- SW(loo_predictive_interval(fit3))
   )
-  brms_port("brmsfit-methods:555", "cannot transfer",
-    paste0(
-      "loo_predictive_interval() does not exist in frmtmb or ",
-      "frmtmb.sample ('could not find function'). On draws it has ",
-      "a meaning (brms computes it from the PSIS weights loo() ",
-      "already builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:555", "pass",
+    "",
     expect_equal(dim(llp), c(nobs(fit3), 2))
   )
 })
@@ -441,20 +403,12 @@ test_that("loo_model_weights has reasonable outputs", {
   brms_setup("brmsfit-methods:561",
     llw <- SW(loo_model_weights(fit1, fit1))
   )
-  brms_port("brmsfit-methods:562", "cannot transfer",
-    paste0(
-      "loo_model_weights() does not exist in frmtmb or ",
-      "frmtmb.sample ('could not find function'). On draws it has ",
-      "a meaning (brms computes it from the PSIS weights loo() ",
-      "already builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:562", "pass",
+    "",
     expect_is(llw[1:2], "numeric")
   )
-  brms_port("brmsfit-methods:563", "cannot transfer",
-    paste0(
-      "loo_model_weights() does not exist in frmtmb or ",
-      "frmtmb.sample ('could not find function'). On draws it has ",
-      "a meaning (brms computes it from the PSIS weights loo() ",
-      "already builds), so this is a gap, not a decision"),
+  brms_port("brmsfit-methods:563", "pass",
+    "",
     expect_equal(names(llw), c("fit1", "fit1"))
   )
 })

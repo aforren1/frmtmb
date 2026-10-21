@@ -1,0 +1,2 @@
+frmtmb tests/testthat/test-fuzz.R
+frmtmb tests/testthat/test-brms-lik-cdfs.R

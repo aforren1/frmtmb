@@ -16,6 +16,7 @@
 \alias{hurdle_poisson}
 \alias{hurdle_negbinomial}
 \alias{multinomial}
+\alias{dirichlet_multinomial}
 \alias{cumulative}
 \alias{hurdle_cumulative}
 \alias{beta_binomial}
@@ -71,6 +72,13 @@ hurdle_poisson(link = "log", link_hu = "logit")
 hurdle_negbinomial(link = "log", link_shape = "log", link_hu = "logit")
 
 multinomial(link = "logit", refcat = NULL, K = NULL)
+
+dirichlet_multinomial(
+  link = "logit",
+  link_phi = "log",
+  refcat = NULL,
+  K = NULL
+)
 
 cumulative(link = "logit", link_disc = "log", threshold = "flexible")
 
@@ -146,8 +154,9 @@ cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 \arguments{
 \item{link}{Link for \code{mu}. See \link{frmtmb-links}.}
 
-\item{refcat}{For \code{categorical()}, \code{multinomial()}, \code{dirichlet()} and
-\code{logistic_normal()}: the name of the reference category, whose
+\item{refcat}{For \code{categorical()}, \code{multinomial()},
+\code{dirichlet_multinomial()}, \code{dirichlet()} and \code{logistic_normal()}: the
+name of the reference category, whose
 predictor is held at zero. \code{NULL} (the default) takes the first
 category: the first level of a factor response, or the first column
 of a matrix response. \code{NA} predicts every category, which every one
@@ -168,8 +177,9 @@ parameter on the unit interval: \code{"logit"} (the default) or
 probability of an exact 0 or 1, and \code{coi} is the probability that
 such a value is 1.}
 
-\item{K}{For \code{multinomial()} and \code{categorical()}: the number of
-response categories, for a family built away from the data. The
+\item{K}{For \code{multinomial()}, \code{dirichlet_multinomial()} and
+\code{categorical()}: the number of response categories, for a family
+built away from the data. The
 categories are then \verb{1..K} and the dpars \verb{mu2 ... muK}. Leave it
 \code{NULL} and \code{\link[=frm]{frm()}} reads the categories off the response, as brms
 does: the columns of a multinomial count matrix, the levels of a
@@ -283,6 +293,22 @@ brms also has \code{dirichlet2}, not exported there, reached as
 \code{brmsfamily("dirichlet2")}: one predictor per category on the scale
 of its Dirichlet concentration (log link), and no precision. The
 same spelling reaches it here.
+}
+
+\section{The negative binomial in sigma}{
+
+\code{brmsfamily("negbinomial2")} is brms's \code{negbinomial2}: the negative
+binomial of \code{negbinomial()} with the dispersion \code{sigma = 1 / shape},
+so the variance is \code{mu + sigma * mu^2}, and \code{sigma} near 0 is the
+Poisson. brms does not export a constructor for it, and neither does
+frmtmb. \code{sigma} takes the positive links (\code{link_sigma}, default
+\code{"log"}) and its own formula, \code{bf(y ~ x, sigma ~ z)}. The family is
+\code{negbinomial()} underneath: the same density, simulator, mean and
+variance, and the same addition terms, so \code{rate(d)} multiplies the
+mean and the shape \code{1 / sigma} by \code{d}, as in brms. The fit is
+\code{negbinomial()}'s with \code{sigma} in place of \code{1 / shape}: the
+log-likelihood is the same and only the parameter is reported
+differently.
 }
 
 \section{Hurdle and zero-one-inflated responses}{
@@ -450,6 +476,19 @@ expected COUNTS, probability times trials, which brms labels
 \verb{P(Y = <category>)} too. \code{multinomial(K = 3)} builds the family away
 from the data, with the categories \verb{1..K}. A one-hot matrix with one
 trial a row gives the log-likelihood of \code{categorical()}.
+
+\code{dirichlet_multinomial()} is brms's overdispersed multinomial. The
+category probabilities of each row are Dirichlet with mean
+\code{softmax(mu)} and precision \code{phi}, and the counts are multinomial
+given them. The expected counts are those of \code{multinomial()}, and
+the covariance of a row is the multinomial one times
+\code{(T + phi) / (1 + phi)} at \code{T} trials, so a large \code{phi} is close to
+\code{multinomial()}. \code{phi} takes a log link and its own formula,
+\code{bf(Y | trials(n) ~ x, phi ~ z)}. Everything else is as for
+\code{multinomial()}: the response matrix, \code{trials()}, \code{refcat},
+\code{fitted()}, \code{K} and \code{simulate()}, which draws the probabilities of
+each row from the Dirichlet and then the counts. With two categories
+it is \code{beta_binomial()} with \code{phi} the same precision.
 }
 
 \section{Circular responses}{

@@ -1,0 +1,3 @@
+frmtmb tests/testthat/test-cens-windows.R
+frmtmb tests/testthat/test-cens-trunc.R
+frmtmb tests/testthat/test-cdfs.R

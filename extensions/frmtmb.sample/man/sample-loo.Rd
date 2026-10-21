@@ -118,9 +118,11 @@ fits, or \code{\link[frmtmb:frm_bootstrap]{frmtmb::frm_bootstrap()}}.
 \section{Relative efficiency}{
 
 \code{r_eff} defaults to \code{loo::relative_eff()} on the chain structure of
-the draws, which is what brms does. Thinning with \code{ndraws} breaks
-that structure, so \code{r_eff} is then dropped and the estimate is the
-one loo computes without an autocorrelation correction.
+the draws, which is what brms does. A subset of the draws (\code{ndraws},
+\code{draw_ids}) no longer has that structure, so its relative efficiency
+is taken on one chain, as brms takes it. The same rule gives the
+weights of \code{\link[=psis]{psis()}}, the \verb{loo_*()} functions and \code{pp_check()}'s
+\verb{loo_*} types.
 }
 
 \examples{

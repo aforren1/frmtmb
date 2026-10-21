@@ -33,7 +33,10 @@ brms_shared <- c(
   "autocor",
   "hypothesis", "parnames", "stancode", "standata", "pp_mixture",
   "add_criterion",
-  "posterior_summary", "LOO", "WAIC", "ngrps", "fixef", "ranef",
+  "posterior_summary", "LOO", "WAIC", "loo_epred", "loo_linpred",
+  "loo_predict", "loo_predictive_interval", "loo_R2", "loo_model_weights",
+  "kfold", "reloo", "loo_moment_match", "loo_subsample", "ngrps", "fixef",
+  "ranef",
   "VarCorr"
 )
 
@@ -530,5 +533,64 @@ test_that("parnames() on a fit warns once whichever generic dispatched", {
     expect_match(out, "CHILDOK", fixed = TRUE, info = nm)
     expect_equal(parse_field(out, "NWARN"), "1", info = nm)
     expect_equal(parse_field(out, "SAME"), "TRUE", info = nm)
+  }
+})
+
+test_that("the loo_*() names refuse on a fit in every attach order", {
+  # A user with frmtmb alone, or with rstantools, loo or brms beside it,
+  # who calls brms's loo_R2() on a fit is told to sample. Seen to fail
+  # on frmtmb 0.72.0 (rellib-r10): "could not find function" with
+  # frmtmb alone, "no applicable method ... frmtmb_fit" with rstantools
+  # or brms, because the generics were frmtmb.sample's.
+  skip_on_cran()
+  fit_src <- c(
+    "set.seed(1); d <- data.frame(x = rnorm(40)); d$y <- rnorm(40, d$x)",
+    "fit <- frmtmb::frm(frmtmb::bf(y ~ x), family = gaussian(), data = d)",
+    "msg <- function(e) tryCatch({ e; 'no error' },",
+    "  error = function(c) conditionMessage(c))",
+    "for (g in c('loo_epred', 'loo_linpred', 'loo_predict',",
+    "            'loo_predictive_interval', 'loo_R2')) {",
+    "  m <- msg(get(g)(fit))",
+    "  cat(sprintf('REF_%s: %s\n', g, grepl(paste0(g,",
+    "    '(frmtmb.sample::frm_sample(fit))'), m, fixed = TRUE)))",
+    "}",
+    "cat('REF_lmw:', grepl('frm_sample(fit1)',",
+    "  msg(loo_model_weights(fit, fit)), fixed = TRUE), '\n')",
+    "cat('REF_kfold:', grepl('neither frmtmb nor frmtmb.sample',",
+    "  msg(kfold(fit)), fixed = TRUE), '\n')",
+    "cat('REF_reloo:', grepl('neither frmtmb nor frmtmb.sample',",
+    "  msg(reloo(fit)), fixed = TRUE), '\n')",
+    "# with loo attached, loo's default method died on a missing `loo`",
+    "cat('REF_mm:', grepl('neither frmtmb nor frmtmb.sample',",
+    "  msg(loo_moment_match(fit)), fixed = TRUE), '\n')",
+    "cat('REF_ss:', grepl('neither frmtmb nor frmtmb.sample builds it',",
+    "  msg(loo_subsample(fit)), fixed = TRUE), '\n')",
+    "cat('EPRED_HOME:', environmentName(topenv(environment(",
+    "  get('loo_epred')))), '\n')",
+    "cat('CHILDOK\n')")
+  orders <- list(
+    alone = list(c("suppressMessages(library(frmtmb))"), "frmtmb"),
+    rstantools_first = list(c("suppressMessages(library(rstantools))",
+                              "suppressMessages(library(frmtmb))"),
+                            "rstantools"),
+    loo_attached = list(c("suppressMessages(library(frmtmb))",
+                          "suppressMessages(library(loo))"), NA))
+  if (requireNamespace("brms", quietly = TRUE)) {
+    orders$brms_after <- list(c("suppressMessages(library(frmtmb))",
+                                "suppressMessages(library(brms))"), "brms")
+  }
+  for (o in names(orders)) {
+    if (o != "alone") skip_if_not_installed("rstantools")
+    out <- run_child(c(orders[[o]][[1]], fit_src))
+    expect_match(out, "CHILDOK", fixed = TRUE, info = o)
+    lines <- grep("^REF_", strsplit(out, "\n")[[1]], value = TRUE)
+    expect_length(lines, 10L)
+    expect_equal(sub("^REF_[^:]*: *", "", trimws(lines)), rep("TRUE", 10L),
+                 info = paste(o, paste(lines, collapse = " | ")))
+    # loo_epred has two owners: the one on the search path wins
+    want <- orders[[o]][[2]]
+    if (!is.na(want)) {
+      expect_equal(parse_field(out, "EPRED_HOME"), want, info = o)
+    }
   }
 })

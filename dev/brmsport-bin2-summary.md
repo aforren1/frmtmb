@@ -5,39 +5,39 @@
 | file (bin) | assertions | pass (value / shape) | defect | divergence | cannot transfer: decision / gap / cost / artifact |
 |---|---|---|---|---|---|
 | `tests.brmsfit-helpers.R` (2P) | 8 | 0 (0 / 0) | 0 | 0 | 8 / 0 / 0 / 0 |
-| `tests.brmsfit-methods.R` (2T) | 58 | 31 (1 / 30) | 0 | 8 | 0 / 17 / 0 / 2 |
+| `tests.brmsfit-methods.R` (2T) | 58 | 44 (1 / 43) | 0 | 12 | 0 / 0 / 0 / 2 |
 | `tests.brmsterms.R` (2P) | 18 | 0 (0 / 0) | 0 | 0 | 18 / 0 / 0 / 0 |
-| `tests.distributions.R` (2P) | 113 | 51 (16 / 35) | 0 | 4 | 43 / 15 / 0 / 0 |
-| `tests.log_lik.R` (2P) | 65 | 47 (18 / 29) | 0 | 2 | 0 / 12 / 3 / 1 |
-| `tests.posterior_predict.R` (2P) | 66 | 53 (3 / 50) | 0 | 0 | 0 / 8 / 5 / 0 |
+| `tests.distributions.R` (2P) | 113 | 66 (17 / 49) | 0 | 4 | 43 / 0 / 0 / 0 |
+| `tests.log_lik.R` (2P) | 65 | 50 (19 / 31) | 0 | 2 | 0 / 9 / 3 / 1 |
+| `tests.posterior_predict.R` (2P) | 66 | 55 (3 / 52) | 0 | 0 | 0 / 6 / 5 / 0 |
 | `tests.priors.R` (2T) | 1 | 0 (0 / 0) | 0 | 1 | 0 / 0 / 0 / 0 |
-| **total** | 329 | 182 (38 / 144) | 0 | 15 | 69 / 52 / 8 / 3 |
+| **total** | 329 | 215 (40 / 175) | 0 | 19 | 69 / 15 / 8 / 3 |
 
 ### Bin 2 outcome by class
 
 | bin | outcome | class | kind | assertions |
 |---|---|---|---|---|
-| 2T | pass | - | - | 31 |
-| 2T | divergence | policy | - | 9 |
-| 2T | cannot transfer | absent | gap | 17 |
+| 2T | pass | - | - | 44 |
+| 2T | divergence | hollow | - | 1 |
+| 2T | divergence | inherited | - | 1 |
+| 2T | divergence | policy | - | 11 |
 | 2T | cannot transfer | fixture | artifact | 1 |
 | 2T | cannot transfer | upstream | artifact | 1 |
-| 2P | pass | - | - | 137 |
+| 2P | pass | - | - | 157 |
 | 2P | pass | per-line | - | 14 |
 | 2P | divergence | domain | - | 5 |
 | 2P | divergence | parameterization | - | 1 |
-| 2P | cannot transfer | absent | gap | 20 |
+| 2P | cannot transfer | absent | gap | 15 |
 | 2P | cannot transfer | adapter | artifact | 1 |
 | 2P | cannot transfer | brms-backends | decision | 3 |
 | 2P | cannot transfer | brms-internal | decision | 48 |
-| 2P | cannot transfer | no-cdf | gap | 15 |
 | 2P | cannot transfer | no-density | decision | 12 |
 | 2P | cannot transfer | no-quantile | decision | 6 |
 | 2P | cannot transfer | not-ported | cost | 8 |
 
-Bin 2T passes: 31 of 59 (52.5%), judged on the target object.
-Bin 2P: 184 of 270 assertions run through the adapter, 151 of them pass (the rest it refused or they failed); the other 86 are classified from the survey.
-Of the 182 bin-2 passes, 38 compare a value and 144 check only a shape, length, names or type.
+Bin 2T passes: 44 of 59 (74.6%), judged on the target object.
+Bin 2P: 184 of 270 assertions run through the adapter, 171 of them pass (the rest it refused or they failed); the other 86 are classified from the survey.
+Of the 215 bin-2 passes, 40 compare a value and 175 check only a shape, length, names or type.
 The 58 methods rows of 2T on the maximum-likelihood fit (the restatement, not counted): divergence 52, pass 6.
 
 ### Value checks beside the shape passes
@@ -46,28 +46,28 @@ A value check compares the value the line before a shape assertion computed thro
 
 | file | shape passes | with a value check | holds | defect | divergence | reference cannot run |
 |---|---|---|---|---|---|---|
-| `tests.brmsfit-methods.R` | 30 | 0 | 0 | 0 | 0 | 0 |
-| `tests.distributions.R` | 35 | 19 | 19 | 0 | 0 | 0 |
-| `tests.log_lik.R` | 29 | 29 | 25 | 0 | 3 | 1 |
-| `tests.posterior_predict.R` | 50 | 0 | 0 | 0 | 0 | 0 |
-| **total** | 144 | 48 | 44 | 0 | 3 | 1 |
+| `tests.brmsfit-methods.R` | 43 | 0 | 0 | 0 | 0 | 0 |
+| `tests.distributions.R` | 49 | 33 | 33 | 0 | 0 | 0 |
+| `tests.log_lik.R` | 31 | 31 | 27 | 0 | 3 | 1 |
+| `tests.posterior_predict.R` | 52 | 0 | 0 | 0 | 0 | 0 |
+| **total** | 175 | 64 | 60 | 0 | 3 | 1 |
 
-Of the 182 bin-2 passes, 38 compare a value as brms wrote them, 44 more check a shape and carry a value check that holds against brms's own function, and 100 check only a shape.
+Of the 215 bin-2 passes, 40 compare a value as brms wrote them, 60 more check a shape and carry a value check that holds against brms's own function, and 115 check only a shape.
 Value checks that do not hold: `log_lik:271` (divergence, precision); `log_lik:462` (divergence, domain); `log_lik:478` (divergence, domain); `log_lik:580` (cannot transfer, reference).
 
 ### Bins 1 and 2 together
 
 | outcome | bin 1 | bin 2T | bin 2P | bins 1 and 2 |
 |---|---|---|---|---|
-| pass | 392 | 31 | 151 | 574 |
+| pass | 392 | 44 | 171 | 607 |
 | defect | 1 | 0 | 0 | 1 |
-| divergence | 50 | 9 | 6 | 65 |
+| divergence | 50 | 13 | 6 | 69 |
 | cannot transfer: no counterpart (decision) | 48 | 0 | 69 | 117 |
-| cannot transfer: absent (gap) | 2 | 17 | 35 | 54 |
+| cannot transfer: absent (gap) | 2 | 0 | 15 | 17 |
 | cannot transfer: not ported (cost) | 0 | 0 | 8 | 8 |
 | cannot transfer: port artifact | 1 | 2 | 1 | 4 |
 | **total** | **494** | **59** | **270** | **823** |
 
-Bins 1 and 2 pass: 574 of 823 (69.7%); bin 1 alone 392 of 494, as dev/brmsport-ledger.tsv records it (regenerated once at consolidation).
-Over every assertion but the 117 that frmtmb has no counterpart for by decision, 574 of 706 pass (81.3%). The 54 gaps, 8 rows not ported (cost) and 4 port artifacts stay in that denominator.
+Bins 1 and 2 pass: 607 of 823 (73.8%); bin 1 alone 392 of 494, as dev/brmsport-ledger.tsv records it (regenerated once at consolidation).
+Over every assertion but the 117 that frmtmb has no counterpart for by decision, 607 of 706 pass (86.0%). The 17 gaps, 8 rows not ported (cost) and 4 port artifacts stay in that denominator.
 The rate's denominator excludes exactly the "cannot transfer" rows of these classes: brms-backends 3, brms-internal 63, mcmc 4, no-density 12, no-draws 3, no-quantile 6, stan 26.

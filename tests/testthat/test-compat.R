@@ -398,7 +398,7 @@ test_that("frm_compat() crosses vector arguments", {
   expect_setequal(many$feature_a, c("cens()", "trunc()"))
   expect_setequal(many$feature_b, c("gaussian", "poisson"))
   expect_equal(many$status[many$feature_a == "cens()" &
-                             many$feature_b == "poisson"], "conditional")
+                             many$feature_b == "poisson"], "works")
 
   one_side <- frm_compat(c("cens()", "trunc()"))
   expect_true(all(one_side$feature_a %in% c("cens()", "trunc()")))
@@ -427,13 +427,16 @@ test_that("frm_compat() filters by status and rejects unknown input", {
 })
 
 test_that("a more specific rule beats a broader one", {
-  # kind:family x cens() refuses, group:cdf_continuous grants, and the
-  # explicit poisson row conditions it on the inclusive discrete
-  # convention (group:discrete would otherwise refuse it)
+  # kind:family x cens() refuses, group:cdf_continuous grants, and an
+  # explicit row conditions trunc() on a family with no truncated mean,
+  # over group:cdf's grant; a family with no CDF falls back to the kind
+  # rule
   expect_equal(frm_compat("cens()", "gaussian")$status, "works")
-  expect_equal(frm_compat("cens()", "poisson")$status, "conditional")
-  expect_equal(frm_compat("cens()", "beta")$status, "refused")
-  expect_equal(frm_compat("trunc()", "poisson")$status, "conditional")
+  expect_equal(frm_compat("cens()", "beta")$status, "works")
+  expect_equal(frm_compat("cens()", "poisson")$status, "works")
+  expect_equal(frm_compat("cens()", "tweedie")$status, "refused")
+  expect_equal(frm_compat("trunc()", "poisson")$status, "works")
+  expect_equal(frm_compat("trunc()", "skew_normal")$status, "conditional")
   expect_equal(frm_compat("trunc()", "weibull")$status, "works")
 })
 
@@ -510,7 +513,7 @@ test_that("declared refusals at the frame stage really refuse", {
             family = poisson()))
   refuse("se()", "poisson",
          fr(y | se(s) ~ x, family = poisson()))
-  refuse("cens()", "binomial",
+  refuse("cens()", "bernoulli",
          fr(y | cens(cc) ~ x, family = bernoulli()))
   refuse("|ID|", "ar1",
          fr(bf(y ~ ar1(0 + o | q | g)) + bf(y2 ~ x) + set_rescor(FALSE),

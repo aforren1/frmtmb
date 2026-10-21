@@ -99,8 +99,8 @@ conditional_smooths.frmtmb_draws <- function(x, smooths = NULL,
 #' @section Weights:
 #' `weights` is a numeric vector with one weight per model, or the name
 #' of a method that computes them:
-#' * `"stacking"` (the default) and `"pseudobma"`:
-#'   [loo::loo_model_weights()] over the [loo()] of each model.
+#' * `"stacking"` (the default) and `"pseudobma"`: the weights of
+#'   [loo_model_weights()][sample-loo_model_weights].
 #' * `"loo"` and `"waic"`: Akaike-type weights,
 #'   `exp(-delta / 2)` normalized, over each model's LOOIC or WAIC.
 #' * `"kfold"` and `"bma"` are refused: frmtmb.sample has no `kfold()`
@@ -308,9 +308,11 @@ pa_weights <- function(weights, models, control = list()) {
     }, 1)
     exp(-(ics - min(ics)) / 2)
   } else {
-    crit <- lapply(models, loo)
-    as.numeric(do.call(loo::loo_model_weights,
-                       c(list(crit), list(method = method), control)))
+    # loo_model_weights()'s own path, as brms's model_weights() reaches
+    # loo_model_weights.brmsfit(): one log_lik() per model and its
+    # relative efficiency, not a stored criterion
+    as.numeric(draws_model_weights(models, c(list(method = method), control),
+                                   list(), "posterior_average()"))
   }
   w / sum(w)
 }

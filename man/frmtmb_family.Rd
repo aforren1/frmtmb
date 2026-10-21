@@ -20,6 +20,7 @@ frmtmb_family(
   primary_dpars = "mu",
   lcdf = NULL,
   lccdf = NULL,
+  cdf_log = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
   se_dpar = NULL,
@@ -45,6 +46,7 @@ custom_family(
   primary_dpars = "mu",
   lcdf = NULL,
   lccdf = NULL,
+  cdf_log = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
   se_dpar = NULL,
@@ -171,22 +173,29 @@ example multinomial's per-category \code{mu2}, \code{mu3}, ...) list them all;
 these live in the \code{beta} parameter vector and are integrated out
 under REML.}
 
-\item{lcdf}{Optional vectorized AD log-safe CDF \verb{(q, dpars, aterms)}
-returning probabilities; enables \code{cens()} and \code{trunc()} addition
-terms. It is the only thing either term asks of a family, whatever
-the family's \code{type}: a discrete family that supplies one is
-censored under the inclusive convention (see Censoring a discrete
-response), which reads a lower bound as \code{F(q - 1)} and so calls
-this at one below a recorded value.}
+\item{lcdf}{Optional vectorized AD CDF \verb{(q, dpars, aterms)} returning
+probabilities; enables \code{cens()} and \code{trunc()} addition terms. It is
+the only thing either term asks of a family, whatever the family's
+\code{type}. A discrete family is read on the integer lattice (see
+Censoring a discrete response), so \code{trunc(lb = )} calls this at one
+below the bound.}
 
 \item{lccdf}{Optional vectorized AD LOG SURVIVOR function
 \verb{(q, dpars, aterms)} returning \code{log(1 - F(q))} directly. A family
-that declares it scores a RIGHT-censored row from it instead of
-from \code{log(1 - F)}, which cannot be accurate once \code{F} rounds to one
-(see Right censoring and the representable tail). It is optional
-and independent of \code{lcdf}: a family that supplies only \code{lccdf}
-accepts right censoring and refuses left censoring, interval
-censoring and \code{trunc()}, each by name.}
+that declares it scores the upper tail from it instead of from
+\code{log(1 - F)}, which cannot be accurate once \code{F} rounds to one (see
+Censoring and the representable tail). It is optional and
+independent of \code{lcdf}: a family that supplies only \code{lccdf} accepts
+right censoring and refuses left censoring, interval censoring and
+\code{trunc()}, each by name.}
+
+\item{cdf_log}{Optional vectorized AD function \verb{(q, dpars, aterms)}
+returning \verb{list(lF = log F(q), lS = log S(q))}, both tails on the
+log scale. A family that declares it has every censored row and
+every truncation window read from it, and \code{lcdf} and \code{lccdf} are
+derived from it when they are not given. It is how a family whose
+two tails are both exact passes that to core: a probability-scale
+\code{lcdf} ends at \code{1e-308}.}
 
 \item{required_aterms}{The addition-term values the density cannot do
 without, named as they reach \code{aterms}: \code{"vint1"}, \code{"vreal2"},
@@ -420,20 +429,25 @@ call order happens to hold and leaves the family object lying about
 what it is.
 }
 
-\section{Right censoring and the representable tail}{
+\section{Censoring and the representable tail}{
 
-Core forms a right-censored row's contribution as \code{log(Fub - F(y))},
-which without truncation is \code{log(1 - F)}. A double cannot represent
-the complement of a probability that has rounded to one, so past that
-point the contribution is not merely inaccurate: it is CONSTANT, and
-its gradient is exactly zero. An optimizer then prices such a row the
-same however far it moves, and fits every other row as if the
-survivor were free. That failure is silent - the fit converges, and
-\code{logLik()} and \code{AIC()} report the floored number.
+For a family that declares \code{cdf_log}, every censored row and every
+truncation window is the mass of a window \verb{(lo, hi]} (\code{row_lpdf()}),
+and core forms it on the log scale from both tails of the family's
+CDF: from \verb{lS = log S} where \code{S(lo) >= 1/2}, as
+\code{lS(lo) + log(1 - exp(lS(hi) - lS(lo)))}, and from \verb{lF = log F} below
+that. A log near zero keeps every digit of its
+complement, so each form keeps the digits the other loses. A window
+open above is \code{lS(lo)} and one open below is \code{lF(hi)}, so a
+right-censored row and \code{trunc(lb = )} read the log survivor itself.
 
-\code{lccdf} removes the class for right censoring by giving core the
-quantity it actually needs. Measured on a standard normal tail, one
-process:
+The probability scale cannot do this. A double cannot represent the
+complement of a probability that has rounded to one, so \code{log(1 - F)}
+past that point is not merely inaccurate: it is CONSTANT, and its
+gradient is exactly zero. An optimizer then prices such a row the
+same however far it moves. That failure is silent: the fit converges,
+and \code{logLik()} and \code{AIC()} report the floored number. Measured on a
+standard normal tail, one process:
 
 \tabular{lrr}{
 \strong{z} \tab \strong{log(1 - pnorm(z))} \tab
@@ -444,95 +458,85 @@ process:
 500 \tab -Inf \tab -125007.13
 }
 
-Both the value and the derivative are exact on the right, over the
-whole range.
+Every built-in family with a CDF declares \code{cdf_log} except
+\code{\link[=exponential]{exponential()}}, \code{\link[=weibull]{weibull()}}, \code{\link[=cox]{cox()}}, \code{\link[=frechet]{frechet()}},
+\code{\link[=gen_extreme_value]{gen_extreme_value()}} and \code{\link[=discrete_weibull]{discrete_weibull()}}. A family without it
+is read through \code{lcdf} and \code{lccdf} as before: a right-censored row is
+\code{lccdf} (or \code{log(1 - lcdf)} without it), a left-censored row
+\code{log(F(y) - F(lb))}, an interval \code{log(F(y2) - F(y))}, the window
+\code{log(F(ub) - F(lb))}, and \code{trunc(lb = )} with no upper bound
+\code{lccdf(lb)}. Each slot is called where it always was, because a
+family may read the censoring codes to know which rows a call is
+for, as the frmtmb.eam Wiener families do, and may supply an \code{lcdf}
+that is not the complement of its \code{lccdf}. The probability scale
+ends at \code{1e-308}, below which a left-censored row is \code{log(0)}, and an
+interval in an upper tail loses its digits; a family that declares
+\code{cdf_log} has neither limit.
 
-The built-in families that declare \code{lccdf} are \code{\link[=gaussian]{gaussian()}},
-\code{\link[=lognormal]{lognormal()}}, \code{\link[=exponential]{exponential()}}, \code{\link[=weibull]{weibull()}} and \code{\link[=cox]{cox()}}. The last
-three have \verb{log S} in closed form (\code{-q/mu}, \code{-(q/scale)^shape},
-\code{-H0(t) * mu}); the first two use \code{pnorm()}'s own log upper tail.
+The built-in \code{cdf_log} pairs compute the tail on the far side of \code{q}
+directly, as an integral or a series whose terms are all positive:
+the incomplete beta for \code{\link[=student]{student()}}, \code{\link[=Beta]{Beta()}}, \code{\link[=binomial]{binomial()}} and
+\code{\link[=negbinomial]{negbinomial()}}, the incomplete gamma for \code{\link[=Gamma]{Gamma()}} and for \code{\link[=poisson]{poisson()}}
+past a count of 30 (a smaller count is a finite sum of its masses),
+Owen's \code{T} as an angle integral for \code{\link[=skew_normal]{skew_normal()}}, the density's
+own angle integral for \code{\link[=von_mises]{von_mises()}}, and \code{pnorm()}'s two log tails
+for \code{\link[=gaussian]{gaussian()}} and \code{\link[=lognormal]{lognormal()}}. \code{\link[=inverse.gaussian]{inverse.gaussian()}} and
+\code{\link[=exgaussian]{exgaussian()}} are log-scale differences. A zero-inflated or hurdle
+family is built from its base family's pair. Two are complements in
+part of the range: \link[=brmsfamily]{brmsfamily("com_poisson")}, whose
+support has no top, takes its survivor as the complement of the
+summed CDF until that is below about \code{1e-3} and as an upper sum
+beyond; and a hurdle family takes \code{F} as the complement of \code{S} where
+\code{S < 1/2}.
 
-Two families with a CDF do NOT declare one, for measured reasons.
-\code{\link[=inverse.gaussian]{inverse.gaussian()}} gains nothing:
-\code{RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)} is computed
-on the probability scale and reaches \code{-Inf} at the same
-\verb{log S = -34} that \code{log(1 - F)} does. \code{\link[=poisson]{poisson()}} is censored (see
-Censoring a discrete response) and would use the slot, but cannot
-declare one: \code{RTMB::ppois(lower.tail = FALSE, log.p = TRUE)} is
-exact in R (\code{-2773.28} at \code{q = 700}, \code{lambda = 5}, where
-\code{log(1 - F)} is \code{-Inf})
-and does not TAPE - inside \code{MakeADFun} it reaches
-\code{stats::ppois} and errors with "Non-numeric argument to mathematical
-function". An exact discrete log survivor has to be written out
-before poisson can have one.
-
-\code{lccdf} fixes RIGHT censoring and nothing else. Left censoring is
-still \code{log(F(y) - Flb)}, interval censoring is still a difference of
-CDFs, and the truncation normalizer is still \code{log(Fub - Flb)}, so a
-LEFT-TRUNCATED survival model - delayed entry, which is routine -
-meets the identical representability problem from the other side.
-Closing that needs a windowed log-difference slot, and this is the
-first step rather than the last one.
+\code{RTMB::ppois(lower.tail = FALSE, log.p = TRUE)} and
+\code{RTMB::pgamma()}'s upper tail do not tape (inside \code{MakeADFun} they
+reach \code{stats::ppois()} and \code{stats::pgamma()} and stop at
+"Non-numeric argument to mathematical function"), which is why
+poisson had no \code{lccdf} through frmtmb 0.72.0; its survivor is exact
+now (\code{-2773.28} at \code{q = 700}, \code{lambda = 5}, where \code{log(1 - F)} is
+\code{-Inf}).
 }
 
 \section{Censoring a discrete response}{
 
-A censoring bound on a discrete response NAMES a value the response
-can take, and the value is INCLUDED in the event:
+A discrete response's bounds are read as brms 2.23.0 reads them:
 
 \tabular{lll}{
-\strong{code} \tab \strong{means} \tab \strong{scored as} \cr
-\code{0} "none" \tab \code{Y == y} \tab \code{f(y)} \cr
-\code{-1} "left" \tab \code{Y <= y} \tab \code{F(y)} \cr
-\code{1} "right" \tab \code{Y >= y} \tab \code{1 - F(y - 1)} \cr
-\code{2} "interval" \tab \verb{y <= Y <= y2} \tab \code{F(y2) - F(y - 1)}
+\strong{term} \tab \strong{means} \tab \strong{scored as} \cr
+\code{cens()} \code{0} "none" \tab \code{Y == y} \tab \code{f(y)} \cr
+\code{cens()} \code{-1} "left" \tab \code{Y <= y} \tab \code{F(y)} \cr
+\code{cens()} \code{1} "right" \tab \code{Y > y} \tab \code{S(y)} \cr
+\code{cens()} \code{2} "interval" \tab \verb{y < Y <= y2} \tab \code{F(y2) - F(y)} \cr
+\code{trunc(lb, ub)} \tab \verb{lb <= Y <= ub} \tab \code{F(ub) - F(lb - 1)} \cr
+\code{trunc(lb)} \tab \code{Y >= lb} \tab \code{S(lb - 1)}
 }
 
-Equivalently: every LOWER edge enters the CDF as \code{F(edge - 1)}, and
-upper edges are unchanged because \code{F} already includes its argument.
-It is the rule \code{trunc(lb = )} has always followed on a discrete
-response, so one number means one thing however a response is
-bounded, and it is what a count recorded as "5 or more" means.
+A censoring bound is the edge of a continuous-style window \verb{(lo, hi]},
+and only the truncation lower bound is inclusive. \code{trunc(lb = 0)}, or
+any \code{lb <= 0} on a count, is no truncation and is accepted, as it is
+in brms. Every bound must be a whole number: a fractional one would be
+read as its floor. An interval whose ends agree (\code{y2 == y}) is an
+event of probability zero and is refused, as on a continuous
+response; an exact observation is code 0. To score "6 or more",
+right censor at 5.
 
-It DIFFERS from brms for RIGHT and INTERVAL censoring only, where
-brms emits \code{poisson_lccdf(y | mu)}, that is \code{P(Y > y)}, and reads an
-interval as \verb{(y, y2]}. LEFT censoring is \code{P(Y <= y)} in both packages
-and agrees exactly. Migrating a right- or interval-censored count
-model changes its log-likelihood; on 200 poisson draws at
-\code{lambda = 4} right censored at 6, the two readings differ by 20.8 log
-units and 3.7 percent of the estimate. Subtract one from every
-right-censored and interval lower bound to reproduce a brms fit.
+Under \code{trunc()} a censored row is the event inside the window, on any
+response: right censoring at \code{y} is \verb{P(y < Y <= ub)} and left
+censoring \verb{P(lb <= Y <= y)}, each over the window's mass. brms 2.23.0
+divides \code{P(Y > y)} or \code{P(Y <= y)}, the event over the whole line, by
+the window's mass, which can exceed one, so the two differ where a
+censored event reaches past a bound: right censoring with an upper
+bound, left censoring with a lower one. With no bound on that side,
+and for every interval, they agree.
 
-The divergence is deliberate, because \strong{brms is internally
-inconsistent here and frmtmb cannot be both.} brms's own discrete
-truncation emits \code{poisson_lccdf(lb - 1 | mu)}, an INCLUSIVE lower
-bound, \code{P(Y >= lb)}. So in brms \code{trunc(lb = 6)} means \code{Y >= 6} while
-a right-censored row recorded at 6 means \code{Y > 6}: one number, two
-meanings, on one response. frmtmb's \code{trunc()} reproduces brms bit for
-bit (poisson on \verb{y = 3,4,5,6} at \verb{b0 = log 4}, \code{trunc(lb = 2)} gives
-6.9990718955 under both, against 6.2954805379 for the exclusive
-reading), so its \code{cens()} had to choose between matching brms's
-censoring and matching its own truncation. It matches its own.
+\code{simulate(censored = TRUE)} records a draw above a right-censoring
+point \code{k} as \code{k}, and a draw at \code{k} is the uncensored value \code{k}, so
+the simulated values are the same under either reading of a bound.
 
-It is also the only reading consistent with the censored SIMULATOR,
-which predates all of this: \code{simulate(censored = TRUE)} caps a draw
-with \code{pmin(pmax(y, lo), hi)}, recording the value \code{k} exactly when
-the latent draw is \verb{>= k}. Measured on 4000 draws from a fit censored
-at 7, the simulated mass at that point is 0.13250, against
-\code{P(Y >= 7) = 0.12190} inclusive and \code{P(Y > 7) = 0.05763} exclusive.
-The other reading would silently decouple the likelihood from the
-simulator that \code{dharma_residuals()} rests on.
-
-Two consequences worth knowing. A one-point interval (\code{y2 == y}) is
-legal and is the exact observation \code{P(Y = y)}, where on a continuous
-response it is refused as an event of probability zero. And the
-shift assumes the support is the unit integer lattice, so a
-non-integer censoring bound is refused rather than moved onto a
-point the family has no mass at.
-
-\code{residuals(type = "osa")} is refused on a censored discrete fit:
-inclusive bounds make an uncensored row's support \verb{[lo + 1, hi - 1]}
-rather than the \verb{[lo, hi]} the one-step window is built on.
+\code{residuals(type = "osa")} is refused on a censored discrete fit: an
+uncensored row's support is \verb{[lo + 1, hi]} rather than the \verb{[lo, hi]}
+the one-step window is built on.
 }
 
 \section{Tape-safe scope}{

@@ -9,7 +9,7 @@
 # Usage: Rscript dev/warnleak-scan.R <package> <test file> <out file>
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
-}, "C:/Users/adf44/source/r/rellib-r10",
+}, "C:/Users/adf44/source/r/rellib-r11",
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 # inside local(), so no variable of the scan reaches the global
 # environment, where a test could find it by R's lookup rule

@@ -51,13 +51,14 @@ skip_on_cran()
 # between 41 and "hundreds" is what the small alpha buys, and it is why
 # the number is one constant rather than a value tuned per family.
 #
-# The trade depends on the COUNT, so it is written down here: 363 of
-# this file's assertions are statistical (109 chi-square, 117 mean, 117
+# The trade depends on the COUNT, so it is written down here: 383 of
+# this file's assertions are statistical (113 chi-square, 125 mean, 125
 # variance, 18 P(Y = 0) or P(Y = 1), 2 correlation; counted by
 # dev/rel071-simcount.R). The simplex families added 56 of them, and
-# frechet, gen_extreme_value and discrete_weibull 18. At this alpha
+# frechet, gen_extreme_value and discrete_weibull 18, negbinomial2 and
+# dirichlet_multinomial 20. At this alpha
 # that is a 0.0004 chance that any reseed raises a permanent false
-# alarm somewhere in the file; at 1e-3 it would be 0.30, and at a
+# alarm somewhere in the file; at 1e-3 it would be 0.32, and at a
 # conventional 0.05 it would be a near-certainty.
 # Re-check the arithmetic if the tier grows by an order of magnitude.
 SIM_ALPHA <- 1e-6
@@ -367,6 +368,10 @@ sim_specs <- list(
   list(nm = "negbinomial", fam = quote(negbinomial()),
        eta = c(0.5, 1.4), dp = list(shape = 3), kind = "disc", hi = 120,
        ydummy = 1L),
+  # a sigma unlike negbinomial's 1 / 3, so the draws are not that row's
+  list(nm = "negbinomial2", fam = quote(brmsfamily("negbinomial2")),
+       eta = c(0.5, 1.4), dp = list(sigma = 0.6), kind = "disc", hi = 160,
+       ydummy = 1L),
   list(nm = "nbinom1", fam = quote(nbinom1()),
        eta = c(0.5, 1.4), dp = list(phi = 2), kind = "disc", hi = 150,
        ydummy = 1L),
@@ -649,6 +654,56 @@ test_that("multinomial: count-vector draws agree with the family's own density",
     obs <- tabulate(match(key(d), key(supp)), nrow(supp))
     expect_gof(rep(seq_along(obs), obs),
                list(cuts = seq_along(obs)[-length(obs)] + 0.5, p = p), lab)
+  }
+})
+
+test_that(paste("dirichlet_multinomial: count-vector draws agree with the",
+                "family's own density"), {
+  K <- 3L
+  size <- 6L
+  fam <- dirichlet_multinomial(K = K)
+  n <- 2L * SIM_N
+  Y <- matrix(0L, n, K)
+  Y[, 1L] <- size
+  colnames(Y) <- paste0("c", seq_len(K))
+  d2 <- data.frame(g = factor(rep(c("a", "b"), each = SIM_N)),
+                   k = rep(size, n))
+  d2[["Y"]] <- Y
+  form <- Y | trials(k) ~ 0 + g
+  eta <- list(a = c(mu2 = 0.5, mu3 = -0.4), b = c(mu2 = -0.6, mu3 = 0.7))
+  # a precision small enough that the draws are far from multinomial
+  phi <- 2.5
+  # the natural spelling, which names phi on its own scale
+  np <- list(b_mu2_ga = eta[["a"]][["mu2"]], b_mu2_gb = eta[["b"]][["mu2"]],
+             b_mu3_ga = eta[["a"]][["mu3"]], b_mu3_gb = eta[["b"]][["mu3"]],
+             phi = phi)
+  s <- frmtmb::frm_simulate(form, d2, family = fam, newparams = np,
+                            nsim = 1L, seed = SIM_SEED)
+  v <- s[["sim_1"]]
+  supp <- as.matrix(expand.grid(rep(list(seq.int(0L, size)), K)))
+  supp <- supp[rowSums(supp) == size, , drop = FALSE]
+  colnames(supp) <- colnames(Y)
+  for (cell in c("a", "b")) {
+    idx <- if (identical(cell, "a")) seq_len(SIM_N) else -seq_len(SIM_N)
+    d <- v[idx, , drop = FALSE]
+    e <- eta[[cell]]
+    lab <- paste0("dirichlet_multinomial[", cell, "]")
+    p <- exp(dens_lp(fam, supp, list(mu2 = e[["mu2"]], mu3 = e[["mu3"]],
+                                     phi = phi), list(trials = size)))
+    expect_equal(sum(p), 1, tolerance = 1e-8,
+                 label = paste0(lab, " support mass"))
+    expect_true(all(rowSums(d) == size),
+                label = paste0(lab, " rows sum to trials()"))
+    key <- function(M) apply(M, 1L, paste, collapse = ",")
+    obs <- tabulate(match(key(d), key(supp)), nrow(supp))
+    expect_gof(rep(seq_along(obs), obs),
+               list(cuts = seq_along(obs)[-length(obs)] + 0.5, p = p), lab)
+    # each category's count: mean and variance from the same measure
+    for (k in seq_len(K)) {
+      dz <- list(y = supp[, k], p = p)
+      expect_moments(d[, k], dens_moments(dz), 2L,
+                     paste0(lab, " category ", k))
+    }
   }
 })
 
@@ -1119,6 +1174,7 @@ test_that("every registry family is either in the agreement tier or a declared g
   covered <- c(vapply(sim_specs, function(s) s[["nm"]], ""),
                vapply(ord_specs, function(s) s[["nm"]], ""),
                "hurdle_cumulative", "categorical", "multinomial",
+               "dirichlet_multinomial",
                "dirichlet", "dirichlet2", "logistic_normal")
   # nbinom2 and beta are registry aliases of negbinomial and Beta: the
   # same constructor under a second spelling, so covering one covers both

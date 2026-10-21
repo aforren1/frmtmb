@@ -1,29 +1,43 @@
 id	pkg	outcome	msg_has	msg
 distributions:50	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 3.33e-16, max rel 1.77e-15
+distributions:52	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.5e-14, max rel 2.39e-11
 distributions:61	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 3.04e-18, max rel 3.69e-15
+distributions:64	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 9.06e-14, max rel 4.84e-11
 distributions:80	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:83	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.25e-16, max rel 5.8e-15
 distributions:92	frmtmb	error		NOT CHECKED: the adapter's value does not exist
 distributions:95	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 1.22e-16
 distributions:109	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
 distributions:111	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
 distributions:123	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.22e-15, max rel 4.62e-15
+distributions:125	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 5.93e-16
 distributions:134	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-17, max rel 4.72e-16
 distributions:137	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 2.17e-16
 distributions:148	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 6.94e-18, max rel 2.97e-16
+distributions:150	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 1.17e-16
 distributions:162	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 1.29e-16
+distributions:164	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 1.46e-16
 distributions:167	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-16, max rel 2.03e-15
+distributions:169	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 2.08e-16
 distributions:172	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 5.26e-16
+distributions:174	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 1.05e-15
 distributions:177	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-15, max rel 3.29e-15
+distributions:179	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 5.08e-16
 distributions:183	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.48e-16
+distributions:185	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.44e-16, max rel 8.25e-16
 distributions:193	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:195	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 4.16e-16
 distributions:198	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 5.55e-17, max rel 1.89e-16
+distributions:200	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 1.11e-16, max rel 4.16e-16
 distributions:203	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:205	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-17, max rel 4.16e-16
 distributions:208	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+distributions:210	frmtmb	holds		HOLDS: 10 values (0 NA, 0 infinite), max abs diff 4.16e-17, max rel 4.16e-16
 log_lik:85	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 1.98e-16
 log_lik:88	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 1.78e-15, max rel 3.08e-16
 log_lik:271	frmtmb	differs	DIFFERS: 25 values (0 NA, 17 infinite)	DIFFERS: 25 values (0 NA, 17 infinite), max abs diff 1.73e-06, max rel 2.37e-09
 log_lik:389	frmtmb	holds		HOLDS: 15 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 3.91e-16
-log_lik:392	frmtmb	error		NOT CHECKED: the adapter's value does not exist
+log_lik:392	frmtmb	holds		HOLDS: 15 values (0 NA, 0 infinite), max abs diff 3.5e-12, max rel 2.87e-13
 log_lik:414	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 3.55e-15, max rel 2.08e-16
 log_lik:417	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 5.77e-15, max rel 2.89e-15
 log_lik:420	frmtmb	holds		HOLDS: 50 values (0 NA, 0 infinite), max abs diff 0, max rel 0
@@ -42,11 +56,11 @@ log_lik:475	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 4.4
 log_lik:478	frmtmb	differs	NA in 0 values from the adapter, 50 from brms	DIFFERS: NA in 0 values from the adapter, 50 from brms
 log_lik:495	frmtmb	holds		HOLDS: 400 values (100 NA, 0 infinite), max abs diff 4.44e-16, max rel 6.14e-15
 log_lik:504	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 2.84e-14, max rel 3.91e-15
-log_lik:510	frmtmb	error		NOT CHECKED: the adapter's value does not exist
+log_lik:510	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 7.99e-14, max rel 7.47e-15
 log_lik:516	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 3.55e-15, max rel 7.68e-16
 log_lik:523	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 4.44e-15, max rel 1.26e-14
 log_lik:534	frmtmb	holds		HOLDS: 400 values (0 NA, 0 infinite), max abs diff 7.45e-09, max rel 1.21e-14
-log_lik:547	frmtmb	holds		HOLDS: 90 values (0 NA, 0 infinite), max abs diff 2.22e-16, max rel 1.41e-16
-log_lik:550	frmtmb	holds		HOLDS: 90 values (60 NA, 0 infinite), max abs diff 4.44e-16, max rel 2.03e-16
+log_lik:547	frmtmb	holds		HOLDS: 90 values (0 NA, 0 infinite), max abs diff 0, max rel 0
+log_lik:550	frmtmb	holds		HOLDS: 90 values (60 NA, 0 infinite), max abs diff 4.44e-16, max rel 2.06e-16
 log_lik:565	frmtmb	holds		HOLDS: 5 values (0 NA, 0 infinite), max abs diff 8.88e-16, max rel 3.26e-16
 log_lik:580	frmtmb	error	Please install the 'betareg' package	REFERENCE ERROR: Please install the 'betareg' package.

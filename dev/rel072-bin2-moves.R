@@ -32,13 +32,8 @@ function(X, kind) {
     # extraDistr is installed, so brms's reference dbeta_binomial() runs
     # and log_lik:267 holds
     X <- drop(X, c("log_lik:504", "posterior_predict:349", "log_lik:267"))
-    # the reason the 0.71.0 table gave these two is stale: dirichlet and
-    # logistic_normal are frmtmb families, and their rows hold
-    for (id in c("log_lik:510", "posterior_predict:355")) {
-      X <- set(X, id, "cannot transfer", "absent", paste(
-        "dirichlet_multinomial is not a frmtmb family ('not a supported",
-        "family'): a gap, not a decision"))
-    }
+    # (two rows set to "absent" here, log_lik:510 and
+    # posterior_predict:355, hold since 0.73.0: dev/rel073-bin2-moves.R)
   } else {
     # extraDistr is installed: the three references run, and hold
     X <- drop(X, c("distributions:123", "distributions:177",

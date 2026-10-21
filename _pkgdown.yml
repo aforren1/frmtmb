@@ -105,6 +105,7 @@ reference:
   - loo
   - log_lik
   - bayes_R2
+  - loo_predict
   - add_criterion
   - pp_mixture
   - stancode
@@ -225,7 +226,7 @@ redirects:
   - ["reference/hyp_shadow_disarm.html", "reference/frmtmb-sampling-api.html"]
   - ["reference/hypothesis.frmtmb_draws.html", "reference/hypothesis.html"]
   - ["reference/kfold.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
-  - ["reference/kfold.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
+  - ["reference/kfold.html", "reference/loo_predict.html"]
   - ["reference/lca.html", "frmtmb.latent/reference/lca.html"]
   - ["reference/lca_probs.html", "frmtmb.latent/reference/lca_probs.html"]
   - ["reference/lca_profiles.html", "frmtmb.latent/reference/lca_profiles.html"]
@@ -235,9 +236,9 @@ redirects:
   - ["reference/loo.frmtmb_draws.html", "reference/loo.html"]
   - ["reference/loo_compare.frmtmb_draws.html", "reference/loo.html"]
   - ["reference/loo_moment_match.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
-  - ["reference/loo_moment_match.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
+  - ["reference/loo_moment_match.html", "reference/loo_predict.html"]
   - ["reference/loo_subsample.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
-  - ["reference/loo_subsample.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
+  - ["reference/loo_subsample.html", "reference/loo_predict.html"]
   - ["reference/mcmc_plot.frmtmb_draws.html", "frmtmb.sample/reference/draws-diagnostics.html"]
   - ["reference/mcmc_plot.html", "frmtmb.sample/reference/draws-diagnostics.html"]
   - ["reference/nchains.frmtmb_draws.html", "reference/draws-dimensions.html"]
@@ -277,7 +278,7 @@ redirects:
   - ["reference/psis.html", "reference/loo.html"]
   - ["reference/ranef.frmtmb_fit.html", "reference/ranef.html"]
   - ["reference/reloo.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
-  - ["reference/reloo.html", "frmtmb.sample/reference/frmtmb-loo-refusals.html"]
+  - ["reference/reloo.html", "reference/loo_predict.html"]
   - ["reference/restructure.frmtmb_draws.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
   - ["reference/restructure.html", "frmtmb.sample/reference/frmtmb-draws-refusals.html"]
   - ["reference/rhat.frmtmb_draws.html", "frmtmb.sample/reference/draws-diagnostics.html"]

@@ -1,9 +1,11 @@
 # Why this file exists.
 #
 # frmtmb ports the brms vocabulary, so it exports S3 generics whose
-# names another package already owns: the 33 of `frm_generic_owners`
+# names another package already owns: the 43 of `frm_generic_owners`
 # below (29 until stancode, standata, pp_mixture and add_criterion came
-# here from frmtmb.sample), and nlme's and generics' four that are
+# here from frmtmb.sample, 33 until the loo_*() generics, kfold,
+# reloo, loo_moment_match and loo_subsample did), and nlme's and
+# generics' four that are
 # imported and re-exported (frmtmb-shared-generics). An exported
 # generic is not a neutral alias: UseMethod() consults the method table
 # of the namespace where the generic IT REACHED was defined. A frmtmb
@@ -104,9 +106,11 @@ NULL
 #' `as_draws_df` from posterior, so its methods for those live in the
 #' OWNER's table and deferring to the owner reaches them.
 #'
-#' `ngrps` and `refit` are the two names with more than one owner, and
-#' the owners' generics are different closures whose methods sit only
-#' in their own tables. They collide with each other with or without
+#' `ngrps`, `refit` and `loo_epred` are the names with more than one
+#' owner, and the owners' generics are different closures whose methods
+#' sit only in their own tables (brms 2.23.0 defines its own
+#' `loo_epred` beside rstantools 2.7.1's and registers its method
+#' there). They collide with each other with or without
 #' frmtmb, so frmtmb picks whichever one the user would have reached
 #' without it: the search path first, then this order.
 #'
@@ -126,8 +130,16 @@ frm_generic_owners <- list(
   loo = "loo",
   loo_compare = "loo",
   waic = "loo",
+  loo_model_weights = "loo",
+  kfold = "loo",
+  loo_moment_match = "loo",
+  loo_subsample = "loo",
   log_lik = "rstantools",
   bayes_R2 = "rstantools",
+  loo_R2 = "rstantools",
+  loo_linpred = "rstantools",
+  loo_predict = "rstantools",
+  loo_predictive_interval = "rstantools",
   prior_summary = "rstantools",
   pp_check = "bayesplot",
   conditional_effects = "brms",
@@ -143,6 +155,8 @@ frm_generic_owners <- list(
   posterior_summary = "brms",
   LOO = "brms",
   WAIC = "brms",
+  reloo = "brms",
+  loo_epred = c("brms", "rstantools"),
   ngrps = c("brms", "lme4"),
   refit = "lme4"
 )

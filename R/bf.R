@@ -22,7 +22,12 @@
 #' looking in the formula environment too. An expression that gives
 #' `NA` on a row is refused, as brms refuses it.
 #' `weights(w, scale = TRUE)` scales the weights to a mean of one, as
-#' brms does.
+#' brms does. Weights multiply each row's log-likelihood. When every row
+#' has a random effect of its own in `mu` (one level per row, or
+#' `ar1(t + 0 | g)` with one row per cell) and the weights sum to more
+#' than the number of rows, a family whose dispersion formula has an
+#' intercept has no maximum likelihood, and [frm()] refuses the model
+#' by name, unless a prior on the dispersion provably bounds it.
 #' Every linear predictor accepts lme4-style random effects `(1 | g)`,
 #' `(1 + x | g)`, `(x || g)`, and explicit covariance-structure wrappers
 #' `us(x | g)` and `diag(x | g)`.

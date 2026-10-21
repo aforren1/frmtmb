@@ -1,3 +1,128 @@
+# frmtmb.sample 0.21.0
+
+Needs frmtmb 0.73.0. It registers its draws methods on the `loo_*()`,
+`kfold()`, `reloo()`, `loo_moment_match()` and `loo_subsample()`
+generics that frmtmb now defines, and re-exports them. It calls the
+sampling-API export `check_weights_unbounded()`.
+
+## Breaking changes
+
+* **On a subset of the draws (`ndraws`, `draw_ids`), `loo()`, `psis()`
+  and the weights of every `loo_*()` function take the relative
+  efficiency on one chain.** brms 2.23.0 does the same, and so did the
+  `loo_*` types of `pp_check()`. They used `r_eff = 1`. The same draws
+  are now weighted the same way everywhere. On 60-row gaussian and
+  random-intercept models with 4000 draws, `loo(ndraws =)` at 500, 1000
+  and 3000 draws moved by at most 0.0065 in `elpd_loo`. Its standard
+  error was 5.0. On every draw nothing changes, and `frm_sample(thin =)`
+  draws keep their chains.
+
+* **`posterior_average(weights = "stacking")` and `"pseudobma"` take
+  their weights from `loo_model_weights()`**: one `log_lik()` per model
+  and its relative efficiency, as brms's `model_weights()` does. Before,
+  they read a `loo` criterion that `add_criterion()` stored, which can
+  come from other draws. Without a stored criterion the weights are
+  identical to the old ones.
+
+* The `kfold()`, `reloo()`, `loo_moment_match()` and `loo_subsample()`
+  generics, and those of the six `loo_*()` functions under New features,
+  are frmtmb's, re-exported here. On a maximum-likelihood fit each
+  refuses, with frmtmb alone attached too: the six name `frm_sample()`,
+  the other four what to use instead. `loo_moment_match()` and
+  `loo_subsample()` had no method for a fit, even with this package
+  loaded.
+
+* **`frm_sample()` from a formula refuses a posterior that does not
+  integrate.** Suppose that every row with a positive weight has a
+  random effect of its own in `mu`. The likelihood grows like
+  `sigma^-(sum(w) - n)` as `sigma` shrinks to 0. A prior that is finite
+  at 0, as brms's default `student_t(3, 0, s)` on `sigma` is, then
+  leaves the posterior improper once `sum(w) - n` reaches 1. Such a run
+  used to return chains that had not mixed (largest Rhat 2.5 on 2 chains
+  of 1000, `sigma` near 1e-4). The check is core's, against the priors
+  the chains sample under. A prior on `sigma` that vanishes at 0 fast
+  enough makes the posterior proper but not informative:
+  `lognormal(0, 1)` gave a posterior median `sigma` of 7.2e-05 and a
+  largest Rhat of 2.83. A usable model has weights that sum to the
+  number of rows or fewer, or no observation-level term.
+
+## New features
+
+* **brms's leave-one-out functions on draws**: `loo_epred()`,
+  `loo_linpred()`, `loo_predict()`, `loo_predictive_interval()`,
+  `loo_R2()` and `loo_model_weights()`, with brms 2.23.0's arguments,
+  defaults and output shapes. A multivariate model without `resp` gives
+  one layer per response, named as brms names them, and a category
+  margin stays third. Each computes one `log_lik()` and one
+  `loo::psis()` per call, on the same draws as the prediction (per
+  response for `loo_R2()`, per model for `loo_model_weights()`). The
+  weights are those of `psis()` and of `loo(save_psis = TRUE)`.
+  `psis_object =` reuses weights and computes no `log_lik()`. On the
+  same posterior draws as a brms 2.23.0 fit, every `loo_epred()` and
+  `loo_linpred()` value is identical to brms's under R's reference BLAS.
+  So is every `loo_model_weights()` weight (a stacking pair of 0.155 and
+  0.845). The `loo_R2()` bootstrap draws at one seed agree to rounding
+  (largest relative difference 1.1e-14). Under OpenBLAS, where brms's
+  and frmtmb's predictors round apart in the last bits, they agree to
+  that rounding.
+
+* `add_criterion(x, "loo_R2")` stores the `loo_R2()` bootstrap draws, as
+  brms stores them, and `loo_R2()` reads them. It was refused.
+  `add_criterion()` gives each criterion the arguments it takes, as brms
+  does: `add_criterion(x, c("loo", "loo_R2"), seed = 1)` seeds the
+  bootstrap and no longer stops in `loo()`.
+
+* `psis()` honors `draw_ids`, which it ignored, and refuses an argument
+  it does not read, which `loo::psis()` swallowed.
+
+* `loo()` and the `loo_*()` functions accept brms's default values by
+  name (`allow_new_levels = FALSE`, `sample_new_levels = "uncertainty"`,
+  `newdata = NULL`), which `loo()` refused, and `loo()` and
+  `loo_model_weights()` take `draw_ids`.
+
+* `resp` takes brms's spelling (`ya` for a column `y_a`) in all six
+  functions, and the layers of a multivariate result carry it.
+  `loo_epred()`, `loo_linpred()`, `loo_predict()`,
+  `loo_predictive_interval()`, `loo_model_weights()` and `psis()` also
+  take frmtmb's `y_a`, which `log_lik()` and `posterior_epred()` take.
+  `loo_R2()` takes brms's spelling only, as `bayes_R2()` and brms do.
+
+* **`brmsfamily("negbinomial2")` and `dirichlet_multinomial()` fits
+  sample under brms 2.23.0's default priors**: `sigma` of negbinomial2
+  gets `gamma(0.4, 0.3)` from brms's family hook (where negbinomial's
+  `shape` gets `inv_gamma(0.4, 0.3)`), and `phi` gets
+  `gamma(0.01, 0.01)`. On the same data the posterior means agree with
+  brms's to 0.05 posterior sd, with and without a group term.
+
+* **A `dirichlet_multinomial()` fit's draws take the `multinomial()`
+  paths**: `posterior_linpred()` with no `dpar` stacks the `mu<cat>`
+  predictors into brms's `draws x observations x (K - 1)` array.
+  `posterior_epred()` and `posterior_predict()` return
+  `draws x observations x K` arrays that read `trials()` from `newdata`.
+  `predictive_error()` and `pp_check(type = "error_binned")` refuse the
+  family as polytomous.
+
+## Divergences from brms
+
+* `newdata`, `re_formula` and the new-level arguments, given a value
+  other than brms's default, are refused by the `loo_*()` functions, as
+  `loo()` refuses them: a weight comes from the observation's own column
+  of `log_lik()`, so it exists only for a row the model was fitted on.
+  brms computes the weights on the new rows' own response.
+
+* `ndraws` and `draw_ids` choose the draws once, for the weights and the
+  prediction. brms draws a separate random subsample for each, so its
+  weights belong to other draws: on a 60-row gaussian model with
+  `ndraws = 100` the two subsamples shared 2 draws.
+
+* An argument the `loo_*()` functions have no use for is an error that
+  names it. `loo_linpred(scale = "response")`, which brms 2.23.0 reads
+  nowhere (its result is the default's, on a logit link too), is one.
+
+* `loo_R2()` refuses an ordinal or categorical family, as `bayes_R2()`
+  does. brms refuses the categorical families and computes the ordinal
+  ones with a warning.
+
 # frmtmb.sample 0.20.0
 
 Needs frmtmb 0.72.0. It calls the sampling-API export `ord_lp_blocks()`

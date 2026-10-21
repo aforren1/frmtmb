@@ -160,8 +160,13 @@
 #'   tests). Worth it for Bernoulli responses with small clusters,
 #'   where Laplace biases variance components. Scalar random-intercept
 #'   models only, and not with `mi()`, `trunc()`, `REML = TRUE`, or
-#'   `frmtmb_control(profile = TRUE)`. A plain Laplace fit runs first
-#'   and the quadrature tape is built at its optimum: the
+#'   `frmtmb_control(profile = TRUE)`. A row may read one block only:
+#'   nested blocks, `(1 | ga/gb)`, crossed blocks, `(1 | g) + (1 | h)`,
+#'   and `(1 | g)` in both `mu` and `sigma` are refused, as lme4
+#'   refuses `nAGQ > 1` for more than one term. The blocks of a by-split
+#'   `gr(g, by = f)` each read rows of their own and are allowed. A
+#'   plain Laplace fit runs first and the quadrature tape is built at
+#'   its optimum: the
 #'   Gauss-Kronrod rescaling is fixed when the tape is built, so the
 #'   starting point decides whether the marginalized objective is
 #'   finite at all. That fit also supplies the conditional modes, which
@@ -977,6 +982,11 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # a prior update() carried over from the original fit, marked as
   # brms marks it: what the new model cannot take is dropped here
   prior <- prior_drop_unmatched(prior, spec, frame)
+  # frm_sample() runs the check itself, against the priors it samples
+  # under, which it resolves after this unfitted object exists
+  if (!identical(dry_run, "objective")) {
+    check_weights_unbounded(spec, frame, prior, exact = isTRUE(quadrature))
+  }
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = NULL, upper = NULL,
@@ -1382,6 +1392,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # adaptive Gauss-Kronrod marginalization per scalar random effect
     # (TMB's experimental `integrate`; the nAGQ analogue - matches
     # glmer(nAGQ = 25) in tests). Spec replicated from TMB's GK().
+    quad_check_blocks(frame)
     integrate <- list(b = structure(
       list(dim = 1, adaptive = FALSE, debug = FALSE,
            method = "marginal_gk"),
@@ -1757,6 +1768,58 @@ solved_par_list <- function(obj, par) {
   obj$env$parList(par)
 }
 
+#' Refuse quadrature when a row reads more than one random-effect block.
+#'
+#' The Gauss-Kronrod rule integrates one scalar effect at a time. With
+#' two blocks on a row, nested or crossed, TMBad's marginal_gk
+#' integrates only the effects whose integrand splits into
+#' one-dimensional factors and leaves the rest to the Laplace
+#' approximation: over `(1 | ga/gb)` the objective equaled the Laplace
+#' one to 1e-8, and summary() failed because sdreport() cannot mix the
+#' two methods. lme4 refuses nAGQ > 1 for more than one term for the
+#' same reason. An exact route (one pass per block, inner block first)
+#' was measured and set aside: its tape grows by 12 to 551 MB per row
+#' (dev/fuzzfix-findings.md, "To file").
+#'
+#' The count is per row, so a by-split `gr(g, by = f)`, whose blocks
+#' each read rows of their own, and an `mvbf()` with one block per
+#' response stay allowed.
+#'
+#' @noRd
+quad_check_blocks <- function(frame) {
+  blocks <- frame[["re_blocks"]]
+  if (length(blocks) < 2L) return(invisible())
+  hits <- list()
+  for (lp in frame[["linpreds"]]) {
+    Z <- lp[["Z"]]
+    if (is.null(Z)) next
+    r <- lp[["resp"]]
+    touch <- vapply(blocks, function(bk) {
+      cols <- intersect(bk[["c_idx"]], seq_len(ncol(Z)))
+      if (!length(cols)) return(rep(FALSE, nrow(Z)))
+      Matrix::rowSums(abs(Z[, cols, drop = FALSE])) > 0
+    }, logical(nrow(Z)))
+    touch <- matrix(touch, nrow(Z))
+    hits[[r]] <- if (is.null(hits[[r]])) touch else hits[[r]] | touch
+  }
+  per_row <- lapply(hits, rowSums)
+  depth <- max(0L, vapply(per_row, max, 1))
+  if (depth <= 1L) return(invisible())
+  # name the blocks that share a row, as the user wrote them
+  share <- unique(unlist(lapply(hits, function(h) {
+    which(colSums(h[rowSums(h) > 1L, , drop = FALSE]) > 0)
+  })))
+  labs <- vapply(blocks[share], block_term_as_written, "")
+  frm_stop("quadrature = TRUE integrates one scalar random effect per ",
+           "row, and here a row reads ", depth, " random-effect blocks (",
+           paste0("`", labs, "`", collapse = ", "), "). With nested or ",
+           "crossed blocks the Gauss-Kronrod rule integrates only some ",
+           "of the effects and leaves the rest to the Laplace ",
+           "approximation. lme4 refuses the same models (nAGQ > 1 needs ",
+           "a single scalar term). Fit with quadrature = FALSE, the ",
+           "Laplace approximation", call. = FALSE)
+}
+
 #' Which of two quadrature candidates quad_fit() keeps. A stationary one
 #' wins outright (the loop stops there); among non-stationary ones the
 #' lowest objective is the best point reached, not the first that
@@ -1835,6 +1898,14 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
     o <- RTMB::MakeADFun(nll, tpl, random = random, map = map,
                          integrate = integrate, silent = TRUE,
                          inner.control = inner_ctl)
+    # quad_check_blocks() should leave nothing here; a structure it does
+    # not see must still not reach a fit that is half Laplace
+    if (length(o$env$random)) {
+      frm_stop("quadrature = TRUE left ", length(o$env$random),
+               " random effects that the Gauss-Kronrod rule could not ",
+               "integrate one at a time. Fit with quadrature = FALSE, the ",
+               "Laplace approximation", call. = FALSE)
+    }
     f0 <- try(o$fn(o$par), silent = TRUE)
     if (inherits(f0, "try-error") || !is.finite(f0)) return(NULL)
     if (vb) vb_stage("quadrature tape", t0)
@@ -1889,11 +1960,10 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
 
 #' The refusal message when every calibration point breaks down. A bare
 #' "the objective was non-finite" tells a user nothing they can act on,
-#' and the two shapes this failure takes want different answers, so name
-#' whichever applies: an iterated integral over nested blocks (the outer
-#' integrand is the inner rescaling's output, and no calibration of the
-#' outer one can repair that), and a variance component so narrow that
-#' the transform's unit-step finite differences cannot measure it.
+#' so it names the shape that applies: a variance component so narrow
+#' that the transform's unit-step finite differences cannot measure it.
+#' (Nested blocks, its other shape, are refused before any tape by
+#' quad_check_blocks().)
 #'
 #' @noRd
 quad_breakdown_message <- function(frame, theta) {
@@ -1906,14 +1976,6 @@ quad_breakdown_message <- function(frame, theta) {
     if (is.null(v)) NA_real_ else sqrt(v[1L, 1L])
   }, 1)
   why <- character(0)
-  if (length(blocks) > 1L) {
-    why <- c(why, paste0("the model asks for an iterated integral over ",
-                         length(blocks), " nested blocks (",
-                         paste(vapply(blocks, desc, ""), collapse = ", "),
-                         ") on ", frame[["n_obs"]], " observations, and the ",
-                         "outer integrand is itself the frozen ",
-                         "rescaling of the inner one"))
-  }
   sing <- which(is.finite(sds) & sds < 1e-3)
   if (length(sing)) {
     why <- c(why, paste0("the Laplace optimum leaves ",
