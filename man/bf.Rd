@@ -96,7 +96,12 @@ allowed, and predictor formulas and \code{offset()} keep R's usual rule of
 looking in the formula environment too. An expression that gives
 \code{NA} on a row is refused, as brms refuses it.
 \code{weights(w, scale = TRUE)} scales the weights to a mean of one, as
-brms does.
+brms does. Weights multiply each row's log-likelihood. When every row
+has a random effect of its own in \code{mu} (one level per row, or
+\code{ar1(t + 0 | g)} with one row per cell) and the weights sum to more
+than the number of rows, a family whose dispersion formula has an
+intercept has no maximum likelihood, and \code{\link[=frm]{frm()}} refuses the model
+by name, unless a prior on the dispersion provably bounds it.
 Every linear predictor accepts lme4-style random effects \code{(1 | g)},
 \code{(1 + x | g)}, \code{(x || g)}, and explicit covariance-structure wrappers
 \code{us(x | g)} and \code{diag(x | g)}.

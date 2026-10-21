@@ -1,3 +1,21 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* **`frm_sample()` from a formula refuses a posterior that does not
+  integrate.** When every row with a positive weight has a random
+  effect of its own in `mu`, the likelihood grows like
+  `sigma^-(sum(w) - n)` as `sigma` shrinks to 0, and a prior that is
+  finite at 0, as brms's default `student_t(3, 0, s)` on `sigma` is,
+  leaves the posterior improper once `sum(w) - n` reaches 1. Such a run
+  used to return chains that had not mixed (largest Rhat 2.5 on 2
+  chains of 1000, `sigma` near 1e-4). The check is core's, against the
+  priors the chains sample under. A prior on `sigma` that vanishes at
+  0 fast enough makes the posterior proper but not informative:
+  `lognormal(0, 1)` gave a posterior median `sigma` of 7.2e-05 and a
+  largest Rhat of 2.83. A usable model has weights that sum to the
+  number of rows or fewer, or no observation-level term.
+
 # frmtmb.sample 0.20.0
 
 Needs frmtmb 0.72.0. It calls the sampling-API export `ord_lp_blocks()`

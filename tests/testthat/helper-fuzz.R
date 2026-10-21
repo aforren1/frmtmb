@@ -431,7 +431,7 @@ fuzz_design <- function(sp) {
   g <- factor(rep(seq_len(ng), each = nt))
   tt <- factor(rep(seq_len(nt), ng))
   gb <- factor(rep(rep(c("i", "ii"), length.out = nt), ng))
-  data.frame(
+  d <- data.frame(
     g = g, tt = tt, ga = g, gb = gb,
     gc = as.character(g),
     fac = factor(rep(c("a", "b", "c"), length.out = n)),
@@ -444,6 +444,13 @@ fuzz_design <- function(sp) {
     one = 1,
     stringsAsFactors = FALSE
   )
+  # ar1(tt + 0 | g) gives each row an effect of its own here, and with
+  # weights summing above n a free dispersion then has no maximum
+  # likelihood, which frm() refuses (check_weights_unbounded()). Half of
+  # runif(0.5, 2) is below 1 on every row, so sum(w) < n always holds.
+  # Scaled after the draw, so every other column keeps its stream.
+  if (identical(sp$re, "ar1")) d$w <- d$w * 0.5
+  d
 }
 
 # The one generating coefficient every spec shares, whatever the family
@@ -1708,11 +1715,7 @@ FUZZ_KNOWN_REFUSAL <- list(
                    "and at the optimum with the integrand widths",
                    "displaced; when none of those yields a finite",
                    "objective and gradient the model is refused with a",
-                   "message that names the configuration. Nested scalar",
-                   "blocks are the shape that cannot be repaired by",
-                   "recalibration at all: the outer integrand is the",
-                   "inner rescaling's output, so the objective is NaN",
-                   "before the optimizer takes a step. An integrator",
+                   "message that names the configuration. An integrator",
                    "that recalibrates per evaluation would be the fix;",
                    "TMBad's adaptive = TRUE is meant to be that and is",
                    "measurably worse (it fails on negbinomial cases the",
@@ -1722,7 +1725,23 @@ FUZZ_KNOWN_REFUSAL <- list(
                    "Laplace warm start."),
        match = function(f) identical(f$invariant, "fit_error") &&
          grepl("mode=quadrature", f$spec) &&
-         grepl("could not marginalize this model", f$detail))
+         grepl("could not marginalize this model", f$detail)),
+  list(id = "quad-one-block-per-row",
+       why = paste("quadrature = TRUE integrates one scalar random effect",
+                   "per row. Over (1 | ga/gb) one Gauss-Kronrod pass",
+                   "integrated the ga effects and left the ga:gb effects",
+                   "to the Laplace approximation: the log-likelihood",
+                   "equaled the Laplace one to 1e-8 and summary() failed.",
+                   "lme4 refuses nAGQ > 1 for more than one term. An",
+                   "exact iterated route was measured and set aside",
+                   "because its tape grows by 12 to 551 MB per row. The",
+                   "refusal comes before any tape, and quadrature = FALSE",
+                   "fits these models."),
+       match = function(f) identical(f$invariant, "fit_error") &&
+         grepl("mode=quadrature", f$spec) &&
+         grepl("re=nested", f$spec) &&
+         grepl("quadrature = TRUE integrates one scalar random effect per",
+               f$detail, fixed = TRUE))
 )
 
 # Divergences from brms's reading of the same formula. Each one is a

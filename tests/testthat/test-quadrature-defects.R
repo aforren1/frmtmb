@@ -97,7 +97,7 @@ test_that("quadrature modes match glmer(nAGQ = 25) where Laplace does not", {
   expect_gt(max(abs(fq$estimates$b - fl$estimates$b)), 0.05)
 })
 
-test_that("quadrature survives non-gaussian families and nested blocks", {
+test_that("quadrature survives non-gaussian families", {
   # every one of these satisfied the documented scalar-intercept guard
   # and still died at a bare "NA/NaN gradient evaluation": the frozen
   # rescaling taped at the cold start overflowed
@@ -112,14 +112,15 @@ test_that("quadrature survives non-gaussian families and nested blocks", {
     })
   )
   for (cs in cases) {
-    for (re in c("(1 | g)", "(1 | ga/gb)")) {
+    # nested blocks are refused under quadrature (test-quadrature-nested.R)
+    for (re in "(1 | g)") {
       set.seed(11)
       dd <- d
       dd$y <- cs$y()
       fo <- stats::as.formula(paste("y ~ 1 + x +", re))
-      # the nested beta fit puts both sds at zero; under quadrature they
-      # keep the "flat" verdict, since the boundary check cannot run on
-      # that objective (lane setier)
+      # a beta fit can put the sd at zero; under quadrature it keeps the
+      # "flat" verdict, since the boundary check cannot run on that
+      # objective (lane setier)
       fit <- allow_warnings(
         frm(bf(fo) + cs$fam, data = dd, quadrature = TRUE),
         "Standard errors are not available")
@@ -133,17 +134,17 @@ test_that("quadrature survives non-gaussian families and nested blocks", {
   }
 })
 
-test_that("quadrature over a nested block agrees with the Laplace fit", {
-  # gaussian: Laplace is exact, so the two marginalizations must land on
-  # the same optimum even with two scalar blocks in the integral
+test_that("quadrature refuses a nested block, which Laplace fits", {
+  # the Gauss-Kronrod rule integrated only the ga effects of the pair and
+  # left the ga:gb ones to Laplace; the fit now stops before any tape
   d <- quad_nested_data()
   set.seed(11)
   d$y <- d$eta + rnorm(nrow(d))
-  fq <- frm(bf(y ~ 1 + x + (1 | ga/gb)) + gaussian(), data = d,
-            quadrature = TRUE)
+  expect_error(frm(bf(y ~ 1 + x + (1 | ga/gb)) + gaussian(), data = d,
+                   quadrature = TRUE),
+               "integrates one scalar random effect per row")
   fl <- frm(bf(y ~ 1 + x + (1 | ga/gb)) + gaussian(), data = d)
-  expect_loglik_equal(fq, fl, tol = 1e-4)
-  expect_vector_equal(fq$estimates$b, fl$estimates$b, tol = 1e-4)
+  expect_true(is.finite(as.numeric(logLik(fl))))
 })
 
 test_that("quadrature refuses trunc() instead of returning logLik = +Inf", {

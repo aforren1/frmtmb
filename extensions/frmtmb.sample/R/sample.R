@@ -2982,6 +2982,17 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                 "Sampling the model as it is")
     laplace <- FALSE
   }
+  # frm() skips this check for the unfitted object, because only here
+  # are the priors known that the chains will sample under. brms's
+  # default on sigma is finite at 0, so with weights summing to n + 1
+  # or more over rows that each own an effect, the posterior does not
+  # integrate and the chains do not mix (Rhat 2.5 on 2 chains). The fit
+  # route was refused by frm() already, or fitted under a prior that
+  # bounds it
+  if (from_formula) {
+    check_weights_unbounded(fit$spec, fit$frame, rp$effective,
+                            exact = !laplace, route = "sample")
+  }
   # the priors ride on the OUTER parameters, so they compose with the
   # reparameterization rather than interacting with it: theta is theta on
   # either route, and no prior addresses b (or z) at all

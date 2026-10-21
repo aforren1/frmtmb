@@ -1207,7 +1207,7 @@ compat_hand_rules_tbl <- function() {
   r("quadrature", "group:wide_blocks", "refused",
     "Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term.")
   r("quadrature", "group:quadrature_blocks", "conditional",
-    "Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused. Several such blocks are fine, nested ones included: (1 | ga/gb) becomes an iterated one-dimensional integral.")
+    "Allowed only when the block is one-dimensional, that is a scalar random intercept, and each row reads one block. Correlated slopes are refused. Nested blocks, (1 | ga/gb), crossed blocks and (1 | g) in both mu and sigma are refused, as lme4 refuses nAGQ > 1 for more than one term: one Gauss-Kronrod pass over every effect integrated the outer ga effects and left the ga:gb effects to the Laplace approximation, so the log-likelihood equaled the Laplace one and summary() failed. A by-split gr(g, by = f), whose blocks read rows of their own, and mvbf() with one block per response are allowed.")
   r("quadrature", "group:post_fit", "works",
     "The marginalized objective carries no conditional modes, so they are recovered from the inner solve of the Laplace objective at the quadrature optimum. Verified: they match glmer(nAGQ = 25)'s modes to 1e-4, and ranef(), fitted(), predict() and residuals() are NA-free.")
   r("quadrature", "mi()", "refused",

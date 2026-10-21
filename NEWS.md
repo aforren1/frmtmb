@@ -1,3 +1,55 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`quadrature = TRUE` refuses a row that reads more than one
+  random-effect block.** Nested blocks, `(1 | ga/gb)`, crossed blocks,
+  `(1 | g) + (1 | h)`, and `(1 | g)` in both `mu` and `sigma` used to
+  fit, but the Gauss-Kronrod rule integrated only some of the effects
+  and left the rest to the Laplace approximation: over `(1 | ga/gb)`
+  the log-likelihood equaled the Laplace one to 1e-8, and `summary()`
+  failed with "no 'dimnames' attribute for array". They are now
+  refused before any tape, as lme4 refuses `nAGQ > 1` for more than one
+  term, and the message names the blocks. One block per row is
+  unchanged, including the blocks of a by-split `gr(g, by = f)`.
+
+* **`frm()` refuses a weighted likelihood that has no maximum.** When
+  every row with a positive weight has a random effect of its own in
+  `mu` and the weights sum to more than the number of rows, the
+  likelihood of a family whose dispersion formula has an intercept
+  grows without bound as the dispersion goes to its limit (`sigma` to
+  0, `shape` to infinity), like the peak height of the density to the
+  power `sum(w) - n`. Such a fit used to stop at "NA/NaN gradient
+  evaluation" under `profile = TRUE` and `REML = TRUE`, or report a
+  log-likelihood of 1.4e11 under ML with only convergence warnings. The
+  refusal names the term as written and the weight sum, and names what
+  gives a usable fit: weights that sum to the number of rows or fewer,
+  a random effect that is not observation-level, or a fixed
+  dispersion. It covers gaussian, student, lognormal, Gamma, weibull,
+  Beta, inverse.gaussian, skew_normal, shifted_lognormal, huber,
+  von_mises, frechet, gen_extreme_value and exgaussian. A prior
+  exempts the model only when it provably bounds the dispersion, as
+  `gamma()` on `shape` does, or a `normal()` prior on every
+  coefficient of an intercept-free cell-means formula (`sigma ~ 0 + f`); a
+  `student_t()` or `gamma(2, 1)` on `sigma`, or a prior on the slopes
+  of a dispersion formula with an intercept, does not. A prior that
+  bounds the objective does not make the estimate informative: the
+  mode then sits where the prior and the weight excess balance. A
+  dispersion formula that cannot reach its limit at every row
+  (`sigma ~ 0 + x`, or an offset alone) is not refused: its likelihood
+  is bounded. The
+  check does not run with `se()`, `cens()`, residual correlation,
+  `mi()` or several responses.
+
+* **asym_laplace() with a random effect of its own on every row is
+  refused under the Laplace approximation, at any weights.** Its log
+  density is linear on each side of the mode, so the data give such an
+  effect no curvature, and the approximate likelihood grew without
+  bound (log-likelihood 449 with `sigma` at exp(-7.1) on 80
+  unweighted rows, where the exact integral gives -56.7).
+  `quadrature = TRUE` integrates the effect exactly and is refused only
+  when the weights sum to more than the number of rows.
+
 # frmtmb 0.72.0
 
 The main changes:

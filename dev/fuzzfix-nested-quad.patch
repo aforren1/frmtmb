@@ -1,0 +1,243 @@
+diff --git a/R/fit.R b/R/fit.R
+index e60e21b8..9a3b779a 100644
+--- a/R/fit.R
++++ b/R/fit.R
+@@ -160,8 +160,12 @@
+ #'   tests). Worth it for Bernoulli responses with small clusters,
+ #'   where Laplace biases variance components. Scalar random-intercept
+ #'   models only, and not with `mi()`, `trunc()`, `REML = TRUE`, or
+-#'   `frmtmb_control(profile = TRUE)`. A plain Laplace fit runs first
+-#'   and the quadrature tape is built at its optimum: the
++#'   `frmtmb_control(profile = TRUE)`. Nested blocks, as in
++#'   `(1 | ga/gb)`, are integrated as an iterated integral, the finer
++#'   block inside the coarser one, at most two blocks per row. It
++#'   costs time: 27 s on 72 rows, where one block takes 0.3 s. Crossed
++#'   blocks, as in `(1 | g) + (1 | h)`, are refused. A plain Laplace
++#'   fit runs first and the quadrature tape is built at its optimum: the
+ #'   Gauss-Kronrod rescaling is fixed when the tape is built, so the
+ #'   starting point decides whether the marginalized objective is
+ #'   finite at all. That fit also supplies the conditional modes, which
+@@ -1381,12 +1389,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
+     }
+     # adaptive Gauss-Kronrod marginalization per scalar random effect
+     # (TMB's experimental `integrate`; the nAGQ analogue - matches
+-    # glmer(nAGQ = 25) in tests). Spec replicated from TMB's GK().
+-    integrate <- list(b = structure(
+-      list(dim = 1, adaptive = FALSE, debug = FALSE,
+-           method = "marginal_gk"),
+-      class = "GK"
+-    ))
++    # glmer(nAGQ = 25) in tests), one pass per block (quad_passes())
++    quad_check_depth(frame)
++    integrate <- quad_passes(frame[["re_blocks"]])
+   }
+   profile_arg <- NULL
+   if (isTRUE(control$profile)) {
+@@ -1757,6 +1762,98 @@ solved_par_list <- function(obj, par) {
+   obj$env$parList(par)
+ }
+ 
++#' The `integrate` argument of a quadrature tape: one Gauss-Kronrod pass
++#' per random-effect block, the block with the most levels first.
++#'
++#' One pass over every `b` at once is not an iterated integral. TMBad's
++#' marginal_gk integrates only the effects whose integrand it can split
++#' into one-dimensional factors, and leaves the rest as random effects
++#' for the Laplace approximation. Over `(1 | ga/gb)` it integrated the
++#' `ga` effects and left every `ga:gb` effect to Laplace, so the
++#' "quadrature" objective equaled the Laplace one to 1e-8, and
++#' summary() failed because sdreport() cannot mix the two methods.
++#' Integrating the finer block first makes each of its effects a
++#' one-dimensional integral given the coarser ones; the coarser block's
++#' integrand is then a product over its own levels again. A finer block
++#' that is crossed with a coarser one, not nested in it, cannot be split
++#' that way, and quad_fit() refuses it (quad_crossed_stop()).
++#'
++#' `which` indexes the `b` entries that earlier passes left.
++#'
++#' @noRd
++quad_passes <- function(blocks) {
++  nlev <- vapply(blocks, function(bk) length(bk[["b_idx"]]), 1L)
++  left <- sort(unlist(lapply(blocks, `[[`, "b_idx")))
++  lapply(blocks[order(-nlev)], function(bk) {
++    w <- match(bk[["b_idx"]], left)
++    left <<- left[-w]
++    list(b = structure(
++      list(dim = 1, adaptive = FALSE, debug = FALSE,
++           method = "marginal_gk", which = w),
++      class = "GK"))
++  })
++}
++
++#' Refuse an iterated integral more than two deep.
++#'
++#' A row whose density reads effects of k blocks sits inside k nested
++#' Gauss-Kronrod rules, and the tape grows with the power k of the
++#' rule's nodes. Measured on 32 Poisson rows (dev/fuzzfix-quad-depth.R):
++#' one block 0.5 s and 355 MB, two 3.0 s and 843 MB, three 378 s and
++#' 49 GB. The count is per row, so the blocks of a by-split, gr(g, by =
++#' f), which each read rows of their own, do not add up.
++#'
++#' @noRd
++quad_check_depth <- function(frame) {
++  blocks <- frame[["re_blocks"]]
++  if (length(blocks) < 3L) return(invisible())
++  hits <- list()
++  for (lp in frame[["linpreds"]]) {
++    Z <- lp[["Z"]]
++    if (is.null(Z)) next
++    r <- lp[["resp"]]
++    touch <- vapply(blocks, function(bk) {
++      cols <- intersect(bk[["c_idx"]], seq_len(ncol(Z)))
++      if (!length(cols)) return(rep(FALSE, nrow(Z)))
++      Matrix::rowSums(abs(Z[, cols, drop = FALSE])) > 0
++    }, logical(nrow(Z)))
++    touch <- matrix(touch, nrow(Z))
++    hits[[r]] <- if (is.null(hits[[r]])) touch else hits[[r]] | touch
++  }
++  depth <- max(0L, vapply(hits, function(h) max(rowSums(h)), 1))
++  if (depth <= 2L) return(invisible())
++  labs <- vapply(blocks, function(b) paste0("'", b$term_label, "'"), "")
++  frm_stop("quadrature = TRUE integrates the random effects of a row as ",
++           "nested one-dimensional integrals, at most two deep, and here ",
++           "a row reads ", depth, " blocks (", paste(labs, collapse = ", "),
++           "). The Gauss-Kronrod tape grows with the power ", depth,
++           " of the rule's nodes: three blocks over 32 rows took 378 ",
++           "seconds and 49 GB. Use quadrature = FALSE (Laplace)",
++           call. = FALSE)
++}
++
++#' The refusal when the Gauss-Kronrod passes leave random effects that no
++#' pass could integrate: blocks over crossed grouping factors, whose
++#' integral does not split into nested one-dimensional ones. Fitting it
++#' would hand those effects to the Laplace approximation under the name
++#' of quadrature.
++#'
++#' @noRd
++quad_crossed_stop <- function(frame, n_left) {
++  desc <- vapply(frame[["re_blocks"]], function(b) {
++    paste0("'", b$term_label, "' (", b$group_name, ", ", b$n_levels,
++           " levels)")
++  }, "")
++  frm_stop("quadrature = TRUE integrates one scalar random effect at a ",
++           "time, so it needs the blocks to be nested in each other, as ",
++           "in (1 | ga/gb). Here ", n_left, " random effects are left that ",
++           "no one-dimensional integral can remove: the blocks ",
++           paste(desc, collapse = ", "), " are crossed, and their ",
++           "integral does not split into one-dimensional factors. Use ",
++           "quadrature = FALSE (Laplace), or the importance correction ",
++           "for blocks over one grouping factor", call. = FALSE)
++}
++
+ #' Which of two quadrature candidates quad_fit() keeps. A stationary one
+ #' wins outright (the loop stops there); among non-stationary ones the
+ #' lowest objective is the best point reached, not the first that
+@@ -1835,6 +1932,10 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
+     o <- RTMB::MakeADFun(nll, tpl, random = random, map = map,
+                          integrate = integrate, silent = TRUE,
+                          inner.control = inner_ctl)
++    # which effects a pass can integrate depends on the tape's graph,
++    # not on the values it was calibrated at, so this holds for every
++    # attempt
++    if (length(o$env$random)) quad_crossed_stop(frame, length(o$env$random))
+     f0 <- try(o$fn(o$par), silent = TRUE)
+     if (inherits(f0, "try-error") || !is.finite(f0)) return(NULL)
+     if (vb) vb_stage("quadrature tape", t0)
+diff --git a/tests/testthat/test-quadrature-nested-exact.R b/tests/testthat/test-quadrature-nested-exact.R
+new file mode 100644
+index 0000000..b67cec4
+--- /dev/null
++++ b/tests/testthat/test-quadrature-nested-exact.R
+@@ -0,0 +1,92 @@
++# quadrature = TRUE over blocks of more than one grouping factor, by the
++# exact iterated route of dev/fuzzfix-nested-quad.patch. One
++# Gauss-Kronrod pass over every random effect at once integrated the
++# coarse block of (1 | ga/gb) and left the fine one to the Laplace
++# approximation: the "quadrature" log-likelihood equaled the Laplace one
++# to 1e-8, and summary() failed with "no 'dimnames' attribute for array"
++# because sdreport() cannot mix the two methods. The gated fuzz plan
++# found it on cumulative + weights (seed 20322452); the family and the
++# weights play no part.
++
++quad_nest_data <- function(seed = 20261020) {
++  set.seed(seed)
++  ng <- 12; nt <- 6; n <- ng * nt
++  d <- data.frame(ga = factor(rep(seq_len(ng), each = nt)),
++                  gb = factor(rep(c("i", "ii"), length.out = n)),
++                  tt = factor(rep(seq_len(nt), ng)),
++                  x = rnorm(n), w = runif(n, 0.5, 2))
++  ab <- interaction(d$ga, d$gb, drop = TRUE)
++  d$eta <- 0.2 + 0.5 * d$x + rnorm(ng, 0, 0.7)[d$ga] +
++    rnorm(nlevels(ab), 0, 1)[ab]
++  d$y <- rbinom(n, 1, plogis(d$eta))
++  d
++}
++
++# The marginal log-likelihood of a weighted logit model over
++# (1 | ga/gb), as an iterated Gauss-Hermite integral written from the
++# model alone: an integral over each ga effect of the product of the
++# integrals over its ga:gb effects. Valid for Bernoulli data; the
++# Poisson and (1 | g) in mu and sigma need a trapezoid rule with 240 to
++# 400 nodes instead (review of 2026-10-20, dev/fuzzfix-rev-quad-exact2.R).
++quad_nest_exact <- function(d, beta, sd_a, sd_ab, k = 60) {
++  i <- seq_len(k - 1)
++  J <- matrix(0, k, k)
++  J[cbind(i, i + 1)] <- J[cbind(i + 1, i)] <- sqrt(i / 2)
++  e <- eigen(J, symmetric = TRUE)
++  x <- e$values
++  lw <- log(sqrt(pi) * e$vectors[1, ]^2) - log(sqrt(pi))
++  lse <- function(v) { m <- max(v); m + log(sum(exp(v - m))) }
++  eta0 <- beta[1] + beta[2] * d$x
++  tot <- 0
++  for (a in levels(d$ga)) {
++    ra <- d$ga == a
++    lu <- vapply(sqrt(2) * sd_a * x, function(u) {
++      s <- 0
++      for (b in unique(d$gb[ra])) {
++        r <- ra & d$gb == b
++        lv <- vapply(sqrt(2) * sd_ab * x, function(v) {
++          sum(d$w[r] * stats::dbinom(d$y[r], 1,
++                                     stats::plogis(eta0[r] + u + v),
++                                     log = TRUE))
++        }, 1)
++        s <- s + lse(lw + lv)
++      }
++      s
++    }, 1)
++    tot <- tot + lse(lw + lu)
++  }
++  tot
++}
++
++test_that("quadrature over (1 | ga/gb) is the iterated integral", {
++  d <- quad_nest_data()
++  fo <- bf(y | weights(w) ~ 1 + x + (1 | ga/gb)) + bernoulli()
++  fq <- allow_boundary(frm(fo, data = d, quadrature = TRUE))
++  fl <- allow_boundary(frm(fo, data = d))
++  # every effect went to a Gauss-Kronrod pass, none to Laplace
++  expect_length(fq$obj$env$random, 0L)
++  s <- vapply(fq$frame$re_blocks, function(bk) {
++    th <- fq$estimates$theta[bk$theta_idx]
++    sqrt(covstruct_registry[[bk$covstruct]]$vcov(th, bk)[1, 1])
++  }, 1)
++  names(s) <- vapply(fq$frame$re_blocks, `[[`, "", "group_name")
++  ex <- quad_nest_exact(d, unname(fq$estimates$beta), s[["ga"]],
++                        s[["ga:gb"]])
++  # the Laplace objective at the same parameters is the yardstick: on
++  # 0.72.0 the quadrature objective was that one, ratio 0.353
++  lap_at <- -fl$obj$fn(fq$opt$par)
++  err_q <- abs(as.numeric(logLik(fq)) - ex)
++  err_l <- abs(lap_at - ex)
++  expect_gt(err_l, 0)
++  expect_lt(err_q / err_l, 1e-3)
++  sm <- allow_boundary(summary(fq))
++  expect_s3_class(sm, "summary.frmtmb_fit")
++  expect_true(all(is.finite(sqrt(diag(vcov(fq))))))
++})
++
++test_that("quadrature refuses crossed blocks by name", {
++  d <- quad_nest_data()
++  fo <- bf(y ~ 1 + x + (1 | ga) + (1 | tt)) + bernoulli()
++  expect_error(allow_boundary(frm(fo, data = d, quadrature = TRUE)),
++               "are crossed")
++})
