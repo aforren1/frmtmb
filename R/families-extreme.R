@@ -91,11 +91,10 @@
 #' integral. brms's `posterior_epred()` stops the sum at the first term
 #' below 0.001, so the two differ where the tail is long.
 #'
-#' `cens()` follows frmtmb's discrete censoring convention (see
+#' `cens()` and `trunc()` follow brms's discrete conventions (see
 #' [frmtmb_family()], Censoring a discrete response): a right-censored
-#' count at `k` is `P(Y >= k)`. brms reads it as `P(Y > k)`, so right
-#' and interval censoring differ from brms; left censoring agrees.
-#' `trunc(lb = )` reads its bound as inclusive, as brms does.
+#' count at `k` is `P(Y > k)`, and `trunc(lb = )` reads its bound as
+#' inclusive.
 #'
 #' @section Addition terms:
 #' All three take `weights()`, `cens()` and `trunc()`. brms also takes

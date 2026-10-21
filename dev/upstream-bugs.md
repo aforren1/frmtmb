@@ -520,6 +520,89 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   `dev/drop1raw-findings.md`, fix round 1.
 - Status: not reported.
 
+### brms-30. `zero_inflated_asym_laplace_lccdf()` counts the point mass at `y = 0`
+
+- Seen: 2.23.0, 2026-10-20 (lane cdfs, source read:
+  `inst/chunks/fun_zero_inflated_asym_laplace.stan`).
+- Repro: the Stan function takes the `y <= 0` branch at `y = 0`,
+  `log_sum_exp(log(zi), log(1 - zi) + asym_laplace_lccdf(0))`, which is
+  `P(Y >= 0)`; `zero_inflated_asym_laplace_lcdf(0)` is `P(Y <= 0)`, so
+  the two sum to `1 + zi` at 0. brms's own R function
+  `pzero_inflated_asym_laplace(0, lower.tail = FALSE)` gives
+  `P(Y > 0)`, without the mass.
+- Expected: `P(Y > y)` at every `y`, as every other `_lccdf` is. A row
+  right-censored at exactly 0 is scored `zi` too high.
+- Workaround: frmtmb's `zi_asym_laplace_cdf_pair()` is `P(Y > y)`.
+- Record: `dev/cdfs-findings.md`.
+- Status: not reported.
+
+### brms-31. A truncated count's `posterior_epred()` drops the lower bound
+
+- Seen: 2.23.0, 2026-10-20 (lane cdfs, `dev/cdfs-brms-tmean.R`, log
+  `dev/cdfs-out/brms-tmean.txt`).
+- Repro: `brms:::posterior_epred_trunc_discrete("pois",
+  list(lambda = matrix(3, 2, 2)), lb = matrix(2, 2, 2), ub = matrix(6,
+  2, 2))` is 3.9587628866, the mean over `(2, 6]`; the likelihood brms
+  writes for `trunc(lb = 2, ub = 6)` is `poisson_lcdf(ub) -
+  poisson_lcdf(lb - 1)`, the window `[2, 6]`, whose mean is
+  3.3868613139.
+- Expected: the mean of the distribution the model fits. The same sum
+  serves binomial, negbinomial, negbinomial2 and geometric.
+- Workaround: frmtmb's truncated means use the inclusive window
+  (`nbinom_trunc_mean()`, `binomial_trunc_mean()`, poisson's
+  `trunc_mean_fn`).
+- Record: `dev/cdfs-findings.md`.
+- Status: not reported.
+
+### brms-32. `inv_gaussian_lccdf()` adds the second term it should subtract
+
+- Seen: 2.23.0, 2026-10-20 (lane cdfs, source read of
+  `inst/chunks/fun_inv_gaussian.stan`; `dev/cdfs-brms-ig.R`, log
+  `dev/cdfs-out/brms-ig.txt`).
+- Repro: the function is `log1m(Phi(a) - exp(2 shape / mu) Phi(-b))`,
+  which is `log(Phi(-a) + exp(...) Phi(-b))`; the survivor is
+  `Phi(-a) - exp(...) Phi(-b)`. At `y = 2`, `mu = 2`, `shape = 4` it
+  returns -0.4657 where `statmod::pinvgauss(lower.tail = FALSE,
+  log.p = TRUE)` and `log(1 - exp(inv_gaussian_lcdf()))` give -0.9880.
+- Expected: `log(1 - F)`. Every right-censored row and every
+  `trunc(lb = )` without an upper bound of an inverse.gaussian model is
+  scored with the wrong survivor; frmtmb's log-density identity test
+  differed from brms's program by 8.99 nats on 150 rows until its
+  right-censored rows were dropped.
+- Workaround: none needed; frmtmb's survivor is right
+  (`inverse_gaussian_cdf_log()`), so a right-censored inverse.gaussian
+  fit differs from brms's.
+- Record: `dev/cdfs-findings.md`, section 6;
+  `tests/testthat/test-brms-lik-cdfs.R`.
+- Status: not reported.
+
+### brms-33. A censored row under `trunc()` is the event over the whole line, divided by the window
+
+- Seen: 2.23.0, 2026-10-20 (the review of lane cdfs,
+  `dev/cdfs-rev-ctcode.R`, `dev/cdfs-rev-out/r1/ctcode.txt` and
+  `conv.txt`; `stancode()` of `y | cens(cc) + trunc(lb = 2)` in lane
+  cdfs, fix round 2).
+- Repro: `brms::stancode(bf(y | cens(cc) + trunc(lb = 2, ub = 9) ~ x),
+  family = poisson())` scores a right-censored row as
+  `poisson_lccdf(Y | mu) - log_diff_exp(poisson_lcdf(ub | mu),
+  poisson_lcdf(lb - 1 | mu))` and a left-censored one as
+  `poisson_lcdf(Y | mu) - (the same)`; the gaussian is written the
+  same way, and with `trunc(lb = )` alone a left-censored row is
+  `poisson_lcdf(Y | mu) - poisson_lccdf(lb - 1 | mu)`.
+- Expected: the probability of the event inside the window,
+  `P(y < Y <= ub)` and `P(lb <= Y <= y)`, over the window's mass. As
+  written the numerator includes mass the truncation excludes, so a
+  censored row's "probability" can exceed one. With censored rows in
+  `trunc(lb = 2, ub = 9)`, brms's log density differs from frmtmb's by
+  6.16 on a poisson and 14.85 on a negative binomial. Right censoring
+  with no upper bound, left censoring with no lower bound, and interval
+  rows are the same in both.
+- Workaround: none needed; frmtmb's composition is the correct one
+  (`row_lpdf()`, `log_window()`), so such a fit differs from brms's.
+- Record: `dev/cdfs-findings.md`, Fix round 2;
+  `tests/testthat/test-cens-trunc.R`.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives
@@ -641,9 +724,65 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Repro: `MakeTape(function(p) RTMB::ppois(3, exp(p[1]), lower.tail = FALSE, log.p = TRUE), 0)`:
   "Non-numeric argument to mathematical function".
 - Expected: a taped upper tail, as for the lower one.
-- Workaround: `poisson()` declares no `lccdf`
-  (`tests/testthat/test-cens-lccdf.R:83`).
-- Record: that test comment.
+- Workaround: through 0.72.0 `poisson()` declared no `lccdf`; since
+  lane cdfs (round of 2026-10-20) its survivor is the lower incomplete
+  gamma, `log_igamma_two()` in `R/families-cdf.R`. `pgamma()`'s upper
+  tail and `log.p` do not tape either, the same error (lane cdfs,
+  `dev/cdfs-probe1.R`, log `dev/cdfs-out/probe1.txt`).
+- Record: `dev/cdfs-findings.md`, section 3.
+- Status: not reported.
+
+### RTMB-8. `pbeta()`'s derivative in a shape is 0 or NaN at a whole shape
+
+- Seen: 2.0, TMB 1.9.25, 2026-10-20 (lane cdfs, `dev/cdfs-probe2.R`).
+- Repro:
+
+  ```r
+  F <- RTMB::MakeTape(function(p) RTMB::pbeta(0.3, p[1], 5), 2)
+  F$jacobian(2)          # 0
+  F$jacobian(2.0001)     # -0.2524
+  ```
+
+  The same at `b = 30` in the second shape, and through
+  `pnbinom(prob =)` in `size`, which is `pbeta()` underneath. The
+  review of 2026-10-20 (`dev/cdfs-rev-upstream.R`,
+  `dev/cdfs-rev-out/upstream.txt`) mapped the cases at `x = 0.3` and
+  `x = 0.4`, AD against finite differences in `(a, b)`:
+  - a whole first shape: the derivative in it is 0 and the other is
+    right, `(2, 5.5)` gives `0, 0.0907` against `-0.2425, 0.0907`;
+  - a whole second shape: the reverse, `(2.5, 5)` gives `-0.2285, 0`
+    against `-0.2285, 0.1026`;
+  - both whole and small: 0 and right, `(2, 5)` gives `0, 0.0994`
+    against `-0.2524, 0.0994`;
+  - both whole and large: `NaN, NaN`, `(200, 300)` at `x = 0.4` against
+    `-0.02187, 0.01458`.
+- Expected: the derivative, -0.25242 at `a = 2` by finite differences
+  of `stats::pbeta()`. The value is right.
+- Workaround: frmtmb's CDFs read the incomplete beta through
+  `log_ibeta_half()` (`R/families.R`), which calls `pbeta()` only at
+  shapes clamped to 150 or more and blended; a whole `nu / 2` is
+  frmtmb's own start for the student-t (`nu = 4`).
+- Record: `dev/cdfs-findings.md`, section 3.
+- Status: not reported.
+
+### RTMB-9. `pgamma()`'s third derivatives are not finite at half of all points
+
+- Seen: 2.0, 2026-10-20 (lane cdfs, `dev/cdfs-dbg9.R`).
+- Repro: `T3 <- MakeTape(function(p) log(RTMB::pgamma(exp(p[1]),
+  shape = exp(p[2]))), c(0, 0))$jacfun()$jacfun()`; non-finite at 960
+  of 2000 uniform points of `log x` in (-3, 4) and `log shape` in
+  (-2, 6), mostly in the lower tail. The value and first two
+  derivatives are right; `ppois()`'s third derivatives are finite at
+  500 of 500 points (`dev/cdfs-dbg13.R`). The review of 2026-10-20
+  found the SECOND derivatives non-finite too, at 52 of 500 points,
+  all in the lower half (`P < 1/2`), and the third at 238 of 500
+  (`dev/cdfs-rev-rtmb9.R`, `dev/cdfs-rev-out/rtmb9.txt`), so a Hessian
+  and its standard errors are reached, not only a Laplace fit.
+- Expected: finite third derivatives (a Laplace fit needs them).
+- Workaround: `log_igamma_two()` (`R/families-cdf.R`) does not call
+  `pgamma()`: a series, a continued fraction and Gauss-Legendre
+  quadrature, blended.
+- Record: `dev/cdfs-findings.md`, section 3.
 - Status: not reported.
 
 ## RTMBdist
@@ -654,9 +793,60 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Repro: the log upper tail reaches `-Inf` at log S = -34, the same as
   `log(1 - F)`.
 - Expected: a log-scale upper tail.
-- Workaround: `inverse.gaussian()` declares no `lccdf`
-  (`tests/testthat/test-cens-lccdf.R:86`).
-- Record: that test comment; `NEWS.md` near line 3383.
+- Workaround: through 0.72.0 `inverse.gaussian()` declared no `lccdf`;
+  since lane cdfs both tails are formed in logs by
+  `inverse_gaussian_cdf_log()` (`R/families-cdf.R`).
+- Record: `dev/cdfs-findings.md`; `NEWS.md` near line 3383.
+- Status: not reported.
+
+### RTMBdist-2. `pinvgauss()` is NaN where `exp(2 shape / mean)` overflows
+
+- Seen: 1.1.0, 2026-10-20 (lane cdfs, `dev/cdfs-ig.R`).
+- Repro: `RTMBdist::pinvgauss(c(0.5, 1, 2), mean = 1, shape = 1000)` is
+  `NaN NaN NaN`; `statmod::pinvgauss()` gives 6.34e-111, 0.506, 1.
+- Expected: the CDF. The factor is `Inf` and the normal tail it
+  multiplies is 0, from `shape / mean = 355`.
+- Workaround: `inverse_gaussian_cdf_log()` adds the two terms in logs.
+- Record: `dev/cdfs-findings.md`.
+- Status: not reported.
+
+### RTMBdist-3. `pskewnorm()` and `pvm()` do not tape
+
+- Seen: 1.1.0, 2026-10-20 (lane cdfs, `dev/cdfs-probe1.R`).
+- Repro: `MakeTape(function(p) RTMBdist::pskewnorm(p[1], 0, exp(p[2]),
+  p[3]), c(0.4, 0.1, 2))`: "Can only determine finite status of
+  constant expressions"; `RTMBdist::pvm(1, p[1], exp(p[2]))` on the
+  tape: "Comparison is generally unsafe for AD types".
+- Expected: taped CDFs, as their densities are.
+- Workaround: `skew_normal_cdf_log()` (Owen's T as an angle integral)
+  and `von_mises_cdf_log()` (the tail as a quadrature of the density)
+  in `R/families-cdf.R`.
+- Record: `dev/cdfs-findings.md`, section 3.
+- Status: not reported.
+
+### RTMBdist-4. `dexgauss()` is a gaussian approximation from `lambda sigma` of about 20
+
+- Seen: 1.1.0, 2026-10-20 (the review of lane cdfs,
+  `dev/cdfs-rev-exgdens2.R`; frmtmb's exposure,
+  `dev/cdfs-fix1-exgfit.R`).
+- Repro: `RTMBdist::dexgauss(0, mu = 0, sigma = 1, lambda = 20, log =
+  TRUE)` is -0.9189385, the standard normal's log density at 0; the
+  closed form `log(lambda) + lambda^2 sigma^2 / 2 - lambda y +
+  log Phi(y / sigma - lambda sigma)` is -0.9214231. Against
+  `brms::dexgaussian()` the largest error of the log density on a grid
+  of `y` is 2.8e-14 at `sigma / beta = 15` and 0.162 at 20.
+- Expected: the density. The switch also puts a kink in the
+  likelihood at `lambda sigma = 20`.
+- Effect in frmtmb through 0.72.0, whose `exgaussian()` density was
+  `dexgauss()`: on 400 gaussian rows the objective is 0.63 off at
+  `sigma / beta = 50`, and three of four near-gaussian fits stopped at
+  `sigma / beta = 20` with nlminb's false convergence, where the
+  closed form's maximum is at 420 to 700 and 0.0008 to 0.0024 higher
+  (`dev/cdfs-out/fix1-exgfit-r10.txt`).
+- Workaround: `exgauss_lx()` (`R/families-cdf.R`), the closed form as
+  `log phi(z) + log M(u - z)` with Mills's ratio from a continued
+  fraction, for the density and the CDF.
+- Record: `dev/cdfs-findings.md`, Fix round 1.
 - Status: not reported.
 
 ## TMB
@@ -769,6 +959,30 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Workaround: `check_stan_control()`
   (`extensions/frmtmb.sample/R/sample.R:74`).
 - Record: `dev/stanctl-findings.md` section 1.5.
+- Status: not reported.
+
+### rstan-3. The gradient of `gamma_lcdf()` and `gamma_lccdf()` in the shape is wrong
+
+- Seen: rstan 2.32.7 with StanHeaders 2.39.1 (Stan Math's), 2026-10-20
+  (lane cdfs, `dev/cdfs-dbg16.R`).
+- Repro: brms's `hurdle_gamma()` program with `cens(cc, y2)` on 200
+  rows (the data of `tests/testthat/test-brms-lik-cdfs.R`, seed 104 and
+  12), at frmtmb's estimates: `rstan::grad_log_prob()` in the
+  unconstrained log shape is -0.1823, central differences of
+  `rstan::log_prob()` give 0.000203, and frmtmb's AD and finite
+  differences agree with the latter. With one censoring code at a time
+  the right-censored rows give -0.00705 against -0.00027 and the
+  interval rows 0.0215 against -0.000012; the left-censored rows are
+  close (0.000229 against 0.000019). The values agree with frmtmb's to
+  4e-13.
+- Expected: the derivative of the value Stan computes.
+- Not shown: that it biases a fit. The review of 2026-10-20 did not
+  reproduce the gradient itself, and its censored Gamma brms fit (2
+  chains of 1000 draws) agreed with frmtmb to 0.08 posterior SD with
+  Rhat 1.002 (`dev/cdfs-rev-brmsfit.R`).
+- Workaround: frmtmb's own CDF; frmtmb's identity test takes that
+  gradient by finite differences of brms's log density.
+- Record: `dev/cdfs-findings.md`, section 6.
 - Status: not reported.
 
 ## RTMBode

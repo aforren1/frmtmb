@@ -1,0 +1,13 @@
+# Reviewer: RTMB-9, second and third derivatives of log(RTMB::pgamma())
+# on 500 uniform points of log x in (-3, 4), log shape in (-2, 6)
+.libPaths(c("C:/Users/adf44/source/r/rellib-r10", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages(library(RTMB))
+set.seed(1)
+H <- MakeTape(function(p) log(RTMB::pgamma(exp(p[1]), shape = exp(p[2]))), c(0, 0))$jacfun()$jacfun()
+pts <- cbind(runif(500, -3, 4), runif(500, -2, 6))
+n2 <- sum(apply(pts, 1, function(p) any(!is.finite(H(p)))))
+n3 <- sum(apply(pts, 1, function(p) any(!is.finite(H$jacobian(p)))))
+cat("non-finite second derivatives at", n2, "of 500; third at", n3, "of 500\n")
+lo <- apply(pts, 1, function(p) pgamma(exp(p[1]), exp(p[2])) < 0.5)
+cat("of the second-derivative failures, in the lower half (P < 1/2):",
+    sum(lo & apply(pts, 1, function(p) any(!is.finite(H(p))))), "\n")

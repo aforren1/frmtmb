@@ -893,6 +893,17 @@ frmtmb_compat_special_keys <- c(mi_pred = "mi", gp_pred = "gp",
 
 # ------------------------------------------------------------------ groups
 
+# The discrete families whose CDF came with brms 2.23.0 parity for
+# cens() and trunc(). poisson and discrete_weibull have rows of their
+# own; these share one pair of rows each, written in a loop, because a
+# group rule would tie with group:cdf at the same precedence.
+compat_cdf_discrete <- c("binomial", "beta_binomial", "negbinomial",
+                         "geometric", "compois", "zero_inflated_poisson",
+                         "zero_inflated_negbinomial",
+                         "zero_inflated_binomial",
+                         "zero_inflated_beta_binomial", "hurdle_poisson",
+                         "hurdle_negbinomial")
+
 # Named feature sets, so one rule can cover "the families with a CDF"
 # instead of thirty near-identical rows.
 frmtmb_compat_groups_lst <- list(
@@ -900,14 +911,19 @@ frmtmb_compat_groups_lst <- list(
   # trunc() need to form their likelihood contributions
   cdf = c("gaussian", "poisson", "lognormal", "exponential", "weibull",
           "inverse.gaussian", "cox", "frechet", "gen_extreme_value",
-          "discrete_weibull"),
-  # cens() reaches these through the continuous convention, where the
-  # endpoints of an interval carry no mass; poisson and discrete_weibull
-  # are censored under the inclusive discrete convention instead and
-  # have rows of their own
+          "discrete_weibull", "student", "skew_normal", "exgaussian",
+          "shifted_lognormal", "asym_laplace", "von_mises", "Gamma",
+          "beta", "zero_inflated_beta", "hurdle_gamma", "hurdle_lognormal",
+          compat_cdf_discrete),
+  # the continuous families with a CDF; the discrete ones, read on the
+  # integer lattice as brms reads them, have rows of their own that
+  # name the Stan function each matches
   cdf_continuous = c("gaussian", "lognormal", "exponential", "weibull",
                      "inverse.gaussian", "cox", "frechet",
-                     "gen_extreme_value"),
+                     "gen_extreme_value", "student", "skew_normal",
+                     "exgaussian", "shifted_lognormal", "asym_laplace",
+                     "von_mises", "Gamma", "beta", "zero_inflated_beta",
+                     "hurdle_gamma", "hurdle_lognormal"),
   # families whose modelled response is a distribution over categories
   # rather than a number, so fitted() returns an n x K matrix
   categorical_probs = c("cumulative", "hurdle_cumulative", "sratio",
@@ -1276,18 +1292,62 @@ compat_hand_rules_tbl <- function() {
     "Supported through the whole surface: the likelihood, fitted(), predict(), simulate(), and residuals().")
   r("cens()", "group:cdf_continuous", "works",
     "Supported through the whole surface; one-step-ahead residuals cover the uncensored rows only, see the residuals_osa rule.")
-  r("cens()", "poisson", "conditional",
-    "Works, under the INCLUSIVE discrete convention: a censoring bound names a value the response can take, so right censoring at k is P(Y >= k), an interval is P(k <= Y <= k2), and a lower edge enters the CDF as F(k - 1). That is trunc(lb = )'s rule. It differs from brms for RIGHT and INTERVAL censoring, where brms emits poisson_lccdf(y | mu) = P(Y > y); LEFT censoring already agrees. Verified against a hand-rolled likelihood for all four codes and composed with trunc(). A non-integer censoring bound is refused (the shift assumes the integer lattice), and residuals(type = \"osa\") is refused.")
-  r("cens()", "group:discrete", "refused",
-    "Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is.")
-  r("trunc()", "poisson", "conditional",
-    "Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. The bound is INCLUSIVE: trunc(lb = k) is P(Y >= k), scored with F(k - 1). That is brms's rule too, and it is the premise the discrete cens() convention is built on, so that one number means one thing on a response however it is bounded.")
-  r("cens()", "discrete_weibull", "conditional",
-    "Works, under the INCLUSIVE discrete convention poisson follows: right censoring at k is P(Y >= k) = mu^(k^shape), scored on the log scale. It differs from brms for RIGHT and INTERVAL censoring, where brms emits discrete_weibull_lccdf(y) = P(Y > y); LEFT censoring agrees. A non-integer censoring bound is refused.")
-  r("trunc()", "discrete_weibull", "conditional",
-    "As for poisson: the lower bound is INCLUSIVE, trunc(lb = k) is P(Y >= k), which is brms's discrete_weibull_lccdf(lb - 1), and it must be at least 1.")
+  r("cens()", "poisson", "works",
+    "brms 2.23.0's reading of the bound: right censoring at k is P(Y > k), poisson_lccdf(k), left censoring P(Y <= k), and an interval P(k < Y <= k2). Verified against brms's log density for all four codes and composed with trunc(lb = ); a censored row under both bounds is frmtmb's composition, not brms's (the cens() x trunc() row). A right-censored row is scored with the log survivor itself, the lower incomplete gamma, exact to the doubles' floor, where log(1 - F) was -Inf from P = 1e-16. A non-integer censoring bound is refused, and residuals(type = \"osa\") is refused.")
+  # the discrete families with a CDF beside poisson and discrete_weibull
+  for (f in compat_cdf_discrete) {
+    stan <- switch(f, negbinomial = , geometric = "neg_binomial_2",
+                   zero_inflated_negbinomial =
+                     "zero_inflated_neg_binomial",
+                   hurdle_negbinomial = "hurdle_neg_binomial",
+                   compois = "com_poisson", f)
+    r("cens()", f, "works", paste0(
+      "brms 2.23.0's reading of the bound, as for poisson: right censoring at k is P(Y > k), ", stan, "_lccdf(k), left censoring P(Y <= k), and an interval P(k < Y <= k2). ",
+      if (f == "compois") {
+        "The survivor is the complement of the summed CDF, as brms's com_poisson_lccdf() is, until that is below about 1e-3, and the upper sum itself beyond, where the complement is -Inf in brms. The CDF is that of frmtmb's compois(), which takes the MEAN where brms's com_poisson() takes the rate. "
+      } else {
+        "The log survivor is computed directly, so a right-censored row deep in the upper tail keeps its digits. "
+      },
+      "A non-integer censoring bound is refused, and residuals(type = \"osa\") is refused."))
+    tmean <- f %in% c("binomial", "negbinomial", "geometric")
+    r("trunc()", f, "conditional", paste0(
+      "As for poisson: trunc(lb = k) is P(Y >= k), brms's ", stan, "_lccdf(lb - 1), and lb <= 0 is no truncation. ",
+      if (tmean) {
+        "fitted() reports the truncated mean with the same inclusive lower bound; brms's posterior_epred_trunc_*() sums from lb + 1, which disagrees with its own likelihood."
+      } else {
+        "fitted() and residuals(type = \"response\") refuse a truncated response, as brms 2.23.0 does: it has no truncated mean for this family. The likelihood and simulate() work."
+      }))
+  }
+  # brms refuses these, and frmtmb with it
+  for (f in c("bernoulli", "xbeta", "zero_one_inflated_beta")) {
+    for (at in c("cens()", "trunc()")) {
+      r(at, f, "refused", paste0(
+        "Refused, as brms 2.23.0 refuses it: \"Argument '",
+        sub("[(][)]$", "", at), "' is not supported for family '", f,
+        "'\". The family has no CDF."))
+    }
+  }
+  # continuous families with a CDF and no truncated mean: brms has none
+  for (f in c("skew_normal", "exgaussian", "shifted_lognormal",
+              "asym_laplace", "von_mises", "beta", "zero_inflated_beta",
+              "hurdle_gamma", "hurdle_lognormal")) {
+    r("trunc()", f, "conditional",
+      "The likelihood and simulate() work; fitted() and residuals(type = \"response\") refuse a truncated response, as brms 2.23.0 does: it has no truncated mean for this family.")
+  }
+  r("cens()", "inverse.gaussian", "works",
+    "Left and interval censoring are brms's likelihood exactly. A RIGHT-censored row is not: brms 2.23.0's inv_gaussian_lccdf() adds the second term of the survivor where it should subtract it, log(Phi(-a) + exp(2 shape / mu) Phi(-b)) for log(Phi(-a) - exp(2 shape / mu) Phi(-b)), so at y = 2, mu = 2, shape = 4 it gives -0.466 where the survivor is -0.988. frmtmb's is the survivor, formed in logs, so a right-censored fit differs from brms's.")
+  r("trunc()", "inverse.gaussian", "works",
+    "Supported through the whole surface, as for the other families with a CDF. brms 2.23.0 scores a window with a lower bound and no upper one through its inv_gaussian_lccdf(), whose second term has the wrong sign (see the cens() row), so such a fit differs from brms's; a window with both bounds reads the lcdf and agrees.")
+  r("cens()", "von_mises", "works",
+    "Stan's and brms's convention: F(y) = P(-pi <= Y <= y) on the response's own interval, wherever the mean direction is, so a left-censored row at y is the mass from -pi to y and a right-censored one the mass from y to pi.")
+  r("trunc()", "poisson", "works",
+    "brms 2.23.0's likelihood: trunc(lb = k) is P(Y >= k), poisson_lccdf(k - 1), and trunc(lb, ub) is log_diff_exp(poisson_lcdf(ub), poisson_lcdf(lb - 1)). trunc(lb = 0), or any lb <= 0, is no truncation and is accepted; a bound must be a whole number.")
+  r("cens()", "discrete_weibull", "works",
+    "brms 2.23.0's reading of the bound, as for poisson: right censoring at k is P(Y > k) = mu^((k + 1)^shape), discrete_weibull_lccdf(k), scored on the log scale. A non-integer censoring bound is refused.")
+  r("trunc()", "discrete_weibull", "works",
+    "As for poisson: trunc(lb = k) is P(Y >= k), brms's discrete_weibull_lccdf(lb - 1), and lb <= 0 is no truncation.")
   r("cens()", "trunc()", "works",
-    "The response is truncated FIRST and censored inside the window: a right-censored row contributes (F(ub) - F(y)) / Z and a left-censored one (F(y) - F(lb)) / Z, with Z the window mass (F(lb - 1) for a discrete lower bound). Verified against a hand-rolled likelihood for gaussian and for the discrete composed form, and it is the likelihood simulate(censored = TRUE) draws from. Through v0.25 only the normalizer was windowed, which censored the UNtruncated variable and biased the residual sd upward.")
+    "The response is truncated FIRST and censored inside the window: a right-censored row contributes P(y < Y <= ub) / Z and a left-censored one P(lb <= Y <= y) / Z, with Z the window mass, each formed on the log scale from the tail that keeps its digits. On a discrete response the lower edge is lb - 1, as brms reads it. brms 2.23.0 composes the two differently, and wrongly: it divides P(Y > y) or P(Y <= y), the event over the whole line, by Z, so a fit with a right-censored row under an upper bound or a left-censored row under a lower bound differs from brms's (6.16 and 14.85 log-likelihood units on a poisson and a negative binomial in trunc(lb = 2, ub = 9)). Verified against a hand-rolled likelihood for gaussian and for the discrete composed form, and it is the likelihood simulate(censored = TRUE) draws from. Through v0.25 only the normalizer was windowed, which censored the UNtruncated variable and biased the residual sd upward.")
   r("cens()", "weights()", "works",
     "Verified: the case weight multiplies the censored contribution.")
   r("trunc()", "weights()", "works", "")
@@ -1843,7 +1903,7 @@ compat_hand_rules_tbl <- function() {
   r("residuals_osa", "hurdle_cumulative", "refused",
     "Refused by name, as for the other point-mass families: the density branches on y == 0 for the hurdle. Use dharma_residuals().")
   r("residuals_osa", "cens()", "conditional",
-    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: its censoring bounds are inclusive, so an uncensored row's support is [lo + 1, hi - 1] rather than the [lo, hi] the one-step window is built on.")
+    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: a left-censored count at k is Y <= k, so an uncensored row's support is [lo + 1, hi] rather than the [lo, hi] the one-step window is built on.")
   r("residuals_osa", "trunc()", "conditional",
     "Supported for constant truncation bounds. Row-varying bounds are refused, because the one-step-ahead transform is not defined across changing support.")
   r("residuals_osa", "weights()", "conditional",

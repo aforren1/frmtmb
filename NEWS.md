@@ -1,3 +1,165 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A discrete response is censored and truncated as brms 2.23.0 reads
+  its bounds.** Right censoring at `k` is `P(Y > k)`, left
+  censoring `P(Y <= k)`, an interval `P(k < Y <= k2)`, `trunc(lb = k)`
+  `P(Y >= k)` through `F(k - 1)`, and `trunc(lb, ub)` the window
+  `F(ub) - F(lb - 1)`. Through 0.72.0 a censoring bound on a count was
+  inclusive (`P(Y >= k)` for right censoring), so the same data frame
+  now means a different model: 200 poisson draws at `lambda = 4`
+  recorded as "6 or more" and right censored at 6 move by 30.2 in
+  log-likelihood and 5.5 percent in `lambda`; right censored at 5 they
+  give the old fit exactly. This applies to every discrete family,
+  `poisson()` and `discrete_weibull()` included. The once-per-session
+  notice about the inclusive reading is gone.
+  - One composition stays frmtmb's, on every response: a censored row
+    under `trunc()` is the event inside the window, `P(y < Y <= ub)`
+    for right censoring and `P(lb <= Y <= y)` for left, over the
+    window's mass. brms 2.23.0 divides the event over the whole line,
+    `P(Y > y)` or `P(Y <= y)`, by the window's mass, which is not a
+    probability: on a poisson and a negative binomial with
+    `trunc(lb = 2, ub = 9)` and censored rows the two log-likelihoods
+    differ by 6.16 and 14.85. They agree for right censoring with no
+    upper bound, left censoring with no lower bound, and every interval.
+  - `trunc(lb = 0)`, or any `lb <= 0` on a count, is no truncation and
+    is accepted, as in brms; it was refused.
+  - An interval whose ends agree (`y2 == y`) is refused on a count, as
+    on a continuous response: `(y, y]` holds nothing. A fractional
+    `cens()` or `trunc()` bound on a count is refused.
+
+* **`trunc()` refuses a response outside its window, and a window
+  that is empty**, with brms's two messages: "Some responses are
+  outside of the truncation bounds" and "Truncation bounds are invalid:
+  lb >= ub". Such a fit used to run, and scored a row the truncated
+  distribution gives no mass to. A `hurdle_negbinomial()` fit with
+  zeros below `trunc(lb = 1)` ended at a NaN gradient.
+
+* **The refusal of `cens()` and `trunc()` names the family** and points
+  at `frm_compat()` for the term that was used, the list of the
+  families that have a CDF, instead of listing them.
+
+## New features
+
+* **`cens()` and `trunc()` take 23 more families, the ones brms 2.23.0
+  censors and truncates**: `student()`, `skew_normal()`,
+  `exgaussian()`, `shifted_lognormal()`, `asym_laplace()`,
+  `zero_inflated_asym_laplace()`, `von_mises()`, `Gamma()`, `Beta()`,
+  `binomial()`, `beta_binomial()`, `negbinomial()`, `geometric()`,
+  `brmsfamily("com_poisson")`, the zero-inflated poisson, negative
+  binomial, binomial, beta-binomial and beta, and the hurdle poisson,
+  negative binomial, gamma and lognormal. Each family has both tails of
+  its CDF on the log scale on the AD tape, and a censored model with
+  random effects fits. Each tail is computed directly where it is
+  small, so a right-censored row deep in the upper tail keeps its
+  digits and its gradient; three are the complement of the other tail
+  in part of the range, `com_poisson`'s survivor above `1e-3`, a
+  hurdle family's CDF where the survivor is below one half, and the
+  von Mises tails on the near side of the mean. Against `stats`, the
+  closed forms, 300-bit `Rmpfr` references and adaptive quadrature,
+  over grids that include both tails and the edges of the support,
+  the relative error of the log of either tail is 1e-12 or better on
+  554 of 582 comparisons and 3.7e-9 or better on the rest, except two
+  negative-binomial far-tail points where `stats::pnbinom()` is the one
+  in error; the incomplete gamma's is 8.04e-14 or better for shapes from
+  0.01 to 1e7.
+  - A censored row is brms's likelihood: at frmtmb's estimates the log
+    density of brms's Stan program with flat priors equals `logLik()`
+    for every family with all four censoring codes, given the same
+    data frame, and for truncated fits including a zero-inflated count
+    under a constant bound and a right-censored count inside
+    `trunc(lb = )`; the
+    gradient is not asserted for `asym_laplace()`, whose fit stops at
+    nlminb's false convergence on these data with or without
+    censoring. Two exceptions are brms's: its inverse-gaussian survivor
+    adds a term it should subtract (-0.466 where the survivor is -0.988
+    at `y = 2`, `mu = 2`, `shape = 4`), so frmtmb's right-censored
+    inverse.gaussian fit differs from brms's; and Stan's gradient of
+    the gamma CDF in the shape, measured at frmtmb's estimates of one
+    censored hurdle_gamma model, is -0.18 where finite differences of
+    its own log density give 0.0002. `compois()` takes the mean where
+    brms's `com_poisson()` takes the rate, so the two are different
+    models.
+  - `von_mises()` follows Stan and brms: `F(y) = P(-pi <= Y <= y)`.
+  - `bernoulli()`, `xbeta()` and `zero_one_inflated_beta()` still
+    refuse both terms, as brms does, and `frm_compat()` says so.
+  - A count right-censored at or above its trials (`binomial()`,
+    `beta_binomial()` and their zero-inflated forms), or an interval
+    that starts there, is refused by name: `P(Y > n)` is zero. brms
+    accepts such a row, its log density is `-Inf`, and it draws
+    nothing.
+
+* **A family can give both tails of its CDF on the log scale**, through
+  the new `cdf_log` argument of `frmtmb_family()`. For such a family
+  every censored row and every `trunc()` window is formed on the log
+  scale from the tail that keeps its digits: an interval as
+  `S(y) - S(y2)` where `S(y) >= 1/2` and as `F(y2) - F(y)` below, so
+  an interval in an upper tail keeps its digits, and a left-censored
+  row whose probability is below `1e-308` keeps its log. Every built-in
+  family with a CDF declares it except `exponential()`, `weibull()`,
+  `cox()`, `frechet()`, `gen_extreme_value()` and `discrete_weibull()`,
+  which are read through `lcdf` and `lccdf` as before. For every family
+  `trunc(lb = )` with no upper bound divides by the log survivor at
+  `lb`, as brms does.
+
+* **`fitted()` reports the truncated mean of a `trunc()` response** for
+  `student()`, `Gamma()`, `binomial()`, `negbinomial()` and
+  `geometric()`, the families brms has one for. A count's lower bound
+  is inclusive, as in the likelihood. brms 2.23.0 sums from `lb + 1`,
+  the mean of a different window than its own likelihood uses: for a
+  Poisson mean of 3 truncated to `[2, 6]` it reports 3.9588 where the
+  truncated distribution's mean is 3.3869.
+
+## Bug fixes
+
+* **`simulate()` of a `trunc()` fit stopped on a valid model** when a
+  row's fitted distribution kept only a few percent of its mass inside
+  the window: rejection sampling left 1 of 120 rows of a weibull fit
+  with a `diag()` term unfilled after 100 passes. A row rejection has
+  not filled after 20 passes is now drawn by inverting its CDF, for
+  every family of this package that has one.
+
+* **`trunc(lb = )` without an upper bound divided by `1 - F(lb)` on the
+  probability scale**, which is 0 once `F(lb)` rounds to one: an
+  infinite likelihood the optimizer could step into. A gaussian fit
+  with its mean far below the bound had an objective of `-Inf` and a
+  weibull `trunc(lb = 0.5)` fit with a `diag()` term stopped at a NaN
+  gradient; that weibull model now fits at a log-likelihood of
+  -145.97.
+
+* **An interval-censored row lost its digits above the median and at a
+  point mass**: as `log(F2 - F1)` both terms round toward one in an
+  upper tail, and a hurdle's `(0, y2]` was `(hu + tiny) - hu`. The
+  objective was then rounding noise, and its gradient 21 and 45 percent
+  off for `skew_normal()` and `von_mises()` and eight times its size
+  for `hurdle_gamma()`, at points away from the optimum.
+
+* **`trunc(lb = -Inf)` or `trunc(ub = Inf)` stopped on a NaN
+  gradient** from `Inf * 0` in the derivative of the normalizer. An
+  infinite bound is now no bound.
+
+* **The `exgaussian()` density was a gaussian approximation from
+  `sigma / beta` of about 20**, the one `RTMBdist::dexgauss()` uses: on
+  400 gaussian rows the log-likelihood was 0.63 off at
+  `sigma / beta = 50`, and near-gaussian fits stopped at
+  `sigma / beta = 20` with false convergence, below the maximum. The
+  density is now the closed form, through Mills's ratio, and so is the
+  CDF, whose derivatives were wrong from `sigma / beta` of about 1e3.
+
+* **`inverse.gaussian()`'s CDF was `NaN` once `shape / mu` passed
+  355**, where `exp(2 shape / mu)` overflows, so a censored or
+  truncated fit there had a `NaN` likelihood. Both tails are now
+  formed in logs: at `mu = 1`, `shape = 1000` the CDF at 0.9 is
+  4.534060403e-04, as `statmod::pinvgauss()` gives.
+
+* **`poisson()` and `inverse.gaussian()` score a right-censored row
+  with the log survivor itself.** It was `log(1 - F)`, which is `-Inf`
+  once `F` rounds to one. A Poisson row right-censored at 700 with
+  mean 5 now scores -2773.28, and a Poisson fit right censored at
+  75000, which failed at `-Inf`, reaches the maximum of an independent
+  fit on `stats::ppois()`.
+
 # frmtmb 0.72.0
 
 The main changes:

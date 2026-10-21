@@ -1,0 +1,8 @@
+frmtmb tests/testthat/test-cdfs.R
+frmtmb tests/testthat/test-cens-lccdf.R
+frmtmb tests/testthat/test-cens-trunc.R
+frmtmb tests/testthat/test-compat.R
+frmtmb tests/testthat/test-hurdle-nb-zoib.R
+frmtmb tests/testthat/test-trunc-postfit.R
+frmtmb tests/testthat/test-xbeta-zibb-hurdle-cum.R
+frmtmb tests/testthat/test-bcm-data-analysis.R

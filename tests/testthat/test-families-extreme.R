@@ -321,15 +321,15 @@ test_that("random effects, cens() and trunc() fit on each family", {
   }
 })
 
-test_that("discrete_weibull censoring and truncation are the inclusive ones", {
+test_that("discrete_weibull censoring and truncation are brms's", {
   set.seed(34)
   n <- 300
   d <- data.frame(x = stats::rnorm(n))
   q <- stats::plogis(1.5 + 0.3 * d$x)
   y <- pmax(ceiling((log1p(-stats::runif(n)) / log(q))^(1 / 1.1) - 1), 0)
-  # right censored at 6 means Y >= 6; truncated at lb = 2 means Y >= 2
+  # right censored at 6 means Y > 6; truncated at lb = 2 means Y >= 2
   d$y <- pmin(y, 6)
-  d$cc <- as.numeric(y >= 6)
+  d$cc <- as.numeric(y > 6)
   keep <- d$y >= 2
   ft <- frm(y | trunc(lb = 2) + cens(cc) ~ x, family = discrete_weibull(),
             data = d[keep, ])
@@ -338,7 +338,7 @@ test_that("discrete_weibull censoring and truncation are the inclusive ones", {
   dk <- d[keep, ]
   L <- stats::plogis(b[[1]] + b[[2]] * dk$x, log.p = TRUE)
   S <- function(v) exp(L * pmax(v, 0)^k)     # P(Y >= v)
-  ll <- ifelse(dk$cc == 1, log(S(6)), log(S(dk$y) - S(dk$y + 1))) -
+  ll <- ifelse(dk$cc == 1, log(S(7)), log(S(dk$y) - S(dk$y + 1))) -
     log(S(2))
   expect_lte(abs(as.numeric(logLik(ft)) - sum(ll)),
              64 * eps * nrow(dk) * abs(sum(ll)))

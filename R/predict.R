@@ -4297,12 +4297,11 @@ ord_cat_moments <- function(object, rspec) {
 #'
 #' `discrete` refuses rather than shifts. The window this builds is the
 #' continuous one, `lo < Y < hi` written as `[lo, hi]` because the ends
-#' carry no mass there. A count censored at `hi` under the inclusive
-#' convention (see `row_lpdf()`) can BE `hi` and still be censored, so
-#' an uncensored row's support is `[lo + 1, hi - 1]` and its PIT
-#' renormalizes on `F(hi - 1) - F(lo)`. Shifting the window is one line
-#' and verifying it is not, so it is refused until something measures
-#' it.
+#' carry no mass there. A count left-censored at `lo` is `Y <= lo` (see
+#' `row_lpdf()`), so an uncensored row's support is `[lo + 1, hi]` and
+#' its PIT renormalizes on `F(hi) - F(lo)`. Shifting the window is one
+#' line and verifying it is not, so it is refused until something
+#' measures it.
 #'
 #' @noRd
 osa_cens_domain <- function(av, y, discrete = FALSE) {
@@ -4311,8 +4310,9 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
   if (discrete) {
     frm_stop("residuals(type = \"osa\") is not supported on a cens() fit ",
              "with a discrete family. A discrete censoring bound is ",
-             "INCLUSIVE (right censoring at k is Y >= k), so an uncensored ",
-             "row's support is [lo + 1, hi - 1] rather than the [lo, hi] ",
+             "read on the integer lattice (left censoring at k is Y <= k, ",
+             "right censoring Y > k), so an uncensored row's support is ",
+             "[lo + 1, hi] rather than the [lo, hi] ",
              "the one-step window is built on, and no reference has ",
              "measured the shifted window. Every other residual type ",
              "works, and dharma_residuals() covers the same ground through ",
@@ -4394,10 +4394,11 @@ residuals_unsupported <- c(
 #' conditional on the censoring events, which needs one censoring point
 #' per side (type-I censoring); row-varying censoring times and interval
 #' censoring are refused, and so is a DISCRETE family. A discrete
-#' censoring bound is inclusive (right censoring at `k` is `Y >= k`;
-#' see [frmtmb_family()]), so an uncensored count's support is
-#' `[lo + 1, hi - 1]` rather than the `[lo, hi]` this window is built
-#' on, and no reference has measured the shifted window. Every other
+#' censoring bound is read on the integer lattice (left censoring at `k`
+#' is `Y <= k`, right censoring `Y > k`; see [frmtmb_family()]), so an
+#' uncensored count's support is `[lo + 1, hi]` rather than the
+#' `[lo, hi]` this window is built on, and no reference has measured
+#' the shifted window. Every other
 #' residual type works there.
 #' `dharma_residuals()` is not a substitute on a
 #' censored fit, because [simulate.frmtmb_fit()] draws the latent
@@ -5144,7 +5145,9 @@ apply_censoring <- function(y, win) {
 
 #' Simulate responses from a frmtmb fit
 #'
-#' A `trunc()`ed response simulates by rejection within its bounds, so
+#' A `trunc()`ed response simulates by rejection within its bounds, and a
+#' row whose window keeps too little of its mass for rejection to fill
+#' it in 20 passes by inverting the family's CDF, so
 #' every draw lies in `[lb, ub]` and posterior-predictive checks
 #' ([dharma_residuals()], `pp_check()`) see the same support the
 #' likelihood was normalized on.

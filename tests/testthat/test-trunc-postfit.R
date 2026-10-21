@@ -47,8 +47,12 @@ test_that("truncated poisson fitted() is the truncated mean", {
                tolerance = 1e-10)
   expect_equal(unname(exp(frm_linpred(fit, type = "link")[1])), mu,
                tolerance = 1e-10)
-  # an intercept-only correctly specified fit reproduces the sample mean
-  expect_equal(mean(residuals(fit)[, "Estimate"]), 0, tolerance = 1e-8)
+  # an intercept-only correctly specified fit reproduces the sample mean,
+  # to the optimizer's stop: nlminb's X-convergence leaves the intercept
+  # about 7e-9 from the exact argmin, where the score, and so the mean
+  # residual, is 1e-8 of the residuals' sd (dev/cdfs-fix1-tpois.R)
+  r <- residuals(fit)[, "Estimate"]
+  expect_lt(abs(mean(r)) / stats::sd(r), 1e-7)
 })
 
 test_that("truncated gaussian and lognormal means match integration", {

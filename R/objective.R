@@ -6,12 +6,131 @@
 # on parameter values. Data referenced by the closure is baked into the
 # tape as constants.
 
-#' A truncation bound evaluated at the censored rows. An absent bound is
-#' the scalar 0 / 1 the untruncated case wants, and a present one is a
-#' full-length CDF vector, so the two need different subsetting.
+#' Both tails of a family's CDF on the log scale at `q` (data), one
+#' value per row: `lF = log F(q)` and `lS = log S(q)`, from the family's
+#' `cdf_log` slot, with what else the pair carries for `log_window()`.
 #'
 #' @noRd
-bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
+fam_log_pair <- function(fam, q, dpv, av, extra, n) {
+  full <- function(v) if (is.null(v) || length(v) == n) v else v + numeric(n)
+  pf <- fam[["cdf_log"]]
+  lp <- if (length(formals(pf)) >= 4L) {
+    pf(q, dpv, av, extra)
+  } else {
+    pf(q, dpv, av)
+  }
+  # a point-mass family's base part, or a window function of the
+  # family's own and the per-row values it reads
+  out <- lp
+  for (nm in setdiff(names(lp), c("base", "in0", "lmass"))) {
+    out[[nm]] <- full(lp[[nm]])
+  }
+  if (!is.null(lp[["base"]])) {
+    out$base <- list(lF = full(lp[["base"]][["lF"]]),
+                     lS = full(lp[["base"]][["lS"]]))
+  }
+  if (!is.null(lp[["in0"]])) out$in0 <- rep_len(lp[["in0"]], n)
+  out
+}
+
+#' `log P(lo < Y <= hi)` on the rows `rows`, from the log pairs `pl` at
+#' the lower edge and `ph` at the upper edge. `lo_abs` and `hi_abs`
+#' (data, one per row) mark an edge that is absent, where the window
+#' is open on that side.
+#'
+#' With both edges present the mass is a difference of two tails, and
+#' it is taken in the tail the lower edge leaves more of: as
+#' `S(lo) - S(hi)` where `S(lo) >= 1/2` and as `F(hi) - F(lo)` below
+#' that, each on the log scale. A log near zero keeps every digit of
+#' its complement, so either form keeps the digits the other loses: the
+#' probability-scale `F(hi) - F(lo)` had both terms round toward one
+#' above the median, and a hurdle's `(0, y2]` was `(hu + tiny) - hu`
+#' (dev/reviews/2026-10-20-cdfs.md, finding 3).
+#'
+#' A zero-inflated or hurdle pair also carries its base family's pair
+#' (`base`), the log weight of the base part (`lw`) and the rows whose
+#' `q` is at or above zero (`in0`, data). A window whose lower edge is
+#' at or above zero holds none of the point mass, and its mass is the
+#' base's window times the weight. Taken from the mixture's own tails
+#' it would be a difference of two numbers that share the point mass:
+#' on a hurdle `(0, y2]` the log survivors are `l1m` and
+#' `l1m + lS_b(y2)`, and `lS_b(y2)` came back from their difference to
+#' the doubles' absolute accuracy, not its own.
+#'
+#' @noRd
+log_window <- function(pl, ph, lo_abs, hi_abs, rows) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  la <- lo_abs[rows]
+  ha <- hi_abs[rows]
+  # a window open on the same side on every row is one tail, read with
+  # no sub-assignment: every row of a trunc(lb = ) normalizer is
+  pick <- function(v) if (length(rows) == length(v)) v else v[rows]
+  if (all(!la & ha)) return(pick(pl[["lS"]]))
+  if (all(la & !ha)) return(pick(ph[["lF"]]))
+  out <- numeric(length(rows))
+  i <- which(!la & !ha)
+  if (length(i)) {
+    r <- rows[i]
+    out[i] <- log_window_two(pl, ph, r)
+    if (!is.null(pl[["lw"]]) && !is.null(ph[["lw"]])) {
+      j <- which(pl[["in0"]][r])
+      if (length(j)) {
+        rj <- r[j]
+        out[i[j]] <- pl[["lw"]][rj] +
+          log_window_two(pl[["base"]], ph[["base"]], rj)
+      }
+    }
+  }
+  i <- which(la & !ha)
+  if (length(i)) out[i] <- ph[["lF"]][rows[i]]
+  i <- which(!la & ha)
+  if (length(i)) out[i] <- pl[["lS"]][rows[i]]
+  out
+}
+
+#' `log P(lo < Y <= hi)` on rows `r` with both edges present, in the
+#' tail the lower edge leaves more of (`log_window()`).
+#'
+#' A family whose window is not a difference of its two tails anywhere
+#' supplies `lmass` with its pair, which this calls instead: a von Mises
+#' arc on the far side of the mean has a mass far below either tail at
+#' its ends, which both run on to the other side of the circle, so
+#' neither difference holds a digit of it (`vm_lmass()`).
+#'
+#' @noRd
+log_window_two <- function(pl, ph, r) {
+  if (is.function(pl[["lmass"]])) return(pl[["lmass"]](pl, ph, r))
+  lSl <- pl[["lS"]][r]
+  lFh <- ph[["lF"]][r]
+  w <- 0.5 * (1 + sign_pos(lSl - log(0.5)))
+  viaS <- lSl + log1m_exp_ad(ph[["lS"]][r] - lSl)
+  viaF <- lFh + log1m_exp_ad(pl[["lF"]][r] - lFh)
+  w * viaS + (1 - w) * viaF
+}
+
+#' The edges of the `trunc()` window, one per row (data), with the rows
+#' where an edge is absent marked.
+#'
+#' brms 2.23.0's conventions: the window is `lb <= Y <= ub`, so on a
+#' discrete response its lower edge enters the CDF as `F(lb - 1)`, and
+#' `lb <= 0` on a count is no truncation at all, which brms accepts. An
+#' infinite bound is absent: it is evaluated at a point inside the
+#' support and not read, so `lb = -Inf` costs no `Inf * 0` in a
+#' derivative.
+#'
+#' @noRd
+trunc_edges <- function(fam, av, n) {
+  disc <- identical(fam[["type"]], "discrete")
+  lb <- av[["trunc_lb"]]
+  ub <- av[["trunc_ub"]]
+  lo <- if (is.null(lb)) rep(-Inf, n) else rep_len(as.numeric(lb), n)
+  if (disc) lo <- lo - 1
+  hi <- if (is.null(ub)) rep(Inf, n) else rep_len(as.numeric(ub), n)
+  list(lo = lo, hi = hi,
+       # an NA bound is not an absent one: it stays NA, as the row does
+       lo_abs = !is.na(lo) & (lo == -Inf | (disc & lo < 0)),
+       hi_abs = !is.na(hi) & hi == Inf)
+}
 
 #' The per-row log-density of one response: the family's `lpdf` with
 #' `cens()` and `trunc()` folded in, in that composition order.
@@ -30,6 +149,29 @@ bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
 #' response on the tape, or an `mi()` response's observed-or-latent
 #' values - while `yraw` is the recorded response the censoring CDFs
 #' read.
+#'
+#' For a family that declares `cdf_log`, every censored or truncated
+#' quantity is the mass of a window `(lo, hi]`, `log_window()` on the
+#' log pairs of `fam_log_pair()` (a family without one is read by
+#' `row_lpdf_prob()`):
+#'
+#' \tabular{ll}{
+#'   left at `y` \tab `(lb', y]` \cr
+#'   right at `y` \tab `(y, ub]` \cr
+#'   interval `(y, y2]` \tab `(y, y2]` \cr
+#'   the `trunc()` normalizer \tab `(lb', ub]`
+#' }
+#'
+#' with `lb'` the lower edge `trunc_edges()` gives and an absent edge
+#' open. The bounds are read as brms 2.23.0 reads them, a discrete
+#' response included: right censoring at `y` is `P(Y > y)`, an interval
+#' is `P(y < Y <= y2)`, and only the truncation bound `lb` is
+#' inclusive, as `F(lb - 1)`. The censored rows read the same edges the
+#' normalizer does, so a censored row under `trunc()` observes its
+#' event inside the window. brms does not: it divides the event over
+#' the whole line by the window's mass, which is not a probability
+#' (brms-33 in dev/upstream-bugs.md), so the two differ for right
+#' censoring with an upper bound and left censoring with a lower one.
 #'
 #' @noRd
 row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
@@ -57,98 +199,174 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
              call. = FALSE,
              package = frm_family_package(fam))
   }
-  # Truncation bounds are resolved BEFORE the censoring block: a
-  # censored row under trunc() observes its event INSIDE the window, so
-  # the censored numerators need the same F(lb), F(ub) the normalizer
-  # uses. Composing the two the other way round (censor against the
-  # whole line, then divide by the window) is a different, wrong
-  # likelihood.
+  cen <- av[["cens"]]
   trunc_on <- !is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]])
-  Fub <- 1
-  Flb <- 0
-  if (trunc_on) {
-    lb <- av[["trunc_lb"]]
-    if (!is.null(lb) && identical(fam[["type"]], "discrete")) {
-      # inclusive lower bound: P(lb <= Y <= ub) needs F(lb - 1)
-      # (brms#1903 off-by-one)
-      if (any(lb < 1)) {
-        frm_stop("Discrete truncation needs lb >= 1 (lb = 0 is no ",
-                 "truncation)", call. = FALSE)
-      }
-      lb <- lb - 1
-    }
-    if (!is.null(av[["trunc_ub"]])) {
-      Fub <- fam_lcdf(fam, av[["trunc_ub"]], dpv, av, extra)
-    }
-    if (!is.null(lb)) {
-      Flb <- fam_lcdf(fam, lb, dpv, av, extra)
-    }
+  if (is.null(cen) && !trunc_on) return(ll)
+  n <- length(yraw)
+  if (length(ll) != n) ll <- ll + numeric(n)
+  te <- trunc_edges(fam, av, n)
+  trunc_on <- trunc_on && !all(te$lo_abs & te$hi_abs)
+  if (is.null(fam[["cdf_log"]])) {
+    return(row_lpdf_prob(fam, ll, yraw, dpv, av, extra, te, trunc_on))
   }
-  if (!is.null(av[["cens"]])) {
-    # censoring codes are data, so grouped sub-assignment (one
-    # vectorized [<- per group) replaces the density on censored rows
-    # without parameter branching or 0 * -Inf hazards. On a CONTINUOUS
-    # response right censoring is P(y < Y <= ub) and left censoring is
-    # P(lb <= Y <= y); without trunc() those collapse to the familiar
-    # 1 - F(y) and F(y), because Fub = 1 and Flb = 0. On a discrete one
-    # both edges of every event are inclusive, which the shift below
-    # supplies and the rest of this block then reads unchanged.
-    cen <- av[["cens"]]
+  i_l <- i_r <- i_i <- integer(0)
+  if (!is.null(cen)) {
     i_r <- which(cen == 1)
     i_l <- which(cen == -1)
     i_i <- which(cen == 2)
-    # The discrete convention, and the only place it is arithmetic. A
-    # censoring bound on a count NAMES a value the response can take
-    # and is INCLUDED in the event, so every LOWER edge enters the CDF
-    # as F(edge - 1): right censoring at k is P(Y >= k) and an interval
-    # [k, k2] is P(k <= Y <= k2). Left censoring's k is an UPPER edge,
-    # and F(k) already includes the point k, so it is not shifted. This
-    # is the same shift trunc(lb = ) applies twenty lines up, which is
-    # what makes the two terms mean the same thing by the same number.
-    # `yraw` is data, so this is one numeric copy at tape time, one CDF
-    # evaluation for all three codes, and no branch on the tape.
-    ylo <- yraw
-    if (identical(fam[["type"]], "discrete")) {
-      i_lo <- c(i_r, i_i)
-      if (length(i_lo)) ylo[i_lo] <- ylo[i_lo] - 1
+  }
+  none <- rep(FALSE, n)
+  # Which tail each edge's pair must supply. An edge read as the LOWER
+  # end of a window needs S there, as the upper end F, and both where
+  # the window's other end is present too.
+  need <- list(y = c(F = FALSE, S = FALSE), y2 = c(F = FALSE, S = FALSE),
+               lo = c(F = FALSE, S = FALSE), hi = c(F = FALSE, S = FALSE))
+  mark <- function(need, lo, hi, lo_abs, hi_abs, rows) {
+    if (!length(rows)) return(need)
+    la <- lo_abs[rows]
+    ha <- hi_abs[rows]
+    both <- any(!la & !ha)
+    if (both) {
+      need[[lo]][] <- TRUE
+      need[[hi]][] <- TRUE
     }
-    # `log S` on the LOG scale where the family can supply it. Without
-    # `lccdf` a right-censored row is scored as `log(1 - F)`, and once
-    # `F` rounds to one that number is not merely inaccurate, it is
-    # constant: its gradient is exactly zero, so the optimizer prices
-    # every such row the same however far it moves. Measured on a
-    # gaussian tail, `log(1 - pnorm(z))` is -Inf from z = 8.3 and
-    # `pnorm(z, lower.tail = FALSE, log.p = TRUE)` is exact to z = 500.
+    if (any(la & !ha)) need[[hi]][["F"]] <- TRUE
+    if (any(!la & ha)) need[[lo]][["S"]] <- TRUE
+    need
+  }
+  need <- mark(need, "lo", "y", te$lo_abs, none, i_l)
+  need <- mark(need, "y", "hi", none, te$hi_abs, i_r)
+  need <- mark(need, "y", "y2", none, none, i_i)
+  if (trunc_on) {
+    need <- mark(need, "lo", "hi", te$lo_abs, te$hi_abs, seq_len(n))
+  }
+  # An absent edge is evaluated at the recorded response, a point inside
+  # the support, and never read
+  at <- list(y = yraw, y2 = av[["cens_y2"]],
+             lo = ifelse(te$lo_abs, yraw, te$lo),
+             hi = ifelse(te$hi_abs, yraw, te$hi))
+  pairs <- lapply(names(need), function(k) {
+    if (!any(need[[k]])) return(NULL)
+    fam_log_pair(fam, rep_len(at[[k]], n), dpv, av, extra, n)
+  })
+  names(pairs) <- names(need)
+  if (length(i_l)) {
+    ll[i_l] <- log_window(pairs$lo, pairs$y, te$lo_abs, none, i_l)
+  }
+  if (length(i_r)) {
+    ll[i_r] <- log_window(pairs$y, pairs$hi, none, te$hi_abs, i_r)
+  }
+  if (length(i_i)) {
+    # an interval reaching outside [lb, ub] is a data contradiction (the
+    # response could not have been observed there at all), so it is not
+    # cut to the window
+    ll[i_i] <- log_window(pairs$y, pairs$y2, none, none, i_i)
+  }
+  if (trunc_on) {
+    ll <- ll - log_window(pairs$lo, pairs$hi, te$lo_abs, te$hi_abs,
+                          seq_len(n))
+  }
+  ll
+}
+
+#' A truncation bound evaluated at the censored rows. An absent bound is
+#' the scalar 0 / 1 the untruncated case wants, and a present one is a
+#' full-length CDF vector, so the two need different subsetting.
+#'
+#' @noRd
+bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
+
+#' `row_lpdf()` for a family with no `cdf_log`: its one-tail slots read
+#' on the probability scale, as core read them through 0.72.0.
+#'
+#' A family that supplies `lcdf` and `lccdf` and nothing else is held to
+#' the call pattern it was written for: the frmtmb.eam Wiener families
+#' read which rows a call is for from the censoring codes in `aterms`
+#' and fill the others with a neutral value, and their `lcdf` is a
+#' boundary's defective distribution function on a left- or
+#' interval-censored row, which is not the complement of `lccdf`. So
+#' each slot is called where it was: `lccdf` at the recorded responses
+#' for the right-censored rows, `lcdf` there for the left- and
+#' interval-censored ones and at `cens_y2`, and `lcdf` at the bounds for
+#' the window `F(ub) - F(lb')`. Two things are new, and both are brms's
+#' likelihood: no censoring bound on a count is shifted, and
+#' `trunc(lb = )` with no upper bound divides by the log survivor
+#' `lccdf(lb')`, which `log(1 - F(lb'))` was not once `F(lb')` rounded to
+#' one (a weibull fit stopped at a NaN gradient there). That call is
+#' made without the censoring codes, because the window holds for every
+#' row and a slot that reads them would fill the uncensored rows with
+#' its neutral value. An absent bound (`trunc_edges()`) is evaluated at
+#' the response and not read.
+#'
+#' @noRd
+row_lpdf_prob <- function(fam, ll, yraw, dpv, av, extra, te, trunc_on) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  n <- length(yraw)
+  disc <- identical(fam[["type"]], "discrete")
+  # a bound as the slot always saw it, the scalar a constant bound is,
+  # unless some rows of it are absent
+  edge <- function(given, at, abs) {
+    if (any(abs)) ifelse(abs, yraw, at) else given
+  }
+  absent_to <- function(v, abs, value) {
+    if (!any(abs)) return(v)
+    v <- v + numeric(n)
+    v[which(abs)] <- value
+    v
+  }
+  lo_on <- trunc_on && !all(te$lo_abs)
+  hi_on <- trunc_on && !all(te$hi_abs)
+  Flb <- 0
+  Fub <- 1
+  if (hi_on) {
+    Fub <- absent_to(fam_lcdf(fam, edge(av[["trunc_ub"]], te$hi, te$hi_abs),
+                              dpv, av, extra), te$hi_abs, 1)
+  }
+  if (lo_on) {
+    ql <- edge(av[["trunc_lb"]] - as.numeric(disc), te$lo, te$lo_abs)
+    Flb <- absent_to(fam_lcdf(fam, ql, dpv, av, extra), te$lo_abs, 0)
+  }
+  cen <- av[["cens"]]
+  if (!is.null(cen)) {
+    # censoring codes are data, so grouped sub-assignment replaces the
+    # density on censored rows without parameter branching
+    i_r <- which(cen == 1)
+    i_l <- which(cen == -1)
+    i_i <- which(cen == 2)
     lS <- if (has_lccdf(fam) && length(i_r)) {
-      fam_lccdf(fam, ylo, dpv, av, extra)
+      fam_lccdf(fam, yraw, dpv, av, extra)
     }
     need_F <- length(i_l) || length(i_i) || (length(i_r) && is.null(lS))
-    Fv <- if (need_F) fam_lcdf(fam, ylo, dpv, av, extra)
+    Fv <- if (need_F) fam_lcdf(fam, yraw, dpv, av, extra)
     if (length(i_r)) {
       ll[i_r] <- if (is.null(lS)) {
         log(bound_rows(Fub, i_r) - Fv[i_r])
-      } else if (is.null(av[["trunc_ub"]])) {
+      } else if (!hi_on) {
         lS[i_r]
       } else {
-        # P(y < Y <= ub) = S(y) - S(ub), taken as a log difference so
-        # that the exact log survivor is never round-tripped through a
-        # probability whose complement is not representable
-        lSu <- fam_lccdf(fam, av[["trunc_ub"]], dpv, av, extra)
+        # P(y < Y <= ub) = S(y) - S(ub), as a log difference, so that the
+        # exact log survivor is never round-tripped through a probability
+        lSu <- absent_to(fam_lccdf(fam, edge(av[["trunc_ub"]], te$hi,
+                                             te$hi_abs), dpv, av, extra),
+                         te$hi_abs, -Inf)
         lS[i_r] + log1p(-exp(bound_rows(lSu, i_r) - lS[i_r]))
       }
     }
     if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
     if (length(i_i)) {
       F2 <- fam_lcdf(fam, av[["cens_y2"]], dpv, av, extra)
-      # an interval is already a windowed difference of CDFs, so only
-      # the division by the window mass below is missing; an interval
-      # reaching outside [lb, ub] is a data contradiction (the response
-      # could not have been observed there at all)
       ll[i_i] <- log(F2[i_i] - Fv[i_i])
     }
   }
   if (trunc_on) {
-    ll <- ll - log(Fub - Flb)
+    if (!hi_on && has_lccdf(fam)) {
+      av_w <- av
+      av_w[["cens"]] <- NULL
+      av_w[["cens_y2"]] <- NULL
+      ll <- ll - absent_to(fam_lccdf(fam, ql, dpv, av_w, extra), te$lo_abs, 0)
+    } else {
+      ll <- ll - log(Fub - Flb)
+    }
   }
   ll
 }

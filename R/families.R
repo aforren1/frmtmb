@@ -110,21 +110,27 @@
 #'   example multinomial's per-category `mu2`, `mu3`, ...) list them all;
 #'   these live in the `beta` parameter vector and are integrated out
 #'   under REML.
-#' @param lcdf Optional vectorized AD log-safe CDF `(q, dpars, aterms)`
-#'   returning probabilities; enables `cens()` and `trunc()` addition
-#'   terms. It is the only thing either term asks of a family, whatever
-#'   the family's `type`: a discrete family that supplies one is
-#'   censored under the inclusive convention (see Censoring a discrete
-#'   response), which reads a lower bound as `F(q - 1)` and so calls
-#'   this at one below a recorded value.
+#' @param lcdf Optional vectorized AD CDF `(q, dpars, aterms)` returning
+#'   probabilities; enables `cens()` and `trunc()` addition terms. It is
+#'   the only thing either term asks of a family, whatever the family's
+#'   `type`. A discrete family is read on the integer lattice (see
+#'   Censoring a discrete response), so `trunc(lb = )` calls this at one
+#'   below the bound.
 #' @param lccdf Optional vectorized AD LOG SURVIVOR function
 #'   `(q, dpars, aterms)` returning `log(1 - F(q))` directly. A family
-#'   that declares it scores a RIGHT-censored row from it instead of
-#'   from `log(1 - F)`, which cannot be accurate once `F` rounds to one
-#'   (see Right censoring and the representable tail). It is optional
-#'   and independent of `lcdf`: a family that supplies only `lccdf`
-#'   accepts right censoring and refuses left censoring, interval
-#'   censoring and `trunc()`, each by name.
+#'   that declares it scores the upper tail from it instead of from
+#'   `log(1 - F)`, which cannot be accurate once `F` rounds to one (see
+#'   Censoring and the representable tail). It is optional and
+#'   independent of `lcdf`: a family that supplies only `lccdf` accepts
+#'   right censoring and refuses left censoring, interval censoring and
+#'   `trunc()`, each by name.
+#' @param cdf_log Optional vectorized AD function `(q, dpars, aterms)`
+#'   returning `list(lF = log F(q), lS = log S(q))`, both tails on the
+#'   log scale. A family that declares it has every censored row and
+#'   every truncation window read from it, and `lcdf` and `lccdf` are
+#'   derived from it when they are not given. It is how a family whose
+#'   two tails are both exact passes that to core: a probability-scale
+#'   `lcdf` ends at `1e-308`.
 #' @param required_aterms The addition-term values the density cannot do
 #'   without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
 #'   `"trials"`. A character vector names the terms it needs ALL of. A
@@ -372,19 +378,24 @@
 #' call order happens to hold and leaves the family object lying about
 #' what it is.
 #'
-#' @section Right censoring and the representable tail:
-#' Core forms a right-censored row's contribution as `log(Fub - F(y))`,
-#' which without truncation is `log(1 - F)`. A double cannot represent
-#' the complement of a probability that has rounded to one, so past that
-#' point the contribution is not merely inaccurate: it is CONSTANT, and
-#' its gradient is exactly zero. An optimizer then prices such a row the
-#' same however far it moves, and fits every other row as if the
-#' survivor were free. That failure is silent - the fit converges, and
-#' `logLik()` and `AIC()` report the floored number.
+#' @section Censoring and the representable tail:
+#' For a family that declares `cdf_log`, every censored row and every
+#' truncation window is the mass of a window `(lo, hi]` (`row_lpdf()`),
+#' and core forms it on the log scale from both tails of the family's
+#' CDF: from `lS = log S` where `S(lo) >= 1/2`, as
+#' `lS(lo) + log(1 - exp(lS(hi) - lS(lo)))`, and from `lF = log F` below
+#' that. A log near zero keeps every digit of its
+#' complement, so each form keeps the digits the other loses. A window
+#' open above is `lS(lo)` and one open below is `lF(hi)`, so a
+#' right-censored row and `trunc(lb = )` read the log survivor itself.
 #'
-#' `lccdf` removes the class for right censoring by giving core the
-#' quantity it actually needs. Measured on a standard normal tail, one
-#' process:
+#' The probability scale cannot do this. A double cannot represent the
+#' complement of a probability that has rounded to one, so `log(1 - F)`
+#' past that point is not merely inaccurate: it is CONSTANT, and its
+#' gradient is exactly zero. An optimizer then prices such a row the
+#' same however far it moves. That failure is silent: the fit converges,
+#' and `logLik()` and `AIC()` report the floored number. Measured on a
+#' standard normal tail, one process:
 #'
 #' \tabular{lrr}{
 #'   \strong{z} \tab \strong{log(1 - pnorm(z))} \tab
@@ -395,93 +406,83 @@
 #'   500 \tab -Inf \tab -125007.13
 #' }
 #'
-#' Both the value and the derivative are exact on the right, over the
-#' whole range.
+#' Every built-in family with a CDF declares `cdf_log` except
+#' [exponential()], [weibull()], [cox()], [frechet()],
+#' [gen_extreme_value()] and [discrete_weibull()]. A family without it
+#' is read through `lcdf` and `lccdf` as before: a right-censored row is
+#' `lccdf` (or `log(1 - lcdf)` without it), a left-censored row
+#' `log(F(y) - F(lb))`, an interval `log(F(y2) - F(y))`, the window
+#' `log(F(ub) - F(lb))`, and `trunc(lb = )` with no upper bound
+#' `lccdf(lb)`. Each slot is called where it always was, because a
+#' family may read the censoring codes to know which rows a call is
+#' for, as the frmtmb.eam Wiener families do, and may supply an `lcdf`
+#' that is not the complement of its `lccdf`. The probability scale
+#' ends at `1e-308`, below which a left-censored row is `log(0)`, and an
+#' interval in an upper tail loses its digits; a family that declares
+#' `cdf_log` has neither limit.
 #'
-#' The built-in families that declare `lccdf` are [gaussian()],
-#' [lognormal()], [exponential()], [weibull()] and [cox()]. The last
-#' three have `log S` in closed form (`-q/mu`, `-(q/scale)^shape`,
-#' `-H0(t) * mu`); the first two use `pnorm()`'s own log upper tail.
+#' The built-in `cdf_log` pairs compute the tail on the far side of `q`
+#' directly, as an integral or a series whose terms are all positive:
+#' the incomplete beta for [student()], [Beta()], [binomial()] and
+#' [negbinomial()], the incomplete gamma for [Gamma()] and for [poisson()]
+#' past a count of 30 (a smaller count is a finite sum of its masses),
+#' Owen's `T` as an angle integral for [skew_normal()], the density's
+#' own angle integral for [von_mises()], and `pnorm()`'s two log tails
+#' for [gaussian()] and [lognormal()]. [inverse.gaussian()] and
+#' [exgaussian()] are log-scale differences. A zero-inflated or hurdle
+#' family is built from its base family's pair. Two are complements in
+#' part of the range: [brmsfamily("com_poisson")][brmsfamily()], whose
+#' support has no top, takes its survivor as the complement of the
+#' summed CDF until that is below about `1e-3` and as an upper sum
+#' beyond; and a hurdle family takes `F` as the complement of `S` where
+#' `S < 1/2`.
 #'
-#' Two families with a CDF do NOT declare one, for measured reasons.
-#' [inverse.gaussian()] gains nothing:
-#' `RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)` is computed
-#' on the probability scale and reaches `-Inf` at the same
-#' `log S = -34` that `log(1 - F)` does. [poisson()] is censored (see
-#' Censoring a discrete response) and would use the slot, but cannot
-#' declare one: `RTMB::ppois(lower.tail = FALSE, log.p = TRUE)` is
-#' exact in R (`-2773.28` at `q = 700`, `lambda = 5`, where
-#' `log(1 - F)` is `-Inf`)
-#' and does not TAPE - inside `MakeADFun` it reaches
-#' `stats::ppois` and errors with "Non-numeric argument to mathematical
-#' function". An exact discrete log survivor has to be written out
-#' before poisson can have one.
-#'
-#' `lccdf` fixes RIGHT censoring and nothing else. Left censoring is
-#' still `log(F(y) - Flb)`, interval censoring is still a difference of
-#' CDFs, and the truncation normalizer is still `log(Fub - Flb)`, so a
-#' LEFT-TRUNCATED survival model - delayed entry, which is routine -
-#' meets the identical representability problem from the other side.
-#' Closing that needs a windowed log-difference slot, and this is the
-#' first step rather than the last one.
+#' `RTMB::ppois(lower.tail = FALSE, log.p = TRUE)` and
+#' `RTMB::pgamma()`'s upper tail do not tape (inside `MakeADFun` they
+#' reach `stats::ppois()` and `stats::pgamma()` and stop at
+#' "Non-numeric argument to mathematical function"), which is why
+#' poisson had no `lccdf` through frmtmb 0.72.0; its survivor is exact
+#' now (`-2773.28` at `q = 700`, `lambda = 5`, where `log(1 - F)` is
+#' `-Inf`).
 #'
 #' @section Censoring a discrete response:
-#' A censoring bound on a discrete response NAMES a value the response
-#' can take, and the value is INCLUDED in the event:
+#' A discrete response's bounds are read as brms 2.23.0 reads them:
 #'
 #' \tabular{lll}{
-#'   \strong{code} \tab \strong{means} \tab \strong{scored as} \cr
-#'   `0` "none" \tab `Y == y` \tab `f(y)` \cr
-#'   `-1` "left" \tab `Y <= y` \tab `F(y)` \cr
-#'   `1` "right" \tab `Y >= y` \tab `1 - F(y - 1)` \cr
-#'   `2` "interval" \tab `y <= Y <= y2` \tab `F(y2) - F(y - 1)`
+#'   \strong{term} \tab \strong{means} \tab \strong{scored as} \cr
+#'   `cens()` `0` "none" \tab `Y == y` \tab `f(y)` \cr
+#'   `cens()` `-1` "left" \tab `Y <= y` \tab `F(y)` \cr
+#'   `cens()` `1` "right" \tab `Y > y` \tab `S(y)` \cr
+#'   `cens()` `2` "interval" \tab `y < Y <= y2` \tab `F(y2) - F(y)` \cr
+#'   `trunc(lb, ub)` \tab `lb <= Y <= ub` \tab `F(ub) - F(lb - 1)` \cr
+#'   `trunc(lb)` \tab `Y >= lb` \tab `S(lb - 1)`
 #' }
 #'
-#' Equivalently: every LOWER edge enters the CDF as `F(edge - 1)`, and
-#' upper edges are unchanged because `F` already includes its argument.
-#' It is the rule `trunc(lb = )` has always followed on a discrete
-#' response, so one number means one thing however a response is
-#' bounded, and it is what a count recorded as "5 or more" means.
+#' A censoring bound is the edge of a continuous-style window `(lo, hi]`,
+#' and only the truncation lower bound is inclusive. `trunc(lb = 0)`, or
+#' any `lb <= 0` on a count, is no truncation and is accepted, as it is
+#' in brms. Every bound must be a whole number: a fractional one would be
+#' read as its floor. An interval whose ends agree (`y2 == y`) is an
+#' event of probability zero and is refused, as on a continuous
+#' response; an exact observation is code 0. To score "6 or more",
+#' right censor at 5.
 #'
-#' It DIFFERS from brms for RIGHT and INTERVAL censoring only, where
-#' brms emits `poisson_lccdf(y | mu)`, that is `P(Y > y)`, and reads an
-#' interval as `(y, y2]`. LEFT censoring is `P(Y <= y)` in both packages
-#' and agrees exactly. Migrating a right- or interval-censored count
-#' model changes its log-likelihood; on 200 poisson draws at
-#' `lambda = 4` right censored at 6, the two readings differ by 20.8 log
-#' units and 3.7 percent of the estimate. Subtract one from every
-#' right-censored and interval lower bound to reproduce a brms fit.
+#' Under `trunc()` a censored row is the event inside the window, on any
+#' response: right censoring at `y` is `P(y < Y <= ub)` and left
+#' censoring `P(lb <= Y <= y)`, each over the window's mass. brms 2.23.0
+#' divides `P(Y > y)` or `P(Y <= y)`, the event over the whole line, by
+#' the window's mass, which can exceed one, so the two differ where a
+#' censored event reaches past a bound: right censoring with an upper
+#' bound, left censoring with a lower one. With no bound on that side,
+#' and for every interval, they agree.
 #'
-#' The divergence is deliberate, because **brms is internally
-#' inconsistent here and frmtmb cannot be both.** brms's own discrete
-#' truncation emits `poisson_lccdf(lb - 1 | mu)`, an INCLUSIVE lower
-#' bound, `P(Y >= lb)`. So in brms `trunc(lb = 6)` means `Y >= 6` while
-#' a right-censored row recorded at 6 means `Y > 6`: one number, two
-#' meanings, on one response. frmtmb's `trunc()` reproduces brms bit for
-#' bit (poisson on `y = 3,4,5,6` at `b0 = log 4`, `trunc(lb = 2)` gives
-#' 6.9990718955 under both, against 6.2954805379 for the exclusive
-#' reading), so its `cens()` had to choose between matching brms's
-#' censoring and matching its own truncation. It matches its own.
+#' `simulate(censored = TRUE)` records a draw above a right-censoring
+#' point `k` as `k`, and a draw at `k` is the uncensored value `k`, so
+#' the simulated values are the same under either reading of a bound.
 #'
-#' It is also the only reading consistent with the censored SIMULATOR,
-#' which predates all of this: `simulate(censored = TRUE)` caps a draw
-#' with `pmin(pmax(y, lo), hi)`, recording the value `k` exactly when
-#' the latent draw is `>= k`. Measured on 4000 draws from a fit censored
-#' at 7, the simulated mass at that point is 0.13250, against
-#' `P(Y >= 7) = 0.12190` inclusive and `P(Y > 7) = 0.05763` exclusive.
-#' The other reading would silently decouple the likelihood from the
-#' simulator that `dharma_residuals()` rests on.
-#'
-#' Two consequences worth knowing. A one-point interval (`y2 == y`) is
-#' legal and is the exact observation `P(Y = y)`, where on a continuous
-#' response it is refused as an event of probability zero. And the
-#' shift assumes the support is the unit integer lattice, so a
-#' non-integer censoring bound is refused rather than moved onto a
-#' point the family has no mass at.
-#'
-#' `residuals(type = "osa")` is refused on a censored discrete fit:
-#' inclusive bounds make an uncensored row's support `[lo + 1, hi - 1]`
-#' rather than the `[lo, hi]` the one-step window is built on.
+#' `residuals(type = "osa")` is refused on a censored discrete fit: an
+#' uncensored row's support is `[lo + 1, hi]` rather than the `[lo, hi]`
+#' the one-step window is built on.
 #'
 #' @section Tape-safe scope:
 #' `lpdf` and `lcdf` run with RTMB's tape-safe `c()`, `[<-` and
@@ -498,7 +499,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           post = list(), sim = NULL, sim_ctx = NULL,
                           sim_refusal = NULL,
                           primary_dpars = "mu", lcdf = NULL,
-                          lccdf = NULL,
+                          lccdf = NULL, cdf_log = NULL,
                           required_aterms = character(0),
                           accepts_aterms = NULL, se_dpar = NULL,
                           exclusive_aterms = list(),
@@ -544,6 +545,34 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   # user-written densities run with the AD overloads in scope; a
   # function that already binds them itself is left untouched
   lpdf <- frmtmb_ad_overload(lpdf)
+  if (!is.null(cdf_log)) {
+    if (!is.function(cdf_log)) {
+      frm_stop("frmtmb_family(cdf_log =) must be a function (q, dpars, ",
+               "aterms) returning list(lF = log F(q), lS = log S(q)), or ",
+               "NULL", call. = FALSE)
+    }
+    cdf_log <- frmtmb_ad_overload(cdf_log)
+    # the two one-tail slots every other reader of a family knows, from
+    # the same pair, so they cannot disagree with it
+    pair <- cdf_log
+    four <- length(formals(pair)) >= 4L
+    if (is.null(lcdf)) {
+      lcdf <- if (four) {
+        function(q, dpars, aterms, extra) {
+          exp(pair(q, dpars, aterms, extra)[["lF"]])
+        }
+      } else {
+        function(q, dpars, aterms) exp(pair(q, dpars, aterms)[["lF"]])
+      }
+    }
+    if (is.null(lccdf)) {
+      lccdf <- if (four) {
+        function(q, dpars, aterms, extra) pair(q, dpars, aterms, extra)[["lS"]]
+      } else {
+        function(q, dpars, aterms) pair(q, dpars, aterms)[["lS"]]
+      }
+    }
+  }
   if (!is.null(lcdf)) lcdf <- frmtmb_ad_overload(lcdf)
   if (!is.null(lccdf)) {
     if (!is.function(lccdf)) {
@@ -564,7 +593,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
          valid_y = valid_y, init_dpars = init_dpars, type = type,
          post = post, sim = sim, sim_ctx = sim_ctx,
          sim_refusal = sim_refusal, primary_dpars = primary_dpars,
-         lcdf = lcdf, lccdf = lccdf, required_aterms = required_aterms,
+         lcdf = lcdf, lccdf = lccdf, cdf_log = cdf_log,
+         required_aterms = required_aterms,
          accepts_aterms = accepts_aterms, se_dpar = se_dpar,
          exclusive_aterms = exclusive_aterms,
          family_finalize = family_finalize, extra_pars = extra_pars,
@@ -1280,13 +1310,19 @@ subset_obs <- function(x, idx, n) {
 
 #' One simulated response vector, respecting `trunc()` bounds by
 #' rejection: out-of-bounds draws are redrawn until every row is inside
-#' its own interval. Bounds that exclude nearly all the family's mass
-#' never converge, so the iteration cap reports the acceptance rate
-#' instead of spinning.
+#' its own interval. A row rejection has not filled after `inv_after`
+#' passes is drawn by inverting its CDF (`sim_trunc_inverse()`), for a
+#' family of this package's that has one: a valid truncated fit may put
+#' a row's mean far outside its window, and a weibull fit with a
+#' `diag()` term left 1 of 120 rows unfilled after 100 passes. Another
+#' package's family keeps rejection alone, because its CDF slots may
+#' read the call for other purposes (the frmtmb.eam Wiener families'
+#' are a boundary's), and the cap reports the acceptance rate instead
+#' of spinning.
 #'
 #' @noRd
 sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
-                         extra = NULL) {
+                         extra = NULL, inv_after = 20L) {
   check_family_aterms(fam, aterms)
   # families whose draws need parameters outside the dpar system
   # (ordinal thresholds) declare a fourth argument; the rest keep the
@@ -1302,8 +1338,18 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   drawn <- n
   bad <- which(y < tb$lb | y > tb$ub)
   it <- 0L
+  # cox reads its CDF from a design built at the recorded bounds, so a
+  # bisection point has no row in it
+  invert <- identical(frm_family_package(fam), "frmtmb") &&
+    is.null(fam[["extra_pars"]]) &&
+    (!is.null(fam[["cdf_log"]]) || !is.null(fam[["lcdf"]]))
   while (length(bad)) {
     it <- it + 1L
+    if (invert && it > inv_after) {
+      y[bad] <- sim_trunc_inverse(fam, dpars, aterms, n, bad, tb$lb, tb$ub,
+                                  extra)
+      break
+    }
     if (it > max_iter) {
       frm_stop("trunc(): rejection sampling did not fill ", length(bad),
                " of ", n, " rows in ", max_iter, " passes (acceptance rate ",
@@ -1511,12 +1557,8 @@ fam_gaussian <- function(link = "identity", link_sigma = "log") {
       RTMB::dnorm(y, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
                 log = TRUE)
     },
-    lcdf = function(q, dpars, aterms) {
-      RTMB::pnorm((q - dpars[["mu"]]) / resid_sd(dpars[["sigma"]], aterms))
-    },
-    lccdf = function(q, dpars, aterms) {
-      RTMB::pnorm((q - dpars[["mu"]]) / resid_sd(dpars[["sigma"]], aterms),
-                  lower.tail = FALSE, log.p = TRUE)
+    cdf_log = function(q, dpars, aterms) {
+      normal_cdf_log((q - dpars[["mu"]]) / resid_sd(dpars[["sigma"]], aterms))
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -1605,8 +1647,8 @@ fam_poisson <- function(link = "log") {
     lpdf = function(y, dpars, aterms) {
       RTMB::dpois(y, rate_mu(dpars, lk, aterms), log = TRUE)
     },
-    lcdf = function(q, dpars, aterms) {
-      RTMB::ppois(q, rate_mu(dpars, lk, aterms))
+    cdf_log = function(q, dpars, aterms) {
+      poisson_cdf_pair(q, dpars, aterms, lk)
     },
     valid_y = count_y("poisson"),
     init_dpars = list(mu = function(y, aterms) {
@@ -1651,7 +1693,7 @@ fam_binomial <- function(link = "logit") {
   lk <- mu_link(link, "binomial")
   frmtmb_family(
     "binomial",
-    accepts_aterms = c("weights", "trials"),
+    accepts_aterms = c("weights", "trials", "cens", "trunc"),
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
@@ -1661,6 +1703,9 @@ fam_binomial <- function(link = "logit") {
         return(RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE))
       }
       RTMB::dbinom_robust(y, size, lo, log = TRUE)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      binomial_cdf_pair(q, dpars, aterms, lk, "binomial")
     },
     valid_y = function(y, aterms) {
       size <- aterm_trials(aterms, "binomial")
@@ -1686,6 +1731,10 @@ fam_binomial <- function(link = "logit") {
       },
       dev_fn = function(y, dpars, aterms) {
         binomial_deviance(y, dpars[["mu"]], aterm_trials(aterms, "binomial"))
+      },
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        binomial_trunc_mean(dpars[["mu"]], aterm_trials(aterms, "binomial"),
+                            lb, ub)
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -1702,13 +1751,16 @@ fam_Gamma <- function(link = "log", link_shape = "log") {
   lk_shape <- dpar_link(link_shape, "shape", "Gamma", dpar_links_positive)
   frmtmb_family(
     "Gamma",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape"),
     links = list(mu = mu_link(link, "Gamma"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
       RTMB::dgamma(y, shape = dpars[["shape"]],
                                        scale = dpars[["mu"]] / dpars[["shape"]],
                    log = TRUE)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      gamma_cdf_log(q, dpars[["mu"]], dpars[["shape"]])
     },
     valid_y = positive_y("Gamma"),
     init_dpars = list(
@@ -1722,7 +1774,10 @@ fam_Gamma <- function(link = "log", link_shape = "log") {
       mean_fn = function(dpars, aterms) dpars[["mu"]],
       var_fn = function(dpars, aterms) dpars[["mu"]]^2 / dpars[["shape"]],
       # 1 / shape is the dispersion and divides out
-      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars[["mu"]])
+      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars[["mu"]]),
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        gamma_trunc_mean(dpars[["mu"]], dpars[["shape"]], lb, ub)
+      }
     ),
     sim = function(dpars, aterms, n) {
       stats::rgamma(n, shape = dpars[["shape"]],
@@ -1746,12 +1801,8 @@ fam_lognormal <- function(link = "identity", link_sigma = "log") {
     lpdf = function(y, dpars, aterms) {
       RTMB::dnorm(log(y), dpars[["mu"]], dpars[["sigma"]], log = TRUE) - log(y)
     },
-    lcdf = function(q, dpars, aterms) {
-      RTMB::pnorm((log(q) - dpars[["mu"]]) / dpars[["sigma"]])
-    },
-    lccdf = function(q, dpars, aterms) {
-      RTMB::pnorm((log(q) - dpars[["mu"]]) / dpars[["sigma"]],
-                  lower.tail = FALSE, log.p = TRUE)
+    cdf_log = function(q, dpars, aterms) {
+      lognormal_cdf_log(q, dpars[["mu"]], dpars[["sigma"]])
     },
     valid_y = positive_y("lognormal"),
     init_dpars = list(
@@ -1903,13 +1954,16 @@ fam_student <- function(link = "identity", link_sigma = "log",
   lk_nu <- dpar_link(link_nu, "nu", "student", dpar_links_above1)
   frmtmb_family(
     "student",
-    accepts_aterms = c("weights", "se", "mi"),
+    accepts_aterms = c("weights", "se", "mi", "cens", "trunc"),
     se_dpar = "sigma",
     dpars = c("mu", "sigma", "nu"),
     links = list(mu = mu_link(link, "student"), sigma = lk_sigma, nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
       sd_t <- resid_sd(dpars[["sigma"]], aterms)
       dt_stable((y - dpars[["mu"]]) / sd_t, dpars[["nu"]]) - log(sd_t)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      student_cdf_pair(q, dpars, aterms)
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -1923,6 +1977,10 @@ fam_student <- function(link = "identity", link_sigma = "log",
         sd_t <- resid_sd(dpars[["sigma"]], aterms)
         ifelse(dpars[["nu"]] > 2, sd_t^2 * dpars[["nu"]] / (dpars[["nu"]] - 2),
                NA_real_)
+      },
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        student_trunc_mean(dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
+                           dpars[["nu"]], lb, ub)
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -1942,7 +2000,7 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
   lk <- mu_link(link, "negbinomial")
   frmtmb_family(
     "negbinomial",
-    accepts_aterms = c("weights", "rate"),
+    accepts_aterms = c("weights", "rate", "cens", "trunc"),
     dpars = c("mu", "shape"),
     links = list(mu = lk, shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
@@ -1966,6 +2024,11 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
       }
       RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
     },
+    # the CDF pair lives in negbinomial_cdf_pair(), which every family
+    # built on these slots reaches
+    cdf_log = function(q, dpars, aterms) {
+      negbinomial_cdf_pair(q, dpars, aterms, lk, lk_shape)
+    },
     valid_y = count_y("negbinomial"),
     init_dpars = list(
       mu = function(y, aterms) mean(y) + 0.1,
@@ -1985,6 +2048,10 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
       dev_fn = function(y, dpars, aterms) {
         nbinom_deviance(y, rate_mean(dpars, aterms),
                         rate_shape(dpars[["shape"]], aterms))
+      },
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        nbinom_trunc_mean(rate_mean(dpars, aterms),
+                          rate_shape(dpars[["shape"]], aterms), lb, ub)
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -2057,7 +2124,7 @@ fam_beta <- function(link = "logit", link_phi = "log") {
   lk <- mu_link(link, "beta")
   frmtmb_family(
     "beta",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
@@ -2066,6 +2133,9 @@ fam_beta <- function(link = "logit", link_phi = "log") {
       # pair off the log-odds keeps both shapes strictly positive.
       mp <- dpar_complement(dpars, "mu", lk)
       RTMB::dbeta(y, mp$p * dpars[["phi"]], mp$q * dpars[["phi"]], log = TRUE)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      beta_cdf_pair(q, dpars, aterms, lk)
     },
     valid_y = function(y, aterms) {
       if (any(y <= 0) || any(y >= 1)) {
@@ -2230,11 +2300,14 @@ fam_compois <- function(link = "log", link_nu = "log") {
   lk_nu <- dpar_link(link_nu, "nu", "compois", dpar_links_positive)
   frmtmb_family(
     "compois",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "nu"),
     links = list(mu = mu_link(link, "compois"), nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
       RTMB::dcompois2(y, dpars[["mu"]], dpars[["nu"]], log = TRUE)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      compois_cdf_log(q, dpars[["mu"]], dpars[["nu"]])
     },
     valid_y = count_y("compois"),
     init_dpars = list(
@@ -2285,7 +2358,7 @@ fam_zi_poisson <- function(link = "log", link_zi = "logit") {
   lk_zi <- dpar_link(link_zi, "zi", "zero_inflated_poisson", dpar_links_unit)
   frmtmb_family(
     "zero_inflated_poisson",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "zi"),
     links = list(mu = mu_link(link, "zero_inflated_poisson"), zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
@@ -2297,6 +2370,9 @@ fam_zi_poisson <- function(link = "log", link_zi = "logit") {
       g <- dpar_log_complement(dpars, "zi", lk_zi)
       i0 * RTMB::logspace_add(g$l, g$l1m - dpars[["mu"]]) +
         (1 - i0) * (g$l1m + RTMB::dpois(y, dpars[["mu"]], log = TRUE))
+    },
+    cdf_log = function(q, dpars, aterms) {
+      zi_poisson_cdf_pair(q, dpars, aterms, lk_zi)
     },
     valid_y = count_y("zero_inflated_poisson"),
     init_dpars = list(
@@ -2330,7 +2406,7 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
   lk <- mu_link(link, "zero_inflated_negbinomial")
   frmtmb_family(
     "zero_inflated_negbinomial",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape", "zi"),
     links = list(mu = lk, shape = lk_shape, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
@@ -2353,6 +2429,9 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
         base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
       }
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      zi_negbinomial_cdf_pair(q, dpars, aterms, lk, lk_shape, lk_zi)
     },
     valid_y = count_y("zero_inflated_negbinomial"),
     init_dpars = list(
@@ -2380,7 +2459,7 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
   lk_hu <- dpar_link(link_hu, "hu", "hurdle_poisson", dpar_links_unit)
   frmtmb_family(
     "hurdle_poisson",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "hu"),
     links = list(mu = mu_link(link, "hurdle_poisson"), hu = lk_hu),
     lpdf = function(y, dpars, aterms) {
@@ -2394,6 +2473,9 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
       i0 * g$l +
         (1 - i0) * (g$l1m + RTMB::dpois(y, dpars[["mu"]], log = TRUE) -
                       lztrunc)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      hurdle_poisson_cdf_pair(q, dpars, aterms, lk_hu)
     },
     valid_y = count_y("hurdle_poisson"),
     init_dpars = list(
@@ -2447,7 +2529,7 @@ fam_hurdle_negbinomial <- function(link = "log", link_shape = "log",
   lk <- mu_link(link, "hurdle_negbinomial")
   frmtmb_family(
     "hurdle_negbinomial",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape", "hu"),
     links = list(mu = lk, shape = lk_shape, hu = lk_hu),
     lpdf = function(y, dpars, aterms) {
@@ -2468,6 +2550,10 @@ fam_hurdle_negbinomial <- function(link = "log", link_shape = "log",
       # the same quantity with the cancellation left in.
       i0 * g$l +
         (1 - i0) * (g$l1m + base - RTMB::logspace_sub(0 * lp0, lp0))
+    },
+    cdf_log = function(q, dpars, aterms) {
+      hurdle_negbinomial_cdf_pair(q, dpars, aterms, lk, lk_shape,
+                                  lk_hu)
     },
     valid_y = count_y("hurdle_negbinomial"),
     init_dpars = list(
@@ -2563,7 +2649,7 @@ fam_geometric <- function(link = "log") {
   lk <- mu_link(link, "geometric")
   frmtmb_family(
     "geometric",
-    accepts_aterms = c("weights", "rate"),
+    accepts_aterms = c("weights", "rate", "cens", "trunc"),
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
@@ -2586,6 +2672,10 @@ fam_geometric <- function(link = "log") {
       }
       RTMB::dnbinom_robust(y, lmu, 2 * lmu, log = TRUE)
     },
+    # negbinomial()'s CDF with the shape held at 1
+    cdf_log = function(q, dpars, aterms) {
+      negbinomial_cdf_pair(q, dpars, aterms, lk, NULL)
+    },
     valid_y = count_y("geometric"),
     init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
     type = "discrete",
@@ -2598,6 +2688,10 @@ fam_geometric <- function(link = "log") {
       # negbinomial with the shape fixed at 1
       dev_fn = function(y, dpars, aterms) {
         nbinom_deviance(y, rate_mean(dpars, aterms), rate_shape(1, aterms))
+      },
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        nbinom_trunc_mean(rate_mean(dpars, aterms), rate_shape(1, aterms),
+                          lb, ub)
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -2720,7 +2814,7 @@ fam_shifted_lognormal <- function(link = "identity", link_sigma = "log",
   lk_ndt <- dpar_link(link_ndt, "ndt", "shifted_lognormal", dpar_links_positive)
   frmtmb_family(
     "shifted_lognormal",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma", "ndt"),
     links = list(mu = mu_link(link, "shifted_lognormal"),
                  sigma = lk_sigma, ndt = lk_ndt),
@@ -2730,6 +2824,10 @@ fam_shifted_lognormal <- function(link = "identity", link_sigma = "log",
       RTMB::dnorm(log(y - dpars[["ndt"]]), dpars[["mu"]], dpars[["sigma"]],
                                                       log = TRUE) -
         log(y - dpars[["ndt"]])
+    },
+    cdf_log = function(q, dpars, aterms) {
+      shifted_lognormal_cdf_log(q, dpars[["mu"]], dpars[["sigma"]],
+                                dpars[["ndt"]])
     },
     valid_y = positive_y("shifted_lognormal"),
     init_dpars = list(
@@ -2761,7 +2859,7 @@ fam_hurdle_gamma <- function(link = "log", link_shape = "log",
   lk_hu <- dpar_link(link_hu, "hu", "hurdle_gamma", dpar_links_unit)
   frmtmb_family(
     "hurdle_gamma",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape", "hu"),
     links = list(mu = mu_link(link, "hurdle_gamma"),
                  shape = lk_shape, hu = lk_hu),
@@ -2774,6 +2872,9 @@ fam_hurdle_gamma <- function(link = "log", link_shape = "log",
                       RTMB::dgamma(yp, shape = dpars[["shape"]],
                                    scale = dpars[["mu"]] / dpars[["shape"]],
                                    log = TRUE))
+    },
+    cdf_log = function(q, dpars, aterms) {
+      hurdle_gamma_cdf_pair(q, dpars, aterms, lk_hu)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0)) {
@@ -2808,7 +2909,7 @@ fam_hurdle_lognormal <- function(link = "identity", link_sigma = "log",
   lk_hu <- dpar_link(link_hu, "hu", "hurdle_lognormal", dpar_links_unit)
   frmtmb_family(
     "hurdle_lognormal",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma", "hu"),
     links = list(mu = mu_link(link, "hurdle_lognormal"),
                  sigma = lk_sigma, hu = lk_hu),
@@ -2820,6 +2921,9 @@ fam_hurdle_lognormal <- function(link = "identity", link_sigma = "log",
         (1 - i0) * (g$l1m +
                       RTMB::dnorm(log(yp), dpars[["mu"]], dpars[["sigma"]],
                                   log = TRUE) - log(yp))
+    },
+    cdf_log = function(q, dpars, aterms) {
+      hurdle_lognormal_cdf_pair(q, dpars, aterms, lk_hu)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0)) {
@@ -2859,7 +2963,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
   lk <- mu_link(link, "zero_inflated_binomial")
   frmtmb_family(
     "zero_inflated_binomial",
-    accepts_aterms = c("weights", "trials"),
+    accepts_aterms = c("weights", "trials", "cens", "trunc"),
     dpars = c("mu", "zi"),
     links = list(mu = lk, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
@@ -2876,6 +2980,9 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
         base <- RTMB::dbinom_robust(y, size, lo, log = TRUE)
       }
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      zi_binomial_cdf_pair(q, dpars, aterms, lk, lk_zi)
     },
     valid_y = function(y, aterms) {
       size <- aterm_trials(aterms, "zero_inflated_binomial")
@@ -2917,7 +3024,7 @@ fam_zi_beta <- function(link = "logit", link_phi = "log", link_zi = "logit") {
   lk <- mu_link(link, "zero_inflated_beta")
   frmtmb_family(
     "zero_inflated_beta",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "phi", "zi"),
     links = list(mu = lk, phi = lk_phi, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
@@ -2929,6 +3036,9 @@ fam_zi_beta <- function(link = "logit", link_phi = "log", link_zi = "logit") {
         (1 - i0) * (g$l1m +
                       RTMB::dbeta(ya, mp$p * dpars[["phi"]],
                                   mp$q * dpars[["phi"]], log = TRUE))
+    },
+    cdf_log = function(q, dpars, aterms) {
+      zi_beta_cdf_pair(q, dpars, aterms, lk, lk_zi)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y >= 1)) {
@@ -3587,7 +3697,7 @@ fam_asym_laplace <- function(link = "identity", link_sigma = "log",
     link_quantile, "quantile", "asym_laplace", dpar_links_unit)
   frmtmb_family(
     "asym_laplace",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma", "quantile"),
     links = list(mu = mu_link(link, "asym_laplace"),
                  sigma = lk_sigma, quantile = lk_quantile),
@@ -3601,6 +3711,9 @@ fam_asym_laplace <- function(link = "identity", link_sigma = "log",
       gq <- dpar_log_complement(dpars, "quantile", lk_quantile)
       gq$l + gq$l1m - log(dpars[["sigma"]]) -
         0.5 * (abs(u) + (2 * p - 1) * u)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      asym_laplace_cdf_pair(q, dpars, aterms, lk_quantile)
     },
     init_dpars = list(
       mu = function(y, aterms) stats::median(y),
@@ -3637,7 +3750,7 @@ fam_zi_asym_laplace <- function(link = "identity", link_sigma = "log",
     link_zi, "zi", "zero_inflated_asym_laplace", dpar_links_unit)
   frmtmb_family(
     "zero_inflated_asym_laplace",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma", "quantile", "zi"),
     links = list(mu = mu_link(link, "zero_inflated_asym_laplace"),
                  sigma = lk_sigma, quantile = lk_quantile,
@@ -3651,6 +3764,9 @@ fam_zi_asym_laplace <- function(link = "identity", link_sigma = "log",
         0.5 * (abs(u) + (2 * p - 1) * u)
       g <- dpar_log_complement(dpars, "zi", lk_zi)
       i0 * g$l + (1 - i0) * (g$l1m + ald)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      zi_asym_laplace_cdf_pair(q, dpars, aterms, lk_quantile, lk_zi)
     },
     init_dpars = list(
       mu = function(y, aterms) stats::median(y[y != 0]),
@@ -3801,7 +3917,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
   lk <- mu_link(link, "beta_binomial")
   frmtmb_family(
     "beta_binomial",
-    accepts_aterms = c("weights", "trials"),
+    accepts_aterms = c("weights", "trials", "cens", "trunc"),
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = lk_phi),
     lpdf = function(y, dpars, aterms) {
@@ -3812,6 +3928,9 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
       RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
                 mp$q * dpars[["phi"]],
                            log = TRUE)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      beta_binomial_cdf_pair(q, dpars, aterms, lk, "beta_binomial")
     },
     valid_y = function(y, aterms) {
       size <- aterm_trials(aterms, "beta_binomial")
@@ -3868,7 +3987,7 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
   lk <- mu_link(link, nm)
   frmtmb_family(
     nm,
-    accepts_aterms = c("weights", "trials"),
+    accepts_aterms = c("weights", "trials", "cens", "trunc"),
     dpars = c("mu", "phi", "zi"),
     links = list(mu = lk, phi = lk_phi, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
@@ -3881,6 +4000,9 @@ fam_zi_beta_binomial <- function(link = "logit", link_phi = "log",
       base <- RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
                                    mp$q * dpars[["phi"]], log = TRUE)
       i0 * RTMB::logspace_add(g$l, g$l1m + base) + (1 - i0) * (g$l1m + base)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      zi_beta_binomial_cdf_pair(q, dpars, aterms, lk, lk_zi)
     },
     valid_y = function(y, aterms) {
       size <- aterm_trials(aterms, nm)
@@ -3934,13 +4056,17 @@ fam_skew_normal <- function(link = "identity", link_sigma = "log",
   lk_alpha <- dpar_link(link_alpha, "alpha", "skew_normal", dpar_links_signed)
   frmtmb_family(
     "skew_normal",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma", "alpha"),
     links = list(mu = mu_link(link, "skew_normal"),
                  sigma = lk_sigma, alpha = lk_alpha),
     lpdf = function(y, dpars, aterms) {
       RTMBdist::dskewnorm2(y, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]],
                            log = TRUE)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      skew_normal_cdf_log(q, dpars[["mu"]], dpars[["sigma"]],
+                          dpars[["alpha"]])
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -3998,8 +4124,8 @@ fam_inverse_gaussian <- function(link = "1/mu^2", link_shape = "log") {
       RTMBdist::dinvgauss(y, mean = dpars[["mu"]], shape = dpars[["shape"]],
                           log = TRUE)
     },
-    lcdf = function(q, dpars, aterms) {
-      RTMBdist::pinvgauss(q, mean = dpars[["mu"]], shape = dpars[["shape"]])
+    cdf_log = function(q, dpars, aterms) {
+      inverse_gaussian_cdf_edges(q, dpars[["mu"]], dpars[["shape"]])
     },
     valid_y = positive_y("inverse.gaussian"),
     init_dpars = list(
@@ -4059,13 +4185,20 @@ fam_exgaussian <- function(link = "identity", link_sigma = "log",
   lk_beta <- dpar_link(link_beta, "beta", "exgaussian", dpar_links_positive)
   frmtmb_family(
     "exgaussian",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma", "beta"),
     links = list(mu = mu_link(link, "exgaussian"),
                  sigma = lk_sigma, beta = lk_beta),
     lpdf = function(y, dpars, aterms) {
-      RTMBdist::dexgauss(y, dpars[["mu"]] - dpars[["beta"]], dpars[["sigma"]],
-                         1 / dpars[["beta"]], log = TRUE)
+      # not RTMBdist::dexgauss(), which approximates from sigma / beta of
+      # about 20 on and is 0.16 wrong in the log density there
+      b <- dpars[["beta"]]
+      s <- dpars[["sigma"]]
+      exgauss_lx((y - dpars[["mu"]] + b) / s, s / b) - log(b)
+    },
+    cdf_log = function(q, dpars, aterms) {
+      exgaussian_cdf_log(q, dpars[["mu"]], dpars[["sigma"]],
+                         dpars[["beta"]])
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -7367,11 +7500,16 @@ fam_von_mises <- function(link = "tan_half", link_kappa = "log") {
   lk_kappa <- dpar_link(link_kappa, "kappa", "von_mises", dpar_links_positive)
   frmtmb_family(
     "von_mises",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "kappa"),
     links = list(mu = mu_link(link, "von_mises"), kappa = lk_kappa),
     lpdf = function(y, dpars, aterms) {
       RTMBdist::dvm(y, dpars[["mu"]], dpars[["kappa"]], log = TRUE)
+    },
+    # Stan's and brms's convention: F(y) = P(-pi <= Y <= y) on the
+    # response's own interval, wherever the mean direction is
+    cdf_log = function(q, dpars, aterms) {
+      von_mises_cdf_log(q, dpars[["mu"]], dpars[["kappa"]])
     },
     valid_y = function(y, aterms) {
       if (any(y < -pi) || any(y > pi)) {

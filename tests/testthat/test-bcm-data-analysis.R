@@ -376,11 +376,12 @@ test_that("Planes matches its Stan program", {
 #
 # A BAND of counts rather than a marginalization, and cens("interval")
 # is the grammar's word for it. All the core asks of the family is a
-# CDF, which the core binomial has not got and bcm_binomial_cdf()
-# supplies in four lines. frmtmb reads a discrete censoring bound as
-# INCLUSIVE, so the banded row scores F(25) - F(14) = P(15 <= Y <= 25),
-# which is the Stan program below exactly. weights() carries the 949
-# repeats.
+# CDF, which bcm_binomial_cdf() supplies in four lines and the core
+# binomial, which had none through 0.72.0, now supplies itself. frmtmb
+# reads a discrete interval as brms does, (y, y2], so the band 15 to 25
+# is the row z = 14, hi = 25, which scores F(25) - F(14) =
+# P(15 <= Y <= 25), the Stan program below exactly. weights() carries
+# the 949 repeats.
 #
 # The band used to be written into the family's own density, because
 # cens() refused every discrete family whatever CDF it supplied. See
@@ -388,7 +389,7 @@ test_that("Planes matches its Stan program", {
 # ---------------------------------------------------------------------
 
 bcm_chasasoon_data <- function() {
-  data.frame(z = c(30L, 15L), hi = c(NA_integer_, 25L),
+  data.frame(z = c(30L, 14L), hi = c(NA_integer_, 25L),
              cc = c("none", "interval"), w = c(1, 949), n = 50L)
 }
 
@@ -426,31 +427,34 @@ test_that("ChaSaSoon is a band of counts with a repeat count", {
 
 test_that("a band of one count is the ordinary binomial density", {
   skip_unless_bcm("binomial-extras.R")
-  # both ends of a discrete interval are included, so an interval whose
-  # ends agree IS the exact observation
-  d <- data.frame(z = c(5L, 7L), hi = c(5L, 7L), cc = "interval",
+  # the interval (k - 1, k] holds the count k alone, so it IS the exact
+  # observation
+  d <- data.frame(z = c(4L, 6L), hi = c(5L, 7L), cc = "interval",
                   w = 1, n = 10L)
   band <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
               data = d)
-  plain <- frm(z | trials(n) ~ 1, family = binomial(), data = d)
+  plain <- frm(z | trials(n) ~ 1, family = binomial(),
+               data = transform(d, z = hi))
   expect_equal(as.numeric(logLik(band)), as.numeric(logLik(plain)),
                tolerance = 1e-8)
 })
 
-test_that("cens() still needs a CDF, and the core binomial has none", {
+test_that("the core binomial censors ChaSaSoon as bcm_binomial_cdf() does", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_chasasoon_data()
-  # the gate that remains, and the one the port always agreed with
-  expect_error(
-    frm(z | trials(n) + cens(cc, hi) + weights(w) ~ 1,
-        family = binomial(), data = d),
-    "family with a CDF")
-  # a family that supplies one is admitted, discrete or not
-  expect_silent(
-    frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(), data = d))
+  # through frmtmb 0.72.0 the core binomial had no CDF and refused this
+  # with "need a family with a CDF"; the four-line custom family was the
+  # way through, and the two now give one likelihood
+  core <- frm(z | trials(n) + cens(cc, hi) + weights(w) ~ 1,
+              family = binomial(), data = d)
+  own <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(), data = d)
+  expect_equal(as.numeric(logLik(core)), as.numeric(logLik(own)),
+               tolerance = 1e-8)
+  expect_equal(unname(fixef_by_dpar(core)$mu), unname(fixef_by_dpar(own)$mu),
+               tolerance = 1e-6)
 })
 
-test_that("ChaSaSoon's band is the inclusive interval, by hand", {
+test_that("ChaSaSoon's band is the interval (14, 25], by hand", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_chasasoon_data()
   fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),

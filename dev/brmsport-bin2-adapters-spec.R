@@ -118,7 +118,14 @@ brms_g1_names <- c(
   "dhurdle_lognormal",
   # lane bin2port: 0.71.0's extreme-value families
   "dfrechet", "pfrechet", "rfrechet", "dgen_extreme_value",
-  "pgen_extreme_value", "rgen_extreme_value")
+  "pgen_extreme_value", "rgen_extreme_value",
+  # lane cdfs: the p functions of the families that gained a CDF
+  "pstudent_t", "pvon_mises", "pskew_normal", "pexgaussian",
+  "pbeta_binomial", "pasym_laplace", "pzero_inflated_poisson",
+  "pzero_inflated_negbinomial", "pzero_inflated_binomial",
+  "pzero_inflated_beta_binomial", "pzero_inflated_beta",
+  "phurdle_poisson", "phurdle_negbinomial", "phurdle_gamma",
+  "phurdle_lognormal")
 brms_g2_cat_names <- c("dcategorical", "inv_link_categorical")
 
 # What a pass asserts, read from brms's assertion text: a shape, length,

@@ -115,10 +115,13 @@ test_that("string interval censoring matches its numeric code", {
 test_that("cens/trunc validation", {
   dd <- data.frame(y = rpois(50, 3), x = rnorm(50), cen = 0)
   # a discrete family is admitted on the CDF it supplies, so poisson
-  # fits and negbinomial, which carries none, is refused for that
+  # and negbinomial fit and nbinom1, which carries none, is refused for
+  # that (brms has no nbinom1 to say otherwise)
   expect_s3_class(frm(bf(y | cens(cen) ~ x) + poisson(), data = dd),
                   "frmtmb_fit")
-  expect_error(frm(bf(y | cens(cen) ~ x) + negbinomial(), data = dd),
+  expect_s3_class(frm(bf(y | cens(cen) ~ x) + negbinomial(), data = dd),
+                  "frmtmb_fit")
+  expect_error(frm(bf(y | cens(cen) ~ x) + nbinom1(), data = dd),
                "family with a CDF")
   dd2 <- data.frame(y = rnorm(50), x = rnorm(50), cen = 3)
   expect_error(frm(bf(y | cens(cen) ~ x) + gaussian(), data = dd2),
@@ -153,11 +156,11 @@ test_that("unusable censoring labels error informatively", {
 })
 
 # ---------------------------------------------------------------------
-# Discrete censoring. A bound NAMES a value the response can take and is
-# INCLUDED: right censoring at k is Y >= k, an interval is
-# k <= Y <= k2, and left censoring at k is Y <= k. Equivalently every
-# LOWER edge enters the CDF as F(edge - 1), which is the shift
-# trunc(lb = ) has always applied.
+# Discrete censoring and truncation are brms 2.23.0's, term for term:
+# right censoring at k is Y > k, left censoring at k is Y <= k, an
+# interval is k < Y <= k2, and only trunc(lb = ) is inclusive, through
+# F(lb - 1). Through frmtmb 0.72.0 every censoring lower edge was
+# inclusive instead.
 # ---------------------------------------------------------------------
 
 disc_cens_data <- function(seed = 707, n = 240, lam = 5) {
@@ -176,18 +179,20 @@ disc_cens_data <- function(seed = 707, n = 240, lam = 5) {
   data.frame(y = y, y2 = y2, cc = code)
 }
 
-disc_cens_ll <- function(d, m) {
+# brms's reading; `incl = TRUE` is the inclusive one this replaced
+disc_cens_ll <- function(d, m, incl = FALSE) {
+  s <- if (incl) 1 else 0
   ll <- numeric(nrow(d))
   i_o <- d$cc == "none"
   i_r <- d$cc == "right"
   i_l <- d$cc == "left"
   i_i <- d$cc == "interval"
   ll[i_o] <- stats::dpois(d$y[i_o], m, log = TRUE)
-  ll[i_r] <- stats::ppois(d$y[i_r] - 1, m, lower.tail = FALSE,
+  ll[i_r] <- stats::ppois(d$y[i_r] - s, m, lower.tail = FALSE,
                           log.p = TRUE)
   ll[i_l] <- stats::ppois(d$y[i_l], m, log.p = TRUE)
   ll[i_i] <- log(stats::ppois(d$y2[i_i], m) -
-                   stats::ppois(d$y[i_i] - 1, m))
+                   stats::ppois(d$y[i_i] - s, m))
   sum(ll)
 }
 
@@ -212,23 +217,19 @@ test_that("all four discrete censoring codes match a hand-rolled likelihood", {
   }
 })
 
-test_that("the discrete convention is NOT the continuous one", {
-  # the difference is the point mass at the recorded value, and it is
-  # large enough to move the estimate: this is what the old blanket
-  # refusal of discrete families was standing in for
+test_that("the discrete convention is brms's, not the inclusive one", {
+  # the two readings differ by the point mass at the recorded value,
+  # which is large enough to move the estimate
   d <- disc_cens_data()
   d <- d[d$cc %in% c("none", "right"), ]
   fit <- frm(y | cens(cc) ~ 1, family = poisson(), data = d)
   mu <- exp(unname(fixef_by_dpar(fit)$mu))
-  i_r <- d$cc == "right"
-  excl <- sum(stats::dpois(d$y[!i_r], mu, log = TRUE)) +
-    sum(stats::ppois(d$y[i_r], mu, lower.tail = FALSE, log.p = TRUE))
   expect_equal(as.numeric(logLik(fit)), disc_cens_ll(d, mu),
                tolerance = 1e-10)
-  expect_gt(as.numeric(logLik(fit)) - excl, 1)
+  expect_gt(disc_cens_ll(d, mu, incl = TRUE) - as.numeric(logLik(fit)), 1)
 })
 
-test_that("discrete cens() composes with trunc() on one convention", {
+test_that("a right-censored count under trunc(lb = ) alone is brms's row", {
   d <- disc_cens_data()
   d <- d[d$cc %in% c("none", "right") & d$y >= 2, ]
   fit <- frm(y | cens(cc) + trunc(lb = 2) ~ 1, family = poisson(),
@@ -237,41 +238,41 @@ test_that("discrete cens() composes with trunc() on one convention", {
   i_r <- d$cc == "right"
   ll <- numeric(nrow(d))
   ll[!i_r] <- stats::dpois(d$y[!i_r], mu, log = TRUE)
-  ll[i_r] <- stats::ppois(d$y[i_r] - 1, mu, lower.tail = FALSE,
-                          log.p = TRUE)
-  # one window, one rule: F(lb - 1) for the normalizer as for the rows
-  ref <- sum(ll) - nrow(d) * log(1 - stats::ppois(1, mu))
+  ll[i_r] <- stats::ppois(d$y[i_r], mu, lower.tail = FALSE, log.p = TRUE)
+  # the window is P(Y >= 2), F(lb - 1) for the inclusive lower bound
+  ref <- sum(ll) - nrow(d) * stats::ppois(1, mu, lower.tail = FALSE,
+                                          log.p = TRUE)
   expect_equal(as.numeric(logLik(fit)), ref, tolerance = 1e-10)
 })
 
-test_that("a one-point discrete interval is the exact observation", {
+test_that("a one-point discrete interval is an event of probability zero", {
   set.seed(708)
   d <- data.frame(y = stats::rpois(200, 4))
   d$y2 <- d$y
   d$cc <- "interval"
-  band <- frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d)
-  plain <- frm(y ~ 1, family = poisson(), data = d)
-  expect_equal(as.numeric(logLik(band)), as.numeric(logLik(plain)),
-               tolerance = 1e-10)
-  # on a continuous response the same interval has probability zero
+  expect_error(frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d),
+               "must exceed the lower bounds")
   dc <- data.frame(y = rnorm(50), cc = "interval")
   dc$y2 <- dc$y
   expect_error(frm(y | cens(cc, y2) ~ 1, family = gaussian(), data = dc),
                "must exceed the lower bounds")
 })
 
-test_that("a non-integer discrete censoring bound is refused by name", {
+test_that("a fractional discrete bound is refused by name", {
   set.seed(709)
-  d <- data.frame(y = stats::rpois(60, 4), cc = "none")
-  d$cc[1:10] <- "right"
-  d$y <- d$y + 0.5
-  expect_error(frm(y | cens(cc) ~ 1, family = poisson(), data = d),
-               "support is the integers")
+  d <- data.frame(y = stats::rpois(60, 4), cc = "none", y2 = NA_real_)
+  d$cc[1:10] <- "interval"
+  d$y2[1:10] <- d$y[1:10] + 2.5
+  expect_error(frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d),
+               "must be a whole number")
+  d <- data.frame(y = stats::rpois(60, 4) + 2)
+  expect_error(frm(y | trunc(lb = 1.5) ~ 1, family = poisson(), data = d),
+               "must be a whole number")
 })
 
 test_that("a custom discrete family with a CDF is censored too", {
-  # the point of the change: what admits a family is the CDF it
-  # supplies, not the type it declares
+  # what admits a family is the CDF it supplies, not the type it
+  # declares; this one has a probability-scale lcdf alone
   pois_cdf <- frmtmb_family(
     "pois_cdf", dpars = "mu", links = list(mu = "log"),
     type = "discrete", accepts_aterms = c("weights", "cens", "trunc"),
@@ -300,7 +301,7 @@ test_that("a custom discrete family with a CDF is censored too", {
 test_that("osa residuals are refused on a censored discrete fit", {
   set.seed(710)
   d <- data.frame(y = stats::rpois(200, 4))
-  d$cc <- ifelse(d$y >= 7, "right", "none")
+  d$cc <- ifelse(d$y > 7, "right", "none")
   d$y <- pmin(d$y, 7)
   fit <- frm(y | cens(cc) ~ 1, family = poisson(), data = d)
   expect_error(residuals(fit, type = "osa"),
@@ -309,142 +310,165 @@ test_that("osa residuals are refused on a censored discrete fit", {
   expect_true(all(is.finite(residuals(fit, type = "response")[, "Estimate"])))
 })
 
-test_that("a discrete row censored at the support minimum is free", {
-  # right censoring at 0 says "0 or more", which is P(Y >= 0) = 1 and
-  # no information at all. The shift reads F(-1), so this is also the
-  # test that the CDF is evaluated below the support without harm.
+test_that("a count left-censored at the support minimum is P(Y = 0)", {
+  # left censoring at 0 is P(Y <= 0), the mass at zero itself; brms
+  # reads it the same way
   set.seed(711)
   d <- data.frame(y = stats::rpois(120, 2))
-  d$cc <- ifelse(d$y == 0, "right", "none")
-  expect_gt(sum(d$cc == "right"), 5)
-  fit <- suppressWarnings(frm(y | cens(cc) ~ 1, family = poisson(),
-                              data = d))
-  mu <- exp(unname(fixef_by_dpar(fit)$mu))
-  obs <- d$cc == "none"
-  expect_equal(as.numeric(logLik(fit)),
-               sum(stats::dpois(d$y[obs], mu, log = TRUE)),
+  d$cc <- ifelse(d$y == 0, "left", "none")
+  expect_gt(sum(d$cc == "left"), 5)
+  fit <- frm(y | cens(cc) ~ 1, family = poisson(), data = d)
+  plain <- frm(y ~ 1, family = poisson(), data = d)
+  expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(plain)),
                tolerance = 1e-10)
 })
 
-# ---------------------------------------------------------------------
-# The inclusive discrete convention announces itself ONCE per session.
-# It is the one place frmtmb answers a ported brms model with a
-# different number, and nothing at the call site said so. The suite
-# runs with the notice off (setup.R), so a test that wants it turns it
-# on and clears the session state first.
-# ---------------------------------------------------------------------
+test_that("trunc(lb <= 0) on a count is no truncation, as in brms", {
+  set.seed(712)
+  d <- data.frame(x = stats::rnorm(150))
+  d$y <- stats::rpois(150, exp(0.8 + 0.3 * d$x))
+  plain <- frm(y ~ x, family = poisson(), data = d)
+  zero <- frm(y | trunc(lb = 0) ~ x, family = poisson(), data = d)
+  expect_equal(as.numeric(logLik(zero)), as.numeric(logLik(plain)),
+               tolerance = 1e-10)
+  # per row: 0 and -2 are absent, 1 is P(Y >= 1), and an infinite lower
+  # bound is absent too
+  d$lb <- ifelse(d$y >= 1, rep_len(c(-2, 0, 1), 150), 0)
+  d$ub <- Inf
+  fit <- frm(y | trunc(lb = lb, ub = ub) ~ x, family = poisson(), data = d)
+  mu <- frmtmb:::eval_dpars(fit)[[1]]$mu
+  ref <- sum(stats::dpois(d$y, mu, log = TRUE) -
+               ifelse(d$lb >= 1, stats::ppois(d$lb - 1, mu,
+                                              lower.tail = FALSE,
+                                              log.p = TRUE), 0))
+  expect_equal(as.numeric(logLik(fit)), ref, tolerance = 1e-10)
+  inf <- frm(y | trunc(lb = -Inf, ub = 30) ~ x, family = poisson(),
+             data = d)
+  mu <- frmtmb:::eval_dpars(inf)[[1]]$mu
+  expect_equal(as.numeric(logLik(inf)),
+               sum(stats::dpois(d$y, mu, log = TRUE) -
+                     stats::ppois(30, mu, log.p = TRUE)),
+               tolerance = 1e-10)
+})
 
-arm_cens_notice <- function(env = parent.frame()) {
-  withr::local_options(frmtmb.notices = TRUE, .local_envir = env)
-  # the notices given before this test are put back afterwards rather
-  # than cleared, so a later file sees the session it would have seen
-  local_frmtmb_registries(env)
+test_that("an infinite truncation bound is absent and fits", {
+  # through frmtmb 0.72.0 trunc(lb = -Inf, ub = Inf)
+  # stopped on a NaN gradient from dnorm(-Inf) * Inf
+  set.seed(713)
+  d <- data.frame(x = stats::rnorm(120))
+  d$y <- 1 + 0.5 * d$x + stats::rnorm(120)
+  plain <- frm(y ~ x, family = gaussian(), data = d)
+  open <- frm(y | trunc(lb = -Inf, ub = Inf) ~ x, family = gaussian(),
+              data = d)
+  expect_equal(as.numeric(logLik(open)), as.numeric(logLik(plain)),
+               tolerance = 1e-10)
+})
+
+test_that("the trunc() window check refuses lb >= ub and admits the bounds", {
+  set.seed(714)
+  d <- data.frame(y = stats::rpois(80, 4) + 1)
+  expect_error(frm(y | trunc(lb = 5, ub = 5) ~ 1, family = poisson(),
+                   data = d[d$y == 5, , drop = FALSE]),
+               "lb >= ub")
+  expect_error(frm(y | trunc(lb = 6, ub = 2) ~ 1, family = gaussian(),
+                   data = data.frame(y = c(3, 4, 5))),
+               "lb >= ub")
+  # a response ON either bound is inside the window, on a count and on a
+  # continuous response, and the check is absent there
+  lo <- min(d$y)
+  hi <- max(d$y)
+  fit <- frm(y | trunc(lb = lo, ub = hi) ~ 1, family = poisson(),
+             data = cbind(d, lo = lo, hi = hi))
+  expect_s3_class(fit, "frmtmb_fit")
+  mu <- exp(unname(fixef_by_dpar(fit)$mu))
+  expect_equal(as.numeric(logLik(fit)),
+               sum(stats::dpois(d$y, mu, log = TRUE)) -
+                 nrow(d) * log(stats::ppois(hi, mu) - stats::ppois(lo - 1, mu)),
+               tolerance = 1e-10)
+  # enough rows that the window's two parameters are well determined:
+  # on five rows the fit stopped at false convergence under OpenBLAS
+  dg <- data.frame(y = c(-1, 2, seq(-0.9, 1.9, length.out = 40)))
+  fg <- frm(y | trunc(lb = -1, ub = 2) ~ 1, family = gaussian(), data = dg)
+  expect_equal(fg$opt$convergence, 0L)
+  expect_error(frm(y | trunc(lb = 0) ~ 1, family = gaussian(), data = dg),
+               paste0("outside of the truncation bounds: ", sum(dg$y < 0),
+                      " of ", nrow(dg), " rows"))
+})
+
+test_that("discrete censoring gives no notice: it is brms's reading", {
+  # the once-per-session notice of the inclusive reading is gone, with
+  # the divergence it announced
+  withr::local_options(frmtmb.notices = TRUE)
+  local_frmtmb_registries()
   st <- frmtmb:::frmtmb_notice_state
   rm(list = ls(envir = st, all.names = TRUE), envir = st)
-}
-
-# messages only: a censored fit may also warn, and expect_silent()
-# would fail on the warning rather than on the notice
-notice_msgs <- function(expr) {
+  d <- disc_cens_data()
   got <- character(0)
   withCallingHandlers(
-    suppressWarnings(force(expr)),
+    frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d),
     message = function(m) {
       got <<- c(got, conditionMessage(m))
       invokeRestart("muffleMessage")
     })
-  got
-}
-
-pois_right_data <- function(seed = 720, n = 150, k = 6) {
-  set.seed(seed)
-  d <- data.frame(y = stats::rpois(n, 4))
-  d$cc <- ifelse(d$y >= k, "right", "none")
-  d$y <- pmin(d$y, k)
-  d
-}
-
-test_that("discrete right censoring announces the convention once", {
-  arm_cens_notice()
-  d <- pois_right_data()
-  m1 <- notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(), data = d))
-  expect_length(grep("INCLUSIVE", m1), 1)
-  # what it says: the rule, the divergence, the remedy, where the
-  # argument lives, and how to turn it off
-  expect_match(m1[[1]], "P[(]Y >= k[)]")
-  expect_match(m1[[1]], "brms")
-  expect_match(m1[[1]], "subtract one")
-  expect_match(m1[[1]], "brms-migration")
-  expect_match(m1[[1]], "frmtmb.notices")
-  # the second fit in the same session is silent
-  m2 <- notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(), data = d))
-  expect_length(m2, 0)
+  expect_length(got, 0)
 })
 
-test_that("interval censoring on a count announces it too", {
-  arm_cens_notice()
-  d <- disc_cens_data()
-  d <- d[d$cc %in% c("none", "interval"), ]
-  m <- notice_msgs(frm(y | cens(cc, y2) ~ 1, family = poisson(),
-                       data = d))
-  expect_length(grep("INCLUSIVE", m), 1)
+test_that("a censored row under both trunc() bounds is the event inside the window", {
+  # frmtmb's composition, not brms 2.23.0's: brms divides P(Y > y) or
+  # P(Y <= y), the event over the whole line, by the window's mass
+  # (brms-33), and differs by 6.16 and 14.85 on a poisson and a
+  # negative binomial in trunc(lb = 2, ub = 9)
+  set.seed(716)
+  d <- data.frame(y = stats::rpois(300, 4))
+  d <- d[d$y >= 2 & d$y <= 9, , drop = FALSE]
+  # a right-censored row at ub would be the empty event (9, 9]
+  d$cc <- ifelse(d$y %in% 7:8, 1, ifelse(d$y <= 3, -1, 0))
+  fit <- frm(y | cens(cc) + trunc(lb = 2, ub = 9) ~ 1, family = poisson(),
+             data = d)
+  mu <- exp(unname(fixef_by_dpar(fit)$mu))
+  Fp <- function(q) stats::ppois(q, mu)
+  Z <- Fp(9) - Fp(1)
+  ll <- ifelse(d$cc == 1, log(Fp(9) - Fp(d$y)),
+               ifelse(d$cc == -1, log(Fp(d$y) - Fp(1)),
+                      stats::dpois(d$y, mu, log = TRUE))) - log(Z)
+  expect_equal(as.numeric(logLik(fit)), sum(ll), tolerance = 1e-10)
+  whole <- ifelse(d$cc == 1, stats::ppois(d$y, mu, lower.tail = FALSE,
+                                          log.p = TRUE),
+                  ifelse(d$cc == -1, log(Fp(d$y)),
+                         stats::dpois(d$y, mu, log = TRUE))) - log(Z)
+  expect_gt(sum(whole) - sum(ll), 1)
+  # and on a continuous response
+  set.seed(717)
+  g <- data.frame(y = stats::rnorm(400, 1, 1.5))
+  g <- g[g$y > -1 & g$y < 3, , drop = FALSE]
+  g$cc <- ifelse(g$y > 2.5, 1, ifelse(g$y < -0.5, -1, 0))
+  g$y <- pmin(pmax(g$y, -0.5), 2.5)
+  fg <- frm(y | cens(cc) + trunc(lb = -1, ub = 3) ~ 1, family = gaussian(),
+            data = g)
+  m <- unname(fixef_by_dpar(fg)$mu)
+  s <- exp(unname(fixef_by_dpar(fg)$sigma))
+  P <- function(q) stats::pnorm(q, m, s)
+  Zg <- P(3) - P(-1)
+  lg <- ifelse(g$cc == 1, log(P(3) - P(g$y)),
+               ifelse(g$cc == -1, log(P(g$y) - P(-1)),
+                      stats::dnorm(g$y, m, s, log = TRUE))) - log(Zg)
+  expect_equal(as.numeric(logLik(fg)), sum(lg), tolerance = 1e-10)
 })
 
-test_that("the notice fires only where the two packages disagree", {
-  # left censoring on a count: P(Y <= k) in both packages
-  arm_cens_notice()
-  set.seed(721)
-  dl <- data.frame(y = stats::rpois(150, 4))
-  dl$cc <- ifelse(dl$y <= 2, "left", "none")
-  dl$y <- pmax(dl$y, 2)
-  expect_length(notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(),
-                                data = dl)), 0)
-
-  # a continuous response: an endpoint carries no mass, so the two
-  # conventions coincide
-  set.seed(722)
-  dg <- data.frame(y = stats::rnorm(150, 1, 1))
-  dg$cc <- ifelse(dg$y > 1.5, "right", "none")
-  dg$y <- pmin(dg$y, 1.5)
-  expect_length(notice_msgs(frm(y | cens(cc) ~ 1, family = gaussian(),
-                                data = dg)), 0)
-
-  # truncation alone: the inclusive lower bound there is brms's own
-  set.seed(723)
-  dt <- data.frame(y = stats::rpois(150, 6))
-  dt <- dt[dt$y >= 2, , drop = FALSE]
-  expect_length(notice_msgs(frm(y | trunc(lb = 2) ~ 1,
-                                family = poisson(), data = dt)), 0)
-
-  # and the notice is still unspent, so it was not merely suppressed
-  d <- pois_right_data()
-  expect_length(grep("INCLUSIVE",
-                     notice_msgs(frm(y | cens(cc) ~ 1,
-                                     family = poisson(), data = d))), 1)
-})
-
-test_that("the notice is suppressible two ways", {
-  d <- pois_right_data()
-  arm_cens_notice()
-  expect_length(notice_msgs(suppressMessages(
-    frm(y | cens(cc) ~ 1, family = poisson(), data = d))), 0)
-
-  arm_cens_notice()
-  withr::local_options(frmtmb.notices = FALSE)
-  expect_length(notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(),
-                                data = d)), 0)
-})
-
-test_that("a refused fit does not spend the session's one notice", {
-  arm_cens_notice()
-  d <- disc_cens_data()
-  d2 <- d
-  # a half-integer INTERVAL bound: the response is still a count, so
-  # this is refused by the guard the notice sits behind
-  d2$y2[which(d2$cc == "interval")[[1]]] <- 9.5
-  expect_error(frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d2),
-               "censoring bound must be")
-  expect_length(grep("INCLUSIVE",
-                     notice_msgs(frm(y | cens(cc, y2) ~ 1,
-                                     family = poisson(), data = d))), 1)
+test_that("a count censored right at its trials is refused by name", {
+  # P(Y > n) = 0 for a count out of n trials; brms 2.23.0 accepts the
+  # row, its log density is -Inf, and it makes no draw
+  set.seed(718)
+  d <- data.frame(y = stats::rbinom(40, 5, 0.4), tr = 5, cc = 0)
+  d$y[1] <- 5
+  d$cc[1] <- 1
+  expect_error(frm(y | trials(tr) + cens(cc) ~ 1, family = binomial(),
+                   data = d), "probability zero")
+  expect_error(frm(y | trials(tr) + cens(cc) ~ 1, family = beta_binomial(),
+                   data = d), "probability zero")
+  # left censoring at 0 is P(Y = 0), which is possible, and fits
+  d$y[1] <- 0
+  d$cc[1] <- -1
+  fit <- frm(y | trials(tr) + cens(cc) ~ 1, family = binomial(), data = d)
+  expect_true(is.finite(as.numeric(logLik(fit))))
 })

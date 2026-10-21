@@ -154,10 +154,12 @@ test_that("links, responses and options brms refuses are refused by name", {
 })
 
 test_that("cens(), trunc(), cs() with thres(gr = ) and osa are refused", {
+  # zero_inflated_beta_binomial gained a CDF and takes cens(), as in
+  # brms 2.23.0; xbeta has none, and brms refuses both terms on it
   d <- sim_zibb(1, n = 60)
-  expect_error(frm(bf(y | trials(tr) + cens(x > 1) ~ x),
-                   family = zero_inflated_beta_binomial(), data = d),
-               "need a family with a CDF")
+  fz <- frm(bf(y | trials(tr) + cens(x > 1) ~ x),
+            family = zero_inflated_beta_binomial(), data = d)
+  expect_s3_class(fz, "frmtmb_fit")
   dx <- sim_xbeta(2, n = 80)
   expect_error(frm(bf(y | trunc(ub = 0.9) ~ x), family = xbeta(), data = dx),
                "need a family with a CDF")

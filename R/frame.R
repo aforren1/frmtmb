@@ -2751,15 +2751,36 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         !is.null(av[["cens"]]) && all(av[["cens"]] %in% c(0, 1))
       if (is.null(resp$family[["lcdf"]]) &&
           !(right_only && !is.null(resp$family[["lccdf"]]))) {
-        frm_stop("cens()/trunc() need a family with a CDF (currently: ",
-                 "gaussian, lognormal, poisson, exponential, weibull, ",
-                 "inverse.gaussian, cox, frechet, gen_extreme_value, ",
-                 "discrete_weibull). The list is not closed: a family ",
-                 "supplies one through the lcdf argument of ",
+        # the families that have one are a registry query, not a list
+        # this message has to keep current; it names the term the model
+        # used
+        term <- if (is.null(av[["cens"]])) "trunc()" else "cens()"
+        frm_stop("cens()/trunc() need a family with a CDF, and '",
+                 resp$family[["family"]], "' supplies none; ",
+                 "frm_compat(\"", term, "\") lists the families that do. A ",
+                 "family supplies one through the lcdf argument of ",
                  "frmtmb_family(), and a family that only ever sees RIGHT ",
                  "censoring may supply the log survivor function through ",
                  "lccdf instead", call. = FALSE,
                  package = frm_family_package(resp$family))
+      }
+      # brms's own two checks. A response outside its window is a row the
+      # truncated likelihood says could not have been observed; scored
+      # anyway it is a density divided by a window it lies outside, and
+      # on a hurdle family the zeros below trunc(lb = 1) drove hu to one
+      # and the fit to a NaN gradient instead of a refusal
+      if (!is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]])) {
+        lbv <- av[["trunc_lb"]] %||% -Inf
+        ubv <- av[["trunc_ub"]] %||% Inf
+        if (any(lbv >= ubv)) {
+          frm_stop("Truncation bounds are invalid: lb >= ub", call. = FALSE)
+        }
+        yv <- y[[resp$resp_name]]
+        if (isTRUE(any(yv < lbv | yv > ubv))) {
+          frm_stop("Some responses are outside of the truncation bounds: ",
+                   sum(yv < lbv | yv > ubv, na.rm = TRUE), " of ",
+                   length(yv), " rows", call. = FALSE)
+        }
       }
       if (!is.null(av[["cens"]]) && !all(av[["cens"]] %in% c(-1, 0, 1, 2))) {
         frm_stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
@@ -2768,37 +2789,45 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  paste(unique(av[["cens"]][!av[["cens"]] %in% c(-1, 0, 1, 2)]),
                        collapse = ", "), call. = FALSE)
       }
-      # The discrete censoring convention (see row_lpdf() in
-      # R/objective.R, where it is the arithmetic). A bound on a count
-      # NAMES a value the response can take and is INCLUDED: right
-      # censoring at k is Y >= k, an interval is k <= Y <= k2, and left
-      # censoring at k is Y <= k. That is the rule trunc(lb = ) already
-      # follows, so one number means one thing on a response however it
-      # is bounded, and it is what "5 or more" means where a count was
-      # recorded that way.
-      #
-      # It reads a lower edge as F(edge - 1), so it assumes the support
-      # is the unit integer lattice. A family whose support is not that
-      # would be shifted onto a point it has no mass at, silently, so a
-      # non-integer edge is refused here rather than rounded there.
-      if (!is.null(av[["cens"]]) &&
-          identical(resp$family[["type"]], "discrete")) {
+      # A discrete bound is read on the integer lattice, as brms reads
+      # it: right censoring at k is P(Y > k) = 1 - F(k), an interval is
+      # P(k < Y <= k2), and trunc(lb = k) is P(Y >= k) through F(k - 1).
+      # A fractional bound would be scored as its floor, silently, so
+      # it is refused instead.
+      if (identical(resp$family[["type"]], "discrete")) {
         yv <- y[[resp$resp_name]]
-        i_c <- which(av[["cens"]] != 0)
-        edges <- c(yv[i_c],
-                   if (!is.null(av[["cens_y2"]])) {
-                     av[["cens_y2"]][av[["cens"]] == 2]
-                   })
-        edges <- edges[!is.na(edges)]
+        edges <- c(if (!is.null(av[["cens"]])) {
+                     c(yv[av[["cens"]] != 0],
+                       if (!is.null(av[["cens_y2"]])) {
+                         av[["cens_y2"]][av[["cens"]] == 2]
+                       })
+                   },
+                   av[["trunc_lb"]], av[["trunc_ub"]])
+        edges <- edges[is.finite(edges)]
         if (length(edges) && any(edges != round(edges))) {
-          frm_stop("cens() on a discrete family reads every bound as a ",
-                   "value the response can take: right censoring at k is ",
-                   "Y >= k, an interval is k <= Y <= k2, and a lower bound ",
-                   "enters the CDF as F(k - 1). That step assumes the ",
-                   "support is the integers, so a censoring bound must be ",
-                   "one; got ",
+          frm_stop("cens() and trunc() on a discrete family read every ",
+                   "bound as a count, so a bound must be a whole number; ",
+                   "got ",
                    paste(utils::head(unique(edges[edges != round(edges)]), 3),
                          collapse = ", "), call. = FALSE)
+        }
+        # a count out of n trials has nothing above n, so a row censored
+        # right (or the bottom of an interval) at its trials is an event
+        # of probability zero. brms 2.23.0 accepts it, its log density is
+        # -Inf, and no draw is made (dev/cdfs-fix2-brms-top.R); here it is
+        # refused by name instead of fitted at -Inf
+        tr <- av[["trials"]]
+        if (!is.null(av[["cens"]]) && !is.null(tr)) {
+          top <- av[["cens"]] %in% c(1, 2) & yv >= rep_len(tr, length(yv))
+          if (any(top, na.rm = TRUE)) {
+            frm_stop("cens(): ", sum(top, na.rm = TRUE), " right- or ",
+                     "interval-censored row(s) lie at or above their ",
+                     "trials. A count out of n trials cannot exceed n, so ",
+                     "the event Y > y has probability zero there and the ",
+                     "likelihood would be -Inf, as it is in brms. A row ",
+                     "recorded at its trials is an observed count (code 0)",
+                     call. = FALSE)
+          }
         }
       }
       if (!is.null(av[["cens"]]) && any(av[["cens"]] == 2)) {
@@ -2812,19 +2841,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                    "rows", call. = FALSE)
         }
         yv <- y[[resp$resp_name]]
-        # A discrete interval includes both ends, so one whose ends
-        # agree is the exact observation P(Y = y) = F(y) - F(y - 1) and
-        # is a legitimate way to write a row that happens to be known.
-        # On a continuous response that same interval is an event of
-        # probability zero, so it stays refused.
-        if (identical(resp$family[["type"]], "discrete")) {
-          if (any(av[["cens_y2"]][i2] < yv[i2])) {
-            frm_stop("Interval upper bounds (y2) must be at least the lower ",
-                     "bounds (the response). Both ends of a discrete ",
-                     "interval are included, so y2 == y is the exact ",
-                     "observation and is allowed", call. = FALSE)
-          }
-        } else if (any(av[["cens_y2"]][i2] <= yv[i2])) {
+        # an interval (y, y2] whose ends agree is an event of probability
+        # zero, on a count as on a continuous response
+        if (any(av[["cens_y2"]][i2] <= yv[i2])) {
           frm_stop("Interval upper bounds (y2) must exceed the lower bounds ",
                    "(the response)", call. = FALSE)
         }
@@ -2832,35 +2851,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # harmless for the taped CDF evaluation
         av[["cens_y2"]][!i2 | is.na(av[["cens_y2"]])] <-
           yv[!i2 | is.na(av[["cens_y2"]])]
-      }
-      # RIGHT and INTERVAL censoring of a count is where the inclusive
-      # reading DIVERGES from brms, which emits P(Y > y) for both. Left
-      # censoring and continuous censoring agree exactly, so neither
-      # says anything here, and neither does truncation alone. A model
-      # ported from brms otherwise changes its answer with nothing at
-      # the call site to say so: on 200 poisson draws at lambda = 4
-      # right censored at 6 the two readings differ by 21.8 to 33.3 log
-      # units, median 29.4 over 40 seeds, about 0.66 per censored row.
-      # The 20.8 the 0.54.0 NEWS gives for the same setup is below
-      # every one of those 40 draws, so it is not the figure to quote.
-      # Last of the CENSORING guards, so a bad bound does not spend the
-      # one notice a session gets. A refusal raised after this point
-      # still spends it: se() on the same response, or anything the
-      # fit refuses later, such as a prior on a class the model has
-      # not got. Measured both ways.
-      if (!is.null(av[["cens"]]) && any(av[["cens"]] %in% c(1, 2)) &&
-          identical(resp$family[["type"]], "discrete")) {
-        notify_once(
-          "cens_discrete_inclusive",
-          "cens() on a discrete response reads every bound as ",
-          "INCLUSIVE: right censoring at k is P(Y >= k), an interval ",
-          "is P(k <= Y <= k2), and a lower edge enters the CDF as ",
-          "F(k - 1). brms reads a RIGHT or INTERVAL bound on a count ",
-          "as exclusive, P(Y > y), so subtract one from those bounds ",
-          "to reproduce a brms fit. Left censoring and continuous ",
-          "censoring agree in both packages. The argument is in ",
-          "vignette(\"brms-migration\"). This notice is given once ",
-          "per session; options(frmtmb.notices = FALSE) turns it off.")
       }
     }
     if (!is.null(av[["se"]])) {

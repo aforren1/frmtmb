@@ -412,11 +412,12 @@ brms_adapt_brms_skip <- function(why) invisible(why)
 # frmtmb has, answered by the same thin read as the ordinal densities.
 # Each shim keeps brms's signature, maps its arguments onto the frmtmb
 # family's dpars (and trials), and calls row_lpdf() or sim_draw(); the
-# density and the draw are frmtmb's. Only pinv_gaussian() has a p shim:
-# inverse.gaussian is the one family here with a CDF, reached as
-# row_lpdf() of a left-censored row (log F). The other p, and every q,
-# function is left unbound, so its row records "could not find
-# function" and takes its verdict from dev/brmsport-bin2-verdicts-2p.R.
+# density and the draw are frmtmb's. A p shim reads the family's CDF as
+# row_lpdf() of a left-censored row (log F) or a right-censored one
+# (log S): pinv_gaussian() here, and since lane cdfs the p functions of
+# brms_cdfs_shims below. Every q function is left unbound, so its row
+# records "could not find function" and takes its verdict from
+# dev/brmsport-bin2-verdicts-2p.R.
 brms_g1_d <- function(fun, x, dp, av = list(), log = FALSE, cens = NULL) {
   fam <- frmtmb::brmsfamily(fun)
   n <- max(lengths(c(list(x), dp, av)))
@@ -563,10 +564,107 @@ brms_g1_shims <- list(
 
 # A p function through the family's CDF, as pinv_gaussian() reads it: a
 # left-censored row is log F, a right-censored one log S
-brms_g1_p <- function(fun, q, dp, lower.tail, log.p) {
-  lp <- brms_g1_d(fun, q, dp, log = TRUE, cens = if (lower.tail) -1 else 1)
+brms_g1_p <- function(fun, q, dp, lower.tail, log.p, av = list()) {
+  lp <- brms_g1_d(fun, q, dp, av, log = TRUE,
+                  cens = if (lower.tail) -1 else 1)
   if (log.p) lp else exp(lp)
 }
+
+# The same for a count, which frmtmb censors as brms does: the upper
+# tail P(Y > q) is the row right-censored at q and the lower tail
+# P(Y <= q) the row left-censored at q. brms's p functions floor q.
+brms_g1_pd <- function(fun, q, dp, lower.tail, log.p, av = list()) {
+  q <- floor(q)
+  lp <- brms_g1_d(fun, q, dp, av, log = TRUE,
+                  cens = if (lower.tail) -1 else 1)
+  if (log.p) lp else exp(lp)
+}
+
+# lane cdfs: brms's p functions of the families that gained a CDF, each
+# through that family's own lcdf and lccdf
+brms_cdfs_shims <- list(
+  pstudent_t = function(q, df, mu = 0, sigma = 1, lower.tail = TRUE,
+                        log.p = FALSE) {
+    brms_g1_p("student", q, list(mu = mu, sigma = sigma, nu = df),
+              lower.tail, log.p)
+  },
+  pvon_mises = function(q, mu, kappa, lower.tail = TRUE, log.p = FALSE,
+                        acc = 1e-20) {
+    brms_g1_p("von_mises", q, list(mu = mu, kappa = kappa), lower.tail,
+              log.p)
+  },
+  pskew_normal = function(q, mu = 0, sigma = 1, alpha = 0, xi = NULL,
+                          omega = NULL, lower.tail = TRUE, log.p = FALSE) {
+    if (!is.null(xi) || !is.null(omega)) {
+      stop("brms_cdfs: the shim takes brms's (mu, sigma, alpha) only",
+           call. = FALSE)
+    }
+    brms_g1_p("skew_normal", q, list(mu = mu, sigma = sigma, alpha = alpha),
+              lower.tail, log.p)
+  },
+  pexgaussian = function(q, mu, sigma, beta, lower.tail = TRUE,
+                         log.p = FALSE) {
+    brms_g1_p("exgaussian", q, list(mu = mu, sigma = sigma, beta = beta),
+              lower.tail, log.p)
+  },
+  pbeta_binomial = function(q, size, mu, phi, lower.tail = TRUE,
+                            log.p = FALSE) {
+    brms_g1_pd("beta_binomial", q, list(mu = mu, phi = phi), lower.tail,
+               log.p, list(trials = size))
+  },
+  pasym_laplace = function(q, mu = 0, sigma = 1, quantile = 0.5,
+                           lower.tail = TRUE, log.p = FALSE) {
+    brms_g1_p("asym_laplace", q, list(mu = mu, sigma = sigma,
+                                      quantile = quantile), lower.tail, log.p)
+  },
+  pzero_inflated_poisson = function(q, lambda, zi, lower.tail = TRUE,
+                                    log.p = FALSE) {
+    brms_g1_pd("zero_inflated_poisson", q, list(mu = lambda, zi = zi),
+               lower.tail, log.p)
+  },
+  pzero_inflated_negbinomial = function(q, mu, shape, zi, lower.tail = TRUE,
+                                        log.p = FALSE) {
+    brms_g1_pd("zero_inflated_negbinomial", q,
+               list(mu = mu, shape = shape, zi = zi), lower.tail, log.p)
+  },
+  pzero_inflated_binomial = function(q, size, prob, zi, lower.tail = TRUE,
+                                     log.p = FALSE) {
+    brms_g1_pd("zero_inflated_binomial", q, list(mu = prob, zi = zi),
+               lower.tail, log.p, list(trials = size))
+  },
+  pzero_inflated_beta_binomial = function(q, size, mu, phi, zi,
+                                          lower.tail = TRUE, log.p = FALSE) {
+    brms_g1_pd("zero_inflated_beta_binomial", q,
+               list(mu = mu, phi = phi, zi = zi), lower.tail, log.p,
+               list(trials = size))
+  },
+  pzero_inflated_beta = function(q, shape1, shape2, zi, lower.tail = TRUE,
+                                 log.p = FALSE) {
+    brms_g1_p("zero_inflated_beta", q,
+              list(mu = shape1 / (shape1 + shape2), phi = shape1 + shape2,
+                   zi = zi), lower.tail, log.p)
+  },
+  phurdle_poisson = function(q, lambda, hu, lower.tail = TRUE,
+                             log.p = FALSE) {
+    brms_g1_pd("hurdle_poisson", q, list(mu = lambda, hu = hu), lower.tail,
+               log.p)
+  },
+  phurdle_negbinomial = function(q, mu, shape, hu, lower.tail = TRUE,
+                                 log.p = FALSE) {
+    brms_g1_pd("hurdle_negbinomial", q, list(mu = mu, shape = shape,
+                                             hu = hu), lower.tail, log.p)
+  },
+  phurdle_gamma = function(q, shape, scale, hu, lower.tail = TRUE,
+                           log.p = FALSE) {
+    brms_g1_p("hurdle_gamma", q, list(mu = shape * scale, shape = shape,
+                                      hu = hu), lower.tail, log.p)
+  },
+  phurdle_lognormal = function(q, mu, sigma, hu, lower.tail = TRUE,
+                               log.p = FALSE) {
+    brms_g1_p("hurdle_lognormal", q, list(mu = mu, sigma = sigma, hu = hu),
+              lower.tail, log.p)
+  })
+brms_g1_shims <- c(brms_g1_shims, brms_cdfs_shims)
 
 # frmtmb's frechet() is parameterized by its mean, mu = scale *
 # gamma(1 - 1 / nu), which is finite only for shape > 1. A shape at or

@@ -48,7 +48,9 @@ A data frame with \code{nsim} columns and a \code{"seed"} attribute,
 with one row per fitted row, or per row of \code{newdata}.
 }
 \description{
-A \code{trunc()}ed response simulates by rejection within its bounds, so
+A \code{trunc()}ed response simulates by rejection within its bounds, and a
+row whose window keeps too little of its mass for rejection to fill
+it in 20 passes by inverting the family's CDF, so
 every draw lies in \verb{[lb, ub]} and posterior-predictive checks
 (\code{\link[=dharma_residuals]{dharma_residuals()}}, \code{pp_check()}) see the same support the
 likelihood was normalized on.

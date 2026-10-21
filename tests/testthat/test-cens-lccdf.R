@@ -8,6 +8,9 @@
 lccdf_off <- function(fam) {
   f <- frmtmb:::as_frmtmb_family(fam)
   f$lccdf <- NULL
+  # cdf_log carries both tails on the log scale, so it goes too, or core
+  # would read the exact survivor from it
+  f$cdf_log <- NULL
   f
 }
 
@@ -79,20 +82,29 @@ test_that("weibull, exponential and lognormal log S are closed form", {
                tolerance = 1e-12)
 })
 
-test_that("the families that do NOT declare lccdf are the measured ones", {
-  # poisson IS censored, and still cannot declare one: RTMB's ppois
-  # does not tape lower.tail = FALSE, log.p = TRUE (it reaches
-  # stats::ppois and errors on an advector). inverse.gaussian gains
-  # nothing, because RTMBdist's upper tail is computed on the
-  # probability scale and reaches -Inf at the same log S = -34 that
-  # log(1 - F) does
-  for (f in list(gaussian(), lognormal(), exponential(), weibull())) {
+test_that("poisson and inverse.gaussian declare an exact lccdf", {
+  # Through 0.72.0 neither could: RTMB's ppois does not tape
+  # lower.tail = FALSE, log.p = TRUE, and RTMBdist's inverse-gaussian
+  # upper tail is computed on the probability scale and reaches -Inf at
+  # the same log S = -34 that log(1 - F) does. The survivors are now the
+  # lower incomplete gamma and a log-scale difference.
+  for (f in list(gaussian(), lognormal(), exponential(), weibull(),
+                 poisson(), inverse.gaussian(link = "log"))) {
     expect_false(is.null(frmtmb:::as_frmtmb_family(f)[["lccdf"]]),
                  label = f$family)
   }
-  for (f in list(poisson(), inverse.gaussian(link = "log"))) {
-    expect_null(frmtmb:::as_frmtmb_family(f)[["lccdf"]], label = f$family)
-  }
+  pf <- frmtmb:::as_frmtmb_family(poisson())
+  q <- c(3, 20, 60, 700)
+  dp <- list(mu = rep(5, 4))
+  expect_equal(pf$lccdf(q, dp, list()),
+               stats::ppois(q, 5, lower.tail = FALSE, log.p = TRUE),
+               tolerance = 1e-12)
+  expect_true(is.infinite(log1p(-stats::ppois(700, 5))))
+  ig <- frmtmb:::as_frmtmb_family(inverse.gaussian(link = "log"))
+  lS <- ig$lccdf(c(1, 40), list(mu = c(1, 1), shape = c(2, 2)), list())
+  expect_equal(lS[1], log1p(-ig$lcdf(1, list(mu = 1, shape = 2), list())),
+               tolerance = 1e-12)
+  expect_true(is.finite(lS[2]) && lS[2] < -34)
 })
 
 test_that("a family with lccdf alone takes right censoring and no more", {
