@@ -1,3 +1,13 @@
+# frmtmb 0.73.1
+
+## Bug fixes
+
+* `fitted()` of a `multinomial()` or `dirichlet_multinomial()` fit holds
+  the interval of each expected count at the row's trials. Before, the
+  upper bound was the sum of the estimates, which equals the trials only
+  to rounding, so a bound could pass them by a few units in the last
+  place.
+
 # frmtmb 0.73.0
 
 The main changes:
