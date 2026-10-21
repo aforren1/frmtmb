@@ -183,10 +183,21 @@ simplex_probs <- function(dpars, sx, n = NULL) {
 
 #' Dirichlet draws by gamma normalization, one row per row of `alpha`.
 #'
+#' The gamma variates are drawn on the log scale, as
+#' `log G = log(Gamma(a + 1)) + log(U) / a`, which is `Gamma(a)` in
+#' distribution, and normalized by a softmax. Drawn on the probability
+#' scale, every variate of a row underflows to 0 at a small
+#' concentration and the row is 0 / 0: 9570 of 20000 rows at phi = 1e-3
+#' (dev/nb2dm-findings.md, "Fix round 1"), which stopped `predict()` on
+#' an ordinary fit of strongly overdispersed counts.
+#'
 #' @noRd
 simplex_rdirichlet <- function(alpha, cats) {
-  G <- matrix(stats::rgamma(length(alpha), shape = alpha), nrow(alpha))
-  out <- G / rowSums(G)
+  n <- nrow(alpha)
+  lg <- log(matrix(stats::rgamma(length(alpha), shape = alpha + 1), n)) +
+    log(matrix(stats::runif(length(alpha)), n)) / alpha
+  E <- exp(lg - apply(lg, 1L, max))
+  out <- E / rowSums(E)
   colnames(out) <- cats
   out
 }
@@ -597,8 +608,9 @@ fam_is_simplex <- function(fam) !is.null(fam[["simplex"]])
 NULL
 
 #' @rdname frmtmb-families
-#' @param refcat For `categorical()`, `multinomial()`, `dirichlet()` and
-#'   `logistic_normal()`: the name of the reference category, whose
+#' @param refcat For `categorical()`, `multinomial()`,
+#'   `dirichlet_multinomial()`, `dirichlet()` and `logistic_normal()`: the
+#'   name of the reference category, whose
 #'   predictor is held at zero. `NULL` (the default) takes the first
 #'   category: the first level of a factor response, or the first column
 #'   of a matrix response. `NA` predicts every category, which every one

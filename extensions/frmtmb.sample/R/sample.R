@@ -1528,7 +1528,7 @@ default_lp_dpar <- function(rspec, dp) {
   if (dp %in% (rspec$nlpars %||% character(0))) return("")
   loc <- setdiff(rspec$primary_dpars, rspec$nlpars %||% character(0))
   several <- length(loc) > 1L || !is.null(rspec$family[["mix"]]) ||
-    isTRUE(rspec$family[["family"]] %in% c("categorical", "multinomial"))
+    isTRUE(rspec$family[["family"]] %in% c("categorical", draws_count_cats))
   if (dp %in% rspec$primary_dpars && !several) "" else dp
 }
 
@@ -1582,6 +1582,11 @@ brms_family_prior <- function(rspec, cls, link) {
       if (identical(cls, "shape") && identical(link, "identity")) {
         "inv_gamma(0.4, 0.3)"
       },
+    # the same prior moved to sigma = 1 / shape: brms's hook for
+    # negbinomial2 says gamma where negbinomial's says inv_gamma
+    negbinomial2 = if (identical(cls, "sigma") && identical(link, "identity")) {
+      "gamma(0.4, 0.3)"
+    },
     von_mises = if (identical(cls, "mu") && identical(link, "tan_half")) {
       "student_t(1, 0, 1)"
     },
@@ -2487,6 +2492,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | `sigma` | `student_t(3, 0, s)` | natural |
 #' | `shape`, `phi` | `gamma(0.01, 0.01)` | natural |
 #' | `shape` of the negative binomials | `inv_gamma(0.4, 0.3)` | natural |
+#' | `sigma` of `brmsfamily("negbinomial2")`, `1 / shape` | `gamma(0.4, 0.3)` | natural |
 #' | `nu` | `gamma(2, 0.1)` | natural |
 #' | `kappa` | `gamma(2, 0.01)`; `gamma(0.01, 0.01)` for `xbeta()` | natural |
 #' | `beta` (exgaussian) | `gamma(1, 0.1)` | natural |

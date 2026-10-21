@@ -634,7 +634,7 @@ extract_y <- function(resp, mf) {
 #' @noRd
 trials_families <- c("binomial", "beta_binomial", "zero_inflated_binomial",
                      "zero_inflated_beta_binomial",
-                     "multinomial")
+                     "multinomial", "dirichlet_multinomial")
 
 #' Refuse `se()` on a family whose density does not read it.
 #'
@@ -733,7 +733,7 @@ check_trials_given <- function(resp, av) {
            paste(intersect(fams, trials_families), collapse = ", "),
            " reads the number of trials from the formula: write ",
            resp$resp_name, " | trials(n) ~ ...",
-           if (!identical(fams, "multinomial")) {
+           if (!all(fams %in% multinomial_families)) {
              ", or use bernoulli() for a response of zeros and ones"
            }, call. = FALSE)
 }

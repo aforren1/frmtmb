@@ -1309,10 +1309,13 @@ mean_is_mu <- function(fam) {
   # "the mean is mu" reported a race model's drift as its fitted value
   # rate_mean() is mu itself when there is no rate(); a response that
   # carries one is sent through the mean by has_rate()
-  !is.null(fam[["post"]]$mean_fn) &&
-    (identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]])) ||
-       identical(body(fam[["post"]]$mean_fn),
-                 quote(rate_mean(dpars, aterms))))
+  mf <- fam[["post"]]$mean_fn
+  # a reparameterized family (fam_reparam()) keeps the inner mean, and
+  # its translation leaves mu as it is
+  mf <- attr(mf, "frmtmb_inner") %||% mf
+  !is.null(mf) &&
+    (identical(body(mf), quote(dpars[["mu"]])) ||
+       identical(body(mf), quote(rate_mean(dpars, aterms))))
 }
 
 #' Whether a response carries `trunc()` bounds, from the spec (the stored
@@ -3277,7 +3280,7 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     dn <- dimnames(out)
     dn[1L] <- list(NULL)
     dimnames(out) <- dn
-    if (identical(rs[["family"]][["family"]], "multinomial") &&
+    if (fam_is_multinomial(rs[["family"]]) &&
           scale == "response" && is.null(dpar)) {
       # expected COUNTS, which brms labels P(Y = k) too: a row's counts
       # lie between 0 and its trials, which the estimates sum to
@@ -3424,7 +3427,7 @@ fitted_point <- function(object, newdata = NULL, re_formula = NULL,
 #' @noRd
 mu_stack_dpars <- function(fam) {
   if (is.null(fam)) return(NULL)
-  if (isTRUE(fam[["family"]] %in% c("categorical", "multinomial")) ||
+  if (isTRUE(fam[["family"]] %in% c("categorical", multinomial_families)) ||
         fam_is_simplex(fam) || !is.null(fam[["mix"]])) {
     return(fam[["primary_dpars"]])
   }

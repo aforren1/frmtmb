@@ -520,6 +520,26 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   `dev/drop1raw-findings.md`, fix round 1.
 - Status: not reported.
 
+### brms-30. `rdirichlet()` underflows at a small concentration
+
+- Seen: 2.23.0, 2026-10-20 (`dev/nb2dm-brms-rdirichlet.R`, log
+  `dev/nb2dm-out/brms-rdirichlet.txt`).
+- Repro: `rdirichlet(20000, alpha = phi * p)` with
+  `p = softmax(c(0, 0.3, -0.2))`, seed 5: 18 rows NaN at phi = 0.01 and
+  9570 at phi = 1e-3. `posterior_predict_dirichlet_multinomial()` on a
+  prep with phi = 1e-3 stops with "NA in probability vector";
+  `posterior_predict_dirichlet()` returns 973 NaN rows of 2000.
+- Expected: compositions. Actual: every gamma variate of a row
+  underflows to 0 and the row is 0 / 0. A small phi is an ordinary
+  estimate for strongly overdispersed counts.
+- Workaround: frmtmb draws the gamma variates on the log scale,
+  `log Gamma(a + 1) + log(U) / a`, then a softmax
+  (`simplex_rdirichlet()`), for dirichlet(), dirichlet2 and
+  dirichlet_multinomial().
+- Record: `dev/reviews/2026-10-20-nb2dm.md`, finding 1;
+  `dev/nb2dm-findings.md`, fix round 1.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives
@@ -769,6 +789,32 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
 - Workaround: `check_stan_control()`
   (`extensions/frmtmb.sample/R/sample.R:74`).
 - Record: `dev/stanctl-findings.md` section 1.5.
+- Status: not reported.
+
+### Stan-1. `neg_binomial_2_log_glm_lpmf()` loses the density at a large precision
+
+- Seen: StanHeaders 2.39.1 (rstan 2.32.7). Confirmed 2026-10-20.
+- Repro: one observation, `X` a 1 x 1 zero matrix,
+  `neg_binomial_2_log_glm_lpmf({1} | X, 3, [0]', phi)` through
+  `rstan::expose_stan_functions()`: -17.0859375 at phi = 1e12 and 0 at
+  phi >= 1e16, where `neg_binomial_2_log_lpmf({1} | 3, phi)` and
+  `dnbinom()` give -17.0855369232. Already off by 1.8e-7 at phi = 1e8,
+  and by 1.2e-9 relative at phi = 1e6 (y 0, eta -1; review of lane
+  nb2dm, `dev/nb2dm-rev-stan1.R`).
+  On 400 rows at b_Intercept -45.75, b_x 15.82, phi = 1.1e23 it returns
+  +2.06e13 where the true value is -37774.33.
+- Expected: the value `neg_binomial_2_log_lpmf()` gives. Actual: a
+  cancellation in the GLM form; a positive log density of 2e13 is an
+  attractor that one of four brms chains entered and could not leave
+  (Rhat 1.56, 139 divergences).
+- Reaches: brms's `negbinomial()` and `brmsfamily("negbinomial2")`
+  whenever the shape (or sigma) has no formula, which is when brms
+  writes the GLM primitive. frmtmb does not use it. Workaround:
+  `init = 0`, under which the same fit mixed (4 of 4 chains, Rhat
+  1.002).
+- Record: `dev/nb2dm-findings.md` "brms 2.23.0 / Stan defect met";
+  repros `dev/nb2dm-stan-glm-bug.R` (log
+  `dev/nb2dm-out/stan-glm-bug.txt`) and `dev/nb2dm-brms-stuck.R`.
 - Status: not reported.
 
 ## RTMBode

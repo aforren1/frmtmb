@@ -383,6 +383,7 @@ family. Write \verb{y*} for the response transformed by a link and
    \code{sigma} \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{shape}, \code{phi} \tab \code{gamma(0.01, 0.01)} \tab natural \cr
    \code{shape} of the negative binomials \tab \code{inv_gamma(0.4, 0.3)} \tab natural \cr
+   \code{sigma} of \code{brmsfamily("negbinomial2")}, \code{1 / shape} \tab \code{gamma(0.4, 0.3)} \tab natural \cr
    \code{nu} \tab \code{gamma(2, 0.1)} \tab natural \cr
    \code{kappa} \tab \code{gamma(2, 0.01)}; \code{gamma(0.01, 0.01)} for \code{xbeta()} \tab natural \cr
    \code{beta} (exgaussian) \tab \code{gamma(1, 0.1)} \tab natural \cr

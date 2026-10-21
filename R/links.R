@@ -75,7 +75,7 @@
 #' | `lognormal`, `shifted_lognormal`, `hurdle_lognormal` | `identity`, `inverse` |
 #' | `Gamma`, `weibull`, `exponential`, `hurdle_gamma` | `log`, `identity`, `inverse`, `softplus`, `squareplus` |
 #' | `asym_laplace`, `exgaussian`, `zero_inflated_asym_laplace` | `identity`, `log`, `inverse`, `softplus`, `squareplus` |
-#' | `poisson`, `negbinomial`, `geometric`, `compois`, and the zero-inflated and hurdle counts | `log`, `identity`, `sqrt`, `softplus`, `squareplus` |
+#' | `poisson`, `negbinomial`, `negbinomial2` (through `brmsfamily()`), `geometric`, `compois`, and the zero-inflated and hurdle counts | `log`, `identity`, `sqrt`, `softplus`, `squareplus` |
 #' | `binomial`, `bernoulli`, `Beta`, `xbeta`, `zero_inflated_binomial`, `zero_inflated_beta`, `zero_inflated_beta_binomial`, `zero_one_inflated_beta` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity`, `log` |
 #' | `beta_binomial` | the same list WITHOUT `log`: brms's own table for this one family stops at `identity` |
 #' | `inverse.gaussian` | `1/mu^2`, `inverse`, `identity`, `log`, `softplus`, `squareplus` |
@@ -83,7 +83,7 @@
 #' | `von_mises` | `tan_half`, `identity` |
 #' | `cumulative`, `hurdle_cumulative`, `acat` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
 #' | `sratio`, `cratio` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` |
-#' | `categorical`, `multinomial`, `dirichlet` | `logit` |
+#' | `categorical`, `multinomial`, `dirichlet_multinomial`, `dirichlet` | `logit` |
 #' | `logistic_normal` | `identity` |
 #' | `dirichlet2`, through `brmsfamily()` | `log`, `softplus`, `squareplus`, `identity`, `logm1` |
 #' | `frechet` | `log`, `identity`, `inverse`, `softplus`, `squareplus` |

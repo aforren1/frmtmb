@@ -152,7 +152,8 @@ brms_adapt_ordinal_draws <- function(dp, prep, make, call) {
 # category's zero at prep$refcat (insert_refcat()); frmtmb's family
 # names its predictors after the categories (mu2, mu3 with category 1
 # the reference). The map is by position, as brms's own read is.
-brms_adapt_catlike <- c("categorical", "multinomial", "dirichlet",
+brms_adapt_catlike <- c("categorical", "multinomial",
+                        "dirichlet_multinomial", "dirichlet",
                         "dirichlet2", "logistic_normal")
 
 # frmtmb's family as frm() builds it: the bare constructor brms's block
@@ -188,7 +189,8 @@ brms_adapt_cat_family <- function(fun, prep) {
     d <- data.frame(row = seq_len(K))
     d$Y <- switch(fun,
                   categorical = seq_len(K),
-                  multinomial = matrix(1L, K, K),
+                  multinomial = ,
+                  dirichlet_multinomial = matrix(1L, K, K),
                   matrix(1 / K, K, K))
     fam <- fam[["defer"]](Y ~ 1, d)
   }
@@ -210,7 +212,9 @@ brms_adapt_cat_dpars <- function(fam, i, prep) {
     }
     stats::setNames(b, f_names)
   }
-  mu_f <- if (is.null(sx)) fam[["dpars"]] else sx[["mu"]]
+  # the per-category predictors only: a dirichlet_multinomial also has
+  # phi, read by its own name below
+  mu_f <- if (is.null(sx)) fam[["primary_dpars"]] else sx[["mu"]]
   map <- pos("^mu", mu_f)
   if (!is.null(sx[["sigma"]])) map <- c(map, pos("^sigma", sx[["sigma"]]))
   out <- list()

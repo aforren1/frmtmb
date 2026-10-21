@@ -29,8 +29,9 @@
 # way (link_<ordinal>(), link_categorical()) have no frmtmb counterpart
 # and stay with the survey.
 #
-# A family frmtmb does not have (negbinomial2, dirichlet_multinomial)
-# inside a listed block is substituted too: the adapter's brmsfamily()
+# A family frmtmb does not have (negbinomial2 and dirichlet_multinomial
+# were two, until lane nb2dm) inside a listed block is substituted
+# too: the adapter's brmsfamily()
 # call then refuses it in frmtmb's own words, and the row records that
 # refusal. Porting the block whole keeps the binomial, poisson, gamma,
 # weibull and other comparisons beside them, which leaving the block to

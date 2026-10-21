@@ -1,3 +1,22 @@
+# frmtmb.sample (development version)
+
+## New features
+
+* **`brmsfamily("negbinomial2")` and `dirichlet_multinomial()` fits
+  sample under brms 2.23.0's default priors**: `sigma` of
+  negbinomial2 gets `gamma(0.4, 0.3)` from brms's family hook (where
+  negbinomial's `shape` gets `inv_gamma(0.4, 0.3)`), and `phi` gets
+  `gamma(0.01, 0.01)`. On the same data the posterior means agree with
+  brms's to 0.05 posterior sd, with and without a group term.
+
+* **A `dirichlet_multinomial()` fit's draws take the `multinomial()`
+  paths**: `posterior_linpred()` with no `dpar` stacks the `mu<cat>`
+  predictors into brms's `draws x observations x (K - 1)` array,
+  `posterior_epred()` and `posterior_predict()` return
+  `draws x observations x K` arrays that read `trials()` from
+  `newdata`, and `predictive_error()` and
+  `pp_check(type = "error_binned")` refuse the family as polytomous.
+
 # frmtmb.sample 0.20.0
 
 Needs frmtmb 0.72.0. It calls the sampling-API export `ord_lp_blocks()`

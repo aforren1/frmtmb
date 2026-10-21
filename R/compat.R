@@ -736,7 +736,8 @@ compat_derived_note <- function(fm, term) {
 # Constructors that cannot be called bare. The family object built here
 # is read for its `accepts_aterms` declaration and nothing else, and no
 # family's allow-list depends on an argument, so any legal value serves.
-compat_family_ctor_args <- list(multinomial = list(K = 2L))
+compat_family_ctor_args <- list(multinomial = list(K = 2L),
+                                dirichlet_multinomial = list(K = 2L))
 
 # Built once per session: the registry's constructors are static, and
 # building all of them costs ~45 ms, which is a quarter of frm_compat().
@@ -826,10 +827,11 @@ compat_features_build <- function(extra = NULL) {
   fams <- c("gaussian", "student", "lognormal", "shifted_lognormal",
             "skew_normal", "exgaussian", "asym_laplace", "Gamma",
             "weibull", "exponential", "inverse.gaussian", "beta",
-            "tweedie", "poisson", "negbinomial", "nbinom1", "geometric",
+            "tweedie", "poisson", "negbinomial", "negbinomial2", "nbinom1",
+            "geometric",
             "compois", "binomial", "bernoulli", "beta_binomial",
             "zero_inflated_beta_binomial",
-            "multinomial", "zero_inflated_poisson",
+            "multinomial", "dirichlet_multinomial", "zero_inflated_poisson",
             "zero_inflated_negbinomial", "zero_inflated_binomial",
             "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
@@ -918,7 +920,8 @@ frmtmb_compat_groups_lst <- list(
   # the families that take cs() with no caveat; cumulative() and
   # hurdle_cumulative() take it with brms's warning, in rows of their own
   ordinal_cs = c("sratio", "cratio", "acat"),
-  discrete = c("poisson", "negbinomial", "nbinom1", "geometric",
+  discrete = c("poisson", "negbinomial", "negbinomial2", "nbinom1",
+               "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
                "zero_inflated_beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
@@ -932,13 +935,15 @@ frmtmb_compat_groups_lst <- list(
                  "zero_one_inflated_beta", "hurdle_poisson",
                  "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal",
                  "hurdle_cumulative"),
-  matrix_response = c("multinomial", "dirichlet", "dirichlet2",
+  matrix_response = c("multinomial", "dirichlet_multinomial",
+                      "dirichlet", "dirichlet2",
                       "logistic_normal"),
   # brms's simplex families: a row of proportions over categories
   simplex = c("dirichlet", "dirichlet2", "logistic_normal"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial",
-                      "zero_inflated_beta_binomial", "multinomial"),
+                      "zero_inflated_beta_binomial", "multinomial",
+                      "dirichlet_multinomial"),
   # quadrature marginalizes one scalar random effect at a time
   quadrature_blocks = c("us", "diag", "homdiag"),
   # the importance correction reweights any number of blocks over ONE
@@ -1354,6 +1359,8 @@ compat_hand_rules_tbl <- function() {
     "The families whose response is a count out of a known number of trials. Every other family refuses trials() by name: it is not on their allow-list, so writing it would change nothing about the fit.")
   r("trials()", "multinomial", "conditional",
     "Required. The row sums of the response matrix must equal the trials.")
+  r("trials()", "dirichlet_multinomial", "conditional",
+    "Required, as for multinomial(). The row sums of the response matrix must equal the trials; the density reads the row sums, as brms's does.")
   r("trials()", "binomial", "works",
     "Also accepted as the glm spelling cbind(successes, failures), which is rewritten to successes | trials(successes + failures); the two fits are identical. The two spellings cannot be combined.")
 
@@ -1450,6 +1457,8 @@ compat_hand_rules_tbl <- function() {
     "rate(d) multiplies the mean by d: brms's poisson_log_lpmf(y | eta + log(d)) under the log link and poisson_lpmf(y | mu .* d) under any other. With the log link it is the offset(log(d)) model. fitted() and predict() report the mean times d, frm_linpred() and fitted(dpar = \"mu\") report mu without it, and newdata must hold d. Verified against brms's compiled program at a shared parameter point.")
   r("rate()", "negbinomial", "works",
     "As brms: the mean AND the shape are multiplied by d, so the variance is mu d (1 + mu / shape). Verified against brms's compiled program at a shared parameter point.")
+  r("rate()", "negbinomial2", "works",
+    "As negbinomial(), whose density this family is: the mean and the shape 1 / sigma are multiplied by d, brms's neg_binomial_2_log_lpmf(y | mu + log_denom, inv(sigma) .* denom).")
   r("rate()", "geometric", "works",
     "As brms: the geometric is the negative binomial at shape 1, and rate(d) multiplies both the mean and that shape by d, so the fitted density is a negative binomial of size d. Verified against brms's compiled program at a shared parameter point.")
   r("rate()", "cens()", "untested",
@@ -1812,6 +1821,8 @@ compat_hand_rules_tbl <- function() {
     "Draws come back as an ordered factor carrying the response's own levels, not as 1..K codes.")
   r("simulate", "multinomial", "works",
     "Draws come back as an n x K count matrix carrying the response's column names; needs trials().")
+  r("simulate", "dirichlet_multinomial", "works",
+    "Draws come back as an n x K count matrix carrying the response's column names; needs trials(). Each row's probabilities are a Dirichlet draw with mean softmax(mu) and precision phi, then the counts are multinomial, as brms's posterior_predict() draws them.")
   r("simulate", "categorical", "works",
     "Draws come back as an UNORDERED factor carrying the response's own levels: the categories have no order, so restoring them as an ordered factor would claim one the model never used.")
   r("simulate", "group:simplex", "works",
@@ -1881,6 +1892,8 @@ compat_hand_rules_tbl <- function() {
     "Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = \"response\") == fitted() identity holds.")
   r("fitted", "multinomial", "works",
     "Returns brms's n x 4 x K array of expected counts, probability times the row's trials, layers named P(Y = <category>) as brms names them, with delta-method standard errors through the softmax; the Wald bounds are held between 0 and the trials. newdata needs its trials() column, as in brms. Through 0.71.0 it was refused.")
+  r("fitted", "dirichlet_multinomial", "works",
+    "As multinomial(): brms's n x 4 x K array of expected counts, probability times the row's trials, layers named P(Y = <category>). phi does not enter the mean. newdata needs its trials() column.")
   r("fitted", "cox", "refused",
     "Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = \"link\") for the log hazard ratio.")
   r("fitted", "von_mises", "conditional",

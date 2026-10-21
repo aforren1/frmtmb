@@ -615,21 +615,21 @@ family_link_secondary <- function(x) {
 
 #' brms's `is_polytomous()`, for the families this package has: the
 #' response is a category (ordinal, categorical), a vector of counts
-#' over categories (multinomial) or a composition over them (the simplex
-#' families). brms refuses a predictive error and
+#' over categories (multinomial, dirichlet_multinomial) or a composition
+#' over them (the simplex families). brms refuses a predictive error and
 #' `pp_check(type = "error_binned")` for every one of them.
 #'
 #' @noRd
 fam_is_polytomous <- function(fam) {
   isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
-    identical(fam[["family"]], "multinomial") ||
+    fam_is_multinomial(fam) ||
     !is.null(fam[["simplex"]])
 }
 
 #' @noRd
 family_joint_link <- function(x) {
   identical(.subset2(x, "type"), "categorical") ||
-    identical(.subset2(x, "family"), "multinomial") ||
+    isTRUE(.subset2(x, "family") %in% multinomial_families) ||
     !is.null(.subset2(x, "joint_link"))
 }
 
@@ -1992,6 +1992,109 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
                      mu = rate_mean(dpars, aterms))
     }
   )
+}
+
+#' brms's negbinomial2: the negative binomial of `fam_negbinomial()`
+#' with `sigma = 1 / shape`, dpars `mu` and `sigma`, so the variance is
+#' `mu + sigma mu^2` and `sigma -> 0` is the Poisson.
+#'
+#' Every slot is negbinomial()'s own, reached through
+#' `fam_reparam()`: the density, the simulator, the mean, variance and
+#' deviance, the addition terms it accepts, and any CDF negbinomial()
+#' carries. One implementation, so what negbinomial() gains this family
+#' gains with it.
+#'
+#' @noRd
+fam_negbinomial2 <- function(link = "log", link_sigma = "log") {
+  lk_sigma <- dpar_link(link_sigma, "sigma", "negbinomial2",
+                        dpar_links_positive)
+  lk <- mu_link(link, "negbinomial2")
+  inner <- fam_negbinomial(lk, "log")
+  # negbinomial()'s density reads log(shape) as log(1 / sigma), which is
+  # exact wherever sigma is a finite positive double: negbinomial2 is
+  # exactly as robust as negbinomial() at the mirrored point
+  to_shape <- function(dpars) {
+    dpars[["shape"]] <- 1 / dpars[["sigma"]]
+    dpars
+  }
+  init_shape <- inner[["init_dpars"]][["shape"]]
+  out <- fam_reparam(
+    inner, "negbinomial2", dpars = c("mu", "sigma"),
+    links = list(mu = inner[["links"]][["mu"]], sigma = lk_sigma),
+    to_inner = to_shape,
+    init_dpars = list(
+      mu = inner[["init_dpars"]][["mu"]],
+      sigma = function(y, aterms) 1 / init_shape(y, aterms)
+    )
+  )
+  # the response check names the family the user asked for, as brms's
+  out[["valid_y"]] <- count_y("negbinomial2")
+  out
+}
+
+#' A family that is another family under new distributional parameters.
+#'
+#' `to_inner(dpars)` adds the inner family's dpars to a list holding the
+#' outer ones. Every slot of `inner` that takes `dpars` is wrapped to
+#' translate first, and every other slot is kept as it is, so a slot
+#' added to the inner family later (a CDF, a truncated mean) reaches the
+#' outer one with no change here. The dpars, links and starting values
+#' are the outer family's own.
+#'
+#' A `family_finalize` slot is refused: it returns a family, which would
+#' be the inner one, and the outer parameters would be silently lost.
+#'
+#' @noRd
+fam_reparam <- function(inner, family, dpars, links, to_inner, init_dpars) {
+  if (!is.null(inner[["family_finalize"]])) {
+    frm_stop("fam_reparam(): '", inner[["family"]], "' finalizes itself ",
+             "from the data, and the finalized family would replace '",
+             family, "'", call. = FALSE)
+  }
+  out <- inner
+  for (nm in names(out)) {
+    v <- out[[nm]]
+    if (is.function(v)) {
+      out[[nm]] <- reparam_slot(v, to_inner)
+    } else if (identical(nm, "post") && is.list(v)) {
+      for (k in names(v)) v[[k]] <- reparam_slot(v[[k]], to_inner)
+      out[[nm]] <- v
+    }
+  }
+  out[["family"]] <- family
+  out[["dpars"]] <- dpars
+  out[["links"]] <- Map(function(lk, dp) get_link(lk, dpar = dp), links,
+                        dpars)
+  out[["init_dpars"]] <- init_dpars
+  out[["primary_dpars"]] <- intersect(inner[["primary_dpars"]], dpars)
+  out
+}
+
+#' Wrap one family slot so that it translates `dpars` before the inner
+#' slot reads them. A slot without a `dpars` argument (`valid_y`, a
+#' finalizer) is returned as it is. The wrapper keeps the slot's
+#' formals, because callers read their number (`fam_lcdf()`), and keeps
+#' the inner function as an attribute, because `mean_is_mu()` reads a
+#' mean's body.
+#'
+#' @noRd
+reparam_slot <- function(f, to_inner) {
+  if (!is.function(f) || is.primitive(f) ||
+        !"dpars" %in% names(formals(f))) {
+    return(f)
+  }
+  nms <- names(formals(f))
+  args <- lapply(nms, as.name)
+  names(args) <- ifelse(nms == "...", "", nms)
+  g <- f
+  body(g) <- bquote({
+    dpars <- .to_inner(dpars)
+    .(as.call(c(list(quote(.inner)), args)))
+  })
+  environment(g) <- list2env(list(.inner = f, .to_inner = to_inner),
+                             parent = environment(f))
+  attr(g, "frmtmb_inner") <- f
+  g
 }
 
 #' Negative binomial with linear variance (glmmTMB nbinom1), dpars `mu`
@@ -8045,22 +8148,51 @@ cox_baseline <- function(fit) {
   stats::setNames(s, paste0("s", seq_along(s)))
 }
 
+#' The families whose response is an `n x K` matrix of counts over
+#' categories with a known number of trials per row: brms's
+#' multinomial() and dirichlet_multinomial(). They share one
+#' implementation, `fam_multinomial_impl()`, and every post-fit path
+#' that reads such a response asks this rather than a family name.
+#'
+#' @noRd
+multinomial_families <- c("multinomial", "dirichlet_multinomial")
+
+#' @noRd
+fam_is_multinomial <- function(fam) {
+  isTRUE(fam[["family"]] %in% multinomial_families)
+}
+
 #' Matrix-response multinomial: y is an n x K count matrix over the
 #' categories `cats` (its columns, in order). One linear predictor per
 #' category but the reference (`refcat`, the first by default; `NA` for
 #' none), all receiving the main model formula unless overridden, named
 #' as brms names them, `make_stan_names(paste0("mu", cat))`.
 #'
+#' With `link_phi`, the same response under brms's dirichlet_multinomial:
+#' the category probabilities of each row are Dirichlet with mean
+#' `softmax(mu)` and precision `phi`, which brms's
+#' `dirichlet_multinomial_logit2_lpmf()` writes as
+#' `lgamma(phi) + lgamma(T + 1) - lgamma(T + phi) +
+#' sum(lgamma(y + alpha) - lgamma(alpha) - lgamma(y + 1))`,
+#' `alpha = phi softmax(mu)` and `T = sum(y)`. The mean is the
+#' multinomial's; `phi -> Inf` is the multinomial.
+#'
 #' @noRd
-fam_multinomial_impl <- function(cats, refcat = NULL, link = "logit") {
-  multinomial_link_check(link)
+fam_multinomial_impl <- function(cats, refcat = NULL, link = "logit",
+                                 link_phi = NULL) {
+  dm <- !is.null(link_phi)
+  fname <- if (dm) "dirichlet_multinomial" else "multinomial"
+  multinomial_link_check(link, fname)
+  lk_phi <- if (dm) {
+    dpar_link(link_phi, "phi", fname, dpar_links_positive)
+  }
   K <- length(cats)
   ri <- cat_ref_info(cats, refcat)
   dpn <- ri$dpars
   pred <- ri$pred
   has_ref <- !is.na(ri$ref)
   # the category probabilities on doubles, the row maximum out before
-  # exp(), for the mean; the simulator keeps its own arithmetic
+  # exp(), for the mean and the Dirichlet draw
   probs <- function(dpars, n) {
     E <- matrix(0, n, K)
     for (j in seq_along(pred)) {
@@ -8071,47 +8203,80 @@ fam_multinomial_impl <- function(cats, refcat = NULL, link = "logit") {
     colnames(P) <- cats
     P
   }
+  lpdf_mn <- function(y, dpars, aterms) {
+    # log-space denominator, as in cat_logit_lpdf(): a count response
+    # multiplies it by the row total, so an overflow there is fatal
+    lden <- if (has_ref) 0 * dpars[[dpn[1L]]] else dpars[[dpn[1L]]]
+    for (k in if (has_ref) dpn else dpn[-1L]) {
+      lden <- RTMB::logspace_add(lden, dpars[[k]])
+    }
+    nvec <- rowSums(y)
+    ll <- -nvec * lden
+    for (j in seq_along(dpn)) {
+      ll <- ll + y[, pred[j]] * dpars[[dpn[j]]]
+    }
+    # multinomial coefficient: data-only
+    ll + lgamma(nvec + 1) - rowSums(lgamma(y + 1))
+  }
+  lpdf_dm <- function(y, dpars, aterms) {
+    lden <- if (has_ref) 0 * dpars[[dpn[1L]]] else dpars[[dpn[1L]]]
+    for (k in if (has_ref) dpn else dpn[-1L]) {
+      lden <- RTMB::logspace_add(lden, dpars[[k]])
+    }
+    phi <- dpars[["phi"]]
+    # T is the row's own total, as in brms: trials() is checked against
+    # it at assembly and is not read here
+    nvec <- rowSums(y)
+    # brms's lgamma(phi) - lgamma(T + phi) and lgamma(y + alpha) -
+    # lgamma(alpha), each formed by lgamma_shift_diff(): the plain
+    # differences lose the density as phi grows (2.5e-7 at phi = 1e8,
+    # dev/nb2dm-findings.md), and phi grows without bound on data with
+    # no overdispersion, where that loss is all the optimizer would see
+    ll <- lgamma(nvec + 1) - rowSums(lgamma(y + 1)) -
+      lgamma_shift_diff(phi, nvec)
+    for (k in seq_len(K)) {
+      j <- match(k, pred)
+      # alpha_k from the log probability, so a category whose softmax
+      # underflows on the probability scale still has a concentration
+      a <- phi * exp(if (is.na(j)) -lden else dpars[[dpn[j]]] - lden)
+      ll <- ll + lgamma_shift_diff(a, y[, k])
+    }
+    ll
+  }
+  links <- stats::setNames(rep(list("identity"), length(pred)), dpn)
+  init <- list()
+  if (dm) {
+    links <- c(links, list(phi = lk_phi))
+    init[["phi"]] <- function(y, aterms) dm_phi_start(y)
+  }
   fam <- frmtmb_family(
-    "multinomial",
+    fname,
     accepts_aterms = c("weights", "trials"),
-    dpars = dpn,
-    links = stats::setNames(rep(list("identity"), length(pred)), dpn),
-    lpdf = function(y, dpars, aterms) {
-      # log-space denominator, as in cat_logit_lpdf(): a count response
-      # multiplies it by the row total, so an overflow there is fatal
-      lden <- if (has_ref) 0 * dpars[[dpn[1L]]] else dpars[[dpn[1L]]]
-      for (k in if (has_ref) dpn else dpn[-1L]) {
-        lden <- RTMB::logspace_add(lden, dpars[[k]])
-      }
-      nvec <- rowSums(y)
-      ll <- -nvec * lden
-      for (j in seq_along(dpn)) {
-        ll <- ll + y[, pred[j]] * dpars[[dpn[j]]]
-      }
-      # multinomial coefficient: data-only
-      ll + lgamma(nvec + 1) - rowSums(lgamma(y + 1))
-    },
+    dpars = c(dpn, if (dm) "phi"),
+    links = links,
+    lpdf = if (dm) lpdf_dm else lpdf_mn,
     valid_y = function(y, aterms) {
       if (!is.matrix(y) || ncol(y) != K) {
-        frm_stop("multinomial(): the response must be an n x ", K,
+        frm_stop(fname, "(): the response must be an n x ", K,
                  " count matrix, one column per category (",
                  paste(cats, collapse = ", "), ")", call. = FALSE)
       }
       if (any(y < 0) || any(y != round(y))) {
-        frm_stop("Family 'multinomial' requires integer responses. The ",
+        frm_stop("Family '", fname, "' requires integer responses. The ",
                  "counts must be non-negative whole numbers", call. = FALSE)
       }
       tr <- aterms[["trials"]]
       if (!is.null(tr) && any(rowSums(y) != tr)) {
         frm_stop("Number of trials does not match the number of events. ",
-                 "multinomial: rowSums(response) must equal trials()",
+                 fname, ": rowSums(response) must equal trials()",
                  call. = FALSE)
       }
     },
+    init_dpars = init,
     type = "discrete",
     post = list(
       # brms's posterior_epred(): the expected count of each category,
-      # its probability times the row's trials
+      # its probability times the row's trials. phi does not enter it.
       mean_fn = function(dpars, aterms) {
         tr <- aterms[["trials"]]
         n <- max(length(tr), vapply(dpn, function(k) {
@@ -8123,15 +8288,23 @@ fam_multinomial_impl <- function(cats, refcat = NULL, link = "logit") {
     sim = function(dpars, aterms, n) {
       size <- aterms[["trials"]]
       if (is.null(size)) {
-        frm_stop("simulate(): a multinomial fit needs trials() to know how ",
-                 "many draws each row gets", call. = FALSE)
+        frm_stop("simulate(): a ", fname, " fit needs trials() to know ",
+                 "how many draws each row gets", call. = FALSE)
       }
-      denom <- if (has_ref) 1 else 0
-      for (k in dpn) denom <- denom + exp(dpars[[k]])
-      P <- matrix(0, n, K)
-      if (has_ref) P[, ri$ref] <- rep(1 / denom, length.out = n)
-      for (j in seq_along(dpn)) {
-        P[, pred[j]] <- rep(exp(dpars[[dpn[j]]]) / denom, length.out = n)
+      if (dm) {
+        # brms's posterior_predict_dirichlet_multinomial(): a Dirichlet
+        # draw of the probabilities, then the multinomial
+        P <- simplex_rdirichlet(
+          probs(dpars, n) * rep(as.numeric(dpars[["phi"]]), length.out = n),
+          cats)
+      } else {
+        denom <- if (has_ref) 1 else 0
+        for (k in dpn) denom <- denom + exp(dpars[[k]])
+        P <- matrix(0, n, K)
+        if (has_ref) P[, ri$ref] <- rep(1 / denom, length.out = n)
+        for (j in seq_along(dpn)) {
+          P[, pred[j]] <- rep(exp(dpars[[dpn[j]]]) / denom, length.out = n)
+        }
       }
       size <- rep(size, length.out = n)
       out <- matrix(0L, n, K)
@@ -8149,15 +8322,42 @@ fam_multinomial_impl <- function(cats, refcat = NULL, link = "logit") {
   fam[["refcat"]] <- if (has_ref) cats[ri$ref] else NA_character_
   # see fam_categorical_impl()
   if (!has_ref) {
-    fam[["refcat_first"]] <- function() fam_multinomial_impl(cats, NULL, link)
+    fam[["refcat_first"]] <- function() {
+      fam_multinomial_impl(cats, NULL, link, link_phi)
+    }
   }
   fam
+}
+
+#' A starting precision for dirichlet_multinomial(), by moments. With
+#' the pooled category proportions `p`, the Pearson statistic per degree
+#' of freedom estimates `(T + phi) / (1 + phi)`, the variance inflation
+#' over the multinomial at `T` trials, which is solved for `phi`.
+#' Without overdispersion the inflation is near one and the start is
+#' large, near the multinomial.
+#'
+#' @noRd
+dm_phi_start <- function(y) {
+  y <- y[stats::complete.cases(y), , drop = FALSE]
+  tr <- rowSums(y)
+  y <- y[tr > 0, , drop = FALSE]
+  tr <- tr[tr > 0]
+  p <- colSums(y) / sum(y)
+  ok <- p > 0
+  df <- (nrow(y) - 1) * (sum(ok) - 1)
+  if (!length(tr) || df < 1) return(10)
+  ex <- outer(tr, p[ok])
+  r <- sum((y[, ok, drop = FALSE] - ex)^2 / ex) / df
+  tbar <- mean(tr)
+  ph <- if (r > 1) (tbar - r) / (r - 1) else 1e3
+  if (!is.finite(ph)) ph <- 10
+  min(max(ph, 0.5), 1e3)
 }
 
 #' Refuse any multinomial link but the logit, in brms's words.
 #'
 #' @noRd
-multinomial_link_check <- function(link) {
+multinomial_link_check <- function(link, fname = "multinomial") {
   if (identical(link, "logit")) return(invisible(NULL))
   shown <- if (is.character(link) && length(link) == 1L) link else {
     arg_desc(link)
@@ -8165,37 +8365,49 @@ multinomial_link_check <- function(link) {
   # multinomial(3) set K before brms's argument order was adopted
   hint <- if (grepl("^[0-9]+$", shown)) {
     paste0(". The link comes first, as in brms; a number of categories ",
-           "is multinomial(K = ", shown, ")")
+           "is ", fname, "(K = ", shown, ")")
   } else ""
   frm_stop("'", shown, "' is not a supported link for family ",
-           "'multinomial'. Supported links are: 'logit'", hint,
+           "'", fname, "'. Supported links are: 'logit'", hint,
            call. = FALSE)
 }
 
-#' Placeholder returned by a bare `multinomial()`, as brms spells it: the
-#' categories are the columns of the response matrix, which `frm()`
-#' reads through `resolve_deferred_families()` once it can see the data.
+#' Placeholder returned by a bare `multinomial()` or
+#' `dirichlet_multinomial()`, as brms spells them: the categories are
+#' the columns of the response matrix, which `frm()` reads through
+#' `resolve_deferred_families()` once it can see the data.
+#'
+#' `links` carries `phi` for dirichlet_multinomial(), so the placeholder
+#' answers brms's `$link_phi` before the categories are known.
 #'
 #' @noRd
-fam_multinomial_deferred <- function(link = "logit", refcat = NULL) {
-  multinomial_link_check(link)
-  refcat <- check_simplex_refcat(refcat, "multinomial", allow_na = TRUE)
+fam_multinomial_deferred <- function(link = "logit", refcat = NULL,
+                                     link_phi = NULL) {
+  fname <- if (is.null(link_phi)) "multinomial" else "dirichlet_multinomial"
+  multinomial_link_check(link, fname)
+  refcat <- check_simplex_refcat(refcat, fname, allow_na = TRUE)
+  # checked now and not only once the categories are known, so a bad link
+  # is not masked by a data problem
+  if (!is.null(link_phi)) {
+    dpar_link(link_phi, "phi", fname, dpar_links_positive)
+  }
   fam <- frmtmb_family(
-    "multinomial",
+    fname,
     accepts_aterms = c("weights", "trials"),
-    dpars = "mu",
-    links = list(mu = "identity"),
+    dpars = c("mu", if (!is.null(link_phi)) "phi"),
+    links = c(list(mu = "identity"),
+              if (!is.null(link_phi)) list(phi = link_phi)),
     lpdf = function(y, dpars, aterms) {
-      frm_stop("multinomial(): the response categories were never ",
+      frm_stop(fname, "(): the response categories were never ",
                "resolved. They are read from the response matrix by frm(); ",
-               "on another entry point give their number, multinomial(K = 3)",
-               call. = FALSE)
+               "on another entry point give their number, ", fname,
+               "(K = 3)", call. = FALSE)
     },
     type = "discrete"
   )
   fam[["defer"]] <- function(formula, data) {
-    fam_multinomial_impl(multinomial_categories(formula, data), refcat,
-                         link)
+    fam_multinomial_impl(multinomial_categories(formula, data, fname),
+                         refcat, link, link_phi)
   }
   fam[["refcat"]] <- refcat
   fam
@@ -8213,23 +8425,38 @@ fam_multinomial <- function(link = "logit", refcat = NULL, K = NULL) {
   fam_multinomial_impl(as.character(seq_len(K)), refcat, link)
 }
 
+#' The registry's dirichlet_multinomial constructor, which
+#' `dirichlet_multinomial()`, `brmsfamily()` and a brms family object
+#' reach.
+#'
+#' @noRd
+fam_dirichlet_multinomial <- function(link = "logit", link_phi = "log",
+                                      refcat = NULL, K = NULL) {
+  fname <- "dirichlet_multinomial"
+  multinomial_link_check(link, fname)
+  if (is.null(K)) return(fam_multinomial_deferred(link, refcat, link_phi))
+  refcat <- check_simplex_refcat(refcat, fname, allow_na = TRUE)
+  K <- check_ncat_arg(K, fname)
+  fam_multinomial_impl(as.character(seq_len(K)), refcat, link, link_phi)
+}
+
 #' The categories of a multinomial response: its column names, or `1..K`
 #' when it has none, as brms's `extract_cat_names()` reads them.
 #'
 #' @noRd
-multinomial_categories <- function(formula, data) {
+multinomial_categories <- function(formula, data, fname = "multinomial") {
   ri <- parse_response(formula)
   y <- tryCatch(eval(ri$resp, data, environment(formula) %||% globalenv()),
                 error = function(e) NULL)
   if (is.null(y)) {
-    frm_stop("multinomial(): the response '", deparse1(ri$resp), "' could ",
+    frm_stop(fname, "(): the response '", deparse1(ri$resp), "' could ",
              "not be evaluated on the data to find its categories. Give ",
-             "their number instead: multinomial(K = 3)", call. = FALSE)
+             "their number instead: ", fname, "(K = 3)", call. = FALSE)
   }
   y <- as.matrix(y)
   cats <- colnames(y) %||% as.character(seq_len(ncol(y)))
   if (length(cats) < 2L) {
-    frm_stop("At least 2 response categories are required. multinomial() ",
+    frm_stop("At least 2 response categories are required. ", fname, "() ",
              "takes an n x K matrix of counts, as cbind(y1, y2, y3) or a ",
              "matrix column of the data; '", deparse1(ri$resp), "' has ",
              length(cats), " column", call. = FALSE)
@@ -8246,6 +8473,8 @@ family_registry <- list(
   student     = fam_student,
   negbinomial = fam_negbinomial,
   nbinom2     = fam_negbinomial,
+  # brms's sigma = 1 / shape spelling, which brms does not export either
+  negbinomial2 = fam_negbinomial2,
   nbinom1     = fam_nbinom1,
   beta        = fam_beta,
   Beta        = fam_beta,
@@ -8256,6 +8485,7 @@ family_registry <- list(
   hurdle_poisson            = fam_hurdle_poisson,
   hurdle_negbinomial        = fam_hurdle_negbinomial,
   multinomial               = fam_multinomial,
+  dirichlet_multinomial     = fam_dirichlet_multinomial,
   cumulative                = fam_cumulative,
   hurdle_cumulative         = fam_hurdle_cumulative,
   beta_binomial             = fam_beta_binomial,
@@ -8526,6 +8756,20 @@ as_frmtmb_family <- function(x) {
 #' for the mean, and `$link_<dpar>` the link of each other parameter,
 #' as in `beta_binomial()$link_phi`. See [frmtmb_family()].
 #'
+#' @section The negative binomial in sigma:
+#' `brmsfamily("negbinomial2")` is brms's `negbinomial2`: the negative
+#' binomial of `negbinomial()` with the dispersion `sigma = 1 / shape`,
+#' so the variance is `mu + sigma * mu^2`, and `sigma` near 0 is the
+#' Poisson. brms does not export a constructor for it, and neither does
+#' frmtmb. `sigma` takes the positive links (`link_sigma`, default
+#' `"log"`) and its own formula, `bf(y ~ x, sigma ~ z)`. The family is
+#' `negbinomial()` underneath: the same density, simulator, mean and
+#' variance, and the same addition terms, so `rate(d)` multiplies the
+#' mean and the shape `1 / sigma` by `d`, as in brms. The fit is
+#' `negbinomial()`'s with `sigma` in place of `1 / shape`: the
+#' log-likelihood is the same and only the parameter is reported
+#' differently.
+#'
 #' @section Hurdle and zero-one-inflated responses:
 #' A hurdle family gives every zero to `hu`, the hurdle probability, and
 #' truncates its count or continuous part at zero. For
@@ -8685,6 +8929,19 @@ as_frmtmb_family <- function(x) {
 #' `P(Y = <category>)` too. `multinomial(K = 3)` builds the family away
 #' from the data, with the categories `1..K`. A one-hot matrix with one
 #' trial a row gives the log-likelihood of `categorical()`.
+#'
+#' `dirichlet_multinomial()` is brms's overdispersed multinomial. The
+#' category probabilities of each row are Dirichlet with mean
+#' `softmax(mu)` and precision `phi`, and the counts are multinomial
+#' given them. The expected counts are those of `multinomial()`, and
+#' the covariance of a row is the multinomial one times
+#' `(T + phi) / (1 + phi)` at `T` trials, so a large `phi` is close to
+#' `multinomial()`. `phi` takes a log link and its own formula,
+#' `bf(Y | trials(n) ~ x, phi ~ z)`. Everything else is as for
+#' `multinomial()`: the response matrix, `trials()`, `refcat`,
+#' `fitted()`, `K` and `simulate()`, which draws the probabilities of
+#' each row from the Dirichlet and then the counts. With two categories
+#' it is `beta_binomial()` with `phi` the same precision.
 #'
 #' @section Circular responses:
 #' `von_mises()` models an angle in radians on `(-pi, pi]`. Its `mu` is
@@ -9051,8 +9308,9 @@ hurdle_negbinomial <- function(link = "log", link_shape = "log",
 }
 
 #' @rdname frmtmb-families
-#' @param K For `multinomial()` and `categorical()`: the number of
-#'   response categories, for a family built away from the data. The
+#' @param K For `multinomial()`, `dirichlet_multinomial()` and
+#'   `categorical()`: the number of response categories, for a family
+#'   built away from the data. The
 #'   categories are then `1..K` and the dpars `mu2 ... muK`. Leave it
 #'   `NULL` and [frm()] reads the categories off the response, as brms
 #'   does: the columns of a multinomial count matrix, the levels of a
@@ -9062,6 +9320,15 @@ multinomial <- function(link = "logit", refcat = NULL, K = NULL) {
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["multinomial"]], "logit")
   fam_multinomial(link, refcat, K)
+}
+
+#' @rdname frmtmb-families
+#' @export
+dirichlet_multinomial <- function(link = "logit", link_phi = "log",
+                                  refcat = NULL, K = NULL) {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["dirichlet_multinomial"]], "logit")
+  fam_dirichlet_multinomial(link, link_phi, refcat, K)
 }
 
 #' @rdname frmtmb-families

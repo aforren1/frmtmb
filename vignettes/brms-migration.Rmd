@@ -40,6 +40,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()`, `categorical()` | same | the categories come from the response, and `refcat` names the reference category, as in brms |
+| `dirichlet_multinomial()`, `brmsfamily("negbinomial2")` | same | `dirichlet_multinomial()` is `multinomial()` with a precision `phi`; `negbinomial2` is `negbinomial()` with `sigma = 1 / shape` and brms's `gamma(0.4, 0.3)` default on `sigma` |
 | `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes brms's threshold structures, `thres(gr = )` and `cs()` (see What changes) |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |

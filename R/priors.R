@@ -2342,7 +2342,7 @@ multi_location <- function(rspec) {
   fam <- rspec$family
   loc <- setdiff(rspec$primary_dpars, rspec$nlpars %||% character(0))
   length(loc) > 1L || !is.null(fam[["mix"]]) ||
-    isTRUE(fam[["family"]] %in% c("categorical", "multinomial"))
+    isTRUE(fam[["family"]] %in% c("categorical", multinomial_families))
 }
 
 #' Whether brms has this several-location family, so a refusal may say
@@ -2352,7 +2352,7 @@ multi_location <- function(rspec) {
 brms_multi_location <- function(rspec) {
   fam <- rspec$family
   fn <- fam[["family"]] %||% ""
-  fn %in% c("categorical", "multinomial") ||
+  fn %in% c("categorical", multinomial_families) ||
     (startsWith(fn, "mixture(") && !is.null(fam[["mix"]]) &&
        !identical(fam[["mix"]][["type"]], "categorical"))
 }

@@ -89,7 +89,7 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{lognormal}, \code{shifted_lognormal}, \code{hurdle_lognormal} \tab \code{identity}, \code{inverse} \cr
    \code{Gamma}, \code{weibull}, \code{exponential}, \code{hurdle_gamma} \tab \code{log}, \code{identity}, \code{inverse}, \code{softplus}, \code{squareplus} \cr
    \code{asym_laplace}, \code{exgaussian}, \code{zero_inflated_asym_laplace} \tab \code{identity}, \code{log}, \code{inverse}, \code{softplus}, \code{squareplus} \cr
-   \code{poisson}, \code{negbinomial}, \code{geometric}, \code{compois}, and the zero-inflated and hurdle counts \tab \code{log}, \code{identity}, \code{sqrt}, \code{softplus}, \code{squareplus} \cr
+   \code{poisson}, \code{negbinomial}, \code{negbinomial2} (through \code{brmsfamily()}), \code{geometric}, \code{compois}, and the zero-inflated and hurdle counts \tab \code{log}, \code{identity}, \code{sqrt}, \code{softplus}, \code{squareplus} \cr
    \code{binomial}, \code{bernoulli}, \code{Beta}, \code{xbeta}, \code{zero_inflated_binomial}, \code{zero_inflated_beta}, \code{zero_inflated_beta_binomial}, \code{zero_one_inflated_beta} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit}, \code{identity}, \code{log} \cr
    \code{beta_binomial} \tab the same list WITHOUT \code{log}: brms's own table for this one family stops at \code{identity} \cr
    \code{inverse.gaussian} \tab \code{1/mu^2}, \code{inverse}, \code{identity}, \code{log}, \code{softplus}, \code{squareplus} \cr
@@ -97,7 +97,7 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{von_mises} \tab \code{tan_half}, \code{identity} \cr
    \code{cumulative}, \code{hurdle_cumulative}, \code{acat} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit} \cr
    \code{sratio}, \code{cratio} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit} \cr
-   \code{categorical}, \code{multinomial}, \code{dirichlet} \tab \code{logit} \cr
+   \code{categorical}, \code{multinomial}, \code{dirichlet_multinomial}, \code{dirichlet} \tab \code{logit} \cr
    \code{logistic_normal} \tab \code{identity} \cr
    \code{dirichlet2}, through \code{brmsfamily()} \tab \code{log}, \code{softplus}, \code{squareplus}, \code{identity}, \code{logm1} \cr
    \code{frechet} \tab \code{log}, \code{identity}, \code{inverse}, \code{softplus}, \code{squareplus} \cr

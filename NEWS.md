@@ -1,3 +1,56 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **The predictive draws of `dirichlet()` and `brmsfamily("dirichlet2")`
+  change for the same seed.** The Dirichlet draw that they and
+  `dirichlet_multinomial()` share takes its gamma variates on the log
+  scale. On the probability scale every variate of a row underflowed to
+  0 at a small concentration, and the row came out `NaN`: 18 rows of
+  20000 at `phi = 0.01` and 9570 at `phi = 1e-3`, none now.
+  `simulate()`, `predict()` and the draws methods of a
+  dirichlet_multinomial fit with a small `phi` stopped with "NA in
+  probability vector". The distribution of the draws is unchanged; the
+  means and covariances match the Dirichlet's within Monte Carlo error
+  at `phi` from 0.01 to 20. brms 2.23.0's `rdirichlet()` has the same
+  defect.
+
+## New features
+
+* **`dirichlet_multinomial()`, brms's overdispersed multinomial.** The
+  category probabilities of each row are Dirichlet with mean
+  `softmax(mu)` and precision `phi`, and the counts are multinomial
+  given them: brms's `dirichlet_multinomial_logit2_lpmf()`. The response,
+  `trials()`, `refcat`, `K` and `fitted()` are `multinomial()`'s, and so
+  is the code: the two families are one implementation. `phi` takes a
+  log link (`link_phi`) and its own formula. `simulate()` draws each
+  row's probabilities from the Dirichlet, then the counts. On 126 rows
+  (two to five categories, `phi` from 1e-4 to 1e8) the log density is
+  within 9.1e-12 of an exact reference. brms 2.23.0's Stan function
+  is within 6.1e-7: its lgamma differences lose digits as `phi` grows,
+  and these are formed so that they do not. That matters because `phi`
+  grows without bound on data with no overdispersion: on 7 such fits
+  the plain differences stopped above the multinomial limit, 3 with
+  "false convergence"; formed this way, none does. Fit to the same
+  data as brms, the maximum-likelihood estimates lie within 0.05
+  posterior sd of brms's posterior means for the coefficients and
+  `phi`, with and without a group term.
+
+* **`brmsfamily("negbinomial2")`, brms's negative binomial in
+  `sigma = 1 / shape`.** The variance is `mu + sigma * mu^2`. It is
+  `negbinomial()` underneath: the same density, simulator, mean,
+  variance, deviance and addition terms, read at `shape = 1 / sigma`,
+  so anything `negbinomial()` gains this family gains with it. `sigma`
+  takes the positive links (`link_sigma`) and its own formula; with
+  the log link on both, `sigma ~ z` is the model `shape ~ z` with its
+  coefficients negated. As in brms there is no exported constructor.
+  Its log density is within 6e-12 relative of an exact reference over
+  384 points with `sigma` from 1e-8 to 1e6, where brms 2.23.0's
+  `neg_binomial_2_log_lpmf()` is within 1.4e-10.
+
+* Both families are in `frm_compat()`, reach every post-fit path of
+  `negbinomial()` and `multinomial()`, and take brms's link sets.
+
 # frmtmb 0.72.0
 
 The main changes:
