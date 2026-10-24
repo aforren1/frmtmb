@@ -135,3 +135,8 @@ jobs:
           working-directory: extensions/frmtmb.sample
           args: 'c("--no-manual")'
           upload-snapshots: true
+      # A skip on a broken or missing Suggests package passes R CMD
+      # check; fail it here (.github/scripts/skip-gate.sh has why)
+      - name: Fail on a skip from a broken or missing Suggests package
+        run: bash .github/scripts/skip-gate.sh extensions/frmtmb.sample/check
+        shell: bash

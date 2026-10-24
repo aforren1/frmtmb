@@ -59,6 +59,16 @@ jobs:
       - name: Install the core package from this checkout
         run: R CMD INSTALL --no-multiarch --with-keep.source .
         shell: bash
+      # install.packages() below installs no system library. fmesher
+      # imports sf (GDAL, GEOS, PROJ, sqlite) and sf imports units
+      # (udunits2); without them test-spde.R skips "{fmesher} cannot be
+      # loaded" and the job still passes.
+      - name: Install the system libraries fmesher links
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudunits2-dev libgdal-dev libgeos-dev \
+            libproj-dev libsqlite3-dev
+        shell: bash
       # The extension's own dependencies, read from its DESCRIPTION and
       # installed directly rather than through pak, which would resolve
       # frmtmb against a repository it is in none of.
@@ -82,3 +92,8 @@ jobs:
           working-directory: extensions/frmtmb.spatial
           args: 'c("--no-manual")'
           upload-snapshots: true
+      # A skip on a broken or missing Suggests package passes R CMD
+      # check; fail it here (.github/scripts/skip-gate.sh has why)
+      - name: Fail on a skip from a broken or missing Suggests package
+        run: bash .github/scripts/skip-gate.sh extensions/frmtmb.spatial/check
+        shell: bash

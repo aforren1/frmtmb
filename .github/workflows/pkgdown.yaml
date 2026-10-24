@@ -183,8 +183,18 @@ jobs:
       # frmtmb.eam site stopped at lba.Rd (the first run of this
       # workflow, 2026-09-29). A new extension dependency that links a
       # system library needs its line here too.
+      #
+      # frmtmb.spatial suggests fmesher, which imports sf, which links
+      # GDAL, GEOS, PROJ and sqlite, and sf imports units, which links
+      # udunits2. While core suggested fmesher, the pak step above
+      # installed these; since 0.74.0 moved it, the frmtmb.spatial site
+      # stopped at README.md, where pkgdown loads fmesher to link
+      # fmesher::fm_fem().
       - name: Install the system libraries the extensions' Suggests link
-        run: sudo apt-get update && sudo apt-get install -y libgsl-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgsl-dev libudunits2-dev libgdal-dev \
+            libgeos-dev libproj-dev libsqlite3-dev
         shell: bash
       - name: Install the extensions from this checkout
         run: |

@@ -104,7 +104,10 @@ jobs:
         # its tests of those pairs skip without them. eam suggests
         # sample. A
         # sibling gets its Imports only: its Suggests serve its own
-        # tests, which this job does not run.
+        # tests, which this job does not run. `absent` names the packages
+        # a test may skip as not installed for that reason; the skip gate
+        # below fails on any other (frmtmb.sample's preflight test reads
+        # RTMBode, which frmtmb.ode suggests).
         include:
           - pkg: frmtmb.coupling
             siblings: ''
@@ -118,6 +121,7 @@ jobs:
             siblings: ''
           - pkg: frmtmb.sample
             siblings: 'frmtmb.latent frmtmb.ode frmtmb.eam frmtmb.survival'
+            absent: 'RTMBode'
           - pkg: frmtmb.survival
             siblings: ''
           - pkg: frmtmb.spatial
@@ -152,9 +156,17 @@ jobs:
           cache-version: coverage-${{ matrix.pkg }}-1
       # frmtmb.eam suggests rtdists, which imports gsl, which links the
       # system GSL; install.packages() installs no system library
-      # (pkgdown.yaml has the history)
+      # (pkgdown.yaml has the history). frmtmb.spatial suggests fmesher,
+      # which needs sf's and units' system libraries; without them its
+      # spde tests skip as "cannot be loaded" and coverage still passes
       - name: Install the system libraries the extensions' Suggests link
-        run: sudo apt-get update && sudo apt-get install -y libgsl-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgsl-dev
+          if [ "$PKG" = "frmtmb.spatial" ]; then
+            sudo apt-get install -y libudunits2-dev libgdal-dev \
+              libgeos-dev libproj-dev libsqlite3-dev
+          fi
         shell: bash
       - name: Install core and the siblings from this checkout
         run: |
@@ -224,3 +236,11 @@ jobs:
           files: ./cobertura.xml
           flags: ${{ matrix.pkg }}
           token: ${{ secrets.CODECOV_TOKEN }}
+      # After the upload, so a gated run still reports its coverage. A
+      # skip on a broken or missing Suggests package passes covr; fail
+      # it here (.github/scripts/skip-gate.sh has why)
+      - name: Fail on a skip from a broken or missing Suggests package
+        env:
+          ABSENT: ${{ matrix.absent }}
+        run: bash .github/scripts/skip-gate.sh "${RUNNER_TEMP}/package" $ABSENT
+        shell: bash
