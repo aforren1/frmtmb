@@ -15,11 +15,20 @@
 
 # Run `code` in a fresh R process whose library paths are `libs`, and
 # return its output lines (stdout and stderr).
+#
+# The child inherits R_LIBS_SITE, and `.libPaths(new)` appends the site
+# libraries it names. covr sets R_LIBS_SITE to its whole library stack,
+# the library holding the package included, so a plain `.libPaths(libs)`
+# put the package back. `include.site` exists from R 4.2.0 on.
 child_with_libs <- function(libs, code) {
   f <- tempfile(fileext = ".R")
   on.exit(unlink(f), add = TRUE)
-  writeLines(c(sprintf(".libPaths(%s)", paste0(deparse(libs),
-                                                collapse = "")),
+  writeLines(c(sprintf(paste0("if ('include.site' %%in%% ",
+                              "names(formals(.libPaths))) ",
+                              ".libPaths(%s, include.site = FALSE) ",
+                              "else .libPaths(%s)"),
+                       paste0(deparse(libs), collapse = ""),
+                       paste0(deparse(libs), collapse = "")),
                code), f)
   suppressWarnings(system2(file.path(R.home("bin"), "Rscript"),
                            c("--vanilla", shQuote(f)), stdout = TRUE,

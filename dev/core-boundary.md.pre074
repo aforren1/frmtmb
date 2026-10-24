@@ -1,0 +1,206 @@
+# What goes in core, and what goes in an extension
+
+Status: adopted 2026-10-23. No feature has moved under this rule yet.
+
+This document states the rule that decides where a feature lives, the
+guardrails that a move must satisfy, and the moves that the rule
+proposes. It applies to core `frmtmb` and to the `extensions/frmtmb.*`
+packages.
+
+## The rule
+
+Core holds what most users need and what every extension builds on.
+Extensions hold model classes and workflows for one domain.
+
+brms parity is measured on the whole ecosystem: core plus every
+extension. A brms feature does not have to be in core. brms is a
+general-purpose package that puts almost everything in one place, and
+frmtmb does not have to copy that layout to match brms's behavior.
+
+### What core holds
+
+- The formula grammar: `bf()`, `mvbf()`, `nlf()`, addition terms, and
+  the parser.
+- The general families: the GLM families, the distributional families,
+  ordinal families, mixtures, zero-inflated and hurdle families.
+- General structure: smooths, random effects, structured covariance,
+  autocorrelation, missing data, and measurement error.
+- Inference: maximum likelihood, REML, the Laplace approximation,
+  standard errors, profiles, bootstrap, and the SE checks.
+- Post-fit methods: prediction, simulation, residuals, diagnostics,
+  model comparison, and `conditional_effects()`.
+- The seams that extensions use (see "The seams").
+
+### What an extension holds
+
+- A model class for one domain, for example decision models
+  (`frmtmb.eam`), ODE models (`frmtmb.ode`), learning models
+  (`frmtmb.learn`), or latent-state models (`frmtmb.latent`).
+- A second inference engine with its own dependencies
+  (`frmtmb.sample`).
+- Workflows and post-fit tools that only that domain uses.
+
+### How to decide
+
+Ask these questions in order. The first "yes" decides.
+
+1. Do extensions build on it? Then it is core.
+2. Would most users of frmtmb meet it, whatever their field? Then it
+   is core.
+3. Is it a model class or a workflow for one domain? Then it is an
+   extension.
+
+"brms has it in core" is not a reason to keep a feature in core. It is
+a reason to make sure that a brms user finds it (see "No silent gaps").
+
+## Guardrails
+
+### 1. No silent gaps
+
+Every brms spelling must resolve to one of these:
+
+- a core feature;
+- a feature of a named extension;
+- a refusal that says why frmtmb does not support it.
+
+When the extension is not loaded, the refusal names the package and
+tells the user how to load it. The Wiener family already works this
+way. brms has `wiener` in core; frmtmb has it in `frmtmb.eam`. Without
+that package, `frm(..., family = "wiener")` and `brmsfamily("wiener")`
+stop with "The wiener family is in the extension package frmtmb.eam,
+which is not loaded." The mechanism is `extension_family_homes` in
+`R/families.R`.
+
+That mechanism covers families only. A formula special or an addition
+term that moves to an extension needs the same kind of refusal before
+it moves.
+
+A test must enforce this guardrail. The compat registry already lets an
+extension contribute its features and rules
+(`frmtmb_register_compat()`), and `test-compat-extensions.R` checks the
+contributed rows with all seven extensions loaded. The test for this
+guardrail goes one step further: every brms name in the compat
+vocabulary resolves in core, resolves in an installed extension, or
+has a refusal by name.
+
+### 2. Interface before move
+
+No feature leaves core until the public seam that it needs exists, and
+until an extension uses that seam with no `frmtmb:::` calls. All seven
+extensions meet this today: none of them reads a core internal.
+
+If a move needs a seam that does not exist, the seam is the first piece
+of work. The seam must be useful on its own, so that a third party can
+use it without the move.
+
+### 3. Measure before move
+
+A move must have a reason that is measured, not only a cleaner layout.
+For each candidate, record:
+
+- its lines of code in `R/`;
+- its test time, and that time as a share of the core suite;
+- how often it changed in the last five rounds;
+- the dependencies that it alone needs;
+- the ported brms rows that depend on it.
+
+Record the numbers in the round's findings. A feature that is small,
+stable, and needs no extra dependency is a weak candidate, whatever its
+domain.
+
+### 4. Parity is measured on the ecosystem
+
+The ported brms suite (`dev/brmsport-*`) and the vignette remeasure run
+against core plus every extension. Each row that needs an extension is
+labeled with that extension, so that a regression in an extension shows
+in the ledger. The families count already works this way: 39 of 40
+brms families in core, and 40 of 40 with the extensions.
+
+## The seams
+
+The public interfaces that an extension can use today:
+
+| Seam | What it registers |
+|---|---|
+| `frmtmb_family()`, `custom_family()`, `as_frmtmb_family()` | a family |
+| `frmtmb_register_aterm()` | an addition term, such as `dec()` |
+| `frmtmb_register_compat()` | compat features and rules |
+| `frmtmb_register_frame_check()` | a check on the model frame |
+| `frmtmb-sampling-api` exports | what `frmtmb.sample` reads from a fit |
+| `frm_hazard_reads()` | a test that a package reads no hazard container |
+
+The missing seam: a structured covariance or a precision matrix that
+depends on parameters. `covstruct_registry` is an internal list, and
+the parser builds every covariance structure in core. A public way to
+register a covariance structure is the prerequisite for moving
+`car()` or `spde()`.
+
+## Proposed moves
+
+These are proposals under the rule. Each one needs the measurements of
+guardrail 3 before it is planned.
+
+| Feature | From | To | Prerequisite |
+|---|---|---|---|
+| curve inference: `frm_curve()`, `frm_curve_deriv()`, `frm_curve_feature()` | `frmtmb.spline` | core | none; it uses only public interfaces |
+| `cox()` | core | `frmtmb.survival` | an `extension_family_homes` entry |
+| `royston_parmar()`, `rp_floored()` | `frmtmb.spline` | `frmtmb.survival` | none |
+| `mixture_mvn()` | core | `frmtmb.latent` | none; no string spelling reaches it, and brms has no such family |
+| `car()`, `spde()` | core | `frmtmb.spatial` | the covariance-structure seam, and a refusal by name for a formula special |
+
+Curve inference moves the other way: it applies to any fitted curve,
+not only to splines.
+
+After these moves, `frmtmb.spline` holds no survival code. If nothing
+else stays in it, it can be retired.
+
+These stay in core: `gp()` and HSGP terms, functional regression, the
+general families, `mixture()`, smooths, missing data, and measurement
+error. Each is general, and extensions build on several of them.
+
+### A suggested order
+
+1. Curve inference into core. It needs no new seam.
+2. `frmtmb.survival`: `cox()` and Royston-Parmar. It needs only the
+   family pointer. Its later contents are listed in "Not decided".
+3. `mixture_mvn()` into `frmtmb.latent`.
+4. The covariance-structure seam, then `frmtmb.spatial`.
+
+## Costs that a move adds
+
+1. **Install friction.** A brms user whose code uses `car()` or `cox()`
+   must install one more package. The refusal of guardrail 1 tells the
+   user which one, but it does not remove the step. A documented
+   "install everything" line, or an opt-in meta-package, reduces it.
+2. **Version floors.** Each move adds a floor from an extension on core.
+   Floors slip easily: in the 0.72.0 and 0.73.0 rounds,
+   `frmtmb.sample`'s floor had to rise in each. Each release must
+   measure every floor, as `dev/rel073-floor.sh` does.
+3. **Cross-package defects.** An interaction between two features is
+   harder to see when the features are in different packages. In the
+   0.73.0 round the weights check and the new `cens()` families
+   interacted. Both were in core, and only the release review found
+   the defect. Each release must test the merged build of all packages,
+   in one session, as the release gate already does
+   (`dev/release/run-sessions.sh`, three orders).
+4. **CI cost.** Each extension adds a job to the coverage matrix and a
+   check workflow.
+
+## Not decided
+
+- What else goes in `frmtmb.survival`. The candidates:
+  - more parametric families: Gompertz, log-logistic, generalized
+    gamma, generalized F, piecewise exponential;
+  - a `Surv()` front end, delayed entry, and counting-process data;
+  - cure models, competing risks, and multistate models;
+  - relative survival;
+  - joint longitudinal and survival models;
+  - survival and hazard curves with bands, RMST, marginal survival,
+    and prediction metrics.
+
+  The reference packages for these are survival, flexsurv, rstpm2,
+  mstate, and cmprsk, not brms.
+- Whether a meta-package installs core and every extension.
+- Whether `spde()` stays in core if the measurements show that it is
+  small and stable. Its one heavy dependency, fmesher, is already in
+  Suggests, so moving it does not reduce what core installs.
