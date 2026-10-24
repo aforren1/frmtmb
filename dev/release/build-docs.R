@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# Build the eight pkgdown sites of this monorepo into one tree: the core
+# Build the nine pkgdown sites of this monorepo into one tree: the core
 # site at the root of the destination and each extension in a
 # subdirectory named by the `destination` in its own `_pkgdown.yml`.
 #
@@ -25,7 +25,7 @@
 #                      are on by default for a full build and off for a
 #                      partial one, because a partial tree has dead
 #                      links by construction.
-#   --min-sites=N      how many sites the run must produce. Default 8.
+#   --min-sites=N      how many sites the run must produce. Default 9.
 #   --no-clean         keep whatever is already in the destination.
 #                      The default removes it, which is how a renamed
 #                      package's stale directory disappears.
@@ -103,7 +103,7 @@ if (!is.null(site_arg)) {
 #
 # Core cannot simply be built last: pkgdown's check_dest_is_pkgdown()
 # refuses a non-empty destination whose root holds no pkgdown.yml, and
-# seven subdirectories are not a pkgdown site. So core is built first as
+# eight subdirectories are not a pkgdown site. So core is built first as
 # before, and the root index is regenerated here at the end.
 reindex_arg <- opt_value("reindex")
 if (!is.null(reindex_arg)) {
@@ -195,7 +195,7 @@ if (!nzchar(dest_root)) dest_root <- file.path(root, "docs")
 dir.create(dest_root, recursive = TRUE, showWarnings = FALSE)
 dest_root <- normalizePath(dest_root, winslash = "/", mustWork = TRUE)
 
-min_sites <- as.integer(opt_value("min-sites", "8"))
+min_sites <- as.integer(opt_value("min-sites", "9"))
 log_path <- opt_value("log", file.path(root, "dev", "release", "docs.log"))
 whole_tree <- is.null(only) || opt_flag("check-links")
 

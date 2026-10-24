@@ -1,4 +1,4 @@
-# Build the eight pkgdown sites of this monorepo and deploy them to
+# Build the nine pkgdown sites of this monorepo and deploy them to
 # GitHub Pages as one site: the core site at the root and each extension
 # in a subdirectory the core navbar links to.
 #
@@ -155,14 +155,14 @@ jobs:
       - name: Install the core package from this checkout
         run: R CMD INSTALL --no-multiarch --with-keep.source .
         shell: bash
-      # The seven extensions, in dependency order, each with its own
+      # The eight extensions, in dependency order, each with its own
       # Imports and Suggests read from its DESCRIPTION and installed
       # directly rather than through pak. pak resolves against a
       # repository and no frmtmb package is in one: the builds wanted
       # here are the ones installed from this checkout, so every
-      # frmtmb* name is skipped. This is the scheme the seven
+      # frmtmb* name is skipped. This is the scheme the eight
       # check-frmtmb-*.yaml workflows use; the only difference is that
-      # this one installs all seven in one job, because pkgdown has to
+      # this one installs all eight in one job, because pkgdown has to
       # load them all to resolve the links between the sites.
       #
       # The order is not arbitrary. frmtmb.learn imports frmtmb.eam,
@@ -218,7 +218,7 @@ jobs:
           }
         shell: Rscript {0}
       # The rows the extensions contribute to the compatibility table
-      # can be checked only with all seven loaded. No other job has them
+      # can be checked only with all eight loaded. No other job has them
       # all: coverage runs core alone, and R CMD check hides what the
       # DESCRIPTION does not name, so test-compat-extensions.R skips
       # there. This job has just installed them. A skip here would hide a
@@ -234,7 +234,7 @@ jobs:
           bad <- any(r$skipped) || any(r$error) || sum(r$failed) > 0 ||
             sum(r$nb) == 0
           if (bad) stop("test-compat-extensions.R did not pass with all ",
-                        "seven extensions installed")
+                        "eight extensions installed")
         shell: Rscript {0}
       # Asked before the build so that a legacy-mode repository gets its
       # warning in the first minute rather than after the site is built.
@@ -261,7 +261,7 @@ jobs:
       # assertions, the core navbar href check and the article-gate
       # check all live in this script, so a local run is held to the
       # same standard as this job.
-      - name: Build the eight sites
+      - name: Build the nine sites
         run: |
           Rscript dev/release/build-docs.R \
             --dest="${{ runner.temp }}/pkgdown-site" \
@@ -276,21 +276,27 @@ jobs:
       # returns 9 rather than 8, because of the stale frmtmb.ddm
       # directory, which is how it was checked to discriminate.
       #
-      # The floor of 8 is separate and absolute: it fails when an
+      # The floor of 9 is separate and absolute: it fails when an
       # extension directory has gone missing from the checkout, which the
       # derived number alone would accept. Raise it when a ninth
       # extension ships.
+      #
+      # A retired package keeps a directory of pkgdown redirect pages
+      # (frmtmb.spline since 0.74.0, from core's _pkgdown.yml), and its
+      # index.html is one of them, so a page that only redirects is not
+      # counted as a site root.
       - name: Count the built sites again, independently
         run: |
           site="${{ runner.temp }}/pkgdown-site"
           want=$(( 1 + $(ls -1 extensions/*/_pkgdown.yml | wc -l) ))
           n=$(find "$site" -maxdepth 2 -name index.html \
                 \( -path "$site/index.html" \
-                   -o -path "$site/frmtmb.*/index.html" \) | wc -l)
+                   -o -path "$site/frmtmb.*/index.html" \) \
+                -exec grep -L 'http-equiv="refresh"' {} + | wc -l)
           echo "site roots expected $want, found $n"
           find "$site" -maxdepth 1 -mindepth 1 -type d | sort
-          if [ "$want" -lt 8 ]; then
-            echo "::error::the checkout offers only $want sites, not 8"
+          if [ "$want" -lt 9 ]; then
+            echo "::error::the checkout offers only $want sites, not 9"
             exit 1
           fi
           if [ "$n" -ne "$want" ]; then
