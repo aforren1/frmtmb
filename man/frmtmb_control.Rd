@@ -249,11 +249,13 @@ costs up to two refits of the whole model per such term, and so
 grows with the model: with it the fit took 2.0 times the objective
 evaluations it took without it on that model, and 3.3 to 3.8 times
 those of frmtmb 0.68.1 on a model of 5000 rows with a random
-intercept over 100 groups. A \code{cox()} baseline weight at 0 is
-checked the same way, at one objective value per such weight, and
-the model refitted from off the boundary when the likelihood rises
-from it. \code{FALSE} turns both off. A model without \code{mo()} terms or a
-\code{cox()} family is not affected.}
+intercept over 100 groups. A weight at 0 of a simplex that a
+family declares (\code{frmtmb_family(simplex_pars =)}, as the baseline
+of frmtmb.survival's \code{cox()} does) is checked the same way, at one
+objective value per such weight, and the model refitted from off
+the boundary when the likelihood rises from it. \code{FALSE} turns both
+off. A model without \code{mo()} terms or such a simplex is not
+affected.}
 
 \item{verbose}{Report fit progress through \code{\link[=message]{message()}}, one terse
 line per stage with its elapsed seconds, so a slow fit shows where

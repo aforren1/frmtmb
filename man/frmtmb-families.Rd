@@ -42,7 +42,6 @@
 \alias{acat}
 \alias{von_mises}
 \alias{categorical}
-\alias{cox}
 \title{Additional response families}
 \usage{
 dirichlet(link = "logit", link_phi = "log", refcat = NULL)
@@ -148,8 +147,6 @@ acat(link = "logit", link_disc = "log", threshold = "flexible")
 von_mises(link = "tan_half", link_kappa = "log")
 
 categorical(link = "logit", refcat = NULL, levels = NULL, K = NULL)
-
-cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 }
 \arguments{
 \item{link}{Link for \code{mu}. See \link{frmtmb-links}.}
@@ -204,15 +201,6 @@ Laplace. It is FIXED, not estimated - the default 1.345 is
 \item{levels}{For \code{categorical()}: the response's category labels, in
 the order that fixes the dpar names. Only needed when the family is
 built away from the data; \code{\link[=frm]{frm()}} reads them off the response.}
-
-\item{df}{For \code{cox()}: the number of M-spline basis functions in the
-baseline hazard (brms's \code{bhaz(df = 5)} default).}
-
-\item{degree}{For \code{cox()}: the spline degree of that basis (cubic by
-default).}
-
-\item{intercept}{For \code{cox()}: keep the basis function that is
-non-zero at the lower boundary knot.}
 }
 \value{
 A \code{frmtmb_family} object.
@@ -505,50 +493,6 @@ Residuals are differences of angles and are NOT wrapped, so read
 \code{residuals()} on a von Mises fit with that in mind.
 }
 
-\section{Cox proportional hazards}{
-
-\code{cox()} is the flexible-parametric proportional hazards model brms
-fits: the baseline hazard is an M-spline in time,
-\verb{h0(t) = sum_j s_j M_j(t)}, and the cumulative baseline hazard is the
-I-spline integral of the same basis over the same weights, which
-makes it monotone by construction. The weights \code{s} form a simplex -
-that is what identifies the baseline against the intercept - and are
-estimated as \code{sbhaz_raw}, their \code{Kbhaz - 1} free coordinates in the
-chart a \code{mo()} simplex uses (see "Monotonic effects" in \code{\link[=frm]{frm()}});
-\code{\link[=cox_baseline]{cox_baseline()}} returns the simplex itself. The
-default basis is brms's: \code{df = 5} cubic M-splines with an intercept,
-internal knots on response quantiles and boundary knots just outside
-the observed range.
-
-The hazard is \verb{h0(t) exp(eta)}, so a coefficient is a log hazard
-ratio, exactly as in \code{survival::coxph()}. Right, left, and interval
-censoring come through the ordinary \code{cens()} addition term: an event
-contributes the density and a censored observation the survivor
-function, which is what this family's log-density and log-CDF are.
-Random effects are the point: \code{time | cens(c) ~ x + (1 | g)} is a
-frailty model, and the Laplace approximation integrates the frailties
-out.
-
-The baseline is semiparametric only in spirit - it has \code{df}
-parameters, not one per event time - so coefficients agree with
-\code{coxph()} closely rather than exactly. A survival response has no
-mean, so \code{fitted()} and \code{frm_linpred(type = "response")} are refused;
-\code{frm_linpred(type = "link")} gives the log hazard ratio. \code{simulate()} is
-not available.
-
-Maximum likelihood often puts one or more baseline weights ON the
-simplex boundary, at exactly zero: an unpenalized flexible baseline
-does that. A weight of zero is a finite point of the chart, which the
-fit reaches with a finite Hessian, and a zero weight the likelihood
-rises from is a saddle the fit is moved off
-(\code{frmtmb_control(mo_search = )}). brms keeps the weights interior
-with its \code{dirichlet(1)} prior on \code{sbhaz}; frmtmb.sample's
-\code{frm_sample()} samples the baseline under the same prior, and
-\code{set_prior("dirichlet(...)", class = "sbhaz")} puts another one on
-it. Lower \code{df} until the baseline is one the data supports, and read
-\code{\link[=cox_baseline]{cox_baseline()}} to see which weights are at zero.
-}
-
 \section{Quantile regression inference}{
 
 \code{asym_laplace()} and \code{zero_inflated_asym_laplace()} fit quantile
@@ -745,11 +689,4 @@ frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
 dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
 vm_fit <- frm(bf(angle ~ x), family = von_mises(), data = dd)
 head(fitted(vm_fit))               # the mean direction, in radians
-
-# proportional hazards with a spline baseline; (1 | g) is a frailty
-dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
-dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
-cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
-fixef_by_dpar(cox_fit)$mu                  # log hazard ratios
-cox_baseline(cox_fit)              # the baseline hazard weights
 }

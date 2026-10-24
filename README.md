@@ -141,7 +141,7 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Six companion packages live in this repository, each installed the
+Seven companion packages live in this repository, each installed the
 same way and each documented on its own part of the site.
 
 | package | adds |
@@ -150,7 +150,7 @@ same way and each documented on its own part of the site.
 | [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
-| [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
+| [frmtmb.survival](https://aforren1.github.io/frmtmb/frmtmb.survival/) | survival families: brms's `cox()` with an M-spline baseline, and the flexible parametric `royston_parmar()` |
 | [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()`, `igt_pvl_delta()`, `igt_orl()` and `rlddm()`, each parameter an ordinary distributional parameter with its own linear predictor |
 | [frmtmb.coupling](https://aforren1.github.io/frmtmb/frmtmb.coupling/) | coherence and phase between two signals: the complex Wishart family `cross_wishart()`, whose coherence and phase are distributional parameters with their own linear predictors |
 
@@ -159,7 +159,7 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
-remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.survival")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.learn")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.coupling")
 ```
@@ -270,8 +270,8 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   taxonomy, with covariate-dependent means and gating.
   `categorical()` fits nominal responses, `dirichlet()` and
   `logistic_normal()` compositions (rows of proportions that sum to
-  one), `von_mises()` circular responses, and `cox()` proportional
-  hazards with a flexible baseline and Laplace frailties.
+  one), and `von_mises()` circular responses. brms's `cox()`
+  proportional hazards model is in frmtmb.survival.
   `custom_family()` takes a plain R log-density; section 11 of
   `vignette("case-studies")` writes one with a data-bounded link and
   checks it against the built-in family it shadows.
@@ -335,6 +335,10 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   `Est.Error` column on `fitted()` and `residuals()`. DHARMa, `pp_check()`,
   `plot()`, and `conditional_effects()` are supported. Hooks for
   emmeans, marginaleffects, and insight/easystats are registered.
+- Curve inference reads any fitted curve on a grid: `frm_curve()`
+  gives pointwise and simultaneous bands, `frm_curve_deriv()` its
+  derivatives, and `frm_curve_feature()` the location of a peak or a
+  crossing, each with a delta-method standard error.
 
 ## Life cycle
 

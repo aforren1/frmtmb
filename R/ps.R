@@ -614,9 +614,9 @@ ps_span_flush <- function(sink) {
 #' `test-message-uniqueness.R` reads templates from.
 #'
 #' The warning carries a class, so a consumer can catch this one warning
-#' without matching on its text. `frmtmb.spline`'s curve functions do
-#' exactly that: they surface it once under their own name, and refuse a
-#' feature search whose bracket leaves the span.
+#' without matching on its text. The curve functions, [frm_curve()] and its
+#' two companions, do exactly that: they surface it once under their own
+#' name, and refuse a feature search whose bracket leaves the span.
 #'
 #' @noRd
 ps_span_signal <- function(out, n, pt) {

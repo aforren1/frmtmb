@@ -1,3 +1,78 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`cox()` and `cox_baseline()` are in the new extension package
+  frmtmb.survival.** Load it with `library(frmtmb.survival)`. brms has
+  `cox` in its core, so `family = "cox"`, `brmsfamily("cox")` and
+  `family = cox()` resolve as before with frmtmb.survival loaded. Without
+  it, `family = "cox"` and `brmsfamily("cox")` stop with "The cox family
+  is in the extension package frmtmb.survival, which is not loaded". A
+  fit is the same fit: on eight `cox()` models (censored, a frailty,
+  `df = 6` with the identity link, truncated, a `sbhaz` prior, and the
+  three spellings) the log likelihood, the estimates and the standard
+  errors are `identical()` to frmtmb 0.73.0's, and `get_prior()` gives
+  the same table. `frm_compat()` reports the same 86 `cox` pairs, status
+  and note alike.
+
+* **`frm_curve()`, `frm_curve_deriv()` and `frm_curve_feature()` are in
+  frmtmb now**, with their print methods and the article "How to report
+  a fitted curve". They were in frmtmb.spline, which is retired. Load
+  nothing extra: they apply to any fitted curve, not only to splines. On
+  the curves, derivatives, features and difference curves the
+  frmtmb.spline tests read, their output is `identical()` to
+  frmtmb.spline 0.10.2's. Their `print()` methods now refuse an argument
+  they do not take, as every frmtmb print method does; before, one was
+  silently ignored.
+
+* `set_prior()` no longer refuses a `dirichlet()` on a class that is not
+  one of frmtmb's own, such as `class = "sigma"`, when the row is
+  written: such a name can be a simplex that a family declares, which
+  only the fit can tell. `frm()` refuses the row instead, and names the
+  simplex classes, as `set_prior()` did. A `dirichlet()` on one of frmtmb's own classes, such as
+  `class = "b"`, is still refused by `set_prior()`.
+
+## New features
+
+* `frmtmb_family(simplex_pars =)` declares which extra parameters of a
+  family are simplexes, by brms name: `c(sbhaz = "sbhaz_raw")` is the
+  baseline of frmtmb.survival's `cox()`. A declared simplex is read in
+  the chart of a `mo()` simplex, searched off a pole and off a face the
+  likelihood rises from, drawn by frmtmb.sample in the softmax chart
+  under brms's `dirichlet(1)`, named as brms names its draws (`sbhaz[k]`)
+  and given a prior class of its own name in `get_prior()` and
+  `set_prior()`. Until now these behaviors were written for `cox()` by
+  name. `frm()` refuses a declaration that names no extra parameter the
+  family returns, or one with no coordinate, and names it; before, such
+  a typo ended in "not enough degrees of freedom to define contrasts".
+
+* A saved fit whose family was built by an extension package that this
+  session cannot load now stops, at the first method that needs the
+  family's own functions (`summary()`, `vcov()`, `confint()`,
+  `fitted()`, `residuals()`, `simulate()`, `update()`, `frm_curve()`
+  and the rest), with "The cox family of this model is from the
+  extension package frmtmb.survival, which is not installed ...". It
+  stopped with "could not find function" and the name of one of that
+  package's internals. A family records the package that built it, and
+  a `mixture()` the packages of its components. `logLik()`, `fixef()`
+  and `frm_linpred(type = "link")` need no function of the family and
+  still answer.
+
+* `frmtmb_family(aterm_data =)` builds data the densities read from the
+  observed response, once, at frame assembly, such as a spline basis
+  over the observed times.
+
+* A family's `post$curve_check(fit, resp)` is run by `frm_curve()` and
+  its two companions before they read a curve, and may refuse. It is
+  how frmtmb.survival's `royston_parmar()` refuses a curve off a fit
+  whose cumulative hazard is not monotone.
+
+## Other changes
+
+* gratia is a suggested package, for the curve tests that compare
+  `frm_curve()`'s simultaneous band with gratia's. splines2 is no longer
+  suggested: only the `cox()` tests used it, and they moved with it.
+
 # frmtmb 0.73.1
 
 ## Bug fixes

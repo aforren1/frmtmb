@@ -20,7 +20,7 @@ Remove-Item $LOG -ErrorAction SilentlyContinue
 $jobs = New-Object System.Collections.ArrayList
 [void]$jobs.Add(@{ n = "frmtmb"; d = "$ROOT/tests/testthat" })
 foreach ($n in @("frmtmb.eam", "frmtmb.sample", "frmtmb.coupling",
-                 "frmtmb.spline", "frmtmb.learn", "frmtmb.latent",
+                 "frmtmb.survival", "frmtmb.learn", "frmtmb.latent",
                  "frmtmb.ode")) {
   [void]$jobs.Add(@{ n = $n; d = "$ROOT/extensions/$n/tests/testthat" })
 }

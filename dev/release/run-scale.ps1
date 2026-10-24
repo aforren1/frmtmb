@@ -20,10 +20,13 @@ Remove-Item $LOG -ErrorAction SilentlyContinue
 
 $jobs = New-Object System.Collections.ArrayList
 foreach ($n in @("frmtmb.eam", "frmtmb.ode", "frmtmb.latent",
-                 "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
+                 "frmtmb.coupling", "frmtmb.sample",
                  "frmtmb.learn")) {
   [void]$jobs.Add(@{ n = $n; f = "$ROOT/extensions/$n/tests/testthat/test-scale.R" })
 }
+# the spline curves row moved into core with frm_curve(), under its old
+# row name
+[void]$jobs.Add(@{ n = "frmtmb"; f = "$ROOT/tests/testthat/test-curve-scale.R" })
 foreach ($j in $jobs) {
   if (-not (Test-Path $j.f)) { throw ("test file missing: " + $j.f) }
 }

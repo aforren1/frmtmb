@@ -73,8 +73,10 @@
 #'   `dirichlet(a)` is the mode of `dirichlet(a + 1/2)` on the weights,
 #'   pulled further toward the uniform simplex; see "Monotonic effects"
 #'   in [frm()].
-#' - `"sbhaz"`: the baseline-hazard simplex of a [cox()] response,
-#'   `dirichlet(alpha)` only, brms's class of the same name; no `coef`.
+#' - `"sbhaz"`: the baseline-hazard simplex of a `cox()` response
+#'   (frmtmb.survival), or the simplex a family declares under that name
+#'   (`frmtmb_family(simplex_pars =)`); `dirichlet(alpha)` only, brms's
+#'   class of the same name; no `coef`.
 #' - `"theta"`: raw internal covariance parameters (escape hatch).
 #'   `coef` names one by its internal name and spans all three
 #'   covariance components: `"theta_2"` for a random-effect block,
@@ -707,10 +709,13 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # brms's rules for a simplex, with its words: the Dirichlet and the
   # simplex classes go together, a simo row names one simplex, and a
   # simplex takes no bound (dev/moparity-brms-simo.R). sbhaz is a cox()
-  # baseline, one per response, so it takes no coef
+  # baseline, one per response, so it takes no coef. A class that is
+  # not frmtmb's own may name a simplex a family declares
+  # (frmtmb_family(simplex_pars =)), which only the fit can tell, so
+  # the same rules are applied to it there (prior_simplex_check())
   is_dir <- identical(dist$kind, "dirichlet")
   simplex_classes <- c("simo", "sbhaz")
-  if (is_dir && !class %in% simplex_classes) {
+  if (is_dir && class %in% setdiff(frmtmb_prior_classes, simplex_classes)) {
     frm_stop("dirichlet() is the density of a simplex; it belongs to ",
              "class = \"simo\" (a mo() simplex) or class = \"sbhaz\" (a ",
              "cox() baseline), not class = \"", class, "\"", call. = FALSE)
@@ -2253,10 +2258,10 @@ prior_table <- function(spec, frame, route) {
         resp = sr$resp,
         dflt = if (identical(route, "sample")) "dirichlet(1)")
   }
-  # and on a cox() baseline, brms's class sbhaz, one row per response
-  for (r in names(frame[["aterm_values"]])) {
-    if (is.null(frame[["aterm_values"]][[r]][["Zbhaz"]])) next
-    add("sbhaz", resp = if (multi) r else "",
+  # and on a simplex a family declares, one row per response under its
+  # brms name: class sbhaz for a cox() baseline
+  for (tm in family_simplex_terms(frame, spec)) {
+    add(tm$name, resp = if (multi) tm$resp else "",
         dflt = if (identical(route, "sample")) "dirichlet(1)")
   }
 
@@ -3651,12 +3656,15 @@ resolve_priorlist <- function(fit, pl) {
     })
   }
 
+  fam_simplex <- unique(vapply(family_simplex_terms(frame, fit$spec),
+                               function(tm) tm$name, ""))
   for (s in prior_specificity_order(pl)) {
     # brms names a response by its Stan name (Ya for Y_a), which reaches
     # the response frmtmb names Y_a
     if (nzchar(s$resp %||% "")) {
       s$resp <- resp_from_stan_name(fit$spec, s$resp)
     }
+    s <- prior_simplex_check(s, fam_simplex)
     # before the shape gate: in a multivariate model that gate would
     # judge the spelling against whichever response it met first
     no_resp <- resp_missing_refusal(fit$spec, frame, s)
@@ -3876,13 +3884,13 @@ resolve_priorlist <- function(fit, pl) {
       resolve_rescor(s)
     } else if (s$class == "lncor") {
       resolve_lncor(s)
-    } else if (s$class %in% c("simo", "sbhaz")) {
+    } else if (s$class %in% c("simo", "sbhaz", fam_simplex)) {
       # one joint density over the simplex's chart coordinates, in the
       # chart the frame reads them in (dirichlet_logdens())
       tgts <- if (identical(s$class, "simo")) {
         simo_targets(fit, s)
       } else {
-        sbhaz_targets(fit, s)
+        family_simplex_targets(fit, s)
       }
       for (tm in tgts) {
         idx <- seq_len(tm$D - 1L)
@@ -3962,37 +3970,88 @@ simo_targets <- function(fit, s) {
   out
 }
 
-#' The `cox()` baseline simplexes a class `"sbhaz"` specification names:
-#' one per `cox()` response, narrowed by `resp`, in the chart the
-#' response's family reads it in (`bhaz_chart`). brms's
-#' `dirichlet(con_sbhaz)`, its default `dirichlet(1)`.
+#' The simplexes a family declares under the name a specification's
+#' class gives (`frmtmb_family(simplex_pars =)`): one per response
+#' whose family declares it, narrowed by `resp`, in the chart the
+#' family reads it in (the `<name>_chart` addition term). For class
+#' `"sbhaz"`, a `cox()` baseline, this is brms's `dirichlet(con_sbhaz)`,
+#' whose default is `dirichlet(1)`.
 #'
 #' @noRd
-sbhaz_targets <- function(fit, s) {
+family_simplex_targets <- function(fit, s) {
   out <- list()
   frame <- fit$frame
-  multi <- length(fit$spec$responses) > 1L
-  for (r in names(frame[["aterm_values"]])) {
-    av <- frame[["aterm_values"]][[r]]
-    if (is.null(av[["Zbhaz"]])) next
-    if (nzchar(s$resp %||% "") && !identical(r, s$resp)) next
-    D <- ncol(av[["Zbhaz"]])
+  for (tm in family_simplex_terms(frame, fit$spec)) {
+    if (!identical(tm$name, s$class)) next
+    if (nzchar(s$resp %||% "") && !identical(tm$resp, s$resp)) next
     a <- s$dist$alpha
-    if (length(a) != 1L && length(a) != D) {
-      frm_stop("Invalid Dirichlet prior. Expected input of length ", D,
-               " for class \"sbhaz\", the ", D, " baseline weights of ",
-               "cox(); got ", length(a), call. = FALSE)
+    if (length(a) != 1L && length(a) != tm$D) {
+      frm_stop("Invalid Dirichlet prior. Expected input of length ", tm$D,
+               " for class \"", s$class, "\", the ", tm$D, " weights of ",
+               "the ", tm$family, "() simplex; got ", length(a),
+               call. = FALSE)
     }
     out[[length(out) + 1L]] <- list(
-      zeta = extra_tpl_name(frame, if (multi) r, "sbhaz_raw"), D = D,
-      chart = av[["bhaz_chart"]])
+      zeta = tm$zeta, D = tm$D,
+      chart = frame[["aterm_values"]][[tm$resp]][[tm$chart_key]])
   }
   if (!length(out)) {
-    frm_stop("No cox() baseline matches ", spec_target(s), ": class ",
-             "\"sbhaz\" is the baseline-hazard simplex of a cox() family",
-             call. = FALSE)
+    frm_stop("No simplex matches ", spec_target(s), ": class \"", s$class,
+             "\" names a simplex a family declares under that name, and ",
+             "no family of this model declares one",
+             if (identical(s$class, "sbhaz")) {
+               paste0(". \"sbhaz\" is the baseline hazard of cox(), in ",
+                      "frmtmb.survival")
+             }, call. = FALSE)
   }
   out
+}
+
+#' brms's rules for a simplex, applied at the fit to a class that only
+#' the fit can tell is a simplex: one a family declares
+#' (`frmtmb_family(simplex_pars =)`). `set_prior()` applies the same
+#' rules to `"simo"` and `"sbhaz"` when the row is written, so they are
+#' not repeated here for those two.
+#'
+#' `set_prior()` reads a class that is not frmtmb's own as a
+#' distributional parameter's name and stores it as that parameter's
+#' `"Intercept"`. Only the fit knows when the name is a declared simplex
+#' instead, so the row is given its class back here, and the spec is
+#' returned.
+#'
+#' @noRd
+prior_simplex_check <- function(s, fam_simplex) {
+  cls <- s$class %||% ""
+  dp <- s$dpar %||% ""
+  # the name the user wrote, which a refusal must repeat
+  said <- if (identical(cls, "Intercept") && nzchar(dp)) dp else cls
+  is_dir <- identical(s$dist$kind, "dirichlet")
+  if (cls %in% c("simo", "sbhaz")) return(s)
+  if (said %in% fam_simplex) {
+    if (!is_dir) {
+      frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
+               "parameters: class = \"", said, "\" is a simplex of this ",
+               "model and takes dirichlet(alpha)", call. = FALSE)
+    }
+    if (!is.na(s$lb %||% NA) || !is.na(s$ub %||% NA)) {
+      frm_stop("class = \"", said, "\" is a simplex a family declares, ",
+               "which takes no lb/ub: its own constraint bounds it",
+               call. = FALSE)
+    }
+    if (nzchar(s$coef %||% "") || nzchar(s$group %||% "")) {
+      frm_stop("class = \"", said, "\" is a whole simplex a family ",
+               "declares, one per response, so coef and group name ",
+               "nothing it can narrow to", call. = FALSE)
+    }
+    s$class <- said
+    s$dpar <- ""
+  } else if (is_dir) {
+    frm_stop("dirichlet() is the density of a simplex; it belongs to ",
+             "class = \"simo\" (a mo() simplex), class = \"sbhaz\" (a ",
+             "cox() baseline) or a simplex a family declares, not class = ",
+             "\"", said, "\"", call. = FALSE)
+  }
+  s
 }
 
 #' brms's centering offset for one linear predictor's intercept, or

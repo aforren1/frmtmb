@@ -38,6 +38,7 @@ Suggests:
     frmtmb.eam,
     frmtmb.latent,
     frmtmb.ode,
+    frmtmb.survival,
     ggplot2,
     gratia (>= 0.9.0),
     knitr,

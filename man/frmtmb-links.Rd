@@ -93,7 +93,6 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{binomial}, \code{bernoulli}, \code{Beta}, \code{xbeta}, \code{zero_inflated_binomial}, \code{zero_inflated_beta}, \code{zero_inflated_beta_binomial}, \code{zero_one_inflated_beta} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit}, \code{identity}, \code{log} \cr
    \code{beta_binomial} \tab the same list WITHOUT \code{log}: brms's own table for this one family stops at \code{identity} \cr
    \code{inverse.gaussian} \tab \code{1/mu^2}, \code{inverse}, \code{identity}, \code{log}, \code{softplus}, \code{squareplus} \cr
-   \code{cox} \tab \code{log}, \code{identity}, \code{softplus}, \code{squareplus} \cr
    \code{von_mises} \tab \code{tan_half}, \code{identity} \cr
    \code{cumulative}, \code{hurdle_cumulative}, \code{acat} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit} \cr
    \code{sratio}, \code{cratio} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit} \cr

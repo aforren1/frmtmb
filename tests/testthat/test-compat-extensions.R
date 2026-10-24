@@ -15,7 +15,7 @@
 
 compat_extensions <- c("frmtmb.coupling", "frmtmb.eam", "frmtmb.latent",
                        "frmtmb.learn", "frmtmb.ode", "frmtmb.sample",
-                       "frmtmb.spline")
+                       "frmtmb.survival")
 
 compat_run_child <- function(code) {
   f <- tempfile(fileext = ".R")

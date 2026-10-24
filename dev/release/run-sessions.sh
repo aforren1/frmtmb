@@ -36,7 +36,7 @@ LOG="$ROOT/dev/release/$tier.log"
 pk=("$@")
 [ ${#pk[@]} -gt 0 ] || pk=(frmtmb frmtmb.coupling frmtmb.eam frmtmb.latent
                            frmtmb.learn frmtmb.ode frmtmb.sample
-                           frmtmb.spline)
+                           frmtmb.survival)
 RT=/c/rtools45
 export PATH="$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin:$PATH"
 MK=C:/Users/adf44/Documents/.R/Makevars.win

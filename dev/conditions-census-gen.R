@@ -28,7 +28,7 @@ exempt <- list(
   frmtmb.learn = character(0),
   frmtmb.ode = character(0),
   frmtmb.sample = character(0),
-  frmtmb.spline = character(0))
+  frmtmb.survival = character(0))
 
 anchor <- c(frmtmb = "objective.R",
             frmtmb.coupling = "frmtmb.coupling-package.R",
@@ -37,7 +37,7 @@ anchor <- c(frmtmb = "objective.R",
             frmtmb.learn = "frmtmb.learn-package.R",
             frmtmb.ode = "frmtmb.ode-package.R",
             frmtmb.sample = "frmtmb.sample-package.R",
-            frmtmb.spline = "frmtmb.spline-package.R")
+            frmtmb.survival = "frmtmb.survival-package.R")
 
 # The template is a file of its own so that it is plain R, with no
 # second level of string escaping to get wrong.

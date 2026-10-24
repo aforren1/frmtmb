@@ -592,7 +592,7 @@ solve_joint_precision <- function(Q, cache = NULL, fit = NULL) {
 #' coordinates, so rows equal to 15 significant digits are one position,
 #' on the fitting data and on new data alike (brms 2.23.0 makes 1/3 and
 #' 1/3 * (1 + 2^-52) one position: `dev/ciharden-brmsgp.R`,
-#' `dev/ciharden-rev-brmsgpnew.R`). frmtmb.spline's `sp_row_key()`
+#' `dev/ciharden-rev-brmsgpnew.R`). The curve functions' `curve_row_key()`
 #' compares exactly, so it merges a subset of what this merges.
 #'
 #' @noRd

@@ -91,7 +91,7 @@ hazard_containers <- c(
 #'   with no hazard read gives `character(0)`.
 #' @examples
 #' # in a package's own test suite:
-#' #   expect_identical(frmtmb::frm_hazard_reads("frmtmb.spline"),
+#' #   expect_identical(frmtmb::frm_hazard_reads("frmtmb.survival"),
 #' #                    character(0))
 #' frm_hazard_reads("frmtmb")
 #' @export

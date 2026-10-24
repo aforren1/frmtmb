@@ -79,7 +79,6 @@
 #' | `binomial`, `bernoulli`, `Beta`, `xbeta`, `zero_inflated_binomial`, `zero_inflated_beta`, `zero_inflated_beta_binomial`, `zero_one_inflated_beta` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit`, `identity`, `log` |
 #' | `beta_binomial` | the same list WITHOUT `log`: brms's own table for this one family stops at `identity` |
 #' | `inverse.gaussian` | `1/mu^2`, `inverse`, `identity`, `log`, `softplus`, `squareplus` |
-#' | `cox` | `log`, `identity`, `softplus`, `squareplus` |
 #' | `von_mises` | `tan_half`, `identity` |
 #' | `cumulative`, `hurdle_cumulative`, `acat` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit`, `softit` |
 #' | `sratio`, `cratio` | `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` |

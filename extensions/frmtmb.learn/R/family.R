@@ -555,8 +555,8 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list(),
     # no order at all. So there is no number `mu` for which `y - mu` is
     # a residual, and any `fitted_mean` this family supplied would make
     # fitted(), frm_linpred(type = "response") and residuals() return
-    # arithmetic on a category code. core::cox() and
-    # frmtmb.spline::royston_parmar() decline to invent a mean for the
+    # arithmetic on a category code. frmtmb.survival::cox() and
+    # frmtmb.survival::royston_parmar() decline to invent a mean for the
     # same kind of reason.
     #
     # What replaces them is frm_value_trace(), which returns MORE than

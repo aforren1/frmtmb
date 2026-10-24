@@ -34,7 +34,7 @@ Remove-Item $LOG -ErrorAction SilentlyContinue
 $pkgs = New-Object System.Collections.ArrayList
 [void]$pkgs.Add($ROOT)
 foreach ($n in @("frmtmb.eam", "frmtmb.latent", "frmtmb.ode",
-                 "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
+                 "frmtmb.survival", "frmtmb.coupling", "frmtmb.sample",
                  "frmtmb.learn")) {
   [void]$pkgs.Add("$ROOT/extensions/$n")
 }

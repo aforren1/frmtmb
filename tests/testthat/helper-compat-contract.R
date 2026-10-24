@@ -12,8 +12,8 @@
 # - a contributed `method` row names a function a loaded frmtmb
 #   package exports, or an argument setting of one, spelled as core
 #   spells its own (`confint_profile`): `<function>_<argument>`, where
-#   the argument is a formal argument of the function (frmtmb.spline's
-#   `frm_curve_contrast`). Registration checks only the kind.
+#   the argument is a formal argument of the function (`frm_curve_contrast`,
+#   when frmtmb.spline registered it). Registration checks only the kind.
 compat_contract_violations <- function() {
   ns <- asNamespace("frmtmb")
   rules <- frmtmb::frm_compat_rules()

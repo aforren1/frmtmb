@@ -66,7 +66,7 @@ dir <- if (length(a) >= 3L) a[3] else if (identical(p, "frmtmb")) {
 stopifnot(dir.exists(dir))
 
 pkgs <- c("frmtmb", "frmtmb.coupling", "frmtmb.eam", "frmtmb.latent",
-          "frmtmb.learn", "frmtmb.ode", "frmtmb.sample", "frmtmb.spline")
+          "frmtmb.learn", "frmtmb.ode", "frmtmb.sample", "frmtmb.survival")
 miss <- pkgs[!nzchar(vapply(pkgs, function(q) {
   tryCatch(find.package(q), error = function(e) "")
 }, ""))]

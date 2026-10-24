@@ -68,6 +68,16 @@
 #'   throws is caught, reported as a warning naming the family, and the
 #'   fit is returned regardless.
 #'
+#'   `post$curve_check(fit, resp)` is the refusal that `fit_check` is
+#'   not. [frm_curve()], [frm_curve_deriv()] and [frm_curve_feature()]
+#'   run it before they read a curve off a response of this family, and
+#'   discard its return value. Stop from it when the fit has no curve to
+#'   report, for example because its likelihood is a floor artifact at
+#'   the fitted parameters: the curve of such a fit is an artifact too.
+#'   The error reaches the caller unchanged. frmtmb.survival's
+#'   `royston_parmar()` uses it to refuse a fit whose cumulative hazard
+#'   is not monotone.
+#'
 #'   `post$stationary` is a declaration rather than a function: a named
 #'   list, one entry per dpar, each `list(at =, tol =, from =)`. It says
 #'   that the likelihood has a stationary point where that dpar's
@@ -226,6 +236,30 @@
 #'   the dpar system (for example ordinal thresholds). They join the
 #'   parameter template under their own names and reach `lpdf` as its
 #'   fourth argument.
+#' @param aterm_data Optional function `(y, aterms)` returning a named
+#'   list of DATA the densities read, built once from the observed
+#'   response at frame assembly (step 3 of "Slot call order") and added
+#'   to the addition terms every slot receives. It is for a quantity
+#'   that is a function of the observed response and not a parameter,
+#'   such as a spline basis over the observed times.
+#' @param simplex_pars Optional named character vector that declares
+#'   which extra parameters (`extra_pars`) are simplexes. A name is the
+#'   simplex's brms name, which is its prior class and the stem of its
+#'   draw names. A value is the extra parameter that holds the simplex's
+#'   `D - 1` free coordinates. `c(sbhaz = "sbhaz_raw")` is
+#'   frmtmb.survival's `cox()` baseline.
+#'
+#'   The densities read the weights as `mo_simplex(extra[[par]],
+#'   aterms[[paste0(name, "_chart")]])`. The second argument is the
+#'   chart of the coordinates: `NULL` for the chart of the fit, and
+#'   `"softmax"` on frmtmb.sample's sampler. A declared simplex gets
+#'   what a `mo()` simplex gets (see "Monotonic effects" in [frm()]):
+#'   the search off a pole and off a face that the likelihood rises
+#'   from (`frmtmb_control(mo_search = )`), the softmax chart and brms's
+#'   `dirichlet(1)` default on the sampler, and the prior
+#'   `set_prior("dirichlet(...)", class = name)`. A name must not be
+#'   one of frmtmb's own prior classes other than `"sbhaz"`, which is
+#'   brms's class for a baseline hazard.
 #' @param drop_intercept If `TRUE`, the intercept column is removed from
 #'   the main formula's design matrix (ordinal families: thresholds take
 #'   its place).
@@ -247,6 +281,18 @@
 #'   parameter, as in `beta_binomial()$link_phi`. Because they are
 #'   read from `links` each time, a `family_finalize()` that replaces a
 #'   link, or any other edit, cannot leave them stale.
+#'
+#'   The family records the package that built it: the namespace of the
+#'   function that called `frmtmb_family()`, read with
+#'   [frm_family_package()], and `"frmtmb"` for a family built outside
+#'   any package. A saved fit keeps that record. When the fit is read
+#'   back in a session where that package is not installed, frmtmb stops
+#'   at the first method that needs the family's functions (`summary()`,
+#'   `vcov()`, `predict()`, `fitted()`, `simulate()`, `update()`,
+#'   [frm_curve()] and the rest) with a message that names the package,
+#'   rather than with the "could not find function" of one of its
+#'   internals. A [mixture()] records the packages of its components
+#'   the same way.
 #'
 #'   `$` does not partial-match on a family object. `fam$lpd` is an
 #'   error naming the field it would have matched, rather than
@@ -407,7 +453,7 @@
 #' }
 #'
 #' Every built-in family with a CDF declares `cdf_log` except
-#' [exponential()], [weibull()], [cox()], [frechet()],
+#' [exponential()], [weibull()], [frechet()],
 #' [gen_extreme_value()] and [discrete_weibull()]. A family without it
 #' is read through `lcdf` and `lccdf` as before: a right-censored row is
 #' `lccdf` (or `log(1 - lcdf)` without it), a left-censored row
@@ -505,7 +551,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           exclusive_aterms = list(),
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
-                          structure = NULL) {
+                          structure = NULL, aterm_data = NULL,
+                          simplex_pars = NULL) {
   if (!is.character(family) || length(family) != 1L || is.na(family)) {
     frm_stop("frmtmb_family(family =) must be one string, the name of ",
              "the family, not ", arg_desc(family), call. = FALSE)
@@ -586,20 +633,30 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
              "which is what declares a likelihood that does not factorize ",
              "over rows", call. = FALSE)
   }
+  if (!is.null(aterm_data) && !is.function(aterm_data)) {
+    frm_stop("frmtmb_family(aterm_data =) must be a function (y, aterms) ",
+             "returning a named list of data, or NULL", call. = FALSE)
+  }
+  check_simplex_pars(simplex_pars, extra_pars, dpars)
+  slots <- list(family = family, dpars = dpars, links = links, lpdf = lpdf,
+                valid_y = valid_y, init_dpars = init_dpars, type = type,
+                post = post, sim = sim, sim_ctx = sim_ctx,
+                sim_refusal = sim_refusal, primary_dpars = primary_dpars,
+                lcdf = lcdf, lccdf = lccdf, cdf_log = cdf_log,
+                required_aterms = required_aterms,
+                accepts_aterms = accepts_aterms, se_dpar = se_dpar,
+                exclusive_aterms = exclusive_aterms,
+                family_finalize = family_finalize, extra_pars = extra_pars,
+                drop_intercept = isTRUE(drop_intercept),
+                structure = structure)
+  # added only when given, so every family that declares neither keeps
+  # the slot names, and the partial matches of `$` on them, it had
+  if (!is.null(aterm_data)) slots[["aterm_data"]] <- aterm_data
+  if (!is.null(simplex_pars)) slots[["simplex_pars"]] <- simplex_pars
   # base::structure(), spelled out: the `structure` ARGUMENT above masks
   # the base function inside this body
   base::structure(
-    list(family = family, dpars = dpars, links = links, lpdf = lpdf,
-         valid_y = valid_y, init_dpars = init_dpars, type = type,
-         post = post, sim = sim, sim_ctx = sim_ctx,
-         sim_refusal = sim_refusal, primary_dpars = primary_dpars,
-         lcdf = lcdf, lccdf = lccdf, cdf_log = cdf_log,
-         required_aterms = required_aterms,
-         accepts_aterms = accepts_aterms, se_dpar = se_dpar,
-         exclusive_aterms = exclusive_aterms,
-         family_finalize = family_finalize, extra_pars = extra_pars,
-         drop_intercept = isTRUE(drop_intercept),
-         structure = structure),
+    slots,
     class = "frmtmb_family",
     # the package whose code built the family: a refusal core raises
     # about this family's declarations is that package's
@@ -1182,6 +1239,7 @@ trunc_bounds <- function(aterms, n) {
 #' @rdname frmtmb-extension-api
 #' @export
 response_mean <- function(fam, dpars, aterms) {
+  require_model_packages(fam)
   check_family_aterms(fam, aterms)
   mu <- if (!is.null(fam[["post"]]$mean_fn)) {
     fam[["post"]]$mean_fn(dpars, aterms)
@@ -1338,7 +1396,8 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   drawn <- n
   bad <- which(y < tb$lb | y > tb$ub)
   it <- 0L
-  # cox reads its CDF from a design built at the recorded bounds, so a
+  # a family with extra parameters may read its CDF from a design built
+  # at the recorded bounds, as frmtmb.survival's cox() does, so a
   # bisection point has no row in it
   invert <- identical(frm_family_package(fam), "frmtmb") &&
     is.null(fam[["extra_pars"]]) &&
@@ -1461,6 +1520,7 @@ sim_is_structured <- function(ctx) {
 #'
 #' @noRd
 sim_draw <- function(ctx) {
+  require_model_packages(ctx[["family"]])
   ac <- ctx[["autocor"]]
   sf <- fam_sim_ctx(ctx[["family"]])
   if (is.null(ac) && is.null(sf)) {
@@ -6152,6 +6212,10 @@ mixture_build <- function(comps, groups, ref) {
   # read by the frame checks brms applies through a mixture's components
   # (trials(), the bernoulli message)
   fam[["component_families"]] <- vapply(comps, `[[`, "", "family")
+  # the packages whose functions the components carry, which a saved
+  # fit needs in the session that reads it (require_model_packages())
+  attr(fam, "frmtmb_component_packages") <-
+    unique(vapply(comps, frm_family_package, ""))
   # internals for the objective's group-level branch and for
   # mixture_probs(): per-component log-densities and log mixing weights
   fam[["mix"]] <- list(
@@ -6452,6 +6516,10 @@ mixture_build_ordinal <- function(comps, ref, order, y = NULL,
   fam[["hidden_fixed_dpars"]] <- hidden
   if (code0 == 0L) fam[["extra_cat"]] <- TRUE
   fam[["component_families"]] <- vapply(cf, `[[`, "", "family")
+  # the packages whose functions the components carry, which a saved
+  # fit needs in the session that reads it (require_model_packages())
+  attr(fam, "frmtmb_component_packages") <-
+    unique(vapply(cf, frm_family_package, ""))
   if (final) {
     fam[["thres"]] <- list(grouped = grouped, nthres = nthres,
                            levels = th[["levels"]] %||% "",
@@ -7990,253 +8058,10 @@ carry_finalized_responses <- function(spec, frame) {
   spec
 }
 
-# --- Cox proportional hazards ----------------------------------------
-
-#' B-spline basis of a given order (degree + 1) over a full knot vector,
-#' by the Cox-de Boor recursion. Written out rather than taken from
-#' `splines::splineDesign()` so the baseline hazard needs no dependency
-#' outside the ones the package already carries; it agrees with
-#' `splines2` to machine precision, which the tests assert.
-#'
-#' @noRd
-bspline_basis <- function(x, knots, order) {
-  n <- length(x)
-  nb1 <- length(knots) - 1L
-  # order 1: the indicator of [t_j, t_{j+1}); the last non-degenerate
-  # interval closes on the right so the upper boundary is covered
-  B <- matrix(0, n, nb1)
-  last <- max(which(knots < knots[length(knots)]))
-  for (j in seq_len(nb1)) {
-    B[, j] <- if (j == last) {
-      as.numeric(x >= knots[j] & x <= knots[j + 1L])
-    } else {
-      as.numeric(x >= knots[j] & x < knots[j + 1L])
-    }
-  }
-  if (order == 1L) return(B[, seq_len(length(knots) - order), drop = FALSE])
-  for (k in 2:order) {
-    Bn <- matrix(0, n, length(knots) - k)
-    for (j in seq_len(ncol(Bn))) {
-      d1 <- knots[j + k - 1L] - knots[j]
-      d2 <- knots[j + k] - knots[j + 1L]
-      # a repeated knot gives a zero-width span; its term drops out
-      t1 <- if (d1 > 0) (x - knots[j]) / d1 * B[, j] else 0
-      t2 <- if (d2 > 0) (knots[j + k] - x) / d2 * B[, j + 1L] else 0
-      Bn[, j] <- t1 + t2
-    }
-    B <- Bn
-  }
-  B
-}
-
-#' The knot placement brms uses for the Cox baseline: internal knots on
-#' equally spaced response quantiles, boundary knots just outside the
-#' observed range so every observation sits strictly inside the basis
-#' (`splines2`'s default through brms's `bhaz_basis_matrix()`).
-#'
-#' @noRd
-bhaz_spec <- function(y, df, degree, intercept) {
-  n_int <- df - degree - as.integer(intercept)
-  if (n_int < 0L) {
-    frm_stop("cox(): df must be at least degree + 1 (", degree + 1L,
-             ") with an intercept in the baseline basis", call. = FALSE)
-  }
-  rng <- range(y)
-  d <- rng[2L] - rng[1L]
-  boundary <- c(max(rng[1L] - d / 50, 0), rng[2L] + d / 50)
-  internal <- if (n_int > 0L) {
-    p <- seq(0, 1, length.out = n_int + 2L)[-c(1L, n_int + 2L)]
-    unname(stats::quantile(y, probs = p))
-  } else {
-    numeric(0)
-  }
-  list(internal = internal, boundary = boundary, degree = degree,
-       intercept = intercept, df = df)
-}
-
-#' The full knot vector of a baseline-hazard spec: boundary knots
-#' repeated to the spline's order at each end.
-#'
-#' @noRd
-bhaz_knots <- function(sp, extra = 0L) {
-  k <- sp$degree + 1L + extra
-  c(rep(sp$boundary[1L], k), sp$internal, rep(sp$boundary[2L], k))
-}
-
-#' The M-spline basis of the baseline hazard: the B-spline basis scaled
-#' so each function integrates to one over its support, which is what
-#' makes a simplex of coefficients a density-like hazard.
-#'
-#' @noRd
-mspline_design <- function(x, sp) {
-  k <- sp$degree + 1L
-  tt <- bhaz_knots(sp)
-  N <- bspline_basis(x, tt, k)
-  M <- N
-  for (j in seq_len(ncol(N))) M[, j] <- N[, j] * k / (tt[j + k] - tt[j])
-  if (!sp$intercept) M <- M[, -1L, drop = FALSE]
-  M
-}
-
-#' The I-spline basis: `I_j(x)` is the integral of `M_j` from the lower
-#' boundary knot, so it is the CUMULATIVE baseline hazard's basis and it
-#' is monotone by construction. It equals the reverse cumulative sum of
-#' the order-(degree + 2) B-spline basis on the once-more-repeated
-#' boundary knots (Ramsay 1988); the tests check it against both
-#' `splines2::iSpline()` and a numeric integral of `mspline_design()`.
-#'
-#' @noRd
-ispline_design <- function(x, sp) {
-  N2 <- bspline_basis(x, bhaz_knots(sp, extra = 1L), sp$degree + 2L)
-  R <- t(apply(N2, 1L, function(v) rev(cumsum(rev(v)))))
-  if (length(x) == 1L) R <- matrix(R, 1L, ncol(N2))
-  I <- R[, -1L, drop = FALSE]
-  if (!sp$intercept) I <- I[, -1L, drop = FALSE]
-  I
-}
-
-#' Cox proportional hazards with a flexible (M-spline) baseline hazard,
-#' brms's construction. The baseline hazard is `Zbhaz %*% s` and the
-#' cumulative baseline hazard `Zcbhaz %*% s` over the SAME simplex `s`,
-#' with `Zcbhaz` the I-spline integral of the M-spline `Zbhaz`. The
-#' simplex is what identifies the baseline against the intercept, and it
-#' rides in the parameter vector as `K - 1` free coordinates of the
-#' chart `mo_simplex()` reads a `mo()` simplex in.
-#'
-#' @noRd
-fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
-  df <- as.integer(df)
-  degree <- as.integer(degree)
-  intercept <- isTRUE(intercept)
-  # The simplex from its K-1 free coordinates, in the chart a mo()
-  # simplex uses: a weight of 0 is at a finite point there, where the
-  # softmax this used put it at an infinite coordinate and fits stopped
-  # on the plateau toward it (weights of 1.1e-8, 8.3e-9 and 5.9e-8 on
-  # seeds 2, 5 and 6 of dev/optima-rev-cox1.R; dev/moparity-findings.md,
-  # item 4). `chart` is the response's `bhaz_chart` addition term, which
-  # frmtmb.sample's sampler sets to "softmax" on its own copy of the
-  # frame (mo_chart_frame()).
-  sbhaz <- function(raw, chart = NULL) mo_simplex(raw, chart)
-  fam <- frmtmb_family(
-    "cox",
-    accepts_aterms = c("weights", "cens", "trunc"),
-    dpars = "mu",
-    links = list(mu = mu_link(link, "cox")),
-    lpdf = function(y, dpars, aterms, extra) {
-      s <- sbhaz(extra$sbhaz_raw, aterms[["bhaz_chart"]])
-      bhaz <- as.vector(aterms[["Zbhaz"]] %*% s)
-      cbhaz <- as.vector(aterms[["Zcbhaz"]] %*% s)
-      # log h(t) + log S(t), with h(t) = h0(t) * mu and mu = exp(eta)
-      log(bhaz) + log(dpars[["mu"]]) - cbhaz * dpars[["mu"]]
-    },
-    lcdf = function(q, dpars, aterms, extra) {
-      # F(t) = 1 - exp(-H0(t) * mu). Every bound a censored or truncated
-      # row asks about is plain data, so its I-spline row block was
-      # built once at frame assembly and is looked up by value here.
-      cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
-                           sbhaz(extra$sbhaz_raw, aterms[["bhaz_chart"]]))
-      1 - exp(-cbhaz * dpars[["mu"]])
-    },
-    lccdf = function(q, dpars, aterms, extra) {
-      # log S = -H0(t) * mu, the cumulative hazard itself
-      cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
-                           sbhaz(extra$sbhaz_raw, aterms[["bhaz_chart"]]))
-      -cbhaz * dpars[["mu"]]
-    },
-    valid_y = function(y, aterms) {
-      if (any(y <= 0)) {
-        frm_stop("cox: the response is a survival time and must be ",
-                 "strictly positive", call. = FALSE)
-      }
-      if (length(unique(y)) < df) {
-        frm_stop("cox: fewer distinct event times (", length(unique(y)),
-                 ") than baseline basis functions (", df,
-                 "); lower df in cox(df = )", call. = FALSE)
-      }
-    },
-    init_dpars = list(
-      # the baseline integrates to one over the observed window, so the
-      # hazard ratio starts at the crude event rate
-      mu = function(y, aterms) {
-        ev <- if (is.null(aterms[["cens"]])) 1 else mean(aterms[["cens"]] == 0)
-        max(ev, 0.05) / mean(y)
-      }
-    ),
-    type = "continuous",
-    post = list(
-      # mu is the hazard RATIO, not a mean, and reporting it as one is
-      # exactly the mistake this family invites. brms refuses the same
-      # question (posterior_epred has no cox method).
-      mean_fn = function(dpars, aterms) {
-        frm_stop("cox: a survival time has no mean on the response scale ",
-                 "here - the model fits a hazard, and the mean survival ",
-                 "time would be an integral over the baseline that the ",
-                 "censored rows do not identify. frm_linpred(type = \"link\") ",
-                 "gives the log hazard ratio and cox_baseline() the fitted ",
-                 "baseline weights", call. = FALSE)
-      }
-    ),
-    extra_pars = function(y, aterms) {
-      list(sbhaz_raw = rep(0, ncol(aterms[["Zbhaz"]]) - 1L))
-    },
-    # a deliberate omission, not a gap: every entry point repeats this
-    # reason after its own refusal
-    sim_refusal = paste0(
-      "Drawing a survival time means inverting the cumulative baseline ",
-      "hazard, and cox() carries no quantile function for it: the ",
-      "I-spline baseline is identified only on the observed time ",
-      "window, so a draw beyond the last event time has no defined ",
-      "distribution"
-    )
-  )
-  # the baseline bases are data, not parameters: they are built once
-  # from the observed times and ride with the response's addition terms
-  fam[["aterm_data"]] <- function(y, aterms) {
-    sp <- bhaz_spec(y, df, degree, intercept)
-    out <- list(Zbhaz = mspline_design(y, sp), bhaz_spec = sp,
-                cox_cb = list(cox_cb_entry(y, sp)))
-    for (nm in c("cens_y2", "trunc_lb", "trunc_ub")) {
-      if (!is.null(aterms[[nm]])) {
-        out$cox_cb[[length(out$cox_cb) + 1L]] <-
-          cox_cb_entry(aterms[[nm]], sp)
-      }
-    }
-    out$Zcbhaz <- out$cox_cb[[1L]]$Z
-    out
-  }
-  fam[["cox_sbhaz"]] <- sbhaz
-  fam
-}
-
-#' One cached (bound, I-spline design) pair. A bound outside the
-#' boundary knots is clamped first: below the lower knot the cumulative
-#' baseline hazard is zero and above the upper one it is its total, and
-#' the raw B-spline recursion returns an all-zero row for both, which
-#' would read as "no risk accumulated" at an upper bound.
-#'
-#' @noRd
-cox_cb_entry <- function(q, sp) {
-  qq <- pmin(pmax(as.numeric(q), sp$boundary[1L]), sp$boundary[2L])
-  list(q = as.numeric(q), Z = ispline_design(qq, sp))
-}
-
-#' The cumulative-baseline-hazard design for a bound the Cox likelihood
-#' asks about. Frame assembly cached one per bound; anything else (a
-#' post-fit query) is built on the spot.
-#'
-#' @noRd
-cox_cbhaz_design <- function(q, aterms) {
-  qn <- as.numeric(q)
-  for (e in aterms[["cox_cb"]] %||% list()) {
-    if (identical(e$q, qn)) return(e$Z)
-  }
-  cox_cb_entry(qn, aterms[["bhaz_spec"]])$Z
-}
-
 #' Call a family's log-CDF, passing the family-level extra parameters to
-#' the families that declare them. The Cox baseline lives there, so its
-#' survivor function needs them; every other CDF keeps the three-argument
-#' contract.
+#' the families that declare them. The baseline of frmtmb.survival's
+#' `cox()` lives there, so its survivor function needs them; every other
+#' CDF keeps the three-argument contract.
 #'
 #' @noRd
 fam_lcdf <- function(fam, q, dpars, aterms, extra) {
@@ -8264,27 +8089,6 @@ fam_lccdf <- function(fam, q, dpars, aterms, extra) {
 #'
 #' @noRd
 has_lccdf <- function(fam) !is.null(fam[["lccdf"]])
-
-#' The fitted baseline-hazard simplex of a `cox()` fit.
-#'
-#' @param fit A `frmtmb_fit` with a [cox()] family.
-#' @return The `Kbhaz` M-spline weights, summing to one.
-#' @examples
-#' set.seed(1)
-#' dd <- data.frame(x = rnorm(200))
-#' dd$time <- rexp(200, exp(-0.5 + 0.7 * dd$x))
-#' fit <- frm(bf(time ~ x), family = cox(), data = dd)
-#' cox_baseline(fit)
-#' @export
-cox_baseline <- function(fit) {
-  rspec <- single_response(fit, "cox_baseline()")
-  fam <- rspec$family
-  if (is.null(fam[["cox_sbhaz"]])) {
-    frm_stop("cox_baseline() needs a cox() family fit", call. = FALSE)
-  }
-  s <- fam[["cox_sbhaz"]](fit$estimates[["sbhaz_raw"]])
-  stats::setNames(s, paste0("s", seq_along(s)))
-}
 
 #' The families whose response is an `n x K` matrix of counts over
 #' categories with a known number of trials per row: brms's
@@ -8649,7 +8453,6 @@ family_registry <- list(
   cratio                    = fam_cratio,
   acat                      = fam_acat,
   von_mises                 = fam_von_mises,
-  cox                       = fam_cox,
   categorical               = fam_categorical_deferred,
   # the simplex families (R/families-simplex.R); dirichlet2 has no
   # constructor, as in brms, and is reached through brmsfamily()
@@ -8664,7 +8467,10 @@ family_registry <- list(
 
 # brms families that an extension package supplies rather than core,
 # keyed by brms's name.
-extension_family_homes <- c(wiener = "frmtmb.eam")
+extension_family_homes <- c(
+  wiener = "frmtmb.eam",
+  cox = "frmtmb.survival"
+)
 
 # An unknown value errors and names the supported families.
 
@@ -9093,48 +8899,6 @@ as_frmtmb_family <- function(x) {
 #' Residuals are differences of angles and are NOT wrapped, so read
 #' `residuals()` on a von Mises fit with that in mind.
 #'
-#' @section Cox proportional hazards:
-#' `cox()` is the flexible-parametric proportional hazards model brms
-#' fits: the baseline hazard is an M-spline in time,
-#' `h0(t) = sum_j s_j M_j(t)`, and the cumulative baseline hazard is the
-#' I-spline integral of the same basis over the same weights, which
-#' makes it monotone by construction. The weights `s` form a simplex -
-#' that is what identifies the baseline against the intercept - and are
-#' estimated as `sbhaz_raw`, their `Kbhaz - 1` free coordinates in the
-#' chart a `mo()` simplex uses (see "Monotonic effects" in [frm()]);
-#' [cox_baseline()] returns the simplex itself. The
-#' default basis is brms's: `df = 5` cubic M-splines with an intercept,
-#' internal knots on response quantiles and boundary knots just outside
-#' the observed range.
-#'
-#' The hazard is `h0(t) exp(eta)`, so a coefficient is a log hazard
-#' ratio, exactly as in `survival::coxph()`. Right, left, and interval
-#' censoring come through the ordinary `cens()` addition term: an event
-#' contributes the density and a censored observation the survivor
-#' function, which is what this family's log-density and log-CDF are.
-#' Random effects are the point: `time | cens(c) ~ x + (1 | g)` is a
-#' frailty model, and the Laplace approximation integrates the frailties
-#' out.
-#'
-#' The baseline is semiparametric only in spirit - it has `df`
-#' parameters, not one per event time - so coefficients agree with
-#' `coxph()` closely rather than exactly. A survival response has no
-#' mean, so `fitted()` and `frm_linpred(type = "response")` are refused;
-#' `frm_linpred(type = "link")` gives the log hazard ratio. `simulate()` is
-#' not available.
-#'
-#' Maximum likelihood often puts one or more baseline weights ON the
-#' simplex boundary, at exactly zero: an unpenalized flexible baseline
-#' does that. A weight of zero is a finite point of the chart, which the
-#' fit reaches with a finite Hessian, and a zero weight the likelihood
-#' rises from is a saddle the fit is moved off
-#' (`frmtmb_control(mo_search = )`). brms keeps the weights interior
-#' with its `dirichlet(1)` prior on `sbhaz`; frmtmb.sample's
-#' `frm_sample()` samples the baseline under the same prior, and
-#' `set_prior("dirichlet(...)", class = "sbhaz")` puts another one on
-#' it. Lower `df` until the baseline is one the data supports, and read
-#' [cox_baseline()] to see which weights are at zero.
-#'
 #' @section Quantile regression inference:
 #' `asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
 #' regression through a WORKING likelihood: at a fixed `quantile` the
@@ -9345,13 +9109,6 @@ as_frmtmb_family <- function(x) {
 #' dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
 #' vm_fit <- frm(bf(angle ~ x), family = von_mises(), data = dd)
 #' head(fitted(vm_fit))               # the mean direction, in radians
-#'
-#' # proportional hazards with a spline baseline; (1 | g) is a frailty
-#' dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
-#' dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
-#' cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
-#' fixef_by_dpar(cox_fit)$mu                  # log hazard ratios
-#' cox_baseline(cox_fit)              # the baseline hazard weights
 #' @name frmtmb-families
 NULL
 
@@ -9722,25 +9479,6 @@ check_ncat_arg <- function(K, fname) {
   as.integer(K)
 }
 
-#' @rdname frmtmb-families
-#' @param df For `cox()`: the number of M-spline basis functions in the
-#'   baseline hazard (brms's `bhaz(df = 5)` default).
-#' @param degree For `cox()`: the spline degree of that basis (cubic by
-#'   default).
-#' @param intercept For `cox()`: keep the basis function that is
-#'   non-zero at the lower boundary knot.
-#' @export
-cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
-  link <- link_arg_value(substitute(link), link,
-                         brms_mu_links[["cox"]], "log")
-  # df and degree size the I-spline baseline basis, so a length-2 value
-  # used to build a basis of one shape and record another
-  check_count(df, "df", min = 1L)
-  check_count(degree, "degree", min = 1L)
-  check_flag(intercept, "intercept")
-  fam_cox(link, df = df, degree = degree, intercept = intercept)
-}
-
 #' The links of one family, as `mu = identity; sigma = log`, in dpar
 #' order.
 #'
@@ -10070,6 +9808,74 @@ exclusive_aterm_groups <- function(x) {
   if (is.null(x) || !length(x)) return(list())
   if (is.character(x)) return(list(as.character(x)))
   lapply(x, as.character)
+}
+
+#' Validate `frmtmb_family(simplex_pars =)`.
+#'
+#' The name becomes a prior class, so a name frmtmb already gives
+#' another meaning would let `set_prior(class = )` address two things
+#' at once. `"sbhaz"` is allowed because it is brms's class for exactly
+#' this, a family's baseline-hazard simplex. A dpar's name is refused for
+#' the same reason: `set_prior(class = )` reads it as that dpar's.
+#'
+#' @noRd
+check_simplex_pars <- function(x, extra_pars, dpars = character(0)) {
+  if (is.null(x)) return(invisible(NULL))
+  nm <- names(x)
+  if (!is.character(x) || !length(x) || anyNA(x) || !all(nzchar(x)) ||
+        is.null(nm) || anyNA(nm) || !all(nzchar(nm)) || anyDuplicated(nm)) {
+    frm_stop("frmtmb_family(simplex_pars =) maps each simplex's brms name ",
+             "to the extra parameter that holds its coordinates, as a named ",
+             "character vector such as c(sbhaz = \"sbhaz_raw\"), with every ",
+             "name given once. Got ", arg_desc(x), call. = FALSE)
+  }
+  taken <- intersect(nm, c(setdiff(frmtmb_prior_classes, "sbhaz"), dpars))
+  if (length(taken)) {
+    frm_stop("frmtmb_family(simplex_pars =): '", taken[[1L]], "' is a ",
+             "prior class frmtmb already gives another meaning, so ",
+             "set_prior(class = \"", taken[[1L]], "\") could not address ",
+             "this simplex. Choose another name", call. = FALSE)
+  }
+  if (is.null(extra_pars)) {
+    frm_stop("frmtmb_family(simplex_pars =) declares extra parameters as ",
+             "simplexes, and this family has no extra_pars to declare",
+             call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Check `simplex_pars` against what `extra_pars()` returns, at frame
+#' assembly.
+#'
+#' `extra_pars` is a function of the data, so the names it gives exist
+#' only once the response is in hand, and `frmtmb_family()` cannot check
+#' them. A value that names none of them used to make a simplex of one
+#' weight, which every simplex path then carried silently until a
+#' contrasts error far from the cause.
+#'
+#' @noRd
+check_simplex_extra <- function(fam, extras) {
+  sp <- fam[["simplex_pars"]]
+  if (is.null(sp)) return(invisible(NULL))
+  for (nm in names(sp)) {
+    par <- sp[[nm]]
+    if (!par %in% names(extras)) {
+      frm_stop("The ", fam[["family"]], " family declares simplex_pars = ",
+               "c(", nm, " = \"", par, "\"), and its extra_pars() gives ",
+               "no parameter called '", par, "'. It gives ",
+               if (length(extras)) {
+                 paste0("'", names(extras), "'", collapse = ", ")
+               } else "none", call. = FALSE)
+    }
+    if (length(extras[[par]]) < 1L) {
+      frm_stop("The ", fam[["family"]], " family declares '", par, "' a ",
+               "simplex (simplex_pars = c(", nm, " = \"", par, "\")), and ",
+               "extra_pars() gives it no coordinate: a simplex of D weights ",
+               "has D - 1 coordinates, so it needs at least one",
+               call. = FALSE)
+    }
+  }
+  invisible(NULL)
 }
 
 #' Validate `frmtmb_family(exclusive_aterms =)`.

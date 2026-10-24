@@ -1,7 +1,7 @@
 # The covariance of a DERIVATIVE of the variance that is not coefficient
 # uncertainty, built from its sources rather than by differencing
 # extra_cov. A central difference of a covariance divides its rounding
-# by e^2 at order 1 and by e^4 at order 2; at frmtmb.spline's design
+# by e^2 at order 1 and by e^4 at order 2; at frm_curve_deriv()'s design
 # step (1e-4 of the range at order 2) that left the second derivative's
 # extra variance at the size of its own rounding, a standard error of 0
 # past an exact gp()'s data and up to 1.5 at an unseen level of a term

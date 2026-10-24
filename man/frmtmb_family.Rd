@@ -28,7 +28,9 @@ frmtmb_family(
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
-  structure = NULL
+  structure = NULL,
+  aterm_data = NULL,
+  simplex_pars = NULL
 )
 
 custom_family(
@@ -54,7 +56,9 @@ custom_family(
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
-  structure = NULL
+  structure = NULL,
+  aterm_data = NULL,
+  simplex_pars = NULL
 )
 }
 \arguments{
@@ -125,6 +129,16 @@ family whose likelihood is floored or degenerate in some region had
 no way to report it. Warn from it rather than stopping; a hook that
 throws is caught, reported as a warning naming the family, and the
 fit is returned regardless.
+
+\code{post$curve_check(fit, resp)} is the refusal that \code{fit_check} is
+not. \code{\link[=frm_curve]{frm_curve()}}, \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} and \code{\link[=frm_curve_feature]{frm_curve_feature()}}
+run it before they read a curve off a response of this family, and
+discard its return value. Stop from it when the fit has no curve to
+report, for example because its likelihood is a floor artifact at
+the fitted parameters: the curve of such a fit is an artifact too.
+The error reaches the caller unchanged. frmtmb.survival's
+\code{royston_parmar()} uses it to refuse a fit whose cumulative hazard
+is not monotone.
 
 \code{post$stationary} is a declaration rather than a function: a named
 list, one entry per dpar, each \code{list(at =, tol =, from =)}. It says
@@ -309,6 +323,31 @@ the frame block that likelihood reads, and the capability flags
 that say which post-fit methods the family can answer. \code{lpdf} stays
 required even then, for the rowwise contract, and may be a stub
 that refuses.}
+
+\item{aterm_data}{Optional function \verb{(y, aterms)} returning a named
+list of DATA the densities read, built once from the observed
+response at frame assembly (step 3 of "Slot call order") and added
+to the addition terms every slot receives. It is for a quantity
+that is a function of the observed response and not a parameter,
+such as a spline basis over the observed times.}
+
+\item{simplex_pars}{Optional named character vector that declares
+which extra parameters (\code{extra_pars}) are simplexes. A name is the
+simplex's brms name, which is its prior class and the stem of its
+draw names. A value is the extra parameter that holds the simplex's
+\code{D - 1} free coordinates. \code{c(sbhaz = "sbhaz_raw")} is
+frmtmb.survival's \code{cox()} baseline.
+
+The densities read the weights as \code{mo_simplex(extra[[par]], aterms[[paste0(name, "_chart")]])}. The second argument is the
+chart of the coordinates: \code{NULL} for the chart of the fit, and
+\code{"softmax"} on frmtmb.sample's sampler. A declared simplex gets
+what a \code{mo()} simplex gets (see "Monotonic effects" in \code{\link[=frm]{frm()}}):
+the search off a pole and off a face that the likelihood rises
+from (\code{frmtmb_control(mo_search = )}), the softmax chart and brms's
+\code{dirichlet(1)} default on the sampler, and the prior
+\code{set_prior("dirichlet(...)", class = name)}. A name must not be
+one of frmtmb's own prior classes other than \code{"sbhaz"}, which is
+brms's class for a baseline hazard.}
 }
 \value{
 An object of class \code{frmtmb_family}. \code{$} on it also answers
@@ -322,6 +361,18 @@ as a \code{\link[=mixture]{mixture()}}), \code{linkfun} and \code{linkinv} for t
 parameter, as in \code{beta_binomial()$link_phi}. Because they are
 read from \code{links} each time, a \code{family_finalize()} that replaces a
 link, or any other edit, cannot leave them stale.
+
+The family records the package that built it: the namespace of the
+function that called \code{frmtmb_family()}, read with
+\code{\link[=frm_family_package]{frm_family_package()}}, and \code{"frmtmb"} for a family built outside
+any package. A saved fit keeps that record. When the fit is read
+back in a session where that package is not installed, frmtmb stops
+at the first method that needs the family's functions (\code{summary()},
+\code{vcov()}, \code{predict()}, \code{fitted()}, \code{simulate()}, \code{update()},
+\code{\link[=frm_curve]{frm_curve()}} and the rest) with a message that names the package,
+rather than with the "could not find function" of one of its
+internals. A \code{\link[=mixture]{mixture()}} records the packages of its components
+the same way.
 
 \code{$} does not partial-match on a family object. \code{fam$lpd} is an
 error naming the field it would have matched, rather than
@@ -459,7 +510,7 @@ standard normal tail, one process:
 }
 
 Every built-in family with a CDF declares \code{cdf_log} except
-\code{\link[=exponential]{exponential()}}, \code{\link[=weibull]{weibull()}}, \code{\link[=cox]{cox()}}, \code{\link[=frechet]{frechet()}},
+\code{\link[=exponential]{exponential()}}, \code{\link[=weibull]{weibull()}}, \code{\link[=frechet]{frechet()}},
 \code{\link[=gen_extreme_value]{gen_extreme_value()}} and \code{\link[=discrete_weibull]{discrete_weibull()}}. A family without it
 is read through \code{lcdf} and \code{lccdf} as before: a right-censored row is
 \code{lccdf} (or \code{log(1 - lcdf)} without it), a left-censored row

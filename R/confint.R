@@ -2438,9 +2438,10 @@ bform_call <- function(b) {
 #' "identity")`, when the call can say everything the family holds;
 #' otherwise the family object itself. It can only when every formal of
 #' the constructor is a link, since an option such as `huber(k = 3)`,
-#' `whittle(tapers = 4)` or `cox(df = 6)` lives in the family's closures
-#' and not in any field a comparison could read, and when the evaluated
-#' call is `identical()` to the family on everything but environments.
+#' `whittle(tapers = 4)` or frmtmb.survival's `cox(df = 6)` lives in the
+#' family's closures and not in any field a comparison could read, and
+#' when the evaluated call is `identical()` to the family on everything
+#' but environments.
 #'
 #' @noRd
 family_call_of <- function(fam) {

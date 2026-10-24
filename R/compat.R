@@ -836,7 +836,7 @@ compat_features_build <- function(extra = NULL) {
             "zero_inflated_beta", "zero_one_inflated_beta", "xbeta",
             "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "hurdle_cumulative",
-            "sratio", "cratio", "acat", "categorical", "von_mises", "cox",
+            "sratio", "cratio", "acat", "categorical", "von_mises",
             "dirichlet", "dirichlet2", "logistic_normal",
             "frechet", "gen_extreme_value", "discrete_weibull")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
@@ -867,7 +867,7 @@ compat_features_build <- function(extra = NULL) {
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans",
              "confint_profile", "hypothesis_profile",
-             "frm_lp_basis"), f,
+             "frm_lp_basis", "frm_curve", "frm_curve_contrast"), f,
            kind = "method"),
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
@@ -913,7 +913,7 @@ frmtmb_compat_groups_lst <- list(
   # the families carrying an AD log-CDF, which is what cens() and
   # trunc() need to form their likelihood contributions
   cdf = c("gaussian", "poisson", "lognormal", "exponential", "weibull",
-          "inverse.gaussian", "cox", "frechet", "gen_extreme_value",
+          "inverse.gaussian", "frechet", "gen_extreme_value",
           "discrete_weibull", "student", "skew_normal", "exgaussian",
           "shifted_lognormal", "asym_laplace", "von_mises", "Gamma",
           "beta", "zero_inflated_beta", "hurdle_gamma", "hurdle_lognormal",
@@ -922,7 +922,7 @@ frmtmb_compat_groups_lst <- list(
   # integer lattice as brms reads them, have rows of their own that
   # name the Stan function each matches
   cdf_continuous = c("gaussian", "lognormal", "exponential", "weibull",
-                     "inverse.gaussian", "cox", "frechet",
+                     "inverse.gaussian", "frechet",
                      "gen_extreme_value", "student", "skew_normal",
                      "exgaussian", "shifted_lognormal", "asym_laplace",
                      "von_mises", "Gamma", "beta", "zero_inflated_beta",
@@ -1367,8 +1367,6 @@ compat_hand_rules_tbl <- function() {
     "Refused: mixture_mvn() has no CDF.")
   r("trunc()", "mixture_mvn", "refused",
     "Refused: mixture_mvn() has no CDF.")
-  r("cens()", "cox", "works",
-    "The reason the family exists. An event contributes the density log h0(t) + eta - H0(t) exp(eta) and a censored row the survivor function, which is what cox()'s log-density and log-CDF already are, so right, left and interval censoring all run through the ordinary cens() machinery. Verified against a hand-rolled M-spline PH likelihood exactly and against survival::coxph() to 2e-2 on the log hazard ratio.")
   r("cens()", "group:simplex", "refused",
     "Refused: a row of proportions has no scalar CDF, and brms takes only weights(), subset() and index() on these families.")
   r("trunc()", "group:simplex", "refused",
@@ -1377,8 +1375,6 @@ compat_hand_rules_tbl <- function() {
     "Refused: a nominal response carries no order, so it has no CDF for a censored row to contribute.")
   r("trunc()", "categorical", "refused",
     "Refused for the same reason: no order, no CDF, no truncation window.")
-  r("trunc()", "cox", "conditional",
-    "Runs through the same log-CDF the censoring uses, so trunc(lb = ) is delayed entry. The truncation bound is evaluated against the SAME spline basis the response is, which means a bound outside the boundary knots is clamped to them rather than extrapolated. Untested against an external left-truncated reference.")
   r("cens()", "group:ordinal", "refused",
     "Refused: ordinal families carry no AD log-CDF over the response scale.")
   r("trunc()", "group:ordinal", "refused",
@@ -1624,8 +1620,6 @@ compat_hand_rules_tbl <- function() {
     "Each ordinal response has its own thresholds, stored under a name that carries the response (o_tau_raw) and reported as brms names them, b_o_Intercept[k]; set_prior(class = \"Intercept\", resp = \"o\") addresses them. |ID| correlates an ordinal response's group effects with another response's. Verified: with no shared random effect the log-likelihood is the sum of the univariate fits' (an identity: residual 0 at a shared parameter point), and with a shared |ID| effect it agrees with a hand-written RTMB objective at a shared point and at the ML optimum (dev/mv-validate-ordinal.R). fitted() stacks the category probabilities as P(Y = k) layers, as brms does; predict() answers one ordinal response at a time.")
   r("mvbf", "group:simplex", "works",
     "A dirichlet(), dirichlet2 or logistic_normal() response sits in a multivariate model. A logistic_normal() response's correlations are a block of that response, reported as lncor_<resp>__b__c and set with set_prior(class = \"lncor\", resp = ); brms 2.23.0 generates Stan code for that model that does not compile (its generated quantities read Llncor without the suffix), and its model block, repaired there, agrees at frmtmb's estimates (test-refcat-brms.R). Without a shared effect the log-likelihood is the sum of the univariate fits' (test-simplex-mvbf.R).")
-  r("mvbf", "cox", "refused",
-    "Refused: the Cox baseline is an extra parameter block that the post-fit methods read without a response in hand. Fit the survival response in a model of its own.")
   r("mvbf", "kind:aterm", "works",
     "Addition terms are per response.")
   r("mvbf", "|ID|", "works",
@@ -1702,6 +1696,48 @@ compat_hand_rules_tbl <- function() {
     "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A', and with extra_cov = TRUE as its full covariance across the rows, which every unseen row of one field shares; a difference between two grids reads the cross block of one call on the stacked grid.")
   r("frm_lp_basis", "predict", "works",
     "frm_linpred(se.fit = TRUE) is written as a consumer of it, which is the test that the shape is right: var(eta) is rowSums((A %*% V) * A) + extra_var.")
+
+  ## frm_curve() and its difference curve, which read frm_lp_basis()
+  r("frm_curve", "s()", "works",
+    "The case frm_curve() is for. The penalized smooth's wiggly part is a random-effect block, so the curve covariance needs the joint covariance of the fixed and random coefficients; frm_curve() assembles it and checks it against frm_linpred(se.fit = TRUE) on every call.")
+  r("frm_curve", "smooth", "works",
+    "Same thing named as a covariance structure rather than as a formula term.")
+  r("frm_curve", "t2()", "works",
+    "A t2() tensor smooth is several random-effect blocks rather than one, and the assembly is per COEFFICIENT rather than per block, so nothing changes. Verified on a two-dimensional t2() fit.")
+  r("frm_curve", "gp", "works",
+    "An exact gp() at an unseen position contributes a kriging residual that is not coefficient uncertainty at all. frm_lp_basis(extra_cov = TRUE) returns its covariance across the grid, which every unseen row of one field shares, and the band, the derivative and the feature read it beside A V A'. Until it did, the simultaneous band drew from A V A' and divided by a standard error that carried the residual: on y ~ fac + gp(x), 60 points on [0, 6], a grid on [7, 12] got a critical value of 2.022 where the draw standardized by its own scale gives 2.330 and the whole covariance 2.431 (dev/gpby-crit.R). The nugget, 1e-6 of the sd^2 on the correlation, is white noise with no derivative, and the derivative and the feature leave it out.")
+  r("frm_curve", "rr", "works",
+    "Both re_formula settings, since frm_curve() reads frm_lp_basis() instead of rebuilding the design. A reduced-rank block's loadings live in theta, so a design over (beta, b) alone is INCOMPLETE; the unit-perturbation rebuild frm_curve() used could not see the derivative with respect to the loadings and its standard errors came out 27 percent away from frm_linpred(se.fit = TRUE)'s at re_formula = NULL, which the covariance check refused. frm_lp_basis() carries the loading columns through rr_jacobians(). Measured on a 5-trait rr(d = 2) fit over 60 groups: agreement 0.0e+00 at re_formula = NA (5 columns) and at re_formula = NULL (134 columns, 9 of them theta).")
+  r("frm_curve", "predict", "works",
+    "The design A, the joint covariance V at A's columns and the extra covariance come from ONE frmtmb::frm_lp_basis() call on the grid, and the pointwise standard error is checked against frm_linpred(se.fit = TRUE) on every call, with the same re_formula and allow_new_levels. Agreement is at machine precision: 2.2e-16 relative on the curve-inference vignette's model.")
+  r("frm_curve", "autoscale", "works",
+    "Measured, and it is a consequence of reading core's cached covariance rather than recomputing one. An autoscaled fit carries par_units and its covariance comes from autoscale_sdreport(), which reparameterizes; a fresh RTMB::sdreport() would not, and frm_curve() used to call one. On y ~ s(x, k = 10) + z with z at scale 1e6, par_units spans 9.7e-07 to 1 and frm_curve() agrees with frm_linpred(se.fit = TRUE) to 3.7e-16 absolute, cov_rel_error 6.7e-15.")
+  r("frm_curve", "REML", "untested",
+    "Under REML the fixed effects are integrated out and beta joins the joint precision as a random block. The assembly reads the joint precision by row name and should follow it there, and the built-in check would catch it if it did not. Not exercised.")
+  r("frm_curve", "mvbf", "untested",
+    "A multivariate fit reaches the right linear predictor through resp =, which is passed through to predict(). Not exercised.")
+  r("frm_curve", "nl", "works",
+    "The consumer dev/spline-seam-proposal.md was written for. A nonlinear body is not linear in its coefficients, so the linearity probe frm_curve() used to run refused it; frm_lp_basis() tapes the body instead and returns d eta / d coef as a Jacobian. frm_linpred(se.fit = TRUE) is still refused for a nonlinear predictor, so there is NO second route to check against: cov_rel_error comes back NA and print() says the check did not run. Measured on the warped-growth model of D'Alessandro, Thoresen and Sorensen (2026) fitted to brokenstick::smocc_200, and on a smaller ps() fit whose Jacobian agrees with a central difference of predict() to 1e-5.")
+  r("frm_curve_contrast", "s()", "works",
+    "The case it is for. On y ~ fac + s(x, by = fac, k = 8) at n = 400 the difference agrees with gratia::difference_smooths(group_means = TRUE) on the same mgcv ML fit to 1.95e-08, which is 1.5 times the gap between the two packages' own fitted curves (1.29e-08) and so is the fit difference rather than a method difference. The attribution is provable rather than argued: the difference's disagreement with gratia equals the difference of the two curves' own disagreements to 5.55e-16. The standard errors agree to 1.56 percent, which sits BETWEEN curve A's 1.49 and curve B's 3.11 rather than below both, and does the same under unconditional = TRUE (1.32 between 1.15 and 1.58). mgcv's Vp is conditional on the smoothing parameter and the joint precision frm_curve() inverts is not; nothing measurable cancels, and the difference tracks the better curve. Simultaneous-band coverage of the true difference over the whole grid is 0.970 over 200 seeds (binomial mcse 0.0154) against a pointwise band's 0.685.")
+  r("frm_curve_contrast", "smooth", "works",
+    "Same thing named as a covariance structure. The two designs must sit at the same rows of the joint covariance for the subtraction to mean anything; coef_pos is compared on every call and a mismatch refuses rather than pairing the wrong columns.")
+  r("frm_curve_contrast", "nl", "works",
+    "Measured on a two-ps() nonlinear body, y ~ lev + ps(t) + b1 w + b2 w t + ps(z), differencing across w. frm_lp_basis() tapes the body and returns a Jacobian per grid, and the difference of two Jacobians is the Jacobian of the difference because the subtraction is linear. frm_linpred(se.fit = TRUE) is refused for a nonlinear predictor, so cov_rel_error is NA here for the same reason it is NA for one curve, and print() says so.")
+  r("frm_curve_contrast", "ps()", "works",
+    "Both grids are checked against the frozen knot span, and each message says which grid raised it. frm_curve_feature()'s second span gate asks whether a column other than the search variable varies DOWN each grid; it does NOT ask whether the two grids differ from one another, which they always do. Measured on the fixture above: a clean difference curve is accepted with no warning, and an out-of-span row in row 10 of either grid refuses by name.")
+  r("frm_curve_contrast", "predict", "works",
+    "Two calls rather than one, one per grid, and both are the covariance check. What frm_linpred(se.fit = TRUE) cannot supply is the covariance BETWEEN the grids, which is the whole content of a difference, so the check licenses the two designs and not the difference's own standard error.")
+  r("frm_curve_contrast", "gp", "works",
+    "One frm_lp_basis(extra_cov = TRUE) call on the stacked grid rbind(newdata, contrast) returns the kriging covariance between the two grids, so a difference carries var(r1) + var(r2) - 2 cov(r1, r2): two grids at the same gp() position cancel it exactly, and two at different positions carry what is left. Matches the closed form built from the fitted kernel to 1e-6 relative on y ~ fac + gp(x), also on a mirrored grid, where the two kriging variances agree to 1.11e-16 and the residuals are different draws. Before, sp_same_latent() decided on the design whether the residual cancelled and refused everything else, including y ~ fac + s(x, by = fac) + gp(x) contrasted across fac, whose gp() columns are bit-identical. A new grouping level works the same way: the same unseen level in both grids is one draw and cancels, two different ones add.")
+  r("frm_curve_contrast", "frm_lp_basis", "works",
+    "The whole implementation is two reads of that seam and one subtraction. Where core has a second route to the answer, the two agree bit for bit: on y ~ fac * x with no random effect the difference standard error is identical() to the one formed from vcov() and the same contrast matrix.")
+  r("frm_curve_contrast", "t2()", "untested",
+    "Nothing about a tensor smooth argues against it, since the assembly is per coefficient rather than per block, but no difference was taken across one.")
+  r("frm_curve_contrast", "rr", "untested",
+    "A reduced-rank block's loading columns reach A through rr_jacobians() and would subtract like any other column. Not exercised.")
+  r("frm_curve_contrast", "mvbf", "untested",
+    "resp = is passed to both grids alike. Not exercised.")
   r("nl", "kind:covstruct", "works",
     "A nonlinear parameter may carry its own random effects.")
 
@@ -1877,9 +1913,10 @@ compat_hand_rules_tbl <- function() {
   r("simulate", "kind:family", "works",
     "The family supplies a simulator.")
   # No group of simulator-less families: test-simulate-density.R reads
-  # that gap off the family registry and finds cox alone, which has its
-  # own rule below. The group this replaces also listed tweedie, compois
-  # and hurdle_poisson, whose simulators work.
+  # that gap off the family registry and finds none: cox(), which
+  # has no simulator, is in frmtmb.survival and brings its own rule. The
+  # group this replaces also listed tweedie, compois and hurdle_poisson,
+  # whose simulators work.
   r("simulate", "group:ordinal", "works",
     "Draws come back as an ordered factor carrying the response's own levels, not as 1..K codes.")
   r("simulate", "multinomial", "works",
@@ -1900,8 +1937,6 @@ compat_hand_rules_tbl <- function() {
     "Returns brms's n x 4 x K summary of simulated compositions, layers named by category. type = \"response\" in frm_linpred() is the category means of fitted(), and refused for logistic_normal(); frm_linpred(dpar = \"mu<k>\") gives one category's predictor.")
   r("simulate", "von_mises", "works",
     "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
-  r("simulate", "cox", "refused",
-    "Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. simulate(), posterior_predict() and frm_simulate() each say so in their own words and then repeat the family's reason.")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
   r("residuals_osa", "group:point_mass", "refused",
@@ -1947,8 +1982,6 @@ compat_hand_rules_tbl <- function() {
     "type = \"response\" returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response's own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = \"link\" gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale.")
   r("predict", "categorical", "conditional",
     "type = \"response\" returns an n x K matrix of category probabilities, columns named by the response's own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category's latent predictor is frm_linpred(type = \"link\", dpar = \"mu<Level>\"), which is where se.fit works.")
-  r("predict", "cox", "conditional",
-    "type = \"response\" and fitted() are refused: a survival time has no mean the censored rows identify. type = \"link\" gives the log hazard ratio, and cox_baseline() the fitted baseline weights.")
   r("fitted", "kind:family", "conditional",
     "Needs a family with a mean function.")
   r("fitted", "categorical", "conditional",
@@ -1957,8 +1990,6 @@ compat_hand_rules_tbl <- function() {
     "Returns brms's n x 4 x K array of expected counts, probability times the row's trials, layers named P(Y = <category>) as brms names them, with delta-method standard errors through the softmax; the Wald bounds are held between 0 and the trials. newdata needs its trials() column, as in brms. Through 0.71.0 it was refused.")
   r("fitted", "dirichlet_multinomial", "works",
     "As multinomial(): brms's n x 4 x K array of expected counts, probability times the row's trials, layers named P(Y = <category>). phi does not enter the mean. newdata needs its trials() column.")
-  r("fitted", "cox", "refused",
-    "Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = \"link\") for the log hazard ratio.")
   r("fitted", "von_mises", "conditional",
     "Returns the mean DIRECTION in radians on (-pi, pi], which is what brms's posterior_epred() reports for this family; a circular response has no arithmetic mean.")
   r("fitted", "group:ordinal", "conditional",

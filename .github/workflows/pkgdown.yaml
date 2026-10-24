@@ -166,8 +166,8 @@ jobs:
       # load them all to resolve the links between the sites.
       #
       # The order is not arbitrary. frmtmb.learn imports frmtmb.eam,
-      # and frmtmb.sample suggests frmtmb.eam, frmtmb.latent and
-      # frmtmb.ode.
+      # and frmtmb.sample suggests frmtmb.eam, frmtmb.latent, frmtmb.ode
+      # and frmtmb.survival.
       #
       # install.packages() only warns on a package it cannot get, which
       # would be a silent hole. It is not left uncovered: a missing HARD
@@ -189,7 +189,7 @@ jobs:
       - name: Install the seven extensions from this checkout
         run: |
           ext <- c("frmtmb.eam", "frmtmb.latent", "frmtmb.ode",
-                   "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
+                   "frmtmb.survival", "frmtmb.coupling", "frmtmb.sample",
                    "frmtmb.learn")
           for (nm in ext) {
             dir <- file.path("extensions", nm)

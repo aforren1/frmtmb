@@ -1801,10 +1801,10 @@ head(round(band, 3), 3)
 ```
 
 The whole grid's covariance, `A V A'`, is what a SIMULTANEOUS band
-needs. The frmtmb.spline package builds one from the same two objects
-through its `frm_curve()`, which refused a nonlinear body until this
-seam existed; that package is not a dependency of this one, so the
-band here is pointwise.
+needs. `frm_curve()` builds one from the same two objects, and it
+refused a nonlinear body until this seam existed. The band here is
+pointwise, to show the two objects themselves; `frm_curve()` on the
+same grid gives the simultaneous band.
 
 ```{r smocc-plot, eval = has_brokenstick && has_tinyplot, fig.width = 6, fig.height = 4}
 tinyplot::tinyplot(hgt ~ age, data = smocc[smocc$id %in%

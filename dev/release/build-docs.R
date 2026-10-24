@@ -149,7 +149,7 @@ pkg_name <- vapply(pkg_dirs, function(d) {
 # is not an assumption: docs/frmtmb.ddm/ survived every core rebuild
 # since the package was renamed.
 order_hint <- c("frmtmb", "frmtmb.eam", "frmtmb.latent", "frmtmb.ode",
-                "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
+                "frmtmb.survival", "frmtmb.coupling", "frmtmb.sample",
                 "frmtmb.learn")
 ord <- order(match(pkg_name, order_hint, nomatch = length(order_hint) + 1L),
              pkg_name)

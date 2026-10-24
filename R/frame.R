@@ -2256,6 +2256,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            check_response = TRUE, thres_pin = NULL,
                            drop_unused_levels = TRUE, predvar_map = NULL,
                            refit_na_action = NULL) {
+  # a saved fit's family from a package this session lacks
+  require_model_packages(spec)
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -2983,6 +2985,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(resp$family[["extra_pars"]])) {
       ex_r <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
+      check_simplex_extra(resp$family, ex_r)
       if (length(spec$responses) > 1L) {
         # Every response's extras live in one parameter list, so each
         # response's block is namespaced by the response and handed

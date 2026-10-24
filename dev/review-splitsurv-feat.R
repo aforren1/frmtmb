@@ -1,0 +1,11 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-splitsurv-lib","C:/Users/adf44/source/r/rellib-r11","C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressMessages(library(frmtmb))
+set.seed(11)
+d <- data.frame(x = runif(200))
+d$y <- 1 + 2 * d$x - 3 * d$x^2 + rnorm(200, 0, 0.3)
+fp <- frm(y ~ poly(x, 2, raw = TRUE), data = d)
+fm <- frm_curve_feature(fp, var = "x", type = "maximum",
+                        newdata = data.frame(x = seq(0.05, 0.95, length.out = 41)))
+print(fm); b <- fixef(fp); cat("closed form", -b[2]/(2*b[3]), "\n")
+print(sapply(c("print.frmtmb_fit","print.frmtmb_compat","print.frmtmb_prior_rows","print.frmtmb_family"), function(m) tryCatch(paste(names(formals(getS3method("print", sub("print.","",m)))), collapse=","), error=function(e) "none")))
+print(frmtmb:::s3_contract_args[["print"]])

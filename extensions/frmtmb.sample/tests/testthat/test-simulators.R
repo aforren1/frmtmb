@@ -357,6 +357,9 @@ test_that("ordinal, categorical and multinomial keep all three paths", {
 ## ---- refusals ---------------------------------------------------------
 
 test_that("cox() refuses to simulate the same way at all three doors", {
+  # cox() is in frmtmb.survival, a Suggests of this package
+  skip_if_not_installed("frmtmb.survival")
+  cox <- frmtmb.survival::cox
   set.seed(23)
   dd <- data.frame(x = stats::rnorm(80L))
   dd$y <- stats::rexp(80L, exp(0.3 * dd$x))

@@ -94,7 +94,8 @@ test_that("a pooled update keeps a family's options that are not links", {
   ref <- frm(bf(y ~ x + z, sigma ~ z, family = huber(k = 3)), data = d)
   expect_identical(logLik(up), logLik(ref))
   # the family a constructor call cannot say is stored as the object
-  for (fam in list(huber(k = 3), whittle(tapers = 4), cox(df = 6))) {
+  # cox(df = 6), the third case, is checked in frmtmb.survival (test-cox.R)
+  for (fam in list(huber(k = 3), whittle(tapers = 4))) {
     expect_s3_class(family_call_of(as_frmtmb_family(fam)), "frmtmb_family")
   }
   # the guard-absent case: a constructor of links alone is written as

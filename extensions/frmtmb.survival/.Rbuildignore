@@ -1,0 +1,9 @@
+^.*\.Rcheck$
+^.*\.tar\.gz$
+^\.Rproj\.user$
+^.*\.Rproj$
+^dev$
+^_pkgdown\.yml$
+^vignettes/figure$
+^README\.md$
+^vignettes/articles$

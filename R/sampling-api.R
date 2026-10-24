@@ -118,8 +118,10 @@
 #' `mo_chart_frame(frame, chart)` is a copy of the frame whose objective
 #' reads every simplex in `chart`, and `mo_frame_terms(fit)` lists each
 #' term's simplex component, its size and brms's names for its weights,
-#' `simo_<label>1[k]`; `simplex_frame_terms(fit)` adds a `cox()` baseline,
-#' `sbhaz[k]`, which the chart frame reads the same way.
+#' `simo_<label>1[k]`; `simplex_frame_terms(fit)` adds each simplex a
+#' family declares (`frmtmb_family(simplex_pars =)`) under its brms name,
+#' `sbhaz[k]` for frmtmb.survival's `cox()` baseline, with `kind` the
+#' family's name; the chart frame reads those the same way.
 #' `summary_mo_frame(fit, prob)` is the weights'
 #' table `summary()` prints: each weight with its delta-method standard
 #' error and interval, `NA` for a weight at 0 or 1 (named by the
