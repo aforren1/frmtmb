@@ -150,7 +150,8 @@ pkg_name <- vapply(pkg_dirs, function(d) {
 # since the package was renamed.
 order_hint <- c("frmtmb", "frmtmb.eam", "frmtmb.latent", "frmtmb.ode",
                 "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
-                "frmtmb.learn")
+                "frmtmb.learn",
+                "frmtmb.spatial")
 ord <- order(match(pkg_name, order_hint, nomatch = length(order_hint) + 1L),
              pkg_name)
 pkg_dirs <- pkg_dirs[ord]

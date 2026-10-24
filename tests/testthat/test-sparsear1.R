@@ -2,8 +2,8 @@
 #
 # The dense computation is reproduced INLINE here rather than kept in
 # the package: it is the reference, not a code path. It is a verbatim
-# copy of what `covstruct_registry$ar1$nll` and
-# `covstruct_registry$hetar1$nll` did through v0.42.0, so the gates
+# copy of what `cs_entry("ar1")$nll` and
+# `cs_entry("hetar1")$nll` did through v0.42.0, so the gates
 # below are the compatibility claim: every fit made before the change
 # sees the same number afterwards.
 
@@ -57,7 +57,7 @@ test_that("the O(d) ar1 density equals the dense one it replaced", {
   worst <- 0
   for (cf in cfgs) {
     blk <- list(dim = cf$dim, n_levels = cf$n_levels)
-    got <- covstruct_registry$ar1$nll(cf$b, cf$theta_ar1, blk)
+    got <- cs_entry("ar1")$nll(cf$b, cf$theta_ar1, blk)
     want <- dense_ar1_nll(cf$b, cf$theta_ar1, blk)
     worst <- max(worst, abs(got - want) / max(1, abs(want)))
   }
@@ -69,7 +69,7 @@ test_that("the O(d) hetar1 density equals the dense one it replaced", {
   worst <- 0
   for (cf in cfgs) {
     blk <- list(dim = cf$dim, n_levels = cf$n_levels)
-    got <- covstruct_registry$hetar1$nll(cf$b, cf$theta_het, blk)
+    got <- cs_entry("hetar1")$nll(cf$b, cf$theta_het, blk)
     want <- dense_hetar1_nll(cf$b, cf$theta_het, blk)
     worst <- max(worst, abs(got - want) / max(1, abs(want)))
   }
@@ -84,7 +84,7 @@ test_that("the gradient through MakeTape agrees with the dense one", {
     blk <- list(dim = cf$dim, n_levels = cf$n_levels)
     b <- cf$b
     tp_new <- RTMB::MakeTape(
-      function(th) -covstruct_registry$ar1$nll(b, th, blk), cf$theta_ar1)
+      function(th) -cs_entry("ar1")$nll(b, th, blk), cf$theta_ar1)
     tp_old <- RTMB::MakeTape(
       function(th) -dense_ar1_nll(b, th, blk), cf$theta_ar1)
     g1 <- as.vector(tp_new$jacobian(cf$theta_ar1))
@@ -92,7 +92,7 @@ test_that("the gradient through MakeTape agrees with the dense one", {
     worst_ar1 <- max(worst_ar1, max(abs(g1 - g0) / pmax(1, abs(g0))))
 
     tp_new <- RTMB::MakeTape(
-      function(th) -covstruct_registry$hetar1$nll(b, th, blk), cf$theta_het)
+      function(th) -cs_entry("hetar1")$nll(b, th, blk), cf$theta_het)
     tp_old <- RTMB::MakeTape(
       function(th) -dense_hetar1_nll(b, th, blk), cf$theta_het)
     g1 <- as.vector(tp_new$jacobian(cf$theta_het))
@@ -119,7 +119,7 @@ test_that("the scaling matches RTMB::dautoreg, which fixes the marginal sd", {
       RTMB::dautoreg(m[, j], phi = rho, log = TRUE,
                      scale = exp(cf$theta_ar1[1]))
     }, numeric(1)))
-    got <- covstruct_registry$ar1$nll(cf$b, cf$theta_ar1, blk)
+    got <- cs_entry("ar1")$nll(cf$b, cf$theta_ar1, blk)
     worst <- max(worst, abs(got - ref) / max(1, abs(ref)))
 
     rho <- cf$theta_het[cf$dim + 1L] /
@@ -128,7 +128,7 @@ test_that("the scaling matches RTMB::dautoreg, which fixes the marginal sd", {
       RTMB::dautoreg(m[, j], phi = rho, log = TRUE,
                      scale = exp(cf$theta_het[seq_len(cf$dim)]))
     }, numeric(1)))
-    got <- covstruct_registry$hetar1$nll(cf$b, cf$theta_het, blk)
+    got <- cs_entry("hetar1")$nll(cf$b, cf$theta_het, blk)
     worst <- max(worst, abs(got - ref) / max(1, abs(ref)))
   }
   expect_lt(worst, 1e-10)
@@ -144,26 +144,26 @@ test_that("the density is the one vcov() and chol_L() describe", {
   b <- stats::rnorm(6)
   for (nm in c("ar1", "hetar1")) {
     th <- if (nm == "ar1") th_ar1 else th_het
-    V <- covstruct_registry[[nm]]$vcov(th, blk)
-    L <- covstruct_registry[[nm]]$chol_L(th, blk)
+    V <- cs_entry(nm)$vcov(th, blk)
+    L <- cs_entry(nm)$chol_L(th, blk)
     expect_equal(unname(as.matrix(L %*% t(L))), unname(V), tolerance = 1e-12)
-    expect_equal(covstruct_registry[[nm]]$nll(b, th, blk),
+    expect_equal(cs_entry(nm)$nll(b, th, blk),
                  as.numeric(RTMB::dmvnorm(b, 0, unname(V), log = TRUE)),
                  tolerance = 1e-10)
   }
 })
 
 test_that("the registry contracts around ar1 are unchanged", {
-  expect_equal(covstruct_registry$ar1$npar(9L), 2L)
-  expect_equal(covstruct_registry$ar1$sd_idx(9L), 1L)
-  expect_equal(covstruct_registry$ar1$start(9L), c(0, 0))
-  expect_equal(covstruct_registry$ar1$cor_spec(9L),
+  expect_equal(cs_entry("ar1")$npar(list(dim = 9L)), 2L)
+  expect_equal(cs_entry("ar1")$sd_idx(list(dim = 9L)), 1L)
+  expect_equal(cs_entry("ar1")$start(list(dim = 9L)), c(0, 0))
+  expect_equal(cs_entry("ar1")$cor_spec(list(dim = 9L)),
                list(kind = "ar1", d = 9L, idx = 2L))
-  expect_null(covstruct_registry$ar1$cor_spec(1L))
-  expect_equal(covstruct_registry$hetar1$npar(9L), 10L)
-  expect_equal(covstruct_registry$hetar1$sd_idx(9L), seq_len(9L))
-  expect_equal(covstruct_registry$hetar1$start(9L), numeric(10L))
-  expect_equal(covstruct_registry$hetar1$cor_spec(9L),
+  expect_null(cs_entry("ar1")$cor_spec(list(dim = 1L)))
+  expect_equal(cs_entry("hetar1")$npar(list(dim = 9L)), 10L)
+  expect_equal(cs_entry("hetar1")$sd_idx(list(dim = 9L)), seq_len(9L))
+  expect_equal(cs_entry("hetar1")$start(list(dim = 9L)), numeric(10L))
+  expect_equal(cs_entry("hetar1")$cor_spec(list(dim = 9L)),
                list(kind = "ar1", d = 9L, idx = 10L))
 })
 

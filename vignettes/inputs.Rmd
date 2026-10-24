@@ -97,7 +97,8 @@ obj  ->  nlminb(obj$par, obj$fn, obj$gr)  ->  sdreport(obj)
 touches the data. It splits each linear predictor into a parametric part
 (bars and special terms removed), a list of random-effect terms, a list
 of smooth terms, and the special terms `mo()`, `mi()`, `cs()`, `gp()`,
-`car()` and `spde()`. Because the output is data free, a spec is a pure
+and the field terms of registered covariance structures, such as
+frmtmb.spatial's `car()` and `spde()`. Because the output is data free, a spec is a pure
 description of the model.
 
 **Stage 2, assemble.** `assemble_frame()` binds the spec to a data frame
@@ -122,7 +123,8 @@ and produces the matrices.
   second, sum-to-zero prediction constraint that `PredictMat()` honors
   and the fit does not. It changes no fitted quantity. `s()` and `t2()`
   are supported, `te()` is not.
-* Gaussian processes, `car()` and `spde()` build their own sparse
+* Gaussian processes and the field terms (frmtmb.spatial's `car()` and
+  `spde()`) build their own sparse
   columns and carry their auxiliary data (distances, adjacency,
   finite-element matrices) on the block.
 * `offset()` terms are summed per linear predictor and added to `eta`
@@ -241,7 +243,7 @@ These raise an error rather than fitting something surprising.
 | Matrix response under `mi()` | Error. |
 | `cs()` grouping that is not a single factor | Error. |
 | `gr(cov =)` or `gr(prec =)` that is not square, or whose dimnames miss a grouping level | Error. |
-| `car(type =)` outside `"escar"`, `"icar"`, `"esicar"`, `"bym2"` | Error listing the four types. |
+| `car(type =)` outside `"escar"`, `"icar"`, `"esicar"`, `"bym2"` (frmtmb.spatial) | Error listing the four types. |
 
 One case warns instead of failing: `ar1()` and `hetar1()` correlate
 levels by position, so whole-number factor levels with a gap in them

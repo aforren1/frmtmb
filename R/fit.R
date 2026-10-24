@@ -18,7 +18,8 @@
 #'   `model.frame()` if the formula names one, though it may sit unused
 #'   in `data`.
 #' @param data2 A named list of objects that are not columns of `data`:
-#'   the adjacency matrix of `car()`, the mesh triple of `spde()`, and
+#'   the adjacency matrix of `car()` and the mesh triple of `spde()`
+#'   (both frmtmb.spatial), and
 #'   the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`. This
 #'   is brms's `data2` argument, with one deliberate extension: brms
 #'   accepts a bare name only, while frmtmb also evaluates compound
@@ -1971,7 +1972,7 @@ quad_breakdown_message <- function(frame, theta) {
   desc <- function(b) paste0("'", b$term_label, "' (", b$n_levels,
                              " levels)")
   sds <- vapply(blocks, function(b) {
-    v <- tryCatch(covstruct_registry[[b$covstruct]]$vcov(
+    v <- tryCatch(cs_entry(b[["covstruct"]])$vcov(
       theta[b$theta_idx], b), error = function(e) NULL)
     if (is.null(v)) NA_real_ else sqrt(v[1L, 1L])
   }, 1)
@@ -2017,6 +2018,7 @@ needs_jp <- function(fit) {
 sdr_of <- function(fit) {
   require_fitted(fit, paste("The standard-error machinery (summary(),",
                             "vcov(), confint(), frm_linpred(se.fit =))"))
+  require_structure_packages(fit)
   cache <- fit$cache
   if (is.null(cache$sdr)) cache$sdr <- autoscale_sdreport(fit)
   # a fit whose check waited reports at its first standard-error use,
@@ -2448,14 +2450,16 @@ check_re_structure <- function(spec, frame, control) {
       is.null(frame[["linpreds"]][[linpred_key(lp[["resp"]],
                                   "sigma")]]$constant)
     # A known-structure block is not an OLRE even with one row per
-    # level. Its levels are correlated through the fixed relationship
-    # matrix (gr(cov = A), gr(prec = Q)) or its covariance is fixed
-    # outright (equalto), so the block covariance is no longer
-    # proportional to the identity and the residual sd is not a
-    # reparameterization of it. That is the animal model: the additive
-    # genetic variance and the residual variance are separately
-    # identified precisely BECAUSE A is not the identity.
-    structured <- bk[["covstruct"]] %in% c("gr_cov", "gr_prec", "equalto")
+    # level. Its levels are correlated through a fixed matrix
+    # (cs_levels_coupled(): gr(cov = A), gr(prec = Q), car(), spde(), a
+    # registered field) or its covariance is fixed outright (equalto),
+    # so the block covariance is no longer proportional to the identity
+    # and the residual sd is not a reparameterization of it. That is the
+    # animal model: the additive genetic variance and the residual
+    # variance are separately identified precisely BECAUSE A is not the
+    # identity.
+    structured <- cs_levels_coupled(bk) ||
+      identical(bk[["covstruct"]], "equalto")
     if (sigma_free && !structured &&
         bk[["n_levels"]] == frame[["n_obs"]] && bk[["dim"]] == 1L &&
         fam[["family"]] %in% gaussian_like &&

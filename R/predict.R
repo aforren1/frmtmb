@@ -574,8 +574,9 @@ smooth_newdata_check <- function(si, newdata, allow_new_levels) {
 #' which item 2.6e asks of every refusal frmtmb makes.
 #'
 #' Only the ordinary grouping blocks are read. A factor smooth has its
-#' own named refusal in `smooth_newdata_check()`, and an `spde()` block's
-#' levels are mesh row numbers, where a new level means nothing; both
+#' own named refusal in `smooth_newdata_check()`, and a field whose
+#' levels are its whole index set (an `spde()` block's are the mesh row
+#' numbers, `levels_complete`) has no new level to mean anything; both
 #' keep the behavior they had.
 #'
 #' @noRd
@@ -583,7 +584,10 @@ fill_new_group_vars <- function(fit, lp, newdata, allow_new_levels, env) {
   key <- linpred_key(lp[["resp"]], lp[["dpar"]])
   need <- character(0)
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "spde")) next
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||
+          cs_levels_complete(bk)) {
+      next
+    }
     for (comp in bk[["components"]]) {
       if (comp$lp_key != key) next
       need <- c(need, if (is.null(comp$mm)) all.vars(comp$bar[[3L]]) else
@@ -730,7 +734,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
         thc <- th
         thc[1] <- 0
-        K <- unname(covstruct_registry[["gp"]]$vcov(thc, bk))
+        K <- unname(cs_entry("gp")$vcov(thc, bk))
         Xn <- Xc[nw, , drop = FALSE]
         # One kriging row per distinct position, copied to every row at
         # it. Rows at one position are one draw of the field, and
@@ -906,12 +910,11 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       # a partial re_formula keeps some columns of this term (re_view())
       if (!is.null(comp$keep_cols)) mm[, !comp$keep_cols] <- 0
       gvr <- group_values(comp$bar[[3]], newdata, env)
-      # an spde block's levels are mesh ROW NUMBERS, so the node has to
-      # be read as a number here too: as.character() on a double would
-      # spell node 100000 as "1e+05" and lose the column
-      gv <- if (bk[["covstruct"]] == "spde") spde_node_labels(gvr) else {
-        as.character(gvr)
-      }
+      # a field term may spell its levels itself: an spde block's are
+      # mesh ROW NUMBERS, so the node has to be read as a number here
+      # too, where as.character() on a double would spell node 100000
+      # as "1e+05" and lose the column
+      gv <- cs_levels_of(bk, gvr)
       j <- match(gv, bk[["levels"]])
       is_new <- is.na(j)
       if (!is.null(comp$by)) {
@@ -1236,7 +1239,8 @@ re_design_matrix <- function(re_parts, n, q) {
 #' whose coefficients are a function of the parameters rather than the
 #' parameters themselves. An `rr` block expands through its loadings.
 #' An `esicar` block is centered per connected component, so its entry
-#' is the projection `P` that `car_center_jacobian()` builds; pairing
+#' is the projection `P` that its structure's `expand$jacobian` builds
+#' (`car_center_jacobian()`); pairing
 #' `Z` with `b` through the identity there put the inert component
 #' means into every standard error, exactly `con_sd^2` of variance that
 #' the field the predictor sees does not have.
@@ -1268,11 +1272,12 @@ rr_jacobians <- function(fit) {
                    expand_b(frame, est[["b"]], tn)) / (2 * h)
         th_cols[[length(th_cols) + 1L]] <- list(j = j, dvec = dvec)
       }
-    } else if (block_is_esicar(bk)) {
-      # d(P b)/d b = P, per connected component. The same predicate
-      # expand_b() branches on, so the Jacobian cannot describe a
-      # different expansion than the one it differentiates.
-      pj <- car_center_jacobian(bk[["aux_car"]])
+    } else if (block_expands(bk)) {
+      # d(P b)/d b = P, the structure's fixed map (per connected
+      # component for esicar). The same predicate expand_b() branches
+      # on, so the Jacobian cannot describe a different expansion than
+      # the one it differentiates.
+      pj <- cs_entry(bk[["covstruct"]])[["expand"]][["jacobian"]](bk)
       ii <- c(ii, bk[["c_idx"]][pj$i])
       jj <- c(jj, bk[["b_idx"]][pj$j])
       xx <- c(xx, pj$x)
@@ -2008,6 +2013,7 @@ frm_linpred <- function(object, newdata = NULL,
                                  "zprob", "zlink", "disp"),
                         dpar = NULL, resp = NULL, re_formula = NULL,
                         se.fit = FALSE, allow_new_levels = FALSE, ...) {
+  require_structure_packages(object)
   # A warning here was not enough: `predict(fit, re_form = NA)` warned
   # and then returned the CONDITIONAL prediction, and a warning in a
   # loop or under suppressWarnings() is a wrong number with no record.
@@ -2548,8 +2554,8 @@ lp_extra_var <- function(object, ed, use_re) {
       bk <- rp$bk
       # the levels ARE the structure there, so there is no marginal
       # variance to hand an unseen one
-      if (bk[["covstruct"]] %in% c("gr_cov", "gr_prec", "car", "spde")) next
-      S <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
+      if (cs_levels_coupled(bk)) next
+      S <- cs_entry(bk[["covstruct"]])$vcov(th[bk[["theta_idx"]]],
         bk)
       # a Student-t block's registry vcov() is the SCALE matrix; the
       # variance an unseen level contributes is nu/(nu-2) times it. The
@@ -3193,6 +3199,7 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                               probs = c(0.025, 0.975), ...,
                               allow_new_levels = FALSE,
                               sample_new_levels = NULL) {
+  require_structure_packages(object)
   frm_check_dots(..., .unsupported = fitted_no_draws)
   scale <- frm_match_arg(scale)
   fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
@@ -5044,42 +5051,16 @@ draw_b <- function(fit) {
       b[bk[["b_idx"]]] <- stats::rnorm(length(bk[["b_idx"]]))
       next
     }
-    if (bk[["covstruct"]] == "gr_cov") {
-      # correlation is across levels, not within them
-      S <- covstruct_registry[["gr_cov"]]$vcov(th[bk[["theta_idx"]]], bk)
-      K <- kronecker(bk[["aux_A"]], S)
-      b[bk[["b_idx"]]] <- drop(crossprod(chol(K),
-                                    stats::rnorm(nrow(K))))
+    # a structure whose levels are correlated draws its whole block
+    # itself: gr(cov =) and gr(prec =) through the Kronecker covariance
+    # or precision, car() from its dense field covariance, spde() from
+    # its sparse precision
+    dr <- cs_entry(bk[["covstruct"]])[["draw"]]
+    if (!is.null(dr)) {
+      b[bk[["b_idx"]]] <- dr(th[bk[["theta_idx"]]], bk)
       next
     }
-    if (bk[["covstruct"]] == "gr_prec") {
-      # x = U^-1 z with U'U = Q has covariance Q^-1; for correlated
-      # slopes Q is the level-major Kronecker precision Q (x) Sigma^-1
-      Qb <- if (bk[["dim"]] == 1L) {
-        exp(-2 * th[bk[["theta_idx"]][1]]) * bk[["aux_Q"]]
-      } else {
-        S <- covstruct_registry[["gr_prec"]]$vcov(th[bk[["theta_idx"]]], bk)
-        Matrix::kronecker(bk[["aux_Q"]], methods::as(solve(unname(S)),
-                                                "generalMatrix"))
-      }
-      U <- Matrix::chol(Qb)
-      b[bk[["b_idx"]]] <- as.vector(
-        Matrix::solve(U, stats::rnorm(length(bk[["b_idx"]]))))
-      next
-    }
-    if (bk[["covstruct"]] == "car") {
-      # the whole field is one draw from its (dense) covariance
-      K <- car_cov(th[bk[["theta_idx"]]], bk)
-      b[bk[["b_idx"]]] <- drop(crossprod(chol(K), stats::rnorm(nrow(K))))
-      next
-    }
-    if (bk[["covstruct"]] == "spde") {
-      U <- Matrix::chol(spde_prec(th[bk[["theta_idx"]]], bk))
-      b[bk[["b_idx"]]] <- as.vector(Matrix::solve(U,
-                                             stats::rnorm(bk[["n_levels"]])))
-      next
-    }
-    V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]], bk)
+    V <- cs_entry(bk[["covstruct"]])$vcov(th[bk[["theta_idx"]]], bk)
     L <- chol(V)
     U <- matrix(stats::rnorm(bk[["n_levels"]] * bk[["dim"]]),
       bk[["n_levels"]]) %*% L
@@ -5300,6 +5281,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
                                 re_formula = NULL, censored = FALSE,
                                 newdata = NULL, allow_new_levels = FALSE,
                                 ...) {
+  require_structure_packages(object)
   frm_check_dots(...)
   sim_fit_draws(object, nsim, seed, re_formula, censored, newdata,
                 allow_new_levels)

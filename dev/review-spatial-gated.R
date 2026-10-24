@@ -1,0 +1,5 @@
+Sys.setenv(FRMTMB_BRMS_FIT_TESTS = "true", NOT_CRAN = "true", R_MAKEVARS_USER = "C:/Users/adf44/Documents/.R/Makevars.win", FRMTMB_STAN_CACHE = "C:/Users/adf44/source/r/frmtmb-wt-spatial/dev/stan-cache")
+.libPaths(c("C:/Users/adf44/source/r/wt-spatial-lib", "C:/Users/adf44/source/r/rellib-r11", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+library(testthat); library(frmtmb.spatial)
+r <- test_file("C:/Users/adf44/source/r/frmtmb-wt-spatial/extensions/frmtmb.spatial/tests/testthat/test-brms-likelihood-car.R", package = "frmtmb.spatial", env = test_env("frmtmb.spatial"), reporter = "summary")
+d <- as.data.frame(r); cat("RESULT pass=", sum(d$passed), "fail=", sum(d$failed), "skip=", sum(d$skipped), "err=", sum(d$error), "\n")

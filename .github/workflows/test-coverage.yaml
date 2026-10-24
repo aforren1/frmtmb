@@ -119,6 +119,8 @@ jobs:
             siblings: 'frmtmb.latent frmtmb.ode frmtmb.eam'
           - pkg: frmtmb.spline
             siblings: ''
+          - pkg: frmtmb.spatial
+            siblings: ''
     name: coverage ${{ matrix.pkg }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

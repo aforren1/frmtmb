@@ -259,7 +259,7 @@ test_that("declared families exist in the family registry", {
 test_that("declared covariance structures exist in the covstruct registry", {
   ft <- frm_compat_features()
   covs <- ft$key[ft$kind == "covstruct"]
-  expect_true(all(covs %in% names(covstruct_registry)))
+  expect_true(all(covs %in% cs_names()))
 })
 
 test_that("declared addition terms are the ones the parser accepts", {

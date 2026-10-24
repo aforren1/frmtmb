@@ -25,7 +25,7 @@
 #' WHAT IS NOT LISTED. Environments are absent on purpose: `$` on an
 #' environment is already an exact lookup with no partial fallback, so
 #' `frmtmb_aterm_registry`, `frmtmb_frame_checks` and `hyp_shadow_state`
-#' are safe as written. `covstruct_registry` is a plain list and is
+#' are safe as written. `covstruct_core` is a plain list and is
 #' listed. Structs with a closed slot vocabulary (`resp`, `rspec`,
 #' `spec`) and the user-facing S3 objects (`fit`, `x`, `object`) are not
 #' listed either: their names are fixed, exact and documented.
@@ -49,7 +49,7 @@ hazard_containers <- c(
   # both keyed by names the user supplies
   "ctx", "dpars", "dpv", "dp",
   # registries that are lists rather than environments: us/us_t
-  "covstruct_registry"
+  "covstruct_core"
 )
 
 #' Find `$` reads of a partial-matching container

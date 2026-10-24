@@ -197,10 +197,9 @@
 #' `"unsupported"`), and `is_student_block()` reports a Student-t
 #' latent, which is a scale mixture and so has no linear factor at all.
 #'
-#' The registry these read is deliberately NOT exported: exporting it
-#' would make every field of every structure's entry into API, and
-#' these eight questions are the ones anything outside covstruct.R has
-#' ever needed to ask.
+#' The registry these read is not exported as a list. A package adds a
+#' structure to it with [frmtmb_register_covstruct()], whose arguments
+#' are the API, and asks about a block through these eight questions.
 #'
 #' @section The simulator seam:
 #' `sim_can()` and `sim_note()` say whether a family can be simulated

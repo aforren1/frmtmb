@@ -4,18 +4,19 @@
 # and it must not depend on which extensions an earlier file loaded
 # (covr and R CMD check run every file in one session). What the
 # contributed rows promise can only be checked with every owner
-# loaded, so this file loads all seven in a CHILD process and leaves
+# loaded, so this file loads every one in a CHILD process and leaves
 # this session as it found it. helper-compat-contract.R says what is
 # checked.
 #
-# It skips unless all seven are installed: under R CMD check, which
+# It skips unless all of them are installed: under R CMD check, which
 # hides packages the DESCRIPTION does not name, and on the core
 # coverage job, which removes them. The release gate's one-session runs
 # (dev/release/run-session.R) and a local run of this suite reach it.
 
 compat_extensions <- c("frmtmb.coupling", "frmtmb.eam", "frmtmb.latent",
                        "frmtmb.learn", "frmtmb.ode", "frmtmb.sample",
-                       "frmtmb.spline")
+                       "frmtmb.spline",
+                       "frmtmb.spatial")
 
 compat_run_child <- function(code) {
   f <- tempfile(fileext = ".R")
@@ -30,7 +31,7 @@ compat_run_child <- function(code) {
 }
 
 test_that("every contributed rule resolves, wins a pair and names a
-           function, with all seven extensions loaded", {
+           function, with every extension loaded", {
   skip_on_cran()
   # system.file() and not requireNamespace(): this session must not load
   # them

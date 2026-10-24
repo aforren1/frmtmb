@@ -60,7 +60,12 @@ imp_covstructs <- c("us", "diag", "homdiag", "cs", "homcs", "toep",
 #' differs: there is no draw count that fixes these.
 #'
 #' @noRd
-imp_crosslevel <- c("gr_cov", "gr_prec", "equalto", "car", "spde")
+imp_crosslevel <- function() {
+  ents <- cs_entries()
+  c("equalto", names(ents)[vapply(ents, function(e) {
+    isTRUE(e[["levels_coupled"]])
+  }, TRUE)])
+}
 
 #' Every refusal `importance =` owes the user, raised before any tape
 #' is built so the message names the conflict rather than a downstream
@@ -229,7 +234,7 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
              call. = FALSE)
   }
   for (bk in blocks) {
-    if (bk[["covstruct"]] %in% imp_crosslevel) {
+    if (bk[["covstruct"]] %in% imp_crosslevel()) {
       frm_stop("`importance` cannot correct the '", bk[["covstruct"]],
                "' structure in `", bk[["term_label"]], "`: it correlates the ",
                "grouping LEVELS with each other through a supplied ",
@@ -585,7 +590,7 @@ imp_expand <- function(v, ridx, n) {
 #' One level's log prior density, per group and draw, recovered FROM
 #' the registry density rather than reimplemented beside it.
 #'
-#' `covstruct_registry[[k]]$nll` returns the block's log density summed
+#' `cs_entry(k)$nll` returns the block's log density summed
 #' over every level, and the per-group integrand needs one level's
 #' worth. Writing each structure's density a second time here would be
 #' two copies of the same mathematics, free to drift. Instead, evaluate
@@ -625,14 +630,14 @@ imp_prior_terms <- function(lay, u_slices) {
 #' written once whatever the block count.
 #'
 #' It needs no `ADoverload()` of its own: the arithmetic here is `*`
-#' and `+` on advectors, and `covstruct_registry[[k]]$nll` installs the
+#' and `+` on advectors, and `cs_entry(k)$nll` installs the
 #' overloads it needs itself (R/covstruct.R). That is worth stating
 #' rather than assuming, because an overload lost in a factoring-out
 #' fails far from its cause.
 #'
 #' @noRd
 imp_block_prior <- function(bk, u_slices) {
-  bfn <- covstruct_registry[[bk[["covstruct"]]]]$nll
+  bfn <- cs_entry(bk[["covstruct"]])$nll
   q <- bk[["dim"]]
   bk1 <- bk
   bk1[["n_levels"]] <- 1L

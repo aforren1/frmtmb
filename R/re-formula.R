@@ -48,12 +48,16 @@ re_formula_bars <- function(re_formula) {
                                          text = paste0("(", deparse1(e),
                                                        ")"))
       }
-    } else if (op %in% c(names(covstruct_registry), "rr") &&
-                 length(e) >= 2L && is.call(e[[2L]]) &&
-                 deparse1(e[[2L]][[1L]]) %in% c("|", "||")) {
+    } else if (op %in% c(cs_names(), "rr")) {
       # a covariance wrapper, diag(x | g), which brms does not have:
       # the term it wraps names the columns, as the fit's own term does
-      walk(e[[2L]])
+      for (a in as.list(e)[-1L]) {
+        if (is.call(a)) walk(a)
+      }
+    } else {
+      # any other call around a bar term names no term of the model; it
+      # was ignored, and the prediction kept a term it did not name
+      check_bar_wrapper(e, c(cs_names(), "rr"), where = "re_formula")
     }
     invisible(NULL)
   }

@@ -2,34 +2,6 @@
 # covariances, mesh triples) handed to the fit by value instead of being
 # captured from the calling environment.
 
-# Rook-adjacency of an r x c lattice, with brms-style dimnames.
-d2_lattice_W <- function(r, c) {
-  g <- expand.grid(r = seq_len(r), c = seq_len(c))
-  n <- nrow(g)
-  W <- matrix(0, n, n)
-  for (i in seq_len(n)) {
-    for (j in seq_len(n)) {
-      if (abs(g$r[i] - g$r[j]) + abs(g$c[i] - g$c[j]) == 1) W[i, j] <- 1
-    }
-  }
-  dimnames(W) <- list(paste0("L", seq_len(n)), paste0("L", seq_len(n)))
-  W
-}
-
-# alpha = 2 finite-element triple of a regular 1-D linear mesh.
-d2_chain_fem <- function(nn, h = 0.5) {
-  C0 <- diag(rep(h, nn))
-  C0[1, 1] <- h / 2
-  C0[nn, nn] <- h / 2
-  G <- matrix(0, nn, nn)
-  for (i in seq_len(nn - 1)) {
-    G[i, i] <- G[i, i] + 1 / h
-    G[i + 1, i + 1] <- G[i + 1, i + 1] + 1 / h
-    G[i, i + 1] <- -1 / h
-    G[i + 1, i] <- -1 / h
-  }
-  list(c0 = C0, g1 = G, g2 = G %*% solve(C0) %*% G)
-}
 
 # A tri-diagonal precision over ng levels plus a data set drawn from it.
 d2_prec_data <- function(seed, ng = 8, per = 10) {
@@ -83,33 +55,8 @@ test_that("every structural special resolves from data2", {
   expect_equal(as.numeric(logLik(f_eq2)), as.numeric(logLik(f_eq)),
                tolerance = 1e-10)
 
-  set.seed(12)
-  W <- d2_lattice_W(2, 3)
-  nl <- nrow(W)
-  cd <- data.frame(loc = factor(rep(rownames(W), each = 6),
-                                levels = rownames(W)),
-                   x = stats::rnorm(nl * 6))
-  cd$y <- 1 + 0.4 * cd$x + stats::rnorm(nl, 0, 0.8)[as.integer(cd$loc)] +
-    stats::rnorm(nrow(cd), 0, 0.5)
-  f_car <- frm(bf(y ~ x + car(W, gr = loc)) + gaussian(), data = cd)
-  f_car2 <- frm(bf(y ~ x + car(Wd2, gr = loc)) + gaussian(), data = cd,
-                data2 = list(Wd2 = W))
-  expect_equal(as.numeric(logLik(f_car2)), as.numeric(logLik(f_car)),
-               tolerance = 1e-10)
-
-  set.seed(13)
-  nn <- 8
-  fem <- d2_chain_fem(nn)
-  sd_ <- data.frame(node = factor(rep(seq_len(nn), each = 6)),
-                    x = stats::rnorm(nn * 6))
-  sd_$y <- 0.3 + 0.4 * sd_$x +
-    stats::rnorm(nn, 0, 0.7)[as.integer(sd_$node)] +
-    stats::rnorm(nrow(sd_), 0, 0.3)
-  f_spde <- frm(bf(y ~ x + spde(fem, gr = node)) + gaussian(), data = sd_)
-  f_spde2 <- frm(bf(y ~ x + spde(femd2, gr = node)) + gaussian(),
-                 data = sd_, data2 = list(femd2 = fem))
-  expect_equal(as.numeric(logLik(f_spde2)), as.numeric(logLik(f_spde)),
-               tolerance = 1e-10)
+  # car() and spde(): frmtmb.spatial's test-car-postfit.R and
+  # test-spde.R
 })
 
 test_that("data2 resolves compound expressions, unlike brms", {

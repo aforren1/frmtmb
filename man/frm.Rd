@@ -238,7 +238,8 @@ longer cover the integrand. The seed, the round cap and the
 effective-sample-size threshold are \code{\link[=frmtmb_control]{frmtmb_control()}} settings.}
 
 \item{data2}{A named list of objects that are not columns of \code{data}:
-the adjacency matrix of \code{car()}, the mesh triple of \code{spde()}, and
+the adjacency matrix of \code{car()} and the mesh triple of \code{spde()}
+(both frmtmb.spatial), and
 the matrices of \code{gr(prec = )}, \code{gr(cov = )} and \code{equalto()}. This
 is brms's \code{data2} argument, with one deliberate extension: brms
 accepts a bare name only, while frmtmb also evaluates compound

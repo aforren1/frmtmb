@@ -70,7 +70,7 @@ test_that("every declared Cholesky accessor factorizes its own vcov", {
     bk <- cse[[1L]]
     th <- cse[[2L]]
     L <- frmtmb:::ncp_block_chol(bk, th)
-    V <- frmtmb:::covstruct_registry[[bk$covstruct]]$vcov(th, bk)
+    V <- frmtmb:::cs_entry(bk$covstruct)$vcov(th, bk)
     expect_equal(L %*% t(L), unname(as.matrix(V)),
                  tolerance = 1e-12,
                  info = paste(bk$covstruct, bk$dim))
@@ -93,9 +93,9 @@ test_that("gr(cov = ) factors the level-major Kronecker covariance", {
              aux_kron = frmtmb:::kron_cov_index(d, nl))
   th <- c(0.2, -0.3, 0.4)
   LS <- frmtmb:::ncp_block_chol(bk, th)
-  LA <- frmtmb:::covstruct_registry$gr_cov$chol_A(bk)
+  LA <- frmtmb:::cs_entry("gr_cov")$chol_A(bk)
   Lfull <- kronecker(LA, LS)
-  S <- frmtmb:::covstruct_registry$gr_cov$vcov(th, bk)
+  S <- frmtmb:::cs_entry("gr_cov")$vcov(th, bk)
   K <- matrix(as.vector(A)[bk$aux_kron$ia] * as.vector(S)[bk$aux_kron$is],
               d * nl, d * nl)
   expect_equal(Lfull %*% t(Lfull), K, tolerance = 1e-10)
@@ -125,8 +125,9 @@ test_that("a block is eligible when its factor consumes all its theta", {
     expect_equal(frmtmb::block_n_cor(list(covstruct = cs, dim = 2L)),
                  1L, info = cs)
   }
-  # no factor at all
-  for (cs in c("us_t", "diag_t", "car", "spde", "gr_prec", "ou",
+  # no factor at all. car() and spde() are frmtmb.spatial's, which
+  # asks the same of them in its own suite
+  for (cs in c("us_t", "diag_t", "gr_prec", "ou",
                "exp", "gau", "mat", "toep", "homtoep", "rr")) {
     expect_false(el(cs), info = cs)
   }
@@ -518,7 +519,7 @@ test_that("log_lik() row sums are the taped likelihood on non-centered draws", {
   # that is the whole point of back-transforming at extraction
   nll <- frmtmb::build_objective(sh$frame)(pars)
   bk <- sh$frame$re_blocks[[1L]]
-  re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
+  re_prior <- frmtmb:::cs_entry(bk$covstruct)$nll(
     pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
   expect_equal(sum(ll[i, ]), as.numeric(-nll) - as.numeric(re_prior),
                tolerance = 1e-10)
@@ -651,7 +652,7 @@ test_that("log_lik() row sums hold on a correlated non-centered run", {
   pars <- sh$estimates
   nll <- frmtmb::build_objective(sh$frame)(pars)
   bk <- sh$frame$re_blocks[[1L]]
-  re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
+  re_prior <- frmtmb:::cs_entry(bk$covstruct)$nll(
     pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
   expect_equal(sum(ll[i, ]), as.numeric(-nll) - as.numeric(re_prior),
                tolerance = 1e-10)
@@ -871,7 +872,7 @@ test_that("an exact gp() field non-centers as brms's sdgp * L zgp", {
   expect_true(frmtmb::ncp_eligible(bk))
   th <- fit$estimates$theta[bk$theta_idx]
   L <- frmtmb:::ncp_block_chol(bk, th)
-  V <- frmtmb:::covstruct_registry$gp$vcov(th, bk)
+  V <- frmtmb:::cs_entry("gp")$vcov(th, bk)
   expect_equal(L %*% t(L), unname(as.matrix(V)),
                tolerance = 1e-10 * max(abs(V)))
   z <- stats::rnorm(bk$dim)

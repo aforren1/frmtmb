@@ -1,0 +1,10 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-spatial-lib", "C:/Users/adf44/source/r/rellib-r11", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressMessages(library(frmtmb))
+set.seed(1); d <- data.frame(g = gl(10, 5), x = rnorm(50)); d$y <- rnorm(50) + rnorm(10)[d$g]
+sd1 <- brms::standata(y ~ x + (1 | gr(g)), data = d)
+sd0 <- brms::standata(y ~ x + (1 | g), data = d)
+cat("brms (1 | gr(g)) standata identical to (1 | g):", identical(sd1, sd0), " N_1 =", sd1$N_1, "\n")
+cat("brms (1 + x | gr(g, cor = FALSE)) ok:", !is.null(brms::standata(y ~ x + (1 + x | gr(g, cor = FALSE)), data = d)$N_1), "\n")
+for (fo in c("y ~ x + (1 | gr(g))", "y ~ x + (1 | gr(g, cor = TRUE))", "y ~ x + (1 + x | gr(g, cor = FALSE))", "y ~ x + (1 | gr(g, id = 'a'))"))
+  cat(fo, "-> frmtmb:", tryCatch({f <- frm(as.formula(fo), data = d); format(as.numeric(logLik(f)), digits = 10)}, error = function(e) paste("ERR", conditionMessage(e))), "\n")
+cat("(1 | g) ->", format(as.numeric(logLik(frm(y ~ x + (1 | g), data = d))), digits = 10), "\n")

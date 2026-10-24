@@ -1,3 +1,10 @@
+# frmtmb.latent (development version)
+
+* `hmm()` reads core's one list of field terms (`car()` and `spde()`,
+  now parsed through core's covariance-structure registry) when it
+  decides whether a distributional parameter is constant, so it needs
+  the frmtmb release that carries `frmtmb_register_covstruct()`.
+
 # frmtmb.latent 0.6.2
 
 Needs frmtmb 0.72.0: `hmm_starts()` refits through that release's

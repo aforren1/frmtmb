@@ -664,8 +664,42 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     sentence is issued from one place rather than copied.}
 #' }
 #'
+#' @section How to add a covariance structure:
+#' A package that supplies a structured covariance, or a precision
+#' matrix that depends on parameters, registers it with
+#' [frmtmb_register_covstruct()] from its `.onLoad()`. frmtmb.spatial
+#' does this for `car()` and `spde()`. The steps:
+#'
+#' \enumerate{
+#'   \item Decide how a formula writes the structure. A bar structure,
+#'     `name(terms | g)`, covaries the coefficients of one level. A
+#'     field, a special such as `name(M, gr = g)`, has one intercept per
+#'     level of `gr` and covaries the levels through fixed data; give it
+#'     a `term` slot.
+#'   \item Write `lpdf(b, theta, blk)`, the log density of the block on
+#'     the tape, with RTMB's densities and no loop over levels, and
+#'     `vcov(theta, blk)`, the covariance within one level, on numbers.
+#'     Name the theta entries that are log standard deviations in
+#'     `sd_idx`.
+#'   \item For a field, give `natural`, the rows [confint_varcorr()]
+#'     reports, and `draw`, one draw of the whole field. Set
+#'     `levels_coupled = TRUE` when the levels are correlated, so that
+#'     an unseen level gets no law it does not have.
+#'   \item Register the rows the structure adds to [frm_compat()] with
+#'     [frmtmb_register_compat()], AFTER the structure: the structure
+#'     itself joins the vocabulary when it is registered.
+#'   \item Test the fit against a likelihood you compute without the
+#'     registry, in a test that calls [frmtmb_local_registries()]
+#'     first, so that every registry is restored when the test ends.
+#' }
+#'
+#' Use exported functions only, never `frmtmb:::`. When a user writes
+#' the structure while its package is not loaded, core refuses it by
+#' name if its table of extension homes lists the package, which is how
+#' `car()` points at frmtmb.spatial.
+#'
 #' @section What the registries hold you to:
-#' The three registries an extension fills from its own `.onLoad()`
+#' The four registries an extension fills from its own `.onLoad()`
 #' check what they are given, because a registration that is accepted
 #' and then does nothing is indistinguishable from one that worked.
 #'
@@ -688,6 +722,10 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     anyway is a no-op. A name the vocabulary already holds under
 #'     another kind is refused, and nothing is registered on either
 #'     side.
+#'   \item [frmtmb_register_covstruct()] checks every slot before it
+#'     commits anything, adds the structure to the compatibility
+#'     vocabulary as a feature of kind `"covstruct"`, and refuses a name
+#'     that frmtmb's own structures or formula specials hold.
 #'   \item [frmtmb_family()] takes `required_aterms` as a conjunction
 #'     (a character vector) or as one with choices in it (a list, whose
 #'     elements of length more than one are alternatives). Declare the
@@ -732,8 +770,8 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'   `frm_warning()` and `frm_message()`, which an extension raises its
 #'   conditions with, and the
 #'   registries an extension fills from its own `.onLoad()`:
-#'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()] and
-#'   [frmtmb_register_compat()]
+#'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()],
+#'   [frmtmb_register_covstruct()] and [frmtmb_register_compat()]
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(50))

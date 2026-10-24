@@ -120,8 +120,7 @@ ce_level_plan <- function(fit, grids, base, re_formula) {
       # by-level's, and a member at another by-level's is still observed
       known = bk[["by"]][["group_levels"]] %||% lv,
       d = if (rr) bk[["rank"]] else bk[["dim"]],
-      draw = rr || !bk[["covstruct"]] %in%
-        c("gr_cov", "gr_prec", "car", "spde"))
+      draw = rr || !cs_levels_coupled(bk))
   }
   locked <- ce_locked_vars(fit)
   status <- lapply(blocks, function(b) c(observed = FALSE, new = FALSE))
@@ -466,7 +465,7 @@ ce_plan_draw <- function(f, b) {
   if (b$rr) return(stats::rnorm(b$d))
   bk <- b$bk
   th <- f$estimates[["theta"]]
-  S <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
+  S <- cs_entry(bk[["covstruct"]])$vcov(th[bk[["theta_idx"]]],
                                                     bk)
   if (is_student_block(bk)) S <- S * student_var_factor(bk[["dist_nu"]])
   mvn_draw_cov(as.matrix(S))

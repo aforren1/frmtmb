@@ -528,9 +528,9 @@ test_that("cluster-robust covariance refuses a corrected fit", {
 # three groups together have to exhaust the registry so a structure
 # added later cannot quietly report "untested".
 test_that("every covariance structure importance refuses reads refused", {
-  keys <- names(frmtmb:::covstruct_registry)
+  keys <- frmtmb:::cs_names()
   ok <- frmtmb:::imp_covstructs
-  cross <- frmtmb:::imp_crosslevel
+  cross <- frmtmb:::imp_crosslevel()
   refused <- setdiff(keys, c(ok, cross))
   # the groups partition the registry: nothing unclassified
   expect_setequal(c(ok, cross, refused), keys)

@@ -8700,6 +8700,10 @@ family_ctor <- function(name) {
              ", which is not loaded. Install it and run library(", home,
              "), then use family = ", low, "()", call. = FALSE)
   }
+  if (low %in% names(brms_family_refusals)) {
+    frm_stop("The ", low, " family is not a brmsfamily() name here: ",
+             brms_family_refusals[[low]], call. = FALSE)
+  }
   frm_stop(name, " is not a supported family. Supported families are: ",
            paste(unique(names(family_registry)), collapse = ", "),
            call. = FALSE)

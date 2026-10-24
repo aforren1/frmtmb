@@ -1,3 +1,84 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`car()` and `spde()` are in the new extension package
+  frmtmb.spatial.** Load it with `library(frmtmb.spatial)`. Without the
+  package, `frm()` refuses a formula that writes either term and names
+  the package. The fields are the same: on the models of the moved
+  tests the log-likelihood, every estimate and standard error, the
+  fitted values with and without an unseen location, the `ranef()`
+  conditional standard deviations, `confint_varcorr()` and `simulate()`
+  are identical to frmtmb 0.73.0's, and `frmtmb.sample::frm_sample()`
+  gives the same draws from the same seed. With the package loaded,
+  `frm_compat()` gives every pair the status it had. fmesher is no
+  longer among frmtmb's suggested packages.
+
+## New features
+
+* `frmtmb_register_covstruct()` lets a package register a covariance
+  structure from its `.onLoad()`: a bar structure written
+  `name(terms | g)`, or a field written as a predictor special such as
+  `car(M, gr = g)`, whose precision or covariance may depend on
+  parameters and on fixed data the special names. One entry carries
+  everything the objective, the standard errors and their checks,
+  `VarCorr()`, `confint_varcorr()`, `ranef()`, `predict()` with and
+  without new levels, `simulate()`, `conditional_effects()`,
+  `vcov_cluster()` and frmtmb.sample read, and the built-in structures
+  are entries of the same shape. The structure joins `frm_compat()` as
+  a feature of kind `"covstruct"`, where quadrature and `importance =`
+  refuse it, as `frm()` does. `?frmtmb-extension-api` has the steps.
+  The call checks the entry it builds, and each block is checked
+  against its entry when the frame is built: the length of `start`, the
+  positions of `sd_idx`, the dimension and names of `vcov`, and for a
+  registered structure that `lpdf` is finite at zero. A name the rest of
+  frmtmb, brms or another extension owns, or a function formulas call
+  as a term, is refused (`poly`, `ns`, `log`, `gaussian`, `dec`, ...), and
+  a name another package registered is replaced only with
+  `replace = TRUE`. A fit records the package each structure came from:
+  read where that package is not installed, the fit is refused by the
+  package's name, with class `frmtmb_extension_missing`, before a method
+  reads the structure.
+
+* `frmtmb_local_registries()` saves every registry a package fills from
+  its `.onLoad()` and restores it when a test ends, for an extension's
+  own test suite.
+
+* `frm_compat()` resolves the rules that packages contribute in the
+  order of the packages' names, so its answer no longer depends on the
+  order of the `library()` calls.
+
+* A brms spelling that an extension supplies is refused by name when
+  that extension is not loaded, as the Wiener family already was:
+  `y | dec(rt) ~ x` names frmtmb.eam and says how to load it. The brms
+  names frmtmb does not support are refused with the reason and the
+  frmtmb spelling: `bhaz()` (the basis is set in `cox(df =, degree =,
+  intercept =)`, and `bhaz(gr = )` has no equivalent) and
+  `brmsfamily("custom")` (use `custom_family()`). Every family, addition
+  term and formula special of brms 2.23.0, in its plainest spelling and
+  in the others brms documents, now resolves in core, resolves in a
+  named extension, or has such a refusal; before, `custom`, `bhaz()`,
+  `dec()` and bare `gr(g)` did not.
+
+## Bug fixes
+
+* A call around a bar term that names no covariance structure is
+  refused, at any depth and in `re_formula =` too. Through 0.73.0 the
+  call was dropped and the term fitted with the default `us` structure
+  with no message: `foo(1 | g)`, `foo(bar(1 | g))` and `us_t(1 | g)` all
+  gave the log-likelihood of `(1 | g)`, and `re_formula = ~ foo(1 | g)`
+  was ignored.
+
+* `(1 | gr(g))`, brms's plainest spelling of a grouping factor, is
+  `(1 | g)`, as it is in brms. Through 0.73.0 it was refused.
+
+* A gaussian model whose field has one row per level, such as `car()`
+  over areas with one observation each, no longer warns that its
+  variance is confounded with the residual sd. A fixed matrix
+  correlates the levels, as for `gr(cov = A)`, which the check already
+  exempted; through 0.73.0 it named three structures and missed the
+  rest.
+
 # frmtmb 0.73.1
 
 ## Bug fixes

@@ -1,0 +1,139 @@
+---
+title: "Spatial random fields with frmtmb.spatial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spatial random fields with frmtmb.spatial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(frmtmb)
+library(frmtmb.spatial)
+```
+
+frmtmb.spatial adds two spatial random fields to `frm()`: `car()`,
+brms's conditional autoregressive field over an adjacency matrix, and
+`spde()`, a Matern field over a finite-element mesh. Load it with
+`library(frmtmb.spatial)`; without it, `frm()` refuses the terms below
+and names this package. The fields are registered with core through
+`frmtmb::frmtmb_register_covstruct()`, the seam any package can use.
+
+## Conditional autoregressive fields
+
+`car()` fits a conditional autoregressive field over an adjacency
+matrix, with brms's spelling and all four of its types. `M` is a
+symmetric binary adjacency matrix whose dimnames name the locations,
+`gr` is the grouping variable that maps observations onto them, and
+`type` names the field:
+
+| `type` | field | sum-to-zero constraint |
+| --- | --- | --- |
+| `"escar"` | proper CAR, `Q = tau (D - rho W)` (default) | none, and none is needed |
+| `"esicar"` | intrinsic CAR, `Q = tau (D - W)` | exact |
+| `"icar"` | the same intrinsic CAR | soft, at scale `con_sd` |
+| `"bym2"` | scaled mixture of a spatial and an unstructured part | soft, at scale `con_sd` |
+
+`sd(car)` is the field scale; `escar` and `bym2` add a mixing parameter
+on `(0, 1)`, reported by `confint_varcorr()` under brms's names `car`
+and `rhocar`.
+
+```{r}
+set.seed(4)
+grid <- expand.grid(r = 1:5, c = 1:5)
+nloc <- nrow(grid)
+W <- matrix(0, nloc, nloc)
+for (i in seq_len(nloc)) {
+  for (j in seq_len(nloc)) {
+    if (abs(grid$r[i] - grid$r[j]) + abs(grid$c[i] - grid$c[j]) == 1) {
+      W[i, j] <- 1
+    }
+  }
+}
+dimnames(W) <- list(paste0("L", 1:nloc), paste0("L", 1:nloc))
+phi <- 0.7 * as.numeric(scale(grid$r + grid$c)) + 0.7 * rnorm(nloc)
+dc <- data.frame(loc = factor(rep(rownames(W), each = 8),
+                              levels = rownames(W)))
+dc$y <- 1 + phi[as.integer(dc$loc)] + rnorm(nrow(dc), 0, 0.5)
+fc <- frm(bf(y ~ car(W, gr = loc, type = "escar")), family = gaussian(),
+          data = dc)
+confint_varcorr(fc)
+```
+
+An intrinsic CAR is improper: the field is identified only up to a
+constant per connected component, so something has to pin that constant
+down. `esicar` and `icar` are the two answers, and they are two
+different models here as they are in brms.
+
+`esicar` imposes the constraint exactly. The field the linear predictor
+sees sums to zero within every connected component to machine
+precision, and the likelihood is normalized by the pseudo-determinant.
+This is the model brms writes as `Nloc - 1` free values with the last
+set to minus their sum.
+
+`icar` imposes it softly, through the term brms writes as
+`normal(sum(zcar) | 0, con_sd * Nloc)` on the field standardized by its
+own sd. `con_sd` defaults to brms's `1e-3`. The soft constraint is the
+same model as an extra random intercept of sd `con_sd * sd(car)`, so
+it sits a little below
+`esicar`: on a 4 by 4 lattice the gap is `4e-4` in the log-likelihood
+and `3e-5` relative in `sd(car)`, four orders below that parameter's
+own standard error. Each decade of `con_sd` buys two more digits, at
+some cost in optimizer robustness.
+
+Because `esicar` constrains exactly, `con_sd` changes nothing it
+reports. The likelihood, the estimates, `sd(car)`, the standard errors
+from `frm_linpred(se.fit = TRUE)` and the conditional standard deviations
+from `ranef(condVar = TRUE)` are all invariant to it.
+
+The standard errors were not, through 0.52.0. The delta method paired
+the design columns with the parameters through an identity Jacobian,
+while the linear predictor sees the CENTERED field, so the coordinate
+`con_sd` scales was carried into every one of them as `con_sd^2` in
+the variance: `1.3e-5` relative at the default, and 7 to 13 percent at
+`con_sd = 0.1`. The Jacobian is now the centering projection itself,
+which annihilates that coordinate whatever its scale.
+
+All three constrained types differ from brms in one way that only shows
+on a disconnected adjacency matrix: frmtmb constrains each connected
+component, brms constrains the global sum. On a connected graph, which
+is the usual case, the two are the same constraint.
+
+Under frmtmb 0.51.0 and earlier, `esicar` selected the `icar` model.
+Refit an `esicar` model to get the constrained one, or spell the term
+`icar` to keep what you had.
+
+
+## Matern fields over a mesh
+
+`spde()` fits a Matern field over a finite-element mesh: it takes the
+mesh's three matrices (`fmesher::fm_fem()`'s `c0`/`g1`/`g2`, or INLA's
+`M0`/`M1`/`M2`) as fixed data and estimates `Q = tau^2 (kappa^4 M0 +
+2 kappa^2 M1 + M2)`. Mesh construction stays outside the package.
+`confint_varcorr()` reports the marginal sd and the range under the
+planar `alpha = 2` identities.
+
+`gr` maps observations onto mesh nodes, and it does so by **row
+number**: the value of `gr` for an observation is the row of `M0` that
+holds its node. The finite-element matrices carry no dimnames, so
+nothing else can reconcile a set of labels with them - a label ordering
+would be a guess, and a wrong guess permutes the field against its own
+precision and still converges. Give `gr` whole numbers in
+`1..nrow(M0)`, as an integer or numeric column, a character column of
+those numbers, or a factor whose levels are those numbers; every one of
+those spellings is the same model. Any other labeling is an error. Not
+every node has to be observed: a node no row visits keeps its column
+and its prior, so the field is still smoothed across it.
+
+```r
+# node holds the mesh row of each observation, 1..nrow(fem$c0)
+frm(bf(y ~ x + spde(fmesher::fm_fem(mesh), gr = node)), family = gaussian(),
+    data = d)
+```
+
+Because `gr` is one node per observation, the mesh has to place every
+observation on a node. A general projector matrix, which spreads an
+observation over the vertices of the triangle it falls in, is not
+supported yet.
+

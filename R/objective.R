@@ -626,10 +626,11 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
 #'
 #' @noRd
 build_objective <- function(frame) {
+  require_structure_packages(frame)
   lps <- frame[["linpreds"]]
   blocks <- frame[["re_blocks"]]
   block_fns <- lapply(blocks, function(bk) {
-    covstruct_registry[[bk[["covstruct"]]]]$nll
+    cs_entry(bk[["covstruct"]])$nll
   })
   # Non-centered blocks (frm_sample(reparameterize = TRUE) only, set on
   # a private copy of the frame): the sampled vector for these is z, and

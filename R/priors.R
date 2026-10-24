@@ -2553,14 +2553,13 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   list(reach = reach, exact = any(eq))
 }
 
-#' The structures whose standard deviations no brms coefficient names: a
-#' smooth's (brms's class `"sds"`), a gp() term's (`"sdgp"`), a CAR or
-#' SPDE field's, and a reduced-rank or fixed block, which have none of
-#' their own per column.
+#' The structures whose standard deviations no brms coefficient names,
+#' beside the fields (`cs_is_field()`: a smooth's, brms's class `"sds"`,
+#' a gp() term's, `"sdgp"`, a CAR or SPDE field's): a reduced-rank or
+#' fixed block, which have none of their own per column.
 #'
 #' @noRd
-sd_coef_unaddressable <- c("smooth", "gp", "hsgp", "car", "spde", "rr",
-                           "equalto")
+sd_coef_unaddressable <- c("rr", "equalto")
 
 #' brms's coefficient name for each standard deviation of a block, one
 #' per entry of `block_sd_idx()`: `Intercept`, `x`, `fb`, `moxo`, as
@@ -2575,6 +2574,7 @@ block_sd_coefs <- function(frame, bk) {
   n <- length(block_sd_idx(bk))
   d <- bk[["dim"]] %||% 0L
   if (!n || n != d || bk[["covstruct"]] %in% sd_coef_unaddressable ||
+        cs_is_field(bk) ||
         length(bk[["cnms"]]) != d) {
     return(rep(NA_character_, n))
   }
@@ -3775,7 +3775,7 @@ resolve_priorlist <- function(fit, pl) {
       for (bk in if (exact) frame[["re_blocks"]]) {
         # a gp() term's sd is brms's class "sdgp", not "sd"
         if (bk[["covstruct"]] %in% c("gp", "hsgp")) next
-        sd_i <- covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
+        sd_i <- cs_entry(bk[["covstruct"]])$sd_idx(bk)
         sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
         for (k in sd_i) {
           hit <- TRUE

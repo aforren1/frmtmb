@@ -182,9 +182,45 @@ fact refused is the same one in every such family, so the
 sentence is issued from one place rather than copied.}
 }
 }
+\section{How to add a covariance structure}{
+
+A package that supplies a structured covariance, or a precision
+matrix that depends on parameters, registers it with
+\code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}} from its \code{.onLoad()}. frmtmb.spatial
+does this for \code{car()} and \code{spde()}. The steps:
+
+\enumerate{
+\item Decide how a formula writes the structure. A bar structure,
+\code{name(terms | g)}, covaries the coefficients of one level. A
+field, a special such as \code{name(M, gr = g)}, has one intercept per
+level of \code{gr} and covaries the levels through fixed data; give it
+a \code{term} slot.
+\item Write \code{lpdf(b, theta, blk)}, the log density of the block on
+the tape, with RTMB's densities and no loop over levels, and
+\code{vcov(theta, blk)}, the covariance within one level, on numbers.
+Name the theta entries that are log standard deviations in
+\code{sd_idx}.
+\item For a field, give \code{natural}, the rows \code{\link[=confint_varcorr]{confint_varcorr()}}
+reports, and \code{draw}, one draw of the whole field. Set
+\code{levels_coupled = TRUE} when the levels are correlated, so that
+an unseen level gets no law it does not have.
+\item Register the rows the structure adds to \code{\link[=frm_compat]{frm_compat()}} with
+\code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}}, AFTER the structure: the structure
+itself joins the vocabulary when it is registered.
+\item Test the fit against a likelihood you compute without the
+registry, in a test that calls \code{\link[=frmtmb_local_registries]{frmtmb_local_registries()}}
+first, so that every registry is restored when the test ends.
+}
+
+Use exported functions only, never \verb{frmtmb:::}. When a user writes
+the structure while its package is not loaded, core refuses it by
+name if its table of extension homes lists the package, which is how
+\code{car()} points at frmtmb.spatial.
+}
+
 \section{What the registries hold you to}{
 
-The three registries an extension fills from its own \code{.onLoad()}
+The four registries an extension fills from its own \code{.onLoad()}
 check what they are given, because a registration that is accepted
 and then does nothing is indistinguishable from one that worked.
 
@@ -207,6 +243,10 @@ BEFORE the rules that name it; declaring it in \verb{features =}
 anyway is a no-op. A name the vocabulary already holds under
 another kind is refused, and nothing is registered on either
 side.
+\item \code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}} checks every slot before it
+commits anything, adds the structure to the compatibility
+vocabulary as a feature of kind \code{"covstruct"}, and refuses a name
+that frmtmb's own structures or formula specials hold.
 \item \code{\link[=frmtmb_family]{frmtmb_family()}} takes \code{required_aterms} as a conjunction
 (a character vector) or as one with choices in it (a list, whose
 elements of length more than one are alternatives). Declare the
@@ -238,6 +278,6 @@ objective is taped, \link{frmtmb-conditions} for \code{frm_stop()},
 \code{frm_warning()} and \code{frm_message()}, which an extension raises its
 conditions with, and the
 registries an extension fills from its own \code{.onLoad()}:
-\code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}}, \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} and
-\code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}}
+\code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}}, \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}},
+\code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}} and \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}}
 }

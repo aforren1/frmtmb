@@ -773,9 +773,8 @@ emm_group_vars <- function(rspec, dpar) {
     out <- c(out, if (is.null(rt$mm)) all.vars(rt$bar[[3L]]) else
                     rt$mm$gvars)
   }
-  for (ce in c(dp[["carterms"]] %||% list(),
-               dp[["spdeterms"]] %||% list())) {
-    out <- c(out, all.vars(ce$gr_expr))
+  for (ft in dp[["fieldterms"]] %||% list()) {
+    out <- c(out, all.vars(ft[["gr"]]))
   }
   out
 }

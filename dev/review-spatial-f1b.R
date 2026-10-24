@@ -1,0 +1,13 @@
+.libPaths(c("C:/Users/adf44/source/r/wt-spatial-lib", "C:/Users/adf44/source/r/rellib-r11", "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressMessages(library(frmtmb))
+lp <- function(b, theta, blk) sum(RTMB::dnorm(b, 0, exp(theta[1]), log = TRUE))
+vc <- function(theta, blk) matrix(exp(2 * theta[1]), 1, 1, dimnames = list(blk$cnms, blk$cnms))
+mk <- function(pkgenv) { f <- function(...) frmtmb_register_covstruct("zz1", lpdf = lp, vcov = vc, npar = 1L, sd_idx = 1L, ...); if (!is.null(pkgenv)) environment(f) <- pkgenv; f }
+r <- function(lab, e) cat(lab, "->", tryCatch({e; paste("ok, package =", format(frmtmb:::cs_entry("zz1")$package %||% "NULL"))}, error = function(e) paste("ERR", substr(conditionMessage(e), 1, 200))), "\n")
+r("register from 'stats' namespace", mk(asNamespace("stats"))())
+r("again from 'stats'", mk(asNamespace("stats"))())
+r("from 'utils' namespace", mk(asNamespace("utils"))())
+r("from global", mk(NULL)())
+r("from utils with replace = TRUE", mk(asNamespace("utils"))(replace = TRUE))
+r("car from global while frmtmb.spatial not loaded", frmtmb_register_covstruct("car", lpdf = lp, vcov = vc, npar = 1L))
+cat("loadedNamespaces has mgcv:", "mgcv" %in% loadedNamespaces(), "\n")

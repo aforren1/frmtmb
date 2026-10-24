@@ -49,7 +49,6 @@ Suggests:
     drmTMB (>= 0.7.0),
     emmeans,
     extraDistr,
-    fmesher,
     GLMMadaptive,
     ggplot2,
     glmmTMB,

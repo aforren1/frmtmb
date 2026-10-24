@@ -285,7 +285,7 @@ test_that("cs, ar1 and gr(cov =) take the prior their map calls for", {
     # density changes when it moves, the standard deviations do not
     expect_false(e$idx %in%
                    fit$frame$re_blocks[[1L]]$theta_idx[
-                     frmtmb:::covstruct_registry[[nm]]$sd_idx(4L)])
+                     frmtmb:::cs_entry(nm)$sd_idx(list(dim = 4L))])
   }
 })
 

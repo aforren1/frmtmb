@@ -1,4 +1,5 @@
-# Spatial GMRF grammar: car() (brms spelling) and spde().
+# car(), moved from frmtmb's tests/testthat/test-car-spde.R with the
+# test_that() blocks unchanged.
 #
 # The primary reference everywhere is a hand-rolled direct ML fit of the
 # same marginal gaussian model - V = Z Sigma_b Z' + sigma^2 I with the
@@ -56,6 +57,7 @@ car_lattice_data <- function(seed, r = 4, c = 4, per = 6, sd_car = 1.2,
        X = stats::model.matrix(~x, d),
        Z = stats::model.matrix(~ loc - 1, d))
 }
+
 
 test_that("icar matches a hand-rolled constrained-ICAR ML", {
   s <- car_lattice_data(42)
@@ -645,7 +647,7 @@ test_that("esicar handles a SINGLETON component", {
     stats::rnorm(nrow(d), 0, 0.4)
   fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
              data = d)
-  a <- fit$frame$re_blocks[[1]]$aux_car
+  a <- fit$frame$re_blocks[[1]]$aux
   expect_equal(a$n_comp, 3L)
   expect_equal(as.numeric(a$nj), c(4, 4, 1))
   re <- ranef(fit)[[1]][, 1]
@@ -732,6 +734,9 @@ test_that("car validates its adjacency matrix and its grammar", {
   # brms's deprecated gr = NA default is refused by name
   expect_error(frm(bf(y ~ car(W, gr = NA)) + gaussian(), data = d),
                "gr must name a grouping variable")
+  # and so is the same default written by omission, car(W)
+  expect_error(frm(bf(y ~ car(W)) + gaussian(), data = d),
+               "gr must name a grouping variable")
   # weighted adjacency is binarized, brms-style, with a message
   wt <- W * 2
   expect_message(frm(bf(y ~ car(wt, gr = loc, type = "icar")) +
@@ -744,77 +749,62 @@ test_that("car validates its adjacency matrix and its grammar", {
                      gaussian(), data = d), "at least one neighbor")
 })
 
-test_that("spde matches a dense direct ML on a 1-D chain", {
-  # the alpha = 2 finite-element triple of a regular 1-D linear mesh:
-  # lumped mass C, stiffness G, and M2 = G C^-1 G. Same identities the
-  # planar fmesher/INLA matrices satisfy, so the assembly is exercised
-  # exactly as it would be on a real mesh.
-  set.seed(5)
-  nn <- 20
-  h <- 0.5
-  C0 <- diag(rep(h, nn))
-  C0[1, 1] <- h / 2
-  C0[nn, nn] <- h / 2
-  G <- matrix(0, nn, nn)
-  for (i in seq_len(nn - 1)) {
-    G[i, i] <- G[i, i] + 1 / h
-    G[i + 1, i + 1] <- G[i + 1, i + 1] + 1 / h
-    G[i, i + 1] <- -1 / h
-    G[i + 1, i] <- -1 / h
-  }
-  fem <- list(c0 = C0, g1 = G, g2 = G %*% solve(C0) %*% G)
-  Qf <- function(lt, lk) {
-    k2 <- exp(2 * lk)
-    exp(2 * lt) * (k2 * k2 * C0 + 2 * k2 * G + fem$g2)
-  }
-  u <- drop(crossprod(chol(solve(Qf(0, log(0.8)))), stats::rnorm(nn)))
-  node <- factor(rep(seq_len(nn), each = 6))
-  d <- data.frame(node = node, x = stats::rnorm(nn * 6))
-  d$y <- 0.3 + 0.4 * d$x + u[as.integer(d$node)] +
-    stats::rnorm(nrow(d), 0, 0.3)
-  fit <- frm(bf(y ~ x + spde(fem, gr = node)) + gaussian(), data = d)
-  ref <- marginal_ml(d$y, stats::model.matrix(~x, d),
-                     stats::model.matrix(~ node - 1, d),
-                     function(p) solve(Qf(p[1], p[2])), c(0, 0, 0))
-  expect_lt(abs(as.numeric(logLik(fit)) - ref$logLik), 1e-7)
-  expect_vector_equal(c(fit$estimates$theta, fit$estimates$betad),
-                      ref$par, tol = 1e-4)
-  # the INLA spelling of the same matrices is the same model
-  fem2 <- list(M0 = fem$c0, M1 = fem$g1, M2 = fem$g2)
-  fit2 <- frm(bf(y ~ x + spde(fem2, gr = node)) + gaussian(), data = d)
-  expect_equal(as.numeric(logLik(fit2)), as.numeric(logLik(fit)))
-  # post-fit surface
-  expect_equal(dim(ranef(fit)[[1]]), c(nn, 1L))
-  expect_equal(sort(confint_varcorr(fit)$term),
-               c("range(spde)", "sd(spde)"))
-  expect_equal(colnames(varcorr_matrices(fit)[[1]]), "sd(spde)")
-  rows <- c(2L, 40L, 100L)
-  expect_vector_equal(frm_linpred(fit, newdata = d[rows, ], se.fit = TRUE)$fit,
-                      frm_linpred(fit, se.fit = TRUE)$fit[rows], tol = 1e-10)
-  set.seed(1)
-  expect_length(frmtmb:::draw_b(fit), nn)
-})
-
-test_that("spde validates its finite-element matrices", {
-  d <- data.frame(y = stats::rnorm(20), node = factor(rep(1:5, 4)))
-  ok <- list(c0 = diag(5), g1 = diag(5), g2 = diag(5))
-  expect_error(frm(bf(y ~ spde(list(a = diag(5)), gr = node)) +
-                     gaussian(), data = d), "M0, M1, M2")
-  bad <- ok
-  bad$g1 <- diag(4)
-  expect_error(frm(bf(y ~ spde(bad, gr = node)) + gaussian(), data = d),
-               "mesh nodes")
-  expect_error(frm(bf(y ~ (1 | spde(ok, gr = node))) + gaussian(),
-                   data = d), "not a bar term")
-})
-
-test_that("the spatial GMRF blocks are declared in the registry", {
-  for (cs in c("car", "spde")) {
-    expect_equal(frm_compat(cs, "gaussian")$status, "conditional",
-                 info = cs)
-    expect_equal(frm_compat(cs, "simulate")$status, "works", info = cs)
-  }
+test_that("the car() field is declared in the registry", {
+  # core's test-car-spde.R asked these of car() and spde() together;
+  # with frmtmb.spatial loaded the rows are the same
+  expect_equal(frm_compat("car", "gaussian")$status, "conditional")
+  expect_equal(frm_compat("car", "simulate")$status, "works")
   expect_match(frm_compat("car", "poisson")$note, "adjacency")
-  expect_match(frm_compat("spde", "poisson")$note, "finite-element")
-  expect_match(frm_compat("gr_prec", "gaussian")$note, "Kronecker")
 })
+
+test_that("car() and spde() blocks sample centered", {
+  # moved from frmtmb.sample's test-reparam.R, which asked it of car()
+  # while car() was core's: a sparse precision has no linear factor
+  # frmtmb.sample could non-center with
+  expect_false(frmtmb::ncp_eligible(list(covstruct = "car", dim = 2L,
+                                         n_levels = 3L)))
+  expect_false(frmtmb::covstruct_has_chol(list(covstruct = "car",
+                                               dim = 1L)))
+  expect_false(frmtmb::ncp_eligible(list(covstruct = "spde", dim = 2L,
+                                         n_levels = 3L)))
+})
+
+test_that("one row per area is not an observation-level effect", {
+  # car() correlates its levels through the adjacency, as gr(cov = A)
+  # does, so its variance and the residual sd are identified apart.
+  # frmtmb 0.73.0 warned on every such fit that only their sum was
+  set.seed(42)
+  W <- lattice_W(6, 6)
+  n <- nrow(W)
+  K <- diag(rowSums(W)) - W + matrix(1 / (1e-3 * n)^2, n, n)
+  d <- data.frame(loc = factor(rownames(W), levels = rownames(W)),
+                  x = stats::rnorm(n))
+  d$y <- 1 + 0.5 * d$x + drop(crossprod(chol(solve(K)), stats::rnorm(n))) +
+    stats::rnorm(n, 0, 0.5)
+  olre <- "gives every observation its own random effect"
+  for (ty in c("escar", "icar", "bym2")) {
+    seen <- character()
+    withCallingHandlers(
+      frm(bf(stats::as.formula(paste0(
+        "y ~ x + car(W, gr = loc, type = '", ty, "')"))),
+        family = gaussian(), data = d, data2 = list(W = W)),
+      warning = function(w) {
+        seen <<- c(seen, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      },
+      message = function(m) invokeRestart("muffleMessage"))
+    expect_false(any(grepl(olre, seen, fixed = TRUE)), info = ty)
+  }
+})
+
+test_that("importance and quadrature refuse car() and spde() in frm_compat()", {
+  # core's test-importance.R asked this of every registered structure
+  # while car() and spde() were core's; its loop no longer sees them
+  for (cs in c("car", "spde")) {
+    expect_identical(frm_compat("importance", cs)$status, "refused",
+                     info = cs)
+    expect_identical(frm_compat("quadrature", cs)$status, "refused",
+                     info = cs)
+  }
+})
+

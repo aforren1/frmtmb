@@ -29,6 +29,8 @@ navbar:
         href: https://aforren1.github.io/frmtmb/frmtmb.sample/
       - text: frmtmb.spline (curve inference and spline survival)
         href: https://aforren1.github.io/frmtmb/frmtmb.spline/
+      - text: frmtmb.spatial (spatial random fields)
+        href: https://aforren1.github.io/frmtmb/frmtmb.spatial/
 
 reference:
 - title: Model specification
@@ -62,6 +64,8 @@ reference:
   - frmtmb_structure
   - frmtmb_register_frame_check
   - frmtmb_register_aterm
+  - frmtmb_register_covstruct
+  - frmtmb_local_registries
   - frmtmb_register_compat
   - frmtmb_ad_overload
   - frmtmb-extension-api

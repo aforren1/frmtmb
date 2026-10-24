@@ -185,7 +185,7 @@ gp_krig_deriv_cov <- function(fit, gi, newdata, env, var, o) {
     hermite_he(2L * o, outer(Xc[, d], Xc[, d], "-") / l)
   thc <- th
   thc[1] <- 0
-  K <- unname(covstruct_registry[["gp"]]$vcov(thc, bk))
+  K <- unname(cs_entry("gp")$vcov(thc, bk))
   R <- tryCatch(chol(K), error = function(e) NULL)
   if (!is.null(R)) {
     S <- S - tcrossprod(t(backsolve(R, t(g), transpose = TRUE)))

@@ -42,7 +42,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `cumulative()`, `multinomial()`, `categorical()` | same | the categories come from the response, and `refcat` names the reference category, as in brms |
 | `dirichlet_multinomial()`, `brmsfamily("negbinomial2")` | same | `dirichlet_multinomial()` is `multinomial()` with a precision `phi`; `negbinomial2` is `negbinomial()` with `sigma = 1 / shape` and brms's `gamma(0.4, 0.3)` default on `sigma` |
 | `xbeta()`, `zero_inflated_beta_binomial()`, `hurdle_cumulative()` | same | brms's density, links and `posterior_epred()`; `hurdle_cumulative()` takes brms's threshold structures, `thres(gr = )` and `cs()` (see What changes) |
-| `car(M, gr = g, type =)` | same | all four types |
+| `car(M, gr = g, type =)` | same, with `library(frmtmb.spatial)` | all four types; the term is in the extension package frmtmb.spatial |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
 | `(x | gr(g, by = f))` | same | one set of SDs and correlations per level of `f`, named `sd_g__Intercept:fa` as in brms; not with `cov =` |
@@ -607,9 +607,9 @@ proportional to the mean, and `tweedie()` estimates the power in
 ## Structural objects: `data2`
 
 Matrices that are not columns of `data` go in `data2`, the brms
-spelling: the adjacency matrix of `car()`, the mesh triple of
-`spde()`, and the matrices of `gr(prec = )`, `gr(cov = )` and
-`equalto()`.
+spelling: the adjacency matrix of `car()` and the mesh triple of
+`spde()` (both frmtmb.spatial), and the matrices of `gr(prec = )`, `gr(cov = )`
+and `equalto()`.
 
 ```{r, eval = FALSE}
 frm(bf(y ~ x + car(W, gr = loc, type = "icar")) + gaussian(),

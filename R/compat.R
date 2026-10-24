@@ -108,7 +108,9 @@ compat_cache_extend <- function(add, before) {
 #' Contributions are APPENDED, which is the only safe direction. Rules
 #' of equal specificity resolve later-wins, so a contributed rule may
 #' override a core default and a core default can never silently
-#' override a contributed one.
+#' override a contributed one. Between packages, contributions resolve
+#' in the order of the packages' names, so the table does not depend
+#' on the order in which they were loaded.
 #'
 #' @section What registration refuses:
 #' A rule side names a feature, a whole kind (`"kind:family"`), a named
@@ -277,6 +279,7 @@ frmtmb_register_compat <- function(features = NULL, rules = NULL,
                                    expects = character(0)) {
   arg <- "frmtmb_register_compat()"
   who <- compat_registrant(parent.frame())
+  owner <- compat_registrant_name(parent.frame())
   # Assembled once and passed down. It costs tens of milliseconds, and
   # every millisecond here is on the load time of the package that
   # registers.
@@ -332,6 +335,8 @@ frmtmb_register_compat <- function(features = NULL, rules = NULL,
     compat_cache_extend(add, before)
   }
   if (!is.null(rules)) {
+    # the owner orders the contributions (frmtmb_compat_rules_tbl())
+    attr(rules, "frmtmb_package") <- owner %||% ""
     frmtmb_compat_contrib$rules <-
       c(frmtmb_compat_contrib$rules, list(rules))
   }
@@ -785,9 +790,10 @@ compat_core_family_accepts <- function() {
 #' `name`: the DISPLAY name, carrying `"()"` for a callable feature.
 #'         Usually what a formula writes; see `key` for the exception.
 #' `key`:  the PARSER NAME, so tests can look the feature up in
-#'         `family_registry`, `covstruct_registry` and the parser
-#'         vocabularies, and so a caller can ask whether a formula
-#'         could write this feature. The key never carries `"()"`.
+#'         `family_registry`, the covariance-structure registry
+#'         (`cs_names()`) and the parser vocabularies, and so a caller
+#'         can ask whether a formula could write this feature. The key
+#'         never carries `"()"`.
 #'         For `mi_pred()`, `gp_pred()` and `cs_pred()` the two
 #'         differ, because those specials share a display name with a
 #'         covariance structure and the key is what the formula holds.
@@ -842,7 +848,7 @@ compat_features_build <- function(extra = NULL) {
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
-            "car", "spde", "us_t", "diag_t")
+            "us_t", "diag_t")
   out <- do.call(rbind, c(
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
@@ -971,24 +977,23 @@ frmtmb_compat_groups_lst <- list(
                         "mat"),
   # structures that correlate the LEVELS with each other, so the
   # marginal likelihood does not split into per-group integrals at all
-  crosslevel_blocks = c("gr_cov", "gr_prec", "equalto", "car", "spde"),
+  # car() and spde() are frmtmb.spatial's, which writes their rows by
+  # name
+  crosslevel_blocks = c("gr_cov", "gr_prec", "equalto"),
   # every remaining covariance structure, refused outright. The
   # Student-t latents factorize over levels but are not gaussian in a
   # level's coefficients, so imp_prior_terms() cannot recover the
   # per-level density from the block one; rr keeps its parameters in a
   # different space from its Z columns; and the smooth, gp and hsgp
   # bases carry no grouping factor at all. Kept exhaustive against
-  # covstruct_registry by a test, so a structure added later cannot
-  # quietly report "untested" here.
+  # the covariance-structure registry by a test, so a structure added
+  # later cannot quietly report "untested" here.
   importance_refused_blocks = c("us_t", "diag_t", "rr", "gp", "hsgp",
                                 "smooth"),
   # every covariance structure quadrature cannot marginalize
   wide_blocks = c("cs", "ar1", "hetar1", "ou", "toep", "homtoep",
                   "homcs", "exp", "gau", "mat", "rr", "equalto",
-                  "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
-                  "car", "spde"),
-  # sparse Gaussian Markov random fields written as predictor specials
-  gmrf = c("car", "spde"),
+                  "gr_cov", "gr_prec", "smooth", "gp", "hsgp"),
   # the R-side residual correlation terms, which share every guard
   autocor = c("ar()", "ma()", "arma()", "cosy()", "unstr()"),
   # the two of them brms also treats as true residual covariance (its
@@ -1009,6 +1014,15 @@ frmtmb_compat_groups_lst <- list(
 )
 
 # ------------------------------------------------------------------- rules
+
+# The notes of the rows that refuse a covariance structure under
+# importance = and quadrature. The groups below give them to frmtmb's
+# own structures and frmtmb_register_covstruct() to each structure it
+# registers, so a structure moved to an extension reports what it
+# reported in core.
+compat_note_crosslevel_importance <- "Refused: these structures correlate the grouping LEVELS with each other through a supplied relationship or neighbor matrix, so the marginal likelihood is one integral over every level at once and does not split into the per-group integrals the correction resamples."
+compat_note_scope_importance <- "Refused by name at the scope check: the correction recovers each level's prior density from the block density, which it does for frmtmb's own structures that are gaussian in a level's coefficients and independent between levels, and for no structure another package registers."
+compat_note_wide_quadrature <- "Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term."
 
 #' The compatibility rules written by hand, one row per rule.
 #'
@@ -1174,7 +1188,7 @@ compat_hand_rules_tbl <- function() {
   r("importance", "group:importance_refused_blocks", "refused",
     "Refused by name at the scope check. The Student-t latents (us_t, diag_t) factorize over grouping levels but are not gaussian in a level's coefficients, and the correction recovers each level's prior density from the block density by reading off a precision matrix, which would silently return a gaussian approximation to a t density; measured, that alone moves the corrected log-likelihood by 0.355. rr holds its parameters in a lower-dimensional factor space than its Z columns, so the positions the proposal draws into are not the positions the objective reads. smooth, gp and hsgp are one field over all observations with no grouping factor, so there are no independent groups to give separate proposals to.")
   r("importance", "group:crosslevel_blocks", "refused",
-    "Refused: these structures correlate the grouping LEVELS with each other through a supplied relationship or neighbor matrix, so the marginal likelihood is one integral over every level at once and does not split into the per-group integrals the correction resamples.")
+    compat_note_crosslevel_importance)
   r("importance", "group:post_fit", "works",
     "The corrected objective carries no conditional modes, so they are recovered from the inner solve of the Laplace objective at the corrected optimum, exactly as under quadrature. ranef(), fitted(), predict() and residuals() are NA-free.")
   r("importance", "REML", "refused",
@@ -1227,7 +1241,7 @@ compat_hand_rules_tbl <- function() {
 
   ## quadrature --------------------------------------------------------
   r("quadrature", "group:wide_blocks", "refused",
-    "Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term.")
+    compat_note_wide_quadrature)
   r("quadrature", "group:quadrature_blocks", "conditional",
     "Allowed only when the block is one-dimensional, that is a scalar random intercept, and each row reads one block. Correlated slopes are refused. Nested blocks, (1 | ga/gb), crossed blocks and (1 | g) in both mu and sigma are refused, as lme4 refuses nAGQ > 1 for more than one term: one Gauss-Kronrod pass over every effect integrated the outer ga effects and left the ga:gb effects to the Laplace approximation, so the log-likelihood equaled the Laplace one and summary() failed. A by-split gr(g, by = f), whose blocks read rows of their own, and mvbf() with one block per response are allowed.")
   r("quadrature", "group:post_fit", "works",
@@ -1840,18 +1854,8 @@ compat_hand_rules_tbl <- function() {
   r("gr_prec", "*", "conditional",
     "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key over the same factor and the same Q merge into one such block.",
     override = TRUE)
-  r("car", "*", "conditional",
-    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"esicar\" the intrinsic one under an EXACT sum-to-zero constraint, \"icar\" the same field under brms's soft constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor. con_sd changes nothing an esicar term reports: the constraint is exact and the delta method uses the centering projection, so the estimates, the prediction standard errors and the ranef() conditional SDs are all invariant to it. Every constrained type constrains each connected component, where brms constrains the global sum; the two agree on a connected graph. M belongs in data2 = list(M = M).",
-    override = TRUE)
-  r("spde", "*", "conditional",
-    "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem).",
-    override = TRUE)
-  for (cs in frmtmb_compat_groups_lst$gmrf) {
-    r(cs, "simulate", "works",
-      "Draws come from the block's own fitted precision.")
-    r(cs, "predict", "conditional",
-      "Locations outside the fitted set have no marginal variance of their own; allow_new_levels predicts them at the population level with no block contribution.")
-  }
+  # car() and spde(), the sparse Gaussian Markov random fields, are
+  # frmtmb.spatial's, which contributes their rows
   r("gr_cov", "*", "conditional",
     "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an |ID| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term.",
     override = TRUE)
@@ -2155,6 +2159,26 @@ compat_hand_rules_tbl <- function() {
   out
 }
 
+#' The contributed rule sets in the order they resolve: by the name of
+#' the package that registered each (a set registered outside a package
+#' first), and within one package in registration order.
+#'
+#' Two contributed rules of one signature tie, and the later wins. In
+#' load order that made frm_compat() depend on the order of the
+#' library() calls: with frmtmb.spatial loaded before frmtmb.sample, two
+#' pairs showed the other package's note. Ordered by package, the
+#' answer is a property of the packages installed, not of the session.
+#'
+#' @noRd
+compat_contrib_rules_ordered <- function() {
+  rl <- frmtmb_compat_contrib$rules
+  if (length(rl) < 2L) return(rl)
+  pk <- vapply(rl, function(f) {
+    attr(f, "frmtmb_package", exact = TRUE) %||% ""
+  }, "")
+  rl[order(pk, seq_along(pk))]
+}
+
 # The hand-written rules do not change within a session: no contributed
 # rule reaches them, and building the ~400 one-row frames costs enough
 # to be worth doing once, since the derivation resolves against them.
@@ -2178,7 +2202,7 @@ frmtmb_compat_rules_tbl <- function() {
   hand <- compat_hand_rules_tbl()
   out <- do.call(rbind, c(
     list(hand, compat_aterm_rules(compat_core_family_accepts())),
-    lapply(frmtmb_compat_contrib$rules, function(mk) mk())))
+    lapply(compat_contrib_rules_ordered(), function(mk) mk())))
   rownames(out) <- NULL
   out
 }

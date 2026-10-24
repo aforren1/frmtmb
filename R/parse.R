@@ -216,6 +216,9 @@ parse_response <- function(formula) {
       registered <- names(frmtmb_aterm_registry$reg)
       supported <- c(core_aterms, registered)
       if (!nm %in% supported) {
+        # a term an extension supplies, or one frmtmb refuses with a
+        # reason, is refused by name; the list below is for the rest
+        check_unsupported_aterm(nm)
         frm_stop("Addition term `", nm, "()` is not supported ",
                  "(supported: ", paste0(supported, "()", collapse = ", "),
                  "). A custom family carries its own per-row data through ",
@@ -569,7 +572,7 @@ parse_gp_call <- function(tm, env) {
 }
 
 #' Positional-or-named argument matching for the predictor specials that
-#' take a fixed argument list (brms's car() and our spde()). R's own
+#' take a fixed argument list (parse_field_term()). R's own
 #' partial matching is deliberately not reproduced: a misspelled name
 #' should be an error, not a silent match.
 #'
@@ -594,51 +597,113 @@ match_special_args <- function(call_expr, argn, fn) {
   out
 }
 
-#' brms's car(M, gr, type): M is an adjacency matrix (looked up in the
-#' data or the formula environment, as gr(cov = A) is), gr the grouping
-#' variable naming the locations, type one of brms's four.
+#' A predictor special that a registered covariance structure introduces,
+#' such as `car(M, gr = g)` or `spde(fem, gr = node)`. The structure's
+#' `term` slot names the arguments and reads them; the parser matches
+#' them, so every such special takes positional and named arguments the
+#' same way and refuses a misspelled one. The block is one intercept per
+#' level of the grouping variable `gr`, which every such special names.
 #'
 #' @noRd
-parse_car_call <- function(tm, env) {
-  a <- match_special_args(tm, c("M", "gr", "type", "con_sd"), "car")
-  if (is.null(a$M) || is.null(a$gr)) {
-    frm_stop("car() needs an adjacency matrix and a grouping variable: ",
-             "car(M, gr = g, type = \"icar\")", call. = FALSE)
+parse_field_term <- function(tm, env) {
+  fn <- as.character(tm[[1L]])
+  tt <- cs_entry(fn)[["term"]]
+  a <- match_special_args(tm, tt[["args"]], fn)
+  spec <- tt[["parse"]](a, env)
+  if (is.null(a[["gr"]])) {
+    frm_stop(fn, "() needs a grouping variable: ", tt[["usage"]],
+             call. = FALSE)
   }
-  # brms's gr = NA default (one location per observation) is deprecated
-  # there and never supported here: the field's levels come from the
-  # factor, so the call has to name one
-  if (identical(a$gr, NA) || identical(a$gr, quote(NA))) {
-    frm_stop("car(): gr must name a grouping variable. brms's gr = NA ",
-             "(one location per observation) is deprecated; build the ",
-             "location factor and pass it", call. = FALSE)
-  }
-  type <- if (is.null(a$type)) "escar" else {
-    tp <- eval(a$type, env)
-    if (!is.character(tp) || length(tp) != 1L || !(tp %in% car_types)) {
-      frm_stop("car(): type must be one of ",
-               paste0("\"", car_types, "\"", collapse = ", "), call. = FALSE)
-    }
-    tp
-  }
-  con_sd <- if (is.null(a$con_sd)) car_con_sd_default else {
-    eval_spec_arg(a$con_sd, "con_sd", env, fn = "car")
-  }
-  list(M_expr = a$M, gr_expr = a$gr, type = type, con_sd = con_sd,
-       label = deparse1(tm))
+  list(special = fn, spec = spec, gr = a[["gr"]], label = deparse1(tm))
 }
 
-#' spde(fem, gr): fem is a list of the mesh's finite-element matrices,
-#' gr the factor mapping observations to mesh nodes.
+#' The predictor specials that registered covariance structures
+#' introduce: every entry with a `term` slot.
 #'
 #' @noRd
-parse_spde_call <- function(tm, env) {
-  a <- match_special_args(tm, c("fem", "gr"), "spde")
-  if (is.null(a$fem) || is.null(a$gr)) {
-    frm_stop("spde() needs the mesh matrices and a grouping variable: ",
-             "spde(fm_fem(mesh), gr = node)", call. = FALSE)
+field_specials <- function() {
+  ents <- cs_entries()
+  names(ents)[vapply(ents, function(e) !is.null(e[["term"]]), TRUE)]
+}
+
+#' Refuse a call wrapped around a bar term that names no covariance
+#' structure.
+#'
+#' The wrapper is how a formula names a block's structure: `diag(x |
+#' g)`, `ar1(0 + t | g)`. reformulas finds a bar inside ANY call, so a
+#' wrapper that no structure answers to was dropped and the term fitted
+#' with the default `us` block, with no word: `foo(1 | g)`, a misspelled
+#' structure, a structure whose package is not loaded, and the internal
+#' `us_t(1 | g)` all fitted `(1 | g)` (frmtmb 0.73.0). The crossing
+#' operators keep their own refusal in parse_linpred().
+#'
+#' @noRd
+check_bar_wrapper <- function(tm, known, where = NULL) {
+  hd <- bar_wrapper_head(tm, known)
+  if (is.null(hd)) return(invisible(NULL))
+  if (!is.null(where)) {
+    frm_stop(where, ": ", hd, "() is not a covariance structure, so ",
+             deparse1(tm), " names no group-level term of the model. Name ",
+             "a term as the model writes it, (1 | g) or diag(x | g)",
+             call. = FALSE)
   }
-  list(fem_expr = a$fem, gr_expr = a$gr, label = deparse1(tm))
+  if (hd %in% c("us_t", "diag_t")) {
+    frm_stop(hd, "() is the structure gr(g, dist = \"student\") builds, ",
+             "not a spelling of its own: write (x | gr(g, dist = ",
+             "\"student\")) instead of ", deparse1(tm), call. = FALSE)
+  }
+  frm_stop(hd, "() is not a covariance structure, so ", deparse1(tm),
+           " names no block. The structures written around a bar term ",
+           "are: ", paste0(setdiff(known, c("propto", "gr_cov", "gr_prec",
+                                             field_specials(),
+                                             "gp", "hsgp")),
+                            "()", collapse = ", "),
+           ". A structure another package supplies is available once that ",
+           "package is loaded", call. = FALSE)
+}
+
+#' The head of the first call between the top of `tm` and a bar term
+#' that names no structure, or `NULL`. The path to every bar is walked
+#' through `(` and through the known wrappers, at any depth, so
+#' `foo(bar(1 | g))` and `diag(foo(1 | g))` are found as `foo(1 | g)` is;
+#' a bar's own arguments (gr(), mm(), mo()) are not on the path. The
+#' crossing operators keep their own refusal in parse_linpred().
+#'
+#' @noRd
+bar_wrapper_head <- function(tm, known) {
+  is_bar <- function(e) {
+    is.call(e) && is.name(e[[1L]]) && as.character(e[[1L]]) %in% c("|", "||")
+  }
+  has_bar <- function(e) {
+    if (!is.call(e)) return(FALSE)
+    if (is_bar(e)) return(TRUE)
+    any(vapply(as.list(e)[-1L], function(a) {
+      !identical(a, quote(expr = )) && has_bar(a)
+    }, NA))
+  }
+  rec <- function(e) {
+    if (!is.call(e) || is_bar(e)) return(NULL)
+    hd <- if (is.name(e[[1L]])) as.character(e[[1L]]) else deparse1(e[[1L]])
+    if (hd %in% c(":", "*", "/", "-")) return(NULL)
+    if (hd %in% c("(", "+", known)) {
+      for (a in as.list(e)[-1L]) {
+        if (identical(a, quote(expr = ))) next
+        h <- rec(a)
+        if (!is.null(h)) return(h)
+      }
+      return(NULL)
+    }
+    if (has_bar(e)) hd else NULL
+  }
+  rec(tm)
+}
+
+#' Is `tm` a call to a registered field special, as a whole term?
+#'
+#' @noRd
+is_field_term <- function(tm) {
+  is.call(tm) && is.name(tm[[1L]]) &&
+    as.character(tm[[1L]]) %in% field_specials()
 }
 
 #' Multi-membership random effects
@@ -1657,7 +1722,8 @@ rsv_intercept_fixed <- function(fixed) {
 #' list with one slot per term family: `fixed` (the parametric formula),
 #' `re` (bar terms with their covariance structure, `|ID|` key, and
 #' known covariance or rank), `smooth`, `mo`, `miterms`, `meterms`,
-#' `csterms`, `gpterms`, `carterms`, `spdeterms`, and `rhs` (the
+#' `csterms`, `gpterms`, `fieldterms` (the predictor specials of
+#' registered structures, car() and spde()), and `rhs` (the
 #' expanded formula).
 #' Every entry is an unevaluated expression plus its tuning values; the
 #' data is never touched here. `assemble_frame()` turns these slots into
@@ -1692,6 +1758,10 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # that terms() collapses to bare specials (s(z) * s(z)) becomes them,
   # so every branch below sees a special only as a term of its own
   terms_list <- unlist(lapply(terms_list, function(tm) {
+    # a special an extension supplies, written while that extension is
+    # not loaded, is refused by name before anything reads it as a
+    # misplaced special or as a variable
+    check_extension_specials(tm)
     # an autocorrelation term crossed with another keeps its own, more
     # specific refusal in the loop below
     crossed_ac <- is.call(tm) &&
@@ -1736,19 +1806,19 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   }
   # us_t / diag_t are reached through gr(dist = "student") and never
   # written directly: a bare us_t(x | g) would carry no degrees of
-  # freedom, so it stays out of the special list and lands in the
-  # not-supported message below
-  supported_cs <- setdiff(names(covstruct_registry),
+  # freedom, so it stays out of the special list and is refused by
+  # check_bar_wrapper()
+  supported_cs <- setdiff(cs_names(),
                           c("smooth", "us_t", "diag_t"))
   cs_specials <- unique(c(supported_cs, "rr", "propto"))
+  for (tm in terms_list) check_bar_wrapper(tm, cs_specials)
   smooth <- list()
   mo <- list()
   miterms <- list()
   meterms <- list()
   csterms <- list()
   gpterms <- list()
-  carterms <- list()
-  spdeterms <- list()
+  fieldterms <- list()
   acterms <- list()
   rest <- list()
   for (tm in terms_list) {
@@ -1853,10 +1923,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       if (op_star) rest[[length(rest) + 1L]] <- other
     } else if (is.call(tm) && identical(tm[[1]], as.name("gp"))) {
       gpterms[[length(gpterms) + 1L]] <- parse_gp_call(tm, env)
-    } else if (is.call(tm) && identical(tm[[1]], as.name("car"))) {
-      carterms[[length(carterms) + 1L]] <- parse_car_call(tm, env)
-    } else if (is.call(tm) && identical(tm[[1]], as.name("spde"))) {
-      spdeterms[[length(spdeterms) + 1L]] <- parse_spde_call(tm, env)
+    } else if (is_field_term(tm)) {
+      fieldterms[[length(fieldterms) + 1L]] <- parse_field_term(tm, env)
     } else if (is.call(tm) &&
                as.character(tm[[1]])[1] %in% autocor_structs &&
                !("|" %in% all.names(tm))) {
@@ -1875,11 +1943,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       # they reach the frame as ordinary calls, whose matrix argument
       # lives in data2 and was reported as an unknown variable
       for (sp_nm in Filter(function(f) calls_function(tm, f),
-                           c("sar", "fcor"))) {
-        frm_stop(sp_nm, "() is a brms autocorrelation term that frmtmb ",
-                 "does not support: ", deparse1(tm), ". The supported ",
-                 "residual correlation terms are ar(), ma(), arma(), ",
-                 "cosy(), unstr() and car()", call. = FALSE)
+                           names(brms_special_refusals))) {
+        frm_stop(sp_nm, "() ", brms_special_refusals[[sp_nm]], ": ",
+                 deparse1(tm), ". The supported residual correlation ",
+                 "terms are ar(), ma(), arma(), cosy(), unstr() and car()",
+                 call. = FALSE)
       }
       # a group-level mo() term, (mo(x) | g): the mo() calls on the
       # left of the bar become placeholder columns (mo_bar_rewrite())
@@ -1987,9 +2055,9 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       frm_stop("gp() is not a bar term; write gp(x) or gp(x, k = 30)",
                call. = FALSE)
     }
-    if (cls %in% c("car", "spde")) {
+    if (cls %in% field_specials()) {
       frm_stop(cls, "() is not a bar term; write ",
-               if (cls == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
+               cs_entry(cls)[["term"]][["usage"]],
                " as a predictor term, not on the left of ( | )", call. = FALSE)
     }
     rank <- NULL
@@ -2081,11 +2149,18 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       has_prec <- !is.null(ga$prec)
       has_by <- "by" %in% nms
       if (length(gvar) != 1 || (has_cov + has_prec) > 1 ||
-          (is.null(st) && !has_by && (has_cov + has_prec) != 1) ||
           !all(nms %in% c("", "cov", "prec", "by"))) {
-        frm_stop("gr() supports (x | gr(g, cov = A)), ",
+        frm_stop("gr() supports (x | gr(g)), (x | gr(g, cov = A)), ",
                  "(1 | gr(g, prec = Q)), (x | gr(g, by = f)) and ",
                  "(x | gr(g, dist = \"student\"))", call. = FALSE)
+      }
+      # brms's bare gr(g) is the grouping factor g itself (its standata
+      # is that of (1 | g)); a multi-membership group keeps its own
+      # spelling, which the term above would no longer reach
+      if (is.null(st) && !has_by && !has_cov && !has_prec &&
+            calls_function(gvar[[1L]], "mm")) {
+        frm_stop("gr(mm(...)) is not a spelling of a multi-membership term: ",
+                 "write (x | mm(g1, g2)) without gr()", call. = FALSE)
       }
       if (has_by) {
         by_spec <- parse_gr_by(ga[["by"]], gvar[[1L]], cls, bar,
@@ -2122,10 +2197,10 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       bar <- call("|", bar[[2]], gvar[[1]])
     }
     if (is.call(bar[[3]]) &&
-        as.character(bar[[3]][[1]])[1] %in% c("car", "spde")) {
+        as.character(bar[[3]][[1]])[1] %in% field_specials()) {
       nm <- as.character(bar[[3]][[1]])[1]
       frm_stop(nm, "() is not a bar term; write ",
-               if (nm == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
+               cs_entry(nm)[["term"]][["usage"]],
                " as a predictor term, not as the grouping factor of ( | )",
                call. = FALSE)
     }
@@ -2151,8 +2226,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   }
   out <- list(fixed = fixed, re = re, smooth = smooth, mo = mo,
               miterms = miterms, meterms = meterms, csterms = csterms,
-              gpterms = gpterms, carterms = carterms,
-              spdeterms = spdeterms, acterms = acterms, rhs = rhs_form)
+              gpterms = gpterms, fieldterms = fieldterms,
+              acterms = acterms, rhs = rhs_form)
   if (length(mo_re_map)) out$mo_re <- mo_re_map
   if (!is.null(rsv[["fixed"]])) {
     out$center <- FALSE

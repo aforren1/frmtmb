@@ -167,61 +167,6 @@ test_that("spatial: a Poisson GLMM over an exponential covariance field", {
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
 })
 
-test_that("spde: Weibull survival with right censoring over an SPDE field", {
-  skip_if_not_installed("fmesher")
-  set.seed(126)
-  n <- 200
-  loc <- cbind(runif(n, 0, 1), runif(n, 0, 1))
-  mesh <- fmesher::fm_mesh_2d(loc = loc, max.edge = c(0.2, 0.5),
-                              cutoff = 0.05)
-  fem <- fmesher::fm_fem(mesh)
-  fem <- list(c0 = fem$c0, g1 = fem$g1, g2 = fem$g2)
-  idx <- mesh$idx$loc
-
-  # Draw the field from the model's own precision, otherwise the SPDE
-  # parameters are unidentified and the two optimizers wander apart on a
-  # flat ridge instead of disagreeing about the likelihood.
-  tau_t <- exp(-1); kap_t <- exp(1.5)
-  Q_t <- tau_t^2 * (kap_t^4 * fem$c0 + 2 * kap_t^2 * fem$g1 + fem$g2)
-  x_t <- as.vector(backsolve(chol(as.matrix(Q_t)), rnorm(nrow(fem$c0))))
-
-  sexv <- rbinom(n, 1, 0.5)
-  agev <- rnorm(n)
-  eta_true <- -0.5 + 0.3 * sexv + 0.2 * agev + x_t[idx]
-  time <- rweibull(n, shape = 1.2, scale = exp(-eta_true))
-  cens <- as.integer(time > 2)          # brms convention: 1 = right censored
-  time <- pmin(time, 2)
-  dd <- data.frame(time = time, cens = cens, sex = sexv, age = agev,
-                   node = factor(idx, levels = seq_len(mesh$n)))
-
-  nll_ref <- function(p) {
-    tau <- exp(p$log_tau); kap <- exp(p$log_kappa)
-    Q <- tau^2 * (kap^4 * fem$c0 + 2 * kap^2 * fem$g1 + fem$g2)
-    om <- exp(p$log_omega)
-    eta <- p$beta[1] + p$beta[2] * dd$sex + p$beta[3] * dd$age +
-      p$x[idx]
-    lam <- exp(eta)
-    # ifelse() would evaluate both branches and strip the advector
-    # class; index the two groups instead, as the example's loop does
-    ob <- which(dd$cens == 0)
-    cn <- which(dd$cens == 1)
-    ll_ob <- RTMB::dweibull(dd$time[ob], shape = om, scale = 1 / lam[ob],
-                            log = TRUE)
-    ll_cn <- log(1 - RTMB::pweibull(dd$time[cn], shape = om,
-                                    scale = 1 / lam[cn]))
-    -RTMB::dgmrf(p$x, 0, Q, log = TRUE) - sum(ll_ob) - sum(ll_cn)
-  }
-  obj <- RTMB::MakeADFun(nll_ref,
-                         list(beta = c(-0.5, 0, 0), log_tau = -2,
-                              log_kappa = 1, log_omega = 0,
-                              x = rep(0, nrow(fem$c0))),
-                         random = "x", silent = TRUE)
-  opt <- nlminb(obj$par, obj$fn, obj$gr)
-
-  fit <- frm(bf(time | cens(cens) ~ sex + age + spde(fem, gr = node)),
-             family = weibull(), data = dd)
-  expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-4)
-})
 
 test_that("adaptive_integration: exact per-observation marginalization", {
   # Both sides marginalize each scalar random effect exactly. The

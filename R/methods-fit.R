@@ -176,6 +176,7 @@ summary_refuse_waic <- function(waic) {
 # table. One renderer, so a section can only be added once.
 #' @export
 print.frmtmb_fit <- function(x, ...) {
+  require_structure_packages(x)
   frm_check_dots(..., .unsupported = brms_print_args)
   require_fitted(x, "print()")
   print(summary(x))
@@ -621,7 +622,7 @@ summary_random_list <- function(object, prob) {
   if (!is.null(acr)) tr <- utils::head(tr, nrow(tr) - nrow(acr))
   out <- list()
   for (bk in bks) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) {
+    if (cs_is_field(bk)) {
       next
     }
     rows <- which(tr$block == bk[["term_label"]])
@@ -1802,6 +1803,7 @@ fixef_by_dpar <- function(object) {
 ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                              probs = c(0.025, 0.975), pars = NULL,
                              groups = NULL, ..., condVar = FALSE) {
+  require_structure_packages(object)
   frm_check_dots(...)
   # brms's positions ahead of `...`: ranef(fit, FALSE) used to set
   # `condVar` and return the default shape, identical() to ranef(fit)
@@ -1886,15 +1888,19 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     }
     if (!is.null(cvr)) {
       # rr factors live in a different space than the displayed
-      # coefficients; no conditional SDs for those blocks. An esicar
-      # block's coefficients are a different space too, but a knowable
-      # one: ranef() shows the centered field, whose variance is var(b)
-      # with the inert component mean projected out.
-      S <- if (bk[["covstruct"]] == "rr") {
+      # coefficients; no conditional SDs for those blocks. A mapped
+      # block's coefficients (esicar's) are a different space too, but a
+      # knowable one: ranef() shows the centered field, whose variance
+      # its structure's expand slot gives from var(b); a structure that
+      # gives none reports none, as rr does.
+      cond <- if (block_expands(bk)) {
+        cs_entry(bk[["covstruct"]])[["expand"]][["condsd"]]
+      }
+      S <- if (bk[["covstruct"]] == "rr" ||
+                 (block_expands(bk) && is.null(cond))) {
         matrix(NA_real_, nrow(M), ncol(M))
-      } else if (block_is_esicar(bk)) {
-        t(matrix(car_center_condsd(cvr[bk[["b_idx"]]], bk[["aux_car"]]),
-                 nrow = bk[["dim"]]))
+      } else if (block_expands(bk)) {
+        t(matrix(cond(cvr[bk[["b_idx"]]], bk), nrow = bk[["dim"]]))
       } else {
         t(matrix(sqrt(cvr[bk[["b_idx"]]]), nrow = bk[["dim"]]))
       }
@@ -2076,7 +2082,7 @@ varcorr_matrices <- function(fit, theta = fit$estimates[["theta"]]) {
       matrix(exp(th[bk[["theta_idx"]][1]])^2, 1, 1,
              dimnames = list("sd(gp)", "sd(gp)"))
     } else {
-      V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
+      V <- cs_entry(bk[["covstruct"]])$vcov(th[bk[["theta_idx"]]],
         bk)
       if (is_student_block(bk)) {
         # On a gr(dist = "student") block this is the SCALE matrix, not
@@ -2116,7 +2122,7 @@ varcorr_layout <- function(fit) {
   groups <- list()
   for (bi in seq_along(fit$frame[["re_blocks"]])) {
     bk <- fit$frame[["re_blocks"]][[bi]]
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) {
+    if (cs_is_field(bk)) {
       next
     }
     rn <- brms_re_rnames(fit, bk)
@@ -2303,6 +2309,7 @@ varcorr_values <- function(fit, vals, comp, layout = varcorr_layout(fit)) {
 VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
                                robust = FALSE,
                                probs = c(0.025, 0.975), ...) {
+  require_structure_packages(x)
   frm_check_dots(...)
   require_fitted(x, "VarCorr()")
   fit_refuse_draws_args("VarCorr()", summary = summary, robust = robust)
