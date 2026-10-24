@@ -2332,8 +2332,8 @@ cs_term_coef <- function(ct) {
 #' brms-probe.txt, cases cat, mix, catre, mixre). A categorical or
 #' multinomial response keeps that naming with ONE non-reference
 #' category, as brms does. Every other family with several location
-#' dpars (the latent-class, hidden Markov, mixture_mvn() and
-#' accumulator families) follows the same rule, which is frmtmb's for
+#' dpars (the latent-class, hidden Markov, multivariate normal mixture
+#' and accumulator families) follows the same rule, which is frmtmb's for
 #' families brms does not have: a prior with no dpar does not say which
 #' location it means.
 #'

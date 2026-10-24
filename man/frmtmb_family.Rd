@@ -337,9 +337,10 @@ not branch on parameter values.
 \section{Structured simulators}{
 
 Some families cannot draw a response one row at a time: a group-level
-\code{\link[=mixture]{mixture()}} draws one class per group, a \code{\link[=mixture_mvn]{mixture_mvn()}} draw needs
-the class covariances, which are family-level extras rather than
-dpars, and a hidden Markov family walks a chain per sequence. Those
+\code{\link[=mixture]{mixture()}} draws one class per group, a multivariate normal mixture
+(frmtmb.latent's \code{mixture_mvn()}) needs the class covariances, which
+are family-level extras rather than dpars, and a hidden Markov family
+walks a chain per sequence. Those
 families supply \code{sim_ctx(ctx)} instead of \code{sim(dpars, aterms, n)}.
 
 \code{ctx} is a list with \code{fit} (any object carrying \code{spec}, \code{frame} and

@@ -196,21 +196,3 @@ test_that("mixture() refuses REML and profile", {
   expect_lt(max(abs(fq$obj$gr(fq$opt$par))), 1e-2)
   expect_false(anyNA(fq$estimates$b))
 })
-
-test_that("mixture_mvn() refuses REML and profile too", {
-  set.seed(5)
-  n <- 200
-  z <- rbinom(n, 1, 0.4)
-  dz <- data.frame(x = rnorm(n))
-  dz$Y <- cbind(rnorm(n, ifelse(z == 1, 3, 0)),
-                rnorm(n, ifelse(z == 1, -2, 0)))
-  expect_s3_class(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz),
-                  "frmtmb_fit")
-  # each family states the refusal in its own name now: this used to be
-  # one message in fit.R listing every mixture-type family by name
-  expect_error(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz,
-                   REML = TRUE), "mixture_mvn\\(\\)")
-  expect_error(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz,
-                   control = frmtmb_control(profile = TRUE)),
-               "mixture_mvn\\(\\)")
-})

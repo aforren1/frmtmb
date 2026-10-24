@@ -1,3 +1,39 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **`mixture_mvn()` moved to the extension package frmtmb.latent.** To
+  fit a multivariate normal mixture, install frmtmb.latent
+  (`remotes::install_github("aforren1/frmtmb", subdir =
+  "extensions/frmtmb.latent")`) and run `library(frmtmb.latent)`.
+  Without it, `mixture_mvn()` is an unknown function. The family, its
+  arguments and its fits did not change: on the 59 fits of its tests,
+  the log-likelihood, the estimates, the standard errors, `predict()`,
+  `fitted()`, `mixture_probs()` and `simulate()` are identical to the
+  last bit on the same machine. Its rows of `frm_compat()` come with
+  frmtmb.latent, and with it loaded the table holds the same rows as
+  before. brms has no multivariate normal mixture, so no brms spelling
+  reached the family, and `family = "mixture_mvn"` was not a supported
+  spelling before the move either. `mixture()`, `mixture_probs()` and
+  `pp_mixture()` stay in core. mclust is no longer in Suggests. Update
+  frmtmb.latent together with frmtmb: an older frmtmb.latent does not
+  load with this frmtmb, because its `hmm()` rules name the
+  `mixture_mvn` feature that core no longer has.
+
+## Extension interface
+
+* `us_sigma(theta, d)` and its inverse `us_theta(S)` are exported.
+  `us_sigma()` builds the covariance matrix that the parameter vector
+  of a `us()` block encodes, and it is AD-safe, so a family in another
+  package can carry a free covariance matrix as an extra parameter;
+  `us_theta()` gives the parameter vector of a covariance matrix, for
+  a start. The correlation entries fill the lower triangle by column,
+  which is glmmTMB's order up to 3 x 3 and not from 4 x 4. `us_sigma()`
+  refuses a `theta` of the wrong length and names the length it needs;
+  inside frmtmb a wrong length was recycled with a warning.
+  `floored = TRUE` now floors the variance of a 1 x 1 block as the 1 x 1
+  random-effect blocks do, which no caller in frmtmb reached.
+
 # frmtmb 0.73.1
 
 ## Bug fixes

@@ -55,14 +55,88 @@ us_theta_cor <- function(C) {
   L[lower.tri(L)]
 }
 
-#' Unstructured d x d covariance from its theta segment (AD-safe).
-#' `floored = TRUE` reads the standard deviations through `sd_floored()`,
-#' as the random-effect blocks do; a family's residual covariance keeps
-#' `exp()`.
+#' Unstructured covariance matrix from its parameter vector
 #'
-#' @noRd
+#' `us_sigma(theta, d)` builds the `d` x `d` covariance matrix that the
+#' parameter vector of a `us()` block of frmtmb encodes, and
+#' `us_theta(S)` is its inverse: the parameter vector whose `us_sigma()`
+#' is `S`.
+#'
+#' The first `d` entries of `theta` are the log standard deviations. The
+#' other `d * (d - 1) / 2` entries fill the strict lower triangle of a
+#' unit-diagonal factor `L` in column-major order: `L[2, 1]`, `L[3, 1]`,
+#' ..., `L[d, 1]`, `L[3, 2]`, and so on. Each row of `L` is then scaled
+#' to unit length, and the correlation matrix is `L L'`. So every real
+#' vector gives a valid covariance matrix, and a vector of zeros gives
+#' the identity. For `d` up to 3 this is the same map as glmmTMB's `us`
+#' structure. From `d = 4` the order differs: glmmTMB fills the same
+#' triangle in row-major order, so a glmmTMB `theta` must be reordered
+#' first.
+#'
+#' `us_sigma()` is AD-safe, so a family can call it inside its density
+#' while the objective is taped. That gives a family a free covariance
+#' matrix as a family-level extra parameter (`extra_pars` of
+#' [frmtmb_family()]): declare `d + d * (d - 1) / 2` values, start them
+#' at `us_theta()` of a starting covariance, and read them through
+#' `us_sigma()` in `lpdf` and in the simulator. The `mixture_mvn()`
+#' family of frmtmb.latent builds its class covariances this way. Off
+#' the tape, `as.matrix()` of the result is an ordinary numeric matrix.
+#' `us_theta()` is numeric only; it runs off the tape.
+#'
+#' @param theta A numeric vector or an RTMB advector of length
+#'   `d + d * (d - 1) / 2`.
+#' @param d The dimension of the matrix, a positive whole number.
+#' @param floored `FALSE` (the default) takes each standard deviation
+#'   as `exp()` of its entry. `TRUE` floors the scale as the
+#'   random-effect blocks of frmtmb do, so that a variance the optimizer
+#'   drives toward zero keeps a finite log-density: it adds `1e-150` to
+#'   each standard deviation when `d >= 2`, and `1e-300` to the variance
+#'   when `d = 1`.
+#' @param S A symmetric positive definite numeric matrix.
+#' @return `us_sigma()`: a `d` x `d` matrix, an advector matrix when
+#'   `theta` is one. `us_theta()`: a numeric vector of length
+#'   `d + d * (d - 1) / 2`, the inverse of `us_sigma(floored = FALSE)`.
+#' @seealso [frmtmb_family()] for `extra_pars`, and [frmtmb-robust-dpars]
+#'   for the other helpers a density can call while it is taped.
+#' @examples
+#' # standard deviations 2 and 0.5, and one correlation parameter
+#' S <- us_sigma(c(log(2), log(0.5), 1), 2)
+#' S
+#' cov2cor(as.matrix(S))   # the correlation is 1 / sqrt(2)
+#'
+#' # zero correlation parameters give a diagonal matrix
+#' us_sigma(c(0, 0, 0, 0, 0, 0), 3)
+#'
+#' # the parameters of a given covariance, and back
+#' S3 <- matrix(c(4, 1, 0.5, 1, 2, 0.3, 0.5, 0.3, 1), 3)
+#' th <- us_theta(S3)
+#' th
+#' all.equal(as.matrix(us_sigma(th, 3)), S3)
+#' @export
 us_sigma <- function(theta, d, floored = FALSE) {
-  if (d == 1L) return(RTMB::matrix(exp(2 * theta[1]), 1, 1))
+  # the indexing below does not check the length, and a caller outside
+  # frmtmb is owed a refusal that names the count it needs
+  if (!is.numeric(d) || length(d) != 1L || is.na(d) || d < 1 ||
+        d != round(d)) {
+    # 15 digits, so that a d of 2 + 1e-12 does not print as "2"
+    frm_stop("us_sigma(): `d` must be a positive whole number, not ",
+             if (is.numeric(d) && length(d) == 1L && !is.na(d)) {
+               format(d, digits = 15)
+             } else {
+               arg_desc(d)
+             }, call. = FALSE)
+  }
+  d <- as.integer(d)
+  np <- d + (d * (d - 1L)) %/% 2L
+  if (length(theta) != np) {
+    frm_stop("us_sigma(): a ", d, " x ", d, " matrix takes ", np,
+             " parameters, not ", length(theta), call. = FALSE)
+  }
+  if (d == 1L) {
+    # the 1 x 1 random-effect blocks floor the variance, not the sd
+    v <- if (floored) sd2_floored(theta[1]) else exp(2 * theta[1])
+    return(RTMB::matrix(v, 1, 1))
+  }
   sdv <- if (floored) {
     sd_floored(theta[seq_len(d)])
   } else {
@@ -70,6 +144,37 @@ us_sigma <- function(theta, d, floored = FALSE) {
   }
   C <- us_chol_cor(theta[-seq_len(d)], d)
   C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
+}
+
+#' @rdname us_sigma
+#' @export
+us_theta <- function(S) {
+  if (!is.numeric(S) || !is.matrix(S) || nrow(S) != ncol(S) ||
+        nrow(S) < 1L || anyNA(S) || any(!is.finite(S))) {
+    frm_stop("us_theta(): `S` must be a square numeric matrix with ",
+             "finite entries, not ", arg_desc(S), call. = FALSE)
+  }
+  # a covariance computed in floating point is symmetric only to
+  # rounding, so asymmetry is judged against the matrix's own scale
+  if (max(abs(S - t(S))) > 1e-10 * max(abs(S))) {
+    frm_stop("us_theta(): `S` must be symmetric", call. = FALSE)
+  }
+  if (any(diag(S) <= 0)) {
+    frm_stop("us_theta(): `S` must be positive definite; its diagonal ",
+             "has a value that is not positive", call. = FALSE)
+  }
+  sds <- unname(sqrt(diag(S)))
+  if (nrow(S) == 1L) return(log(sds))
+  C <- S / (sds %o% sds)
+  C <- (C + t(C)) / 2
+  # checked here, so that the refusal names this function and the
+  # covariance the caller passed, not the internal correlation step
+  if (inherits(try(chol(C), silent = TRUE), "try-error")) {
+    frm_stop("us_theta(): `S` must be a positive definite covariance ",
+             "matrix; this one is not, so no us() parameter vector gives ",
+             "it", call. = FALSE)
+  }
+  c(log(sds), us_theta_cor(C))
 }
 
 # A structure that carries `from_natural(sds, C, blk)` can be set from

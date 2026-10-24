@@ -830,8 +830,8 @@ ce_predict_family_check <- function(rspec) {
   }
   # the band is built from ROWWISE draws, so a family that only draws
   # whole is refused even though simulate() accepts it:
-  # mixture_mvn()'s sim_ctx returns an n by D matrix, which the
-  # per-row quantiles cannot consume
+  # a sim_ctx may return the whole response, an n by D matrix for a
+  # multivariate mixture, which the per-row quantiles cannot consume
   if (is.null(rspec$family[["sim"]])) {
     frm_stop("method = 'predict' needs a family that draws row by row; '",
              rspec$family[["family"]], "' draws the response whole",

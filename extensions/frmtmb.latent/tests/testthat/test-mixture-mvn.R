@@ -1,5 +1,37 @@
 # mixture_mvn(): multivariate gaussian mixture components
 # (mclust-style model-based clustering with linear-predictor means).
+#
+# These tests came from frmtmb's test-mvn-mixture.R with the family,
+# and the blocks after it from the frmtmb files that used mixture_mvn()
+# to pin a core seam (test-quadrature-defects.R, test-structure.R and
+# test-unpinned-seams.R); frmtmb now pins those seams on families built
+# in its own tests. Three frmtmb internals the old file reached are
+# replaced: make_start() and the expect_vector_equal() of frmtmb's
+# helper-reference.R by the local helpers below, and us_theta_cor() by
+# the exported frmtmb::us_theta().
+
+# ------------------------------------------------------------- helpers
+
+expect_vector_equal <- function(x, y, tol) {
+  expect_equal(length(x), length(y))
+  expect_lt(max(abs(unname(x) - unname(y))), tol)
+}
+
+# The parameter vector the objective takes at a start that names every
+# component of the template, which is what make_start() returns for
+# such a start. A component the start leaves out would be seeded by the
+# family there and not here, so it is refused instead.
+mvn_start_vector <- function(fit, st) {
+  tpl <- fit$frame$par_template
+  miss <- setdiff(names(tpl)[lengths(tpl) > 0L], names(st))
+  if (length(miss)) stop("the start leaves out ", toString(miss))
+  v <- unlist(lapply(names(tpl), function(nm) {
+    if (lengths(tpl[nm]) == 0L) numeric(0) else st[[nm]]
+  }), use.names = FALSE)
+  stopifnot(length(v) == length(fit$obj$par))
+  v
+}
+
 
 sim_mvnmix_data <- function(seed = 42, n = 400, p1 = 0.4,
                             m1 = c(0, 0), m2 = c(3, 4)) {
@@ -247,7 +279,7 @@ test_that("mixture_mvn covariance models agree at a shared parameter point", {
     st <- c(list(beta = c(0, 0, 3, 3), betad = 0.2), point[[m]])
     fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = m),
                data = dd, start = st)
-    v <- unlist(make_start(fit$frame, st), use.names = FALSE)
+    v <- mvn_start_vector(fit, st)
     ll_point[m] <- -fit$obj$fn(v)
     ll_fit[m] <- as.numeric(logLik(fit))
   }
@@ -301,9 +333,7 @@ test_that("mixture_mvn class means take covariates under every model", {
 # confused for a likelihood disagreement.
 mclust_extras <- function(model, Sig, K, D) {
   lsd <- vapply(Sig, function(S) 0.5 * log(diag(S)), numeric(D))
-  us <- function(S) {
-    c(log(sqrt(diag(S))), us_theta_cor(stats::cov2cor(S)))
-  }
+  us <- function(S) us_theta(S)
   per <- function(pre, v) stats::setNames(v, paste0(pre, seq_len(K)))
   free <- function(k) (lsd[, k] - mean(lsd[, k]))[seq_len(D - 1L)]
   switch(model,
@@ -379,4 +409,122 @@ test_that("mixture_mvn matches mclust for every covariance model", {
   Y3 <- mus[g, ] + matrix(rnorm(3 * n, sd = 0.8), n, 3) %*%
     chol(matrix(c(1, .3, .1, .3, 1, -.2, .1, -.2, 1), 3))
   expect_mclust_agreement(Y3, 3L, 3L)
+})
+
+## ---- from frmtmb's test-quadrature-defects.R -----------------------------
+
+test_that("mixture_mvn() refuses REML and profile too", {
+  set.seed(5)
+  n <- 200
+  z <- rbinom(n, 1, 0.4)
+  dz <- data.frame(x = rnorm(n))
+  dz$Y <- cbind(rnorm(n, ifelse(z == 1, 3, 0)),
+                rnorm(n, ifelse(z == 1, -2, 0)))
+  expect_s3_class(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz),
+                  "frmtmb_fit")
+  # each family states the refusal in its own name now: this used to be
+  # one message in fit.R listing every mixture-type family by name
+  expect_error(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz,
+                   REML = TRUE), "mixture_mvn\\(\\)")
+  expect_error(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz,
+                   control = frmtmb_control(profile = TRUE)),
+               "mixture_mvn\\(\\)")
+})
+
+## ---- from frmtmb's test-structure.R --------------------------------------
+
+test_that("mixture_mvn() declares capabilities only", {
+  # its likelihood DOES factorize per row, so its structure carries no
+  # loglik; what it carries is the multimodality refusal. The structure
+  # is read as fam[["structure"]], not through frmtmb's internal
+  # fam_structure(), as test-structure-latent.R does for lca().
+  st <- mixture_mvn(K = 2, D = 2)[["structure"]]
+  expect_s3_class(st, "frmtmb_structure")
+  expect_null(st[["loglik"]])
+  expect_false(st[["supports"]][["reml"]])
+  expect_false(st[["supports"]][["profile"]])
+  # everything else stays exactly as available as it was
+  expect_true(st[["supports"]][["quadrature"]])
+  expect_true(st[["supports"]][["cluster_robust"]])
+  expect_true(is.function(st[["latent_probs"]]))
+})
+
+## ---- from frmtmb's test-unpinned-seams.R ---------------------------------
+
+test_that("method = 'predict' refuses a draw of the whole response", {
+  skip_on_cran()
+
+  # mixture_mvn() carries a sim_ctx and no sim: its draw is an n by D
+  # matrix for the WHOLE response, which simulate() consumes and the
+  # per-row quantiles of a prediction band cannot. So simulate() works
+  # on this fit and conditional_effects(method = "predict") refuses,
+  # with a message naming the reason rather than a length error from
+  # inside the loop.
+  set.seed(42)
+  n <- 200
+  cl <- rbinom(n, 1, 0.4)
+  x <- rnorm(n)
+  Y <- cbind(ifelse(cl == 1, 0, 3) + 0.5 * x + rnorm(n),
+             ifelse(cl == 1, 0, 4) + rnorm(n))
+  dd <- data.frame(x = x)
+  dd$Y <- Y
+  fit <- frm(bf(Y ~ x) + mixture_mvn(K = 2, D = 2), data = dd)
+
+  # simulate() accepts it, through the sim_ctx route
+  sm <- simulate(fit, nsim = 2, seed = 3)
+  expect_identical(dim(sm[[1]]), dim(Y))
+
+  # conditional_effects() does not, by name
+  expect_error(conditional_effects(fit, method = "predict"),
+               "draws the response whole")
+  # and the refusal is raised before any grid work, so a family with no
+  # simulator at all reaches its own message rather than this one
+  expect_error(conditional_effects(fit, method = "predict",
+                                   effects = "nosuchvariable"),
+               "draws the response whole")
+
+  # the expected-response display is refused too, and for the other
+  # reason: this family's mean is an n by D matrix, so there is no one
+  # curve to draw or to put a delta-method band on
+  expect_error(conditional_effects(fit),
+               "not one number per observation")
+  # what IS drawable is a named parameter, and the mixing weight comes
+  # back on the softmax scale like any other mixture's
+  ce <- conditional_effects(fit, dpar = "theta1")
+  expect_identical(names(ce), "x")
+  expect_true(all(ce$x$estimate__ > 0 & ce$x$estimate__ < 1))
+})
+
+## ---- the move itself -----------------------------------------------------
+
+test_that("mixture_mvn() is this package's, and core keeps no copy", {
+  expect_true("mixture_mvn" %in% getNamespaceExports("frmtmb.latent"))
+  expect_false("mixture_mvn" %in% getNamespaceExports("frmtmb"))
+  expect_false(exists("mixture_mvn", envir = asNamespace("frmtmb"),
+                      inherits = FALSE))
+  # brms has no such family, and no string spelling reached it before
+  # the move either, so a string stays the generic refusal with this
+  # package loaded; the call is the one spelling
+  d <- data.frame(row = 1:4)
+  d$Y <- matrix(stats::rnorm(8), 4, 2)
+  expect_error(frm(bf(Y ~ 1), family = "mixture_mvn", data = d),
+               "is not a supported family")
+  expect_error(brmsfamily("mixture_mvn"), "is not a supported family")
+})
+
+test_that("the compatibility rows of mixture_mvn() arrive with the package", {
+  # the nine rules that sat in frmtmb's R/compat.R, read back through
+  # the public table with this package loaded
+  vocab <- frm_compat_features()
+  expect_identical(vocab$kind[vocab$name == "mixture_mvn"], "structure")
+  st <- function(a, b) frm_compat(a, b)$status
+  expect_identical(st("REML", "mixture_mvn"), "refused")
+  expect_identical(st("quadrature", "mixture_mvn"), "refused")
+  expect_identical(st("profile", "mixture_mvn"), "refused")
+  expect_identical(st("cens()", "mixture_mvn"), "refused")
+  expect_identical(st("trunc()", "mixture_mvn"), "refused")
+  expect_identical(st("mixture_mvn", "simulate"), "works")
+  expect_identical(st("mixture_mvn", "mvbf"), "refused")
+  expect_identical(st("mixture_mvn", "weights()"), "untested")
+  expect_identical(st("ar()", "mixture_mvn"), "refused")
 })

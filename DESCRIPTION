@@ -59,7 +59,6 @@ Suggests:
     loo,
     marginaleffects,
     MASS,
-    mclust,
     metafor,
     mice,
     minqa,

@@ -289,18 +289,6 @@
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "mclust",
-      "name": "mclust",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=mclust"
-    },
-    {
-      "@type": "SoftwareApplication",
       "identifier": "metafor",
       "name": "metafor",
       "provider": {

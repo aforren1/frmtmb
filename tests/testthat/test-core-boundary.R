@@ -6,11 +6,13 @@
 # left to go, shrinking release by release. The extraction round
 # emptied it. The ODE seam left for extensions/frmtmb.ode, the sampling
 # surface for extensions/frmtmb.sample, and step 10 took the two
-# structured families themselves to extensions/frmtmb.latent.
+# structured families themselves to extensions/frmtmb.latent. The first
+# round under dev/core-boundary.md took mixture_mvn() there too.
 #
 # So there is nothing left to ratchet. Every policed token now has an
-# empty list of allowed homes: no core file may name hmm, lca, their
-# old frame slots, or the ODE symbols, anywhere, at all. This is the
+# empty list of allowed homes: no core file may name hmm, lca,
+# mixture_mvn, their old frame slots and helpers, or the ODE symbols,
+# anywhere, at all. This is the
 # boundary, not a countdown to it, and a hit is a regression rather
 # than debt not yet paid off.
 #
@@ -20,7 +22,8 @@
 # The token vocabulary and the scanner, shared by the boundary
 # assertion below and by the positive control that proves the scanner
 # can still see a hit.
-boundary_tokens <- c("hmm", "lca", "mix_g", "hmm_g", "frm_ode", "RTMBode")
+boundary_tokens <- c("hmm", "lca", "mix_g", "hmm_g", "frm_ode", "RTMBode",
+                     "mixture_mvn", "mvn_cov_spec", "mvn_sim_rows")
 
 # R's own \b counts `_` as a word character, so `\bhmm\b` would miss
 # hmm_check_fit() - exactly the symbols this test exists to see. The
@@ -77,7 +80,8 @@ test_that("no core file names a structured family or an ODE symbol", {
       "the branch behind the family's own fam$structure slot, register ",
       "it through the exported seams (frmtmb_register_frame_check, ",
       "frmtmb_register_compat), or move the code into the extension ",
-      "package that owns it: extensions/frmtmb.latent for hmm and lca, ",
+      "package that owns it: extensions/frmtmb.latent for hmm, lca and ",
+      "mixture_mvn, ",
       "extensions/frmtmb.ode for the ODE symbols. mixture() is not ",
       "policed - it stays in core as the reference implementation."
     )
@@ -109,4 +113,22 @@ test_that("the boundary scanner still sees a token where one exists", {
   # so the control cannot be satisfied by an unrelated match
   expect_true(any(grepl("\\|hmm$", names(control))))
   expect_true(any(grepl("\\|lca$", names(control))))
+  expect_true(any(grepl("\\|mixture_mvn$", names(control))))
+  expect_true(any(grepl("\\|mvn_sim_rows$", names(control))))
+})
+
+test_that("mixture_mvn() is not in core, and no string spelling reaches it", {
+  # The family moved to frmtmb.latent, whose own test-mixture-mvn.R is
+  # the arm with that package loaded. No string spelling reached the
+  # family before the move (brms has no such family), so a string is
+  # the generic refusal whether or not that package is loaded, and the
+  # call is an unknown function unless it is attached.
+  expect_false("mixture_mvn" %in% getNamespaceExports("frmtmb"))
+  d <- data.frame(row = 1:4)
+  d$Y <- matrix(c(0.1, 0.4, -0.3, 0.8, 1.2, 0.2, -0.5, 0.9), 4, 2)
+  expect_error(frm(bf(Y ~ 1), family = "mixture_mvn", data = d),
+               "is not a supported family")
+  expect_error(brmsfamily("mixture_mvn"), "is not a supported family")
+  skip_if("package:frmtmb.latent" %in% search())
+  expect_false(exists("mixture_mvn"))
 })

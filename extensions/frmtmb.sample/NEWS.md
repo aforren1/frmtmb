@@ -1,3 +1,9 @@
+# frmtmb.sample (development version)
+
+* The test of `mixture_mvn()` draws reads the family from frmtmb.latent,
+  where it moved, and skips without it. The help of
+  `posterior_predict()` and `pp_mixture()` links it there.
+
 # frmtmb.sample 0.21.0
 
 Needs frmtmb 0.73.0. It registers its draws methods on the `loo_*()`,

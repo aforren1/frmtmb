@@ -1,0 +1,63 @@
+# One test file, one R process, with the time of every test_that()
+# block. dev/release/run-tests.R prints the counts only, and guardrail
+# 3 needs the time of the blocks that move, inside files that do not.
+#
+#   Rscript dev/mvnlatent-run1.R <package> <test file>
+#
+# FRMTMB_RELLIB puts a library ahead of rellib-r11 (the lane's build);
+# without it the run reads rellib-r11, the "before" arm.
+local({
+  LIB <- "C:/Users/adf44/source/r/rellib-r11"
+  .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
+    Sys.getenv("FRMTMB_RELLIB")
+  }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+  mk <- "C:/Users/adf44/Documents/.R/Makevars.win"
+  if (!nzchar(Sys.getenv("R_MAKEVARS_USER")) && file.exists(mk)) {
+    Sys.setenv(R_MAKEVARS_USER = mk)
+  }
+  suppressMessages(library(testthat))
+  a <- commandArgs(trailingOnly = TRUE)
+  p <- a[1]
+  f <- a[2]
+  suppressMessages(library(p, character.only = TRUE))
+  cat("lib: ", p, " ", as.character(utils::packageVersion(p)), " ",
+      dirname(find.package(p)), "; frmtmb ",
+      as.character(utils::packageVersion("frmtmb")), " ",
+      dirname(find.package("frmtmb")), "\n", sep = "")
+  t0 <- proc.time()[["elapsed"]]
+  res <- NULL
+  r <- tryCatch({
+    res <- test_file(f, package = p, env = testthat::test_env(p),
+                     reporter = "silent")
+    as.data.frame(res)
+  }, error = function(e) {
+    cat("RESULT ", basename(f), " LOADERROR ", conditionMessage(e), "\n",
+        sep = "")
+    NULL
+  })
+  el <- proc.time()[["elapsed"]] - t0
+  if (!is.null(res)) {
+    for (t in res) {
+      for (x in t$results) {
+        k <- if (inherits(x, "expectation_failure")) "FAIL" else
+          if (inherits(x, "expectation_error")) "ERROR" else
+            if (inherits(x, "expectation_skip")) "SKIP" else
+              if (inherits(x, "expectation_warning")) "WARN" else NA
+        if (!is.na(k)) {
+          cat("DETAIL ", k, " [", t$test, "] ",
+              gsub("\n", " | ", conditionMessage(x)), "\n", sep = "")
+        }
+      }
+    }
+  }
+  if (!is.null(r)) {
+    for (i in seq_len(nrow(r))) {
+      cat("TIME\t", basename(f), "\t", r$test[i], "\t",
+          sprintf("%.2f", r$real[i]), "\t", r$nb[i], "\n", sep = "")
+    }
+    cat("RESULT ", basename(f), " pass=", sum(r$passed), " fail=",
+        sum(r$failed), " err=", sum(r$error), " skip=", sum(r$skipped),
+        " warn=", sum(r$warning), " tests=", nrow(r),
+        " elapsed=", sprintf("%.1f", el), "\n", sep = "")
+  }
+})

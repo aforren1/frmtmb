@@ -11,8 +11,8 @@
 #'   known-variance meta-analysis; lme4 for the classical LMM and GLMM
 #'   surface; mgcv for smooths and functional terms; MASS for `polr`
 #'   ordinal and `glm.nb`; survival for censored responses; quantreg for
-#'   `asym_laplace`; nnet for `multinomial`; mclust for the multivariate
-#'   gaussian mixtures; nlme for nonlinear standard errors; GLMMadaptive
+#'   `asym_laplace`; nnet for `multinomial`; nlme for nonlinear
+#'   standard errors; GLMMadaptive
 #'   as a second adaptive-quadrature implementation; mice for
 #'   multiple-imputation pooling; and `stats::lm`/`glm` for the
 #'   no-random-effect cases. The model-building layer is separately

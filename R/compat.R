@@ -862,7 +862,7 @@ compat_features_build <- function(extra = NULL) {
     # disc and the threshold structures are parts of an ordinal model
     # rather than terms of the formula, so they sit with the structures
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
-             "mixture_mvn", "disc", "equidistant", "sum_to_zero"), f,
+             "disc", "equidistant", "sum_to_zero"), f,
            kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans",
@@ -1154,8 +1154,6 @@ compat_hand_rules_tbl <- function() {
   # kind-level REML x structure default could never win a pair.
   r("REML", "mixture", "refused",
     "Refused: a mixture likelihood is invariant to permuting its components, so it is multimodal in the fixed effects REML integrates out. The inner Laplace solve has no single mode to expand about; the fit used to stop with 'NA/NaN gradient evaluation' or report a gradient near 1e9.")
-  r("REML", "mixture_mvn", "refused",
-    "Refused for the same reason as mixture(): the classes are exchangeable, so the restricted likelihood is not defined.")
   r("REML", "mvbf", "works", "")
   r("REML", "rescor", "works", "")
   r("REML", "nl", "works", "Verified by a tiny fit.")
@@ -1258,8 +1256,6 @@ compat_hand_rules_tbl <- function() {
     "Exact when the per-group integrand is univariate (one scalar random intercept, in one class), which is the case the exactness test pins down. A mixture whose fit collapses a mixing weight to about exp(-35) degenerates the rescaled integrand and leaves a gradient near 1e14; the fit is not silent, the large-gradient and non-convergence warnings both fire. Check the gradient before trusting a mixture quadrature fit.")
   r("quadrature", "mvbf", "untested", "")
   r("quadrature", "rescor", "untested", "")
-  r("quadrature", "mixture_mvn", "refused",
-    "Refused in practice: mixture_mvn() clusters a matrix response and carries no scalar random-intercept block, so the scalar-intercept guard rejects it.")
 
   ## profile -----------------------------------------------------------
   r("profile", "bounds", "refused",
@@ -1272,8 +1268,6 @@ compat_hand_rules_tbl <- function() {
     "Priors on the profiled fixed effects are accepted, while bounds on the same parameters are refused. Treat priors under profile with care.")
   r("profile", "mixture", "refused",
     "Refused: profiling moves the fixed effects into the inner Laplace problem, and a mixture likelihood is multimodal in them. The fit used to stop with 'NA/NaN gradient evaluation' rather than a clear refusal.")
-  r("profile", "mixture_mvn", "refused",
-    "Refused for the same reason as mixture(): the inner problem would be multimodal.")
   r("profile", "mi()", "works", "Verified by a tiny fit.")
   r("profile", "cens()", "works", "Verified by a tiny fit.")
   r("profile", "trunc()", "works",
@@ -1363,10 +1357,6 @@ compat_hand_rules_tbl <- function() {
   r("cens()", "mixture", "refused",
     "Refused: mixture() has no CDF, so the CDF guard rejects cens().")
   r("trunc()", "mixture", "refused", "Refused: mixture() has no CDF.")
-  r("cens()", "mixture_mvn", "refused",
-    "Refused: mixture_mvn() has no CDF.")
-  r("trunc()", "mixture_mvn", "refused",
-    "Refused: mixture_mvn() has no CDF.")
   r("cens()", "cox", "works",
     "The reason the family exists. An event contributes the density log h0(t) + eta - H0(t) exp(eta) and a censored row the survivor function, which is what cox()'s log-density and log-CDF already are, so right, left and interval censoring all run through the ordinary cens() machinery. Verified against a hand-rolled M-spline PH likelihood exactly and against survival::coxph() to 2e-2 on the log hazard ratio.")
   r("cens()", "group:simplex", "refused",
@@ -1717,11 +1707,6 @@ compat_hand_rules_tbl <- function() {
   r("mixture", "simulate", "conditional",
     "Works only when every component family has a simulator.")
   r("mixture", "kind:covstruct", "untested", "")
-  r("mixture_mvn", "simulate", "works",
-    "Since v0.36 a structured simulator (fam$sim_ctx) draws a class per row from the gating weights and then a D-variate normal about that class's mean with that class's covariance, assembled from the family-level extras by the same sigma() the likelihood uses. A draw is an n x D matrix. simulate(), posterior_predict() and frm_simulate() all reach the same implementation.")
-  r("mixture_mvn", "mvbf", "refused",
-    "Refused: the family already takes a matrix response.")
-  r("mixture_mvn", "kind:aterm", "untested", "")
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
@@ -1985,8 +1970,6 @@ compat_hand_rules_tbl <- function() {
     "Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair.")
   r("group:autocor", "mixture", "refused",
     "Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it.")
-  r("group:autocor", "mixture_mvn", "refused",
-    "Refused for the same reason as mixture().")
   r("group:autocor", "nl", "refused",
     "Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here.")
   r("group:autocor", "quadrature", "refused",

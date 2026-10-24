@@ -145,6 +145,11 @@ Mixing-weight predictors are evaluated at each group's first row
 (use group-constant covariates). \code{\link[=mixture_probs]{mixture_probs()}} returns the
 posterior class probabilities per group (or per observation for
 ordinary mixtures), conditional on the random-effect modes.
+
+A mixture of multivariate normal components over a matrix response,
+with one class per row (model-based clustering in the manner of
+mclust), is \code{mixture_mvn()} in the extension package frmtmb.latent:
+run \code{library(frmtmb.latent)} first.
 }
 
 \examples{

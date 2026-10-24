@@ -147,7 +147,7 @@ same way and each documented on its own part of the site.
 | package | adds |
 |---|---|
 | [frmtmb.sample](https://aforren1.github.io/frmtmb/frmtmb.sample/) | NUTS sampling through tmbstan, and the posterior method surface |
-| [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
+| [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()`, `lca()` and `mixture_mvn()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
 | [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
@@ -265,9 +265,7 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   zero-inflated and hurdle variants and four ordinal families.
   `mixture()` fits finite mixtures, including group-level latent
   classes (`mixture(..., groups = ~g)`) with class-specific random
-  effects for growth-mixture models. `mixture_mvn(K, D, model =)`
-  fits multivariate gaussian components over mclust's covariance
-  taxonomy, with covariate-dependent means and gating.
+  effects for growth-mixture models.
   `categorical()` fits nominal responses, `dirichlet()` and
   `logistic_normal()` compositions (rows of proportions that sum to
   one), `von_mises()` circular responses, and `cox()` proportional
@@ -282,7 +280,10 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - The companion packages extend the same grammar. `frmtmb.latent`
   adds `hmm(K)` for hidden Markov models, with covariate-dependent
   transitions and forward-backward decoding, and `lca(K)` for latent
-  class analysis with class-membership regression. `frmtmb.ode` adds
+  class analysis with class-membership regression, and
+  `mixture_mvn(K, D, model =)`, which fits multivariate gaussian
+  components over mclust's covariance taxonomy, with
+  covariate-dependent means and gating. `frmtmb.ode` adds
   `frm_ode()`, which solves compartment models inside nonlinear
   formulas (population pharmacokinetics), with repeated dosing,
   infusions, and estimated bioavailability. `frmtmb.eam` adds

@@ -6,26 +6,39 @@
 test_that("method = 'predict' refuses a family that draws the response whole", {
   skip_on_cran()
 
-  # mixture_mvn() carries a sim_ctx and no sim: its draw is an n by D
-  # matrix for the WHOLE response, which simulate() consumes and the
-  # per-row quantiles of a prediction band cannot. So simulate() works
-  # on this fit and conditional_effects(method = "predict") refuses,
-  # and the refusal has to arrive as a message naming the reason rather
-  # than as a length error from inside the loop - which is what it was
-  # until the family checks moved out of the grid loop.
+  # A family with a sim_ctx and no sim draws the WHOLE response at once
+  # (frmtmb.latent's mixture_mvn() draws an n by D matrix), which
+  # simulate() consumes and the per-row quantiles of a prediction band
+  # cannot. So simulate() works on this fit and
+  # conditional_effects(method = "predict") refuses, and the refusal has
+  # to arrive as a message naming the reason rather than as a length
+  # error from inside the loop, which is what it was until the family
+  # checks moved out of the grid loop. The family is built here so that
+  # the core seam is pinned without an extension; frmtmb.latent's
+  # test-mixture-mvn.R pins the same refusals on mixture_mvn().
+  fam <- frmtmb_family(
+    "twhole", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]], dpars[["sigma"]], log = TRUE)
+    },
+    # a mean that is not one number per row, as a matrix family's is
+    post = list(mean_fn = function(dpars, aterms) {
+      cbind(dpars[["mu"]], dpars[["mu"]])
+    }),
+    sim_ctx = function(ctx) {
+      dp <- ctx[["dpars"]]
+      stats::rnorm(ctx[["n"]], dp[["mu"]], dp[["sigma"]])
+    })
   set.seed(42)
   n <- 200
-  cl <- rbinom(n, 1, 0.4)
-  x <- rnorm(n)
-  Y <- cbind(ifelse(cl == 1, 0, 3) + 0.5 * x + rnorm(n),
-             ifelse(cl == 1, 0, 4) + rnorm(n))
-  dd <- data.frame(x = x)
-  dd$Y <- Y
-  fit <- frm(bf(Y ~ x) + mixture_mvn(K = 2, D = 2), data = dd)
+  dd <- data.frame(x = rnorm(n))
+  dd$y <- 1 + 0.5 * dd$x + rnorm(n)
+  fit <- frm(bf(y ~ x), family = fam, data = dd)
 
   # simulate() accepts it, through the sim_ctx route
   sm <- simulate(fit, nsim = 2, seed = 3)
-  expect_identical(dim(sm[[1]]), dim(Y))
+  expect_equal(length(sm[[1]]), n)
 
   # conditional_effects() does not, by name
   expect_error(conditional_effects(fit, method = "predict"),
@@ -37,15 +50,14 @@ test_that("method = 'predict' refuses a family that draws the response whole", {
                "draws the response whole")
 
   # the expected-response display is refused too, and for the other
-  # reason: this family's mean is an n by D matrix, so there is no one
-  # curve to draw or to put a delta-method band on
+  # reason: this family's mean is not one number per observation, so
+  # there is no one curve to draw or to put a delta-method band on
   expect_error(conditional_effects(fit),
                "not one number per observation")
-  # what IS drawable is a named parameter, and the mixing weight comes
-  # back on the softmax scale like any other mixture's
-  ce <- conditional_effects(fit, dpar = "theta1")
+  # what IS drawable is a named parameter
+  ce <- conditional_effects(fit, dpar = "mu")
   expect_identical(names(ce), "x")
-  expect_true(all(ce$x$estimate__ > 0 & ce$x$estimate__ < 1))
+  expect_true(all(is.finite(ce$x$estimate__)))
 })
 
 test_that("a finalized family reaches the spec par_template and get_prior read",

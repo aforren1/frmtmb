@@ -572,12 +572,12 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' Draws come back in the response's own type, exactly as
 #' [simulate()]'s do: an ordered factor for an ordinal family, an
 #' unordered one for a categorical family, and a matrix column for a
-#' matrix response ([multinomial()], [mixture_mvn()]).
+#' matrix response ([multinomial()], frmtmb.latent's `mixture_mvn()`).
 #'
 #' The structured families draw here through the same implementation
 #' [simulate()] uses (see its Structured draws section):
-#' `mixture(groups = ~g)` takes one class per group, [mixture_mvn()]
-#' uses its class covariances, a residual
+#' `mixture(groups = ~g)` takes one class per group, a multivariate
+#' normal mixture uses its class covariances, a residual
 #' correlation term (`ar()`, `ma()`, ...) contributes one correlated
 #' residual per group, and a family from an extension package draws
 #' through whatever its structure declares. The de novo frame carries

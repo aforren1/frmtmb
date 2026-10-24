@@ -51,9 +51,10 @@ An \verb{observations x statistics x components} array.
 }
 \description{
 brms's \code{pp_mixture()} on a maximum-likelihood fit. For a \code{\link[=mixture]{mixture()}}
-or \code{\link[=mixture_mvn]{mixture_mvn()}} fit, including a mixture of ordinal families, it
-gives the probability that each observation came from each
-component, given its response, with the parameters at their
+fit, including a mixture of ordinal families, and for a fit of
+frmtmb.latent's \code{mixture_mvn()}, it gives the probability that each
+observation came from each component, given its response, with the
+parameters at their
 estimates. \code{Estimate} is \code{\link[=mixture_probs]{mixture_probs()}}. The quantile columns are
 a Wald interval on the logit scale, so they stay inside (0, 1): the
 logit of the estimate plus a normal quantile times its delta-method

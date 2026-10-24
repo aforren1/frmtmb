@@ -72,9 +72,10 @@ standata.frmtmb_fit <- function(object, ...) {
 #' Posterior mixture-component probabilities at the estimates
 #'
 #' brms's `pp_mixture()` on a maximum-likelihood fit. For a [mixture()]
-#' or [mixture_mvn()] fit, including a mixture of ordinal families, it
-#' gives the probability that each observation came from each
-#' component, given its response, with the parameters at their
+#' fit, including a mixture of ordinal families, and for a fit of
+#' frmtmb.latent's `mixture_mvn()`, it gives the probability that each
+#' observation came from each component, given its response, with the
+#' parameters at their
 #' estimates. `Estimate` is [mixture_probs()]. The quantile columns are
 #' a Wald interval on the logit scale, so they stay inside (0, 1): the
 #' logit of the estimate plus a normal quantile times its delta-method

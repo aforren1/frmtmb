@@ -9,6 +9,7 @@ export(hmm_viterbi)
 export(lca)
 export(lca_probs)
 export(lca_profiles)
+export(mixture_mvn)
 importFrom(frmtmb,
   as_frmtmb_family,
   compat_rule_builder,
@@ -27,5 +28,6 @@ importFrom(frmtmb,
   mixture_posterior,
   response_mean,
   single_response,
-  structure_supports_all
+  structure_supports_all,
+  us_sigma
 )

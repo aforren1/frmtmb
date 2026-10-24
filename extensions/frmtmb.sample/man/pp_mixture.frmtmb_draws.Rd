@@ -51,7 +51,7 @@ An array; see \code{summary}. For a group-level mixture
 \code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}}.
 }
 \description{
-For a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}} or \code{frmtmb.latent::lca()} fit, the posterior
+For a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}, \code{\link[frmtmb.latent:mixture_mvn]{frmtmb.latent::mixture_mvn()}} or \code{frmtmb.latent::lca()} fit, the posterior
 probability that each observation came from each component,
 propagating the uncertainty in the parameters: the fit-side
 \code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}} computation is run at every draw. brms calls this

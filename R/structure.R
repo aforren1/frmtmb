@@ -652,10 +652,11 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     frmtmb adds.}
 #'   \item{`mixture_posterior()`}{The posterior class probabilities of
 #'     any family that implements the `fam$mix` component interface,
-#'     which is what `mixture()`, `mixture_mvn()` and a latent-class
-#'     family all do. A family implementing that interface uses this as
-#'     its whole `latent_probs` slot rather than deriving the same
-#'     quantity a second time.}
+#'     which is what `mixture()`, a multivariate normal mixture and a
+#'     latent-class family all do. A family implementing that interface
+#'     uses this as its whole `latent_probs` slot rather than deriving
+#'     the same quantity a second time. See "The mixture component
+#'     interface" below for the fields it reads.}
 #'   \item{`mixture_multimodal_refusals()`}{The `refusals` entries for
 #'     `reml` and `profile` owed by a family whose likelihood is
 #'     invariant to permuting its components. `what` is the family as
@@ -663,6 +664,36 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     fact refused is the same one in every such family, so the
 #'     sentence is issued from one place rather than copied.}
 #' }
+#'
+#' @section The mixture component interface:
+#' A family is a finite mixture to frmtmb when its family object has a
+#' `mix` element (`fam[["mix"]] <- list(...)`, set after
+#' [frmtmb_family()] returns). frmtmb then treats it as one:
+#' [mixture_probs()] and `pp_mixture()` accept its fits, a prior must
+#' name the `dpar` it means (several locations), and `ar()`-type terms
+#' and `incl_thres` are refused. `mixture_posterior()` reads three
+#' fields, which such a family must supply:
+#'
+#' \describe{
+#'   \item{`K`}{The number of classes, an integer.}
+#'   \item{`log_pi(dpars)`}{The log mixing weights: a list of `K`
+#'     vectors, each of length 1 or the number of rows, from the
+#'     family's `dpars` list. They must sum to one on the natural scale
+#'     in every row.}
+#'   \item{`comp_lpdf(y, dpars, aterms, k, extra)`}{The log density of
+#'     each row under class `k`, a vector with one value per row of
+#'     `y` (`NROW(y)`, so a matrix response gives one per row). The
+#'     fifth argument, the family's extra parameters as
+#'     `fit_extras()` returns them, is passed only when the family
+#'     declares `extra_pars`; a family without extra parameters takes
+#'     four arguments.}
+#' }
+#'
+#' The other fields that `mixture()` stores in `mix` (`ord`, `ref`,
+#' `type`, `comp_dpars`, `comp_sim` and its component bookkeeping) are
+#' read only for `mixture()` itself; a family that leaves them out is
+#' not read through them. A family may store fields of its own there,
+#' as frmtmb.latent's `mixture_mvn()` stores `D` and `sigma`.
 #'
 #' @section What the registries hold you to:
 #' The three registries an extension fills from its own `.onLoad()`

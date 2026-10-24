@@ -5164,8 +5164,9 @@ apply_censoring <- function(y, win) {
 #' [frmtmb_family()]):
 #' - a `mixture(groups = ~g)` draw takes one class per GROUP and then
 #'   simulates each row from its group's component;
-#' - a [mixture_mvn()] draw takes a class per row and then a
-#'   multivariate normal with that class's own covariance;
+#' - a multivariate normal mixture (frmtmb.latent's `mixture_mvn()`)
+#'   takes a class per row and then a multivariate normal with that
+#'   class's own covariance;
 #' - a residual correlation term (`ar()`, `ma()`, `cosy()`, ...) is one
 #'   multivariate residual draw per group added to the mean predictor,
 #'   so the draws carry the fitted autocorrelation;
@@ -5177,7 +5178,7 @@ apply_censoring <- function(y, win) {
 #' model refuses `trunc()` when the frame is assembled). At `newdata` a
 #' structured FAMILY is refused, because its structure indexes the rows
 #' the model was fitted on: `mixture(groups = )`, a hidden Markov
-#' family, a learning family, and [mixture_mvn()], which
+#' family, a learning family, and a multivariate normal mixture, which
 #' `predict(newdata = )` refuses as well. A residual correlation term
 #' is rebuilt on the new rows instead: rows that share a group are
 #' drawn jointly, and a time the fit never saw is refused. A lag is
@@ -5522,9 +5523,9 @@ extra_tpl_name <- function(frame, resp, nm) {
 #' correlations, which every post-fit path reads through
 #' `lncor_blocks()`, one block per response. Any other family's extras
 #' are refused by name: the Cox baseline and the class covariances of
-#' mixture_mvn() are read by post-fit methods that have not been checked
-#' with a response in hand, and a family from another package has
-#' declared nothing about them.
+#' a multivariate normal mixture are read by post-fit methods that have
+#' not been checked with a response in hand, and a family from another
+#' package has declared nothing about them.
 #'
 #' @noRd
 check_mv_extra_family <- function(fam) {

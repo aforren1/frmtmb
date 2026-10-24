@@ -192,7 +192,8 @@ sim_b_conditional <- function(fit, cd, b) {
 #' `mixture(groups = )` takes one class per fitted group, a hidden
 #' Markov family (frmtmb.latent) walks the fitted state sequence, and a
 #' learning family (frmtmb.learn) walks the fitted trial sequence.
-#' `mixture_mvn()` draws row by row, but it goes through the same slot
+#' A multivariate normal mixture (frmtmb.latent's `mixture_mvn()`)
+#' draws row by row, but it goes through the same slot
 #' and is refused with the rest, as `predict(newdata = )` and
 #' `posterior_predict(newdata = )` refuse it. A residual correlation
 #' term is not a family structure and is rebuilt on the new rows

@@ -170,10 +170,11 @@ out by hand instead would silently take away each new capability
 frmtmb adds.}
 \item{\code{mixture_posterior()}}{The posterior class probabilities of
 any family that implements the \code{fam$mix} component interface,
-which is what \code{mixture()}, \code{mixture_mvn()} and a latent-class
-family all do. A family implementing that interface uses this as
-its whole \code{latent_probs} slot rather than deriving the same
-quantity a second time.}
+which is what \code{mixture()}, a multivariate normal mixture and a
+latent-class family all do. A family implementing that interface
+uses this as its whole \code{latent_probs} slot rather than deriving
+the same quantity a second time. See "The mixture component
+interface" below for the fields it reads.}
 \item{\code{mixture_multimodal_refusals()}}{The \code{refusals} entries for
 \code{reml} and \code{profile} owed by a family whose likelihood is
 invariant to permuting its components. \code{what} is the family as
@@ -182,6 +183,38 @@ fact refused is the same one in every such family, so the
 sentence is issued from one place rather than copied.}
 }
 }
+\section{The mixture component interface}{
+
+A family is a finite mixture to frmtmb when its family object has a
+\code{mix} element (\code{fam[["mix"]] <- list(...)}, set after
+\code{\link[=frmtmb_family]{frmtmb_family()}} returns). frmtmb then treats it as one:
+\code{\link[=mixture_probs]{mixture_probs()}} and \code{pp_mixture()} accept its fits, a prior must
+name the \code{dpar} it means (several locations), and \code{ar()}-type terms
+and \code{incl_thres} are refused. \code{mixture_posterior()} reads three
+fields, which such a family must supply:
+
+\describe{
+\item{\code{K}}{The number of classes, an integer.}
+\item{\code{log_pi(dpars)}}{The log mixing weights: a list of \code{K}
+vectors, each of length 1 or the number of rows, from the
+family's \code{dpars} list. They must sum to one on the natural scale
+in every row.}
+\item{\code{comp_lpdf(y, dpars, aterms, k, extra)}}{The log density of
+each row under class \code{k}, a vector with one value per row of
+\code{y} (\code{NROW(y)}, so a matrix response gives one per row). The
+fifth argument, the family's extra parameters as
+\code{fit_extras()} returns them, is passed only when the family
+declares \code{extra_pars}; a family without extra parameters takes
+four arguments.}
+}
+
+The other fields that \code{mixture()} stores in \code{mix} (\code{ord}, \code{ref},
+\code{type}, \code{comp_dpars}, \code{comp_sim} and its component bookkeeping) are
+read only for \code{mixture()} itself; a family that leaves them out is
+not read through them. A family may store fields of its own there,
+as frmtmb.latent's \code{mixture_mvn()} stores \code{D} and \code{sigma}.
+}
+
 \section{What the registries hold you to}{
 
 The three registries an extension fills from its own \code{.onLoad()}

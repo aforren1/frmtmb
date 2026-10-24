@@ -1,3 +1,25 @@
+# frmtmb.latent (development version)
+
+Needs the frmtmb release that exports `us_sigma()` and `us_theta()`,
+and the one from
+which `mixture_mvn()` is gone: with an older frmtmb the package does
+not load.
+
+## New features
+
+* **`mixture_mvn()` moved here from frmtmb** (BREAKING for a user of
+  frmtmb: run `library(frmtmb.latent)` to use it). It fits mixtures of
+  multivariate normal distributions to an n x D matrix response, with
+  mclust's eight covariance models, class means that take covariates,
+  and covariate-dependent mixing weights. Nothing about the family
+  changed in the move: on the 59 fits of its tests, the log-likelihood,
+  the estimates, the standard errors, `predict()`, `fitted()`,
+  `mixture_probs()` and `simulate()` are identical to the last bit to
+  the ones frmtmb gave, on the same machine. Its tests came with it,
+  and they are checked against mclust, which is now in Suggests. Its
+  nine rules of the compatibility matrix are registered when the
+  package loads.
+
 # frmtmb.latent 0.6.2
 
 Needs frmtmb 0.72.0: `hmm_starts()` refits through that release's
