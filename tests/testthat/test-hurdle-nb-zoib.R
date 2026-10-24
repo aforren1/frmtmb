@@ -341,7 +341,8 @@ test_that("the registry says simulate() works where a simulator exists", {
     fam <- frmtmb:::family_registry[[f]]()
     expect_true(frmtmb:::sim_can(fam), info = f)
   }
-  expect_identical(frm_compat("cox", "simulate")$status, "refused")
+  # cox(), the one family with a stated refusal, is in frmtmb.survival,
+  # whose test-cox.R checks its row
 })
 
 test_that("one-step-ahead residuals are refused by name on a point mass", {

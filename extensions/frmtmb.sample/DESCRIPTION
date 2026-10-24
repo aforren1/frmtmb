@@ -1,6 +1,6 @@
 Package: frmtmb.sample
 Title: NUTS Sampling and Posterior Methods for 'frmtmb'
-Version: 0.21.0
+Version: 0.21.1
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -25,7 +25,7 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1)
 Imports:
-    frmtmb (>= 0.73.0),
+    frmtmb (>= 0.74.0),
     graphics,
     RTMB (>= 1.9),
     stats,
@@ -36,8 +36,9 @@ Suggests:
     brms,
     coda,
     frmtmb.eam,
-    frmtmb.latent,
+    frmtmb.latent (>= 0.7.0),
     frmtmb.ode,
+    frmtmb.survival,
     ggplot2,
     gratia (>= 0.9.0),
     knitr,

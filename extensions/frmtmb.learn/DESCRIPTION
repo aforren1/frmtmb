@@ -1,6 +1,6 @@
 Package: frmtmb.learn
 Title: Reinforcement-Learning Families for 'frmtmb' Models
-Version: 0.7.2
+Version: 0.7.3
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),

@@ -6,7 +6,7 @@
 #
 #   bash dev/release/run-sessions.sh <tier> [N] [package ...]
 #
-# With no package named, all eight run, so 24 sessions. TEST_ROOT, when
+# With no package named, all nine run, so 27 sessions. TEST_ROOT, when
 # set, is the tree whose tests run (for a "before" arm read from another
 # checkout); the default is this one. The caller sets the tier's
 # environment (NOT_CRAN, gates), as for run-par.sh, and FRMTMB_RELLIB
@@ -36,7 +36,8 @@ LOG="$ROOT/dev/release/$tier.log"
 pk=("$@")
 [ ${#pk[@]} -gt 0 ] || pk=(frmtmb frmtmb.coupling frmtmb.eam frmtmb.latent
                            frmtmb.learn frmtmb.ode frmtmb.sample
-                           frmtmb.spline)
+                           frmtmb.survival
+                           frmtmb.spatial)
 RT=/c/rtools45
 export PATH="$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin:$PATH"
 MK=C:/Users/adf44/Documents/.R/Makevars.win

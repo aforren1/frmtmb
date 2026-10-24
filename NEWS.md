@@ -1,3 +1,216 @@
+# frmtmb 0.74.0
+
+The main changes:
+
+- Four features moved to extension packages. Install the package and
+  load it to use them:
+  - `cox()` and `cox_baseline()`: `library(frmtmb.survival)`.
+  - `royston_parmar()` and `rp_floored()`, from the retired
+    frmtmb.spline: `library(frmtmb.survival)`.
+  - `mixture_mvn()`: `library(frmtmb.latent)`.
+  - `car()` and `spde()`: `library(frmtmb.spatial)`.
+
+  Without the package, `family = "cox"`, `brmsfamily("cox")`, `car()`
+  and `spde()` stop with a message that names the package. The README
+  shows how to install every extension at once.
+- frmtmb.spline is retired. Curve inference, `frm_curve()`,
+  `frm_curve_deriv()` and `frm_curve_feature()`, is in frmtmb now.
+  Remove an installed copy with `remove.packages("frmtmb.spline")`:
+  it still loads with frmtmb 0.74.0, masks these three functions and
+  replaces their print methods.
+- New seams for extension packages: `frmtmb_register_covstruct()`,
+  `frmtmb_family(simplex_pars =, aterm_data =)`, the family hook
+  `post$curve_check`, `us_sigma()` and `us_theta()`, and
+  `frmtmb_local_registries()`.
+- Every brms family, addition term and formula special resolves in
+  core, resolves in a named extension, or has a refusal that says why.
+- Update the extensions together with frmtmb. frmtmb.latent 0.7.0,
+  frmtmb.survival 0.1.0, frmtmb.spatial 0.1.0 and frmtmb.sample 0.21.1
+  need frmtmb 0.74.0, and frmtmb.latent 0.6.2 does not load with
+  frmtmb 0.74.0.
+
+## Breaking changes
+
+* **`cox()` and `cox_baseline()` are in the new extension package
+  frmtmb.survival.** Load it with `library(frmtmb.survival)`. brms has
+  `cox` in its core, so `family = "cox"`, `brmsfamily("cox")` and
+  `family = cox()` resolve as before with frmtmb.survival loaded.
+  Without it, `family = "cox"` and `brmsfamily("cox")` stop with "The
+  cox family is in the extension package frmtmb.survival, which is not
+  loaded". A fit is the same fit. The tests have eight `cox()` models:
+  censored, a frailty, `df = 6` with the identity link, truncated, a
+  `sbhaz` prior, and the three spellings. On each, the log likelihood,
+  the estimates and the standard errors are `identical()` to frmtmb
+  0.73.0's, and `get_prior()` gives the same table. A `cox()` fit saved
+  by frmtmb 0.73.0 or earlier must be refitted: frmtmb refuses it by
+  name and says to refit it with frmtmb.survival loaded. Every `cox`
+  pair of `frm_compat()` keeps its status and note.
+
+* **`frm_curve()`, `frm_curve_deriv()` and `frm_curve_feature()` are in
+  frmtmb now**, with their print methods and the article "How to report
+  a fitted curve". They were in frmtmb.spline, which is retired. Load
+  nothing extra: they apply to any fitted curve, not only to splines. On
+  the curves, derivatives, features and difference curves the
+  frmtmb.spline tests read, their output is `identical()` to
+  frmtmb.spline 0.10.2's. Their `print()` methods now refuse an argument
+  they do not take, as every frmtmb print method does; before, one was
+  silently ignored.
+
+* `set_prior()` no longer refuses a `dirichlet()` on a class that is not
+  one of frmtmb's own, such as `class = "sigma"`, when the row is
+  written: such a name can be a simplex that a family declares, which
+  only the fit can tell. `frm()` refuses the row instead, and names the
+  simplex classes, as `set_prior()` did. `validate_prior()` refuses it
+  too. A `dirichlet()` on one of frmtmb's own classes, such as
+  `class = "b"`, is still refused by `set_prior()`.
+
+* **`mixture_mvn()` moved to the extension package frmtmb.latent.** To
+  fit a multivariate normal mixture, install frmtmb.latent and run
+  `library(frmtmb.latent)`. Without it, `mixture_mvn()` is an unknown
+  function. The family, its arguments and its fits did not change. On
+  the 59 fits of its tests, these are identical to the last bit on the
+  same machine: the log-likelihood, the estimates, the standard errors,
+  `predict()`, `fitted()`, `mixture_probs()` and `simulate()`. Its rows
+  of `frm_compat()` come with frmtmb.latent, and with it loaded the
+  table holds the same rows as before. brms has no multivariate normal
+  mixture, so no brms spelling reached the family, and
+  `family = "mixture_mvn"` was not a supported spelling before the move
+  either. `mixture()`, `mixture_probs()` and `pp_mixture()` stay in
+  core. mclust is no longer in Suggests. Update frmtmb.latent together
+  with frmtmb: an older frmtmb.latent does not load with this frmtmb,
+  because its `hmm()` rules name the `mixture_mvn` feature that core no
+  longer has.
+
+* **`car()` and `spde()` are in the new extension package
+  frmtmb.spatial.** Load it with `library(frmtmb.spatial)`. Without the
+  package, `frm()` refuses a formula that writes either term and names
+  the package. The fields are the same. On the models of the moved
+  tests, these are identical to frmtmb 0.73.0's: the log-likelihood,
+  every estimate and standard error, the fitted values with and without
+  an unseen location, the `ranef()` conditional standard deviations,
+  `confint_varcorr()` and `simulate()`. `frmtmb.sample::frm_sample()`
+  gives the same draws from the same seed. With the package loaded,
+  `frm_compat()` gives every pair the status it had. fmesher is no
+  longer among frmtmb's suggested packages.
+
+## New features
+
+* `frmtmb_family(simplex_pars =)` declares which extra parameters of a
+  family are simplexes, by brms name: `c(sbhaz = "sbhaz_raw")` is the
+  baseline of frmtmb.survival's `cox()`. A declared simplex is read in
+  the chart of a `mo()` simplex, and searched off a pole and off a face
+  the likelihood rises from. frmtmb.sample draws it in the softmax chart
+  under brms's `dirichlet(1)`, and names its draws as brms does
+  (`sbhaz[k]`). It has a prior class of its own name in `get_prior()`
+  and `set_prior()`. Until now these behaviors were written for `cox()`
+  by name. `frm()` refuses, by name, a declaration that names no extra
+  parameter the family returns, or one with no coordinate. Before, such
+  a typo ended in "not enough degrees of freedom to define contrasts".
+
+* Some saved fits have a family that an extension package built. When
+  this session cannot load that package, such a fit now stops at the
+  first method that needs the family's own functions. These include
+  `summary()`, `vcov()`, `confint()`, `fitted()`, `residuals()`,
+  `simulate()`, `update()` and `frm_curve()`. The message names the
+  package: "The cox family of this model is from the extension package
+  frmtmb.survival, which is not installed ...". It stopped with "could
+  not find function" and the name of one of that package's internals. A
+  family records the package that built it, and a `mixture()` the
+  packages of its components. `logLik()`, `fixef()` and
+  `frm_linpred(type = "link")` need no function of the family and still
+  answer.
+
+* `frmtmb_family(aterm_data =)` builds data the densities read from the
+  observed response, once, at frame assembly, such as a spline basis
+  over the observed times.
+
+* A family's `post$curve_check(fit, resp)` is run by `frm_curve()` and
+  its two companions before they read a curve, and may refuse. It is how
+  frmtmb.survival's `royston_parmar()` refuses a curve off a fit whose
+  cumulative hazard is not monotone.
+
+* `us_sigma(theta, d)` and its inverse `us_theta(S)` are exported.
+  `us_sigma()` builds the covariance matrix that the parameter vector of
+  a `us()` block encodes. It is AD-safe, so a family in another package
+  can carry a free covariance matrix as an extra parameter. `us_theta()`
+  gives the parameter vector of a covariance matrix, for a start. The
+  correlation entries fill the lower triangle by column, which is
+  glmmTMB's order up to 3 x 3 and not from 4 x 4. `us_sigma()` refuses a
+  `theta` of the wrong length and names the length it needs; inside
+  frmtmb a wrong length was recycled with a warning. `floored = TRUE`
+  now floors the variance of a 1 x 1 block as the 1 x 1 random-effect
+  blocks do, which no caller in frmtmb reached.
+
+* `frmtmb_register_covstruct()` lets a package register a covariance
+  structure from its `.onLoad()`: a bar structure written
+  `name(terms | g)`, or a field written as a predictor special such as
+  `car(M, gr = g)`. Its precision or covariance may depend on parameters
+  and on fixed data that the special names. One entry carries everything
+  that frmtmb and frmtmb.sample read: the objective, the standard errors
+  and their checks, `VarCorr()`, `confint_varcorr()`, `ranef()`,
+  `predict()` with and without new levels, `simulate()`,
+  `conditional_effects()` and `vcov_cluster()`. The built-in structures
+  are entries of the same shape. The structure joins `frm_compat()` as a
+  feature of kind `"covstruct"`, where quadrature and `importance =`
+  refuse it, as `frm()` does. `?frmtmb-extension-api` has the steps. The
+  call checks the entry it builds, and each block is checked against its
+  entry when the frame is built: the length of `start`, the positions of
+  `sd_idx`, the dimension and names of `vcov`, and for a registered
+  structure that `lpdf` is finite at zero. The call refuses a name that
+  the rest of frmtmb, brms or another extension owns, such as `gaussian`
+  or `dec`. It also refuses a function that formulas call as a term,
+  such as `poly`, `ns` or `log`. A name that another package registered
+  is replaced only with `replace = TRUE`. A fit records the package each
+  structure came from: read where that package is not installed, the fit
+  is refused by the package's name, with class
+  `frmtmb_extension_missing`, before a method reads the structure.
+
+* `frmtmb_local_registries()` saves every registry a package fills from
+  its `.onLoad()` and restores it when a test ends, for an extension's
+  own test suite.
+
+* `frm_compat()` resolves the rules that packages contribute in the
+  order of the packages' names. So the status and note it gives a pair
+  no longer depend on the order of the `library()` calls.
+
+* A brms spelling that an extension supplies is refused by name when
+  that extension is not loaded, as the Wiener family already was:
+  `y | dec(rt) ~ x` names frmtmb.eam and says how to load it. The brms
+  names frmtmb does not support are refused with the reason and the
+  frmtmb spelling: `bhaz()` (the basis is set in
+  `cox(df =, degree =, intercept =)` of frmtmb.survival, and
+  `bhaz(gr = )` has no equivalent) and `brmsfamily("custom")` (use
+  `custom_family()`). Every family, addition term and formula special of
+  brms 2.23.0 now resolves in core, resolves in a named extension, or
+  has such a refusal. This holds for its plainest spelling and for the
+  others that brms documents. Before, `custom`, `bhaz()`, `dec()` and
+  bare `gr(g)` did not.
+
+## Bug fixes
+
+* A call around a bar term that names no covariance structure is
+  refused, at any depth and in `re_formula =` too. Through 0.73.0 the
+  call was dropped and the term fitted with the default `us` structure
+  with no message: `foo(1 | g)`, `foo(bar(1 | g))` and `us_t(1 | g)` all
+  gave the log-likelihood of `(1 | g)`, and `re_formula = ~ foo(1 | g)`
+  was ignored.
+
+* `(1 | gr(g))`, brms's plainest spelling of a grouping factor, is
+  `(1 | g)`, as it is in brms. Through 0.73.0 it was refused.
+
+* A gaussian model can have a field with one row per level, such as
+  `car()` over areas with one observation each. Such a model no longer
+  warns that its variance is confounded with the residual sd. A fixed
+  matrix correlates the levels, as for `gr(cov = A)`, which the check
+  already exempted; through 0.73.0 it named three structures and missed
+  the rest.
+
+## Other changes
+
+* gratia is a suggested package, for the curve tests that compare
+  `frm_curve()`'s simultaneous band with gratia's. splines2 is no longer
+  suggested: only the `cox()` tests used it, and they moved with it.
+
 # frmtmb 0.73.1
 
 ## Bug fixes

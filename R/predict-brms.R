@@ -266,6 +266,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                                ..., allow_new_levels = FALSE,
                                sample_new_levels = NULL,
                                propagate_error = TRUE) {
+  require_structure_packages(object)
   frm_check_dots(..., .unsupported = predict_type_retired)
   require_fitted(object, "predict()")
   check_flag(summary, "summary")
@@ -989,7 +990,7 @@ predict_new_level_spec <- function(object, rspec, newdata, re_formula,
 old_level_pick_add <- function(pick, object, ed) {
   for (rp in ed[["re_parts"]]) {
     bk <- rp$bk
-    if (bk[["covstruct"]] %in% c("gr_cov", "gr_prec", "car", "spde")) next
+    if (cs_levels_coupled(bk)) next
     rows <- which(rp$is_new %||% is.na(rp$j))
     if (!length(rows)) next
     keys <- new_level_key(bk, rp$new_key)

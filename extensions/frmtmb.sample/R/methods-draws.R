@@ -690,14 +690,14 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' one predictor's `draws x observations` matrix. On these families
 #' `transform = TRUE` needs a `dpar`, as in brms. What does take the
 #' array shape in `posterior_predict()` is a
-#' matrix-valued RESPONSE: [frmtmb::multinomial()] counts, [frmtmb::mixture_mvn()]
+#' matrix-valued RESPONSE: [frmtmb::multinomial()] counts, [frmtmb.latent::mixture_mvn()]
 #' draws and `frmtmb.latent::lca()` item codes give one row per observation, so the
 #' draws stack into `draws x observations x columns`.
 #'
 #' @section Structured draws:
 #' `posterior_predict()` uses the same simulator [simulate()] does,
 #' including the structured families (`frmtmb.latent::hmm()`, `mixture(groups = )`,
-#' [frmtmb::mixture_mvn()]) and residual correlation terms; see the Structured
+#' [frmtmb.latent::mixture_mvn()]) and residual correlation terms; see the Structured
 #' draws section of [frmtmb::simulate.frmtmb_fit()]. Those draws index the rows
 #' the model was fitted on, so `newdata` is refused for them.
 #'
@@ -2502,7 +2502,7 @@ draws_bayesplot_ns <- function(what) {
 
 #' Posterior mixture-component probabilities
 #'
-#' For a [frmtmb::mixture()], [frmtmb::mixture_mvn()] or `frmtmb.latent::lca()` fit, the posterior
+#' For a [frmtmb::mixture()], [frmtmb.latent::mixture_mvn()] or `frmtmb.latent::lca()` fit, the posterior
 #' probability that each observation came from each component,
 #' propagating the uncertainty in the parameters: the fit-side
 #' [frmtmb::mixture_probs()] computation is run at every draw. brms calls this

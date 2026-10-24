@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.73.1
+Version: 0.74.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -49,17 +49,16 @@ Suggests:
     drmTMB (>= 0.7.0),
     emmeans,
     extraDistr,
-    fmesher,
     GLMMadaptive,
     ggplot2,
     glmmTMB,
+    gratia,
     insight,
     knitr,
     lme4,
     loo,
     marginaleffects,
     MASS,
-    mclust,
     metafor,
     mice,
     minqa,
@@ -76,7 +75,6 @@ Suggests:
     rstantools,
     RWiener,
     sandwich,
-    splines2,
     survival,
     testthat (>= 3.0.0),
     tibble,

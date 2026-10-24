@@ -282,7 +282,8 @@ test_that("mixture() refuses what brms refuses, and keeps what brms keeps", {
   expect_error(mixture(Beta, zero_inflated_beta),
                "not allowed in mixture models: zero_inflated_beta",
                fixed = TRUE)
-  expect_error(mixture(poisson, cox), "real and integer support")
+  # cox() is in frmtmb.survival, whose test-cox.R checks it the same way
+  expect_error(mixture(poisson, weibull), "real and integer support")
   expect_error(mixture(gaussian, poisson, nmix = 2),
                "mixture() has no argument `nmix`", fixed = TRUE)
   # brms builds both of these

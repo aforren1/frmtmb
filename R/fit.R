@@ -18,7 +18,8 @@
 #'   `model.frame()` if the formula names one, though it may sit unused
 #'   in `data`.
 #' @param data2 A named list of objects that are not columns of `data`:
-#'   the adjacency matrix of `car()`, the mesh triple of `spde()`, and
+#'   the adjacency matrix of `car()` and the mesh triple of `spde()`
+#'   (both frmtmb.spatial), and
 #'   the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`. This
 #'   is brms's `data2` argument, with one deliberate extension: brms
 #'   accepts a bare name only, while frmtmb also evaluates compound
@@ -371,9 +372,10 @@
 #' The `zeta<j>` NUMBER is not that j in general. Simplexes continue the
 #' numbering of whatever parameters the family contributed first, so
 #' `zeta<j>` is brms's `simo_<j>` only for a family that declares none:
-#' an ordinal fit spends slot 1 on its thresholds and a `cox()` fit on
-#' its baseline hazard, and in both the first monotonic simplex is
-#' `zeta2`. Read the terms in order rather than parsing the number.
+#' an ordinal fit spends slot 1 on its thresholds and a `cox()` fit
+#' (frmtmb.survival) on its baseline hazard, and in both the first
+#' monotonic simplex is `zeta2`. Read the terms in order rather than
+#' parsing the number.
 #'
 #' With no prior, a fit applies no density to a simplex; brms's flat
 #' `dirichlet(1)` contributes only a constant, so the two log-densities
@@ -1971,7 +1973,7 @@ quad_breakdown_message <- function(frame, theta) {
   desc <- function(b) paste0("'", b$term_label, "' (", b$n_levels,
                              " levels)")
   sds <- vapply(blocks, function(b) {
-    v <- tryCatch(covstruct_registry[[b$covstruct]]$vcov(
+    v <- tryCatch(cs_entry(b[["covstruct"]])$vcov(
       theta[b$theta_idx], b), error = function(e) NULL)
     if (is.null(v)) NA_real_ else sqrt(v[1L, 1L])
   }, 1)
@@ -2017,6 +2019,8 @@ needs_jp <- function(fit) {
 sdr_of <- function(fit) {
   require_fitted(fit, paste("The standard-error machinery (summary(),",
                             "vcov(), confint(), frm_linpred(se.fit =))"))
+  require_model_packages(fit)
+  require_structure_packages(fit)
   cache <- fit$cache
   if (is.null(cache$sdr)) cache$sdr <- autoscale_sdreport(fit)
   # a fit whose check waited reports at its first standard-error use,
@@ -2240,11 +2244,13 @@ sdr_of <- function(fit) {
 #'   grows with the model: with it the fit took 2.0 times the objective
 #'   evaluations it took without it on that model, and 3.3 to 3.8 times
 #'   those of frmtmb 0.68.1 on a model of 5000 rows with a random
-#'   intercept over 100 groups. A `cox()` baseline weight at 0 is
-#'   checked the same way, at one objective value per such weight, and
-#'   the model refitted from off the boundary when the likelihood rises
-#'   from it. `FALSE` turns both off. A model without `mo()` terms or a
-#'   `cox()` family is not affected.
+#'   intercept over 100 groups. A weight at 0 of a simplex that a
+#'   family declares (`frmtmb_family(simplex_pars =)`, as the baseline
+#'   of frmtmb.survival's `cox()` does) is checked the same way, at one
+#'   objective value per such weight, and the model refitted from off
+#'   the boundary when the likelihood rises from it. `FALSE` turns both
+#'   off. A model without `mo()` terms or such a simplex is not
+#'   affected.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -2448,14 +2454,16 @@ check_re_structure <- function(spec, frame, control) {
       is.null(frame[["linpreds"]][[linpred_key(lp[["resp"]],
                                   "sigma")]]$constant)
     # A known-structure block is not an OLRE even with one row per
-    # level. Its levels are correlated through the fixed relationship
-    # matrix (gr(cov = A), gr(prec = Q)) or its covariance is fixed
-    # outright (equalto), so the block covariance is no longer
-    # proportional to the identity and the residual sd is not a
-    # reparameterization of it. That is the animal model: the additive
-    # genetic variance and the residual variance are separately
-    # identified precisely BECAUSE A is not the identity.
-    structured <- bk[["covstruct"]] %in% c("gr_cov", "gr_prec", "equalto")
+    # level. Its levels are correlated through a fixed matrix
+    # (cs_levels_coupled(): gr(cov = A), gr(prec = Q), car(), spde(), a
+    # registered field) or its covariance is fixed outright (equalto),
+    # so the block covariance is no longer proportional to the identity
+    # and the residual sd is not a reparameterization of it. That is the
+    # animal model: the additive genetic variance and the residual
+    # variance are separately identified precisely BECAUSE A is not the
+    # identity.
+    structured <- cs_levels_coupled(bk) ||
+      identical(bk[["covstruct"]], "equalto")
     if (sigma_free && !structured &&
         bk[["n_levels"]] == frame[["n_obs"]] && bk[["dim"]] == 1L &&
         fam[["family"]] %in% gaussian_like &&
@@ -3663,16 +3671,13 @@ mo_search_terms <- function(obj, frame) {
       out[[length(out) + 1L]] <- list(z = z, b = b, D = mi[["D"]])
     }
   }
-  # a cox() baseline is a simplex in the same chart, with no
-  # coefficient of its own (cox_face_leave())
-  multi <- length(frame[["spec"]]$responses %||% list()) > 1L
-  for (r in names(frame[["aterm_values"]])) {
-    Zb <- frame[["aterm_values"]][[r]][["Zbhaz"]]
-    if (is.null(Zb)) next
-    z <- which(pn == extra_tpl_name(frame, if (multi) r, "sbhaz_raw"))
-    if (length(z) != ncol(Zb) - 1L) next
-    out[[length(out) + 1L]] <- list(z = z, b = NA_integer_, D = ncol(Zb),
-                                    cox = TRUE)
+  # a simplex a family declares, such as a cox() baseline, is in the
+  # same chart, with no coefficient of its own (simplex_face_leave())
+  for (tm in family_simplex_terms(frame)) {
+    z <- which(pn == tm$zeta)
+    if (length(z) != tm$D - 1L) next
+    out[[length(out) + 1L]] <- list(z = z, b = NA_integer_, D = tm$D,
+                                    face = TRUE)
   }
   out
 }
@@ -3683,7 +3688,7 @@ mo_search_terms <- function(obj, frame) {
 #' `mo_simplex()` has no plateau at the faces, but two things remain for
 #' a `mo()` term, both measured on brms_monotonic's `ls ~ mo(income) *
 #' age` against its exact maximum (dev/optima-findings.md), and a third
-#' for a `cox()` baseline:
+#' for a simplex a family declares, such as a `cox()` baseline:
 #'
 #' 1. The chart's one point at infinity. When the scale coefficient is
 #'    near 0 the simplex barely moves the likelihood, the optimizer can
@@ -3711,11 +3716,12 @@ mo_search_terms <- function(obj, frame) {
 #'    searched, unless the coefficient is within 1e-3 of its unit of 0,
 #'    where the simplex barely moves the likelihood and both cones are.
 #'
-#' 3. A `cox()` baseline is a simplex in the same chart with no
-#'    coefficient, so only the first step and this one apply to it: a
-#'    weight at a face the likelihood rises from is a saddle nlminb can
-#'    stop on, and the fit is refitted from off the faces
-#'    (`cox_face_leave()`).
+#' 3. A simplex a family declares (`frmtmb_family(simplex_pars =)`) is
+#'    in the same chart with no coefficient, so only the first step and
+#'    this one apply to it: a weight at a face the likelihood rises from
+#'    is a saddle nlminb can stop on, and the fit is refitted from off
+#'    the faces (`simplex_face_leave()`). Measured on the baseline of
+#'    `cox()`, which is now in frmtmb.survival.
 #'
 #' The better optimum is kept, and the objective is left at it
 #' (`obj_settle()`). Silent, like `escape_stationary()`;
@@ -3833,16 +3839,16 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
       if (better(o)) best <- o
     }
   }
-  # 3. a cox() baseline weight left at a face the likelihood rises from
+  # 3. a declared simplex left at a face the likelihood rises from
   for (tm in terms) {
-    if (!isTRUE(tm$cox)) next
-    p <- cox_face_leave(obj, best, tm)
+    if (!isTRUE(tm$face)) next
+    p <- simplex_face_leave(obj, best, tm)
     if (is.null(p)) next
     o <- refit(pmin(pmax(p, lower), upper))
     if (better(o)) best <- o
   }
   # settled whether or not anything was refitted: the run that reached
-  # `opt` need not have ended at it, and the cox() probes above move
+  # `opt` need not have ended at it, and the face probes above move
   # the objective's state (obj_settle())
   obj_settle(obj, opt, best, saved)
   if (!runs) return(opt)
@@ -3865,22 +3871,25 @@ mo_search <- function(obj, opt, frame, control, bounds, par_units = NULL,
   best
 }
 
-#' A start off the faces for a `cox()` baseline the fit left at a face
-#' the likelihood rises from, or `NULL` when it left none.
+#' A start off the faces for a declared simplex (a `cox()` baseline)
+#' the fit left at a face the likelihood rises from, or `NULL` when it
+#' left none.
 #'
-#' The likelihood is concave in the baseline weights at fixed
-#' coefficients, so a face is either the maximum or a direction it
-#' rises in. On the chart a face is the fold `u_j = 0`, where the
-#' gradient in `u_j` is zero either way: a face to leave is a saddle,
-#' and nlminb can stop on one. Seed 22 of dev/moparity-cox-study.R did,
-#' 0.0215 below the maximum with three standard errors lost
-#' (dev/moparity-findings.md, item 4). A small step along each face's
-#' own direction, `(1 - d) w + d e_j`, tells the two apart in one
-#' objective value each; a face to leave sends the refit from the
-#' simplex mixed a tenth of the way to the barycenter.
+#' When the likelihood is concave in the weights at fixed coefficients,
+#' as a `cox()` baseline's is, a face is either the maximum or a
+#' direction it rises in. On the chart a face is the fold `u_j = 0`,
+#' where the gradient in `u_j` is zero either way: a face to leave is a
+#' saddle, and nlminb can stop on one. Seed 22 of
+#' dev/moparity-cox-study.R did, 0.0215 below the maximum with three
+#' standard errors lost (dev/moparity-findings.md, item 4). A small step
+#' along each face's own direction, `(1 - d) w + d e_j`, tells the two
+#' apart in one objective value each; a face to leave sends the refit
+#' from the simplex mixed a tenth of the way to the barycenter. Where
+#' the likelihood is not concave the refit is kept only when it is
+#' better, as every refit of the search is.
 #'
 #' @noRd
-cox_face_leave <- function(obj, best, tm) {
+simplex_face_leave <- function(obj, best, tm) {
   w <- mo_simplex(best$par[tm$z])
   face <- which(w < mo_face_tol)
   if (!length(face)) return(NULL)

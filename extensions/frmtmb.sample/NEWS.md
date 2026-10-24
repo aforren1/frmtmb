@@ -1,3 +1,28 @@
+# frmtmb.sample 0.21.1
+
+Needs frmtmb 0.74.0. The package itself loads on frmtmb 0.73.0, but
+four of its test files need what frmtmb 0.74.0 and frmtmb.latent 0.7.0
+add: the covariance structure registry, `frmtmb_family(simplex_pars =)`
+and `mixture_mvn()` in frmtmb.latent.
+
+## Bug fixes
+
+* The note of default priors from `frm_sample()` names every simplex
+  that a family declares with `frmtmb_family(simplex_pars =)`, by its
+  brms name. It named only the `sbhaz` simplex of `cox()`, so the
+  `dirichlet(1)` default on the simplex of another family was not
+  announced. For `cox()` the note now reads "sbhaz: dirichlet(1), brms's
+  default, on the simplex the cox() family declares".
+
+## Other changes
+
+* The test of `mixture_mvn()` draws reads the family from frmtmb.latent,
+  where it moved, and skips without it. The help of
+  `posterior_predict()` and `pp_mixture()` links it there.
+
+* frmtmb.survival is a suggested package. The tests of `cox()` draws
+  read `cox()` from it, and skip without it.
+
 # frmtmb.sample 0.21.0
 
 Needs frmtmb 0.73.0. It registers its draws methods on the `loo_*()`,

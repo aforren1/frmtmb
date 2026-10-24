@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fragility scan: run every test file of all eight suites, one R process
+# Fragility scan: run every test file of all nine suites, one R process
 # per file, every gate on, under one BLAS and thread configuration.
 # Run it under several configurations and compare them with
 # dev/ciharden-scan-diff.R; a test whose result moves with the
@@ -12,14 +12,15 @@
 # example ob0.3.32-lapack-t4 (ubuntu-26.04's OpenBLAS for BLAS and
 # LAPACK, 4 threads as on the 4-core runner). Build the R copy first:
 #   bash dev/ciharden-openblas.sh 0.3.32 lapack
-# <lib dir|base>: a library put ahead of rellib-r11, or "base" for
-# rellib-r11 alone. Point ROUND_BASE at another base library to rerun
+# <lib dir|base>: a library put ahead of rellib-r12, or "base" for
+# rellib-r12 alone. Point ROUND_BASE at another base library to rerun
 # the scan on a merged tree (see dev/ciharden-run1.R). Point TREE at
 # another checkout to run ITS test files, for example an export of the
 # base commit (git archive HEAD | tar -x -C <dir>, plus dev/brms-suite)
 # for a "before" arm whose tests are the base's own.
 # [N] processes at once (default 16). [list]: "<package> <test file>"
-# lines; default every test-*.R of core and the seven extensions.
+# lines; default every test-*.R of core and the eight extensions.
+# CIHARDEN_UNGATED=true sets NOT_CRAN only, for the plain tier.
 #
 # Output: dev/ciharden-log/<run>-suite/<pkg>--<file>.txt per file and
 # dev/ciharden-log/<run>.sum, one RESULT line per file or NO RESULT
@@ -34,10 +35,16 @@ export PATH="$RT/usr/bin:$RT/x86_64-w64-mingw32.static.posix/bin:$PATH"
 export R_MAKEVARS_USER=C:/Users/adf44/Documents/.R/Makevars.win
 export FRMTMB_STAN_CACHE="${FRMTMB_STAN_CACHE:-$ROOT/dev/stan-cache}"
 export NOT_CRAN=true
-export FRMTMB_BRMS_FIT_TESTS=true
-export FRMTMB_DRMTMB_FIT_TESTS=true
-export FRMTMB_FUZZ=true
-export FRMTMB_SCALE_TESTS=true
+# the plain tier is NOT_CRAN alone; the default sets every gate
+if [ "${CIHARDEN_UNGATED:-}" = true ]; then
+  unset FRMTMB_BRMS_FIT_TESTS FRMTMB_DRMTMB_FIT_TESTS FRMTMB_FUZZ \
+    FRMTMB_SCALE_TESTS
+else
+  export FRMTMB_BRMS_FIT_TESTS=true
+  export FRMTMB_DRMTMB_FIT_TESTS=true
+  export FRMTMB_FUZZ=true
+  export FRMTMB_SCALE_TESTS=true
+fi
 unset FRMTMB_SAMPLER_GATES
 : "${TMP:?TMP is unset, and R cannot create its temporary directory}"
 case "$cfg" in
@@ -57,7 +64,7 @@ if [ -z "$list" ]; then
   list="$LOGD/$run.jobs"
   : > "$list"
   for f in tests/testthat/test-*.R; do echo "frmtmb $f" >> "$list"; done
-  for e in coupling eam latent learn ode sample spline; do
+  for e in coupling eam latent learn ode sample spatial survival; do
     for f in extensions/frmtmb.$e/tests/testthat/test-*.R; do
       echo "frmtmb.$e $f" >> "$list"
     done

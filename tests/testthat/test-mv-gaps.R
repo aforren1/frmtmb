@@ -312,11 +312,19 @@ test_that("a shared |ID| effect across ordinal and gaussian is Laplace-exact", {
 })
 
 test_that("a family whose extras are not per-response blocks stays refused", {
+  # cox() was the case here; it is in frmtmb.survival now, whose
+  # test-cox.R keeps it. The refusal is about any family with extra
+  # parameters, so a family of this file's own carries the core case.
   set.seed(4)
   n <- 40
-  dd <- data.frame(t = rexp(n), cc = rbinom(n, 1, 0.3), x = rnorm(n),
-                   y = rnorm(n))
-  expect_error(frm(bf(t | cens(cc) ~ x) + cox() + bf(y ~ x) + gaussian(),
+  dd <- data.frame(t = rexp(n), x = rnorm(n), y = rnorm(n))
+  textra <- frmtmb_family(
+    "textra", dpars = "mu", links = list(mu = "identity"),
+    lpdf = function(y, dpars, aterms, extra) {
+      -0.5 * (y - dpars[["mu"]] - extra$tx)^2
+    },
+    extra_pars = function(y, aterms) list(tx = 0))
+  expect_error(frm(bf(t ~ x) + textra + bf(y ~ x) + gaussian(),
                    data = dd, dry_run = "frame"),
                "not supported in multivariate fits yet. The ordinal")
 })

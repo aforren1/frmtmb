@@ -149,9 +149,10 @@ test_that("mixture(groups =) draws one class per group everywhere", {
   expect_equal(unname(s_new), unname(s_fit))
 })
 
-## ---- mixture_mvn ------------------------------------------------------
+## ---- mixture_mvn: frmtmb.latent's -------------------------------------
 
 test_that("mixture_mvn simulates its class covariances", {
+  skip_if_not_installed("frmtmb.latent")
   set.seed(46)
   n <- 300L
   cl <- stats::rbinom(n, 1L, 0.4)
@@ -162,7 +163,7 @@ test_that("mixture_mvn simulates its class covariances", {
                 c(0, 0) + L1 %*% E, c(3, 4) + L2 %*% E))
   dd <- data.frame(row = seq_len(n))
   dd$Y <- Y
-  form <- bf(Y ~ 1) + mixture_mvn(K = 2, D = 2)
+  form <- bf(Y ~ 1) + frmtmb.latent::mixture_mvn(K = 2, D = 2)
   fit <- frm(form, data = dd)
 
   set.seed(3); s_fit <- simulate(fit, nsim = 20)
@@ -357,6 +358,9 @@ test_that("ordinal, categorical and multinomial keep all three paths", {
 ## ---- refusals ---------------------------------------------------------
 
 test_that("cox() refuses to simulate the same way at all three doors", {
+  # cox() is in frmtmb.survival, a Suggests of this package
+  skip_if_not_installed("frmtmb.survival")
+  cox <- frmtmb.survival::cox
   set.seed(23)
   dd <- data.frame(x = stats::rnorm(80L))
   dd$y <- stats::rexp(80L, exp(0.3 * dd$x))

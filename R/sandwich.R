@@ -95,21 +95,21 @@ resolve_cluster <- function(fit, cluster) {
 #' Independent units of the random-effect prior, as column sets of the
 #' coefficient space. For nearly every covariance structure the levels
 #' of a block are independent given `theta`, so a unit is one level (a
-#' run of `dim` consecutive coefficient columns). Four structures tie
-#' the levels together through a fixed matrix over them - `gr(cov=)`,
-#' `gr(prec=)`, `car()` and the SPDE - so the whole block is one unit.
+#' run of `dim` consecutive coefficient columns). A structure that ties
+#' the levels together through a fixed matrix over them
+#' (`cs_levels_coupled()`: `gr(cov=)`, `gr(prec=)`, `car()` and the
+#' SPDE) makes the whole block one unit.
 #' Smooths, `gp()` and `hsgp()` already come through with `n_levels =
 #' 1`, which lands in the same place without a special case.
 #'
 #' @noRd
 re_prior_units <- function(frame) {
-  coupled <- c("gr_cov", "gr_prec", "car", "spde")
   u <- integer(frame[["n_c"]] %||% 0L)
   if (!length(u)) return(u)
   id <- 0L
   for (bk in frame[["re_blocks"]]) {
     cols <- bk[["c_idx"]]
-    if (bk[["covstruct"]] %in% coupled) {
+    if (cs_levels_coupled(bk)) {
       id <- id + 1L
       u[cols] <- id
       next

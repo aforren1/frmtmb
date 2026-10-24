@@ -209,10 +209,10 @@ par_alias_index <- function(fit) {
   }
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
     # the same blocks hyp_env_vals names, for the same reason
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) next
-    reg <- covstruct_registry[[bk[["covstruct"]]]]
+    if (cs_is_field(bk)) next
+    reg <- cs_entry(bk[["covstruct"]])
     if (is.null(reg) || is.null(reg$sd_idx)) next
-    si <- tryCatch(as.integer(reg$sd_idx(bk[["dim"]])),
+    si <- tryCatch(as.integer(reg$sd_idx(bk)),
                    error = function(e) integer(0))
     if (!length(si)) next
     g <- brms_group_name(bk)
@@ -226,7 +226,7 @@ par_alias_index <- function(fit) {
       add(paste0("sd_", g, "__", tn[j]), at(si[min(j, length(si))]))
     }
     if (length(tn) > 1L) {
-      rest <- setdiff(seq_len(reg$npar(bk[["dim"]])), si)
+      rest <- setdiff(seq_len(reg$npar(bk)), si)
       if (length(rest) == 1L) {
         for (j in seq_len(length(tn) - 1L)) {
           for (k in seq(j + 1L, length(tn))) {
@@ -690,48 +690,16 @@ varcorr_trans_rows <- function(fit) {
     Vth <- Vfull[th_pos[bk[["theta_idx"]]], th_pos[bk[["theta_idx"]]],
                  drop = FALSE]
     t0 <- th[bk[["theta_idx"]]]
-    if (bk[["covstruct"]] == "smooth") {
-      add("sd(wiggle)", "sd", t0[1], sqrt(Vth[1, 1]), bk)
-      next
-    }
-    if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
-      se_t <- sqrt(diag(Vth))
-      add("sd(gp)", "sd", t0[1], se_t[1], bk)
-      # hsgp estimates the lengthscale on brms's rescaled inputs, but the
-      # reported range belongs in data units. The scale factor is a data
-      # constant, so the shift on the log scale is exact and the se rides
-      # through unchanged. The exact gp keeps the raw scale (dmax NULL).
-      log_dmax <- log(bk[["gp_dmax"]] %||% 1)
-      # iso: one shared range; otherwise one per dimension
-      nr <- length(t0) - 1L
-      for (j in seq_len(nr)) {
-        term_j <- if (nr == 1L) "range(gp)" else {
-          paste0("range(gp, ", bk[["gp_vars"]][j], ")")
-        }
-        add(term_j, "range", t0[1 + j] + log_dmax, se_t[1 + j], bk)
+    # A field (a smooth, a gp(), a car() or spde() field) names its own
+    # rows through its structure's natural slot, each a function of the
+    # block's theta with an exact jacobian, so the delta method is one
+    # linear map with no differencing
+    nat <- cs_natural_rows(bk, t0)
+    if (!is.null(nat)) {
+      for (i in seq_along(nat[["term"]])) {
+        add(nat[["term"]][i], nat[["type"]][i], nat[["est"]][i],
+            cs_natural_se(nat[["grad"]][i, ], Vth), bk)
       }
-      next
-    }
-    if (bk[["covstruct"]] == "car") {
-      se_t <- sqrt(diag(Vth))
-      add("sd(car)", "sd", t0[1], se_t[1], bk)
-      if (length(t0) > 1L) {
-        # brms's names for the two mixing parameters, both on (0, 1)
-        nm <- if (identical(bk[["car_type"]], "bym2")) "rhocar" else "car"
-        add(nm, "prop", t0[2], se_t[2], bk)
-      }
-      next
-    }
-    if (bk[["covstruct"]] == "spde") {
-      # sigma and range are analytic functions of (log tau, log kappa):
-      # log sigma = -log tau - log kappa - log(4 pi) / 2 and
-      # log range = log(8) / 2 - log kappa, so the delta method is one
-      # exact linear map with no differencing
-      g_sd <- c(-1, -1)
-      add("sd(spde)", "sd", log(spde_sd(t0)),
-          sqrt(max(drop(g_sd %*% Vth %*% g_sd), 0)), bk)
-      add("range(spde)", "range", log(spde_range(t0)),
-          sqrt(Vth[2, 2]), bk)
       next
     }
     if (bk[["covstruct"]] == "equalto") next   # nothing estimated
@@ -743,7 +711,7 @@ varcorr_trans_rows <- function(fit) {
     # brms reports none.
     has_cor <- block_has_cor(bk)
     gfun <- function(tt) {
-      V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(tt, bk)
+      V <- cs_entry(bk[["covstruct"]])$vcov(tt, bk)
       sds <- sqrt(diag(V))
       out <- log(sds)
       if (has_cor) {
@@ -797,7 +765,7 @@ varcorr_trans_rows <- function(fit) {
     # infinite point does not exist. Without this the clamp inside gfun
     # flattened the jacobian row to zero and the block reported
     # lwr == est == upr == 0.9999, a zero-width interval AT the clamp.
-    V0 <- covstruct_registry[[bk[["covstruct"]]]]$vcov(t0, bk)
+    V0 <- cs_entry(bk[["covstruct"]])$vcov(t0, bk)
     sds0 <- sqrt(diag(V0))
     est0 <- log(sds0)
     bd <- sds0 <= 0
@@ -889,6 +857,7 @@ varcorr_untrans <- function(type, v) {
 #' confint_varcorr(frm(bf(y ~ x) + gaussian(), data = dd))
 #' @export
 confint_varcorr <- function(fit, level = 0.95) {
+  require_structure_packages(fit)
   tr <- varcorr_trans_rows(fit)
   if (is.null(tr)) return(NULL)
   z <- stats::qnorm(1 - (1 - level) / 2)
@@ -1317,22 +1286,27 @@ singular_from_se <- function(fit) {
 log_sd_theta_index <- function(fit) {
   idx <- integer(0)
   nms <- character(0)
+  th_all <- fit$estimates[["theta"]] %||%
+    fit$frame[["par_template"]][["theta"]]
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
-    # blocks whose confint() rows are hand-written carry their own name
-    shared <- switch(bk[["covstruct"]],
-                     smooth = "sd(wiggle)", gp = "sd(gp)",
-                     hsgp = "sd(gp)", car = "sd(car)",
-                     spde = NA_character_, equalto = NA_character_,
-                     NULL)
-    if (!is.null(shared)) {
-      if (is.na(shared)) next
-      idx <- c(idx, bk[["theta_idx"]][1L])
-      nms <- c(nms, paste0(bk[["term_label"]], " ", shared))
+    # a field names its rows itself (cs_natural_rows()): an sd row that
+    # reads one theta entry as it stands is a log sd; a row that combines
+    # entries (the SPDE's sd) is not one theta position at all
+    nat <- cs_natural_rows(bk, th_all[bk[["theta_idx"]]])
+    if (!is.null(nat)) {
+      for (i in which(nat[["type"]] == "sd")) {
+        g <- nat[["grad"]][i, ]
+        k <- which(g != 0)
+        if (length(k) != 1L || g[k] != 1) next
+        idx <- c(idx, bk[["theta_idx"]][k])
+        nms <- c(nms, paste0(bk[["term_label"]], " ", nat[["term"]][i]))
+      }
       next
     }
-    reg <- covstruct_registry[[bk[["covstruct"]]]]
+    if (identical(bk[["covstruct"]], "equalto")) next
+    reg <- cs_entry(bk[["covstruct"]])
     si <- if (is.null(reg)) integer(0) else {
-      tryCatch(as.integer(reg$sd_idx(bk[["dim"]])),
+      tryCatch(as.integer(reg$sd_idx(bk)),
                error = function(e) integer(0))
     }
     for (i in seq_along(si)) {
@@ -2438,9 +2412,10 @@ bform_call <- function(b) {
 #' "identity")`, when the call can say everything the family holds;
 #' otherwise the family object itself. It can only when every formal of
 #' the constructor is a link, since an option such as `huber(k = 3)`,
-#' `whittle(tapers = 4)` or `cox(df = 6)` lives in the family's closures
-#' and not in any field a comparison could read, and when the evaluated
-#' call is `identical()` to the family on everything but environments.
+#' `whittle(tapers = 4)` or frmtmb.survival's `cox(df = 6)` lives in the
+#' family's closures and not in any field a comparison could read, and
+#' when the evaluated call is `identical()` to the family on everything
+#' but environments.
 #'
 #' @noRd
 family_call_of <- function(fam) {
@@ -2610,6 +2585,7 @@ update_pool_pars <- function(out, old, new) {
 #' nobs(fit3)
 #' @export
 update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
+  require_structure_packages(object)
   cl <- object$call
   extras <- match.call(expand.dots = FALSE)$...
   # brms spells the data argument of update() `newdata`
@@ -3237,8 +3213,8 @@ hyp_env_vals <- function(fit, vals, comp) {
     #
     # Included: gr_cov, gr_prec and equalto, whose registry vcov() is the
     # WITHIN-level covariance brms names sd_<group>__<term>.
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) next
-    V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]], bk)
+    if (cs_is_field(bk)) next
+    V <- cs_entry(bk[["covstruct"]])$vcov(th[bk[["theta_idx"]]], bk)
     tn <- brms_re_rnames(fit, bk)
     g <- brms_group_name(bk)
     sds <- sqrt(diag(V))

@@ -57,12 +57,12 @@ the family (any dummy values do; they only anchor the design).
 Draws come back in the response's own type, exactly as
 \code{\link[=simulate]{simulate()}}'s do: an ordered factor for an ordinal family, an
 unordered one for a categorical family, and a matrix column for a
-matrix response (\code{\link[=multinomial]{multinomial()}}, \code{\link[=mixture_mvn]{mixture_mvn()}}).
+matrix response (\code{\link[=multinomial]{multinomial()}}, frmtmb.latent's \code{mixture_mvn()}).
 
 The structured families draw here through the same implementation
 \code{\link[=simulate]{simulate()}} uses (see its Structured draws section):
-\code{mixture(groups = ~g)} takes one class per group, \code{\link[=mixture_mvn]{mixture_mvn()}}
-uses its class covariances, a residual
+\code{mixture(groups = ~g)} takes one class per group, a multivariate
+normal mixture uses its class covariances, a residual
 correlation term (\code{ar()}, \code{ma()}, ...) contributes one correlated
 residual per group, and a family from an extension package draws
 through whatever its structure declares. The de novo frame carries

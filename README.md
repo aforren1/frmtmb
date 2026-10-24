@@ -141,16 +141,17 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Six companion packages live in this repository, each installed the
+Eight companion packages live in this repository, each installed the
 same way and each documented on its own part of the site.
 
 | package | adds |
 |---|---|
 | [frmtmb.sample](https://aforren1.github.io/frmtmb/frmtmb.sample/) | NUTS sampling through tmbstan, and the posterior method surface |
-| [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
+| [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()`, `lca()` and `mixture_mvn()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
-| [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
+| [frmtmb.survival](https://aforren1.github.io/frmtmb/frmtmb.survival/) | survival families: brms's `cox()` with an M-spline baseline, and the flexible parametric `royston_parmar()` |
+| [frmtmb.spatial](https://aforren1.github.io/frmtmb/frmtmb.spatial/) | spatial random fields: brms's `car()` and the SPDE Matern field `spde()` |
 | [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()`, `igt_pvl_delta()`, `igt_orl()` and `rlddm()`, each parameter an ordinary distributional parameter with its own linear predictor |
 | [frmtmb.coupling](https://aforren1.github.io/frmtmb/frmtmb.coupling/) | coherence and phase between two signals: the complex Wishart family `cross_wishart()`, whose coherence and phase are distributional parameters with their own linear predictors |
 
@@ -159,9 +160,23 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
-remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.survival")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spatial")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.learn")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.coupling")
+```
+
+frmtmb has no package that installs everything. To install every
+extension at once:
+
+```r
+# every extension, after frmtmb itself; frmtmb.eam goes before
+# frmtmb.learn, which imports it
+for (p in c("eam", "latent", "ode", "survival", "spatial", "coupling",
+            "sample", "learn")) {
+  remotes::install_github("aforren1/frmtmb",
+                          subdir = paste0("extensions/frmtmb.", p))
+}
 ```
 
 ## Example
@@ -180,8 +195,8 @@ fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
             data = sleepstudy)
 anova(fit, fit2)
 
-hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)",
-           method = "boot")
+hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2) > 0",
+           class = NULL, method = "boot")
 ```
 
 `vignette("habit")` is a longer worked example: it replicates a
@@ -235,13 +250,12 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   REML. brms's default `cov = FALSE` form of `ar()`, `ma()` and
   `arma()` is brms's own likelihood, a regression on earlier
   residuals.
-- `car(M, gr = g, type =)` fits spatial Gaussian Markov random
-  fields with brms's spelling and all four of its types (`escar`,
-  `esicar`, `icar`, and `bym2` with brms's scaling convention).
-  `spde(fem, gr = node)` fits a Matern field over a finite-element
-  mesh, with `fmesher`/INLA matrices as fixed data. The package
-  assembles precisions on the tape from fixed sparse matrices.
-  Every normalizing constant is analytic.
+- brms's `car(M, gr = g, type =)` spatial Gaussian Markov random
+  field, with all four of its types (`escar`, `esicar`, `icar`, and
+  `bym2` with brms's scaling convention), and `spde(fem, gr = node)`,
+  a Matern field over a finite-element mesh, are in frmtmb.spatial.
+  They register through core's covariance-structure seam,
+  `frmtmb_register_covstruct()`.
 - mgcv smooths `s()`/`t2()` work in any linear predictor.
   Matrix-covariate terms give scalar-on-function,
   function-on-scalar, and function-on-function regression.
@@ -265,13 +279,11 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   zero-inflated and hurdle variants and four ordinal families.
   `mixture()` fits finite mixtures, including group-level latent
   classes (`mixture(..., groups = ~g)`) with class-specific random
-  effects for growth-mixture models. `mixture_mvn(K, D, model =)`
-  fits multivariate gaussian components over mclust's covariance
-  taxonomy, with covariate-dependent means and gating.
+  effects for growth-mixture models.
   `categorical()` fits nominal responses, `dirichlet()` and
   `logistic_normal()` compositions (rows of proportions that sum to
-  one), `von_mises()` circular responses, and `cox()` proportional
-  hazards with a flexible baseline and Laplace frailties.
+  one), and `von_mises()` circular responses. brms's `cox()`
+  proportional hazards model is in frmtmb.survival.
   `custom_family()` takes a plain R log-density; section 11 of
   `vignette("case-studies")` writes one with a data-bounded link and
   checks it against the built-in family it shadows.
@@ -282,7 +294,10 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - The companion packages extend the same grammar. `frmtmb.latent`
   adds `hmm(K)` for hidden Markov models, with covariate-dependent
   transitions and forward-backward decoding, and `lca(K)` for latent
-  class analysis with class-membership regression. `frmtmb.ode` adds
+  class analysis with class-membership regression, and
+  `mixture_mvn(K, D, model =)`, which fits multivariate gaussian
+  components over mclust's covariance taxonomy, with
+  covariate-dependent means and gating. `frmtmb.ode` adds
   `frm_ode()`, which solves compartment models inside nonlinear
   formulas (population pharmacokinetics), with repeated dosing,
   infusions, and estimated bioavailability. `frmtmb.eam` adds
@@ -335,6 +350,10 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   `Est.Error` column on `fitted()` and `residuals()`. DHARMa, `pp_check()`,
   `plot()`, and `conditional_effects()` are supported. Hooks for
   emmeans, marginaleffects, and insight/easystats are registered.
+- Curve inference reads any fitted curve on a grid: `frm_curve()`
+  gives pointwise and simultaneous bands, `frm_curve_deriv()` its
+  derivatives, and `frm_curve_feature()` the location of a peak or a
+  crossing, each with a delta-method standard error.
 
 ## Life cycle
 

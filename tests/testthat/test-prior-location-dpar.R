@@ -325,18 +325,27 @@ test_that("the resp advice offers resp and dpar for a categorical response", {
 })
 
 test_that("a family brms does not have is refused by frmtmb's rule", {
+  # Two location dpars in a family of a third party's making: no family
+  # left in core has several locations and is absent from brms, so the
+  # rule is pinned on one built here. frmtmb.latent's
+  # test-mixture-mvn.R pins it on mixture_mvn() as well.
+  fam <- frmtmb_family(
+    "twoloc", dpars = c("mua", "mub", "sigma"),
+    links = list(mua = "identity", mub = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mua"]] + dpars[["mub"]], dpars[["sigma"]],
+                  log = TRUE)
+    },
+    primary_dpars = c("mua", "mub"))
   set.seed(42)
   n <- 200
-  cl <- stats::rbinom(n, 1, 0.4)
   d <- data.frame(x = stats::rnorm(n))
-  d$Y <- cbind(stats::rnorm(n, ifelse(cl == 1, 0, 3)),
-               stats::rnorm(n, ifelse(cl == 1, 0, 4)))
+  d$y <- 1 + d$x + stats::rnorm(n)
   m <- ld_msg(validate_prior(set_prior("normal(0, 1)", class = "b"),
-                             bf(Y ~ x) + mixture_mvn(K = 2, D = 2),
-                             data = d))
+                             bf(y ~ x), family = fam, data = d))
   expect_match(m, "frmtmb's rule for a family", fixed = TRUE)
   expect_no_match(m, "as in brms", fixed = TRUE)
-  expect_identical(ld_reached(bf(Y ~ x) + mixture_mvn(K = 2, D = 2), d,
+  expect_identical(ld_reached(bf(y ~ x) + fam, d,
                               set_prior("normal(0, 1)", class = "b",
-                                        dpar = "mu1d1")), "mu1d1_x")
+                                        dpar = "mua")), "mua_x")
 })

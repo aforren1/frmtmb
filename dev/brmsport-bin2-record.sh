@@ -3,7 +3,7 @@
 # dev/brmsport-bin2-log/rec-<pkg>-<topic>.tsv; with "tier" as the first
 # argument, run them as the tier would instead (verdicts asserted) into
 # tier-<pkg>-<topic>.txt. FRMTMB_PORT_ROOT is the tree (required, as in
-# dev/brmsport-record.sh); FRMTMB_PORT_LIB the build (default rellib-r11).
+# dev/brmsport-record.sh); FRMTMB_PORT_LIB the build (default rellib-r12).
 if [ -z "$FRMTMB_PORT_ROOT" ]; then
   echo "FRMTMB_PORT_ROOT is unset: set it to the tree to record."
   exit 1

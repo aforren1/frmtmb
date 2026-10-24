@@ -84,7 +84,7 @@ tre_exact_loglik <- function(dat, beta, sigma, s, nu, K = 81) {
 
 test_that("us_t and diag_t are the multivariate t mvtnorm knows", {
   skip_if_not_installed("mvtnorm")
-  reg <- covstruct_registry
+  reg <- cs_entries()
   set.seed(11)
   for (d in c(1L, 2L, 3L)) {
     for (nu in c(2.5, 3, 5, 30)) {
@@ -127,7 +127,7 @@ test_that("a diag_t block is a multivariate t, not d univariate ones", {
   # under cor = FALSE, so the quadratic form couples them. The product
   # of independent t's is a DIFFERENT density, and this is the test
   # that would have caught implementing that one by mistake.
-  reg <- covstruct_registry
+  reg <- cs_entries()
   set.seed(3)
   b <- rnorm(2 * 5)
   blk <- list(covstruct = "diag_t", dim = 2L, n_levels = 5L,
@@ -147,7 +147,7 @@ test_that("a diag_t block is a multivariate t, not d univariate ones", {
 })
 
 test_that("the t densities differentiate on the tape", {
-  reg <- covstruct_registry
+  reg <- cs_entries()
   set.seed(5)
   fd_grad <- function(f, p, h = 1e-5) {
     vapply(seq_along(p), function(i) {
@@ -159,7 +159,7 @@ test_that("the t densities differentiate on the tape", {
   }
   for (cs in c("us_t", "diag_t")) {
     for (d in c(1L, 2L, 3L)) {
-      np <- reg[[cs]]$npar(d)
+      np <- reg[[cs]]$npar(list(dim = d))
       nlev <- 6L
       blk <- list(covstruct = cs, dim = d, n_levels = nlev,
                   dist_nu = 3, cnms = paste0("c", seq_len(d)))
@@ -290,7 +290,7 @@ test_that("a large nu reproduces the gaussian block", {
   # For a correlated block the estimate comparison is dominated by a
   # flat correlation direction, so the DENSITY is what is compared: it
   # is the exact statement anyway.
-  reg <- covstruct_registry
+  reg <- cs_entries()
   set.seed(9)
   for (dd in c(2L, 3L)) {
     nlev <- 20L
@@ -407,7 +407,7 @@ test_that("frm_simulate sets the scale through the natural names", {
   # log(): the same convention VarCorr() and confint() report
   f <- frm(form, family = gaussian(), data = d)
   bk <- f$frame$re_blocks[[1L]]
-  expect_equal(covstruct_registry$us_t$from_natural(2, NULL, bk),
+  expect_equal(cs_entry("us_t")$from_natural(2, NULL, bk),
                log(2), tolerance = 1e-12)
   # a much larger scale really does spread the simulated response
   wide <- frm_simulate(form, data = d, family = gaussian(), nsim = 1,

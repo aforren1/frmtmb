@@ -450,11 +450,11 @@ mo_coords <- function(w, chart = NULL, floor = 1e-8) {
 }
 
 #' A copy of `frame` whose simplexes read their coordinates in `chart`
-#' (see `mo_simplex()`): every `mo()` simplex, and the baseline of a
-#' `cox()` response, which its family reads from the response's
-#' addition terms (`bhaz_chart`). The objective built from it is the
-#' same model in other coordinates; `simplex_frame_terms()` lists where
-#' the coordinates sit.
+#' (see `mo_simplex()`): every `mo()` simplex, and every simplex a
+#' response's family declares (`frmtmb_family(simplex_pars =)`), which
+#' the family reads from the response's addition term `<name>_chart`.
+#' The objective built from it is the same model in other coordinates;
+#' `simplex_frame_terms()` lists where the coordinates sit.
 #'
 #' @noRd
 mo_chart_frame <- function(frame, chart = "softmax") {
@@ -464,33 +464,55 @@ mo_chart_frame <- function(frame, chart = "softmax") {
     for (j in seq_along(mos)) mos[[j]][["chart"]] <- chart
     frame[["linpreds"]][[k]][["mo"]] <- mos
   }
-  for (r in names(frame[["aterm_values"]])) {
-    if (!is.null(frame[["aterm_values"]][[r]][["Zbhaz"]])) {
-      frame[["aterm_values"]][[r]][["bhaz_chart"]] <- chart
-    }
+  for (tm in family_simplex_terms(frame)) {
+    frame[["aterm_values"]][[tm$resp]][[tm$chart_key]] <- chart
   }
   frame
 }
 
 #' Every simplex of a fit's frame, in the shape `mo_frame_terms()` gives
-#' a `mo()` term: the `mo()` simplexes, then the baseline-hazard simplex
-#' of each `cox()` response, under brms's name for it, `sbhaz[k]`
-#' (`sbhaz_<resp>[k]` in a multivariate model). The sampler reads every
-#' one in softmax coordinates under brms's default `dirichlet(1)`.
+#' a `mo()` term: the `mo()` simplexes, then each simplex a response's
+#' family declares, under its brms name, `sbhaz[k]` for a `cox()`
+#' baseline (`sbhaz_<resp>[k]` in a multivariate model). `kind` is the
+#' declaring family's name. The sampler reads every one in softmax
+#' coordinates under brms's default `dirichlet(1)`.
 #'
 #' @noRd
 simplex_frame_terms <- function(fit) {
   out <- mo_frame_terms(fit)
-  multi <- length(fit$spec$responses) > 1L
-  for (r in names(fit$frame[["aterm_values"]])) {
-    Zb <- fit$frame[["aterm_values"]][[r]][["Zbhaz"]]
-    if (is.null(Zb)) next
-    D <- ncol(Zb)
+  for (tm in family_simplex_terms(fit$frame)) {
     out[[length(out) + 1L]] <- list(
-      zeta = extra_tpl_name(fit$frame, if (multi) r, "sbhaz_raw"), D = D,
-      names = paste0("sbhaz", if (multi) paste0("_", r), "[", seq_len(D),
-                     "]"),
-      kind = "cox")
+      zeta = tm$zeta, D = tm$D,
+      names = paste0(tm$name, if (tm$multi) paste0("_", tm$resp), "[",
+                     seq_len(tm$D), "]"),
+      kind = tm$family)
+  }
+  out
+}
+
+#' The simplexes the responses' families declare
+#' (`frmtmb_family(simplex_pars =)`), one entry each: the response, the
+#' brms name, the template component `zeta` that holds the `D - 1`
+#' coordinates, `D`, the addition term that carries the chart, and the
+#' family's name.
+#'
+#' @noRd
+family_simplex_terms <- function(frame, spec = frame[["spec"]]) {
+  rs <- spec$responses %||% list()
+  multi <- length(rs) > 1L
+  out <- list()
+  for (resp in rs) {
+    sp <- resp$family[["simplex_pars"]]
+    if (is.null(sp)) next
+    r <- resp$resp_name
+    for (nm in names(sp)) {
+      zeta <- extra_tpl_name(frame, if (multi) r, sp[[nm]])
+      out[[length(out) + 1L]] <- list(
+        resp = r, name = nm, zeta = zeta,
+        D = length(frame[["par_template"]][[zeta]]) + 1L,
+        chart_key = paste0(nm, "_chart"), family = resp$family[["family"]],
+        multi = multi)
+    }
   }
   out
 }
@@ -626,10 +648,12 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
 #'
 #' @noRd
 build_objective <- function(frame) {
+  require_model_packages(frame)
+  require_structure_packages(frame)
   lps <- frame[["linpreds"]]
   blocks <- frame[["re_blocks"]]
   block_fns <- lapply(blocks, function(bk) {
-    covstruct_registry[[bk[["covstruct"]]]]$nll
+    cs_entry(bk[["covstruct"]])$nll
   })
   # Non-centered blocks (frm_sample(reparameterize = TRUE) only, set on
   # a private copy of the frame): the sampled vector for these is z, and

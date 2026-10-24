@@ -780,38 +780,10 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
         }
       }
     } else if (nm %in% c("sdcar", "car", "rcar", "zcar")) {
-      # CAR fields. brms declares the proper form (escar) on the field
-      # itself and the intrinsic one (icar) on a standardized field, so
-      # only the second carries a Jacobian.
-      bk <- brms_car_block(fit)
-      th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
-      ty <- bk[["aux_car"]][["type"]]
-      if (!ty %in% c("escar", "esicar", "icar")) {
-        stop("brms parameterizes a ", ty, " field on a different set of ",
-             "latent variables than frmtmb; see ",
-             "dev/brms-likelihood-tests.md")
-      }
-      if (identical(nm, "sdcar")) {
-        out[[nm]] <- exp(th[[1]])
-      } else if (identical(nm, "car")) {
-        out[[nm]] <- car_rho(th[[2]])
-      } else if (identical(nm, "rcar")) {
-        v <- brms_block_b(fit, bk)
-        out[[nm]] <- array(v, length(v))
-      } else if (identical(ty, "esicar")) {
-        # brms declares Nloc - 1 free values and derives the last as
-        # minus their sum, on the FIELD itself. frmtmb's field is the
-        # centered coefficient vector, so the map is a truncation and
-        # carries no Jacobian: unlike icar, neither side standardizes
-        # by sdcar. The centered vector is read rather than `b` so the
-        # constraint brms re-imposes on rcar[Nloc] is exact here too.
-        v <- brms_car_field(fit, bk)
-        out[[nm]] <- array(v[-length(v)], length(v) - 1L)
-      } else {
-        v <- brms_block_b(fit, bk) / exp(th[[1]])
-        out[[nm]] <- array(v, length(v))
-        jac <- jac + length(v) * th[[1]]
-      }
+      # car() is frmtmb.spatial's; its translator rows are in that
+      # package's helper-brms.R and test-brms-likelihood-car.R
+      stop("brms's ", nm, " belongs to a car() field, which frmtmb fits ",
+           "only with frmtmb.spatial loaded")
     } else if (identical(nm, "Lrescor")) {
       out[[nm]] <- brms_lrescor(fit, sdat)
     } else if (grepl("^Llncor(_.+)?$", nm)) {
@@ -1120,20 +1092,12 @@ brms_block_b <- function(fit, bk) {
   as.numeric(fit$estimates[["b"]][bk[["b_idx"]]])
 }
 
-# A CAR block's FIELD, which for esicar is the centered coefficient
-# vector rather than the parameter vector. Reads the same expansion the
-# objective's Z product reads, so an off-by-a-mean here would be a
-# disagreement with the model and not with this helper.
-brms_car_field <- function(fit, bk) {
-  as.numeric(coef_b(fit)[bk[["c_idx"]]])
-}
-
 # The block's covariance at frmtmb's estimates, from the same registry
 # entry the objective uses. VarCorr() reports only the marginal SD for a
 # smooth or a GP block, so it cannot serve here.
 brms_block_cov <- function(fit, bk) {
   th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
-  as.matrix(covstruct_registry[[bk[["covstruct"]]]]$vcov(th, bk))
+  as.matrix(cs_entry(bk[["covstruct"]])$vcov(th, bk))
 }
 
 # One GP term's frmtmb block. brms numbers gp() terms 1..n per linear
@@ -1178,65 +1142,6 @@ brms_autocor_of <- function(fit) {
          length(acs))
   }
   acs[[1]]
-}
-
-# The fit's single CAR block, likewise: brms declares `rcar` and
-# `sdcar` without an index.
-brms_car_block <- function(fit) {
-  bks <- fit$frame[["re_blocks"]]
-  keep <- vapply(bks, function(b) identical(b[["covstruct"]], "car"),
-                 logical(1))
-  if (sum(keep) != 1L) {
-    stop("brms declares one unindexed rcar, so this rule needs exactly ",
-         "one frmtmb car() block and the fit has ", sum(keep))
-  }
-  bks[keep][[1]]
-}
-
-# The graph Laplacian brms's ICAR density is written on, built from the
-# edge list in ITS standata rather than from frmtmb's adjacency matrix,
-# so the constants below are a reference-free check on frmtmb's K.
-brms_car_laplacian <- function(sdat) {
-  n <- as.integer(sdat[["Nloc"]])
-  w <- matrix(0, n, n)
-  e1 <- as.integer(sdat[["edges1"]])
-  e2 <- as.integer(sdat[["edges2"]])
-  w[cbind(e1, e2)] <- 1
-  w[cbind(e2, e1)] <- 1
-  diag(rowSums(w)) - w
-}
-
-# What brms's CAR densities leave out.
-#
-# brms writes both of them unnormalized in the field, and frmtmb keeps a
-# proper density, so the difference is a closed form in the DATA alone
-# and is admitted the same way the mo() Dirichlet is. Every quantity
-# here comes from brms's own standata.
-#
-#   escar   brms drops the -Nloc/2 log(2 pi) and the 0.5 log det D of a
-#           proper CAR, leaving 0.5(Nloc log tau + sum log(1 - car e_i)
-#           - tau q).
-#   icar    brms drops the ICAR normalizer entirely and adds a
-#           normalized soft sum-to-zero term, normal(sum(zcar) | 0,
-#           0.001 Nloc), whose precision is exactly the rank-one term
-#           frmtmb folds into K.
-brms_car_const <- function(sdat, type) {
-  n <- as.integer(sdat[["Nloc"]])
-  if (identical(type, "escar")) {
-    return(0.5 * (n * log(2 * pi) - sum(log(as.numeric(sdat[["Nneigh"]])))))
-  }
-  s <- 0.001 * n
-  kmat <- brms_car_laplacian(sdat) + matrix(1 / s^2, n, n)
-  ldet_k <- as.numeric(determinant(kmat, logarithm = TRUE)$modulus)
-  if (identical(type, "esicar")) {
-    # brms's sparse_icar_lpdf keeps 0.5 (Nloc - 1) log tau and drops the
-    # pseudo-determinant and the 2 pi. frmtmb's log|Q| is that same
-    # (Nloc - 1) log tau plus log|K|, and its n log 2 pi counts the
-    # inert component mean as well as the field, which is why this is
-    # n and not n - 1.
-    return(0.5 * n * log(2 * pi) - 0.5 * ldet_k)
-  }
-  0.5 * (n - 1) * log(2 * pi) - log(s) - 0.5 * ldet_k
 }
 
 # frmtmb's linear-predictor frame for one brms suffix. The frame keys

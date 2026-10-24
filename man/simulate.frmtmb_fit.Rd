@@ -64,8 +64,9 @@ and \code{\link[=frm_simulate]{frm_simulate()}} all reach (see \code{sim_ctx} in
 \itemize{
 \item a \code{mixture(groups = ~g)} draw takes one class per GROUP and then
 simulates each row from its group's component;
-\item a \code{\link[=mixture_mvn]{mixture_mvn()}} draw takes a class per row and then a
-multivariate normal with that class's own covariance;
+\item a multivariate normal mixture (frmtmb.latent's \code{mixture_mvn()})
+takes a class per row and then a multivariate normal with that
+class's own covariance;
 \item a residual correlation term (\code{ar()}, \code{ma()}, \code{cosy()}, ...) is one
 multivariate residual draw per group added to the mean predictor,
 so the draws carry the fitted autocorrelation;
@@ -78,7 +79,7 @@ rejection cannot resample single rows within it (every structured
 model refuses \code{trunc()} when the frame is assembled). At \code{newdata} a
 structured FAMILY is refused, because its structure indexes the rows
 the model was fitted on: \code{mixture(groups = )}, a hidden Markov
-family, a learning family, and \code{\link[=mixture_mvn]{mixture_mvn()}}, which
+family, a learning family, and a multivariate normal mixture, which
 \code{predict(newdata = )} refuses as well. A residual correlation term
 is rebuilt on the new rows instead: rows that share a group are
 drawn jointly, and a time the fit never saw is refused. A lag is

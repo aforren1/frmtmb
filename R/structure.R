@@ -652,10 +652,11 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     frmtmb adds.}
 #'   \item{`mixture_posterior()`}{The posterior class probabilities of
 #'     any family that implements the `fam$mix` component interface,
-#'     which is what `mixture()`, `mixture_mvn()` and a latent-class
-#'     family all do. A family implementing that interface uses this as
-#'     its whole `latent_probs` slot rather than deriving the same
-#'     quantity a second time.}
+#'     which is what `mixture()`, a multivariate normal mixture and a
+#'     latent-class family all do. A family implementing that interface
+#'     uses this as its whole `latent_probs` slot rather than deriving
+#'     the same quantity a second time. See "The mixture component
+#'     interface" below for the fields it reads.}
 #'   \item{`mixture_multimodal_refusals()`}{The `refusals` entries for
 #'     `reml` and `profile` owed by a family whose likelihood is
 #'     invariant to permuting its components. `what` is the family as
@@ -664,8 +665,72 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     sentence is issued from one place rather than copied.}
 #' }
 #'
+#' @section The mixture component interface:
+#' A family is a finite mixture to frmtmb when its family object has a
+#' `mix` element (`fam[["mix"]] <- list(...)`, set after
+#' [frmtmb_family()] returns). frmtmb then treats it as one:
+#' [mixture_probs()] and `pp_mixture()` accept its fits, a prior must
+#' name the `dpar` it means (several locations), and `ar()`-type terms
+#' and `incl_thres` are refused. `mixture_posterior()` reads three
+#' fields, which such a family must supply:
+#'
+#' \describe{
+#'   \item{`K`}{The number of classes, an integer.}
+#'   \item{`log_pi(dpars)`}{The log mixing weights: a list of `K`
+#'     vectors, each of length 1 or the number of rows, from the
+#'     family's `dpars` list. They must sum to one on the natural scale
+#'     in every row.}
+#'   \item{`comp_lpdf(y, dpars, aterms, k, extra)`}{The log density of
+#'     each row under class `k`, a vector with one value per row of
+#'     `y` (`NROW(y)`, so a matrix response gives one per row). The
+#'     fifth argument, the family's extra parameters as
+#'     `fit_extras()` returns them, is passed only when the family
+#'     declares `extra_pars`; a family without extra parameters takes
+#'     four arguments.}
+#' }
+#'
+#' The other fields that `mixture()` stores in `mix` (`ord`, `ref`,
+#' `type`, `comp_dpars`, `comp_sim` and its component bookkeeping) are
+#' read only for `mixture()` itself; a family that leaves them out is
+#' not read through them. A family may store fields of its own there,
+#' as frmtmb.latent's `mixture_mvn()` stores `D` and `sigma`.
+#'
+#' @section How to add a covariance structure:
+#' A package that supplies a structured covariance, or a precision
+#' matrix that depends on parameters, registers it with
+#' [frmtmb_register_covstruct()] from its `.onLoad()`. frmtmb.spatial
+#' does this for `car()` and `spde()`. The steps:
+#'
+#' \enumerate{
+#'   \item Decide how a formula writes the structure. A bar structure,
+#'     `name(terms | g)`, covaries the coefficients of one level. A
+#'     field, a special such as `name(M, gr = g)`, has one intercept per
+#'     level of `gr` and covaries the levels through fixed data; give it
+#'     a `term` slot.
+#'   \item Write `lpdf(b, theta, blk)`, the log density of the block on
+#'     the tape, with RTMB's densities and no loop over levels, and
+#'     `vcov(theta, blk)`, the covariance within one level, on numbers.
+#'     Name the theta entries that are log standard deviations in
+#'     `sd_idx`.
+#'   \item For a field, give `natural`, the rows [confint_varcorr()]
+#'     reports, and `draw`, one draw of the whole field. Set
+#'     `levels_coupled = TRUE` when the levels are correlated, so that
+#'     an unseen level gets no law it does not have.
+#'   \item Register the rows the structure adds to [frm_compat()] with
+#'     [frmtmb_register_compat()], AFTER the structure: the structure
+#'     itself joins the vocabulary when it is registered.
+#'   \item Test the fit against a likelihood you compute without the
+#'     registry, in a test that calls [frmtmb_local_registries()]
+#'     first, so that every registry is restored when the test ends.
+#' }
+#'
+#' Use exported functions only, never `frmtmb:::`. When a user writes
+#' the structure while its package is not loaded, core refuses it by
+#' name if its table of extension homes lists the package, which is how
+#' `car()` points at frmtmb.spatial.
+#'
 #' @section What the registries hold you to:
-#' The three registries an extension fills from its own `.onLoad()`
+#' The four registries an extension fills from its own `.onLoad()`
 #' check what they are given, because a registration that is accepted
 #' and then does nothing is indistinguishable from one that worked.
 #'
@@ -688,6 +753,10 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     anyway is a no-op. A name the vocabulary already holds under
 #'     another kind is refused, and nothing is registered on either
 #'     side.
+#'   \item [frmtmb_register_covstruct()] checks every slot before it
+#'     commits anything, adds the structure to the compatibility
+#'     vocabulary as a feature of kind `"covstruct"`, and refuses a name
+#'     that frmtmb's own structures or formula specials hold.
 #'   \item [frmtmb_family()] takes `required_aterms` as a conjunction
 #'     (a character vector) or as one with choices in it (a list, whose
 #'     elements of length more than one are alternatives). Declare the
@@ -732,8 +801,8 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'   `frm_warning()` and `frm_message()`, which an extension raises its
 #'   conditions with, and the
 #'   registries an extension fills from its own `.onLoad()`:
-#'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()] and
-#'   [frmtmb_register_compat()]
+#'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()],
+#'   [frmtmb_register_covstruct()] and [frmtmb_register_compat()]
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(50))

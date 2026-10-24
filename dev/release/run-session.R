@@ -37,7 +37,7 @@
 local({
 # The same libraries as run-tests.R: FRMTMB_RELLIB ahead of the release
 # library, for a lane's build. Change LIB in both files at a release.
-LIB <- "C:/Users/adf44/source/r/rellib-r11"
+LIB <- "C:/Users/adf44/source/r/rellib-r12"
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
 }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
@@ -66,7 +66,8 @@ dir <- if (length(a) >= 3L) a[3] else if (identical(p, "frmtmb")) {
 stopifnot(dir.exists(dir))
 
 pkgs <- c("frmtmb", "frmtmb.coupling", "frmtmb.eam", "frmtmb.latent",
-          "frmtmb.learn", "frmtmb.ode", "frmtmb.sample", "frmtmb.spline")
+          "frmtmb.learn", "frmtmb.ode", "frmtmb.sample", "frmtmb.survival",
+          "frmtmb.spatial")
 miss <- pkgs[!nzchar(vapply(pkgs, function(q) {
   tryCatch(find.package(q), error = function(e) "")
 }, ""))]
@@ -106,6 +107,7 @@ snap <- function() {
     `compat features` = reg("frmtmb_compat_contrib")$features,
     `compat rules` = reg("frmtmb_compat_contrib")$rules,
     `aterm registry` = reg("frmtmb_aterm_registry")$reg,
+    `covstruct registry` = reg("frmtmb_covstruct_registry")$reg,
     `frame checks` = reg("frmtmb_frame_checks")$fns,
     `prior defaults` = reg("frmtmb_prior_defaults")$providers,
     # a fit gives a notice legitimately, so only a REMOVED tag is a leak

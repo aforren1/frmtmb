@@ -193,32 +193,3 @@ test_that("a partial formula beside a factor smooth keeps the smooth", {
   expect_identical(frm_linpred(fit, re_formula = ~(1 | h) + (1 | k)), full)
 })
 
-test_that("a car() field is addressed by its grouping factor", {
-  # a car() field is a group-level term with the bar (1 | loc), so a
-  # formula keeps or drops it by that name; it was never the bar-less
-  # content the pre-0.65.0 refusal described
-  set.seed(12)
-  rc <- expand.grid(r = 1:4, c = 1:4)
-  W <- 1 * (as.matrix(stats::dist(rc, method = "manhattan")) == 1)
-  rownames(W) <- colnames(W) <- paste0("s", seq_len(nrow(W)))
-  d <- data.frame(loc = factor(rep(rownames(W), each = 6),
-                               levels = rownames(W)),
-                  g = factor(rep(1:4, 24)), h = factor(rep(1:3, 32)),
-                  x = stats::rnorm(96))
-  d$y <- 1 + 0.5 * d$x + stats::rnorm(16, 0, 0.8)[as.integer(d$loc)] +
-    stats::rnorm(4, 0, 0.5)[d$g] + stats::rnorm(3, 0, 0.5)[d$h] +
-    stats::rnorm(96, 0, 0.4)
-  fit <- suppressWarnings(frm(bf(y ~ x + car(W, gr = loc, type = "icar") +
-                                   (1 | g) + (1 | h)), data = d))
-  full <- frm_linpred(fit)
-  # naming all three terms is the full prediction
-  expect_identical(frm_linpred(fit, re_formula = ~(1 | g) + (1 | h) +
-                                 (1 | loc)), full)
-  # leaving (1 | loc) out drops the field: what it adds back is one value
-  # per location, and it is not zero
-  add_loc <- full - frm_linpred(fit, re_formula = ~(1 | g) + (1 | h))
-  tol <- 64 * .Machine$double.eps * max(abs(full))
-  within_loc <- tapply(add_loc, d$loc, function(v) diff(range(v)))
-  expect_true(all(within_loc <= tol))
-  expect_gt(max(abs(add_loc)), 1e3 * tol)
-})

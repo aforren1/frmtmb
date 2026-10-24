@@ -92,7 +92,7 @@ sim_re_plan <- function(fit, re_formula) {
       redraw <- c(redraw, bk[["b_idx"]])
       next
     }
-    if (bk[["covstruct"]] %in% c("rr", "gr_cov", "gr_prec", "car", "spde") ||
+    if (identical(bk[["covstruct"]], "rr") || cs_levels_coupled(bk) ||
           is_student_block(bk)) {
       frm_stop("simulate(): re_formula keeps some columns of the ",
                "group-level term ", bk[["term_label"]] %||% bk[["covstruct"]],
@@ -169,7 +169,7 @@ sim_draw_b <- function(fit, plan) {
 sim_b_conditional <- function(fit, cd, b) {
   bk <- fit$frame[["re_blocks"]][[cd$block]]
   th <- fit$estimates[["theta"]]
-  V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
+  V <- cs_entry(bk[["covstruct"]])$vcov(th[bk[["theta_idx"]]],
                                                     bk)
   V <- as.matrix(V)
   K <- which(cd$keep)
@@ -192,7 +192,8 @@ sim_b_conditional <- function(fit, cd, b) {
 #' `mixture(groups = )` takes one class per fitted group, a hidden
 #' Markov family (frmtmb.latent) walks the fitted state sequence, and a
 #' learning family (frmtmb.learn) walks the fitted trial sequence.
-#' `mixture_mvn()` draws row by row, but it goes through the same slot
+#' A multivariate normal mixture (frmtmb.latent's `mixture_mvn()`)
+#' draws row by row, but it goes through the same slot
 #' and is refused with the rest, as `predict(newdata = )` and
 #' `posterior_predict(newdata = )` refuse it. A residual correlation
 #' term is not a family structure and is rebuilt on the new rows
@@ -232,8 +233,9 @@ sim_newdata_group_cols <- function(fit, rspec, newdata, plan,
   gvars <- function(ids) {
     out <- character(0)
     for (bk in fit$frame[["re_blocks"]][ids]) {
-      # an spde block's levels are mesh nodes, read by its own design
-      if (bk[["covstruct"]] == "spde") next
+      # a field whose levels are its whole index set (an spde block's
+      # mesh nodes) is read by its own design
+      if (cs_levels_complete(bk)) next
       for (comp in bk[["components"]]) {
         bar <- comp[["bar"]]
         out <- c(out, if (!is.null(comp[["mm"]])) comp[["mm"]]$gvars else

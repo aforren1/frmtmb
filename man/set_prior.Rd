@@ -119,8 +119,10 @@ the coordinates the simplex is held in, so the mode under
 \code{dirichlet(a)} is the mode of \code{dirichlet(a + 1/2)} on the weights,
 pulled further toward the uniform simplex; see "Monotonic effects"
 in \code{\link[=frm]{frm()}}.
-\item \code{"sbhaz"}: the baseline-hazard simplex of a \code{\link[=cox]{cox()}} response,
-\code{dirichlet(alpha)} only, brms's class of the same name; no \code{coef}.
+\item \code{"sbhaz"}: the baseline-hazard simplex of a \code{cox()} response
+(frmtmb.survival), or the simplex a family declares under that name
+(\code{frmtmb_family(simplex_pars =)}); \code{dirichlet(alpha)} only, brms's
+class of the same name; no \code{coef}.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
 \code{coef} names one by its internal name and spans all three
 covariance components: \code{"theta_2"} for a random-effect block,

@@ -33,7 +33,7 @@ test_that("natural newparams round-trip through an us block", {
              sd_g__Intercept = 0.8, sd_g__x = 0.4,
              cor_g__Intercept__x = -0.3)
   est <- apply_natural(fr$par_template, fr, slots, np)
-  V <- covstruct_registry$us$vcov(est$theta, fr$re_blocks[[1L]])
+  V <- cs_entry("us")$vcov(est$theta, fr$re_blocks[[1L]])
   expect_equal(unname(sqrt(diag(V))), c(0.8, 0.4), tolerance = 1e-10)
   expect_equal(unname(stats::cov2cor(V)[1, 2]), -0.3, tolerance = 1e-10)
   expect_equal(unname(est$betad[1]), log(0.6), tolerance = 1e-12)

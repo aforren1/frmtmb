@@ -76,7 +76,7 @@ autoscale_plan_z <- function(frame, key, lp, cols, scale) {
       next
     }
     D <- bk[["dim"]]
-    sdi <- covstruct_registry[[bk[["covstruct"]]]]$sd_idx(D)
+    sdi <- cs_entry(bk[["covstruct"]])$sd_idx(bk)
     for (comp in bk[["components"]]) {
       if (!identical(comp$lp_key, key) || !is.null(comp$mm)) next
       for (k in seq_len(comp$dim)) {

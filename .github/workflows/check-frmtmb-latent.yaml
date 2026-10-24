@@ -5,14 +5,14 @@
 # extensions/), so the core workflows never see it. This job installs the
 # core package from the checkout, then checks the extension against that
 # build. The path filter includes the core R sources as well as the
-# extension's own tree, because hmm() and lca() are written entirely
-# against frmtmb's exported extension API and a change to any of it is
-# what would break them.
+# extension's own tree, because hmm(), lca() and mixture_mvn() are
+# written entirely against frmtmb's exported extension API and a change
+# to any of it is what would break them.
 #
 # No extra-repositories here, unlike the ODE job: every package this one
 # reaches is on CRAN. The reference implementations it checks its numbers
-# against (depmixS4, hmmTMB, poLCA) are Suggests and are installed by the
-# dependency step below like any other.
+# against (depmixS4, hmmTMB, mclust, poLCA) are Suggests and are
+# installed by the dependency step below like any other.
 #
 # One runner and one R version, binary packages only, on purpose: the
 # extension compiles nothing. Its own R code is pure R, and RTMB, its one

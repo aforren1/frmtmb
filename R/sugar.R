@@ -162,7 +162,7 @@ ngrps.frmtmb_fit <- function(object, ...) {
   # not a grouping factor there, which is why the gp() fixture used to
   # report a group of one level that brms has no entry for at all.
   bks <- Filter(function(bk) {
-    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")
+    !cs_is_field(bk)
   }, by_merged_blocks(object$frame[["re_blocks"]]))
   if (!length(bks)) return(NULL)
   ng <- vapply(bks, `[[`, 0L, "n_levels")

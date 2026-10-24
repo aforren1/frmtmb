@@ -77,7 +77,7 @@ test_that("log_lik() row sums are the taped likelihood at the same draw", {
   pars <- sh$estimates
   nll <- frmtmb::build_objective(sh$frame)(pars)
   bk <- sh$frame$re_blocks[[1L]]
-  re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
+  re_prior <- frmtmb:::cs_entry(bk$covstruct)$nll(
     pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
   expect_equal(sum(ll[i, ]), as.numeric(-nll) - as.numeric(re_prior),
                tolerance = 1e-10)
@@ -610,7 +610,7 @@ test_that("log_lik() carries student, sigma ~ x and (1 | g) under arma()", {
   idx <- frmtmb.sample:::draws_par_index(ds$fit)
   sh <- frmtmb.sample:::draws_fit_at(ds, 1L, idx)
   bk <- sh$frame$re_blocks[[1L]]
-  rp <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
+  rp <- frmtmb:::cs_entry(bk$covstruct)$nll(
     sh$estimates[["b"]][bk$b_idx], sh$estimates[["theta"]][bk$theta_idx],
     bk)
   nll <- frmtmb::build_objective(sh$frame)(sh$estimates)

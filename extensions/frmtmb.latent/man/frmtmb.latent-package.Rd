@@ -6,7 +6,7 @@
 \alias{frmtmb.latent-package}
 \title{frmtmb.latent: Latent-State Families for 'frmtmb' Models}
 \description{
-Adds two families whose latent variable is a discrete state to the model grammar of 'frmtmb'. 'hmm()' fits hidden Markov models with covariate-dependent transitions, summing the state sequence out exactly with the forward algorithm and decoding it with the forward-backward and Viterbi passes. 'lca()' fits latent class analysis in the manner of 'poLCA', with conditionally independent polytomous items and a multinomial logit on the class membership. Both are written entirely against the structured-family protocol that 'frmtmb' exports, so neither needs a branch inside the core package.
+Adds three families whose latent variable is a discrete state or class to the model grammar of 'frmtmb'. 'hmm()' fits hidden Markov models with covariate-dependent transitions, summing the state sequence out exactly with the forward algorithm and decoding it with the forward-backward and Viterbi passes. 'lca()' fits latent class analysis in the manner of 'poLCA', with conditionally independent polytomous items and a multinomial logit on the class membership. 'mixture_mvn()' fits mixtures of multivariate normal distributions to a matrix response, model-based clustering in the manner of 'mclust', with class means that take covariates. All three are written entirely against the family protocol that 'frmtmb' exports, so none needs a branch inside the core package.
 }
 \seealso{
 Useful links:

@@ -41,9 +41,9 @@ test_that("the shared density is the mixture over one scale per level", {
   expect_identical(bks[[2L]]$t_share, 1:2)
   b <- fit$estimates$b
   th <- fit$estimates$theta
-  S1 <- frmtmb:::covstruct_registry$us_t$vcov(th[bks[[1L]]$theta_idx],
+  S1 <- frmtmb:::cs_entry("us_t")$vcov(th[bks[[1L]]$theta_idx],
                                              bks[[1L]])
-  S2 <- frmtmb:::covstruct_registry$us_t$vcov(th[bks[[2L]]$theta_idx],
+  S2 <- frmtmb:::cs_entry("us_t")$vcov(th[bks[[2L]]$theta_idx],
                                              bks[[2L]])
   S <- matrix(0, 3, 3)
   S[1:2, 1:2] <- S1

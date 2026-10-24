@@ -1,20 +1,22 @@
 Package: frmtmb.latent
 Title: Latent-State Families for 'frmtmb' Models
-Version: 0.6.2
+Version: 0.7.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9728-6337"))
-Description: Adds two families whose latent variable is a discrete
-    state to the model grammar of 'frmtmb'. 'hmm()' fits hidden Markov
-    models with covariate-dependent transitions, summing the state
-    sequence out exactly with the forward algorithm and decoding it with
-    the forward-backward and Viterbi passes. 'lca()' fits latent class
-    analysis in the manner of 'poLCA', with conditionally independent
-    polytomous items and a multinomial logit on the class membership.
-    Both are written entirely against the structured-family protocol
-    that 'frmtmb' exports, so neither needs a branch inside the core
-    package.
+Description: Adds three families whose latent variable is a discrete
+    state or class to the model grammar of 'frmtmb'. 'hmm()' fits hidden
+    Markov models with covariate-dependent transitions, summing the
+    state sequence out exactly with the forward algorithm and decoding
+    it with the forward-backward and Viterbi passes. 'lca()' fits latent
+    class analysis in the manner of 'poLCA', with conditionally
+    independent polytomous items and a multinomial logit on the class
+    membership. 'mixture_mvn()' fits mixtures of multivariate normal
+    distributions to a matrix response, model-based clustering in the
+    manner of 'mclust', with class means that take covariates. All three
+    are written entirely against the family protocol that 'frmtmb'
+    exports, so none needs a branch inside the core package.
 License: GPL (>= 2)
 URL: https://aforren1.github.io/frmtmb/frmtmb.latent,
     https://github.com/aforren1/frmtmb
@@ -24,7 +26,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.72.0)
+    frmtmb (>= 0.74.0)
 Imports:
     RTMB (>= 1.9),
     stats
@@ -33,6 +35,7 @@ Suggests:
     depmixS4,
     hmmTMB,
     knitr,
+    mclust,
     poLCA,
     rmarkdown,
     testthat (>= 3.0.0),

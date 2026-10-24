@@ -5,6 +5,9 @@
 # 239 divergences and R-hat 3.07. It is now sampled in softmax
 # coordinates under brms's dirichlet(1) and reported as brms's sbhaz[k];
 # the same script compares the draws with brms 2.23.0's.
+#
+# cox() is in frmtmb.survival, a Suggests of this package, so each test
+# skips without it; the check workflow installs it from the checkout.
 
 cox_draws_data <- function() {
   set.seed(2)
@@ -16,9 +19,10 @@ cox_draws_data <- function() {
 }
 
 test_that("a cox() baseline is drawn as brms's sbhaz weights", {
+  skip_if_not_installed("frmtmb.survival")
   skip_on_cran()
   skip_sampler()
-  fit <- frm(bf(time | cens(cens) ~ x), family = cox(),
+  fit <- frm(bf(time | cens(cens) ~ x), family = frmtmb.survival::cox(),
              data = cox_draws_data())
   ds <- allow_warnings(suppressMessages(frm_sample(
     fit, chains = 2, iter = 600, seed = 1, refresh = 0)),
@@ -31,7 +35,8 @@ test_that("a cox() baseline is drawn as brms's sbhaz weights", {
   # every weight is interior under dirichlet(1), as in brms, where the
   # fit puts some at 0
   expect_gt(min(colMeans(W)), 0.01 * max(colMeans(W)))
-  expect_lt(min(cox_baseline(fit)), 1e-6 * max(cox_baseline(fit)))
+  cb <- frmtmb.survival::cox_baseline(fit)
+  expect_lt(min(cb), 1e-6 * max(cb))
   sp <- rstan::get_sampler_params(ds$stanfit, inc_warmup = FALSE)
   expect_identical(sum(vapply(sp, function(x) sum(x[, "divergent__"]), 0)),
                    0)
@@ -43,7 +48,8 @@ test_that("a cox() baseline is drawn as brms's sbhaz weights", {
 })
 
 test_that("a sbhaz prior replaces dirichlet(1) on the baseline", {
-  fit <- frm(bf(time | cens(cens) ~ x), family = cox(),
+  skip_if_not_installed("frmtmb.survival")
+  fit <- frm(bf(time | cens(cens) ~ x), family = frmtmb.survival::cox(),
              data = cox_draws_data())
   pr <- set_prior("dirichlet(c(5, 1, 1, 1, 1))", class = "sbhaz")
   ent <- frmtmb::resolve_prior_input(fit, pr)$entries
@@ -57,7 +63,8 @@ test_that("a sbhaz prior replaces dirichlet(1) on the baseline", {
 # (punch round 1, m4). Seen to fail on the lane build before the fix,
 # which took no prior to read the row from.
 test_that("the sbhaz note is left out when a sbhaz row priors the baseline", {
-  fit <- frm(bf(time | cens(cens) ~ x), family = cox(),
+  skip_if_not_installed("frmtmb.survival")
+  fit <- frm(bf(time | cens(cens) ~ x), family = frmtmb.survival::cox(),
              data = cox_draws_data())
   hit <- function(n) any(grepl("sbhaz: dirichlet(1)", n, fixed = TRUE))
   expect_true(hit(frmtmb.sample:::default_prior_notes(fit)))

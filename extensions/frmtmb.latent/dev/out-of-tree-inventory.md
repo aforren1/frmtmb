@@ -65,3 +65,20 @@ verified by reading `lca_structure()` and core's `check_frame` call
 site. `frmtmb_register_frame_check()` is for a check that must run on
 models the extension's family does NOT appear in, which is the ODE
 package's case, not this one.
+
+## mixture_mvn(), the third family (2026-10-23)
+
+`mixture_mvn()` moved here from core under `dev/core-boundary.md` in
+the frmtmb tree. It had been written against the same protocol as
+`lca()`, so the scan above found one core internal only:
+
+| symbol | who needs it | resolution |
+|---|---|---|
+| `frmtmb_family()`, `frmtmb_structure()`, `structure_supports_all()`, `mixture_posterior()`, `mixture_multimodal_refusals()`, `frm_stop()`, `compat_rule_builder()`, `frmtmb_register_compat()` | `mixture_mvn()`, `mvn_cov_spec()`, `mixture_mvn_compat_rules()` | already exported |
+| `us_sigma(theta, d)` | `mvn_cov_spec()`, the `EEE` and `VVV` models | newly exported and documented on its own help page. The covariance a `us()` parameter vector encodes is what any family with a free covariance matrix needs; a copy here would fork the parameterization `us()` blocks and `VarCorr()` read. |
+
+The compatibility rows went to `mixture_mvn_compat_rules()`, which
+`.onLoad()` registers before the `hmm()` and `lca()` rules, because
+those name `mixture_mvn` and a rule side must resolve when it is
+registered. `test-structure-latent.R`'s export check covers the new
+file as it covers the other two.

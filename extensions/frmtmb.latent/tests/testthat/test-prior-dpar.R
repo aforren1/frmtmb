@@ -94,3 +94,22 @@ test_that("a prior with dpar reaches that class or state only", {
                               set_prior("normal(0, 1)", class = "b",
                                         dpar = "mu1")), "mu1_x")
 })
+
+# From frmtmb's test-prior-location-dpar.R, which pins the same rule on
+# a family built in its own test now that mixture_mvn() is here.
+test_that("mixture_mvn(), which brms does not have, is refused by frmtmb's rule", {
+  set.seed(42)
+  n <- 200
+  cl <- stats::rbinom(n, 1, 0.4)
+  d <- data.frame(x = stats::rnorm(n))
+  d$Y <- cbind(stats::rnorm(n, ifelse(cl == 1, 0, 3)),
+               stats::rnorm(n, ifelse(cl == 1, 0, 4)))
+  m <- pd_msg(validate_prior(set_prior("normal(0, 1)", class = "b"),
+                             bf(Y ~ x) + mixture_mvn(K = 2, D = 2),
+                             data = d))
+  expect_match(m, "frmtmb's rule for a family", fixed = TRUE)
+  expect_no_match(m, "as in brms", fixed = TRUE)
+  expect_identical(pd_reached(bf(Y ~ x), mixture_mvn(K = 2, D = 2), d,
+                              set_prior("normal(0, 1)", class = "b",
+                                        dpar = "mu1d1")), "mu1d1_x")
+})

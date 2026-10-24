@@ -1,0 +1,52 @@
+# frmtmb.survival and frmtmb.spatial each carry a copy of
+# `tests/testthat/helper-absent-package.R`: the library stacks their
+# saved-fit tests read a fit in, where the package is installed but
+# cannot be loaded, or is not installed. The 0.74.0 release fix exists
+# because one package's copy of that logic drifted from the other's
+# (dev/round-20261023.md, "R CMD check --as-cran"). A testthat helper is
+# not installed, so the copies cannot share one file; this job keeps
+# them identical, as scale-helper-identical.yaml does for helper-scale.R.
+# Its master is dev/rel074-helper-absent-package.R, which
+# dev/rel074-release-fix.R copies into both packages.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'extensions/*/tests/testthat/helper-absent-package.R'
+      - '.github/workflows/absent-helper-identical.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'extensions/*/tests/testthat/helper-absent-package.R'
+      - '.github/workflows/absent-helper-identical.yaml'
+  workflow_dispatch:
+
+name: absent-helper-identical
+
+jobs:
+  identical:
+    # Pinned as scale-helper-identical.yaml is (see there).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The two copies must be byte-identical
+        run: |
+          set -eu
+          files=$(ls extensions/*/tests/testthat/helper-absent-package.R)
+          n=$(echo "$files" | wc -l)
+          hashes=$(sha256sum $files | awk '{print $1}' | sort -u | wc -l)
+          echo "$n copies, $hashes distinct hash(es)"
+          sha256sum $files
+          # The COUNT is asserted, so that a deleted copy fails the job:
+          # one file alone still hashes to one distinct value.
+          if [ "$n" -ne 2 ]; then
+            echo "expected 2 copies of helper-absent-package.R, found $n." >&2
+            echo "A package gained or lost its saved-fit tests; update" >&2
+            echo "this number with them." >&2
+            exit 1
+          fi
+          if [ "$hashes" -ne 1 ]; then
+            echo "helper-absent-package.R has drifted between packages." >&2
+            echo "It is copied on purpose and must stay identical." >&2
+            exit 1
+          fi

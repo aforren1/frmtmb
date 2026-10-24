@@ -1120,39 +1120,30 @@ sim_gap_families <- function() {
 
 test_that("a family with no simulator is refused by name at both entry points",
           {
-  gaps <- sim_gap_families()
-  # cox() is the one deliberate refusal: inverting a cumulative baseline
-  # hazard identified only on the observed window has no answer
-  expect_identical(sort(gaps), "cox")
-
+  # every registry family has a simulator: cox(), the one deliberate
+  # refusal, is in frmtmb.survival, whose test-cox.R checks it at both
+  # entry points and checks that it says why
+  expect_identical(sim_gap_families(), character(0))
+  # the guard on a family of this file's own: an exponential with mean
+  # mu and no simulator
+  tnosim <- frmtmb_family(
+    "tnosim", dpars = "mu", links = list(mu = "log"),
+    lpdf = function(y, dpars, aterms) {
+      -log(dpars[["mu"]]) - y / dpars[["mu"]]
+    })
   set.seed(11)
   n <- 60L
   dd <- data.frame(x = rep(c(0, 1), length.out = n))
   dd$y <- stats::rexp(n, rate = exp(-0.2 + 0.5 * dd$x))
-  for (nm in gaps) {
-    fam <- frmtmb:::family_registry[[nm]]()
-    expect_error(
-      frmtmb::frm_simulate(y ~ x, dd, family = fam,
-                           newparams = list(b_Intercept = 0, b_x = 0.5),
-                           nsim = 1L),
-      paste0("family '", nm, "' has no simulator"), fixed = TRUE)
-    fit <- frmtmb::frm(y ~ x, family = fam, data = dd)
-    expect_error(stats::simulate(fit, nsim = 1L),
-                 paste0("family '", nm, "' has no simulator"), fixed = TRUE)
-  }
-})
-
-test_that("cox() states why it has no simulator rather than only that it has none", {
-  # a refusal that gives the reason is the difference between a gap and
-  # a decision, and cox()'s is a decision
-  set.seed(12)
-  dd <- data.frame(x = rep(c(0, 1), length.out = 40L))
-  dd$y <- stats::rexp(40L, rate = exp(-0.2 + 0.5 * dd$x))
+  nm <- "tnosim"
   expect_error(
-    frmtmb::frm_simulate(y ~ x, dd, family = cox(),
+    frmtmb::frm_simulate(y ~ x, dd, family = tnosim,
                          newparams = list(b_Intercept = 0, b_x = 0.5),
                          nsim = 1L),
-    "cumulative baseline hazard")
+    paste0("family '", nm, "' has no simulator"), fixed = TRUE)
+  fit <- frmtmb::frm(y ~ x, family = tnosim, data = dd)
+  expect_error(stats::simulate(fit, nsim = 1L),
+               paste0("family '", nm, "' has no simulator"), fixed = TRUE)
 })
 
 test_that("the deferred categorical() resolves to a family that simulates", {

@@ -20,10 +20,11 @@
 # is the property that lets one loop serve the likelihood, the fitted
 # trajectory and the simulator.
 #
-# ONE SUGGEST IS DELIBERATELY NOT INSTALLED, unlike the spline job,
-# which installs every one of its. rstan is skipped because the identity
-# tier it powers compiles seven Stan programs, which is tens of minutes
-# and a C++ toolchain, and because that tier is gated on
+# ONE SUGGEST IS DELIBERATELY NOT INSTALLED, unlike the survival and
+# spatial jobs, which install every one of theirs. rstan is skipped
+# because the identity tier it powers compiles seven Stan programs,
+# which is tens of minutes and a C++ toolchain, and because that tier
+# is gated on
 # FRMTMB_BRMS_FIT_TESTS in any case; it is run locally and its residuals
 # are recorded in dev/learn-findings.md. The skip is enforced rather
 # than hoped for: the step below filters it out by name.
@@ -117,7 +118,7 @@ jobs:
           if (length(p)) install.packages(p)
         shell: Rscript {0}
       # NOT_CRAN is set at the job level above and is repeated here on
-      # purpose, as in the spline job. Nothing in this suite is gated on
+      # purpose, as in the survival job. Nothing in this suite is gated on
       # NOT_CRAN alone today: the Stan identity tier needs
       # FRMTMB_BRMS_FIT_TESTS as well and stays skipped here, and
       # test-message-uniqueness.R skips itself inside R CMD check because

@@ -13,9 +13,12 @@ mixture_probs(fit)
 A matrix of class probabilities (rows sum to one).
 }
 \description{
-For an ordinary \code{\link[=mixture]{mixture()}} or \code{\link[=mixture_mvn]{mixture_mvn()}} fit, one row per
-observation; for a group-level mixture (\code{groups = ~g}), one row per
-group.
+For an ordinary \code{\link[=mixture]{mixture()}} fit, and for a fit of any family that
+implements the same component interface, such as frmtmb.latent's
+\code{mixture_mvn()} and \code{lca()}, one row per observation; for a
+group-level mixture (\code{groups = ~g}), one row per group. The
+interface is specified under "The mixture component interface" in
+\link{frmtmb-extension-api}.
 }
 \examples{
 set.seed(3)

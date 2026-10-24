@@ -1,14 +1,57 @@
-# Registry of random-effect covariance structures. Each entry supplies:
-#   npar(dim):        number of parameters in `theta` for a block of size dim
-#   nll(b, theta, blk): AD log-density of the block's random effects,
-#                       vectorized over levels (never loop over levels)
-#   vcov(theta, blk): numeric covariance matrix for VarCorr()
-#   start(dim):       starting values for theta
+# Registry of random-effect covariance structures. One entry per
+# structure, and ONE entry shape: the built-in structures below and a
+# structure another package registers with frmtmb_register_covstruct()
+# (R/covstruct-seam.R) are read by the same code through cs_entry(). An
+# entry supplies:
+#
+#   npar(blk)           number of parameters in `theta` for the block
+#   start(blk)          starting values for theta
+#   sd_idx(blk)         positions in theta that are log standard
+#                       deviations
+#   nll(b, theta, blk)  AD log-DENSITY (the name is historical) of the
+#                       block's random effects, summed, vectorized over
+#                       levels (never loop over levels)
+#   vcov(theta, blk)    numeric within-level covariance for VarCorr()
+#
+# and optionally from_natural(), cor_spec(blk), chol_sd(), chol_L(),
+# chol_A() (each documented where it is used), plus:
+#
+#   natural(theta, blk) the rows confint_varcorr() reports, for a block
+#                       that is not a brms grouping-factor block (a
+#                       smooth, a gp(), a car() or spde() field): its
+#                       theta is not a set of sd_<group>__<coef> and
+#                       cor_ parameters. See cs_natural_rows().
+#   draw(theta, blk)    one draw of the block's whole `b`, for a block
+#                       whose levels are correlated; the default draws
+#                       each level from vcov()
+#   levels_coupled      TRUE when a fixed matrix correlates the LEVELS
+#                       (gr(cov =), gr(prec =), car(), spde()): no
+#                       unseen-level law, one unit for the sandwich, no
+#                       per-group integral
+#   expand              list(apply, jacobian, condsd) for a block whose
+#                       coefficients are a fixed linear map of `b`
+#                       (esicar); active on a block with `expands = TRUE`
+#   term                the predictor special that builds the block, for
+#                       a structure that is not written as a bar term:
+#                       list(args, parse, build, levels_of,
+#                       levels_complete, usage)
 #
 # Parameterizations follow glmmTMB's covstruct vignette so that fitted
 # covariances are directly comparable. `b` for a block is level-major: the
 # `dim` coefficients of each level are contiguous (mkReTrms ordering), so
 # matrix(b, nrow = dim) has one level per column.
+
+#' An entry function of the block that reads only its dimension.
+#'
+#' Most structures' parameter count and layout depend on the block's
+#' size alone; a field or a reduced-rank block reads more of the block,
+#' which is why the entry functions take the block and not its size.
+#'
+#' @noRd
+by_dim <- function(f) {
+  force(f)
+  function(blk) f(blk[["dim"]])
+}
 
 #' Lower-triangular Cholesky factor of the correlation matrix behind the
 #' correlation segment of a `us` theta: `C = Lr Lr'`.
@@ -55,14 +98,90 @@ us_theta_cor <- function(C) {
   L[lower.tri(L)]
 }
 
-#' Unstructured d x d covariance from its theta segment (AD-safe).
-#' `floored = TRUE` reads the standard deviations through `sd_floored()`,
-#' as the random-effect blocks do; a family's residual covariance keeps
-#' `exp()`.
+#' Unstructured covariance matrix from its parameter vector
 #'
-#' @noRd
+#' `us_sigma(theta, d)` builds the `d` x `d` covariance matrix that the
+#' parameter vector of a `us()` block of frmtmb encodes, and
+#' `us_theta(S)` is its inverse: the parameter vector whose `us_sigma()`
+#' is `S`.
+#'
+#' The first `d` entries of `theta` are the log standard deviations. The
+#' other `d * (d - 1) / 2` entries fill the strict lower triangle of a
+#' unit-diagonal factor `L` in column-major order: `L[2, 1]`, `L[3, 1]`,
+#' ..., `L[d, 1]`, `L[3, 2]`, and so on. Each row of `L` is then scaled
+#' to unit length, and the correlation matrix is `L L'`. So every real
+#' vector gives a valid covariance matrix, and a vector of zeros gives
+#' the identity. For `d` up to 3 this is the same map as glmmTMB's `us`
+#' structure. From `d = 4` the order differs: glmmTMB fills the same
+#' triangle in row-major order, so a glmmTMB `theta` must be reordered
+#' first.
+#'
+#' `us_sigma()` is AD-safe, so a family can call it inside its density
+#' while the objective is taped. That gives a family a free covariance
+#' matrix as a family-level extra parameter (`extra_pars` of
+#' [frmtmb_family()]): declare `d + d * (d - 1) / 2` values, start them
+#' at `us_theta()` of a starting covariance, and read them through
+#' `us_sigma()` in `lpdf` and in the simulator. The `mixture_mvn()`
+#' family of frmtmb.latent builds its class covariances this way. Off
+#' the tape, `as.matrix()` of the result is an ordinary numeric matrix.
+#' `us_theta()` is numeric only; it runs off the tape.
+#'
+#' @param theta A numeric vector or an RTMB advector of length
+#'   `d + d * (d - 1) / 2`.
+#' @param d The dimension of the matrix, a positive whole number.
+#' @param floored `FALSE` (the default) takes each standard deviation
+#'   as `exp()` of its entry. `TRUE` floors the scale as the
+#'   random-effect blocks of frmtmb do, so that a variance the optimizer
+#'   drives toward zero keeps a finite log-density: it adds `1e-150` to
+#'   each standard deviation when `d >= 2`, and `1e-300` to the variance
+#'   when `d = 1`.
+#' @param S A symmetric positive definite numeric matrix.
+#' @return `us_sigma()`: a `d` x `d` matrix, an advector matrix when
+#'   `theta` is one. `us_theta()`: a numeric vector of length
+#'   `d + d * (d - 1) / 2`, the inverse of `us_sigma(floored = FALSE)`.
+#' @seealso [frmtmb_family()] for `extra_pars`, [frmtmb-robust-dpars]
+#'   for the other helpers a density can call while it is taped, and
+#'   [frmtmb_register_covstruct()] for a covariance structure whose
+#'   `lpdf` or `from_natural` can use the same map.
+#' @examples
+#' # standard deviations 2 and 0.5, and one correlation parameter
+#' S <- us_sigma(c(log(2), log(0.5), 1), 2)
+#' S
+#' cov2cor(as.matrix(S))   # the correlation is 1 / sqrt(2)
+#'
+#' # zero correlation parameters give a diagonal matrix
+#' us_sigma(c(0, 0, 0, 0, 0, 0), 3)
+#'
+#' # the parameters of a given covariance, and back
+#' S3 <- matrix(c(4, 1, 0.5, 1, 2, 0.3, 0.5, 0.3, 1), 3)
+#' th <- us_theta(S3)
+#' th
+#' all.equal(as.matrix(us_sigma(th, 3)), S3)
+#' @export
 us_sigma <- function(theta, d, floored = FALSE) {
-  if (d == 1L) return(RTMB::matrix(exp(2 * theta[1]), 1, 1))
+  # the indexing below does not check the length, and a caller outside
+  # frmtmb is owed a refusal that names the count it needs
+  if (!is.numeric(d) || length(d) != 1L || is.na(d) || d < 1 ||
+        d != round(d)) {
+    # 15 digits, so that a d of 2 + 1e-12 does not print as "2"
+    frm_stop("us_sigma(): `d` must be a positive whole number, not ",
+             if (is.numeric(d) && length(d) == 1L && !is.na(d)) {
+               format(d, digits = 15)
+             } else {
+               arg_desc(d)
+             }, call. = FALSE)
+  }
+  d <- as.integer(d)
+  np <- d + (d * (d - 1L)) %/% 2L
+  if (length(theta) != np) {
+    frm_stop("us_sigma(): a ", d, " x ", d, " matrix takes ", np,
+             " parameters, not ", length(theta), call. = FALSE)
+  }
+  if (d == 1L) {
+    # the 1 x 1 random-effect blocks floor the variance, not the sd
+    v <- if (floored) sd2_floored(theta[1]) else exp(2 * theta[1])
+    return(RTMB::matrix(v, 1, 1))
+  }
   sdv <- if (floored) {
     sd_floored(theta[seq_len(d)])
   } else {
@@ -70,6 +189,37 @@ us_sigma <- function(theta, d, floored = FALSE) {
   }
   C <- us_chol_cor(theta[-seq_len(d)], d)
   C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
+}
+
+#' @rdname us_sigma
+#' @export
+us_theta <- function(S) {
+  if (!is.numeric(S) || !is.matrix(S) || nrow(S) != ncol(S) ||
+        nrow(S) < 1L || anyNA(S) || any(!is.finite(S))) {
+    frm_stop("us_theta(): `S` must be a square numeric matrix with ",
+             "finite entries, not ", arg_desc(S), call. = FALSE)
+  }
+  # a covariance computed in floating point is symmetric only to
+  # rounding, so asymmetry is judged against the matrix's own scale
+  if (max(abs(S - t(S))) > 1e-10 * max(abs(S))) {
+    frm_stop("us_theta(): `S` must be symmetric", call. = FALSE)
+  }
+  if (any(diag(S) <= 0)) {
+    frm_stop("us_theta(): `S` must be positive definite; its diagonal ",
+             "has a value that is not positive", call. = FALSE)
+  }
+  sds <- unname(sqrt(diag(S)))
+  if (nrow(S) == 1L) return(log(sds))
+  C <- S / (sds %o% sds)
+  C <- (C + t(C)) / 2
+  # checked here, so that the refusal names this function and the
+  # covariance the caller passed, not the internal correlation step
+  if (inherits(try(chol(C), silent = TRUE), "try-error")) {
+    frm_stop("us_theta(): `S` must be a positive definite covariance ",
+             "matrix; this one is not, so no us() parameter vector gives ",
+             "it", call. = FALSE)
+  }
+  c(log(sds), us_theta_cor(C))
 }
 
 # A structure that carries `from_natural(sds, C, blk)` can be set from
@@ -551,10 +701,10 @@ ar1_lpdf <- function(b, sdv, tphi, d) {
     0.5 * (sum(z1 * z1) + inv_omr2 * sum(e * e))
 }
 
-covstruct_registry <- list(
+covstruct_core <- list(
   us = list(
-    npar = function(dim) dim + dim * (dim - 1L) / 2L,
-    sd_idx = function(dim) seq_len(dim),
+    npar = by_dim(function(dim) dim + dim * (dim - 1L) / 2L),
+    sd_idx = by_dim(function(dim) seq_len(dim)),
     from_natural = function(sds, C, blk) {
       if (blk[["dim"]] == 1L) return(log(sds[1L]))
       c(log(sds), us_theta_cor(C))
@@ -585,11 +735,11 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
+    start = by_dim(function(dim) numeric(dim + dim * (dim - 1L) / 2L))
   ),
   diag = list(
-    npar = function(dim) dim,
-    sd_idx = function(dim) seq_len(dim),
+    npar = by_dim(function(dim) dim),
+    sd_idx = by_dim(function(dim) seq_len(dim)),
     from_natural = function(sds, C, blk) log(sds),
     nll = function(b, theta, blk) {
       sdv <- rep(exp(theta), times = blk[["n_levels"]])
@@ -600,14 +750,14 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) numeric(dim)
+    start = by_dim(function(dim) numeric(dim))
   ),
   # Student-t latents, brms `gr(g, dist = "student")`. Same theta as the
   # gaussian `us` block, plus a FIXED `blk$dist_nu`. `theta` holds the
   # SCALE, not the standard deviation. See student_lpdf().
   us_t = list(
-    npar = function(dim) dim + dim * (dim - 1L) / 2L,
-    sd_idx = function(dim) seq_len(dim),
+    npar = by_dim(function(dim) dim + dim * (dim - 1L) / 2L),
+    sd_idx = by_dim(function(dim) seq_len(dim)),
     from_natural = function(sds, C, blk) {
       if (blk[["dim"]] == 1L) return(log(sds[1L]))
       c(log(sds), us_theta_cor(C))
@@ -630,11 +780,11 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
+    start = by_dim(function(dim) numeric(dim + dim * (dim - 1L) / 2L))
   ),
   diag_t = list(
-    npar = function(dim) dim,
-    sd_idx = function(dim) seq_len(dim),
+    npar = by_dim(function(dim) dim),
+    sd_idx = by_dim(function(dim) seq_len(dim)),
     from_natural = function(sds, C, blk) log(sds),
     nll = function(b, theta, blk) {
       d <- blk[["dim"]]
@@ -654,11 +804,11 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) numeric(dim)
+    start = by_dim(function(dim) numeric(dim))
   ),
   homdiag = list(
-    npar = function(dim) 1L,
-    sd_idx = function(dim) 1L,
+    npar = by_dim(function(dim) 1L),
+    sd_idx = by_dim(function(dim) 1L),
     from_natural = function(sds, C, blk) homogeneous_sd(sds,
                                                         blk[["covstruct"]]),
     nll = function(b, theta, blk) {
@@ -669,13 +819,13 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) 0
+    start = by_dim(function(dim) 0)
   ),
   # Homogeneous AR(1) over the term's factor levels, glmmTMB
   # parameterization: theta = (log sd, phi) with rho = phi/sqrt(1+phi^2).
   ar1 = list(
-    npar = function(dim) 2L,
-    sd_idx = function(dim) 1L,
+    npar = by_dim(function(dim) 2L),
+    sd_idx = by_dim(function(dim) 1L),
     nll = function(b, theta, blk) {
       ar1_lpdf(b, sd_floored(theta[1]), theta[2], blk[["dim"]])
     },
@@ -686,13 +836,13 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) c(0, 0)
+    start = by_dim(function(dim) c(0, 0))
   ),
   # Heterogeneous compound symmetry, glmmTMB-style parameter count (d+1):
   # d log-sds plus one correlation mapped onto (-1/(d-1), 1).
   cs = list(
-    npar = function(dim) dim + 1L,
-    sd_idx = function(dim) seq_len(dim),
+    npar = by_dim(function(dim) dim + 1L),
+    sd_idx = by_dim(function(dim) seq_len(dim)),
     nll = function(b, theta, blk) {
       d <- blk[["dim"]]
       sdv <- sd_floored(theta[seq_len(d)])
@@ -713,7 +863,7 @@ covstruct_registry <- list(
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) numeric(dim + 1L)
+    start = by_dim(function(dim) numeric(dim + 1L))
   )
 )
 
@@ -764,9 +914,9 @@ sd_floored <- function(log_sd) exp(log_sd) + 1e-150
 # Continuous-position AR / exponential covariance over num_factor()
 # levels: Sigma_ij = sd^2 * exp(-rate * |t_i - t_j|). theta = (log sd,
 # log rate); blk$aux_D holds the distance matrix.
-covstruct_registry[["ou"]] <- list(
-  npar = function(dim) 2L,
-  sd_idx = function(dim) 1L,
+covstruct_core[["ou"]] <- list(
+  npar = by_dim(function(dim) 2L),
+  sd_idx = by_dim(function(dim) 1L),
   nll = function(b, theta, blk) {
     Sigma <- sd2_floored(theta[1]) * exp(-exp(theta[2]) * blk[["aux_D"]])
     dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
@@ -777,16 +927,16 @@ covstruct_registry[["ou"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) c(0, 0)
+  start = by_dim(function(dim) c(0, 0))
 )
 
 # Heterogeneous Toeplitz (glmmTMB parameter count 2 * dim - 1): d
 # log-sds plus banded correlations rho_k = phi_k / sqrt(1 + phi_k^2).
 # PD is not guaranteed for every parameter value (same as glmmTMB); the
 # optimizer stays in the feasible region.
-covstruct_registry[["toep"]] <- list(
-  npar = function(dim) 2L * dim - 1L,
-  sd_idx = function(dim) seq_len(dim),
+covstruct_core[["toep"]] <- list(
+  npar = by_dim(function(dim) 2L * dim - 1L),
+  sd_idx = by_dim(function(dim) seq_len(dim)),
   nll = function(b, theta, blk) {
     "[<-" <- RTMB::ADoverload("[<-")
     d <- blk[["dim"]]
@@ -813,13 +963,13 @@ covstruct_registry[["toep"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) numeric(2L * dim - 1L)
+  start = by_dim(function(dim) numeric(2L * dim - 1L))
 )
 
 # Heterogeneous AR(1): d log-sds plus one phi (rho = phi/sqrt(1+phi^2)).
-covstruct_registry[["hetar1"]] <- list(
-  npar = function(dim) dim + 1L,
-  sd_idx = function(dim) seq_len(dim),
+covstruct_core[["hetar1"]] <- list(
+  npar = by_dim(function(dim) dim + 1L),
+  sd_idx = by_dim(function(dim) seq_len(dim)),
   nll = function(b, theta, blk) {
     d <- blk[["dim"]]
     ar1_lpdf(b, sd_floored(theta[seq_len(d)]), theta[d + 1L], d)
@@ -832,14 +982,14 @@ covstruct_registry[["hetar1"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) numeric(dim + 1L)
+  start = by_dim(function(dim) numeric(dim + 1L))
 )
 
 # Homogeneous compound symmetry: one log-sd plus one correlation on
 # (-1/(d-1), 1).
-covstruct_registry[["homcs"]] <- list(
-  npar = function(dim) 2L,
-  sd_idx = function(dim) 1L,
+covstruct_core[["homcs"]] <- list(
+  npar = by_dim(function(dim) 2L),
+  sd_idx = by_dim(function(dim) 1L),
   nll = function(b, theta, blk) {
     d <- blk[["dim"]]
     a <- 1 / (d - 1)
@@ -857,13 +1007,13 @@ covstruct_registry[["homcs"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) c(0, 0)
+  start = by_dim(function(dim) c(0, 0))
 )
 
 # Homogeneous Toeplitz: one log-sd plus d-1 banded correlations.
-covstruct_registry[["homtoep"]] <- list(
-  npar = function(dim) dim,
-  sd_idx = function(dim) 1L,
+covstruct_core[["homtoep"]] <- list(
+  npar = by_dim(function(dim) dim),
+  sd_idx = by_dim(function(dim) 1L),
   nll = function(b, theta, blk) {
     "[<-" <- RTMB::ADoverload("[<-")
     d <- blk[["dim"]]
@@ -888,7 +1038,7 @@ covstruct_registry[["homtoep"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) numeric(dim)
+  start = by_dim(function(dim) numeric(dim))
 )
 
 #' Spatial structures over num_factor() coordinates (blk$aux_D holds the
@@ -898,8 +1048,8 @@ covstruct_registry[["homtoep"]] <- list(
 #' @noRd
 spatial_entry <- function(corr_fn, npar_k) {
   list(
-    npar = function(dim) npar_k,
-    sd_idx = function(dim) 1L,
+    npar = by_dim(function(dim) npar_k),
+    sd_idx = by_dim(function(dim) 1L),
     nll = function(b, theta, blk) {
       Sigma <- sd2_floored(theta[1]) * corr_fn(blk[["aux_D"]], theta)
       dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
@@ -911,15 +1061,15 @@ spatial_entry <- function(corr_fn, npar_k) {
       dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
-    start = function(dim) numeric(npar_k)
+    start = by_dim(function(dim) numeric(npar_k))
   )
 }
 
-covstruct_registry[["exp"]] <- spatial_entry(
+covstruct_core[["exp"]] <- spatial_entry(
   function(D, theta) exp(-D / exp(theta[2])), 2L
 )
 
-covstruct_registry[["gau"]] <- spatial_entry(
+covstruct_core[["gau"]] <- spatial_entry(
   function(D, theta) exp(-(D / exp(theta[2]))^2), 2L
 )
 
@@ -930,7 +1080,7 @@ covstruct_registry[["gau"]] <- spatial_entry(
 # the optimizer cannot step into 0 * Inf territory (which is where both
 # we and glmmTMB otherwise die). Compare fits at the covariance level,
 # not the theta level.
-covstruct_registry[["mat"]] <- spatial_entry(
+covstruct_core[["mat"]] <- spatial_entry(
   function(D, theta) {
     d <- nrow(D)
     mask <- as.numeric(D > 0)
@@ -951,9 +1101,9 @@ covstruct_registry[["mat"]] <- spatial_entry(
 # dimension d * n_levels; the Kronecker product is assembled from
 # precomputed index maps (blk$aux_kron). Dense solve: fine into the
 # hundreds of levels, revisit (sparse precision) for thousands.
-covstruct_registry[["gr_cov"]] <- list(
-  npar = function(dim) dim + dim * (dim - 1L) / 2L,
-  sd_idx = function(dim) seq_len(dim),
+covstruct_core[["gr_cov"]] <- list(
+  npar = by_dim(function(dim) dim + dim * (dim - 1L) / 2L),
+  sd_idx = by_dim(function(dim) seq_len(dim)),
   # the natural values describe the WITHIN-level covariance; the
   # across-level structure is the fixed matrix A
   from_natural = function(sds, C, blk) {
@@ -982,7 +1132,7 @@ covstruct_registry[["gr_cov"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
+  start = by_dim(function(dim) numeric(dim + dim * (dim - 1L) / 2L))
 )
 
 # Known-precision random effects: level-major b ~ N(0, Q^-1 (x) Sigma)
@@ -997,9 +1147,9 @@ covstruct_registry[["gr_cov"]] <- list(
 # block per stored entry of Q). It is assembled on the tape as an
 # AD-weighted sum of the fixed sparse matrices Q (x) E_ab (blk$aux_Qk),
 # so nothing but the d(d+1)/2 weights depends on the parameters.
-covstruct_registry[["gr_prec"]] <- list(
-  npar = function(dim) dim + dim * (dim - 1L) / 2L,
-  sd_idx = function(dim) seq_len(dim),
+covstruct_core[["gr_prec"]] <- list(
+  npar = by_dim(function(dim) dim + dim * (dim - 1L) / 2L),
+  sd_idx = by_dim(function(dim) seq_len(dim)),
   # the natural values describe the WITHIN-level covariance; the
   # across-level structure is the fixed precision Q
   from_natural = function(sds, C, blk) {
@@ -1033,7 +1183,7 @@ covstruct_registry[["gr_prec"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
+  start = by_dim(function(dim) numeric(dim + dim * (dim - 1L) / 2L))
 )
 
 #' Index maps for the level-major dense Kronecker covariance
@@ -1076,652 +1226,6 @@ kron_prec_parts <- function(Q, d) {
     }
   }
   out
-}
-
-# ------------------------------------------------------- CAR / ICAR / BYM2
-#
-# Spatial conditional-autoregressive fields over a fixed adjacency
-# matrix - brms's car(M, gr = g, type = ). The field lives on the
-# grouping levels (one intercept per location), so the block is
-# dim = 1 with n_levels locations, exactly like gr(prec = Q); what
-# car() adds is that the precision is BUILT from the graph and carries
-# its own hyperparameters.
-#
-# Parameterization follows brms: theta = log(sdcar) for the intrinsic
-# forms and (log sdcar, logit rho) for the two that mix, with
-# tau = 1 / sdcar^2 the precision multiplier.
-#
-#   escar    Q = tau (D - rho W), proper for rho in (0, 1); no
-#            constraint, because a proper CAR needs none
-#   esicar   Q = tau (D - W) on the sum-to-zero subspace, the
-#            constraint imposed EXACTLY
-#   icar     the same intrinsic precision under a SOFT sum-to-zero
-#            constraint, brms's normal(sum(zcar) | 0, con_sd Nloc)
-#   bym2     sd^2 [(1 - rho) I + (rho / scale) K^-1], the
-#            Riebler et al. scaled mixture brms implements
-#
-# esicar and icar are two different models, as they are in brms. The
-# two spellings selected one density here through 0.51.0; what each one
-# now costs is below.
-#
-# THE NORMALIZING CONSTANT is analytic in every case, so no
-# normalize-trick / on-tape log-determinant is needed and the density
-# costs one sparse matrix-vector product:
-#
-#   escar   log|Q| = n log tau + sum_i log d_i + sum_i log(1 - rho e_i)
-#           with e_i the eigenvalues of D^-1/2 W D^-1/2 (fixed data).
-#   icar    the graph Laplacian L = D - W is rank n - c with c the
-#           number of connected components, so log|Q|* = (n - c) log
-#           tau + log|L|*. The soft constraint below turns that into an
-#           exact n log tau.
-#   esicar  the pseudo-determinant itself, (n - c) log tau + log|L|*,
-#           which is what brms's sparse_icar_lpdf computes.
-#
-# THE SUM-TO-ZERO CONSTRAINT. An intrinsic CAR is improper: L
-# annihilates the indicator s_j of each connected component, so shifting
-# the field inside a component and the intercept the other way leaves
-# the likelihood untouched and the ML problem is rank deficient, not
-# merely ill conditioned. The two intrinsic types answer that
-# differently, and both answers are brms's.
-#
-# icar, the SOFT answer. A rank-c update rides on tau:
-#
-#   Q(tau) = tau * K,   K = L + sum_j kappa_j s_j s_j',
-#   kappa_j = 1 / (con_sd n_j)^2,
-#
-# with n_j the size of component j. K is fixed data, so
-# log|Q| = n log tau + log|K| is exact and constant-free. The component
-# sums are pinned at an sd of con_sd n_j sdcar rather than exactly
-# zero, which is the same model as an extra random intercept of sd
-# con_sd sdcar per component. That intercept is confounded with beta_0,
-# and its convolution IS the bias against the exact constraint:
-# measured on a 4 x 4 lattice, 1e-3 is off by 4.7e-4 in the
-# log-likelihood (3.6e-5 relative in sdcar), 1e-4 by 4.7e-6 (3.6e-7),
-# 1e-5 by 4.5e-8 (3.7e-9), 1e-6 by 9.2e-10, and 1e-7 loses to roundoff
-# (1.1e-4). Tightening also costs optimizer robustness. The constraint
-# direction carries a factor con_sd^-2 of the block Hessian, and over 25
-# lattice refits nlminb reported false convergence 0 times at 1e-3, once
-# at 1e-4 and 6 times at 1e-5, so the loose default is the better trade.
-# con_sd defaults to brms's 1e-3, so the same call is the same model
-# here and there.
-#
-# esicar, the EXACT answer, and it never solves a constrained problem.
-# The field that reaches the linear predictor is the CENTERED b,
-#
-#   c = b - sum_j s_j (s_j'b / n_j),
-#
-# applied in expand_b(), so 1'c = 0 within every component by
-# construction. The component means m_j = s_j'b / n_j are then inert:
-# they enter no linear predictor and no cross term. Give them a
-# tau-FREE density and the block precision is
-#
-#   Q(tau) = tau L + P0,   P0 = sum_j kappa_j s_j s_j',
-#
-# which is block diagonal on the orthogonal split R^n = range(L) plus
-# span{s_j}, because L kills every s_j and P0 kills everything
-# orthogonal to them. Three consequences, and they are the design:
-#
-#   1. log|Q| = (n - c) log tau + log|K| with the SAME K icar builds,
-#      since |tau L + P0| and |L + P0| differ only on range(L). The
-#      pseudo-determinant is exact and costs no new factorization.
-#   2. p(b) = p_hard(c) * prod_j N(m_j; 0, con_sd^2) exactly, and the
-#      predictor depends on c alone, so the m integral is 1 and the
-#      marginal likelihood IS the hard-constrained one. The Laplace
-#      approximation splits the same way, with an exactly Gaussian m
-#      block, so this holds to machine precision and not in a limit.
-#   3. logLik() is INVARIANT to con_sd, which is the signature that
-#      separates the two types: icar's moves with it and esicar's does
-#      not. con_sd only scales an inert coordinate here, and it is left
-#      at kappa_j so that the block Hessian's conditioning is icar's.
-#
-# m* = 0 exactly at the mode, because the m block is quadratic and
-# decoupled and one Newton step lands on it. So `b` is already centered
-# wherever anything reads it, and the inert coordinate carries variance
-# con_sd^2 = 1e-6, four orders below sdcar^2 on any real fit. That is
-# why the conditional-mode standard errors need no branch of their own.
-#
-# brms constrains the GLOBAL sum for esicar (rcar[Nloc] = -sum(zcar))
-# and normalizes by (Nloc - 1) log tau, which is right for a connected
-# graph and improper otherwise. The per-component form above agrees
-# with brms whenever c = 1 and stays proper when it is not.
-#
-# The price of any sum-to-zero constraint is a dense rank-c update
-# inside the block's Laplace Hessian, which caps the practical field
-# size in the low thousands.
-car_con_sd_default <- 1e-3
-car_types <- c("escar", "esicar", "icar", "bym2")
-
-#' brms's validate_car_matrix plus the level matching data_ac() does: a
-#' symmetric binary adjacency over exactly the locations the data show,
-#' in the block's level order.
-#'
-#' @noRd
-car_adjacency <- function(M, locs) {
-  if (length(dim(M)) != 2L || nrow(M) != ncol(M)) {
-    frm_stop("car(): M must be a square adjacency matrix", call. = FALSE)
-  }
-  Md <- as.matrix(M)
-  # NA first: every check below compares, and a comparison against NA is
-  # NA, which reaches the user as "missing value where TRUE/FALSE
-  # needed" from isSymmetric() - naming neither the matrix nor the cell
-  if (anyNA(Md)) {
-    bad <- which(is.na(Md), arr.ind = TRUE)
-    frm_stop("car(): M has ", nrow(bad), " missing entry/entries (the first ",
-             "at row ", bad[1L, 1L], ", column ", bad[1L, 2L], "); an ",
-             "adjacency matrix needs a 0 for every non-neighbor pair",
-             call. = FALSE)
-  }
-  # Locations are matched by NAME, so one set of names is enough - but
-  # when both are present they have to agree, or the row a location gets
-  # and the column it gets are two different places.
-  rn <- rownames(Md)
-  cn <- colnames(Md)
-  if (is.null(rn) && is.null(cn)) {
-    frm_stop("car(): M needs dimnames naming the locations", call. = FALSE)
-  }
-  if (!is.null(rn) && !is.null(cn) && !identical(rn, cn)) {
-    frm_stop("car(): M's rownames and colnames must name the same locations ",
-             "in the same order", call. = FALSE)
-  }
-  nms <- rn %||% cn
-  dup <- unique(nms[duplicated(nms)])
-  if (length(dup)) {
-    frm_stop("car(): M names location(s) ",
-             paste(utils::head(dup, 5), collapse = ", "),
-             " more than once", call. = FALSE)
-  }
-  miss <- setdiff(locs, nms)
-  if (length(miss)) {
-    frm_stop("car(): M has no row for location(s) ",
-             paste(utils::head(miss, 5), collapse = ", "),
-             if (length(miss) > 5) " ..." else "", call. = FALSE)
-  }
-  # positional subsetting, so a matrix carrying only rownames (or only
-  # colnames) is read exactly like one carrying both
-  pos <- match(locs, nms)
-  W <- methods::as(Matrix::Matrix(Md[pos, pos, drop = FALSE],
-                                  sparse = TRUE), "generalMatrix")
-  if (!Matrix::isSymmetric(W, check.attributes = FALSE)) {
-    frm_stop("car(): M must be symmetric", call. = FALSE)
-  }
-  if (any(Matrix::diag(W) != 0)) {
-    frm_stop("car(): M must have a zero diagonal (no location neighbors ",
-             "itself)", call. = FALSE)
-  }
-  W <- methods::as(W, "CsparseMatrix")
-  # brms's validate_car_matrix reads an adjacency as non-negative
-  # weights. Binarizing a negative entry would turn a stated repulsion
-  # into a neighbor, so refuse it rather than reinterpret it.
-  if (any(W@x < 0)) {
-    frm_stop("car(): M has ", sum(W@x < 0), " negative entry/entries (the ",
-             "smallest is ", format(min(W@x), digits = 4), "); an adjacency ",
-             "matrix holds non-negative weights", call. = FALSE)
-  }
-  if (any(W@x != 1)) {
-    frm_message("car(): converting all non-zero values in M to 1.")
-    W@x[W@x != 1] <- 1
-  }
-  dimnames(W) <- list(locs, locs)
-  W
-}
-
-#' The three finite-element matrices, under either the INLA (M0/M1/M2)
-#' or the fmesher (c0/g1/g2) spelling. The mesh size is whatever the
-#' matrices say it is - see spde_node_index() for why the data cannot be
-#' asked instead.
-#'
-#' @noRd
-spde_matrices <- function(fem) {
-  nms <- names(fem) %||% character(0)
-  key <- if (all(c("M0", "M1", "M2") %in% nms)) c("M0", "M1", "M2")
-         else if (all(c("c0", "g1", "g2") %in% nms)) c("c0", "g1", "g2")
-         else NULL
-  if (is.null(key)) {
-    frm_stop("spde(): fem must be a list holding M0, M1, M2 (INLA) or ",
-             "c0, g1, g2 (fmesher::fm_fem)", call. = FALSE)
-  }
-  M0 <- fem[[key[1L]]]
-  if (length(dim(M0)) != 2L || nrow(M0) != ncol(M0)) {
-    frm_stop("spde(): ", key[1L], " must be a square matrix, one row per ",
-             "mesh node", call. = FALSE)
-  }
-  n <- nrow(M0)
-  out <- list()
-  for (i in seq_along(key)) {
-    Mi <- fem[[key[i]]]
-    if (length(dim(Mi)) != 2L || nrow(Mi) != n || ncol(Mi) != n) {
-      frm_stop("spde(): ", key[i], " is ",
-               paste(dim(Mi) %||% length(Mi), collapse = " x "), " but ",
-               key[1L], " has ", n, " mesh nodes; the three finite-element ",
-               "matrices must be square and the same size", call. = FALSE)
-    }
-    out[[c("M0", "M1", "M2")[i]]] <-
-      methods::as(methods::as(Matrix::Matrix(Mi, sparse = TRUE),
-                              "generalMatrix"), "CsparseMatrix")
-  }
-  out
-}
-
-#' Node indices for an spde() grouping variable.
-#'
-#' The finite-element matrices are indexed by mesh ROW NUMBER and carry
-#' no dimnames to match labels against, so nothing reconciles a level
-#' ordering with the mesh. Deriving the ordering from the grouping
-#' variable - factor levels, or sort(unique(as.character(gv))) - reads
-#' integer node ids lexicographically ("1", "10", "11", "2", ...), which
-#' permutes the field against its own precision and converges silently to
-#' a different model. The contract is therefore explicit: gr holds mesh
-#' row indices, in 1..nrow(M0). Anything else is refused rather than
-#' guessed at. Unobserved nodes are fine (they keep their prior); gaps
-#' are not an error.
-#'
-#' @noRd
-spde_node_index <- function(gv, n, gr_expr) {
-  idx <- spde_node_numeric(gv)
-  if (is.null(idx) || any(idx != trunc(idx))) {
-    frm_stop("spde(): mesh nodes are indexed by their ROW NUMBER in the ",
-             "finite-element matrices, which carry no location names, so ",
-             "gr must hold whole-number node indices in 1..", n, "; '",
-             deparse1(gr_expr), "' holds labels that are not whole numbers. ",
-             "Map each observation onto its mesh row first and pass those ",
-             "indices as gr", call. = FALSE)
-  }
-  idx <- as.integer(idx)
-  bad <- unique(idx[idx < 1L | idx > n])
-  if (length(bad)) {
-    frm_stop("spde(): gr = ", deparse1(gr_expr), " holds node index/indices ",
-             paste(utils::head(sort(bad), 5), collapse = ", "),
-             ", outside the mesh's 1..", n, " rows", call. = FALSE)
-  }
-  idx
-}
-
-#' The numeric node ids behind an spde() grouping variable, or NULL when
-#' the values are not numbers. A factor is read through its LEVELS, never
-#' its integer codes: the codes are a level ordering, which is exactly
-#' the thing that must not decide mesh rows.
-#'
-#' @noRd
-spde_node_numeric <- function(gv) {
-  v <- if (is.factor(gv)) {
-    lv <- suppressWarnings(as.numeric(levels(gv)))
-    if (anyNA(lv)) return(NULL)
-    lv[as.integer(gv)]
-  } else if (is.numeric(gv)) {
-    as.numeric(gv)
-  } else {
-    w <- suppressWarnings(as.numeric(as.character(gv)))
-    if (anyNA(w)) return(NULL)
-    w
-  }
-  if (anyNA(v)) NULL else v
-}
-
-#' The block level labels an spde() grouping variable maps onto, used by
-#' both frame assembly and newdata prediction so the two spellings of a
-#' node ("3", 3L, factor "3") always land on the same column.
-#'
-#' @noRd
-spde_node_labels <- function(gv) {
-  v <- spde_node_numeric(gv)
-  if (is.null(v) || any(v != trunc(v))) return(as.character(gv))
-  as.character(as.integer(v))
-}
-
-#' Number of `theta` entries a CAR block needs. The two types that mix an
-#' independent part with the spatial one carry a `rho`; the intrinsic
-#' forms do not.
-#'
-#' @noRd
-car_npar <- function(type) if (type %in% c("escar", "bym2")) 2L else 1L
-
-#' Starting `theta` for a CAR block: unit `sdcar`, and `rho` at the middle
-#' of its range where the type has one.
-#'
-#' @noRd
-car_start <- function(type) numeric(car_npar(type))
-
-# brms bounds both mixing parameters on (0, 1)
-#' Maps an unbounded `theta` entry onto a CAR mixing parameter in (0, 1).
-#'
-#' @noRd
-car_rho <- function(x) 1 / (1 + exp(-x))
-
-#' Connected components of a symmetric adjacency matrix, by breadth-first
-#' sweep over the sparse column pattern (isolated levels are their own
-#' component, which is what the rank correction counts).
-#'
-#' @noRd
-car_components <- function(W) {
-  n <- nrow(W)
-  Wt <- methods::as(W, "TsparseMatrix")
-  nbr <- split(c(Wt@j + 1L, Wt@i + 1L),
-               factor(c(Wt@i + 1L, Wt@j + 1L), levels = seq_len(n)))
-  comp <- integer(n)
-  k <- 0L
-  for (s in seq_len(n)) {
-    if (comp[s]) next
-    k <- k + 1L
-    queue <- s
-    comp[s] <- k
-    while (length(queue)) {
-      v <- queue[1L]
-      queue <- queue[-1L]
-      nb <- nbr[[v]]
-      new <- nb[comp[nb] == 0L]
-      if (length(new)) {
-        comp[new] <- k
-        queue <- c(queue, unique(new))
-      }
-    }
-  }
-  comp
-}
-
-#' brms's scaling factor for BYM2 (brms:::.car_scale): the geometric mean
-#' of the marginal variances of a unit-scale ICAR field under the
-#' sum-to-zero constraint. Reproduced here (perturbation included) so the
-#' rho of a bym2 fit means what it means in brms.
-#'
-#' @noRd
-car_scale_factor <- function(W) {
-  n <- nrow(W)
-  Q <- Matrix::Diagonal(n, Matrix::rowSums(W)) - W
-  Q <- Q + Matrix::Diagonal(n) * max(Matrix::diag(Q)) *
-    sqrt(.Machine$double.eps)
-  Sigma <- Matrix::solve(Q)
-  A <- matrix(1, 1, n)
-  Wc <- Sigma %*% t(A)
-  Sigma <- Sigma - Wc %*% solve(A %*% Wc) %*% Matrix::t(Wc)
-  exp(mean(log(Matrix::diag(Sigma))))
-}
-
-#' Everything the density needs, precomputed once from the adjacency
-#' matrix over the grouping levels. `type` decides which fields matter;
-#' all of them are fixed data.
-#'
-#' @noRd
-car_aux <- function(W, type, con_sd = car_con_sd_default) {
-  n <- nrow(W)
-  deg <- as.numeric(Matrix::rowSums(W))
-  # Csparse, not just generalMatrix: `L %*% b` runs on the tape for
-  # esicar, and RTMB's sparse product wants the compressed form
-  L <- methods::as(methods::as(Matrix::Diagonal(n, deg) - W,
-                               "generalMatrix"), "CsparseMatrix")
-  aux <- list(type = type, n = n, W = W, L = L, deg = deg)
-  if (type == "escar") {
-    if (any(deg == 0)) {
-      frm_stop("car(type = \"escar\"): every location needs at least one ",
-               "neighbor; location(s) ",
-               paste(rownames(W)[deg == 0], collapse = ", "),
-               " have none. Use type = \"icar\" instead", call. = FALSE)
-    }
-    isq <- diag(1 / sqrt(deg), nrow = n)
-    ev <- eigen(isq %*% as.matrix(W) %*% isq, symmetric = TRUE,
-                only.values = TRUE)$values
-    # The normalized adjacency's spectrum lies in [-1, 1], but LAPACK
-    # returns the extreme eigenvalues a few ulp outside it. The density
-    # takes log(1 - rho * eig) with rho = plogis(theta2), which reaches
-    # 1 to double precision by theta2 = 36: a stray eig = 1 + 2e-16
-    # makes the argument negative and the whole objective NaN, and the
-    # optimizer only reports "NA/NaN function evaluation". Clamping
-    # costs nothing elsewhere - the determinant is unchanged to twelve
-    # digits - and keeps the boundary evaluable.
-    aux$eigW <- pmin(pmax(ev, -1), 1)
-    aux$ldet_deg <- sum(log(deg))
-    return(aux)
-  }
-  comp <- car_components(W)
-  nj <- as.numeric(table(comp))
-  aux$con_sd <- con_sd
-  aux$kappa0 <- 1 / (con_sd * nj)^2
-  aux$Sgrp <- Matrix::sparseMatrix(i = comp, j = seq_len(n), x = 1,
-                                   dims = c(length(nj), n))
-  K <- L + Matrix::t(aux$Sgrp) %*% Matrix::Diagonal(length(nj),
-                                                    aux$kappa0) %*%
-    aux$Sgrp
-  aux$K <- methods::as(methods::as(K, "generalMatrix"), "CsparseMatrix")
-  aux$ldet_K <- as.numeric(Matrix::determinant(aux$K,
-                                               logarithm = TRUE)$modulus)
-  aux$n_comp <- length(nj)
-  aux$comp <- comp
-  aux$nj <- nj
-  if (type == "bym2") {
-    # the scaled mixture needs the covariance of the unit-scale ICAR
-    aux$Kinv <- as.matrix(Matrix::solve(aux$K))
-    aux$scale <- car_scale_factor(W)
-  }
-  aux
-}
-
-#' The esicar field: `b` with each connected component's mean removed,
-#' so that the vector the linear predictor sees sums to zero within
-#' every component by construction. Runs on the tape (advector `b`) and
-#' off it, because expand_b() is the numeric path too.
-#'
-#' @noRd
-car_center <- function(b, a) {
-  m <- as.vector(a[["Sgrp"]] %*% b) / a[["nj"]]
-  b - m[a[["comp"]]]
-}
-
-#' The derivative of `car_center()`. `d(field)/d(b)` is the
-#' per-component centering projection
-#' `P = I - sum_j (1 / n_j) s_j s_j'`, returned as triplets in
-#' WITHIN-BLOCK positions for the caller to map through `c_idx` and
-#' `b_idx`.
-#'
-#' It lives beside `car_center()` because the two have to agree. While
-#' the delta method paired the `Z` columns with `b` through the
-#' identity, every prediction standard error and every `ranef()`
-#' conditional SD carried the component means - a coordinate the
-#' predictor never sees and the data never speak to - as exactly
-#' `con_sd^2` in the variance.
-#'
-#' A singleton component contributes NO entries: `b_i - b_i` is
-#' identically zero, so its row and column of `P` are structurally
-#' empty and its field is a constant, not a random variable.
-#'
-#' @noRd
-car_center_jacobian <- function(a) {
-  ii <- integer(0); jj <- integer(0); xx <- numeric(0)
-  for (mem in split(seq_len(a[["n"]]), a[["comp"]])) {
-    k <- length(mem)
-    if (k == 1L) next
-    ii <- c(ii, rep(mem, times = k))
-    jj <- c(jj, rep(mem, each = k))
-    xx <- c(xx, as.vector(diag(1, k) - 1 / k))
-  }
-  list(i = ii, j = jj, x = xx)
-}
-
-#' Conditional SDs of the esicar FIELD, from the variances of `b` that
-#' `sdreport()` returns. `ranef()` displays `P b`, so it has to report
-#' `diag(P V P')` rather than `diag(V)`.
-#'
-#' In closed form rather than by materializing `V`. The block precision
-#' `tau L + P0` is block diagonal on the orthogonal split
-#' `b = f + sum_j m_j s_j`, and `m` enters neither the data term nor any
-#' cross term, so `V = cov(f) + sum_j con_sd^2 s_j s_j'` with the two
-#' terms orthogonal, `P` annihilates the second exactly, and
-#'
-#'     diag(P V P') = diag(V) - con_sd^2
-#'
-#' at every level of every component. `n_j` does not enter, because
-#' `var(m_j)` is `con_sd^2` whatever the component's size, so a
-#' singleton lands on exactly zero, which is the variance its
-#' identically-zero field must have. `pmax()` is there for that case
-#' only: the subtraction is exact to rounding, and the singleton's
-#' difference can land a few ulp below zero.
-#'
-#' @noRd
-car_center_condsd <- function(v, a) {
-  sqrt(pmax(v - a[["con_sd"]]^2, 0))
-}
-
-#' The esicar block precision at a theta, `tau L + P0`. Unlike icar's
-#' `tau K` the rank-c term does NOT ride on tau: that is what makes the
-#' inert component means tau-free and the marginal likelihood the
-#' hard-constrained one.
-#'
-#' @noRd
-car_esicar_prec <- function(theta, a) {
-  P0 <- Matrix::t(a[["Sgrp"]]) %*%
-    Matrix::Diagonal(a[["n_comp"]], a[["kappa0"]]) %*% a[["Sgrp"]]
-  exp(-2 * theta[1]) * a[["L"]] + P0
-}
-
-#' Numeric covariance of the whole field at a theta (draws, VarCorr
-#' details); off the tape, so a dense solve is fine.
-#'
-#' @noRd
-car_cov <- function(theta, blk) {
-  a <- blk[["aux_car"]]
-  s2 <- exp(2 * theta[1])
-  if (a[["type"]] == "escar") {
-    rho <- car_rho(theta[2])
-    Q <- Matrix::Diagonal(a[["n"]], a[["deg"]]) - rho * a[["W"]]
-    return(s2 * as.matrix(Matrix::solve(Q)))
-  }
-  if (a[["type"]] == "bym2") {
-    rho <- car_rho(theta[2])
-    return(s2 * ((1 - rho) * diag(a[["n"]]) +
-                   (rho / a[["scale"]]) * a[["Kinv"]]))
-  }
-  if (a[["type"]] == "esicar") {
-    # the covariance of `b`, which is what a draw needs; expand_b()
-    # centers it afterwards and the centered draw is the constrained
-    # field. Not s2 * anything: the rank-c term is tau-free.
-    return(as.matrix(Matrix::solve(car_esicar_prec(theta, a))))
-  }
-  s2 * as.matrix(Matrix::solve(a[["K"]]))
-}
-
-covstruct_registry[["car"]] <- list(
-  npar = function(dim) {
-    frm_stop("car npar needs the type; handled at the frame call site",
-             call. = FALSE)
-  },
-  sd_idx = function(dim) 1L,
-  nll = function(b, theta, blk) {
-    a <- blk[["aux_car"]]
-    n <- a[["n"]]
-    if (a[["type"]] == "bym2") {
-      # the mixture has no sparse precision, so the dense marginal
-      # covariance is the honest form; one MVN observation
-      rho <- car_rho(theta[2])
-      Sigma <- RTMB::matrix(
-        (1 - rho) * exp(2 * theta[1]) * as.vector(diag(n)) +
-          (rho * exp(2 * theta[1]) / a[["scale"]]) *
-          as.vector(a[["Kinv"]]), n, n)
-      return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
-    }
-    tau <- exp(-2 * theta[1])
-    if (a[["type"]] == "esicar") {
-      # Q = tau L + P0. The two terms live on complementary invariant
-      # subspaces, so the determinant splits into the pseudo-determinant
-      # brms normalizes by, (n - c) log tau + log|L|*, plus the inert
-      # means' own constant, whose sum with log|L|* IS log|K|.
-      quad_l <- sum(b * as.vector(a[["L"]] %*% b))
-      quad_p <- sum(a[["kappa0"]] * as.vector(a[["Sgrp"]] %*% b)^2)
-      ldet <- (n - a[["n_comp"]]) * log(tau) + a[["ldet_K"]]
-      return(0.5 * (ldet - n * log(2 * pi)) -
-               0.5 * (tau * quad_l + quad_p))
-    }
-    if (a[["type"]] == "escar") {
-      rho <- car_rho(theta[2])
-      quad <- sum(a[["deg"]] * b^2) -
-        rho * sum(b * as.vector(a[["W"]] %*% b))
-      ldet <- n * log(tau) + a[["ldet_deg"]] +
-        sum(log(1 - rho * a[["eigW"]]))
-    } else {
-      quad <- sum(b * as.vector(a[["K"]] %*% b))
-      ldet <- n * log(tau) + a[["ldet_K"]]
-    }
-    0.5 * (ldet - n * log(2 * pi)) - 0.5 * tau * quad
-  },
-  vcov = function(theta, blk) {
-    # sdcar, brms's reported scale; the field covariance is car_cov()
-    matrix(exp(theta[1])^2, 1, 1,
-           dimnames = list("sd(car)", "sd(car)"))
-  },
-  start = function(dim) {
-    frm_stop("car start needs the type; handled at the frame call site",
-             call. = FALSE)
-  }
-)
-
-# ------------------------------------------------------------------ SPDE
-#
-# Gaussian Matern field through the SPDE / finite-element
-# representation (Lindgren-Rue-Lindstrom): on a fixed mesh the field's
-# precision is
-#
-#   Q(kappa, tau) = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2)
-#
-# with M0/M1/M2 (fmesher's c0/g1/g2, INLA's M0/M1/M2) the mesh's finite
-# element matrices - fixed sparse data. Only the three weights depend on
-# the parameters, so the whole precision is an AD-weighted sum of fixed
-# sparse matrices and the log-determinant comes from RTMB's sparse GMRF
-# density; theta = (log tau, log kappa). alpha = 2 (nu = 1 in the plane)
-# is the only order the three-matrix form covers, which is the standard
-# choice and what fm_fem() returns.
-#' Number of `theta` entries for an spde block: `log tau` and `log kappa`.
-#'
-#' @noRd
-spde_npar <- function() 2L
-
-#' Starting `theta` for an spde block: unit `tau` and unit `kappa`.
-#'
-#' @noRd
-spde_start <- function() c(0, 0)
-
-# Range and marginal sd follow the alpha = 2, d = 2 identities
-# (Lindgren et al. 2011 eq. 2): range = sqrt(8 nu)/kappa with nu = 1,
-# sigma^2 = 1 / (4 pi kappa^2 tau^2).
-#' Marginal range of an spde field at a `theta`, on the natural scale.
-#'
-#' @noRd
-spde_range <- function(theta) sqrt(8) / exp(theta[2])
-
-#' Marginal standard deviation of an spde field at a `theta`, on the
-#' natural scale.
-#'
-#' @noRd
-spde_sd <- function(theta) {
-  1 / (exp(theta[1]) * exp(theta[2]) * sqrt(4 * pi))
-}
-
-covstruct_registry[["spde"]] <- list(
-  npar = function(dim) {
-    frm_stop("spde npar is fixed at 2; handled at the frame call site",
-             call. = FALSE)
-  },
-  sd_idx = function(dim) integer(0),
-  nll = function(b, theta, blk) {
-    a <- blk[["aux_spde"]]
-    kap2 <- exp(2 * theta[2])
-    Q <- exp(2 * theta[1]) * (kap2 * kap2 * a[["M0"]] +
-                                (2 * kap2) * a[["M1"]] + a[["M2"]])
-    sum(RTMB::dgmrf(b, 0, Q, log = TRUE))
-  },
-  vcov = function(theta, blk) {
-    matrix(spde_sd(theta)^2, 1, 1,
-           dimnames = list("sd(spde)", "sd(spde)"))
-  },
-  start = function(dim) {
-    frm_stop("spde start is handled at the frame call site", call. = FALSE)
-  }
-)
-
-#' Numeric precision of an spde block at a theta (draws, diagnostics).
-#'
-#' @noRd
-spde_prec <- function(theta, blk) {
-  a <- blk[["aux_spde"]]
-  kap2 <- exp(2 * theta[2])
-  exp(2 * theta[1]) * (kap2 * kap2 * a[["M0"]] + (2 * kap2) * a[["M1"]] +
-                         a[["M2"]])
 }
 
 # Exact Gaussian process over observed positions (gp(...) without k=):
@@ -1769,6 +1273,27 @@ gp_corr <- function(theta, blk) {
   exp(-Q) + diag(gp_nugget, nrow(blk[["aux_D2"]][[1]]))
 }
 
+#' The rows confint_varcorr() reports for a gp() or hsgp() block: the
+#' marginal sd and one range per input dimension (one when iso), each
+#' on the log scale.
+#'
+#' hsgp estimates the lengthscale on brms's rescaled inputs, but the
+#' reported range belongs in data units. The scale factor is a data
+#' constant, so the shift on the log scale is exact and the se rides
+#' through unchanged. The exact gp keeps the raw scale (dmax NULL).
+#'
+#' @noRd
+gp_natural <- function(theta, blk) {
+  log_dmax <- log(blk[["gp_dmax"]] %||% 1)
+  nr <- length(theta) - 1L
+  rng <- if (nr == 1L) "range(gp)" else {
+    paste0("range(gp, ", blk[["gp_vars"]][seq_len(nr)], ")")
+  }
+  list(term = c("sd(gp)", rng), type = c("sd", rep("range", nr)),
+       est = c(theta[1L], theta[1L + seq_len(nr)] + log_dmax),
+       grad = diag(length(theta)))
+}
+
 #' Numeric `K(X*, X)` of a fitted exact-gp block at new coordinates Xnew
 #' (n_new x D) against the block's positions. The nugget rides on
 #' coincident points so kriging at observed positions collapses to
@@ -1787,12 +1312,11 @@ gp_cross_cov <- function(theta, blk, Xnew, pos) {
   exp(2 * theta[1]) * (exp(-Q) + gp_nugget * same)
 }
 
-covstruct_registry[["gp"]] <- list(
-  npar = function(dim) {
-    frm_stop("gp npar needs the dimension count; handled at the frame ",
-             "call site", call. = FALSE)
-  },
-  sd_idx = function(dim) 1L,
+covstruct_core[["gp"]] <- list(
+  # the parameter count follows the input dimension count, not the
+  # block dimension (the positions)
+  npar = function(blk) gp_npar(blk[["gp_D"]], blk[["gp_iso"]]),
+  sd_idx = by_dim(function(dim) 1L),
   nll = function(b, theta, blk) {
     Sigma <- sd2_floored(theta[1]) * gp_corr(theta, blk)
     dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
@@ -1803,10 +1327,8 @@ covstruct_registry[["gp"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) {
-    frm_stop("gp start needs the dimension count; handled at the frame ",
-             "call site", call. = FALSE)
-  }
+  start = function(blk) gp_start(blk[["gp_D"]], blk[["gp_iso"]]),
+  natural = function(theta, blk) gp_natural(theta, blk)
 )
 
 #' Hilbert-space GP approximation (Riutort-Mayol et al.): tensor-product
@@ -1885,12 +1407,9 @@ hsgp_start <- function(D, iso) {
   c(0, rep(log(0.1), gp_npar(D, iso) - 1L))
 }
 
-covstruct_registry[["hsgp"]] <- list(
-  npar = function(dim) {
-    frm_stop("hsgp npar needs the dimension count; handled at the frame ",
-             "call site", call. = FALSE)
-  },
-  sd_idx = function(dim) 1L,
+covstruct_core[["hsgp"]] <- list(
+  npar = function(blk) gp_npar(blk[["gp_D"]], blk[["gp_iso"]]),
+  sd_idx = by_dim(function(dim) 1L),
   nll = function(b, theta, blk) {
     sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]]),
                     log = TRUE))
@@ -1902,18 +1421,16 @@ covstruct_registry[["hsgp"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) {
-    frm_stop("hsgp start needs the dimension count; handled at the frame ",
-             "call site", call. = FALSE)
-  }
+  start = function(blk) hsgp_start(blk[["gp_D"]], blk[["gp_iso"]]),
+  natural = function(theta, blk) gp_natural(theta, blk)
 )
 
 # Known, fully fixed within-level covariance (glmmTMB equalto): b ~
 # N(0, V) with V supplied by the user - zero parameters (meta-analysis
 # sampling covariances and similar).
-covstruct_registry[["equalto"]] <- list(
-  npar = function(dim) 0L,
-  sd_idx = function(dim) integer(0),
+covstruct_core[["equalto"]] <- list(
+  npar = by_dim(function(dim) 0L),
+  sd_idx = by_dim(function(dim) integer(0)),
   nll = function(b, theta, blk) {
     dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
     sum(RTMB::dmvnorm(t(b), 0, blk[["aux_A"]], log = TRUE))
@@ -1923,7 +1440,7 @@ covstruct_registry[["equalto"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) numeric(0)
+  start = by_dim(function(dim) numeric(0))
 )
 
 #' Reduced-rank / factor-analytic (glmmTMB rr): per-level coefficients
@@ -1967,12 +1484,9 @@ rr_loadings <- function(theta, dim, rank) {
   L
 }
 
-covstruct_registry[["rr"]] <- list(
-  npar = function(dim) {
-    frm_stop("rr npar needs the rank; handled at the frame call site",
-             call. = FALSE)
-  },
-  sd_idx = function(dim) integer(0),
+covstruct_core[["rr"]] <- list(
+  npar = function(blk) rr_npar(blk[["dim"]], blk[["rank"]]),
+  sd_idx = by_dim(function(dim) integer(0)),
   nll = function(b, theta, blk) {
     sum(RTMB::dnorm(b, 0, 1, log = TRUE))
   },
@@ -1982,21 +1496,27 @@ covstruct_registry[["rr"]] <- list(
     dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
-  start = function(dim) {
-    frm_stop("rr start needs the rank; handled at the frame call site",
-             call. = FALSE)
-  }
+  start = function(blk) rr_start(blk[["dim"]], blk[["rank"]])
 )
 
-#' Whether a block is the hard-constrained intrinsic CAR, whose
-#' coefficients are the CENTERED parameters rather than the parameters.
-#' One predicate, because the frame flag and expand_b() have to agree
-#' about which blocks need the pass.
+#' Whether a block's coefficients are a fixed linear map of its
+#' parameters, applied by its structure's `expand` slot: the
+#' hard-constrained intrinsic CAR, whose coefficients are the CENTERED
+#' parameters. One predicate, because the frame flag and expand_b() have
+#' to agree about which blocks need the pass. The block says so
+#' (`expands`, set where the term is built) and the structure says how;
+#' a block that says so under a structure with no `expand` is refused
+#' rather than evaluated as the identity, which would be another model.
 #'
 #' @noRd
-block_is_esicar <- function(bk) {
-  identical(bk[["covstruct"]], "car") &&
-    identical(bk[["car_type"]], "esicar")
+block_expands <- function(bk) {
+  if (!isTRUE(bk[["expands"]])) return(FALSE)
+  if (is.null(cs_entry(bk[["covstruct"]])[["expand"]])) {
+    frm_stop("internal: the '", bk[["covstruct"]], "' block ",
+             bk[["term_label"]] %||% "", " maps its parameters, and its ",
+             "structure registers no expand slot", call. = FALSE)
+  }
+  TRUE
 }
 
 #' Whether a block's coefficients are its parameters POSITIONWISE, so
@@ -2020,7 +1540,7 @@ block_is_esicar <- function(bk) {
 #'
 #' @noRd
 block_b_positionwise <- function(bk) {
-  !identical(bk[["covstruct"]], "rr") && !block_is_esicar(bk)
+  !identical(bk[["covstruct"]], "rr") && !block_expands(bk)
 }
 
 #' Whether a frame's `b` and its coefficient vector are different
@@ -2035,7 +1555,7 @@ block_b_positionwise <- function(bk) {
 #' error, and only off the mode, which is exactly the regime
 #' `imp_frozen_proposal()` and `cluster_scores_at()` work in. The
 #' blocks cannot go stale the way a cached boolean can, because the
-#' same `car_type` chooses the density.
+#' same build sets `expands` and chooses the density.
 #'
 #' @noRd
 frame_needs_expand <- function(frame) {
@@ -2068,8 +1588,9 @@ expand_b <- function(frame, b, theta) {
       L <- rr_loadings(theta[bk[["theta_idx"]]], bk[["dim"]], bk[["rank"]])
       Fm <- RTMB::matrix(b[bk[["b_idx"]]], bk[["rank"]], bk[["n_levels"]])
       cvec[bk[["c_idx"]]] <- as.vector(L %*% Fm)
-    } else if (block_is_esicar(bk)) {
-      cvec[bk[["c_idx"]]] <- car_center(b[bk[["b_idx"]]], bk[["aux_car"]])
+    } else if (block_expands(bk)) {
+      ex <- cs_entry(bk[["covstruct"]])[["expand"]]
+      cvec[bk[["c_idx"]]] <- ex[["apply"]](b[bk[["b_idx"]]], bk)
     } else {
       cvec[bk[["c_idx"]]] <- b[bk[["b_idx"]]]
     }
@@ -2109,26 +1630,26 @@ cor_spec_chol <- function(d) {
   list(kind = "chol", d = d, idx = d + seq_len(d * (d - 1L) / 2L))
 }
 
-covstruct_registry[["us"]]$cor_spec <- cor_spec_chol
-covstruct_registry[["us_t"]]$cor_spec <- cor_spec_chol
-covstruct_registry[["gr_cov"]]$cor_spec <- cor_spec_chol
-covstruct_registry[["gr_prec"]]$cor_spec <- cor_spec_chol
-covstruct_registry[["cs"]]$cor_spec <- function(d) {
+covstruct_core[["us"]]$cor_spec <- by_dim(cor_spec_chol)
+covstruct_core[["us_t"]]$cor_spec <- by_dim(cor_spec_chol)
+covstruct_core[["gr_cov"]]$cor_spec <- by_dim(cor_spec_chol)
+covstruct_core[["gr_prec"]]$cor_spec <- by_dim(cor_spec_chol)
+covstruct_core[["cs"]]$cor_spec <- by_dim(function(d) {
   if (d < 2L) return(NULL)
   list(kind = "cs", d = d, idx = d + 1L)
-}
-covstruct_registry[["homcs"]]$cor_spec <- function(d) {
+})
+covstruct_core[["homcs"]]$cor_spec <- by_dim(function(d) {
   if (d < 2L) return(NULL)
   list(kind = "cs", d = d, idx = 2L)
-}
-covstruct_registry[["ar1"]]$cor_spec <- function(d) {
+})
+covstruct_core[["ar1"]]$cor_spec <- by_dim(function(d) {
   if (d < 2L) return(NULL)
   list(kind = "ar1", d = d, idx = 2L)
-}
-covstruct_registry[["hetar1"]]$cor_spec <- function(d) {
+})
+covstruct_core[["hetar1"]]$cor_spec <- by_dim(function(d) {
   if (d < 2L) return(NULL)
   list(kind = "ar1", d = d, idx = d + 1L)
-}
+})
 
 # Structures whose correlations exist but carry no LKJ density.
 lkj_refusals <- c(
@@ -2147,9 +1668,9 @@ lkj_refusals <- c(
 #'
 #' @noRd
 block_cor_spec <- function(bk) {
-  f <- covstruct_registry[[bk[["covstruct"]]]][["cor_spec"]]
+  f <- cs_entry(bk[["covstruct"]])[["cor_spec"]]
   if (is.null(f)) return(NULL)
-  f(bk[["dim"]])
+  f(bk)
 }
 
 # The structures that are diagonal by construction; block_has_cor().
@@ -2175,7 +1696,7 @@ block_has_cor <- function(bk) {
 #' @noRd
 block_n_cor <- function(bk) length(block_cor_spec(bk)[["idx"]] %||% integer(0))
 
-# The three readers below exist so that `covstruct_registry` and
+# The three readers below exist so that the registry and
 # `lkj_refusals` can stay internal while an extension package still asks
 # the questions the non-centering plan and the sampling default priors
 # ask (dev/draws-extraction.md). Exporting the registry would have made
@@ -2187,7 +1708,7 @@ block_n_cor <- function(bk) length(block_cor_spec(bk)[["idx"]] %||% integer(0))
 #'
 #' @noRd
 covstruct_has_chol <- function(bk) {
-  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  reg <- cs_entry(bk[["covstruct"]])
   !is.null(reg[["chol_sd"]]) || !is.null(reg[["chol_L"]])
 }
 
@@ -2196,7 +1717,7 @@ covstruct_has_chol <- function(bk) {
 #'
 #' @noRd
 block_sd_idx <- function(bk) {
-  covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
+  cs_entry(bk[["covstruct"]])$sd_idx(bk)
 }
 
 #' What correlation prior a block can carry: `"none"` (it has no
@@ -2342,36 +1863,36 @@ us_chol_scaled <- function(theta, d) {
   us_chol_L(theta[-seq_len(d)], d) * exp(theta[seq_len(d)])
 }
 
-covstruct_registry[["us"]]$chol_L <- function(theta, blk) {
+covstruct_core[["us"]]$chol_L <- function(theta, blk) {
   us_chol_scaled(theta, blk[["dim"]])
 }
-covstruct_registry[["diag"]]$chol_sd <- function(theta, blk) exp(theta)
-covstruct_registry[["homdiag"]]$chol_sd <- function(theta, blk) {
+covstruct_core[["diag"]]$chol_sd <- function(theta, blk) exp(theta)
+covstruct_core[["homdiag"]]$chol_sd <- function(theta, blk) {
   rep(exp(theta[1]), blk[["dim"]])
 }
-covstruct_registry[["hsgp"]]$chol_sd <- function(theta, blk) {
+covstruct_core[["hsgp"]]$chol_sd <- function(theta, blk) {
   hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]])
 }
-covstruct_registry[["equalto"]]$chol_L <- function(theta, blk) {
+covstruct_core[["equalto"]]$chol_L <- function(theta, blk) {
   t(chol(blk[["aux_A"]]))
 }
-covstruct_registry[["cs"]]$chol_L <- function(theta, blk) {
+covstruct_core[["cs"]]$chol_L <- function(theta, blk) {
   d <- blk[["dim"]]
   a <- 1 / (d - 1)
   rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
   cs_chol_cor(rho, d) * exp(theta[seq_len(d)])
 }
-covstruct_registry[["homcs"]]$chol_L <- function(theta, blk) {
+covstruct_core[["homcs"]]$chol_L <- function(theta, blk) {
   d <- blk[["dim"]]
   a <- 1 / (d - 1)
   rho <- -a + (1 + a) / (1 + exp(-theta[2]))
   cs_chol_cor(rho, d) * exp(theta[1])
 }
-covstruct_registry[["ar1"]]$chol_L <- function(theta, blk) {
+covstruct_core[["ar1"]]$chol_L <- function(theta, blk) {
   rho <- theta[2] / sqrt(1 + theta[2]^2)
   ar1_chol_cor(rho, blk[["dim"]]) * exp(theta[1])
 }
-covstruct_registry[["hetar1"]]$chol_L <- function(theta, blk) {
+covstruct_core[["hetar1"]]$chol_L <- function(theta, blk) {
   d <- blk[["dim"]]
   rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
   ar1_chol_cor(rho, d) * exp(theta[seq_len(d)])
@@ -2380,10 +1901,10 @@ covstruct_registry[["hetar1"]]$chol_L <- function(theta, blk) {
 # a Kronecker product's factor is the Kronecker product of the factors.
 # A is fixed data, so its factor is a constant; only the small
 # within-level one moves with theta.
-covstruct_registry[["gr_cov"]]$chol_L <- function(theta, blk) {
+covstruct_core[["gr_cov"]]$chol_L <- function(theta, blk) {
   us_chol_scaled(theta, blk[["dim"]])
 }
-covstruct_registry[["gr_cov"]]$chol_A <- function(blk) {
+covstruct_core[["gr_cov"]]$chol_A <- function(blk) {
   t(chol(as.matrix(blk[["aux_A"]])))
 }
 
@@ -2396,7 +1917,7 @@ covstruct_registry[["gr_cov"]]$chol_A <- function(blk) {
 # does not mix in (on lane surface's y ~ gp(x), 4 chains of 1000: 1286
 # of 2000 transitions at the maximum tree depth, R-hat 1.52, bulk ESS
 # 7; dev/moparity-log/gp-cmp.txt, dev/moparity-findings.md, item 7).
-covstruct_registry[["gp"]]$chol_L <- function(theta, blk) {
+covstruct_core[["gp"]]$chol_L <- function(theta, blk) {
   t(chol(gp_corr(theta, blk))) * exp(theta[1])
 }
 # WHICH BLOCKS ARE NON-CENTERED, and why it is not all of them.
@@ -2436,11 +1957,11 @@ covstruct_registry[["gp"]]$chol_L <- function(theta, blk) {
 ncp_mode <- function(bk) {
   if (is_student_block(bk)) return(NA_character_)
   cs <- bk[["covstruct"]]
-  reg <- covstruct_registry[[cs]]
+  reg <- cs_entry(cs)
   if (is.null(reg[["chol_sd"]]) && is.null(reg[["chol_L"]])) {
     return(NA_character_)
   }
-  n_sd <- length(reg$sd_idx(bk[["dim"]]))
+  n_sd <- length(reg$sd_idx(bk))
   n_cor <- block_n_cor(bk)
   n_par <- switch(
     cs,
@@ -2455,7 +1976,7 @@ ncp_mode <- function(bk) {
     # kernel, and class lscale reaches them, as it reaches hsgp's,
     # so the whole of it comes out
     gp = n_sd,
-    tryCatch(reg$npar(bk[["dim"]]), error = function(e) NA_integer_)
+    tryCatch(reg$npar(bk), error = function(e) NA_integer_)
   )
   # every parameter the block has must be one the factor consumes and
   # the prior lane can reach; a structure that grows a third kind stays
@@ -2476,7 +1997,7 @@ ncp_eligible <- function(bk) !is.na(ncp_mode(bk))
 #'
 #' @noRd
 ncp_scale_b <- function(bk, z, theta) {
-  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  reg <- cs_entry(bk[["covstruct"]])
   if (!is.null(reg[["chol_sd"]])) {
     return(z * rep(reg[["chol_sd"]](theta, bk), times = bk[["n_levels"]]))
   }
@@ -2494,7 +2015,7 @@ ncp_scale_b <- function(bk, z, theta) {
 #'
 #' @noRd
 ncp_unscale_b <- function(bk, b, theta) {
-  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  reg <- cs_entry(bk[["covstruct"]])
   if (!is.null(reg[["chol_sd"]])) {
     return(b / rep(reg[["chol_sd"]](theta, bk), times = bk[["n_levels"]]))
   }
@@ -2513,7 +2034,7 @@ ncp_unscale_b <- function(bk, b, theta) {
 #'
 #' @noRd
 ncp_block_chol <- function(bk, theta) {
-  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  reg <- cs_entry(bk[["covstruct"]])
   if (!is.null(reg[["chol_sd"]])) {
     return(diag(as.numeric(reg[["chol_sd"]](theta, bk)),
                 nrow = bk[["dim"]]))
@@ -2524,4 +2045,157 @@ ncp_block_chol <- function(bk, theta) {
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse
 # smoothing parameter); reuse the homdiag machinery under its own name so
 # blocks stay self-describing.
-covstruct_registry[["smooth"]] <- covstruct_registry[["homdiag"]]
+covstruct_core[["smooth"]] <- covstruct_core[["homdiag"]]
+# brms has no sd_<group>__<coef> for a smooth: its one parameter is the
+# smoothing sd, which confint_varcorr() reports under its own name
+covstruct_core[["smooth"]]$natural <- function(theta, blk) {
+  list(term = "sd(wiggle)", type = "sd", est = theta[1L],
+       grad = matrix(1, 1L, 1L))
+}
+
+# gr(cov = A) and gr(prec = Q) correlate the LEVELS through the fixed
+# matrix, so a draw of the block is one draw of the whole field. The
+# within-level covariance is the registry vcov(); the across-level
+# structure is A (x) Sigma, or the precision Q (x) Sigma^-1.
+covstruct_core[["gr_cov"]]$levels_coupled <- TRUE
+covstruct_core[["gr_cov"]]$draw <- function(theta, blk) {
+  S <- cs_entry("gr_cov")$vcov(theta, blk)
+  K <- kronecker(blk[["aux_A"]], S)
+  drop(crossprod(chol(K), stats::rnorm(nrow(K))))
+}
+covstruct_core[["gr_prec"]]$levels_coupled <- TRUE
+covstruct_core[["gr_prec"]]$draw <- function(theta, blk) {
+  # x = U^-1 z with U'U = Q has covariance Q^-1; for correlated
+  # slopes Q is the level-major Kronecker precision Q (x) Sigma^-1
+  Qb <- if (blk[["dim"]] == 1L) {
+    exp(-2 * theta[1L]) * blk[["aux_Q"]]
+  } else {
+    S <- cs_entry("gr_prec")$vcov(theta, blk)
+    Matrix::kronecker(blk[["aux_Q"]], methods::as(solve(unname(S)),
+                                                 "generalMatrix"))
+  }
+  U <- Matrix::chol(Qb)
+  as.vector(Matrix::solve(U, stats::rnorm(length(blk[["b_idx"]]))))
+}
+
+# ------------------------------------------------------------ the registry
+#
+# The built-in entries above are the registry's first state; a package
+# adds its own with frmtmb_register_covstruct() (R/covstruct-seam.R).
+# An environment, so that a registration from another package's
+# .onLoad() reaches a sealed namespace, keyed like the addition-term
+# registry and saved and restored the same way by the test helper.
+
+frmtmb_covstruct_registry <- new.env(parent = emptyenv())
+frmtmb_covstruct_registry$reg <- covstruct_core
+
+#' Every registered structure, built-in first, in registration order.
+#'
+#' @noRd
+cs_entries <- function() frmtmb_covstruct_registry$reg
+
+#' The names of every registered structure.
+#'
+#' @noRd
+cs_names <- function() names(frmtmb_covstruct_registry$reg)
+
+#' One structure's entry. A name nothing registered is refused here,
+#' and when an extension supplies the structure the refusal names it: a
+#' fit or a frame built with that package loaded and read without it
+#' would otherwise fail deep inside a method on a NULL entry.
+#'
+#' @noRd
+cs_entry <- function(name) {
+  e <- frmtmb_covstruct_registry$reg[[name]]
+  if (!is.null(e)) return(e)
+  # loading the extension that owns the name registers it
+  home <- extension_special_home(name)
+  if (!is.null(home)) {
+    require_extension(home, paste0("The ", name, "() structure"))
+    e <- frmtmb_covstruct_registry$reg[[name]]
+    if (!is.null(e)) return(e)
+  }
+  frm_stop("The ", name, "() structure is not registered in this session. ",
+           "A fit that uses it needs the package that registered it ",
+           "loaded, or the registration repeated",
+           class = "frmtmb_extension_missing", call. = FALSE)
+}
+
+#' Whether a block is a field rather than a brms grouping-factor block:
+#' its structure reports its own rows (`natural`), so its theta is not a
+#' set of `sd_<group>__<coef>` and `cor_` parameters, brms counts no
+#' grouping factor for it, and VarCorr() leaves it out.
+#'
+#' @noRd
+cs_is_field <- function(bk) {
+  !is.null(cs_entry(bk[["covstruct"]])[["natural"]])
+}
+
+#' Whether a fixed matrix correlates the block's LEVELS, so that an
+#' unseen level has no marginal law, the block is one unit of the
+#' random-effect prior, and the integral does not split over groups.
+#'
+#' @noRd
+cs_levels_coupled <- function(bk) {
+  isTRUE(cs_entry(bk[["covstruct"]])[["levels_coupled"]])
+}
+
+#' The natural-scale rows of a field block at `theta`: `term`, `type`
+#' (`"sd"`, `"range"`, `"prop"`, `"cor"` or `"raw"`, which decides the
+#' back-transform), `est` on the transformed scale (log, logit, Fisher-z
+#' or none), and `grad`, the jacobian of `est` in theta, one row per
+#' term. Checked here, once, so that a registered structure's slip
+#' reaches its author as a message and not as a wrong interval.
+#'
+#' @noRd
+cs_natural_rows <- function(bk, theta) {
+  f <- cs_entry(bk[["covstruct"]])[["natural"]]
+  if (is.null(f)) return(NULL)
+  nr <- f(theta, bk)
+  k <- length(nr[["term"]])
+  g <- nr[["grad"]]
+  if (!is.character(nr[["term"]]) || !k ||
+      length(nr[["type"]]) != k || length(nr[["est"]]) != k ||
+      !all(nr[["type"]] %in% c("sd", "range", "prop", "cor", "raw")) ||
+      !is.matrix(g) || nrow(g) != k || ncol(g) != length(theta)) {
+    frm_stop("The natural = slot of the '", bk[["covstruct"]], "' structure ",
+             "must return list(term, type, est, grad): one entry per row, ",
+             "type one of sd, range, prop, cor, raw, and grad a matrix with ",
+             "one row per term and one column per theta entry (",
+             length(theta), ")", call. = FALSE)
+  }
+  nr
+}
+
+#' The standard error of one natural row from the covariance of its
+#' block's theta. A row that reads one theta entry takes that entry's
+#' own variance, so a NaN elsewhere in the block cannot reach it.
+#'
+#' @noRd
+cs_natural_se <- function(g, V) {
+  kk <- which(g != 0)
+  if (!length(kk)) return(0)
+  if (length(kk) == 1L) return(abs(g[kk]) * sqrt(V[kk, kk]))
+  sqrt(max(drop(g[kk] %*% V[kk, kk, drop = FALSE] %*% g[kk]), 0))
+}
+
+#' The level labels a field block's grouping values map onto, the same
+#' spelling at frame assembly and on newdata. A structure whose levels
+#' are not the values' own strings (spde()'s mesh row numbers) says so
+#' through its term's `levels_of`.
+#'
+#' @noRd
+cs_levels_of <- function(bk, gv) {
+  f <- cs_entry(bk[["covstruct"]])[["term"]][["levels_of"]]
+  if (is.null(f)) as.character(gv) else as.character(f(gv))
+}
+
+#' Whether a field block's levels are its whole index set (every mesh
+#' node of an spde() block, observed or not), so that a value outside
+#' them is not an unseen level of a distribution but a position the
+#' structure does not have.
+#'
+#' @noRd
+cs_levels_complete <- function(bk) {
+  isTRUE(cs_entry(bk[["covstruct"]])[["term"]][["levels_complete"]])
+}

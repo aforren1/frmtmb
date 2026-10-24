@@ -471,7 +471,7 @@ brms_re_rnames <- function(fit, bk) brms_re_parts(fit, bk)$rnames
 #'
 #' @noRd
 brms_block_has_r <- function(bk) {
-  !bk[["covstruct"]] %in% c("rr", "smooth", "gp", "hsgp", "car", "spde") &&
+  !identical(bk[["covstruct"]], "rr") && !cs_is_field(bk) &&
     !is.null(bk[["levels"]]) && !is.null(bk[["group_name"]])
 }
 
@@ -504,7 +504,7 @@ brms_check_re_dups <- function(fit) {
   }
   seen <- character(0)
   for (bk in fit$frame[["re_blocks"]]) {
-    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) {
+    if (cs_is_field(bk)) {
       next
     }
     g <- brms_group_name(bk)

@@ -118,8 +118,10 @@
 #' `mo_chart_frame(frame, chart)` is a copy of the frame whose objective
 #' reads every simplex in `chart`, and `mo_frame_terms(fit)` lists each
 #' term's simplex component, its size and brms's names for its weights,
-#' `simo_<label>1[k]`; `simplex_frame_terms(fit)` adds a `cox()` baseline,
-#' `sbhaz[k]`, which the chart frame reads the same way.
+#' `simo_<label>1[k]`; `simplex_frame_terms(fit)` adds each simplex a
+#' family declares (`frmtmb_family(simplex_pars =)`) under its brms name,
+#' `sbhaz[k]` for frmtmb.survival's `cox()` baseline, with `kind` the
+#' family's name; the chart frame reads those the same way.
 #' `summary_mo_frame(fit, prob)` is the weights'
 #' table `summary()` prints: each weight with its delta-method standard
 #' error and interval, `NA` for a weight at 0 or 1 (named by the
@@ -197,10 +199,9 @@
 #' `"unsupported"`), and `is_student_block()` reports a Student-t
 #' latent, which is a scale mixture and so has no linear factor at all.
 #'
-#' The registry these read is deliberately NOT exported: exporting it
-#' would make every field of every structure's entry into API, and
-#' these eight questions are the ones anything outside covstruct.R has
-#' ever needed to ask.
+#' The registry these read is not exported as a list. A package adds a
+#' structure to it with [frmtmb_register_covstruct()], whose arguments
+#' are the API, and asks about a block through these eight questions.
 #'
 #' @section The simulator seam:
 #' `sim_can()` and `sim_note()` say whether a family can be simulated

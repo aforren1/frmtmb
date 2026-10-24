@@ -91,7 +91,9 @@ the same as a core one.
 Contributions are APPENDED, which is the only safe direction. Rules
 of equal specificity resolve later-wins, so a contributed rule may
 override a core default and a core default can never silently
-override a contributed one.
+override a contributed one. Between packages, contributions resolve
+in the order of the packages' names, so the table does not depend
+on the order in which they were loaded.
 }
 \section{What registration refuses}{
 

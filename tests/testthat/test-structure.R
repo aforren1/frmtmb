@@ -207,13 +207,12 @@ test_that("a group-level mixture carries the protocol", {
 })
 
 test_that("a rowwise mixture-type family declares capabilities only", {
-  # mixture() and mixture_mvn() have a likelihood that DOES factorize
-  # per row, so their structures carry no loglik; what they carry is
-  # the multimodality refusal that used to be one gate in fit.R naming
-  # every mixture-type family. The third such family lives in
-  # frmtmb.latent now and asserts this same row of the table there.
-  for (fam in list(mixture(gaussian(), gaussian()),
-                   mixture_mvn(K = 2, D = 2))) {
+  # mixture() has a likelihood that DOES factorize per row, so its
+  # structure carries no loglik; what it carries is the multimodality
+  # refusal that used to be one gate in fit.R naming every mixture-type
+  # family. The other two such families, lca() and mixture_mvn(), live
+  # in frmtmb.latent now and assert this same row of the table there.
+  for (fam in list(mixture(gaussian(), gaussian()))) {
     st <- fam_structure(fam)
     expect_s3_class(st, "frmtmb_structure")
     expect_null(st[["loglik"]])

@@ -75,7 +75,7 @@ nat_slots <- function(frame, fitlike) {
   sds_nm <- brms_sds_names(fitlike)
   for (bi in seq_along(frame[["re_blocks"]])) {
     bk <- frame[["re_blocks"]][[bi]]
-    reg <- covstruct_registry[[bk[["covstruct"]]]]
+    reg <- cs_entry(bk[["covstruct"]])
     if (is.null(reg$from_natural)) next
     d <- bk[["dim"]]
     if (identical(bk[["covstruct"]], "smooth")) {
@@ -91,13 +91,13 @@ nat_slots <- function(frame, fitlike) {
     # a gr(g, by = f) block never had a pre-brms spelling, and the one it
     # would share with its sibling by-levels names neither of them
     lg <- if (is.null(bk[["by"]])) function(x) x else function(x) NULL
-    shared <- length(reg$sd_idx(d)) == 1L && d > 1L
+    shared <- length(reg$sd_idx(bk)) == 1L && d > 1L
     for (j in seq_len(d)) {
       put(paste0("sd_", g, "__", tn[j]),
           list(kind = "sd", blk = bi, pos = if (shared) seq_len(d) else j),
           lg(paste0("sd_", g0, "__", tn0[j])))
     }
-    if (reg$npar(d) > length(reg$sd_idx(d)) && d > 1L) {
+    if (reg$npar(bk) > length(reg$sd_idx(bk)) && d > 1L) {
       for (j in seq_len(d - 1L)) {
         for (k in seq(j + 1L, d)) {
           put(paste0("cor_", g, "__", tn[j], "__", tn[k]),
@@ -131,8 +131,8 @@ nat_coef_name <- function(slots, comp, idx) {
 #' @noRd
 nat_sd_theta_idx <- function(frame, slot) {
   bk <- frame[["re_blocks"]][[slot$blk]]
-  reg <- covstruct_registry[[bk[["covstruct"]]]]
-  unique(bk[["theta_idx"]][reg$sd_idx(bk[["dim"]])[slot$pos]])
+  reg <- cs_entry(bk[["covstruct"]])
+  unique(bk[["theta_idx"]][reg$sd_idx(bk)[slot$pos]])
 }
 
 #' Whether `newparams` speaks the internal parameterization: every name
@@ -158,12 +158,12 @@ check_natural_supported <- function(frame) {
              "; use the internal spelling", call. = FALSE)
   }
   for (bk in frame[["re_blocks"]]) {
-    if (is.null(covstruct_registry[[bk[["covstruct"]]]]$from_natural)) {
+    if (is.null(cs_entry(bk[["covstruct"]])$from_natural)) {
       frm_stop("Natural-scale newparams cannot set the '", bk[["covstruct"]],
                "' block (", bk[["term_label"]], "): no inverse map from ",
                "standard deviations and correlations. Structures with one: ",
                paste(sort(names(Filter(function(e) !is.null(e$from_natural),
-                                       covstruct_registry))),
+                                       cs_entries()))),
                      collapse = ", "),
                ". Use the internal spelling (theta).", call. = FALSE)
     }
@@ -213,7 +213,7 @@ apply_natural <- function(est, frame, slots, np) {
   cors <- list()
   for (bi in blk_ids) {
     bk <- frame[["re_blocks"]][[bi]]
-    V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(
+    V <- cs_entry(bk[["covstruct"]])$vcov(
       est[["theta"]][bk[["theta_idx"]]], bk)
     s <- sqrt(diag(as.matrix(V)))
     sds[[as.character(bi)]] <- s
@@ -258,7 +258,7 @@ apply_natural <- function(est, frame, slots, np) {
     bk <- frame[["re_blocks"]][[bi]]
     key <- as.character(bi)
     est[["theta"]][bk[["theta_idx"]]] <-
-      covstruct_registry[[bk[["covstruct"]]]]$from_natural(sds[[key]],
+      cs_entry(bk[["covstruct"]])$from_natural(sds[[key]],
                                                       cors[[key]], bk)
   }
 
@@ -528,12 +528,12 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
       }
     }))
     for (bk in frame[["re_blocks"]]) {
-      reg <- covstruct_registry[[bk[["covstruct"]]]]
+      reg <- cs_entry(bk[["covstruct"]])
       # a structure with no natural map needs its whole theta segment
       need <- if (is.null(reg$from_natural)) {
         bk[["theta_idx"]]
       } else {
-        bk[["theta_idx"]][reg$sd_idx(bk[["dim"]])]
+        bk[["theta_idx"]][reg$sd_idx(bk)]
       }
       gone <- setdiff(need, c(prior_theta, nat_theta))
       if (length(gone)) {
@@ -572,12 +572,12 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' Draws come back in the response's own type, exactly as
 #' [simulate()]'s do: an ordered factor for an ordinal family, an
 #' unordered one for a categorical family, and a matrix column for a
-#' matrix response ([multinomial()], [mixture_mvn()]).
+#' matrix response ([multinomial()], frmtmb.latent's `mixture_mvn()`).
 #'
 #' The structured families draw here through the same implementation
 #' [simulate()] uses (see its Structured draws section):
-#' `mixture(groups = ~g)` takes one class per group, [mixture_mvn()]
-#' uses its class covariances, a residual
+#' `mixture(groups = ~g)` takes one class per group, a multivariate
+#' normal mixture uses its class covariances, a residual
 #' correlation term (`ar()`, `ma()`, ...) contributes one correlated
 #' residual per group, and a family from an extension package draws
 #' through whatever its structure declares. The de novo frame carries

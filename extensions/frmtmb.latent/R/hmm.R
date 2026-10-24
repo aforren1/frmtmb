@@ -73,7 +73,7 @@ hmm_dpar_is_constant <- function(dp) {
   if (!is.null(dp[["nl_body"]])) return(FALSE)
   lists_empty <- vapply(
     c("re", "smooth", "mo", "miterms", "csterms", "gpterms",
-      "carterms", "spdeterms"),
+      "fieldterms"),
     function(nm) !length(dp[[nm]] %||% list()), TRUE
   )
   if (!all(lists_empty)) return(FALSE)

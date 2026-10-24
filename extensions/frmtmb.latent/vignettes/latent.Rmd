@@ -1,8 +1,8 @@
 ---
-title: "Hidden Markov models and latent class analysis"
+title: "Hidden Markov models, latent classes and normal mixtures"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Hidden Markov models and latent class analysis}
+  %\VignetteIndexEntry{Hidden Markov models, latent classes and normal mixtures}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,14 +17,17 @@ has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
 has_depmix <- requireNamespace("depmixS4", quietly = TRUE)
 has_hmmtmb <- requireNamespace("hmmTMB", quietly = TRUE)
 has_polca <- requireNamespace("poLCA", quietly = TRUE)
+has_mclust <- requireNamespace("mclust", quietly = TRUE)
 ```
 
-This package adds the two frmtmb families whose latent variable is a
-discrete state. `hmm(K, family)` puts a Markov chain over the rows of a
-sequence and sums the state path out exactly. `lca(K)` puts one class
-on each subject and reads it through conditionally independent items.
-Both are written against the structured-family protocol that frmtmb
-exports, so the rest of the grammar (priors, monotonic effects,
+This package adds the three frmtmb families whose latent variable is a
+discrete state or class. `hmm(K, family)` puts a Markov chain over the
+rows of a sequence and sums the state path out exactly. `lca(K)` puts
+one class on each subject and reads it through conditionally
+independent items. `mixture_mvn(K, D)` puts one class on each row of a
+matrix response and gives each class a multivariate normal
+distribution. All three are written against the family protocol that
+frmtmb exports, so the rest of the grammar (priors, monotonic effects,
 `hypothesis()`, and the addition terms each family accepts) applies to
 them unchanged.
 
@@ -325,3 +328,44 @@ weights are ordinary distributional parameters, so a covariate in the
 formula puts a multinomial logit on class membership, and its
 coefficients get standard errors, priors and `hypothesis()` like any
 other fixed effect.
+
+## Model-based clustering of a matrix response
+
+`mixture_mvn(K, D)` clusters the rows of an n x D matrix, as mclust
+does: each of the K classes has its own mean vector and a covariance
+matrix from mclust's model taxonomy (`model = "VVV"`, a free covariance
+per class, by default). The class means are linear predictors, so
+they can take covariates, which mclust cannot do.
+
+The Old Faithful data have two clusters of eruptions, short ones after
+a short wait and long ones after a long wait.
+
+```{r mvn-fit}
+dd <- data.frame(row = seq_len(nrow(datasets::faithful)))
+dd$Y <- data.matrix(datasets::faithful)
+fmvn <- frm(bf(Y ~ 1), family = mixture_mvn(K = 2, D = 2), data = dd)
+fixef(fmvn)
+# the hard assignment against the usual threshold of three minutes
+table(class = max.col(mixture_probs(fmvn)),
+      short = dd$Y[, "eruptions"] < 3)
+```
+
+### Cross-check against mclust
+
+With intercept-only means, the model is the one mclust fits, so the
+two maxima must agree. mclust stops on a change of 1e-5 in the
+log-likelihood by default, so a tighter tolerance is set here.
+
+```{r mvn-mclust, eval = has_mclust}
+mclustBIC <- mclust::mclustBIC
+mc <- mclust::Mclust(dd$Y, G = 2, modelNames = "VVV", verbose = FALSE,
+                     control = mclust::emControl(tol = 1e-10))
+c(frmtmb = as.numeric(logLik(fmvn)), mclust = mc$loglik)
+```
+
+```{r mvn-mclust-assert, eval = has_mclust}
+# relative to the log-likelihood itself, so the check does not depend on
+# the size of the data
+stopifnot(abs(as.numeric(logLik(fmvn)) - mc$loglik) / abs(mc$loglik) <
+            1e-7)
+```

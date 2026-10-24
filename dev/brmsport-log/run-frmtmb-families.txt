@@ -1,1 +1,2 @@
+extensions loaded: frmtmb.coupling frmtmb.eam frmtmb.latent frmtmb.learn frmtmb.ode frmtmb.sample frmtmb.spatial frmtmb.survival 
 RESULT frmtmb test-brms-suite-families.R pass=84 fail=0 err=0 skip=0 blocks=7

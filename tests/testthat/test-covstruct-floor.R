@@ -30,7 +30,7 @@ test_that("an exact gp() field has no +Inf log density at a tiny sd", {
   fit <- gp_fit()
   blk <- fit$frame$re_blocks[[1L]]
   expect_identical(blk$covstruct, "gp")
-  nll <- frmtmb:::covstruct_registry[["gp"]]$nll
+  nll <- frmtmb:::cs_entry("gp")$nll
   b <- fit$estimates$b
   th <- fit$estimates$theta
   # the control: at the estimates the density is finite
@@ -51,7 +51,7 @@ test_that("the floor leaves an exact gp() fit's objective unchanged", {
   old <- sum(RTMB::dmvnorm(t(matrix(b, nrow = 1L)), 0,
                            exp(2 * th[1L]) * frmtmb:::gp_corr(th, blk),
                            log = TRUE))
-  expect_identical(frmtmb:::covstruct_registry[["gp"]]$nll(b, th, blk), old)
+  expect_identical(frmtmb:::cs_entry("gp")$nll(b, th, blk), old)
 })
 
 test_that("the other one-scale dense blocks take the same floor", {
@@ -66,7 +66,7 @@ test_that("the other one-scale dense blocks take the same floor", {
                   tim = num_factor(rep(times, n_g)))
   fit <- frm(bf(y ~ 1 + ou(tim + 0 | g)), family = gaussian(), data = d)
   blk <- fit$frame$re_blocks[[1L]]
-  nll <- frmtmb:::covstruct_registry[[blk$covstruct]]$nll
+  nll <- frmtmb:::cs_entry(blk$covstruct)$nll
   b <- fit$estimates$b + 0.1
   th <- fit$estimates$theta
   expect_true(is.finite(nll(b, th, blk)))
@@ -108,7 +108,7 @@ test_that("every structure the floor touches has no +Inf at a tiny sd", {
               data2 = list(A = A), dry_run = "frame")
     blk <- fr$re_blocks[[1L]]
     seen <- c(seen, blk$covstruct)
-    nll <- frmtmb:::covstruct_registry[[blk$covstruct]]$nll
+    nll <- frmtmb:::cs_entry(blk$covstruct)$nll
     tpl <- fr$par_template
     b <- tpl$b + seq_along(tpl$b) / length(tpl$b)
     th <- tpl$theta
@@ -156,7 +156,7 @@ multi_scale_frames <- function() {
 # the block's log density on RTMB's tape, the one a sampler evaluates
 block_tape <- function(fr, nll = NULL) {
   blk <- fr$re_blocks[[1L]]
-  nll <- nll %||% frmtmb:::covstruct_registry[[blk$covstruct]]$nll
+  nll <- nll %||% frmtmb:::cs_entry(blk$covstruct)$nll
   tpl <- fr$par_template
   b <- tpl$b + seq_along(tpl$b) / length(tpl$b)
   th <- tpl$theta[blk$theta_idx]
@@ -170,11 +170,11 @@ test_that("a block with several scales has no +Inf or NaN at a tiny sd", {
   seen <- character()
   for (nm in names(frs)) {
     tp <- block_tape(frs[[nm]])
-    reg <- frmtmb:::covstruct_registry[[tp$blk$covstruct]]
+    reg <- frmtmb:::cs_entry(tp$blk$covstruct)
     seen <- c(seen, tp$blk$covstruct)
     v0 <- -tp$obj$fn(c(tp$b, tp$th))
     expect_true(is.finite(v0), info = nm)
-    sdi <- reg$sd_idx(tp$blk$dim)
+    sdi <- reg$sd_idx(tp$blk)
     expect_gt(length(sdi), 0L)
     for (k in c(as.list(sdi), list(sdi))) {
       t2 <- tp$th
@@ -203,12 +203,12 @@ test_that("the per-scale floor leaves the tape unchanged above it", {
   frs <- multi_scale_frames()
   for (nm in names(frs)) {
     blk <- frs[[nm]]$re_blocks[[1L]]
-    new_nll <- frmtmb:::covstruct_registry[[blk$covstruct]]$nll
+    new_nll <- frmtmb:::cs_entry(blk$covstruct)$nll
     old_nll <- new_nll
     environment(old_nll) <- old_env
     tn <- block_tape(frs[[nm]], new_nll)
     to <- block_tape(frs[[nm]], old_nll)
-    sdi <- frmtmb:::covstruct_registry[[blk$covstruct]]$sd_idx(blk$dim)
+    sdi <- frmtmb:::cs_entry(blk$covstruct)$sd_idx(blk)
     for (lsd in c(seq(-308.4, 4, length.out = 41), tn$th[sdi[1L]])) {
       t2 <- tn$th
       t2[sdi] <- lsd

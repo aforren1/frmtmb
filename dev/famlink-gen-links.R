@@ -15,7 +15,8 @@ ver <- format(utils::packageVersion("brms"))
 # Three frmtmb families have no brms counterpart and take the set of the
 # brms family they are closest to: nbinom1 is a negative binomial mean,
 # tweedie a positive continuous mean (compound Poisson-gamma), huber a
-# location on the whole line.
+# location on the whole line. cox is not here: it is in frmtmb.survival,
+# which carries brms's set for it and checks that set against brms.
 src <- c(
   gaussian = "gaussian", poisson = "poisson", binomial = "binomial",
   Gamma = "gamma", lognormal = "lognormal", student = "student",
@@ -41,7 +42,7 @@ src <- c(
   asym_laplace = "asym_laplace",
   zero_inflated_asym_laplace = "zero_inflated_asym_laplace",
   huber = "gaussian", sratio = "sratio", cratio = "cratio", acat = "acat",
-  von_mises = "von_mises", cox = "cox", categorical = "categorical",
+  von_mises = "von_mises", categorical = "categorical",
   dirichlet = "dirichlet", dirichlet2 = "dirichlet2",
   logistic_normal = "logistic_normal",
   frechet = "frechet", gen_extreme_value = "gen_extreme_value",

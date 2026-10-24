@@ -100,8 +100,9 @@ jobs:
       matrix:
         # `siblings` are the frmtmb extensions the package names in its
         # DESCRIPTION (Imports or Suggests), in install order. learn
-        # imports eam. sample suggests latent, ode and eam, and its tests
-        # of those pairs skip without them. eam suggests sample. A
+        # imports eam. sample suggests latent, ode, eam and survival, and
+        # its tests of those pairs skip without them. eam suggests
+        # sample. A
         # sibling gets its Imports only: its Suggests serve its own
         # tests, which this job does not run.
         include:
@@ -116,8 +117,10 @@ jobs:
           - pkg: frmtmb.ode
             siblings: ''
           - pkg: frmtmb.sample
-            siblings: 'frmtmb.latent frmtmb.ode frmtmb.eam'
-          - pkg: frmtmb.spline
+            siblings: 'frmtmb.latent frmtmb.ode frmtmb.eam frmtmb.survival'
+          - pkg: frmtmb.survival
+            siblings: ''
+          - pkg: frmtmb.spatial
             siblings: ''
     name: coverage ${{ matrix.pkg }}
     env:

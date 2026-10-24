@@ -13,7 +13,7 @@
 # round could not run the tier at all without editing the runner. Set
 # `FRMTMB_PORT_LIB` to the library holding the build under test; the
 # round's reference build is the default.
-lib <- Sys.getenv("FRMTMB_PORT_LIB", "C:/Users/adf44/source/r/rellib-r11")
+lib <- Sys.getenv("FRMTMB_PORT_LIB", "C:/Users/adf44/source/r/rellib-r12")
 .libPaths(c(lib, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 
 # The StanHeaders 2.32.10 pin is gone (2026-09-17); this file used to
@@ -49,6 +49,17 @@ if (length(a) >= 3L) {
 suppressMessages(library(testthat))
 suppressMessages(library(frmtmb))
 suppressMessages(library(p, character.only = TRUE))
+# guardrail 4 of dev/core-boundary.md: parity is measured on core plus
+# every extension, so with FRMTMB_PORT_EXTENSIONS=all every frmtmb.*
+# package of the library under test is loaded before the file runs
+port_loaded <- character()
+if (identical(Sys.getenv("FRMTMB_PORT_EXTENSIONS"), "all")) {
+  port_loaded <- grep("^frmtmb[.]", rownames(utils::installed.packages(lib)),
+                      value = TRUE)
+  for (q in port_loaded) suppressMessages(loadNamespace(q))
+}
+cat("extensions loaded:", if (length(port_loaded)) port_loaded else "none",
+    "\n")
 # the uncapped reporter: the summary reporter stops at ten failures
 r <- as.data.frame(test_file(f, package = p, env = testthat::test_env(p),
                              reporter = "silent", stop_on_failure = FALSE))

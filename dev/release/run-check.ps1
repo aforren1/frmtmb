@@ -18,7 +18,7 @@ $OUT  = "$ROOT/dev/release/checkout"
 
 if (-not (Test-Path $R)) { throw "R missing: $R" }
 
-$env:R_LIBS = "C:/Users/adf44/source/r/rellib-r11;C:/Users/adf44/AppData/Local/R/win-library/4.6"
+$env:R_LIBS = "C:/Users/adf44/source/r/rellib-r12;C:/Users/adf44/AppData/Local/R/win-library/4.6"
 $env:NOT_CRAN = "true"
 # StanHeaders 2.39.1 compiles only with the user Makevars C++17 flag, and
 # HOME depends on the launcher, so name the file (dev/tmbstan121-findings.md)
@@ -34,8 +34,8 @@ Remove-Item $LOG -ErrorAction SilentlyContinue
 $pkgs = New-Object System.Collections.ArrayList
 [void]$pkgs.Add($ROOT)
 foreach ($n in @("frmtmb.eam", "frmtmb.latent", "frmtmb.ode",
-                 "frmtmb.spline", "frmtmb.coupling", "frmtmb.sample",
-                 "frmtmb.learn")) {
+                 "frmtmb.survival", "frmtmb.coupling", "frmtmb.sample",
+                 "frmtmb.learn", "frmtmb.spatial")) {
   [void]$pkgs.Add("$ROOT/extensions/$n")
 }
 foreach ($p in $pkgs) {

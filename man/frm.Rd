@@ -238,7 +238,8 @@ longer cover the integrand. The seed, the round cap and the
 effective-sample-size threshold are \code{\link[=frmtmb_control]{frmtmb_control()}} settings.}
 
 \item{data2}{A named list of objects that are not columns of \code{data}:
-the adjacency matrix of \code{car()}, the mesh triple of \code{spde()}, and
+the adjacency matrix of \code{car()} and the mesh triple of \code{spde()}
+(both frmtmb.spatial), and
 the matrices of \code{gr(prec = )}, \code{gr(cov = )} and \code{equalto()}. This
 is brms's \code{data2} argument, with one deliberate extension: brms
 accepts a bare name only, while frmtmb also evaluates compound
@@ -415,9 +416,10 @@ therefore the one brms calls \verb{simo_<j>} and names \verb{<label><1>} in the
 The \verb{zeta<j>} NUMBER is not that j in general. Simplexes continue the
 numbering of whatever parameters the family contributed first, so
 \verb{zeta<j>} is brms's \verb{simo_<j>} only for a family that declares none:
-an ordinal fit spends slot 1 on its thresholds and a \code{cox()} fit on
-its baseline hazard, and in both the first monotonic simplex is
-\code{zeta2}. Read the terms in order rather than parsing the number.
+an ordinal fit spends slot 1 on its thresholds and a \code{cox()} fit
+(frmtmb.survival) on its baseline hazard, and in both the first
+monotonic simplex is \code{zeta2}. Read the terms in order rather than
+parsing the number.
 
 With no prior, a fit applies no density to a simplex; brms's flat
 \code{dirichlet(1)} contributes only a constant, so the two log-densities

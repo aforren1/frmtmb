@@ -57,7 +57,8 @@
 #' The Time Series, Spatial, Dimensionality Reduction, Machine Learning,
 #' Probability Distributions, Unsupervised Learning, and Exploratory Data
 #' Analysis categories also do not apply. The package fits spatial
-#' covariance structures (`car()`, `spde()`) and correlated-error
+#' covariance structures (`exp()`, `mat()`, and the extension
+#' frmtmb.spatial's `car()` and `spde()`) and correlated-error
 #' structures (`ar1()`, `ou()`) as random-effect covariance vocabulary
 #' inside a regression model, not as a spatial or time-series analysis
 #' front end. There is no train/test split, resampling protocol, or
@@ -93,9 +94,9 @@
 #'   time, so `nsim` misuse reads the same from `simulate()` and
 #'   `frm_bootstrap()`. Where the caller matters to the user, the
 #'   template carries it: `require_fitted()` names the method that
-#'   called it, `car()` on the left of a bar term reads differently
-#'   from `car()` as a grouping factor, and `posterior_predict()`,
-#'   `simulate()` and `frm_simulate()` meeting a family with no
+#'   called it, a field special such as `car()` on the left of a bar
+#'   term reads differently from one as a grouping factor, and
+#'   `posterior_predict()`, `simulate()` and `frm_simulate()` meeting a family with no
 #'   simulator each name themselves before repeating the family's own
 #'   reason.
 #'

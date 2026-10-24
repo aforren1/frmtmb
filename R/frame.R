@@ -186,14 +186,14 @@ dpar_frame_rhs <- function(dp) {
       for (v in all.vars(ex)) parts <- c(parts, list(as.name(v)))
     }
   }
-  # car()/spde() need their grouping variable in the frame; the
-  # adjacency and mesh matrices are external data, like gr(cov = A)'s.
-  # The RAW variables go in, not the expression - a call-valued gr
-  # (gr = factor(node)) is evaluated against the frame at assembly, the
-  # way every other special resolves its arguments, and model.frame
-  # cannot be asked to carry the call itself.
-  for (ce in c(dp[["carterms"]] %||% list(), dp[["spdeterms"]] %||% list())) {
-    for (v in all.vars(ce$gr_expr)) parts <- c(parts, list(as.name(v)))
+  # a field special (car(), spde()) needs its grouping variable in the
+  # frame; the adjacency and mesh matrices are external data, like
+  # gr(cov = A)'s. The RAW variables go in, not the expression - a
+  # call-valued gr (gr = factor(node)) is evaluated against the frame at
+  # assembly, the way every other special resolves its arguments, and
+  # model.frame cannot be asked to carry the call itself.
+  for (ft in dp[["fieldterms"]] %||% list()) {
+    for (v in all.vars(ft[["gr"]])) parts <- c(parts, list(as.name(v)))
   }
   out <- NULL
   for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
@@ -1472,6 +1472,40 @@ lookup_structural <- function(expr, data2, data, env, what) {
   })
 }
 
+#' Build one field term's block through its structure's `term$build`.
+#'
+#' The structure gets the parsed spec, the grouping values of the rows,
+#' and `lookup(expr, what)`, which resolves a structural matrix exactly as
+#' `gr(cov = A)` resolves its matrix (`lookup_structural()`). What comes
+#' back is checked here, because the frame indexes a design with it: a
+#' row map that is off by one or a level list with a repeat would build
+#' a different model than the one written, with no error anywhere
+#' downstream.
+#'
+#' @noRd
+field_term_build <- function(ft, gv, data2, data, env, n) {
+  fn <- ft[["special"]]
+  lookup <- function(expr, what = paste0(fn, "()")) {
+    lookup_structural(expr, data2, data, env, what)
+  }
+  out <- cs_entry(fn)[["term"]][["build"]](ft[["spec"]], gv, lookup)
+  lv <- out[["levels"]]
+  ix <- out[["index"]]
+  ok_lv <- is.character(lv) && length(lv) > 0L && !anyNA(lv) &&
+    !anyDuplicated(lv)
+  ok_ix <- is.numeric(ix) && length(ix) == n && !anyNA(ix) &&
+    all(ix == trunc(ix)) && all(ix >= 1 & ix <= length(lv))
+  if (!ok_lv || !ok_ix) {
+    frm_stop("The term slot of the '", fn, "' structure built an invalid ",
+             "block for ", ft[["label"]], ": build() must return levels, ",
+             "a character vector without repeats, and index, one whole ",
+             "number in 1..length(levels) for each of the ", n, " rows",
+             call. = FALSE)
+  }
+  out[["index"]] <- as.integer(ix)
+  out
+}
+
 #' Do two resolved structural matrices describe the same thing?
 #'
 #' Compared on the RESOLVED objects rather than on the deparsed
@@ -1733,9 +1767,8 @@ nonpredictor_frame_vars <- function(spec) {
         out <- c(out, if (is.null(rt$mm)) deparse1(rt$bar[[3L]]) else
                         rt$mm$gvars, by_term_vars(rt))
       }
-      for (ce in c(dp[["carterms"]] %||% list(),
-           dp[["spdeterms"]] %||% list())) {
-        out <- c(out, all.vars(ce$gr_expr))
+      for (ft in dp[["fieldterms"]] %||% list()) {
+        out <- c(out, all.vars(ft[["gr"]]))
       }
     }
   }
@@ -2256,6 +2289,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            check_response = TRUE, thres_pin = NULL,
                            drop_unused_levels = TRUE, predvar_map = NULL,
                            refit_na_action = NULL) {
+  # a saved fit's family from a package this session lacks
+  require_model_packages(spec)
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -2983,6 +3018,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(resp$family[["extra_pars"]])) {
       ex_r <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
+      check_simplex_extra(resp$family, ex_r)
       if (length(spec$responses) > 1L) {
         # Every response's extras live in one parameter list, so each
         # response's block is namespaced by the response and handed
@@ -3701,44 +3737,24 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
       }
 
-      # Spatial GMRF terms: car(M, gr = g) over an adjacency matrix and
-      # spde(fem, gr = node) over a mesh. Both are one intercept per
-      # location, so the block looks like (1 | g) with a structured
-      # precision; a synthetic bar keeps the prediction, ranef() and
-      # VarCorr() paths unchanged.
-      for (ce in c(dp[["carterms"]] %||% list(),
-           dp[["spdeterms"]] %||% list())) {
-        is_car <- !is.null(ce$M_expr)
-        fn <- if (is_car) "car" else "spde"
-        gv <- eval(ce$gr_expr, mf, resp$formula_env)
+      # Field terms, the predictor specials of registered structures:
+      # car(M, gr = g) over an adjacency matrix, spde(fem, gr = node)
+      # over a mesh. Each is one intercept per location, so the block
+      # looks like (1 | g) with a structured covariance or precision; a
+      # synthetic bar keeps the prediction, ranef() and VarCorr() paths
+      # unchanged. The structure's term slot builds the levels, the row
+      # map and the fixed data; the frame builds the design.
+      for (ft in dp[["fieldterms"]] %||% list()) {
+        fn <- ft[["special"]]
+        gv <- eval(ft[["gr"]], mf, resp$formula_env)
         if (anyNA(gv)) {
-          frm_stop(fn, "(): the grouping variable '", deparse1(ce$gr_expr),
+          frm_stop(fn, "(): the grouping variable '", deparse1(ft[["gr"]]),
                    "' has missing values", call. = FALSE)
         }
-        aux_car <- NULL
-        aux_spde <- NULL
-        if (is_car) {
-          # the adjacency matrix names its locations, so the block's
-          # level order is the data's and the matrix is permuted to it
-          locs <- if (is.factor(gv)) levels(droplevels(gv)) else {
-            sort(unique(as.character(gv)))
-          }
-          j_loc <- match(as.character(gv), locs)
-          M <- lookup_structural(ce$M_expr, data2, data,
-                                 resp$formula_env, "car()")
-          W <- car_adjacency(M, locs)
-          aux_car <- car_aux(W, ce$type, ce$con_sd)
-        } else {
-          # the mesh names nothing, so the block's levels ARE the mesh
-          # rows and the data is permuted to them: every node gets a
-          # column, observed or not (an unobserved one keeps its prior)
-          fem <- lookup_structural(ce$fem_expr, data2, data,
-                                   resp$formula_env, "spde()")
-          aux_spde <- spde_matrices(fem)
-          n_node <- nrow(aux_spde[["M0"]])
-          j_loc <- spde_node_index(gv, n_node, ce$gr_expr)
-          locs <- as.character(seq_len(n_node))
-        }
+        built <- field_term_build(ft, gv, data2, data, resp$formula_env,
+                                  nrow(mf))
+        locs <- built[["levels"]]
+        j_loc <- built[["index"]]
         Zc <- Matrix::sparseMatrix(i = seq_along(j_loc), j = j_loc, x = 1,
                                    dims = c(length(j_loc), length(locs)))
         components[[length(components) + 1L]] <- list(
@@ -3746,12 +3762,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           covstruct = fn, id = NULL,
           dim = 1L, n_levels = length(locs),
           levels = locs, cnms = "(Intercept)",
-          bar = call("|", 1, ce$gr_expr),
+          bar = call("|", 1, ft[["gr"]]),
           Zlocal = methods::as(Zc, "CsparseMatrix"),
-          aux_car = aux_car, aux_spde = aux_spde,
-          car_type = ce$type,
-          group_name = deparse1(ce$gr_expr),
-          label = paste0(dp_prefix, ce$label)
+          aux = built[["aux"]], expands = isTRUE(built[["expands"]]),
+          group_name = deparse1(ft[["gr"]]),
+          label = paste0(dp_prefix, ft[["label"]])
         )
         comp_ids <- c(comp_ids, length(components))
       }
@@ -4060,7 +4075,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   n_c <- 0L      # coefficient space (the Z columns)
   n_theta <- 0L
   has_rr <- FALSE
-  has_esicar <- FALSE
+  has_expand <- FALSE
 
   for (gd in group_defs) {
     cps <- components[gd]
@@ -4141,33 +4156,28 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       n_levels <- cp$n_levels
       rank_k <- cp$rank
     }
+    # what the structure reads to count its parameters: the block's
+    # size, and for a gp() its input dimension count, for an rr() its
+    # rank, for a field its fixed data (the car() type decides whether
+    # there is a mixing parameter)
+    proto <- list(covstruct = cs_name, dim = D, rank = rank_k,
+                  n_levels = n_levels, gp_D = cps[[1]]$gp_D,
+                  gp_iso = cps[[1]]$gp_iso, aux = cps[[1]]$aux,
+                  expands = cps[[1]]$expands)
     if (cs_name == "rr") {
       if (is.null(rank_k) || rank_k > D) {
         frm_stop("rr(): the rank d must not exceed the term dimension (",
                  D, ")", call. = FALSE)
       }
       has_rr <- TRUE
-      npar_k <- rr_npar(D, rank_k)
       nb_k <- rank_k * n_levels
-    } else if (cs_name %in% c("gp", "hsgp")) {
-      # parameter count depends on the gp dimension count, not the
-      # block dimension (positions / basis size)
-      npar_k <- gp_npar(cps[[1]]$gp_D, cps[[1]]$gp_iso)
-      nb_k <- D * n_levels
-    } else if (cs_name == "car") {
-      # the CAR type decides whether there is a mixing parameter, and
-      # esicar's coefficients are its parameters CENTERED, so the frame
-      # has to say that expand_b() must run
-      npar_k <- car_npar(cps[[1]]$car_type)
-      has_esicar <- has_esicar || identical(cps[[1]]$car_type, "esicar")
-      nb_k <- D * n_levels
-    } else if (cs_name == "spde") {
-      npar_k <- spde_npar()
-      nb_k <- D * n_levels
     } else {
-      npar_k <- covstruct_registry[[cs_name]]$npar(D)
       nb_k <- D * n_levels
     }
+    npar_k <- cs_block_npar(cs_name, proto)
+    # a block whose coefficients are its parameters mapped (esicar's,
+    # centered) tells the frame that expand_b() must run
+    has_expand <- has_expand || isTRUE(cps[[1]]$expands)
     blk_i <- length(re_blocks) + 1L
     ofs <- 0L
     for (k in seq_along(gd)) {
@@ -4194,9 +4204,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       aux_kron = mrg_kron %||% cps[[1]]$aux_kron,
       aux_Q = cps[[1]]$aux_Q,
       aux_Qk = mrg_Qk %||% cps[[1]]$aux_Qk,
-      aux_car = cps[[1]]$aux_car,
-      aux_spde = cps[[1]]$aux_spde,
-      car_type = cps[[1]]$car_type,
+      aux = cps[[1]]$aux,
+      expands = cps[[1]]$expands,
+      # the package that owns the structure, so that a fit read where it
+      # is absent is refused by its name (require_structure_packages())
+      covstruct_package = cs_entry(cs_name)[["package"]],
       aux_omega = cps[[1]]$aux_omega,
       gp_D = cps[[1]]$gp_D,
       gp_iso = cps[[1]]$gp_iso,
@@ -4291,6 +4303,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     linpreds[[key]] <- lp
   }
 
+  for (bk in re_blocks) cs_check_block(bk)
   par_template <- list(beta = stats::setNames(numeric(length(beta_names)),
                                               beta_names))
   if (length(betad_names)) {
@@ -4301,19 +4314,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   if (n_theta) {
     th0 <- numeric(n_theta)
     for (bk in re_blocks) {
-      th0[bk[["theta_idx"]]] <- if (bk[["covstruct"]] == "rr") {
-        rr_start(bk[["dim"]], bk[["rank"]])
-      } else if (bk[["covstruct"]] == "hsgp") {
-        hsgp_start(bk[["gp_D"]], bk[["gp_iso"]])
-      } else if (bk[["covstruct"]] == "gp") {
-        gp_start(bk[["gp_D"]], bk[["gp_iso"]])
-      } else if (bk[["covstruct"]] == "car") {
-        car_start(bk[["car_type"]])
-      } else if (bk[["covstruct"]] == "spde") {
-        spde_start()
-      } else {
-        covstruct_registry[[bk[["covstruct"]]]]$start(bk[["dim"]])
-      }
+      th0[bk[["theta_idx"]]] <- cs_entry(bk[["covstruct"]])$start(bk)
     }
     par_template[["theta"]] <- th0
   }
@@ -4388,7 +4389,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
-         n_c = n_c, has_rr = has_rr, has_expand = has_rr || has_esicar,
+         n_c = n_c, has_rr = has_rr, has_expand = has_rr || has_expand,
          mi_map = mi_map, me = me_fr, blocks = blocks,
          autocor = autocor,
          par_template = par_template, map = map,

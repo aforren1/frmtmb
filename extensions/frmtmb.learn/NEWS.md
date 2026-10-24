@@ -1,3 +1,11 @@
+# frmtmb.learn 0.7.3
+
+## Other changes
+
+* The compatibility note on the fitted values of the nominal families,
+  and one comment, name frmtmb.survival as the home of `cox()` and
+  `royston_parmar()`.
+
 # frmtmb.learn 0.7.2
 
 No change to the package's code. Needs frmtmb 0.68.0 for its tests.
@@ -83,7 +91,6 @@ No change to the package's code.
   frmtmb.eam raises, and the refusals frmtmb raises about this
   package's families, such as `declares no mean`, are a
   `frmtmb_learn_error`.
-
 
 # frmtmb.learn 0.4.2
 

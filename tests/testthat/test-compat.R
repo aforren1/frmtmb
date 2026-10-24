@@ -259,7 +259,7 @@ test_that("declared families exist in the family registry", {
 test_that("declared covariance structures exist in the covstruct registry", {
   ft <- frm_compat_features()
   covs <- ft$key[ft$kind == "covstruct"]
-  expect_true(all(covs %in% names(covstruct_registry)))
+  expect_true(all(covs %in% cs_names()))
 })
 
 test_that("declared addition terms are the ones the parser accepts", {
@@ -350,6 +350,7 @@ test_that("declared post-fit methods are callable", {
   # registered on a suggested package's generic, rather than a
   # function of their own.
   as_fn <- c(residuals_osa = "residuals.frmtmb_fit",
+             frm_curve_contrast = "frm_curve",
              confint_profile = "confint.frmtmb_fit",
              hypothesis_profile = "hypothesis",
              emmeans = "emm_basis.frmtmb_fit",
@@ -359,10 +360,10 @@ test_that("declared post-fit methods are callable", {
              residuals = "residuals.frmtmb_fit")
   # Core's own rows only. A contributed method lives in a namespace an
   # earlier file may have loaded without attaching, and its row may name
-  # an argument setting this map cannot know (frmtmb.spline's
-  # frm_curve_contrast is the contrast argument of frm_curve()). The
-  # contributed rows are checked with every extension loaded, in
-  # test-compat-extensions.R.
+  # an argument setting this map cannot know, as frm_curve_contrast, the
+  # contrast argument of frm_curve(), was when frmtmb.spline registered
+  # it. The contributed rows are checked with every extension loaded,
+  # in test-compat-extensions.R.
   meths <- setdiff(meths, compat_contributed_names())
   for (m in meths) {
     fn <- if (m %in% names(as_fn)) as_fn[[m]] else m

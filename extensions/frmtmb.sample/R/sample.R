@@ -1974,13 +1974,20 @@ default_prior_notes <- function(fit, user_pl = NULL) {
       "); it is the flat density on the simplex, and prior = \"flat\" ",
       "keeps it"))
   }
-  if (any(vapply(simplex_frame_terms(fit), function(t) {
-    identical(t$kind, "cox") && !t$zeta %in% own
-  }, NA))) {
+  # every simplex a family declares (frmtmb_family(simplex_pars =)), the
+  # cox() baseline's sbhaz among them, by the brms name of its draws; a
+  # mo() term carries no `kind`, and the note above names it
+  fs <- Filter(function(t) !is.null(t$kind) && !t$zeta %in% own,
+               simplex_frame_terms(fit))
+  seen <- character()
+  for (t in fs) {
+    stem <- sub("[[]1[]]$", "", t$names[1L])
+    if (stem %in% seen) next
+    seen <- c(seen, stem)
     notes <- c(notes, paste0(
-      "sbhaz: dirichlet(1), brms's default, on the cox() baseline ",
-      "simplex; it is the flat density on the simplex, and prior = ",
-      "\"flat\" keeps it"))
+      stem, ": dirichlet(1), brms's default, on the simplex the ", t$kind,
+      "() family declares; it is the flat density on the simplex, and ",
+      "prior = \"flat\" keeps it"))
   }
   notes
 }
