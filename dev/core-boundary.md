@@ -82,7 +82,9 @@ terms: `extension_special_homes` and `extension_aterm_homes` in
 stop with "The car() special is in the extension package
 frmtmb.spatial, which is not loaded". The brms names that frmtmb does
 not support at all are in three tables of refusals in the same file
-(`custom`, `bhaz()`, `sar()`, `fcor()`), each with its reason.
+(`custom`, `sar()`, `fcor()`), each with its reason. `bhaz()` is in
+`extension_aterm_homes`; frmtmb.survival refuses `bhaz(gr = )` by
+name.
 
 A test enforces this guardrail: `tests/testthat/test-guardrail1.R`.
 It probes every family, addition term and formula special of brms
@@ -144,6 +146,7 @@ The public interfaces that an extension can use today:
 |---|---|
 | `frmtmb_family()`, `custom_family()`, `as_frmtmb_family()` | a family |
 | `frmtmb_register_aterm()` | an addition term, such as `dec()` |
+| `frmtmb_register_aterm(option =)` | an addition term that sets an argument of the family, such as `bhaz()` of `cox()` |
 | `frmtmb_register_compat()` | compat features and rules |
 | `frmtmb_register_frame_check()` | a check on the model frame |
 | `frmtmb-sampling-api` exports | what `frmtmb.sample` reads from a fit |

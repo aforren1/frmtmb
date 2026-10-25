@@ -644,6 +644,28 @@ autotest 0.2.0, emmeans 2.0.4, drmTMB 0.7.0, hmmTMB 1.1.2, ordinal
   `dev/nb2dm-findings.md`, fix round 1.
 - Status: not reported.
 
+### brms-36. An interval-censored `cox()` row scores the interval as probability 0
+
+- Seen: 2.23.0, 2026-10-24 (`dev/bhaz-brms-icens.R`, log
+  `dev/bhaz-log/brms-icens.txt`; no compile).
+- Repro: `stancode(bf(t | cens(c2, u) + bhaz(df = 6) ~ x), family =
+  cox())` on 30 rows (seed 1), half with `c2 = 2`. The interval term is
+  `log_diff_exp(cox_log_lcdf(rcens[n] | mu[n], bhaz[n], cbhaz[n]),
+  cox_log_lcdf(Y[n] | mu[n], bhaz[n], cbhaz[n]))`. `cox_log_lcdf()`
+  reads only `cbhaz`, and `cbhaz[n]` is the cumulative baseline hazard
+  at `Y`: `standata()` passes `Zcbhaz` for `Y` alone, with no basis at
+  `rcens`. On row 2 (Y 1.2816, rcens 1.9225, equal weights) both ends
+  give -1.019042, and the interval's log probability is -Inf.
+- Expected: the cumulative baseline hazard at `rcens` for the upper
+  end. Actual: every interval-censored row has log density -Inf, so
+  brms cannot fit an interval-censored Cox model.
+- Workaround: none needed. frmtmb.survival's `cox()` builds the
+  I-spline basis at each censoring and truncation bound
+  (`cox_cb_entry()`), and its interval rows are scored at both ends.
+- Record: `dev/reviews/2026-10-24-bhaz.md`, "Outside this lane";
+  `dev/bhaz-findings.md`, fix round 1.
+- Status: not reported.
+
 ## RTMB
 
 ### RTMB-1. `pbeta()`, `pbinom()` and `pnbinom()` have non-finite third derivatives

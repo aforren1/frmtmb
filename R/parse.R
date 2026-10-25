@@ -4,6 +4,9 @@
 # term does none of that - it carries a column of data to a family that
 # knows what to do with it - so one entry (name, arity, coercion) is the
 # whole contract, and the parse layer needs no branch per contributor.
+# A term can instead be an OPTION of the family, as brms's bhaz() is of
+# cox(): then it carries no data, and the contributor's own function
+# turns the written call into the family the fit uses.
 #
 # The same shape as the frame-check and prior-default registries, and
 # filled the same way, from a contributing package's .onLoad(). Unlike
@@ -60,6 +63,31 @@ row_aterms <- c("subset", "index")
 #' no-op rather than a duplicate. Register the term BEFORE the rules
 #' that name it.
 #'
+#' @section An option of the family:
+#' Some terms carry no data. brms's `bhaz(df = 6)` in
+#' `time | bhaz(df = 6) ~ x` sets the basis of the baseline hazard of
+#' `cox()`: it is an argument of the family, written on the response
+#' side. Give such a term an `option` function. Then the term is not an
+#' addition-term value: it does not reach `aterms`, it is not required
+#' on `newdata`, and `arity` and `coerce` are not used. When the formula
+#' is parsed and the response's family is known, frmtmb calls
+#' `option(family, call, env)` once, with the family, the term's call as
+#' written (`quote(bhaz(df = 6))`), and the formula's environment, in
+#' which the function evaluates the call's arguments. The function
+#' returns the family that the fit uses, or stops with a message that
+#' says why it refuses the call. Build that family again from its
+#' constructor, as the example does: a density is a closure over the
+#' constructor's arguments, so a slot set on the family afterwards
+#' changes nothing that the likelihood reads.
+#'
+#' The family must accept the term. A family whose
+#' `frmtmb_family(accepts_aterms =)` does not name the term is refused
+#' before `option()` runs. A family that declares no allow-list reaches
+#' `option()`, which must refuse a family it cannot change.
+#' `update()`, `predict()` on new data and refits parse the formula
+#' again, each time from the family as it was written, so `option()`
+#' must return the same family for the same family and call.
+#'
 #' A name the vocabulary already holds under another kind is refused,
 #' and nothing is registered on either side: `s()` is a smooth, so
 #' `frmtmb_register_aterm("s")` would give one spelling two meanings in
@@ -83,6 +111,9 @@ row_aterms <- c("subset", "index")
 #'   so that a coercion that builds levels from its input cannot code
 #'   new rows by their own levels, and a value the fit did not see is
 #'   refused.
+#' @param option Optional function `(family, call, env)` that makes the
+#'   term an option of the family rather than data (see the section "An
+#'   option of the family"). The default, `NULL`, is a data term.
 #' @return `NULL`, invisibly. Called for the registration.
 #' @seealso [frmtmb_family()] for `required_aterms`, which is how a
 #'   family says the term is not optional, [frmtmb_register_frame_check()]
@@ -95,8 +126,40 @@ row_aterms <- c("subset", "index")
 #'   as.integer(factor(x)) - 1L
 #' })
 #' }
+#'
+#' # an option of a family: `y | knownsd(2) ~ x` is a normal model whose
+#' # standard deviation is known to be 2. The family declares the term,
+#' # and the option builds the family again with the new value.
+#' normal_sd <- function(sd = 1) {
+#'   force(sd)
+#'   frmtmb_family(
+#'     "normal_sd", dpars = "mu", links = list(mu = "identity"),
+#'     accepts_aterms = "knownsd",
+#'     lpdf = function(y, dpars, aterms, extra) {
+#'       -0.5 * ((y - dpars$mu) / sd)^2 - log(sd) - 0.5 * log(2 * pi)
+#'     })
+#' }
+#' set.seed(1)
+#' d <- data.frame(x = rnorm(50))
+#' d$y <- 1 + d$x + rnorm(50, sd = 2)
+#' # frmtmb_local_registries() undoes the registration when the function
+#' # returns, so the example leaves the registry as it found it
+#' fit_knownsd <- function() {
+#'   frmtmb_local_registries()
+#'   frmtmb_register_aterm("knownsd", option = function(family, call, env) {
+#'     normal_sd(eval(call[[2L]], env))
+#'   })
+#'   frm(bf(y | knownsd(2) ~ x), family = normal_sd(), data = d)
+#' }
+#' if (requireNamespace("withr", quietly = TRUE)) {
+#'   fit <- fit_knownsd()
+#'   # the log likelihood of the least-squares line with sd = 2
+#'   print(logLik(fit))
+#'   print(sum(dnorm(d$y, fitted(lm(y ~ x, d)), 2, log = TRUE)))
+#' }
 #' @export
-frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
+frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric,
+                                  option = NULL) {
   if (!is.character(name) || length(name) != 1L || is.na(name) ||
       !nzchar(name) || !identical(name, make.names(name))) {
     frm_stop("frmtmb_register_aterm(name =) must be one syntactic name, ",
@@ -116,6 +179,11 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
     frm_stop("frmtmb_register_aterm(coerce =) must be a function of one ",
              "vector returning a numeric vector", call. = FALSE)
   }
+  if (!is.null(option) && !is.function(option)) {
+    frm_stop("frmtmb_register_aterm(option =) must be NULL or a function ",
+             "(family, call, env) that returns the family, not ",
+             arg_desc(option), call. = FALSE)
+  }
   # A registered term the compatibility table cannot describe is a gap
   # by construction: frm() would accept a term frm_compat() refuses to
   # answer about, and the registrant would have to remember to say the
@@ -129,7 +197,8 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
   # smooth: the split state this seam exists to make unreachable.
   compat_new_aterm_feature(name)
   frmtmb_aterm_registry$reg[[name]] <-
-    list(name = name, arity = as.integer(arity), coerce = coerce)
+    list(name = name, arity = as.integer(arity), coerce = coerce,
+         option = option)
   invisible(NULL)
 }
 
@@ -204,6 +273,7 @@ aterm_spelling <- function(nm) {
 parse_response <- function(formula) {
   lhs <- formula[[2]]
   aterms <- list()
+  opts <- list()
   resp <- lhs
   if (is.call(lhs) && identical(lhs[[1]], as.name("|"))) {
     resp <- lhs[[2]]
@@ -227,6 +297,7 @@ parse_response <- function(formula) {
                  "package that supplies the family can give the term its ",
                  "own name with frmtmb_register_aterm()", call. = FALSE)
       }
+      is_option <- is.function(frmtmb_aterm_registry$reg[[nm]][["option"]])
       multi <- nm %in% c("vint", "vreal") ||
         isTRUE((frmtmb_aterm_registry$reg[[nm]] %||% list())$arity > 1L)
       # cat(x) is brms's older spelling of thres(x - 1): the two set one
@@ -238,14 +309,19 @@ parse_response <- function(formula) {
                  "deprecated spelling of thres(x - 1); write one cat() or ",
                  "one thres()", call. = FALSE)
       }
-      if (nm %in% names(aterms) ||
+      if (nm %in% c(names(aterms), names(opts)) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
           (nm == "thres" && "thres_gr" %in% names(aterms)) ||
           (multi && paste0(nm, "1") %in% names(aterms))) {
         frm_stop("Duplicated addition term `", nm, "()`", call. = FALSE)
       }
-      if (nm == "trunc") {
+      if (is_option) {
+        # an option of the family carries no data: it is kept as
+        # written and handed to its function once the family is known
+        # (apply_aterm_options())
+        opts[[nm]] <- tm
+      } else if (nm == "trunc") {
         args <- as.list(tm)[-1]
         if (!length(args) || is.null(names(args)) ||
             !all(names(args) %in% c("lb", "ub"))) {
@@ -381,7 +457,35 @@ parse_response <- function(formula) {
       }
     }
   }
-  list(resp = resp, aterms = aterms)
+  list(resp = resp, aterms = aterms, options = opts)
+}
+
+#' Apply the response's option terms (`frmtmb_register_aterm(option =)`)
+#' to its family, in the order the formula writes them. A family that
+#' declares its addition terms and does not name the term is refused
+#' here, as brms refuses `bhaz()` on a family other than `cox()`.
+#'
+#' @noRd
+apply_aterm_options <- function(fam, options, env) {
+  for (nm in names(options)) {
+    ok <- accepted_aterm_names(fam)
+    if (!is.null(ok) && !nm %in% ok) {
+      frm_stop("Addition term `", nm, "()` is not supported for family '",
+               fam[["family"]], "'. It is an option of a family that ",
+               "declares it (frmtmb_family(accepts_aterms =)), and '",
+               fam[["family"]], "' does not", call. = FALSE)
+    }
+    out <- frmtmb_aterm_registry$reg[[nm]][["option"]](fam, options[[nm]],
+                                                       env)
+    if (!inherits(out, "frmtmb_family")) {
+      frm_stop("The option function of addition term `", nm, "()` ",
+               "returned ", arg_desc(out), "; it must return the family ",
+               "the fit uses (frmtmb_register_aterm(option =))",
+               call. = FALSE)
+    }
+    fam <- out
+  }
+  fam
 }
 
 #' The arguments of a predictor `mi()` call, brms's `mi(x, idx = NA)`.
@@ -2473,7 +2577,11 @@ parse_one_response <- function(bform) {
   # special-named functions here so the combined model frame (which
   # evaluates with formula_env) can resolve them
   shared_env <- new.env(parent = env)
-  ri <- rewrite_cbind_response(parse_response(f), fam)
+  ri <- parse_response(f)
+  # a term that is an option of the family (brms's bhaz() of cox())
+  # changes the family itself, so it runs before anything reads it
+  fam <- apply_aterm_options(fam, ri$options, env)
+  ri <- rewrite_cbind_response(ri, fam)
 
   primaries <- fam[["primary_dpars"]] %||% "mu"
   pforms <- bform$pforms

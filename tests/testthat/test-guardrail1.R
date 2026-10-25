@@ -21,7 +21,7 @@
 # stops, so no data or matrix need exist. `ext` is what the call must
 # give once the package a refusal names is loaded: "ok", or "refused"
 # for a spelling frmtmb refuses by name there (car(M), brms's
-# deprecated one location per row).
+# deprecated one location per row; bhaz(gr = ), a stratified baseline).
 guard_probes <- function() {
   sp <- function(fo, fam = "gaussian()") {
     sprintf("frm(bf(%s), family = %s, data = NULL, dry_run = 'spec')",
@@ -35,9 +35,18 @@ guard_probes <- function() {
                code = sprintf(paste0("frm(bf(y ~ x), family = '%s', ",
                                      "data = NULL, dry_run = 'spec')"),
                               fams), ext = "ok"))
+  # bhaz() sets the basis of a cox() baseline, so brms takes it for that
+  # family alone; with frmtmb.survival loaded the gaussian probe and the
+  # stratified baseline, bhaz(gr = ), are refused by name
+  bhaz_refused <- c(sp("y | bhaz(df = 6) ~ x"),
+                    sp("y | bhaz(gr = g) ~ x", "'cox'"))
   at <- rbind(
-    c("bhaz", sp("y | bhaz() ~ x")),
-    c("bhaz", sp("y | bhaz(df = 5) ~ x")),
+    c("bhaz", sp("y | bhaz() ~ x", "'cox'")),
+    c("bhaz", sp("y | bhaz(df = 5) ~ x", "'cox'")),
+    c("bhaz", sp(paste("y | cens(ce) + bhaz(df = 6, knots = c(1, 2),",
+                       "Boundary.knots = c(0, 3)) ~ x"), "'cox'")),
+    c("bhaz", bhaz_refused[[1L]]),
+    c("bhaz", bhaz_refused[[2L]]),
     c("cat", sp("y | cat(k) ~ x", "cumulative()")),
     c("cens", sp("y | cens(ce) ~ x")),
     c("cens", sp("y | cens(ce, y2) ~ x")),
@@ -83,7 +92,8 @@ guard_probes <- function() {
   ext <- ifelse(sx[, 2] == sp("y ~ x + car(M)"), "refused", "ok")
   rbind(out,
         data.frame(kind = "aterm", name = at[, 1], code = at[, 2],
-                   ext = "ok"),
+                   ext = ifelse(at[, 2] %in% bhaz_refused, "refused",
+                                "ok")),
         data.frame(kind = "special", name = sx[, 1], code = sx[, 2],
                    ext = ext))
 }
@@ -236,8 +246,14 @@ test_that("an unloaded extension's addition term is refused by name", {
   expect_error(frmtmb:::check_unsupported_aterm("dec"),
                "dec() addition term is in the extension package frmtmb.eam",
                fixed = TRUE)
+  # bhaz() is brms's and frmtmb.survival's, which takes it as an option
+  # of cox()
+  expect_identical(unname(frmtmb:::extension_aterm_homes[["bhaz"]]),
+                   "frmtmb.survival")
   expect_error(frmtmb:::check_unsupported_aterm("bhaz"),
-               "family = cox(df = 5", fixed = TRUE)
+               paste("bhaz() addition term is in the extension package",
+                     "frmtmb.survival"), fixed = TRUE)
+  expect_false("bhaz" %in% names(frmtmb:::brms_aterm_refusals))
   # and a term no table names falls through to the general refusal
   expect_null(frmtmb:::check_unsupported_aterm("zz"))
 })
@@ -277,13 +293,4 @@ test_that("bare gr(g) is the grouping factor g, as in brms", {
                    data = d), "without gr()", fixed = TRUE)
   expect_error(frm(bf(y ~ x + (1 | gr(g, nope = 1))), family = gaussian(),
                    data = d), "gr() supports", fixed = TRUE)
-})
-
-test_that("the bhaz() refusal names what has no equivalent", {
-  expect_error(frmtmb:::check_unsupported_aterm("bhaz"),
-               "bhaz(gr = ), has no frmtmb equivalent",
-               fixed = TRUE)
-  # the pointer to the family is one constant, read by the refusal
-  expect_match(frmtmb:::brms_aterm_refusals[["bhaz"]],
-               frmtmb:::bhaz_family_pointer, fixed = TRUE)
 })

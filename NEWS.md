@@ -1,3 +1,30 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **BREAKING: brms's `bhaz()` addition term is frmtmb.survival's.**
+  Without that package, `time | bhaz(df = 6) ~ x` stops with "The
+  bhaz() addition term is in the extension package frmtmb.survival,
+  which is not loaded", as `dec()` names frmtmb.eam. Before, frmtmb
+  refused `bhaz()` as a term it does not support and pointed to
+  `cox(df =)`. With frmtmb.survival loaded, `bhaz()` sets the basis of
+  the `cox()` baseline, as in brms 2.23.0.
+
+## New features
+
+* **`frmtmb_register_aterm(option =)`** registers an addition term that
+  carries no data and sets an argument of the family instead, as brms's
+  `bhaz(df = 6)` sets the baseline basis of `cox()`. frmtmb calls the
+  function with the family, the term's call as written and the
+  formula's environment, and fits the family that it returns. A family
+  whose `frmtmb_family(accepts_aterms =)` does not name the term is
+  refused before the function runs, as brms refuses `bhaz()` for a
+  family other than `cox()`. frmtmb.survival uses it for `bhaz()`.
+  `frm_compat()`'s generic rows for addition terms now say what each
+  kind of term does: a registered data term carries a column to the
+  family's density, and an option term adds nothing to the likelihood
+  and sets an argument of the family of its own response.
+
 # frmtmb 0.74.0
 
 The main changes:

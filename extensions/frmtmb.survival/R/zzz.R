@@ -14,6 +14,10 @@
 
 #' @noRd
 .onLoad <- function(libname, pkgname) {
+  # brms's spelling of the cox() basis, bhaz(df = 6) on the response
+  # side. It is registered before the rules, so that cox()'s rules see
+  # it as a term cox() takes
+  frmtmb_register_aterm("bhaz", option = cox_bhaz_option)
   frmtmb_register_compat(
     features = c(cox = "family", royston_parmar = "family",
                  rp_floored = "method"),
@@ -37,6 +41,10 @@ sv_compat_rules <- function() {
     "The reason the family exists. An event contributes the density log h0(t) + eta - H0(t) exp(eta) and a censored row the survivor function, which is what cox()'s log-density and log-CDF already are, so right, left and interval censoring all run through the ordinary cens() machinery. Verified against a hand-rolled M-spline PH likelihood exactly and against survival::coxph() to 2e-2 on the log hazard ratio.")
   r("trunc()", "cox", "conditional",
     "Runs through the same log-CDF the censoring uses, so trunc(lb = ) is delayed entry. The truncation bound is evaluated against the SAME spline basis the response is, which means a bound outside the boundary knots is clamped to them rather than extrapolated. Untested against an external left-truncated reference.")
+  r("bhaz()", "cox", "works",
+    "brms's spelling of the baseline basis: bhaz(df =, degree =, intercept =, knots =, Boundary.knots =) sets the cox() argument of the same name, and the two spellings give the same fit. The basis equals brms 2.23.0's standata() Zbhaz and Zcbhaz to rounding, and the log likelihood equals brms's log_lik() at brms's own draws. An argument set in both places with two values is refused, and so are df and knots that disagree, a pair brms resolves by ignoring df. bhaz(gr = ), brms's stratified baseline, is refused by name, and so are boundary knots that do not cover the observed times, where brms extrapolates the basis to a cumulative hazard that can be negative. A shortened argument name brms reads (d = for df, kn =, deg =) is read the same way; one brms drops without a message (int =, Bound =) is refused with the name that was probably meant.")
+  r("bhaz()", "royston_parmar", "refused",
+    "Refused: bhaz() sets the M-spline baseline of cox(), and a Royston-Parmar model has no such baseline; its spline is set by royston_parmar(df =, knots =, bknots =). frm() stops with \"family 'royston_parmar' has none\".")
   r("mvbf", "cox", "refused",
     "Refused: the Cox baseline is an extra parameter block that the post-fit methods read without a response in hand. Fit the survival response in a model of its own.")
   r("simulate", "cox", "refused",

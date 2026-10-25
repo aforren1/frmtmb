@@ -52,7 +52,8 @@ extension_special_homes <- c(
 
 # Addition terms an extension supplies rather than core.
 extension_aterm_homes <- c(
-  dec = "frmtmb.eam"
+  dec = "frmtmb.eam",
+  bhaz = "frmtmb.survival"
 )
 
 # brms families frmtmb refuses by name, with the frmtmb spelling;
@@ -71,23 +72,10 @@ brms_special_refusals <- c(
   fcor = "is a brms autocorrelation term that frmtmb does not support"
 )
 
-# Where the bhaz() refusal sends a user: the family that takes brms's
-# baseline-hazard basis, and the extension package that holds it. The
-# one place to change when cox() moves again (the refusal reads it).
-bhaz_family_pointer <- paste0(
-  "cox() is in the extension package frmtmb.survival: install it, run ",
-  "library(frmtmb.survival), then use family = cox(df = 5, degree = 3, ",
-  "intercept = TRUE), which is brms's bhaz() default")
-
 # brms addition terms frmtmb refuses, with the reason and the frmtmb
-# spelling where there is one.
-brms_aterm_refusals <- c(
-  bhaz = paste0(
-    "it sets brms's M-spline basis for the baseline hazard of a cox() ",
-    "model, and frmtmb sets the same basis in the family. ",
-    bhaz_family_pointer, ". A group-specific baseline, bhaz(gr = ), has ",
-    "no frmtmb equivalent")
-)
+# spelling where there is one. None at present: bhaz() was the last,
+# and it is frmtmb.survival's now, which refuses bhaz(gr = ) by name.
+brms_aterm_refusals <- stats::setNames(character(0), character(0))
 
 #' The extension that supplies a formula special, or `NULL`.
 #'

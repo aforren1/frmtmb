@@ -1093,12 +1093,17 @@ compat_hand_rules_tbl <- function() {
     "Smooths and Gaussian processes enter as their own blocks alongside user bar terms.")
   r("kind:special", "kind:special", "works",
     "Specials are additive terms and compose freely.")
+  # The notes say what each KIND of term does, because a term registered
+  # by another package is one of two kinds: data that its family's
+  # density reads (dec()), or an option that sets an argument of the
+  # family and carries no data at all (bhaz()). The generic rows of both
+  # come from these three rules and the mvbf one.
   r("kind:aterm", "kind:aterm", "works",
-    "Addition terms on one response combine; each contributes its own factor to the likelihood.")
+    "Addition terms on one response combine, and each is read on its own. The core acts on its own terms (weights(), cens(), trunc(), ...); a registered data term (frmtmb_register_aterm()) carries a column to the family's density; an option term (frmtmb_register_aterm(option =), such as bhaz()) carries no data and adds nothing to the likelihood: it sets an argument of the family before the frame is built. Whether a family takes a term is that family's own row.")
   r("kind:aterm", "kind:covstruct", "works",
-    "Addition terms change the likelihood, covariance structures change the predictor.")
+    "Addition terms act on the likelihood, or, for an option term, on the family's arguments; covariance structures change the predictor.")
   r("kind:aterm", "kind:special", "works",
-    "Addition terms and predictor specials are independent.")
+    "Addition terms act on the likelihood or the family, predictor specials on the linear predictor; they are independent.")
   # No kind-level default for mode x mode either: every pair of the
   # eight declared modes is already named below, either by an explicit
   # rule or by the verbose / sparse_x / autoscale sweeps.
@@ -1625,7 +1630,7 @@ compat_hand_rules_tbl <- function() {
   r("mvbf", "group:simplex", "works",
     "A dirichlet(), dirichlet2 or logistic_normal() response sits in a multivariate model. A logistic_normal() response's correlations are a block of that response, reported as lncor_<resp>__b__c and set with set_prior(class = \"lncor\", resp = ); brms 2.23.0 generates Stan code for that model that does not compile (its generated quantities read Llncor without the suffix), and its model block, repaired there, agrees at frmtmb's estimates (test-refcat-brms.R). Without a shared effect the log-likelihood is the sum of the univariate fits' (test-simplex-mvbf.R).")
   r("mvbf", "kind:aterm", "works",
-    "Addition terms are per response.")
+    "Addition terms are per response; an option term (frmtmb_register_aterm(option =)) sets the family of its own response only.")
   r("mvbf", "|ID|", "works",
     "|ID| is the reason mvbf() exists in this grammar: it keys correlated random effects across responses.")
 

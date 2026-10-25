@@ -4,7 +4,15 @@
 \alias{cox}
 \title{Cox proportional hazards with a flexible baseline}
 \usage{
-cox(link = "log", df = 5, degree = 3, intercept = TRUE)
+cox(
+  link = "log",
+  df = 5,
+  degree = 3,
+  intercept = TRUE,
+  knots = NULL,
+  Boundary.knots = NULL,
+  bhaz = NULL
+)
 }
 \arguments{
 \item{link}{The link for the hazard ratio \code{mu}: \code{"log"} (the
@@ -12,12 +20,26 @@ default), \code{"identity"}, \code{"softplus"} or \code{"squareplus"}, the set
 brms 2.23.0 allows. Quoted or not.}
 
 \item{df}{The number of M-spline basis functions in the baseline
-hazard (brms's \code{bhaz(df = 5)} default).}
+hazard (brms's \code{bhaz(df = 5)} default). With \code{knots}, it is
+\code{length(knots) + degree + intercept}, and need not be given.}
 
 \item{degree}{The spline degree of that basis (cubic by default).}
 
 \item{intercept}{Keep the basis function that is non-zero at the
 lower boundary knot.}
+
+\item{knots}{The internal knots of the basis. The default, \code{NULL},
+puts \code{df - degree - intercept} of them on equally spaced quantiles
+of the observed times, as brms and \code{splines2::mSpline()} do. Given,
+they must be distinct and lie strictly inside the boundary knots.}
+
+\item{Boundary.knots}{The two boundary knots. The default, \code{NULL},
+is brms's: the range of the observed times widened by 1/50 of its
+width at each end, with the lower knot not below zero. Given, they
+must cover every observed time.}
+
+\item{bhaz}{Not an argument of brms 2.23.0's \code{cox()}. Given, it is
+refused with the spellings to use instead.}
 }
 \value{
 A \code{frmtmb_family} object, ready for \code{\link[frmtmb:frm]{frmtmb::frm()}}.
@@ -74,8 +96,46 @@ this package, when it is not.
 
 The baseline simplex reaches frmtmb through
 \code{frmtmb_family(simplex_pars = c(sbhaz = "sbhaz_raw"))}, and its basis
-through \code{frmtmb_family(aterm_data = )}. Those two seams are all the
-family needs from core.
+through \code{frmtmb_family(aterm_data = )}. brms's \code{bhaz()} addition term
+reaches it through \code{frmtmb_register_aterm(option = )}. Those seams
+are all the family needs from core.
+}
+
+\section{brms's bhaz() addition term}{
+
+brms 2.23.0 sets the baseline basis on the response side:
+\code{time | cens(c) + bhaz(df = 6) ~ x} with \code{family = cox()}. This
+package takes that spelling as well. \code{bhaz(df =, degree =, intercept =, knots =, Boundary.knots =)} sets the argument of the
+same name of \code{cox()}, so these two models are the same model, with
+the same basis to rounding as brms's \code{standata()}:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(time | cens(c) + bhaz(df = 6) ~ x), family = cox(), data = d)
+frm(bf(time | cens(c) ~ x), family = cox(df = 6), data = d)
+}\if{html}{\out{</div>}}
+
+The arguments of \code{bhaz()} are evaluated in the formula's
+environment. An argument that both \code{bhaz()} and \code{cox()} set must
+have the same value in both, or the fit stops and names the two.
+\code{df} and \code{knots} must agree too, in either place: \code{length(knots) + degree + intercept} basis functions. brms ignores \code{df} when \code{knots}
+is given; frmtmb refuses the pair.
+
+Some differences from brms are refusals. \code{bhaz(gr = g)} gives each
+level of \code{g} a baseline of its own (a stratified Cox model), and
+this family has one baseline: fit each stratum as a model of its
+own, or let \code{g} shift the one baseline by adding it to the formula.
+\code{Boundary.knots} must cover every observed time. brms takes boundary
+knots inside the data and extrapolates the basis there, where the
+cumulative baseline hazard can be negative, so that the survivor
+function exceeds one. An argument name that brms drops without a
+message, such as \code{bhaz(int = FALSE)} or \code{bhaz(Bound = c(0, 30))},
+is refused with the name that was probably meant. A shortened name
+that brms reads as an argument (\code{bhaz(d = 6)} for \code{df}, \verb{kn =} for
+\code{knots}, \verb{deg =} for \code{degree}) is read the same way here.
+\code{warn.outside} is taken and has no effect, as in brms.
+
+brms 2.23.0's \code{cox()} has no \verb{bhaz =} argument (brms before 2.22.0
+took the basis that way). \code{cox(bhaz = )} stops and names the two
+spellings above.
 }
 
 \examples{
