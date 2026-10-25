@@ -1,3 +1,95 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* **A term that calls `exp()` has brms's coefficient names.** To keep
+  `exp(x)` from being dropped as a covariance structure, the parser
+  renames the call to `.frm_exp(x)`, and since 0.15.0 that alias was
+  the name of the design column. So the coefficient was `.frm_expx` in
+  `fixef()`, `vcov()`, `summary()`, `coef()`, `ranef()` and
+  `VarCorr()`, `b_.frm_expx` in `variables()` and in the draws of
+  `frmtmb.sample::frm_sample()`, and `.frm_exp(x)` in `confint()` and
+  `default_prior()`. brms 2.23.0 names it `expx` and `b_expx`, and
+  `set_prior(coef = "expx")` and `hypothesis(fit, "expx > 0")` were
+  refused. The same applies to `I(exp(x))`, `exp(x):z`, a group-level
+  `(1 + exp(x) | g)`, and a call of any other function whose name is
+  that of a covariance structure. Now the alias stays in the
+  parser: the coefficient is `expx` everywhere brms has it, and the
+  `confint()` row is `exp(x)`. Of 40 formula terms compared with brms
+  2.23.0, 18 had the alias in their names.
+
+* **`default_prior()` lists each coefficient by brms's name**, and
+  `set_prior(coef =)` takes that name. The `coef` column held the
+  design column, such as `log(xp)`, `I(x^2)` or `poly(x, 2)1`, where
+  brms 2.23.0 lists `logxp`, `IxE2` and `polyx21`, and `set_prior()`
+  refused brms's name where the rename is more than dropped
+  parentheses, such as `IxE2`, `polyx21` or `expxD2`. The design column
+  name still works in `set_prior(coef =)`, for class `"b"`, class `"sd"`
+  and a `cs()` term alike, and the two spellings name one slot, so
+  writing both is refused as a duplicate. Before, class `"sd"` and
+  `cs()` refused `coef = "I(x^2)"` and `"poly(x, 2)2"`.
+
+* **The rows of `default_prior()`, `validate_prior()` and
+  `prior_summary()` are in brms's order.** `default_prior()` orders
+  them as brms's does, by response, distributional parameter, nonlinear
+  parameter, class, group and coef, so `b` comes before `cor`,
+  `Intercept` and `sd`; `validate_prior()` and `prior_summary()` order
+  them by class, group, response, distributional parameter, nonlinear
+  parameter and coef, as brms's do. frmtmb's own class `"theta"`, which
+  brms does not have, stays last. Before, `Intercept` came first and
+  `cor` after `sd`, and only the `sd` rows of `validate_prior()` were
+  in brms's order.
+
+* **A nonlinear parameter of a multivariate model has brms's prefix.**
+  brms writes the distributional parameter, then the response, then the
+  nonlinear parameter, so `a` of the response `yn` is `yn_a`:
+  `b_yn_a_Intercept` and `sd_g__yn_a_Intercept` in `variables()` and
+  the draws, `yn_a_Intercept` in `fixef()`. frmtmb wrote
+  `b_a_yn_Intercept` and `a_yn_Intercept`, and `hypothesis()` refused
+  brms's names.
+
+* **`fixef()`, `vcov()` and `summary()` of a fit list the rows in
+  brms's order** in two more cases. A nonlinear parameter's intercept
+  keeps its place among its coefficients, because brms does not center
+  the formula of a nonlinear parameter: for `bf(y ~ a + b * x,
+  a ~ exp(z), b ~ 1 + z, sigma ~ z, nl = TRUE)` brms 2.23.0 gives
+  `sigma_Intercept`, `a_Intercept`, `a_expz`, `b_Intercept`, `b_z`,
+  `sigma_z`, where frmtmb listed `a_Intercept` and `b_Intercept` first.
+  And a multivariate model lists its rows response by response, as
+  brms declares them: `sigma_yn_Intercept` before `y_Intercept` when
+  `yn` is the first response.
+
+## Bug fixes
+
+* **`drop1()` and `step()` see a term that calls `exp()`.** With the
+  alias, `drop1()` found no columns for the term: on `y ~ exp(x) + z`
+  (200 rows) the `.frm_exp(x)` row had `Df 0` and the full model's AIC,
+  607.84, so the term looked free to drop. The row is now `exp(x)`, with
+  `Df 1` and AIC 625.69, the AIC of `y ~ z` refitted, and `step()`
+  drops `z`, which lowers the AIC to 605.84, where it kept both terms.
+
+* **`re_formula` can name a group-level `exp()` term.**
+  `fitted(fit, re_formula = ~ (1 + exp(x) | g))` on
+  `y ~ exp(x) + (1 + exp(x) | g)` stopped with "matches no group-level
+  term of this fit", because the fit's term was
+  `(1 + .frm_exp(x) | g)`. It now gives the full prediction, which is
+  also the prediction of the same model on a column holding `exp(x)`.
+
+* **A smooth's unpenalized column written in both spellings is one
+  prior slot.** `set_prior(coef = "s(x).fx1")` and
+  `set_prior(coef = "sx_1")` name the same coefficient, but in 0.74.0
+  the pair was taken as two specifications, and the later one replaced
+  the earlier without a word: with `normal(3, 0.001)` on the first and
+  `normal(-3, 0.001)` on the second, `validate_prior()` listed only the
+  second and the fit put the coefficient at -3. The pair is now refused
+  as a duplicate, as two specifications for one slot always are.
+
+* **A multivariate model whose second response's nonlinear formula
+  calls `exp()` fits.** In 0.74.0 such a model, for example
+  `mvbf(bf(yn ~ a * exp(b * x), a ~ 1, b ~ 1, nl = TRUE),
+  bf(y ~ c + d * x, c ~ exp(z), d ~ 1, nl = TRUE))`, stopped with
+  'could not find function ".frm_exp"'.
+
 # frmtmb 0.74.0
 
 The main changes:

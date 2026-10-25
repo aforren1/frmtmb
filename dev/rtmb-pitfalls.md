@@ -46,9 +46,14 @@ machine-local memory so that it survives a change of machine.
 9. `reformulas::splitForm` silently DROPS any fixed term whose
    expression tree mentions a special name, such as `exp(x)` or even
    `I(exp(x))`, not only `s()` and `t2()`. frmtmb protects against this
-   with `.frm_<name>` alias substitution in `parse_linpred`
-   (`sub_specials`), with aliases bound in per-linpred and
-   response-shared environments.
+   by renaming such calls to `.frm_<name>` in `parse_linpred`
+   (`sub_specials`) for `splitForm()` alone, and undoing the rename
+   right after it (`unsub_specials()`), in the fixed formula and in the
+   bar terms. The alias is never evaluated and no environment binds it.
+   Through 0.74.0 it was bound and left in place, so it reached the
+   design column and every name built from it (`.frm_expx` where brms
+   has `expx`), `drop1()` and `re_formula`
+   (dev/brmsnames-1024-findings.md).
 10. `RTMB::qgamma` takes a RATE positionally where a reader expects a
     scale. A "scale" coefficient in an nl body fits as 1/scale. The
     likelihood is identical, so only a cross-check against an external

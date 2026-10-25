@@ -1711,10 +1711,30 @@ rsv_intercept_fixed <- function(fixed) {
   list(fixed = new, pos = k - 1L, lower = lower)
 }
 
+#' Undo `parse_linpred()`'s `.frm_<name>` aliases of the special names
+#' `specials` in `e`, an expression or a formula, whose attributes are
+#' kept.
+#'
+#' @noRd
+unsub_specials <- function(e, specials) {
+  if (!is.call(e)) return(e)
+  hd <- e[[1L]]
+  if (is.name(hd)) {
+    nm <- as.character(hd)
+    if (startsWith(nm, ".frm_") && substring(nm, 6L) %in% specials) {
+      e[[1L]] <- as.name(substring(nm, 6L))
+    }
+  }
+  for (i in seq_along(e)[-1L]) {
+    ei <- e[[i]]
+    if (is.call(ei)) e[[i]] <- unsub_specials(ei, specials)
+  }
+  e
+}
+
 #' Split one linear-predictor RHS (a one-sided formula) into a parametric
 #' fixed formula, random-effect terms (reformulas), and mgcv smooth
-#' specifications. `shared` is the response-level environment that keeps
-#' protected-function aliases visible to the combined model frame.
+#' specifications.
 #'
 #' This is the first stage of the formula-to-design-matrix pipeline and
 #' the only place that reads predictor syntax. It takes the RHS of one
@@ -1730,7 +1750,7 @@ rsv_intercept_fixed <- function(fixed) {
 #' design matrices and random-effect blocks.
 #'
 #' @noRd
-parse_linpred <- function(rhs_form, env, shared = NULL) {
+parse_linpred <- function(rhs_form, env) {
   environment(rhs_form) <- env
   rhs_form <- drop_twin_bar_terms(rhs_form)
   # after the twin check, which compares terms as written, as brms does
@@ -1984,23 +2004,19 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   }
   # splitForm silently strips ANY term whose expression mentions a
   # special name - even inside I() or nested calls - so exp(x) in a
-  # fixed formula would vanish. Protect by rewriting special-named
-  # CALLS (never bar terms, which were routed to splitForm above) to
-  # .frm_<name> aliases bound in a child environment.
-  prot <- new.env(parent = env)
+  # fixed formula would vanish. Protect by renaming special-named CALLS
+  # (never bar terms, which were routed to splitForm above) to
+  # .frm_<name> for splitForm alone: unsub_specials() undoes it right
+  # after, so nothing evaluates the alias and no environment binds it.
   protected <- FALSE
   sub_specials <- function(e) {
     if (is.call(e)) {
       hd <- e[[1]]
       if (is.name(hd) && as.character(hd) %in% cs_specials &&
           !("|" %in% all.names(e))) {
-        nm <- as.character(hd)
-        pn <- paste0(".frm_", nm)
         fn <- tryCatch(eval(hd, env), error = function(err) NULL)
         if (is.function(fn)) {
-          assign(pn, fn, envir = prot)
-          if (!is.null(shared)) assign(pn, fn, envir = shared)
-          e[[1]] <- as.name(pn)
+          e[[1]] <- as.name(paste0(".frm_", as.character(hd)))
           protected <<- TRUE
         }
       }
@@ -2016,7 +2032,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     e
   }
   rest <- lapply(rest, sub_specials)
-  env_lp <- if (protected) prot else env
+  env_lp <- env
 
   if (length(rest)) {
     rhs_expr <- Reduce(function(a, b) call("+", a, b), rest)
@@ -2029,6 +2045,15 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # reaches the informative not-supported error below)
   sf <- reformulas::splitForm(bare_form, defaultTerm = "us",
                               specials = cs_specials)
+  # The aliases are for splitForm alone. Left in place they reached
+  # model.matrix(), whose column `.frm_exp(x)` became the coefficient
+  # `.frm_expx` where brms has `expx`.
+  if (protected) {
+    sf$fixedFormula <- unsub_specials(sf$fixedFormula, cs_specials)
+    sf$reTrmFormulas <- lapply(sf$reTrmFormulas, unsub_specials,
+                               cs_specials)
+    sf$reTrmAddArgs <- lapply(sf$reTrmAddArgs, unsub_specials, cs_specials)
+  }
   bad <- setdiff(sf$reTrmClasses, supported_cs)
   if (length(bad)) {
     frm_stop("Covariance structure(s) not supported yet: ",
@@ -2469,9 +2494,10 @@ parse_one_response <- function(bform) {
              call. = FALSE)
   }
   env <- environment(f) %||% globalenv()
-  # response-level alias environment: parse_linpred registers protected
-  # special-named functions here so the combined model frame (which
-  # evaluates with formula_env) can resolve them
+  # the response's formula_env, where the combined model frame
+  # evaluates. It held the parser's .frm_<name> aliases until those were
+  # undone after splitForm(); it is kept as a child of `env`, so a fit
+  # carries the same environment as before
   shared_env <- new.env(parent = env)
   ri <- rewrite_cbind_response(parse_response(f), fam)
 
@@ -2738,7 +2764,7 @@ parse_one_response <- function(bform) {
 
   # mu keeps a design of its own unless a body took its place
   main_lp <- if (!primaries[1L] %in% nl_dpars) {
-    parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env, shared_env)
+    parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env)
   }
   if (!is.null(main_lp[["rsv_intercept"]]) &&
         isTRUE(fam[["drop_intercept"]])) {
@@ -2783,7 +2809,7 @@ parse_one_response <- function(bform) {
   lin_dpar <- function(nm, link) {
     pf <- pforms[[nm]]
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
-                        environment(pf) %||% env, shared_env)
+                        environment(pf) %||% env)
     if (isFALSE(attr(pf, "center", exact = TRUE))) lp[["center"]] <- FALSE
     if (isFALSE(attr(pf, "cmc", exact = TRUE))) lp[["cmc"]] <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)

@@ -30,7 +30,10 @@ own class.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}),
 to the standard deviation of one coefficient (class \code{"sd"}, with
-\code{group}), or name the simplex of class \code{"simo"}.}
+\code{group}), or name the simplex of class \code{"simo"}. A coefficient is
+named as brms names it and as \code{\link[=default_prior]{default_prior()}} lists it: \code{logxp}
+for the column of \code{log(xp)}, \code{IxE2} for \code{I(x^2)}. The name of the
+design column, \code{log(xp)}, also works.}
 
 \item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
 

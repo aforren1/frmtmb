@@ -68,17 +68,25 @@ brms_stan_name <- function(x) {
   gsub("[._]", "", make.names(x, unique = TRUE))
 }
 
-#' The brms prefix of one linear predictor: dpar, then response, with
-#' `mu` and a univariate model's response left out. A nonlinear
-#' parameter is a dpar here.
+#' The brms prefix of one linear predictor: dpar, then response, then
+#' nonlinear parameter (`vars_prefix()`), with `mu` and a univariate
+#' model's response left out, so a distributional parameter is
+#' `sigma_y` and a nonlinear parameter `y_a`.
 #'
 #' @noRd
 brms_lp_prefix <- function(fit, lp) {
   # a dpar shared by every response (the nu of a Student-t rescor
   # model) is brms's plain `nu`
   mv <- length(fit$spec$responses) > 1L && !isTRUE(lp[["shared"]])
-  parts <- c(if (!identical(lp[["dpar"]], "mu")) lp[["dpar"]],
-             if (mv) brms_stan_name(lp[["resp"]]))
+  resp <- if (mv) brms_stan_name(lp[["resp"]])
+  nlp <- if (!is.null(lp[["resp"]])) {
+    fit$spec$responses[[lp[["resp"]]]][["nlpars"]]
+  }
+  parts <- if (lp[["dpar"]] %in% nlp) {
+    c(resp, lp[["dpar"]])
+  } else {
+    c(if (!identical(lp[["dpar"]], "mu")) lp[["dpar"]], resp)
+  }
   paste(parts, collapse = "_")
 }
 

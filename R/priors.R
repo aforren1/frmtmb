@@ -441,7 +441,10 @@
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
 #'   to the standard deviation of one coefficient (class `"sd"`, with
-#'   `group`), or name the simplex of class `"simo"`.
+#'   `group`), or name the simplex of class `"simo"`. A coefficient is
+#'   named as brms names it and as [default_prior()] lists it: `logxp`
+#'   for the column of `log(xp)`, `IxE2` for `I(x^2)`. The name of the
+#'   design column, `log(xp)`, also works.
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
 #' @param resp Response of a multivariate model. Required there for
 #'   every class except `"cor"`, `"rescor"` and `"theta"`; refused on a
@@ -1933,37 +1936,39 @@ fill_prior_table <- function(tab, pl) {
   tab
 }
 
-#' The class `"sd"` rows of a filled table in brms's order.
+#' The rows of a filled table in brms's order.
 #' brms's validate_prior() and prior_summary() order the rows by
 #' `order(class, group, resp, dpar, nlpar, coef)`, not by default_prior()'s
-#' `order(resp, dpar, ...)`: every class-wide sd row first, then group by
-#' group, the responses inside each (dev/prilabel-rev-log/brmsfit.txt).
-#' Only the sd rows are put in that order, in the places they hold.
+#' `order(resp, dpar, ...)`: class by class, and within class `"sd"`
+#' every class-wide row first, then group by group, the responses inside
+#' each (dev/prilabel-rev-log/brmsfit.txt, dev/brmsnames-1024-order.R).
+#' frmtmb's own class `"theta"`, which brms does not have, stays last.
 #'
 #' @noRd
 prior_rows_sd_order <- function(tab) {
-  sdr <- which(tab$class == "sd")
-  if (length(sdr) > 1L) {
-    s <- tab[sdr, , drop = FALSE]
-    tab[sdr, ] <- s[with(s, order(group, resp, dpar, nlpar, coef)), ,
-                    drop = FALSE]
-  }
+  if (nrow(tab) < 2L) return(tab)
+  keep <- which(tab$class != "theta")
+  s <- as.data.frame(tab)[keep, , drop = FALSE]
+  idx <- c(keep[with(s, order(class, group, resp, dpar, nlpar, coef))],
+           which(tab$class == "theta"))
+  # assigned in place, so the table keeps its class and attributes
+  tab[seq_len(nrow(tab)), ] <- tab[idx, , drop = FALSE]
   tab
 }
 
 #' brms's spelling of a coefficient in the prior table.
 #'
-#' A design column is named by `model.matrix()`, and two of those names
-#' are not brms's: the intercept of an uncentered predictor is
-#' `(Intercept)` where brms writes `Intercept`, and the unpenalized
-#' column of a smooth is `s(x).fx1` where brms writes `sx_1`, which is
-#' also the name `variables()` gives it after `bs_`. The resolver takes
-#' either spelling of both (`prior_coef_match()`), so a prior written
-#' against the old table still lands.
+#' A design column is named by `model.matrix()`, and brms renames it
+#' (`rename()`, `brms_rename()` here): `(Intercept)` is `Intercept`,
+#' `log(xp)` is `logxp`, `I(x^2)` is `IxE2` and `poly(x, 2)1` is
+#' `polyx21`, the names `variables()` gives after `b_`. The unpenalized
+#' column of a smooth, `s(x).fx1`, is brms's `sx_1`. The resolver takes
+#' either spelling (`prior_coef_match()`), so a prior written against
+#' the design column still lands.
 #'
 #' @noRd
 prior_coef_brms <- function(cn) {
-  out <- sub("^[(]Intercept[)]$", "Intercept", cn)
+  out <- brms_rename(cn)
   fx <- grepl("[.]fx[0-9]+$", cn)
   if (any(fx)) {
     lab <- brms_rename(sub("[.]fx[0-9]+$", "", cn[fx]))
@@ -1992,6 +1997,17 @@ prior_coef_rows <- function(cn) {
 prior_coef_match <- function(cn, coef) {
   cn == coef | par_name_bare(cn) == par_name_bare(coef) |
     prior_coef_brms(cn) == coef
+}
+
+#' Which of brms's coefficient names `bn` (a block's standard deviations,
+#' a `cs()` term's coef) a written `coef` names: brms's name itself, or
+#' the design column it renames, so `coef = "I(x^2)"` reaches `IxE2`
+#' here as it does for class `"b"` (`prior_coef_match()`).
+#'
+#' @noRd
+prior_coef_match_brms <- function(bn, coef) {
+  !is.na(bn) & (bn == coef | bn == par_name_bare(coef) |
+                  bn == brms_rename(coef))
 }
 
 #' The [default_prior()] table for an assembled model.
@@ -2282,6 +2298,17 @@ prior_table <- function(spec, frame, route) {
   }
 
   out <- unique(do.call(rbind, rows))
+  # brms's row order (.default_prior(): resp, dpar, nlpar, class, group,
+  # coef, with R's order(), locale and all), so b comes before cor,
+  # Intercept and sd; frmtmb's own class "theta", which brms does not
+  # have, stays last in its own order
+  if (!is.null(out)) {
+    own <- out$class == "theta"
+    brm <- out[!own, , drop = FALSE]
+    brm <- brm[with(brm, order(resp, dpar, nlpar, class, group, coef)), ,
+               drop = FALSE]
+    out <- rbind(brm, out[own, , drop = FALSE])
+  }
   rownames(out) <- NULL
   attr(out, "route") <- route
   class(out) <- c("frmtmb_prior_rows", "data.frame")
@@ -2542,7 +2569,7 @@ sd_spec_reach <- function(spec, frame, bk, s) {
     sp$nlpar == want[["nlpar"]]
   if (nzchar(s$coef %||% "")) {
     cf <- block_sd_coefs(frame, bk)
-    hit <- !is.na(cf) & (cf == s$coef | cf == par_name_bare(s$coef))
+    hit <- prior_coef_match_brms(cf, s$coef)
     reach <- vapply(seq_len(n), function(j) hit[j] && any(eq[sp$k == j]),
                     TRUE)
     return(list(reach = reach, exact = any(reach)))
@@ -2670,7 +2697,7 @@ sd_coef_shared <- function(spec, frame, bk, s) {
   if (length(cf) != nrow(cp)) return(character(0))
   eq <- cp$resp == (s$resp %||% "") & cp$dpar == (s$dpar %||% "") &
     cp$nlpar == (s$nlpar %||% "")
-  cf[eq & (cf == s$coef | cf == par_name_bare(s$coef))]
+  cf[eq & prior_coef_match_brms(cf, s$coef)]
 }
 
 #' What a refused class `"sd"` specification could have named: the
@@ -2806,13 +2833,15 @@ prior_slot_label <- function(s) {
 }
 
 #' The slot one specification addresses as a comparable key: class as
-#' written, coef without the parentheses of `(Intercept)`, group, resp,
-#' dpar and nlpar, each kept apart.
+#' written, coef in brms's spelling (`prior_coef_brms()`: `(Intercept)`
+#' is `Intercept`, the design column `I(x^2)` is `IxE2`, a smooth's
+#' `s(x).fx1` is `sx_1`, each pair naming one slot), group, resp, dpar
+#' and nlpar, each kept apart.
 #'
 #' @noRd
 prior_spec_slot <- function(s) {
   sp <- spec_spelling(s)
-  paste(sp$class, par_name_bare(s$coef %||% ""), s$group %||% "",
+  paste(sp$class, prior_coef_brms(s$coef %||% ""), s$group %||% "",
         s$resp %||% "", sp$dpar, s$nlpar %||% "", sep = "\r")
 }
 
@@ -3190,6 +3219,7 @@ resolve_priorlist <- function(fit, pl) {
         for (ct in lp[["cs"]] %||% list()) {
           lab <- cs_term_coef(ct)
           if (nzchar(s$coef) &&
+                !prior_coef_match_brms(lab, s$coef) &&
                 !identical(par_name_bare(lab), par_name_bare(s$coef))) {
             next
           }

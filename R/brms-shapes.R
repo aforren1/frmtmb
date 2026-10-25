@@ -213,9 +213,13 @@ brms_fixef_rows <- function(fit) {
   # Intercept
   is_int <- grepl("[(]Intercept[)]$", tab$internal[keep])
   # brms's `0 + Intercept` (or center = FALSE) intercept is an element of
-  # the b vector, so it keeps its column's place instead of leading
+  # the b vector, so it keeps its column's place instead of leading. So
+  # is a nonlinear parameter's, whose sub-formula brms never centers
   for (lp in fit$frame[["linpreds"]]) {
-    if (isFALSE(lp[["center"]])) {
+    nlp <- if (!is.null(lp[["resp"]])) {
+      fit$spec$responses[[lp[["resp"]]]][["nlpars"]]
+    }
+    if (isFALSE(lp[["center"]]) || lp[["dpar"]] %in% nlp) {
       is_int[keep %in% brms_lp_rows(lp, tab)] <- FALSE
     }
   }
@@ -255,7 +259,12 @@ brms_fixef_rows <- function(fit) {
   }
   rank <- match(cls, c("b", "bs", "bsp", "bcs"))
   dpr <- match(dp, unique(dp))
-  ord <- order(rank, !is_int, dpr, tie, sp_ord, seq_along(nm))
+  # brms declares a multivariate model's parameters response by
+  # response, each response's predictors together: sigma_yn_Intercept
+  # before y_Intercept when yn comes first
+  rp <- sub(":.*$", "", dp)
+  rr <- match(rp, unique(c(names(fit$spec$responses), rp)))
+  ord <- order(rank, !is_int, rr, dpr, tie, sp_ord, seq_along(nm))
   list(idx = idx[ord], names = nm[ord], blk = blk[ord], pos = pos[ord],
        extra = ex)
 }

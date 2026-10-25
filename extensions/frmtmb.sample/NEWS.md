@@ -1,3 +1,23 @@
+# frmtmb.sample (development version)
+
+## Breaking changes
+
+* The draws of a model with an `exp()` term carry brms's names:
+  `b_expx`, `sd_g__expx` and `cor_g__Intercept__expx`, as brms 2.23.0
+  names them, where they were `b_.frm_expx`, `sd_g__.frm_expx` and
+  `cor_g__Intercept__.frm_expx`. `fixef()` of the draws names the row
+  `expx`, and `hypothesis(draws, "expx > 0")` works. The change is in
+  frmtmb, which builds the names; the new test of it needs that frmtmb.
+  The same holds for a nonlinear parameter of a multivariate model,
+  `b_yn_a_Intercept` where the draws held `b_a_yn_Intercept`.
+
+* `fixef()` of the draws lists the rows in brms's order, which is the
+  order of `fixef()` of the fit: every centered intercept first. For
+  `bf(y ~ x, sigma ~ exp(z))` brms 2.23.0 gives `Intercept`,
+  `sigma_Intercept`, `x`, `sigma_expz`; the draws' `fixef()` listed
+  `Intercept`, `x`, `sigma_Intercept`, `sigma_expz`, the order of the
+  draws' columns, which is unchanged.
+
 # frmtmb.sample 0.21.1
 
 Needs frmtmb 0.74.0. The package itself loads on frmtmb 0.73.0, but
