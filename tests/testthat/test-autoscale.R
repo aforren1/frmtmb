@@ -235,3 +235,63 @@ test_that("autoscale covers dpar formulas and combines with profile", {
                fixef_by_dpar(frp)$mu[["z1"]] / s1,
                tolerance = 1e-5)
 })
+
+test_that("autoscale names every structure whose slope it leaves", {
+  # through 0.74.0 a random slope in a structure other than us() or
+  # diag() was skipped without a word, frmtmb's own homdiag() or cs() as
+  # much as one another package registers; it is still skipped, because
+  # nothing says its parameters scale with the column, and now named
+  local_frmtmb_registries()
+  frmtmb_register_covstruct(
+    "mydiag",
+    lpdf = function(b, theta, blk) {
+      d <- blk[["dim"]]
+      B <- RTMB::matrix(b, d)
+      s <- exp(theta[seq_len(d)])
+      sum(RTMB::dnorm(as.vector(B / s), 0, 1, log = TRUE)) -
+        ncol(B) * sum(log(s))
+    },
+    vcov = function(theta, blk) {
+      V <- diag(exp(2 * theta[seq_len(blk[["dim"]])]), blk[["dim"]])
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
+      V
+    },
+    npar = function(blk) blk[["dim"]],
+    sd_idx = function(blk) seq_len(blk[["dim"]]))
+  set.seed(31)
+  d <- data.frame(g = factor(rep(1:15, each = 8)))
+  d$x <- stats::rnorm(nrow(d), 0, 1e-4)
+  d$y <- 1 + 2000 * d$x + stats::rnorm(15)[d$g] + stats::rnorm(nrow(d))
+  ctl <- frmtmb_control(autoscale = TRUE)
+  expect_message(frm(y ~ x + mydiag(1 + x | g), data = d, control = ctl),
+                 "random slopes of mydiag() on x", fixed = TRUE)
+  # (its slope sd is at zero here, which the fit also says)
+  msgs <- character(0)
+  withCallingHandlers(
+    frm(y ~ x + homdiag(1 + x | g), data = d, control = ctl),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_true(any(grepl("random slopes of homdiag() on x", msgs,
+                        fixed = TRUE)))
+  # the absent cases: frmtmb's own structure is scaled, and without
+  # autoscale nothing is planned
+  msgs <- character(0)
+  withCallingHandlers(
+    frm(y ~ x + (1 + x || g), data = d, control = ctl),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_false(any(grepl("random slopes of", msgs)))
+  msgs <- character(0)
+  withCallingHandlers(
+    frm(y ~ x + mydiag(1 + x | g), data = d,
+        control = frmtmb_control(autoscale = FALSE)),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  expect_false(any(grepl("random slopes of", msgs)))
+})

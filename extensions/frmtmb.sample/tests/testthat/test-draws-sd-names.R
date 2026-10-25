@@ -79,3 +79,63 @@ test_that("the fast path reproduces hyp_env_vals() or steps aside", {
   b <- frmtmb.sample:::draws_cov_values(im, cs$ds$fit, slow)
   expect_equal(a, b, tolerance = 1e-14)
 })
+
+test_that("a registered field over the same grouping factor keeps the fast
+           map", {
+  # through 0.74.0 the map skipped the fields frmtmb.sample knew by name
+  # (smooth, gp, hsgp, car, spde). A field another package registers,
+  # beside a block on the same grouping factor as car(W, gr = loc) +
+  # (1 | loc) is, was mapped onto that block's sd_ names, failed its own
+  # check, and sent every draw through hyp_env_vals(): 0.70 ms a draw
+  # against 0.053 ms (dev/sarfcor-b1-fastpath.R). It now asks core's
+  # frmtmb_covstruct_info()
+  frmtmb::frmtmb_local_registries()
+  frmtmb::frmtmb_register_covstruct(
+    "toyfld",
+    lpdf = function(b, theta, blk) {
+      K <- exp(2 * theta[1]) * blk[["aux"]][["A"]]
+      sum(RTMB::dmvnorm(b, 0, K, log = TRUE))
+    },
+    vcov = function(theta, blk) {
+      matrix(exp(2 * theta[1]), 1, 1,
+             dimnames = list("sd(toyfld)", "sd(toyfld)"))
+    },
+    npar = 1L, sd_idx = 1L,
+    natural = function(theta, blk) {
+      list(term = "sd(toyfld)", type = "sd", est = theta[1],
+           grad = matrix(1, 1, 1))
+    },
+    levels_coupled = TRUE,
+    term = list(
+      args = c("A", "gr"), usage = "toyfld(A, gr = g)",
+      parse = function(args, env) list(A = args[["A"]]),
+      build = function(spec, gr, lookup) {
+        A <- lookup(spec[["A"]], "toyfld()")
+        lv <- levels(droplevels(as.factor(gr)))
+        list(levels = lv, index = match(as.character(gr), lv),
+             aux = list(A = A[lv, lv]))
+      }))
+  set.seed(21)
+  G <- 30
+  A <- 0.6^abs(outer(1:G, 1:G, "-"))
+  dimnames(A) <- list(paste0("L", 1:G), paste0("L", 1:G))
+  d <- data.frame(g = factor(rep(rownames(A), each = 8),
+                             levels = rownames(A)), x = rnorm(G * 8))
+  gi <- as.integer(d$g)
+  d$y <- 1 + 0.5 * d$x + as.vector(t(chol(0.8 * A)) %*% rnorm(G))[gi] +
+    rnorm(G, 0, 0.5)[gi] + rnorm(G, 0, 0.4)[gi] * d$x +
+    rnorm(nrow(d), 0, 0.6)
+  fit <- frm(y ~ x + toyfld(A, gr = g) + (1 + x | g), data = d,
+             data2 = list(A = A))
+  dv <- frmtmb.sample:::draws_cov_cols(fit)
+  expect_setequal(dv$names, c("sd_g__Intercept", "sd_g__x",
+                              "cor_g__Intercept__x"))
+  expect_false(is.null(dv$fast))
+  expect_setequal(dv$fast$names, dv$names)
+  # and the map reads the (1 + x | g) block, not the field: at the
+  # estimate its values are VarCorr()'s
+  th <- fit$estimates[["theta"]]
+  vc <- VarCorr(fit)$g
+  expect_equal(unname(dv$fast$vals_at(th)[match("sd_g__x", dv$fast$names)]),
+               vc$sd["x", "Estimate"], tolerance = 1e-12)
+})

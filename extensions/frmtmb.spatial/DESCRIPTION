@@ -13,7 +13,9 @@ Description: Spatial random fields for 'frmtmb' models, registered with
     et al. (2016). spde() is a Matern field over a finite-element mesh,
     through the stochastic partial differential equation representation
     of Lindgren, Rue and Lindstrom (2011), taking the mesh's matrices as
-    fixed data. Each is fitted by maximum likelihood with the field
+    fixed data. sar() is the simultaneous autoregressive term of 'brms',
+    in its lag and error forms, registered through the residual
+    correlation seam. Each is fitted by maximum likelihood with the field
     integrated out by the Laplace approximation, which is exact for a
     gaussian response.
 License: GPL (>= 2)

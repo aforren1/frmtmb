@@ -1766,7 +1766,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # specific refusal in the loop below
     crossed_ac <- is.call(tm) &&
       as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
-      length(called_functions(tm, autocor_structs)) > 0L
+      length(called_functions(tm, autocor_term_names())) > 0L
     bad <- if (!crossed_ac) special_term_refusal(tm)
     if (!is.null(bad)) frm_stop(bad, call. = FALSE)
     if ("|" %in% all.names(tm) ||
@@ -1837,11 +1837,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # with a message that points nowhere near the mistake
     if (is.call(tm) &&
         as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
-        length(called_functions(tm, autocor_structs)) > 0L) {
+        length(called_functions(tm, autocor_term_names())) > 0L) {
       frm_stop("An autocorrelation term cannot be crossed with '",
                as.character(tm[[1]])[1], "': ", deparse1(tm),
                ". Write it as a separate term: y ~ ... + ",
-               called_functions(tm, autocor_structs)[1L], "(...)",
+               called_functions(tm, autocor_term_names())[1L], "(...)",
                call. = FALSE)
     }
     if (calls_function(tm, "me")) {
@@ -1930,6 +1930,12 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                !("|" %in% all.names(tm))) {
       # brms R-side autocorrelation: ar(), ma(), arma(), cosy(), unstr()
       acterms[[length(acterms) + 1L]] <- parse_autocor_call(tm, env)
+    } else if (is.call(tm) &&
+               as.character(tm[[1]])[1] %in% ac_entry_names() &&
+               !("|" %in% all.names(tm))) {
+      # a term of the residual-correlation registry: core's fcor(), or
+      # one an extension registered, such as frmtmb.spatial's sar()
+      acterms[[length(acterms) + 1L]] <- parse_autocor_seam_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
                !("|" %in% all.names(tm))) {
       # barless cs(x): category-specific ordinal effect (the bar form
@@ -1945,9 +1951,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       for (sp_nm in Filter(function(f) calls_function(tm, f),
                            names(brms_special_refusals))) {
         frm_stop(sp_nm, "() ", brms_special_refusals[[sp_nm]], ": ",
-                 deparse1(tm), ". The supported residual correlation ",
-                 "terms are ar(), ma(), arma(), cosy() and unstr(); the ",
-                 "car() field is in the extension package frmtmb.spatial",
+                 deparse1(tm), ". ", autocor_supported_sentence(),
                  call. = FALSE)
       }
       # a group-level mo() term, (mo(x) | g): the mo() calls on the
@@ -2546,7 +2550,7 @@ parse_one_response <- function(bform) {
       # A nonlinear body is arbitrary R code, so an ar() written there
       # is EVALUATED, not parsed, and fails deep inside the objective
       # with a message about the body. Say what is wrong instead.
-      ac_in_body <- called_functions(b, autocor_structs)
+      ac_in_body <- called_functions(b, autocor_term_names())
       if (length(ac_in_body)) {
         frm_stop("Residual correlation terms are not supported in a ",
                  "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],

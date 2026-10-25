@@ -729,8 +729,16 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #' name if its table of extension homes lists the package, which is how
 #' `car()` points at frmtmb.spatial.
 #'
+#' A term that correlates the RESIDUALS of the response, rather than
+#' adding a latent vector to the linear predictor, is not a covariance
+#' structure: it changes the response's density, and it may change its
+#' mean. Register it with [frmtmb_register_autocor()] instead, as
+#' frmtmb.spatial does for `sar()`. Such a term is one affine map from
+#' the response to independent innovations, and core writes its
+#' density, mean and draws from the map.
+#'
 #' @section What the registries hold you to:
-#' The four registries an extension fills from its own `.onLoad()`
+#' The registries an extension fills from its own `.onLoad()`
 #' check what they are given, because a registration that is accepted
 #' and then does nothing is indistinguishable from one that worked.
 #'
@@ -757,6 +765,10 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     commits anything, adds the structure to the compatibility
 #'     vocabulary as a feature of kind `"covstruct"`, and refuses a name
 #'     that frmtmb's own structures or formula specials hold.
+#'   \item [frmtmb_register_autocor()] does the same for a residual
+#'     correlation term, as a feature `"<name>()"` of kind `"autocor"`,
+#'     writes the rows of [frm_compat()] that refuse what every such
+#'     term refuses, and checks `npar` and `start` once per fit.
 #'   \item [frmtmb_family()] takes `required_aterms` as a conjunction
 #'     (a character vector) or as one with choices in it (a list, whose
 #'     elements of length more than one are alternatives). Declare the

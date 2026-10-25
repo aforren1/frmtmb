@@ -375,12 +375,19 @@ test_that("an unsupported term and `.` are refused as what they are", {
   set.seed(20260917)
   d <- data.frame(y = rnorm(60), x = rnorm(60))
   Wm <- diag(60)
-  expect_error(frm(y ~ x + sar(Wm), data = d, data2 = list(Wm = Wm)),
-               "sar[(][)] is a brms autocorrelation term that frmtmb",
-               class = "frmtmb_error")
-  expect_error(frm(y ~ x + fcor(Vm), data = d, data2 = list(Vm = Wm)),
-               "fcor[(][)] is a brms autocorrelation term",
-               class = "frmtmb_error")
+  # sar() is frmtmb.spatial's, which an earlier file of this session may
+  # have loaded; without it the term is refused by its package's name
+  if (!"sar" %in% frmtmb:::ac_entry_names()) {
+    expect_error(frm(y ~ x + sar(Wm), data = d, data2 = list(Wm = Wm)),
+                 "sar() special is in the extension package frmtmb.spatial",
+                 fixed = TRUE, class = "frmtmb_error")
+  }
+  # fcor() is core's since it was refused here: an identity matrix is
+  # the independent model
+  expect_equal(as.numeric(logLik(frm(y ~ x + fcor(Vm), data = d,
+                                     data2 = list(Vm = Wm)))),
+               as.numeric(logLik(frm(y ~ x, data = d))),
+               tolerance = 1e-10)
   # `.` expands against a data frame, as in brms (test-formula-dot.R);
   # an environment has no columns to expand it into
   de <- list2env(d)

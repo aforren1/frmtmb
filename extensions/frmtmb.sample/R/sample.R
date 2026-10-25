@@ -1836,6 +1836,19 @@ default_priors_for <- function(fit) {
     if (!length(fit$frame[["par_template"]][[comp]] %||% numeric(0))) next
     add(set_prior("lkj(1)", class = "lncor", resp = if (multi) r else ""))
   }
+  # brms's (flat) on a residual term's bounded parameter (sar()'s
+  # lagsar), between the bounds brms gives it: a uniform density on the
+  # natural parameter, which core carries to the internal one with the
+  # log-Jacobian of the term's map, so rho is flat on its interval and
+  # not on the logit scale the term parameterizes it on
+  ap <- frmtmb_autocor_pars(fit)
+  for (i in which(is.finite(ap$lower) & is.finite(ap$upper))) {
+    p <- set_prior(sprintf("uniform(%.17g, %.17g)", ap$lower[i],
+                           ap$upper[i]), class = ap$name[i],
+                   resp = if (multi) ap$resp[i] else "")
+    p[[1L]]$flat_interval <- TRUE
+    add(p)
+  }
   # and on an unstr() residual correlation, class cortime, per response
   for (r in names(fit$frame[["autocor"]] %||% list())) {
     ac <- fit$frame[["autocor"]][[r]]
@@ -2066,8 +2079,14 @@ announce_default_priors <- function(pl, notes) {
                 "prior = \"flat\" opts out)")
   for (s in unclass(pl %||% list())) {
     kind <- if (identical(s$dist$kind, "t")) "student_t" else s$dist$kind
-    d <- paste0(kind, "(", paste(unlist(s$dist[-1L]), collapse = ", "),
-                ")")
+    a <- unlist(s$dist[-1L])
+    # the ends of an interval read off eigenvalues carry rounding
+    # (-0.999999999999998); the line shows them to 6 digits, and the
+    # prior keeps them exact
+    if (isTRUE(s$flat_interval)) {
+      a <- vapply(a, function(v) format(v, digits = 6), "")
+    }
+    d <- paste0(kind, "(", paste(a, collapse = ", "), ")")
     # the spelling the default is WRITTEN with, which for a density on
     # a distributional parameter itself is that parameter's own class.
     # get_prior(route = "sample") lists that word and set_prior() takes
@@ -2090,6 +2109,8 @@ announce_default_priors <- function(pl, notes) {
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
                           # a scalar xi's scale has a note of its own
                           if (identical(sp$class, "xi")) ""
+                          else if (isTRUE(s$flat_interval))
+                            "  [flat on its interval, brms's (flat)]"
                           else if (isTRUE(s$natural)) "  [natural scale]"
                           else if (s$class %in% c("sd", "sdgp"))
                             "  [natural sd scale]"

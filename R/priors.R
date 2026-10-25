@@ -2011,7 +2011,7 @@ prior_table <- function(spec, frame, route) {
     list()
   }
   add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
-                  resp = "", lb = NA_real_, dflt = NULL) {
+                  resp = "", lb = NA_real_, dflt = NULL, ub = NA_real_) {
     # a default speaks for a CLASS, not for one coefficient of it: brms
     # reports the class row and leaves the per-coefficient rows flat, and
     # a per-coefficient row here would claim a default nothing applies.
@@ -2029,7 +2029,7 @@ prior_table <- function(spec, frame, route) {
       prior = d %||% dflt %||% "(flat)", class = class, coef = coef,
       group = group,
       resp = resp, dpar = dpar, nlpar = nlpar, lb = lb,
-      ub = NA_real_, source = "default"
+      ub = ub, source = "default"
     )
   }
 
@@ -2243,6 +2243,11 @@ prior_table <- function(spec, frame, route) {
     resp_lab <- if (multi) rs else ""
     for (cl in names(autocor_prior_classes)) {
       if (length(autocor_class_idx(ac, cl))) add(cl, resp = resp_lab)
+    }
+    # a registry term's bounded parameters (sar()'s lagsar), under
+    # their natural names and on their interval, as brms lists them
+    for (pr in autocor_seam_bounded(ac)) {
+      add(pr$name, resp = resp_lab, lb = pr$lower, ub = pr$upper)
     }
   }
   if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
@@ -3696,6 +3701,27 @@ resolve_priorlist <- function(fit, pl) {
                "applies only to a multivariate model, and this model has ",
                "one response. Drop resp, as brms requires", call. = FALSE)
     }
+    # brms's class of a registry term's parameter (sar()'s lagsar): a
+    # density on the natural parameter, carried inward by the map the
+    # term's bounds declare; a parameter with no declared map has only
+    # its internal spelling
+    sc <- spec_spelling(s)$class
+    if (isTRUE(s$natural) && sc %in% autocor_seam_classes(frame)) {
+      s$class <- sc
+      s$dpar <- NULL
+      resolve_ac_class(s)
+      next
+    }
+    if (isTRUE(s$natural) &&
+          sc %in% autocor_seam_classes(frame, bounded = FALSE)) {
+      ap <- frmtmb_autocor_pars(fit)
+      frm_stop("class = \"", sc, "\" names a parameter of ",
+               ap$term[ap$name == sc][1L], ", whose term declares no ",
+               "interval, so a density on it cannot be carried to the ",
+               "internal parameter. Write it there: class = \"theta\", ",
+               "coef = \"", ap$coef[ap$name == sc][1L], "\"",
+               call. = FALSE)
+    }
     bad_shape <- dpar_shape_refusal(fit, s)
     if (!is.null(bad_shape)) frm_stop(bad_shape, call. = FALSE)
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
@@ -4891,6 +4917,11 @@ autocor_prior_classes <- list(
 #'
 #' @noRd
 autocor_class_idx <- function(ac, cls) {
+  if (autocor_is_seam(ac)) {
+    hit <- Filter(function(pr) identical(pr$name, cls),
+                  autocor_seam_bounded(ac))
+    return(if (length(hit)) hit[[1L]]$idx)
+  }
   st <- ac[["struct"]]
   if (!st %in% autocor_prior_classes[[cls]]) return(NULL)
   switch(cls,
@@ -4911,6 +4942,11 @@ autocor_class_idx <- function(ac, cls) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
+  if (autocor_is_seam(ac)) {
+    hit <- Filter(function(pr) identical(pr$name, cls),
+                  autocor_seam_bounded(ac))[[1L]]
+    return(list(map = "bounded", lo = hit$lower, hi = hit$upper))
+  }
   # brms's cov = FALSE coefficients are unconstrained and ARE the
   # internal parameters, so a prior on them needs no change of variables
   if (autocor_is_cond(ac)) return(list(map = "identity"))
@@ -4936,6 +4972,9 @@ trans_dist <- function(inner, trans) {
 #' @noRd
 ac_trans_value <- function(th, tr) {
   if (identical(tr$map, "identity")) return(th)
+  if (identical(tr$map, "bounded")) {
+    return(tr$lo + (tr$hi - tr$lo) / (1 + exp(-th[1])))
+  }
   if (identical(tr$map, "cosy")) {
     return(-tr$a + (1 + tr$a) / (1 + exp(-th[1])))
   }
@@ -4958,6 +4997,11 @@ ac_trans_value <- function(th, tr) {
 #' @noRd
 ac_trans_logjac <- function(th, tr) {
   if (identical(tr$map, "identity")) return(0)
+  if (identical(tr$map, "bounded")) {
+    # d rho / d theta = (hi - lo) p (1 - p), the same form as cosy's
+    s <- 1 / (1 + exp(-th[1]))
+    return(log(tr$hi - tr$lo) + log(s) + log(1 - s))
+  }
   if (identical(tr$map, "cosy")) {
     s <- 1 / (1 + exp(-th[1]))
     return(log(1 + tr$a) + log(s) + log(1 - s))
@@ -4983,6 +5027,15 @@ ac_trans_logjac <- function(th, tr) {
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
   if (identical(tr$map, "identity")) return(v)
+  if (identical(tr$map, "bounded")) {
+    if (v <= tr$lo || v >= tr$hi) {
+      frm_stop("class = \"", cls, "\" ", what, " = ", v, " is outside ",
+               "the interval of ", ac[["label"]], ", (",
+               format(tr$lo, digits = 6), ", ", format(tr$hi, digits = 6),
+               ")", call. = FALSE)
+    }
+    return(stats::qlogis((v - tr$lo) / (tr$hi - tr$lo)))
+  }
   if (identical(tr$map, "cosy")) {
     a <- tr$a
     if (v <= -a || v >= 1) {

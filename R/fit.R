@@ -1196,6 +1196,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   vb <- verbose_level(control)
   n_imp <- as.integer(importance %||% 0L)
   ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
+  # said once per fit, by the call that runs the pre-fit, and not by the
+  # refits that are handed its template
+  if (!is.null(ascale) && is.null(template)) {
+    autoscale_note_unscaled(frame, ascale)
+  }
   if (vb) {
     t_fit <- vb_now()
     vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,

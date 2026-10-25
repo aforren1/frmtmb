@@ -611,6 +611,17 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
     # a cov = FALSE term is drawn row by row around the one-step mean,
     # which frm_linpred() forms on newdata from newdata's own response
     if (autocor_is_cond(ctx0[["autocor"]])) ctx0[["autocor"]] <- NULL
+    # a registry residual term (fcor(), sar()) takes newdata over the
+    # rows of its matrix, as brms does, and refuses any other
+    if (!is.null(newdata) && autocor_is_seam(ctx0[["autocor"]]) &&
+          is.null(fam_sim_ctx(ctx0[["family"]]))) {
+      # the replicates draw through the block over newdata's rows,
+      # which the fit's own frame then carries into every draw
+      object$frame[["autocor"]][[rspec$resp_name]] <-
+        autocor_seam_for_newdata(object, ctx0[["autocor"]], rspec, newdata,
+                                 "predict()")
+      ctx0[["autocor"]] <- NULL
+    }
     if (!is.null(newdata) && sim_is_structured(ctx0)) {
       frm_stop("predict(newdata = ) is not supported for this model: its ",
                "draws are structured (a hidden state sequence, a ",

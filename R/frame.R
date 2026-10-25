@@ -2938,7 +2938,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                           resp$resp_name, n)
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
-      ac <- autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+      ac <- if (autocor_is_seam(ac)) {
+        autocor_seam_block(
+          ac, resp$resp_name,
+          autocor_seam_rows(ac, nrow(data), mf_uncut %||% mf, uni_rows,
+                            sub_rows, n),
+          nrow(data), local({
+            env_ <- resp$formula_env
+            function(expr, what) {
+              lookup_structural(expr, data2, data, env_, what)
+            }
+          }))
+      } else {
+        autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+      }
       ac[["theta_idx"]] <- n_thetaac + seq_len(ac[["npar"]])
       ac[["block_label"]] <- if (length(spec$responses) > 1L) {
         paste0(resp$resp_name, " ", ac[["label"]])

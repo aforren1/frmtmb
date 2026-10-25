@@ -368,6 +368,13 @@ sim_newdata_dpars <- function(fit, rspec, newdata, allow_new_levels, dz,
 #'
 #' @noRd
 autocor_for_newdata <- function(fit, ac, rspec, newdata) {
+  if (autocor_is_seam(ac)) {
+    # newdata over the rows of the term's matrix, as brms reads it: the
+    # fitted block, or the block over every row of the matrix when the
+    # fit dropped rows
+    return(autocor_seam_for_newdata(fit, ac, rspec, newdata,
+                                    "A prediction or simulation"))
+  }
   env <- rspec$formula_env
   n <- nrow(newdata)
   gv <- if (is.null(ac[["gr_expr"]])) NULL else {

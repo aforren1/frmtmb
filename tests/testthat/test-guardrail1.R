@@ -69,7 +69,12 @@ guard_probes <- function() {
     c("car", sp("y ~ x + car(M)")),
     c("car", sp("y ~ x + car(M, gr = g)")),
     c("car", sp("y ~ x + car(M, gr = g, type = 'icar')")),
-    c("sar", sp("y ~ x + sar(M)")), c("fcor", sp("y ~ x + fcor(M)")),
+    c("sar", sp("y ~ x + sar(M)")),
+    c("sar", sp("y ~ x + sar(M, type = 'error')")),
+    # brms's older spelling, bf(autocor = ~ ...): the same check
+    c("sar", sp("y ~ x, autocor = ~ sar(M)")),
+    c("fcor", sp("y ~ x, autocor = ~ fcor(M)")),
+    c("fcor", sp("y ~ x + fcor(M)")),
     c("ar", sp("y ~ x + ar()")), c("ar", sp("y ~ x + ar(time = t, gr = g)")),
     c("ma", sp("y ~ x + ma()")), c("arma", sp("y ~ x + arma()")),
     c("cosy", sp("y ~ x + cosy()")),
@@ -179,6 +184,12 @@ test_that("every brms name resolves in core or an extension, or is refused
   expect_identical(length(gaps), 0L,
                    info = paste(pr$kind[gaps], pr$name[gaps], res[gaps],
                                 sep = ": ", collapse = "\n"))
+  # a term in bf(autocor = ~ ...) names its package as one in the
+  # formula does
+  ac <- which(grepl("autocor = ~ sar", pr$code, fixed = TRUE))
+  expect_identical(unname(cls[ac]), "ext:frmtmb.spatial")
+  ac <- which(grepl("autocor = ~ fcor", pr$code, fixed = TRUE))
+  expect_identical(unname(cls[ac]), "core")
   # the three outcomes all occur, so none of the arms below is vacuous
   expect_true(any(cls == "core"))
   expect_true(any(cls == "refused"))

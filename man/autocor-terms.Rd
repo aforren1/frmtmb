@@ -7,6 +7,7 @@
 \alias{arma}
 \alias{cosy}
 \alias{unstr}
+\alias{fcor}
 \alias{acformula}
 \title{Autocorrelation terms outside a formula}
 \usage{
@@ -19,6 +20,8 @@ arma(time = NA, gr = NA, p = 1, q = 1, cov = FALSE)
 cosy(time = NA, gr = NA)
 
 unstr(time, gr)
+
+fcor(M)
 
 acformula(autocor, resp = NULL)
 }
@@ -34,24 +37,27 @@ group.}
 residuals; \code{TRUE} for the residual covariance matrix. See
 \link{frmtmb-autocor}.}
 
+\item{M}{For \code{fcor()}, the name of the known residual correlation or
+covariance matrix over the observations, which belongs in \code{data2}.}
+
 \item{autocor}{A one-sided formula of autocorrelation terms.}
 
 \item{resp}{The response the terms belong to, for a multivariate
 formula.}
 }
 \value{
-\code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} and \code{unstr()} return an
-object of class \code{frmtmb_ac_term} holding the term as a call.
-\code{acformula()} returns the one-sided formula with class
+\code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()}, \code{unstr()} and \code{fcor()}
+return an object of class \code{frmtmb_ac_term} holding the term as a
+call. \code{acformula()} returns the one-sided formula with class
 \code{frmtmb_acformula}.
 }
 \description{
-\code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} and \code{unstr()} are read inside a
-model formula, as in \code{bf(y ~ x + ar(week, subj))}, and the formula is
-where they belong. The functions also exist on their own, as they do
-in brms, so that a call outside a formula returns the term rather
-than an error that the function does not exist. \link{frmtmb-autocor}
-describes what each term fits.
+\code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()}, \code{unstr()} and \code{fcor()} are read
+inside a model formula, as in \code{bf(y ~ x + ar(week, subj))}, and the
+formula is where they belong. The functions also exist on their own,
+as they do in brms, so that a call outside a formula returns the term
+rather than an error that the function does not exist.
+\link{frmtmb-autocor} describes what each term fits.
 }
 \details{
 brms gives two ways to write the terms apart from the location

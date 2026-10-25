@@ -130,7 +130,10 @@ draws_natural_cols <- function(fit) {
 #' The covariance summaries brms stores as draws and frmtmb's sampler
 #' does not: `sd_<group>__<coef>`, `cor_<group>__<c1>__<c2>`, a
 #' smooth's `sds_`, `rescor__`, the residual structures' `ar[1]`,
-#' `cosy`, `cortime__`, and `me()`'s `sdme_` and `corme__`. The sampler
+#' `cosy`, `cortime__`, the parameters of a residual term of core's
+#' registry under the names it gives them (`lagsar`, `errorsar`;
+#' `frmtmb_autocor_pars()`), and `me()`'s `sdme_` and `corme__`. The
+#' sampler
 #' works on the internal covariance parameters (`theta_1`, ...), so these
 #' are DERIVED columns: each draw's value is what core's
 #' `hyp_env_vals()` gives for that draw, which is also where core's
@@ -151,7 +154,11 @@ draws_cov_cols <- function(fit, have = character(0)) {
   if (is.null(ev)) return(none)
   pat <- paste0("^(sd_|cor_|sds_|rescor__|cortime__|sdme_|corme__|",
                 "ar[[]|ma[[]|cosy$)")
-  nm <- setdiff(grep(pat, names(ev), value = TRUE), have)
+  # a registry term names its own parameters; core lists them, so this
+  # package keeps no list of those names
+  nm <- setdiff(union(grep(pat, names(ev), value = TRUE),
+                      intersect(frmtmb_autocor_pars(fit)$name, names(ev))),
+                have)
   if (!length(nm)) return(none)
   cov_comps <- intersect(c("theta", "thetaac", "thetar", "logsdme",
                            "thetame"), unique(vo$comp))
@@ -180,8 +187,11 @@ draws_cov_cols <- function(fit, have = character(0)) {
 draws_cov_fast <- function(fit, nm, vo, ev) {
   blocks <- fit$frame[["re_blocks"]]
   th <- vo$vals[vo$comp == "theta"]
+  # a field reports its own rows, not sd_/cor_ names; the registry says
+  # which structures are fields, so a structure another package
+  # registers is read the same way as frmtmb's own
   ok_cs <- function(bk) {
-    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")
+    !isTRUE(frmtmb_covstruct_info(bk[["covstruct"]])[["field"]])
   }
   map <- list()
   for (bi in seq_along(blocks)) {

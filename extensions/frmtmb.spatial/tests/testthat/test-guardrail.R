@@ -104,9 +104,17 @@ test_that("a saved fit read without frmtmb.spatial is refused by name", {
   ds$y <- ds$x + sin(ds$node / 2) + rnorm(6 * nn, 0, 0.3)
   fs <- frm(bf(y ~ x + spde(fem, gr = node)), family = gaussian(),
             data = ds, data2 = list(fem = fem))
+  # and a sar() residual term, on a row-standardized path graph
+  P <- matrix(0, 10, 10)
+  P[cbind(1:9, 2:10)] <- 1
+  P <- P + t(P)
+  Wp <- P / rowSums(P)
+  dp <- data.frame(x = rnorm(10))
+  dp$y <- as.vector(solve(diag(10) - 0.4 * Wp, dp$x + rnorm(10)))
+  fsar <- frm(y ~ x + sar(Wp), data = dp, data2 = list(Wp = Wp))
   rds <- tempfile(fileext = ".rds")
   on.exit(unlink(rds), add = TRUE)
-  saveRDS(list(car = fc, spde = fs), rds)
+  saveRDS(list(car = fc, spde = fs, sar = fsar), rds)
   every_method <- function(libs) {
     out <- child_with_libs(libs, c(
       "suppressMessages(library(frmtmb))",
@@ -127,10 +135,13 @@ test_that("a saved fit read without frmtmb.spatial is refused by name", {
       "}"))
     expect_true(any(out == "HAVE FALSE "), info = paste(out, collapse = "\n"))
     res <- grep("^CALL ", out, value = TRUE)
-    expect_length(res, 22L)
+    expect_length(res, 33L)
     for (r in res) {
       nm <- strsplit(r, " ", fixed = TRUE)[[1L]][2L]
-      expect_match(r, paste0("TRUE The ", nm, "() structure"), fixed = TRUE)
+      # a field is a structure of the model, sar() a residual term of it
+      expect_match(r, paste0("TRUE The ", nm, "() ",
+                             if (nm == "sar") "term" else "structure"),
+                   fixed = TRUE)
       expect_match(r, paste0("is from the extension package frmtmb.spatial, ",
                              "which is not installed or cannot be loaded"),
                    fixed = TRUE)

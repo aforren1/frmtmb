@@ -130,5 +130,8 @@ require_structure_packages <- function(x) {
              pkg, " the fit was made with", class = "frmtmb_extension_missing",
              call. = FALSE)
   }
+  # a residual correlation term of the registry (sar()), refused the
+  # same way by the package it records (autocor_missing_parts())
+  stop_autocor_missing(autocor_missing_parts(frame))
   invisible(TRUE)
 }

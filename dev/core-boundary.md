@@ -82,7 +82,9 @@ terms: `extension_special_homes` and `extension_aterm_homes` in
 stop with "The car() special is in the extension package
 frmtmb.spatial, which is not loaded". The brms names that frmtmb does
 not support at all are in three tables of refusals in the same file
-(`custom`, `bhaz()`, `sar()`, `fcor()`), each with its reason.
+(`custom` and `bhaz()` at 0.74.0), each with its reason. `sar()` and
+`fcor()` were refused there until the next round put `fcor()` in core
+and `sar()` in `frmtmb.spatial` (`dev/sarfcor-findings.md`).
 
 A test enforces this guardrail: `tests/testthat/test-guardrail1.R`.
 It probes every family, addition term and formula special of brms
@@ -154,6 +156,10 @@ The public interfaces that an extension can use today:
 | `post$curve_check` (0.74.0) | a family hook that lets `frm_curve()` and its companions refuse a fit |
 | `us_sigma()`, `us_theta()` (0.74.0) | the map between an unstructured covariance and its parameter vector, on the tape |
 | `frmtmb_local_registries()` (0.74.0) | a test helper that saves every registry and restores it |
+| `frmtmb_register_autocor()` (after 0.74.0) | a residual correlation term: one affine map from the response to independent innovations, such as `sar()`; its `bounds` slot gives a bounded parameter brms's class prior and frmtmb.sample's flat default |
+| `frmtmb_autocor_pars()` (after 0.74.0) | lists a fit's registered residual-term parameters with their intervals, for a package that would otherwise keep its own list of names (frmtmb.sample's `lagsar`, `errorsar`) |
+| `frmtmb_covstruct_info()` (after 0.74.0) | reads a structure's properties (field, coupled levels, full rank) from the registry, for a package that would otherwise keep its own list of names |
+| `frmtmb_register_covstruct(full_rank =)` (after 0.74.0) | whether a row's own effect can reach any value with a finite density, which the weights check reads; a structure that states nothing leaves the check open |
 
 Until 0.74.0 a structured covariance or a precision matrix that
 depends on parameters had no seam: the parser built every covariance

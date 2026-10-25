@@ -18,6 +18,7 @@ frmtmb_register_covstruct(
   term = NULL,
   from_natural = NULL,
   chol = NULL,
+  full_rank = NULL,
   replace = FALSE,
   package = compat_registrant_name(parent.frame())
 )
@@ -86,6 +87,18 @@ names.}
 Cholesky factor of \code{vcov}, on the tape. With it, and with every
 theta entry a standard deviation, \code{frmtmb.sample::frm_sample()} can
 sample the block non-centered.}
+
+\item{full_rank}{\code{TRUE} when an effect a row owns can reach any
+value with a finite density: the covariance is positive definite at
+some parameter value and the density is positive everywhere, as for
+a gaussian or Student-t latent. A weighted model whose every row
+owns such an effect has no maximum when the weights sum to more
+than the rows, and \code{\link[=frm]{frm()}} refuses it, as it refuses \code{(1 | obs)}.
+\code{FALSE} when the effects cannot (a singular covariance, a latent
+with bounded support). \code{NULL}, the default, states nothing, and the
+check stays open for the structure. A package whose structure is
+full rank should state \code{full_rank = TRUE}, so that a weighted model
+with no maximum is refused rather than fitted to a runaway.}
 
 \item{replace}{A registered name is replaced when the package that
 registered it registers it again, so a reload is not an error. A

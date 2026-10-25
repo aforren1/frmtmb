@@ -65,6 +65,9 @@ reference:
   - frmtmb_register_frame_check
   - frmtmb_register_aterm
   - frmtmb_register_covstruct
+  - frmtmb_register_autocor
+  - frmtmb_autocor_pars
+  - frmtmb_covstruct_info
   - frmtmb_local_registries
   - frmtmb_register_compat
   - frmtmb_ad_overload

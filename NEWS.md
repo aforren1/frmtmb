@@ -1,3 +1,111 @@
+# frmtmb (development version)
+
+## New features
+
+- `fcor(M)`, brms's fixed residual correlation term, is supported. The
+  residuals of a `gaussian()` or `student()` response are one draw with
+  covariance `sigma^2 M`, or `D M D` with `D = diag(sigma)` under a
+  predicted `sigma ~ ...`, as in brms 2.23.0. `M` comes from `data2`,
+  covers every row of the data, and loses the rows the model drops, as
+  in brms; a vector is its diagonal. The log-likelihood equals brms's
+  Stan program at frmtmb's estimates to 7e-15 (gaussian, with a brms
+  gradient there below 3e-6), and at set parameter values with
+  `nu = 5` to 1.4e-14 (student). A brms fit of 64 rows agrees with the
+  maximum likelihood fit to within 0.33 standard errors in every
+  parameter. `fitted()`, `residuals()` (pearson divides by
+  `sigma * sqrt(diag(M))`), `simulate()`, `predict()` and
+  `autocor_matrix()` work on the fitted rows. They also take `newdata`
+  with one row per row of `M`, read in their order, as brms reads it,
+  so a counterfactual (`x + 1` everywhere) works; when the fit dropped
+  rows for missing values, `newdata` covers them too, and a row with a
+  missing predictor gives `NA`, as in brms;
+  `fitted()` there equals brms's `posterior_epred()` at the same
+  parameter values. Other `newdata` is refused, because `M` covers the
+  fitted rows only; brms refuses it too unless `newdata2` holds a
+  matrix over the new rows. `frm_linpred()` takes any `newdata`. frmtmb
+  refused `fcor()` by name before.
+- brms 2.23.0 checks that `M` is positive definite with
+  `min(eigen(M)$values <= 0)`, which passes a matrix with a negative
+  eigenvalue; its fit of such an `M` then fails in Stan, where the
+  Cholesky factor of `M` is taken. frmtmb refuses every `M` that is not
+  positive definite, before the fit.
+- brms's `sar()` is now supported in frmtmb.spatial. Without that
+  package, `sar()` in the formula or in `bf(autocor = ~ sar(M))` stops
+  with a message that names it, where frmtmb refused it as unsupported
+  before. `set_prior()` takes `class = "lagsar"` and
+  `class = "errorsar"`, as brms does.
+
+## For extension authors
+
+- New seam `frmtmb_register_autocor()`. A package registers a term
+  that correlates the residuals of a gaussian or student response, as
+  one affine map from the response to independent innovations and its
+  inverse. frmtmb writes the density, the mean, the draws, the
+  residual covariance and the guards from the map. `fcor()` is
+  frmtmb's own term of this shape, and frmtmb.spatial registers `sar()`
+  through it. A covariance structure (`frmtmb_register_covstruct()`)
+  cannot express such a term: it adds a latent vector to the linear
+  predictor, and a lag SAR changes the mean of the response itself.
+  `frmtmb_local_registries()` saves and restores the new registry.
+- The map gets one `sigma` when the term sets `sigma_varies = FALSE`.
+  `unwhiten()` takes a matrix of innovations, one column each, so the
+  pearson residuals and `autocor_matrix()` solve the term's system once
+  for every column: on a 50 x 50 lattice under `sar()` (2500 rows) they
+  take 0.48 s and 4.3 s, where one solve per column took 16 s each.
+  When the model is built, frmtmb checks the map once: `unwhiten()` must
+  give one value per row and one column per column of innovations,
+  `whiten()` one innovation per row and one finite log-Jacobian, and
+  `whiten(unwhiten(u))` must give back `u` to a relative 1e-6. A map
+  that fails is refused with the term's name.
+- A term's `bounds` slot states the interval of a parameter that
+  `natural` maps by `lower + (upper - lower) plogis(theta)`.
+  `set_prior()` then takes the parameter's name as its class (`lb` and
+  `ub` narrow the interval), and frmtmb.sample's default prior on it is
+  flat on the interval, as brms's on `lagsar`. A class prior on a
+  parameter without `bounds` is refused, with the internal parameter to
+  write it on instead. New export `frmtmb_autocor_pars()` lists the
+  parameters of a fit's registered terms, with their intervals.
+- A slot of `frmtmb_register_autocor()` or
+  `frmtmb_register_covstruct()` can be a function of `...`.
+- New export `frmtmb_covstruct_info()`: what the registry knows about
+  one covariance structure (its package, whether it is a field, whether
+  its levels are coupled, whether it is full rank). frmtmb.sample reads
+  it instead of keeping its own list of field structures. A name that
+  core lists as an extension's (`"car"`, `"spde"`) loads that
+  extension.
+- `frmtmb_register_covstruct(full_rank =)` states whether an effect a
+  row owns can reach any value with a finite density: a covariance that
+  is positive definite at some parameter value and a density that is
+  positive everywhere. A structure that states nothing leaves the
+  weights check open for it, because its covariance does not tell: a
+  latent with bounded support keeps a weighted model's maximum. A
+  package whose structure is full rank should state
+  `full_rank = TRUE`.
+- autoscale leaves the random slopes of every structure but `us()` and
+  `diag()` as they are, frmtmb's own `homdiag()` or `cs()` as much as a
+  structure another package registers, because nothing tells frmtmb
+  that their parameters scale with the column. It now says so in a
+  message that names the structure and the column. It said nothing
+  before.
+
+## Bug fixes
+
+- The weights check, which refuses a weighted likelihood with no
+  maximum, named its full-rank structures in a list, so it failed open
+  for every structure another package registers. It now reads each
+  structure's `full_rank`. A Gamma model with weights 1.5 and a
+  registered iid block on one level per row that states
+  `full_rank = TRUE` is refused now, as the same model with `(1 | obs)`
+  is; before, it fitted to a logLik of 849 with a shape of 5e14 and two
+  warnings. A registered structure that is not full rank, or states
+  nothing, is not refused.
+- The Student-t latents of `gr(dist = "student")` were not full rank
+  for the weights check, so it failed open for them. A Gamma model with
+  weights 1.5 and `(1 | gr(obs, dist = "student"))` fitted to a logLik
+  of 4.7e7 with a shape of 8e19 and two warnings; it is refused now, as
+  the same model with `(1 | obs)` is, and the refusal names the term as
+  written.
+
 # frmtmb 0.74.0
 
 The main changes:

@@ -20,7 +20,8 @@
 #' whole brms vocabulary, core's families, the specials, addition terms
 #' and families core lists as other extensions' (only their home package
 #' registers those, `covstruct_home_owner()`), and the addition terms
-#' registered in this session. `covstruct_formula_terms` adds the
+#' and residual correlation terms registered in this session.
+#' `covstruct_formula_terms` adds the
 #' functions that formulas call as terms.
 #'
 #' @noRd
@@ -31,7 +32,8 @@ covstruct_reserved_names <- function() {
            unlist(brms_vocabulary, use.names = FALSE),
            names(family_registry), names(extension_family_homes),
            names(extension_aterm_homes), names(extension_special_homes),
-           names(frmtmb_aterm_registry$reg)))
+           names(frmtmb_aterm_registry$reg),
+           names(frmtmb_autocor_registry$reg)))
 }
 
 #' The functions that formulas call as terms or around a term's
@@ -214,6 +216,17 @@ covstruct_home_owner <- function(name) {
 #'   Cholesky factor of `vcov`, on the tape. With it, and with every
 #'   theta entry a standard deviation, `frmtmb.sample::frm_sample()` can
 #'   sample the block non-centered.
+#' @param full_rank `TRUE` when an effect a row owns can reach any
+#'   value with a finite density: the covariance is positive definite at
+#'   some parameter value and the density is positive everywhere, as for
+#'   a gaussian or Student-t latent. A weighted model whose every row
+#'   owns such an effect has no maximum when the weights sum to more
+#'   than the rows, and [frm()] refuses it, as it refuses `(1 | obs)`.
+#'   `FALSE` when the effects cannot (a singular covariance, a latent
+#'   with bounded support). `NULL`, the default, states nothing, and the
+#'   check stays open for the structure. A package whose structure is
+#'   full rank should state `full_rank = TRUE`, so that a weighted model
+#'   with no maximum is refused rather than fitted to a runaway.
 #' @return `NULL`, invisibly. Called for the registration.
 #' @seealso [frmtmb-extension-api] for the how-to an extension follows,
 #'   [frmtmb_register_compat()] for the rows a structure adds to
@@ -249,23 +262,13 @@ frmtmb_register_covstruct <- function(name, lpdf, vcov, npar, start = NULL,
                                       draw = NULL, levels_coupled = FALSE,
                                       expand = NULL, term = NULL,
                                       from_natural = NULL, chol = NULL,
-                                      replace = FALSE,
+                                      full_rank = NULL, replace = FALSE,
                                       package = compat_registrant_name(
                                         parent.frame())) {
   arg <- function(nm) paste0("frmtmb_register_covstruct(", nm, " =)")
-  if (identical(package, "frmtmb")) package <- NULL
-  if (!is.null(package) && (!is.character(package) ||
-                              length(package) != 1L || is.na(package) ||
-                              !nzchar(package))) {
-    frm_stop(arg("package"), " must be one package name, or NULL",
-             call. = FALSE)
-  }
+  package <- seam_check_package(package, arg("package"))
   check_flag(replace, arg("replace"))
-  if (!is.character(name) || length(name) != 1L || is.na(name) ||
-      !nzchar(name) || !identical(name, make.names(name))) {
-    frm_stop(arg("name"), " must be one syntactic name, written as it ",
-             "appears in a formula and without parentheses", call. = FALSE)
-  }
+  seam_check_name(name, arg("name"))
   if (name %in% names(covstruct_core)) {
     frm_stop("`", name, "` is one of frmtmb's own covariance structures ",
              "and cannot be re-registered", call. = FALSE)
@@ -298,12 +301,7 @@ frmtmb_register_covstruct <- function(name, lpdf, vcov, npar, start = NULL,
              "replace = TRUE to replace it anyway", call. = FALSE)
   }
   fn_or <- function(x, nm, argn, null_ok = TRUE) {
-    if (is.null(x) && null_ok) return(NULL)
-    if (!is.function(x) || length(formals(x)) < argn) {
-      frm_stop(arg(nm), " must be a function of ", argn, " argument",
-               if (argn > 1L) "s", call. = FALSE)
-    }
-    x
+    seam_fn(x, arg(nm), argn, null_ok)
   }
   lpdf <- fn_or(lpdf, "lpdf", 3L, null_ok = FALSE)
   vcov <- fn_or(vcov, "vcov", 2L, null_ok = FALSE)
@@ -360,12 +358,18 @@ frmtmb_register_covstruct <- function(name, lpdf, vcov, npar, start = NULL,
                "optional", call. = FALSE)
     }
   }
+  if (!is.null(full_rank) && (!is.logical(full_rank) ||
+                                length(full_rank) != 1L ||
+                                is.na(full_rank))) {
+    frm_stop(arg("full_rank"), " must be TRUE, FALSE or NULL",
+             call. = FALSE)
+  }
   if (!is.null(term)) term <- covstruct_check_term(term, name, arg("term"))
   entry <- list(npar = npar_f, start = start_f, sd_idx = sd_f, nll = lpdf,
                 vcov = vcov, natural = natural, draw = draw,
                 levels_coupled = levels_coupled, expand = expand,
                 term = term, from_natural = from_natural, chol_L = chol,
-                package = package)
+                full_rank = full_rank, package = package)
   entry <- entry[!vapply(entry, is.null, TRUE)]
   bad <- cs_check_entry(name, entry)
   if (!is.null(bad)) {
@@ -431,6 +435,106 @@ covstruct_check_term <- function(term, name, what) {
   list(args = a, parse = term[["parse"]], build = term[["build"]],
        levels_of = term[["levels_of"]], levels_complete = lc,
        usage = usage)
+}
+
+#' What frmtmb knows about a covariance structure
+#'
+#' Reads one structure's entry in the registry that
+#' [frmtmb_register_covstruct()] fills, so that another package, such as
+#' frmtmb.sample, asks the registry instead of keeping its own list of
+#' structure names. Works for frmtmb's own structures and for a
+#' registered one alike.
+#'
+#' @param name The structure's name, as a block records it
+#'   (`fit$frame$re_blocks[[i]]$covstruct`): `"us"`, `"ar1"`, `"car"`.
+#' @return A list:
+#'   \describe{
+#'     \item{`name`}{The name.}
+#'     \item{`package`}{The package that registered it, or `NULL` for
+#'       one of frmtmb's own.}
+#'     \item{`builtin`}{`TRUE` for one of frmtmb's own structures.}
+#'     \item{`field`}{`TRUE` when the structure reports its own rows
+#'       (its `natural` slot), so its parameters have no brms
+#'       `sd_<group>__<coef>` or `cor_` names and brms counts no grouping
+#'       factor for it: smooths, `gp()`, `car()`.}
+#'     \item{`term`}{`TRUE` when it is written as a predictor special
+#'       rather than a bar structure.}
+#'     \item{`levels_coupled`}{`TRUE` when a fixed matrix correlates the
+#'       levels.}
+#'     \item{`full_rank`}{`TRUE` or `FALSE` as the structure states it,
+#'       or `NA` when it states nothing, and the weights check is then
+#'       open for it (see `full_rank` in [frmtmb_register_covstruct()]).}
+#'   }
+#'   A name nothing registered is refused. A name that core lists as an
+#'   extension's (`"car"`, `"spde"`) loads that extension, which
+#'   registers it, as a fit that uses the structure would.
+#' @seealso [frmtmb_register_covstruct()].
+#' @examples
+#' frmtmb_covstruct_info("ar1")$field
+#' frmtmb_covstruct_info("smooth")$field
+#' @export
+frmtmb_covstruct_info <- function(name) {
+  if (!is.character(name) || length(name) != 1L || is.na(name)) {
+    frm_stop("frmtmb_covstruct_info() takes one structure name",
+             call. = FALSE)
+  }
+  e <- frmtmb_covstruct_registry$reg[[name]]
+  if (is.null(e) && !is.null(extension_special_home(name))) {
+    e <- tryCatch(cs_entry(name), error = function(err) NULL)
+  }
+  if (is.null(e)) {
+    frm_stop("frmtmb_covstruct_info(): no covariance structure '", name,
+             "' is registered in this session",
+             if (!is.null(extension_special_home(name))) {
+               paste0("; it is in the extension package ",
+                      extension_special_home(name), ", which is not ",
+                      "installed or does not load")
+             }, call. = FALSE)
+  }
+  list(name = name, package = e[["package"]],
+       builtin = name %in% names(covstruct_core),
+       field = !is.null(e[["natural"]]),
+       term = !is.null(e[["term"]]),
+       levels_coupled = isTRUE(e[["levels_coupled"]]),
+       full_rank = if (is.null(e[["full_rank"]])) NA else
+         isTRUE(e[["full_rank"]]))
+}
+
+#' The checks the registration seams share, one message template each:
+#' the owning package, the name as a formula writes it, and a slot that
+#' must be a function of so many arguments.
+#'
+#' @noRd
+seam_check_package <- function(package, what) {
+  if (identical(package, "frmtmb")) return(NULL)
+  if (!is.null(package) && (!is.character(package) ||
+                              length(package) != 1L || is.na(package) ||
+                              !nzchar(package))) {
+    frm_stop(what, " must be one package name, or NULL", call. = FALSE)
+  }
+  package
+}
+
+#' @noRd
+seam_check_name <- function(name, what) {
+  if (!is.character(name) || length(name) != 1L || is.na(name) ||
+      !nzchar(name) || !identical(name, make.names(name))) {
+    frm_stop(what, " must be one syntactic name, written as it ",
+             "appears in a formula and without parentheses", call. = FALSE)
+  }
+  invisible(name)
+}
+
+#' @noRd
+seam_fn <- function(x, what, argn, null_ok) {
+  if (is.null(x) && null_ok) return(NULL)
+  # a function of `...` takes any number of arguments
+  if (!is.function(x) || (length(formals(x)) < argn &&
+                            !"..." %in% names(formals(x)))) {
+    frm_stop(what, " must be a function of ", argn, " argument",
+             if (argn > 1L) "s", call. = FALSE)
+  }
+  x
 }
 
 #' The package a registration came from, or `NULL` for a call from

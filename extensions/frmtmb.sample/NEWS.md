@@ -1,3 +1,29 @@
+# frmtmb.sample (development version)
+
+## New features
+
+- The draws of a model with frmtmb.spatial's `sar()` carry brms's
+  `lagsar` or `errorsar` column, derived from the sampled internal
+  parameter, as `ar[1]` and `cosy` are. The names come from core's
+  registry (`frmtmb::frmtmb_autocor_pars()`), so a term another package
+  registers gets its own column the same way.
+- The default prior on `lagsar` and `errorsar` is brms's: flat on
+  `rho` over its interval, which `frm_sample()` announces as
+  `uniform(lower, upper)`, the ends shown to 6 digits. The same holds for a bounded parameter of a
+  term another package registers. `set_prior(class = "lagsar")` and
+  `class = "errorsar"` replace it.
+
+## Bug fixes
+
+- The derived `sd_` and `cor_` columns asked core's
+  `frmtmb_covstruct_info()` which structures are fields, where they
+  kept their own list of five names. A field another package
+  registers, beside a block on the same grouping factor, was mapped
+  onto that block's names, failed the map's own check and sent every
+  draw through the slow path: on one model, 0.70 ms a draw against
+  0.053 ms on the fast path now. The values were right either way.
+  Needs the frmtmb release that exports `frmtmb_covstruct_info()`.
+
 # frmtmb.sample 0.21.1
 
 Needs frmtmb 0.74.0. The package itself loads on frmtmb 0.73.0, but

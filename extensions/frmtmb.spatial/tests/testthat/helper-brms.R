@@ -780,6 +780,16 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
           array(unname(v), length(v))
         }
       }
+    } else if (nm %in% c("lagsar", "errorsar")) {
+      # sar(): rho itself, under brms's name, from the term's natural
+      # slot; brms declares it on its own bounded scale
+      ac <- brms_autocor_of(fit)
+      nat <- frmtmb:::autocor_natural(
+        fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
+      if (!identical(names(nat), nm)) {
+        stop("frmtmb's sar() block reports ", names(nat), ", not ", nm)
+      }
+      out[[nm]] <- unname(nat)
     } else if (nm %in% c("sdcar", "car", "rcar", "zcar")) {
       # CAR fields. brms declares the proper form (escar) on the field
       # itself and the intrinsic one (icar) on a standardized field, so

@@ -95,6 +95,52 @@ autoscale_plan_z <- function(frame, key, lp, cols, scale) {
   if (length(out)) out
 }
 
+#' Say which random slopes on a planned column the plan leaves alone.
+#'
+#' Scaling a slope with its column is exact only when the structure's
+#' parameters scale with the coefficient: a log standard deviation per
+#' component that nothing else depends on, which `us`, `diag` and their
+#' Student-t forms have (`autoscale_plan_z()`). For any other structure
+#' a rescaling would change the fitted model rather than its
+#' coordinates, so its slope is left as it is: frmtmb's own `cs()`,
+#' `ar1()` and the rest, a multi-membership component, and a structure
+#' another package registers, whose entry says nothing of its
+#' parameters. Every one of them is named, the same way: a slope left on
+#' a badly scaled column is what stalled fits before autoscale existed,
+#' and a note for a registered structure but not for frmtmb's own would
+#' read as if the two were treated differently.
+#'
+#' @noRd
+autoscale_note_unscaled <- function(frame, plan) {
+  hit <- character(0)
+  for (key in names(plan)) {
+    pl <- plan[[key]]
+    cn <- colnames(frame[["linpreds"]][[key]][["X"]])[pl$cols]
+    done <- unlist(lapply(pl$z, `[[`, "zcols"))
+    for (bk in frame[["re_blocks"]]) {
+      D <- bk[["dim"]]
+      for (comp in bk[["components"]] %||% list()) {
+        if (!identical(comp$lp_key, key)) next
+        for (k in seq_len(comp$dim)) {
+          if (!comp$cnms[k] %in% cn) next
+          zc <- bk[["c_idx"]][(seq_len(bk[["n_levels"]]) - 1L) * D +
+                                comp$offset + k]
+          if (all(zc %in% done)) next
+          hit <- c(hit, paste0(bk[["covstruct"]], "() on ", comp$cnms[k]))
+        }
+      }
+    }
+  }
+  if (!length(hit)) return(invisible(NULL))
+  frm_message("autoscale rescaled the fixed-effect columns but not the ",
+              "random slopes of ", paste(unique(hit), collapse = "; "),
+              ": a slope is rescaled with its column only in a us() or ",
+              "diag() block, whose standard deviations scale with it. If ",
+              "the fit stops short, rescale the column before the fit",
+              call. = FALSE)
+  invisible(hit)
+}
+
 #' The column spread below which the default engages autoscale. It is
 #' the boundary `diagnose()` and lme4's `check.scaleX` already call
 #' badly scaled (three orders of magnitude from one). Measured on
