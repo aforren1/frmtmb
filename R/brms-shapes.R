@@ -422,17 +422,22 @@ fit_set_outer <- function(fit, v, map = outer_par_map(fit)) {
 #'
 #' @noRd
 fit_draw_space <- function(fit) {
+  # the catches below read any failure as a covariance that did not come
+  # back, and predict() then warns and draws at the estimates; a part of
+  # the model from an absent package is a refusal instead
+  require_model_packages(fit)
+  require_structure_packages(fit)
   se_flush_deferred(fit)
   map <- outer_par_map(fit)
   V <- tryCatch(suppressWarnings(vcov(fit, full = TRUE)),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   nb <- length(fit$frame[["par_template"]][["beta"]])
   if (!(fit$REML || isTRUE(fit$control$profile)) || nb == 0L) {
     # a lost standard error is NaN in vcov(), and a product of it is NaN
     # in every row; the covariance sdr_rescue() keeps for propagation
     # holds the lost directions at their estimates, and `null` spans
     # them so that a row moving along one gets NaN (jc_nonest())
-    sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+    sdr <- tryCatch(sdr_of(fit), error = keep_missing(NULL))
     Vp <- sdr$cov_fixed_prop
     if (length(sdr$se_lost) && !is.null(Vp) && !is.null(V) &&
           all(dim(Vp) == dim(V))) {
@@ -451,7 +456,7 @@ fit_draw_space <- function(fit) {
   if (is.null(bn)) bn <- paste0("beta_", seq_len(nb))
   map <- list(names = c(bn, map$names), comp = c(rep("beta", nb), map$comp))
   Q <- sdr_of(fit)$jointPrecision
-  jw <- tryCatch(joint_cov_whole(fit, Q), error = function(e) NULL)
+  jw <- tryCatch(joint_cov_whole(fit, Q), error = keep_missing(NULL))
   Vall <- jw$V
   rn <- rownames(Q)
   keep <- c(which(rn == "beta"),

@@ -108,7 +108,7 @@ boot_refits <- function(fit, FUN, nsim, seed, re_formula, re_plan = NULL) {
   ok <- logical(nsim)
   for (s in seq_len(nsim)) {
     ft <- tryCatch(suppressWarnings(refit(fit, sims[[s]])),
-                   error = function(e) NULL)
+                   error = keep_missing(NULL))
     if (is.null(ft)) next
     ok[s] <- ft$opt$convergence == 0
     tmat[s, ] <- FUN(ft)

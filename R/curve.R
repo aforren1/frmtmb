@@ -280,6 +280,11 @@
 #'   attribute, the fit is the `"fit"` attribute, and `"check"` carries
 #'   the covariance agreement and the `predict()` call count.
 #'
+#'   `print()` shows the critical values, the covariance check and the
+#'   first six rows. Its `digits =` is passed to [print.data.frame()]
+#'   for those rows: significant digits, `getOption("digits")` when not
+#'   given. The header lines keep their own precision.
+#'
 #' @references
 #' Ruppert, D., Wand, M. P. and Carroll, R. J. (2003) *Semiparametric
 #' Regression*. Cambridge University Press, ch. 6.
@@ -401,13 +406,13 @@ curve_linkinv <- function(parts) {
   nd <- parts$newdata[1L, , drop = FALSE]
   lk <- curve_predict_eta(fit, nd, parts$dpar, parts$resp,
                           parts$re_formula, parts$allow_new_levels)
-  rs <- try(as.numeric(
+  rs <- tryCatch(as.numeric(
     frm_linpred(fit, newdata = nd, type = "response",
                         dpar = parts$dpar, resp = parts$resp,
                         re_formula = parts$re_formula,
                         allow_new_levels = parts$allow_new_levels)),
-    silent = TRUE)
-  if (inherits(rs, "try-error") || length(rs) != 1L) {
+    error = keep_missing(identity))
+  if (inherits(rs, "error") || length(rs) != 1L) {
     frm_stop("frm_curve(transform = TRUE): this linear predictor has no ",
              "response scale to transform onto. frm_linpred(type = \"response\") ",
              "refuses it, so the curve stays on the link scale",
@@ -423,8 +428,11 @@ curve_linkinv <- function(parts) {
            "transform the columns yourself", call. = FALSE)
 }
 
+# `digits` is print.data.frame()'s and reaches the rows only, as in
+# frmtmb's other prints of a table of numbers (hypothesis(),
+# frm_multiple()); the header keeps its fixed precision
 #' @export
-print.frmtmb_curve <- function(x, ...) {
+print.frmtmb_curve <- function(x, digits = NULL, ...) {
   frm_check_dots(...)
   ck <- attr(x, "check")
   cat("<frmtmb curve> ", attr(x, "what"), ", ", nrow(x),
@@ -458,7 +466,7 @@ print.frmtmb_curve <- function(x, ...) {
         sep = "")
   }
   n <- min(6L, nrow(x))
-  print(as.data.frame(x)[seq_len(n), , drop = FALSE])
+  print(as.data.frame(x)[seq_len(n), , drop = FALSE], digits = digits)
   if (nrow(x) > n) cat("  ... ", nrow(x) - n, " more rows\n", sep = "")
   invisible(x)
 }

@@ -1,3 +1,78 @@
+# frmtmb (development version)
+
+## Breaking changes
+
+* A `dirichlet()` prior on a parameter that is not a simplex is refused
+  at one point, however it is written: where the prior meets the model,
+  in `validate_prior()` and `frm()`, before any fitting. Through 0.74.0,
+  `set_prior("dirichlet(2)", class = "Intercept", dpar = "sigma")` was
+  refused by `set_prior()`, but `class = "sigma"` was refused at the
+  fit. Only the model can tell a declared simplex
+  (`frmtmb_family(simplex_pars =)`) from a distributional parameter, so
+  `set_prior()` now accepts the row for every class, and the refusal
+  repeats the spelling as written. brms 2.23.0 accepts both spellings
+  in `set_prior()`, `validate_prior()` and `stancode()`, and stops at
+  the Stan compile. The link-scale spelling of a declared simplex,
+  `class = "Intercept", dpar = "tw"`, is refused by name; write
+  `class = "tw"`. A brms prior object with such a row is refused the
+  same way, where it was refused before as "a brms prior table has 1
+  row with no faithful frmtmb spelling". On `class = "theta"`, the
+  refusal adds that brms's `theta` of a `mixture()` is the Dirichlet on
+  its mixing proportions, which frmtmb's `theta` is not.
+
+## Bug fixes
+
+* A saved fit that needs extension packages this session cannot load
+  names every one of them in one refusal (class
+  `frmtmb_extension_missing`), with one instruction:
+  "This model needs 2 extension packages ...: frmtmb.survival (the cox
+  family of this model) and frmtmb.spatial (the car() structure of this
+  model). Install them and run library(frmtmb.survival);
+  library(frmtmb.spatial)". Through 0.74.0 a `cox()` fit with a `car()`
+  term named one package at a time: `summary()` named frmtmb.survival
+  and `print()` named frmtmb.spatial, so the second was found only after
+  the first was installed. Every method of a fit that reads the
+  model's families or structures checks them all first, so
+  `hypothesis()`, `residuals()` and `drop1()` name every package too.
+  A method that reads only stored values, such as `logLik()`, still
+  answers. The refusal for a `cox()` fit an older frmtmb built names
+  the other missing packages too, and where its new home,
+  frmtmb.survival, is installed but cannot be loaded, it says to
+  reinstall it.
+* `fixef()` of a fit with a part from a package this session cannot
+  load refuses, by the package's name. Through 0.74.0 it answered with
+  `Est.Error` NA: it read the refusal as "no covariance". The same was
+  true of a saved `cox()` fit from frmtmb 0.73.0 with frmtmb.survival
+  installed. Every handler that reads an error as "no answer" now lets
+  this refusal through, so `predict()` no longer warns first that "the
+  covariance of the estimates could not be recovered from the
+  Hessian", and `cooks.distance()` no longer says that "all deletion
+  refits failed".
+* `predict(newdata = )` names the reason for the model at hand. Through
+  0.74.0 it said "its draws are structured (a hidden state sequence, a
+  group-level latent class, or a correlated residual)" for every model,
+  and a `mixture_mvn()` fit is none of the three. It now names the
+  family that draws its whole response at once, or the residual
+  correlation term, such as `ar(time = t, gr = g, cov = TRUE)`.
+* `print()` of a curve (`frm_curve()`, `frm_curve_deriv()`) or a curve
+  feature (`frm_curve_feature()`) takes `digits =`, which reaches the
+  printed rows as in `print.data.frame()`. Through 0.74.0 it stopped
+  with "print() has no argument `digits`".
+
+## Other changes
+
+* frmtmb's R CMD check (four platforms) and its coverage job fail when
+  a test skips because a suggested package is installed but cannot be
+  loaded, or is not installed, as the extension jobs have since 0.74.0,
+  and when testthat's output has no summary line. No package is
+  allowed to be absent. The GEV density test reads extraDistr, a
+  suggested package, in place of evd, which frmtmb does not declare, so
+  it runs on every platform; through 0.74.0 it skipped on all four R
+  CMD check jobs and in coverage.
+* The pkgdown job, the one that installs every extension, also runs
+  the test that reads a saved `cox()` and `car()` fit where neither
+  extension can be loaded, and fails if any part of it skips.
+
 # frmtmb 0.74.0
 
 The main changes:

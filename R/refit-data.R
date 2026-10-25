@@ -107,7 +107,7 @@ fit_prior_density <- function(fit) {
   if (is.null(pr) || !length(pr)) return(FALSE)
   ri <- tryCatch(resolve_prior_input(list(frame = fit[["frame"]],
                                           spec = fit[["spec"]]), pr),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   # a prior that cannot be resolved again cannot be shown to be flat
   is.null(ri) || length(ri$entries) > 0L
 }

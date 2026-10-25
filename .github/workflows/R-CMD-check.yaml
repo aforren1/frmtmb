@@ -52,3 +52,12 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
+      # A skip on a broken or missing Suggests package passes R CMD
+      # check; fail it here (.github/scripts/skip-gate.sh has why). The
+      # check directory is check-r-package's default, check/ under its
+      # working directory, which is the repository root here. No package
+      # is allowed to be absent: the dependency step installs every
+      # Suggests package on all four platforms
+      - name: Fail on a skip from a broken or missing Suggests package
+        run: bash .github/scripts/skip-gate.sh check
+        shell: bash

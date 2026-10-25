@@ -106,6 +106,7 @@ conditional_smooths.frmtmb_fit <- function(x, smooths = NULL,
                                            ndraws = NULL, draw_ids = NULL,
                                            nsamples = NULL, subset = NULL,
                                            probs = NULL, ...) {
+  require_fit_packages(x)
   frm_check_dots(...)
   require_fitted(x, "conditional_smooths()")
   check_flag(spaghetti, "spaghetti")

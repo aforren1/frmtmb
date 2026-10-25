@@ -712,15 +712,14 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # baseline, one per response, so it takes no coef. A class that is
   # not frmtmb's own may name a simplex a family declares
   # (frmtmb_family(simplex_pars =)), which only the fit can tell, so
-  # the same rules are applied to it there (prior_simplex_check())
+  # the same rules are applied to it there (prior_simplex_check()).
+  # A dirichlet() on a class that is no simplex is refused there too,
+  # for every class: `class = "sigma"` can be told from a declared
+  # simplex only by the model, and refusing its other spelling,
+  # `class = "Intercept", dpar = "sigma"`, here gave one prior two
+  # refusal points
   is_dir <- identical(dist$kind, "dirichlet")
   simplex_classes <- c("simo", "sbhaz")
-  if (is_dir && class %in% setdiff(frmtmb_prior_classes, simplex_classes)) {
-    frm_stop("dirichlet() is the density of a simplex; it belongs to ",
-             "class = \"simo\" (a mo() simplex) or class = \"sbhaz\" (the ",
-             "baseline of a cox() model, frmtmb.survival), not class = \"",
-             class, "\"", call. = FALSE)
-  }
   if (class %in% simplex_classes) {
     if (!is_dir) {
       frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
@@ -2852,7 +2851,8 @@ prior_drop_unmatched <- function(prior, spec, frame) {
   specs <- unclass(prior)
   ok <- vapply(specs, function(s) {
     one <- structure(list(s), class = "frmtmb_priorlist")
-    !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
+    !inherits(tryCatch(resolve_priorlist(design, one),
+                       error = keep_missing(identity)),
               "error")
   }, NA)
   if (length(strict) == length(ok)) ok[strict] <- TRUE
@@ -2961,7 +2961,8 @@ resp_missing_refusal <- function(spec, frame, s) {
   design <- list(spec = spec, frame = frame)
   resolves <- function(s1) {
     one <- structure(list(s1), class = "frmtmb_priorlist")
-    !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
+    !inherits(tryCatch(resolve_priorlist(design, one),
+                       error = keep_missing(identity)),
               "error")
   }
   # (resp, dpar) pairs. A response whose location is several dpars
@@ -4012,7 +4013,8 @@ family_simplex_targets <- function(fit, s) {
 #' the fit can tell is a simplex: one a family declares
 #' (`frmtmb_family(simplex_pars =)`). `set_prior()` applies the same
 #' rules to `"simo"` and `"sbhaz"` when the row is written, so they are
-#' not repeated here for those two.
+#' not repeated here for those two. A `dirichlet()` on any class that
+#' is no simplex of the model is refused here, however it was written.
 #'
 #' `set_prior()` reads a class that is not frmtmb's own as a
 #' distributional parameter's name and stores it as that parameter's
@@ -4026,6 +4028,15 @@ prior_simplex_check <- function(s, fam_simplex) {
   dp <- s$dpar %||% ""
   # the name the user wrote, which a refusal must repeat
   said <- if (identical(cls, "Intercept") && nzchar(dp)) dp else cls
+  # `class = "Intercept", dpar = "sigma"` as written, not the natural
+  # `class = "sigma"` that set_prior() stores under the same two fields
+  link_scale <- identical(cls, "Intercept") && nzchar(dp) &&
+    !isTRUE(s$natural)
+  written <- if (nzchar(dp) && (link_scale || !identical(cls, "Intercept"))) {
+    paste0("class = \"", cls, "\", dpar = \"", dp, "\"")
+  } else {
+    paste0("class = \"", said, "\"")
+  }
   is_dir <- identical(s$dist$kind, "dirichlet")
   if (cls %in% c("simo", "sbhaz")) return(s)
   if (said %in% fam_simplex) {
@@ -4033,6 +4044,11 @@ prior_simplex_check <- function(s, fam_simplex) {
       frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
                "parameters: class = \"", said, "\" is a simplex of this ",
                "model and takes dirichlet(alpha)", call. = FALSE)
+    }
+    if (link_scale) {
+      frm_stop(written, " names the intercept of a linear predictor, and \"",
+               dp, "\" is a simplex this model's family declares, which has ",
+               "none. Write class = \"", dp, "\"", call. = FALSE)
     }
     if (!is.na(s$lb %||% NA) || !is.na(s$ub %||% NA)) {
       frm_stop("class = \"", said, "\" is a simplex a family declares, ",
@@ -4047,11 +4063,17 @@ prior_simplex_check <- function(s, fam_simplex) {
     s$class <- said
     s$dpar <- ""
   } else if (is_dir) {
+    # brms's class "theta" of a mixture is the Dirichlet on its mixing
+    # proportions, a different set of parameters from frmtmb's theta
+    mix <- if (startsWith(said, "theta")) {
+      paste0(". In brms, class = \"", said, "\" of a mixture() takes a ",
+             "dirichlet() on the mixing proportions; ",
+             trimws(brms_prior_class_refusal(said)))
+    } else ""
     frm_stop("dirichlet() is the density of a simplex; it belongs to ",
              "class = \"simo\" (a mo() simplex), class = \"sbhaz\" (the ",
              "baseline of a cox() model, frmtmb.survival) or a simplex a ",
-             "family declares, not class = ",
-             "\"", said, "\"", call. = FALSE)
+             "family declares, not ", written, mix, call. = FALSE)
   }
   s
 }

@@ -63,6 +63,7 @@
 #' @export
 influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                  force = FALSE, ...) {
+  require_fit_packages(model)
   frm_check_dots(...)
   data <- data %||% fit_refit_data(model) %||% model$frame[["data_frame"]]
   if (!is.null(groups)) {
@@ -136,7 +137,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                     quadrature = isTRUE(model$quadrature),
                     importance = model$importance$draws %||% 0L,
                     template = tpl, data2 = data2)
-    }), error = function(e) e)
+    }), error = keep_missing(identity))
     if (inherits(fit_i, "condition")) {
       n_fail <- n_fail + 1L
       if (is.null(first_msg)) {

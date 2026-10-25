@@ -356,7 +356,7 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          # why a standard error is NaN, so the table does not show a
          # bare NaN (se_check())
          se_lost = local({
-           lost <- tryCatch(sdr_of(object)$se_lost, error = function(e) NULL)
+           lost <- tryCatch(sdr_of(object)$se_lost, error = keep_missing(NULL))
            if (length(lost)) se_lost_clauses(object, lost)
          }),
          extras = local({
@@ -429,7 +429,7 @@ summary_fixed_frame <- function(object, ps, rdf, prob) {
     # threshold block to replace, so those rows keep the model-based
     # error rather than being dropped from the table.
     Vx <- tryCatch(suppressWarnings(brms_fixef_extra_vcov(object, rows)),
-                   error = function(e) NULL)
+                   error = keep_missing(NULL))
     if (!is.null(Vx)) se[!co] <- sqrt(diag(Vx))[!co]
   }
   z <- est / se
@@ -484,7 +484,7 @@ summary_spec_frame <- function(object, prob) {
   # an NA-named standard error on sigma and stopped summary() on every
   # such fit.
   V <- tryCatch(suppressWarnings(vcov_estimated(object)),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   cf <- fixef_estimated(object)
   se_in <- if (is.null(V) || nrow(V) != length(cf)) {
     rep(NA_real_, length(cf))
@@ -513,7 +513,7 @@ summary_spec_frame <- function(object, prob) {
   # lists here beside the distributional parameters
   dl <- ord_delta_info(object)
   pc <- if (length(dl)) {
-    tryCatch(suppressWarnings(hyp_par_cov(object)), error = function(e) NULL)
+    tryCatch(suppressWarnings(hyp_par_cov(object)), error = keep_missing(NULL))
   }
   for (d in dl) {
     r <- object$estimates[[d$comp]][d$idx]
@@ -616,7 +616,7 @@ summary_random_list <- function(object, prob) {
   # NULL (measured, dev/shapes-rev-brmsref.rds)
   if (!length(bks)) return(NULL)
   tr <- tryCatch(suppressWarnings(varcorr_trans_rows(object)),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   if (is.null(tr)) return(NULL)
   acr <- autocor_trans_rows(object)
   if (!is.null(acr)) tr <- utils::head(tr, nrow(tr) - nrow(acr))
@@ -673,7 +673,7 @@ summary_mo_frame <- function(object, prob, terms = mo_frame_terms(object)) {
   if (!length(terms)) return(NULL)
   om <- outer_par_map(object)
   V <- tryCatch(suppressWarnings(sdr_of(object)$cov.fixed),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   q <- stats::qnorm(1 - (1 - prob) / 2)
   out <- lapply(terms, function(tm) {
     z <- as.numeric(object$estimates[[tm$zeta]])
@@ -726,7 +726,7 @@ summary_gp_frame <- function(object, prob) {
                 object$frame[["re_blocks"]])
   if (!length(bks)) return(NULL)
   tr <- tryCatch(suppressWarnings(varcorr_trans_rows(object)),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   if (is.null(tr)) return(NULL)
   out <- list()
   blocks <- object$frame[["re_blocks"]]
@@ -1646,6 +1646,7 @@ coef_shift_thresholds <- function(df, nms, bv, fam) {
 fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
                              probs = c(0.025, 0.975), pars = NULL, ...,
                              flatten = FALSE) {
+  require_fit_packages(object)
   frm_check_dots(...)
   # brms's positions ahead of `...`: fixef(fit, FALSE) used to set
   # `flatten` and return the default shape, identical() to fixef(fit)
@@ -1674,7 +1675,7 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # a waiting SE check reports to fixef()'s caller, not into the
   # suppression below
   se_flush_deferred(object)
-  V <- tryCatch(suppressWarnings(vcov(object)), error = function(e) NULL)
+  V <- tryCatch(suppressWarnings(vcov(object)), error = keep_missing(NULL))
   se <- if (is.null(V)) NULL else unname(sqrt(diag(V))[rows$names])
   out <- brms_summary_matrix(cf, se, probs, rownames = rows$names)
   brms_pars_filter(out, pars, "fixef()")
@@ -1841,7 +1842,7 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     # (dev/illse-routes.R)
     if (!is.null(cvr) &&
           (length(sdr$se_lost) || !is.null(sdr$cov_fixed_root))) {
-      jc <- tryCatch(get_joint_cov(object), error = function(e) NULL)
+      jc <- tryCatch(get_joint_cov(object), error = keep_missing(NULL))
       bj <- if (!is.null(jc)) which(jc$names == "b")
       if (length(bj) == length(cvr)) cvr <- pmax(diag(jc$V)[bj], 0)
     }
@@ -1867,7 +1868,7 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     rn <- bk[["cnms"]]
     bare <- rn
     if (brms_block_has_r(bk)) {
-      bp <- tryCatch(brms_re_parts(object, bk), error = function(e) NULL)
+      bp <- tryCatch(brms_re_parts(object, bk), error = keep_missing(NULL))
       if (length(bp$rnames) == length(rn)) {
         rn <- bp$rnames
         bare <- bp$coef

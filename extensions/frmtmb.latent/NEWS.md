@@ -1,3 +1,17 @@
+# frmtmb.latent (development version)
+
+## Other changes
+
+* The `mixture_mvn()` tests compare each result as a ratio to a
+  quantity the run measures (a log-likelihood's size, a standard error,
+  the unit roundoff), not to an absolute tolerance, and each still
+  fails on a constructed wrong answer. The prior tests read which
+  parameters a prior reaches through frmtmb's exported functions only.
+* `predict(newdata = )` of a `mixture_mvn()` fit says why it is refused:
+  the family draws its whole response at once. Through frmtmb 0.74.0
+  the message named a hidden state sequence, a latent class or a
+  correlated residual. The text is frmtmb's; a test here pins it.
+
 # frmtmb.latent 0.7.0
 
 Needs frmtmb 0.74.0. This package uses the `us_sigma()` and

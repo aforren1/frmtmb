@@ -59,12 +59,12 @@ reparam_basis <- function(frame, pn,
   for (lp in if (!is.null(est)) frame[["linpreds"]]) {
     if (is.null(lp[["nl_body"]])) next
     jb <- tryCatch(reparam_nl_jacobian(frame, lp, pn, est),
-                   error = function(e) NULL)
+                   error = keep_missing(NULL))
     if (is.null(jb) || length(intersect(jb$pos, covered))) next
     kc <- !jb$pos %in% drop
     jb <- list(J = jb$J[, kc, drop = FALSE], pos = jb$pos[kc])
     if (length(jb$pos) < 2L) next
-    Tb <- tryCatch(design_whitener(jb$J, cells), error = function(e) NULL)
+    Tb <- tryCatch(design_whitener(jb$J, cells), error = keep_missing(NULL))
     if (is.null(Tb)) next
     M[jb$pos, jb$pos] <- Tb
     covered <- c(covered, jb$pos)
@@ -93,7 +93,7 @@ reparam_basis <- function(frame, pn,
     if (!is.null(sh) && length(intersect(sh$pos, drop))) next
     if (!is.null(sh)) {
       Ta <- tryCatch(design_whitener(cbind(-1, as.matrix(X)), cells),
-                     error = function(e) NULL)
+                     error = keep_missing(NULL))
       if (is.null(Ta)) next
       tp <- sh$pos
       j0 <- which.max(abs(sh$s))
@@ -109,7 +109,7 @@ reparam_basis <- function(frame, pn,
       next
     }
     if (ncol(X) < 2L) next
-    Tb <- tryCatch(design_whitener(X, cells), error = function(e) NULL)
+    Tb <- tryCatch(design_whitener(X, cells), error = keep_missing(NULL))
     if (is.null(Tb)) next
     M[pos, pos] <- Tb
     if (reparam_lin_lp(frame, lp)) lin <- c(lin, pos)
@@ -439,7 +439,7 @@ joint_root_max <- 4000L
 #'
 #' @noRd
 joint_cov_whole <- function(fit, Q = sdr_of(fit)$jointPrecision) {
-  root <- tryCatch(sdr_of(fit)$joint_root, error = function(e) NULL)
+  root <- tryCatch(sdr_of(fit)$joint_root, error = keep_missing(NULL))
   if (!is.null(root) && nrow(root) == nrow(Q)) {
     V <- tcrossprod(root)
     dimnames(V) <- dimnames(Q)
@@ -691,7 +691,7 @@ se_reparam_cov <- function(fit, H, p, free = seq_len(NROW(H)),
   out <- setdiff(seq_len(np), free)
   M <- tryCatch(reparam_basis(fit$frame, names(fit$opt$par),
                               est = fit$estimates, drop = out),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   if (is.null(M) || !all(dim(M) == np)) return(NULL)
   pos <- attr(M, "pos")
   if (length(intersect(out, pos))) return(NULL)
@@ -726,10 +726,10 @@ se_reparam_cov <- function(fit, H, p, free = seq_len(NROW(H)),
     cj <- se_obj_curv(fit, p, dj)
     if (!is.finite(cj) || cj <= 0) return(NULL)
   }
-  R <- tryCatch(chol(h$H), error = function(e) NULL)
+  R <- tryCatch(chol(h$H), error = keep_missing(NULL))
   if (is.null(R)) return(NULL)
   root <- M %*% backsolve(R, diag(k))
-  g <- tryCatch(se_quiet(as.numeric(fit$obj$gr(p))), error = function(e) NULL)
+  g <- tryCatch(se_quiet(as.numeric(fit$obj$gr(p))), error = keep_missing(NULL))
   if (length(g) != np || !all(is.finite(g))) return(NULL)
   # what a Newton step over `free` gains: g' V g / 2, through the factor
   gain <- sum(crossprod(root, g)^2) / 2
@@ -773,7 +773,7 @@ se_reparam_defer <- function(fit, H, pos) {
   om <- outer_par_map(fit)
   thpos <- which(om$comp == "theta")
   if (length(thpos) != length(th) || length(om$comp) != np) return(TRUE)
-  sd_i <- tryCatch(log_sd_theta_index(fit), error = function(e) integer(0))
+  sd_i <- tryCatch(log_sd_theta_index(fit), error = keep_missing(integer(0)))
   j <- intersect(thpos[unique(sd_i)], out)
   any(diag(Hu)[j] <= se_edge_screen)
 }
@@ -956,7 +956,7 @@ se_product_kappa <- 1e12
 #'
 #' @noRd
 cov_products_lossy <- function(fit) {
-  sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+  sdr <- tryCatch(sdr_of(fit), error = keep_missing(NULL))
   root <- sdr$cov_fixed_root %||% sdr$joint_root
   isTRUE(attr(root, "lossy"))
 }

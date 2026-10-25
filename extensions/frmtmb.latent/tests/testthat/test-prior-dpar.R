@@ -15,12 +15,17 @@ pd_msg <- function(expr) {
   if (inherits(e, "frmtmb_error")) conditionMessage(e) else ""
 }
 
+# The parameters a prior reaches, as frm() resolves it, read through
+# exported functions only: an unfitted model (frm(dry_run =
+# "objective")) carries the spec and frame the resolver reads,
+# resolve_prior_input() is the resolver frmtmb.sample calls, and
+# par_template() names each parameter as frm(start =) spells it
 pd_reached <- function(formula, family, data, pl) {
-  des <- frmtmb:::prior_design(formula, data, family, list())
-  r <- frmtmb:::resolve_priorlist(des, pl)
-  pt <- des$frame[["par_template"]]
+  u <- frm(formula, family = family, data = data, dry_run = "objective")
+  r <- resolve_prior_input(u, pl)
+  pt <- par_template(u)
   sort(unlist(lapply(r$entries, function(e) {
-    frmtmb:::par_template_names(pt[[e$comp]], e$comp)[e$idx]
+    names(pt[[e$comp]])[e$idx]
   })))
 }
 

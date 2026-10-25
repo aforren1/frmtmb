@@ -691,7 +691,7 @@ lncor_summary_rows <- function(object, q) {
   bl <- lncor_blocks(object)
   if (!length(bl)) return(NULL)
   pc <- tryCatch(suppressWarnings(hyp_par_cov(object)),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   out <- list(est = numeric(0), err = numeric(0), lo = numeric(0),
               hi = numeric(0), nm = character(0))
   for (b in bl) {

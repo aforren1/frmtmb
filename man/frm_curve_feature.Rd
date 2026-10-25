@@ -80,6 +80,10 @@ A data frame with one row per root: \code{.feature}, \code{.var},
 \code{.estimate} (the located position), \code{.se}, \code{.lower_ci}, \code{.upper_ci},
 \code{.value} (the curve there) and \code{.value_se}. The \code{"check"} attribute
 carries the covariance agreement, as \code{\link[=frm_curve]{frm_curve()}}'s does.
+
+\code{print()} shows the covariance check and the rows. Its \verb{digits =}
+is passed to \code{\link[=print.data.frame]{print.data.frame()}} for the rows: significant digits,
+\code{getOption("digits")} when not given.
 }
 \description{
 Locates a stationary point or a level crossing of a fitted curve and

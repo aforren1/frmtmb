@@ -156,6 +156,7 @@ ngrps <- function(object, ...) UseMethod("ngrps")
 #' @rawNamespace S3method(lme4::ngrps,frmtmb_fit)
 #' @export
 ngrps.frmtmb_fit <- function(object, ...) {
+  require_fit_packages(object)
   frm_check_dots(...)
   # brms counts the levels of a GROUPING FACTOR. A smooth, a Gaussian
   # process, a CAR or an SPDE block is a random-effect block here and is

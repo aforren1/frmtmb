@@ -175,7 +175,7 @@ get_predicted.frmtmb_fit <- function(x, data = NULL,
     if (fam[["type"]] %in% c("ordinal", "categorical")) type <- "link"
     p <- tryCatch(frm_linpred(x, newdata = data, type = type,
                               se.fit = TRUE),
-                  error = function(e) NULL)
+                  error = keep_missing(NULL))
     if (is.null(p)) {
       est <- as.numeric(frm_linpred(x, newdata = data, type = type))
       se <- rep(NA_real_, length(est))

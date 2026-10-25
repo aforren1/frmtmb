@@ -260,7 +260,7 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
                   se = FALSE, lower = lower, upper = upper,
                   prior = prior, quadrature = quadrature),
     warning = function(w) invokeRestart("muffleWarning")),
-    error = function(e) e)
+    error = keep_missing(identity))
   if (inherits(sfit, "error")) return(list(error = sfit))
   list(template = autoscale_map(sfit$estimates, plan, "original"),
        converged = autoscale_prefit_converged(sfit),
@@ -910,7 +910,7 @@ unit_theta_start <- function(frame, tpl, units = predictor_units(frame)) {
   mapped <- frame[["map"]][["theta"]]
   for (bk in frame[["re_blocks"]]) {
     sdi <- tryCatch(as.integer(block_sd_idx(bk)),
-                    error = function(e) integer(0))
+                    error = keep_missing(integer(0)))
     D <- bk[["dim"]] %||% 0L
     if (!length(sdi) || !D) next
     col_u <- rep(1, D)

@@ -555,7 +555,7 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
 #'
 #' @noRd
 cluster_root <- function(object, S, cf, np) {
-  root <- tryCatch(sdr_of(object)$cov_fixed_root, error = function(e) NULL)
+  root <- tryCatch(sdr_of(object)$cov_fixed_root, error = keep_missing(NULL))
   if (is.null(root) || nrow(root) != np || ncol(S) != np ||
         !is.finite(cf) || cf <= 0) {
     return(NULL)

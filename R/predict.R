@@ -3645,7 +3645,7 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
         invokeRestart("muffleWarning")
       }
     }),
-    error = function(e) NULL)
+    error = keep_missing(NULL))
   if (is.null(p)) NULL else p$se.fit
 }
 
@@ -4583,6 +4583,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                                  robust = FALSE, probs = c(0.025, 0.975),
                                  newdata = NULL, resp = NULL,
                                  allow_new_levels = FALSE) {
+  require_fit_packages(object)
   type <- frm_match_arg(type)
   # brms spells the raw residual "ordinary"; this package has always
   # spelled it "response", and both reach the same branch. The
@@ -4750,7 +4751,7 @@ residual_point_se <- function(object, type, r, resp = NULL) {
   if (!type %in% c("response", "pearson")) return(NULL)
   se_mu <- tryCatch(fitted_point_se(object, NULL, NULL, "response", resp,
                                     NULL, FALSE, r),
-                    error = function(e) NULL)
+                    error = keep_missing(NULL))
   if (is.null(se_mu)) return(NULL)
   if (is.matrix(r)) {
     # a cell of a matrix-valued response has no Pearson scale to divide

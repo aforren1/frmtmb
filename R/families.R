@@ -3506,7 +3506,7 @@ xbeta_fit_check <- function(fit, resp) {
 #' @noRd
 xbeta_kappa_se <- function(fit, lp) {
   cp <- lp[["par"]]
-  V <- tryCatch(sdr_of(fit)$cov.fixed, error = function(e) NULL)
+  V <- tryCatch(sdr_of(fit)$cov.fixed, error = keep_missing(NULL))
   if (is.null(V) || !cp %in% rownames(V)) return(NULL)
   pos <- seq_along(fit$frame[["par_template"]][[cp]])
   if (cp == "betad") pos <- setdiff(pos, fit$frame[["betad_fixed_idx"]])

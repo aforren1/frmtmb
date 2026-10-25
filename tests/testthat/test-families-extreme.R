@@ -187,11 +187,12 @@ test_that("the GEV density near xi = 0 is the Gumbel's to first order", {
   }
 })
 
-test_that("the GEV density agrees with evd::dgev", {
-  skip_if_not_installed("evd")
-  # read by name: evd is a reference for this one test, not a dependency
-  # R CMD check should ask the package to declare
-  dgev <- getExportedValue("evd", "dgev")
+test_that("the GEV density agrees with extraDistr::dgev", {
+  # extraDistr is in Suggests, so this runs under R CMD check; the
+  # reference was evd, which is not, and the test skipped on every CI
+  # job but one. The two references agree to 1.2e-15 relative on this
+  # grid (frmtmb's dev/smallfix-gev.R)
+  skip_if_not_installed("extraDistr")
   g <- expand.grid(y = c(-2, 0.4, 3, 12), mu = c(-1, 0.5), sigma = c(0.5, 2),
                    xi = c(-0.3, 0.05, 0.6))
   fam <- gen_extreme_value()
@@ -199,7 +200,7 @@ test_that("the GEV density agrees with evd::dgev", {
   sg <- exp(log(g$sigma))
   inside <- 1 + xi * (g$y - g$mu) / sg > 0
   ref <- mapply(function(y, m, s, k) {
-    dgev(y, loc = m, scale = s, shape = k, log = TRUE)
+    extraDistr::dgev(y, mu = m, sigma = s, xi = k, log = TRUE)
   }, g$y, g$mu, sg, xi)
   got <- tape_lpdf(fam, g$y, list(mu = g$mu, sigma = log(g$sigma),
                                   xi = log1p(g$xi)))
