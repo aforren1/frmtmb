@@ -4,7 +4,7 @@
 \alias{frmtmb_register_aterm}
 \title{Add an addition term from another package}
 \usage{
-frmtmb_register_aterm(name, arity = 1L, coerce = as.numeric)
+frmtmb_register_aterm(name, arity = 1L, coerce = as.numeric, option = NULL)
 }
 \arguments{
 \item{name}{The term's name, as it is written in a formula, without
@@ -25,6 +25,10 @@ refits are coded through a table of what each value became there,
 so that a coercion that builds levels from its input cannot code
 new rows by their own levels, and a value the fit did not see is
 refused.}
+
+\item{option}{Optional function \verb{(family, call, env)} that makes the
+term an option of the family rather than data (see the section "An
+option of the family"). The default, \code{NULL}, is a data term.}
 }
 \value{
 \code{NULL}, invisibly. Called for the registration.
@@ -59,6 +63,32 @@ construction, so the registrant is not asked to declare it twice;
 declaring it in \code{frmtmb_register_compat(features =)} anyway is a
 no-op rather than a duplicate. Register the term BEFORE the rules
 that name it.
+}
+\section{An option of the family}{
+
+Some terms carry no data. brms's \code{bhaz(df = 6)} in
+\code{time | bhaz(df = 6) ~ x} sets the basis of the baseline hazard of
+\code{cox()}: it is an argument of the family, written on the response
+side. Give such a term an \code{option} function. Then the term is not an
+addition-term value: it does not reach \code{aterms}, it is not required
+on \code{newdata}, and \code{arity} and \code{coerce} are not used. When the formula
+is parsed and the response's family is known, frmtmb calls
+\code{option(family, call, env)} once, with the family, the term's call as
+written (\code{quote(bhaz(df = 6))}), and the formula's environment, in
+which the function evaluates the call's arguments. The function
+returns the family that the fit uses, or stops with a message that
+says why it refuses the call. Build that family again from its
+constructor, as the example does: a density is a closure over the
+constructor's arguments, so a slot set on the family afterwards
+changes nothing that the likelihood reads.
+
+The family must accept the term. A family whose
+\code{frmtmb_family(accepts_aterms =)} does not name the term is refused
+before \code{option()} runs. A family that declares no allow-list reaches
+\code{option()}, which must refuse a family it cannot change.
+\code{update()}, \code{predict()} on new data and refits parse the formula
+again, each time from the family as it was written, so \code{option()}
+must return the same family for the same family and call.
 
 A name the vocabulary already holds under another kind is refused,
 and nothing is registered on either side: \code{s()} is a smooth, so
@@ -67,12 +97,44 @@ one formula. Thirteen names are taken this way: \code{s}, \code{t2}, \code{mo},
 \code{mi_pred}, \code{gp_pred}, \code{cs_pred}, \code{ar}, \code{ma}, \code{arma}, \code{cosy},
 \code{unstr}, \code{mm} and \code{mmc}.
 }
+
 \examples{
 # a decision indicator, given as a factor and delivered as 0/1
 \dontrun{
 frmtmb_register_aterm("dec", arity = 1, coerce = function(x) {
   as.integer(factor(x)) - 1L
 })
+}
+
+# an option of a family: `y | knownsd(2) ~ x` is a normal model whose
+# standard deviation is known to be 2. The family declares the term,
+# and the option builds the family again with the new value.
+normal_sd <- function(sd = 1) {
+  force(sd)
+  frmtmb_family(
+    "normal_sd", dpars = "mu", links = list(mu = "identity"),
+    accepts_aterms = "knownsd",
+    lpdf = function(y, dpars, aterms, extra) {
+      -0.5 * ((y - dpars$mu) / sd)^2 - log(sd) - 0.5 * log(2 * pi)
+    })
+}
+set.seed(1)
+d <- data.frame(x = rnorm(50))
+d$y <- 1 + d$x + rnorm(50, sd = 2)
+# frmtmb_local_registries() undoes the registration when the function
+# returns, so the example leaves the registry as it found it
+fit_knownsd <- function() {
+  frmtmb_local_registries()
+  frmtmb_register_aterm("knownsd", option = function(family, call, env) {
+    normal_sd(eval(call[[2L]], env))
+  })
+  frm(bf(y | knownsd(2) ~ x), family = normal_sd(), data = d)
+}
+if (requireNamespace("withr", quietly = TRUE)) {
+  fit <- fit_knownsd()
+  # the log likelihood of the least-squares line with sd = 2
+  print(logLik(fit))
+  print(sum(dnorm(d$y, fitted(lm(y ~ x, d)), 2, log = TRUE)))
 }
 }
 \seealso{

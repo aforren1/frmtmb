@@ -2086,6 +2086,22 @@ covstruct_core[["gr_prec"]]$draw <- function(theta, blk) {
 # .onLoad() reaches a sealed namespace, keyed like the addition-term
 # registry and saved and restored the same way by the test helper.
 
+# The built-in structures that are FULL RANK: their covariance is
+# positive definite at some parameter value, so an effect a row owns
+# can reach any value with a finite density. The weights check
+# (R/weights-unbounded.R) reads it; a registered structure states it
+# with frmtmb_register_covstruct(full_rank =). rr() and the structures
+# with a fixed or possibly singular covariance are not. The Student-t
+# latents are: a t density is positive everywhere, and a weighted
+# Gamma model with (1 | gr(obs, dist = "student")) ran to a logLik of
+# 4.7e7 before they were listed here (test-weights-unbounded.R).
+for (nm_ in names(covstruct_core)) {
+  covstruct_core[[nm_]][["full_rank"]] <- nm_ %in% c(
+    "us", "diag", "homdiag", "cs", "homcs", "ar1", "hetar1", "ou", "toep",
+    "homtoep", "exp", "gau", "mat", "us_t", "diag_t")
+}
+rm(nm_)
+
 frmtmb_covstruct_registry <- new.env(parent = emptyenv())
 frmtmb_covstruct_registry$reg <- covstruct_core
 
@@ -2138,6 +2154,22 @@ cs_is_field <- function(bk) {
 #' @noRd
 cs_levels_coupled <- function(bk) {
   isTRUE(cs_entry(bk[["covstruct"]])[["levels_coupled"]])
+}
+
+#' Whether a block's covariance is positive definite at some parameter
+#' value, so that an effect a row owns can reach any value with a finite
+#' density (the weights check, R/weights-unbounded.R): the entry's
+#' `full_rank`, which every built-in entry states. A registered
+#' structure that does not state it reads FALSE, which leaves the check
+#' open, as it was for every registered structure before the property
+#' existed. It is not inferred: a positive definite covariance says
+#' nothing of the latent's support, and a latent with bounded support
+#' (a scaled beta) keeps the weighted likelihood bounded, so an
+#' inference from the covariance refused a model with a maximum.
+#'
+#' @noRd
+cs_full_rank <- function(bk) {
+  isTRUE(cs_entry(bk[["covstruct"]])[["full_rank"]])
 }
 
 #' The natural-scale rows of a field block at `theta`: `term`, `type`

@@ -147,6 +147,7 @@ pp_mixture.frmtmb_fit <- function(x, newdata = NULL, re_formula = NULL,
                                   draw_ids = NULL, log = FALSE,
                                   summary = TRUE, robust = FALSE,
                                   probs = c(0.025, 0.975), ...) {
+  require_fit_packages(x)
   frm_check_dots(...)
   fit_refuse_draws_args("pp_mixture()", summary = summary, robust = robust)
   check_flag(log, "log")

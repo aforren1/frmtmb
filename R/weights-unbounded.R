@@ -23,13 +23,10 @@ unbounded_spike_dpar <- list(
 # or shape grows without bound
 unbounded_spike_toward_zero <- c("sigma", "beta")
 
-# Covariance structures with a positive-definite covariance at some
-# parameter value, so the effects can take any value with a finite
-# density. rr() and the structures with a fixed or possibly singular
-# covariance are left out.
-unbounded_full_rank_blocks <- c(
-  "us", "diag", "homdiag", "cs", "homcs", "ar1", "hetar1", "ou", "toep",
-  "homtoep", "exp", "gau", "mat")
+# Which covariance structures can give a row its own effect at any value
+# with a finite density is a property of the structure, read through
+# cs_full_rank() (R/covstruct.R): a built-in entry states it, and a
+# registered structure states it or has it read off its covariance.
 
 #' Refuse a weighted likelihood that has no maximum, or a posterior that
 #' does not integrate.
@@ -101,9 +98,7 @@ check_weights_unbounded <- function(spec, frame, prior, exact = FALSE,
   if (is.null(Z) || !is.null(lp[["nl_body"]]) || length(lp[["Z_mo"]])) {
     return(invisible())
   }
-  owned_blocks <- Filter(function(bk) {
-    bk[["covstruct"]] %in% unbounded_full_rank_blocks
-  }, frame[["re_blocks"]])
+  owned_blocks <- Filter(cs_full_rank, frame[["re_blocks"]])
   cols <- unlist(lapply(owned_blocks, `[[`, "c_idx"))
   cols <- intersect(cols, seq_len(ncol(Z)))
   if (!length(cols)) return(invisible())
@@ -156,7 +151,15 @@ block_term_as_written <- function(bk) {
   pre <- regmatches(m[2], regexec("^([A-Za-z_.0-9]+): (.*)$", m[2]))[[1]]
   dp <- if (length(pre) == 3L) paste0(pre[2], ": ") else ""
   body <- if (length(pre) == 3L) pre[3] else m[2]
-  # a plain bar term is stored as a us() block
+  # a plain bar term is stored as a us() block, and a Student-t one,
+  # written with gr(dist = "student"), as us_t() or diag_t()
+  if (m[3] %in% c("us_t", "diag_t")) {
+    lr <- strsplit(body, " | ", fixed = TRUE)[[1]]
+    if (length(lr) == 2L) {
+      return(paste0(dp, "(", lr[1], if (m[3] == "diag_t") " || " else " | ",
+                    "gr(", lr[2], ", dist = \"student\"))"))
+    }
+  }
   paste0(dp, if (identical(m[3], "us")) paste0("(", body, ")") else
     paste0(m[3], "(", body, ")"))
 }

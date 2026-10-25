@@ -70,6 +70,8 @@ Then load the extensions a model needs, for example
 | `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
 | `(x | gr(g, by = f))` | same | one set of SDs and correlations per level of `f`, named `sd_g__Intercept:fa` as in brms; not with `cov =` |
 | `ar(t, g)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; both `cov = FALSE` (brms's default) and `cov = TRUE` (below) |
+| `fcor(M)` | same | gaussian/student only; `M` in `data2`, `sigma` scales it, and a predicted `sigma` gives `D M D`, as in brms; `newdata` only on the fitted rows, as brms without `newdata2` |
+| `sar(M, type = "lag")`, `sar(M, type = "error")` | same, with `library(frmtmb.spatial)` | gaussian/student only, constant `sigma`, as in brms; `rho` on `(1 / min eigenvalue, 1 / max eigenvalue)`, where brms takes the eigenvalue range itself |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
 | `categorical()` on a numeric response | same | the distinct values are the categories, in numeric order: `11:13` is three categories with `11` the reference |

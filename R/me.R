@@ -452,7 +452,7 @@ me_hyper_table <- function(fit, prob = 0.95) {
   val <- f(p0)
   map <- outer_par_map(fit)
   V <- tryCatch(suppressWarnings(stats::vcov(fit, full = TRUE)),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   se <- rep(NA_real_, length(val))
   pos <- which(map$comp %in% comps)
   if (!is.null(V) && length(pos) == length(p0)) {

@@ -6,18 +6,19 @@
 \alias{frmtmb.spatial-package}
 \title{frmtmb.spatial: Spatial Random Fields for 'frmtmb' Models}
 \description{
-Spatial random fields for 'frmtmb' models, registered with 'frmtmb' through its public covariance-structure seam. car() is the conditional autoregressive field of 'brms', over an adjacency matrix, in its four types: the proper CAR, the intrinsic CAR under an exact or a soft sum-to-zero constraint, and the scaled BYM2 mixture of Riebler et al. (2016). spde() is a Matern field over a finite-element mesh, through the stochastic partial differential equation representation of Lindgren, Rue and Lindstrom (2011), taking the mesh's matrices as fixed data. Each is fitted by maximum likelihood with the field integrated out by the Laplace approximation, which is exact for a gaussian response.
+Spatial random fields for 'frmtmb' models, registered with 'frmtmb' through its public covariance-structure seam. car() is the conditional autoregressive field of 'brms', over an adjacency matrix, in its four types: the proper CAR, the intrinsic CAR under an exact or a soft sum-to-zero constraint, and the scaled BYM2 mixture of Riebler et al. (2016). spde() is a Matern field over a finite-element mesh, through the stochastic partial differential equation representation of Lindgren, Rue and Lindstrom (2011), taking the mesh's matrices as fixed data. sar() is the simultaneous autoregressive term of 'brms', in its lag and error forms, registered through the residual correlation seam. Each is fitted by maximum likelihood with the field integrated out by the Laplace approximation, which is exact for a gaussian response.
 }
 \section{How this package reaches frmtmb}{
 
 Through exported functions only. The structures are registered with
-\code{\link[frmtmb:frmtmb_register_covstruct]{frmtmb::frmtmb_register_covstruct()}} and their rows in
+\code{\link[frmtmb:frmtmb_register_covstruct]{frmtmb::frmtmb_register_covstruct()}}, the residual correlation term
+\code{sar()} with \code{\link[frmtmb:frmtmb_register_autocor]{frmtmb::frmtmb_register_autocor()}}, and their rows in
 \code{\link[frmtmb:frm_compat]{frmtmb::frm_compat()}} with \code{\link[frmtmb:frmtmb_register_compat]{frmtmb::frmtmb_register_compat()}}, both
 from \code{.onLoad()}. The package reads no frmtmb internal: no
 \verb{frmtmb:::}, no \code{getFromNamespace()}, no \code{asNamespace("frmtmb")}.
 
-Without this package, a formula that writes \code{car()} or \code{spde()} is
-refused by name, and the refusal says to load it.
+Without this package, a formula that writes \code{car()}, \code{spde()} or
+\code{sar()} is refused by name, and the refusal says to load it.
 }
 
 \seealso{

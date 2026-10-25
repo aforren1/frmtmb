@@ -394,6 +394,18 @@ fixef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
     if (!length(fpars)) return(NULL)
     out <- as.matrix(object, variable = fpars)
     colnames(out) <- gsub(draws_fixef_regex, "", fpars)
+    # the draws keep the template order; the rows take brms's, which is
+    # the fit's fixef() order: every centered intercept first
+    ord <- order(match(colnames(out),
+                       brms_fixef_rows(draws_base_fit(object))$names))
+    if (!identical(ord, seq_along(ord))) {
+      # the matrix keeps what as.matrix() put on it (nchains)
+      at <- attributes(out)
+      out <- out[, ord, drop = FALSE]
+      for (a in setdiff(names(at), c("dim", "dimnames"))) {
+        attr(out, a) <- at[[a]]
+      }
+    }
   }
   if (summary) out <- posterior_summary(out, probs, robust)
   out

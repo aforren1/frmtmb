@@ -17,9 +17,23 @@ dir=$1
 shift
 allowed=" $* "
 
-mapfile -t outs < <(find "$dir" -name 'testthat.Rout*' -type f 2>/dev/null)
+# a read loop, not mapfile: core's R-CMD-check job runs this on macOS,
+# whose own /bin/bash is 3.2 and has no mapfile
+outs=()
+while IFS= read -r f; do
+  outs+=("$f")
+done < <(find "$dir" -name 'testthat.Rout*' -type f 2>/dev/null)
 if [ ${#outs[@]} -eq 0 ]; then
   echo "skip-gate: no testthat.Rout under $dir, so nothing was checked." >&2
+  exit 1
+fi
+# An empty or cut-off output has no skip lines either, and read as
+# clean: testthat's summary line must be there
+summary='\[ FAIL [0-9]+ \| WARN [0-9]+ \| SKIP [0-9]+ \| PASS [0-9]+ \]'
+if ! grep -qE "$summary" "${outs[@]}"; then
+  echo "::error title=No testthat summary::no testthat summary line" \
+    "([ FAIL n | WARN n | SKIP n | PASS n ]) in ${outs[*]}, so the" \
+    "output is empty or cut off and nothing was checked."
   exit 1
 fi
 

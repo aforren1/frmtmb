@@ -1554,6 +1554,16 @@ sim_autocor_rows <- function(ctx, ac) {
   n <- ctx[["n"]]
   dp <- ctx[["dpars"]]
   th <- ctx[["fit"]][["estimates"]][["thetaac"]]
+  if (autocor_is_seam(ac)) {
+    # the whole response is one draw through the term's map, whose mean
+    # is not mu for brms's lag SAR
+    check_autocor_seam_newdata(ac, seq_len(n), "A simulation")
+    return(autocor_seam_draw(
+      ac, th[ac[["theta_idx"]]], dp[["mu"]],
+      if (length(dp[["sigma"]]) == 1L) dp[["sigma"]] else
+        rep(dp[["sigma"]], length.out = n),
+      nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1]))
+  }
   R <- autocor_cor(th[ac[["theta_idx"]]], ac)
   rep(dp[["mu"]], length.out = n) +
     autocor_draw_resid(ac, R, rep(dp[["sigma"]], length.out = n), n,
@@ -3506,7 +3516,7 @@ xbeta_fit_check <- function(fit, resp) {
 #' @noRd
 xbeta_kappa_se <- function(fit, lp) {
   cp <- lp[["par"]]
-  V <- tryCatch(sdr_of(fit)$cov.fixed, error = function(e) NULL)
+  V <- tryCatch(sdr_of(fit)$cov.fixed, error = keep_missing(NULL))
   if (is.null(V) || !cp %in% rownames(V)) return(NULL)
   pos <- seq_along(fit$frame[["par_template"]][[cp]])
   if (cp == "betad") pos <- setdiff(pos, fit$frame[["betad_fixed_idx"]])

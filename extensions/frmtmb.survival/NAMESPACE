@@ -13,6 +13,7 @@ importFrom(frmtmb,
   frm_stop,
   frm_warning,
   frmtmb_family,
+  frmtmb_register_aterm,
   frmtmb_register_compat,
   mo_simplex,
   single_response

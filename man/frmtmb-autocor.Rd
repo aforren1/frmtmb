@@ -49,7 +49,11 @@ but the correlation may also be negative (down to
 \item{\code{unstr(time, gr)}}{One free correlation per pair of time
 levels, through the same Cholesky parameterization the \code{us()}
 random-effect structure uses.}
+\item{\code{fcor(M)}}{A FIXED residual matrix over all the observations,
+with no parameter; see "A fixed residual matrix".}
 }
+brms's \code{sar()}, the spatial simultaneous autoregressive term, is in
+the extension package frmtmb.spatial.
 The AR and MA coefficients are estimated through partial
 autocorrelations (the Monahan/Jones transform \code{nlme::corARMA} also
 uses), so every parameter value is a stationary and invertible
@@ -160,6 +164,34 @@ extension reads to build it. Whether the installed
 \code{frmtmb.sample} does is that package's own question, and its
 \code{?log_lik} answers it.
 }
+}
+
+\section{A fixed residual matrix, \code{fcor(M)}}{
+
+\code{fcor(M)} makes the residuals of all the rows one draw with
+covariance \eqn{\sigma^2 M}, or \eqn{D M D} with
+\eqn{D = \mathrm{diag}(\sigma_i)} under a predicted \code{sigma ~ ...}, as
+brms 2.23.0 fits it. \code{student()} gets the multivariate-t analog, with
+a constant \code{nu}. \code{M} is a known matrix in \code{data2} over every row of
+the data, and the rows the model drops (missing values) are dropped
+from it, as brms drops them. \code{M} may be a correlation or a
+covariance; for a covariance, \code{sigma} is a scale factor, as in brms.
+A vector is the diagonal. \code{M} must be symmetric and positive
+definite. brms 2.23.0 checks the second with
+\code{min(eigen(M)$values <= 0)}, which refuses only a matrix whose
+eigenvalues are all non-positive; frmtmb refuses every matrix that is
+not positive definite.
+
+The term has no parameter, and the mean of the response is \code{mu}.
+\code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=simulate]{simulate()}} take \code{newdata} with one row
+per row of \code{M}, read in their order, as brms takes it, so a
+counterfactual such as \code{x + 1} everywhere works; when the fit dropped
+rows for missing values, \code{newdata} covers them too, and a row with a
+missing predictor gives \code{NA}. Other \code{newdata} is refused; brms
+refuses it too unless a matrix over the new rows comes in its
+\code{newdata2}. \code{\link[=frm_linpred]{frm_linpred()}} gives \code{mu} on any new data. Pearson
+residuals divide by the marginal sd, \eqn{\sigma \sqrt{M_{ii}}}. \code{\link[=autocor_matrix]{autocor_matrix()}} returns \code{M} over
+the fitted rows.
 }
 
 \section{Families}{

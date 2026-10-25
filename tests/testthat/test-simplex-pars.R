@@ -184,8 +184,71 @@ test_that("a declared simplex takes a Dirichlet prior of its own class", {
   expect_error(frm(y ~ 1, family = gaussian(), data = dd,
                    prior = set_prior("dirichlet(2)", class = "sbhaz")),
                "No simplex matches")
-  # frmtmb's own classes are still refused where the row is written
-  expect_error(set_prior("dirichlet(2)", class = "b"), "class = \"simo\"")
+  # frmtmb's own classes are refused at the same point, where the model
+  # is known ("one refusal point" below)
+  expect_error(frm(y ~ 1, family = gaussian(), data = dd,
+                   prior = set_prior("dirichlet(2)", class = "Intercept")),
+               "not class = \"Intercept\"", fixed = TRUE)
+})
+
+test_that("a Dirichlet on no simplex has one refusal point, however written", {
+  # 0.74.0 refused class = "Intercept", dpar = "sigma" in set_prior()
+  # and class = "sigma" at the fit. Only the model can tell a declared
+  # simplex from a distributional parameter, so both are refused where
+  # the prior meets the model: validate_prior() and frm(), before any
+  # fitting. brms 2.23.0 accepts both in set_prior(), validate_prior()
+  # and stancode(), and stops at the Stan compile
+  # (dev/smallfix-dirichlet-probe.R)
+  dd <- data.frame(x = stats::rnorm(40))
+  dd$y <- 1 + dd$x + stats::rnorm(40)
+  spell <- list(
+    list(f = bf(y ~ x, sigma ~ 1), class = "Intercept", dpar = "sigma",
+         said = "class = \"Intercept\", dpar = \"sigma\""),
+    list(f = bf(y ~ x), class = "sigma", dpar = "",
+         said = "class = \"sigma\""),
+    list(f = bf(y ~ x), class = "b", dpar = "", said = "class = \"b\""),
+    list(f = bf(y ~ x), class = "Intercept", dpar = "",
+         said = "class = \"Intercept\""),
+    list(f = bf(y ~ x, sigma ~ x), class = "b", dpar = "sigma",
+         said = "class = \"b\", dpar = \"sigma\""))
+  for (sp in spell) {
+    p <- set_prior("dirichlet(2)", class = sp$class, dpar = sp$dpar)
+    expect_s3_class(p, "frmtmb_priorlist")
+    for (call in list(
+      function() validate_prior(p, sp$f, data = dd),
+      function() frm(sp$f, family = gaussian(), data = dd, prior = p))) {
+      e <- tryCatch(call(), error = identity)
+      expect_s3_class(e, "frmtmb_error")
+      expect_match(conditionMessage(e), paste0(
+        "dirichlet() is the density of a simplex; it belongs to ",
+        "class = \"simo\""), fixed = TRUE)
+      expect_match(conditionMessage(e), paste0("not ", sp$said), fixed = TRUE,
+                   label = sp$said)
+    }
+  }
+  # the guard absent: a declared simplex takes it in its own spelling,
+  # and the link-scale spelling of that simplex is refused by name
+  ds <- tsimplex_data()
+  expect_s3_class(frm(y ~ 1, family = tsimplex_family(), data = ds,
+                      prior = set_prior("dirichlet(2)", class = "tw")),
+                  "frmtmb_fit")
+  expect_error(frm(y ~ 1, family = tsimplex_family(), data = ds,
+                   prior = set_prior("dirichlet(2)", class = "Intercept",
+                                     dpar = "tw")),
+               "names the intercept of a linear predictor, and \"tw\" is a",
+               fixed = TRUE)
+  # brms's class "theta" of a mixture is the Dirichlet on its mixing
+  # proportions (brms 2.23.0's default_prior() puts dirichlet(1) there;
+  # frmtmb's dev/smallfix-theta-probe.R), and frmtmb's "theta" is
+  # another set of parameters, so the refusal says so
+  dm <- data.frame(y = c(stats::rnorm(30), stats::rnorm(30, 4)))
+  e <- tryCatch(validate_prior(set_prior("dirichlet(2)", class = "theta"),
+                               bf(y ~ 1), data = dm,
+                               family = mixture(gaussian(), gaussian())),
+                error = identity)
+  expect_match(conditionMessage(e), paste0(
+    "not class = \"theta\". In brms, class = \"theta\" of a mixture() ",
+    "takes a dirichlet() on the mixing proportions"), fixed = TRUE)
 })
 
 test_that("a simplex_pars value that names no extra parameter is refused", {

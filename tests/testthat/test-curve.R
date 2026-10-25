@@ -486,4 +486,19 @@ test_that("print methods say what was checked", {
                           newdata = data.frame(x = seq(0.05, 0.95,
                                                        length.out = 21)))
   expect_output(print(ft), "curve feature")
+  # digits = reaches the rows, as print.data.frame()'s does: up to
+  # 0.74.0 it was refused with "print() has no argument `digits`"
+  shown <- function(x, digits) {
+    out <- utils::capture.output(print(x, digits = digits))
+    rows <- as.data.frame(x)[seq_len(min(6L, nrow(x))), , drop = FALSE]
+    all(utils::capture.output(print(rows, digits = digits)) %in% out)
+  }
+  for (dg in c(3, 7)) {
+    expect_true(shown(cv, dg), label = paste("curve, digits", dg))
+    expect_true(shown(ft, dg), label = paste("feature, digits", dg))
+  }
+  expect_false(identical(utils::capture.output(print(cv, digits = 3)),
+                         utils::capture.output(print(cv, digits = 7))))
+  # any other argument is still refused by name
+  expect_error(print(cv, foo = 1), "has no argument `foo`")
 })

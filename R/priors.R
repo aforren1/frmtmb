@@ -441,7 +441,10 @@
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`),
 #'   to the standard deviation of one coefficient (class `"sd"`, with
-#'   `group`), or name the simplex of class `"simo"`.
+#'   `group`), or name the simplex of class `"simo"`. A coefficient is
+#'   named as brms names it and as [default_prior()] lists it: `logxp`
+#'   for the column of `log(xp)`, `IxE2` for `I(x^2)`. The name of the
+#'   design column, `log(xp)`, also works.
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
 #' @param resp Response of a multivariate model. Required there for
 #'   every class except `"cor"`, `"rescor"` and `"theta"`; refused on a
@@ -712,15 +715,14 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # baseline, one per response, so it takes no coef. A class that is
   # not frmtmb's own may name a simplex a family declares
   # (frmtmb_family(simplex_pars =)), which only the fit can tell, so
-  # the same rules are applied to it there (prior_simplex_check())
+  # the same rules are applied to it there (prior_simplex_check()).
+  # A dirichlet() on a class that is no simplex is refused there too,
+  # for every class: `class = "sigma"` can be told from a declared
+  # simplex only by the model, and refusing its other spelling,
+  # `class = "Intercept", dpar = "sigma"`, here gave one prior two
+  # refusal points
   is_dir <- identical(dist$kind, "dirichlet")
   simplex_classes <- c("simo", "sbhaz")
-  if (is_dir && class %in% setdiff(frmtmb_prior_classes, simplex_classes)) {
-    frm_stop("dirichlet() is the density of a simplex; it belongs to ",
-             "class = \"simo\" (a mo() simplex) or class = \"sbhaz\" (the ",
-             "baseline of a cox() model, frmtmb.survival), not class = \"",
-             class, "\"", call. = FALSE)
-  }
   if (class %in% simplex_classes) {
     if (!is_dir) {
       frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
@@ -1933,37 +1935,39 @@ fill_prior_table <- function(tab, pl) {
   tab
 }
 
-#' The class `"sd"` rows of a filled table in brms's order.
+#' The rows of a filled table in brms's order.
 #' brms's validate_prior() and prior_summary() order the rows by
 #' `order(class, group, resp, dpar, nlpar, coef)`, not by default_prior()'s
-#' `order(resp, dpar, ...)`: every class-wide sd row first, then group by
-#' group, the responses inside each (dev/prilabel-rev-log/brmsfit.txt).
-#' Only the sd rows are put in that order, in the places they hold.
+#' `order(resp, dpar, ...)`: class by class, and within class `"sd"`
+#' every class-wide row first, then group by group, the responses inside
+#' each (dev/prilabel-rev-log/brmsfit.txt, dev/brmsnames-1024-order.R).
+#' frmtmb's own class `"theta"`, which brms does not have, stays last.
 #'
 #' @noRd
 prior_rows_sd_order <- function(tab) {
-  sdr <- which(tab$class == "sd")
-  if (length(sdr) > 1L) {
-    s <- tab[sdr, , drop = FALSE]
-    tab[sdr, ] <- s[with(s, order(group, resp, dpar, nlpar, coef)), ,
-                    drop = FALSE]
-  }
+  if (nrow(tab) < 2L) return(tab)
+  keep <- which(tab$class != "theta")
+  s <- as.data.frame(tab)[keep, , drop = FALSE]
+  idx <- c(keep[with(s, order(class, group, resp, dpar, nlpar, coef))],
+           which(tab$class == "theta"))
+  # assigned in place, so the table keeps its class and attributes
+  tab[seq_len(nrow(tab)), ] <- tab[idx, , drop = FALSE]
   tab
 }
 
 #' brms's spelling of a coefficient in the prior table.
 #'
-#' A design column is named by `model.matrix()`, and two of those names
-#' are not brms's: the intercept of an uncentered predictor is
-#' `(Intercept)` where brms writes `Intercept`, and the unpenalized
-#' column of a smooth is `s(x).fx1` where brms writes `sx_1`, which is
-#' also the name `variables()` gives it after `bs_`. The resolver takes
-#' either spelling of both (`prior_coef_match()`), so a prior written
-#' against the old table still lands.
+#' A design column is named by `model.matrix()`, and brms renames it
+#' (`rename()`, `brms_rename()` here): `(Intercept)` is `Intercept`,
+#' `log(xp)` is `logxp`, `I(x^2)` is `IxE2` and `poly(x, 2)1` is
+#' `polyx21`, the names `variables()` gives after `b_`. The unpenalized
+#' column of a smooth, `s(x).fx1`, is brms's `sx_1`. The resolver takes
+#' either spelling (`prior_coef_match()`), so a prior written against
+#' the design column still lands.
 #'
 #' @noRd
 prior_coef_brms <- function(cn) {
-  out <- sub("^[(]Intercept[)]$", "Intercept", cn)
+  out <- brms_rename(cn)
   fx <- grepl("[.]fx[0-9]+$", cn)
   if (any(fx)) {
     lab <- brms_rename(sub("[.]fx[0-9]+$", "", cn[fx]))
@@ -1994,6 +1998,17 @@ prior_coef_match <- function(cn, coef) {
     prior_coef_brms(cn) == coef
 }
 
+#' Which of brms's coefficient names `bn` (a block's standard deviations,
+#' a `cs()` term's coef) a written `coef` names: brms's name itself, or
+#' the design column it renames, so `coef = "I(x^2)"` reaches `IxE2`
+#' here as it does for class `"b"` (`prior_coef_match()`).
+#'
+#' @noRd
+prior_coef_match_brms <- function(bn, coef) {
+  !is.na(bn) & (bn == coef | bn == par_name_bare(coef) |
+                  bn == brms_rename(coef))
+}
+
 #' The [default_prior()] table for an assembled model.
 #'
 #' @noRd
@@ -2011,7 +2026,7 @@ prior_table <- function(spec, frame, route) {
     list()
   }
   add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
-                  resp = "", lb = NA_real_, dflt = NULL) {
+                  resp = "", lb = NA_real_, dflt = NULL, ub = NA_real_) {
     # a default speaks for a CLASS, not for one coefficient of it: brms
     # reports the class row and leaves the per-coefficient rows flat, and
     # a per-coefficient row here would claim a default nothing applies.
@@ -2029,7 +2044,7 @@ prior_table <- function(spec, frame, route) {
       prior = d %||% dflt %||% "(flat)", class = class, coef = coef,
       group = group,
       resp = resp, dpar = dpar, nlpar = nlpar, lb = lb,
-      ub = NA_real_, source = "default"
+      ub = ub, source = "default"
     )
   }
 
@@ -2244,6 +2259,11 @@ prior_table <- function(spec, frame, route) {
     for (cl in names(autocor_prior_classes)) {
       if (length(autocor_class_idx(ac, cl))) add(cl, resp = resp_lab)
     }
+    # a registry term's bounded parameters (sar()'s lagsar), under
+    # their natural names and on their interval, as brms lists them
+    for (pr in autocor_seam_bounded(ac)) {
+      add(pr$name, resp = resp_lab, lb = pr$lower, ub = pr$upper)
+    }
   }
   if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
   # a logistic_normal() response's correlations, brms's class lncor;
@@ -2275,13 +2295,30 @@ prior_table <- function(spec, frame, route) {
   # `thetaac` in a model that has a residual structure and no random
   # effects, which offered a random-effect row for a model with none
   if (length(frame[["par_template"]][["theta"]] %||% numeric(0))) add("theta")
+  # a registry term's bounded parameter is listed once, under its class
+  # (lagsar) above, as brms lists it
+  own_class <- autocor_seam_bounded_coefs(frame)
   for (cmp in theta_components) {
     v <- frame[["par_template"]][[cmp]] %||% numeric(0)
     if (!length(v)) next
-    for (nm in par_template_names(v, cmp)) add("theta", coef = nm)
+    for (nm in par_template_names(v, cmp)) {
+      if (identical(cmp, "thetaac") && nm %in% names(own_class)) next
+      add("theta", coef = nm)
+    }
   }
 
   out <- unique(do.call(rbind, rows))
+  # brms's row order (.default_prior(): resp, dpar, nlpar, class, group,
+  # coef, with R's order(), locale and all), so b comes before cor,
+  # Intercept and sd; frmtmb's own class "theta", which brms does not
+  # have, stays last in its own order
+  if (!is.null(out)) {
+    own <- out$class == "theta"
+    brm <- out[!own, , drop = FALSE]
+    brm <- brm[with(brm, order(resp, dpar, nlpar, class, group, coef)), ,
+               drop = FALSE]
+    out <- rbind(brm, out[own, , drop = FALSE])
+  }
   rownames(out) <- NULL
   attr(out, "route") <- route
   class(out) <- c("frmtmb_prior_rows", "data.frame")
@@ -2542,7 +2579,7 @@ sd_spec_reach <- function(spec, frame, bk, s) {
     sp$nlpar == want[["nlpar"]]
   if (nzchar(s$coef %||% "")) {
     cf <- block_sd_coefs(frame, bk)
-    hit <- !is.na(cf) & (cf == s$coef | cf == par_name_bare(s$coef))
+    hit <- prior_coef_match_brms(cf, s$coef)
     reach <- vapply(seq_len(n), function(j) hit[j] && any(eq[sp$k == j]),
                     TRUE)
     return(list(reach = reach, exact = any(reach)))
@@ -2670,7 +2707,7 @@ sd_coef_shared <- function(spec, frame, bk, s) {
   if (length(cf) != nrow(cp)) return(character(0))
   eq <- cp$resp == (s$resp %||% "") & cp$dpar == (s$dpar %||% "") &
     cp$nlpar == (s$nlpar %||% "")
-  cf[eq & (cf == s$coef | cf == par_name_bare(s$coef))]
+  cf[eq & prior_coef_match_brms(cf, s$coef)]
 }
 
 #' What a refused class `"sd"` specification could have named: the
@@ -2806,13 +2843,15 @@ prior_slot_label <- function(s) {
 }
 
 #' The slot one specification addresses as a comparable key: class as
-#' written, coef without the parentheses of `(Intercept)`, group, resp,
-#' dpar and nlpar, each kept apart.
+#' written, coef in brms's spelling (`prior_coef_brms()`: `(Intercept)`
+#' is `Intercept`, the design column `I(x^2)` is `IxE2`, a smooth's
+#' `s(x).fx1` is `sx_1`, each pair naming one slot), group, resp, dpar
+#' and nlpar, each kept apart.
 #'
 #' @noRd
 prior_spec_slot <- function(s) {
   sp <- spec_spelling(s)
-  paste(sp$class, par_name_bare(s$coef %||% ""), s$group %||% "",
+  paste(sp$class, prior_coef_brms(s$coef %||% ""), s$group %||% "",
         s$resp %||% "", sp$dpar, s$nlpar %||% "", sep = "\r")
 }
 
@@ -2852,7 +2891,8 @@ prior_drop_unmatched <- function(prior, spec, frame) {
   specs <- unclass(prior)
   ok <- vapply(specs, function(s) {
     one <- structure(list(s), class = "frmtmb_priorlist")
-    !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
+    !inherits(tryCatch(resolve_priorlist(design, one),
+                       error = keep_missing(identity)),
               "error")
   }, NA)
   if (length(strict) == length(ok)) ok[strict] <- TRUE
@@ -2961,7 +3001,8 @@ resp_missing_refusal <- function(spec, frame, s) {
   design <- list(spec = spec, frame = frame)
   resolves <- function(s1) {
     one <- structure(list(s1), class = "frmtmb_priorlist")
-    !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
+    !inherits(tryCatch(resolve_priorlist(design, one),
+                       error = keep_missing(identity)),
               "error")
   }
   # (resp, dpar) pairs. A response whose location is several dpars
@@ -3190,6 +3231,7 @@ resolve_priorlist <- function(fit, pl) {
         for (ct in lp[["cs"]] %||% list()) {
           lab <- cs_term_coef(ct)
           if (nzchar(s$coef) &&
+                !prior_coef_match_brms(lab, s$coef) &&
                 !identical(par_name_bare(lab), par_name_bare(s$coef))) {
             next
           }
@@ -3696,6 +3738,27 @@ resolve_priorlist <- function(fit, pl) {
                "applies only to a multivariate model, and this model has ",
                "one response. Drop resp, as brms requires", call. = FALSE)
     }
+    # brms's class of a registry term's parameter (sar()'s lagsar): a
+    # density on the natural parameter, carried inward by the map the
+    # term's bounds declare; a parameter with no declared map has only
+    # its internal spelling
+    sc <- spec_spelling(s)$class
+    if (isTRUE(s$natural) && sc %in% autocor_seam_classes(frame)) {
+      s$class <- sc
+      s$dpar <- NULL
+      resolve_ac_class(s)
+      next
+    }
+    if (isTRUE(s$natural) &&
+          sc %in% autocor_seam_classes(frame, bounded = FALSE)) {
+      ap <- frmtmb_autocor_pars(fit)
+      frm_stop("class = \"", sc, "\" names a parameter of ",
+               ap$term[ap$name == sc][1L], ", whose term declares no ",
+               "interval, so a density on it cannot be carried to the ",
+               "internal parameter. Write it there: class = \"theta\", ",
+               "coef = \"", ap$coef[ap$name == sc][1L], "\"",
+               call. = FALSE)
+    }
     bad_shape <- dpar_shape_refusal(fit, s)
     if (!is.null(bad_shape)) frm_stop(bad_shape, call. = FALSE)
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
@@ -3866,6 +3929,20 @@ resolve_priorlist <- function(fit, pl) {
       cmp <- tgt$comp
       nms <- par_template_names(frame[["par_template"]][[cmp]] %||% numeric(0),
                                 cmp)
+      # one slot per parameter: a bounded registry parameter's internal
+      # name would be a second prior on the parameter its class names
+      own_class <- autocor_seam_bounded_coefs(frame)
+      hit <- if (identical(cmp, "thetaac")) {
+        intersect(nms[tgt$idx], names(own_class))
+      } else character(0)
+      if (length(hit)) {
+        frm_stop("class = \"theta\", coef = \"", hit[1L], "\" is the ",
+                 "internal parameter of ", own_class[[hit[1L]]], ", which ",
+                 "has a class of its own, as in brms. Write the prior with ",
+                 "class = \"", own_class[[hit[1L]]], "\" (lb and ub narrow ",
+                 "its interval); one parameter takes one prior",
+                 call. = FALSE)
+      }
       for (i in tgt$idx) {
         key <- nm_of(cmp, i)
         if (!is.null(s$dist)) {
@@ -4012,7 +4089,8 @@ family_simplex_targets <- function(fit, s) {
 #' the fit can tell is a simplex: one a family declares
 #' (`frmtmb_family(simplex_pars =)`). `set_prior()` applies the same
 #' rules to `"simo"` and `"sbhaz"` when the row is written, so they are
-#' not repeated here for those two.
+#' not repeated here for those two. A `dirichlet()` on any class that
+#' is no simplex of the model is refused here, however it was written.
 #'
 #' `set_prior()` reads a class that is not frmtmb's own as a
 #' distributional parameter's name and stores it as that parameter's
@@ -4026,6 +4104,15 @@ prior_simplex_check <- function(s, fam_simplex) {
   dp <- s$dpar %||% ""
   # the name the user wrote, which a refusal must repeat
   said <- if (identical(cls, "Intercept") && nzchar(dp)) dp else cls
+  # `class = "Intercept", dpar = "sigma"` as written, not the natural
+  # `class = "sigma"` that set_prior() stores under the same two fields
+  link_scale <- identical(cls, "Intercept") && nzchar(dp) &&
+    !isTRUE(s$natural)
+  written <- if (nzchar(dp) && (link_scale || !identical(cls, "Intercept"))) {
+    paste0("class = \"", cls, "\", dpar = \"", dp, "\"")
+  } else {
+    paste0("class = \"", said, "\"")
+  }
   is_dir <- identical(s$dist$kind, "dirichlet")
   if (cls %in% c("simo", "sbhaz")) return(s)
   if (said %in% fam_simplex) {
@@ -4033,6 +4120,11 @@ prior_simplex_check <- function(s, fam_simplex) {
       frm_stop("Currently 'dirichlet' is the only valid prior for simplex ",
                "parameters: class = \"", said, "\" is a simplex of this ",
                "model and takes dirichlet(alpha)", call. = FALSE)
+    }
+    if (link_scale) {
+      frm_stop(written, " names the intercept of a linear predictor, and \"",
+               dp, "\" is a simplex this model's family declares, which has ",
+               "none. Write class = \"", dp, "\"", call. = FALSE)
     }
     if (!is.na(s$lb %||% NA) || !is.na(s$ub %||% NA)) {
       frm_stop("class = \"", said, "\" is a simplex a family declares, ",
@@ -4047,11 +4139,17 @@ prior_simplex_check <- function(s, fam_simplex) {
     s$class <- said
     s$dpar <- ""
   } else if (is_dir) {
+    # brms's class "theta" of a mixture is the Dirichlet on its mixing
+    # proportions, a different set of parameters from frmtmb's theta
+    mix <- if (startsWith(said, "theta")) {
+      paste0(". In brms, class = \"", said, "\" of a mixture() takes a ",
+             "dirichlet() on the mixing proportions; ",
+             trimws(brms_prior_class_refusal(said)))
+    } else ""
     frm_stop("dirichlet() is the density of a simplex; it belongs to ",
              "class = \"simo\" (a mo() simplex), class = \"sbhaz\" (the ",
              "baseline of a cox() model, frmtmb.survival) or a simplex a ",
-             "family declares, not class = ",
-             "\"", said, "\"", call. = FALSE)
+             "family declares, not ", written, mix, call. = FALSE)
   }
   s
 }
@@ -4235,8 +4333,14 @@ dpar_shape_refusal <- function(fit, s) {
     have <- unique(vapply(frame[["linpreds"]], function(lp) {
       lp[["dpar"]]
     }, ""))
+    ac_cls <- autocor_seam_classes(frame)
     return(paste0(spelling, " names no distributional parameter of ",
                   "this model. It has ", paste(have, collapse = ", "),
+                  if (length(ac_cls)) {
+                    paste0(". Its residual correlation terms take ",
+                           paste0("class = \"", ac_cls, "\"",
+                                  collapse = ", "))
+                  },
                   ". frmtmb's own classes are ",
                   paste(frmtmb_prior_classes, collapse = ", ")))
   }
@@ -4891,6 +4995,11 @@ autocor_prior_classes <- list(
 #'
 #' @noRd
 autocor_class_idx <- function(ac, cls) {
+  if (autocor_is_seam(ac)) {
+    hit <- Filter(function(pr) identical(pr$name, cls),
+                  autocor_seam_bounded(ac))
+    return(if (length(hit)) hit[[1L]]$idx)
+  }
   st <- ac[["struct"]]
   if (!st %in% autocor_prior_classes[[cls]]) return(NULL)
   switch(cls,
@@ -4911,6 +5020,11 @@ autocor_class_idx <- function(ac, cls) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
+  if (autocor_is_seam(ac)) {
+    hit <- Filter(function(pr) identical(pr$name, cls),
+                  autocor_seam_bounded(ac))[[1L]]
+    return(list(map = "bounded", lo = hit$lower, hi = hit$upper))
+  }
   # brms's cov = FALSE coefficients are unconstrained and ARE the
   # internal parameters, so a prior on them needs no change of variables
   if (autocor_is_cond(ac)) return(list(map = "identity"))
@@ -4936,6 +5050,9 @@ trans_dist <- function(inner, trans) {
 #' @noRd
 ac_trans_value <- function(th, tr) {
   if (identical(tr$map, "identity")) return(th)
+  if (identical(tr$map, "bounded")) {
+    return(tr$lo + (tr$hi - tr$lo) / (1 + exp(-th[1])))
+  }
   if (identical(tr$map, "cosy")) {
     return(-tr$a + (1 + tr$a) / (1 + exp(-th[1])))
   }
@@ -4958,6 +5075,11 @@ ac_trans_value <- function(th, tr) {
 #' @noRd
 ac_trans_logjac <- function(th, tr) {
   if (identical(tr$map, "identity")) return(0)
+  if (identical(tr$map, "bounded")) {
+    # d rho / d theta = (hi - lo) p (1 - p), the same form as cosy's
+    s <- 1 / (1 + exp(-th[1]))
+    return(log(tr$hi - tr$lo) + log(s) + log(1 - s))
+  }
   if (identical(tr$map, "cosy")) {
     s <- 1 / (1 + exp(-th[1]))
     return(log(1 + tr$a) + log(s) + log(1 - s))
@@ -4983,6 +5105,15 @@ ac_trans_logjac <- function(th, tr) {
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
   if (identical(tr$map, "identity")) return(v)
+  if (identical(tr$map, "bounded")) {
+    if (v <= tr$lo || v >= tr$hi) {
+      frm_stop("class = \"", cls, "\" ", what, " = ", v, " is outside ",
+               "the interval of ", ac[["label"]], ", (",
+               format(tr$lo, digits = 6), ", ", format(tr$hi, digits = 6),
+               ")", call. = FALSE)
+    }
+    return(stats::qlogis((v - tr$lo) / (tr$hi - tr$lo)))
+  }
   if (identical(tr$map, "cosy")) {
     a <- tr$a
     if (v <= -a || v >= 1) {

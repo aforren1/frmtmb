@@ -15,12 +15,12 @@ The saved state, invisibly. Called for the restore it
 schedules.
 }
 \description{
-A test that registers a covariance structure, an addition term, a
-family's compatibility rows, a frame check or a prior default calls
-\code{frmtmb_local_registries()} first. When \code{env} exits (the end of the
-\code{test_that()} block), every registry is put back as it was, so the
-registration cannot reach the tests after it: \verb{R CMD check} and covr
-run every file of a suite in one session.
+A test that registers a covariance structure, a residual correlation
+term, an addition term, a family's compatibility rows, a frame check
+or a prior default calls \code{frmtmb_local_registries()} first. When
+\code{env} exits (the end of the \code{test_that()} block), every registry is
+put back as it was, so the registration cannot reach the tests after
+it: \verb{R CMD check} and covr run every file of a suite in one session.
 }
 \details{
 The restore puts back what it found. It never deletes an entry by
@@ -41,7 +41,7 @@ f()
 \dontshow{\}) # examplesIf}
 }
 \seealso{
-\code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}}, \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}},
-\code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} and \code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}}, the
-registrations it undoes.
+\code{\link[=frmtmb_register_covstruct]{frmtmb_register_covstruct()}}, \code{\link[=frmtmb_register_autocor]{frmtmb_register_autocor()}},
+\code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}}, \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} and
+\code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}}, the registrations it undoes.
 }

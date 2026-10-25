@@ -313,17 +313,22 @@ test_that("declared specials still parse", {
 
 test_that("declared autocorrelation terms parse", {
   ft <- frm_compat_features()
-  expect_setequal(ft$key[ft$kind == "autocor"],
-                  c("ar", "ma", "arma", "cosy", "unstr"))
+  keys <- ft$key[ft$kind == "autocor"]
+  core_ac <- c("ar", "ma", "arma", "cosy", "unstr", "fcor")
+  expect_true(all(core_ac %in% keys))
+  # a term another package registered (frmtmb.spatial's sar(), when an
+  # earlier file of this session loaded it) joins as kind "autocor" too
+  expect_true(all(setdiff(keys, core_ac) %in% frmtmb:::ac_entry_names()))
   set.seed(1)
   d <- expand.grid(week = 1:4, subj = factor(1:8))
   d$y <- rnorm(32)
   d$x <- rnorm(32)
   for (tm in c("ar(week, subj, cov = TRUE)", "ma(week, subj, cov = TRUE)",
                "arma(week, subj, cov = TRUE)", "cosy(week, subj)",
-               "unstr(week, subj)")) {
+               "unstr(week, subj)", "fcor(V)")) {
     fr <- frm(stats::as.formula(paste("y ~ x +", tm)), data = d,
-              family = gaussian(), dry_run = "frame")
+              family = gaussian(), data2 = list(V = diag(32)),
+              dry_run = "frame")
     expect_s3_class(fr, "frmtmb_frame")
     expect_length(fr$autocor, 1L)
   }

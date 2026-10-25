@@ -1196,6 +1196,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   vb <- verbose_level(control)
   n_imp <- as.integer(importance %||% 0L)
   ascale <- if (!objective_only) autoscale_decide(frame, control, REML)
+  # said once per fit, by the call that runs the pre-fit, and not by the
+  # refits that are handed its template
+  if (!is.null(ascale) && is.null(template)) {
+    autoscale_note_unscaled(frame, ascale)
+  }
   if (vb) {
     t_fit <- vb_now()
     vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,
@@ -1974,7 +1979,7 @@ quad_breakdown_message <- function(frame, theta) {
                              " levels)")
   sds <- vapply(blocks, function(b) {
     v <- tryCatch(cs_entry(b[["covstruct"]])$vcov(
-      theta[b$theta_idx], b), error = function(e) NULL)
+      theta[b$theta_idx], b), error = keep_missing(NULL))
     if (is.null(v)) NA_real_ else sqrt(v[1L, 1L])
   }, 1)
   why <- character(0)
@@ -3248,17 +3253,17 @@ sd_up_escape <- function(fit, control, bounds, par_units = NULL,
     return(NULL)
   }
   sd_i <- tryCatch(unique(log_sd_theta_index(fit)),
-                   error = function(e) integer(0))
+                   error = keep_missing(integer(0)))
   tol <- control$grad_tol %||% 1e-3
   q <- p
   for (k in sd_i) {
     j <- thpos[k]
-    sc <- tryCatch(se_sd_scale(fit, k), error = function(e) NA_real_)
+    sc <- tryCatch(se_sd_scale(fit, k), error = keep_missing(NA_real_))
     if (!is.finite(p[j]) || !isTRUE(sc > 0) ||
           p[j] >= log(se_sd_escape_frac * sc)) {
       next
     }
-    gain <- tryCatch(se_sd_gain_up(fit, k), error = function(e) NULL)
+    gain <- tryCatch(se_sd_gain_up(fit, k), error = keep_missing(NULL))
     if (!isTRUE(as.numeric(gain) > tol) || is.null(attr(gain, "at"))) next
     q[j] <- attr(gain, "at")
   }
@@ -3267,7 +3272,7 @@ sd_up_escape <- function(fit, control, bounds, par_units = NULL,
   saved <- obj_state_save(obj)
   o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
                              start_par = q, tally = tally),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   if (is.null(o) || !is.finite(o$objective) ||
         o$objective >= fit$opt$objective) {
     obj_settle(obj, fit$opt, fit$opt, saved)
@@ -3464,7 +3469,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
       stats::optimHess(p, obj$fn, obj$gr, control = list(parscale = u))
     } else {
       obj_he_cached(obj, p)
-    }, error = function(e) NULL)
+    }, error = keep_missing(NULL))
     if (is.null(H) || !identical(dim(H), c(np, np))) return(NULL)
     fin <- all(is.finite(H))
     if (!fin && (decided || is.null(frame))) return(NULL)
@@ -3489,8 +3494,8 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
             hess_needs_reparam(Hs[keep, keep, drop = FALSE])) {
         M0 <- tryCatch(reparam_basis(frame, names(p),
                                      est = tryCatch(obj$env$parList(p),
-                                       error = function(e) NULL)),
-                       error = function(e) NULL)
+                                       error = keep_missing(NULL))),
+                       error = keep_missing(NULL))
         out <- setdiff(seq_len(np), keep)
         if (!is.null(M0) && all(dim(M0) == np) &&
               !length(intersect(out, attr(M0, "pos")))) {
@@ -3505,7 +3510,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   chol_at <- function(H) {
     if (is.null(H)) return(NULL)
     Hs <- if (is.null(M)) H * outer(u, u) else H
-    tryCatch(chol((Hs + t(Hs)) / 2), error = function(e) NULL)
+    tryCatch(chol((Hs + t(Hs)) / 2), error = keep_missing(NULL))
   }
   # one step from p with the Hessian Hc and its Cholesky factor R:
   # list(q, vq, model), or NULL when no step is taken
@@ -3552,7 +3557,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
       HC <- hsolve(C)
       rhs <- tgt - p[held] + drop(crossprod(C, hsolve(gs)))
       lam <- tryCatch(solve(crossprod(C, HC), -rhs),
-                      error = function(e) NULL)
+                      error = keep_missing(NULL))
       if (is.null(lam)) return(NULL)
       st <- -drop(hsolve(gs + drop(C %*% lam)))
       if (!all(is.finite(st))) return(NULL)
@@ -3570,7 +3575,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
     quad <- if (length(held)) sum((R %*% st)^2) else lin
     gain <- if (length(held)) lin - quad / 2 else -sum(gs * st) / 2
     if (!is.finite(gain) || gain <= 1e-6) return(NULL)
-    vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+    vq <- tryCatch(obj$fn(q), error = keep_missing(NA_real_))
     t <- 1
     if (!is.null(M)) {
       # in the design's coordinates a step from far off is shortened
@@ -3586,7 +3591,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
         t <- t / 2
         q <- p + t * drop(B %*% st)
         if (length(held)) q[held] <- p[held] + t * (tgt - p[held])
-        vq <- tryCatch(obj$fn(q), error = function(e) NA_real_)
+        vq <- tryCatch(obj$fn(q), error = keep_missing(NA_real_))
       }
       gain <- gt(t)
     }
@@ -3610,7 +3615,7 @@ newton_polish <- function(obj, opt, bounds, par_units = NULL,
   fresh_n <- 0L
   while (steps < 10L) {
     if (!stale && fresh_n >= 5L) break
-    g <- tryCatch(drop(obj$gr(p)), error = function(e) NULL)
+    g <- tryCatch(drop(obj$gr(p)), error = keep_missing(NULL))
     if (is.null(g) || length(g) != np || !all(is.finite(g))) {
       end_ok <- FALSE
       break
@@ -3995,7 +4000,7 @@ nl_flat_message <- function(obj, opt, frame, fit = NULL) {
       H[, j] <- (obj$gr(up)[pos] - obj$gr(dn)[pos]) / (2 * h)
     }
     H
-  }, error = function(e) NULL)
+  }, error = keep_missing(NULL))
   if (is.null(H) || !all(is.finite(H))) return(NULL)
   # the asymmetry of the differenced matrix is its own noise (lane
   # nanse's RB3): it sets how small a loading names a coefficient, and
@@ -4026,7 +4031,7 @@ nl_flat_message <- function(obj, opt, frame, fit = NULL) {
   if (length(load) && !is.null(fit) &&
         !identical(fit$control$check_se, "ignore")) {
     an <- tryCatch(se_fit_analysis(fit, force = TRUE),
-                   error = function(e) NULL)
+                   error = keep_missing(NULL))
     if (!is.null(an)) {
       lost <- names(an$lost)[an$lost == "flat"]
       load <- load[onames[ok][proj > tau] %in% lost]
@@ -4545,16 +4550,16 @@ bound_held_by_step <- function(fit, p, g, H, box = fit_outer_box(fit),
   step <- numeric(np)
   h <- if (length(free) >= 2L) {
     tryCatch(headroom_reparam_hessian(fit, H, free),
-             error = function(e) NULL)
+             error = keep_missing(NULL))
   }
-  ch <- if (!is.null(h)) tryCatch(chol(h$H), error = function(e) NULL)
+  ch <- if (!is.null(h)) tryCatch(chol(h$H), error = keep_missing(NULL))
   if (!is.null(ch)) {
     gs <- drop(crossprod(h$M, g))
     step <- -drop(h$M %*% backsolve(ch, forwardsolve(t(ch), gs)))
   } else {
     Hf <- H[free, free, drop = FALSE]
     st <- tryCatch(-solve((Hf + t(Hf)) / 2, g[free]),
-                   error = function(e) NULL)
+                   error = keep_missing(NULL))
     if (is.null(st) || !all(is.finite(st))) return(act)
     step[free] <- st
   }
@@ -4768,13 +4773,13 @@ headroom_drop_rows <- function(fit, H, g, u, tol) {
     return(out)
   }
   sd_i <- tryCatch(unique(log_sd_theta_index(fit)),
-                   error = function(e) integer(0))
+                   error = keep_missing(integer(0)))
   extra <- 0
   for (k in sd_i) {
     j <- thpos[k]
     if (!fr[j]) next
     gain <- tryCatch(as.numeric(se_sd_gain_up(fit, k)),
-                     error = function(e) NA_real_)
+                     error = keep_missing(NA_real_))
     if (!is.finite(gain)) next
     out[j] <- TRUE
     extra <- extra + max(gain, 0)
@@ -4797,7 +4802,7 @@ headroom_reparam_hessian <- function(fit, H, free) {
   out <- setdiff(seq_len(np), free)
   M <- tryCatch(reparam_basis(fit$frame, names(p), est = fit$estimates,
                               drop = out),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   if (is.null(M) || !all(dim(M) == np)) return(NULL)
   if (length(intersect(out, attr(M, "pos")))) return(NULL)
   if (length(out)) M <- reparam_cols(M, free)
@@ -4980,7 +4985,7 @@ check_convergence <- function(fit, control) {
   # explains. On a fit that converged it is not a convergence warning,
   # and the standard-error check still looks at the other parameters.
   sep <- if (is.null(fit$importance)) {
-    tryCatch(separation_check(fit), error = function(e) NULL)
+    tryCatch(separation_check(fit), error = keep_missing(NULL))
   }
   if (!is.null(sep)) {
     if (is.environment(fit$cache)) {

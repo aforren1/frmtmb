@@ -5,6 +5,9 @@ Survival families for [frmtmb](https://aforren1.github.io/frmtmb/).
 - `cox()` is the proportional hazards model brms calls `cox()`. Its
   baseline hazard is an M-spline in time with simplex weights.
   `cox_baseline()` gives the fitted weights.
+- `bhaz()` is brms's addition term for the baseline basis of `cox()`:
+  `time | cens(out) + bhaz(df = 6) ~ x` with `family = cox()` is the
+  model of `cox(df = 6)`.
 - `royston_parmar()` is the flexible parametric model of Royston and
   Parmar (2002). It writes the log cumulative hazard as a natural cubic
   spline in log time, parameterized as `flexsurv::flexsurvspline()`

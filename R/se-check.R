@@ -520,7 +520,7 @@ se_edge_sd <- function(fit, H) {
   om <- outer_par_map(fit)
   thpos <- which(om$comp == "theta")
   if (length(thpos) != length(th) || length(om$names) != np) return(out)
-  sd_i <- tryCatch(log_sd_theta_index(fit), error = function(e) integer(0))
+  sd_i <- tryCatch(log_sd_theta_index(fit), error = keep_missing(integer(0)))
   u <- fit$par_units %||% rep(1, np)
   for (k in unique(sd_i)) {
     j <- thpos[k]
@@ -1840,7 +1840,7 @@ se_check <- function(fit, control) {
     # under "stop" the check does not wait: a deferred check stopped at
     # the first summary() instead of at frm() (setier review, m10)
     an <- tryCatch(se_fit_analysis(fit, force = identical(act, "stop")),
-                   error = function(e) e)
+                   error = keep_missing(identity))
     if (inherits(an, "error")) {
       re_check_act(act, paste0("The standard errors could not be ",
                                "computed: building the Hessian at the ",
@@ -1970,7 +1970,7 @@ se_report <- function(fit, lost, act) {
 #'
 #' @noRd
 se_boundary_blocks <- function(fit) {
-  lost <- tryCatch(sdr_of(fit)$se_lost, error = function(e) NULL)
+  lost <- tryCatch(sdr_of(fit)$se_lost, error = keep_missing(NULL))
   bn <- names(lost)[lost == "boundary"]
   if (!length(bn)) return(character(0))
   om <- outer_par_map(fit)
@@ -2052,7 +2052,7 @@ se_boundary_names <- function(fit, lost) {
   om <- outer_par_map(fit)
   thn <- om$names[om$comp == "theta"]
   if (length(thn) != length(th)) return(character(0))
-  sd_i <- tryCatch(log_sd_theta_index(fit), error = function(e) integer(0))
+  sd_i <- tryCatch(log_sd_theta_index(fit), error = keep_missing(integer(0)))
   kind <- character(0)
   for (bk in fit$frame[["re_blocks"]] %||% list()) {
     ti <- bk[["theta_idx"]]
@@ -2202,7 +2202,7 @@ se_sd_scale <- function(fit, k) {
     key <- bk[["components"]][[1L]]$lp_key
     lp <- fit$frame[["linpreds"]][[key]]
     dp <- tryCatch(eval_dpars(fit, b = NULL)[[lp[["resp"]]]],
-                   error = function(e) NULL)
+                   error = keep_missing(NULL))
     sg <- dp[["sigma"]]
     if (is.numeric(sg) && length(sg) && all(is.finite(sg))) {
       return(stats::median(sg))
@@ -2349,7 +2349,7 @@ se_boundary_labels <- function(fit, nms) {
     hit <- out %in% thn[bk[["theta_idx"]]]
     out[hit] <- paste0(out[hit], " (in ", bk[["term_label"]], ")")
   }
-  ai <- tryCatch(par_alias_index(fit), error = function(e) integer(0))
+  ai <- tryCatch(par_alias_index(fit), error = keep_missing(integer(0)))
   pos <- match(nms, om$names)
   for (i in seq_along(nms)) {
     a <- names(ai)[ai == pos[i]]
@@ -2405,7 +2405,7 @@ se_muffled_inside <- function() {
 #' @noRd
 se_flush_deferred <- function(fit) {
   if (is.environment(fit$cache) && !is.null(fit$cache$se_deferred)) {
-    tryCatch(sdr_of(fit), error = function(e) NULL)
+    tryCatch(sdr_of(fit), error = keep_missing(NULL))
   }
   invisible(NULL)
 }
@@ -2533,7 +2533,7 @@ separation_check <- function(fit) {
           is.null(lp[["X"]]) || !ncol(lp[["X"]])) {
       next
     }
-    h <- tryCatch(sep_certificate(fit, lp, rspec), error = function(e) NULL)
+    h <- tryCatch(sep_certificate(fit, lp, rspec), error = keep_missing(NULL))
     if (is.null(h)) next
     # every coefficient of this predictor: the separated observations
     # carry no curvature, so a standard error any of them loses is lost
@@ -3021,7 +3021,7 @@ se_boundary_stop <- function(fit, g, control) {
     return(FALSE)
   }
   an <- tryCatch(se_fit_analysis(fit, force = TRUE),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   lost <- an$lost
   ok <- length(lost) > 0L && all(lost == "boundary")
   fit$cache$se_boundary_stop <- ok
@@ -3029,7 +3029,7 @@ se_boundary_stop <- function(fit, g, control) {
   # kept its own covariance, as for any fit that stopped short
   if (ok && !is.null(fit$cache$sdr)) {
     fit$cache$sdr <- tryCatch(autoscale_sdreport(fit),
-                              error = function(e) fit$cache$sdr)
+                              error = keep_missing(function(e) fit$cache$sdr))
   }
   ok
 }

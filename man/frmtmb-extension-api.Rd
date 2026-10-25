@@ -249,11 +249,19 @@ Use exported functions only, never \verb{frmtmb:::}. When a user writes
 the structure while its package is not loaded, core refuses it by
 name if its table of extension homes lists the package, which is how
 \code{car()} points at frmtmb.spatial.
+
+A term that correlates the RESIDUALS of the response, rather than
+adding a latent vector to the linear predictor, is not a covariance
+structure: it changes the response's density, and it may change its
+mean. Register it with \code{\link[=frmtmb_register_autocor]{frmtmb_register_autocor()}} instead, as
+frmtmb.spatial does for \code{sar()}. Such a term is one affine map from
+the response to independent innovations, and core writes its
+density, mean and draws from the map.
 }
 
 \section{What the registries hold you to}{
 
-The four registries an extension fills from its own \code{.onLoad()}
+The registries an extension fills from its own \code{.onLoad()}
 check what they are given, because a registration that is accepted
 and then does nothing is indistinguishable from one that worked.
 
@@ -280,6 +288,10 @@ side.
 commits anything, adds the structure to the compatibility
 vocabulary as a feature of kind \code{"covstruct"}, and refuses a name
 that frmtmb's own structures or formula specials hold.
+\item \code{\link[=frmtmb_register_autocor]{frmtmb_register_autocor()}} does the same for a residual
+correlation term, as a feature \code{"<name>()"} of kind \code{"autocor"},
+writes the rows of \code{\link[=frm_compat]{frm_compat()}} that refuse what every such
+term refuses, and checks \code{npar} and \code{start} once per fit.
 \item \code{\link[=frmtmb_family]{frmtmb_family()}} takes \code{required_aterms} as a conjunction
 (a character vector) or as one with choices in it (a list, whose
 elements of length more than one are alternatives). Declare the

@@ -213,9 +213,13 @@ brms_fixef_rows <- function(fit) {
   # Intercept
   is_int <- grepl("[(]Intercept[)]$", tab$internal[keep])
   # brms's `0 + Intercept` (or center = FALSE) intercept is an element of
-  # the b vector, so it keeps its column's place instead of leading
+  # the b vector, so it keeps its column's place instead of leading. So
+  # is a nonlinear parameter's, whose sub-formula brms never centers
   for (lp in fit$frame[["linpreds"]]) {
-    if (isFALSE(lp[["center"]])) {
+    nlp <- if (!is.null(lp[["resp"]])) {
+      fit$spec$responses[[lp[["resp"]]]][["nlpars"]]
+    }
+    if (isFALSE(lp[["center"]]) || lp[["dpar"]] %in% nlp) {
       is_int[keep %in% brms_lp_rows(lp, tab)] <- FALSE
     }
   }
@@ -255,7 +259,12 @@ brms_fixef_rows <- function(fit) {
   }
   rank <- match(cls, c("b", "bs", "bsp", "bcs"))
   dpr <- match(dp, unique(dp))
-  ord <- order(rank, !is_int, dpr, tie, sp_ord, seq_along(nm))
+  # brms declares a multivariate model's parameters response by
+  # response, each response's predictors together: sigma_yn_Intercept
+  # before y_Intercept when yn comes first
+  rp <- sub(":.*$", "", dp)
+  rr <- match(rp, unique(c(names(fit$spec$responses), rp)))
+  ord <- order(rank, !is_int, rr, dpr, tie, sp_ord, seq_along(nm))
   list(idx = idx[ord], names = nm[ord], blk = blk[ord], pos = pos[ord],
        extra = ex)
 }
@@ -422,17 +431,22 @@ fit_set_outer <- function(fit, v, map = outer_par_map(fit)) {
 #'
 #' @noRd
 fit_draw_space <- function(fit) {
+  # the catches below read any failure as a covariance that did not come
+  # back, and predict() then warns and draws at the estimates; a part of
+  # the model from an absent package is a refusal instead
+  require_model_packages(fit)
+  require_structure_packages(fit)
   se_flush_deferred(fit)
   map <- outer_par_map(fit)
   V <- tryCatch(suppressWarnings(vcov(fit, full = TRUE)),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   nb <- length(fit$frame[["par_template"]][["beta"]])
   if (!(fit$REML || isTRUE(fit$control$profile)) || nb == 0L) {
     # a lost standard error is NaN in vcov(), and a product of it is NaN
     # in every row; the covariance sdr_rescue() keeps for propagation
     # holds the lost directions at their estimates, and `null` spans
     # them so that a row moving along one gets NaN (jc_nonest())
-    sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+    sdr <- tryCatch(sdr_of(fit), error = keep_missing(NULL))
     Vp <- sdr$cov_fixed_prop
     if (length(sdr$se_lost) && !is.null(Vp) && !is.null(V) &&
           all(dim(Vp) == dim(V))) {
@@ -451,7 +465,7 @@ fit_draw_space <- function(fit) {
   if (is.null(bn)) bn <- paste0("beta_", seq_len(nb))
   map <- list(names = c(bn, map$names), comp = c(rep("beta", nb), map$comp))
   Q <- sdr_of(fit)$jointPrecision
-  jw <- tryCatch(joint_cov_whole(fit, Q), error = function(e) NULL)
+  jw <- tryCatch(joint_cov_whole(fit, Q), error = keep_missing(NULL))
   Vall <- jw$V
   rn <- rownames(Q)
   keep <- c(which(rn == "beta"),

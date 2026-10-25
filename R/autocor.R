@@ -91,7 +91,11 @@
 #'   \item{`unstr(time, gr)`}{One free correlation per pair of time
 #'     levels, through the same Cholesky parameterization the `us()`
 #'     random-effect structure uses.}
+#'   \item{`fcor(M)`}{A FIXED residual matrix over all the observations,
+#'     with no parameter; see "A fixed residual matrix".}
 #' }
+#' brms's `sar()`, the spatial simultaneous autoregressive term, is in
+#' the extension package frmtmb.spatial.
 #' The AR and MA coefficients are estimated through partial
 #' autocorrelations (the Monahan/Jones transform `nlme::corARMA` also
 #' uses), so every parameter value is a stationary and invertible
@@ -199,6 +203,32 @@
 #'     `frmtmb.sample` does is that package's own question, and its
 #'     `?log_lik` answers it.
 #' }
+#'
+#' @section A fixed residual matrix, `fcor(M)`:
+#' `fcor(M)` makes the residuals of all the rows one draw with
+#' covariance \eqn{\sigma^2 M}, or \eqn{D M D} with
+#' \eqn{D = \mathrm{diag}(\sigma_i)} under a predicted `sigma ~ ...`, as
+#' brms 2.23.0 fits it. `student()` gets the multivariate-t analog, with
+#' a constant `nu`. `M` is a known matrix in `data2` over every row of
+#' the data, and the rows the model drops (missing values) are dropped
+#' from it, as brms drops them. `M` may be a correlation or a
+#' covariance; for a covariance, `sigma` is a scale factor, as in brms.
+#' A vector is the diagonal. `M` must be symmetric and positive
+#' definite. brms 2.23.0 checks the second with
+#' `min(eigen(M)$values <= 0)`, which refuses only a matrix whose
+#' eigenvalues are all non-positive; frmtmb refuses every matrix that is
+#' not positive definite.
+#'
+#' The term has no parameter, and the mean of the response is `mu`.
+#' [fitted()], [predict()] and [simulate()] take `newdata` with one row
+#' per row of `M`, read in their order, as brms takes it, so a
+#' counterfactual such as `x + 1` everywhere works; when the fit dropped
+#' rows for missing values, `newdata` covers them too, and a row with a
+#' missing predictor gives `NA`. Other `newdata` is refused; brms
+#' refuses it too unless a matrix over the new rows comes in its
+#' `newdata2`. [frm_linpred()] gives `mu` on any new data. Pearson
+#' residuals divide by the marginal sd, \eqn{\sigma \sqrt{M_{ii}}}. [autocor_matrix()] returns `M` over
+#' the fitted rows.
 #'
 #' @section Families:
 #' This section and the two after it describe the covariance form.
@@ -470,6 +500,7 @@ autocor_n_cor <- function(d) as.integer(d * (d - 1L) / 2L)
 #'
 #' @noRd
 autocor_npar <- function(ac) {
+  if (autocor_is_seam(ac)) return(ac[["npar"]])
   switch(ac[["struct"]],
          ar = ac[["p"]], ma = ac[["q"]], arma = ac[["p"]] + ac[["q"]],
            cosy = 1L,
@@ -481,7 +512,12 @@ autocor_npar <- function(ac) {
 #' zero, as the `homcs` random-effect block does.
 #'
 #' @noRd
-autocor_start <- function(ac) numeric(autocor_npar(ac))
+autocor_start <- function(ac) {
+  if (autocor_is_seam(ac)) {
+    return(ac_block_entry(ac)[["start"]](ac[["aux"]]))
+  }
+  numeric(autocor_npar(ac))
+}
 
 # ------------------------------------------------------- ACF machinery
 #
@@ -591,6 +627,12 @@ autocor_band <- function(acv, d) {
 #' @noRd
 autocor_cor <- function(theta, ac) {
   d <- ac[["d"]]
+  if (autocor_is_seam(ac)) {
+    # the residual covariance over sigma^2, from the term's map at a
+    # unit sigma; the mean does not enter it
+    B <- autocor_seam_B(ac, theta, numeric(d), 1)
+    return(tcrossprod(B))
+  }
   if (ac[["struct"]] == "unstr") return(us_chol_cor(theta, d))
   if (ac[["struct"]] == "cosy") {
     # bounded on (-1/(d-1), 1), the widest range that keeps every
@@ -613,6 +655,10 @@ autocor_cor <- function(theta, ac) {
 #'
 #' @noRd
 autocor_natural <- function(theta, ac) {
+  if (autocor_is_seam(ac)) {
+    f <- ac_block_entry(ac)[["natural"]]
+    return(if (is.null(f)) numeric(0) else f(theta, ac[["aux"]]))
+  }
   if (autocor_is_cond(ac)) {
     cf <- autocor_cond_coefs(theta, ac)
     # paste0() of an empty order would still give one name, "ma[]"
@@ -653,6 +699,11 @@ autocor_natural <- function(theta, ac) {
 #'
 #' @noRd
 autocor_types <- function(ac) {
+  # a registered term reports its parameters as they are, on their own
+  # bounded scale, so the interval is the delta method's on that scale
+  if (autocor_is_seam(ac)) {
+    return(rep("raw", length(autocor_natural(numeric(ac[["npar"]]), ac))))
+  }
   # unconstrained coefficients under cov = FALSE, so no interval
   # transform: a Fisher-z would clamp an estimate that may leave (-1, 1)
   if (autocor_is_cond(ac)) return(rep("raw", ac[["p"]] + ac[["q"]]))
@@ -748,6 +799,12 @@ check_autocor_response <- function(resp, spec, av, yv) {
   ac <- resp$autocor
   if (autocor_is_cond(ac)) return(check_autocor_cond(resp, av, yv))
   fam <- resp$family[["family"]]
+  if (!fam %in% c("gaussian", "student") && autocor_is_seam(ac)) {
+    frm_stop(ac[["fn"]], "(): a residual correlation needs a family with ",
+             "real residuals, so gaussian() or student(); '", fam, "' has ",
+             "none. brms refuses the same call (\"", toupper(ac[["fn"]]),
+             " terms are not implemented for this family\")", call. = FALSE)
+  }
   if (!fam %in% c("gaussian", "student")) {
     frm_stop(ac[["fn"]], "(): a residual correlation needs a family with real ",
              "residuals, so gaussian() or student(); '", fam, "' has none. ",
@@ -796,15 +853,18 @@ check_autocor_response <- function(resp, spec, av, yv) {
              "brms refuses weights(), cens() and trunc() here for the same ",
              "reason", call. = FALSE)
   }
+  if (autocor_is_seam(ac) && dpar_spec_predicted(resp, "sigma") &&
+        !isTRUE(ac_block_entry(ac)[["sigma_varies"]])) {
+    frm_stop(ac[["fn"]], "(): this term needs a constant sigma; a ",
+             "predicted 'sigma ~ ...' is refused, as brms refuses it (\"",
+             toupper(ac[["fn"]]), " models are not implemented when ",
+             "predicting 'sigma' or 'nu'\")", call. = FALSE)
+  }
   if (fam == "student") {
     # brms's student_t_time_*_lpdf takes `real nu`: the multivariate t
     # has one shape for the whole group, so a row-varying nu has no
     # multivariate counterpart
-    nud <- resp$dpars[["nu"]]
-    predicted <- !is.null(nud) && is.null(nud$constant) &&
-      (length(nud$re %||% list()) || length(nud$smooth %||% list()) ||
-         !identical(deparse1(reformulas::RHSForm(nud$fixed)), "1"))
-    if (predicted) {
+    if (dpar_spec_predicted(resp, "nu")) {
       frm_stop(ac[["fn"]], "(): student() with a residual correlation needs a ",
                "constant nu; a predicted 'nu ~ ...' has no multivariate-t ",
                "counterpart, because the group shares one shape parameter",
@@ -812,6 +872,18 @@ check_autocor_response <- function(resp, spec, av, yv) {
     }
   }
   ac
+}
+
+#' Whether a response's spec models `dp` with a formula (a fixed term
+#' other than the intercept, a random effect or a smooth) rather than
+#' leaving it constant.
+#'
+#' @noRd
+dpar_spec_predicted <- function(resp, dp) {
+  d <- resp$dpars[[dp]]
+  !is.null(d) && is.null(d$constant) &&
+    (length(d$re %||% list()) || length(d$smooth %||% list()) ||
+       !identical(deparse1(reformulas::RHSForm(d$fixed)), "1"))
 }
 
 #' The grouping value of every row, as one label per row.
@@ -1226,6 +1298,8 @@ autocor_trans_rows <- function(fit) {
   th <- fit$estimates[["thetaac"]]
   rows <- list()
   for (ac in acs) {
+    # a term with no parameter, fcor(), has no row to report
+    if (!length(ac[["theta_idx"]])) next
     t0 <- th[ac[["theta_idx"]]]
     Vth <- Vfull[pos[ac[["theta_idx"]]], pos[ac[["theta_idx"]]], drop = FALSE]
     types <- autocor_types(ac)
@@ -1254,6 +1328,7 @@ autocor_trans_rows <- function(fit) {
       stringsAsFactors = FALSE
     )
   }
+  if (!length(rows)) return(NULL)
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out
@@ -1414,6 +1489,24 @@ autocor_cond_dpars <- function(fit, resp, dp) {
   dp
 }
 
+#' A response's in-sample dpars with `mu` moved to the mean of the
+#' response under its residual term: the `cov = FALSE` shift, or a
+#' registry term's mean, `unwhiten()` at zero innovations, which for
+#' brms's lag SAR is its `posterior_epred()`, `(I - rho W)^-1 mu`. The
+#' draws keep `mu` itself (`autocor_cond_dpars()`), because a registry
+#' term's draw applies its own map.
+#'
+#' @noRd
+autocor_mean_dpars <- function(fit, resp, dp) {
+  ac <- fit$frame[["autocor"]][[resp]]
+  if (autocor_is_seam(ac)) {
+    dp[["mu"]] <- autocor_seam_mean(ac, autocor_seam_theta(fit, ac),
+                                    dp[["mu"]], dp[["sigma"]])
+    return(dp)
+  }
+  autocor_cond_dpars(fit, resp, dp)
+}
+
 #' The responses whose autocorrelation term is brms's default
 #' `cov = FALSE` residual regression.
 #'
@@ -1536,7 +1629,12 @@ linpred_arma_cond <- function(object, lp, rspec, ac, newdata, type, use_re,
 autocor_cond_strip <- function(fit) {
   acs <- fit$frame[["autocor"]]
   if (!length(acs)) return(fit)
-  cond <- vapply(acs, autocor_is_cond, TRUE)
+  # brms's incl_autocor = FALSE drops every autocorrelation term, so a
+  # registry term goes too: its mean on a grid is mu, with no matrix
+  # over the grid's rows
+  cond <- vapply(acs, function(ac) {
+    autocor_is_cond(ac) || autocor_is_seam(ac)
+  }, TRUE)
   if (!any(cond)) return(fit)
   fit$frame[["autocor"]] <- acs[!cond]
   fit
@@ -1549,7 +1647,10 @@ autocor_cond_strip <- function(fit) {
 #' residual covariance of a group is `D R D` restricted to the time
 #' points that group has, with `D` the diagonal matrix of that group's
 #' `sigma` values, so `R` plus [sigma()] (or `frm_linpred(dpar = "sigma")`)
-#' describes the whole residual structure.
+#' describes the whole residual structure. For `fcor()` and a term
+#' another package registers (frmtmb.spatial's `sar()`), it is the
+#' residual covariance divided by `sigma^2`, over the fitted rows: `M`
+#' for `fcor()`, \eqn{((I - \rho W)'(I - \rho W))^{-1}} for `sar()`.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param resp Response name, for a multivariate fit.
@@ -1573,6 +1674,7 @@ autocor_cond_strip <- function(fit) {
 autocor_matrix <- function(fit, resp = NULL) {
   acs <- fit$frame[["autocor"]]
   if (!length(acs)) return(NULL)
+  require_fit_packages(fit)
   ac <- if (is.null(resp)) acs[[1L]] else acs[[resp]]
   if (is.null(ac)) {
     frm_stop("autocor_matrix(): no residual correlation term for response '",
@@ -1620,12 +1722,12 @@ autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL) {
 
 #' Autocorrelation terms outside a formula
 #'
-#' `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are read inside a
-#' model formula, as in `bf(y ~ x + ar(week, subj))`, and the formula is
-#' where they belong. The functions also exist on their own, as they do
-#' in brms, so that a call outside a formula returns the term rather
-#' than an error that the function does not exist. [frmtmb-autocor]
-#' describes what each term fits.
+#' `ar()`, `ma()`, `arma()`, `cosy()`, `unstr()` and `fcor()` are read
+#' inside a model formula, as in `bf(y ~ x + ar(week, subj))`, and the
+#' formula is where they belong. The functions also exist on their own,
+#' as they do in brms, so that a call outside a formula returns the term
+#' rather than an error that the function does not exist.
+#' [frmtmb-autocor] describes what each term fits.
 #'
 #' brms gives two ways to write the terms apart from the location
 #' formula, and frmtmb reads both: the `autocor` argument of [bf()],
@@ -1643,12 +1745,14 @@ autocor_draw_resid <- function(ac, R, sigma, n, nu = NULL) {
 #' @param cov `FALSE`, the brms default, for the regression on earlier
 #'   residuals; `TRUE` for the residual covariance matrix. See
 #'   [frmtmb-autocor].
+#' @param M For `fcor()`, the name of the known residual correlation or
+#'   covariance matrix over the observations, which belongs in `data2`.
 #' @param autocor A one-sided formula of autocorrelation terms.
 #' @param resp The response the terms belong to, for a multivariate
 #'   formula.
-#' @return `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` return an
-#'   object of class `frmtmb_ac_term` holding the term as a call.
-#'   `acformula()` returns the one-sided formula with class
+#' @return `ar()`, `ma()`, `arma()`, `cosy()`, `unstr()` and `fcor()`
+#'   return an object of class `frmtmb_ac_term` holding the term as a
+#'   call. `acformula()` returns the one-sided formula with class
 #'   `frmtmb_acformula`.
 #' @examples
 #' ar(week, subj, p = 2)
@@ -1699,6 +1803,12 @@ unstr <- function(time, gr) {
   ac_term_object("unstr", sys.call())
 }
 
+#' @rdname autocor-terms
+#' @export
+fcor <- function(M) {
+  ac_term_object("fcor", sys.call())
+}
+
 #' @export
 print.frmtmb_ac_term <- function(x, ...) {
   frm_check_dots(...)
@@ -1736,8 +1846,11 @@ ac_formula_terms <- function(autocor) {
     } else list(e)
   }
   tms <- split_(autocor[[2L]])
+  # a term an extension supplies (sar()), written while it is not
+  # loaded, is refused by its package's name, as in the formula itself
+  for (t in tms) check_extension_specials(t)
   is_ac <- vapply(tms, function(t) {
-    is.call(t) && as.character(t[[1L]])[1L] %in% autocor_structs
+    is.call(t) && as.character(t[[1L]])[1L] %in% autocor_term_names()
   }, NA)
   if (!any(is_ac)) {
     frm_stop("'autocor' must contain at least one autocorrelation term.",
@@ -1745,7 +1858,7 @@ ac_formula_terms <- function(autocor) {
   }
   if (!all(is_ac)) {
     frm_stop("'autocor' takes autocorrelation terms only (",
-             paste0(autocor_structs, "()", collapse = ", "), "); '",
+             paste0(autocor_term_names(), "()", collapse = ", "), "); '",
              paste(vapply(tms[!is_ac], deparse1, ""), collapse = "', '"),
              "' belongs in the model formula", call. = FALSE)
   }

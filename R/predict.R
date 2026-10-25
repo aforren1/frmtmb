@@ -1620,9 +1620,34 @@ predict_mean_response <- function(fit, rspec, newdata, re_formula,
   rn <- rspec$resp_name
   if (is.null(newdata) && is.null(re_formula)) {
     # exactly fitted(): dpars at the estimates, conditional on the modes
-    dp <- autocor_cond_dpars(fit, rn, eval_dpars(fit)[[rn]])
+    dp <- autocor_mean_dpars(fit, rn, eval_dpars(fit)[[rn]])
     out <- response_mean(fam, dp, fit$frame[["aterm_values"]][[rn]])
     return(napred(fit, out))
+  }
+  ac <- fit$frame[["autocor"]][[rn]]
+  if (autocor_is_seam(ac)) {
+    if (!is.null(newdata)) {
+      # newdata over the rows of the term's matrix, as brms takes it:
+      # the term's mean over them, at newdata's mu (a counterfactual on
+      # the same units)
+      acn <- autocor_seam_for_newdata(fit, ac, rspec, newdata,
+                                      "A prediction")
+      dp <- dpars_natural(fit, rspec, newdata, re_formula,
+                          allow_new_levels)
+      dp[["mu"]] <- autocor_seam_mean(acn, autocor_seam_theta(fit, ac),
+                                      dp[["mu"]], dp[["sigma"]])
+      return(response_mean(fam, dp, aterms_for_newdata(rspec, newdata)))
+    }
+    # the fitted rows under re_formula: the term's mean reads every
+    # row's mu, so it is taken on the kept rows and padded after
+    keep <- !is.na(napred(fit, rep(1, fit$frame[["n_obs"]])))
+    dp <- lapply(dpars_natural(fit, rspec, NULL, re_formula,
+                               allow_new_levels), function(v) {
+      if (length(v) == length(keep)) v[keep] else v
+    })
+    dp <- autocor_mean_dpars(fit, rn, dp)
+    return(napred(fit, response_mean(fam, dp,
+                                     fit$frame[["aterm_values"]][[rn]])))
   }
   dp <- dpars_natural(fit, rspec, newdata, re_formula, allow_new_levels)
   av <- if (is.null(newdata)) {
@@ -2148,16 +2173,19 @@ frm_linpred <- function(object, newdata = NULL,
     type <- "response"   # the conditional mean is the mu dpar
   } else if (type == "response" && is.null(dpar) &&
              (!mean_is_mu(rspec$family) || has_trunc(rspec) ||
-                has_rate(rspec))) {
+                has_rate(rspec) ||
+                autocor_is_seam(object$frame[["autocor"]][[resp]]))) {
     # the response mean is not the mu dpar (zi, hurdle, lognormal,
-    # trials-binomial, ...), or the response is truncated so the
-    # expected response is E[Y | lb <= Y <= ub]: "response" means the
-    # expected response, the fitted()/glmmTMB/brms-epred convention.
-    # Per-dpar values stay available through dpar = or
-    # type = "conditional".
-    if (se.fit && autocor_is_cond(object$frame[["autocor"]][[resp]])) {
-      # the shifted mean moves with the residuals of earlier rows, which
-      # the one-predictor delta method below does not see
+    # trials-binomial, a lag SAR term, ...), or the response is
+    # truncated so the expected response is E[Y | lb <= Y <= ub]:
+    # "response" means the expected response, the
+    # fitted()/glmmTMB/brms-epred convention. Per-dpar values stay
+    # available through dpar = or type = "conditional".
+    ac_r <- object$frame[["autocor"]][[resp]]
+    if (se.fit && (autocor_is_cond(ac_r) || autocor_is_seam(ac_r))) {
+      # the shifted mean moves with the residuals of earlier rows, and a
+      # lag SAR mean with every row's mu, which the one-predictor delta
+      # method below does not see
       f <- function(fit) {
         v <- predict_mean_response(fit, rspec, newdata, re_formula,
                                    allow_new_levels)
@@ -3645,7 +3673,7 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
         invokeRestart("muffleWarning")
       }
     }),
-    error = function(e) NULL)
+    error = keep_missing(NULL))
   if (is.null(p)) NULL else p$se.fit
 }
 
@@ -4583,6 +4611,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                                  robust = FALSE, probs = c(0.025, 0.975),
                                  newdata = NULL, resp = NULL,
                                  allow_new_levels = FALSE) {
+  require_fit_packages(object)
   type <- frm_match_arg(type)
   # brms spells the raw residual "ordinary"; this package has always
   # spelled it "response", and both reach the same branch. The
@@ -4750,7 +4779,7 @@ residual_point_se <- function(object, type, r, resp = NULL) {
   if (!type %in% c("response", "pearson")) return(NULL)
   se_mu <- tryCatch(fitted_point_se(object, NULL, NULL, "response", resp,
                                     NULL, FALSE, r),
-                    error = function(e) NULL)
+                    error = keep_missing(NULL))
   if (is.null(se_mu)) return(NULL)
   if (is.matrix(r)) {
     # a cell of a matrix-valued response has no Pearson scale to divide
@@ -5004,8 +5033,9 @@ residual_values <- function(object, type = c("response", "pearson",
     if (type == "pearson") r <- r / sqrt(mom$var)
     return(napred(object, r))
   }
-  # under cov = FALSE the residual is against brms's one-step mean
-  dp <- autocor_cond_dpars(object, rspec$resp_name,
+  # under cov = FALSE the residual is against brms's one-step mean, and
+  # under a lag SAR term against (I - rho W)^-1 mu
+  dp <- autocor_mean_dpars(object, rspec$resp_name,
                            eval_dpars(object)[[rspec$resp_name]])
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   # NA at a missing mi() row, where the frame holds a placeholder
@@ -5028,6 +5058,14 @@ residual_values <- function(object, type = c("response", "pearson",
     # is truncation-aware, so pearson residuals on a truncated model are
     # slightly conservative
     v <- fam[["post"]]$var_fn(dp, av)
+    ac <- object$frame[["autocor"]][[rspec$resp_name]]
+    if (autocor_is_seam(ac)) {
+      # a registry term's marginal variance is sigma^2 times the
+      # diagonal of its covariance over sigma^2, which is not one for
+      # sar() or an fcor() covariance, so pearson stays y - E[y] over
+      # the marginal sd, as brms's (y - mean(yrep)) / sd(yrep) is
+      v <- v * autocor_seam_marginal(ac, autocor_seam_theta(object, ac))
+    }
     r <- r / sqrt(v)
   }
   napred(object, r)

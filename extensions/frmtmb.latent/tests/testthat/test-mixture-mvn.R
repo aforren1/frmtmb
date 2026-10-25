@@ -9,12 +9,25 @@
 # replaced: make_start() and the expect_vector_equal() of frmtmb's
 # helper-reference.R by the local helpers below, and us_theta_cor() by
 # the exported frmtmb::us_theta().
+#
+# Every tolerance is a ratio to a quantity the run measures: a
+# log-likelihood's own size, a standard error, or the unit roundoff for
+# what must agree to rounding. frmtmb's dev/smallfix-mvn-ratios.R
+# measured each on the right answer and on a constructed wrong one.
 
 # ------------------------------------------------------------- helpers
 
-expect_vector_equal <- function(x, y, tol) {
+# the largest difference as a share of the largest reference value
+expect_vector_close <- function(x, y, rtol) {
   expect_equal(length(x), length(y))
-  expect_lt(max(abs(unname(x) - unname(y))), tol)
+  expect_lt(max(abs(unname(x) - unname(y))) / max(abs(unname(y))), rtol)
+}
+
+# |estimate - value| over the estimate's standard error, from fixef()
+mvn_z <- function(fit, dpar, coef, value) {
+  fx <- fixef(fit)
+  row <- paste0(dpar, "_", coef)
+  abs(fx[row, "Estimate"] - value) / fx[row, "Est.Error"]
 }
 
 # The parameter vector the objective takes at a start that names every
@@ -76,13 +89,17 @@ test_that("mixture_mvn matches direct ML", {
                  nll, method = "BFGS",
                  control = list(reltol = 1e-13, maxit = 5000))
   )
-  expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-5)
+  # 1.1e-13 measured; the direct ML with its mixing logit 0.05 off, a
+  # likelihood 0.12 lower, gives 9.4e-5
+  ll <- as.numeric(logLik(fit))
+  expect_lt(abs(ll + op$value) / abs(ll), 1e-7)
 
   # posterior class probabilities recover the simulated classes (up to
   # label swap)
   P <- mixture_probs(fit)
   expect_equal(dim(P), c(nrow(Y), 2L))
-  expect_equal(unname(rowSums(P)), rep(1, nrow(Y)), tolerance = 1e-10)
+  # they sum to one up to rounding: 1 ulp measured
+  expect_lt(max(abs(rowSums(P) - 1)) / .Machine$double.eps, 16)
   acc <- mean((P[, 1] > 0.5) == (sim$cl == 1))
   expect_gt(max(acc, 1 - acc), 0.95)
 
@@ -90,7 +107,10 @@ test_that("mixture_mvn matches direct ML", {
   # the response column means at the gaussian-mixture ML optimum
   fv <- fitted(fit)[, "Estimate", ]
   expect_equal(dim(fv), dim(Y))
-  expect_vector_equal(colMeans(fv), colMeans(Y), tol = 1e-4)
+  # in standard errors of the column mean: 1.1e-5 measured, 0.37 for
+  # the mixture mean at mixing weights 0.01 off
+  se_mean <- apply(Y, 2, stats::sd) / sqrt(nrow(Y))
+  expect_lt(max(abs(colMeans(fv) - colMeans(Y)) / se_mean), 1e-3)
   expect_equal(dim(residuals(fit)[, "Estimate", ]), dim(Y))
 })
 
@@ -102,12 +122,16 @@ test_that("mixture_mvn recovers the faithful clusters", {
 
   fx <- fixef_by_dpar(fit)
   m <- rbind(c(fx$mu1d1, fx$mu1d2), c(fx$mu2d1, fx$mu2d2))
-  m <- m[order(m[, 1]), ]   # label-swap invariant: order by eruptions
-  # reference means from the standard 2-cluster EM solution
-  expect_lt(abs(m[1, 1] - 2.04), 0.3)
-  expect_lt(abs(m[1, 2] - 54.5), 2)
-  expect_lt(abs(m[2, 1] - 4.29), 0.3)
-  expect_lt(abs(m[2, 2] - 80.0), 2)
+  # label-swap invariant: order by eruptions
+  cls <- c("mu1", "mu2")[order(m[, 1])]
+  # reference means from the standard 2-cluster EM solution, to three
+  # figures, in standard errors of the estimate: 0.13 measured at most,
+  # 0.74 for the spherical model (model = "EII") on the same data
+  ref <- rbind(c(2.04, 54.5), c(4.29, 80.0))
+  for (k in 1:2) for (j in 1:2) {
+    expect_lt(mvn_z(fit, paste0(cls[k], "d", j), "Intercept", ref[k, j]),
+              0.5)
+  }
 
   # class assignments agree with the eruptions < 3 threshold split
   P <- mixture_probs(fit)
@@ -131,13 +155,13 @@ test_that("mixture_mvn class means can depend on covariates", {
   f_x <- frm(bf(Y ~ x) + mixture_mvn(K = 2, D = 2), data = dd)
   f_0 <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
   expect_gt(as.numeric(logLik(f_x)), as.numeric(logLik(f_0)) + 20)
-  # both classes share the true slopes (loose recovery)
-  fx <- fixef_by_dpar(f_x)
+  # both classes share the true slopes, within 4 standard errors: 1.22
+  # measured at most, 12.2 with x shuffled
   for (nm in c("mu1d1", "mu2d1")) {
-    expect_lt(abs(fx[[nm]][["x"]] - 1.2), 0.3)
+    expect_lt(mvn_z(f_x, nm, "x", 1.2), 4)
   }
   for (nm in c("mu1d2", "mu2d2")) {
-    expect_lt(abs(fx[[nm]][["x"]] + 0.8), 0.3)
+    expect_lt(mvn_z(f_x, nm, "x", -0.8), 4)
   }
 })
 
@@ -158,8 +182,10 @@ test_that("mixture_mvn dpar overrides and covariate gating work", {
                 data = dd)
   f_flat <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
   expect_named(fixef_by_dpar(f_gate)$theta1, c("(Intercept)", "x"))
-  expect_gte(as.numeric(logLik(f_gate)),
-             as.numeric(logLik(f_flat)) - 1e-6)
+  # the gated model contains the flat one, so its maximum is no lower,
+  # up to the optimizer's stop as a share of the log-likelihood
+  ll_flat <- as.numeric(logLik(f_flat))
+  expect_lt((ll_flat - as.numeric(logLik(f_gate))) / abs(ll_flat), 1e-8)
 })
 
 test_that("mixture_mvn validation and guards", {
@@ -283,8 +309,10 @@ test_that("mixture_mvn covariance models agree at a shared parameter point", {
     ll_point[m] <- -fit$obj$fn(v)
     ll_fit[m] <- as.numeric(logLik(fit))
   }
-  expect_vector_equal(ll_point, rep(ll_point[["EII"]], length(mvn_models)),
-                      tol = 1e-10)
+  # in units of rounding at this log-likelihood: 0 measured, 1.7e9 at a
+  # VEI shape 1e-3 off the shared point
+  expect_lt(max(abs(ll_point - ll_point[["EII"]])) /
+              (abs(ll_point[["EII"]]) * .Machine$double.eps), 1024)
 
   # nesting chains: a submodel can never beat the model containing it
   chains <- list(c("EII", "VII", "VEI", "VVI", "VVV"),
@@ -293,7 +321,8 @@ test_that("mixture_mvn covariance models agree at a shared parameter point", {
                  c("EII", "EEI", "EEE", "VVV"))
   for (ch in chains) {
     for (i in seq_len(length(ch) - 1L)) {
-      expect_gte(ll_fit[[ch[i + 1L]]], ll_fit[[ch[i]]] - 1e-6)
+      expect_lt((ll_fit[[ch[i]]] - ll_fit[[ch[i + 1L]]]) /
+                  abs(ll_fit[[ch[i]]]), 1e-8)
     }
   }
 })
@@ -318,12 +347,13 @@ test_that("mixture_mvn class means take covariates under every model", {
     f_0 <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = m),
                data = dd, control = ctl)
     expect_gt(as.numeric(logLik(f_x)), as.numeric(logLik(f_0)) + 20)
-    fx <- fixef_by_dpar(f_x)
+    # within 4 standard errors: 2.66 measured at most over the eight
+    # models, 11.3 with x shuffled
     for (nm in c("mu1d1", "mu2d1")) {
-      expect_lt(abs(fx[[nm]][["x"]] - 1.2), 0.3)
+      expect_lt(mvn_z(f_x, nm, "x", 1.2), 4)
     }
     for (nm in c("mu1d2", "mu2d2")) {
-      expect_lt(abs(fx[[nm]][["x"]] + 0.8), 0.3)
+      expect_lt(mvn_z(f_x, nm, "x", -0.8), 4)
     }
   }
 })
@@ -373,7 +403,10 @@ expect_mclust_agreement <- function(Y, K, D) {
     st <- lapply(st, unname)
     fit <- frm(bf(Y ~ 1) + mixture_mvn(K = K, D = D, model = m),
                data = dd, start = st)
-    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(mc$loglik)), 1e-4)
+    # 5.6e-16 measured at most; 0.11 between mclust's own EII and VVV
+    # fits of the faithful data
+    expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(mc$loglik)) /
+                abs(as.numeric(mc$loglik)), 1e-9)
 
     # label order is arbitrary in both fits; sort by the first mean
     fx <- fixef_by_dpar(fit)
@@ -388,9 +421,11 @@ expect_mclust_agreement <- function(Y, K, D) {
     mcM <- t(mc$parameters$mean)
     ord <- order(ourM[, 1])
     mo <- order(mcM[, 1])
-    expect_vector_equal(ourM[ord, ], mcM[mo, ], tol = 1e-4)
-    expect_vector_equal(unlist(ourS[ord]), unlist(Sig[mo]), tol = 1e-4)
-    expect_vector_equal(mixture_probs(fit)[, ord], mc$z[, mo], tol = 1e-4)
+    # 1.2e-15 measured at most; 2.6e-3, 0.48 and 0.68 between mclust's
+    # own EII and VVV fits
+    expect_vector_close(ourM[ord, ], mcM[mo, ], rtol = 1e-5)
+    expect_vector_close(unlist(ourS[ord]), unlist(Sig[mo]), rtol = 1e-5)
+    expect_vector_close(mixture_probs(fit)[, ord], mc$z[, mo], rtol = 1e-5)
   }
 }
 
@@ -473,6 +508,17 @@ test_that("method = 'predict' refuses a draw of the whole response", {
   # simulate() accepts it, through the sim_ctx route
   sm <- simulate(fit, nsim = 2, seed = 3)
   expect_identical(dim(sm[[1]]), dim(Y))
+
+  # predict(newdata =) refuses, for this family's reason: up to frmtmb
+  # 0.74.0 it named a hidden state sequence, a group-level latent class
+  # or a correlated residual, none of which this family is
+  e <- tryCatch(predict(fit, newdata = dd[1:5, ]), error = identity)
+  expect_s3_class(e, "frmtmb_error")
+  expect_match(conditionMessage(e), "is not supported for family 'mixture_mvn",
+               fixed = TRUE)
+  expect_match(conditionMessage(e), "draws the whole response at once",
+               fixed = TRUE)
+  expect_no_match(conditionMessage(e), "hidden state", fixed = TRUE)
 
   # conditional_effects() does not, by name
   expect_error(conditional_effects(fit, method = "predict"),

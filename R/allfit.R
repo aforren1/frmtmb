@@ -123,7 +123,7 @@ frm_allfit <- function(fit, optimizers = NULL, start_from_mle = TRUE, ...) {
         template = if (start_from_mle) fit$estimates,
         data2 = fit$data2 %||% list()
       )),
-      error = function(e) e
+      error = keep_missing(identity)
     )
     if (inherits(r, "error")) {
       errors[i] <- conditionMessage(r)

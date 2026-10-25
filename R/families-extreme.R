@@ -490,7 +490,7 @@ gev_fit_check <- function(fit, resp) {
   xi <- tryCatch(
     frm_linpred(fit, dpar = "xi", type = "response",
                 resp = if (multi) resp),
-    error = function(e) NULL)
+    error = keep_missing(NULL))
   if (!is.numeric(xi) || !length(xi) || !any(xi < -1 + 1e-3, na.rm = TRUE)) {
     return(invisible(NULL))
   }

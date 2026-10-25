@@ -1,6 +1,6 @@
 Package: frmtmb.spatial
 Title: Spatial Random Fields for 'frmtmb' Models
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -13,7 +13,9 @@ Description: Spatial random fields for 'frmtmb' models, registered with
     et al. (2016). spde() is a Matern field over a finite-element mesh,
     through the stochastic partial differential equation representation
     of Lindgren, Rue and Lindstrom (2011), taking the mesh's matrices as
-    fixed data. Each is fitted by maximum likelihood with the field
+    fixed data. sar() is the simultaneous autoregressive term of 'brms',
+    in its lag and error forms, registered through the residual
+    correlation seam. Each is fitted by maximum likelihood with the field
     integrated out by the Laplace approximation, which is exact for a
     gaussian response.
 License: GPL (>= 2)
@@ -25,7 +27,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.74.0)
+    frmtmb (>= 0.75.0)
 Imports:
     Matrix,
     methods,

@@ -69,6 +69,9 @@ on:
       - 'NAMESPACE'
       - 'extensions/**'
       - 'dev/release/build-docs.R'
+      - 'tests/testthat/test-extension-home-mixed.R'
+      - 'tests/testthat/helper-absent-package.R'
+      - '.github/scripts/saved-fit-check.R'
       - '.github/workflows/pkgdown.yaml'
   # No release trigger: it would publish the TAGGED tree, which can be
   # behind main, so a release cut from an old tag would roll the site
@@ -236,6 +239,20 @@ jobs:
           if (bad) stop("test-compat-extensions.R did not pass with all ",
                         "eight extensions installed")
         shell: Rscript {0}
+      # The same rule for the saved-fit refusal: core's
+      # test-extension-home-mixed.R reads a cox() and car() fit where
+      # frmtmb.survival and frmtmb.spatial cannot be used, and a car()
+      # and sar() fit where frmtmb.spatial cannot be used. Saving them
+      # needs both installed, so those blocks skip under R CMD check and
+      # in the coverage jobs. The script says how it builds the stacks.
+      # A failure here fails the build job, so the site is not deployed,
+      # as with the compatibility rows above. That is accepted: this is
+      # the only job that can run the test, the site is built from main,
+      # and a site published over a broken refusal would document code
+      # that misleads a user who reads a saved fit
+      - name: Check the saved-fit refusal with every extension installed
+        run: Rscript .github/scripts/saved-fit-check.R
+        shell: bash
       # Asked before the build so that a legacy-mode repository gets its
       # warning in the first minute rather than after the site is built.
       # A read failure is reported as unknown, which skips the deploy:

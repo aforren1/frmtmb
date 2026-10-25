@@ -91,6 +91,13 @@ jobs:
           files: ./cobertura.xml
           flags: frmtmb
           token: ${{ secrets.CODECOV_TOKEN }}
+      # After the upload, as in the extension jobs. No package is allowed
+      # to be absent: every Suggests package is installed above,
+      # and a test that needs an extension skips with its own message,
+      # which the gate does not read
+      - name: Fail on a skip from a broken or missing Suggests package
+        run: bash .github/scripts/skip-gate.sh "${RUNNER_TEMP}/package"
+        shell: bash
 
   extension-coverage:
     runs-on: ubuntu-24.04

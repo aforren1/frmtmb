@@ -79,6 +79,10 @@
 #'   `.value` (the curve there) and `.value_se`. The `"check"` attribute
 #'   carries the covariance agreement, as [frm_curve()]'s does.
 #'
+#'   `print()` shows the covariance check and the rows. Its `digits =`
+#'   is passed to [print.data.frame()] for the rows: significant digits,
+#'   `getOption("digits")` when not given.
+#'
 #' @section Past a `ps()` knot span:
 #' This function REFUSES rather than warns. A [ps()] basis
 #' decays to zero past its frozen knot span, so a curve drawn there
@@ -370,8 +374,9 @@ frm_curve_feature <- function(object, var,
             row.names = seq_len(nrow(out)))
 }
 
+# `digits` reaches the rows, as in print.frmtmb_curve()
 #' @export
-print.frmtmb_feature <- function(x, ...) {
+print.frmtmb_feature <- function(x, digits = NULL, ...) {
   frm_check_dots(...)
   ck <- attr(x, "check")
   cat("<frmtmb curve feature> ", attr(x, "type"), ", ", nrow(x),
@@ -393,7 +398,7 @@ print.frmtmb_feature <- function(x, ...) {
       cat("  covariance checked against frm_linpred(se.fit = TRUE) to ",
           format(ck$cov_rel_error, digits = 3), " relative\n", sep = "")
     }
-    print(as.data.frame(x))
+    print(as.data.frame(x), digits = digits)
   } else {
     cat("  the grid brackets no sign change, so the curve has no ",
         attr(x, "type"), " in this window\n", sep = "")

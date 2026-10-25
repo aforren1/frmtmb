@@ -928,7 +928,7 @@ smooth_edf <- function(fit) {
   # sdreport()'s own inverse of the natural Hessian is not the
   # covariance; the joint one formed through the factor is
   if (!is.null(sdr$cov_fixed_root)) {
-    jc <- tryCatch(get_joint_cov(fit), error = function(e) NULL)
+    jc <- tryCatch(get_joint_cov(fit), error = keep_missing(NULL))
     bj <- if (!is.null(jc)) which(jc$names == "b")
     if (length(bj) == length(b_pos)) dcr[b_pos] <- pmax(diag(jc$V)[bj], 0)
   }
@@ -1171,7 +1171,7 @@ fit_has_nlpars <- function(fit) {
 #'
 #' @noRd
 flat_par_display <- function(fit, nms) {
-  sd_i <- tryCatch(log_sd_theta_index(fit), error = function(e) integer(0))
+  sd_i <- tryCatch(log_sd_theta_index(fit), error = keep_missing(integer(0)))
   if (!length(sd_i)) return(nms)
   key <- paste0("theta_", as.integer(sd_i))
   vapply(nms, function(n) {
@@ -1215,7 +1215,7 @@ flat_par_note <- function(fit) {
 diagnose_singular <- function(fit, tol = 1e-4) {
   if (!length(fit$frame[["re_blocks"]])) return(NULL)
   vc <- tryCatch(as.data.frame(varcorr_matrices(fit)),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   if (is.null(vc) || !nrow(vc)) return(NULL)
   is_cor <- !is.na(vc$var2)
   bad <- ifelse(is_cor, abs(vc$sdcor) > 1 - tol, vc$sdcor < tol)
@@ -1230,7 +1230,7 @@ diagnose_singular <- function(fit, tol = 1e-4) {
   # a standard deviation the fit's boundary message named is at zero by
   # the likelihood, whatever its size in the response's units, and the
   # message sends the reader here (se_boundary_names())
-  ex <- tryCatch(singular_from_se(fit), error = function(e) NULL)
+  ex <- tryCatch(singular_from_se(fit), error = keep_missing(NULL))
   if (NROW(ex)) {
     out <- rbind(out, ex[!paste(ex$block, ex$term) %in%
                            paste(out$block, out$term), , drop = FALSE])
@@ -1495,7 +1495,7 @@ diagnose <- function(fit, quiet = FALSE) {
   Vraw <- sdr_of(fit)$cov_fixed_raw %||% V
   ev <- if (!length(Vraw)) NULL else {
     tryCatch(eigen(Vraw, symmetric = TRUE, only.values = TRUE)$values,
-             error = function(e) NULL)
+             error = keep_missing(NULL))
   }
   # theta is absent from fits with no random effects; abs(NULL) is an
   # error, not an empty result
@@ -1503,7 +1503,7 @@ diagnose <- function(fit, quiet = FALSE) {
   # only the log-sd components; see log_sd_theta_index()
   sd_i <- log_sd_theta_index(fit)
   ps <- tryCatch(suppressWarnings(par_est_se(fit)),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   out <- list(
     convergence = fit$opt$convergence,
     message = fit$opt$message,
@@ -2026,6 +2026,7 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   if (length(fits) < 2) {
     frm_stop("anova() needs at least two frmtmb fits to compare", call. = FALSE)
   }
+  for (f in fits) require_fit_packages(f)
   dens <- which(vapply(fits, fit_prior_density, NA))
   if (length(dens)) {
     prior_lrt_refusal("anova()", paste0("model ", dens[1L], " has"))
@@ -2163,6 +2164,7 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' @export
 drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                              k = 2, ...) {
+  require_fit_packages(object)
   # `scale` and `trace` are not named here: they are in
   # `s3_contract_args`, with every other name R's own machinery passes
   # through a generic. step() reaches this one after nobs().
@@ -2937,6 +2939,7 @@ is_named_prior_list <- function(x) {
 #' names(prs)
 #' @export
 profile.frmtmb_fit <- function(fitted, parm, ...) {
+  require_fit_packages(fitted)
   nm <- outer_par_names(fitted)
   idx <- resolve_par_index(fitted, parm, "profile")
   out <- lapply(idx, function(i) {
@@ -3938,6 +3941,7 @@ variables <- function(x, ...) UseMethod("variables")
 #' @exportS3Method posterior::variables
 #' @export
 variables.frmtmb_fit <- function(x, ...) {
+  require_fit_packages(x)
   frm_check_dots(...)
   vo <- hyp_vals_only(x)
   names(hyp_env_vals(x, vo$vals, vo$comp))
@@ -3968,6 +3972,7 @@ parnames <- function(x, ...) UseMethod("parnames")
 #' @exportS3Method brms::parnames
 #' @export
 parnames.frmtmb_fit <- function(x, ...) {
+  require_fit_packages(x)
   frm_check_dots(...)
   if (!via_brms_generic("parnames")) {
     frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
@@ -4108,6 +4113,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                                   seed = NULL,
                                   method = c("wald", "profile", "boot"),
                                   nsim = 500, vcov = NULL, ...) {
+  require_fit_packages(x)
   method <- frm_match_arg(method)
   hyp_refuse_draws_args(scope, robust, "hypothesis()")
   check_probability(alpha, "alpha")

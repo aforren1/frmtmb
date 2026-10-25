@@ -83,6 +83,11 @@ A data frame of class \code{frmtmb_curve}: the columns of
 the variance that is not coefficient uncertainty, is the \code{"Sigma"}
 attribute, the fit is the \code{"fit"} attribute, and \code{"check"} carries
 the covariance agreement and the \code{predict()} call count.
+
+\code{print()} shows the critical values, the covariance check and the
+first six rows. Its \verb{digits =} is passed to \code{\link[=print.data.frame]{print.data.frame()}}
+for those rows: significant digits, \code{getOption("digits")} when not
+given. The header lines keep their own precision.
 }
 \description{
 Evaluates a fitted linear predictor on a grid of covariate values and

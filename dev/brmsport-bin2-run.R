@@ -7,7 +7,7 @@
 # copied with that package's helper-*.R files into a scratch directory,
 # dev/brmsport-bin2-run/<package>/, and run there, so the harness is
 # the package's own and exists in one copy.
-lib <- Sys.getenv("FRMTMB_PORT_LIB", "C:/Users/adf44/source/r/rellib-r12")
+lib <- Sys.getenv("FRMTMB_PORT_LIB", "C:/Users/adf44/source/r/rellib-r13")
 .libPaths(c(lib, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 mk <- "C:/Users/adf44/Documents/.R/Makevars.win"
 if (!nzchar(Sys.getenv("R_MAKEVARS_USER")) && file.exists(mk)) {

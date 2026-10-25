@@ -249,7 +249,8 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   and student responses, validated against `nlme::gls` under ML and
   REML. brms's default `cov = FALSE` form of `ar()`, `ma()` and
   `arma()` is brms's own likelihood, a regression on earlier
-  residuals.
+  residuals. brms's `fcor(M)`, a fixed residual covariance over the
+  observations, is in frmtmb too, and its `sar()` in frmtmb.spatial.
 - brms's `car(M, gr = g, type =)` spatial Gaussian Markov random
   field, with all four of its types (`escar`, `esicar`, `icar`, and
   `bym2` with brms's scaling convention), and `spde(fem, gr = node)`,

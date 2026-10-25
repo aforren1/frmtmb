@@ -8,6 +8,9 @@ covariance-structure seam, `frmtmb::frmtmb_register_covstruct()`.
   over an adjacency matrix, in its four types.
 * `spde(fem, gr = node)`: a Matern field over a finite-element mesh,
   from the mesh's three matrices (`fmesher::fm_fem()`).
+* `sar(M, type = )`: brms's simultaneous autoregressive term, in its lag
+  and error forms, registered through the residual correlation seam,
+  `frmtmb::frmtmb_register_autocor()`.
 
 ## Installation
 
@@ -28,6 +31,6 @@ fit <- frm(bf(y ~ x + car(W, gr = loc, type = "icar")),
 confint_varcorr(fit)
 ```
 
-Without the package loaded, `frm()` refuses `car()` and `spde()` and
-names this package. `vignette("spatial", package = "frmtmb.spatial")`
-covers both.
+Without the package loaded, `frm()` refuses `car()`, `spde()` and
+`sar()` and names this package.
+`vignette("spatial", package = "frmtmb.spatial")` covers all three.

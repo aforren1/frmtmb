@@ -33,9 +33,12 @@ Only exported functions. The families are built with
 baseline is a simplex declared through \verb{simplex_pars =}, which is
 what makes frmtmb chart it, search it off a face, give it brms's
 \code{sbhaz} prior class and draw it on frmtmb.sample's sampler, and its
-spline bases are data built through \verb{aterm_data =}. The Royston and
-Parmar refusal of a floored fit reaches \code{\link[frmtmb:frm_curve]{frmtmb::frm_curve()}} and
-its two companions through the family's \code{post$curve_check} hook.
+spline bases are data built through \verb{aterm_data =}. brms's \code{bhaz()}
+addition term, which sets that basis on the response side, is
+registered with \code{\link[frmtmb:frmtmb_register_aterm]{frmtmb::frmtmb_register_aterm()}} as an option of the
+family (\verb{option =}). The Royston and Parmar refusal of a floored fit
+reaches \code{\link[frmtmb:frm_curve]{frmtmb::frm_curve()}} and its two companions through the
+family's \code{post$curve_check} hook.
 \code{test-bracket-access.R} checks that no function here reads a hazard
 container, and \code{test-no-reach.R} that no source file reaches into
 frmtmb's namespace.

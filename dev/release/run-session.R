@@ -37,7 +37,7 @@
 local({
 # The same libraries as run-tests.R: FRMTMB_RELLIB ahead of the release
 # library, for a lane's build. Change LIB in both files at a release.
-LIB <- "C:/Users/adf44/source/r/rellib-r12"
+LIB <- "C:/Users/adf44/source/r/rellib-r13"
 .libPaths(c(if (nzchar(Sys.getenv("FRMTMB_RELLIB"))) {
   Sys.getenv("FRMTMB_RELLIB")
 }, LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
@@ -108,6 +108,12 @@ snap <- function() {
     `compat rules` = reg("frmtmb_compat_contrib")$rules,
     `aterm registry` = reg("frmtmb_aterm_registry")$reg,
     `covstruct registry` = reg("frmtmb_covstruct_registry")$reg,
+    # the residual correlation registry, which a frmtmb older than its
+    # seam does not have (a "before" arm on the release library)
+    `autocor registry` = if (exists("frmtmb_autocor_registry", envir = ns,
+                                    inherits = FALSE)) {
+      reg("frmtmb_autocor_registry")$reg
+    },
     `frame checks` = reg("frmtmb_frame_checks")$fns,
     `prior defaults` = reg("frmtmb_prior_defaults")$providers,
     # a fit gives a notice legitimately, so only a REMOVED tag is a leak

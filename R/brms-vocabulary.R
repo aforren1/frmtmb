@@ -47,12 +47,20 @@ brms_vocabulary <- list(
 # different changes merge.
 extension_special_homes <- c(
   car = "frmtmb.spatial",
+  sar = "frmtmb.spatial",
   spde = "frmtmb.spatial"
+)
+
+# The specials of extension_special_homes that are residual correlation
+# terms (frmtmb_register_autocor()) rather than covariance structures.
+extension_autocor_specials <- c(
+  "sar"
 )
 
 # Addition terms an extension supplies rather than core.
 extension_aterm_homes <- c(
-  dec = "frmtmb.eam"
+  dec = "frmtmb.eam",
+  bhaz = "frmtmb.survival"
 )
 
 # brms families frmtmb refuses by name, with the frmtmb spelling;
@@ -65,29 +73,32 @@ brms_family_refusals <- c(
 )
 
 # brms formula specials frmtmb refuses by name. parse_linpred() raises
-# the refusal with the term and the residual correlation terms there are.
-brms_special_refusals <- c(
-  sar = "is a brms autocorrelation term that frmtmb does not support",
-  fcor = "is a brms autocorrelation term that frmtmb does not support"
-)
+# the refusal with the term and the residual correlation terms there are
+# (autocor_supported_sentence()). None since fcor() moved into core and
+# sar() into frmtmb.spatial.
+brms_special_refusals <- stats::setNames(character(0), character(0))
 
-# Where the bhaz() refusal sends a user: the family that takes brms's
-# baseline-hazard basis, and the extension package that holds it. The
-# one place to change when cox() moves again (the refusal reads it).
-bhaz_family_pointer <- paste0(
-  "cox() is in the extension package frmtmb.survival: install it, run ",
-  "library(frmtmb.survival), then use family = cox(df = 5, degree = 3, ",
-  "intercept = TRUE), which is brms's bhaz() default")
+#' The sentence a refusal of a residual correlation term ends with: the
+#' terms this session resolves, and the ones an extension that is not
+#' loaded would add.
+#'
+#' @noRd
+autocor_supported_sentence <- function() {
+  have <- paste0(autocor_term_names(), "()")
+  away <- setdiff(extension_autocor_specials, ac_entry_names())
+  paste0("The supported residual correlation terms are ",
+         paste(have, collapse = ", "),
+         if (length(away)) {
+           paste0("; ", paste0(away, "()", collapse = ", "),
+                  " is in the extension package ",
+                  unname(extension_special_homes[away[[1L]]]))
+         })
+}
 
 # brms addition terms frmtmb refuses, with the reason and the frmtmb
-# spelling where there is one.
-brms_aterm_refusals <- c(
-  bhaz = paste0(
-    "it sets brms's M-spline basis for the baseline hazard of a cox() ",
-    "model, and frmtmb sets the same basis in the family. ",
-    bhaz_family_pointer, ". A group-specific baseline, bhaz(gr = ), has ",
-    "no frmtmb equivalent")
-)
+# spelling where there is one. None at present: bhaz() was the last,
+# and it is frmtmb.survival's now, which refuses bhaz(gr = ) by name.
+brms_aterm_refusals <- stats::setNames(character(0), character(0))
 
 #' The extension that supplies a formula special, or `NULL`.
 #'
@@ -109,14 +120,16 @@ stop_extension_home <- function(name, home, what) {
 
 #' Refuse a formula term that calls a special an extension supplies,
 #' when that extension has not registered it. A registered special is
-#' a covariance structure's field term, so it is in the registry when
-#' its package is loaded; the call position is read with
+#' a covariance structure's field term or a residual correlation term,
+#' so it is in one of the two registries when its package is loaded;
+#' the call position is read with
 #' `called_functions()`, so a data column of the same name is not
 #' mistaken for the special.
 #'
 #' @noRd
 check_extension_specials <- function(tm) {
-  nms <- setdiff(names(extension_special_homes), cs_names())
+  nms <- setdiff(names(extension_special_homes),
+                 c(cs_names(), ac_entry_names()))
   if (!length(nms)) return(invisible(NULL))
   hit <- called_functions(tm, nms)
   if (length(hit)) {

@@ -169,7 +169,7 @@ interop_vcov <- function(model) {
   V0 <- vcov_estimated(model)
   if (!length(cps)) return(V0)
   pc <- tryCatch(suppressWarnings(hyp_par_cov(model)),
-                 error = function(e) NULL)
+                 error = keep_missing(NULL))
   nm <- interop_coef_names(model)
   if (is.null(pc)) return(V0)
   ord <- unlist(lapply(c("beta", "betad", cps),
@@ -191,7 +191,7 @@ interop_vcov <- function(model) {
 #'
 #' @noRd
 coef_vcov_root <- function(model, extra = TRUE) {
-  sdr <- tryCatch(sdr_of(model), error = function(e) NULL)
+  sdr <- tryCatch(sdr_of(model), error = keep_missing(NULL))
   integ <- model$REML || isTRUE(model$control$profile)
   # under REML the coefficients are rows of the joint factor
   # (sdr_unwhiten()), in the joint precision's order
@@ -276,7 +276,7 @@ get_vcov.frmtmb_fit <- function(model, ...) {
 #'
 #' @noRd
 cov_held_as_factor <- function(fit) {
-  sdr <- tryCatch(sdr_of(fit), error = function(e) NULL)
+  sdr <- tryCatch(sdr_of(fit), error = keep_missing(NULL))
   !is.null(sdr$cov_fixed_root) || !is.null(sdr$joint_root)
 }
 
@@ -837,6 +837,11 @@ emm_call <- function(object, tg) {
 recover_data.frmtmb_fit <- function(object, ..., data = NULL, resp = NULL,
                                     dpar = NULL, nlpar = NULL,
                                     re_formula = NA, epred = FALSE) {
+  # No require_fit_packages() here, though the other methods have one:
+  # emmeans would discard it, as it discards every error raised here.
+  # emm_basis.frmtmb_fit(), which emmeans calls outside try(), refuses a
+  # fit with a missing part by the package's name.
+  #
   # emmeans calls this inside try() and replaces whatever it raises with
   # "Perhaps a 'data' or 'params' argument is needed", which names
   # neither the reason nor the fix. A character value is emmeans's own
@@ -858,6 +863,7 @@ recover_data.frmtmb_fit <- function(object, ..., data = NULL, resp = NULL,
 emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
                                  dpar = NULL, nlpar = NULL, re_formula = NA,
                                  epred = FALSE) {
+  require_fit_packages(object)
   tg <- emm_target(object, resp = resp, dpar = dpar, nlpar = nlpar,
                    re_formula = re_formula, epred = epred, warn = TRUE)
   # a nonlinear body's parameters keep their offsets out, as brms's
@@ -868,7 +874,7 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ..., resp = NULL,
   # every digit (dev/illse-floor.R); the grid route forms G V G' here,
   # through the covariance's factor (jc_quad())
   held <- !is.null(tryCatch(sdr_of(object)$cov_fixed_root,
-                            error = function(e) NULL))
+                            error = keep_missing(NULL)))
   b <- if (tg$route == "design" && !held) {
     emm_basis_design(object, tg, xlev, grid)
   } else {

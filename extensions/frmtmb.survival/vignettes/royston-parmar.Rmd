@@ -25,7 +25,8 @@ them, a smooth estimated baseline you can plot, and time-varying
 effects when the proportional-hazards assumption fails.
 
 `royston_parmar()` is that family, parameterized exactly as
-`flexsurv::flexsurvspline()` parameterizes it.
+`flexsurv::flexsurvspline()` parameterizes it. The Cox model is
+`cox()`; the last section shows brms's spelling of its baseline.
 
 ## The data
 
@@ -311,4 +312,19 @@ sapply(1:5, function(k) {
   AIC(frm(bf(recyrs | cens(censored) ~ group),
           family = royston_parmar(df = k), data = bc))
 })
+```
+
+## brms's spelling of a Cox baseline
+
+`cox()` writes its baseline hazard as an M-spline with simplex weights,
+as brms does. brms sets that basis with the addition term `bhaz()`,
+and frmtmb.survival takes the same spelling. The two fits below are
+one model:
+
+```{r bhaz}
+f_bhaz <- frm(bf(recyrs | cens(censored) + bhaz(df = 6) ~ group),
+              family = cox(), data = bc)
+f_cox <- frm(bf(recyrs | cens(censored) ~ group),
+             family = cox(df = 6), data = bc)
+c(bhaz = logLik(f_bhaz), cox = logLik(f_cox))
 ```

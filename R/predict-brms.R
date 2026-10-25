@@ -401,7 +401,7 @@ predict_cross_rows <- function(object, rspec, newdata, re_formula,
                             resp = rspec$resp_name, type = "response",
                             re_formula = re_formula,
                             allow_new_levels = allow_new_levels),
-                error = function(e) NULL)
+                error = keep_missing(NULL))
   if (!is.matrix(P)) return(NULL)
   rowSums(is.nan(P)) > 0L
 }
@@ -611,12 +611,34 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
     # a cov = FALSE term is drawn row by row around the one-step mean,
     # which frm_linpred() forms on newdata from newdata's own response
     if (autocor_is_cond(ctx0[["autocor"]])) ctx0[["autocor"]] <- NULL
+    # a registry residual term (fcor(), sar()) takes newdata over the
+    # rows of its matrix, as brms does, and refuses any other
+    if (!is.null(newdata) && autocor_is_seam(ctx0[["autocor"]]) &&
+          is.null(fam_sim_ctx(ctx0[["family"]]))) {
+      # the replicates draw through the block over newdata's rows,
+      # which the fit's own frame then carries into every draw
+      object$frame[["autocor"]][[rspec$resp_name]] <-
+        autocor_seam_for_newdata(object, ctx0[["autocor"]], rspec, newdata,
+                                 "predict()")
+      ctx0[["autocor"]] <- NULL
+    }
     if (!is.null(newdata) && sim_is_structured(ctx0)) {
+      # said for the model at hand: the reason used to list a hidden
+      # state sequence, a latent class and a correlated residual, and a
+      # mixture_mvn() fit is none of the three
+      if (!is.null(fam_sim_ctx(fam))) {
+        frm_stop("predict(newdata = ) is not supported for family '",
+                 fam[["family"]], "': it draws the whole response at once, ",
+                 "through its own simulator, and a prediction at new rows ",
+                 "draws one row at a time. Drop newdata to predict the rows ",
+                 "the model was fitted on", call. = FALSE,
+                 package = frm_family_package(fam))
+      }
       frm_stop("predict(newdata = ) is not supported for this model: its ",
-               "draws are structured (a hidden state sequence, a ",
-               "group-level latent class, or a correlated residual) and ",
-               "that structure indexes the rows the model was fitted on. ",
-               "Drop newdata to predict those rows", call. = FALSE)
+               "residuals are correlated (", ctx0[["autocor"]][["label"]] %||%
+                 "a residual correlation term", "), and a draw of them ",
+               "follows the rows the model was fitted on. Drop newdata to ",
+               "predict those rows", call. = FALSE)
     }
     nls[[nm]] <- predict_new_level_spec(object, rspec, newdata, re_formula,
                                         allow_new_levels, sample_new_levels,
@@ -939,7 +961,7 @@ predict_new_level_spec <- function(object, rspec, newdata, re_formula,
     }
     ed <- tryCatch(suppressWarnings(
       lp_eta_design(object, lp, newdata, use_re, TRUE)),
-      error = function(e) NULL)
+      error = keep_missing(NULL))
     if (is.null(ed)) next
     if (!length(lp_extra_var(object, ed, use_re)$new_levels)) next
     if (!is.null(dpar_report_hook(rspec$family, dnm, rspec))) {
@@ -1020,7 +1042,7 @@ fitted_old_levels <- function(object, resp, newdata, re_formula) {
     if (!isTRUE(lp[["resp"]] %in% resp) || is.null(lp[["Z"]])) next
     ed <- tryCatch(suppressWarnings(
       lp_eta_design(object, lp, newdata, use_re, TRUE)),
-      error = function(e) NULL)
+      error = keep_missing(NULL))
     if (!is.null(ed)) pick <- old_level_pick_add(pick, object, ed)
   }
   if (length(pick)) object[["new_level_pick"]] <- pick
@@ -1346,7 +1368,7 @@ re_used_b <- function(fit, newdata, resp, allow_new_levels) {
     }
     ed <- tryCatch(suppressWarnings(
       lp_eta_design(fit, lp, newdata, TRUE, allow_new_levels)),
-      error = function(e) NULL)
+      error = keep_missing(NULL))
     if (is.null(ed)) return(NULL)
     if (length(ed[["re_parts"]])) {
       Zn <- re_design_matrix(ed[["re_parts"]], ed[["n"]], n_c)
@@ -1404,7 +1426,7 @@ re_row_support <- function(fit, newdata, resp, allow_new_levels) {
     } else {
       ed <- tryCatch(suppressWarnings(
         lp_eta_design(fit, lp, newdata, TRUE, allow_new_levels)),
-        error = function(e) NULL)
+        error = keep_missing(NULL))
       if (is.null(ed)) return(NULL)
       if (!length(ed[["re_parts"]]) && !length(ed[["sm_parts"]])) next
       Zn <- if (length(ed[["re_parts"]])) {
@@ -1563,7 +1585,7 @@ fd_eta_chain <- function(fit, newdata, resp, allow_new_levels, use_re,
     key <- linpred_key(lp[["resp"]], lp[["dpar"]])
     ed <- tryCatch(suppressWarnings(
       lp_eta_design(fit, lp, newdata, use_re, allow_new_levels)),
-      error = function(e) NULL)
+      error = keep_missing(NULL))
     if (is.null(ed)) next
     for (bk in fit$frame[["re_blocks"]] %||% list()) {
       if (!bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") ||

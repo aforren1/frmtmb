@@ -674,6 +674,10 @@ build_objective <- function(frame) {
   atv <- frame[["aterm_values"]]
   n <- frame[["n_obs"]]
   acs <- frame[["autocor"]] %||% list()
+  # the registry entries of the residual terms, read once per tape
+  ac_ents <- lapply(acs, function(ac) {
+    if (autocor_is_seam(ac)) ac_block_entry(ac)
+  })
 
   extra_names <- frame[["extra_names"]] %||% character(0)
   me_fr <- frame[["me"]]
@@ -889,6 +893,16 @@ build_objective <- function(frame) {
           # aterm that would reshape a per-row contribution was refused
           # at frame assembly, so nothing below this point applies.
           ac <- acs[[r]]
+          if (autocor_is_seam(ac)) {
+            # a registry term (fcor(), sar()): the density of its map
+            mu_r <- dparv[[r]]$mu
+            if (length(mu_r) == 1L) mu_r <- mu_r + numeric(n)
+            nu <- if (isTRUE(ac[["student"]])) dparv[[r]]$nu[1] else NULL
+            nll <- nll - autocor_seam_loglik(
+              ac_ents[[r]], y[[r]], mu_r, dparv[[r]]$sigma,
+              pars[["thetaac"]][ac[["theta_idx"]]], ac, nu)
+            next
+          }
           R <- autocor_cor(pars[["thetaac"]][ac[["theta_idx"]]], ac)
           sg <- dparv[[r]]$sigma
           z <- (y[[r]] - dparv[[r]]$mu) / sg

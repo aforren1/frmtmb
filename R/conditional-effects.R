@@ -1049,7 +1049,7 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
                        re_form, anl)
         }
       }), use.names = FALSE),
-      error = function(e) NULL
+      error = keep_missing(NULL)
     )
     if (!is.numeric(v) || length(v) != tot) rep(NA_real_, tot) else v
   }
@@ -3618,6 +3618,7 @@ plot_fit_brms_args <- local({
 #' plot(fit, which = 2)
 #' @export
 plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
+  require_fit_packages(x)
   frm_check_dots(..., .unsupported = plot_fit_brms_args)
   # the values, not brms's summary matrix: a scatter plot needs one
   # number per row

@@ -691,14 +691,7 @@ check_cs_in_bar <- function(resp) {
   for (dp in resp$dpars) {
     for (re in dp[["re"]] %||% list()) {
       lhs <- re$bar[[2L]]
-      # with a function named cs() on the search path (brms's, attached
-      # after frmtmb), parse_linpred() protects the call as .frm_cs()
-      # before it gets here, and both spellings are the same term
-      if (!calls_function(lhs, "cs") && !calls_function(lhs, ".frm_cs")) {
-        next
-      }
-      re$bar <- str2lang(gsub(".frm_cs(", "cs(", deparse1(re$bar),
-                              fixed = TRUE))
+      if (!calls_function(lhs, "cs")) next
       if (!cs_ok) {
         frm_stop("Category specific effects are not supported for this ",
                  "family. cs() needs an ordinal family; the group-level ",
@@ -2938,7 +2931,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                           resp$resp_name, n)
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
-      ac <- autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+      ac <- if (autocor_is_seam(ac)) {
+        autocor_seam_block(
+          ac, resp$resp_name,
+          autocor_seam_rows(ac, nrow(data), mf_uncut %||% mf, uni_rows,
+                            sub_rows, n),
+          nrow(data), local({
+            env_ <- resp$formula_env
+            function(expr, what) {
+              lookup_structural(expr, data2, data, env_, what)
+            }
+          }))
+      } else {
+        autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+      }
       ac[["theta_idx"]] <- n_thetaac + seq_len(ac[["npar"]])
       ac[["block_label"]] <- if (length(spec$responses) > 1L) {
         paste0(resp$resp_name, " ", ac[["label"]])

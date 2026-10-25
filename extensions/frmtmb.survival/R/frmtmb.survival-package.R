@@ -23,9 +23,12 @@
 #' baseline is a simplex declared through `simplex_pars =`, which is
 #' what makes frmtmb chart it, search it off a face, give it brms's
 #' `sbhaz` prior class and draw it on frmtmb.sample's sampler, and its
-#' spline bases are data built through `aterm_data =`. The Royston and
-#' Parmar refusal of a floored fit reaches [frmtmb::frm_curve()] and
-#' its two companions through the family's `post$curve_check` hook.
+#' spline bases are data built through `aterm_data =`. brms's `bhaz()`
+#' addition term, which sets that basis on the response side, is
+#' registered with [frmtmb::frmtmb_register_aterm()] as an option of the
+#' family (`option =`). The Royston and Parmar refusal of a floored fit
+#' reaches [frmtmb::frm_curve()] and its two companions through the
+#' family's `post$curve_check` hook.
 #' `test-bracket-access.R` checks that no function here reads a hazard
 #' container, and `test-no-reach.R` that no source file reaches into
 #' frmtmb's namespace.
@@ -43,6 +46,7 @@
 # that is loaded and not attached reaches nothing through the search
 # path.
 #' @importFrom frmtmb custom_family frmtmb_family frmtmb_register_compat
+#' @importFrom frmtmb frmtmb_register_aterm
 #' @importFrom frmtmb frm_match_arg frm_message frm_stop frm_warning
 #'   compat_rule_builder compat_aterm_rules mo_simplex single_response
 #' @importFrom stats predict qnorm quantile rnorm setNames

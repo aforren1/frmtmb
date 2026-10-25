@@ -257,8 +257,9 @@ note_table("structure", "method")
 
 ## Within-group residual correlation
 
-`ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` replace the
-response's per-row density with one joint density per group. That is
+`ar()`, `ma()`, `arma()`, `cosy()`, `unstr()` and `fcor()` replace the
+response's per-row density with one joint density per group (for
+`fcor()`, one group holding every row). That is
 what decides almost every pair below: a family needs a real residual
 to correlate, and an addition term that reshapes a per-row
 contribution has nothing left to reshape. brms's default `cov = FALSE`

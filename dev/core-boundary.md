@@ -5,7 +5,10 @@ moves were made: curve inference into core; `cox()`, `royston_parmar()`
 and `rp_floored()` into the new `frmtmb.survival`; `mixture_mvn()` into
 `frmtmb.latent`; `car()` and `spde()` into the new `frmtmb.spatial`.
 `frmtmb.spline` is retired. The section "Moves made in 0.74.0" has the
-numbers.
+numbers. 0.75.0 (2026-10-24) moved no feature. It added the seams
+`frmtmb_register_aterm(option =)` and `frmtmb_register_autocor()`,
+through which `frmtmb.survival` supplies brms's `bhaz()` and
+`frmtmb.spatial` brms's `sar()`; `fcor()` is in core.
 
 This document states the rule that decides where a feature lives, the
 guardrails that a move must satisfy, and the moves that the rule
@@ -82,7 +85,10 @@ terms: `extension_special_homes` and `extension_aterm_homes` in
 stop with "The car() special is in the extension package
 frmtmb.spatial, which is not loaded". The brms names that frmtmb does
 not support at all are in three tables of refusals in the same file
-(`custom`, `bhaz()`, `sar()`, `fcor()`), each with its reason.
+(`custom` since 0.75.0), each with its reason. `bhaz()` is in
+`extension_aterm_homes`, and frmtmb.survival refuses `bhaz(gr = )` by
+name. `fcor()` is in core, and `sar()` is in `frmtmb.spatial`
+(`extension_special_homes`).
 
 A test enforces this guardrail: `tests/testthat/test-guardrail1.R`.
 It probes every family, addition term and formula special of brms
@@ -97,9 +103,11 @@ contributed rows with all eight extensions loaded.
 
 A saved fit is a second way to meet a moved feature. Since 0.74.0 each
 fit records the package of its family and of each covariance
-structure. Read where that package is not installed, the fit stops
-with the package's name (class `frmtmb_extension_missing`) at the
-first method that needs the package (`R/extension-home.R`).
+structure, and since 0.75.0 of each residual correlation term. Read
+where such a package is not installed, the fit stops with the
+package's name (class `frmtmb_extension_missing`) at the first method
+that needs it (`R/extension-home.R`). Since 0.75.0 that one refusal
+names every package the fit lacks.
 
 ### 2. Interface before move
 
@@ -144,6 +152,7 @@ The public interfaces that an extension can use today:
 |---|---|
 | `frmtmb_family()`, `custom_family()`, `as_frmtmb_family()` | a family |
 | `frmtmb_register_aterm()` | an addition term, such as `dec()` |
+| `frmtmb_register_aterm(option =)` (0.75.0) | an addition term that sets an argument of the family, such as `bhaz()` of `cox()` |
 | `frmtmb_register_compat()` | compat features and rules |
 | `frmtmb_register_frame_check()` | a check on the model frame |
 | `frmtmb-sampling-api` exports | what `frmtmb.sample` reads from a fit |
@@ -154,6 +163,10 @@ The public interfaces that an extension can use today:
 | `post$curve_check` (0.74.0) | a family hook that lets `frm_curve()` and its companions refuse a fit |
 | `us_sigma()`, `us_theta()` (0.74.0) | the map between an unstructured covariance and its parameter vector, on the tape |
 | `frmtmb_local_registries()` (0.74.0) | a test helper that saves every registry and restores it |
+| `frmtmb_register_autocor()` (0.75.0) | a residual correlation term: one affine map from the response to independent innovations, such as `sar()`; its `bounds` slot gives a bounded parameter brms's class prior and frmtmb.sample's flat default |
+| `frmtmb_autocor_pars()` (0.75.0) | lists a fit's registered residual-term parameters with their intervals, for a package that would otherwise keep its own list of names (frmtmb.sample's `lagsar`, `errorsar`) |
+| `frmtmb_covstruct_info()` (0.75.0) | reads a structure's properties (field, coupled levels, full rank) from the registry, for a package that would otherwise keep its own list of names |
+| `frmtmb_register_covstruct(full_rank =)` (0.75.0) | whether a row's own effect can reach any value with a finite density, which the weights check reads; a structure that states nothing leaves the check open |
 
 Until 0.74.0 a structured covariance or a precision matrix that
 depends on parameters had no seam: the parser built every covariance

@@ -27,7 +27,11 @@ test_that("set_prior() reads brms's Dirichlet and its rules", {
                "addresses one simplex")
   expect_error(set_prior("dirichlet(2)", class = "simo", coef = "mox1",
                          lb = 0), "no lb/ub")
-  expect_error(set_prior("dirichlet(2)", class = "b"), "class = \"simo\"")
+  # a class that is no simplex is refused where the model is known
+  # (test-simplex-pars.R, "one refusal point")
+  expect_error(validate_prior(set_prior("dirichlet(2)", class = "b"),
+                              y ~ z, data = dir_data()),
+               "class = \"simo\"")
   expect_error(set_prior("dirichlet(c(1, x))", class = "simo",
                          coef = "mox1"), "Cannot parse")
   expect_error(prior_dirichlet(c(1, -1)), "positive")

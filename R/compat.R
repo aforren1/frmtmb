@@ -861,7 +861,7 @@ compat_features_build <- function(extra = NULL) {
     # random effect, so they are not a covariance structure, and they
     # contribute no design column, so they are not a predictor special:
     # they replace the response's density. Hence a kind of their own.
-    lapply(c("ar()", "ma()", "arma()", "cosy()", "unstr()"), f,
+    lapply(c("ar()", "ma()", "arma()", "cosy()", "unstr()", "fcor()"), f,
            kind = "autocor"),
     lapply(c("REML", "quadrature", "importance", "profile", "autoscale",
              "sparse_x", "prior", "bounds", "verbose"), f, kind = "mode"),
@@ -995,7 +995,7 @@ frmtmb_compat_groups_lst <- list(
                   "homcs", "exp", "gau", "mat", "rr", "equalto",
                   "gr_cov", "gr_prec", "smooth", "gp", "hsgp"),
   # the R-side residual correlation terms, which share every guard
-  autocor = c("ar()", "ma()", "arma()", "cosy()", "unstr()"),
+  autocor = c("ar()", "ma()", "arma()", "cosy()", "unstr()", "fcor()"),
   # the two of them brms also treats as true residual covariance (its
   # "natural residuals" families)
   autocor_families = c("gaussian", "student"),
@@ -1093,12 +1093,17 @@ compat_hand_rules_tbl <- function() {
     "Smooths and Gaussian processes enter as their own blocks alongside user bar terms.")
   r("kind:special", "kind:special", "works",
     "Specials are additive terms and compose freely.")
+  # The notes say what each KIND of term does, because a term registered
+  # by another package is one of two kinds: data that its family's
+  # density reads (dec()), or an option that sets an argument of the
+  # family and carries no data at all (bhaz()). The generic rows of both
+  # come from these three rules and the mvbf one.
   r("kind:aterm", "kind:aterm", "works",
-    "Addition terms on one response combine; each contributes its own factor to the likelihood.")
+    "Addition terms on one response combine, and each is read on its own. The core acts on its own terms (weights(), cens(), trunc(), ...); a registered data term (frmtmb_register_aterm()) carries a column to the family's density; an option term (frmtmb_register_aterm(option =), such as bhaz()) carries no data and adds nothing to the likelihood: it sets an argument of the family before the frame is built. Whether a family takes a term is that family's own row.")
   r("kind:aterm", "kind:covstruct", "works",
-    "Addition terms change the likelihood, covariance structures change the predictor.")
+    "Addition terms act on the likelihood, or, for an option term, on the family's arguments; covariance structures change the predictor.")
   r("kind:aterm", "kind:special", "works",
-    "Addition terms and predictor specials are independent.")
+    "Addition terms act on the likelihood or the family, predictor specials on the linear predictor; they are independent.")
   # No kind-level default for mode x mode either: every pair of the
   # eight declared modes is already named below, either by an explicit
   # rule or by the verbose / sparse_x / autoscale sweeps.
@@ -1625,7 +1630,7 @@ compat_hand_rules_tbl <- function() {
   r("mvbf", "group:simplex", "works",
     "A dirichlet(), dirichlet2 or logistic_normal() response sits in a multivariate model. A logistic_normal() response's correlations are a block of that response, reported as lncor_<resp>__b__c and set with set_prior(class = \"lncor\", resp = ); brms 2.23.0 generates Stan code for that model that does not compile (its generated quantities read Llncor without the suffix), and its model block, repaired there, agrees at frmtmb's estimates (test-refcat-brms.R). Without a shared effect the log-likelihood is the sum of the univariate fits' (test-simplex-mvbf.R).")
   r("mvbf", "kind:aterm", "works",
-    "Addition terms are per response.")
+    "Addition terms are per response; an option term (frmtmb_register_aterm(option =)) sets the family of its own response only.")
   r("mvbf", "|ID|", "works",
     "|ID| is the reason mvbf() exists in this grammar: it keys correlated random effects across responses.")
 
@@ -2065,6 +2070,23 @@ compat_hand_rules_tbl <- function() {
     r(nm, "residuals", "conditional",
       "Under cov = FALSE \"response\" and \"pearson\" are against the one-step mean, so for a well-specified model they are the innovations, uncorrelated in time. Under cov = TRUE they are against mu and keep the fitted autocorrelation. \"osa\" is refused under both.")
   }
+
+  ## brms's fcor() --------------------------------------------------------
+  # One fixed matrix M over all the observations, not a structure over
+  # time within groups, so the rows where its answer differs from the
+  # group:autocor rows name it.
+  r("fcor()", "group:autocor_families", "works",
+    "fcor(M) makes the residuals of the response one draw with covariance sigma^2 M, or D M D with D = diag(sigma) under a predicted sigma ~ ..., as brms 2.23.0's normal_fcor_hom/het_lpdf; student() gets the multivariate-t analog. M is fixed data over every row of the data (a vector is its diagonal), symmetric and positive definite, and the rows the model drops are dropped from it, as brms drops them. sigma is brms's sigma: M may be a covariance, and then sigma scales it.")
+  r("fcor()", "student", "conditional",
+    "The multivariate t has one shape for the whole response, so nu must be constant; a predicted nu ~ ... is refused. A predicted sigma ~ ... works, as under gaussian().")
+  r("fcor()", "fitted", "conditional",
+    "The mean is mu, unchanged. newdata with one row per row of the term's matrix (the rows of the data, the ones the fit dropped for missing values among them) is read in their order, as brms reads it, so a counterfactual (x + 1 everywhere) works and a row with a missing predictor gives NA; other newdata is refused, as brms refuses it without a matrix over the new rows (its newdata2). frm_linpred() gives mu on any newdata.")
+  r("fcor()", "predict", "conditional",
+    "Draws are one draw of the whole response with covariance sigma^2 M. newdata with one row per row of the term's matrix (the rows of the data, the ones the fit dropped for missing values among them) is read in their order, as brms reads it, so a counterfactual (x + 1 everywhere) works and a row with a missing predictor gives NA; other newdata is refused, as brms refuses it without a matrix over the new rows (its newdata2).")
+  r("fcor()", "simulate", "conditional",
+    "simulate() draws the whole response with covariance sigma^2 M, or D M D under a predicted sigma, and the student() draw scales it by one chi-square. newdata with one row per row of the term's matrix (the rows of the data, the ones the fit dropped for missing values among them) is read in their order, as brms reads it, so a counterfactual (x + 1 everywhere) works and a row with a missing predictor gives NA; other newdata is refused, as brms refuses it without a matrix over the new rows (its newdata2).")
+  r("fcor()", "residuals", "conditional",
+    "\"response\" is y - mu. \"pearson\" divides by the marginal sd, sigma * sqrt(diag(M)), so a covariance M does not inflate it. They are not decorrelated. \"osa\" is refused.")
 
   ## formula grammar --------------------------------------------------------------
   # The two permissive grammar defaults are declared with the other

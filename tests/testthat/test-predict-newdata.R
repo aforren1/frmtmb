@@ -84,3 +84,25 @@ test_that("response-scale se applies the chain rule", {
   pr <- frm_linpred(fit, newdata = nd, type = "response", se.fit = TRUE)
   expect_equal(pr$se.fit, exp(pl$fit) * pl$se.fit, tolerance = 1e-10)
 })
+
+test_that("predict(newdata =) names the residual correlation it refuses", {
+  # the refusal listed a hidden state sequence, a latent class and a
+  # correlated residual whatever the model was; a correlated residual
+  # is said as the term the formula wrote. The family case is
+  # frmtmb.latent's (test-mixture-mvn.R)
+  set.seed(3)
+  da <- data.frame(g = factor(rep(1:10, each = 12)), t = rep(1:12, 10),
+                   x = rnorm(120))
+  da$y <- da$x + rnorm(120)
+  fa <- frm(bf(y ~ x + ar(time = t, gr = g, cov = TRUE)),
+            family = gaussian(), data = da)
+  e <- tryCatch(predict(fa, newdata = da[1:5, ]), error = identity)
+  expect_s3_class(e, "frmtmb_error")
+  expect_match(conditionMessage(e), paste0(
+    "its residuals are correlated (ar(time = t, gr = g, cov = TRUE))"),
+    fixed = TRUE)
+  expect_no_match(conditionMessage(e), "hidden state", fixed = TRUE)
+  # the guard absent: without the term, newdata is predicted
+  fg <- frm(bf(y ~ x), family = gaussian(), data = da)
+  expect_identical(nrow(predict(fg, newdata = da[1:5, ])), 5L)
+})

@@ -14,7 +14,8 @@ frmtmb_registry_envs <- list(
   registries = c("frmtmb_compat_contrib", "frmtmb_compat_cache",
                  "frmtmb_aterm_registry", "frmtmb_frame_checks",
                  "frmtmb_prior_defaults", "frmtmb_notice_state",
-                 "frmtmb_covstruct_registry"),
+                 "frmtmb_covstruct_registry",
+                 "frmtmb_autocor_registry"),
   caches = c("compat_accepts_cache", "compat_hand_cache", "nl_shadow_cache"))
 
 #' `pkgs` in an order that puts a package after the frmtmb packages of
@@ -36,12 +37,12 @@ registry_load_order <- function(pkgs) {
 
 #' Save frmtmb's registries, and restore them when a test ends
 #'
-#' A test that registers a covariance structure, an addition term, a
-#' family's compatibility rows, a frame check or a prior default calls
-#' `frmtmb_local_registries()` first. When `env` exits (the end of the
-#' `test_that()` block), every registry is put back as it was, so the
-#' registration cannot reach the tests after it: `R CMD check` and covr
-#' run every file of a suite in one session.
+#' A test that registers a covariance structure, a residual correlation
+#' term, an addition term, a family's compatibility rows, a frame check
+#' or a prior default calls `frmtmb_local_registries()` first. When
+#' `env` exits (the end of the `test_that()` block), every registry is
+#' put back as it was, so the registration cannot reach the tests after
+#' it: `R CMD check` and covr run every file of a suite in one session.
 #'
 #' The restore puts back what it found. It never deletes an entry by
 #' name, because the name may belong to a package that was loaded
@@ -54,9 +55,9 @@ registry_load_order <- function(pkgs) {
 #'   default is the caller's, which in a `test_that()` block is the test.
 #' @return The saved state, invisibly. Called for the restore it
 #'   schedules.
-#' @seealso [frmtmb_register_covstruct()], [frmtmb_register_aterm()],
-#'   [frmtmb_register_compat()] and [frmtmb_register_frame_check()], the
-#'   registrations it undoes.
+#' @seealso [frmtmb_register_covstruct()], [frmtmb_register_autocor()],
+#'   [frmtmb_register_aterm()], [frmtmb_register_compat()] and
+#'   [frmtmb_register_frame_check()], the registrations it undoes.
 #' @examplesIf requireNamespace("withr", quietly = TRUE)
 #' f <- function() {
 #'   frmtmb_local_registries()
@@ -77,11 +78,13 @@ frmtmb_local_registries <- function(env = parent.frame()) {
   priors <- frmtmb_prior_defaults
   notices <- frmtmb_notice_state
   covs <- frmtmb_covstruct_registry
+  acs <- frmtmb_autocor_registry
   saved <- list(
     features = contrib$features, rules = contrib$rules,
     cache_features = cache$features, cache_tbl = cache$tbl,
     atreg = atreg$reg, frame_checks = checks$fns,
     priors = priors$providers, covstructs = covs$reg,
+    autocors = acs$reg,
     notices = as.list(notices, all.names = TRUE),
     loaded = loadedNamespaces())
   # record the order the frmtmb packages not yet loaded load in; the
@@ -109,6 +112,7 @@ frmtmb_local_registries <- function(env = parent.frame()) {
     checks$fns <- saved$frame_checks
     priors$providers <- saved$priors
     covs$reg <- saved$covstructs
+    acs$reg <- saved$autocors
     rm(list = ls(notices, all.names = TRUE), envir = notices)
     list2env(saved$notices, envir = notices)
     new <- grep("^frmtmb[.]", setdiff(loadedNamespaces(), saved$loaded),

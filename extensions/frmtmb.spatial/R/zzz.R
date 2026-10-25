@@ -1,7 +1,8 @@
 # What this package tells frmtmb at load time: the structures it
-# supplies, through frmtmb_register_covstruct(), and their rows in
-# frm_compat(), through frmtmb_register_compat(). The structures are
-# registered FIRST, because registering one adds it to the
+# supplies, through frmtmb_register_covstruct(), the residual
+# correlation term sar(), through frmtmb_register_autocor(), and their
+# rows in frm_compat(), through frmtmb_register_compat(). The structures
+# are registered FIRST, because registering one adds it to the
 # compatibility vocabulary that the rules then name.
 #
 # Every note below is core's note for the same pair before the move,
@@ -16,6 +17,7 @@
 .onLoad <- function(libname, pkgname) {
   register_car()
   register_spde()
+  register_sar()
   frmtmb_register_compat(rules = spatial_compat_rules)
   invisible()
 }
@@ -40,5 +42,16 @@ spatial_compat_rules <- function() {
     "Draws come from the block's own fitted precision.")
   r("spde", "predict", "conditional",
     "Locations outside the fitted set have no marginal variance of their own; allow_new_levels predicts them at the population level with no block contribution.")
+  # sar(): frmtmb_register_autocor() writes the guards every residual
+  # correlation term shares and the families row, with this package's
+  # note (register_sar()); these rows are the term's own
+  r("sar()", "fitted", "conditional",
+    "Under type = \"lag\" fitted() is (I - rho W)^-1 mu, brms's posterior_epred(); under \"error\" it is mu. newdata with one row per row of the term's matrix (the rows of the data, the ones the fit dropped for missing values among them) is read in their order, as brms reads it, so a counterfactual (x + 1 everywhere) works and a row with a missing predictor gives NA; other newdata is refused, as brms refuses it without a matrix over the new rows (its newdata2). On such newdata the lag mean is A^-1 mu_new. frm_linpred() gives mu on any newdata.")
+  r("sar()", "predict", "conditional",
+    "Draws are one draw of the whole response through the model. newdata with one row per row of the term's matrix (the rows of the data, the ones the fit dropped for missing values among them) is read in their order, as brms reads it, so a counterfactual (x + 1 everywhere) works and a row with a missing predictor gives NA; other newdata is refused, as brms refuses it without a matrix over the new rows (its newdata2).")
+  r("sar()", "simulate", "conditional",
+    "simulate() draws the whole response, A^-1 (mu + e) or mu + A^-1 e. newdata with one row per row of the term's matrix (the rows of the data, the ones the fit dropped for missing values among them) is read in their order, as brms reads it, so a counterfactual (x + 1 everywhere) works and a row with a missing predictor gives NA; other newdata is refused, as brms refuses it without a matrix over the new rows (its newdata2).")
+  r("sar()", "residuals", "conditional",
+    "\"response\" is y minus the mean above. \"pearson\" divides by the marginal sd, sigma * sqrt(diag((A'A)^-1)). They are not decorrelated. \"osa\" is refused.")
   b$rules()
 }

@@ -86,7 +86,9 @@ test_that("two logistic_normal() responses keep their blocks apart", {
   expect_lt(abs(sp["lncor_V(v,w)", "Estimate"] - e2[["Estimate"]]),
             1e-3 * e2[["Est.Error"]])
   dp <- default_prior(fm)
-  expect_identical(dp$resp[dp$class == "lncor"], c("Y", "V"))
+  # in brms's row order, which sorts by response: brms 2.23.0 lists V's
+  # lncor row before Y's (dev/brmsnames-1024-lncor.R)
+  expect_identical(dp$resp[dp$class == "lncor"], c("V", "Y"))
 })
 
 test_that("dirichlet() in mvbf() is the sum of its two models", {

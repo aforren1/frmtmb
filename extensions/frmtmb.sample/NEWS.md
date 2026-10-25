@@ -1,3 +1,51 @@
+# frmtmb.sample 0.22.0
+
+Needs frmtmb 0.75.0, which exports `frmtmb_covstruct_info()` and
+`frmtmb_autocor_pars()` and gives coefficients brms's names.
+
+## Breaking changes
+
+* The draws of a model with an `exp()` term carry brms's names:
+  `b_expx`, `sd_g__expx` and `cor_g__Intercept__expx`, as brms 2.23.0
+  names them, where they were `b_.frm_expx`, `sd_g__.frm_expx` and
+  `cor_g__Intercept__.frm_expx`. `fixef()` of the draws names the row
+  `expx`, and `hypothesis(draws, "expx > 0")` works. The change is in
+  frmtmb, which builds the names, and the new test of it needs frmtmb
+  0.75.0. The same holds for a nonlinear parameter of a multivariate
+  model, `b_yn_a_Intercept` where the draws held `b_a_yn_Intercept`.
+
+* `fixef()` of the draws lists the rows in brms's order, which is the
+  order of `fixef()` of the fit: every centered intercept first. For
+  `bf(y ~ x, sigma ~ exp(z))` brms 2.23.0 gives `Intercept`,
+  `sigma_Intercept`, `x`, `sigma_expz`. The draws' `fixef()` listed
+  `Intercept`, `x`, `sigma_Intercept`, `sigma_expz`, the order of the
+  draws' columns, which is unchanged.
+
+## New features
+
+* The draws of a model with frmtmb.spatial's `sar()` carry brms's
+  `lagsar` or `errorsar` column, derived from the sampled internal
+  parameter, as `ar[1]` and `cosy` are. The names come from core's
+  registry (`frmtmb::frmtmb_autocor_pars()`), so a term another package
+  registers gets its own column the same way.
+
+* The default prior on `lagsar` and `errorsar` is brms's: flat on `rho`
+  over its interval, which `frm_sample()` announces as
+  `uniform(lower, upper)`, the ends shown to 6 digits. The same holds
+  for a bounded parameter of a term another package registers.
+  `set_prior(class = "lagsar")` and `class = "errorsar"` replace it.
+
+## Bug fixes
+
+* The derived `sd_` and `cor_` columns asked core's
+  `frmtmb_covstruct_info()` which structures are fields, where they kept
+  their own list of five names. A field another package registers,
+  beside a block on the same grouping factor, was mapped onto that
+  block's names. It failed the map's own check and sent every draw
+  through the slow path: on one model, 0.70 ms a draw against 0.053 ms
+  on the fast path now. The values were right either way. Needs frmtmb
+  0.75.0, which exports `frmtmb_covstruct_info()`.
+
 # frmtmb.sample 0.21.1
 
 Needs frmtmb 0.74.0. The package itself loads on frmtmb 0.73.0, but

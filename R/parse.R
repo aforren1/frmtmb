@@ -4,6 +4,9 @@
 # term does none of that - it carries a column of data to a family that
 # knows what to do with it - so one entry (name, arity, coercion) is the
 # whole contract, and the parse layer needs no branch per contributor.
+# A term can instead be an OPTION of the family, as brms's bhaz() is of
+# cox(): then it carries no data, and the contributor's own function
+# turns the written call into the family the fit uses.
 #
 # The same shape as the frame-check and prior-default registries, and
 # filled the same way, from a contributing package's .onLoad(). Unlike
@@ -60,6 +63,31 @@ row_aterms <- c("subset", "index")
 #' no-op rather than a duplicate. Register the term BEFORE the rules
 #' that name it.
 #'
+#' @section An option of the family:
+#' Some terms carry no data. brms's `bhaz(df = 6)` in
+#' `time | bhaz(df = 6) ~ x` sets the basis of the baseline hazard of
+#' `cox()`: it is an argument of the family, written on the response
+#' side. Give such a term an `option` function. Then the term is not an
+#' addition-term value: it does not reach `aterms`, it is not required
+#' on `newdata`, and `arity` and `coerce` are not used. When the formula
+#' is parsed and the response's family is known, frmtmb calls
+#' `option(family, call, env)` once, with the family, the term's call as
+#' written (`quote(bhaz(df = 6))`), and the formula's environment, in
+#' which the function evaluates the call's arguments. The function
+#' returns the family that the fit uses, or stops with a message that
+#' says why it refuses the call. Build that family again from its
+#' constructor, as the example does: a density is a closure over the
+#' constructor's arguments, so a slot set on the family afterwards
+#' changes nothing that the likelihood reads.
+#'
+#' The family must accept the term. A family whose
+#' `frmtmb_family(accepts_aterms =)` does not name the term is refused
+#' before `option()` runs. A family that declares no allow-list reaches
+#' `option()`, which must refuse a family it cannot change.
+#' `update()`, `predict()` on new data and refits parse the formula
+#' again, each time from the family as it was written, so `option()`
+#' must return the same family for the same family and call.
+#'
 #' A name the vocabulary already holds under another kind is refused,
 #' and nothing is registered on either side: `s()` is a smooth, so
 #' `frmtmb_register_aterm("s")` would give one spelling two meanings in
@@ -83,6 +111,9 @@ row_aterms <- c("subset", "index")
 #'   so that a coercion that builds levels from its input cannot code
 #'   new rows by their own levels, and a value the fit did not see is
 #'   refused.
+#' @param option Optional function `(family, call, env)` that makes the
+#'   term an option of the family rather than data (see the section "An
+#'   option of the family"). The default, `NULL`, is a data term.
 #' @return `NULL`, invisibly. Called for the registration.
 #' @seealso [frmtmb_family()] for `required_aterms`, which is how a
 #'   family says the term is not optional, [frmtmb_register_frame_check()]
@@ -95,8 +126,40 @@ row_aterms <- c("subset", "index")
 #'   as.integer(factor(x)) - 1L
 #' })
 #' }
+#'
+#' # an option of a family: `y | knownsd(2) ~ x` is a normal model whose
+#' # standard deviation is known to be 2. The family declares the term,
+#' # and the option builds the family again with the new value.
+#' normal_sd <- function(sd = 1) {
+#'   force(sd)
+#'   frmtmb_family(
+#'     "normal_sd", dpars = "mu", links = list(mu = "identity"),
+#'     accepts_aterms = "knownsd",
+#'     lpdf = function(y, dpars, aterms, extra) {
+#'       -0.5 * ((y - dpars$mu) / sd)^2 - log(sd) - 0.5 * log(2 * pi)
+#'     })
+#' }
+#' set.seed(1)
+#' d <- data.frame(x = rnorm(50))
+#' d$y <- 1 + d$x + rnorm(50, sd = 2)
+#' # frmtmb_local_registries() undoes the registration when the function
+#' # returns, so the example leaves the registry as it found it
+#' fit_knownsd <- function() {
+#'   frmtmb_local_registries()
+#'   frmtmb_register_aterm("knownsd", option = function(family, call, env) {
+#'     normal_sd(eval(call[[2L]], env))
+#'   })
+#'   frm(bf(y | knownsd(2) ~ x), family = normal_sd(), data = d)
+#' }
+#' if (requireNamespace("withr", quietly = TRUE)) {
+#'   fit <- fit_knownsd()
+#'   # the log likelihood of the least-squares line with sd = 2
+#'   print(logLik(fit))
+#'   print(sum(dnorm(d$y, fitted(lm(y ~ x, d)), 2, log = TRUE)))
+#' }
 #' @export
-frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
+frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric,
+                                  option = NULL) {
   if (!is.character(name) || length(name) != 1L || is.na(name) ||
       !nzchar(name) || !identical(name, make.names(name))) {
     frm_stop("frmtmb_register_aterm(name =) must be one syntactic name, ",
@@ -116,6 +179,11 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
     frm_stop("frmtmb_register_aterm(coerce =) must be a function of one ",
              "vector returning a numeric vector", call. = FALSE)
   }
+  if (!is.null(option) && !is.function(option)) {
+    frm_stop("frmtmb_register_aterm(option =) must be NULL or a function ",
+             "(family, call, env) that returns the family, not ",
+             arg_desc(option), call. = FALSE)
+  }
   # A registered term the compatibility table cannot describe is a gap
   # by construction: frm() would accept a term frm_compat() refuses to
   # answer about, and the registrant would have to remember to say the
@@ -129,7 +197,8 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
   # smooth: the split state this seam exists to make unreachable.
   compat_new_aterm_feature(name)
   frmtmb_aterm_registry$reg[[name]] <-
-    list(name = name, arity = as.integer(arity), coerce = coerce)
+    list(name = name, arity = as.integer(arity), coerce = coerce,
+         option = option)
   invisible(NULL)
 }
 
@@ -204,6 +273,7 @@ aterm_spelling <- function(nm) {
 parse_response <- function(formula) {
   lhs <- formula[[2]]
   aterms <- list()
+  opts <- list()
   resp <- lhs
   if (is.call(lhs) && identical(lhs[[1]], as.name("|"))) {
     resp <- lhs[[2]]
@@ -227,6 +297,7 @@ parse_response <- function(formula) {
                  "package that supplies the family can give the term its ",
                  "own name with frmtmb_register_aterm()", call. = FALSE)
       }
+      is_option <- is.function(frmtmb_aterm_registry$reg[[nm]][["option"]])
       multi <- nm %in% c("vint", "vreal") ||
         isTRUE((frmtmb_aterm_registry$reg[[nm]] %||% list())$arity > 1L)
       # cat(x) is brms's older spelling of thres(x - 1): the two set one
@@ -238,14 +309,19 @@ parse_response <- function(formula) {
                  "deprecated spelling of thres(x - 1); write one cat() or ",
                  "one thres()", call. = FALSE)
       }
-      if (nm %in% names(aterms) ||
+      if (nm %in% c(names(aterms), names(opts)) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
           (nm == "thres" && "thres_gr" %in% names(aterms)) ||
           (multi && paste0(nm, "1") %in% names(aterms))) {
         frm_stop("Duplicated addition term `", nm, "()`", call. = FALSE)
       }
-      if (nm == "trunc") {
+      if (is_option) {
+        # an option of the family carries no data: it is kept as
+        # written and handed to its function once the family is known
+        # (apply_aterm_options())
+        opts[[nm]] <- tm
+      } else if (nm == "trunc") {
         args <- as.list(tm)[-1]
         if (!length(args) || is.null(names(args)) ||
             !all(names(args) %in% c("lb", "ub"))) {
@@ -381,7 +457,35 @@ parse_response <- function(formula) {
       }
     }
   }
-  list(resp = resp, aterms = aterms)
+  list(resp = resp, aterms = aterms, options = opts)
+}
+
+#' Apply the response's option terms (`frmtmb_register_aterm(option =)`)
+#' to its family, in the order the formula writes them. A family that
+#' declares its addition terms and does not name the term is refused
+#' here, as brms refuses `bhaz()` on a family other than `cox()`.
+#'
+#' @noRd
+apply_aterm_options <- function(fam, options, env) {
+  for (nm in names(options)) {
+    ok <- accepted_aterm_names(fam)
+    if (!is.null(ok) && !nm %in% ok) {
+      frm_stop("Addition term `", nm, "()` is not supported for family '",
+               fam[["family"]], "'. It is an option of a family that ",
+               "declares it (frmtmb_family(accepts_aterms =)), and '",
+               fam[["family"]], "' does not", call. = FALSE)
+    }
+    out <- frmtmb_aterm_registry$reg[[nm]][["option"]](fam, options[[nm]],
+                                                       env)
+    if (!inherits(out, "frmtmb_family")) {
+      frm_stop("The option function of addition term `", nm, "()` ",
+               "returned ", arg_desc(out), "; it must return the family ",
+               "the fit uses (frmtmb_register_aterm(option =))",
+               call. = FALSE)
+    }
+    fam <- out
+  }
+  fam
 }
 
 #' The arguments of a predictor `mi()` call, brms's `mi(x, idx = NA)`.
@@ -1711,10 +1815,30 @@ rsv_intercept_fixed <- function(fixed) {
   list(fixed = new, pos = k - 1L, lower = lower)
 }
 
+#' Undo `parse_linpred()`'s `.frm_<name>` aliases of the special names
+#' `specials` in `e`, an expression or a formula, whose attributes are
+#' kept.
+#'
+#' @noRd
+unsub_specials <- function(e, specials) {
+  if (!is.call(e)) return(e)
+  hd <- e[[1L]]
+  if (is.name(hd)) {
+    nm <- as.character(hd)
+    if (startsWith(nm, ".frm_") && substring(nm, 6L) %in% specials) {
+      e[[1L]] <- as.name(substring(nm, 6L))
+    }
+  }
+  for (i in seq_along(e)[-1L]) {
+    ei <- e[[i]]
+    if (is.call(ei)) e[[i]] <- unsub_specials(ei, specials)
+  }
+  e
+}
+
 #' Split one linear-predictor RHS (a one-sided formula) into a parametric
 #' fixed formula, random-effect terms (reformulas), and mgcv smooth
-#' specifications. `shared` is the response-level environment that keeps
-#' protected-function aliases visible to the combined model frame.
+#' specifications.
 #'
 #' This is the first stage of the formula-to-design-matrix pipeline and
 #' the only place that reads predictor syntax. It takes the RHS of one
@@ -1730,7 +1854,7 @@ rsv_intercept_fixed <- function(fixed) {
 #' design matrices and random-effect blocks.
 #'
 #' @noRd
-parse_linpred <- function(rhs_form, env, shared = NULL) {
+parse_linpred <- function(rhs_form, env) {
   environment(rhs_form) <- env
   rhs_form <- drop_twin_bar_terms(rhs_form)
   # after the twin check, which compares terms as written, as brms does
@@ -1766,7 +1890,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # specific refusal in the loop below
     crossed_ac <- is.call(tm) &&
       as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
-      length(called_functions(tm, autocor_structs)) > 0L
+      length(called_functions(tm, autocor_term_names())) > 0L
     bad <- if (!crossed_ac) special_term_refusal(tm)
     if (!is.null(bad)) frm_stop(bad, call. = FALSE)
     if ("|" %in% all.names(tm) ||
@@ -1837,11 +1961,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # with a message that points nowhere near the mistake
     if (is.call(tm) &&
         as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
-        length(called_functions(tm, autocor_structs)) > 0L) {
+        length(called_functions(tm, autocor_term_names())) > 0L) {
       frm_stop("An autocorrelation term cannot be crossed with '",
                as.character(tm[[1]])[1], "': ", deparse1(tm),
                ". Write it as a separate term: y ~ ... + ",
-               called_functions(tm, autocor_structs)[1L], "(...)",
+               called_functions(tm, autocor_term_names())[1L], "(...)",
                call. = FALSE)
     }
     if (calls_function(tm, "me")) {
@@ -1930,6 +2054,12 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                !("|" %in% all.names(tm))) {
       # brms R-side autocorrelation: ar(), ma(), arma(), cosy(), unstr()
       acterms[[length(acterms) + 1L]] <- parse_autocor_call(tm, env)
+    } else if (is.call(tm) &&
+               as.character(tm[[1]])[1] %in% ac_entry_names() &&
+               !("|" %in% all.names(tm))) {
+      # a term of the residual-correlation registry: core's fcor(), or
+      # one an extension registered, such as frmtmb.spatial's sar()
+      acterms[[length(acterms) + 1L]] <- parse_autocor_seam_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
                !("|" %in% all.names(tm))) {
       # barless cs(x): category-specific ordinal effect (the bar form
@@ -1945,9 +2075,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       for (sp_nm in Filter(function(f) calls_function(tm, f),
                            names(brms_special_refusals))) {
         frm_stop(sp_nm, "() ", brms_special_refusals[[sp_nm]], ": ",
-                 deparse1(tm), ". The supported residual correlation ",
-                 "terms are ar(), ma(), arma(), cosy() and unstr(); the ",
-                 "car() field is in the extension package frmtmb.spatial",
+                 deparse1(tm), ". ", autocor_supported_sentence(),
                  call. = FALSE)
       }
       # a group-level mo() term, (mo(x) | g): the mo() calls on the
@@ -1984,23 +2112,19 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   }
   # splitForm silently strips ANY term whose expression mentions a
   # special name - even inside I() or nested calls - so exp(x) in a
-  # fixed formula would vanish. Protect by rewriting special-named
-  # CALLS (never bar terms, which were routed to splitForm above) to
-  # .frm_<name> aliases bound in a child environment.
-  prot <- new.env(parent = env)
+  # fixed formula would vanish. Protect by renaming special-named CALLS
+  # (never bar terms, which were routed to splitForm above) to
+  # .frm_<name> for splitForm alone: unsub_specials() undoes it right
+  # after, so nothing evaluates the alias and no environment binds it.
   protected <- FALSE
   sub_specials <- function(e) {
     if (is.call(e)) {
       hd <- e[[1]]
       if (is.name(hd) && as.character(hd) %in% cs_specials &&
           !("|" %in% all.names(e))) {
-        nm <- as.character(hd)
-        pn <- paste0(".frm_", nm)
         fn <- tryCatch(eval(hd, env), error = function(err) NULL)
         if (is.function(fn)) {
-          assign(pn, fn, envir = prot)
-          if (!is.null(shared)) assign(pn, fn, envir = shared)
-          e[[1]] <- as.name(pn)
+          e[[1]] <- as.name(paste0(".frm_", as.character(hd)))
           protected <<- TRUE
         }
       }
@@ -2016,7 +2140,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     e
   }
   rest <- lapply(rest, sub_specials)
-  env_lp <- if (protected) prot else env
+  env_lp <- env
 
   if (length(rest)) {
     rhs_expr <- Reduce(function(a, b) call("+", a, b), rest)
@@ -2029,6 +2153,15 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # reaches the informative not-supported error below)
   sf <- reformulas::splitForm(bare_form, defaultTerm = "us",
                               specials = cs_specials)
+  # The aliases are for splitForm alone. Left in place they reached
+  # model.matrix(), whose column `.frm_exp(x)` became the coefficient
+  # `.frm_expx` where brms has `expx`.
+  if (protected) {
+    sf$fixedFormula <- unsub_specials(sf$fixedFormula, cs_specials)
+    sf$reTrmFormulas <- lapply(sf$reTrmFormulas, unsub_specials,
+                               cs_specials)
+    sf$reTrmAddArgs <- lapply(sf$reTrmAddArgs, unsub_specials, cs_specials)
+  }
   bad <- setdiff(sf$reTrmClasses, supported_cs)
   if (length(bad)) {
     frm_stop("Covariance structure(s) not supported yet: ",
@@ -2469,11 +2602,16 @@ parse_one_response <- function(bform) {
              call. = FALSE)
   }
   env <- environment(f) %||% globalenv()
-  # response-level alias environment: parse_linpred registers protected
-  # special-named functions here so the combined model frame (which
-  # evaluates with formula_env) can resolve them
+  # the response's formula_env, where the combined model frame
+  # evaluates. It held the parser's .frm_<name> aliases until those were
+  # undone after splitForm(); it is kept as a child of `env`, so a fit
+  # carries the same environment as before
   shared_env <- new.env(parent = env)
-  ri <- rewrite_cbind_response(parse_response(f), fam)
+  ri <- parse_response(f)
+  # a term that is an option of the family (brms's bhaz() of cox())
+  # changes the family itself, so it runs before anything reads it
+  fam <- apply_aterm_options(fam, ri$options, env)
+  ri <- rewrite_cbind_response(ri, fam)
 
   primaries <- fam[["primary_dpars"]] %||% "mu"
   pforms <- bform$pforms
@@ -2546,7 +2684,7 @@ parse_one_response <- function(bform) {
       # A nonlinear body is arbitrary R code, so an ar() written there
       # is EVALUATED, not parsed, and fails deep inside the objective
       # with a message about the body. Say what is wrong instead.
-      ac_in_body <- called_functions(b, autocor_structs)
+      ac_in_body <- called_functions(b, autocor_term_names())
       if (length(ac_in_body)) {
         frm_stop("Residual correlation terms are not supported in a ",
                  "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
@@ -2738,7 +2876,7 @@ parse_one_response <- function(bform) {
 
   # mu keeps a design of its own unless a body took its place
   main_lp <- if (!primaries[1L] %in% nl_dpars) {
-    parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env, shared_env)
+    parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env)
   }
   if (!is.null(main_lp[["rsv_intercept"]]) &&
         isTRUE(fam[["drop_intercept"]])) {
@@ -2783,7 +2921,7 @@ parse_one_response <- function(bform) {
   lin_dpar <- function(nm, link) {
     pf <- pforms[[nm]]
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
-                        environment(pf) %||% env, shared_env)
+                        environment(pf) %||% env)
     if (isFALSE(attr(pf, "center", exact = TRUE))) lp[["center"]] <- FALSE
     if (isFALSE(attr(pf, "cmc", exact = TRUE))) lp[["cmc"]] <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)

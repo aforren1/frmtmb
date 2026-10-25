@@ -1,3 +1,325 @@
+# frmtmb 0.75.0
+
+The main changes:
+
+- BREAKING: coefficient names and orders follow brms 2.23.0. A term
+  that calls `exp()`, or another function named like a covariance
+  structure, has brms's name (`expx`, not `.frm_expx`).
+  `default_prior()` lists each coefficient by brms's name (`IxE2`,
+  `polyx21`), and the prior tables sort their rows as brms sorts them.
+  `fixef()` orders nonlinear and multivariate rows as brms does.
+- BREAKING: brms's `bhaz()` addition term is in frmtmb.survival. Without
+  that package, `bhaz()` stops with a message that names it.
+- BREAKING: `set_prior()` accepts a `dirichlet()` row for every class.
+  `validate_prior()` and `frm()` refuse it when the class is not a
+  simplex of the model.
+- New: brms's `fcor()` residual term is in frmtmb, and brms's `sar()`
+  term is in frmtmb.spatial.
+- New seams for extension packages: `frmtmb_register_aterm(option =)`
+  for an addition term that sets an argument of the family, and
+  `frmtmb_register_autocor()` for a residual correlation term. With
+  them come `frmtmb_autocor_pars()`, `frmtmb_covstruct_info()` and
+  `frmtmb_register_covstruct(full_rank =)`.
+- A saved fit that needs extension packages this session cannot load
+  names every one of them in one refusal.
+- Update the extensions together with frmtmb. frmtmb.survival 0.2.0,
+  frmtmb.spatial 0.2.0, frmtmb.sample 0.22.0 and frmtmb.latent 0.7.1
+  need frmtmb 0.75.0.
+
+## Breaking changes
+
+* A `dirichlet()` prior on a parameter that is not a simplex is refused
+  at one point, however it is written: where the prior meets the model,
+  in `validate_prior()` and `frm()`, before any fitting. Through 0.74.0,
+  `set_prior("dirichlet(2)", class = "Intercept", dpar = "sigma")` was
+  refused by `set_prior()`, but `class = "sigma"` was refused at the
+  fit. Only the model can tell a declared simplex
+  (`frmtmb_family(simplex_pars =)`) from a distributional parameter. So
+  `set_prior()` now accepts the row for every class, and the refusal
+  repeats the spelling as written. brms 2.23.0 accepts both spellings in
+  `set_prior()`, `validate_prior()` and `stancode()`, and stops at the
+  Stan compile. The link-scale spelling of a declared simplex,
+  `class = "Intercept", dpar = "tw"`, is refused by name; write
+  `class = "tw"`. A brms prior object with such a row is refused the
+  same way. Before, it was refused as "a brms prior table has 1 row with
+  no faithful frmtmb spelling". On `class = "theta"`, the refusal adds
+  that brms's `theta` of a `mixture()` is the Dirichlet on its mixing
+  proportions, which frmtmb's `theta` is not.
+
+* **brms's `bhaz()` addition term is frmtmb.survival's.** Without that
+  package, `time | bhaz(df = 6) ~ x` stops with "The bhaz() addition
+  term is in the extension package frmtmb.survival, which is not
+  loaded", as `dec()` names frmtmb.eam. Before, frmtmb refused `bhaz()`
+  as a term it does not support and pointed to `cox(df =)`. With
+  frmtmb.survival loaded, `bhaz()` sets the basis of the `cox()`
+  baseline, as in brms 2.23.0.
+
+* **A term that calls `exp()` has brms's coefficient names.** To keep
+  `exp(x)` from being dropped as a covariance structure, the parser
+  renames the call to `.frm_exp(x)`. Since 0.15.0 that alias was the
+  name of the design column. So the coefficient was `.frm_expx` in
+  `fixef()`, `vcov()`, `summary()`, `coef()`, `ranef()` and `VarCorr()`.
+  It was `b_.frm_expx` in `variables()` and in the draws of
+  `frmtmb.sample::frm_sample()`, and `.frm_exp(x)` in `confint()` and
+  `default_prior()`. brms 2.23.0 names it `expx` and `b_expx`, and
+  `set_prior(coef = "expx")` and `hypothesis(fit, "expx > 0")` were
+  refused. The same applies to `I(exp(x))`, `exp(x):z`, a group-level
+  `(1 + exp(x) | g)`, and a call of any other function whose name is
+  that of a covariance structure. Now the alias stays in the parser: the
+  coefficient is `expx` everywhere brms has it, and the `confint()` row
+  is `exp(x)`. Of 40 formula terms compared with brms 2.23.0, 18 had the
+  alias in their names.
+
+* **`default_prior()` lists each coefficient by brms's name**, and
+  `set_prior(coef =)` takes that name. The `coef` column held the design
+  column, such as `log(xp)`, `I(x^2)` or `poly(x, 2)1`, where brms
+  2.23.0 lists `logxp`, `IxE2` and `polyx21`. And `set_prior()` refused
+  brms's name where the rename is more than dropped parentheses, such as
+  `IxE2`, `polyx21` or `expxD2`. The design column name still works in
+  `set_prior(coef =)`, for class `"b"`, class `"sd"` and a `cs()` term
+  alike. The two spellings name one slot, so writing both is refused as
+  a duplicate. Before, class `"sd"` and `cs()` refused `coef = "I(x^2)"`
+  and `"poly(x, 2)2"`.
+
+* **The rows of `default_prior()`, `validate_prior()` and
+  `prior_summary()` are in brms's order.** `default_prior()` orders them
+  as brms's does, by response, distributional parameter, nonlinear
+  parameter, class, group and coef, so `b` comes before `cor`,
+  `Intercept` and `sd`. `validate_prior()` and `prior_summary()` order
+  them as brms's do, by class, group, response, distributional
+  parameter, nonlinear parameter and coef. frmtmb's own class `"theta"`,
+  which brms does not have, stays last. Before, `Intercept` came first
+  and `cor` after `sd`, and only the `sd` rows of `validate_prior()`
+  were in brms's order.
+
+* **A nonlinear parameter of a multivariate model has brms's prefix.**
+  brms writes the distributional parameter, then the response, then the
+  nonlinear parameter, so `a` of the response `yn` is `yn_a`:
+  `b_yn_a_Intercept` and `sd_g__yn_a_Intercept` in `variables()` and the
+  draws, `yn_a_Intercept` in `fixef()`. frmtmb wrote `b_a_yn_Intercept`
+  and `a_yn_Intercept`, and `hypothesis()` refused brms's names.
+
+* **`fixef()`, `vcov()` and `summary()` of a fit list the rows in brms's
+  order** in two more cases. A nonlinear parameter's intercept keeps its
+  place among its coefficients, because brms does not center the formula
+  of a nonlinear parameter: for
+  `bf(y ~ a + b * x, a ~ exp(z), b ~ 1 + z, sigma ~ z, nl = TRUE)` brms
+  2.23.0 gives `sigma_Intercept`, `a_Intercept`, `a_expz`,
+  `b_Intercept`, `b_z`, `sigma_z`, where frmtmb listed `a_Intercept` and
+  `b_Intercept` first. And a multivariate model lists its rows response
+  by response, as brms declares them: `sigma_yn_Intercept` before
+  `y_Intercept` when `yn` is the first response.
+
+## New features
+
+* **`frmtmb_register_aterm(option =)`** registers an addition term that
+  carries no data and sets an argument of the family instead. brms's
+  `bhaz(df = 6)`, for example, sets the baseline basis of `cox()`.
+  frmtmb calls the function with the family, the term's call as written
+  and the formula's environment, and fits the family that it returns. A
+  family whose `frmtmb_family(accepts_aterms =)` does not name the term
+  is refused before the function runs, as brms refuses `bhaz()` for a
+  family other than `cox()`. frmtmb.survival uses it for `bhaz()`.
+  `frm_compat()`'s generic rows for addition terms now say what each
+  kind of term does. A registered data term carries a column to the
+  family's density. An option term adds nothing to the likelihood and
+  sets an argument of the family of its own response.
+
+* `fcor(M)`, brms's fixed residual correlation term, is supported. As in
+  brms 2.23.0, the residuals of a `gaussian()` or `student()` response
+  are one draw with covariance `sigma^2 M`. Under a predicted
+  `sigma ~ ...` the covariance is `D M D` with `D = diag(sigma)`. `M`
+  comes from `data2`, covers every row of the data, and loses the rows
+  the model drops, as in brms; a vector is its diagonal. The
+  log-likelihood equals brms's Stan program to 7e-15 at frmtmb's
+  estimates (gaussian, with a brms gradient there below 3e-6). It equals
+  it to 1.4e-14 at set parameter values with `nu = 5` (student). A brms
+  fit of 64 rows agrees with the maximum likelihood fit to within 0.33
+  standard errors in every parameter. `fitted()`, `residuals()` (pearson
+  divides by `sigma * sqrt(diag(M))`), `simulate()`, `predict()` and
+  `autocor_matrix()` work on the fitted rows. They also take `newdata`
+  with one row per row of `M`, read in their order, as brms reads it. So
+  a counterfactual (`x + 1` everywhere) works. When the fit dropped rows
+  for missing values, `newdata` covers them too, and a row with a
+  missing predictor gives `NA`, as in brms. `fitted()` there equals
+  brms's `posterior_epred()` at the same parameter values. Other
+  `newdata` is refused, because `M` covers the fitted rows only; brms
+  refuses it too unless `newdata2` holds a matrix over the new rows.
+  `frm_linpred()` takes any `newdata`. frmtmb refused `fcor()` by name
+  before.
+
+* brms 2.23.0 checks that `M` is positive definite with
+  `min(eigen(M)$values <= 0)`, which passes a matrix with a negative
+  eigenvalue. Its fit of such an `M` then fails in Stan, where the
+  Cholesky factor of `M` is taken. frmtmb refuses every `M` that is not
+  positive definite, before the fit.
+
+* brms's `sar()` is now supported in frmtmb.spatial. Without that
+  package, `sar()` in the formula or in `bf(autocor = ~ sar(M))` stops
+  with a message that names it, where frmtmb refused it as unsupported
+  before. `set_prior()` takes `class = "lagsar"` and
+  `class = "errorsar"`, as brms does.
+
+* New seam `frmtmb_register_autocor()`. A package registers a term that
+  correlates the residuals of a gaussian or student response. The term
+  is one affine map from the response to independent innovations, with
+  its inverse. frmtmb writes the density, the mean, the draws, the
+  residual covariance and the guards from the map. `fcor()` is frmtmb's
+  own term of this shape, and frmtmb.spatial registers `sar()` through
+  it. A covariance structure (`frmtmb_register_covstruct()`) cannot
+  express such a term: it adds a latent vector to the linear predictor,
+  and a lag SAR changes the mean of the response itself.
+  `frmtmb_local_registries()` saves and restores the new registry.
+
+* The map gets one `sigma` when the term sets `sigma_varies = FALSE`.
+  `unwhiten()` takes a matrix of innovations, one column each, so the
+  pearson residuals and `autocor_matrix()` solve the term's system once
+  for every column. On a 50 x 50 lattice under `sar()` (2500 rows), they
+  take 0.48 s and 4.3 s. One solve per column took 16 s each. When the
+  model is built, frmtmb checks the map once. `unwhiten()` must give one
+  value per row and one column per column of innovations. `whiten()`
+  must give one innovation per row and one finite log-Jacobian.
+  `whiten(unwhiten(u))` must give back `u` to a relative 1e-6. A map
+  that fails is refused with the term's name.
+
+* A term's `bounds` slot states the interval of a parameter that
+  `natural` maps by `lower + (upper - lower) plogis(theta)`.
+  `set_prior()` then takes the parameter's name as its class, and `lb`
+  and `ub` narrow the interval. frmtmb.sample's default prior on it is
+  flat on the interval, as brms's on `lagsar` is. A class prior on a
+  parameter without `bounds` is refused, with the internal parameter to
+  write it on instead. A parameter with `bounds` has one prior slot, its
+  class: its internal row is not in `default_prior()`, and a prior on it
+  is refused. New export `frmtmb_autocor_pars()` lists the parameters of
+  a fit's registered terms, with their intervals.
+
+* A slot of `frmtmb_register_autocor()` or `frmtmb_register_covstruct()`
+  can be a function of `...`.
+
+* New export `frmtmb_covstruct_info()`: what the registry knows about
+  one covariance structure (its package, whether it is a field, whether
+  its levels are coupled, whether it is full rank). frmtmb.sample reads
+  it instead of keeping its own list of field structures. A name that
+  core lists as an extension's (`"car"`, `"spde"`) loads that extension.
+  A residual correlation term's name, such as `"sar"`, is refused with a
+  pointer to `frmtmb_autocor_pars()`.
+
+* `frmtmb_register_covstruct(full_rank =)` states whether an effect a
+  row owns can reach any value with a finite density: a covariance that
+  is positive definite at some parameter value and a density that is
+  positive everywhere. A structure that states nothing leaves the
+  weights check open for it, because its covariance does not tell: a
+  latent with bounded support keeps a weighted model's maximum. A
+  package whose structure is full rank should state `full_rank = TRUE`.
+
+* autoscale leaves the random slopes of every structure but `us()` and
+  `diag()` as they are. That holds for frmtmb's own `homdiag()` or
+  `cs()` as much as for a structure another package registers. Nothing
+  tells frmtmb that their parameters scale with the column. It now says
+  so in a message that names the structure and the column. It said
+  nothing before.
+
+## Bug fixes
+
+* A saved fit that needs extension packages this session cannot load
+  names every one of them in one refusal (class
+  `frmtmb_extension_missing`), with one instruction: "This model needs 2
+  extension packages ...: frmtmb.survival (the cox family of this model)
+  and frmtmb.spatial (the car() structure of this model). Install them
+  and run library(frmtmb.survival); library(frmtmb.spatial)". Through
+  0.74.0 a `cox()` fit with a `car()` term named one package at a time:
+  `summary()` named frmtmb.survival and `print()` named frmtmb.spatial,
+  so the second was found only after the first was installed. Every
+  method of a fit that reads the model's families, structures or
+  residual correlation terms checks them all first. So `hypothesis()`,
+  `residuals()` and `drop1()` name every package too. A method that
+  reads only stored values, such as `logLik()`, still answers. The
+  refusal for a `cox()` fit an older frmtmb built names the other
+  missing packages too. Where its new home, frmtmb.survival, is
+  installed but cannot be loaded, the refusal says to reinstall it.
+
+* `fixef()` of a fit with a part from a package this session cannot load
+  refuses, by the package's name. Through 0.74.0 it answered with
+  `Est.Error` NA: it read the refusal as "no covariance". The same was
+  true of a saved `cox()` fit from frmtmb 0.73.0 with frmtmb.survival
+  installed. Every handler that reads an error as "no answer" now lets
+  this refusal through. So `predict()` no longer warns first that "the
+  covariance of the estimates could not be recovered from the Hessian".
+  And `cooks.distance()` no longer says that "all deletion refits
+  failed".
+
+* `predict(newdata = )` names the reason for the model at hand. Through
+  0.74.0 it said "its draws are structured (a hidden state sequence, a
+  group-level latent class, or a correlated residual)" for every model.
+  A `mixture_mvn()` fit is none of the three. It now names the family
+  that draws its whole response at once, or the residual correlation
+  term, such as `ar(time = t, gr = g, cov = TRUE)`.
+
+* `print()` of a curve (`frm_curve()`, `frm_curve_deriv()`) or a curve
+  feature (`frm_curve_feature()`) takes `digits =`, which reaches the
+  printed rows as in `print.data.frame()`. Through 0.74.0 it stopped
+  with "print() has no argument `digits`".
+
+* **`drop1()` and `step()` see a term that calls `exp()`.** With the
+  alias, `drop1()` found no columns for the term: on `y ~ exp(x) + z`
+  (200 rows) the `.frm_exp(x)` row had `Df 0` and the full model's AIC,
+  607.84, so the term looked free to drop. The row is now `exp(x)`, with
+  `Df 1` and AIC 625.69, the AIC of `y ~ z` refitted. And `step()` drops
+  `z`, which lowers the AIC to 605.84; before, it kept both terms.
+
+* **`re_formula` can name a group-level `exp()` term.**
+  `fitted(fit, re_formula = ~ (1 + exp(x) | g))` on
+  `y ~ exp(x) + (1 + exp(x) | g)` stopped with "matches no group-level
+  term of this fit", because the fit's term was `(1 + .frm_exp(x) | g)`.
+  It now gives the full prediction, which is also the prediction of the
+  same model on a column holding `exp(x)`.
+
+* **A smooth's unpenalized column written in both spellings is one prior
+  slot.** `set_prior(coef = "s(x).fx1")` and `set_prior(coef = "sx_1")`
+  name the same coefficient. But in 0.74.0 the pair was taken as two
+  specifications, and the later one replaced the earlier without a word:
+  with `normal(3, 0.001)` on the first and `normal(-3, 0.001)` on the
+  second, `validate_prior()` listed only the second and the fit put the
+  coefficient at -3. The pair is now refused as a duplicate, as two
+  specifications for one slot always are.
+
+* **A multivariate model whose second response's nonlinear formula calls
+  `exp()` fits.** In 0.74.0 such a model, for example `mvbf(f1, f2)`
+  with `f1 = bf(yn ~ a * exp(b * x), a ~ 1, b ~ 1, nl = TRUE)` and
+  `f2 = bf(y ~ c + d * x, c ~ exp(z), d ~ 1, nl = TRUE)`, stopped with
+  'could not find function ".frm_exp"'.
+
+* The weights check refuses a weighted likelihood with no maximum. It
+  named its full-rank structures in a list, so it failed open for every
+  structure another package registers. It now reads each structure's
+  `full_rank`. Take a Gamma model with weights 1.5 and a registered iid
+  block on one level per row that states `full_rank = TRUE`. It is
+  refused now, as the same model with `(1 | obs)` is. Before, it fitted
+  to a logLik of 849 with a shape of 5e14 and two warnings. A registered
+  structure that is not full rank, or states nothing, is not refused.
+
+* The Student-t latents of `gr(dist = "student")` were not full rank for
+  the weights check, so it failed open for them. A Gamma model with
+  weights 1.5 and `(1 | gr(obs, dist = "student"))` fitted to a logLik
+  of 4.7e7 with a shape of 8e19 and two warnings. It is refused now, as
+  the same model with `(1 | obs)` is, and the refusal names the term as
+  written.
+
+## Other changes
+
+* frmtmb's R CMD check (four platforms) and its coverage job fail when a
+  test skips because a suggested package is missing or cannot be loaded.
+  The extension jobs have done so since 0.74.0. Every job with this gate
+  also fails when testthat's output has no summary line. No package is
+  allowed to be absent. The GEV density test reads extraDistr, a
+  suggested package, in place of evd, which frmtmb does not declare. So
+  it runs on every platform. Through 0.74.0 it skipped on all four R CMD
+  check jobs and in coverage.
+
+* The pkgdown job installs every extension. It also runs the saved-fit
+  test of `cox()`, `car()` and `sar()` with neither extension loadable,
+  and fails if any part of it skips.
+
 # frmtmb 0.74.0
 
 The main changes:

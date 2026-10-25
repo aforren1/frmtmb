@@ -48,8 +48,10 @@ test_that("a family an older frmtmb built, now an extension's, is refused", {
   expect_match(conditionMessage(e),
                "The cox family of this model was built by an older frmtmb",
                fixed = TRUE)
+  # "Install frmtmb.survival and refit" where that package is not
+  # installed, as under R CMD check, which hides undeclared packages
   expect_match(conditionMessage(e),
-               "Refit the model with library(frmtmb.survival) loaded",
+               "efit the model with library(frmtmb.survival) loaded",
                fixed = TRUE)
   # the guard absent: the core family itself; the same name recorded as
   # the extension's (a frmtmb.eam wiener() fit records frmtmb.eam); a
